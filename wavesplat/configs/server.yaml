@@ -1,0 +1,66 @@
+# WaveSim Configuration — Server (32GB+ RAM, i9 CPU, RTX 5080)
+# Full-resolution generation for paper-quality dataset
+
+# ── LiDAR Sensor: Seyond Falcon K1 (full resolution) ────────────────────────
+lidar:
+  height: 5.0
+  channels: 152
+  scan_rate: 10.0
+  fov_h_deg: 120.0
+  fov_v_min_deg: -25.0
+  fov_v_max_deg: 0.0
+  range_min: 1.5
+  range_max: 250.0
+  n_h_beams: 2000          # full 0.06° H-resolution (4× default)
+  wavelength_nm: 1550
+
+# ── Raycast Engine (optimized for 32GB RAM) ──────────────────────────────────
+raycast:
+  batch_size: 10000        # larger batches for i9 (2.5× default)
+  spatial_grid_nx: 40      # finer spatial hash (2× default)
+  spatial_grid_ny: 30
+
+# ── Wave Surface Mesh (higher fidelity) ──────────────────────────────────────
+mesh:
+  nx: 80                   # matches GT resolution (2× default)
+  ny: 60
+
+# ── Ground Truth Grid (same as default) ──────────────────────────────────────
+gt_grid:
+  x_range: [10.0, 250.0]
+  y_range: [-100.0, 100.0]
+  nx: 120                  # 1.5× default for finer GT
+  ny: 90
+
+# ── Episode Generation ───────────────────────────────────────────────────────
+episode:
+  duration: 30.0
+  dt: 0.1
+  depth: 50.0
+  n_pts: 50
+  n_freq: 64
+
+# ── Sea State Presets ────────────────────────────────────────────────────────
+sea_states:
+  BF2: { Hs: 0.3, Tp: 4.0 }
+  BF3: { Hs: 0.6, Tp: 5.5 }
+  BF4: { Hs: 1.2, Tp: 7.0 }
+  BF5: { Hs: 2.0, Tp: 9.0 }
+
+# ── Dataset Generation Matrix ────────────────────────────────────────────────
+dataset:
+  seeds: [0, 1, 2, 3, 4]
+  raydrop_models: [uniform, slope]
+  output_dir: data
+  num_workers: 4           # parallel episode generation (i9: 4 workers safe)
+  scenarios:
+    - { name: S01, sea_state: BF2, n_components:  1 }
+    - { name: S02, sea_state: BF3, n_components:  1 }
+    - { name: S03, sea_state: BF3, n_components:  2 }
+    - { name: S04, sea_state: BF3, n_components:  5 }
+    - { name: S05, sea_state: BF4, n_components:  1 }
+    - { name: S06, sea_state: BF4, n_components:  5 }
+    - { name: S07, sea_state: BF4, n_components: 15 }
+    - { name: S08, sea_state: BF4, n_components: 30 }
+    - { name: S09, sea_state: BF5, n_components: 15 }
+    - { name: S10, sea_state: BF5, n_components: 30 }

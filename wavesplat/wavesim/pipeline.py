@@ -3,13 +3,17 @@ pipeline.py
 End-to-end WaveSim pipeline: wave → LiDAR simulation → save episode.
 
 Usage:
-  python pipeline.py --sea_state BF4 --n_components 30 --n_pts 50 --seed 42
+  # Single episode (CLI)
+  python -m wavesim.pipeline --config configs/default.yaml --sea_state BF4
+
+  # Full dataset (see generate_dataset.py)
 """
 
 import numpy as np
 import argparse
 import os
 
+from wavesim.config import WaveSimConfig, load_config
 from wavesim.wave_generator import jonswap_components, check_q_constraint
 from wavesim.lidar_simulator import (
     LidarConfig, build_mesh, generate_rays, raycast_surface,
@@ -22,7 +26,7 @@ from wavesim.noise_model import add_noise, compute_confidence
 from wavesim.data_writer import save_episode
 
 
-# ── Sea state presets ─────────────────────────────────────────────────────────
+# ── Sea state presets (fallback if no config) ────────────────────────────────
 SEA_STATE = {
     'BF2': dict(Hs=0.3, Tp=4.0),
     'BF3': dict(Hs=0.6, Tp=5.5),
@@ -41,21 +45,21 @@ def run_episode(sea_state: str = 'BF4',
                 depth: float = 50.0,
                 output_dir: str = 'data',
                 verbose: bool = True,
-                test_resolution: bool = True,
-                mesh_nx: int = 40,
-                mesh_ny: int = 30) -> str:
+                cfg: WaveSimConfig = None) -> str:
     """
     Run one WaveSim episode and save to HDF5.
 
-    Sensor: Seyond Falcon K1 (1550nm, 120°×25° FOV, 152ch, 10FPS)
-      test_resolution=True  → n_h_beams=500  (fast, for development)
-      test_resolution=False → n_h_beams=2000 (full 0.06° H-resolution)
+    If cfg is provided, LiDAR/raycast/mesh/GT settings are taken from it.
+    Otherwise, defaults are used (backward compatible).
 
     Returns:
         filepath: path to saved .h5 file
     """
+    if cfg is None:
+        cfg = WaveSimConfig()
+
     rng = np.random.default_rng(seed)
-    params = SEA_STATE[sea_state]
+    params = cfg.sea_states.get(sea_state, SEA_STATE.get(sea_state))
     Hs, Tp = params['Hs'], params['Tp']
 
     # ── 1. Generate wave components ──────────────────────────────────────────
@@ -67,42 +71,48 @@ def run_episode(sea_state: str = 'BF4',
         print(f"[Wave] {sea_state}: Hs={Hs}m, Tp={Tp}s, {n_components} components, "
               f"Q-sum={q_val:.3f}")
 
-    # ── 2. Setup grid & LiDAR ────────────────────────────────────────────────
-    # Grid: forward-looking region, 10-250m in front of ship
-    x_range = (10.0, 250.0)
-    y_range = (-100.0, 100.0)
-    X_gt, Y_gt = make_grid(x_range, y_range, nx=80, ny=60)
+    # ── 2. Setup grid & LiDAR from config ────────────────────────────────────
+    x_range = cfg.gt_grid.x_range
+    y_range = cfg.gt_grid.y_range
+    X_gt, Y_gt = make_grid(x_range, y_range, nx=cfg.gt_grid.nx, ny=cfg.gt_grid.ny)
 
-    # Seyond Falcon K1: 120°×25° FOV, 152ch, 1550nm, range 1.5~500m (250m@10%)
-    # V FOV -25°~0°: covers ~11m (near) to horizon; ships sensor at 5m height
-    n_h_beams = 500 if test_resolution else 2000
     lidar_cfg = LidarConfig(
-        height=5.0, channels=152, scan_rate=10.0,
-        fov_h_deg=120.0, fov_v_min_deg=-25.0, fov_v_max_deg=0.0,
-        range_min=1.5, range_max=250.0, n_h_beams=n_h_beams
+        height=cfg.lidar.height,
+        channels=cfg.lidar.channels,
+        scan_rate=cfg.lidar.scan_rate,
+        fov_h_deg=cfg.lidar.fov_h_deg,
+        fov_v_min_deg=cfg.lidar.fov_v_min_deg,
+        fov_v_max_deg=cfg.lidar.fov_v_max_deg,
+        range_min=cfg.lidar.range_min,
+        range_max=cfg.lidar.range_max,
+        n_h_beams=cfg.lidar.n_h_beams,
     )
 
     # ── 3. Simulate frames ───────────────────────────────────────────────────
     timestamps = np.arange(0.0, duration + 1e-9, dt)
     frames_data = []
 
+    # Pre-generate rays (same for all frames since ship is stationary)
+    origins, ray_dirs = generate_rays(lidar_cfg, ship_x=0.0, ship_y=0.0)
+
     for t in timestamps:
         # Evaluate wave surface on dense grid
         Z_gt, NX_gt, NY_gt, NZ_gt = evaluate_field(components, X_gt, Y_gt, t)
 
-        # Build mesh for raycasting (coarser than GT grid for speed)
-        X_mesh, Y_mesh = make_grid(x_range, y_range, nx=mesh_nx, ny=mesh_ny)
+        # Build mesh for raycasting
+        X_mesh, Y_mesh = make_grid(x_range, y_range,
+                                    nx=cfg.mesh.nx, ny=cfg.mesh.ny)
         Z_mesh, _, _, _ = evaluate_field(components, X_mesh, Y_mesh, t)
         verts, tris = build_mesh(X_mesh, Y_mesh, Z_mesh)
-
-        # Generate rays
-        origins, ray_dirs = generate_rays(lidar_cfg, ship_x=0.0, ship_y=0.0)
 
         # Raycast
         hit_mask, hit_pts, hit_dist = raycast_surface(
             origins, ray_dirs, verts, tris,
             range_min=lidar_cfg.range_min,
-            range_max=lidar_cfg.range_max
+            range_max=lidar_cfg.range_max,
+            batch_size=cfg.raycast.batch_size,
+            spatial_grid_nx=cfg.raycast.spatial_grid_nx,
+            spatial_grid_ny=cfg.raycast.spatial_grid_ny,
         )
 
         if not np.any(hit_mask):
@@ -163,10 +173,11 @@ def run_episode(sea_state: str = 'BF4',
         raise RuntimeError("No valid frames generated. Check raydrop parameters.")
 
     # ── 4. Compute spectrum and save ─────────────────────────────────────────
-    spectrum = compute_spectrum_1d(components, n_freq=64)
+    spectrum = compute_spectrum_1d(components, n_freq=cfg.episode.n_freq)
     gt_x = X_gt[0, :]
     gt_y = Y_gt[:, 0]
 
+    os.makedirs(output_dir, exist_ok=True)
     fname = f"episode_{sea_state}_{n_components}comp_seed{seed}_{raydrop_model}.h5"
     filepath = os.path.join(output_dir, fname)
 
@@ -192,30 +203,40 @@ def run_episode(sea_state: str = 'BF4',
 
 def main():
     parser = argparse.ArgumentParser(description='WaveSim pipeline')
-    parser.add_argument('--sea_state', default='BF4', choices=list(SEA_STATE.keys()))
+    parser.add_argument('--config', type=str, default=None,
+                        help='Path to YAML config file')
+    parser.add_argument('--sea_state', default='BF4',
+                        choices=['BF2', 'BF3', 'BF4', 'BF5'])
     parser.add_argument('--n_components', type=int, default=30)
-    parser.add_argument('--n_pts', type=int, default=50)
+    parser.add_argument('--n_pts', type=int, default=None)
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--raydrop', default='uniform', choices=['uniform', 'slope'])
-    parser.add_argument('--duration', type=float, default=3.0)
-    parser.add_argument('--dt', type=float, default=0.1)
-    parser.add_argument('--output_dir', default='data')
-    parser.add_argument('--full_resolution', action='store_true',
-                        help='Use full Falcon K1 resolution (n_h_beams=2000). '
-                             'Default: test mode (n_h_beams=500).')
+    parser.add_argument('--raydrop', default='uniform',
+                        choices=['uniform', 'slope'])
+    parser.add_argument('--duration', type=float, default=None)
+    parser.add_argument('--dt', type=float, default=None)
+    parser.add_argument('--output_dir', default=None)
     args = parser.parse_args()
+
+    cfg = load_config(args.config)
+
+    # CLI args override config
+    duration = args.duration or cfg.episode.duration
+    dt = args.dt or cfg.episode.dt
+    n_pts = args.n_pts or cfg.episode.n_pts
+    output_dir = args.output_dir or cfg.dataset.output_dir
 
     run_episode(
         sea_state=args.sea_state,
         n_components=args.n_components,
-        n_pts=args.n_pts,
+        n_pts=n_pts,
         seed=args.seed,
         raydrop_model=args.raydrop,
-        duration=args.duration,
-        dt=args.dt,
-        output_dir=args.output_dir,
+        duration=duration,
+        dt=dt,
+        depth=cfg.episode.depth,
+        output_dir=output_dir,
         verbose=True,
-        test_resolution=not args.full_resolution,
+        cfg=cfg,
     )
 
 

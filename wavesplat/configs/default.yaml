@@ -1,0 +1,73 @@
+# WaveSim Configuration — Default (development, local machine)
+# For server deployment, use server.yaml
+
+# ── LiDAR Sensor: Seyond Falcon K1 ──────────────────────────────────────────
+lidar:
+  height: 5.0             # sensor height above calm sea [m]
+  channels: 152            # vertical channels (Falcon K1 spec)
+  scan_rate: 10.0          # scan frequency [Hz]
+  fov_h_deg: 120.0         # horizontal FOV [degrees]
+  fov_v_min_deg: -25.0     # vertical FOV bottom [degrees] (Falcon K1: -25°~0°)
+  fov_v_max_deg: 0.0       # vertical FOV top [degrees]
+  range_min: 1.5           # minimum detection range [m]
+  range_max: 250.0         # maximum detection range [m]
+  n_h_beams: 500           # horizontal beams (dev: 500, full: 2000)
+  wavelength_nm: 1550      # sensor wavelength [nm] (eye-safe)
+
+# ── Raycast Engine ───────────────────────────────────────────────────────────
+raycast:
+  batch_size: 4000         # rays per batch in Möller-Trumbore
+  spatial_grid_nx: 20      # 2D spatial hash grid cells (x)
+  spatial_grid_ny: 15      # 2D spatial hash grid cells (y)
+
+# ── Wave Surface Mesh ────────────────────────────────────────────────────────
+mesh:
+  nx: 40                   # mesh grid resolution (x), coarser than GT for speed
+  ny: 30                   # mesh grid resolution (y)
+
+# ── Ground Truth Grid ────────────────────────────────────────────────────────
+gt_grid:
+  x_range: [10.0, 250.0]  # forward-looking region [m]
+  y_range: [-100.0, 100.0] # lateral extent [m]
+  nx: 80                   # GT evaluation grid (x)
+  ny: 60                   # GT evaluation grid (y)
+
+# ── Episode Generation ───────────────────────────────────────────────────────
+episode:
+  duration: 30.0           # episode length [s]
+  dt: 0.1                  # timestep [s] (= 10 Hz)
+  depth: 50.0              # water depth [m]
+  n_pts: 50                # expected LiDAR returns per frame
+  n_freq: 64               # spectrum frequency bins
+
+# ── Sea State Presets ────────────────────────────────────────────────────────
+sea_states:
+  BF2: { Hs: 0.3, Tp: 4.0 }
+  BF3: { Hs: 0.6, Tp: 5.5 }
+  BF4: { Hs: 1.2, Tp: 7.0 }
+  BF5: { Hs: 2.0, Tp: 9.0 }
+
+# ── Dataset Generation Matrix ────────────────────────────────────────────────
+# 15 scenarios × 5 seeds × 2 raydrop models = 150 episodes
+dataset:
+  seeds: [0, 1, 2, 3, 4]
+  raydrop_models: [uniform, slope]
+  output_dir: data
+  scenarios:
+    # Progressive complexity (stationary ship)
+    - { name: S01, sea_state: BF2, n_components:  1 }
+    - { name: S02, sea_state: BF3, n_components:  1 }
+    - { name: S03, sea_state: BF3, n_components:  2 }
+    - { name: S04, sea_state: BF3, n_components:  5 }
+    - { name: S05, sea_state: BF4, n_components:  1 }
+    - { name: S06, sea_state: BF4, n_components:  5 }
+    - { name: S07, sea_state: BF4, n_components: 15 }
+    - { name: S08, sea_state: BF4, n_components: 30 }
+    - { name: S09, sea_state: BF5, n_components: 15 }
+    - { name: S10, sea_state: BF5, n_components: 30 }
+    # Moving ship (requires ship motion in pipeline — Phase 2)
+    # - { name: S11, sea_state: BF4, n_components: 15, ship_speed_kts:  5 }
+    # - { name: S12, sea_state: BF4, n_components: 30, ship_speed_kts:  5 }
+    # - { name: S13, sea_state: BF5, n_components: 15, ship_speed_kts:  5 }
+    # - { name: S14, sea_state: BF4, n_components: 30, ship_speed_kts: 10 }
+    # - { name: S15, sea_state: BF5, n_components: 30, ship_speed_kts: 10 }

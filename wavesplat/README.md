@@ -36,21 +36,26 @@ This repository contains **WaveSim**, the physics-based LiDAR simulation environ
 
 ```
 wavesplat/
+├── configs/                    # YAML configuration files
+│   ├── default.yaml            # Local dev (76K rays, 1 worker)
+│   └── server.yaml             # Server (304K rays, 4 workers, full resolution)
 ├── wavesim/                    # Simulation package (Phase 1-B, complete)
+│   ├── config.py               # Config loader + dataclasses
 │   ├── wave_generator.py       # Gerstner wave + JONSWAP spectrum
-│   ├── lidar_simulator.py      # Ray generation + ray-mesh intersection
+│   ├── lidar_simulator.py      # Ray generation + spatial-filtered ray-mesh intersection
 │   ├── raydrop_uniform.py      # Model A: Fresnel/distance-based dropout
 │   ├── raydrop_slope.py        # Model B: Specular backscatter dropout
 │   ├── gt_generator.py         # Ground truth wave field evaluation
 │   ├── noise_model.py          # Sensor noise + confidence weighting
 │   ├── data_writer.py          # HDF5 save/load
-│   ├── pipeline.py             # End-to-end pipeline
+│   ├── pipeline.py             # End-to-end episode pipeline
 │   └── tests/                  # 39 unit tests
 │       ├── test_wave_generator.py
 │       ├── test_raycast.py
 │       ├── test_raydrop.py
 │       ├── test_gt.py
 │       └── test_pipeline.py
+├── generate_dataset.py         # Batch dataset generation (parallel)
 ├── wavesplat/                  # Estimation algorithm (Phase 3, TBD)
 ├── experiments/
 ├── data/                       # Generated HDF5 episodes
@@ -74,33 +79,70 @@ pip install open3d
 
 ## Quick Start
 
-### Generate a simulation episode
+### Run tests
 
 ```bash
 cd wavesplat
+python3 -m pytest wavesim/tests/ -v
+```
 
-python3 -m wavesim.pipeline \
-    --sea_state BF4 \
-    --n_components 30 \
-    --n_pts 50 \
-    --seed 42 \
-    --raydrop uniform \
-    --duration 30.0 \
-    --dt 0.1 \
-    --output_dir data
+Expected: **39 passed**
+
+### Generate a single episode
+
+```bash
+# With config file (recommended)
+python3 -m wavesim.pipeline --config configs/default.yaml \
+    --sea_state BF4 --n_components 30 --seed 42
+
+# Override specific parameters via CLI
+python3 -m wavesim.pipeline --config configs/default.yaml \
+    --sea_state BF4 --n_components 30 --seed 42 \
+    --raydrop slope --duration 10.0 --n_pts 100
 ```
 
 Sea states: `BF2` (Hs=0.3m), `BF3` (Hs=0.6m), `BF4` (Hs=1.2m), `BF5` (Hs=2.0m)
 
 Raydrop models: `uniform` (Model A), `slope` (Model B)
 
-### Run tests
+### Generate full dataset
 
 ```bash
-python3 -m pytest wavesim/tests/ -v
+# 1. Preview the generation plan
+python3 generate_dataset.py --config configs/default.yaml --dry-run
+
+# 2. Run (sequential, local dev)
+python3 generate_dataset.py --config configs/default.yaml --skip-existing
+
+# 3. Run on server (parallel, full resolution)
+python3 generate_dataset.py --config configs/server.yaml --skip-existing
 ```
 
-Expected: **39 passed**
+The dataset matrix is defined in the config YAML (10 scenarios × 5 seeds × 2 raydrop models = 100 episodes).
+
+---
+
+## Configuration
+
+All simulation parameters are managed via YAML config files in `configs/`.
+
+| Config | LiDAR Rays | Mesh | Workers | Use Case |
+|--------|-----------|------|---------|----------|
+| `default.yaml` | 76K/frame | 40×30 | 1 | Local development, testing |
+| `server.yaml` | 304K/frame | 80×60 | 4 | Paper-quality dataset (32GB+ RAM, i9) |
+
+### Key config sections
+
+```yaml
+lidar:          # Seyond Falcon K1 sensor parameters
+raycast:        # Batch size, spatial grid resolution
+mesh:           # Raycast mesh resolution
+gt_grid:        # Ground truth evaluation grid
+episode:        # Duration, timestep, depth, target points
+dataset:        # Scenario matrix, seeds, workers
+```
+
+CLI arguments (`--sea_state`, `--n_pts`, `--duration`, etc.) override config values.
 
 ---
 
@@ -136,7 +178,7 @@ P_return = η · R_fresnel(θᵢ) · cos(θᵢ) / (d/d_ref)²
 | Wave mesh | Gerstner exact solution | Analytic RMSE < 1e-10 m |
 | Dispersion | ω = √(gk·tanh(kd)) | Analytic deep/shallow water limits |
 | Ray intersection | Möller-Trumbore (1997) | Known surface geometry |
-| Fresnel reflectance | Fresnel equations (n=1.328) | Textbook values at reference angles |
+| Fresnel reflectance | Fresnel equations (n=1.321 @1550nm) | Textbook values at reference angles |
 | Q constraint | Jacobian > 0 condition | Monitored every frame |
 
 ---
@@ -158,7 +200,8 @@ episode_BF4_30comp_seed42_uniform.h5
 ## Roadmap
 
 - [x] Phase 1-B: WaveSim — physics-based simulation (complete)
-- [ ] Phase 2: Dataset generation — 75 episodes across 15 scenarios
+- [x] Phase 2-A: Config system + batch generation pipeline (complete)
+- [ ] Phase 2-B: Dataset generation — 100 episodes (10 scenarios × 5 seeds × 2 models)
 - [ ] Phase 3: WaveSplat estimation algorithm
   - `wavesplat/model/spectral_gaussian.py`
   - `wavesplat/optimizer/sequential_update.py`

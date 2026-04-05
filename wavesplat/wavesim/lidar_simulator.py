@@ -134,7 +134,9 @@ def raycast_surface(ray_origins: np.ndarray, ray_dirs: np.ndarray,
                     vertices: np.ndarray, triangles: np.ndarray,
                     range_min: float = 5.0,
                     range_max: float = 250.0,
-                    batch_size: int = 4000) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                    batch_size: int = 4000,
+                    spatial_grid_nx: int = 20,
+                    spatial_grid_ny: int = 15) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Cast multiple rays against triangle mesh.
     Uses z=0 plane approximation for spatial pre-filtering, then batched
@@ -146,6 +148,8 @@ def raycast_surface(ray_origins: np.ndarray, ray_dirs: np.ndarray,
         vertices:    (N_v, 3)
         triangles:   (N_t, 3) vertex index triplets
         batch_size:  number of rays per batch (tune for memory)
+        spatial_grid_nx: spatial hash grid cells in x
+        spatial_grid_ny: spatial hash grid cells in y
 
     Returns:
         hit_mask:    (N_rays,) bool
@@ -172,8 +176,8 @@ def raycast_surface(ray_origins: np.ndarray, ray_dirs: np.ndarray,
     e1_all = v1_all - v0_all
     e2_all = v2_all - v0_all
 
-    # Build spatial grid (coarse 2D grid over mesh extent)
-    nx_g, ny_g = 20, 15
+    # Build spatial grid (2D grid over mesh extent)
+    nx_g, ny_g = spatial_grid_nx, spatial_grid_ny
     grid, x_lo, x_hi, y_lo, y_hi, dx, dy = _build_spatial_grid(
         vertices, triangles, nx_g, ny_g)
 

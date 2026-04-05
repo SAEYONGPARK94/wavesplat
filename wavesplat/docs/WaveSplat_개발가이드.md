@@ -18,12 +18,12 @@
 - **RQ2**: 파랑 물리 prior(dispersion relation)가 미관측 영역의 복원 정확도를 얼마나 향상시키는가?
 - **RQ3**: 복원된 wave field를 hydrofoil 예측 제어에 활용하면 기존 reactive 제어 대비 얼마나 개선되는가? (논문 2)
 
-## 1.3 확정된 Contributions (논문 1)
+## 1.3 확정된 Contributions (논문 1, 방법론 ���심 — 2026.04.05 통일)
 
-- **C1**: 문제 정의 — 선박 전방 LiDAR 수면 관측의 극한 sparsity 문제를 처음으로 체계적으로 정의
-- **C2**: WaveSim — 물리 기반 시뮬레이션 환경 (Pure Python, 투명한 trust chain, 코드 공개)
-- **C3**: Spectral Gaussian Estimation — grid 보간 없이 sparse irregular 관측에서 직접 wave field 복원
-- **C4**: 실험적 검증 — progressive complexity, sparsity sweep, baseline 비교, 두 가지 observation model 비교
+- **C1**: Grid-free spectral estimation framework — 기존 ETKF의 grid 보간 한계를 극복하여 sparse irregular 관측에서 직접 wave field 복원
+- **C2**: Dispersion-constrained spectral Gaussian parameterization — 물리 법칙(dispersion relation)을 구조적 제약으로 내장
+- **C3**: Fresnel-aware confidence model — LiDAR 수면 관측의 입사각/거리 의존 신뢰�� 가중
+- **C4**: (선택적, 후속 연구) 2nd order bound harmonic correction
 
 ---
 
@@ -131,7 +131,7 @@ BF4(Hs=1.2m, Tp=7s)에서 파 경사 ε ≈ 0.05
 ## 3.2 Fresnel 반사 물리
 
 ```
-물(n=1.328 @905nm)의 Fresnel 반사율 (비편광 평균):
+물(n=1.321 @1550nm, Seyond Falcon K1)의 Fresnel 반사율 (비편광 평균):
   θ_i = 0°  (수직 입사): R ≈ 0.02 (2%)
   θ_i = 75°:              R ≈ 0.17
   θ_i = 80°:              R ≈ 0.26
@@ -353,9 +353,21 @@ episode_BF4_30comp_seed42.h5
 
 ---
 
-# 6. WaveSplat 알고리즘 설계
+# 6. WaveSplat 알고리즘 설계 (2026.04.05 4인 토론 반영)
 
-## 6.1 Spectral Gaussian Representation
+## 6.1 Forward Model: Linear Sinusoidal
+
+추정 알고리즘은 **linear sinusoidal model**을 사용 (Gerstner의 horizontal displacement 무시):
+
+```
+z(x, y, t) = Σᵢ Aᵢ · cos(kᵢ·r - ωᵢ·t + φᵢ)
+```
+
+**의도된 model mismatch**: 시뮬레이터(GT)는 Gerstner wave이므로 O(ε²) 차이 존재.
+BF4에서 ε ≈ 0.05 → 오차 ~0.25%. 논문 Discussion에 명시하되, "linear estimator가
+weakly nonlinear GT에 대해 robust함을 보임"으로 오히려 강점으로 활용.
+
+## 6.2 Spectral Gaussian Representation
 
 파랑 스펙트럼 S(k, ω)를 (k, ω) 공간의 Gaussian mixture로 표현:
 
@@ -363,50 +375,68 @@ episode_BF4_30comp_seed42.h5
 S(k, ω) = Σᵢ wᵢ · G(k, ω | μᵢ, Σᵢ)
 ```
 
-각 Gaussian의 중심 μᵢ = (kₓᵢ, kyᵢ, ωᵢ)는 dispersion relation 제약:
+각 Gaussian의 중심 μᵢ = (kₓᵢ, kyᵢ, ωᵢ)는 dispersion relation **hard constraint**:
 
 ```
-ωᵢ = √(g·|kᵢ|·tanh(|kᵢ|·d))
+ωᵢ = √(g·|kᵢ|·tanh(|kᵢ|·d))   [projection step으로 강제]
 ```
 
-→ 자유 파라미터는 (kₓᵢ, kyᵢ) 2개로 축소, ωᵢ는 자동 결정
-
-## 6.2 Wave Field 복원
-
-스펙트럼의 역변환 (narrow Gaussian 근사):
-
-```
-z(x, y, t) = Σᵢ √(2wᵢ) · cos(kᵢ·r - ωᵢ·t + φᵢ)
-```
+→ 자유 파라미터: wᵢ, kxᵢ, kyᵢ, φᵢ (Gaussian당 4개)
+→ N=15 → 60 파라미터
 
 ## 6.3 Observation Model
 
 LiDAR 포인트 (pⱼ, zⱼ)에서:
 
 ```
-z_model(pⱼ, t) = Σᵢ √(2wᵢ) · cos(kᵢ·pⱼ - ωᵢ·t + φᵢ)
+z_model(pⱼ, t) = Σᵢ Aᵢ · cos(kᵢ·pⱼ - ωᵢ·t + φᵢ)
+   where Aᵢ = √(2wᵢ)
 ```
 
-## 6.4 최적화
+**Confidence weight cⱼ = cos(θᵢ) / (d/d_ref)**:
+- 이것은 **observation noise의 heteroscedasticity**를 반영
+- "이 포인트의 z 측정이 얼마나 정확한가" (NOT wave model의 정확도)
+
+## 6.4 최적화: Projected Gradient Descent (PyTorch)
 
 ```
-min_{wᵢ, kᵢ, φᵢ} Σⱼ cⱼ · (z_model(pⱼ,t) - zⱼ)² + λ · R(S)
+min_{wᵢ, kᵢ, φᵢ} Σⱼ cⱼ · (z_model(pⱼ,t) - zⱼ)² + λ₁·||w||₁ + λ₂·smoothness
 
-cⱼ: 각 포인트의 신뢰도 가중치 (입사각/거리 기반)
-R(S): 스펙트럼 정규화 (smoothness)
+λ₁·||w||₁:    L1 sparsity (불필요 Gaussian 비활성화)
+λ₂·smoothness: 인접 Gaussian 간 weight 변화 제한 (실제 스펙트럼의 smoothness)
 ```
 
-## 6.5 Sequential Update
+- EM 부적합 (dispersion constraint가 closed-form M-step 깨뜨림)
+- 각 step: gradient → **projection** (ωᵢ = f(kᵢ) 재계산)
 
-매 프레임:
-1. **Predict**: φᵢ(t+Δt) = φᵢ(t) + ωᵢ·Δt (dispersion에 따른 위상 진화)
-2. **Update**: 새 LiDAR 관측으로 wᵢ, kᵢ, φᵢ 수정
+## 6.5 Sequential Update: 2단계 설계
 
-## 6.6 Non-convexity 대응
+### Phase A: Initialization (첫 2 peak periods)
 
-- Coarse-to-fine: 저주파(에너지 큰) 성분부터 fitting, 고주파 점진 추가
-- Temporal sliding window: 여러 프레임의 위상 진화로 모호성 해소
-- Spectral analysis initialization: 초기 프레임들의 rough FFT로 초기값 설정
+- BF4 (Tp=7s)에서 ~14초 = 140프레임
+- **Coarse-to-fine**: N=3 → 8 → 15 (점진적 Gaussian 추가)
+- FFT-based spectral analysis로 초기값 설정
+- Joint optimization over full window
+- 오프라인 수준 (수초)
+
+### Phase B: Tracking (이후 매 프레임)
+
+- **Warm-start**: 이전 θ* = (w*, k*, φ*)를 초기값으로 사용
+- **Predict**: φᵢ(t+Δt) = φᵢ(t) + ωᵢ·Δt
+- **Update**: 5~10 gradient steps per frame
+- 목표: 50ms/frame 이내
+
+### Phase 결정 논거
+
+- 단일 프레임에서 phase(φ) 결정 불가 → temporal window 필수
+- Initialization에서 joint optimization으로 phase 확정 후, tracking은 미세 조정만
+- **수렴 시간(T_converge) 자체를 실험 결과로 보고**
+
+## 6.6 Gaussian 수 N
+
+- **논문 1**: 고정 N, ablation으로 N=5 / 10 / 15 비교
+- 물리적 가이드라인: N ≈ spectral bandwidth / mean Gaussian width
+- **Adaptive densification = future work** (3DGS 유사성 혼란 방지)
 
 ## 6.7 코드 구조
 
@@ -414,20 +444,20 @@ R(S): 스펙트럼 정규화 (smoothness)
 wavesplat/
 ├── model/
 │   ├── spectral_gaussian.py  # Spectral Gaussian representation (PyTorch)
-│   ├── dispersion.py         # ω = √(gk·tanh(kd)), full dispersion
-│   └── confidence.py         # Fresnel-based confidence weighting
+│   ├── dispersion.py         # ω = √(gk·tanh(kd)), projection step
+│   └── confidence.py         # Observation noise weighting (NOT model accuracy)
 │
 ├── optimizer/
-│   ├── sequential_update.py  # Predict-update cycle
-│   └── coarse_to_fine.py     # Progressive spectral refinement
+│   ├── sequential_update.py  # 2-phase: initialization + tracking
+│   └── coarse_to_fine.py     # Progressive N=3→8→15
 │
 ├── evaluation/
-│   ├── metrics.py            # RMSE, Hs error, Tp error, spectral R²
+│   ├── metrics.py            # Primary 5 + Secondary 6 metrics
 │   ├── spectral_analysis.py  # Welch, 2D FFT, coherence
-│   └── visualize.py          # Open3D 3D 시각화, matplotlib
+│   └── visualize.py          # matplotlib 시각화
 │
 ├── baselines/
-│   ├── gpr_baseline.py       # Gaussian Process Regression (scikit-learn)
+│   ├── gpr_baseline.py       # GPR: single-frame + window (scikit-learn)
 │   └── etkf_grid.py          # ETKF with grid interpolation
 │
 ├── run.py                    # 추론/복원 메인 스크립트
@@ -478,42 +508,80 @@ wavesplat/
 | C3 | 30 | 100 | A | |
 | C4 | 30 | 100 | B | |
 
-### Part D: Baseline 비교
+### Part D: Baseline 비교 (2026.04.05 확정)
 
-| Baseline | 구현 | 특징 |
-|----------|------|------|
-| GPR (Kriging) | scikit-learn GaussianProcessRegressor, Matérn ν=5/2 | 물리 인식 없음, uncertainty 제공 |
-| ETKF-grid | "From Points to Waves" 재구현 | Grid 보간 후 ETKF, 물리 인식 있음 |
+| Method | Physics | Temporal | Grid-free | 구현 |
+|--------|---------|----------|-----------|------|
+| GPR (single frame) | ✗ | ✗ | ✓ | scikit-learn GP, Matérn ν=5/2 |
+| GPR (window, 5 frames) | ✗ | ✓ | ✓ | 5프레임 누적 → GP fitting |
+| ETKF-grid | ✓ | ✓ | ✗ | "From Points to Waves" 재구현 |
+| **WaveSplat** | ✓ | ✓ | ✓ | 제안 방법 |
+| WaveSplat-oracle | ✓ | ✓ | ✓ | True (k,ω) init, φ만 최적화 |
+
+**제외**: PINO (regular grid 전제), EnKF-PFL (고정 센서 전제) — 논문에 사유 명시
+
+GPR 설정:
+- Kernel: Matérn ν=5/2 (주), RBF (비교) — Matérn은 C¹, 파도에 적합
+- length_scale grid search: [5, 10, 20, 50m]
+- noise: σ=0.02m
+- Window GPR: 직전 5프레임 누적, 시간 정보 무시 → temporal accumulation만의 효과 측정
+
+ETKF-grid 설정:
+- State: η(grid) + ∂η/∂t, prediction: dispersion 시간 진화
+- Observation operator: bilinear interpolation (grid → obs points)
+- Grid 해상도 3단계: 20×15 / 40×30 / 80×60, 최적 결과 보고
+- 보간: thin-plate spline, ensemble=50
+- 원저자 코드 요청 시도
 
 ### Part E: Ablation Study
 
 | 실험 | 구성 | 목적 |
 |------|------|------|
 | E1 | WaveSplat (full) | 전체 성능 |
-| E2 | - dispersion 제약 | Dispersion의 기여 |
+| E2 | - dispersion 제약 (soft/없음) | Dispersion의 기여 + dispersion 집중도 메트릭 |
 | E3 | - confidence weighting | Confidence의 기여 |
 | E4 | - sequential update (single frame) | Temporal accumulation의 기여 |
 
-## 7.2 평가 지표
+## 7.2 평가 ��표 (2026.04.05 확정)
 
-| 카테고리 | 지표 | 목표 |
-|---------|------|------|
-| 공간 정확도 | RMSE_z (m) | < 0.05m (BF3~4) |
-| 공간 정확도 | R (correlation) | > 0.95 |
-| 시간 특성 | Hs error (%) | < 5% |
-| 시간 특성 | Tp error (s) | < 0.5s |
-| 스펙트럼 | Spectral R² | > 0.90 |
-| 물리 일관성 | Dispersion 집중도 | > 0.85 |
-| 성능 | 추론 시간 (ms) | < 50ms |
+### Primary Metrics
+
+| 메트릭 | 정의 | 목표 |
+|--------|------|------|
+| RMSE_z | √(mean(z_pred - z_gt)²) [m] | < 0.05m (BF4) |
+| nRMSE | RMSE_z / Hs | < 5% |
+| Hs_error | \|Hs_pred - Hs_gt\| / Hs_gt [%] | < 5% |
+| Tp_error | \|Tp_pred - Tp_gt\| [s] | < 0.5s |
+| Spectral_R² | R² of S_pred(ω) vs S_gt(ω) | > 0.90 |
+
+### Secondary Metrics
+
+| 메트릭 | 목적 |
+|--------|------|
+| RMSE_near (10-80m) / RMSE_far (80-250m) | 거리별 성능 분리 |
+| RMSE_unobserved | LiDAR 포인트 없는 영역 → **physics prior 기여 핵심 증거** |
+| T_converge [s] | nRMSE < threshold 도달 시간, init/tracking 구분 |
+| T_inference [ms/frame] | 실시간 가능성 |
+| Directional_R² | 2D (kx,ky) spectrum 비교 → 방향 추정 정확도 |
+| Dispersion 집중도 | Ablation E2에서만 사용 (hard constraint면 항상 1.0) |
+
+### 보고 방식
+
+- 5 seeds, mean ± std
+- Effect size 포함
+- 근거리/원거리/미관측 영역 분리 보고
+- Uncertainty estimation: 논문 1 scope 밖 (future work)
 
 ## 7.3 핵심 Figure 목록 (논문용)
 
-1. **N_pts vs RMSE 곡선** — 방법별 비교 (가장 중요한 그림)
-2. **성분 수 vs RMSE 곡선** — progressive complexity
+1. **N_pts vs nRMSE 곡선** — 방법별 비교 (가장 중요한 그림)
+2. **성분 수 vs nRMSE 곡선** — progressive complexity
 3. **복원 시각화** — sparse 포인트 + GT + 복원된 surface (3D)
 4. **1D 스펙트럼 비교** — GT vs WaveSplat vs baselines
 5. **Observation model 비교** — Model A vs B의 포인트 분포 + 성능
 6. **Ablation** — 각 구성요소 제거 시 성능 변화
+7. **수렴 시간** — T_converge vs N_pts (initialization phase)
+8. **RMSE_near vs RMSE_far** — 거리별 성능 + RMSE_unobserved
 
 ---
 

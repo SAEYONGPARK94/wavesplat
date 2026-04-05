@@ -3,7 +3,7 @@ noise_model.py
 LiDAR sensor noise model.
 
 Based on Gaussian noise from LiDAR datasheets:
-  - Range noise:   σ_range ~ 2-3 cm (typical 905nm solid-state LiDAR)
+  - Range noise:   σ_range ~ 2-3 cm (typical 1550nm solid-state LiDAR, e.g. Seyond Falcon K1)
   - Angular noise: σ_angle ~ 0.05° (beam divergence)
 """
 

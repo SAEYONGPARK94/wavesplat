@@ -99,19 +99,53 @@ def moller_trumbore(ray_origin: np.ndarray, ray_dir: np.ndarray,
     return True, t
 
 
+def _build_spatial_grid(vertices, triangles, nx_grid, ny_grid):
+    """Build 2D spatial grid mapping (x,y) cells → triangle indices."""
+    v0 = vertices[triangles[:, 0]]
+    v1 = vertices[triangles[:, 1]]
+    v2 = vertices[triangles[:, 2]]
+
+    # Bounding box of each triangle in (x,y)
+    tri_x_min = np.minimum(np.minimum(v0[:, 0], v1[:, 0]), v2[:, 0])
+    tri_x_max = np.maximum(np.maximum(v0[:, 0], v1[:, 0]), v2[:, 0])
+    tri_y_min = np.minimum(np.minimum(v0[:, 1], v1[:, 1]), v2[:, 1])
+    tri_y_max = np.maximum(np.maximum(v0[:, 1], v1[:, 1]), v2[:, 1])
+
+    x_lo, x_hi = vertices[:, 0].min(), vertices[:, 0].max()
+    y_lo, y_hi = vertices[:, 1].min(), vertices[:, 1].max()
+    dx = (x_hi - x_lo) / nx_grid
+    dy = (y_hi - y_lo) / ny_grid
+
+    # Assign triangles to cells
+    grid = [[[] for _ in range(ny_grid)] for _ in range(nx_grid)]
+    for ti in range(len(triangles)):
+        ix0 = max(0, int((tri_x_min[ti] - x_lo) / dx))
+        ix1 = min(nx_grid - 1, int((tri_x_max[ti] - x_lo) / dx))
+        iy0 = max(0, int((tri_y_min[ti] - y_lo) / dy))
+        iy1 = min(ny_grid - 1, int((tri_y_max[ti] - y_lo) / dy))
+        for ix in range(ix0, ix1 + 1):
+            for iy in range(iy0, iy1 + 1):
+                grid[ix][iy].append(ti)
+
+    return grid, x_lo, x_hi, y_lo, y_hi, dx, dy
+
+
 def raycast_surface(ray_origins: np.ndarray, ray_dirs: np.ndarray,
                     vertices: np.ndarray, triangles: np.ndarray,
                     range_min: float = 5.0,
-                    range_max: float = 250.0) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                    range_max: float = 250.0,
+                    batch_size: int = 4000) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Cast multiple rays against triangle mesh.
-    Uses vectorized triangle intersection (BVH-free, suitable for moderate N_beams).
+    Uses z=0 plane approximation for spatial pre-filtering, then batched
+    Möller-Trumbore on candidate triangles only.
 
     Args:
         ray_origins: (N_rays, 3)
         ray_dirs:    (N_rays, 3) unit direction vectors
         vertices:    (N_v, 3)
         triangles:   (N_t, 3) vertex index triplets
+        batch_size:  number of rays per batch (tune for memory)
 
     Returns:
         hit_mask:    (N_rays,) bool
@@ -119,48 +153,117 @@ def raycast_surface(ray_origins: np.ndarray, ray_dirs: np.ndarray,
         hit_dist:    (N_rays,) distance to hit (inf where no hit)
     """
     N_rays = ray_origins.shape[0]
-    N_tri = triangles.shape[0]
+
+    # Pre-filter: only downward rays can hit water surface
+    down_mask = ray_dirs[:, 2] < -1e-6
+    down_idx = np.where(down_mask)[0]
 
     hit_mask = np.zeros(N_rays, dtype=bool)
     hit_points = np.full((N_rays, 3), np.nan)
     hit_dist = np.full(N_rays, np.inf)
 
-    v0 = vertices[triangles[:, 0]]  # (N_tri, 3)
-    v1 = vertices[triangles[:, 1]]
-    v2 = vertices[triangles[:, 2]]
+    if len(down_idx) == 0:
+        return hit_mask, hit_points, hit_dist
 
-    for i in range(N_rays):
-        ro = ray_origins[i]
-        rd = ray_dirs[i]
+    # Precompute triangle data
+    v0_all = vertices[triangles[:, 0]]
+    v1_all = vertices[triangles[:, 1]]
+    v2_all = vertices[triangles[:, 2]]
+    e1_all = v1_all - v0_all
+    e2_all = v2_all - v0_all
 
-        # Vectorized Möller-Trumbore over all triangles
-        e1 = v1 - v0
-        e2 = v2 - v0
-        h = np.cross(rd, e2)           # (N_tri, 3)
-        det = np.einsum('ij,ij->i', e1, h)  # (N_tri,)
+    # Build spatial grid (coarse 2D grid over mesh extent)
+    nx_g, ny_g = 20, 15
+    grid, x_lo, x_hi, y_lo, y_hi, dx, dy = _build_spatial_grid(
+        vertices, triangles, nx_g, ny_g)
 
-        valid = np.abs(det) > 1e-9
-        inv_det = np.where(valid, 1.0 / np.where(valid, det, 1.0), 0.0)
+    # For each downward ray, find approximate (x,y) hit on z=0 plane
+    ro_down = ray_origins[down_idx]
+    rd_down = ray_dirs[down_idx]
+    t_flat = -ro_down[:, 2] / rd_down[:, 2]
+    xy_approx = ro_down[:, :2] + t_flat[:, np.newaxis] * rd_down[:, :2]
 
-        s = ro - v0
-        u = inv_det * np.einsum('ij,ij->i', s, h)
-        valid &= (u >= 0.0) & (u <= 1.0)
+    # Map to grid cells (with margin ±1 cell for wave height offset)
+    ix_center = np.clip(((xy_approx[:, 0] - x_lo) / dx).astype(int), 0, nx_g - 1)
+    iy_center = np.clip(((xy_approx[:, 1] - y_lo) / dy).astype(int), 0, ny_g - 1)
 
-        q = np.cross(s, e1)
-        v_param = inv_det * np.einsum('ij,ij->i', np.broadcast_to(rd, (N_tri, 3)), q)
-        valid &= (v_param >= 0.0) & (u + v_param <= 1.0)
+    # Group rays by grid cell for efficient batch processing
+    from collections import defaultdict
+    cell_rays = defaultdict(list)  # (ix, iy) → list of indices into down_idx
+    for k in range(len(down_idx)):
+        cell_rays[(ix_center[k], iy_center[k])].append(k)
 
-        t_param = inv_det * np.einsum('ij,ij->i', e2, q)
-        valid &= (t_param > 1e-6)
-        valid &= (t_param >= range_min) & (t_param <= range_max)
+    # Process each cell group
+    for (ix, iy), ray_local_indices in cell_rays.items():
+        # Gather candidate triangles from this cell and neighbors
+        candidate_set = set()
+        for dix in range(-1, 2):
+            for diy in range(-1, 2):
+                nix, niy = ix + dix, iy + diy
+                if 0 <= nix < nx_g and 0 <= niy < ny_g:
+                    candidate_set.update(grid[nix][niy])
+        if not candidate_set:
+            continue
 
-        if np.any(valid):
+        tri_idx = np.array(sorted(candidate_set))
+        v0 = v0_all[tri_idx]
+        v1 = v1_all[tri_idx]
+        e1 = e1_all[tri_idx]
+        e2 = e2_all[tri_idx]
+        N_tri = len(tri_idx)
+
+        # Process rays in batches
+        ray_local_indices = np.array(ray_local_indices)
+        for bstart in range(0, len(ray_local_indices), batch_size):
+            b_local = ray_local_indices[bstart:bstart + batch_size]
+            b_global = down_idx[b_local]
+            B = len(b_local)
+
+            ro = ro_down[b_local]
+            rd = rd_down[b_local]
+
+            # Batched Möller-Trumbore: (B, N_tri)
+            rd_exp = rd[:, np.newaxis, :]
+            e2_exp = e2[np.newaxis, :, :]
+            e1_exp = e1[np.newaxis, :, :]
+            v0_exp = v0[np.newaxis, :, :]
+
+            h = np.cross(rd_exp, e2_exp)
+            det = np.einsum('btj,btj->bt',
+                            np.broadcast_to(e1_exp, (B, N_tri, 3)), h)
+
+            valid = np.abs(det) > 1e-9
+            safe_det = np.where(valid, det, 1.0)
+            inv_det = np.where(valid, 1.0 / safe_det, 0.0)
+
+            s = ro[:, np.newaxis, :] - v0_exp
+            u = inv_det * np.einsum('btj,btj->bt', s, h)
+            valid &= (u >= 0.0) & (u <= 1.0)
+
+            q = np.cross(s, np.broadcast_to(e1_exp, (B, N_tri, 3)))
+            v_param = inv_det * np.einsum('btj,btj->bt',
+                                           np.broadcast_to(rd_exp, (B, N_tri, 3)), q)
+            valid &= (v_param >= 0.0) & (u + v_param <= 1.0)
+
+            t_param = inv_det * np.einsum('btj,btj->bt',
+                                           np.broadcast_to(e2_exp, (B, N_tri, 3)), q)
+            valid &= (t_param > 1e-6)
+            valid &= (t_param >= range_min) & (t_param <= range_max)
+
             t_candidates = np.where(valid, t_param, np.inf)
-            idx_min = np.argmin(t_candidates)
-            t_hit = t_candidates[idx_min]
-            hit_mask[i] = True
-            hit_points[i] = ro + t_hit * rd
-            hit_dist[i] = t_hit
+            min_t = np.min(t_candidates, axis=1)
+            has_hit = np.isfinite(min_t)
+
+            hit_rays = b_global[has_hit]
+            hit_t = min_t[has_hit]
+
+            # Keep closest hit (ray may appear in multiple cells)
+            better = hit_t < hit_dist[hit_rays]
+            update = hit_rays[better]
+            hit_mask[update] = True
+            hit_dist[update] = hit_t[better]
+            hit_points[update] = (ro[has_hit][better]
+                                  + hit_t[better, np.newaxis] * rd[has_hit][better])
 
     return hit_mask, hit_points, hit_dist
 

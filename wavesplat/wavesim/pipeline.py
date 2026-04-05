@@ -41,7 +41,9 @@ def run_episode(sea_state: str = 'BF4',
                 depth: float = 50.0,
                 output_dir: str = 'data',
                 verbose: bool = True,
-                test_resolution: bool = True) -> str:
+                test_resolution: bool = True,
+                mesh_nx: int = 40,
+                mesh_ny: int = 30) -> str:
     """
     Run one WaveSim episode and save to HDF5.
 
@@ -88,8 +90,8 @@ def run_episode(sea_state: str = 'BF4',
         # Evaluate wave surface on dense grid
         Z_gt, NX_gt, NY_gt, NZ_gt = evaluate_field(components, X_gt, Y_gt, t)
 
-        # Build mesh for raycasting (coarser mesh for speed)
-        X_mesh, Y_mesh = make_grid(x_range, y_range, nx=40, ny=30)
+        # Build mesh for raycasting (coarser than GT grid for speed)
+        X_mesh, Y_mesh = make_grid(x_range, y_range, nx=mesh_nx, ny=mesh_ny)
         Z_mesh, _, _, _ = evaluate_field(components, X_mesh, Y_mesh, t)
         verts, tris = build_mesh(X_mesh, Y_mesh, Z_mesh)
 

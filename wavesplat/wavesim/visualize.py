@@ -307,10 +307,10 @@ def plot_static_html(data: dict, frame_idx: int = 0,
 def plot_animation_html(data: dict, save_html: str = None,
                          open_browser: bool = True):
     """
-    슬라이더로 시간을 탐색하는 인터랙티브 애니메이션 HTML.
+    3D Surface + LiDAR 포인트를 슬라이더로 탐색하는 인터랙티브 애니메이션 HTML.
+    마우스로 회전/줌 가능, 재생/정지 버튼 + 시간 슬라이더.
     """
     import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
 
     gt_x = data['gt_grid_x']
     gt_y = data['gt_grid_y']
@@ -320,10 +320,52 @@ def plot_animation_html(data: dict, save_html: str = None,
     sea_state = data.get('sea_state', 'BF4')
     Hs_true = data.get('Hs_true', data.get('Hs', 0))
 
-    # 사전 계산
-    n_pts_list = [data['lidar_valid_mask'][i].sum() for i in range(n_frames)]
+    n_pts_list = [int(data['lidar_valid_mask'][i].sum()) for i in range(n_frames)]
 
-    # Frames 생성
+    # z 범위 고정 (컬러바 일관성)
+    z_all = data['gt_wave_field']
+    vabs = max(abs(float(z_all.min())), abs(float(z_all.max()))) or 1.0
+
+    # ── 초기 프레임 ──────────────────────────────────────────────────────
+    Z0 = data['gt_wave_field'][0]
+    pts0, conf0, _ = _get_lidar_points(data, 0)
+
+    # trace 0: 3D Surface
+    # trace 1: LiDAR Scatter3d
+    # trace 2: Sensor Scatter3d (정적)
+    fig = go.Figure(
+        data=[
+            go.Surface(
+                x=gt_x, y=gt_y, z=Z0,
+                colorscale='RdYlBu_r', cmin=-vabs, cmax=vabs,
+                opacity=0.88, showscale=True,
+                colorbar=dict(
+                    title=dict(text='Wave Height [m]', font=dict(color=TEXT)),
+                    tickfont=dict(color=TEXT), len=0.6),
+                name='Wave Surface',
+                hovertemplate='x=%{x:.1f}m<br>y=%{y:.1f}m<br>z=%{z:.3f}m<extra></extra>'
+            ),
+            go.Scatter3d(
+                x=pts0[:, 0] if len(pts0) > 0 else [],
+                y=pts0[:, 1] if len(pts0) > 0 else [],
+                z=pts0[:, 2] if len(pts0) > 0 else [],
+                mode='markers',
+                marker=dict(size=4, color=LIDAR_C,
+                            line=dict(color='#00AA55', width=0.5)),
+                name=f'LiDAR ({n_pts_list[0]} pts)',
+                hovertemplate='x=%{x:.1f}<br>y=%{y:.1f}<br>z=%{z:.3f}<extra>LiDAR</extra>'
+            ),
+            go.Scatter3d(
+                x=[0], y=[0], z=[5.0],
+                mode='markers',
+                marker=dict(size=6, color=SENSOR_C, symbol='diamond'),
+                name='Sensor (h=5m)',
+                hovertemplate='Sensor<br>h=5m<extra></extra>'
+            ),
+        ]
+    )
+
+    # ── 프레임 생성 ─────────────────────────────────────────────────────
     frames = []
     for fi in range(n_frames):
         Z = data['gt_wave_field'][fi]
@@ -331,66 +373,54 @@ def plot_animation_html(data: dict, save_html: str = None,
         t = ts[fi]
 
         frame_data = [
-            go.Heatmap(x=gt_x, y=gt_y, z=Z,
-                       colorscale='RdYlBu_r', reversescale=False,
-                       showscale=False),
-        ]
-        if len(pts) > 0:
-            frame_data.append(go.Scatter(
-                x=pts[:, 0], y=pts[:, 1],
-                mode='markers',
-                marker=dict(size=7, color=LIDAR_C,
-                            line=dict(color='#00AA55', width=0.4)),
-            ))
-        else:
-            frame_data.append(go.Scatter(x=[], y=[], mode='markers'))
-
-        frames.append(go.Frame(data=frame_data, name=str(fi),
-                                layout=go.Layout(
-                                    title_text=(
-                                        f'WaveSim  —  {sea_state}  |  '
-                                        f't = {t:.2f}s  |  {n_pts_list[fi]} pts'
-                                    )
-                                )))
-
-    # 초기 프레임 데이터
-    Z0 = data['gt_wave_field'][0]
-    pts0, conf0, _ = _get_lidar_points(data, 0)
-
-    fig = go.Figure(
-        data=[
-            go.Heatmap(x=gt_x, y=gt_y, z=Z0,
-                       colorscale='RdYlBu_r', reversescale=False,
-                       showscale=True,
-                       colorbar=dict(title=dict(text='파고 [m]', font=dict(color=TEXT)),
-                                     tickfont=dict(color=TEXT))),
-            go.Scatter(
-                x=pts0[:, 0] if len(pts0) > 0 else [],
-                y=pts0[:, 1] if len(pts0) > 0 else [],
-                mode='markers',
-                marker=dict(size=7, color=LIDAR_C,
-                            line=dict(color='#00AA55', width=0.4)),
-                name='LiDAR',
+            go.Surface(
+                x=gt_x, y=gt_y, z=Z,
+                colorscale='RdYlBu_r', cmin=-vabs, cmax=vabs,
+                opacity=0.88, showscale=False,
             ),
-            go.Scatter(x=[0], y=[0], mode='markers',
-                       marker=dict(size=12, color=SENSOR_C, symbol='triangle-up'),
-                       name='Sensor'),
-        ],
-        frames=frames
-    )
+            go.Scatter3d(
+                x=pts[:, 0] if len(pts) > 0 else [],
+                y=pts[:, 1] if len(pts) > 0 else [],
+                z=pts[:, 2] if len(pts) > 0 else [],
+                mode='markers',
+                marker=dict(size=4, color=LIDAR_C,
+                            line=dict(color='#00AA55', width=0.5)),
+                name=f'LiDAR ({n_pts_list[fi]} pts)',
+            ),
+            go.Scatter3d(
+                x=[0], y=[0], z=[5.0],
+                mode='markers',
+                marker=dict(size=6, color=SENSOR_C, symbol='diamond'),
+                name='Sensor',
+            ),
+        ]
 
-    # 슬라이더 + 재생 버튼
+        frames.append(go.Frame(
+            data=frame_data,
+            name=str(fi),
+            layout=go.Layout(
+                title_text=(
+                    f'WaveSim 3D  —  {sea_state}  |  '
+                    f't = {t:.2f}s  |  {n_pts_list[fi]} pts'
+                )
+            )
+        ))
+
+    fig.frames = frames
+
+    # ── 슬라이더 + 재생 버튼 ────────────────────────────────────────────
     sliders = [{
         'active': 0,
-        'currentvalue': {'prefix': 'Frame: ', 'font': {'color': TEXT}},
-        'pad': {'b': 10},
+        'currentvalue': {'prefix': 'Time: ', 'font': {'color': TEXT, 'size': 13}},
+        'pad': {'b': 10, 't': 40},
         'bgcolor': PANEL,
         'bordercolor': GRID_C,
         'font': {'color': TEXT},
         'steps': [
             {'args': [[str(fi)],
                       {'frame': {'duration': 0, 'redraw': True},
-                       'mode': 'immediate'}],
+                       'mode': 'immediate',
+                       'transition': {'duration': 0}}],
              'label': f'{ts[fi]:.1f}s',
              'method': 'animate'}
             for fi in range(n_frames)
@@ -399,35 +429,56 @@ def plot_animation_html(data: dict, save_html: str = None,
 
     fig.update_layout(
         title=dict(
-            text=(f'WaveSim Animation  —  {sea_state}  |  '
+            text=(f'WaveSim 3D Animation  —  {sea_state}  |  '
                   f'Hs={Hs_true:.2f}m  |  {n_frames} frames'),
-            font=dict(color=TEXT, size=13), x=0.5
+            font=dict(color=TEXT, size=14), x=0.5
         ),
         paper_bgcolor=BG,
-        plot_bgcolor=PANEL,
         font=dict(color=TEXT),
-        xaxis=dict(title='X [m] (전방)', gridcolor=GRID_C, color=TEXT),
-        yaxis=dict(title='Y [m]', gridcolor=GRID_C, color=TEXT,
-                   scaleanchor='x', scaleratio=1),
-        legend=dict(bgcolor='rgba(22,27,34,0.8)', bordercolor=GRID_C,
-                    font=dict(color=TEXT)),
-        height=680, width=1000,
+        legend=dict(
+            bgcolor='rgba(22,27,34,0.85)', bordercolor=GRID_C,
+            font=dict(color=TEXT),
+            x=0.01, y=0.95
+        ),
+        height=780, width=1100,
+        scene=dict(
+            bgcolor=PANEL,
+            xaxis=dict(title='X [m]', gridcolor=GRID_C, color=TEXT,
+                       range=[float(gt_x.min()), float(gt_x.max())]),
+            yaxis=dict(title='Y [m]', gridcolor=GRID_C, color=TEXT,
+                       range=[float(gt_y.min()), float(gt_y.max())]),
+            zaxis=dict(title='Z [m]', gridcolor=GRID_C, color=TEXT,
+                       range=[-vabs * 1.5, max(vabs * 1.5, 6.0)]),
+            camera=dict(
+                eye=dict(x=-1.3, y=-1.6, z=0.9),
+                up=dict(x=0, y=0, z=1)
+            ),
+            aspectmode='manual',
+            aspectratio=dict(x=2.0, y=1.5, z=0.5),
+        ),
         updatemenus=[{
             'type': 'buttons',
             'showactive': False,
             'bgcolor': PANEL,
-            'font': {'color': TEXT},
+            'bordercolor': GRID_C,
+            'font': {'color': TEXT, 'size': 12},
             'buttons': [
-                {'label': '▶ 재생',
+                {'label': '  Play  ',
                  'method': 'animate',
-                 'args': [None, {'frame': {'duration': 200, 'redraw': True},
-                                  'fromcurrent': True}]},
-                {'label': '⏸ 정지',
+                 'args': [None, {
+                     'frame': {'duration': 150, 'redraw': True},
+                     'fromcurrent': True,
+                     'transition': {'duration': 0}}]},
+                {'label': '  Pause  ',
                  'method': 'animate',
-                 'args': [[None], {'frame': {'duration': 0},
-                                    'mode': 'immediate'}]},
+                 'args': [[None], {
+                     'frame': {'duration': 0},
+                     'mode': 'immediate',
+                     'transition': {'duration': 0}}]},
             ],
-            'x': 0.0, 'y': -0.08
+            'x': 0.0, 'y': 0.02,
+            'xanchor': 'left', 'yanchor': 'top',
+            'direction': 'left',
         }],
         sliders=sliders
     )
@@ -443,6 +494,244 @@ def plot_animation_html(data: dict, save_html: str = None,
         webbrowser.open(f'file://{os.path.abspath(save_html)}')
 
     return fig
+
+
+def save_video(data: dict, path: str = 'wavesim.mp4',
+               fps: float = 10.0, dpi: int = 120):
+    """
+    4-패널 애니메이션을 MP4 동영상으로 저장.
+
+    패널 구성:
+      좌상: 2D 파고 컬러맵 + LiDAR 포인트 (프레임별 업데이트)
+      우상: GT Z vs 관측 Z 산점도 (프레임별 업데이트)
+      좌하: 시간별 LiDAR 밀도 (이동 마커)
+      우하: 정보 텍스트 (sea state, Hs, 현재 시간, 포인트 수)
+
+    Args:
+        data:  load_episode() 반환 dict
+        path:  저장 경로 (.mp4)
+        fps:   출력 프레임레이트
+        dpi:   해상도
+    """
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
+    from scipy.interpolate import RegularGridInterpolator
+    import cv2
+    import io
+
+    gt_x = data['gt_grid_x']
+    gt_y = data['gt_grid_y']
+    ts = data['timestamps']
+    n_frames = len(ts)
+    sea_state = data.get('sea_state', 'BF4')
+    Hs_true = data.get('Hs_true', data.get('Hs', 0))
+    n_pts_list = [int(data['lidar_valid_mask'][i].sum()) for i in range(n_frames)]
+    X2d, Y2d = np.meshgrid(gt_x, gt_y)
+
+    # 전체 z 범위 고정 (컬러바 일관성)
+    z_all = data['gt_wave_field']
+    vabs = max(abs(z_all.min()), abs(z_all.max())) or 1.0
+
+    plt.rcParams.update({
+        'figure.facecolor': BG,
+        'axes.facecolor': PANEL,
+        'axes.edgecolor': GRID_C,
+        'axes.labelcolor': TEXT,
+        'axes.titlecolor': TEXT,
+        'xtick.color': TEXT,
+        'ytick.color': TEXT,
+        'text.color': TEXT,
+        'font.size': 9,
+    })
+
+    # 레이아웃 구성
+    figw, figh = 13, 8
+    fig = plt.figure(figsize=(figw, figh))
+    fig.patch.set_facecolor(BG)
+    gs = GridSpec(2, 2, figure=fig, hspace=0.42, wspace=0.32,
+                  left=0.07, right=0.97, top=0.91, bottom=0.08)
+
+    ax1 = fig.add_subplot(gs[0, 0])   # 2D wave + LiDAR
+    ax2 = fig.add_subplot(gs[0, 1])   # GT vs obs
+    ax3 = fig.add_subplot(gs[1, 0])   # density timeseries
+    ax4 = fig.add_subplot(gs[1, 1])   # info
+
+    # ── ax3 배경: 시간 시리즈 (정적) ─────────────────────────────────────────
+    ax3.fill_between(ts, n_pts_list, alpha=0.25, color=ACCENT)
+    ax3.plot(ts, n_pts_list, color=ACCENT, lw=1.8, marker='o', ms=3)
+    ax3.set_xlabel('Time [s]', fontsize=9)
+    ax3.set_ylabel('LiDAR Points', fontsize=9)
+    ax3.set_title('LiDAR Point Density over Time', color=TEXT, fontsize=10, fontweight='bold')
+    ax3.set_xlim(ts[0] - 0.05 * (ts[-1] - ts[0]), ts[-1] + 0.05 * (ts[-1] - ts[0]))
+    ax3.set_ylim(0, max(n_pts_list) * 1.2 + 1)
+    ax3.grid(True, alpha=0.2)
+    vline = ax3.axvline(ts[0], color=SENSOR_C, lw=2, ls='--')
+
+    # ── ax4: info text panel ──────────────────────────────────────────────────
+    ax4.set_xlim(0, 1)
+    ax4.set_ylim(0, 1)
+    ax4.axis('off')
+    info_props = dict(transform=ax4.transAxes, fontsize=11,
+                      fontfamily='monospace', va='top')
+    info_text = ax4.text(0.05, 0.95, '', color=TEXT, **info_props)
+
+    # ── 초기 프레임 렌더링 ────────────────────────────────────────────────────
+    # 컬러맵 범위를 ax1에 고정
+    im1 = ax1.pcolormesh(X2d, Y2d, z_all[0], cmap='RdYlBu_r',
+                          vmin=-vabs, vmax=vabs, shading='gouraud')
+    cbar1 = fig.colorbar(im1, ax=ax1, shrink=0.85, pad=0.02)
+    cbar1.set_label('Wave Height [m]', color=TEXT)
+    cbar1.ax.yaxis.set_tick_params(color=TEXT)
+    plt.setp(cbar1.ax.yaxis.get_ticklabels(), color=TEXT)
+
+    sensor_dot, = ax1.plot(0, 0, 'r^', ms=9, zorder=6, label='Sensor')
+    scat1 = ax1.scatter([], [], c=[], cmap='plasma', s=20,
+                         vmin=0, vmax=1, zorder=5,
+                         edgecolors='#00AA55', linewidths=0.4)
+    ax1.set_xlabel('X [m]', fontsize=9)
+    ax1.set_ylabel('Y [m]', fontsize=9)
+    ax1.grid(True, alpha=0.2)
+
+    # GT vs obs 축 고정
+    all_zgt, all_zobs = [], []
+    for fi in range(n_frames):
+        pts, _, _ = _get_lidar_points(data, fi)
+        if len(pts) == 0:
+            continue
+        interp = RegularGridInterpolator(
+            (gt_y, gt_x), data['gt_wave_field'][fi],
+            bounds_error=False, fill_value=np.nan)
+        inr = ((pts[:, 0] >= gt_x.min()) & (pts[:, 0] <= gt_x.max()) &
+               (pts[:, 1] >= gt_y.min()) & (pts[:, 1] <= gt_y.max()))
+        if inr.sum() == 0:
+            continue
+        zg = interp(pts[inr][:, [1, 0]])
+        vv = ~np.isnan(zg)
+        all_zgt.extend(zg[vv].tolist())
+        all_zobs.extend(pts[inr][vv, 2].tolist())
+    if all_zgt:
+        z_lim = [min(min(all_zgt), min(all_zobs)) - 0.05,
+                 max(max(all_zgt), max(all_zobs)) + 0.05]
+    else:
+        z_lim = [-1, 1]
+    ax2.set_xlim(z_lim)
+    ax2.set_ylim(z_lim)
+    ax2.plot(z_lim, z_lim, '--', color=SENSOR_C, lw=1.2, label='1:1')
+    scat2 = ax2.scatter([], [], c=[], cmap='plasma', s=20, alpha=0.8,
+                         vmin=60, vmax=90, edgecolors='none')
+    cbar2 = fig.colorbar(scat2, ax=ax2, shrink=0.85, pad=0.02)
+    cbar2.set_label('Incidence Angle [deg]', color=TEXT)
+    cbar2.ax.yaxis.set_tick_params(color=TEXT)
+    plt.setp(cbar2.ax.yaxis.get_ticklabels(), color=TEXT)
+    rmse_text = ax2.text(0.05, 0.93, '', transform=ax2.transAxes,
+                          color=ACCENT, fontsize=9, fontweight='bold')
+    ax2.set_xlabel('GT Wave Height [m]', fontsize=9)
+    ax2.set_ylabel('Observed Z [m]', fontsize=9)
+    ax2.set_title('Observed Z vs GT Z  (color=incidence angle)', color=TEXT,
+                   fontsize=10, fontweight='bold')
+    ax2.grid(True, alpha=0.2)
+    ax2.legend(fontsize=8, facecolor=PANEL, labelcolor=TEXT)
+
+    title_obj = fig.suptitle('', color=TEXT, fontsize=12, fontweight='bold')
+
+    # ── 비디오 초기화 ─────────────────────────────────────────────────────────
+    # 임시로 그림을 렌더링해서 픽셀 크기 확인
+    fig.canvas.draw()
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=dpi, facecolor=BG)
+    buf.seek(0)
+    import struct, zlib
+    arr_tmp = np.frombuffer(buf.getvalue(), dtype=np.uint8)
+    frame_tmp = cv2.imdecode(arr_tmp, cv2.IMREAD_COLOR)
+    h_px, w_px = frame_tmp.shape[:2]
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    writer = cv2.VideoWriter(path, fourcc, fps, (w_px, h_px))
+
+    # ── 프레임별 렌더링 ────────────────────────────────────────────────────────
+    for fi in range(n_frames):
+        Z = data['gt_wave_field'][fi]
+        t = ts[fi]
+        pts, conf, theta_arr = _get_lidar_points(data, fi)
+
+        # 2D 파고 업데이트
+        im1.set_array(Z.ravel())
+        ax1.set_title(f'Wave Height + LiDAR  (t={t:.2f}s)',
+                       color=TEXT, fontsize=10, fontweight='bold')
+
+        # LiDAR 포인트 업데이트
+        if len(pts) > 0:
+            scat1.set_offsets(pts[:, :2])
+            scat1.set_array(conf)
+        else:
+            scat1.set_offsets(np.empty((0, 2)))
+            scat1.set_array(np.array([]))
+
+        # GT vs obs 업데이트
+        if len(pts) > 0:
+            interp = RegularGridInterpolator(
+                (gt_y, gt_x), Z, bounds_error=False, fill_value=np.nan)
+            inr = ((pts[:, 0] >= gt_x.min()) & (pts[:, 0] <= gt_x.max()) &
+                   (pts[:, 1] >= gt_y.min()) & (pts[:, 1] <= gt_y.max()))
+            if inr.sum() > 0:
+                zg = interp(pts[inr][:, [1, 0]])
+                vv = ~np.isnan(zg)
+                if vv.sum() > 0:
+                    scat2.set_offsets(np.column_stack([zg[vv], pts[inr][vv, 2]]))
+                    scat2.set_array(np.rad2deg(theta_arr[inr][vv]))
+                    rmse = np.sqrt(np.mean((zg[vv] - pts[inr][vv, 2])**2))
+                    rmse_text.set_text(f'RMSE={rmse:.3f}m')
+                else:
+                    scat2.set_offsets(np.empty((0, 2)))
+                    scat2.set_array(np.array([]))
+                    rmse_text.set_text('')
+            else:
+                scat2.set_offsets(np.empty((0, 2)))
+                scat2.set_array(np.array([]))
+                rmse_text.set_text('')
+        else:
+            scat2.set_offsets(np.empty((0, 2)))
+            scat2.set_array(np.array([]))
+            rmse_text.set_text('')
+
+        # 밀도 마커 업데이트
+        vline.set_xdata([t, t])
+
+        # 정보 텍스트
+        info_text.set_text(
+            f'Sea State  : {sea_state}\n'
+            f'Hs (true)  : {Hs_true:.2f} m\n'
+            f'Time       : {t:.2f} s\n'
+            f'Frame      : {fi+1}/{n_frames}\n'
+            f'LiDAR pts  : {n_pts_list[fi]}\n'
+            f'GT Hs est  : {4*np.std(Z):.3f} m'
+        )
+
+        title_obj.set_text(
+            f'WaveSim  —  {sea_state}  |  Hs={Hs_true:.2f}m  |  '
+            f't={t:.2f}s  |  {n_pts_list[fi]} pts'
+        )
+
+        fig.canvas.draw()
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', dpi=dpi, facecolor=BG,
+                    bbox_inches='tight')
+        buf.seek(0)
+        arr = np.frombuffer(buf.getvalue(), dtype=np.uint8)
+        frame_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+
+        # 크기 맞추기 (bbox_inches='tight'로 인한 크기 변동 방지)
+        if frame_bgr.shape[:2] != (h_px, w_px):
+            frame_bgr = cv2.resize(frame_bgr, (w_px, h_px))
+
+        writer.write(frame_bgr)
+        print(f'  [Video] frame {fi+1}/{n_frames}  t={t:.2f}s', end='\r')
+
+    writer.release()
+    plt.close(fig)
+    print(f'\n[MP4]  {os.path.abspath(path)}')
 
 
 def _save_png_matplotlib(data: dict, frame_idx: int, path: str):
@@ -578,6 +867,10 @@ def main():
     parser.add_argument('--frame', type=int, default=0, help='정적 뷰 프레임 인덱스')
     parser.add_argument('--save_html', default=None, help='HTML 저장 경로')
     parser.add_argument('--save_png', default=None, help='PNG 저장 경로')
+    parser.add_argument('--save_video', default=None,
+                        help='MP4 동영상 저장 경로 (예: wavesim.mp4)')
+    parser.add_argument('--video_fps', type=float, default=10.0,
+                        help='동영상 프레임레이트 (기본: 10)')
     parser.add_argument('--no_browser', action='store_true', help='브라우저 자동 열기 비활성화')
     parser.add_argument('--sea_state', default='BF4', choices=['BF2','BF3','BF4','BF5'])
     parser.add_argument('--n_components', type=int, default=30)
@@ -615,6 +908,10 @@ def main():
           f"{data['gt_wave_field'].shape[0]} frames")
 
     open_browser = not args.no_browser
+
+    if args.save_video:
+        save_video(data, path=args.save_video, fps=args.video_fps)
+        return
 
     if args.animate:
         save_html = args.save_html or 'wavesim_animation.html'

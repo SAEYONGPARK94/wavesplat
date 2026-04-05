@@ -21,7 +21,6 @@ Reference: Hecht (2017) Optics, §4.6; Fresnel equations.
 import numpy as np
 
 
-N_WATER_905NM  = 1.328  # refractive index of water at 905nm
 N_WATER_1550NM = 1.321  # refractive index of water at 1550nm (Seyond Falcon K1)
 
 

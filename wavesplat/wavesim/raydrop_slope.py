@@ -30,7 +30,7 @@ import numpy as np
 
 def specular_alignment(ray_dirs: np.ndarray,
                         surface_normals: np.ndarray,
-                        alpha_threshold_deg: float = 2.0) -> np.ndarray:
+                        alpha_threshold_deg: float = 5.0) -> np.ndarray:
     """
     Compute whether each ray achieves specular backscatter.
 

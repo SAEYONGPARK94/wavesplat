@@ -37,10 +37,12 @@ class SpectralGaussianModel(nn.Module):
         phi: (N,) phase offsets [rad]
     """
 
-    def __init__(self, n_gaussians: int, depth: float = 50.0):
+    def __init__(self, n_gaussians: int, depth: float = 50.0,
+                 use_dispersion: bool = True):
         super().__init__()
         self.n_gaussians = n_gaussians
         self.depth = depth
+        self.use_dispersion = use_dispersion
 
         # Free parameters — initialized small; proper init via initializer.py
         self.w = nn.Parameter(torch.randn(n_gaussians) * 0.01)
@@ -48,10 +50,17 @@ class SpectralGaussianModel(nn.Module):
         self.ky = nn.Parameter(torch.randn(n_gaussians) * 0.05)
         self.phi = nn.Parameter(torch.randn(n_gaussians) * math.pi)
 
+        # A1 ablation: ω as free parameter (no dispersion constraint)
+        if not use_dispersion:
+            self.omega_free = nn.Parameter(torch.randn(n_gaussians) * 0.5)
+
     def _omega(self) -> torch.Tensor:
-        """Compute ω from current (kx, ky) via dispersion relation."""
-        k_mag = torch.sqrt(self.kx ** 2 + self.ky ** 2 + 1e-12)
-        return dispersion_omega(k_mag, self.depth)
+        """Compute ω — via dispersion or as free parameter (ablation A1)."""
+        if self.use_dispersion:
+            k_mag = torch.sqrt(self.kx ** 2 + self.ky ** 2 + 1e-12)
+            return dispersion_omega(k_mag, self.depth)
+        else:
+            return torch.abs(self.omega_free)  # ω must be positive
 
     def forward(self, x: torch.Tensor, y: torch.Tensor,
                 t: float) -> torch.Tensor:
@@ -129,6 +138,10 @@ class SpectralGaussianModel(nn.Module):
         self.kx = nn.Parameter(torch.cat([self.kx.data, new_kx]))
         self.ky = nn.Parameter(torch.cat([self.ky.data, new_ky]))
         self.phi = nn.Parameter(torch.cat([self.phi.data, new_phi]))
+        if not self.use_dispersion:
+            new_omega = torch.randn(n_new, device=device) * 0.5
+            self.omega_free = nn.Parameter(
+                torch.cat([self.omega_free.data, new_omega]))
         self.n_gaussians += n_new
 
     def clamp_steepness(self, max_steepness: float = 0.15):

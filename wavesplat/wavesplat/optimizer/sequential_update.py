@@ -66,6 +66,10 @@ class SequentialUpdater:
         self.max_iters_per_stage = config.get('max_iters_per_stage', None)
         self.tracking_mode = config.get('tracking_mode', 'w_phi')
         self.tracking_lr = config.get('tracking_lr', 0.005)
+        self.init_method = config.get('init_method', 'v2_konly')
+        self.use_dispersion = config.get('use_dispersion', True)
+        self.use_confidence = config.get('use_confidence', True)
+        self.seed = config.get('seed', None)
 
         n_gaussians = config.get('n_gaussians', [3, 8, 15])
         if isinstance(n_gaussians, int):
@@ -79,7 +83,8 @@ class SequentialUpdater:
         self._last_dt = 0.1
 
     def _build_model(self, n: int) -> SpectralGaussianModel:
-        model = SpectralGaussianModel(n, depth=self.depth)
+        model = SpectralGaussianModel(
+            n, depth=self.depth, use_dispersion=self.use_dispersion)
         model.to(self.device)
         return model
 
@@ -89,6 +94,9 @@ class SequentialUpdater:
             {'params': [self.model.w, self.model.phi], 'lr': self.lr},
             {'params': [self.model.kx, self.model.ky], 'lr': self.lr * 0.5},
         ]
+        if not self.use_dispersion:
+            param_groups.append(
+                {'params': [self.model.omega_free], 'lr': self.lr})
         self.optimizer = torch.optim.Adam(param_groups)
 
     def _build_tracking_optimizer(self):
@@ -124,6 +132,12 @@ class SequentialUpdater:
                  'lr': self.tracking_lr * 0.5},
             ]
 
+        # A1 ablation: omega_free needs gradient in tracking too
+        if not self.use_dispersion:
+            self.model.omega_free.requires_grad_(True)
+            params.append({'params': [self.model.omega_free],
+                           'lr': self.tracking_lr})
+
         self.tracking_optimizer = torch.optim.Adam(params)
 
     def _compute_loss(self, frames: List[FrameData]) -> torch.Tensor:
@@ -137,7 +151,9 @@ class SequentialUpdater:
 
             z_pred = self.model(frame.x_obs, frame.y_obs, frame.t)
             residual = z_pred - frame.z_obs
-            weighted_sq = frame.confidence * residual ** 2
+            weights = frame.confidence if self.use_confidence \
+                else torch.ones_like(frame.confidence)
+            weighted_sq = weights * residual ** 2
             total_loss = total_loss + weighted_sq.sum()
             n_obs += len(frame.x_obs)
 
@@ -160,20 +176,33 @@ class SequentialUpdater:
         return total_loss
 
     def _compute_residuals(self, model, frames):
-        """Compute observation residuals for coarse-to-fine refinement."""
-        all_x, all_y, all_res = [], [], []
+        """Compute observation residuals for coarse-to-fine refinement.
+
+        Returns (x, y, residual_z, t) when init_method is v2/v2_konly,
+        or (x, y, residual_z) for v1 (backward compatible).
+        """
+        all_x, all_y, all_res, all_t = [], [], [], []
         with torch.no_grad():
             for frame in frames:
                 if len(frame.x_obs) == 0:
                     continue
                 z_pred = model(frame.x_obs, frame.y_obs, frame.t)
                 res = (frame.z_obs - z_pred).cpu().numpy()
+                n = len(frame.x_obs)
                 all_x.append(frame.x_obs.cpu().numpy())
                 all_y.append(frame.y_obs.cpu().numpy())
                 all_res.append(res)
+                all_t.append(np.full(n, frame.t))
 
         if all_x:
-            return np.concatenate(all_x), np.concatenate(all_y), np.concatenate(all_res)
+            x = np.concatenate(all_x)
+            y = np.concatenate(all_y)
+            r = np.concatenate(all_res)
+            if self.init_method in ('v2', 'v2_konly'):
+                return x, y, r, np.concatenate(all_t)
+            return x, y, r
+        if self.init_method in ('v2', 'v2_konly'):
+            return np.array([]), np.array([]), np.array([]), np.array([])
         return np.array([]), np.array([]), np.array([])
 
     def initialize(self, frames: List[FrameData],
@@ -200,12 +229,15 @@ class SequentialUpdater:
             stages=self.stages,
             loss_thresholds=self.loss_thresholds or default_thresholds,
             max_iters_per_stage=self.max_iters_per_stage or default_max_iters,
+            init_method=self.init_method,
+            depth=self.depth,
         )
 
         # Initialize first stage
         n_init = schedule.current_n()
         init_kx, init_ky, init_w, init_phi = initialize_from_frames(
-            frames, n_init, self.depth, x_range, y_range
+            frames, n_init, self.depth, x_range, y_range,
+            init_method=self.init_method, seed=self.seed
         )
 
         self.model = self._build_model(n_init)

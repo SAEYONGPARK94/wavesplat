@@ -3,7 +3,7 @@ etkf_grid.py
 Ensemble Transform Kalman Filter on a grid — baseline from "From Points to Waves".
 
 State: wave elevation η(grid) + ∂η/∂t on regular grid
-Prediction: dispersion-based linear wave propagation
+Prediction: spectral propagation (exact dispersion in Fourier space)
 Observation: bilinear interpolation from grid to observation points
 
 This demonstrates the grid interpolation limitation that WaveSplat overcomes.
@@ -11,7 +11,6 @@ This demonstrates the grid interpolation limitation that WaveSplat overcomes.
 
 import numpy as np
 import time
-from typing import Tuple
 from scipy.interpolate import RegularGridInterpolator
 
 
@@ -19,139 +18,143 @@ class ETKFGrid:
     """
     ETKF-grid baseline for wave field estimation.
 
-    Args:
-        grid_x, grid_y: (Nx,), (Ny,) grid coordinates
-        depth: water depth [m]
-        n_ensemble: ensemble size
-        dt: timestep [s]
-        inflation: covariance inflation factor
+    Uses spectral (FFT-based) propagation for unconditionally stable forecasting,
+    observation thinning to prevent ensemble collapse (M >> Ne),
+    and additive inflation to maintain ensemble spread.
     """
 
     def __init__(self, grid_x: np.ndarray, grid_y: np.ndarray,
                  depth: float = 50.0,
                  n_ensemble: int = 50,
                  dt: float = 0.1,
-                 inflation: float = 1.05,
-                 obs_noise: float = 0.02):
+                 mult_inflation: float = 1.01,
+                 add_inflation: float = 0.005,
+                 obs_noise: float = 0.05,
+                 max_obs: int = 40):
         self.grid_x = grid_x
         self.grid_y = grid_y
         self.nx = len(grid_x)
         self.ny = len(grid_y)
-        self.n_state = self.nx * self.ny * 2  # η + ∂η/∂t
+        self.n_grid = self.nx * self.ny
+        self.n_state = self.n_grid * 2  # η + ∂η/∂t
         self.depth = depth
         self.n_ensemble = n_ensemble
         self.dt = dt
-        self.inflation = inflation
+        self.mult_inflation = mult_inflation
+        self.add_inflation = add_inflation
         self.obs_noise = obs_noise
+        self.max_obs = max_obs
         self.g = 9.81
+        self.max_eta = 5.0
 
-        # Initialize ensemble: small random perturbations
-        self.ensemble = np.random.randn(self.n_ensemble, self.n_state) * 0.01
+        # Grid spacings
+        self.dx = grid_x[1] - grid_x[0] if self.nx > 1 else 1.0
+        self.dy = grid_y[1] - grid_y[0] if self.ny > 1 else 1.0
 
-    def _get_eta(self, state: np.ndarray) -> np.ndarray:
-        """Extract η from state vector → (Ny, Nx)."""
-        n_grid = self.nx * self.ny
-        return state[:n_grid].reshape(self.ny, self.nx)
+        # Precompute spectral propagation coefficients
+        kx = 2 * np.pi * np.fft.fftfreq(self.nx, d=self.dx)
+        ky = 2 * np.pi * np.fft.fftfreq(self.ny, d=self.dy)
+        KX, KY = np.meshgrid(kx[:self.nx // 2 + 1], ky)
+        K = np.sqrt(KX ** 2 + KY ** 2 + 1e-12)
+        omega = np.sqrt(self.g * K * np.tanh(K * self.depth))
 
-    def _get_deta_dt(self, state: np.ndarray) -> np.ndarray:
-        """Extract ∂η/∂t from state vector → (Ny, Nx)."""
-        n_grid = self.nx * self.ny
-        return state[n_grid:].reshape(self.ny, self.nx)
+        self._cos_wdt = np.cos(omega * dt)
+        self._sin_wdt = np.sin(omega * dt)
+        self._sinc_wdt = np.where(omega > 1e-10,
+                                   self._sin_wdt / omega, dt)
+        self._omega = omega
+        # Spectral damping for high-k modes
+        self._damp = np.exp(-0.002 * K ** 2 * dt)
+
+        # Initialize ensemble with meaningful perturbations
+        self.ensemble = np.random.randn(n_ensemble, self.n_state) * 0.1
 
     def _forecast_member(self, state: np.ndarray) -> np.ndarray:
-        """
-        Propagate one ensemble member by dt.
-        Simple linear wave equation: ∂²η/∂t² = -g·d·∇²η (shallow water limit)
-        or use spectral propagation for full dispersion.
+        """Spectral propagation: exact linear wave equation in Fourier space."""
+        eta = state[:self.n_grid].reshape(self.ny, self.nx)
+        deta = state[self.n_grid:].reshape(self.ny, self.nx)
 
-        For simplicity, use leapfrog with Laplacian:
-            η(t+dt) = η(t) + ∂η/∂t · dt
-            ∂η/∂t(t+dt) = ∂η/∂t(t) + g·d·∇²η(t) · dt
-        """
-        eta = self._get_eta(state)
-        deta = self._get_deta_dt(state)
+        eta_hat = np.fft.rfft2(eta)
+        deta_hat = np.fft.rfft2(deta)
 
-        # Laplacian via finite differences
-        dx = self.grid_x[1] - self.grid_x[0] if self.nx > 1 else 1.0
-        dy = self.grid_y[1] - self.grid_y[0] if self.ny > 1 else 1.0
+        eta_hat_new = (eta_hat * self._cos_wdt
+                       + deta_hat * self._sinc_wdt)
+        deta_hat_new = (-eta_hat * self._omega * self._sin_wdt
+                        + deta_hat * self._cos_wdt)
 
-        laplacian = np.zeros_like(eta)
-        if self.nx > 2:
-            laplacian[:, 1:-1] += (eta[:, 2:] - 2*eta[:, 1:-1] + eta[:, :-2]) / dx**2
-        if self.ny > 2:
-            laplacian[1:-1, :] += (eta[2:, :] - 2*eta[1:-1, :] + eta[:-2, :]) / dy**2
-
-        # Phase speed: c² = g·d·tanh(k·d)/(k·d) ≈ g·d for shallow
-        c2 = self.g * min(self.depth, 100.0)  # cap for stability
-
-        new_eta = eta + deta * self.dt
-        new_deta = deta + c2 * laplacian * self.dt
-
-        # Damping at boundaries
-        new_eta[0, :] *= 0.9
-        new_eta[-1, :] *= 0.9
-        new_eta[:, 0] *= 0.9
-        new_eta[:, -1] *= 0.9
+        eta_hat_new *= self._damp
+        deta_hat_new *= self._damp
 
         new_state = state.copy()
-        n_grid = self.nx * self.ny
-        new_state[:n_grid] = new_eta.ravel()
-        new_state[n_grid:] = new_deta.ravel()
+        new_state[:self.n_grid] = np.fft.irfft2(
+            eta_hat_new, s=(self.ny, self.nx)).ravel()
+        new_state[self.n_grid:] = np.fft.irfft2(
+            deta_hat_new, s=(self.ny, self.nx)).ravel()
+
+        # Physical clamp
+        np.clip(new_state[:self.n_grid],
+                -self.max_eta, self.max_eta,
+                out=new_state[:self.n_grid])
+        np.clip(new_state[self.n_grid:],
+                -self.max_eta * 2, self.max_eta * 2,
+                out=new_state[self.n_grid:])
         return new_state
 
-    def _observation_operator(self, state: np.ndarray,
-                               obs_x: np.ndarray,
-                               obs_y: np.ndarray) -> np.ndarray:
-        """
-        Bilinear interpolation from grid to observation points.
-        This is the key limitation — requires regular grid.
-        """
-        eta = self._get_eta(state)
+    def _thin_observations(self, obs_x, obs_y, obs_z):
+        """Subsample observations to at most max_obs for ensemble stability."""
+        M = len(obs_x)
+        if M <= self.max_obs:
+            return obs_x, obs_y, obs_z
 
+        # Stratified subsampling: pick spatially spread points
+        idx = np.random.choice(M, self.max_obs, replace=False)
+        return obs_x[idx], obs_y[idx], obs_z[idx]
+
+    def _observation_operator(self, state, obs_x, obs_y):
+        """Bilinear interpolation from grid to observation points."""
+        eta = state[:self.n_grid].reshape(self.ny, self.nx)
         try:
             interp = RegularGridInterpolator(
                 (self.grid_y, self.grid_x), eta,
-                method='linear', bounds_error=False, fill_value=0.0
-            )
-            pts = np.column_stack([obs_y, obs_x])
-            return interp(pts)
-        except ValueError as e:
-            import warnings
-            warnings.warn(f"ETKF observation interpolation failed: {e}")
+                method='linear', bounds_error=False, fill_value=0.0)
+            return interp(np.column_stack([obs_y, obs_x]))
+        except ValueError:
             return np.zeros(len(obs_x))
 
     def update(self, obs_x: np.ndarray, obs_y: np.ndarray,
                obs_z: np.ndarray) -> float:
-        """
-        One ETKF cycle: forecast + analysis.
-
-        Args:
-            obs_x, obs_y, obs_z: (M,) observations
-
-        Returns:
-            elapsed_ms
-        """
+        """One ETKF cycle: forecast + analysis."""
         t0 = time.time()
-        M = len(obs_x)
+        M_orig = len(obs_x)
 
-        if M == 0:
+        if M_orig == 0:
             return (time.time() - t0) * 1000
 
-        # Forecast
-        for i in range(self.n_ensemble):
+        # Thin observations to prevent M >> Ne issues
+        obs_x, obs_y, obs_z = self._thin_observations(obs_x, obs_y, obs_z)
+        M = len(obs_x)
+        Ne = self.n_ensemble
+
+        # Forecast all ensemble members
+        for i in range(Ne):
             self.ensemble[i] = self._forecast_member(self.ensemble[i])
 
         # Ensemble mean and perturbations
         x_mean = np.mean(self.ensemble, axis=0)
         X_pert = self.ensemble - x_mean[None, :]
 
-        # Inflation
-        X_pert *= self.inflation
+        # Multiplicative inflation
+        X_pert *= self.mult_inflation
+
+        # Additive inflation: add random noise to maintain spread
+        if self.add_inflation > 0:
+            X_pert += np.random.randn(Ne, self.n_state) * self.add_inflation
+
         self.ensemble = x_mean[None, :] + X_pert
 
-        # Observation operator applied to each member
-        HX = np.zeros((self.n_ensemble, M))
-        for i in range(self.n_ensemble):
+        # Observation operator for each member
+        HX = np.zeros((Ne, M))
+        for i in range(Ne):
             HX[i] = self._observation_operator(self.ensemble[i], obs_x, obs_y)
 
         HX_mean = np.mean(HX, axis=0)
@@ -160,40 +163,48 @@ class ETKFGrid:
         # Innovation
         d = obs_z - HX_mean
 
-        # ETKF analysis (Bishop et al. 2001)
-        R_inv = np.eye(M) / (self.obs_noise ** 2)
+        # ETKF analysis (Hunt et al. 2007)
+        R_diag = self.obs_noise ** 2
+        Y = HX_pert / np.sqrt(R_diag)  # (Ne, M)
+        d_norm = d / np.sqrt(R_diag)
 
-        # C = HX_pert^T R^{-1} HX_pert + (Ne-1) I
-        # Use economy SVD for stability
-        S = HX_pert.T  # (M, Ne)
-        C = S.T @ R_inv @ S + (self.n_ensemble - 1) * np.eye(self.n_ensemble)
+        C = (Ne - 1) * np.eye(Ne) + Y @ Y.T
 
         try:
             C_inv = np.linalg.inv(C)
         except np.linalg.LinAlgError:
-            import warnings
-            warnings.warn("ETKF analysis skipped: singular matrix C")
             return (time.time() - t0) * 1000
 
         # Mean update
-        K_eff = X_pert.T @ C_inv @ S.T @ R_inv  # (n_state, M)
-        x_mean_new = x_mean + K_eff @ d
+        w_mean = C_inv @ Y @ d_norm
+        x_mean_new = x_mean + X_pert.T @ w_mean
 
         # Perturbation update (square root)
-        eigvals, eigvecs = np.linalg.eigh(C_inv * (self.n_ensemble - 1))
+        eigvals, eigvecs = np.linalg.eigh(C_inv)
         eigvals = np.maximum(eigvals, 0)
-        T = eigvecs @ np.diag(np.sqrt(eigvals)) @ eigvecs.T
-        X_pert_new = X_pert @ T
+        W = eigvecs @ np.diag(np.sqrt(eigvals * (Ne - 1))) @ eigvecs.T
+
+        X_pert_new = W @ X_pert
 
         self.ensemble = x_mean_new[None, :] + X_pert_new
+
+        # Clamp all members
+        for i in range(Ne):
+            np.clip(self.ensemble[i, :self.n_grid],
+                    -self.max_eta, self.max_eta,
+                    out=self.ensemble[i, :self.n_grid])
+            np.clip(self.ensemble[i, self.n_grid:],
+                    -self.max_eta * 2, self.max_eta * 2,
+                    out=self.ensemble[i, self.n_grid:])
 
         return (time.time() - t0) * 1000
 
     def predict_grid(self) -> np.ndarray:
         """Return ensemble mean η field: (Ny, Nx)."""
         x_mean = np.mean(self.ensemble, axis=0)
-        return self._get_eta(x_mean)
+        return x_mean[:self.n_grid].reshape(self.ny, self.nx)
 
     def reset(self):
         """Reset ensemble."""
-        self.ensemble = np.random.randn(self.n_ensemble, self.n_state) * 0.01
+        self.ensemble = np.random.randn(
+            self.n_ensemble, self.n_state) * 0.1

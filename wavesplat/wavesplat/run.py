@@ -28,8 +28,20 @@ DEFAULT_CONFIG = {
     'tracking_steps': 10,
     'tracking_mode': 'w_phi',
     'tracking_lr': 0.005,
+    'init_method': 'v2_konly',
+    'use_dispersion': True,
+    'use_confidence': True,
     'device': 'cpu',
+    'seed': 42,
 }
+
+
+def set_seed(seed: int):
+    """Set global random seeds for reproducibility."""
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 def load_yaml_config(yaml_path: str) -> dict:
@@ -49,6 +61,7 @@ def load_yaml_config(yaml_path: str) -> dict:
         cfg['tracking_steps'] = raw['optimizer'].get('tracking_steps', 10)
         cfg['tracking_mode'] = raw['optimizer'].get('tracking_mode', 'w_phi')
         cfg['tracking_lr'] = raw['optimizer'].get('tracking_lr', 0.005)
+        cfg['init_method'] = raw['optimizer'].get('init_method', 'v2')
     if 'schedule' in raw:
         cfg['loss_thresholds'] = raw['schedule'].get('loss_thresholds')
         cfg['max_iters_per_stage'] = raw['schedule'].get('max_iters_per_stage')
@@ -74,6 +87,11 @@ def run_estimation(h5_path: str, config: dict = None,
     if config:
         cfg.update(config)
     cfg['depth'] = cfg.get('depth', 50.0)
+
+    # Set random seed for reproducibility
+    seed = cfg.get('seed', 42)
+    if seed is not None:
+        set_seed(seed)
 
     # Load episode
     loader = EpisodeDataLoader(h5_path, device=cfg['device'])
@@ -208,6 +226,11 @@ def main():
                         help='Which params to update during tracking')
     parser.add_argument('--tracking_lr', type=float, default=None,
                         help='Learning rate for tracking phase')
+    parser.add_argument('--init_method', type=str, default=None,
+                        choices=['v1', 'v2', 'v2_konly'],
+                        help='Init method: v1 (spatial FFT), v2 (beamform+proj), v2_konly (beamform kx/ky only)')
+    parser.add_argument('--seed', type=int, default=None,
+                        help='Random seed for reproducibility (default: 42)')
     parser.add_argument('--output', type=str, default=None,
                         help='Output JSON path for results')
     parser.add_argument('--verbose', action='store_true')
@@ -232,6 +255,10 @@ def main():
         config['tracking_mode'] = args.tracking_mode
     if args.tracking_lr is not None:
         config['tracking_lr'] = args.tracking_lr
+    if args.init_method is not None:
+        config['init_method'] = args.init_method
+    if args.seed is not None:
+        config['seed'] = args.seed
 
     result = run_estimation(args.episode, config, verbose=args.verbose)
 

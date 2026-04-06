@@ -4,14 +4,16 @@ description: 반복 검토 후 남은 미해결 항목 — 구현 단계에서 �
 type: project
 ---
 
-## 코드 수정 필요 (즉시)
-- **raydrop_slope.py α_threshold**: specular_alignment 기본값 2° → 5°로 통일
-- **pipeline.py raycast mesh 해상도**: 하드코딩(40×30) → config 파라미터화 검토
+## 코드 수정 — ✅ 해결 완료 (2026.04.06)
+- **raydrop_slope.py α_threshold**: 이미 양쪽 5.0°로 통일 확인됨
+- **pipeline.py raycast mesh 해상도**: config.mesh.nx/ny로 관리됨 (하드코딩 아님)
 
-## 문서 수정 필요
-- **개발가이드 905nm → 1550nm** 통일
-- **개발가이드 C1~C4** 방법론 중심으로 수정
-- **개발가이드 §6~7** 알고리즘/메트릭/baseline 반영
+## 문서 수정 — ✅ 해결 완료 (2026.04.06)
+- **개발가이드 905nm → 1550nm** 통일 완료
+- **개발가이드 C1~C4** 방법론 중심으로 수정 완료
+- **개발가이드 §6~7** 알고리즘/메트릭/baseline 반영 완료
+- **데이터셋 구성** 10 시나리오 × 100 에피소드로 수정 완료
+- **HDF5 구조** lidar_intensities 제거, channels 152 수정 완료
 
 ## 구현 단계에서 실험적 결정
 1. Coarse-to-fine 전환 residual threshold 구체값

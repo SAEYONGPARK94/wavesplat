@@ -156,11 +156,11 @@ P_return = η · R_fresnel(θ_i) · cos(θ_i) / (d/d_ref)²
 ```
 
 - `η`: 센서 효율 (calibration-free: default=1)
-- `R_fresnel`: Fresnel 반사율 (물, n=1.328 @905nm)
+- `R_fresnel`: Fresnel 반사율 (물, n=1.321 @1550nm, Seyond Falcon K1)
 - `cos(θ_i)`: Lambertian factor
 - `d²`: 역제곱 거리 감쇄
 
-**`fresnel_reflectance(theta_i, n=1.328)`**
+**`fresnel_reflectance(theta_i, n=1.321)`**
 - s/p 편광 평균
 - θ=0°: R≈2%, θ=89°: R>80%
 - 단조 증가 검증 ✓

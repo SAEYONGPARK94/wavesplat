@@ -13,10 +13,11 @@ from wavesim.raydrop_slope import specular_alignment, apply_dropout as apply_slo
 # ── Fresnel reflectance ──────────────────────────────────────────────────────
 
 def test_fresnel_normal_incidence():
-    """At θ=0 (normal incidence), R = ((n-1)/(n+1))² ≈ 2%."""
-    n = 1.328
+    """At θ=0 (normal incidence), R = ((n-1)/(n+1))² ≈ 2%. Uses 1550nm default."""
+    from wavesim.raydrop_uniform import N_WATER_1550NM
+    n = N_WATER_1550NM  # 1.321 @1550nm (Seyond Falcon K1)
     R_expected = ((n - 1) / (n + 1))**2
-    R = fresnel_reflectance(np.array([0.0]), n=n)[0]
+    R = fresnel_reflectance(np.array([0.0]))[0]  # use default n
     assert abs(R - R_expected) < 1e-6
 
 

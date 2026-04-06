@@ -1,0 +1,249 @@
+"""
+run.py
+Main inference script for WaveSplat wave field estimation.
+
+Usage:
+    python -m wavesplat.run --episode data/episode_BF4_30comp_seed42_uniform.h5
+    python -m wavesplat.run --episode data/episode_BF4_30comp_seed42_uniform.h5 --verbose
+"""
+
+import argparse
+import json
+import os
+import time
+import numpy as np
+import torch
+
+from wavesplat.data_loader import EpisodeDataLoader
+from wavesplat.optimizer.sequential_update import SequentialUpdater
+from wavesplat.evaluation.metrics import compute_all_metrics, rmse, nrmse
+
+
+DEFAULT_CONFIG = {
+    'n_gaussians': [3, 8, 15],
+    'depth': 50.0,
+    'lr': 0.01,
+    'lambda_l1': 0.001,
+    'lambda_smooth': 0.0001,
+    'tracking_steps': 10,
+    'tracking_mode': 'w_phi',
+    'tracking_lr': 0.005,
+    'device': 'cpu',
+}
+
+
+def load_yaml_config(yaml_path: str) -> dict:
+    """Load estimation config from YAML and flatten into optimizer-compatible dict."""
+    import yaml
+    with open(yaml_path) as f:
+        raw = yaml.safe_load(f)
+
+    cfg = {}
+    if 'model' in raw:
+        cfg['n_gaussians'] = raw['model'].get('n_gaussians', [3, 8, 15])
+        cfg['depth'] = raw['model'].get('depth', 50.0)
+    if 'optimizer' in raw:
+        cfg['lr'] = raw['optimizer'].get('lr', 0.01)
+        cfg['lambda_l1'] = raw['optimizer'].get('lambda_l1', 0.001)
+        cfg['lambda_smooth'] = raw['optimizer'].get('lambda_smooth', 0.0001)
+        cfg['tracking_steps'] = raw['optimizer'].get('tracking_steps', 10)
+        cfg['tracking_mode'] = raw['optimizer'].get('tracking_mode', 'w_phi')
+        cfg['tracking_lr'] = raw['optimizer'].get('tracking_lr', 0.005)
+    if 'schedule' in raw:
+        cfg['loss_thresholds'] = raw['schedule'].get('loss_thresholds')
+        cfg['max_iters_per_stage'] = raw['schedule'].get('max_iters_per_stage')
+    if 'device' in raw:
+        cfg['device'] = raw['device']
+    return cfg
+
+
+def run_estimation(h5_path: str, config: dict = None,
+                   verbose: bool = False) -> dict:
+    """
+    Run full WaveSplat estimation on an episode.
+
+    Args:
+        h5_path: path to HDF5 episode file
+        config: algorithm configuration dict
+        verbose: print progress
+
+    Returns:
+        dict with per-frame metrics, timing, and parameters
+    """
+    cfg = DEFAULT_CONFIG.copy()
+    if config:
+        cfg.update(config)
+    cfg['depth'] = cfg.get('depth', 50.0)
+
+    # Load episode
+    loader = EpisodeDataLoader(h5_path, device=cfg['device'])
+    cfg['depth'] = loader.depth
+
+    if verbose:
+        print(f"Episode: {h5_path}")
+        print(f"  Sea state: {loader.sea_state}, Hs={loader.Hs_true:.2f}m, "
+              f"Tp={loader.Tp_true:.1f}s")
+        print(f"  Frames: {loader.n_frames}, "
+              f"GT grid: {len(loader.gt_grid_y)}×{len(loader.gt_grid_x)}")
+
+    # Phase 1: Initialization
+    init_frames = loader.get_init_window(tp_factor=2.0)
+    if verbose:
+        print(f"\n[Phase 1] Initialization: {len(init_frames)} frames "
+              f"({init_frames[-1].t:.1f}s)")
+
+    updater = SequentialUpdater(cfg)
+    init_result = updater.initialize(
+        init_frames,
+        x_range=(float(loader.gt_grid_x[0]), float(loader.gt_grid_x[-1])),
+        y_range=(float(loader.gt_grid_y[0]), float(loader.gt_grid_y[-1])),
+        verbose=verbose,
+    )
+
+    # Evaluate initialization on last init frame
+    grid_x = loader.gt_grid_x
+    grid_y = loader.gt_grid_y
+    last_init = init_frames[-1]
+
+    pred_init = updater.predict_field(grid_x, grid_y, last_init.t)
+    init_rmse = rmse(pred_init.cpu().numpy(), last_init.gt_field.cpu().numpy())
+    init_nrmse = nrmse(pred_init.cpu().numpy(), last_init.gt_field.cpu().numpy(),
+                       loader.Hs_true)
+
+    if verbose:
+        print(f"  Init RMSE={init_rmse:.4f}m, nRMSE={init_nrmse:.4f}")
+
+    # Phase 2: Tracking
+    tracking_frames = loader.get_tracking_frames(tp_factor=2.0)
+    if verbose:
+        print(f"\n[Phase 2] Tracking: {len(tracking_frames)} frames")
+
+    frame_results = []
+    t_converge = None
+    converge_threshold = 0.05  # nRMSE threshold
+
+    for i, frame in enumerate(tracking_frames):
+        update_result = updater.update(frame)
+
+        # Evaluate on GT grid
+        pred = updater.predict_field(grid_x, grid_y, frame.t)
+        pred_np = pred.cpu().numpy()
+        gt_np = frame.gt_field.cpu().numpy()
+
+        frame_metrics = compute_all_metrics(
+            pred_np, gt_np,
+            grid_x.cpu().numpy(), grid_y.cpu().numpy(),
+            loader.Hs_true,
+            obs_x=frame.x_obs.cpu().numpy() if len(frame.x_obs) > 0 else None,
+            obs_y=frame.y_obs.cpu().numpy() if len(frame.y_obs) > 0 else None,
+        )
+        frame_metrics['elapsed_ms'] = update_result['elapsed_ms']
+        frame_metrics['n_pts'] = update_result['n_pts']
+        frame_metrics['t'] = frame.t
+        frame_results.append(frame_metrics)
+
+        # Check convergence
+        if t_converge is None and frame_metrics['nRMSE'] < converge_threshold:
+            t_converge = frame.t
+
+        if verbose and i % 20 == 0:
+            print(f"  [t={frame.t:.1f}s] RMSE={frame_metrics['RMSE_z']:.4f}m, "
+                  f"nRMSE={frame_metrics['nRMSE']:.4f}, "
+                  f"{update_result['elapsed_ms']:.1f}ms")
+
+    # Aggregate results
+    if frame_results:
+        avg_rmse = np.mean([r['RMSE_z'] for r in frame_results])
+        avg_nrmse = np.mean([r['nRMSE'] for r in frame_results])
+        avg_ms = np.mean([r['elapsed_ms'] for r in frame_results])
+        avg_hs_err = np.mean([r['Hs_error'] for r in frame_results])
+    else:
+        avg_rmse = avg_nrmse = avg_ms = avg_hs_err = float('nan')
+
+    summary = {
+        'episode': h5_path,
+        'sea_state': loader.sea_state,
+        'Hs_true': loader.Hs_true,
+        'Tp_true': loader.Tp_true,
+        'n_gaussians': updater.model.n_gaussians,
+        'init_iters': init_result['n_iters'],
+        'init_time_s': init_result['elapsed_s'],
+        'init_rmse': init_rmse,
+        'init_nrmse': init_nrmse,
+        'tracking_frames': len(frame_results),
+        'avg_RMSE_z': avg_rmse,
+        'avg_nRMSE': avg_nrmse,
+        'avg_Hs_error': avg_hs_err,
+        'avg_inference_ms': avg_ms,
+        'T_converge': t_converge,
+        'frame_results': frame_results,
+        'spectrum_params': updater.model.get_spectrum_params(),
+    }
+
+    if verbose:
+        print(f"\n[Summary]")
+        print(f"  Avg RMSE_z = {avg_rmse:.4f}m")
+        print(f"  Avg nRMSE  = {avg_nrmse:.4f}")
+        print(f"  Avg Hs_err = {avg_hs_err:.4f}")
+        print(f"  Avg speed  = {avg_ms:.1f}ms/frame")
+        if t_converge:
+            print(f"  T_converge = {t_converge:.1f}s")
+
+    return summary
+
+
+def main():
+    parser = argparse.ArgumentParser(description='WaveSplat inference')
+    parser.add_argument('--episode', type=str, required=True,
+                        help='Path to HDF5 episode file')
+    parser.add_argument('--config', type=str, default=None,
+                        help='Path to estimation YAML config')
+    parser.add_argument('--n_gaussians', type=int, nargs='+', default=None)
+    parser.add_argument('--lr', type=float, default=None)
+    parser.add_argument('--lambda_l1', type=float, default=None)
+    parser.add_argument('--lambda_smooth', type=float, default=None)
+    parser.add_argument('--tracking_steps', type=int, default=None)
+    parser.add_argument('--tracking_mode', type=str, default=None,
+                        choices=['phi_only', 'w_phi', 'all'],
+                        help='Which params to update during tracking')
+    parser.add_argument('--tracking_lr', type=float, default=None,
+                        help='Learning rate for tracking phase')
+    parser.add_argument('--output', type=str, default=None,
+                        help='Output JSON path for results')
+    parser.add_argument('--verbose', action='store_true')
+    args = parser.parse_args()
+
+    # Build config: YAML base → CLI overrides
+    config = {}
+    if args.config:
+        config = load_yaml_config(args.config)
+    # CLI flags override YAML
+    if args.n_gaussians is not None:
+        config['n_gaussians'] = args.n_gaussians
+    if args.lr is not None:
+        config['lr'] = args.lr
+    if args.lambda_l1 is not None:
+        config['lambda_l1'] = args.lambda_l1
+    if args.lambda_smooth is not None:
+        config['lambda_smooth'] = args.lambda_smooth
+    if args.tracking_steps is not None:
+        config['tracking_steps'] = args.tracking_steps
+    if args.tracking_mode is not None:
+        config['tracking_mode'] = args.tracking_mode
+    if args.tracking_lr is not None:
+        config['tracking_lr'] = args.tracking_lr
+
+    result = run_estimation(args.episode, config, verbose=args.verbose)
+
+    if args.output:
+        # Convert numpy arrays for JSON serialization
+        save_result = {k: v for k, v in result.items()
+                       if k not in ('frame_results', 'spectrum_params')}
+        os.makedirs(os.path.dirname(args.output) or '.', exist_ok=True)
+        with open(args.output, 'w') as f:
+            json.dump(save_result, f, indent=2, default=str)
+        print(f"Results saved to {args.output}")
+
+
+if __name__ == '__main__':
+    main()

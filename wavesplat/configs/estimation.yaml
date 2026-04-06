@@ -1,0 +1,37 @@
+# WaveSplat Estimation Configuration
+# Usage: python -m wavesplat --config configs/estimation.yaml --episode data/episode.h5
+
+# ── Model ───────────────────────────────────────────────────────────────────
+model:
+  n_gaussians: [3, 8, 15]    # coarse-to-fine stages
+  depth: 50.0                 # water depth [m] (overridden by episode metadata)
+
+# ── Optimizer ───────────────────────────────────────────────────────────────
+optimizer:
+  lr: 0.01                    # base learning rate (kx/ky get 0.5×)
+  lambda_l1: 0.001            # L1 sparsity weight on amplitudes
+  lambda_smooth: 0.0001       # spectral smoothness weight
+  tracking_steps: 10          # gradient steps per tracking frame
+  tracking_mode: w_phi         # 'phi_only', 'w_phi', or 'all'
+  tracking_lr: 0.005          # learning rate for tracking phase
+  max_steepness: 0.15         # wave steepness clamp ε = |k|·|w|
+
+# ── Coarse-to-Fine Schedule ─────────────────────────────────────────────────
+schedule:
+  loss_thresholds: [0.1, 0.05, null]    # advance when loss < threshold
+  max_iters_per_stage: [200, 200, 500]  # max iterations per stage
+
+# ── Initialization ──────────────────────────────────────────────────────────
+init:
+  tp_factor: 2.0              # initialization window = tp_factor × Tp
+  grid_nx: 32                 # FFT binning resolution (x)
+  grid_ny: 24                 # FFT binning resolution (y)
+
+# ── Evaluation ──────────────────────────────────────────────────────────────
+eval:
+  converge_threshold: 0.05    # nRMSE threshold for convergence time
+  split_distance: 80.0        # near/far boundary [m]
+  unobserved_min_dist: 10.0   # min distance from obs for unobserved RMSE [m]
+
+# ── Runtime ─────────────────────────────────────────────────────────────────
+device: cpu                   # 'cpu' or 'cuda'

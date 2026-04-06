@@ -18,7 +18,7 @@
 - **RQ2**: 파랑 물리 prior(dispersion relation)가 미관측 영역의 복원 정확도를 얼마나 향상시키는가?
 - **RQ3**: 복원된 wave field를 hydrofoil 예측 제어에 활용하면 기존 reactive 제어 대비 얼마나 개선되는가? (논문 2)
 
-## 1.3 확정된 Contributions (논문 1, 방법론 ���심 — 2026.04.05 통일)
+## 1.3 확정된 Contributions (논문 1, 방법론 중심 — 2026.04.06 4인 토론 확인)
 
 - **C1**: Grid-free spectral estimation framework — 기존 ETKF의 grid 보간 한계를 극복하여 sparse irregular 관측에서 직접 wave field 복원
 - **C2**: Dispersion-constrained spectral Gaussian parameterization — 물리 법칙(dispersion relation)을 구조적 제약으로 내장
@@ -273,7 +273,7 @@ wavesim/
 | Q 제약 | Jacobian > 0 조건 | Tessendorf (2001), Finch (2004) | J 값 모니터링, 항상 > 0 |
 | Ray intersection | Möller-Trumbore | Möller & Trumbore (1997) | 알려진 곡면에서 해석해 비교 |
 | Surface normal | Mesh 미분기하 | 표준 수학 | Gerstner 해석적 법선과 비교 |
-| Fresnel 반사율 | Fresnel 방정식 | Hecht (2017, Optics) | n=1.328에서 교과서 값 비교 |
+| Fresnel 반사율 | Fresnel 방정식 | Hecht (2017, Optics) | n=1.321(@1550nm)에서 교과서 값 비교 |
 | Dropout A | 거리/Fresnel/Lambertian | 표준 광학 | 문헌 return rate 범위 확인 |
 | Dropout B | Specular backscatter 기하 | 반사 법칙 | 정수면에서 return=0 확인 |
 | Sensor noise | Gaussian noise | LiDAR datasheet | 스펙 값 직접 적용 |
@@ -305,13 +305,12 @@ episode_BF4_30comp_seed42.h5
 │   ├── depth: 50.0
 │   └── lidar_config/
 │       ├── height: 5.0
-│       ├── channels: 32
+│       ├── channels: 152
 │       └── scan_rate: 10.0
 │
 ├── /frames/
 │   ├── timestamps: (N_frames,)
 │   ├── lidar_points: (N_frames, max_pts, 3)
-│   ├── lidar_intensities: (N_frames, max_pts)
 │   ├── lidar_confidence: (N_frames, max_pts)
 │   ├── lidar_valid_mask: (N_frames, max_pts)
 │   ├── lidar_incidence_angles: (N_frames, max_pts)
@@ -331,20 +330,22 @@ episode_BF4_30comp_seed42.h5
 
 ## 5.5 데이터셋 구성
 
-15개 시나리오 × 5 random seeds = 75 에피소드 (각 30초, 10Hz = 300프레임)
+10개 시나리오 × 5 random seeds × 2 raydrop models = 100 에피소드 (각 30초, 10Hz = 301프레임)
 
 | 시나리오 | 해상상태 | 성분 수 | 선박 | 목적 |
 |---------|---------|--------|------|------|
-| S1 | BF2 (Hs=0.3m) | 1 | 정지 | 단일파 기본 |
-| S2 | BF3 (Hs=0.6m) | 1 | 정지 | 단일파 |
-| S3 | BF3 | 2 | 정지 | Bi-chromatic |
-| S4 | BF3 | 5 | 정지 | 소수 성분 |
-| S5 | BF4 (Hs=1.2m) | 1 | 정지 | 단일파 |
-| S6 | BF4 | 5 | 정지 | 소수 성분 |
-| S7 | BF4 | 15 | 정지 | 중간 복잡도 |
-| S8 | BF4 | 30 | 정지 | 전체 스펙트럼 |
-| S9 | BF5 (Hs=2.0m) | 15 | 정지 | 높은 해상 |
+| S01 | BF2 (Hs=0.3m) | 1 | 정지 | 단일파 기본 |
+| S02 | BF3 (Hs=0.6m) | 1 | 정지 | 단일파 |
+| S03 | BF3 | 2 | 정지 | Bi-chromatic |
+| S04 | BF3 | 5 | 정지 | 소수 성분 |
+| S05 | BF4 (Hs=1.2m) | 1 | 정지 | 단일파 |
+| S06 | BF4 | 5 | 정지 | 소수 성분 |
+| S07 | BF4 | 15 | 정지 | 중간 복잡도 |
+| S08 | BF4 | 30 | 정지 | 전체 스펙트럼 |
+| S09 | BF5 (Hs=2.0m) | 15 | 정지 | 높은 해상 |
 | S10 | BF5 | 30 | 정지 | 높은 해상 |
+
+**이동 시나리오 (Phase 2 이후 추가 예정)**:
 | S11 | BF4 | 15 | 직진 5kts | 선박 이동 |
 | S12 | BF4 | 30 | 직진 5kts | 선박 이동 |
 | S13 | BF5 | 15 | 직진 5kts | 선박 이동+높은 해상 |

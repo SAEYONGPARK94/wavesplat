@@ -310,10 +310,62 @@ def summary_statistics():
               f"(WS={p1_data[worst_adv]:.3f} vs ETKF={etkf_data[worst_adv]:.3f})")
 
 
+def table4_raydrop():
+    """Table 4: Raydrop model comparison (uniform vs slope)."""
+    data = load_json('raydrop_comparison.json')
+    if data is None:
+        return
+
+    print("\n" + "=" * 80)
+    print("TABLE 4: Raydrop Model Comparison (Uniform vs Slope)")
+    print("=" * 80)
+
+    ws_u_all, ws_s_all, et_u_all, et_s_all = [], [], [], []
+
+    print(f"\n{'Pair':<15} {'WS-U':>8} {'WS-S':>8} {'WS Δ%':>8} "
+          f"{'ETKF-U':>8} {'ETKF-S':>8} {'ETKF Δ%':>9}")
+    print("-" * 70)
+
+    for pair_key, v in data.items():
+        u = v.get('uniform', {})
+        s = v.get('slope', {})
+
+        ws_u = u.get('WS-P1', {}).get('avg_nRMSE', float('nan'))
+        ws_s = s.get('WS-P1', {}).get('avg_nRMSE', float('nan'))
+        et_u = u.get('ETKF', {}).get('avg_nRMSE', float('nan'))
+        et_s = s.get('ETKF', {}).get('avg_nRMSE', float('nan'))
+
+        ws_d = (ws_s - ws_u) / ws_u * 100 if ws_u > 0 else float('nan')
+        et_d = (et_s - et_u) / et_u * 100 if et_u > 0 else float('nan')
+
+        print(f"{pair_key:<15} {ws_u:>8.3f} {ws_s:>8.3f} {ws_d:>+7.1f}% "
+              f"{et_u:>8.3f} {et_s:>8.3f} {et_d:>+8.1f}%")
+
+        ws_u_all.append(ws_u)
+        ws_s_all.append(ws_s)
+        et_u_all.append(et_u)
+        et_s_all.append(et_s)
+
+    print("-" * 70)
+    ws_u_avg, ws_s_avg = np.mean(ws_u_all), np.mean(ws_s_all)
+    et_u_avg, et_s_avg = np.mean(et_u_all), np.mean(et_s_all)
+    print(f"{'AVERAGE':<15} {ws_u_avg:>8.3f} {ws_s_avg:>8.3f} "
+          f"{(ws_s_avg-ws_u_avg)/ws_u_avg*100:>+7.1f}% "
+          f"{et_u_avg:>8.3f} {et_s_avg:>8.3f} "
+          f"{(et_s_avg-et_u_avg)/et_u_avg*100:>+8.1f}%")
+
+    print(f"\n--- Raydrop Summary ---")
+    print(f"WS slope better: {sum(1 for u,s in zip(ws_u_all,ws_s_all) if s<u)}/{len(ws_u_all)}")
+    print(f"ETKF slope better: {sum(1 for u,s in zip(et_u_all,et_s_all) if s<u)}/{len(et_u_all)}")
+    print(f"WS wins on uniform: {sum(1 for w,e in zip(ws_u_all,et_u_all) if w<e)}/{len(ws_u_all)}")
+    print(f"WS wins on slope: {sum(1 for w,e in zip(ws_s_all,et_s_all) if w<e)}/{len(ws_s_all)}")
+
+
 def main():
     table1_main_comparison()
     table2_ablation()
     table3_adaptive_n()
+    table4_raydrop()
     summary_statistics()
 
 

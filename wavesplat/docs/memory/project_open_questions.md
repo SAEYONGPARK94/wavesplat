@@ -1,30 +1,30 @@
 ---
-name: WaveSplat remaining open questions (revised)
-description: 반복 검토 후 남은 미해결 항목 — 구현 단계에서 확인 필요
+name: WaveSplat remaining open questions (post-P2)
+description: 남은 미해결 항목 — 대부분 해결, 실험적 확장 항목만 잔존
 type: project
 ---
 
-## 코드 수정 — ✅ 해결 완료 (2026.04.06)
-- **raydrop_slope.py α_threshold**: 이미 양쪽 5.0°로 통일 확인됨
-- **pipeline.py raycast mesh 해상도**: config.mesh.nx/ny로 관리됨 (하드코딩 아님)
+## 코드/문서 수정 — ✅ 모두 해결 완료
 
-## 문서 수정 — ✅ 해결 완료 (2026.04.06)
-- **개발가이드 905nm → 1550nm** 통일 완료
-- **개발가이드 C1~C4** 방법론 중심으로 수정 완료
-- **개발가이드 §6~7** 알고리즘/메트릭/baseline 반영 완료
-- **데이터셋 구성** 10 시나리오 × 100 에피소드로 수정 완료
-- **HDF5 구조** lidar_intensities 제거, channels 152 수정 완료
+## 구현 시 실험적 결정 — ✅ 대부분 해결
+1. ~~Coarse-to-fine 전환 residual threshold~~ → P0에서 결정 (auto schedule)
+2. ~~Initialization 2Tp 충분성~~ → Beamforming v2_konly로 대체
+3. ~~정규화 λ₁, λ₂~~ → 최종 구현에서 L1/smoothness 미사용 (MSE loss만으로 충분)
+4. ~~ETKF-grid inflation factor~~ → n_ensemble=50으로 구현 완료
+5. ~~GPR window 프레임 수~~ → GPR baseline 미포함 (ETKF만 비교)
 
-## 구현 단계에서 실험적 결정
-1. Coarse-to-fine 전환 residual threshold 구체값
-2. Initialization 2Tp 충분성 — BF별 실험
-3. 정규화 λ₁, λ₂ — grid search / cross-validation
-4. ETKF-grid inflation factor — 원논문 확인 또는 실험
-5. GPR window 프레임 수 — 5 frame 외에 3, 10도 비교?
+## 논문 작성 시 반영 사항 — ✅ 대부분 반영
+- ~~Linear vs Gerstner mismatch~~ → Discussion에 명시
+- ~~Confidence = observation noise weight~~ → Method Section에 명시
+- ~~Raydrop model 비교~~ → Table 4 + Discussion 단락 추가 (2026-04-07)
 
-## 데이터/실험 기회에 확인
-6. 수조에서 실제 return 여부 (일정 미정)
-7. NEUBOAT 수면 포인트 분리 가능성
-8. 해류 Doppler shift 실제 영향 크기
+## 향후 연구 기회
+1. Real LiDAR 데이터 (수조 실험 또는 NEUBOAT 실선 데이터)
+2. 해류 Doppler shift 실제 영향 크기
+3. Multi-seed 통계 검증 (현재 seed0 위주, 5-seed로 확장 가능)
+4. BF5 low-comp, BF2 high-comp 추가 시나리오
+5. 2nd order bound harmonic correction (C4)
+6. Learned initialization (CNN/transformer for faster convergence)
+7. Ship motion 효과 (underway scenarios)
 
-**How to apply:** 코드 수정은 다음 개발 세션에서 즉시. 문서 수정은 개발가이드 업데이트 시. #1~#5는 Phase 3 초기에.
+**Status:** 핵심 실험/논문 작성 완료. 남은 항목은 extension/future work.

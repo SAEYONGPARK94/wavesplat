@@ -220,6 +220,44 @@ def fig4_ablation():
     print(f"  Saved: {out_path}")
 
 
+def fig5_raydrop():
+    """Grouped bar chart: WaveSplat and ETKF under uniform vs slope raydrop."""
+    data = load_json('raydrop_comparison.json')
+    if data is None or not HAS_MPL:
+        return
+
+    pairs = list(data.keys())
+    short_names = [p.replace('_', '\n') for p in pairs]
+
+    ws_u = [data[p].get('uniform', {}).get('WS-P1', {}).get('avg_nRMSE', 0) for p in pairs]
+    ws_s = [data[p].get('slope', {}).get('WS-P1', {}).get('avg_nRMSE', 0) for p in pairs]
+    et_u = [data[p].get('uniform', {}).get('ETKF', {}).get('avg_nRMSE', 0) for p in pairs]
+    et_s = [data[p].get('slope', {}).get('ETKF', {}).get('avg_nRMSE', 0) for p in pairs]
+
+    x = np.arange(len(pairs))
+    width = 0.2
+
+    fig, ax = plt.subplots(figsize=(14, 5))
+    ax.bar(x - 1.5*width, ws_u, width, label='WS Uniform', color='#2196F3', edgecolor='white')
+    ax.bar(x - 0.5*width, ws_s, width, label='WS Slope', color='#1565C0', edgecolor='white')
+    ax.bar(x + 0.5*width, et_u, width, label='ETKF Uniform', color='#FF9800', edgecolor='white', alpha=0.8)
+    ax.bar(x + 1.5*width, et_s, width, label='ETKF Slope', color='#E65100', edgecolor='white', alpha=0.8)
+
+    ax.set_ylabel('nRMSE (lower is better)', fontsize=12)
+    ax.set_title('Raydrop Model Comparison: Uniform vs Slope', fontsize=14)
+    ax.set_xticks(x)
+    ax.set_xticklabels(short_names, fontsize=8, ha='center')
+    ax.legend(fontsize=9, ncol=2)
+    ax.set_ylim(0, 0.6)
+    ax.grid(axis='y', alpha=0.3)
+
+    plt.tight_layout()
+    out_path = os.path.join(PAPER_DIR, 'fig5_raydrop.pdf')
+    fig.savefig(out_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print(f"  Saved: {out_path}")
+
+
 def main():
     os.makedirs(PAPER_DIR, exist_ok=True)
     print("Generating paper figures...")
@@ -227,6 +265,7 @@ def main():
     fig2_adaptive_n()
     fig3_speed_comparison()
     fig4_ablation()
+    fig5_raydrop()
     print("Done.")
 
 

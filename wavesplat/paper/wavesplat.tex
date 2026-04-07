@@ -16,9 +16,9 @@
 
 \title{WaveSplat: Grid-Free Spectral Gaussian Wave Field Estimation from Sparse LiDAR}
 
-\author{\IEEEauthorblockN{Saeyong Shin}
+\author{\IEEEauthorblockN{Saeyong Park}
 \IEEEauthorblockA{Avikus (HD Hyundai) \\
-saeyong.shin@avikus.ai}}
+saeyong.park@avikus.ai}}
 
 \maketitle
 
@@ -421,6 +421,47 @@ with the largest degradation on slope-model episodes
 This confirms that accounting for range- and angle-dependent noise
 is essential for heterogeneous observation quality.
 
+\subsection{Raydrop Model Sensitivity}
+
+To evaluate robustness to different LiDAR observation models, we compare
+performance on 10 paired episodes using \emph{uniform} (diffuse Fresnel) vs.\
+\emph{slope} (specular backscatter) raydrop models (Table~\ref{tab:raydrop}).
+
+\begin{table}[t]
+\centering
+\caption{Raydrop model comparison: uniform (U) vs.\ slope (S) on paired episodes.
+$\Delta$\% = relative nRMSE change from uniform to slope (negative = slope is better).}
+\label{tab:raydrop}
+\begin{tabular}{lcccccc}
+\toprule
+& \multicolumn{3}{c}{WaveSplat} & \multicolumn{3}{c}{ETKF} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7}
+Episode & U & S & $\Delta$\% & U & S & $\Delta$\% \\
+\midrule
+BF2 1c  & 0.315 & 0.303 & $-$3.9  & 0.483 & 0.391 & $-$19.1 \\
+BF3 1c  & 0.217 & 0.186 & $-$14.4 & 0.352 & 0.304 & $-$13.6 \\
+BF3 2c  & \textbf{0.052} & 0.061 & +15.9 & 0.444 & 0.350 & $-$21.3 \\
+BF3 5c  & 0.167 & 0.152 & $-$9.5  & 0.434 & 0.384 & $-$11.5 \\
+BF4 1c  & 0.171 & 0.170 & $-$0.5  & 0.410 & 0.340 & $-$17.0 \\
+BF4 5c  & 0.200 & \textbf{0.144} & $-$28.1 & 0.376 & 0.345 & $-$8.2 \\
+BF4 15c & 0.302 & 0.246 & $-$18.6 & 0.511 & 0.399 & $-$21.8 \\
+BF4 30c & 0.314 & 0.277 & $-$11.9 & 0.525 & 0.425 & $-$19.1 \\
+BF5 15c & 0.297 & 0.265 & $-$10.6 & 0.466 & 0.396 & $-$14.9 \\
+BF5 30c & 0.290 & 0.312 & +7.6    & 0.497 & 0.436 & $-$12.3 \\
+\midrule
+\textbf{Avg} & 0.232 & \textbf{0.211} & $-$9.1 & 0.450 & 0.377 & $-$16.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+WaveSplat wins on all 10 episodes under both raydrop models.
+Slope observations improve both methods---ETKF more so (16.2\% vs.\ 9.1\%),
+as specular backscatter preferentially preserves wave-crest points,
+providing richer spatial structure for grid-based interpolation.
+Notably, WaveSplat shows slope degradation only on BF3-2comp (+15.9\%)
+and BF5-30comp (+7.6\%), where the pruning safety check prevents
+optimal model simplification.
+
 % ============================================================================
 \section{Discussion}
 \label{sec:discussion}
@@ -448,6 +489,22 @@ On moderate seas, the optimizer can find better solutions without it,
 but for tracking stability over long time horizons, the
 $\omega = f(|k|, d)$ constraint prevents phase drift.
 
+\textbf{Effect of observation model (raydrop).}
+We additionally compare performance across two LiDAR raydrop models:
+\emph{uniform} (diffuse Fresnel reflection, isotropic dropout) and
+\emph{slope} (specular backscatter, geometry-gated dropout that preserves
+wave-crest observations). On 10 paired episodes (BF2--BF5), WaveSplat wins
+10/10 under \emph{both} raydrop models. Interestingly, slope observations
+improve both methods---WaveSplat by 9.1\% (0.232$\to$0.211 avg nRMSE)
+and ETKF by 16.2\% (0.450$\to$0.377). The larger ETKF improvement suggests
+that specular observations, which preferentially preserve wave crests,
+provide richer spatial structure that grid-based methods leverage
+more effectively. For adaptive~$N$, slope raydrop triggers the safety
+rollback on low-complexity scenes (e.g., BF3-2comp: $N$=2$\to$15)
+but enables \emph{more aggressive} pruning on complex seas (BF4-15comp:
+$N$=19$\to$10), indicating that stronger observations improve both
+estimation and model selection.
+
 % ============================================================================
 \section{Conclusion}
 \label{sec:conclusion}
@@ -457,7 +514,8 @@ ocean wave field estimation from sparse LiDAR.
 By representing waves as optimizable spectral components with
 dispersion constraints and adaptive complexity, WaveSplat achieves
 51.5\% lower nRMSE than ETKF-grid while running 2.4$\times$ faster.
-The method wins on all 12 test episodes spanning Beaufort 2--5.
+The method wins on all 12 test episodes spanning Beaufort 2--5
+and proves robust to both diffuse and specular LiDAR observation models.
 
 Future work includes extending to real LiDAR data, incorporating
 current estimation, and exploring learned initialization for

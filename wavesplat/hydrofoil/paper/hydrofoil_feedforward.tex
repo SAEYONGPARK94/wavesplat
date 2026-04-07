@@ -38,15 +38,19 @@ estimation noise without degrading the causal preview advantage.
 Using WaveSplat---a grid-free spectral wave estimator achieving
 $\sim$20\% normalized RMSE (nRMSE) at 13~ms/frame---the feedforward
 controller reduces heave acceleration RMS by 11--41\% across
-Beaufort~3--4 scenarios, recovering 93--103\% of the improvement
-achievable with perfect wave knowledge.
-Sensitivity analysis demonstrates that feedforward remains beneficial up to
-50\% nRMSE and that the optimal preview horizon is 0.1--0.3~s
-(1--3~m ahead at cruise speed), reflecting the spatial scale of
-wave-foil interaction.
-An end-to-end demonstration confirms that the LiDAR~$\to$~WaveSplat
-estimation~$\to$~feedforward pipeline improves passenger comfort from
-ISO~2631 ``Slight discomfort'' to ``Comfortable'' in Beaufort~3 conditions.
+Beaufort~3--4 scenarios.
+In noise-injection simulations, WaveSplat-level feedforward recovers
+93--103\% of the perfect-knowledge benefit in Beaufort~3.
+However, end-to-end testing reveals that performance is sensitive to
+wave direction estimation accuracy: in Beaufort~3 the pipeline achieves
+92--96\% of perfect-knowledge benefit, but in Beaufort~4 only 37\%
+due to directional misestimation.
+Sensitivity analysis demonstrates that feedforward remains beneficial
+up to 50\% nRMSE and that the optimal preview horizon is 0.1--0.3~s
+(1--3~m ahead at cruise speed).
+In Beaufort~3 beam sea conditions, the end-to-end pipeline improves
+passenger comfort from ISO~2631 ``Slight discomfort'' to
+``Comfortable'' ($a_\text{RMS} < 0.315$~m/s$^2$).
 
 The key finding is that even moderate wave estimation accuracy
 ($\sim$20\% nRMSE) is sufficient for effective feedforward control,
@@ -284,7 +288,7 @@ sharp acceleration peaks that feedback cannot attenuate.
 
 Model-predictive control (MPC) has been applied to marine vessel
 motion control in several contexts.
-\citet{perez2005} developed MPC-based ship roll stabilization
+\citet{perez2012} developed MPC-based ship roll stabilization
 using fins, demonstrating constraint handling and multi-objective
 optimization.
 For wave energy converters, MPC with wave preview information
@@ -327,7 +331,7 @@ feedforward compensation.
 \subsection{LiDAR-based wave field estimation}
 
 Shipboard scanning LiDAR provides direct ocean surface elevation
-measurements at 10~Hz frame rate~\citep{nouguier2014, bjerkaas2022}.
+measurements at 10~Hz frame rate~\citep{nouguier2014, collins2022}.
 Grid-based methods using the Ensemble Transform Kalman Filter
 (ETKF)~\citep{huhn2022, desmars2020} achieve accurate
 reconstruction but require spatial discretization and grid interpolation.

@@ -268,6 +268,49 @@ Multi-frame tracking uses a sliding window of $K_w=3$ recent frames
 for gradient computation, improving stability without significant
 computational overhead.
 
+\subsection{Computational Complexity}
+
+Let $M$ denote the number of LiDAR observations per frame and
+$N$ the number of spectral Gaussian components.
+
+\textbf{WaveSplat}: Each forward evaluation computes
+$z(x_j, y_j, t) = \sum_{i=1}^{N} w_i \cos(k_{x,i} x_j + k_{y,i} y_j - \omega_i t + \varphi_i)$,
+costing $O(M \cdot N)$ per frame. With $K$ gradient steps and window
+size $K_w$, the per-frame tracking cost is $O(K \cdot K_w \cdot M \cdot N)$.
+In practice, $K{=}10$, $K_w{=}3$, $N \leq 30$, yielding 13.4~ms/frame
+on CPU.
+
+\textbf{ETKF-grid}: The Ensemble Transform Kalman Filter maintains
+$N_e$ ensemble members on a $G_x \times G_y$ spatial grid.
+Each update involves FFT-based propagation at
+$O(N_e \cdot G_x G_y \cdot \log(G_x G_y))$ plus the ensemble
+transform at $O(N_e^3 + N_e^2 \cdot M)$. With $N_e{=}50$ and
+$G{=}40 \times 30$, this yields 31.7~ms/frame.
+
+\textbf{GPR}: Gaussian Process Regression with $M$ observations
+requires $O(M^3)$ for Cholesky factorization, making it impractical
+for dense LiDAR data. Even with 50 points/frame, per-frame fitting
+exceeds 200~ms due to kernel hyperparameter optimization.
+
+Table~\ref{tab:complexity} summarizes the scaling comparison.
+
+\begin{table}[t]
+\centering
+\caption{Computational complexity comparison.
+$M$: observations/frame, $N$: spectral components,
+$G$: grid size, $N_e$: ensemble members.}
+\label{tab:complexity}
+\begin{tabular}{lcc}
+\toprule
+Method & Per-frame complexity & Measured \\
+\midrule
+WaveSplat & $O(M \cdot N)$ & 13.4~ms \\
+ETKF-grid & $O(N_e \cdot G^2 \log G^2)$ & 31.7~ms \\
+GPR       & $O(M^3)$ & $>$200~ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 % ============================================================================
 \section{Experimental Setup}
 \label{sec:experiments}
@@ -309,6 +352,10 @@ on a 40$\times$30 regular grid with 50 ensemble members,
 FFT-based spectral propagation, multiplicative ($\alpha$=1.01) and
 additive ($\sigma$=0.005) inflation, and observation thinning to
 $M_{\max}$=40 per frame.
+
+\textbf{GPR}: Gaussian Process Regression with Mat\'{e}rn $\nu$=5/2
+kernel (length scale 20~m, noise $\sigma$=0.02~m), single-frame mode.
+No temporal model or physics constraints---pure spatial interpolation.
 
 % ============================================================================
 \section{Results}
@@ -539,6 +586,17 @@ initialization: BF3-2comp reaches nRMSE$<$0.05 within the first tracking
 frame ($t$=11.6s). For complex seas (BF4--5), the nRMSE stabilizes
 within the first 10\% of tracking frames, with minimal drift over the
 remaining episode.
+
+\textbf{Failure case: BF2 1-component.}
+WaveSplat's worst case (nRMSE=0.315) occurs on the simplest
+episode: BF2, $H_s$=0.3~m, single component. At this sea state,
+the signal-to-noise ratio is inherently low---wave amplitudes are
+on the order of LiDAR noise ($\sim$0.02~m), making spectral
+initialization unreliable. Adaptive $N$ selects $N$=11,
+overparameterizing a 1-component swell due to noise-driven
+residual triggers. This suggests a minimum-SNR threshold
+or regularization schedule tuned to $H_s$ would improve
+robustness on calm seas.
 
 \textbf{Limitations.}
 For very high complexity ($N_{\text{true}} \geq 30$), WaveSplat's

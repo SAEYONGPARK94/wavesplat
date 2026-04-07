@@ -1,5 +1,5 @@
 # WaveSplat Estimation Configuration
-# Usage: python -m wavesplat --config configs/estimation.yaml --episode data/episode.h5
+# Usage: python -m wavesplat.run --episode data/episode.h5 --config configs/estimation.yaml
 
 # ── Model ───────────────────────────────────────────────────────────────────
 model:
@@ -14,7 +14,20 @@ optimizer:
   tracking_steps: 10          # gradient steps per tracking frame
   tracking_mode: w_phi         # 'phi_only', 'w_phi', or 'all'
   tracking_lr: 0.005          # learning rate for tracking phase
+  init_method: v2_konly        # 'v1' (FFT), 'v2' (beamform+proj), 'v2_konly' (beamform kx/ky)
   max_steepness: 0.15         # wave steepness clamp ε = |k|·|w|
+
+# ── Physics Constraints ────────────────────────────────────────────────────
+physics:
+  use_dispersion: true        # enforce ω = √(g|k|tanh(|k|d))
+  use_confidence: true        # Fresnel-zone confidence weighting
+
+# ── Adaptive N ─────────────────────────────────────────────────────────────
+adaptive:
+  adaptive_n: true            # enable prune/grow
+  prune_threshold: 0.10       # energy fraction for pruning (keep top 90%)
+  grow_residual_threshold: 0.05  # residual RMS to trigger growth [m]
+  max_n: 30                   # maximum Gaussians
 
 # ── Coarse-to-Fine Schedule ─────────────────────────────────────────────────
 schedule:
@@ -27,6 +40,10 @@ init:
   grid_nx: 32                 # FFT binning resolution (x)
   grid_ny: 24                 # FFT binning resolution (y)
 
+# ── Tracking ────────────────────────────────────────────────────────────────
+tracking:
+  tracking_window: 3          # sliding window for multi-frame tracking
+
 # ── Evaluation ──────────────────────────────────────────────────────────────
 eval:
   converge_threshold: 0.05    # nRMSE threshold for convergence time
@@ -35,3 +52,4 @@ eval:
 
 # ── Runtime ─────────────────────────────────────────────────────────────────
 device: cpu                   # 'cpu' or 'cuda'
+seed: 42

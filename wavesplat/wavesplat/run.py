@@ -67,11 +67,23 @@ def load_yaml_config(yaml_path: str) -> dict:
         cfg['tracking_mode'] = raw['optimizer'].get('tracking_mode', 'w_phi')
         cfg['tracking_lr'] = raw['optimizer'].get('tracking_lr', 0.005)
         cfg['init_method'] = raw['optimizer'].get('init_method', 'v2')
+    if 'physics' in raw:
+        cfg['use_dispersion'] = raw['physics'].get('use_dispersion', True)
+        cfg['use_confidence'] = raw['physics'].get('use_confidence', True)
+    if 'adaptive' in raw:
+        cfg['adaptive_n'] = raw['adaptive'].get('adaptive_n', True)
+        cfg['prune_threshold'] = raw['adaptive'].get('prune_threshold', 0.10)
+        cfg['grow_residual_threshold'] = raw['adaptive'].get('grow_residual_threshold', 0.05)
+        cfg['max_n'] = raw['adaptive'].get('max_n', 30)
+    if 'tracking' in raw:
+        cfg['tracking_window'] = raw['tracking'].get('tracking_window', 3)
     if 'schedule' in raw:
         cfg['loss_thresholds'] = raw['schedule'].get('loss_thresholds')
         cfg['max_iters_per_stage'] = raw['schedule'].get('max_iters_per_stage')
     if 'device' in raw:
         cfg['device'] = raw['device']
+    if 'seed' in raw:
+        cfg['seed'] = raw['seed']
     return cfg
 
 

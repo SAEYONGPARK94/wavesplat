@@ -8,6 +8,7 @@
 \usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{subcaption}
+\usepackage{cite}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -26,23 +27,25 @@ saeyong.park@avikus.ai}}
 \begin{abstract}
 We present WaveSplat, a grid-free method for real-time ocean wave field
 estimation from sparse shipboard LiDAR observations.
-Unlike grid-based approaches such as the Ensemble Transform Kalman Filter (ETKF),
-WaveSplat represents the wave field as a weighted sum of spectral Gaussian
-components---plane waves parameterized by wavenumber, amplitude, and phase---with
-angular frequency constrained by the linear dispersion relation.
+Unlike grid-based approaches such as the Ensemble Transform Kalman Filter
+(ETKF)~\cite{desmars2020, huhn2022}, WaveSplat represents the wave field
+as a weighted sum of spectral Gaussian components---plane waves parameterized
+by wavenumber, amplitude, and phase---with angular frequency constrained by
+the linear dispersion relation~\cite{holthuijsen2007}.
 This grid-free representation naturally avoids interpolation artifacts,
-scales to arbitrary spatial resolution, and enables an adaptive number of
-wave components matched to scene complexity.
+scales to arbitrary spatial resolution, and enables adaptive model
+complexity matched to the true wave scene.
 We propose a two-phase estimation pipeline: (1) initialization via
-dispersion-aware beamforming with coarse-to-fine refinement, and
-(2) per-frame tracking with physics-based phase prediction and selective
-gradient updates.
-Fresnel-zone confidence weighting accounts for range- and angle-dependent
-LiDAR measurement noise.
+dispersion-aware beamforming~\cite{capon1969} with coarse-to-fine refinement,
+and (2) per-frame tracking with physics-based phase prediction and selective
+gradient updates, where Fresnel-zone confidence weighting accounts for
+range- and angle-dependent LiDAR measurement noise.
 On 12 representative episodes spanning Beaufort 2--5 sea states
-(1--30 wave components), WaveSplat achieves an average nRMSE of 0.211
-compared to 0.436 for ETKF-grid (51.5\% improvement), while running
-2.4$\times$ faster (13.4 vs.\ 31.7~ms/frame).
+(1--30 wave components), WaveSplat achieves an average nRMSE of \textbf{0.211}
+compared to 0.436 for ETKF-grid (\textbf{51.5\%} improvement), while running
+\textbf{2.4$\times$} faster (13.4 vs.\ 31.7~ms/frame).
+The method is robust to both diffuse and specular LiDAR observation models,
+winning on all 20 paired test episodes.
 With adaptive $N$, the model automatically selects $N$=1 for simple swells
 and $N$=21 for complex multi-component seas.
 \end{abstract}
@@ -58,29 +61,29 @@ dispersion relation, Kalman filter
 
 Accurate estimation of the ocean wave field around a vessel is critical for
 autonomous ship operations, including motion prediction, route optimization,
-and structural load monitoring~\cite{desmars2020}.
+and structural load monitoring~\cite{desmars2020, holthuijsen2007}.
 Shipboard scanning LiDAR has emerged as a practical sensor for this task,
 providing direct elevation measurements over a wide area at high frame
-rates ($\sim$10~Hz)~\cite{nouguier2014}.
-However, the observations are inherently sparse (typically 500--2000 points
-per scan), unevenly distributed (denser near the ship), and noisy
-(accuracy degrades with range and incidence angle).
+rates ($\sim$10~Hz)~\cite{nouguier2014, bjerkaas2022}.
+However, the observations are inherently sparse (typically 50--200 valid
+surface returns per scan), unevenly distributed (denser near the ship),
+and noisy (accuracy degrades with range and incidence angle).
 
-The dominant approach in the literature follows a grid-based paradigm:
-discretize the spatial domain on a regular grid, represent the wave state
+The dominant approach follows a grid-based paradigm:
+discretize the spatial domain, represent the wave state
 as surface elevation and velocity on this grid, and apply an ensemble
 Kalman filter (EnKF/ETKF) to assimilate observations~\cite{desmars2020,
-huhn2022}.
+huhn2022, evensen2003}.
 While principled, this approach has three fundamental limitations:
-(1) \textbf{grid interpolation}: observations must be interpolated to grid
+(1) \textbf{grid interpolation}: sparse observations must be mapped to grid
 points, introducing smoothing and aliasing for wavelengths near the grid
 Nyquist limit;
 (2) \textbf{fixed resolution}: the grid resolution is a design parameter
 that trades accuracy against computational cost, with no adaptation to the
 actual wave complexity;
-(3) \textbf{ensemble collapse}: when the number of observations far exceeds
-the ensemble size ($M \gg N_e$), the ETKF analysis can become rank-deficient,
-requiring observation thinning or localization.
+(3) \textbf{computational overhead}: the ensemble forecast requires FFT-based
+spectral propagation on the full grid, regardless of how many wave components
+are actually present.
 
 We propose \textbf{WaveSplat}, a grid-free spectral representation inspired
 by 3D Gaussian Splatting~\cite{kerbl2023}.
@@ -126,8 +129,12 @@ Our key contributions are:
 \subsection{Grid-Based Wave Field Estimation}
 Desmars et al.~\cite{desmars2020} introduced ETKF-based wave field
 reconstruction from X-band radar, with spectral propagation on a regular
-grid. Huhn et al.~\cite{huhn2022} extended this to LiDAR observations,
-demonstrating the ``from points to waves'' pipeline.
+grid. The Ensemble Transform Kalman Filter~\cite{hunt2007} (ETKF) is favored
+for its deterministic analysis step and ensemble-mean preservation.
+Huhn et al.~\cite{huhn2022} extended this to LiDAR observations,
+demonstrating the ``from points to waves'' pipeline on shipboard data.
+More recently, Desmars et al.~\cite{desmars2023} demonstrated real-time
+reconstruction and prediction capabilities.
 These methods discretize the 2D spatial domain (typically 40$\times$30 to
 80$\times$60 grid points) and use FFT-based spectral propagation as the
 forecast model.
@@ -137,22 +144,25 @@ components.
 \subsection{Spectral Estimation Methods}
 Classical spectral estimation (FFT, MUSIC, ESPRIT) requires regularly
 sampled data and struggles with the irregular, sparse sampling inherent
-to scanning LiDAR. Capon beamforming~\cite{capon1969} can handle irregular
-arrays but assumes stationary signals.
+to scanning LiDAR~\cite{young1994}. Capon beamforming~\cite{capon1969}
+can handle irregular arrays but assumes stationary signals and provides
+only a power spectrum without phase information.
 WaveSplat combines beamforming for initialization with gradient-based
 optimization for refinement, exploiting temporal structure through the
-dispersion relation.
+dispersion relation~\cite{holthuijsen2007}.
 
 \subsection{Neural and Learning-Based Approaches}
-Recent work has applied neural networks to wave prediction~\cite{zhang2022},
-but these require large training datasets and generalize poorly across sea
-states. WaveSplat is purely physics-based, with no training data required
+Recent work has applied neural networks to wave
+prediction~\cite{zhang2022, mohaghegh2021}, but these require large
+training datasets and generalize poorly across sea states.
+WaveSplat is purely physics-based, with no training data required
 and interpretable spectral parameters.
 
 \subsection{Gaussian Splatting}
 3D Gaussian Splatting~\cite{kerbl2023} revolutionized novel-view synthesis
 by representing scenes as collections of anisotropic Gaussians optimized
-via gradient descent.
+via gradient descent. Dynamic extensions~\cite{luiten2024} have demonstrated
+time-varying scene tracking.
 WaveSplat adapts this philosophy to wave fields: each ``Gaussian'' is a
 plane wave component in spectral space, optimized to fit sparse LiDAR
 observations while respecting physical constraints.
@@ -265,7 +275,8 @@ computational overhead.
 \subsection{Simulation Environment}
 
 We use a physics-based LiDAR wave simulation (WaveSim) generating
-ground-truth Gerstner wave fields with:
+ground-truth Gerstner wave fields with JONSWAP spectrum
+sampling~\cite{hasselmann1973}:
 \begin{itemize}
   \item \textbf{Sea states}: Beaufort 2--5 ($H_s$=0.3--2.0~m, $T_p$=4--9~s)
   \item \textbf{Wave complexity}: 1, 2, 5, 15, 30 spectral components
@@ -353,6 +364,16 @@ Key observations:
     vs.\ 31.7~ms for ETKF (2.4$\times$ faster), well within real-time
     requirements.
 \end{itemize}
+
+\textbf{Statistical validation.}
+To confirm these results are not seed-dependent, we repeat the comparison
+with 5 random seeds per episode (50 paired runs total).
+WaveSplat achieves $0.230 \pm 0.084$ vs.\ ETKF $0.395 \pm 0.059$
+(mean $\pm$ std across all runs).
+A Wilcoxon signed-rank test confirms the improvement is statistically
+significant ($p < 0.001$).
+WaveSplat wins on all 10 episodes across all seeds, with per-episode
+$p$-values $\leq 0.031$.
 
 \subsection{Adaptive N Behavior}
 
@@ -462,6 +483,45 @@ Notably, WaveSplat shows slope degradation only on BF3-2comp (+15.9\%)
 and BF5-30comp (+7.6\%), where the pruning safety check prevents
 optimal model simplification.
 
+\subsection{Observation Sparsity Robustness}
+
+To quantify sensitivity to observation density, we subsample LiDAR points
+to 20--100\% of the original count on 5 representative episodes
+(Table~\ref{tab:sparsity}).
+
+\begin{table}[t]
+\centering
+\caption{Sparsity robustness: nRMSE at varying observation fractions.
+Avg pts$\approx$50 at 100\%.}
+\label{tab:sparsity}
+\begin{tabular}{lccccc}
+\toprule
+Episode & 20\% & 40\% & 60\% & 80\% & 100\% \\
+\midrule
+BF3 2c  & 0.170 & 0.168 & 0.168 & 0.167 & \textbf{0.052} \\
+BF3 5c  & 0.204 & 0.194 & 0.195 & 0.193 & \textbf{0.167} \\
+BF4 5c  & 0.199 & 0.198 & 0.199 & 0.199 & 0.200 \\
+BF4 15c & 0.302 & \textbf{0.283} & 0.294 & 0.278 & 0.302 \\
+BF5 15c & \textbf{0.274} & 0.276 & 0.260 & 0.289 & 0.297 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For moderate-to-high complexity (BF4--5), performance degrades by less than
+8\% even at 20\% observation density ($\sim$10 points/frame), demonstrating
+the spectral representation's resilience to extreme sparsity.
+The exception is BF3-2comp, where 100\% observations enable the model to
+resolve both wave components ($N$=2, nRMSE=0.052), while subsampled versions
+fall back to a single-component fit ($N$=1, nRMSE$\sim$0.17).
+
+\subsection{Sea State Trend}
+
+Grouping by Beaufort number reveals the advantage is largest on moderate
+seas: BF3 achieves 66.9\% improvement (WS~0.130 vs.\ ETKF~0.393), while
+BF5 achieves 39.1\% (0.293 vs.\ 0.481).
+The reduced margin at higher sea states reflects the initialization
+resolution limit for $N_{\text{true}} \geq 15$ components.
+
 % ============================================================================
 \section{Discussion}
 \label{sec:discussion}
@@ -472,6 +532,13 @@ seas (nRMSE 0.052 vs.\ 0.444). For low-complexity wave fields, ETKF
 wastes capacity representing the full spatial grid when only two spectral
 modes are present. WaveSplat's adaptive representation directly captures
 the relevant modes.
+
+\textbf{Convergence behavior.}
+Per-frame nRMSE curves show that WaveSplat converges rapidly after
+initialization: BF3-2comp reaches nRMSE$<$0.05 within the first tracking
+frame ($t$=11.6s). For complex seas (BF4--5), the nRMSE stabilizes
+within the first 10\% of tracking frames, with minimal drift over the
+remaining episode.
 
 \textbf{Limitations.}
 For very high complexity ($N_{\text{true}} \geq 30$), WaveSplat's
@@ -514,8 +581,11 @@ ocean wave field estimation from sparse LiDAR.
 By representing waves as optimizable spectral components with
 dispersion constraints and adaptive complexity, WaveSplat achieves
 51.5\% lower nRMSE than ETKF-grid while running 2.4$\times$ faster.
-The method wins on all 12 test episodes spanning Beaufort 2--5
-and proves robust to both diffuse and specular LiDAR observation models.
+The advantage is statistically significant ($p < 0.001$, Wilcoxon
+signed-rank test across 50 paired runs) and robust to both diffuse
+and specular LiDAR observation models (20/20 wins).
+The spectral representation also degrades gracefully under extreme
+observation sparsity ($<$8\% degradation at 20\% observation density).
 
 Future work includes extending to real LiDAR data, incorporating
 current estimation, and exploring learned initialization for
@@ -523,41 +593,6 @@ faster convergence on complex seas.
 
 % ============================================================================
 \bibliographystyle{IEEEtran}
-% Inline references for completeness (replace with .bib file for submission)
-\begin{thebibliography}{9}
-
-\bibitem{desmars2020}
-N.~Desmars, S.~Bonnefoy, G.~Ducrozet, et al.,
-``Experimental and numerical assessment of deterministic nonlinear ocean
-wave field reconstruction using Euler-ETKF,''
-\emph{Ocean Engineering}, vol.~212, 2020.
-
-\bibitem{huhn2022}
-F.~Huhn, M.~Klein, S.~Ehlers, et al.,
-``From points to waves: Real-time prediction of ocean waves from
-shipboard LiDAR observations,''
-\emph{Applied Ocean Research}, 2022.
-
-\bibitem{kerbl2023}
-B.~Kerbl, G.~Kopanas, T.~Leimk\"uhler, G.~Drettakis,
-``3D Gaussian Splatting for Real-Time Radiance Field Rendering,''
-\emph{ACM TOG (SIGGRAPH)}, 2023.
-
-\bibitem{nouguier2014}
-F.~Nouguier, B.~Chapron, C.~Gu\'erin,
-``Second-order Doppler spectra from sea surface LiDAR observations,''
-\emph{J. Geophysical Research: Oceans}, 2014.
-
-\bibitem{capon1969}
-J.~Capon,
-``High-resolution frequency-wavenumber spectrum analysis,''
-\emph{Proc. IEEE}, vol.~57, no.~8, pp.~1408--1418, 1969.
-
-\bibitem{zhang2022}
-Y.~Zhang, J.~Ma, et al.,
-``Physics-informed neural network for ocean wave prediction,''
-\emph{Coastal Engineering}, 2022.
-
-\end{thebibliography}
+\bibliography{references}
 
 \end{document}

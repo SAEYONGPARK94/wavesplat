@@ -258,6 +258,87 @@ def fig5_raydrop():
     print(f"  Saved: {out_path}")
 
 
+def fig6_multiseed():
+    """Multi-seed comparison: mean±std bar chart."""
+    data = load_json('multiseed_comparison.json')
+    if data is None or not HAS_MPL:
+        return
+
+    episodes = list(data.keys())
+    short_names = [ep.replace('_', '\n') for ep in episodes]
+
+    ws_means, ws_stds, et_means, et_stds = [], [], [], []
+    for ep in episodes:
+        ws_vals = [r['avg_nRMSE'] for r in data[ep].get('WS-P1', [])]
+        et_vals = [r['avg_nRMSE'] for r in data[ep].get('ETKF', [])]
+        ws_means.append(np.mean(ws_vals) if ws_vals else 0)
+        ws_stds.append(np.std(ws_vals) if ws_vals else 0)
+        et_means.append(np.mean(et_vals) if et_vals else 0)
+        et_stds.append(np.std(et_vals) if et_vals else 0)
+
+    x = np.arange(len(episodes))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.bar(x - width/2, ws_means, width, yerr=ws_stds, label='WaveSplat (ours)',
+           color='#2196F3', edgecolor='white', capsize=3)
+    ax.bar(x + width/2, et_means, width, yerr=et_stds, label='ETKF-grid',
+           color='#FF9800', edgecolor='white', alpha=0.8, capsize=3)
+
+    ax.set_ylabel('nRMSE (5-seed mean ± std)', fontsize=12)
+    ax.set_title('Multi-Seed Statistical Comparison', fontsize=14)
+    ax.set_xticks(x)
+    ax.set_xticklabels(short_names, fontsize=8, ha='center')
+    ax.legend(fontsize=11)
+    ax.set_ylim(0, 0.6)
+    ax.grid(axis='y', alpha=0.3)
+
+    plt.tight_layout()
+    out_path = os.path.join(PAPER_DIR, 'fig6_multiseed.pdf')
+    fig.savefig(out_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print(f"  Saved: {out_path}")
+
+
+def fig7_sparsity():
+    """Sparsity sweep: line chart nRMSE vs observation fraction."""
+    data = load_json('extended_analysis.json')
+    if data is None or not HAS_MPL:
+        return
+    sparsity = data.get('sparsity_sweep', {})
+    if not sparsity:
+        return
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    colors = ['#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#F44336']
+
+    for i, (ep, results) in enumerate(sparsity.items()):
+        fracs = []
+        nrmses = []
+        for key in ['20%', '40%', '60%', '80%', '100%']:
+            if key in results and 'avg_nRMSE' in results[key]:
+                fracs.append(int(key.replace('%', '')))
+                nrmses.append(results[key]['avg_nRMSE'])
+
+        label = ep.replace('_', ' ')
+        ax.plot(fracs, nrmses, 'o-', color=colors[i % len(colors)],
+                label=label, linewidth=2, markersize=6)
+
+    ax.set_xlabel('Observation fraction (%)', fontsize=12)
+    ax.set_ylabel('nRMSE', fontsize=12)
+    ax.set_title('Observation Sparsity Robustness', fontsize=14)
+    ax.legend(fontsize=9)
+    ax.set_xlim(15, 105)
+    ax.set_ylim(0, 0.35)
+    ax.grid(alpha=0.3)
+
+    plt.tight_layout()
+    out_path = os.path.join(PAPER_DIR, 'fig7_sparsity.pdf')
+    fig.savefig(out_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print(f"  Saved: {out_path}")
+
+
 def main():
     os.makedirs(PAPER_DIR, exist_ok=True)
     print("Generating paper figures...")
@@ -266,6 +347,8 @@ def main():
     fig3_speed_comparison()
     fig4_ablation()
     fig5_raydrop()
+    fig6_multiseed()
+    fig7_sparsity()
     print("Done.")
 
 

@@ -10,15 +10,17 @@ WaveSplat addresses the problem of reconstructing a continuous wave height field
 
 Unlike grid-based approaches (e.g., ETKF), WaveSplat represents the wave field as a weighted sum of spectral Gaussian components with physics-based constraints (dispersion relation, Fresnel confidence weighting), enabling grid-free estimation that adapts model complexity to wave scene complexity.
 
-### Key Results (P1)
+### Key Results
 
-| Method | Avg nRMSE | Speed (ms/frame) | Win Rate |
-|--------|-----------|-------------------|----------|
-| **WaveSplat (ours)** | **0.211** | **13.4** | **12/12** |
-| ETKF-grid | 0.436 | 31.7 | 0/12 |
+| Method | Avg nRMSE | Speed (ms/frame) | Complexity |
+|--------|-----------|-------------------|------------|
+| **WaveSplat (ours)** | **0.233** | **13.4** | O(M·N) |
+| GPR (Matérn 5/2) | 0.276 | >200 | O(M³) |
+| ETKF-grid | 0.450 | 31.7 | O(Nₑ·G²·logG²) |
 
-- **51.5% lower nRMSE** than ETKF across BF2–BF5 sea states
-- **2.4× faster** inference
+- **48.3% lower nRMSE** than ETKF, **15.7% better** than GPR
+- **15× faster** than GPR, **2.4× faster** than ETKF
+- Wilcoxon signed-rank test: p < 0.001
 - Robust to both uniform and slope raydrop observation models (20/20 wins)
 
 ### Key Features
@@ -30,7 +32,7 @@ Unlike grid-based approaches (e.g., ETKF), WaveSplat represents the wave field a
 - Two-phase estimation: Init (beamforming + coarse-to-fine) → Tracking (phase prediction + gradient update)
 - Physics-based wave simulation (Gerstner waves + JONSWAP spectrum)
 - Two LiDAR return models: uniform Fresnel-based and specular slope-dependent
-- 39 unit tests, all passing
+- 57 unit tests, all passing (39 wavesim + 18 wavesplat)
 
 ---
 
@@ -41,7 +43,8 @@ Unlike grid-based approaches (e.g., ETKF), WaveSplat represents the wave field a
 | **Problem** | Ship-mounted forward-looking LiDAR produces only tens to hundreds of surface returns per frame |
 | **Goal** | Recover continuous wave field `z(x,y,t)` from irregular sparse observations |
 | **Method** | Grid-free Spectral Gaussian Estimation with dispersion-constrained parameterization |
-| **Baseline** | ETKF-grid (Ensemble Transform Kalman Filter with spectral FFT propagation) |
+| **Baselines** | ETKF-grid (Ensemble Transform Kalman Filter), GPR (Gaussian Process Regression, Matérn 5/2) |
+| **Target** | OCEANS 2026 Conference |
 
 ---
 
@@ -50,9 +53,10 @@ Unlike grid-based approaches (e.g., ETKF), WaveSplat represents the wave field a
 ```
 wavesplat/
 ├── configs/                    # YAML configuration files
+│   ├── estimation.yaml         # Main estimation config (physics, adaptive, tracking)
 │   ├── default.yaml            # Local dev (76K rays, 1 worker)
 │   └── server.yaml             # Server (304K rays, 4 workers, full resolution)
-├── wavesim/                    # Simulation package (complete)
+├── wavesim/                    # Simulation package (39 tests)
 │   ├── config.py               # Config loader + dataclasses
 │   ├── wave_generator.py       # Gerstner wave + JONSWAP spectrum
 │   ├── lidar_simulator.py      # Ray generation + ray-mesh intersection
@@ -63,15 +67,15 @@ wavesplat/
 │   ├── data_writer.py          # HDF5 save/load
 │   ├── pipeline.py             # End-to-end episode pipeline
 │   └── tests/                  # 39 unit tests
-├── wavesplat/                  # Estimation algorithm (complete)
+├── wavesplat/                  # Estimation algorithm (18 tests)
 │   ├── model/
 │   │   ├── spectral_gaussian.py  # N spectral Gaussian components
 │   │   ├── dispersion.py         # ω = √(g|k|tanh(|k|d))
 │   │   └── confidence.py         # Fresnel-zone confidence weights
 │   ├── optimizer/
-│   │   ├── initializer.py        # Beamforming init (v2_konly)
+│   │   ├── initializer.py        # Beamforming init (v1/v2/v2_konly)
 │   │   ├── coarse_to_fine.py     # N=3→8→15 schedule
-│   │   └── sequential_update.py  # Two-phase estimator + adaptive N
+│   │   └── sequential_update.py  # Two-phase estimator + adaptive N + tracking
 │   ├── baselines/
 │   │   └── etkf_grid.py          # ETKF baseline
 │   ├── evaluation/
@@ -79,21 +83,33 @@ wavesplat/
 │   ├── data_loader.py            # HDF5 episode loader
 │   └── run.py                    # Main inference entry point
 ├── scripts/                    # Experiment & paper generation scripts
-│   ├── run_p1_comparison.py      # P0 vs P1 vs ETKF (12 episodes)
+│   ├── run_p1_comparison.py      # P1 vs ETKF (12 episodes)
+│   ├── run_gpr_comparison.py     # WS vs ETKF vs GPR (10 episodes)
 │   ├── run_raydrop_comparison.py # Uniform vs slope (10 paired episodes)
-│   ├── generate_paper_tables.py  # LaTeX tables (Table 1-4)
-│   └── generate_paper_figures.py # PDF figures (Fig 1-5)
+│   ├── run_ablation_seeded.py    # Ablation study (3-seed)
+│   ├── run_multiseed_comparison.py # Multi-seed statistical validation
+│   ├── run_extended_analysis.py  # Sparsity, BF trend, convergence analysis
+│   ├── run_etkf_comparison.py    # ETKF historical comparison
+│   ├── generate_paper_tables.py  # LaTeX tables (Table 1-6)
+│   ├── generate_paper_figures.py # PDF figures (Fig 1-7)
+│   ├── generate_qualitative_figure.py  # Fig 8: GT vs WS vs ETKF vs GPR heatmap
+│   └── generate_tracking_animation.py  # Tracking animation (MP4)
 ├── paper/                      # IEEE conference paper
-│   ├── wavesplat.tex             # Main LaTeX source
-│   └── figures/                  # Generated PDF figures
-├── results/                    # JSON experiment results
-│   ├── p1_comparison.json        # Main comparison (authoritative)
+│   ├── wavesplat.tex             # Main LaTeX source (~680 lines)
+│   └── figures/                  # 9 PDF figures (fig1-fig8 + png)
+├── results/                    # JSON experiment results (7 files)
+│   ├── p1_comparison.json        # Main P1 comparison
+│   ├── gpr_comparison.json       # GPR 3-way comparison
 │   ├── raydrop_comparison.json   # Raydrop model comparison
 │   ├── ablation_seeded.json      # Ablation study (3-seed)
-│   └── etkf_comparison.json      # ETKF comparison (historical)
+│   ├── multiseed_comparison.json # Multi-seed statistics
+│   ├── extended_analysis.json    # Extended analysis
+│   └── etkf_comparison.json     # ETKF comparison (historical)
 ├── data/                       # Generated HDF5 episodes (100 total)
 ├── generate_dataset.py         # Batch dataset generation (parallel)
-└── docs/                       # Development documentation
+├── docs/
+│   └── PRESENTATION_SUMMARY.md   # Detailed presentation summary (~600 lines)
+└── requirements.txt            # Python dependencies
 ```
 
 ---
@@ -101,7 +117,9 @@ wavesplat/
 ## Installation
 
 ```bash
-pip install numpy scipy matplotlib h5py pyyaml pytest torch
+pip install -r requirements.txt
+# Or manually:
+pip install numpy torch scipy h5py matplotlib pyyaml pytest scikit-learn
 ```
 
 ---
@@ -115,10 +133,14 @@ cd wavesplat
 python3 -m wavesplat.run data/episode_BF4_5comp_seed0_uniform.h5 --adaptive_n
 ```
 
-### Run full P1 comparison
+### Run full comparison experiments
 
 ```bash
-python3 scripts/run_p1_comparison.py
+python3 scripts/run_p1_comparison.py       # P1 vs ETKF (12 episodes)
+python3 scripts/run_gpr_comparison.py      # WS vs ETKF vs GPR (10 episodes)
+python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
+python3 scripts/run_ablation_seeded.py     # Ablation study
+python3 scripts/run_multiseed_comparison.py # Multi-seed statistics
 ```
 
 ### Generate paper tables and figures
@@ -126,23 +148,32 @@ python3 scripts/run_p1_comparison.py
 ```bash
 python3 scripts/generate_paper_tables.py
 python3 scripts/generate_paper_figures.py
+python3 scripts/generate_qualitative_figure.py
 ```
 
 ### Run tests
 
 ```bash
-python3 -m pytest wavesim/tests/ -v
+python3 -m pytest wavesim/tests/ wavesplat/tests/ -v
 ```
 
 ---
 
 ## Experiment Results
 
-### Main Comparison (12 episodes, BF2–BF5)
+### 3-Way Comparison (10 episodes, WS vs ETKF vs GPR)
+
+| Method | Avg nRMSE | Speed | Improvement over ETKF |
+|--------|-----------|-------|-----------------------|
+| **WaveSplat** | **0.233** | **13.4 ms** | **48.3%** |
+| GPR | 0.276 | >200 ms | 38.7% |
+| ETKF | 0.450 | 31.7 ms | — |
+
+### Main Comparison (12 episodes, BF2-BF5)
 
 - WaveSplat avg nRMSE: **0.211** (ETKF: 0.436, **51.5% better**)
-- Speed: **13.4 ms/frame** (ETKF: 31.7ms, **2.4× faster**)
-- Best case: BF3_2comp nRMSE=0.052 (8.5× better than ETKF)
+- Speed: **13.4 ms/frame** (ETKF: 31.7ms, **2.4x faster**)
+- Best case: BF3_2comp nRMSE=0.052 (8.5x better than ETKF)
 
 ### Adaptive N
 
@@ -159,6 +190,10 @@ python3 -m pytest wavesim/tests/ -v
 - Full model: 0.188
 - w/o Dispersion: 0.158 (acts as regularizer, important for long-term tracking)
 - w/o Confidence: 0.215 (+14.5%, essential for heterogeneous observations)
+
+### Failure Case
+
+- BF2_1comp: WS nRMSE 0.31 — single low-frequency component with minimal spatial variation, insufficient gradient signal
 
 ---
 
@@ -184,15 +219,25 @@ Full dispersion: `ω = √(g·k·tanh(k·d))`, Q-constraint: `Σ Qᵢ·ωᵢ·A�
 
 ## Dataset
 
-100 episodes: BF2–BF5 × 1/2/5/15/30 components × 5 seeds × 2 raydrop models
+100 episodes: BF2-BF5 × 1/2/5/15/30 components × 5 seeds × 2 raydrop models
 
 Format: HDF5 with ground truth wave fields, LiDAR observations, and metadata.
 
 ---
 
+## Configuration
+
+Main config: `configs/estimation.yaml`
+- `tracking_mode: w_phi` — kx/ky fixed during tracking
+- `init_method: v2_konly` — beamforming for wavenumber, optimizer for amplitude/phase
+- `adaptive_n: true` — energy-based pruning + residual-triggered growth
+- `physics.use_dispersion: true` — hard dispersion constraint
+
+---
+
 ## Scope and Limitations
 
-- Valid for sea states BF2–BF5, non-breaking waves
+- Valid for sea states BF2-BF5, non-breaking waves
 - Linear wave superposition (Stokes 2nd-order: future work)
 - Ship motion: currently fixed position
-- High complexity (N≥30): beamforming init resolution limits nRMSE to ~0.30
+- High complexity (N>=30): beamforming init resolution limits nRMSE to ~0.30

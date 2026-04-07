@@ -368,6 +368,14 @@ episodes. WaveSplat achieves an average nRMSE of \textbf{0.211} compared
 to 0.436 for ETKF-grid, a \textbf{51.5\%} improvement.
 WaveSplat wins on all 12 episodes.
 
+We additionally compare with GPR (Gaussian Process Regression,
+Mat\'{e}rn $\nu$=5/2 kernel) on 10 uniform episodes.
+GPR achieves avg nRMSE of 0.276---better than ETKF (0.450) due to
+its nonparametric flexibility, but still 15.7\% worse than WaveSplat
+(0.233). Critically, GPR requires $>$200~ms/frame (vs.\ 13.4~ms for
+WaveSplat), making it impractical for real-time applications.
+Figure~\ref{fig:qualitative} shows representative wave fields.
+
 \begin{table}[t]
 \centering
 \caption{WaveSplat vs ETKF-grid on 12 representative episodes.
@@ -568,6 +576,16 @@ seas: BF3 achieves 66.9\% improvement (WS~0.130 vs.\ ETKF~0.393), while
 BF5 achieves 39.1\% (0.293 vs.\ 0.481).
 The reduced margin at higher sea states reflects the initialization
 resolution limit for $N_{\text{true}} \geq 15$ components.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig8_qualitative.pdf}
+\caption{Qualitative comparison on three episodes (rows: BF3 2-comp,
+BF4 15-comp, BF5 30-comp). Columns: ground truth, WaveSplat, ETKF, GPR.
+WaveSplat captures the wave structure with far fewer artifacts than
+grid-based (ETKF) or purely spatial (GPR) methods.}
+\label{fig:qualitative}
+\end{figure*}
 
 % ============================================================================
 \section{Discussion}

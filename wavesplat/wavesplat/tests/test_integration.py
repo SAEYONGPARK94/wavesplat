@@ -88,7 +88,8 @@ def test_single_component_initialization():
     )
 
     assert result['n_iters'] > 0
-    assert result['final_n'] == 3
+    assert result['final_n'] <= 3  # adaptive N may prune below initial count
+    assert result['final_n'] >= 1
     assert len(result['loss_history']) > 0
     # Loss should decrease
     assert result['loss_history'][-1] <= result['loss_history'][0] * 1.5

@@ -31,6 +31,11 @@ DEFAULT_CONFIG = {
     'init_method': 'v2_konly',
     'use_dispersion': True,
     'use_confidence': True,
+    'adaptive_n': True,
+    'prune_threshold': 0.10,
+    'grow_residual_threshold': 0.05,
+    'max_n': 30,
+    'tracking_window': 3,
     'device': 'cpu',
     'seed': 42,
 }
@@ -231,6 +236,13 @@ def main():
                         help='Init method: v1 (spatial FFT), v2 (beamform+proj), v2_konly (beamform kx/ky only)')
     parser.add_argument('--seed', type=int, default=None,
                         help='Random seed for reproducibility (default: 42)')
+    parser.add_argument('--adaptive_n', type=str, default=None,
+                        choices=['true', 'false'],
+                        help='Enable adaptive N (prune weak, grow if needed)')
+    parser.add_argument('--max_n', type=int, default=None,
+                        help='Maximum number of Gaussians for adaptive N')
+    parser.add_argument('--tracking_window', type=int, default=None,
+                        help='Number of recent frames for multi-frame tracking')
     parser.add_argument('--output', type=str, default=None,
                         help='Output JSON path for results')
     parser.add_argument('--verbose', action='store_true')
@@ -259,6 +271,12 @@ def main():
         config['init_method'] = args.init_method
     if args.seed is not None:
         config['seed'] = args.seed
+    if args.adaptive_n is not None:
+        config['adaptive_n'] = args.adaptive_n == 'true'
+    if args.max_n is not None:
+        config['max_n'] = args.max_n
+    if args.tracking_window is not None:
+        config['tracking_window'] = args.tracking_window
 
     result = run_estimation(args.episode, config, verbose=args.verbose)
 

@@ -144,6 +144,24 @@ class SpectralGaussianModel(nn.Module):
                 torch.cat([self.omega_free.data, new_omega]))
         self.n_gaussians += n_new
 
+    def remove_gaussians(self, indices_to_keep: torch.Tensor):
+        """
+        Remove Gaussian components by keeping only specified indices.
+        Used for adaptive N pruning (remove weak/redundant components).
+
+        Args:
+            indices_to_keep: (K,) integer tensor of indices to retain
+        """
+        device = self.w.device
+        self.w = nn.Parameter(self.w.data[indices_to_keep].clone())
+        self.kx = nn.Parameter(self.kx.data[indices_to_keep].clone())
+        self.ky = nn.Parameter(self.ky.data[indices_to_keep].clone())
+        self.phi = nn.Parameter(self.phi.data[indices_to_keep].clone())
+        if not self.use_dispersion:
+            self.omega_free = nn.Parameter(
+                self.omega_free.data[indices_to_keep].clone())
+        self.n_gaussians = len(indices_to_keep)
+
     def clamp_steepness(self, max_steepness: float = 0.15):
         """
         Clamp amplitudes to prevent nonphysical wave steepness.

@@ -36,7 +36,7 @@ An IIR low-pass filter ($\alpha$=0.05) on the feedforward signal suppresses
 estimation noise without degrading the causal preview advantage.
 Using WaveSplat---a grid-free spectral Gaussian wave estimator achieving
 $\sim$20\% nRMSE---the feedforward controller reduces heave acceleration
-RMS by 15--45\% across Beaufort~3--4 head seas, recovering 80--96\% of the
+RMS by 11--41\% across Beaufort~3--4 scenarios, recovering 93--103\% of the
 improvement achievable with perfect wave knowledge.
 Sensitivity analysis shows that feedforward remains beneficial up to
 50\% nRMSE and that the optimal preview horizon is 0.1--0.3~s
@@ -456,36 +456,41 @@ Figure~\ref{fig:phase2} visualizes these results.
 
 \begin{table}[t]
 \centering
-\caption{Heave acceleration RMS: absolute values and improvement
-over PD-only. Positive $\Delta$ = reduction (better comfort).}
+\caption{Heave acceleration RMS [m/s$^2$] and improvement
+over PD-only ($\Delta a$). Positive $\Delta$ = reduction (better comfort).}
 \label{tab:phase2}
 \begin{tabular}{lcccc}
 \toprule
 & PD-only & GT FF & WS FF & Noisy FF \\
 Scenario & $a_\text{RMS}$ & $\Delta a$ & $\Delta a$ & $\Delta a$ \\
 \midrule
-BF3 Head    & --- & --- & --- & --- \\
-BF4 Head    & --- & --- & --- & --- \\
-BF3 Beam    & --- & --- & --- & --- \\
-BF3 Quarter & --- & --- & --- & --- \\
+BF3 Head    & 1.631 & +11.0\% & +11.4\% & +11.7\% \\
+BF4 Head    & 2.162 & +12.3\% & +12.2\% & +11.8\% \\
+BF3 Beam    & 0.402 & +40.7\% & +37.7\% & +27.5\% \\
+BF3 Quarter & 1.178 & +17.6\% & +17.7\% & +17.0\% \\
 \bottomrule
-\multicolumn{5}{l}{\footnotesize Note: Exact values to be filled from \texttt{run\_phase2.py} output.}
 \end{tabular}
 \end{table}
 
 Key observations:
 \begin{itemize}
-  \item GT feedforward provides 30--50\% acceleration reduction,
-    confirming that wave-preview control is fundamentally effective
-    for hydrofoil stabilization.
-  \item WaveSplat feedforward (20\% nRMSE) achieves 70--80\%
-    of the GT improvement, demonstrating that current estimation
-    accuracy is sufficient for practical benefit.
+  \item GT feedforward provides 11--41\% acceleration reduction
+    across scenarios, confirming that wave-preview control is
+    fundamentally effective for hydrofoil stabilization.
+    The largest benefit occurs in beam seas (+41\%), where wave
+    slope and orbital velocity create sustained AoA perturbations
+    that feedforward can effectively pre-compensate.
+  \item WaveSplat feedforward (20\% nRMSE) achieves 93--103\%
+    of the GT improvement across all scenarios, demonstrating
+    that the LP-filtered feedforward architecture is highly robust
+    to estimation noise at this accuracy level.
   \item Even noisy feedforward (40\% nRMSE) provides positive
-    improvement in all scenarios, though margins are smaller.
-  \item Head seas show the largest improvement: the dominant wave
-    encounter is along the vessel track, aligning with the spatial
-    preview direction.
+    improvement in all scenarios, confirming the effectiveness
+    of the IIR filter design.
+  \item Beam seas show the largest absolute improvement (+38\%
+    for WS~FF): the wave-induced AoA perturbation is dominated
+    by slope and orbital velocity terms that are well-captured
+    by spectral estimation.
 \end{itemize}
 
 \begin{figure}[t]
@@ -494,7 +499,8 @@ Key observations:
 \caption{Acceleration RMS improvement over PD-only for three
 feedforward strategies across four sea state scenarios.
 WaveSplat feedforward ($\sim$20\% nRMSE) consistently recovers
-70--80\% of the GT feedforward benefit.}
+93--103\% of the GT feedforward benefit, demonstrating high
+robustness to estimation noise under LP filtering.}
 \label{fig:phase2}
 \end{figure}
 
@@ -529,8 +535,9 @@ never crosses zero within the tested range.
 At the WaveSplat operating point ($\sim$20\% nRMSE), the feedforward
 captures the majority of the GT benefit:
 \begin{itemize}
-  \item Head sea: $\sim$75\% of GT acceleration improvement
-  \item Beam sea: $\sim$65\% of GT acceleration improvement
+  \item Head sea: $\sim$104\% of GT acceleration improvement
+    (LP filtering yields comparable or slightly better noise-averaged performance)
+  \item Beam sea: $\sim$93\% of GT acceleration improvement
 \end{itemize}
 
 \subsection{Preview Distance Optimization}
@@ -713,7 +720,7 @@ The key findings are:
 
 \begin{enumerate}
   \item Wave-preview feedforward reduces heave acceleration by
-    30--50\% with perfect wave knowledge, and 20--40\% with
+    11--41\% with perfect wave knowledge, and 11--38\% with
     WaveSplat estimation ($\sim$20\% nRMSE).
   \item The feedforward is robust to estimation error: no degradation
     threshold was found up to 50\% nRMSE, thanks to IIR low-pass
@@ -721,8 +728,9 @@ The key findings are:
   \item Optimal preview is short (0.1--0.3~s), matching the spatial
     scale of wave-foil interaction.
   \item End-to-end, WaveSplat feedforward achieves 92--96\% of GT
-    performance in BF3, improving ISO comfort from ``Slight'' to
-    ``Comfortable.''
+    performance in BF3.  In the Phase~2 noise simulation, WS~FF
+    recovers 93--103\% of GT benefit, and in BF3 beam seas, ISO
+    comfort improves from ``Slight discomfort'' to ``Comfortable.''
 \end{enumerate}
 
 Future work includes extending to a 6-DOF model with roll dynamics,

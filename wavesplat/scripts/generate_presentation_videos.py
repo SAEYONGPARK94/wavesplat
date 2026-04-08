@@ -3,12 +3,14 @@ generate_presentation_videos.py
 
 Unified video generator for WaveSplat presentations.
 
-For each episode it produces two GIFs:
-  1. wave_<episode>.gif        — 4-panel: LiDAR points / GT / WaveSplat / |GT-WS|
-                                 (combines visualisations #1 + #3 from the
-                                  presentation plan so GT and reconstruction
-                                  can be compared at a glance)
-  2. hydrofoil_<scenario>.gif  — PD-only vs PD+FF heave/acceleration time
+For each episode it produces three GIFs:
+  1. wave_<episode>.gif        — 4-panel 2D: LiDAR points / GT / WaveSplat /
+                                 |GT-WS| (combines visualisations #1 + #3 so
+                                 GT and reconstruction can be compared at a
+                                 glance)
+  2. wave3d_<episode>.gif      — 3D: GT wave surface + LiDAR scatter | WS
+                                 surface + LiDAR scatter (side-by-side)
+  3. hydrofoil_<scenario>.gif  — PD-only vs PD+FF heave/acceleration time
                                  series with running RMS
 
 The script is parameterised so new episodes (added later) can be rendered
@@ -78,11 +80,11 @@ def _ws_config(depth):
 
 
 # ---------------------------------------------------------------------------
-# Wave field video (LiDAR + GT + WS + Error)
+# WaveSplat tracking (shared by 2D and 3D renderers)
 # ---------------------------------------------------------------------------
 
-def render_wave_video(h5_path, output_path, max_frames=120, fps=10):
-    """Render 4-panel wave field comparison GIF for a single episode."""
+def run_tracking(h5_path, max_frames=120):
+    """Run WaveSplat over an episode and collect per-frame fields + LiDAR."""
     set_seed(42)
     loader = EpisodeDataLoader(h5_path)
 
@@ -95,18 +97,17 @@ def render_wave_video(h5_path, output_path, max_frames=120, fps=10):
         y_range=(float(loader.gt_grid_y[0]), float(loader.gt_grid_y[-1])),
     )
 
-    grid_x_np = loader.gt_grid_x.cpu().numpy()
-    grid_y_np = loader.gt_grid_y.cpu().numpy()
     grid_x = loader.gt_grid_x
     grid_y = loader.gt_grid_y
+    grid_x_np = grid_x.cpu().numpy()
+    grid_y_np = grid_y.cpu().numpy()
 
     tracking_frames = loader.get_tracking_frames(tp_factor=2.0)
     n_frames = min(len(tracking_frames), max_frames)
 
     print(f"  Tracking {n_frames} frames for {os.path.basename(h5_path)}...")
-
     gt_fields, ws_fields, errors = [], [], []
-    lidar_pts = []   # list of (x, y, z) arrays
+    lidar_pts = []
     nrmses, times, n_list = [], [], []
 
     for i in range(n_frames):
@@ -119,7 +120,6 @@ def render_wave_video(h5_path, output_path, max_frames=120, fps=10):
         gt_fields.append(gt_np)
         ws_fields.append(pred_np)
         errors.append(np.abs(gt_np - pred_np))
-
         lidar_pts.append((
             frame.x_obs.cpu().numpy(),
             frame.y_obs.cpu().numpy(),
@@ -133,14 +133,59 @@ def render_wave_video(h5_path, output_path, max_frames=120, fps=10):
             print(f"    frame {i:3d}/{n_frames}  t={frame.t:5.1f}s  "
                   f"nRMSE={nrmses[-1]:.3f}  N={n_list[-1]}")
 
+    sea_state = os.path.basename(h5_path).replace('episode_', '').replace('.h5', '')
+    return {
+        'sea_state': sea_state,
+        'Hs': loader.Hs_true,
+        'Tp': loader.Tp_true,
+        'grid_x': grid_x_np,
+        'grid_y': grid_y_np,
+        'gt_fields': gt_fields,
+        'ws_fields': ws_fields,
+        'errors': errors,
+        'lidar_pts': lidar_pts,
+        'nrmses': nrmses,
+        'times': times,
+        'n_list': n_list,
+        'n_frames': n_frames,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Wave field 2D video (LiDAR + GT + WS + Error)
+# ---------------------------------------------------------------------------
+
+def render_wave_video(track, output_path, fps=10):
+    """Render 4-panel 2D wave field comparison GIF from tracking data."""
+    grid_x_np = track['grid_x']
+    grid_y_np = track['grid_y']
+    gt_fields = track['gt_fields']
+    ws_fields = track['ws_fields']
+    errors = track['errors']
+    lidar_pts = track['lidar_pts']
+    nrmses = track['nrmses']
+    times = track['times']
+    n_list = track['n_list']
+    n_frames = track['n_frames']
+    sea_state = track['sea_state']
+
     vmax = max(max(abs(g.min()), abs(g.max())) for g in gt_fields)
     norm = TwoSlopeNorm(vmin=-vmax, vcenter=0, vmax=vmax)
     err_max = max(e.max() for e in errors)
 
     extent = [grid_x_np[0], grid_x_np[-1], grid_y_np[0], grid_y_np[-1]]
 
-    fig, axes = plt.subplots(2, 2, figsize=(11, 9))
-    ax_l, ax_gt, ax_ws, ax_err = axes[0, 0], axes[0, 1], axes[1, 0], axes[1, 1]
+    # Layout: 2x2 panels with dedicated colorbar column on the far right
+    # so legends never overlap the data axes.
+    fig = plt.figure(figsize=(12, 9), constrained_layout=True)
+    gs = fig.add_gridspec(2, 3, width_ratios=[1.0, 1.0, 0.04],
+                          hspace=0.12, wspace=0.08)
+    ax_l = fig.add_subplot(gs[0, 0])
+    ax_gt = fig.add_subplot(gs[0, 1])
+    ax_ws = fig.add_subplot(gs[1, 0])
+    ax_err = fig.add_subplot(gs[1, 1])
+    cax_eta = fig.add_subplot(gs[0, 2])
+    cax_err = fig.add_subplot(gs[1, 2])
 
     # LiDAR scatter
     sc = ax_l.scatter(lidar_pts[0][0], lidar_pts[0][1], c=lidar_pts[0][2],
@@ -168,16 +213,18 @@ def render_wave_video(h5_path, output_path, max_frames=120, fps=10):
     ax_err.set_title('Absolute error |GT − WS|', fontweight='bold')
     ax_err.set_xlabel('x [m]')
 
-    fig.colorbar(im_gt, ax=[ax_l, ax_gt, ax_ws], shrink=0.7,
-                 label='η [m]', location='right')
-    fig.colorbar(im_err, ax=ax_err, shrink=0.7, label='|Δη| [m]')
+    fig.colorbar(im_gt, cax=cax_eta, label='η [m]')
+    fig.colorbar(im_err, cax=cax_err, label='|Δη| [m]')
 
+    # Info box in the upper-left corner of the bottom-left axis (away
+    # from any colorbar / data hot-spots).
     info = ax_ws.text(0.02, 0.98, '', transform=ax_ws.transAxes,
-                      fontsize=10, va='top',
+                      fontsize=10, va='top', ha='left',
                       bbox=dict(boxstyle='round', fc='white', alpha=0.85))
-    sea_state = os.path.basename(h5_path).replace('episode_', '').replace('.h5', '')
+    Hs = track['Hs']
+    Tp = track['Tp']
     suptitle = fig.suptitle(
-        f'{sea_state}  |  Hs={loader.Hs_true:.2f}m  Tp={loader.Tp_true:.1f}s  |  t=0.0s',
+        f'{sea_state}  |  Hs={Hs:.2f}m  Tp={Tp:.1f}s  |  t=0.0s',
         fontsize=12, fontweight='bold')
 
     def update(idx):
@@ -190,8 +237,8 @@ def render_wave_video(h5_path, output_path, max_frames=120, fps=10):
         info.set_text(f'nRMSE={nrmses[idx]:.3f}\nN={n_list[idx]}\n'
                       f'M={len(lidar_pts[idx][0])} pts')
         suptitle.set_text(
-            f'{sea_state}  |  Hs={loader.Hs_true:.2f}m  '
-            f'Tp={loader.Tp_true:.1f}s  |  t={times[idx]:.1f}s')
+            f'{sea_state}  |  Hs={Hs:.2f}m  '
+            f'Tp={Tp:.1f}s  |  t={times[idx]:.1f}s')
         return sc, im_gt, im_ws, im_err, info, suptitle
 
     ani = animation.FuncAnimation(fig, update, frames=n_frames,
@@ -200,12 +247,91 @@ def render_wave_video(h5_path, output_path, max_frames=120, fps=10):
     plt.close(fig)
     print(f"  saved → {output_path}")
 
-    return {
-        'episode': sea_state,
-        'avg_nRMSE': float(np.mean(nrmses)),
-        'final_N': n_list[-1],
-        'n_frames': n_frames,
-    }
+
+# ---------------------------------------------------------------------------
+# Wave field 3D video (LiDAR points + wave surface)
+# ---------------------------------------------------------------------------
+
+def render_wave_3d_video(track, output_path, fps=10, stride=4):
+    """Render side-by-side 3D GT vs WaveSplat surfaces with LiDAR scatter.
+
+    `stride` subsamples the surface mesh in both x and y to keep rendering
+    fast (3D surface plots cannot be incrementally updated like imshow,
+    so each frame redraws).
+    """
+    grid_x = track['grid_x']
+    grid_y = track['grid_y']
+    gt_fields = track['gt_fields']
+    ws_fields = track['ws_fields']
+    lidar_pts = track['lidar_pts']
+    nrmses = track['nrmses']
+    times = track['times']
+    n_list = track['n_list']
+    n_frames = track['n_frames']
+    sea_state = track['sea_state']
+    Hs = track['Hs']
+    Tp = track['Tp']
+
+    xs = grid_x[::stride]
+    ys = grid_y[::stride]
+    X, Y = np.meshgrid(xs, ys)
+    gt_sub = [g[::stride, ::stride] for g in gt_fields]
+    ws_sub = [w[::stride, ::stride] for w in ws_fields]
+
+    vmax = max(max(abs(g.min()), abs(g.max())) for g in gt_fields)
+    norm = TwoSlopeNorm(vmin=-vmax, vcenter=0, vmax=vmax)
+
+    fig = plt.figure(figsize=(13, 6.5), constrained_layout=True)
+    ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+    ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+
+    suptitle = fig.suptitle(
+        f'{sea_state}  |  Hs={Hs:.2f}m  Tp={Tp:.1f}s  |  t=0.0s',
+        fontsize=12, fontweight='bold')
+
+    def setup_axis(ax, title):
+        ax.set_xlabel('x [m]')
+        ax.set_ylabel('y [m]')
+        ax.set_zlabel('η [m]')
+        ax.set_xlim(grid_x[0], grid_x[-1])
+        ax.set_ylim(grid_y[0], grid_y[-1])
+        ax.set_zlim(-vmax * 1.1, vmax * 1.1)
+        ax.set_title(title, fontweight='bold', pad=10)
+        ax.view_init(elev=28, azim=-60)
+
+    def draw_frame(idx):
+        ax1.clear()
+        ax2.clear()
+        setup_axis(ax1, 'Ground Truth surface + LiDAR')
+        setup_axis(ax2, 'WaveSplat surface + LiDAR')
+
+        ax1.plot_surface(X, Y, gt_sub[idx], cmap='RdBu_r', norm=norm,
+                         rstride=1, cstride=1, alpha=0.85,
+                         linewidth=0, antialiased=False, shade=False)
+        ax2.plot_surface(X, Y, ws_sub[idx], cmap='RdBu_r', norm=norm,
+                         rstride=1, cstride=1, alpha=0.85,
+                         linewidth=0, antialiased=False, shade=False)
+
+        x, y, z = lidar_pts[idx]
+        # Lift points slightly above the surface so they aren't hidden.
+        ax1.scatter(x, y, z, c='black', s=4, depthshade=False, alpha=0.8)
+        ax2.scatter(x, y, z, c='black', s=4, depthshade=False, alpha=0.8)
+
+        ax2.text2D(0.02, 0.98,
+                   f'nRMSE={nrmses[idx]:.3f}\nN={n_list[idx]}\n'
+                   f'M={len(x)} pts',
+                   transform=ax2.transAxes, fontsize=10, va='top',
+                   bbox=dict(boxstyle='round', fc='white', alpha=0.85))
+        suptitle.set_text(
+            f'{sea_state}  |  Hs={Hs:.2f}m  '
+            f'Tp={Tp:.1f}s  |  t={times[idx]:.1f}s')
+
+    draw_frame(0)
+    ani = animation.FuncAnimation(fig, draw_frame, frames=n_frames,
+                                  interval=1000 // fps, blit=False)
+    ani.save(output_path, writer=animation.PillowWriter(fps=fps))
+    plt.close(fig)
+    print(f"  saved → {output_path}")
 
 
 # ---------------------------------------------------------------------------
@@ -328,9 +454,14 @@ def main():
     parser.add_argument('--fps', type=int, default=10,
                         help='Wave video FPS (hydrofoil uses 2x).')
     parser.add_argument('--skip-wave', action='store_true',
-                        help='Skip wave field videos.')
+                        help='Skip 2D wave field videos.')
+    parser.add_argument('--skip-3d', action='store_true',
+                        help='Skip 3D wave + LiDAR videos.')
     parser.add_argument('--skip-hydrofoil', action='store_true',
                         help='Skip hydrofoil comparison video.')
+    parser.add_argument('--surface-stride', type=int, default=2,
+                        help='3D surface mesh stride (higher = faster, '
+                             'but short-wavelength waves may alias).')
     args = parser.parse_args()
 
     here = os.path.dirname(os.path.abspath(__file__))
@@ -344,24 +475,44 @@ def main():
         episodes = [os.path.join(data_dir, e) for e in DEFAULT_EPISODES]
 
     summary = []
+    do_2d = not args.skip_wave
+    do_3d = not args.skip_3d
 
-    if not args.skip_wave:
+    if do_2d or do_3d:
         print("=" * 78)
-        print("WAVE FIELD VIDEOS  (LiDAR + GT + WaveSplat + Error)")
+        print("WAVE FIELD VIDEOS  (2D 4-panel and/or 3D surface + LiDAR)")
         print("=" * 78)
         for ep in episodes:
             if not os.path.exists(ep):
                 print(f"  SKIP (missing): {ep}")
                 continue
             tag = os.path.basename(ep).replace('episode_', '').replace('.h5', '')
-            out_path = os.path.join(out_dir, f'wave_{tag}.gif')
             try:
-                info = render_wave_video(ep, out_path,
-                                          max_frames=args.max_frames,
-                                          fps=args.fps)
-                summary.append(info)
+                track = run_tracking(ep, max_frames=args.max_frames)
             except Exception as e:
-                print(f"  FAILED: {ep}: {e}")
+                print(f"  FAILED tracking {ep}: {e}")
+                continue
+            summary.append({
+                'episode': track['sea_state'],
+                'avg_nRMSE': float(np.mean(track['nrmses'])),
+                'final_N': track['n_list'][-1],
+                'n_frames': track['n_frames'],
+            })
+            if do_2d:
+                try:
+                    render_wave_video(track,
+                                      os.path.join(out_dir, f'wave_{tag}.gif'),
+                                      fps=args.fps)
+                except Exception as e:
+                    print(f"  FAILED 2D {ep}: {e}")
+            if do_3d:
+                try:
+                    render_wave_3d_video(track,
+                                         os.path.join(out_dir, f'wave3d_{tag}.gif'),
+                                         fps=args.fps,
+                                         stride=args.surface_stride)
+                except Exception as e:
+                    print(f"  FAILED 3D {ep}: {e}")
 
     if not args.skip_hydrofoil:
         print()

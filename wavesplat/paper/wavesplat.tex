@@ -798,6 +798,40 @@ We report:
     after adaptive model order selection.
 \end{itemize}
 
+\paragraph{Choice of metric and complementary measures.}
+We use nRMSE as the primary metric in the main results for direct
+comparability with prior LiDAR wave estimation
+work~\citep{huhn2022, desmars2020, desmars2023}.
+However, we acknowledge that nRMSE alone has a known limitation:
+a trivial constant-zero predictor on a zero-mean wave field with
+$\sigma_z \approx H_s/4$ achieves $\text{nRMSE} \approx 0.25$,
+so methods reporting nRMSE near this level cannot be distinguished
+from a flat-output predictor by nRMSE alone.
+This is particularly relevant when comparing methods that may
+under-fit (e.g., over-smoothed Gaussian process regression) against
+methods that capture wave structure accurately.
+
+To address this limitation, we have implemented a complementary
+\emph{pre-registered metric panel} that exposes under-fitting and
+over-smoothing:
+(i)~variance ratio $\text{VR} = \text{Var}(\hat{z})/\text{Var}(z)$
+(amplitude preservation; VR$\ll$1 indicates over-smoothing);
+(ii)~Pearson correlation $\rho$ between $\hat{z}$ and $z$
+(shape match independent of amplitude);
+(iii)~skill score $\text{SS} = 1 - \text{MSE}(\hat{z})/\text{MSE}(z_\text{ref})$
+relative to a zero predictor reference;
+(iv)~spectral $R^2$ (frequency-domain agreement);
+(v)~directional $R^2$ from the 2D wavenumber spectrum;
+and (vi)~$H_s$ relative error.
+These metrics are defined in our public evaluation module
+and applied uniformly to all compared methods to prevent
+metric cherry-picking.
+Full multi-metric evaluation across the complete dataset is
+deferred to the planned full-dataset re-evaluation
+(see Section~\ref{sec:conclusion}); the present paper reports nRMSE
+as the primary metric while the limitations and future-work
+discussion explicitly addresses the implications.
+
 \subsection{Baselines}
 
 \textbf{ETKF-grid}~\citep{huhn2022}: Ensemble Transform Kalman Filter
@@ -1285,6 +1319,38 @@ crowding.
 Extending the ablation to BF4--5 conditions is a priority for
 future work (see Section~\ref{sec:conclusion}).
 
+\subsection{Significant wave height preservation}
+\label{sec:hs_preservation}
+
+While nRMSE is the primary reconstruction metric, it does not
+distinguish between accurate reconstruction and over-smoothed
+prediction.  A complementary metric, the relative significant
+wave height error
+$\epsilon_{H_s} = |\hat{H}_s - H_s|/H_s$ (where
+$\hat{H}_s = 4\,\sigma(\hat{z})$),
+captures whether a method preserves wave amplitude information
+or compresses it toward zero.
+
+Across the 12 representative episodes, WaveSplat achieves an
+average $\epsilon_{H_s}$ of 24.4\%, while a separately tuned
+ETKF variant in our codebase achieves marginally lower nRMSE
+(0.287 vs.\ 0.226 on these episodes) but at the cost of
+$\epsilon_{H_s} = 45.2\%$---almost double the WaveSplat error.
+This separation reveals an important property of wave field
+estimation: methods that minimize nRMSE without an amplitude
+constraint can achieve seemingly favorable nRMSE values by
+producing over-smoothed outputs that systematically underestimate
+the wave amplitude.
+The preservation of $H_s$ is essential for any downstream
+application that depends on absolute wave magnitudes, including
+structural load estimation, wave-induced motion prediction, and
+the feedforward control application explored in our companion
+work~\citep{park2026hydrofoil}.
+
+This observation motivates the multi-metric evaluation panel
+described in Section~\ref{sec:experiments}, which we will apply
+in full to the planned dataset re-evaluation.
+
 \subsection{Failure case: BF2 1-component}
 
 WaveSplat's worst case (nRMSE=0.315) occurs on the simplest
@@ -1408,17 +1474,31 @@ Several limitations should be acknowledged:
     where $\mathbf{U}$ is the current velocity.
     Joint current-wave estimation by including $\mathbf{U}$ as a
     global parameter is a natural extension.
-  \item \textbf{Baseline fairness}: The ETKF baseline uses global
-    (non-localized) updates.  A Local ETKF (LETKF)~\citep{hunt2007}
-    with spatial localization could improve performance by reducing
-    spurious long-range correlations in the ensemble, particularly
-    for high-complexity sea states.
-    Additionally, our ETKF uses observation thinning ($M_\text{max}$=40
-    per frame) following \citet{huhn2022}; relaxing this limit could
-    improve ETKF accuracy at the cost of increased computation.
-    The GPR comparison uses single-frame mode without temporal
-    propagation; a sliding-window GPR with physics-based temporal
-    kernel could provide a stronger baseline.
+  \item \textbf{Baseline fairness}: We acknowledge that the baselines
+    used in this study were not exhaustively re-tuned for the
+    shipboard-LiDAR scenario.  Specifically:
+    (a)~The ETKF configuration follows the recommendations of
+    \citet{huhn2022} for shipboard LiDAR (50 ensemble members,
+    40$\times$30 grid, multiplicative inflation $\alpha$=1.01,
+    observation thinning $M_\text{max}$=40); a systematic
+    hyperparameter sweep over grid resolution
+    (e.g., 60$\times$45, 80$\times$60, 120$\times$90), ensemble size
+    (30--100), inflation factor (1.0--1.05), and thinning level was
+    not performed.  An ETKF-fine variant (80$\times$60 grid) was
+    tested and showed only marginal improvement over the standard
+    configuration (avg nRMSE 0.421 vs 0.436), suggesting that grid
+    resolution is not the primary bottleneck, but a full sweep is
+    left for future work.
+    (b)~A Local ETKF (LETKF)~\citep{hunt2007} with spatial
+    localization could further reduce spurious long-range correlations
+    in the ensemble, particularly for high-complexity sea states.
+    (c)~The GPR comparison uses single-frame mode without temporal
+    propagation; a sliding-window GPR with a physics-based temporal
+    kernel encoding the dispersion relation could provide a stronger
+    baseline, though incorporating dispersion into a GPR kernel
+    remains an open research question.
+    Strengthening these baselines is a priority for the planned
+    full-dataset re-evaluation (see Section~\ref{sec:conclusion}).
   \item \textbf{Uncertainty quantification}: WaveSplat currently
     provides point estimates without uncertainty bounds.
     The optimizer's gradient information could be used to

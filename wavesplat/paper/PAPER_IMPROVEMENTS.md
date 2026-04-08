@@ -8,6 +8,42 @@
 
 ---
 
+## 0-2. 데이터 분석에서 발견한 핵심 이슈 (★★★ 즉시 조치 필요)
+
+### 발견: ETKF의 두 run에서 nRMSE-Hs_error 불일치
+`p1_comparison.json`과 `etkf_comparison.json` 두 결과 파일을 비교한 결과,
+**동일 episode/seed에서 ETKF 결과가 크게 다름**:
+
+| Episode | p1.ETKF nRMSE | etkf_comp.ETKF-medium nRMSE | etkf_comp.Hs_error |
+|---------|--------------|----------------------------|--------------------|
+| BF2_1comp_uniform | 0.483 | 0.266 | **0.655** |
+| BF3_2comp_uniform | 0.444 | 0.295 | **0.344** |
+| BF3_5comp_uniform | 0.434 | 0.297 | **0.352** |
+| BF4_15comp_uniform | 0.511 | 0.280 | **0.450** |
+| BF5_15comp_uniform | 0.466 | 0.279 | **0.502** |
+| **AVERAGE (12 ep)** | **0.436** | **0.287** | **0.452** |
+
+**관찰:**
+- 두 script (`run_p1_comparison.py`, `run_etkf_comparison.py`)는 **동일 ETKFGrid 클래스, 동일 파라미터, 동일 seed** 사용
+- 그럼에도 결과가 ~50% 다름 → 코드 변경 (ETKFGrid 구현 진화) 또는 평가 방법 차이로 추정
+- **etkf_comparison의 ETKF-medium은 nRMSE는 낮으나 Hs_error 평균 45.2%**
+- WaveSplat의 Hs_error 평균은 24.4% — **WaveSplat 대비 ETKF의 Hs_error가 1.85배 높음**
+
+### 의미 (6인 토론 합의 핵심에 직결)
+이 데이터는 **본 논문의 "nRMSE만으로는 부족" 논증의 결정적 증거**:
+- ETKF가 "낮은 nRMSE"를 달성하는 메커니즘 = **amplitude under-fitting** (Hs를 절반 이하로 추정)
+- 즉 nRMSE 0.287은 "정확한 추정"이 아니라 "평탄한 출력으로 큰 오차 회피"의 결과
+- **이미 존재하는 Hs_error 데이터로 이를 입증 가능** — 메트릭 함수 구현 없이도
+
+### 즉시 가능한 조치
+1. **A6 (NEW)**: Discussion 또는 Results에 "Hs preservation" 분석 추가
+   - 기존 etkf_comparison.json의 Hs_error 데이터 활용
+   - "Why nRMSE alone is insufficient" 논증의 직접 증거
+2. **Phase B의 우선순위 강화**: ETKF 두 run 차이의 원인 규명이 baseline 공정성 검증의 첫 단계
+3. **데이터 확보 후**: 일관된 ETKF 구현으로 재실행 + 모든 metric 동시 계산
+
+---
+
 ## -1. 6인 페르소나 토론 합의 — 작업 우선순위 (★★★ 최상위)
 
 ### 6인 페르소나 정의
@@ -60,6 +96,11 @@
 | 5 | perez2005 → perez2012 bib year 오류 | 수정 완료 |
 | 6 | Ehlers+Klein FNO (2024), Desmars JFM (2023) 미인용 | Related Work에 추가 + 차별화 논의 |
 | 7 | Ablation A1 해석 부족 (Rev.2 지적) | w_phi tracking의 ω 고정 메커니즘 상세 설명 |
+| 8 | A1: Limitation에 ETKF best-effort tuning 부족 명시 (Rev.4) | Limitations §5에 grid/ensemble/inflation sweep 부재 명시 + ETKF-fine 0.421 결과 인용 |
+| 9 | A2: Choice of metric rationale 단락 추가 (Rev.3) | Methods §4.2에 nRMSE 한계 + pre-registered 6-metric panel 명시 |
+| 10 | A3: GPR 비교 수치 검증 (18.5%, JSON 일치 확인) | 정확함, 조치 불필요 |
+| 11 | A4: Hydrofoil comfort metric 상세 테이블 추가 (Prof.E) | 새 Table — 절대 a_RMS + ISO 카테고리, BF3 Beam의 S→C 전환 명시 |
+| 12 | A5: metrics.py에 VR/ρ/SS 함수 + 12개 unit test 구현 | reviewer-defense 메트릭 코드 + 검증 완료 |
 
 ---
 

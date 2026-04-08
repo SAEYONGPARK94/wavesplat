@@ -5,6 +5,18 @@ Evaluation metrics for wave field estimation.
 Primary (5): RMSE_z, nRMSE, Hs_error, Tp_error, Spectral_R²
 Secondary (6): RMSE_near/far, RMSE_unobserved, T_converge, T_inference,
                Directional_R², Dispersion_concentration
+
+Reviewer-defense (3): Variance Ratio, Pearson correlation, Skill Score
+    These metrics expose under-fitting (e.g., over-smoothed predictors)
+    that nRMSE alone cannot distinguish from accurate estimation.
+    A trivial zero predictor on a zero-mean wave field with std ≈ Hs/4
+    achieves nRMSE ≈ 0.25, so methods reporting nRMSE in this range
+    must be checked for actual reconstruction quality.
+
+    NOTE: These metrics are defined as the "pre-registered metric panel"
+    for the upcoming full-dataset re-evaluation. They MUST be applied
+    uniformly to all methods (WaveSplat, ETKF, GPR, baselines) — not
+    cherry-picked to favor any particular method.
 """
 
 import numpy as np
@@ -178,6 +190,104 @@ def dispersion_concentration(pred_kx: np.ndarray, pred_ky: np.ndarray,
     return float(np.mean(rel_error))
 
 
+def variance_ratio(pred: np.ndarray, gt: np.ndarray) -> float:
+    """
+    Variance ratio: Var(pred) / Var(gt).
+
+    Reviewer-defense metric for exposing over-smoothing.
+    - VR ≈ 1.0: amplitude preserved (good)
+    - VR << 1: over-smoothed (under-fitting; e.g., GPR with too-large
+      length scale, or any predictor that flattens to the mean)
+    - VR > 1.2: over-fitting (tracking observation noise)
+
+    Critical for distinguishing "low nRMSE due to accurate estimation"
+    from "low nRMSE due to predicting near-zero".
+
+    Args:
+        pred, gt: arrays of equal shape (1D, 2D, or higher)
+
+    Returns:
+        Variance ratio (positive, dimensionless)
+    """
+    var_gt = float(np.var(gt))
+    if var_gt < 1e-12:
+        return float('nan')
+    return float(np.var(pred) / var_gt)
+
+
+def pearson_correlation(pred: np.ndarray, gt: np.ndarray) -> float:
+    """
+    Pearson correlation coefficient between predicted and GT fields.
+
+    Measures shape match independent of amplitude scaling.
+    - ρ → 1: perfect shape agreement
+    - ρ → 0: no linear relationship (predictor captures no structure)
+    - ρ < 0: inverted prediction (sign error)
+
+    Complementary to nRMSE: ρ captures whether the prediction "looks like"
+    the truth even if amplitude is wrong, while nRMSE captures absolute
+    error. Together they distinguish four regimes:
+    - High ρ + low nRMSE: accurate
+    - High ρ + high nRMSE: right shape, wrong amplitude
+    - Low ρ + low nRMSE: under-fitting (predicting near-mean)
+    - Low ρ + high nRMSE: total failure
+
+    Args:
+        pred, gt: arrays of equal shape
+
+    Returns:
+        Pearson correlation in [-1, 1]
+    """
+    p = pred.flatten()
+    g = gt.flatten()
+    if len(p) < 2:
+        return float('nan')
+
+    p_c = p - np.mean(p)
+    g_c = g - np.mean(g)
+    denom = np.sqrt(np.sum(p_c ** 2) * np.sum(g_c ** 2))
+    if denom < 1e-12:
+        return float('nan')
+    return float(np.sum(p_c * g_c) / denom)
+
+
+def skill_score(pred: np.ndarray, gt: np.ndarray,
+                reference: Optional[np.ndarray] = None) -> float:
+    """
+    Skill score relative to a trivial baseline.
+
+    SS = 1 - MSE(pred) / MSE(reference)
+
+    - SS = 1: perfect prediction
+    - SS = 0: equivalent to reference (no skill)
+    - SS < 0: worse than reference (negative skill)
+
+    Default reference: zero predictor (constant zero output).
+    For zero-mean ocean waves, a zero predictor achieves
+    MSE = Var(z), so SS = 1 - MSE(pred)/Var(gt).
+
+    This metric makes the "trivial baseline" explicit, preventing
+    the misinterpretation of nRMSE values near the zero-baseline level
+    (≈ 0.25 for typical wave fields) as meaningful accuracy.
+
+    Args:
+        pred, gt: arrays of equal shape
+        reference: optional reference predictor (default: zero array)
+
+    Returns:
+        Skill score (1 = perfect, 0 = baseline, <0 = worse than baseline)
+    """
+    if reference is None:
+        reference = np.zeros_like(gt)
+
+    mse_pred = float(np.mean((pred - gt) ** 2))
+    mse_ref = float(np.mean((reference - gt) ** 2))
+
+    if mse_ref < 1e-12:
+        return float('nan')
+    return float(1.0 - mse_pred / mse_ref)
+
+
 def compute_all_metrics(pred_field: np.ndarray,
                         gt_field: np.ndarray,
                         grid_x: np.ndarray,
@@ -220,5 +330,10 @@ def compute_all_metrics(pred_field: np.ndarray,
 
     # Directional R² (2D spectral comparison)
     metrics['Directional_R2'] = directional_r2(pred_field, gt_field)
+
+    # Reviewer-defense metrics — pre-registered panel for full re-evaluation
+    metrics['Variance_Ratio'] = variance_ratio(pred_field, gt_field)
+    metrics['Pearson_rho'] = pearson_correlation(pred_field, gt_field)
+    metrics['Skill_Score'] = skill_score(pred_field, gt_field)
 
     return metrics

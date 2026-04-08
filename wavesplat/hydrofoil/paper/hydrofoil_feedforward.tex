@@ -828,6 +828,43 @@ BF3 Quarter & 1.178 & +17.6\% & +17.7\% & +17.0\% \\
 \end{tabular}
 \end{table}
 
+\begin{table}[t]
+\centering
+\caption{Absolute heave acceleration RMS [m/s$^2$] and ISO~2631-1
+comfort rating for each scenario.  Comfort categories: C = Comfortable
+($<$0.315), S = Slight discomfort (0.315--0.63),
+F = Fairly uncomfortable (0.63--1.0), U = Uncomfortable (1.0--1.6),
+VU = Very uncomfortable (1.6--2.5).
+\textbf{Bold} indicates a transition to a strictly better category.}
+\label{tab:comfort}
+\begin{tabular}{lccccc}
+\toprule
+Scenario & PD-only & GT FF & WS FF & Cat (PD$\to$WS) \\
+\midrule
+BF3 Head    & 1.631 (VU) & 1.452 (U)  & 1.445 (U)  & VU $\to$ U \\
+BF4 Head    & 2.162 (VU) & 1.896 (VU) & 1.898 (VU) & VU $\to$ VU \\
+BF3 Beam    & 0.402 (S)  & 0.238 (\textbf{C}) & 0.250 (\textbf{C}) & \textbf{S $\to$ C} \\
+BF3 Quarter & 1.178 (U)  & 0.971 (F)  & 0.970 (F)  & U $\to$ F \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:comfort} reports absolute $a_\text{RMS}$ values and
+ISO~2631-1 comfort categories.
+The most striking comfort improvement occurs in BF3 beam seas:
+the WaveSplat feedforward pipeline reduces $a_\text{RMS}$ from
+0.402~m/s$^2$ (Slight discomfort) to 0.250~m/s$^2$
+(\textbf{Comfortable})---a category transition with direct
+operational significance for passenger ferry routes.
+The other scenarios remain within the same ISO category despite
+significant percentage improvements, because
+their PD-only baselines are already well above the
+``Comfortable'' threshold.
+This highlights an important practical consideration: feedforward
+benefits are most impactful in moderate sea conditions where the
+baseline is near a comfort category boundary, rather than in
+extreme conditions where larger control authority is needed.
+
 Key observations:
 \begin{itemize}
   \item GT feedforward provides 11--41\% acceleration reduction

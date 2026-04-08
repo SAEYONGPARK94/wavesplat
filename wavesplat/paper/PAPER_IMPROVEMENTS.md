@@ -1,7 +1,51 @@
 # WaveSplat & Hydrofoil 논문 — 개선 및 추가 작업 항목
 
-> 4인 페르소나 토론 (Prof.K / Prof.E / Rev.2 / Saeyong) 2차 검토 결과 반영.
-> 2026-04-07 초판 → 2026-04-07 2차 업데이트.
+> **6인 페르소나 토론** (Prof.K / Prof.E / Rev.2 / Rev.3 / Rev.4 / Saeyong) 결과 반영.
+> 2026-04-07 초판 (4인) → 2026-04-07 2차 (4인) → 2026-04-07 3차 (6인 확장).
+>
+> **데이터 상태**: 100 episode 데이터셋은 다른 서버에 있음. 현재 작업 환경에는 3개 episode뿐.
+> 데이터 확보 후 우선 작업 순서가 §-1에 명시됨.
+
+---
+
+## -1. 6인 페르소나 토론 합의 — 작업 우선순위 (★★★ 최상위)
+
+### 6인 페르소나 정의
+1. **Prof. K** (지도교수): novelty, 물리적 의미, top venue 기준
+2. **Prof. E** (외부위원, 해양공학): 정량적, 적대적 실용주의
+3. **Rev. 2** (학회 리뷰어): 기술적 정확성, 재현성
+4. **Rev. 3** (적대적 peer reviewer): cherry-picking 의심, over-claim 비판, "왜 published?"
+5. **Rev. 4** (baseline advocate): ETKF/GPR이 더 좋다고 의심, baseline 공정성 추궁
+6. **Saeyong** (학생): 구현, 한계 인정, 향후 계획
+
+### 핵심 합의 사항
+1. **메트릭 추가만으로는 부족** — Rev.3, Rev.4의 우려대로 baseline 약점 회피로 보일 위험
+2. **올바른 작업 순서** (데이터 확보 후):
+   1. **Episode 수 증가** (★★★ Rev.3 우려 해소: 통계적 신뢰도)
+   2. **ETKF baseline 재튜닝** (★★★ Rev.4 우려 해소: 공정성)
+   3. **메트릭 확장** (★★ pre-registered 6-metric panel, 모든 method에 동일 적용)
+   4. **Sliding-window GPR** (★ 모든 baseline 강화)
+3. **메트릭 도입 시 반드시**:
+   - 사전에 정의된 세트 사용 (eval_metrics 메모리의 6개)
+   - 모든 method에 동일 적용 (WaveSplat에 불리하게 나와도 정직하게 보고)
+   - "Pre-registered metrics"로 논문에 명시 → cherry-picking 비판 차단
+
+### Rev.3 (적대적 리뷰어) 핵심 메시지
+> "메트릭 추가를 baseline 약점의 우회로로 쓰지 말 것. 진짜 문제는 episode 수와 baseline tuning이다."
+
+### Rev.4 (Baseline Advocate) 핵심 메시지
+> "메트릭은 모든 method에 공정하게 적용할 것. WaveSplat-friendly 선택은 더 큰 비판을 초래한다."
+
+### 즉시 가능한 선제 방어 (데이터 없이)
+| 항목 | 위치 | 내용 |
+|------|------|------|
+| Limitation 강화 | §Discussion | "ETKF/GPR의 best-effort tuning 부족" 명시적 인정 |
+| Metric choice rationale | §Methods 또는 §Results 첫 부분 | "현재는 nRMSE primary, pre-registered 6-metric panel은 후속 작업" 명시 |
+| Pre-registration 선언 | §Methods footnote | "Secondary metrics defined in companion repository" |
+
+---
+
+## 0. 이번 리뷰에서 수정 완료된 항목
 
 ---
 
@@ -16,6 +60,58 @@
 | 5 | perez2005 → perez2012 bib year 오류 | 수정 완료 |
 | 6 | Ehlers+Klein FNO (2024), Desmars JFM (2023) 미인용 | Related Work에 추가 + 차별화 논의 |
 | 7 | Ablation A1 해석 부족 (Rev.2 지적) | w_phi tracking의 ω 고정 메커니즘 상세 설명 |
+
+---
+
+## 0-1. nRMSE의 한계 → 보완 메트릭 (★★★ 핵심)
+
+### 문제: nRMSE가 under-fitting을 못 잡는다
+- Trivial zero predictor의 nRMSE ≈ 0.25 (zero-mean wave, std≈H_s/4 가정)
+- GPR이 over-smoothing해서 평탄한 출력만 내도 nRMSE는 "괜찮아 보임"
+- 즉 **"낮은 nRMSE = 정확한 추정"이 아님**
+- 메모리의 eval_metrics 설계에 이미 secondary metrics 정의돼 있으나 논문 미사용
+
+### 추가해야 할 메트릭
+
+| 메트릭 | 정의 | 노출하는 약점 |
+|--------|------|-------------|
+| **Variance Ratio (VR)** | Var(ẑ)/Var(z) | over-smoothing (VR<<1) / over-fitting (VR>1) |
+| **Pearson Correlation (ρ)** | Cov(ẑ,z)/(σ_ẑ·σ_z) | shape mismatch (진폭 무관) |
+| **Skill Score (SS)** | 1 − MSE(ẑ)/MSE(zero) | trivial baseline 대비 정량 |
+| **Spectral R²** | R² of S_ẑ(ω) vs S_z(ω) | 주파수 spectrum 보존 |
+| **Directional R²** | 2D (kx,ky) spectrum 일치도 | 방향 추정 (hydrofoil 핵심) |
+| **Hs error** | \|Ĥs−Hs\|/Hs | 진폭 보존 (이미 ablation JSON에 있음) |
+| **EMD on k-spectrum** | Earth Mover's Distance in (kx,ky) | 모드 분포 차이 |
+
+### 추천 논문 Table 형식
+```
+| Method | nRMSE↓ | VR | ρ↑ | SS↑ | Spec.R²↑ | Hs err↓ |
+|--------|--------|----|----|------|---------|---------|
+| WaveSplat | 0.233 | ~1.0 | 높음 | 양 | 높음 | 낮음 |
+| GPR    | 0.276 | <<1 | 낮음 | 양 | 낮음 | 높음 |
+| ETKF   | 0.450 | ~1.0 | 중간 | ? | 중간 | 중간 |
+| Zero baseline | ~0.25 | 0 | 0 | 0 | 0 | 1.0 |
+```
+
+이렇게 보여주면 "GPR의 nRMSE가 WaveSplat과 가까워 보이는 것은 under-fitting 때문"임을
+VR과 ρ로 즉각 입증 가능. Reviewer 방어의 핵심 무기.
+
+### 구현 필요 사항
+- 현재 JSON에는 nRMSE/inference_ms만 저장 → 이 메트릭들 계산 안 됨
+- `wavesplat/wavesplat/evaluation/metrics.py` 확장 필요
+- prediction array를 메모리에 유지하며 episode별 전체 메트릭 dump
+- **즉각 가능 (Phase A5)**: 메트릭 함수 구현
+- **전면 적용 (Phase C)**: 100 episode 재실행 필요 — Phase B 완료 후
+
+### ⚠ 6인 토론 경고 (Rev.3, Rev.4)
+- **메트릭 추가만 단독으로 진행하면 위험** — baseline 약점 회피로 보일 수 있음
+- **반드시 작업 순서를 지킬 것**:
+  1. Episode 수 확보 (Phase B1) — Rev.3 우려 해소
+  2. ETKF 재튜닝 (Phase B2) — Rev.4 우려 해소
+  3. 그 다음에야 메트릭 확장 (Phase C)
+- **메트릭 적용 시 모든 method에 동일하게** — WaveSplat에 불리한 결과도 정직하게 보고
+- **Pre-registered metrics 명시** — eval_metrics 메모리 6개 세트 그대로 사용
+- **Cherry-picking 방지**: 일부 메트릭만 보고하고 나머지 supplementary 처리하지 말 것 → 전부 보고 or 전부 제외
 
 ---
 
@@ -130,47 +226,121 @@
 
 ---
 
-## 6. 논문 구조적 약점 (4인 토론 합의)
+## 6. 논문 구조적 약점 (6인 토론 합의)
 
 ### WaveSplat
-| 약점 | 심각도 | 해결 방안 |
-|------|--------|----------|
-| Ablation A1: dispersion 제거가 더 좋은 결과 | 높음 | BF4-5 ablation으로 역전 보여야 (§3-1) |
-| 실데이터 검증 부재 | 높음 | limitation 인정 (완료) + 수조 실험 계획 언급 (완료) |
-| GPR baseline 약함 | 중간 | sliding-window GPR 추가 (§3-4) or limitation 강화 (완료) |
-| Uncertainty quantification 부재 | 낮음 | future work 언급 (완료) |
+| 약점 | 심각도 | 발견 페르소나 | 해결 방안 |
+|------|--------|--------------|----------|
+| Ablation A1: dispersion 제거가 더 좋은 결과 | 높음 | Rev.2 | Phase B3 — BF4-5 ablation |
+| 실데이터 검증 부재 | 높음 | Rev.3 | limitation 인정 (완료) + 수조 실험 계획 |
+| ETKF baseline tuning 부족 | **높음** | **Rev.4** | **Phase B2 — ETKF 재튜닝 sweep** |
+| Episode 수 부족 (12 representative) | **높음** | **Rev.3** | **Phase B1 — 100 episode 전체 재실행** |
+| GPR baseline 약함 (single-frame) | 중간 | Rev.4 | Phase D1 — sliding-window GPR |
+| nRMSE 단일 메트릭 의존 | 중간 | Rev.3 | Phase A2 — choice of metric 단락 / Phase C — 메트릭 확장 |
+| Uncertainty quantification 부재 | 낮음 | Prof.E | future work 언급 (완료) |
 
 ### Hydrofoil
-| 약점 | 심각도 | 해결 방안 |
-|------|--------|----------|
-| BF4 E2E 37% degradation | 높음 | abstract 수정 (완료) + direction error 정량화 (§4-2) |
-| Comfort metric scenario 불명확 | 중간 | 수정 완료 — BF3 beam sea 명시 |
-| LP filter 경험적 tuning | 중간 | sensitivity table 추가 (§4-3) |
-| 30s 짧은 시뮬레이션 | 중간 | 60-120s 확장 (§4-5) |
-| 2-DOF 모델 단순화 | 낮음 | 물리적 정당화 완료 + 3-DOF future work |
+| 약점 | 심각도 | 발견 페르소나 | 해결 방안 |
+|------|--------|--------------|----------|
+| BF4 E2E 37% degradation | 높음 | Prof.K | abstract 수정 (완료) + Phase D4 |
+| Cherry-picked E2E episode (3개만) | **높음** | **Rev.3** | **Phase D1+ — 더 많은 E2E episode** |
+| Comfort metric scenario 불명확 | 중간 | Prof.E | 수정 완료 — BF3 beam sea 명시 |
+| LP filter 경험적 tuning | 중간 | Rev.2 | Phase D5 — sensitivity table |
+| 30s 짧은 시뮬레이션 | 중간 | Rev.3 | Phase D2 — 60-120s 확장 |
+| Ideal actuator 가정 | 중간 | Rev.4 | Phase D3 — actuator lag 모델 |
+| 2-DOF 모델 단순화 | 낮음 | Prof.K | 물리적 정당화 완료 + 3-DOF future work |
 
 ---
 
-## 7. 우선순위 (추천 실행 순서)
+## 7. 작업 우선순위 (6인 토론 합의)
 
-### 즉시 가능 (JSON 데이터만으로)
-1. **수치 검증** — GPR 비교%, ETKF-fine 값, nRMSE 기준 통일
-2. **수렴 곡선 Figure** — convergence JSON에서 생성
-3. **Near/far RMSE 테이블** — etkf_comparison JSON에서 추출
-4. **Comfort metric 상세 테이블** — hydrofoil 결과에서 추출
+### Phase A: 즉시 가능 (데이터 없이, 현재 환경에서)
+**목표**: 선제 방어 + reviewer 우려 미리 대응
 
-### 데이터 확보 후
-5. **BF4-5 Ablation** — dispersion 논증의 핵심 (최우선)
-6. **LP Filter Sensitivity Table** — run_sensitivity.py 확장
-7. **E2E episode 추가** — hydrofoil 통계 강화
-8. **Direction error 정량화** — k_x sign error rate
+| # | 작업 | 위치 | Rev.3/4 우려 해소 |
+|---|------|------|-----------------|
+| A1 | Limitation에 "ETKF/GPR best-effort tuning 부족" 명시 | wavesplat.tex §Discussion | Rev.4 |
+| A2 | "Choice of metric" rationale 단락 추가 | wavesplat.tex §Methods 또는 §Results | Rev.3 |
+| A3 | 수치 검증 (GPR 비교%, ETKF-fine 등) | tex 본문 | 정확도 |
+| A4 | Hydrofoil comfort metric 상세 테이블 | hydrofoil.tex §Results | Prof.E |
+| A5 | metrics.py에 VR/ρ/SS/Spectral R² 함수 구현 | wavesplat/wavesplat/evaluation/ | Phase C 준비 |
 
-### 코드 개발 필요
-9. **Sliding-window GPR** — temporal GPR baseline
-10. **장기 시뮬레이션** — 60-120s episodes
-11. **Actuator dynamics** — 1st-order lag 모델
+### Phase B: 데이터 확보 직후 (★★★ 최우선)
+**목표**: Rev.3/4 핵심 우려 해소 — 통계 신뢰도 + baseline 공정성
+
+| # | 작업 | 사전 요구사항 | Rev.3/4 우려 해소 |
+|---|------|--------------|-----------------|
+| B1 | 100 episode 전체 재실행 (WaveSplat) | 데이터 sync | Rev.3 통계 |
+| B2 | ETKF baseline 재튜닝 sweep (grid/ensemble/inflation) | 데이터 + 시간 | Rev.4 공정성 |
+| B3 | BF4-5 ablation (dispersion constraint) | 데이터 + 시간 | dispersion 논증 |
+| B4 | Multi-seed 통계 검증 확장 (50 → 100+ runs) | 데이터 | Rev.3 통계 |
+
+### Phase C: Phase B 완료 후 (메트릭 확장)
+**목표**: Pre-registered 6-metric panel 도입 (모든 method 동일 적용)
+
+| # | 작업 | 비고 |
+|---|------|------|
+| C1 | 전체 episode에서 6개 secondary metrics 계산 | A5의 metrics.py 사용 |
+| C2 | Main results table에 nRMSE/VR/ρ 3컬럼 추가 | Zero baseline 행 포함 |
+| C3 | Spectral R² figure 별도 추가 | qualitative figure 보완 |
+| C4 | "Pre-registered metrics" 명시 | cherry-picking 방지 |
+| C5 | WaveSplat의 VR이 0.95이고 ETKF가 1.05이면? → **정직하게 보고** | Rev.4 합의 사항 |
+
+### Phase D: 보강 작업 (R&R 또는 후속)
+**목표**: 잔여 약점 보완
+
+| # | 작업 | 가치 |
+|---|------|------|
+| D1 | Sliding-window GPR baseline | Rev.4 baseline 강화 |
+| D2 | 60-120s 장기 시뮬레이션 | tracking stability |
+| D3 | Actuator dynamics 모델 (hydrofoil) | 실용성 |
+| D4 | Direction error 정량화 (hydrofoil) | BF4 분석 |
+| D5 | LP filter sensitivity table | Prof.E 정량화 요구 |
+| D6 | Hs error, Directional R², EMD 등 supplementary | full pre-registered set |
+
+### 시간 추정 (데이터 확보 후 기준)
+- **Phase A**: 1-2일 (즉시)
+- **Phase B**: 1-2주 (데이터 sync 후, ETKF 재튜닝이 가장 시간 소요)
+- **Phase C**: 3-5일 (B 완료 후)
+- **Phase D**: 2-3주 (R&R 시점)
 
 ---
 
-*Updated: 2026-04-07 (2차 리뷰)*
-*4인 페르소나: Prof.K(novelty/선행연구), Prof.E(수치정확도/comfort metric), Rev.2(ablation/baseline공정성), Saeyong(방어/구현)*
+## 8. 데이터 확보 시 체크리스트
+
+데이터가 다른 서버에서 도착하면:
+
+```bash
+# 1. 데이터 sync 확인
+ls wavesplat/data/ | wc -l   # 100이어야 함
+
+# 2. 환경 검증
+python3 -m pytest wavesplat/wavesim/tests/ wavesplat/wavesplat/tests/ -v
+
+# 3. Phase A5 코드 작성 (메트릭 함수)
+# wavesplat/wavesplat/evaluation/metrics.py 확장
+
+# 4. Phase B1 — 100 episode 재실행
+python3 scripts/run_p1_comparison.py --all-episodes --seeds 5
+
+# 5. Phase B2 — ETKF 재튜닝
+python3 scripts/run_etkf_tuning_sweep.py  # 새로 작성 필요
+#   - grid: 40x30, 60x45, 80x60, 120x90
+#   - ensemble: 30, 50, 100
+#   - inflation: 1.0, 1.01, 1.02, 1.05
+
+# 6. Phase B3 — BF4-5 ablation
+python3 scripts/run_ablation_seeded.py --episodes BF4_*,BF5_*
+
+# 7. Phase C — 메트릭 확장
+python3 scripts/recompute_with_full_metrics.py
+
+# 8. 결과 JSON dump 후 figure/table 재생성
+python3 scripts/generate_paper_tables.py
+python3 scripts/generate_paper_figures.py
+```
+
+---
+
+*Updated: 2026-04-07 (3차 리뷰 — 6인 페르소나 확장)*
+*6인 페르소나: Prof.K / Prof.E / Rev.2 / Rev.3 (적대적) / Rev.4 (baseline advocate) / Saeyong*

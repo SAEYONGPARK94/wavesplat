@@ -967,6 +967,39 @@ the ocean produces forces based on the true wave field, while the
 controller can only act on what WaveSplat has estimated from
 LiDAR observations.
 
+\subsubsection*{End-to-end latency budget}
+
+Table~\ref{tab:latency} breaks down the per-cycle latency of the
+full LiDAR$\,\to\,$WaveSplat$\,\to\,$feedforward pipeline.
+The dominant cost is WaveSplat estimation (13.4~ms), while the
+feedforward controller itself contributes sub-millisecond overhead.
+The total pipeline consumes 14.6~ms per 100~ms control cycle
+(Table~\ref{tab:latency}), leaving 85.4\% of the real-time budget
+for other shipboard processes (vessel state estimation, mission
+planning, safety monitoring).
+
+\begin{table}[t]
+\centering
+\caption{End-to-end latency budget per 10~Hz control cycle
+(Intel~i7-12700H, single CPU thread).}
+\label{tab:latency}
+\begin{tabular}{lcc}
+\toprule
+Stage & Latency (ms) & \% of 100~ms budget \\
+\midrule
+LiDAR acquisition (per scan, 10~Hz) & 0.1 & 0.1\% \\
+Point-cloud preprocessing            & 0.5 & 0.5\% \\
+WaveSplat tracking update            & 13.4 & 13.4\% \\
+Preview evaluation (4 foil points)   & 0.3 & 0.3\% \\
+LP filter + feedforward command      & 0.2 & 0.2\% \\
+PD feedback computation              & 0.1 & 0.1\% \\
+\midrule
+\textbf{Total pipeline}              & \textbf{14.6} & \textbf{14.6\%} \\
+\textbf{Budget margin}               & 85.4 & 85.4\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Results}
 
 Table~\ref{tab:e2e} summarizes the E2E results across three
@@ -1216,9 +1249,10 @@ The key findings are:
 These results establish that even moderate wave estimation accuracy
 ($\sim$20\% nRMSE) is sufficient for effective feedforward control.
 The total computational budget for the LiDAR $\to$ WaveSplat $\to$
-feedforward pipeline is $\sim$15~ms per cycle (13~ms estimation +
-$<$1~ms controller), well within the 100~ms real-time budget on
-standard shipboard computing hardware.
+feedforward pipeline is 14.6~ms per cycle (Table~\ref{tab:latency}:
+13.4~ms estimation + 1.2~ms preprocessing, controller, and I/O),
+well within the 100~ms real-time budget on standard shipboard
+computing hardware.
 This makes the approach a practical candidate for deployment on
 the emerging class of electric hydrofoil passenger vessels, where
 ride comfort directly impacts commercial viability.
@@ -1256,8 +1290,14 @@ the work reported in this paper.
 
 \section*{Data availability}
 
-Code and simulation data will be made publicly available upon
-acceptance.
+The source code of the hydrofoil simulator, the feedforward controller,
+the WaveSplat bridge, and all experiment/figure generation scripts
+are openly available in the project repository at
+\url{https://github.com/SAEYONGPARK94/wavesplat}.
+Five representative LiDAR episodes (Beaufort~2--5) used for the
+end-to-end demonstration are included in the repository; the full
+100-episode dataset can be regenerated from the released WaveSim
+simulator with the provided configuration files and fixed random seeds.
 
 \section*{Acknowledgments}
 

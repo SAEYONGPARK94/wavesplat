@@ -40,10 +40,14 @@ from matplotlib.colors import TwoSlopeNorm
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+from scipy.interpolate import RegularGridInterpolator
+
 from wavesplat.data_loader import EpisodeDataLoader
 from wavesplat.optimizer.sequential_update import SequentialUpdater
 from wavesplat.run import set_seed
 from wavesplat.evaluation.metrics import nrmse
+from wavesplat.baselines.etkf_grid import ETKFGrid
+from wavesplat.baselines.gpr_baseline import GPRBaseline
 
 
 # 5 representative episodes shipped in git (matches docs/HANDS_ON.md)
@@ -83,8 +87,8 @@ def _ws_config(depth):
 # WaveSplat tracking (shared by 2D and 3D renderers)
 # ---------------------------------------------------------------------------
 
-def run_tracking(h5_path, max_frames=120):
-    """Run WaveSplat over an episode and collect per-frame fields + LiDAR."""
+def run_tracking(h5_path, max_frames=120, with_baselines=True):
+    """Run WaveSplat (and optionally ETKF + GPR baselines) over an episode."""
     set_seed(42)
     loader = EpisodeDataLoader(h5_path)
 
@@ -102,36 +106,83 @@ def run_tracking(h5_path, max_frames=120):
     grid_x_np = grid_x.cpu().numpy()
     grid_y_np = grid_y.cpu().numpy()
 
+    # ETKF on a coarser grid (matches run_etkf_comparison.py 'medium')
+    etkf = etkf_gx = etkf_gy = None
+    gpr = None
+    if with_baselines:
+        etkf_nx, etkf_ny = 40, 30
+        etkf_gx = np.linspace(grid_x_np[0], grid_x_np[-1], etkf_nx)
+        etkf_gy = np.linspace(grid_y_np[0], grid_y_np[-1], etkf_ny)
+        etkf = ETKFGrid(etkf_gx, etkf_gy, depth=loader.depth, n_ensemble=50)
+        gpr = GPRBaseline(kernel_type='matern', length_scale=20.0,
+                          noise_sigma=0.05, window_frames=1)
+
+        # Feed init frames to baselines so they have a warm state
+        for f in init_frames:
+            x = f.x_obs.cpu().numpy()
+            y = f.y_obs.cpu().numpy()
+            z = f.z_obs.cpu().numpy()
+            etkf.update(x, y, z)
+            gpr.update(x, y, z)
+
     tracking_frames = loader.get_tracking_frames(tp_factor=2.0)
     n_frames = min(len(tracking_frames), max_frames)
 
     print(f"  Tracking {n_frames} frames for {os.path.basename(h5_path)}...")
-    gt_fields, ws_fields, errors = [], [], []
+    gt_fields, ws_fields, etkf_fields, gpr_fields = [], [], [], []
+    errors_ws, errors_etkf, errors_gpr = [], [], []
     lidar_pts = []
-    nrmses, times, n_list = [], [], []
+    nrmses_ws, nrmses_etkf, nrmses_gpr = [], [], []
+    times, n_list = [], []
 
     for i in range(n_frames):
         frame = tracking_frames[i]
+
+        # WaveSplat
         updater.update(frame)
         pred = updater.predict_field(grid_x, grid_y, frame.t)
-
         gt_np = frame.gt_field.cpu().numpy()
-        pred_np = pred.cpu().numpy()
+        ws_np = pred.cpu().numpy()
         gt_fields.append(gt_np)
-        ws_fields.append(pred_np)
-        errors.append(np.abs(gt_np - pred_np))
-        lidar_pts.append((
-            frame.x_obs.cpu().numpy(),
-            frame.y_obs.cpu().numpy(),
-            frame.z_obs.cpu().numpy(),
-        ))
-        nrmses.append(nrmse(pred_np, gt_np, loader.Hs_true))
+        ws_fields.append(ws_np)
+        errors_ws.append(np.abs(gt_np - ws_np))
+        nrmses_ws.append(nrmse(ws_np, gt_np, loader.Hs_true))
+
+        x = frame.x_obs.cpu().numpy()
+        y = frame.y_obs.cpu().numpy()
+        z = frame.z_obs.cpu().numpy()
+        lidar_pts.append((x, y, z))
         times.append(frame.t)
         n_list.append(updater.model.n_gaussians)
 
+        # ETKF on coarse grid → interp to GT grid
+        if with_baselines:
+            etkf.update(x, y, z)
+            etkf_pred = etkf.predict_grid()
+            interp = RegularGridInterpolator(
+                (etkf_gy, etkf_gx), etkf_pred,
+                method='linear', bounds_error=False, fill_value=0.0)
+            Xg, Yg = np.meshgrid(grid_x_np, grid_y_np)
+            etkf_np = interp(np.column_stack([Yg.ravel(), Xg.ravel()])).reshape(
+                len(grid_y_np), len(grid_x_np))
+            etkf_fields.append(etkf_np)
+            errors_etkf.append(np.abs(gt_np - etkf_np))
+            nrmses_etkf.append(nrmse(etkf_np, gt_np, loader.Hs_true))
+
+            # GPR per-frame fit + predict on GT grid
+            gpr.update(x, y, z)
+            gpr_np = gpr.predict_grid(grid_x_np, grid_y_np)
+            gpr_fields.append(gpr_np)
+            errors_gpr.append(np.abs(gt_np - gpr_np))
+            nrmses_gpr.append(nrmse(gpr_np, gt_np, loader.Hs_true))
+
         if i % 20 == 0:
+            extra = ""
+            if with_baselines:
+                extra = (f"  ETKF={nrmses_etkf[-1]:.3f}  "
+                         f"GPR={nrmses_gpr[-1]:.3f}")
             print(f"    frame {i:3d}/{n_frames}  t={frame.t:5.1f}s  "
-                  f"nRMSE={nrmses[-1]:.3f}  N={n_list[-1]}")
+                  f"WS={nrmses_ws[-1]:.3f}  N={n_list[-1]}{extra}")
 
     sea_state = os.path.basename(h5_path).replace('episode_', '').replace('.h5', '')
     return {
@@ -142,12 +193,19 @@ def run_tracking(h5_path, max_frames=120):
         'grid_y': grid_y_np,
         'gt_fields': gt_fields,
         'ws_fields': ws_fields,
-        'errors': errors,
+        'etkf_fields': etkf_fields,
+        'gpr_fields': gpr_fields,
+        'errors_ws': errors_ws,
+        'errors_etkf': errors_etkf,
+        'errors_gpr': errors_gpr,
         'lidar_pts': lidar_pts,
-        'nrmses': nrmses,
+        'nrmses_ws': nrmses_ws,
+        'nrmses_etkf': nrmses_etkf,
+        'nrmses_gpr': nrmses_gpr,
         'times': times,
         'n_list': n_list,
         'n_frames': n_frames,
+        'with_baselines': with_baselines,
     }
 
 
@@ -156,38 +214,44 @@ def run_tracking(h5_path, max_frames=120):
 # ---------------------------------------------------------------------------
 
 def render_wave_video(track, output_path, fps=10):
-    """Render 4-panel 2D wave field comparison GIF from tracking data."""
+    """Render 6-panel 2D wave field comparison: LiDAR + GT + 3 methods + nRMSE."""
     grid_x_np = track['grid_x']
     grid_y_np = track['grid_y']
     gt_fields = track['gt_fields']
     ws_fields = track['ws_fields']
-    errors = track['errors']
+    etkf_fields = track['etkf_fields']
+    gpr_fields = track['gpr_fields']
     lidar_pts = track['lidar_pts']
-    nrmses = track['nrmses']
+    nrmses_ws = track['nrmses_ws']
+    nrmses_etkf = track['nrmses_etkf']
+    nrmses_gpr = track['nrmses_gpr']
     times = track['times']
     n_list = track['n_list']
     n_frames = track['n_frames']
     sea_state = track['sea_state']
+    has_base = track['with_baselines'] and len(etkf_fields) > 0
 
     vmax = max(max(abs(g.min()), abs(g.max())) for g in gt_fields)
     norm = TwoSlopeNorm(vmin=-vmax, vcenter=0, vmax=vmax)
-    err_max = max(e.max() for e in errors)
 
     extent = [grid_x_np[0], grid_x_np[-1], grid_y_np[0], grid_y_np[-1]]
 
-    # Layout: 2x2 panels with dedicated colorbar column on the far right
-    # so legends never overlap the data axes.
-    fig = plt.figure(figsize=(12, 9), constrained_layout=True)
-    gs = fig.add_gridspec(2, 3, width_ratios=[1.0, 1.0, 0.04],
-                          hspace=0.12, wspace=0.08)
+    # 3 rows × 2 cols of imshow + colorbar column.
+    # Row 0: LiDAR | GT
+    # Row 1: WaveSplat | ETKF
+    # Row 2: GPR | running nRMSE line plot
+    fig = plt.figure(figsize=(11, 13), constrained_layout=True)
+    gs = fig.add_gridspec(3, 3, width_ratios=[1.0, 1.0, 0.04],
+                          hspace=0.05, wspace=0.05)
     ax_l = fig.add_subplot(gs[0, 0])
     ax_gt = fig.add_subplot(gs[0, 1])
     ax_ws = fig.add_subplot(gs[1, 0])
-    ax_err = fig.add_subplot(gs[1, 1])
-    cax_eta = fig.add_subplot(gs[0, 2])
-    cax_err = fig.add_subplot(gs[1, 2])
+    ax_etkf = fig.add_subplot(gs[1, 1])
+    ax_gpr = fig.add_subplot(gs[2, 0])
+    ax_metric = fig.add_subplot(gs[2, 1])
+    cax_eta = fig.add_subplot(gs[:, 2])
 
-    # LiDAR scatter
+    # LiDAR scatter (top-left)
     sc = ax_l.scatter(lidar_pts[0][0], lidar_pts[0][1], c=lidar_pts[0][2],
                       cmap='RdBu_r', norm=norm, s=8)
     ax_l.set_xlim(extent[0], extent[1])
@@ -204,28 +268,56 @@ def render_wave_video(track, output_path, fps=10):
 
     im_ws = ax_ws.imshow(ws_fields[0], cmap='RdBu_r', norm=norm,
                          extent=extent, origin='lower', aspect='equal')
-    ax_ws.set_title('WaveSplat reconstruction', fontweight='bold')
+    ax_ws.set_title('WaveSplat (ours)', fontweight='bold', color='#1f77b4')
     ax_ws.set_xlabel('x [m]')
     ax_ws.set_ylabel('y [m]')
 
-    im_err = ax_err.imshow(errors[0], cmap='magma', vmin=0, vmax=err_max,
-                           extent=extent, origin='lower', aspect='equal')
-    ax_err.set_title('Absolute error |GT − WS|', fontweight='bold')
-    ax_err.set_xlabel('x [m]')
+    if has_base:
+        im_etkf = ax_etkf.imshow(etkf_fields[0], cmap='RdBu_r', norm=norm,
+                                  extent=extent, origin='lower', aspect='equal')
+        ax_etkf.set_title('ETKF-grid', fontweight='bold', color='#d62728')
+        ax_etkf.set_xlabel('x [m]')
+
+        im_gpr = ax_gpr.imshow(gpr_fields[0], cmap='RdBu_r', norm=norm,
+                                extent=extent, origin='lower', aspect='equal')
+        ax_gpr.set_title('GPR (Matérn 5/2)', fontweight='bold', color='#2ca02c')
+        ax_gpr.set_xlabel('x [m]')
+        ax_gpr.set_ylabel('y [m]')
+    else:
+        im_etkf = None
+        im_gpr = None
+        ax_etkf.text(0.5, 0.5, 'baselines disabled',
+                     transform=ax_etkf.transAxes, ha='center', va='center')
+        ax_gpr.text(0.5, 0.5, 'baselines disabled',
+                    transform=ax_gpr.transAxes, ha='center', va='center')
 
     fig.colorbar(im_gt, cax=cax_eta, label='η [m]')
-    fig.colorbar(im_err, cax=cax_err, label='|Δη| [m]')
 
-    # Info box in the upper-left corner of the bottom-left axis (away
-    # from any colorbar / data hot-spots).
+    # Running nRMSE plot (bottom-right)
+    ax_metric.set_title('nRMSE over time', fontweight='bold')
+    ax_metric.set_xlabel('t [s]')
+    ax_metric.set_ylabel('nRMSE')
+    ax_metric.set_xlim(times[0], times[-1])
+    all_nrmse = nrmses_ws + (nrmses_etkf if has_base else []) + (nrmses_gpr if has_base else [])
+    ax_metric.set_ylim(0, max(all_nrmse) * 1.1)
+    ax_metric.grid(alpha=0.3)
+    line_ws, = ax_metric.plot([], [], '-', color='#1f77b4', lw=2, label='WaveSplat')
+    if has_base:
+        line_etkf, = ax_metric.plot([], [], '-', color='#d62728', lw=1.5, label='ETKF')
+        line_gpr, = ax_metric.plot([], [], '-', color='#2ca02c', lw=1.5, label='GPR')
+    else:
+        line_etkf = line_gpr = None
+    ax_metric.legend(loc='upper right', fontsize=9)
+
+    # Info box overlaid on WaveSplat panel.
     info = ax_ws.text(0.02, 0.98, '', transform=ax_ws.transAxes,
-                      fontsize=10, va='top', ha='left',
+                      fontsize=9, va='top', ha='left',
                       bbox=dict(boxstyle='round', fc='white', alpha=0.85))
     Hs = track['Hs']
     Tp = track['Tp']
     suptitle = fig.suptitle(
         f'{sea_state}  |  Hs={Hs:.2f}m  Tp={Tp:.1f}s  |  t=0.0s',
-        fontsize=12, fontweight='bold')
+        fontsize=13, fontweight='bold')
 
     def update(idx):
         x, y, z = lidar_pts[idx]
@@ -233,13 +325,18 @@ def render_wave_video(track, output_path, fps=10):
         sc.set_array(z)
         im_gt.set_data(gt_fields[idx])
         im_ws.set_data(ws_fields[idx])
-        im_err.set_data(errors[idx])
-        info.set_text(f'nRMSE={nrmses[idx]:.3f}\nN={n_list[idx]}\n'
-                      f'M={len(lidar_pts[idx][0])} pts')
+        if has_base:
+            im_etkf.set_data(etkf_fields[idx])
+            im_gpr.set_data(gpr_fields[idx])
+            line_etkf.set_data(times[:idx + 1], nrmses_etkf[:idx + 1])
+            line_gpr.set_data(times[:idx + 1], nrmses_gpr[:idx + 1])
+        line_ws.set_data(times[:idx + 1], nrmses_ws[:idx + 1])
+
+        info.set_text(f'WS nRMSE={nrmses_ws[idx]:.3f}\n'
+                      f'N={n_list[idx]}  M={len(x)} pts')
         suptitle.set_text(
             f'{sea_state}  |  Hs={Hs:.2f}m  '
             f'Tp={Tp:.1f}s  |  t={times[idx]:.1f}s')
-        return sc, im_gt, im_ws, im_err, info, suptitle
 
     ani = animation.FuncAnimation(fig, update, frames=n_frames,
                                   interval=1000 // fps, blit=False)
@@ -252,8 +349,8 @@ def render_wave_video(track, output_path, fps=10):
 # Wave field 3D video (LiDAR points + wave surface)
 # ---------------------------------------------------------------------------
 
-def render_wave_3d_video(track, output_path, fps=10, stride=4):
-    """Render side-by-side 3D GT vs WaveSplat surfaces with LiDAR scatter.
+def render_wave_3d_video(track, output_path, fps=10, stride=2):
+    """Render 2x2 3D GT/WaveSplat/ETKF/GPR surfaces with LiDAR scatter.
 
     `stride` subsamples the surface mesh in both x and y to keep rendering
     fast (3D surface plots cannot be incrementally updated like imshow,
@@ -263,68 +360,86 @@ def render_wave_3d_video(track, output_path, fps=10, stride=4):
     grid_y = track['grid_y']
     gt_fields = track['gt_fields']
     ws_fields = track['ws_fields']
+    etkf_fields = track['etkf_fields']
+    gpr_fields = track['gpr_fields']
     lidar_pts = track['lidar_pts']
-    nrmses = track['nrmses']
+    nrmses_ws = track['nrmses_ws']
+    nrmses_etkf = track['nrmses_etkf']
+    nrmses_gpr = track['nrmses_gpr']
     times = track['times']
     n_list = track['n_list']
     n_frames = track['n_frames']
     sea_state = track['sea_state']
     Hs = track['Hs']
     Tp = track['Tp']
+    has_base = track['with_baselines'] and len(etkf_fields) > 0
 
     xs = grid_x[::stride]
     ys = grid_y[::stride]
     X, Y = np.meshgrid(xs, ys)
     gt_sub = [g[::stride, ::stride] for g in gt_fields]
     ws_sub = [w[::stride, ::stride] for w in ws_fields]
+    etkf_sub = [e[::stride, ::stride] for e in etkf_fields] if has_base else []
+    gpr_sub = [g[::stride, ::stride] for g in gpr_fields] if has_base else []
 
     vmax = max(max(abs(g.min()), abs(g.max())) for g in gt_fields)
     norm = TwoSlopeNorm(vmin=-vmax, vcenter=0, vmax=vmax)
 
-    fig = plt.figure(figsize=(13, 6.5), constrained_layout=True)
-    ax1 = fig.add_subplot(1, 2, 1, projection='3d')
-    ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+    fig = plt.figure(figsize=(13, 11), constrained_layout=True)
+    ax_gt = fig.add_subplot(2, 2, 1, projection='3d')
+    ax_ws = fig.add_subplot(2, 2, 2, projection='3d')
+    ax_etkf = fig.add_subplot(2, 2, 3, projection='3d')
+    ax_gpr = fig.add_subplot(2, 2, 4, projection='3d')
 
     suptitle = fig.suptitle(
         f'{sea_state}  |  Hs={Hs:.2f}m  Tp={Tp:.1f}s  |  t=0.0s',
-        fontsize=12, fontweight='bold')
+        fontsize=13, fontweight='bold')
 
-    def setup_axis(ax, title):
+    def setup_axis(ax, title, color='black'):
         ax.set_xlabel('x [m]')
         ax.set_ylabel('y [m]')
         ax.set_zlabel('η [m]')
         ax.set_xlim(grid_x[0], grid_x[-1])
         ax.set_ylim(grid_y[0], grid_y[-1])
         ax.set_zlim(-vmax * 1.1, vmax * 1.1)
-        ax.set_title(title, fontweight='bold', pad=10)
+        ax.set_title(title, fontweight='bold', pad=8, color=color)
         ax.view_init(elev=28, azim=-60)
 
-    def draw_frame(idx):
-        ax1.clear()
-        ax2.clear()
-        setup_axis(ax1, 'Ground Truth surface + LiDAR')
-        setup_axis(ax2, 'WaveSplat surface + LiDAR')
+    def draw_surface(ax, Z):
+        ax.plot_surface(X, Y, Z, cmap='RdBu_r', norm=norm,
+                        rstride=1, cstride=1, alpha=0.85,
+                        linewidth=0, antialiased=False, shade=False)
 
-        ax1.plot_surface(X, Y, gt_sub[idx], cmap='RdBu_r', norm=norm,
-                         rstride=1, cstride=1, alpha=0.85,
-                         linewidth=0, antialiased=False, shade=False)
-        ax2.plot_surface(X, Y, ws_sub[idx], cmap='RdBu_r', norm=norm,
-                         rstride=1, cstride=1, alpha=0.85,
-                         linewidth=0, antialiased=False, shade=False)
+    def draw_frame(idx):
+        ax_gt.clear()
+        ax_ws.clear()
+        ax_etkf.clear()
+        ax_gpr.clear()
+        setup_axis(ax_gt, 'Ground Truth')
+        setup_axis(ax_ws, f'WaveSplat (nRMSE={nrmses_ws[idx]:.3f})',
+                   color='#1f77b4')
+        if has_base:
+            setup_axis(ax_etkf, f'ETKF-grid (nRMSE={nrmses_etkf[idx]:.3f})',
+                       color='#d62728')
+            setup_axis(ax_gpr, f'GPR (nRMSE={nrmses_gpr[idx]:.3f})',
+                       color='#2ca02c')
+        else:
+            setup_axis(ax_etkf, 'ETKF (disabled)')
+            setup_axis(ax_gpr, 'GPR (disabled)')
+
+        draw_surface(ax_gt, gt_sub[idx])
+        draw_surface(ax_ws, ws_sub[idx])
+        if has_base:
+            draw_surface(ax_etkf, etkf_sub[idx])
+            draw_surface(ax_gpr, gpr_sub[idx])
 
         x, y, z = lidar_pts[idx]
-        # Lift points slightly above the surface so they aren't hidden.
-        ax1.scatter(x, y, z, c='black', s=4, depthshade=False, alpha=0.8)
-        ax2.scatter(x, y, z, c='black', s=4, depthshade=False, alpha=0.8)
+        for ax in (ax_gt, ax_ws, ax_etkf, ax_gpr):
+            ax.scatter(x, y, z, c='black', s=4, depthshade=False, alpha=0.8)
 
-        ax2.text2D(0.02, 0.98,
-                   f'nRMSE={nrmses[idx]:.3f}\nN={n_list[idx]}\n'
-                   f'M={len(x)} pts',
-                   transform=ax2.transAxes, fontsize=10, va='top',
-                   bbox=dict(boxstyle='round', fc='white', alpha=0.85))
         suptitle.set_text(
             f'{sea_state}  |  Hs={Hs:.2f}m  '
-            f'Tp={Tp:.1f}s  |  t={times[idx]:.1f}s')
+            f'Tp={Tp:.1f}s  |  t={times[idx]:.1f}s  |  N={n_list[idx]}')
 
     draw_frame(0)
     ani = animation.FuncAnimation(fig, draw_frame, frames=n_frames,
@@ -462,6 +577,9 @@ def main():
     parser.add_argument('--surface-stride', type=int, default=2,
                         help='3D surface mesh stride (higher = faster, '
                              'but short-wavelength waves may alias).')
+    parser.add_argument('--no-baselines', action='store_true',
+                        help='Skip ETKF and GPR baselines (faster, '
+                             'shows only WaveSplat).')
     args = parser.parse_args()
 
     here = os.path.dirname(os.path.abspath(__file__))
@@ -488,13 +606,18 @@ def main():
                 continue
             tag = os.path.basename(ep).replace('episode_', '').replace('.h5', '')
             try:
-                track = run_tracking(ep, max_frames=args.max_frames)
+                track = run_tracking(ep, max_frames=args.max_frames,
+                                     with_baselines=not args.no_baselines)
             except Exception as e:
                 print(f"  FAILED tracking {ep}: {e}")
                 continue
             summary.append({
                 'episode': track['sea_state'],
-                'avg_nRMSE': float(np.mean(track['nrmses'])),
+                'WS_nRMSE': float(np.mean(track['nrmses_ws'])),
+                'ETKF_nRMSE': float(np.mean(track['nrmses_etkf']))
+                    if track['nrmses_etkf'] else float('nan'),
+                'GPR_nRMSE': float(np.mean(track['nrmses_gpr']))
+                    if track['nrmses_gpr'] else float('nan'),
                 'final_N': track['n_list'][-1],
                 'n_frames': track['n_frames'],
             })
@@ -533,9 +656,13 @@ def main():
         print("=" * 78)
         print("SUMMARY")
         print("=" * 78)
+        print(f"  {'Episode':<30} {'WS':>8} {'ETKF':>8} {'GPR':>8}  N  frames")
         for s in summary:
-            print(f"  {s['episode']:<30}  nRMSE={s['avg_nRMSE']:.3f}  "
-                  f"N={s['final_N']}  frames={s['n_frames']}")
+            print(f"  {s['episode']:<30} "
+                  f"{s['WS_nRMSE']:>8.3f} "
+                  f"{s['ETKF_nRMSE']:>8.3f} "
+                  f"{s['GPR_nRMSE']:>8.3f}  "
+                  f"{s['final_N']:>2}  {s['n_frames']}")
 
     print(f"\nOutput dir: {out_dir}")
 

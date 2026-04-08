@@ -9,7 +9,6 @@
 \usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{subcaption}
-\usepackage{siunitx}
 \usepackage{lineno}
 
 \journal{Ocean Engineering}
@@ -67,6 +66,17 @@ in Section~\ref{sec:discussion}.)
 wave field estimation \sep LiDAR \sep spectral methods \sep
 dispersion relation \sep data assimilation \sep real-time estimation
 \end{keyword}
+
+% ============================================================================
+% Highlights (required by Ocean Engineering)
+% ============================================================================
+\begin{highlights}
+\item Grid-free spectral wave estimation from sparse shipboard LiDAR
+\item 51.5\% lower nRMSE than ETKF-grid, 2.4$\times$ faster (13.4~ms/frame)
+\item Dispersion-constrained parameterization ensures physical consistency
+\item Adaptive model order matches spectral complexity to observed scene
+\item Robust to both diffuse and specular LiDAR observation models
+\end{highlights}
 
 \end{frontmatter}
 
@@ -222,9 +232,12 @@ Our key contributions are:
 \begin{enumerate}
   \item \textbf{Grid-free spectral estimation framework (C1)}: Direct
     estimation on sparse, irregularly distributed observations without
-    grid interpolation, enabling continuous spatial evaluation at
-    arbitrary resolution and naturally adapting to any observation
-    pattern.
+    grid interpolation, with frame-to-frame temporal tracking via
+    dispersion-based phase propagation.
+    Unlike single-snapshot sparse spectral methods~\citep{drazen2008},
+    WaveSplat maintains component identity across frames,
+    enabling continuous spatial evaluation at arbitrary resolution
+    while naturally adapting to any observation pattern.
   \item \textbf{Dispersion-constrained parameterization (C2)}: Hard
     enforcement of the full dispersion relation (including $\tanh$
     depth dependence) reduces the free parameter count and acts as a
@@ -266,6 +279,7 @@ of sensor modalities.
 \caption{Comparison of ocean surface sensing modalities for vessel-scale
 wave field estimation. Typical values for operational systems.}
 \label{tab:sensor_comparison}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lccccl}
 \toprule
 Sensor & Spatial range & Resolution & Update rate & Direct elevation? & Key limitation \\
@@ -276,7 +290,7 @@ Satellite (altimeter) & Global & $\sim$7~km & Days & Yes (nadir) & Coarse, non-r
 Shipboard LiDAR & 10--250~m & $\sim$0.1~m (near) & 10~Hz & Yes & Sparse, range-dependent noise \\
 Ship motion (RAO) & --- & --- & Continuous & No (indirect) & Limited to encountered waves \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table*}
 
 \subsection{X-band radar-based wave estimation}
@@ -538,7 +552,7 @@ near-normal observations.
 The estimation proceeds in two phases: an initialization phase that
 establishes the spectral model from multi-frame observations, followed
 by a per-frame tracking phase that maintains the model with
-minimal computation.  Algorithm~\ref{alg:wavesplat} summarizes
+minimal computation.  Table~\ref{alg:wavesplat} summarizes
 the complete pipeline.
 
 \begin{table}[t]
@@ -814,10 +828,21 @@ WaveSplat wins on all 12 episodes.
 
 We additionally compare with GPR on 10 uniform-raydrop episodes.
 GPR achieves avg nRMSE of 0.276---better than ETKF (0.450) due to
-its nonparametric flexibility, but still 23.5\% worse than WaveSplat
+its nonparametric flexibility, but still 18.5\% worse than WaveSplat
 (0.233). Critically, GPR requires $>$200~ms/frame (vs.\ 13.4~ms for
 WaveSplat), making it impractical for real-time applications.
+Figure~\ref{fig:comparison} shows the per-episode comparison, and
 Figure~\ref{fig:qualitative} shows representative wave fields.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig1_comparison.pdf}
+\caption{Per-episode nRMSE comparison between WaveSplat and ETKF-grid
+across 12 representative episodes. Dashed lines show method averages.
+WaveSplat (avg 0.211) outperforms ETKF (avg 0.436) on all episodes,
+with the largest advantage on low-complexity seas (BF3 2-comp).}
+\label{fig:comparison}
+\end{figure*}
 
 \begin{table}[t]
 \centering
@@ -850,18 +875,28 @@ BF5 30comp    & \textbf{0.290} & 14.7 & 0.497 & 52.2 & 19 \\
 
 Key observations:
 \begin{itemize}
-  \item \textbf{Low complexity}: For BF3 2-component seas, WaveSplat
-    achieves nRMSE=0.052, an 8.5$\times$ advantage over ETKF (0.444).
-    The grid-free representation directly captures two plane waves
-    without grid aliasing.
+  \item \textbf{Low complexity}: In BF3 2-component seas,
+    WaveSplat achieves an nRMSE of 0.052---an $8.5\times$
+    improvement over ETKF (0.444). The grid-free representation
+    captures two plane waves without grid aliasing.
   \item \textbf{High complexity}: For BF4--5 with 15--30 components,
     WaveSplat still outperforms ETKF (0.301 vs.\ 0.500 average),
     though the gap narrows as the spectral complexity approaches the
     initialization resolution limit.
   \item \textbf{Speed}: WaveSplat runs at 13.4~ms/frame
     vs.\ 31.7~ms for ETKF (2.4$\times$ faster), well within the
-    100~ms real-time budget for 10~Hz LiDAR.
+    100~ms real-time budget for 10~Hz LiDAR
+    (Fig.~\ref{fig:speed}).
 \end{itemize}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig3_speed.pdf}
+\caption{Per-frame inference speed comparison. WaveSplat maintains
+consistent $\sim$13~ms/frame across all episodes, while ETKF varies
+from 25 to 52~ms depending on grid convergence.}
+\label{fig:speed}
+\end{figure*}
 
 \textbf{Statistical validation.}
 To confirm these results are not seed-dependent, we repeat the comparison
@@ -871,12 +906,22 @@ WaveSplat achieves $0.230 \pm 0.084$ vs.\ ETKF $0.395 \pm 0.059$
 A Wilcoxon signed-rank test confirms the improvement is statistically
 significant ($p < 0.001$).
 WaveSplat wins on all 10 episodes across all seeds, with per-episode
-$p$-values $\leq 0.031$.
+$p$-values $\leq 0.031$ (Fig.~\ref{fig:multiseed}).
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig6_multiseed.pdf}
+\caption{Multi-seed statistical comparison (5 seeds per episode,
+mean $\pm$ std). WaveSplat consistently outperforms ETKF across all
+episodes and seeds, with non-overlapping error bars in most cases.}
+\label{fig:multiseed}
+\end{figure*}
 
 \subsection{Adaptive model order}
 
-Table~\ref{tab:adaptive} shows that adaptive $N$ consistently improves
-over fixed $N$=15, with an average 6.4\% reduction in nRMSE.
+Table~\ref{tab:adaptive} and Fig.~\ref{fig:adaptive} show that
+adaptive $N$ consistently improves over fixed $N$=15, with an average
+6.4\% reduction in nRMSE.
 The model correctly identifies scene complexity:
 $N$=1 for single-component swells, $N$=2--4 for moderate seas, and
 $N$=18--21 for complex multi-component fields.
@@ -902,10 +947,21 @@ BF4 30comp & 30 & 18 & 0.332 & \textbf{0.314} \\
 \end{tabular}
 \end{table}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig2_adaptive_n.pdf}
+\caption{Adaptive model order vs.\ ground-truth complexity.
+Color encodes nRMSE. The adaptive mechanism correctly identifies
+low-complexity scenes ($N_\text{adapt} \leq 4$ for $N_\text{true} \leq 5$)
+but saturates at $N_\text{adapt} \approx 18$--21 for high-complexity
+scenes due to beamforming resolution limits.}
+\label{fig:adaptive}
+\end{figure}
+
 \subsection{Ablation study}
 
 We ablate two key design choices on 6 BF3 episodes with 3 random seeds
-(Table~\ref{tab:ablation}).
+(Table~\ref{tab:ablation}, Fig.~\ref{fig:ablation}).
 
 \begin{table}[t]
 \centering
@@ -928,6 +984,16 @@ Episode & Full & w/o Disp.\ (A1) & w/o Conf.\ (A2) \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig4_ablation.pdf}
+\caption{Ablation study: contribution of dispersion constraint and
+confidence weighting. Error bars show $\pm$1 std across 3 seeds.
+Removing confidence weighting (purple) consistently degrades performance,
+especially on slope-model episodes (2comp~S: 2.3$\times$ increase).}
+\label{fig:ablation}
+\end{figure*}
 
 \textbf{A1 (no dispersion constraint)}: Removing the dispersion constraint
 allows $\omega$ as a free parameter ($5N$ total parameters).
@@ -964,7 +1030,8 @@ surface measurements.
 
 To evaluate robustness to different LiDAR observation models, we compare
 performance on 10 paired episodes using \emph{uniform} (diffuse Fresnel) vs.\
-\emph{slope} (specular backscatter) raydrop models (Table~\ref{tab:raydrop}).
+\emph{slope} (specular backscatter) raydrop models
+(Table~\ref{tab:raydrop}, Fig.~\ref{fig:raydrop}).
 
 \begin{table}[t]
 \centering
@@ -994,6 +1061,15 @@ BF5 30c & 0.290 & 0.312 & +7.6    & 0.497 & 0.436 & $-$12.3 \\
 \end{tabular}
 \end{table}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig5_raydrop.pdf}
+\caption{Raydrop model comparison: uniform (diffuse) vs.\ slope
+(specular) LiDAR observation models. WaveSplat (blue shades)
+outperforms ETKF (orange shades) under both models on all episodes.}
+\label{fig:raydrop}
+\end{figure*}
+
 WaveSplat wins on all 10 episodes under both raydrop models.
 Slope observations improve both methods---ETKF more so
 (16.2\% vs.\ 9.1\%), as specular backscatter preferentially preserves
@@ -1007,7 +1083,7 @@ optimal model simplification under the changed observation pattern.
 
 To quantify sensitivity to observation density, we subsample LiDAR points
 to 20--100\% of the original count on 5 representative episodes
-(Table~\ref{tab:sparsity}).
+(Table~\ref{tab:sparsity}, Fig.~\ref{fig:sparsity}).
 
 \begin{table}[t]
 \centering
@@ -1026,6 +1102,16 @@ BF5 15c & \textbf{0.274} & 0.276 & 0.260 & 0.289 & 0.297 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig7_sparsity.pdf}
+\caption{Observation sparsity robustness. For BF4--5 episodes,
+nRMSE remains nearly flat down to 20\% observation density
+($\sim$10 points/frame). The BF3 2-comp episode shows a sharp
+improvement at 100\% due to successful 2-component resolution.}
+\label{fig:sparsity}
+\end{figure}
 
 For moderate-to-high complexity (BF4--5), performance degrades by less than
 8\% even at 20\% observation density ($\sim$10 points/frame), demonstrating
@@ -1209,8 +1295,9 @@ Several limitations should be acknowledged:
     vessel testbed.
   \item \textbf{Linear forward model}: The $O(\epsilon^2)$ mismatch
     with nonlinear wave theories is small for the Beaufort~2--5 range
-    but will become significant for steep waves approaching breaking
-    ($\epsilon > 0.1$, typically BF6+).
+    tested here ($\epsilon \approx 0.05$--$0.07$, yielding model error
+    $< 0.5\%$) but will become significant for steep waves approaching
+    breaking ($\epsilon > 0.1$, typically BF6+).
     Extension to second-order Stokes theory, which captures bound
     harmonics as $O(\epsilon^2)$ corrections to the linear solution,
     is a natural next step that preserves the spectral parameterization
@@ -1230,13 +1317,17 @@ Several limitations should be acknowledged:
     where $\mathbf{U}$ is the current velocity.
     Joint current-wave estimation by including $\mathbf{U}$ as a
     global parameter is a natural extension.
-  \item \textbf{Baseline fairness}: The GPR comparison uses
-    single-frame mode without temporal propagation.
-    A sliding-window GPR with physics-based temporal kernel could
-    provide a stronger baseline, and sparse GPR with inducing
-    points could reduce the computational gap.
-    However, incorporating the dispersion relation into a GPR
-    kernel is non-trivial and remains an open research question.
+  \item \textbf{Baseline fairness}: The ETKF baseline uses global
+    (non-localized) updates.  A Local ETKF (LETKF)~\citep{hunt2007}
+    with spatial localization could improve performance by reducing
+    spurious long-range correlations in the ensemble, particularly
+    for high-complexity sea states.
+    Additionally, our ETKF uses observation thinning ($M_\text{max}$=40
+    per frame) following \citet{huhn2022}; relaxing this limit could
+    improve ETKF accuracy at the cost of increased computation.
+    The GPR comparison uses single-frame mode without temporal
+    propagation; a sliding-window GPR with physics-based temporal
+    kernel could provide a stronger baseline.
   \item \textbf{Uncertainty quantification}: WaveSplat currently
     provides point estimates without uncertainty bounds.
     The optimizer's gradient information could be used to
@@ -1298,7 +1389,7 @@ The author thanks the Avikus engineering team for discussions on
 shipboard LiDAR integration and practical deployment considerations.
 
 % ============================================================================
-\bibliographystyle{elsarticle-num}
+\bibliographystyle{elsarticle-num-names}
 \bibliography{references}
 
 \end{document}

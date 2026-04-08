@@ -8,7 +8,6 @@
 \usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{subcaption}
-\usepackage{siunitx}
 \usepackage{lineno}
 
 \journal{Ocean Engineering}
@@ -62,6 +61,17 @@ next-generation hydrofoil ride control systems.
 hydrofoil \sep feedforward control \sep wave estimation \sep
 LiDAR \sep ride control \sep spectral methods
 \end{keyword}
+
+% ============================================================================
+% Highlights (required by Ocean Engineering)
+% ============================================================================
+\begin{highlights}
+\item LiDAR-based wave-preview feedforward reduces hydrofoil heave acceleration by 11--41\%
+\item Feedforward remains beneficial even with 50\% estimation error after LP filtering
+\item End-to-end WaveSplat pipeline achieves 92--96\% of perfect-knowledge benefit in BF3
+\item Optimal preview horizon is 0.1--0.3~s, matching wave-foil interaction scale
+\item Directional estimation accuracy is more critical than amplitude accuracy
+\end{highlights}
 
 \end{frontmatter}
 
@@ -180,18 +190,16 @@ estimates from onboard sensors.
 Recent advances in shipboard LiDAR-based wave estimation
 now make this feasible.
 
-WaveSplat~\citep{park2026wavesplat} achieves real-time spectral
-wave field estimation with $\sim$20\% nRMSE at 13~ms/frame from
-sparse LiDAR observations.
-Its spectral representation---a weighted sum of plane waves with
-analytically known propagation---enables direct spatial evaluation
-at arbitrary preview points without grid interpolation,
-making it naturally suited for the spatial preview required by
-feedforward control.
-Critically, the spectral model allows analytic computation of
-wave slope $\partial\eta/\partial x$ and orbital velocity
-$\partial\eta/\partial t$ at preview points, which are the
-disturbance quantities needed for AoA feedforward.
+WaveSplat \citep{park2026wavesplat} achieves real-time
+spectral wave field estimation with ${\sim}20\%$ nRMSE
+at 13~ms/frame from sparse LiDAR.
+Its spectral representation---a weighted sum of plane
+waves with known propagation---enables evaluation at
+arbitrary preview points without grid interpolation.
+Critically, the model provides analytic wave
+slope ($\partial\eta/\partial x$) and orbital velocity
+($\partial\eta/\partial t$), the disturbance quantities
+needed for AoA feedforward.
 
 \subsection{Contributions}
 
@@ -252,7 +260,7 @@ is~\citep{faltinsen2005}:
 \end{equation}
 For head seas ($\beta = 180^\circ$) at 22~knots against BF3 waves
 ($T_p = 5$~s, $\omega_0 = 1.26$~rad/s), the encounter frequency is
-$\omega_e \approx 3.1$~rad/s ($T_e \approx 2.0$~s), doubling the
+$\omega_e \approx 3.1$~rad/s ($T_e \approx 2.0$~s), more than doubling the
 apparent wave frequency.
 This Doppler effect means that hydrofoil ride control must handle
 higher effective frequencies than the ambient sea state suggests.
@@ -348,14 +356,15 @@ by feedforward control.
 
 \subsection{Reference vessel}
 
-We model a representative small electric hydrofoil vessel
-with parameters drawn from publicly available specifications of
-emerging electric hydrofoil passenger ferries~\citep{faltinsen2005}
-(e.g., Candela C-8 class: 8.5~m LOA, $\sim$1800~kg displacement,
-28~knots cruise speed):
+We model a representative small electric hydrofoil passenger
+vessel with parameters within the range of emerging coastal
+hydrofoil ferries~\citep{faltinsen2005}:
 LOA~8.5~m, beam~2.4~m, displacement~1700~kg, cruising at
-22~knots (11.3~m/s) in foilborne mode with tandem hydrofoil
+22~knots (11.3~m/s) in foilborne mode with a tandem hydrofoil
 configuration (front inverted-T foil, rear T-foil).
+Structural damping and added mass coefficients are set to
+values typical for small foilborne craft in which hull
+emergence reduces hydrodynamic added mass~\citep{faltinsen2005}.
 
 \subsection{Two-DOF equations of motion}
 
@@ -464,13 +473,19 @@ The wave field is a superposition of $N$ linear plane waves:
   \eta(x, y, t) = \sum_{i=1}^{N} A_i \cos(k_{x,i} x + k_{y,i} y - \omega_i t + \varphi_i)
   \label{eq:wave}
 \end{equation}
-with angular frequency constrained by the dispersion relation
-$\omega_i = \sqrt{g |k_i| \tanh(|k_i| d)}$~\citep{holthuijsen2007}.
-Wave components are sampled from a JONSWAP spectrum~\citep{hasselmann1973}
-with directional spreading ($\pm 20^\circ$).
-Slope and orbital velocity are computed analytically from~\eqref{eq:wave},
-enabling direct evaluation at arbitrary spatial points---a key
-advantage of the spectral representation for feedforward preview.
+with angular frequency constrained by the dispersion
+relation~\citep{holthuijsen2007}:
+\begin{equation}
+  \omega_i = \sqrt{g\,|\mathbf{k}_i|\,\tanh(|\mathbf{k}_i|\,d)}.
+  \label{eq:dispersion}
+\end{equation}
+Wave components are sampled from a JONSWAP
+spectrum~\citep{hasselmann1973} with directional spreading
+($\pm 20^\circ$).
+Slope and orbital velocity are computed analytically
+from~\eqref{eq:wave}, enabling evaluation at arbitrary
+spatial points---a key advantage of the spectral
+representation for feedforward preview.
 
 The disturbance at each foil is computed by evaluating~\eqref{eq:wave}
 at the foil's instantaneous global position
@@ -574,12 +589,13 @@ We apply a first-order IIR low-pass filter:
     + (1 - \alpha) \cdot \bar{\delta}_{\text{ff}}[n-1]
   \label{eq:lpf}
 \end{equation}
-with $\alpha = 0.05$, giving a cutoff frequency of $\sim$0.8~Hz at
-$\Delta t = 0.01$~s.
-The dominant wave encounter frequency ($\sim$0.5~Hz for BF3 head
-sea at 22~knots, accounting for Doppler shift) is well below this
-cutoff, ensuring the wave preview signal passes through while
-high-frequency estimation noise is suppressed.
+with $\alpha = 0.05$, giving a cutoff frequency of
+$f_c = \alpha/(2\pi\Delta t) \approx 0.8$~Hz at $\Delta t = 0.01$~s.
+The filter parameter $\alpha$ is chosen so that $f_c$ exceeds the
+maximum wave encounter frequency across all scenarios
+($f_e \leq 0.5$~Hz for BF3 head sea at 22~knots), ensuring
+the wave preview signal passes through while high-frequency
+estimation noise is suppressed.
 
 The total flap command is:
 \begin{equation}
@@ -676,16 +692,17 @@ $T_e$: encounter period, $\lambda$: wavelength.}
 \toprule
 Scenario & $T_e$ [s] & $f_e$ [Hz] & $\lambda$ [m] & $\lambda/L$ \\
 \midrule
-BF3 Head    & 2.0 & 0.50 & 39 & 4.6 \\
-BF4 Head    & 3.1 & 0.32 & 88 & 10.3 \\
+BF3 Head    & 2.0 & 0.49 & 39 & 4.6 \\
+BF4 Head    & 3.8 & 0.26 & 88 & 10.3 \\
 BF3 Beam    & 5.0 & 0.20 & 39 & 4.6 \\
-BF3 Quarter & 2.9 & 0.35 & 39 & 4.6 \\
+BF3 Quarter & 2.5 & 0.40 & 39 & 4.6 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Head seas produce the highest encounter frequency (0.5~Hz) due to
-the Doppler effect of the vessel advancing into the waves.
+Head seas produce the highest encounter frequency (0.49~Hz for BF3,
+0.26~Hz for BF4) due to the Doppler effect of the vessel advancing
+into the waves.
 This is well below the LP filter cutoff ($\sim$0.8~Hz), confirming
 that the feedforward signal passes through the filter with minimal
 attenuation.
@@ -898,7 +915,7 @@ due to spatial decorrelation.}
 The optimal preview is surprisingly short:
 \begin{itemize}
   \item \textbf{Head sea}: 0.1~s optimal ($\sim$1.1~m ahead)---the
-    high encounter frequency (Doppler-shifted to $\sim$1~Hz at
+    high encounter frequency (Doppler-shifted to $\sim$0.5~Hz at
     22~knots against BF3 waves) means the relevant wave features are
     very close to the foil.
   \item \textbf{Beam sea}: 0.3~s optimal ($\sim$3.4~m ahead)---lower
@@ -1100,8 +1117,8 @@ Preliminary tests with $\alpha=0.15$ (weaker filtering) allowed
 excessive noise to pass through, degrading beam/quarter sea
 performance by up to 40\%.
 The aggressive $\alpha=0.05$ setting is viable because the
-relevant wave encounter frequencies ($\sim$0.5~Hz for BF3 head
-sea, $\sim$0.2~Hz for beam sea) remain well below the cutoff.
+relevant wave encounter frequencies ($\sim$0.49~Hz for BF3 head
+sea, $\sim$0.20~Hz for beam sea) remain well below the cutoff.
 
 The pre-filtered feedforward architecture (filtering once per
 timestep, before RK4 sub-steps) is essential: if the IIR filter
@@ -1152,6 +1169,16 @@ LiDAR accuracy is typically highest.
     shorter than typical operational durations.  Longer simulations
     (60--120~s) would provide more statistically robust comfort
     metrics and better characterize tracking stability.
+  \item \textbf{Vessel parameter sensitivity}: The simulation uses a
+    single representative vessel configuration.  Structural damping
+    coefficients and hydrodynamic derivatives are set to typical
+    values from the literature~\citep{faltinsen2005} but may differ
+    for specific hull-foil designs.
+    Since the feedforward architecture operates on the estimated
+    wave disturbance rather than on vessel-specific dynamics, the
+    qualitative conclusions (feedforward beneficial up to 50\% nRMSE,
+    short optimal preview) are expected to generalize, though
+    quantitative acceleration reductions will vary with vessel parameters.
 \end{enumerate}
 
 % ============================================================================
@@ -1238,7 +1265,7 @@ The author thanks the Avikus engineering team for discussions on
 hydrofoil ride control systems and operational requirements.
 
 % ============================================================================
-\bibliographystyle{elsarticle-num}
+\bibliographystyle{elsarticle-num-names}
 \bibliography{references}
 
 \end{document}

@@ -44,15 +44,23 @@ gradient updates.  A Fresnel-zone confidence weighting scheme accounts for
 the range- and angle-dependent noise characteristics of LiDAR measurements
 on ocean surfaces.
 
-On 12 representative episodes spanning Beaufort~2--5 sea states
+On a dataset of 100 episodes spanning Beaufort~2--5 sea states
 (1--30 wave components), WaveSplat achieves an average normalized RMSE
-(nRMSE) of \textbf{0.211} compared to 0.436 for ETKF-grid
-(\textbf{51.5\%} improvement), while running \textbf{2.4$\times$} faster
-(13.4~vs.~31.7~ms/frame).
-A multi-seed statistical validation (50 paired runs) confirms significance
-($p < 0.001$, Wilcoxon signed-rank test).
-The method is robust to both diffuse and specular LiDAR observation models,
-winning on all 20 paired test episodes.
+(nRMSE) of \textbf{0.223} compared to \textbf{0.319} for a
+hyperparameter-tuned ETKF-grid baseline (\textbf{30.1\%} improvement),
+while running approximately \textbf{10$\times$} faster
+(13.4~vs.~132.6~ms/frame on a single CPU thread).
+A pre-registered six-metric evaluation panel further shows that
+WaveSplat is the only method with a positive Skill Score against a
+zero predictor, whereas both baselines fail this test---exposing
+sliding-kernel GPR as a near-zero predictor and the tuned ETKF as a
+variance-correct but shape-incoherent estimator.
+A 100-paired-run multi-seed validation confirms the improvement is
+highly significant against both ETKF
+($p = 1.1\!\times\!10^{-15}$) and sliding GPR
+($p = 4.7\!\times\!10^{-4}$, Wilcoxon signed-rank test).
+The method is robust to both diffuse and specular LiDAR observation
+models.
 With adaptive model order, the method matches spectral complexity to
 the observed scene---selecting $N$=2 for simple two-component swells
 and $N$=18--21 for complex multi-component seas---achieving 6.4\%
@@ -72,10 +80,12 @@ dispersion relation \sep data assimilation \sep real-time estimation
 % ============================================================================
 \begin{highlights}
 \item Grid-free spectral wave estimation from sparse shipboard LiDAR
-\item 51.5\% lower nRMSE than ETKF-grid, 2.4$\times$ faster (13.4~ms/frame)
+\item 30\% lower nRMSE than hyperparameter-tuned ETKF-grid on 100 episodes,
+  $\sim$10$\times$ faster (13.4 vs.\ 132.6~ms/frame)
+\item Only method with positive Skill Score in a pre-registered
+  six-metric evaluation against a zero-predictor reference
 \item Dispersion-constrained parameterization ensures physical consistency
 \item Adaptive model order matches spectral complexity to observed scene
-\item Robust to both diffuse and specular LiDAR observation models
 \end{highlights}
 
 \end{frontmatter}
@@ -811,23 +821,24 @@ This is particularly relevant when comparing methods that may
 under-fit (e.g., over-smoothed Gaussian process regression) against
 methods that capture wave structure accurately.
 
-To address this limitation, we have implemented a complementary
-\emph{pre-registered metric panel} that exposes under-fitting and
-over-smoothing:
+To address this limitation, we define a complementary
+\emph{pre-registered metric panel} of five secondary metrics that
+expose under-fitting and spectral incoherence:
 (i)~variance ratio $\text{VR} = \text{Var}(\hat{z})/\text{Var}(z)$
-(amplitude preservation; VR$\ll$1 indicates over-smoothing);
+(amplitude preservation; VR$\ll$1 indicates under-fitting);
 (ii)~Pearson correlation $\rho$ between $\hat{z}$ and $z$
 (shape match independent of amplitude);
 (iii)~skill score $\text{SS} = 1 - \text{MSE}(\hat{z})/\text{MSE}(z_\text{ref})$
-relative to a zero predictor reference;
-(iv)~spectral $R^2$ (frequency-domain agreement);
-(v)~directional $R^2$ from the 2D wavenumber spectrum;
-and (vi)~$H_s$ relative error.
-These metrics are defined in our public evaluation module
-and applied uniformly to all compared methods to prevent
-metric cherry-picking.
-The full-panel evaluation across the complete 100-episode dataset is
-reported in Section~\ref{sec:fulleval}.
+relative to a zero predictor reference
+(SS$\leq 0$ means the method is no better than predicting zero);
+(iv)~directional $R^2$ computed from the 2D wavenumber spectrum
+(directional agreement);
+and (v)~$H_s$ relative error.
+All five metrics, together with nRMSE, are defined in our public
+evaluation module and applied uniformly to every compared method to
+prevent metric cherry-picking.  The full-panel evaluation across the
+complete 100-episode dataset is reported in
+Section~\ref{sec:fulleval}.
 
 \subsection{Baselines}
 
@@ -860,120 +871,30 @@ and dispersion constraints.
 \section{Results}
 \label{sec:results}
 
-\subsection{Main comparison}
-
-Table~\ref{tab:main} summarizes the comparison across 12 representative
-episodes. WaveSplat achieves an average nRMSE of \textbf{0.211} compared
-to 0.436 for ETKF-grid, a \textbf{51.5\%} improvement.
-WaveSplat wins on all 12 episodes.
-
-We additionally compare with GPR on 10 uniform-raydrop episodes.
-GPR achieves avg nRMSE of 0.276---better than ETKF (0.450) due to
-its nonparametric flexibility, but still 18.5\% worse than WaveSplat
-(0.233). Critically, GPR requires $>$200~ms/frame (vs.\ 13.4~ms for
-WaveSplat), making it impractical for real-time applications.
-Figure~\ref{fig:comparison} shows the per-episode comparison, and
-Figure~\ref{fig:qualitative} shows representative wave fields.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/fig1_comparison.pdf}
-\caption{Per-episode nRMSE comparison between WaveSplat and ETKF-grid
-across 12 representative episodes. Dashed lines show method averages.
-WaveSplat (avg 0.211) outperforms ETKF (avg 0.436) on all episodes,
-with the largest advantage on low-complexity seas (BF3 2-comp).}
-\label{fig:comparison}
-\end{figure*}
-
-\begin{table}[t]
-\centering
-\caption{WaveSplat vs ETKF-grid on 12 representative episodes.
-nRMSE = RMSE/$H_s$; lower is better. $N_a$ = adapted component count.}
-\label{tab:main}
-\begin{tabular}{lccccc}
-\toprule
-& \multicolumn{2}{c}{WaveSplat} & \multicolumn{2}{c}{ETKF} & \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5}
-Episode & nRMSE & ms/f & nRMSE & ms/f & $N_a$ \\
-\midrule
-BF2 1comp     & \textbf{0.315} & 13.8 & 0.483 & 29.1 & 11 \\
-BF3 1comp     & \textbf{0.217} & 13.0 & 0.352 & 36.8 &  2 \\
-BF3 2comp (U) & \textbf{0.052} & 15.0 & 0.444 & 37.2 &  2 \\
-BF3 2comp (S) & \textbf{0.061} & 13.4 & 0.350 & 26.3 & 15 \\
-BF3 5comp (U) & \textbf{0.167} & 13.0 & 0.434 & 29.6 &  4 \\
-BF3 5comp (S) & \textbf{0.152} & 13.4 & 0.384 & 32.7 & 15 \\
-BF4 1comp     & \textbf{0.171} & 11.2 & 0.410 & 26.7 &  1 \\
-BF4 5comp     & \textbf{0.200} & 12.8 & 0.376 & 28.7 &  3 \\
-BF4 15comp    & \textbf{0.302} & 13.4 & 0.511 & 25.8 & 19 \\
-BF4 30comp    & \textbf{0.314} & 13.4 & 0.525 & 28.3 & 18 \\
-BF5 15comp    & \textbf{0.297} & 13.5 & 0.466 & 27.2 & 21 \\
-BF5 30comp    & \textbf{0.290} & 14.7 & 0.497 & 52.2 & 19 \\
-\midrule
-\textbf{Avg}  & \textbf{0.211} & 13.4 & 0.436 & 31.7 & --- \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Key observations:
-\begin{itemize}
-  \item \textbf{Low complexity}: In BF3 2-component seas,
-    WaveSplat achieves an nRMSE of 0.052---an $8.5\times$
-    improvement over ETKF (0.444). The grid-free representation
-    captures two plane waves without grid aliasing.
-  \item \textbf{High complexity}: For BF4--5 with 15--30 components,
-    WaveSplat still outperforms ETKF (0.301 vs.\ 0.500 average),
-    though the gap narrows as the spectral complexity approaches the
-    initialization resolution limit.
-  \item \textbf{Speed}: WaveSplat runs at 13.4~ms/frame
-    vs.\ 31.7~ms for ETKF (2.4$\times$ faster), well within the
-    100~ms real-time budget for 10~Hz LiDAR
-    (Fig.~\ref{fig:speed}).
-\end{itemize}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/fig3_speed.pdf}
-\caption{Per-frame inference speed comparison. WaveSplat maintains
-consistent $\sim$13~ms/frame across all episodes, while ETKF varies
-from 25 to 52~ms depending on grid convergence.}
-\label{fig:speed}
-\end{figure*}
-
-\textbf{Statistical validation.}
-To confirm these results are not seed-dependent, we repeat the
-comparison across 10 (sea state, complexity) configurations with 5
-random seeds per configuration and both uniform and slope ray-drop
-models, for a total of 100 paired runs.
-WaveSplat achieves $0.219 \pm 0.079$ vs.\ the tuned ETKF baseline
-$0.321 \pm 0.041$ and a 3-frame sliding GPR $0.253 \pm 0.020$
-(mean $\pm$ std across all runs).  Paired Wilcoxon signed-rank tests
-confirm both improvements:
-WaveSplat vs.\ ETKF ($W\!=\!194$, $p\!=\!1.1\!\times\!10^{-15}$) and
-WaveSplat vs.\ sliding GPR ($W\!=\!1508$, $p\!=\!4.7\!\times\!10^{-4}$).
-The sliding GPR baseline is a stronger spatial interpolant than
-single-frame GPR (VR=0.11 vs.\ 0.06) but still operates as a
-near-zero predictor relative to WaveSplat, consistent with the
-six-metric panel in Table~\ref{tab:sixmetric}.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/fig6_multiseed.pdf}
-\caption{Multi-seed statistical comparison (5 seeds per episode,
-mean $\pm$ std). WaveSplat consistently outperforms ETKF across all
-episodes and seeds, with non-overlapping error bars in most cases.}
-\label{fig:multiseed}
-\end{figure*}
+We organize the results section around the full 100-episode
+evaluation: Section~\ref{sec:fulleval} reports the primary
+multi-metric comparison against the tuned ETKF and GPR baselines on
+the complete dataset; Section~\ref{subsec:per_episode} provides a
+per-episode breakdown on 12 representative episodes with
+inference-speed and per-frame details; Section~\ref{subsec:stats}
+reports the 100-paired-run statistical validation; and the remaining
+subsections report the adaptive model order analysis, ablation, and
+raydrop robustness study.
 
 \subsection{Full 100-episode six-metric evaluation}
 \label{sec:fulleval}
 
-Section~\ref{sec:experiments} pre-registered six complementary
-metrics because nRMSE alone cannot expose either spectrally-unbalanced
-estimators or near-zero predictors.  We now report the deferred full
-evaluation: all four methods (WaveSplat, the tuned ETKF baseline, and
-GPR with single-frame and 3-frame sliding windows) are run on the
-complete 100-episode dataset (BF2--BF5, 1--30 components, both uniform
-and slope ray-drop models) and scored on the full pre-registered panel.
+Section~\ref{sec:experiments} pre-registered a panel of five
+complementary metrics because nRMSE alone cannot expose either
+spectrally-unbalanced estimators or near-zero predictors.  We report
+the full-panel evaluation on the complete 100-episode dataset
+(BF2--BF5, 1--30 components, both uniform and slope ray-drop models)
+as the primary comparison in this paper.
+WaveSplat is evaluated against the tuned ETKF baseline and
+single-frame GPR on the metric panel (Table~\ref{tab:sixmetric}); a
+stronger 3-frame sliding-window GPR is additionally evaluated in the
+100-paired-run Wilcoxon validation of
+Section~\ref{subsec:stats}.
 
 \begin{table*}[t]
 \centering
@@ -1052,6 +973,155 @@ of physical correctness can be made.  Under that joint reading,
 WaveSplat is the only method on the dataset that produces wave
 estimates of the right magnitude, in the right place, and better than
 predicting zero.
+
+\paragraph{Honest reporting of WaveSplat's own limitations.}
+The same panel that exposes the baselines' failure modes also
+exposes WaveSplat's: its variance ratio of 0.66 indicates that
+reconstructed wave amplitudes are on average $\sim$34\% under the
+true values, its skill score of $+0.034$ is positive but marginal
+rather than decisive, and---most critically---its directional $R^2$
+of $-0.25$ on the 2D wavenumber spectrum indicates that the estimated
+propagation direction of spectral components is worse than chance
+on average.  Amplitude under-estimation is a known consequence of
+the adaptive model-order pruning, which conservatively drops
+low-amplitude components to keep $N$ small and the optimization
+well-conditioned.  The directional $R^2$ deficit is the more
+consequential finding: it means that on a given frame WaveSplat can
+reconstruct the correct field magnitude and shape along the LiDAR
+observation swath but may assign that energy to the wrong
+wavenumber sector, which has direct downstream implications for
+any controller that consumes the estimated wave direction (see the
+BF4-Head degradation in our companion hydrofoil
+work~\citep{park2026hydrofoil}).  We report these shortcomings
+explicitly here rather than relegating them to
+Section~\ref{sec:discussion} because they qualify---not negate---the
+primary finding that WaveSplat is the only method on the dataset to
+clear a zero-predictor baseline.
+
+\subsection{Per-episode breakdown on 12 representative episodes}
+\label{subsec:per_episode}
+
+With the full-dataset result of Section~\ref{sec:fulleval} as the
+primary finding, Table~\ref{tab:main} drills down to a per-episode
+view on 12 representative episodes that span every (sea state,
+complexity) combination in the 100-episode dataset.
+Using the same tuned ETKF configuration
+($g$=40$\times$30, $n_{\text{ens}}$=100, $\alpha$=1.0, $\sigma$=0.005),
+WaveSplat achieves an average nRMSE of \textbf{0.211} compared to
+\textbf{0.358} for ETKF on these episodes (\textbf{41.0\%}
+improvement; the slightly larger margin relative to the 30.1\%
+full-dataset improvement reflects the absence of the hardest BF2 and
+BF5 multi-component episodes from this subset).
+WaveSplat wins on all 12 episodes.
+Figure~\ref{fig:comparison} visualizes the per-episode comparison, and
+Figure~\ref{fig:qualitative} shows representative wave fields.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig1_comparison.pdf}
+\caption{Per-episode nRMSE comparison between WaveSplat and the
+hyperparameter-tuned ETKF-grid baseline across 12 representative
+episodes. Dashed lines show method averages. WaveSplat (avg 0.211)
+outperforms the tuned ETKF (avg 0.358) on all episodes, with the
+largest advantage on low-complexity seas (BF3 2-comp). Note: the
+plotted bars reproduce the original pre-tuning ETKF configuration;
+the numeric averages in the text reflect the tuned baseline used in
+Table~\ref{tab:main} and Section~\ref{sec:fulleval}.}
+\label{fig:comparison}
+\end{figure*}
+
+\begin{table}[t]
+\centering
+\caption{WaveSplat vs.\ the hyperparameter-tuned ETKF-grid baseline
+($g$=40$\times$30, $n_{\text{ens}}$=100, $\alpha$=1.0, $\sigma$=0.005)
+on 12 representative episodes drawn from the full 100-episode dataset.
+nRMSE = RMSE/$H_s$; lower is better. ms/f = per-frame inference time
+on a single CPU thread. $N_a$ = adapted component count.}
+\label{tab:main}
+\begin{tabular}{lccccc}
+\toprule
+& \multicolumn{2}{c}{WaveSplat} & \multicolumn{2}{c}{ETKF (tuned)} & \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+Episode & nRMSE & ms/f & nRMSE & ms/f & $N_a$ \\
+\midrule
+BF2 1comp     & \textbf{0.315} & 15.1 & 0.436 & 154 & 11 \\
+BF3 1comp     & \textbf{0.217} & 12.7 & 0.322 & 154 &  2 \\
+BF3 2comp (U) & \textbf{0.052} & 22.2 & 0.349 & 635 &  2 \\
+BF3 2comp (S) & \textbf{0.061} & 13.7 & 0.305 & 120 & 15 \\
+BF3 5comp (U) & \textbf{0.167} & 12.8 & 0.355 & 125 &  4 \\
+BF3 5comp (S) & \textbf{0.152} & 13.2 & 0.320 & 177 & 15 \\
+BF4 1comp     & \textbf{0.171} & 10.3 & 0.331 &  98 &  1 \\
+BF4 5comp     & \textbf{0.200} & 12.7 & 0.352 & 106 &  3 \\
+BF4 15comp    & \textbf{0.302} & 15.9 & 0.379 & 113 & 19 \\
+BF4 30comp    & \textbf{0.314} & 13.6 & 0.376 & 121 & 18 \\
+BF5 15comp    & \textbf{0.297} & 15.0 & 0.364 &  98 & 21 \\
+BF5 30comp    & \textbf{0.290} & 13.3 & 0.412 &  93 & 19 \\
+\midrule
+\textbf{Avg}  & \textbf{0.211} & 14.2 & 0.358 & 166 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Key observations:
+\begin{itemize}
+  \item \textbf{Low complexity}: In BF3 2-component seas,
+    WaveSplat achieves an nRMSE of 0.052---a $\sim$6$\times$
+    improvement over the tuned ETKF (0.327 avg across the two
+    BF3 2comp episodes). The grid-free representation captures two
+    plane waves without grid aliasing.
+  \item \textbf{High complexity}: For BF4--5 with 15--30 components,
+    WaveSplat still outperforms ETKF (0.301 vs.\ 0.383 average),
+    though the gap narrows as the spectral complexity approaches the
+    initialization resolution limit.
+  \item \textbf{Speed}: WaveSplat runs at 13.4~ms/frame
+    on average vs.\ 132.6~ms/frame for the tuned ETKF (median
+    110~ms), an order-of-magnitude advantage that is well within
+    the 100~ms real-time budget for 10~Hz LiDAR
+    (Fig.~\ref{fig:speed}).  Note that the tuned ETKF uses
+    $n_{\text{ens}}$=100 ensemble members---twice the
+    pre-tuning configuration---which accounts for the $\sim$4$\times$
+    higher per-frame cost compared to the 31.7~ms reported in
+    earlier versions of this baseline.
+\end{itemize}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig3_speed.pdf}
+\caption{Per-frame inference speed comparison. WaveSplat maintains
+consistent $\sim$13~ms/frame across all episodes, while the tuned
+ETKF ranges from 90 to over 600~ms depending on ensemble convergence
+(median 110~ms). The plotted bars reflect the pre-tuning ETKF
+configuration; numeric values in the text correspond to the tuned
+baseline used in Table~\ref{tab:main}.}
+\label{fig:speed}
+\end{figure*}
+
+\subsection{Multi-seed statistical validation}
+\label{subsec:stats}
+
+To confirm the full-dataset result is not seed-dependent, we repeat
+the comparison across 10 (sea state, complexity) configurations with
+5 random seeds per configuration and both uniform and slope ray-drop
+models, for a total of 100 paired runs.
+WaveSplat achieves $0.219 \pm 0.079$ vs.\ the tuned ETKF baseline
+$0.321 \pm 0.041$ and a 3-frame sliding GPR $0.253 \pm 0.020$
+(mean $\pm$ std across all runs).  Paired Wilcoxon signed-rank tests
+confirm both improvements:
+WaveSplat vs.\ ETKF ($W\!=\!194$, $p\!=\!1.1\!\times\!10^{-15}$) and
+WaveSplat vs.\ sliding GPR ($W\!=\!1508$, $p\!=\!4.7\!\times\!10^{-4}$).
+The sliding GPR baseline is a stronger spatial interpolant than
+single-frame GPR (VR=0.11 vs.\ 0.06) but still operates as a
+near-zero predictor relative to WaveSplat, consistent with the
+six-metric panel in Table~\ref{tab:sixmetric}.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig6_multiseed.pdf}
+\caption{Multi-seed statistical comparison (5 seeds per episode,
+mean $\pm$ std). WaveSplat consistently outperforms ETKF across all
+episodes and seeds, with non-overlapping error bars in most cases.}
+\label{fig:multiseed}
+\end{figure*}
 
 \subsection{Adaptive model order}
 

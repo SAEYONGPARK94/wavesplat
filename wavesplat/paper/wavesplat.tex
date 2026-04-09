@@ -940,14 +940,20 @@ from 25 to 52~ms depending on grid convergence.}
 \end{figure*}
 
 \textbf{Statistical validation.}
-To confirm these results are not seed-dependent, we repeat the comparison
-with 5 random seeds per episode (50 paired runs total).
-WaveSplat achieves $0.230 \pm 0.084$ vs.\ ETKF $0.395 \pm 0.059$
-(mean $\pm$ std across all runs).
-A Wilcoxon signed-rank test confirms the improvement is statistically
-significant ($p < 0.001$).
-WaveSplat wins on all 10 episodes across all seeds, with per-episode
-$p$-values $\leq 0.031$ (Fig.~\ref{fig:multiseed}).
+To confirm these results are not seed-dependent, we repeat the
+comparison across 10 (sea state, complexity) configurations with 5
+random seeds per configuration and both uniform and slope ray-drop
+models, for a total of 100 paired runs.
+WaveSplat achieves $0.219 \pm 0.079$ vs.\ the tuned ETKF baseline
+$0.321 \pm 0.041$ and a 3-frame sliding GPR $0.253 \pm 0.020$
+(mean $\pm$ std across all runs).  Paired Wilcoxon signed-rank tests
+confirm both improvements:
+WaveSplat vs.\ ETKF ($W\!=\!194$, $p\!=\!1.1\!\times\!10^{-15}$) and
+WaveSplat vs.\ sliding GPR ($W\!=\!1508$, $p\!=\!4.7\!\times\!10^{-4}$).
+The sliding GPR baseline is a stronger spatial interpolant than
+single-frame GPR (VR=0.11 vs.\ 0.06) but still operates as a
+near-zero predictor relative to WaveSplat, consistent with the
+six-metric panel in Table~\ref{tab:sixmetric}.
 
 \begin{figure*}[t]
 \centering

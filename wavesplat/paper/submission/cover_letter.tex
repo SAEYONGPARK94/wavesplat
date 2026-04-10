@@ -1,0 +1,105 @@
+\documentclass[11pt,a4paper]{letter}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\signature{Saeyong Park \\ Avikus Co., Ltd. \\ \href{mailto:saeyong.park@avikus.ai}{saeyong.park@avikus.ai}}
+\address{Saeyong Park \\ Avikus Co., Ltd. \\ Seongnam, Republic of Korea}
+\date{April 10, 2026}
+
+\begin{document}
+\begin{letter}{The Editor-in-Chief \\ \textit{Ocean Engineering} \\ Elsevier}
+
+\opening{Dear Editor,}
+
+Please find enclosed our manuscript titled \textbf{``WaveSplat:
+Grid-Free Spectral Gaussian Wave Field Estimation from Sparse
+Shipboard LiDAR''}, which we submit for consideration as a
+research article in \textit{Ocean Engineering}.
+
+The manuscript addresses a long-standing bottleneck in real-time
+shipboard wave sensing: grid-based ensemble Kalman filters
+(EnKF/ETKF), the de-facto standard for LiDAR and X-band wave field
+reconstruction, must interpolate sparse, irregularly distributed
+LiDAR returns onto a fixed spatial grid whose resolution is
+independent of the true scene complexity. We propose
+\textbf{WaveSplat}, a grid-free spectral representation in which the
+wave field is a weighted sum of $N$ plane waves whose wavenumbers
+and amplitudes are directly optimised against sparse observations
+while the angular frequency is fixed by the linear dispersion
+relation as a hard constraint. An energy-based pruning and a
+residual-triggered growth mechanism make the number of components
+\emph{adaptive}, matching scene complexity from one swell to
+multi-component seas.
+
+\textbf{Key contributions and findings:}
+\begin{itemize}
+  \item A grid-free spectral estimation framework with
+        dispersion-constrained parameterisation and Fresnel-aware
+        confidence weighting, runnable in real time on a single CPU
+        thread.
+  \item A pre-registered six-metric evaluation panel
+        (nRMSE, variance ratio, Pearson $\rho$, Skill Score,
+        directional $R^2$, $H_s$ error) on 100 episodes spanning
+        Beaufort~2--5 and 1--30 spectral components, compared against
+        a hyperparameter-tuned ETKF-grid (24-config sweep) and a
+        sliding-window GPR.
+  \item WaveSplat attains \textbf{30.1\% lower nRMSE}
+        ($0.223$ vs.\ $0.319$) and runs $\sim\!10\times$ faster
+        ($13.4$ vs.\ $132.6$~ms/frame) than the best ETKF
+        configuration, and is the \emph{only} method with a positive
+        Skill Score against a zero predictor.
+  \item Improvements are highly significant over 100 paired runs
+        (Wilcoxon $p{=}1.1\!\times\!10^{-15}$ vs.\ ETKF, paired
+        Cohen's $d{=}1.16$; $p{=}4.7\!\times\!10^{-4}$ vs.\ sliding
+        GPR, $d{=}0.42$), robust under two LiDAR raydrop models, and
+        stable under 20--100\% observation-density subsampling.
+\end{itemize}
+
+\textbf{Relevance to Ocean Engineering.} The paper sits squarely in
+the journal's scope of physical ocean measurement, data assimilation,
+and model-based sensing for marine operations. It directly enables
+downstream applications explicitly named in the journal's call,
+including wave-preview feedforward control for high-speed hydrofoil
+vessels (demonstrated in a companion paper), route optimisation, and
+structural-health monitoring.
+
+\textbf{Originality and prior communication.} This work is original,
+has not been published previously, and is not under consideration
+elsewhere. A short early version of the grid-free idea was
+internally reviewed at Avikus but has not been submitted to any
+journal or conference. No part of the manuscript has been previously
+published.
+
+\textbf{Data and reproducibility.} The source code of WaveSplat, the
+physics-based LiDAR wave simulator (WaveSim), all experiment scripts,
+and five representative episodes are openly available at
+\url{https://github.com/SAEYONGPARK94/wavesplat}. The full 100-episode
+dataset can be regenerated from the provided configuration files and
+fixed random seeds, ensuring end-to-end reproducibility of every
+table and figure.
+
+\textbf{Suggested reviewers} (no conflict of interest with the
+author):
+\begin{itemize}
+  \item Prof.\ Nicolas Desmars --- École Centrale Nantes ---
+        X-band/LiDAR ETKF reconstruction.
+  \item Prof.\ Marc Buckley --- Helmholtz-Zentrum Hereon ---
+        Wave field reconstruction from remote sensing.
+  \item Dr.\ Jonas Ehlers --- U-Net / FNO wave reconstruction.
+  \item Prof.\ Ulrik Dam Nielsen --- DTU --- Ship-motion-based wave
+        estimation.
+\end{itemize}
+
+The sole author declares no competing financial interests or
+personal relationships that could have influenced this work. The
+author has completed all listed CRediT roles
+(conceptualisation, methodology, software, validation, formal
+analysis, investigation, writing -- original draft, writing --
+review \& editing, visualisation).
+
+Thank you very much for considering our manuscript. We look forward
+to the reviewers' comments.
+
+\closing{Sincerely,}
+
+\end{letter}
+\end{document}

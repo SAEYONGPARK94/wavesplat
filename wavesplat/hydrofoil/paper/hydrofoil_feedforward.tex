@@ -1190,6 +1190,43 @@ The aggressive $\alpha=0.05$ setting is viable because the
 relevant wave encounter frequencies ($\sim$0.49~Hz for BF3 head
 sea, $\sim$0.20~Hz for beam sea) remain well below the cutoff.
 
+\paragraph{Sensitivity and honest reporting of sub-optimality.}
+A sweep $\alpha\in\{0.01, 0.03, 0.05, 0.10, 0.15, 0.20\}$ on the
+four representative configurations (Table~\ref{tab:lpalpha}) shows
+that $\alpha=0.05$ is near-optimal for three of the four cases
+(BF3~Head, BF3~Beam, BF4~Beam: within 2--3~percentage points of the
+best acceleration reduction observed across all $\alpha$), but
+\emph{sub-optimal} for BF4~Head, where the best acceleration
+reduction ($+13.7\%$) is attained at $\alpha=0.01$ and degrades
+monotonically as $\alpha$ grows, crossing zero at $\alpha\approx 0.10$
+and becoming strictly harmful for $\alpha\geq 0.15$.  We keep
+$\alpha=0.05$ in the main results because (i)~it is the
+best-single-value choice across the four cases jointly and (ii)~it
+matches the design frequency derived from BF3 encounter.  However,
+this transparently implies that the BF4~Head degradation reported
+in Section~\ref{sec:results} (WS/GT $=37\%$) is in part a filter-tuning
+artifact on top of the directional estimation bottleneck, and that a
+sea-state-adaptive $\alpha$ schedule is a concrete path to improvement
+that does not require any change to the wave estimator itself.
+
+\begin{table}[t]
+\centering
+\caption{LP filter $\alpha$ sweep: percentage reduction in
+RMS heave acceleration (da\%) relative to the PD-feedback
+baseline. Positive = improvement. Bold = best per row.}
+\label{tab:lpalpha}
+\begin{tabular}{lcccccc}
+\toprule
+Case & 0.01 & 0.03 & 0.05 & 0.10 & 0.15 & 0.20 \\
+\midrule
+BF3 Head & 4.7  & 9.9  & 11.4 & 12.9 & \textbf{13.5} & 12.5 \\
+BF3 Beam & 20.3 & 36.7 & \textbf{37.7} & 27.3 & 16.3 &  6.3 \\
+BF4 Head & \textbf{13.7} & 13.4 &  8.3 & $-$1.1 & $-$7.7 & $-$12.2 \\
+BF4 Beam & 10.6 & \textbf{14.8} & 14.2 & 11.5 &  9.1 &  6.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 The pre-filtered feedforward architecture (filtering once per
 timestep, before RK4 sub-steps) is essential: if the IIR filter
 advanced at each RK4 sub-step, it would effectively use
@@ -1231,9 +1268,19 @@ LiDAR accuracy is typically highest.
     dynamics, and real sea state variability.
   \item \textbf{Directional estimation}: The BF4 degradation (WS/GT=37\%)
     highlights that directional estimation accuracy is a critical
-    bottleneck.  Directional confidence weighting or gating in the
-    feedforward signal could mitigate this without requiring perfect
-    directional estimation.
+    bottleneck.  This is consistent with the pre-registered six-metric
+    evaluation in the companion paper \citep{park2026wavesplat}, where
+    WaveSplat attains a directional $R^2$ of $-0.25$ on the 2D
+    wavenumber spectrum across 100 episodes: propagation direction
+    of individual spectral components is worse than chance on average,
+    even though the nRMSE on the elevation field is the lowest among
+    the evaluated methods.  For head-seas operation, where the
+    feedforward signal is a 1-D projection along the ship heading,
+    a random directional error translates into a cosine-modulated
+    phase misalignment that the IIR low-pass filter cannot recover.
+    Directional confidence weighting or gating in the feedforward
+    signal could mitigate this without requiring perfect directional
+    estimation.
   \item \textbf{Simulation duration}: The 30-second episodes, while
     sufficient for demonstrating the feedforward concept, are
     shorter than typical operational durations.  Longer simulations

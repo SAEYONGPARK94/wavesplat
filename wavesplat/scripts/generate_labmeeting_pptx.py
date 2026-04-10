@@ -180,7 +180,7 @@ def add_table(slide, left, top, width, height, rows, cols, data,
                 cell.fill.fore_color.rgb = LIGHT_BG
     return table
 
-TOTAL_SLIDES = 15
+TOTAL_SLIDES = 16
 
 # ══════════════════════════════════════════════════════════════
 # SLIDE 1: Title
@@ -397,7 +397,88 @@ p.alignment = PP_ALIGN.CENTER
 add_page_number(s, 6, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 7: Experimental Setup
+# SLIDE 7: WaveSim — LiDAR Simulation Physics
+# ══════════════════════════════════════════════════════════════
+s = add_slide()
+add_section_header(s, "03", "시뮬레이션 데이터의 물리적 신뢰성", "WaveSim: Why We Can Trust It")
+
+# Left column: Wave Generation
+add_textbox(s, 0.8, 1.5, 5.8, 0.4,
+            "파도 생성: JONSWAP + Gerstner", 20, bold=True, color=ACCENT)
+wave_physics = [
+    "• JONSWAP 스펙트럼 (Hasselmann et al. 1973)",
+    "•   → Hs, Tₚ로 파라미터화, 해양공학 표준",
+    "• Gerstner wave (1802): 2차 비선형 정확해",
+    "•   → 수평 orbital 운동 포함 (trochoid)",
+    "•   → Q-constraint: ΣQᵢωᵢAᵢ ≤ 1 (입자 교차 방지)",
+    "• 분산관계: ω = √(g|k|tanh(|k|d))",
+    "•   → Newton-Raphson 역변환, 오차 < 10⁻⁶ rad/s",
+    "• 단일 성분 해석해 대비 RMSE < 10⁻¹⁰ m",
+]
+add_bullet_list(s, 0.8, 2.0, 5.8, 3.5, wave_physics, font_size=13, bold_prefix=False)
+
+# Right column: LiDAR Model
+add_textbox(s, 7.0, 1.5, 5.8, 0.4,
+            "LiDAR 모델: Seyond Falcon K1 기반", 20, bold=True, color=ACCENT)
+lidar_physics = [
+    "• 실제 스펙: 1550 nm, 152 ch, 120°×25° FOV",
+    "• Ray-surface 교차: Möller-Trumbore 알고리즘",
+    "•   → 삼각형 메시 위 정확한 교차점 계산",
+    "• 프레임당 ~76,000 ray → raydrop → ~50점 반환",
+    "",
+    "• Fresnel 반사 (unpolarized, n=1.321 @1550nm):",
+    "•   R(0°) ≈ 2%, R(89°) > 80%  — 수면 광학 정확",
+    "• 거리 noise: σ = 0.02 m (2 cm, 1550nm 표준)",
+    "• 각도 noise: σ = 0.05° (beam divergence)",
+]
+add_bullet_list(s, 7.0, 2.0, 5.8, 3.5, lidar_physics, font_size=13, bold_prefix=False)
+
+# Bottom: Raydrop models + validation chain
+add_textbox(s, 0.8, 5.2, 6.0, 0.4,
+            "두 가지 Raydrop 모델", 18, bold=True, color=ACCENT2)
+add_textbox(s, 0.8, 5.6, 6.0, 1.5,
+            "Uniform (diffuse):  P = η · R_Fresnel(θ) · cos(θ) / (d/d_ref)²\n"
+            "  → 확산 반사 + 역제곱 감쇠 + Lambertian 투영\n\n"
+            "Slope (specular):  반사각 r = d − 2(d·n)n 에서\n"
+            "  retroreflection 조건 r·(−d) ≥ cos(5°) 일 때만 반환\n"
+            "  → 파면 기울기에 따라 반환점 분포가 달라짐 (물리적)",
+            12, font_name='Consolas')
+
+# Validation trust chain box
+shape = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                            Inches(7.0), Inches(5.2),
+                            Inches(5.8), Inches(1.8))
+shape.fill.solid()
+shape.fill.fore_color.rgb = RGBColor(0xE8, 0xF5, 0xE9)
+shape.line.color.rgb = GREEN
+
+tf = shape.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "검증 체인 (39 unit tests)"
+p.font.size = Pt(16)
+p.font.bold = True
+p.font.color.rgb = GREEN
+
+items = [
+    "✓ 분산관계 deep/shallow 극한 해석해 일치",
+    "✓ Gerstner 단일파 RMSE < 10⁻¹⁰ m",
+    "✓ Fresnel R(0°) = ((n−1)/(n+1))² 정확",
+    "✓ Q-constraint 위반 없음 (JONSWAP 전체)",
+    "✓ 파면 법선 항상 상향 (nz > 0)",
+    "✓ Raydrop 확률 ∈ [0,1], 단조 증가",
+]
+for item in items:
+    p2 = tf.add_paragraph()
+    p2.text = item
+    p2.font.size = Pt(11)
+    p2.font.color.rgb = DARK
+    p2.space_after = Pt(1)
+
+add_page_number(s, 7, TOTAL_SLIDES)
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 8: Experimental Setup
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
 add_section_header(s, "04", "실험 설계", "Dataset & Baselines")
@@ -431,10 +512,10 @@ add_textbox(s, 0.8, 5.5, 12, 1.5,
             "Skill Score (SS) ↑  |  Directional R² ↑  |  Hs error ↓\n\n"
             "핵심: SS = 1 − MSE(ẑ)/MSE(0)  →  양수면 zero-predictor(ẑ=0)보다 나은 것",
             15, color=DARK)
-add_page_number(s, 7, TOTAL_SLIDES)
+add_page_number(s, 8, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 8: Main Results — 6-metric table (★ most important)
+# SLIDE 9: Main Results — 6-metric table (★ most important)
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
 add_section_header(s, "04", "핵심 결과: 6-Metric Evaluation (100 episodes)",
@@ -460,10 +541,10 @@ observations = [
     "•    Dir R²=−0.25 → 방향 성분은 chance 미만",
 ]
 add_bullet_list(s, 1.0, 4.2, 11.3, 3.0, observations, font_size=15, bold_prefix=False)
-add_page_number(s, 8, TOTAL_SLIDES)
+add_page_number(s, 9, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 9: Per-episode & Speed
+# SLIDE 10: Per-episode & Speed
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
 add_section_header(s, "04", "Per-episode 결과 & 속도", "12 Representative Episodes")
@@ -491,10 +572,10 @@ if not added2:
 add_textbox(s, 0.5, 6.3, 12, 0.6,
             "WaveSplat: 12/12 승  |  Best 8.5×  |  13.4 ms vs 132.6 ms (~10× faster)",
             18, bold=True, color=ACCENT, alignment=PP_ALIGN.CENTER)
-add_page_number(s, 9, TOTAL_SLIDES)
+add_page_number(s, 10, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 10: Statistical Validation
+# SLIDE 11: Statistical Validation
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
 add_section_header(s, "04", "통계 검증 (100 Paired Runs)", "Statistical Validation")
@@ -521,10 +602,10 @@ explanations = [
     "• 두 CI 모두 0을 포함하지 않음",
 ]
 add_bullet_list(s, 7.0, 4.2, 5.5, 3.0, explanations, font_size=14, bold_prefix=False)
-add_page_number(s, 10, TOTAL_SLIDES)
+add_page_number(s, 11, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 11: Ablation — Dispersion Drift
+# SLIDE 12: Ablation — Dispersion Drift
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
 add_section_header(s, "04", "Ablation: Dispersion 제약의 가치", "A1 vs Full")
@@ -563,10 +644,10 @@ p2.text = ("R̄ = Σ|wᵢ|·|ωᵢ − ω_disp|/(ωᵢ·Σ|wⱼ|)\n\n"
            "결론: A1의 16%는 '물리적 유효성을 포기하고 얻은 nRMSE'")
 p2.font.size = Pt(14)
 p2.font.color.rgb = DARK
-add_page_number(s, 11, TOTAL_SLIDES)
+add_page_number(s, 12, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 12: Robustness
+# SLIDE 13: Robustness
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
 add_section_header(s, "04", "Robustness: Raydrop · Sparsity · Noise", "")
@@ -612,10 +693,10 @@ add_textbox(s, 0.8, 5.3, 12, 1.5,
             "lr=0.01, λ₁=1e-3, τ_prune=0.10, τ_grow=0.05  — BF3 5c 한 번의 sweep으로 결정\n"
             "각 파라미터 ±2× 변경해도 nRMSE ±5% 이내  |  100 runs 전체가 동일 설정으로 재현",
             15, color=DARK)
-add_page_number(s, 12, TOTAL_SLIDES)
+add_page_number(s, 13, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 13: Qualitative Result
+# SLIDE 14: Qualitative Result
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
 add_section_header(s, "04", "Qualitative 비교", "GT vs WaveSplat vs ETKF vs GPR")
@@ -627,10 +708,10 @@ if not added:
                 "BF3 / BF4 / BF5  ×  GT / WaveSplat / ETKF / GPR\n"
                 "heatmap comparison",
                 18, color=GRAY, alignment=PP_ALIGN.CENTER)
-add_page_number(s, 13, TOTAL_SLIDES)
+add_page_number(s, 14, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 14: Honest Limitations
+# SLIDE 15: Honest Limitations
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
 add_section_header(s, "04", "한계와 향후 과제", "Honest Limitations")
@@ -679,10 +760,10 @@ p.font.size = Pt(16)
 p.font.bold = True
 p.font.color.rgb = DARK
 p.alignment = PP_ALIGN.CENTER
-add_page_number(s, 14, TOTAL_SLIDES)
+add_page_number(s, 15, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 15: Plans — Paper & PhD
+# SLIDE 16: Plans — Paper & PhD
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
 add_section_header(s, "05", "계획: 논문 투고 & 박사 학위", "Plans")
@@ -726,7 +807,7 @@ add_bullet_list(s, 7.0, 2.0, 5.8, 4.5, phd_plan, font_size=14, bold_prefix=False
 add_textbox(s, 1.5, 6.5, 10.3, 0.5,
             "감사합니다. 질문 부탁드립니다.",
             22, bold=True, color=DARK, alignment=PP_ALIGN.CENTER)
-add_page_number(s, 15, TOTAL_SLIDES)
+add_page_number(s, 16, TOTAL_SLIDES)
 
 # ── Save ──
 os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)

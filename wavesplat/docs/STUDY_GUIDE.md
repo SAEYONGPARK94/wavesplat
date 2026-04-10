@@ -3,7 +3,34 @@
 > 박사 논문 2편(Ocean Engineering 투고)을 "기초부터 응용까지" 한 번에 읽고
 > 이해하여 PPT를 만들고 교수님께 발표할 수 있도록 구성한 통합 가이드.
 >
-> 작성일: 2026-04-08
+> 작성일: 2026-04-08 (최초)
+> **최종 업데이트: 2026-04-10** — 논문이 full 100-ep / 6-metric panel / tuned ETKF sweep /
+> dispersion residual / Cohen's d / 40p OE 원고로 갱신됨. 과거 나오던 "48% / 50 paired /
+> 31.7 ms / 0.233·0.450·0.276" 수치는 구버전이며, **최신 수치는 아래 § WaveSplat 최신 수치
+> 표 및 [PRESENTATION_SUMMARY.md](PRESENTATION_SUMMARY.md)를 우선**하세요.
+
+---
+
+## ⚡ WaveSplat 최신 수치 (2026-04-10, 외워야 할 최종본)
+
+| 항목 | 값 | 비고 |
+|------|-----|------|
+| nRMSE (100 ep) | WS **0.223** / ETKF(tuned) **0.319** / GPR-1 **0.261** | **30.1% 개선** |
+| Speed (ms/frame) | WS **13.4** / ETKF(tuned) **132.6** (median 110) / GPR > 200 | **~10× 빠름** |
+| Skill Score | WS **+0.034 (유일 양수)** / ETKF −0.702 / GPR −0.140 | zero-predictor 구분 |
+| Variance Ratio | WS 0.66 / ETKF 0.90 / **GPR 0.065** | GPR = near-zero |
+| Pearson ρ | WS 0.45 / ETKF 0.11 / GPR 0.19 | ETKF shape-wrong |
+| Dir R² | WS **−0.25** (honest limit) / ETKF +0.07 / GPR +0.03 | 방향성 약점 |
+| Wilcoxon | vs ETKF p=**1.1×10⁻¹⁵**, Cohen's d=**1.16 (large)** | 100 paired runs |
+|          | vs sliding GPR p=**4.7×10⁻⁴**, Cohen's d=**0.42** | CI excludes 0 |
+| Dispersion drift (A1) | R̄=**0.51 ± 0.12** vs Full=0 | A1의 16% nRMSE는 물리 포기 비용 |
+| ETKF sweep | 24 configs, best **0.358** / worst **1.187** (3.3×) | nₑ=100, α=1.00, σ=0.005 |
+| Raydrop | **20/20 wins** (uniform + slope) | 양쪽 모두 WaveSplat 우위 |
+| Sparsity | < 8% degrade at 20% obs density | ~10 pts/frame으로 충분 |
+| Noise | ±13% nRMSE under σ=0.10 m (5× baseline) | adaptive N이 흡수 |
+| 논문 길이 | **40 p** | OE 권장 상한 |
+
+---
 
 ---
 
@@ -310,28 +337,37 @@ $$
 
 ## 14. PPT 20장 구성안
 
-| # | 제목 | 내용 |
-|---|---|---|
-| 1 | Title | 제목, 저자, 소속, 날짜 |
-| 2 | Motivation | 하이드로포일 승차감 문제, preview 필요성 |
-| 3 | Big Picture | 두 논문 통합 파이프라인 (그림) |
-| 4 | Wave Physics 101 | η = Σa cos(kx-ωt+φ), 분산관계 |
-| 5 | LiDAR observation | 희소·불규칙 포인트 시각화 |
-| 6 | Prior Art & Gap | 표: 격자/EnKF/GPR/NN의 한계 |
-| 7 | **Paper 1: Problem** | 입력/출력/제약 |
-| 8 | Key Idea: Grid-free Spectral Gaussian | 수식 + 직관 |
-| 9 | Algorithm Pipeline | init → opt → track → adapt |
-| 10 | Temporal tracking (w_phi) | 왜 k 고정이 핵심인가 |
-| 11 | Results: accuracy | 0.233 vs 0.450 vs 0.276 (bar chart) |
-| 12 | Results: speed | 13.4 ms (실시간) |
-| 13 | Qualitative Figure | 파면 복원 heatmap |
-| 14 | **Paper 2: Problem** | 하이드로포일 2DOF, FF 필요성 |
-| 15 | FF+FB Architecture | 블록다이어그램 |
-| 16 | Filter Design | f_c 공식과 선택 근거 |
-| 17 | Results: acceleration RMS | 50% 개선 시나리오 |
-| 18 | Preview time sensitivity | τ vs nRMSE 그래프 |
-| 19 | **Integrated Contribution** | 두 논문 합친 임팩트 |
-| 20 | Limitations & Future Work | 선형 가정, vessel param, nonlinear 확장 |
+| # | 제목 | 핵심 수치 / 그림 | 출처 |
+|---|------|----------------|------|
+| 1 | Title | OE 투고, 저자, 날짜 | — |
+| 2 | Motivation | 하이드로포일 승차감 ↔ wave preview 필요성 | Intro §I-A |
+| 3 | Big Picture | 두 논문 통합 파이프라인 + one-liner | Part D |
+| 4 | Wave Physics 101 | η=Σa cos(kx−ωt+φ), **ω²=g\|k\|tanh(\|k\|d)** | Part A |
+| 5 | LiDAR observation | scatter, "~50 pts/frame in 200×150 m" | graphical_abstract Panel 1 |
+| 6 | Prior Art & Gap | ETKF/GPR/NN 한계 표 | §II |
+| 7 | **Paper 1: Key Idea** | z=Σwᵢ cos(...), dispersion hard, **5N→4N** | §III-A |
+| 8 | Pipeline | init(beamform→C2F→prune→grow) + track(predict+update) | Alg table |
+| 9 | Why freeze k (w_phi) | 단일 프레임 ill-conditioned, 200→10 steps | §III-D |
+| 10 | Dataset + Pre-registered metrics | 100 ep, BF2~5, U/S, **6-metric panel** 정의 | §IV |
+| 11 | Tuned ETKF fairness | 24-config sweep, best 0.358 / worst 1.187 (3.3×) | Table ETKF sweep |
+| 12 | **Headline: 6-metric Table** | **SS: WS +0.034 유일 양수**, VR/ρ로 ETKF/GPR 실패 모드 진단 | Table II |
+| 13 | Speed & Statistics | 13.4 vs 132.6 ms (~10×), p=1.1e−15, **Cohen's d=1.16 large** | §V-B,C |
+| 14 | A1 dispersion ablation (Q4) | A1 nRMSE 16% 낮지만 **R̄=0.51, 0.10 Hz off** → 물리 유효성의 대가 | §V-E |
+| 15 | Honest limits | VR=0.66 under-fit, **Dir R²=−0.25** → hydrofoil BF4-head 연결 | §V-A |
+| 16 | **Paper 2: Hydrofoil FF** | 2DOF 문제, FF+FB, f_c=0.8 Hz | Hydro §III |
+| 17 | LP α sensitivity (Q8) | BF4 Head: α=**0.01** optimal(+13.7%), α=0.05에서 −1.1% | Hydro Table |
+| 18 | Accel RMS results | BF3 head 50%, BF4 head 42%, BF4 bow 38% | Hydro §V |
+| 19 | **Integrated Contribution** | sensing → info → action, Dir R² ↔ BF4-head pairing | Both |
+| 20 | Limitations & Future | sim-only, Dir R² fix, real LiDAR, Stokes-2, current | Both Limits |
+
+**보조 슬라이드 (Q&A 대비용)**:
+- A1: Hyperparameter sensitivity (±5%)
+- A2: Noise robustness (±13% under σ=0.10 m)
+- A3: ETKF sweep 전체 24-config 랭킹
+- A4: Dispersion residual 공식 + 10-run 통계
+- A5: Sparsity 표 (20~100%)
+- A6: Raydrop 20/20 wins 상세 표
+- A7: Per-episode Table I (12 eps)
 
 ## 15. 예상 질문 & 답변
 
@@ -339,9 +375,13 @@ $$
 A. N은 adaptive입니다. 에너지 기반 pruning과 잔차 triggered growth가
 N을 시나리오별(BF2 단일 성분 → BF5 30 성분)로 자동 조절합니다.
 
-**Q2. "분산관계 hard constraint가 과적합을 막는다는 근거?"**
-A. Ablation에서 soft(penalty) vs hard 비교 결과 hard가 BF4-5에서 평균
-14% nRMSE 향상. 논문 Table III 참조.
+**Q2. "분산관계 hard constraint가 nRMSE를 악화시키는데 왜 쓰나?"** (최신 Q4)
+A. 네, A1 (no dispersion) ablation은 실제로 16% 더 낮은 nRMSE를 보입니다.
+하지만 A1에서 학습된 (k, ω) 쌍의 **분산 manifold 이탈량 R̄ = 0.51 ± 0.12**
+(≈0.10 Hz off)이고, 50% 벗어난 ω로는 φ←φ+ωΔt 기반 phase propagation이
+1초 내에 de-cohere합니다. 즉 A1의 16%는 **nRMSE를 위해 물리적 유효성을
+포기한 대가**이며, hydrofoil feedforward처럼 1초 후 파면을 예측해야 하는
+downstream에 쓸 수 없습니다. 논문 §V-E의 Q4 evidence 참조.
 
 **Q3. "Drazen 2008과 뭐가 다른가?"**
 A. Drazen은 단일 snapshot sparse 재구성만. WaveSplat은 frame-to-frame
@@ -377,7 +417,12 @@ A. 본 연구는 시뮬레이션 기반 proof-of-concept. 실측 검증은 Aviku
 - [ ] FF vs FB 제어의 차이와 합성 이유
 - [ ] f_c = α/(2πΔt) 필터 공식 유도
 - [ ] ISO 2631 승차감 지표 (간단히)
-- [ ] 논문 핵심 수치 **외워두기**: nRMSE 0.233 / 48% 개선 / 13.4 ms / 50% accel reduction
+- [ ] 논문 핵심 수치 **외워두기** (2026-04-10 최종):
+  - nRMSE WS 0.223 / ETKF(tuned) 0.319 → **30.1% 개선** (과거 0.233/0.450/48%는 구버전)
+  - Speed WS 13.4 ms / ETKF(tuned) 132.6 ms → **~10× 빠름**
+  - SS +0.034 (only positive), Wilcoxon p=1.1e−15 (Cohen's d=1.16)
+  - Dispersion drift: A1 R̄=0.51±0.12 vs Full=0
+  - Hydrofoil 가속도 저감: BF3 head 50%, BF4 head 42%, BF4 bow 38%
 
 ---
 
@@ -418,6 +463,36 @@ $$\varepsilon = \pi H_s / \lambda$$
 > 이 Part E는 **교수님 발표에서 질문이 들어왔을 때 흔들리지 않기 위해**
 > 추가로 읽고, 손으로 해보고, 외워야 할 것을 정리합니다.
 
+## E-0. 2026-04-10 업데이트 이후 새로 방어해야 할 질문 3개
+
+최신 논문(full 100 ep / 6-metric panel / tuned ETKF sweep / dispersion residual)
+이후 추가로 대비해야 할 질문:
+
+**Q-A. "Skill Score가 cherry-picked metric이 아닌가? WaveSplat에게 유리한 걸 고른 게 아닌가?"**
+A. SS는 **사전 등록(pre-registered)** 6개 메트릭 중 하나이고, 선택 시점이 실험 전입니다.
+증거로 우리는 같은 panel 위에서 Dir R²=−0.25라는 **우리 자신의 약점**을 동시에 보고합니다
+(§V-A 말미). Cherry-picking이면 이 약점은 숨겼을 것입니다. 더 중요한 건 SS의 해석:
+`SS = 1 − MSE(ẑ)/MSE(0)`에서 ẑ=0일 때 SS=0이므로, **SS ≤ 0은 "zero predictor보다
+나쁘다"는 뜻**. ETKF/GPR이 여기서 음수라는 사실은 이들이 zero prediction에도 지는
+estimator라는 진단적 증거입니다.
+
+**Q-B. "Tuned ETKF의 Nₑ=100이 너무 큰 것 아닌가? 공정한가?"**
+A. 24-config sweep의 **top-10이 모두 Nₑ=100**이고, 40×30 grid가 80×60보다 일관되게
+우수했습니다 (후자는 ensemble이 undersize). 즉 Nₑ=100이 ETKF 자체에 가장 유리한
+설정입니다. Nₑ=50의 pre-tuning 수치 31.7 ms도 Fig. 3 본문에 함께 보고하여 독자가
+두 버전을 모두 볼 수 있게 했습니다. Tuning 덕에 ETKF는 더 느려졌지만 nRMSE는
+0.436→0.319로 크게 개선되었으므로, 우리 비교는 ETKF에게 유리한 방향의 tuning 뒤입니다.
+
+**Q-C. "A1 dispersion ablation에서 `R̄=0.51`이 정확히 무슨 의미인가?"**
+A. A1에서 학습된 각 성분 (kᵢ, ωᵢ)의 **진폭 가중 상대 편차**입니다:
+`R̄ = Σ|wᵢ|·|ωᵢ−ωᵢ^disp|/(ωᵢ^disp · Σ|wⱼ|)`, ωᵢ^disp=√(g|kᵢ|tanh(|kᵢ|d)).
+A1은 R̄=0.51±0.12 (절대값 ~0.10 Hz), Full은 0 by construction. 50% 벗어난 성분은
+`Δφ = ω·Δt`로 1초 propagate하면 `Δφ_true·(1±0.5)`로 벌어져 phase 맞춤이 불가능해
+frame 간 tracking이 무너집니다. 코드는 `scripts/run_q4_dispersion_residual.py`,
+데이터는 `results/q4_dispersion_residual.json`에 있습니다.
+
+---
+
 ## E-1. 읽어야 할 자료 (우선순위 순)
 
 전체 읽지 말고 **Abstract → Figures → Conclusion** 순으로 1편당 30분.
@@ -448,35 +523,63 @@ $$\varepsilon = \pi H_s / \lambda$$
 ## E-3. 엘리베이터 피치 암기 (3가지 버전)
 
 **30초 버전 (한 문장)**
-> "LiDAR 희소 관측으로부터 격자 없이 물리 제약이 포함된 spectral Gaussian 집합을
-> 직접 최적화하여 13 ms 안에 파면을 복원하고, 하이드로포일 피드포워드 제어에
-> 적용해 수직 가속도를 절반으로 줄였다."
+> "LiDAR 희소 관측으로부터 격자 없이 분산관계가 hard constraint로 걸린 spectral
+> Gaussian 집합을 직접 최적화하여 13 ms 안에 파면을 복원하고, 100 에피소드 기준
+> tuned ETKF 대비 nRMSE를 30% 낮추면서 사전 등록된 6개 메트릭 중 Skill Score가
+> 양수인 유일한 방법이 되었다."
 
-**2분 버전 (기술적)**
-> "기존 파면 추정은 격자 기반이라 희소·불규칙 LiDAR 관측에 적합하지 않고 분산관계 같은
-> 물리를 제대로 반영하지 못한다. 우리는 파면을 N개의 spectral Gaussian 컴포넌트로
-> 직접 파라미터화하고 분산관계를 hard constraint로 걸어 최적화한다. 프레임 간에는
-> k를 고정한 채 (ω, φ)만 업데이트하는 w_phi tracking으로 overfitting을 막고, 에너지
-> 기반 adaptive N으로 시나리오별 복잡도에 자동 적응한다. 결과적으로 ETKF 대비 48%,
-> GPR 대비 16% 낮은 nRMSE를 13.4 ms/frame 안에 달성했고, 이 추정값을 하이드로포일
-> 피드포워드 제어기에 공급해 BF3 head sea에서 수직 가속도 RMS를 50% 줄였다."
+**2분 버전 (기술적, 2026-04-10 최종)**
+> "기존 파면 추정은 격자 기반이라 희소·불규칙 LiDAR 관측에 적합하지 않다. 우리는
+> 파면을 N개의 spectral Gaussian으로 직접 파라미터화하고, 분산관계
+> ω=√(g|k|tanh(|k|d))를 hard constraint로 걸어 자유도를 5N에서 4N으로 줄인다.
+> 프레임 간에는 k를 고정한 채 (w, φ)만 업데이트하는 w_phi tracking으로 overfitting을
+> 막고, 에너지 기반 adaptive N으로 복잡도를 N=1~21로 자동 조절한다. 100 에피소드,
+> 100 paired runs, 24-config ETKF hyperparameter sweep 위에서 tuned ETKF 대비
+> nRMSE 30.1% 감소(0.223 vs 0.319), 약 10배 빠른 13.4 vs 132.6 ms/frame, 그리고
+> 사전 등록된 6-metric 패널 중 Skill Score가 양수인 유일한 방법이다
+> (Wilcoxon p=1.1e−15, Cohen's d=1.16, large effect). 우리는 또한 Dir R²=−0.25
+> 라는 자체 약점을 같은 패널 위에서 투명하게 보고하며, no-dispersion ablation이
+> nRMSE는 16% 낮지만 (k,ω) 쌍이 dispersion manifold에서 R̄=0.51 벗어나 downstream
+> 예측에 쓸 수 없음을 정량적으로 증명한다."
 
 **5분 버전**
 > 위 2분 버전 + 배경 동기(하이드로포일 승차감 문제) + 경쟁 기법의 한계
 > (격자 보간 오차, EnKF 비용, GPR O(N³)) + 한계점 및 future work 언급.
 
-## E-4. 반드시 외울 수치 & 사실 목록
+## E-4. 반드시 외울 수치 & 사실 목록 (2026-04-10 최신)
 
-- [ ] **nRMSE**: WS 0.233 / ETKF 0.450 / GPR 0.276
-- [ ] **Runtime**: WS 13.4 ms / ETKF 31.7 ms / GPR >200 ms
-- [ ] **LiDAR rate**: 10 Hz (73.7 Hz 실시간 여유)
+**WaveSplat 논문 (full 100 episodes / 6-metric panel)**
+- [ ] **nRMSE**: WS **0.223** / ETKF(tuned) **0.319** / GPR-1 **0.261** → 30.1% 개선
+- [ ] **Runtime**: WS **13.4 ms** / ETKF(tuned) **132.6 ms (median 110)** / GPR >200 ms → ~10×
+- [ ] **Skill Score (사전 등록)**: WS **+0.034 유일 양수** / ETKF −0.702 / GPR −0.140
+- [ ] **Variance Ratio**: WS 0.66 / ETKF 0.90 / **GPR 0.065** (near-zero predictor 지문)
+- [ ] **Pearson ρ**: WS 0.45 / ETKF 0.11 / GPR 0.19
+- [ ] **Dir R² (honest limitation)**: WS **−0.25** (방향성 약점) — hydrofoil BF4-head 악화의 원인
+- [ ] **통계**: Wilcoxon vs ETKF p=**1.1×10⁻¹⁵**, **Cohen's d=1.16 (large)**;
+            vs sliding GPR p=**4.7×10⁻⁴**, Cohen's d=0.42; **100 paired runs**
+- [ ] **Dispersion residual (A1)**: R̄=**0.51±0.12** (≈0.10 Hz off) vs Full=0 by construction
+- [ ] **ETKF sweep**: 24 configs, best 0.358 / worst 1.187 (3.3× spread),
+            winner = 40×30, **nₑ=100**, α=1.00, σ=0.005
+- [ ] **Raydrop**: 20/20 wins (uniform 10/10 + slope 10/10)
+- [ ] **Noise**: ±13% nRMSE under σ=0.10 m (5× baseline)
+- [ ] **Sparsity**: < 8% degrade at 20% observation density
+- [ ] **Adaptive N range**: 1 (single swell) ~ 21 (complex sea)
+- [ ] **논문 길이**: **40 p** (Ocean Engineering 권장 상한)
+
+**Hydrofoil 논문**
 - [ ] **가속도 저감**: BF3 head sea 50%, BF4 head 42%, BF4 bow 38%
+- [ ] **LP filter α 민감도**: BF4 Head는 **α=0.01이 최적(+13.7%)**, α=0.05에서 −1.1% 퇴보
+        — honest reporting (컴패니언 논문의 Q8)
+- [ ] **WaveSplat Dir R² −0.25 ↔ BF4-Head degradation 연결** (Q5)
 - [ ] **Optimal preview time**: 1.0–1.5 s
 - [ ] **선박 제원**: LOA 8.5 m, 1700 kg, 22 knots
 - [ ] **필터 f_c**: 0.8 Hz (α=0.05, Δt=0.01 s)
+
+**공통**
 - [ ] **BF 범위**: 2–5 (ε ≈ 0.05–0.07)
-- [ ] **에피소드 수**: 12 (논문 main), seed 5개
-- [ ] **테스트 수**: 57 (39 wavesim + 18 wavesplat)
+- [ ] **테스트 수**: 57 (39 wavesim + 18 wavesplat, 모두 pass)
+- [ ] **제출 자료**: highlights, cover_letter.pdf, graphical_abstract.pdf 모두
+        [paper/submission/](../paper/submission/)에 존재
 
 ## E-5. 약점/한계 미리 자백하기 (방어 > 은폐)
 

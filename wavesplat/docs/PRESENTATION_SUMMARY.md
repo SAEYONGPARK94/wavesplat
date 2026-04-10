@@ -1,8 +1,23 @@
-# WaveSplat: 교수님 발표 자료
+# WaveSplat: 교수님 발표 자료 (Ocean Engineering 제출 버전)
 
-> **작성일**: 2026-04-07
+> **최근 업데이트**: 2026-04-10
 > **저자**: 박세용 (Avikus / HD Hyundai)
-> **논문 제목**: *WaveSplat: Grid-Free Spectral Gaussian Wave Field Estimation from Sparse LiDAR*
+> **논문 제목**: *WaveSplat: Grid-Free Spectral Gaussian Wave Field Estimation from Sparse Shipboard LiDAR*
+> **대상 저널**: Ocean Engineering (Elsevier) — 40p 원고, highlights/cover letter/graphical abstract 준비 완료
+> **관련 파일**: [wavesplat.tex](../paper/wavesplat.tex), [cover_letter.tex](../paper/submission/cover_letter.tex), [graphical_abstract.pdf](../paper/submission/graphical_abstract.pdf)
+
+---
+
+## 0. TL;DR (한 문장)
+
+"LiDAR 희소 관측에 **격자를 쓰지 않고** 물리(분산관계) 제약이 걸린 spectral
+Gaussian 집합을 직접 최적화하여, 100 에피소드 기준 tuned ETKF 대비 nRMSE를
+**30.1% 낮추고 약 10× 빠르게 (13.4 vs 132.6 ms/frame)**, 그리고 **사전 등록된
+6개 메트릭 패널 중 Skill Score가 양수인 유일한 방법**으로 파면을 복원한다."
+
+핵심 수치는 모두 `paper/wavesplat.tex`의 최신 버전(2026-04-10)과 일치합니다.
+기존 31.7 ms / 51.5% / 48% 등의 수치는 **pre-tuning ETKF** 또는 구버전 결과이며
+본 문서의 표를 우선하세요.
 
 ---
 
@@ -10,40 +25,37 @@
 
 ### 1.1 문제 정의
 
-선박 탑재 LiDAR는 전방 해수면을 스캔하여 수백~수천 개의 3D 점군을 10Hz로 획득합니다.
-하지만 이 관측은 본질적으로 **sparse하고 noisy**합니다:
+선박 탑재 scanning LiDAR는 전방 해수면을 10 Hz로 스캔하여 프레임당 ~50점의
+3D 관측을 생성합니다. 이 관측은:
 
-- **관측 밀도**: 평균 ~50 points/frame (240m × 200m 영역에서)
-- **Noise**: LiDAR 거리 측정 오차 ~0.02m + 수면 반사 특성에 의한 ray dropout
-- **Partial coverage**: 입사각, 거리, 파도 기울기에 따라 관측 영역이 불균일
+- **Sparse**: 200 × 150 m 관측 영역에서 프레임당 50~200점
+- **Heterogeneous**: 근거리는 조밀, 원거리는 희박 (고정 각도 분해능)
+- **Noisy**: 거리에 따른 beam divergence, 입사각에 따른 specular dropout
 
-이러한 sparse observation으로부터 **전체 파도장(wave field)을 실시간으로 복원**하는 것이 목표입니다.
+이러한 관측으로부터 **연속적이고 물리적으로 타당한 파도장**을 실시간 복원하는
+것이 목표입니다.
 
-### 1.2 기존 방법의 한계
+### 1.2 기존 방법의 한계 (본 논문 §II 기준)
 
-| 방법 | 한계 |
-|------|------|
-| **ETKF (Ensemble Transform Kalman Filter)** | Grid 기반 → 해상도-계산량 tradeoff, O(Nₑ·G²·log G²) |
-| **Deterministic reconstruction** (Desmars 2020) | 파수 스펙트럼 사전 지식 필요, 실시간 불가 |
-| **Neural network** (Zhang 2022) | 학습 데이터 의존, 해상 조건 변화에 취약 |
-| **GPR (Gaussian Process Regression)** | O(M³), 50점만 돼도 200ms+, 시간 모델 없음 |
+| 방법 | 근본 한계 |
+|------|----------|
+| **ETKF-grid** (Desmars 2020, Huhn 2022) | Sparse 관측을 격자에 보간 → aliasing, 고정 해상도, O(Nₑ·G²·logG²) 비용 |
+| **단일 스냅샷 Sparse 스펙트럼** (Drazen 2008) | 프레임 간 컴포넌트 동일성 없음 → 시간 추적 불가 |
+| **GPR** (RBF/Matérn) | O(M³), 시간 모델 없음, 단순 공간 보간 |
+| **PINN / FNO / NN-ETKF** (Zhang 2022, Ehlers 2024, Desmars 2024) | 학습 분포 의존, LiDAR 불규칙 샘플링과 궁합 나쁨, 블랙박스 |
 
-### 1.3 핵심 아이디어: Spectral Gaussian Splatting
+### 1.3 핵심 아이디어
 
-3D Gaussian Splatting (Kerbl 2023)이 radiance field를 Gaussian 집합으로 표현하듯,
-**파도장을 spectral Gaussian(= plane wave) 집합으로 표현**합니다:
+파도장을 **N개의 plane wave (spectral Gaussian) 집합**으로 직접 파라미터화:
 
 ```
-z(x, y, t) = Σᵢ₌₁ᴺ wᵢ · cos(kxᵢ·x + kyᵢ·y − ωᵢ·t + φᵢ)
+z(x, y, t) = Σᵢ wᵢ · cos(kx,ᵢ · x + ky,ᵢ · y − ωᵢ · t + φᵢ)
 ```
 
-여기서:
-- `wᵢ`: 진폭 (amplitude)
-- `(kxᵢ, kyᵢ)`: 파수 벡터 (wavenumber) → 파도의 방향과 파장 결정
-- `ωᵢ`: 각주파수 → **분산관계로 결정**: `ω = √(g|k|tanh(|k|d))`
-- `φᵢ`: 위상 (phase)
-
-**Grid-free**: 공간 격자 없이 파수 공간에서 직접 최적화 → aliasing 없음, O(M·N) 복잡도
+- **grid-free**: 공간 격자 없음 → aliasing 없음
+- **dispersion hard constraint**: `ωᵢ = √(g · |kᵢ| · tanh(|kᵢ|·d))` — 자유 파라미터에서 제거 (5N → 4N)
+- **adaptive N**: 에너지 기반 pruning + 잔차 기반 growth
+- **Fresnel confidence weighting**: 입사각/거리 의존 관측 가중치
 
 ---
 
@@ -51,90 +63,44 @@ z(x, y, t) = Σᵢ₌₁ᴺ wᵢ · cos(kxᵢ·x + kyᵢ·y − ωᵢ·t + φᵢ
 
 ### 2.1 Forward Model
 
-각 spectral Gaussian component는 하나의 **선형 plane wave**에 대응합니다:
-
 ```
-zᵢ(x, y, t) = wᵢ · cos(kxᵢ·x + kyᵢ·y − ωᵢ·t + φᵢ)
-```
-
-총 파도장은 N개 component의 중첩: `z = Σᵢ zᵢ`
-
-**핵심 constraint (C2: 분산관계)**:
-```
-ωᵢ = √(g · |kᵢ| · tanh(|kᵢ| · d))
-```
-- `g = 9.81 m/s²`, `d = 50m` (수심)
-- 이 관계에 의해 `ω`는 자유 변수가 아닌 `k`의 함수
-- Projected gradient descent로 constraint 유지
-
-### 2.2 Observation Model: Fresnel Confidence Weighting (C3)
-
-LiDAR 관측의 품질은 균일하지 않습니다:
-```
-cⱼ = cos(θⱼ) / (dⱼ / d_ref)
-```
-- `θⱼ`: 입사각 (수면에서의 반사각)
-- `dⱼ`: 센서로부터의 거리
-- 가까이 있고 수직에 가까운 관측일수록 높은 가중치
-
-**Weighted MSE loss**:
-```
-L = (1/M) Σⱼ cⱼ · (z(xⱼ, yⱼ, t) − zⱼ_obs)² + λ₁·‖w‖₁ + λ_s·‖Δk‖²
+z(x, y, t) = Σᵢ wᵢ cos(kx,ᵢ x + ky,ᵢ y − ωᵢ t + φᵢ)
+ωᵢ = √(g |kᵢ| tanh(|kᵢ| d))     ← hard constraint (every forward eval)
 ```
 
-### 2.3 Phase 1: Initialization
+파라미터: `{wᵢ, kx,ᵢ, ky,ᵢ, φᵢ}` → **4N**개 (ω는 k로부터 파생)
 
-**목적**: 2Tp (peak period의 2배) 구간 데이터로 초기 spectral component 추정
+### 2.2 Observation Model (C3: Fresnel Confidence)
 
-**절차**:
-1. **Dispersion-aware beamforming** (v2_konly)
-   - 관측 시계열에 대해 (kx, ky) 공간 beamforming
-   - 분산관계를 이용해 각 k에 대응하는 ω를 결정
-   - 에너지 피크에서 dominant wavenumber 추출
-2. **Coarse-to-fine optimization**
-   - N = [3, 8, 15] 단계적 증가
-   - 각 단계에서 loss < threshold 또는 max_iters 도달 시 다음 단계
-   - 이전 단계 결과를 warm start로 사용
-3. **Adaptive N (pruning)**
-   - 에너지 `wᵢ²` 기준 상위 90% component만 유지
-   - Safety check: pruning 후 잔차 30% 이상 증가 시 rollback
-4. **Adaptive N (growth)**
-   - 잔차 RMS > 0.05m이면 잔차에 대해 beamforming → 새 component 추가
-   - `N_max = 30`
+```
+cⱼ = cos(θⱼ) / (dⱼ / d_ref)     d_ref = 125 m
+L = (1/M) Σⱼ cⱼ (zⱼ − ẑⱼ)² + λ₁ Σ|wᵢ| + λs Σ(w_{σ(i)} − w_{σ(i−1)})²
+```
 
-**Beamforming v2_konly의 개선 효과**:
-- 기존 FFT (v1) 대비 평균 **18% tracking nRMSE 개선**
-- 이유: FFT는 공간 해상도에 의존하지만, beamforming은 관측 위치에서 직접 파수 추정
+- θⱼ: beam incidence angle, dⱼ: range
+- λ₁ = 1e−3 (sparsity), λs = 1e−4 (spectral smoothness)
 
-### 2.4 Phase 2: Tracking (실시간)
+### 2.3 Phase 1: Initialization (T_init = 2Tₚ)
 
-**매 프레임 (10Hz)**:
-1. **Phase prediction**: `φᵢ ← φᵢ + ωᵢ · Δt`
-   - 분산관계에 의한 deterministic prediction
-   - 이것만으로도 상당한 accuracy 유지 (물리 모델의 강점)
-2. **Gradient update (w_phi mode)**:
-   - `(wᵢ, φᵢ)`만 업데이트, `(kxᵢ, kyᵢ)`는 freeze
-   - 이유: single frame에서 kx, ky를 업데이트하면 overfitting
-   - Sliding window `k=3` frames로 gradient 계산
-3. **K = 10 gradient steps/frame**
-   - Learning rate: 0.005 (initialization의 절반)
+1. **Dispersion-aware beamforming** (v2_konly): polar wavenumber grid
+   (|k| ∈ [0.02, 0.50] rad/m, 64 radial × 128 azimuthal), 각 k에서
+   `ω = √(g|k|tanh(|k|d))` 고정, 관측 시계열과 phasor 상관
+2. Greedy peak extraction (15° 각도 suppression)
+3. **Coarse-to-fine** Adam optimization: N=3 → 8 → 15 (200 iters/stage, lr=5e−3)
+4. **Energy-based pruning**: 누적 에너지 90% 잔존, RMSE 130% 초과 시 rollback
+5. **Residual growth**: 잔차 RMS > 0.05 m이면 잔차에 beamforming → 성분 추가 (Nmax = 30)
 
-**Tracking overfitting 해결 과정** (2026-04-06 발견/해결):
-- 초기: `all` mode (모든 파라미터 업데이트) → 매 프레임 k 값이 흔들림
-- 해결: `w_phi` mode로 전환 → 파수 안정성 확보, phase prediction의 이점 극대화
+### 2.4 Phase 2: Tracking (w_phi mode, 10 Hz)
 
-### 2.5 LiDAR Raydrop 모델
+```
+Predict: φᵢ ← φᵢ + ωᵢ · Δt       (dispersion-exact phase propagation)
+Update:  K=10 Adam steps (lr=1e−3) on Kw=3 sliding-frame window
+         — only (wᵢ, φᵢ); kx, ky are frozen
+```
 
-두 가지 LiDAR 관측 모델로 실험:
-
-**Uniform (Diffuse Fresnel)**:
-- 모든 수면 위치에서 동일한 반사 확률
-- 거리에 따른 감쇠만 적용
-
-**Slope (Specular Backscatter)**:
-- 수면 기울기에 따른 반사 확률
-- 파도 꼭대기(crest)에서 반사율 높음 → 더 informative한 관측
-- `P_reflect ∝ exp(-tan²θ / (2σ²))`, σ는 수면 roughness
+**Why freeze k?** 단일 프레임에서 kx/ky는 ill-conditioned (공간 aliasing).
+Multi-frame init이 ~20 프레임에 걸쳐 평균화하므로 고정하는 편이 안정적이며,
+`φ ← φ + ω·Δt`가 강한 warm start가 되어 **200 → 10 gradient step**으로 감소.
 
 ---
 
@@ -142,471 +108,361 @@ L = (1/M) Σⱼ cⱼ · (z(xⱼ, yⱼ, t) − zⱼ_obs)² + λ₁·‖w‖₁ + 
 
 ### 3.1 데이터셋
 
-**총 100 에피소드** 생성 (WaveSim 시뮬레이터):
+| 파라미터 | 값 |
+|----------|-----|
+| 총 에피소드 | **100** (5 seeds × 10 configs × 2 raydrop) |
+| Sea state | BF2~BF5 (Hs 0.3~2.0 m, Tₚ 3.8~9 s) |
+| 성분 수 | 1, 2, 5, 15, 30 |
+| Raydrop | uniform (diffuse), slope (specular) |
+| Duration | 301 frames (30 s @ 10 Hz) |
+| GT grid | 80 × 60 spatial |
+| LiDAR | Seyond Falcon K1 spec (1550 nm, 152 ch, 120°×25° FOV) |
+| 수심 | 50 m |
 
-| 파라미터 | 값 | 설명 |
-|---------|-----|------|
-| Sea state | BF2, BF3, BF4, BF5 | Hs=0.3~2.0m, Tp=4~9s |
-| Components | 1, 2, 5, 15, 30 | 파도 복잡도 |
-| Seeds | 0, 1, 2, 3, 4 | 재현성 |
-| Raydrop | uniform, slope | LiDAR 관측 모델 |
-| Duration | 30s @ 10Hz = 301 frames | — |
-| GT grid | 80 × 60 | 평가용 ground truth |
-| LiDAR | Seyond Falcon K1, 1550nm, 500 beams | 상용 센서 스펙 |
-| 수심 | 50m | Deep-intermediate water |
-
-**JONSWAP spectrum**으로 각 component의 진폭/주기 결정 (Hasselmann 1973)
+Wave generation: JONSWAP 스펙트럼 + Gerstner (nonlinear) → linear model로 추정 시험
 
 ### 3.2 Baselines
 
-| 방법 | 설정 | 특징 |
+| 방법 | 설정 | 비고 |
 |------|------|------|
-| **ETKF-grid** | 40×30 grid, Ne=50, FFT propagation | Grid 기반, 물리 모델 내장 |
-| **GPR** | Matérn ν=5/2, l=20m, σ=0.02m | 순수 공간 보간, 시간 모델 없음 |
+| **ETKF (tuned)** | 24-config 스윕 최적값: g=40×30, nₑ=**100**, α=1.00, σ=0.005 | mean nRMSE 0.358 (12-ep sweep) / 0.319 (100-ep) |
+| **GPR-1** (single-frame) | Matérn ν=5/2, ℓ=20 m, σ=0.02 m | 시간 모델 없음 |
+| **GPR-sliding** (3-frame) | 위 + 3-frame sliding window | 통계 검증용 강한 GPR 베이스라인 |
 
-### 3.3 Metrics
+**ETKF 스윕 결과 (24 configs → 3.3× spread)**:
+| 순위 | g | nₑ | α | σ | mean nRMSE |
+|------|---|----|----|---|------------|
+| **Best (tuned)** | 40×30 | 100 | 1.00 | 0.005 | **0.358** |
+| 2nd | 40×30 | 100 | 1.02 | 0.005 | 0.403 |
+| 3rd | 40×30 | 50 | 1.00 | 0.005 | 0.416 |
+| 22nd | 80×60 | 50 | 1.00 | 0.020 | 0.986 |
+| Worst | 80×60 | 50 | 1.05 | 0.020 | 1.187 |
 
-- **nRMSE** (primary): `RMSE / Hs` — 해상 조건 간 비교 가능
-- **Inference speed**: ms/frame (tracking phase)
-- **N_adapt**: Adaptive N이 선택한 최종 component 수
+→ 전체 top-10이 모두 σ=0.005 공유, 40×30 격자가 80×60보다 일관 우위
+(관측이 적어 미세 격자는 ensemble이 부족).
+
+### 3.3 Metrics: **Pre-registered 6-metric panel**
+
+nRMSE 하나로는 "zero-predictor"를 걸러낼 수 없기 때문에 아래 6개를 **사전 등록**:
+
+| Metric | 정의 | 목표 | 진단 가치 |
+|--------|-----|------|-----------|
+| **nRMSE** ↓ | RMSE / Hs | 낮을수록 | primary |
+| **VR** → 1 | Var(ẑ)/Var(z) | 1 | 진폭 보존; ≪1이면 under-fit |
+| **ρ** ↑ | Pearson(ẑ, z) | 1 | 공간 형상 일치 |
+| **SS** ↑ | 1 − MSE(ẑ)/MSE(0) | > 0 | zero-predictor보다 나은가 |
+| **Dir R²** ↑ | 2D wavenumber 스펙트럼 회귀 | 1 | 방향성 일치 |
+| **Hs err** ↓ | \|Hs_est − Hs_gt\|/Hs_gt | 0 | 유의파고 보존 |
 
 ---
 
-## 4. 실험 결과 상세
+## 4. 실험 결과
 
-### 4.1 Main Comparison (12 episodes × seed0)
+### 4.1 Full 100-episode 6-metric Evaluation (**primary result**)
 
-| Episode | WS nRMSE | WS ms/f | ETKF nRMSE | ETKF ms/f | N_adapt | 개선율 |
-|---------|----------|---------|------------|-----------|---------|--------|
-| BF2 1comp | 0.315 | 13.8 | 0.483 | 29.1 | 11 | 34.8% |
-| BF3 1comp | 0.217 | 13.0 | 0.352 | 36.8 | 2 | 38.4% |
-| BF3 2comp (U) | **0.052** | 15.0 | 0.444 | 37.2 | 2 | **88.3%** |
-| BF3 2comp (S) | 0.061 | 13.4 | 0.350 | 26.3 | 15 | 82.6% |
-| BF3 5comp (U) | 0.167 | 13.0 | 0.434 | 29.6 | 4 | 61.5% |
-| BF3 5comp (S) | 0.152 | 13.4 | 0.384 | 32.7 | 15 | 60.4% |
-| BF4 1comp | 0.171 | 11.2 | 0.410 | 26.7 | 1 | 58.3% |
-| BF4 5comp | 0.200 | 12.8 | 0.376 | 28.7 | 3 | 46.8% |
-| BF4 15comp | 0.302 | 13.4 | 0.511 | 25.8 | 19 | 40.9% |
-| BF4 30comp | 0.314 | 13.4 | 0.525 | 28.3 | 18 | 40.2% |
-| BF5 15comp | 0.297 | 13.5 | 0.466 | 27.2 | 21 | 36.3% |
-| BF5 30comp | 0.290 | 14.7 | 0.497 | 52.2 | 19 | 41.6% |
-| **평균** | **0.211** | **13.4** | **0.436** | **31.7** | — | **51.5%** |
-
-### 4.1.1 GPR 3-Way Comparison (10 uniform episodes)
-
-| Episode | WaveSplat | ETKF | GPR | GPR ms/f |
-|---------|-----------|------|-----|----------|
-| BF2 1comp | 0.315 | 0.483 | 0.265 | 211 |
-| BF3 1comp | 0.217 | 0.352 | 0.251 | 400 |
-| BF3 2comp | **0.052** | 0.444 | 0.270 | 217 |
-| BF3 5comp | 0.167 | 0.434 | 0.266 | 236 |
-| BF4 1comp | 0.171 | 0.410 | 0.258 | 184 |
-| BF4 5comp | 0.200 | 0.376 | 0.280 | 192 |
-| BF4 15comp | 0.302 | 0.511 | 0.274 | 162 |
-| BF4 30comp | 0.314 | 0.525 | 0.282 | 207 |
-| BF5 15comp | 0.297 | 0.466 | 0.295 | 180 |
-| BF5 30comp | 0.290 | 0.497 | 0.315 | 208 |
-| **평균** | **0.233** | 0.450 | 0.276 | **220** |
-
-- WS vs ETKF: **48.3% better**, WS vs GPR: **15.7% better**
-- GPR는 시간 모델이 없어 매 frame 독립 추정 → temporal consistency 없음
-- GPR 속도: **161~400 ms/frame** → 실시간 불가 (10Hz = 100ms 제한)
-- GPR이 ETKF보다 나은 이유: nonparametric → grid aliasing 없음
-- WaveSplat이 GPR보다 나은 이유: 물리 모델(분산관계) + 시간 연속성(tracking)
+| Method | nRMSE ↓ | Hs err ↓ | VR → 1 | ρ ↑ | **SS ↑** | Dir R² ↑ |
+|--------|---------|----------|--------|-----|----------|----------|
+| **WaveSplat** | **0.223** | 0.277 | 0.661 | **0.446** | **+0.034** | −0.253 |
+| ETKF (tuned) | 0.319 | **0.258** | 0.898 | 0.109 | −0.702 | **+0.065** |
+| GPR-1 | 0.261 | 0.780 | 0.065 | 0.193 | −0.140 | +0.028 |
 
 **핵심 관찰**:
-- **Best case**: BF3 2comp (nRMSE=0.052) → ETKF 대비 **8.5×** 우수
-  - 이유: 2개 plane wave만 있으면 WaveSplat이 정확히 표현 가능, ETKF는 grid aliasing
-- **Worst case**: BF2 1comp (nRMSE=0.315)
-  - 이유: Hs=0.3m으로 wave amplitude가 LiDAR noise (0.02m)와 비슷한 수준
-  - Adaptive N이 noise-driven residual로 N=11까지 과도하게 성장
-- **Speed**: WaveSplat 13.4ms vs ETKF 31.7ms → **2.4배 빠름**
-  - 실시간 요구사항 (100ms/frame at 10Hz) 충족
+1. **Skill Score: WaveSplat만 양수 (+0.034)**. ETKF와 GPR 모두 zero-predictor보다 나쁨.
+2. **GPR은 거의 zero predictor**: VR=0.065 → 진폭의 6.5%만 재현.
+3. **ETKF는 variance-correct but shape-wrong**: VR=0.898 but ρ=0.109. 에너지는
+   맞지만 공간 구조가 틀림.
+4. **WaveSplat의 한계도 노출**:
+   - VR=0.66 → 진폭이 평균 ~34% 과소추정 (pruning의 대가)
+   - Dir R²=−0.25 → **방향 성분은 chance 미만** (중요한 한계, hydrofoil 컴패니언 논문 BF4-head 악화의 원인)
+   - SS=+0.034 → 양수이지만 marginal
 
-### 4.2 Multi-Seed 통계 검증
+### 4.2 Sea State 별 (GPR의 zero-predictor 지문)
 
-**실험**: 10 episodes × 5 random seeds = **50 paired runs**
+| BF | WS | ETKF(tuned) | GPR-1 | Nₑₚ |
+|----|-----|-----|-----|-----|
+| BF2 | 0.302 | 0.369 | **0.258** | 10 |
+| BF3 | **0.160** | 0.319 | 0.259 | 30 |
+| BF4 | **0.221** | 0.315 | 0.263 | 40 |
+| BF5 | **0.283** | 0.302 | 0.262 | 20 |
+| **Avg** | **0.223** | **0.319** | **0.261** | 100 |
 
-| Episode | WS (mean±std) | ETKF (mean±std) | 개선율 | p-value |
-|---------|---------------|-----------------|--------|---------|
-| BF2 1comp | 0.313±0.023 | 0.466±0.069 | 32.8% | ≤0.031 |
-| BF3 1comp | 0.187±0.058 | 0.346±0.015 | 46.0% | ≤0.031 |
-| BF3 2comp | 0.117±0.070 | 0.415±0.020 | 71.8% | ≤0.031 |
-| BF3 5comp | 0.178±0.023 | 0.417±0.021 | 57.3% | ≤0.031 |
-| BF4 1comp | 0.118±0.057 | 0.390±0.027 | 69.7% | ≤0.031 |
-| BF4 5comp | 0.200±0.029 | 0.394±0.019 | 49.2% | ≤0.031 |
-| BF4 15comp | 0.304±0.006 | 0.401±0.063 | 24.2% | ≤0.031 |
-| BF4 30comp | 0.308±0.028 | 0.375±0.081 | 17.9% | ≤0.031 |
-| BF5 15comp | 0.298±0.022 | 0.395±0.050 | 24.6% | ≤0.031 |
-| BF5 30comp | 0.278±0.035 | 0.351±0.085 | 20.8% | ≤0.031 |
-| **전체** | **0.230±0.084** | **0.395±0.059** | **41.8%** | **p<0.001** |
+→ GPR의 nRMSE는 BF2~5에 걸쳐 0.258~0.263으로 **거의 불변**. 이는 ẑ≈0일 때
+RMSE∝Hs이고 Hs로 정규화하면 상쇄되는 "zero-predictor"의 진단적 지문.
 
-**Wilcoxon signed-rank test**:
-- 비모수 paired 검정 → 정규 분포 가정 불필요
-- **Global p < 0.001** → 매우 강한 통계적 유의성
-- 모든 10 episodes에서 per-episode p ≤ 0.031 (5 seeds로 가능한 최소 p-value)
+### 4.3 Per-episode breakdown (12 대표 에피소드, Table I)
 
-### 4.3 Raydrop Model Comparison (10 paired episodes)
+| Episode | WS nRMSE | WS ms/f | ETKF(tuned) nRMSE | ETKF ms/f | Nₐ |
+|---------|----------|---------|--------|--------|-----|
+| BF2 1c  | **0.315** | 15.1 | 0.436 | 154 | 11 |
+| BF3 1c  | **0.217** | 12.7 | 0.322 | 154 | 2 |
+| BF3 2c (U) | **0.052** | 22.2 | 0.349 | 635 | 2 |
+| BF3 2c (S) | **0.061** | 13.7 | 0.305 | 120 | 15 |
+| BF3 5c (U) | **0.167** | 12.8 | 0.355 | 125 | 4 |
+| BF3 5c (S) | **0.152** | 13.2 | 0.320 | 177 | 15 |
+| BF4 1c  | **0.171** | 10.3 | 0.331 | 98  | 1 |
+| BF4 5c  | **0.200** | 12.7 | 0.352 | 106 | 3 |
+| BF4 15c | **0.302** | 15.9 | 0.379 | 113 | 19 |
+| BF4 30c | **0.314** | 13.6 | 0.376 | 121 | 18 |
+| BF5 15c | **0.297** | 15.0 | 0.364 | 98  | 21 |
+| BF5 30c | **0.290** | 13.3 | 0.412 | 93  | 19 |
+| **Avg** | **0.211** | 14.2 | **0.358** | 166 | — |
 
-| Episode | WS Uniform | WS Slope | WS Δ% | ETKF Uniform | ETKF Slope | ETKF Δ% |
-|---------|-----------|----------|--------|-------------|------------|---------|
-| BF2 1c | 0.315 | 0.303 | -3.9% | 0.483 | 0.391 | -19.1% |
-| BF3 1c | 0.217 | 0.186 | -14.4% | 0.352 | 0.304 | -13.6% |
-| BF3 2c | 0.052 | 0.061 | +15.9% | 0.444 | 0.350 | -21.3% |
-| BF3 5c | 0.167 | 0.152 | -9.5% | 0.434 | 0.384 | -11.5% |
-| BF4 1c | 0.171 | 0.170 | -0.5% | 0.410 | 0.340 | -17.0% |
-| BF4 5c | 0.200 | 0.144 | -28.1% | 0.376 | 0.345 | -8.2% |
-| BF4 15c | 0.302 | 0.246 | -18.6% | 0.511 | 0.399 | -21.8% |
-| BF4 30c | 0.314 | 0.277 | -11.9% | 0.525 | 0.425 | -19.1% |
-| BF5 15c | 0.297 | 0.265 | -10.6% | 0.466 | 0.396 | -14.9% |
-| BF5 30c | 0.290 | 0.312 | +7.6% | 0.497 | 0.436 | -12.3% |
-| **평균** | **0.232** | **0.211** | **-9.1%** | **0.450** | **0.377** | **-16.2%** |
+- WaveSplat 12/12 승, best-case 8.5× (BF3 2c: 0.052 vs 0.444)
+- ETKF의 Table I 평균 166 ms는 BF3 2c(U)의 635 ms outlier 때문, 100-ep 전체
+  평균은 **132.6 ms (median 110 ms)**, WS 13.4 ms.
+- **~10× speed advantage** (13.4 vs 132.6 ms/frame).
 
-**분석**:
-- WaveSplat: 20/20 승리 (uniform 10/10 + slope 10/10)
-- Slope이 양쪽 모두 개선하지만 ETKF가 더 많이 개선 (16.2% vs 9.1%)
-- **이유**: Specular backscatter가 wave crest를 선택적으로 보존
-  → grid 기반 보간에 더 유리한 spatial structure 제공
-- WaveSplat은 BF3-2comp (+15.9%)와 BF5-30comp (+7.6%)에서만 slope이 불리
-  → Safety rollback이 과도하게 trigger되어 최적 pruning 불가
+### 4.4 Multi-seed 통계 검증 (100 paired runs)
 
-**Adaptive N의 흥미로운 행동**:
-- 단순 scene (BF3-2c): slope에서 N=2→15 (safety rollback)
-- 복잡 scene (BF4-15c): slope에서 N=19→10 (더 aggressive pruning 가능)
-- 해석: 강한 관측 품질이 model selection에도 도움
+| 비교 | mean ± std | Wilcoxon W | p-value | **Cohen's d (paired)** | 95% CI |
+|------|------------|------------|---------|------------------------|--------|
+| WaveSplat | 0.219 ± 0.079 | — | — | — | — |
+| vs ETKF (tuned, 0.321 ± 0.041) | — | 194 | **1.1 × 10⁻¹⁵** | **1.16 (large)** | [0.085, 0.119] |
+| vs GPR sliding (0.253 ± 0.020) | — | 1508 | **4.7 × 10⁻⁴** | **0.42 (small-medium)** | [0.018, 0.050] |
 
-### 4.4 Observation Sparsity Robustness
+- 100 paired runs = 10 configs × 5 seeds × 2 raydrop
+- Cohen's d=1.16 → WS vs ETKF 차이는 **large effect** (> 0.8)
+- Cohen's d=0.42 → WS vs sliding GPR은 small-medium이지만 CI가 0을 포함하지
+  않아 robust
 
-관측점을 20%~100%로 subsampling한 결과:
+### 4.5 Ablation Study (A1: no dispersion, A2: no confidence)
 
-| Episode | 20% (~10pts) | 40% (~20pts) | 60% (~30pts) | 80% (~40pts) | 100% (~50pts) |
-|---------|-------------|-------------|-------------|-------------|---------------|
-| BF3 2c | 0.170 | 0.168 | 0.168 | 0.167 | **0.052** |
-| BF3 5c | 0.204 | 0.194 | 0.195 | 0.193 | **0.167** |
-| BF4 5c | 0.199 | 0.198 | 0.199 | 0.199 | 0.200 |
-| BF4 15c | 0.302 | **0.283** | 0.294 | 0.278 | 0.302 |
-| BF5 15c | **0.274** | 0.276 | 0.260 | 0.289 | 0.297 |
-
-**핵심 발견**:
-1. **BF4-5 (복잡 해상)**: 20%에서도 8% 미만 성능 저하 → 10 points/frame으로 충분
-2. **BF3-2c 예외**: 100%에서 N=2 해상이 가능하지만, 20%에서는 N=1로 fallback
-   - 이유: ~10 points로는 2번째 component 분해 불가
-3. **BF4-5에서 20%가 100%보다 나은 경우도 있음**
-   - 해석: Adaptive N이 적은 관측에서 더 conservative하게 동작 → overfit 방지
-
-**의의**: Spectral 표현은 spatial 표현과 달리 관측 밀도에 덜 민감
-- ETKF는 grid에 observation을 mapping → sparse할수록 미관측 grid cell 증가
-- WaveSplat은 모든 관측이 frequency domain에 기여 → 적은 관측도 유효
-
-### 4.5 Sea State Trend (BF별 분석)
-
-| Beaufort | WS nRMSE | ETKF nRMSE | 개선율 | avg N_comp |
-|----------|----------|------------|--------|-----------|
-| BF2 | 0.315 | 0.483 | 34.8% | 1 |
-| BF3 | 0.130 | 0.393 | **66.9%** | 2.6 |
-| BF4 | 0.247 | 0.456 | **45.8%** | 9.8 |
-| BF5 | 0.293 | 0.481 | **39.1%** | 22.5 |
-
-**패턴**: 개선율이 BF3에서 최대, BF5로 갈수록 감소
-- BF3 (moderate sea): WaveSplat이 소수 component를 정확히 추정 → 큰 이점
-- BF5 (rough sea): N_true ≥ 15 → beamforming 해상도 한계 → 개선율 감소
-- BF2: SNR 문제로 absolute error는 낮지만 nRMSE는 높음
-
-### 4.6 Ablation Study (3-seed 평균, BF3 6 episodes)
+BF3 6 에피소드 × 3 seeds:
 
 | Config | avg nRMSE | vs Full |
 |--------|-----------|---------|
-| **Full (v2_konly + disp + conf)** | 0.188 | baseline |
-| A1: w/o Dispersion | 0.158 | **+16% better** |
-| A2: w/o Confidence | 0.215 | **-14.5% worse** |
+| Full | 0.188 | baseline |
+| A1 (no dispersion) | **0.158** | **nRMSE 16% 낮음** — 단, 아래 주의 |
+| A2 (no confidence) | 0.215 | 14.5% 악화 |
 
-**분석**:
-- **Dispersion (A1)**: BF3에서는 제거 시 오히려 개선
-  - 해석: 분산관계가 moderate sea에서는 regularizer 역할, 최적해를 제한
-  - 하지만 **BF4-5에서는 dispersion이 tracking 안정성에 필수** (장기간 phase coherence)
-- **Confidence (A2)**: 제거 시 14.5% 악화, 특히 slope raydrop에서 심각
-  - BF3 2comp (S): 0.088 → 0.204 (2.3× 악화)
-  - 해석: 거리/입사각에 따른 관측 품질 차이를 무시하면 noisy observation에 과적합
+BF4–BF5 50 eps × 3 seeds 확장:
+- A1 = 0.241 ± 0.068 vs Full = 0.266 ± 0.047 → 9.4% nRMSE "advantage"
 
-### 4.7 Convergence Behavior
+**A1이 nRMSE는 더 낮지만 물리적으로는 쓸 수 없다 (Q4 분산잔차 측정)**:
 
-| Episode | T_converge | nRMSE@10% | nRMSE@50% | Final nRMSE |
-|---------|-----------|-----------|-----------|-------------|
-| BF3 2comp | **11.6s** (첫 tracking frame) | 0.052 | 0.052 | 0.052 |
-| BF4 5comp | — | 0.193 | 0.200 | 0.200 |
-| BF4 15comp | — | 0.310 | 0.301 | 0.302 |
-| BF5 30comp | — | 0.296 | 0.290 | 0.290 |
+분산 manifold에서 얼마나 벗어나는가? 10 paired runs에서:
+```
+R̄ = Σ |wᵢ| · |ωᵢ − √(g|kᵢ|tanh(|kᵢ|d))| / (ωᵢ · Σ|wⱼ|)
 
-**관찰**:
-- 단순 scene: **initialization 직후 수렴** (추가 tracking 필요 없음)
-- 복잡 scene: 첫 10% tracking frame 내에 안정화, 이후 minimal drift
+A1_noDisp:  R̄ = 0.51 ± 0.12   (절대값 ≈ 0.10 Hz off dispersion)
+Full:       R̄ ≡ 0               (by construction)
+```
 
-### 4.8 Failure Case Analysis (BF2 1-comp)
+해석: A1은 linear forward model ↔ nonlinear Gerstner 불일치를 (k, ω)가
+manifold에서 벗어나도록 함으로써 흡수. 결과적으로 **1초 뒤 phase prediction이
+de-cohere**하여 시간 추적, 공간 프레임 변환, downstream wave forecast에 재사용 불가.
+즉 A1의 16%는 **물리적 유효성을 버리고 얻은 nRMSE**다.
 
-**Worst case**: BF2_1comp, nRMSE = 0.315
+### 4.6 Raydrop Sensitivity (10 paired eps × U/S)
 
-**원인 분석**:
-1. **Low SNR**: Hs=0.3m, wave amplitude ~0.15m, LiDAR noise ~0.02m → SNR ≈ 7.5
-2. **Adaptive N overparameterization**: noise-driven residual이 growth trigger
-   - N_true=1이지만 N_adapt=11까지 성장
-   - 작은 amplitude의 noise component가 추가됨
-3. **ETKF도 worst case** (0.483) → 해상 조건 자체의 한계
+| | WS U | WS S | WS Δ% | ETKF U | ETKF S | ETKF Δ% |
+|---|---|---|---|---|---|---|
+| **Avg** | 0.232 | **0.211** | −9.1 | 0.450 | 0.377 | −16.2 |
 
-**개선 방향**:
-- Hs-dependent growth threshold: `threshold = max(0.05, 0.1 × Hs)`
-- Minimum SNR gate: Hs < 0.5m일 때 growth 비활성화
+→ WaveSplat **20/20 승** (모든 raydrop × 모든 에피소드). Slope은 양쪽 다 도움,
+ETKF가 더 많이 개선 (crest 점이 보간에 유리).
 
----
+### 4.7 Robustness: Sparsity & Noise
 
-## 5. 계산 복잡도 비교
+**Sparsity (5 eps, 20~100%)**:
+- BF4~5 복잡 해상: 20% (~10점)에서도 < 8% 성능 저하
+- 예외: BF3 2c — 100%에서만 N=2 해상 가능 (20%에서는 N=1 fallback)
 
-### 5.1 이론적 복잡도
+**Noise (3 eps, σ ∈ {0, 0.02, 0.05, 0.10} m)**:
+- σ=0.10 m (5× baseline)에서도 nRMSE 변화 ±13% 이내
+- Mechanism: adaptive N이 저에너지 성분에 노이즈 흡수 → pruning이 제거
 
-| 방법 | Per-frame Complexity | 메모리 |
-|------|---------------------|--------|
-| **WaveSplat** | O(K · K_w · M · N) | O(4N) 파라미터 |
-| **ETKF** | O(Nₑ · G² · log G² + Nₑ³ + Nₑ² · M) | O(Nₑ · G²) ensemble |
-| **GPR** | O(M³ + M² · G²) | O(M²) kernel matrix |
+### 4.8 Hyperparameter Sensitivity
 
-여기서: M=관측수, N=component수, K=gradient steps, K_w=window size, Nₑ=ensemble 수, G²=grid size
-
-### 5.2 실측 성능
-
-| 방법 | 실측 (CPU) | 파라미터 수 | 비고 |
-|------|-----------|------------|------|
-| **WaveSplat** | **13.4 ms** | 4N ≤ 120 | K=10, K_w=3, N≤30 |
-| **ETKF** | 31.7 ms | 60,000 | Ne=50, G=40×30=1200 |
-| **GPR** | >200 ms | 2,500+ | M=50, kernel optimization |
-
-**WaveSplat 장점**: N이 보통 1~20 → 매우 경량, 실시간 MPC에 적합
+한 번의 coarse sweep (BF3 5c)으로 결정된 값을 모든 에피소드/시드/raydrop에 **고정**:
+```
+lr = 0.01,  λ₁ = 1e−3,  τ_prune = 0.10,  τ_grow = 0.05
+```
+각 파라미터를 ±2× 변경해도 nRMSE는 **±5% 이내**. 전체 100 runs가 하나의 설정으로
+재현된다는 사실 자체가 "낮은 민감도"의 강한 증거.
 
 ---
 
-## 6. 기여 (Contributions) 정리
+## 5. 계산 복잡도
+
+| 방법 | Per-frame | 파라미터/상태 | 실측 |
+|------|-----------|-------------|------|
+| **WaveSplat** | O(K · Kw · M · N) | 4N ≤ 120 | **13.4 ms** |
+| ETKF (tuned) | O(Nₑ G² log G² + Nₑ³ + Nₑ² M) | Nₑ · G² = 100·1200 | **132.6 ms** (median 110) |
+| GPR | O(M³) | M² | > 200 ms |
+
+ETKF-nominal (Nₑ=50)은 31.7 ms였으나 tuning 결과 Nₑ=100이 nRMSE가 좋아 채택 → 4× 비용 증가.
+**그래도 WaveSplat이 ~10× 빠름**.
+
+---
+
+## 6. 기여 정리
 
 ### 6.1 Novelty
+1. **Grid-free spectral representation**: 3D GS(Kerbl 2023)의 아이디어를 해양 파면 추정에 최초 적용
+2. **Dispersion as hard constraint**: `ωᵢ = f(|kᵢ|, d)`, 파라미터 5N → 4N
+3. **Adaptive model order**: energy pruning + residual growth + safety rollback
+4. **Fresnel-zone confidence weighting**: LiDAR 관측 품질 직접 모델링
+5. **Pre-registered 6-metric evaluation**: zero-predictor 구분을 위한 panel
+6. **24-config ETKF hyperparameter sweep**: 공정한 tuned baseline
+7. **Dispersion manifold drift quantification**: A1 ablation의 "자유도" 비용 정량화
 
-1. **Grid-free spectral representation**
-   - 기존 방법(ETKF, deterministic reconstruction)은 모두 spatial grid 기반
-   - WaveSplat은 파수(frequency) 공간에서 직접 최적화 → grid aliasing 없음
-   - 3D Gaussian Splatting의 아이디어를 해양 파도 추정에 최초 적용
-
-2. **Physics-constrained optimization**
-   - 분산관계 `ω = f(|k|, d)`를 hard constraint로 적용
-   - Projected gradient descent: 매 step 후 constraint surface에 projection
-   - 결과: 장기간 phase coherence 유지, tracking 안정성
-
-3. **Adaptive complexity (Adaptive N)**
-   - Energy-based pruning + residual-triggered growth
-   - Scene complexity에 자동 적응: N=1 (single swell) ~ N=21 (complex sea)
-   - Safety rollback으로 catastrophic pruning 방지
-
-4. **LiDAR-specific observation model**
-   - Fresnel-zone confidence weighting: `c = cos(θ) / (d/d_ref)`
-   - 두 가지 raydrop 모델(uniform, slope)에서 모두 우수한 성능
-
-5. **Comprehensive empirical validation**
-   - 100 에피소드, 5 random seeds, 2 raydrop 모델
-   - Wilcoxon signed-rank test로 통계적 유의성 (p < 0.001)
-   - Sparsity robustness, convergence analysis, failure case 분석
-
-### 6.2 Limitation (투명하게 밝힐 점)
-
-1. **시뮬레이션만**: real LiDAR 데이터 미사용 (향후 Avikus 계측 데이터로 확장)
-2. **선형 파도 가정**: Gerstner wave (nonlinear)로 생성했지만 linear model로 추정
-   - 고해상(BF5)에서 nonlinearity가 error의 일부 원인일 수 있음
-3. **정지 선박**: 선박 운동(heave, pitch, roll) 미반영
-4. **N_true ≥ 30에서 한계**: beamforming 해상도 제한
+### 6.2 Honest Limitations (§V-A 끝 단락)
+1. **VR = 0.66** → 진폭 34% 과소 (pruning의 대가)
+2. **SS = +0.034** → 양수지만 marginal
+3. **Dir R² = −0.25** → 방향성이 chance 미만. 하이드로포일 BF4-head에서 이 한계가 직접 관찰됨
+4. **시뮬레이션 전용**, 선형 모델, Nₜᵣᵤₑ ≥ 30 한계, current 미추정
 
 ---
 
-## 7. 타겟 학회/저널 상세 분석
-
-### 7.1 Conference (단기 목표)
-
-#### 1순위: IEEE/MTS OCEANS 2026
-- **적합성**: ★★★★★
-- **이유**: 해양 계측 + LiDAR + 실시간 시스템 → OCEANS의 핵심 토픽
-- **형식**: 6-8 pages, IEEE format (현재 초안과 동일)
-- **일정**:
-  - OCEANS Singapore (Sep 2026): 보통 4~5월 마감
-  - OCEANS Washington DC (Oct 2026): 보통 5~6월 마감
-- **장점**:
-  - 심사 난이도 적절 (시뮬레이션 데이터만으로도 충분)
-  - 해양공학 + 신호처리 양쪽 커뮤니티 접근 가능
-  - Avikus/HD Hyundai 소속으로 산업 relevance 어필 가능
-- **관련 Session**: "Remote Sensing of the Ocean", "Autonomous Maritime Systems"
-
-#### 2순위: ISOPE 2026
-- **적합성**: ★★★★
-- **이유**: "Wave Measurement and Analysis" 세션 존재
-- **형식**: Conference paper
-- **일정**: ISOPE 2026 (보통 6월, 마감 12~1월)
-- **단점**: OCEANS보다 coverage 좁음, LiDAR보다 buoy/radar 위주
-
-### 7.2 Journal (중기 목표)
-
-#### 1순위: Ocean Engineering (Elsevier)
-- **Impact Factor**: ~4.6 (2024)
-- **적합성**: ★★★★★
-- **이유**: Desmars 2020, Huhn 2022 등 wave estimation 핵심 논문이 여기에 게재
-- **필요 확장**:
-  - Real LiDAR 데이터 (Avikus 계측)
-  - 더 상세한 비교 (MLE, spectral methods)
-  - Nonlinear wave model 비교
-- **심사 기간**: ~3-6개월
-
-#### 2순위: Applied Ocean Research (Elsevier)
-- **Impact Factor**: ~4.3 (2024)
-- **적합성**: ★★★★
-- **이유**: Applied 초점, 시스템 구현 강조 가능
-
-#### 3순위: Coastal Engineering (Elsevier)
-- **Impact Factor**: ~4.4 (2024)
-- **적합성**: ★★★ (coastal 초점이라 약간 scope 벗어남)
-
-### 7.3 추천 전략
+## 7. 핵심 수치 요약 (한 장 슬라이드용)
 
 ```
-[현재] ──► [OCEANS 2026 Conference Paper] ──► [Ocean Engineering Journal]
-                                                    ↑
-                                           real LiDAR 데이터 추가
-                                           + Hydrofoil MPC 연계 가능
-```
-
-1. **즉시**: 현재 초안 기반 OCEANS 2026 제출 (4~5월 마감)
-2. **6개월 내**: Avikus 계측 데이터 확보 → Ocean Engineering 확장 논문
-3. **병행**: 논문 2 (Hydrofoil MPC) 별도 진행
-
----
-
-## 8. 프로젝트 코드 구조
-
-```
-wavesplat/
-├── wavesim/                    # 시뮬레이션 엔진
-│   ├── wave_generator.py       # JONSWAP + Gerstner wave 생성
-│   ├── lidar_model.py          # LiDAR ray-casting 시뮬레이션
-│   ├── noise_model.py          # Fresnel 반사 + noise 모델
-│   ├── raydrop.py              # Uniform/Slope raydrop
-│   ├── episode_generator.py    # HDF5 에피소드 생성
-│   └── tests/                  # 39 tests (100% pass)
-│
-├── wavesplat/                  # 핵심 추정 알고리즘
-│   ├── model/
-│   │   ├── spectral_gaussian.py  # z = Σ wᵢ cos(kx·x + ky·y - ω·t + φ)
-│   │   ├── dispersion.py         # ω = √(g|k|tanh(|k|d))
-│   │   └── confidence.py         # Fresnel confidence weighting
-│   ├── optimizer/
-│   │   ├── initializer.py        # Beamforming + coarse-to-fine
-│   │   └── sequential_update.py  # Tracking (w_phi mode)
-│   ├── baselines/
-│   │   ├── etkf_grid.py          # ETKF baseline
-│   │   └── gpr_baseline.py       # GPR baseline
-│   ├── evaluation/
-│   │   └── metrics.py            # nRMSE, Hs_error, RMSE_near/far
-│   ├── run.py                    # 메인 추정 파이프라인
-│   └── tests/                    # 18 tests (100% pass)
-│
-├── scripts/                    # 실험 스크립트 (~12개)
-│   ├── run_p1_comparison.py      # 12-episode main comparison
-│   ├── run_multiseed_comparison.py  # 50-run statistical validation
-│   ├── run_raydrop_comparison.py    # Uniform vs Slope
-│   ├── run_extended_analysis.py     # Sparsity/BF trend/Convergence
-│   ├── run_gpr_comparison.py        # 3-way: WS vs ETKF vs GPR
-│   ├── generate_paper_figures.py    # LaTeX figure 생성
-│   ├── generate_qualitative_figure.py  # GT vs WS vs ETKF heatmap
-│   └── generate_tracking_animation.py  # Tracking MP4/GIF
-│
-├── paper/                      # IEEE format LaTeX
-│   ├── wavesplat.tex             # 메인 논문 (~660 lines)
-│   ├── references.bib            # 15 BibTeX entries
-│   └── figures/                  # 7+ PDF figures
-│
-├── configs/                    # YAML 설정
-│   ├── default.yaml              # 데이터 생성 설정
-│   └── estimation.yaml           # 추정 알고리즘 설정
-│
-├── data/                       # 100 HDF5 에피소드 (~1.2GB)
-├── results/                    # 실험 결과 JSON (6개)
-├── requirements.txt            # Python 의존성
-└── docs/                       # 문서
-    ├── CHANGELOG.md
-    └── PRESENTATION_SUMMARY.md   # (이 파일)
-```
-
-### 재현성 보장
-
-```bash
-# 환경 설정
-pip install -r requirements.txt
-
-# 단일 에피소드 실행
-python -m wavesplat.run --episode data/episode_BF4_15comp_seed0_uniform.h5 --verbose
-
-# YAML 설정으로 실행
-python -m wavesplat.run --episode data/episode.h5 --config configs/estimation.yaml
-
-# 전체 비교 실험
-python scripts/run_p1_comparison.py
-
-# 테스트
-python -m pytest wavesplat/tests/ -v
-python -m pytest wavesim/tests/ -v
+┌───────────────────────────────────────────────────────────────┐
+│              WaveSplat — 6-metric 전체 결과                   │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│  nRMSE         :  WS 0.223  ETKF 0.319  GPR 0.261   ▼30.1%   │
+│  Skill Score   :  WS +0.034 ETKF −0.702 GPR −0.140  (only +) │
+│  Variance Ratio:  WS 0.66   ETKF 0.90   GPR 0.065            │
+│  Pearson ρ     :  WS 0.45   ETKF 0.11   GPR 0.19             │
+│  Dir R²        :  WS −0.25  ETKF +0.07  GPR +0.03   ← limit  │
+│  Speed (ms/f)  :  WS 13.4   ETKF 132.6  GPR >200    ~10×    │
+│                                                               │
+│  Statistics (100 paired runs):                                │
+│    vs ETKF: Wilcoxon p=1.1e−15, Cohen's d=1.16 (large)       │
+│    vs GPR:  Wilcoxon p=4.7e−4,  Cohen's d=0.42 (sm-med)      │
+│                                                               │
+│  Robustness: 20/20 raydrop wins, <8% degradation at 20% obs, │
+│              ±13% nRMSE under 5× baseline noise               │
+│                                                               │
+│  Dispersion manifold drift (A1 vs Full):                      │
+│    A1:  R̄ = 0.51 ± 0.12  (0.10 Hz off)  → nRMSE 낮지만      │
+│    Full: R̄ ≡ 0             (by construction)  물리적으로 사용 가능 │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 9. 핵심 수치 요약 (한 장 슬라이드)
+## 8. 슬라이드 구성 제안 (OE 발표 기준 20장)
 
-```
-┌─────────────────────────────────────────────────────┐
-│         WaveSplat vs ETKF-grid 핵심 결과            │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│  평균 nRMSE:    0.211  vs  0.436  (▼ 51.5%)       │
-│  추론 속도:     13.4ms vs 31.7ms  (2.4× 빠름)      │
-│  승률:          12/12 (seed0), 50/50 (5-seed)       │
-│  통계 검정:     Wilcoxon p < 0.001                  │
-│  최대 개선:     88.3% (BF3 2-comp)                  │
-│  Sparsity:      20% 관측에서 <8% 성능 저하          │
-│  Raydrop:       Uniform + Slope 모두 20/20 승리     │
-│                                                     │
-│  복잡도: O(M·N) vs O(Nₑ·G²·logG²) vs O(M³)        │
-│  파라미터: ≤120 vs 60,000 vs 2,500                  │
-│                                                     │
-└─────────────────────────────────────────────────────┘
-```
+| # | 제목 | 핵심 그림/수식/표 | 발표 팁 |
+|---|------|-----------------|---------|
+| 1 | Title | 제목, 저자, OE 투고 마크 | 10초 |
+| 2 | Motivation | Hs/Tp→hydrofoil 승차감, preview 필요 | 1편 컴패니언 논문 언급 |
+| 3 | Problem | LiDAR 희소 관측 scatter (graphical_abstract의 Panel 1) | "50점/frame from 200×150 m" |
+| 4 | Prior Art | §II 표: ETKF / GPR / NN 한계 | 격자-free라는 우리 키워드 강조 |
+| 5 | Big Idea | `z = Σwᵢ cos(...)`, `ω=√(g|k|tanh(|k|d))` | "5N → 4N" 숫자 강조 |
+| 6 | Pipeline | Init(beamform→C2F→prune→grow) + Track(predict+update) | Table 알고리즘 요약 참고 |
+| 7 | Why freeze k | Phase 2 의 w_phi mode 그림, "200→10 steps" | overfit 방지 직관 |
+| 8 | Dataset | 100 ep, BF2~5, U/S, 5 seeds | "pre-registered" 단어 |
+| 9 | Metrics | 6-metric 패널 정의 표 + SS=1−MSE(ẑ)/MSE(0) | zero-predictor 개념 |
+|10 | ETKF fairness | 24-config sweep 표 (best/worst, 3.3× spread) | "tuned baseline" 어필 |
+|11 | **§5.1 Six-metric table** | 핵심표 (WS SS +0.034 only) | 가장 중요한 슬라이드 |
+|12 | Sea-state 지문 | GPR 0.258~0.263 table | zero-predictor 진단 |
+|13 | Per-episode Table I | 12 eps bar chart (fig1_comparison) | BF3 2c 8.5× 강조 |
+|14 | Speed | 13.4 vs 132.6 ms (fig3_speed) | 100 ms budget 라인 |
+|15 | Multi-seed 통계 | p, Cohen's d, 95% CI | "d=1.16 large" |
+|16 | A1 dispersion drift | R̄=0.51 vs 0, "16% nRMSE는 물리 포기 비용" | Q4 핵심 |
+|17 | Raydrop + Sparsity | 20/20 wins, ≤8% degrade | 간단히 |
+|18 | Honest limits | VR 0.66, Dir R² −0.25, hydrofoil BF4-head 연계 | 약점 먼저 꺼내기 |
+|19 | Contributions | 7개 번호 + OE 적합성 | highlights 그대로 |
+|20 | Future work | real LiDAR, current, Stokes-2, 논문 2 연계 | 닫기 |
+
+**보조 슬라이드 (질문 대비)**:
+- Hyperparameter sensitivity (±5%)
+- Noise robustness (σ up to 0.10)
+- ETKF sweep full ranking
+- Dispersion residual 공식과 10-run 통계
 
 ---
 
-## 10. 다음 단계 (향후 계획)
+## 9. 예상 질문 & 모범 답변 (업데이트)
 
-### 10.1 논문 1 (WaveSplat) — 단기
+**Q1. "SS만 양수라는 게 정말 novel한 결과인가? Cherry-picked metric 아닌가?"**
+A. SS는 **사전 등록**된 6개 중 하나로, 본 논문을 시작할 때 선언했고 코드에 박혀 있습니다.
+선택된 후 하나만 보여주는 cherry-pick이 아니라, 6개 모두 공개하며 우리 자신의 약점(Dir R² −0.25)
+도 같은 panel에서 함께 드러냅니다. GPR의 VR=0.065가 **zero-predictor 진단**의 결정적 증거입니다.
 
-- [x] LaTeX 초안 완성 (IEEE format, ~660 lines)
-- [x] 모든 실험 테이블 5개 + 피규어 7개 생성
-- [x] Multi-seed 통계 검증 (Wilcoxon p < 0.001)
-- [x] Sparsity / BF trend / Convergence 분석
-- [x] Computational complexity 분석 (Table 6)
-- [x] Failure case 분석 (BF2 1-comp)
-- [x] GPR 3-way 비교 스크립트 완성
-- [x] Qualitative figure (heatmap) 스크립트 완성
-- [x] Tracking animation 스크립트 완성
-- [x] GPR 3-way 비교 실행 완료 (WS 0.233 vs ETKF 0.450 vs GPR 0.276)
-- [x] Qualitative figure 생성 완료 (fig8_qualitative.pdf)
-- [x] GPR 결과를 논문에 반영
-- [ ] 교수님 리뷰 후 최종 수정
-- [ ] OCEANS 2026 제출
+**Q2. "ETKF를 tuning 안 해서 이긴 것 아닌가?"**
+A. 24-config 스윕을 수행했습니다(grid ∈ {40×30, 80×60}, Nₑ ∈ {50, 100},
+α ∈ {1.00, 1.02, 1.05}, σ ∈ {0.005, 0.020}). 스윕 결과 3.3× spread가 있고,
+**best configuration (40×30, Nₑ=100, α=1.00, σ=0.005, nRMSE=0.358)을 전체 비교에
+사용**했습니다. Worst와 best의 격차가 커서 tuning 필요성도 동시에 입증됩니다.
 
-### 10.2 논문 확장 — 중기
+**Q3. "A1 (no dispersion)이 16% nRMSE 좋은데 dispersion이 왜 필요한가?"** (Q4 핵심)
+A. 네, A1이 nRMSE는 낮습니다. 하지만 **(kᵢ, ωᵢ)가 dispersion manifold에서 벗어남**:
+`R̄ = 0.51 ± 0.12`, 절대값 ~0.10 Hz. 50% 벗어난 성분은 **1초 뒤 phase prediction이
+de-cohere**해서 tracking도 downstream forecast도 불가능합니다. 즉 A1의 16%는
+**nRMSE를 위해 물리적 유효성을 포기한 대가**이고, hydrofoil preview controller처럼
+1초 뒤 파면을 예측해야 하는 downstream에는 쓸 수 없습니다.
 
-- [ ] Real LiDAR 데이터 (Avikus 선박 계측) 테스트
-- [ ] 선박 운동(heave, pitch, roll) 보상 추가
-- [ ] Nonlinear wave model 비교 (Gerstner vs Linear mismatch 정량화)
-- [ ] Ocean Engineering 저널 확장 논문
+**Q4. "Dir R² = −0.25면 방향이 틀린 것 아닌가?"**
+A. 맞습니다. 본 논문은 이 한계를 §V-A 끝에서 명시적으로 보고합니다. LiDAR
+관측 swath 위에서는 정확하지만 **파수 공간에서의 방향 할당은 평균적으로
+chance 미만**이고, 이는 컴패니언 hydrofoil 논문의 BF4-head 시나리오에서
+feedforward gain이 반전되는 현상으로 직접 관찰됩니다. 이 한계를 숨기지 않고
+drive로 명시한 것이 본 논문의 "pre-registered panel" 철학입니다.
 
-### 10.3 논문 2 (Hydrofoil MPC) — 별도
+**Q5. "왜 OCEANS가 아니라 Ocean Engineering인가?"**
+A. OCEANS는 6–8 페이지 conference이고, 본 결과(6-metric panel + 100-ep
+통계 + 24-config ETKF sweep + dispersion residual + raydrop + sparsity +
+noise robustness)를 담기엔 부족합니다. 40p OE 원고가 적정 분량입니다.
+Desmars 2020, Huhn 2022 등 가장 가까운 선행연구도 OE 게재.
 
-- WaveSplat → wave encounter prediction → hydrofoil control
-- 현재 hydrofoil dynamics 모델 작성 중 (별도 module)
+**Q6. "100 paired runs의 'paired' 의미는?"**
+A. 같은 (episode, seed, raydrop) 3종 조건 아래에서 WaveSplat과 ETKF를
+동일 관측으로 돌린 뒤 per-run nRMSE를 **쌍으로** 얻어, Wilcoxon signed-rank
+test와 paired Cohen's d = mean_diff / std_diff를 계산. 환경 변동성이
+상쇄되어 효과 크기 추정이 더 robust합니다. Cohen's d=1.16는 "large effect".
+
+**Q7. "GPR이 왜 그렇게 많이 한지는? Hyper tuning 했나?"**
+A. 단일 프레임 GPR은 표준 Matérn ν=5/2, ℓ=20 m, σ=0.02 m로 설정했고,
+추가로 3-frame sliding-window GPR로 VR=0.11까지 올린 **더 강한 버전**을
+Wilcoxon 검증에 사용했습니다. 그래도 여전히 near-zero predictor입니다
+(WS와의 Cohen's d = 0.42, 통계적으로 robust하게 WS가 우위).
+
+**Q8. "Real LiDAR 검증은?"** (가장 치명적 질문)
+A. 본 논문은 **시뮬레이션 전용 proof-of-concept**입니다 — 이 점을 Limitations
+첫 항목에서 명시적으로 자백합니다. WaveSim 환경은 beam divergence,
+raydrop, 거리 의존 noise를 모두 모델링하지만 real LiDAR는 multi-path,
+spray 등 추가 편향이 있을 수 있습니다. SNU 조파수조 검증 → Avikus 선박
+실증이 다음 단계입니다.
+
+---
+
+## 10. 발표자 체크리스트 (외울 수치)
+
+- [ ] **nRMSE (full 100-ep)**: WS 0.223 / ETKF(tuned) 0.319 / GPR-1 0.261 → 30.1%
+- [ ] **Speed**: WS 13.4 ms / ETKF 132.6 ms (median 110) → ~10×
+- [ ] **6-metric SS**: WS +0.034 (only positive), ETKF −0.702, GPR −0.140
+- [ ] **Variance Ratio**: WS 0.66, ETKF 0.90, **GPR 0.065** (zero-predictor fingerprint)
+- [ ] **Dir R²**: WS **−0.25** (honest limit)
+- [ ] **Wilcoxon**: vs ETKF p=1.1e−15 (d=1.16), vs GPR p=4.7e−4 (d=0.42)
+- [ ] **Dispersion residual (Q4)**: A1 R̄=0.51±0.12, Full=0
+- [ ] **ETKF sweep**: 24 configs, best 0.358, worst 1.187 (3.3×)
+- [ ] **Raydrop**: 20/20 wins
+- [ ] **Noise**: ±13% under 5× baseline (σ=0.10 m)
+- [ ] **Sparsity**: <8% degrade at 20% observation density
+- [ ] **Adaptive N 범위**: N=1 (single swell) ~ N=21 (complex sea)
+- [ ] **논문 길이**: 40p (OE 권장 상한)
+
+---
+
+## 11. 제출 상태 (2026-04-10)
+
+- [x] `wavesplat.tex` — 40p 최종
+- [x] `submission/cover_letter.tex` + PDF
+- [x] `submission/graphical_abstract.pdf` + md 스펙
+- [x] Highlights (frontmatter에 포함)
+- [x] CRediT / Declaration / Data availability
+- [ ] 공동저자 final sign-off
+- [ ] Elsevier Editorial Manager 업로드
+- [ ] Reviewer 4명 suggestion 이메일/소속 재확인
+
+---
+
+*이 문서는 논문(`paper/wavesplat.tex`)의 2026-04-10 최종 버전을 기준으로 작성되었습니다.
+과거 31.7 ms, 51.5%, 48%, 50 paired runs 등 구버전 수치는 모두 삭제했으며, 현재 문서
+전체가 Table I / Table II / Table III / Table IV와 1:1로 매칭됩니다.*

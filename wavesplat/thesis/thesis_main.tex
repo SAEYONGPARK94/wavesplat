@@ -1,0 +1,814 @@
+% ============================================================================
+% 서울대학교 공학 박사학위논문
+% Seoul National University Ph.D. Dissertation
+%
+% 주의: 본 서식은 SNU 대학원 학위논문 작성 지침을 참고하여 작성하였으나,
+%       제출 전 반드시 서울대학교 대학원 공식 양식과 대조 확인 필요.
+%       공식 양식: http://graduate.snu.ac.kr → 학사안내 → 학위논문 제출
+%
+% 작성: 박세용 (Saeyong Park)
+% 최초 작성: 2026-04
+% ============================================================================
+
+\documentclass[12pt,a4paper]{report}
+
+% ── 패키지 ──────────────────────────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage{kotex}                  % 한국어
+\usepackage{times}                  % Times New Roman (영문)
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{natbib}                 % 참고문헌
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{tocloft}                % TOC 스타일
+\usepackage{etoolbox}
+\usepackage{emptypage}              % 빈 페이지 헤더 제거
+
+% ── 페이지 여백 (SNU 기준: 상 3cm, 하 2.5cm, 좌 3cm, 우 2.5cm) ─────────────
+\geometry{
+  top=30mm,
+  bottom=25mm,
+  left=30mm,
+  right=25mm,
+  headheight=15pt
+}
+
+% ── 줄간격 (SNU 기준: 200%) ──────────────────────────────────────────────────
+\setstretch{2.0}
+
+% ── 한글 폰트 설정 ────────────────────────────────────────────────────────────
+% kotex 기본 사용; 필요 시 \setmainhangulfont{} 으로 변경
+% 바탕체 또는 신명조 권장
+
+% ── 헤더/푸터 ─────────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\fancyhead[L]{\leftmark}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── 목차 스타일 ───────────────────────────────────────────────────────────────
+\renewcommand{\contentsname}{목\quad 차}
+\renewcommand{\listfigurename}{그림 목차}
+\renewcommand{\listtablename}{표 목차}
+\renewcommand{\bibname}{참고문헌}
+
+% ── 그림/표 번호 (chapter.number 형식) ───────────────────────────────────────
+\numberwithin{equation}{chapter}
+\numberwithin{figure}{chapter}
+\numberwithin{table}{chapter}
+
+% ── hyperref 설정 ─────────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=blue,
+  urlcolor=blue,
+  pdftitle={선박 탑재 LiDAR 기반 실시간 파랑장 추정과 그 제어 응용},
+  pdfauthor={박세용},
+}
+
+% ── 단축 명령어 ───────────────────────────────────────────────────────────────
+\newcommand{\Hs}{H_{\mathrm{s}}}
+\newcommand{\Tp}{T_{\mathrm{p}}}
+\newcommand{\nRMSE}{\text{nRMSE}}
+\newcommand{\disp}{\mathrm{disp}}
+\newcommand{\WS}{\textsc{WaveSplat}}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+% ============================================================================
+\begin{document}
+
+% ── 페이지 번호 로마자 (표지 ~ 목차) ─────────────────────────────────────────
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+% ============================================================================
+% 표지 (Cover Page)
+% ============================================================================
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+
+\vspace*{2cm}
+
+{\Large \textbf{공학박사 학위논문}}
+
+\vspace{2cm}
+
+{\LARGE \textbf{선박 탑재 LiDAR 기반 실시간 파랑장 추정과\\[0.3em] 그 제어 응용}}
+
+\vspace{1cm}
+
+{\large \textbf{Real-Time Ocean Wave Field Estimation from\\[0.3em]
+Shipboard LiDAR and Its Control Applications}}
+
+\vspace{3cm}
+
+{\large 2026년 \quad 월}
+
+\vspace{2cm}
+
+{\large 서울대학교 대학원}\\[0.5em]
+{\large 조선해양공학과}   % ← 학과명 확인 필요
+
+\vspace{1.5cm}
+
+{\large 박\quad 세\quad 용}
+
+\end{center}
+\end{titlepage}
+
+% ============================================================================
+% 인준지 (Approval Page)
+% ============================================================================
+\newpage
+\thispagestyle{empty}
+\begin{center}
+
+\vspace*{2cm}
+
+{\large \textbf{선박 탑재 LiDAR 기반 실시간 파랑장 추정과 그 제어 응용}}
+
+\vspace{1cm}
+
+{\large 지도교수 \quad \todo{지도교수 성함}}
+
+\vspace{1cm}
+
+{\large 이 논문을 공학박사 학위논문으로 제출함}
+
+\vspace{0.5cm}
+
+{\large 2026년 \quad 월 \quad 일}
+
+\vspace{1.5cm}
+
+{\large 서울대학교 대학원}\\[0.5em]
+{\large 조선해양공학과}
+
+\vspace{0.5cm}
+
+{\large 박\quad 세\quad 용}
+
+\vspace{2cm}
+
+{\large 박세용의 공학박사 학위논문을 인준함}
+
+\vspace{0.5cm}
+
+{\large 2026년 \quad 월 \quad 일}
+
+\vspace{1.5cm}
+
+\begin{tabular}{rl}
+위원장 & \underline{\hspace{6cm}} \\[1.2em]
+부위원장 & \underline{\hspace{6cm}} \\[1.2em]
+위\quad 원 & \underline{\hspace{6cm}} \\[1.2em]
+위\quad 원 & \underline{\hspace{6cm}} \\[1.2em]
+위\quad 원 & \underline{\hspace{6cm}} \\
+\end{tabular}
+
+\end{center}
+
+% ============================================================================
+% 국문초록
+% ============================================================================
+\newpage
+\chapter*{초\quad 록}
+\addcontentsline{toc}{chapter}{초\quad 록}
+
+선박 탑재 스캐닝 LiDAR는 전방 해수면을 10\,Hz로 스캔하여 프레임당 약 50개의
+3차원 관측점을 생성한다. 이러한 희소하고 불균질한 관측으로부터
+연속적이고 물리적으로 타당한 파도장을 실시간으로 복원하는 것은,
+자율운항 선박의 안전·승차감·에너지 효율 향상과
+파랑 예측 기반 제어 응용을 위한 핵심 기술 과제이다.
+
+기존의 격자 기반 방법(Ensemble Transform Kalman Filter, ETKF)은
+희소 관측을 공간 격자에 보간하는 과정에서 aliasing이 발생하고,
+격자 해상도와 앙상블 크기에 따른 높은 계산 비용과 민감한 하이퍼파라미터 조정이
+요구된다는 근본적 한계를 가진다.
+
+본 논문은 격자를 사용하지 않는(grid-free) 스펙트럼 Gaussian 파면 표현에 기반한
+실시간 파도장 추정 알고리즘 \WS{}를 제안한다.
+파도장을 $N$개의 평면파(plane wave) 집합으로 직접 파라미터화하고,
+각주파수를 선형 분산관계
+$\omega_i = \sqrt{g|k_i|\tanh(|k_i|d)}$로 구속함으로써
+자유 파라미터를 $5N$에서 $4N$으로 감소시킨다.
+입사각과 거리에 의존하는 Fresnel 신뢰 가중치를 도입하여
+LiDAR 관측 품질의 공간적 불균질성을 직접 모델링한다.
+또한 에너지 기반 가지치기(pruning)와 잔차 기반 성장(growth)을 통해
+파도 성분 수 $N$을 관측된 해상(海象) 복잡도에 자동 적응시킨다.
+
+100개 에피소드(Beaufort 2--5 해상, 성분 수 1--30, 5개 시드, 2가지 raydrop 모델)에
+걸친 평가에서, \WS{}는 하이퍼파라미터를 최적화한 ETKF 대비 평균 nRMSE를
+\textbf{30.1\%} 낮추고 (\textbf{0.223} vs.\ \textbf{0.319}),
+처리 속도는 약 \textbf{10배} 빠른 \textbf{13.4\,ms/프레임}을 달성한다.
+사전 등록된 6개 지표 평가 패널에서 \WS{}는 zero-predictor 대비 양수의
+Skill Score를 기록한 유일한 방법임을 보인다.
+100회 대응 검증을 통한 Wilcoxon signed-rank 검정 결과
+($p = 1.1\times10^{-15}$, Cohen's $d = 1.16$)는 이 차이가
+통계적으로 매우 유의미한 large effect임을 확인한다.
+
+또한 본 논문은 \WS{}의 downstream 응용으로서,
+추정된 파랑 정보를 활용한 하이드로포일 선박의 2자유도 feedforward 제어
+알고리즘을 제안하고 시뮬레이션을 통해 검증한다.
+파랑 미리보기(preview) 기반 제어를 통해 승차감을 현저히 향상시킬 수 있음을
+보인다.
+
+\vspace{1em}
+\noindent\textbf{주요어:} 파도장 추정, 선박 탑재 LiDAR, 스펙트럼 방법,
+분산관계, 격자 비의존 표현, 실시간 추정, 하이드로포일 제어
+
+\noindent\textbf{학번:} \todo{학번}
+
+% ============================================================================
+% 영문초록
+% ============================================================================
+\newpage
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Shipboard scanning LiDAR generates approximately 50 three-dimensional
+observation points per frame by scanning the forward ocean surface at 10\,Hz.
+Recovering a continuous, physically valid wave field from these sparse and
+heterogeneous observations in real time is a critical enabling technology for
+autonomous vessel safety, ride comfort, and energy efficiency, as well as for
+wave-preview control applications.
+
+Existing grid-based methods such as the Ensemble Transform Kalman Filter
+(ETKF) suffer from aliasing introduced by interpolating sparse observations
+onto regular grids, high computational cost proportional to grid resolution
+and ensemble size, and sensitivity to hyperparameter tuning.
+
+This dissertation proposes \WS{}, a real-time ocean wave field estimation
+algorithm based on a grid-free spectral Gaussian wave field representation.
+The wave field is directly parameterized as a superposition of $N$ plane
+waves, with angular frequency constrained by the linear dispersion relation
+$\omega_i = \sqrt{g|k_i|\tanh(|k_i|d)}$, reducing free parameters from $5N$
+to $4N$. A Fresnel-zone confidence weighting scheme explicitly models the
+spatially heterogeneous quality of LiDAR observations as a function of
+incidence angle and range. An energy-based pruning and residual-triggered
+growth mechanism adapts the number of wave components $N$ to the observed
+sea state complexity.
+
+On a dataset of 100 episodes spanning Beaufort 2--5 sea states
+(1--30 wave components, 5 random seeds, 2 raydrop models), \WS{} achieves a
+\textbf{30.1\%} lower average nRMSE than a hyperparameter-tuned ETKF-grid
+baseline (\textbf{0.223} vs.\ \textbf{0.319}) while running approximately
+\textbf{10$\times$} faster (\textbf{13.4\,ms/frame}).
+A pre-registered six-metric evaluation panel shows that \WS{} is the only
+method with a positive Skill Score against a zero predictor.
+A 100-paired-run statistical validation confirms this improvement is highly
+significant ($p = 1.1\times10^{-15}$, Wilcoxon signed-rank;
+Cohen's $d = 1.16$, large effect).
+
+This dissertation further presents a downstream application of \WS{}: a
+two-degree-of-freedom feedforward control algorithm for hydrofoil vessels
+that leverages estimated wave field information for wave-preview ride comfort
+improvement. Simulation results demonstrate significant heave and pitch
+reduction compared to reactive controllers.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} wave field estimation, shipboard LiDAR, spectral
+methods, dispersion relation, grid-free representation, real-time estimation,
+hydrofoil control
+
+\noindent\textbf{Student Number:} \todo{student number}
+
+% ============================================================================
+% 목차 / 그림 목차 / 표 목차
+% ============================================================================
+\newpage
+\tableofcontents
+
+\newpage
+\listoffigures
+
+\newpage
+\listoftables
+
+% ============================================================================
+% 본문 시작 — 아라비아 숫자 페이지 번호
+% ============================================================================
+\newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% ============================================================================
+% 제1장. 서론
+% ============================================================================
+\chapter{서론}
+\label{chap:intro}
+
+\section{연구 배경 및 동기}
+\label{sec:motivation}
+
+자율운항 선박과 고속 수상 운송 수단의 발전에 따라,
+실시간으로 전방 해수면의 파도장을 인식하고 예측하는 능력이
+안전성, 에너지 효율, 그리고 승차감 측면에서 핵심 기술로 부상하고 있다.
+특히 하이드로포일 선박의 경우, 파랑 미리보기(wave preview) 정보를
+feedforward 제어에 활용하면 반응형 제어(reactive control) 대비
+현저히 향상된 승차감을 달성할 수 있다~\citep{todo}.
+
+선박 탑재 스캐닝 LiDAR는 전방 해수면을 비접촉으로 관측할 수 있는
+실용적 센서로, 10\,Hz의 스캔 속도와 200\,m 이상의 관측 거리를 제공한다.
+그러나 고정 각도 분해능에 의해 근거리는 조밀하고 원거리는 희박한
+불균질 관측 패턴을 생성하며, 빔 발산(beam divergence)과
+해수면 specular dropout에 의한 노이즈가 존재한다.
+이러한 희소(sparse)하고 불균질한 관측으로부터 연속적인 파도장을
+복원하는 것이 본 논문이 다루는 핵심 문제이다.
+
+\section{기존 연구의 한계}
+\label{sec:prior_limitations}
+
+기존의 선박 탑재 LiDAR 기반 파도장 추정 연구는 크게 두 가지 범주로 분류된다.
+
+\paragraph{격자 기반 방법 (Grid-based methods)}
+Ensemble Transform Kalman Filter (ETKF)~\citep{Desmars2020, Huhn2022}은
+파도장을 공간 격자 위에서 앙상블 상태로 추정하는 데이터 동화 방법이다.
+그러나 희소 LiDAR 관측을 격자에 보간하는 과정에서 aliasing이 발생하고,
+격자 해상도 $G^2$와 앙상블 크기 $N_e$의 곱에 비례하는 높은 계산 비용
+$\mathcal{O}(N_e G^2 \log G^2)$과 민감한 하이퍼파라미터 조정을 요구한다.
+
+\paragraph{격자 비의존 및 학습 기반 방법}
+Gaussian Process Regression (GPR)~\citep{todo}은 격자 없이 공간 보간을
+수행할 수 있으나 시간 모델이 없고 $\mathcal{O}(M^3)$ 계산 복잡도를 가진다.
+물리 정보 신경망(PINN)~\citep{Zhang2022}과 Fourier Neural Operator
+(FNO)~\citep{Ehlers2024}는 학습 분포에 의존적이며,
+LiDAR의 불규칙 샘플링 패턴과의 궁합이 좋지 않다.
+
+\section{연구 목적 및 기여}
+\label{sec:contributions}
+
+본 논문의 목적은 희소 선박 탑재 LiDAR 관측으로부터
+물리적으로 타당하고 계산 효율적인 실시간 파도장 추정 방법을 개발하고,
+이를 하이드로포일 선박의 파랑 예측 기반 제어에 응용하는 것이다.
+
+본 논문의 주요 기여는 다음과 같다:
+
+\begin{enumerate}
+  \item \textbf{격자 비의존 스펙트럼 Gaussian 파면 표현 (\WS{})}: \\
+        3D Gaussian Splatting~\citep{Kerbl2023}의 아이디어를 해양 파면 추정에
+        최초로 적용하여, 파도장을 $N$개의 평면파 집합으로 직접 파라미터화한다.
+
+  \item \textbf{분산관계 하드 제약}: \\
+        각주파수를 $\omega_i = \sqrt{g|k_i|\tanh(|k_i|d)}$로 구속하여
+        자유 파라미터를 $5N \to 4N$으로 감소시키고 물리적 유효성을 보장한다.
+
+  \item \textbf{적응형 성분 수 ($N$) 제어}: \\
+        에너지 기반 가지치기와 잔차 기반 성장을 통해
+        해상 복잡도에 자동 적응한다.
+
+  \item \textbf{Fresnel 신뢰 가중치}: \\
+        LiDAR 관측의 입사각·거리 의존 품질을 직접 모델링한다.
+
+  \item \textbf{사전 등록 6-지표 평가 패널}: \\
+        nRMSE 단일 지표로는 걸러낼 수 없는 zero-predictor를 진단하는
+        6개 지표를 사전 등록하여 공정한 비교를 수행한다.
+
+  \item \textbf{공정한 ETKF 기준선}: \\
+        24개 설정 하이퍼파라미터 스윕을 통해 최적화된 ETKF를 기준선으로 제공한다.
+
+  \item \textbf{파랑 예측 기반 하이드로포일 2DOF feedforward 제어}: \\
+        \WS{}의 파도장 추정 결과를 활용하는 downstream 제어 응용을 제시한다.
+\end{enumerate}
+
+\section{논문 구성}
+\label{sec:organization}
+
+본 논문의 구성은 다음과 같다.
+제2장에서는 관련 연구를 검토한다.
+제3장에서는 \WS{} 알고리즘의 방법론을 상세히 기술한다.
+제4장에서는 하이드로포일 feedforward 제어 알고리즘을 제시한다.
+제5장에서는 수조 실험 검증을 다룬다. % 추후 추가
+제6장에서는 결론과 향후 연구 방향을 논한다.
+
+% ============================================================================
+% 제2장. 관련 연구
+% ============================================================================
+\chapter{관련 연구}
+\label{chap:related}
+
+\section{선박 탑재 파랑 관측 센서}
+\label{sec:wave_sensing}
+
+해수면 파도장 관측을 위한 선박 탑재 센서는 크게 접촉식과 비접촉식으로 분류된다.
+Wave buoy와 선박 모션 센서(IMU 기반)는 단일 점에서의 파고 시계열을 제공하나
+공간 분포 정보를 얻을 수 없다.
+X-band 레이더는 넓은 관측 범위를 제공하나 해상도와 노이즈 특성에 제약이 있다.
+본 논문에서 다루는 선박 탑재 스캐닝 LiDAR는 높은 공간 분해능과 정밀한
+거리 측정 능력을 제공하며, solid-state 기술의 발전으로 실용화 단계에
+진입하고 있다~\citep{todo}.
+
+\section{격자 기반 파도장 추정}
+\label{sec:grid_methods}
+
+Desmars et al.~\citep{Desmars2020}은 Ensemble Transform Kalman Filter를
+선박 탑재 LiDAR 파도장 추정에 최초로 적용하였다.
+\todo{ETKF 관련 문헌 추가 검토 및 기술}
+
+Huhn et al.~\citep{Huhn2022}은 \todo{내용 기술}
+
+\section{격자 비의존 및 스펙트럼 방법}
+\label{sec:gridfree_methods}
+
+\todo{GPR, sparse spectral, PINN, FNO 관련 문헌 검토}
+
+\section{하이드로포일 선박 제어}
+\label{sec:hydrofoil_control}
+
+\todo{하이드로포일 관련 문헌 검토}
+
+% ============================================================================
+% 제3장. 격자 비의존 스펙트럼 파면 추정: WaveSplat
+% ============================================================================
+\chapter{격자 비의존 스펙트럼 파면 추정: \WS{}}
+\label{chap:wavesplat}
+
+% 이 챕터는 Paper 1 (Ocean Engineering 투고 원고)의 내용을 기반으로 함.
+% 본 챕터 내용의 출처:
+%   S. Park, "WaveSplat: Grid-Free Spectral Wave Field Estimation
+%   from Sparse Shipboard LiDAR," Ocean Engineering, 2026 (under review).
+%
+% Elsevier 저작권 정책에 따라 학위논문 수록 허용됨.
+% (ref: https://www.elsevier.com/about/policies-and-standards/copyright)
+
+\section{Forward 모델}
+\label{sec:forward}
+
+파도장을 $N$개의 spectral Gaussian(평면파) 집합으로 표현한다:
+\begin{equation}
+  z(\mathbf{x}, t) = \sum_{i=1}^{N}
+    w_i \cos\!\left(k_{x,i} x + k_{y,i} y - \omega_i t + \phi_i\right),
+  \label{eq:forward}
+\end{equation}
+여기서 $w_i$는 진폭, $(k_{x,i}, k_{y,i})$는 파수 벡터,
+$\omega_i$는 각주파수, $\phi_i$는 위상이다.
+
+\paragraph{분산관계 하드 제약}
+각주파수는 유한 수심 선형 분산관계에 의해 파수로부터 결정된다:
+\begin{equation}
+  \omega_i = \sqrt{g |k_i| \tanh(|k_i| d)}, \quad |k_i| = \sqrt{k_{x,i}^2 + k_{y,i}^2},
+  \label{eq:dispersion}
+\end{equation}
+여기서 $g$는 중력 가속도, $d$는 수심이다.
+이 제약은 매 forward 평가마다 강제하여 $5N$개의 자유 파라미터를 $4N$개로 감소시키고,
+추정된 파도장이 물리적으로 전파 가능한 중력파임을 보장한다.
+
+최적화 파라미터: $\Theta = \{w_i, k_{x,i}, k_{y,i}, \phi_i\}_{i=1}^{N}$.
+
+\section{관측 모델}
+\label{sec:observation}
+
+\subsection{Fresnel 신뢰 가중치}
+\label{sec:fresnel}
+
+LiDAR의 관측 신뢰도는 빔 입사각 $\theta_j$와 센서-관측점 거리 $d_j$에 의존한다.
+다음과 같이 신뢰 가중치를 정의한다:
+\begin{equation}
+  c_j = \frac{\cos\theta_j}{d_j / d_{\mathrm{ref}}}, \quad d_{\mathrm{ref}} = 125\,\text{m},
+  \label{eq:confidence}
+\end{equation}
+여기서 $\cos\theta_j$는 Lambertian 투영 인자를, $d_j/d_{\mathrm{ref}}$는
+역제곱 거리 감쇠를 근사한 항이다.
+
+\subsection{손실 함수}
+\label{sec:loss}
+
+전체 손실 함수는 다음과 같다:
+\begin{equation}
+  \mathcal{L}(\Theta) = \frac{1}{M}\sum_{j=1}^{M} c_j \bigl(z_j - \hat{z}_j\bigr)^2
+    + \lambda_1 \sum_{i=1}^{N}|w_i|
+    + \lambda_s \sum_{i=1}^{N-1}(w_{\sigma(i+1)} - w_{\sigma(i)})^2,
+  \label{eq:loss}
+\end{equation}
+여기서 $M$은 프레임당 관측 점 수, $\lambda_1 = 10^{-3}$(희소성 정규화),
+$\lambda_s = 10^{-4}$(스펙트럼 평활화)이다.
+
+\section{2단계 추정 파이프라인}
+\label{sec:pipeline}
+
+\subsection{Phase 1: 초기화}
+\label{sec:init}
+
+초기화 단계는 약 $2T_p$ 길이의 시간 창에서 수행되며 다음 절차로 구성된다:
+
+\begin{enumerate}
+  \item \textbf{분산 인식 빔포밍 (v2\_konly)}: \\
+        극 좌표 파수 격자 상에서 각 $|\mathbf{k}|$에 대해 분산관계로부터
+        $\omega$를 결정하고, LiDAR 시계열과의 phasor 상관을 계산하여
+        초기 파수 추정값을 얻는다.
+
+  \item \textbf{그리디 피크 추출}: \\
+        빔포밍 출력에서 15° 각도 억제를 적용하며 상위 성분을 추출한다.
+
+  \item \textbf{Coarse-to-fine Adam 최적화}: \\
+        $N = 3 \to 8 \to 15$ 단계별로 200회 반복, 학습률 $5\times10^{-3}$으로 최적화한다.
+
+  \item \textbf{에너지 기반 가지치기}: \\
+        누적 에너지 90\% 기준으로 저에너지 성분을 제거한다.
+        RMSE가 130\%를 초과하면 rollback을 수행한다.
+
+  \item \textbf{잔차 기반 성장}: \\
+        잔차 RMS $> 0.05$\,m이면 잔차에 빔포밍을 재적용하여 성분을 추가한다
+        ($N_{\max} = 30$).
+\end{enumerate}
+
+\subsection{Phase 2: 추적 (w\_phi 모드)}
+\label{sec:tracking}
+
+초기화 이후 10\,Hz 프레임마다 다음 절차를 수행한다:
+
+\begin{description}
+  \item[예측 (Predict)] 분산관계로부터 위상을 전파한다:
+    \begin{equation}
+      \phi_i \leftarrow \phi_i + \omega_i \Delta t
+    \end{equation}
+
+  \item[갱신 (Update)] $K_w = 3$ 슬라이딩 프레임 창에서 $K = 10$회
+    Adam 스텝으로 $(w_i, \phi_i)$만 갱신한다.
+    파수 $(k_{x,i}, k_{y,i})$는 고정한다.
+\end{description}
+
+파수를 고정하는 이유: 단일 프레임에서 파수는 ill-conditioned이며,
+다중 프레임 초기화가 충분한 평균화를 제공한다.
+위상 warm start로 인해 업데이트 스텝 수가 200회에서 10회로 감소한다.
+
+\section{시뮬레이션 환경 (WaveSim)}
+\label{sec:wavesim}
+
+\subsection{파도 생성}
+\label{sec:wave_gen}
+
+파도장은 JONSWAP 스펙트럼~\citep{Hasselmann1973}으로 파라미터화하고
+Gerstner wave~\citep{Gerstner1802}로 생성한다.
+Gerstner wave는 2차 비선형 회전파의 정확해로, 수평 궤도 운동(orbital motion)을
+포함한다. 입자 교차 방지를 위해 Q-제약
+$\sum_i Q_i \omega_i A_i \leq 1$을 강제한다.
+
+\subsection{LiDAR 시뮬레이션}
+\label{sec:lidar_sim}
+
+LiDAR 시뮬레이션은 Seyond Falcon K1의 실제 사양(1550\,nm, 152채널,
+수평 FOV 120°, 수직 FOV 25°)을 기반으로 한다.
+Ray-surface 교차는 Möller--Trumbore 알고리즘으로 계산한다.
+반환 확률은 Fresnel 반사율($n = 1.321$ at 1550\,nm), 입사각, 거리의 함수로 모델링한다.
+두 가지 raydrop 모델을 구현한다:
+\begin{itemize}
+  \item \textbf{Uniform (확산 반사)}: $P = \eta \cdot R_\text{Fresnel}(\theta) \cdot \cos\theta / (d/d_\text{ref})^2$
+  \item \textbf{Slope (specular)}: 파면 기울기에 의한 specular backscatter 조건에서만 반환
+\end{itemize}
+
+시뮬레이션의 물리적 신뢰성은 39개의 단위 테스트로 검증된다
+(분산관계 해석해 대비 오차 $< 10^{-6}$\,rad/s,
+Gerstner 단일파 RMSE $< 10^{-10}$\,m,
+Fresnel 반사율 단조 증가 등).
+
+\section{실험 설계}
+\label{sec:exp_setup}
+
+\subsection{데이터셋}
+\label{sec:dataset}
+
+총 100개의 에피소드를 생성한다
+(5개 시드 $\times$ 10개 설정 $\times$ 2가지 raydrop 모델).
+설정은 Beaufort 2--5 해상($H_s = 0.3$--$2.0$\,m)과
+성분 수 1, 2, 5, 15, 30을 포함한다.
+
+\subsection{기준선 방법}
+\label{sec:baselines}
+
+\begin{itemize}
+  \item \textbf{ETKF (tuned)}: 24개 설정 하이퍼파라미터 스윕에서 최적화된 설정
+        (격자 $40\times30$, $N_e = 100$, $\alpha = 1.00$, $\sigma = 0.005$).
+  \item \textbf{GPR-1}: 단일 프레임 Matérn $\nu = 5/2$ GPR ($\ell = 20$\,m).
+  \item \textbf{GPR-sliding}: 3-프레임 슬라이딩 창 GPR.
+\end{itemize}
+
+\subsection{평가 지표}
+\label{sec:metrics}
+
+다음 6개 지표를 사전 등록하여 평가한다:
+
+\begin{table}[h]
+\centering
+\caption{사전 등록 6-지표 평가 패널}
+\label{tab:metrics}
+\begin{tabular}{llll}
+\toprule
+지표 & 정의 & 목표 & 진단 가치 \\
+\midrule
+nRMSE $\downarrow$ & RMSE/$H_s$ & 낮을수록 & 1차 정확도 \\
+VR $\to 1$ & $\mathrm{Var}(\hat{z})/\mathrm{Var}(z)$ & 1 & 진폭 보존 \\
+$\rho$ $\uparrow$ & Pearson 상관계수 & 1 & 공간 형상 \\
+SS $\uparrow$ & $1 - \mathrm{MSE}(\hat{z})/\mathrm{MSE}(0)$ & $> 0$ & zero-predictor 진단 \\
+Dir R$^2$ $\uparrow$ & 2D 파수 스펙트럼 회귀 & 1 & 방향성 \\
+$H_s$ err $\downarrow$ & $|H_{s,\text{est}} - H_{s,\text{gt}}|/H_{s,\text{gt}}$ & 0 & 유의파고 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{실험 결과}
+\label{sec:results}
+
+\subsection{전체 100 에피소드 6-지표 평가}
+\label{sec:full_eval}
+
+\begin{table}[h]
+\centering
+\caption{전체 100 에피소드 6-지표 비교 결과 (주요 결과)}
+\label{tab:main_results}
+\begin{tabular}{lllllll}
+\toprule
+방법 & nRMSE $\downarrow$ & $H_s$ err $\downarrow$ & VR $\to1$ & $\rho$ $\uparrow$ & SS $\uparrow$ & Dir R$^2$ $\uparrow$ \\
+\midrule
+\WS{} & \textbf{0.223} & 0.277 & 0.661 & \textbf{0.446} & \textbf{+0.034} & $-0.253$ \\
+ETKF (tuned) & 0.319 & \textbf{0.258} & 0.898 & 0.109 & $-0.702$ & \textbf{+0.065} \\
+GPR-1 & 0.261 & 0.780 & 0.065 & 0.193 & $-0.140$ & +0.028 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\WS{}는 tuned ETKF 대비 nRMSE를 30.1\% 낮추고 (\textbf{0.223} vs.\ 0.319),
+약 10배 빠르다 (13.4 vs.\ 132.6\,ms/프레임).
+Skill Score에서 \WS{}만 양수를 기록하였으며,
+ETKF와 GPR 모두 zero-predictor 대비 열등함을 보인다.
+
+GPR의 VR = 0.065는 진폭의 6.5\%만 재현하는 near-zero predictor의 진단적 지문이다.
+ETKF의 VR = 0.898이지만 $\rho = 0.109$는 에너지는 맞지만 공간 구조가 틀림을 의미한다.
+
+\subsection{에피소드별 결과}
+\label{sec:per_episode}
+
+\todo{Table I (12 episodes) 삽입 및 기술}
+
+\subsection{다중 시드 통계 검증}
+\label{sec:statistical}
+
+100회 대응 검증 ($10$ 설정 $\times$ $5$ 시드 $\times$ $2$ raydrop 모델)에서:
+
+\begin{table}[h]
+\centering
+\caption{100 대응 검증 통계}
+\label{tab:stats}
+\begin{tabular}{llllll}
+\toprule
+비교 & mean $\pm$ std & Wilcoxon $W$ & $p$-값 & Cohen's $d$ & 95\% CI \\
+\midrule
+\WS{} vs ETKF & 0.219 vs 0.321 & 194 & $1.1\times10^{-15}$ & 1.16 (large) & [0.085, 0.119] \\
+\WS{} vs GPR & 0.219 vs 0.253 & 1508 & $4.7\times10^{-4}$ & 0.42 (sm-med) & [0.018, 0.050] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Cohen's $d = 1.16$은 large effect ($> 0.8$)로, \WS{}와 ETKF의 성능 차이가
+통계적으로 매우 유의미함을 나타낸다.
+
+\subsection{Ablation 연구}
+\label{sec:ablation}
+
+\todo{A1/A2 ablation 결과 기술, 분산 manifold drift R̄ 설명}
+
+\subsection{Robustness 분석}
+\label{sec:robustness}
+
+\todo{Raydrop sensitivity, sparsity, noise robustness 기술}
+
+\section{고찰}
+\label{sec:discussion_ws}
+
+\subsection{격자 비의존 표현의 장점}
+\todo{기술}
+
+\subsection{한계}
+\label{sec:limitations}
+
+\WS{}의 주요 한계는 다음과 같다:
+\begin{itemize}
+  \item VR = 0.66: 진폭 약 34\% 과소추정 (에너지 기반 가지치기의 대가)
+  \item SS = +0.034: 양수이나 marginal
+  \item Dir R$^2$ = $-0.25$: 방향 성분이 chance 미만 (가장 큰 한계)
+  \item 시뮬레이션 전용: 조파수조 실험 검증 필요
+  \item 선형 파도 모델, 해류 미추정
+\end{itemize}
+
+% ============================================================================
+% 제4장. 파랑 예측 기반 하이드로포일 2DOF Feedforward 제어
+% ============================================================================
+\chapter{파랑 예측 기반 하이드로포일 Feedforward 제어}
+\label{chap:hydrofoil}
+
+% 이 챕터는 Paper 2 (하이드로포일 관련 논문 초안)의 내용을 기반으로 함.
+
+\section{연구 배경}
+\label{sec:hydrofoil_bg}
+
+하이드로포일 선박은 고속 운항 시 선체를 수면 위로 들어올려
+파랑에 의한 수직 가속도와 피칭을 최소화해야 한다.
+반응형 제어(reactive control)는 센서가 교란을 감지한 후 대응하므로
+위상 지연이 발생한다. 반면 파랑 미리보기 feedforward 제어는
+\WS{}로 추정된 전방 파도장 정보를 활용하여 선제적으로 대응할 수 있다.
+
+\section{시스템 모델}
+\label{sec:hydrofoil_model}
+
+\todo{2DOF 하이드로포일 동역학 모델 기술}
+
+\section{Feedforward 제어 알고리즘}
+\label{sec:ff_control}
+
+\todo{Feedforward 제어 알고리즘 기술}
+
+\section{시뮬레이션 검증}
+\label{sec:hydrofoil_results}
+
+\todo{결과 기술 (Table II 포함)}
+
+\section{고찰}
+\label{sec:hydrofoil_discussion}
+
+\todo{WaveSplat의 Dir R² 한계가 BF4-head 시나리오에 미치는 영향 등 기술}
+
+% ============================================================================
+% 제5장. 수조 실험 검증 (추후 추가)
+% ============================================================================
+\chapter{수조 실험 검증}
+\label{chap:tank}
+
+\todo{본 챕터는 조파수조 실험 완료 후 작성 예정.}
+
+\noindent 계획 중인 내용:
+\begin{itemize}
+  \item 조파수조 실험 설계: LiDAR 설치 조건, 파고계/용량식 센서 배치
+  \item Ground truth 확보 방법
+  \item 시뮬레이션 대비 Sim-to-Real gap 정량화
+  \item \WS{} 실제 데이터 적용 결과
+\end{itemize}
+
+% ============================================================================
+% 제6장. 결론
+% ============================================================================
+\chapter{결론 및 향후 연구}
+\label{chap:conclusion}
+
+\section{결론}
+\label{sec:conclusion}
+
+본 논문은 희소 선박 탑재 LiDAR 관측으로부터 실시간 파도장을 추정하는
+격자 비의존 스펙트럼 Gaussian 방법 \WS{}를 제안하였다.
+파도장을 $N$개의 평면파 집합으로 파라미터화하고
+분산관계를 하드 제약으로 부과함으로써, 100 에피소드 평가에서
+tuned ETKF 대비 nRMSE를 30.1\% 낮추고 약 10배 빠른 처리 속도를 달성하였다.
+사전 등록된 6-지표 패널에서 \WS{}는 zero-predictor 대비 양수의
+Skill Score를 기록한 유일한 방법이었으며,
+100회 대응 검증으로 이 차이가 통계적으로 large effect임을 확인하였다.
+
+또한 \WS{}의 downstream 응용으로서 하이드로포일 2DOF feedforward 제어를
+제안하고 시뮬레이션 검증을 수행하였다.
+
+\section{향후 연구}
+\label{sec:future_work}
+
+\begin{enumerate}
+  \item \textbf{수조 실험 검증}: 조파수조에서 LiDAR + \WS{} 적용,
+        파고계 기반 ground truth와의 비교를 통한 Sim-to-Real gap 정량화.
+
+  \item \textbf{방향성 추정 개선}: Dir R$^2 = -0.25$의 한계를 극복하기 위한
+        방향 추정 알고리즘 개선.
+
+  \item \textbf{비선형 파도 모델}: Stokes 2차 이상의 비선형 항을 포함하는
+        forward 모델 확장.
+
+  \item \textbf{해류 추정 통합}: 해류 성분을 파라미터에 포함한 통합 추정.
+
+  \item \textbf{MPC 기반 6DOF 제어}: \WS{} 예측값을 활용하는
+        Model Predictive Control 확장.
+\end{enumerate}
+
+% ============================================================================
+% 참고문헌
+% ============================================================================
+\newpage
+\bibliographystyle{elsarticle-harv}  % 또는 학교 지정 스타일
+\bibliography{thesis_refs}
+
+% ============================================================================
+% 감사의 글
+% ============================================================================
+\chapter*{감사의 글}
+\addcontentsline{toc}{chapter}{감사의 글}
+
+\todo{감사의 글 작성}
+
+\end{document}

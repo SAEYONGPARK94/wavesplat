@@ -366,6 +366,55 @@ X-band 해상 레이더~\citep{Drazen2008}는 넓은 관측 범위를 제공하�
 50--200개로 변동한다.
 이러한 희소하고 불균질한 관측으로부터 연속적인 파도장을
 복원하는 것이 본 논문이 다루는 핵심 문제이다.
+이 문제를 수학적으로 정식화하면 다음과 같다.
+
+\paragraph{문제 정식화}
+시간 $t$에서 LiDAR가 $M(t)$개의 파고 관측
+$\mathcal{D}_t = \{(\mathbf{x}_j, z_j)\}_{j=1}^{M(t)}$를 생성한다.
+여기서 $\mathbf{x}_j = (x_j, y_j) \in \mathbb{R}^2$는 2D 수평 위치,
+$z_j \in \mathbb{R}$는 해수면 파고(평균 해수면 대비 상승)이다.
+목표는 이산적·불규칙·시변하는 관측 집합 $\{\mathcal{D}_t\}_{t=0}^{T}$로부터
+연속적 파고 함수 $\hat{\eta}(\mathbf{x}, t)$를 실시간으로 추정하는 것이다.
+추정된 파고 함수는 다음 요건을 만족해야 한다:
+
+\begin{enumerate}
+  \item \textbf{물리적 타당성}: $\hat{\eta}$은 선형 분산관계
+        $\omega^2 = g|k|\tanh(|k|d)$를 만족하는 전파 가능한 중력파이어야 한다.
+        이는 추정 결과의 downstream 활용(파도 예측, 제어)에 필수적이다.
+  \item \textbf{실시간성}: 10\,Hz LiDAR 프레임 속도를 충족하는
+        100\,ms/프레임 이하의 처리 시간.
+        이는 표준 선박 탑재 컴퓨팅(Intel i7급 CPU)에서 달성 가능해야 한다.
+  \item \textbf{공간 연속성}: $\hat{\eta}(\mathbf{x}, t)$는
+        LiDAR 관측 영역 내 임의의 $\mathbf{x}$에서 평가 가능해야 하며,
+        공간 미분 $\partial\hat{\eta}/\partial x$,
+        $\partial\hat{\eta}/\partial y$도 제공해야 한다.
+        이는 하이드로포일 feedforward 제어(파도 기울기 필요)의 전제 조건이다.
+  \item \textbf{시간 추적}: 프레임 간 연속적 상태 추적을 통해
+        파도장의 시간 연속성을 보존하고, 단기 예측의 기반을 제공해야 한다.
+\end{enumerate}
+
+\paragraph{응용 시나리오}
+파도장 추정의 주요 응용 시나리오와 각각의 정량적 요구 사항을 정리한다.
+
+\textbf{(1) 파랑 예측 기반 승차감 제어}: 하이드로포일, 고속 페리, SWATH 선박에서
+파도 조우 0.1--0.5초 전의 파도 기울기와 궤도 속도 정보가 필요하다.
+요구 정밀도: nRMSE $< 0.3$ (feedforward가 해로워지지 않는 임계값,
+제4장 민감도 분석에서 확인), 갱신 속도: $\geq 10$\,Hz.
+
+\textbf{(2) 화물 하역/착함 타이밍}: 크레인 작업이나 헬리콥터 착함 시
+1--2 파도 주기($\sim 5$--$15$\,s) 앞의 선박 운동 예측이 필요하다.
+요구 정밀도: $H_s$ 오차 $< 20\%$, 위상 정합도: $\rho > 0.5$.
+
+\textbf{(3) 항로 최적화}: 전방 1--5\,km의 해상 상태 정보로
+연료 소비와 구조 피로 하중을 최소화하는 경로를 계산한다.
+파도장 추정보다는 스펙트럼 파라미터($H_s$, $T_p$, 방향)가 중요하며,
+요구 갱신 속도가 낮다($\sim 0.1$\,Hz).
+
+\textbf{(4) 구조 건전성 모니터링}: 파도 유기 하중의 실시간 추정으로
+피로 손상 축적을 모니터링한다. 장시간($> 1$\,h) 안정성이 필수이다.
+
+본 논문은 응용 (1)에 초점을 맞추되, 제안하는 스펙트럼 표현이
+응용 (2)--(4)에도 자연스럽게 확장 가능함을 보인다.
 
 특히 하이드로포일 선박의 경우, 파랑 미리보기 정보를
 feedforward 제어에 활용하면 반응형 제어(reactive control) 대비
@@ -494,6 +543,7 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
 \centering
 \caption{선박 규모 파도장 추정을 위한 해양 표면 관측 센서 비교.}
 \label{tab:sensor_comparison}
+\small
 \begin{tabular}{lccccl}
 \toprule
 센서 & 공간 범위 & 해상도 & 갱신 속도 & 직접 파고? & 주요 한계 \\
@@ -526,11 +576,59 @@ Nieto Borge et al.~(2004)가 $(k_x, k_y, \omega)$ 3D FFT와
 \textbf{선박 탑재 스캐닝 LiDAR}는 해수면에 대한 직접적 파고 측정을 제공하며,
 근거리에서 센티미터 수준의 정밀도를 달성한다.
 현대의 solid-state LiDAR 기술의 발전으로 소형화·저가화가 진행되고 있으며,
-1550\,nm 파장은 eye-safe 운용이 가능하다.
-그러나 LiDAR 관측의 세 가지 특이성 --- (1) 거리 증가에 따른 관측 밀도 감소,
-(2) grazing angle에서의 specular reflection에 의한 raydrop,
-(3) 해수면의 동적 특성에 의한 관측 노이즈 --- 이 추정 알고리즘 설계에
-핵심적 제약을 부과한다. 본 논문에서 이를 Fresnel 신뢰 가중치로 직접 모델링한다.
+1550\,nm 파장은 eye-safe 운용(IEC 60825-1 Class 1)이 가능하다.
+
+LiDAR의 해양 표면 관측 물리를 상세히 기술한다.
+스캐닝 LiDAR는 고정 각도 분해능($\Delta\phi$, $\Delta\theta$)으로
+레이저 빔을 주사(scan)하여 각 빔의 비행 시간(Time-of-Flight, ToF)으로
+거리를 측정한다. ToF 기반 측거의 정밀도는 근거리에서 $\sim$1\,cm,
+100\,m에서 $\sim$5\,cm, 250\,m에서 $\sim$15\,cm으로 거리에 비례하여 증가한다.
+
+각도 분해능이 일정하므로, 해수면 위의 관측점 밀도는
+거리의 제곱에 반비례한다:
+$\rho(d) \propto 1/d^2$.
+구체적으로, Seyond Falcon K1 (수평 FOV $120^\circ$, 500 수평 빔)의
+수평 각도 분해능은 $\Delta\phi = 0.24^\circ$이며,
+해수면 관측 밀도는 $d = 20$\,m에서 $\sim$50\,pts/m$^2$,
+$d = 100$\,m에서 $\sim$2\,pts/m$^2$,
+$d = 200$\,m에서 $\sim$0.5\,pts/m$^2$이다.
+이 비균질 밀도 분포는 격자 기반 방법의 일정 해상도 가정과 근본적으로 비호환적이다.
+
+해수면에서의 LiDAR 신호 반환에는 세 가지 물리적 특이성이 존재한다:
+
+\textbf{(1) 거리 의존 밀도 감소}: 상기한 $1/d^2$ 밀도 감소에 의해,
+원거리에서는 Nyquist 파수가 감소하여 단파 성분의 공간 aliasing이 발생한다.
+파장 $\lambda$를 해석하기 위한 최소 관측 밀도는 $2/\lambda$ (Nyquist)이므로,
+$d = 200$\,m에서의 $\sim$0.5\,pts/m$^2$ 밀도로는
+$\lambda < 4$\,m의 파도를 해석할 수 없다.
+Beaufort 3의 전형적 피크 파장($\lambda_p \approx 39$\,m)은
+이 한계보다 충분히 길지만, 고차 성분(harmonics)은 영향을 받을 수 있다.
+
+\textbf{(2) Grazing angle에서의 specular reflection에 의한 raydrop}:
+선박 상부($\sim$3--5\,m 높이)에 설치된 LiDAR가 전방 해수면을 관측할 때,
+원거리에서의 입사각이 $> 80^\circ$ (near-grazing)에 도달한다.
+Fresnel 방정식에 따라 1550\,nm에서 해수($n = 1.321$)의 specular 반사율은
+$\theta = 0^\circ$에서 $\sim$2\%이나 $\theta = 85^\circ$에서 $\sim$60\%로 급증한다.
+고반사율에서 입사광의 대부분이 정반사(specular)되어 LiDAR 수신기 방향으로
+반환되지 않으므로, 유효 관측점이 소실(raydrop)된다.
+파봉(wave crest)의 급경사면은 LiDAR 방향에 더 정면(near-normal)이므로
+상대적으로 높은 반환율을 보이는 반면,
+파곡(wave trough)의 완만한 면은 near-grazing이 되어 raydrop 확률이 높다.
+이 선택적 raydrop은 관측의 공간적 편향(sampling bias)을 유발한다.
+
+\textbf{(3) 해수면의 동적 특성에 의한 관측 노이즈}:
+LiDAR의 단일 스캔($\sim$100\,ms)은 순간적이지 않으며,
+스캔 기간 동안 파도가 이동한다.
+22 knots 선박에서 BF3 파도(위상 속도 $c_p \approx 7.8$\,m/s)의
+상대 속도는 $V + c_p \cos\beta \approx 19.1$\,m/s (head sea)이므로,
+100\,ms 스캔에서 $\sim$1.9\,m의 파도 이동이 발생한다.
+이 시간적 smearing은 파봉의 공간적 위치에 $\sim$2\,m의 불확실성을 도입하며,
+이는 LiDAR의 공간 정밀도($\sim$0.1\,m)보다 훨씬 크다.
+\WS{}의 다중 프레임 접근은 각 프레임의 시각 정보($t_j$)를
+forward 모델에 직접 반영하여 이 smearing을 자연스럽게 처리한다.
+
+본 논문에서 이러한 물리적 특이성을 Fresnel 신뢰 가중치(제3장)로
+직접 모델링한다.
 
 \section{격자 기반 파도장 추정}
 \label{sec:grid_methods}
@@ -546,8 +644,101 @@ waves''), Desmars et al.~(2023)이 실시간 재구성과 1피크 주기 앞까�
 
 이 격자 기반 방법들은 공통 구조 --- 2D 영역을 정규 격자로 이산화하고,
 스펙트럼 상태의 앙상블을 유지하며, Kalman update로 관측을 동화 --- 를 공유한다.
-이 구조는 공간 해상도와 계산 비용 간의 본질적 trade-off를 수반하며,
-희소 관측에서 격자점으로의 보간이 알려진 오차 원천이다.
+ETKF의 수학적 구조를 이하에 정리한다.
+
+\paragraph{ETKF 알고리즘 요약}
+상태 벡터 $\mathbf{x} \in \mathbb{R}^n$을 $N_e$개의 앙상블 멤버
+$\{\mathbf{x}^{(e)}\}_{e=1}^{N_e}$로 표현한다.
+앙상블 평균 $\bar{\mathbf{x}} = \frac{1}{N_e}\sum_{e}\mathbf{x}^{(e)}$와
+편차 행렬 $\mathbf{X} = [\mathbf{x}^{(1)} - \bar{\mathbf{x}}, \ldots,
+\mathbf{x}^{(N_e)} - \bar{\mathbf{x}}] \in \mathbb{R}^{n \times N_e}$를 정의하면,
+forecast 오차 공분산은 $\mathbf{P}^f \approx \frac{1}{N_e - 1}\mathbf{X}\mathbf{X}^T$이다.
+
+\textbf{Forecast 단계}: 각 앙상블 멤버를 선형 파동 전파 모델로 시간 전진한다.
+격자 위의 2D FFT를 적용하고 분산관계에 따른
+위상 전파 $\hat{\eta}(k_x, k_y) \leftarrow \hat{\eta}(k_x, k_y) \cdot
+e^{-i\omega(k_x,k_y)\Delta t}$를 수행한 후 역FFT로 물리 공간에 복원한다.
+이 과정은 $\mathcal{O}(G^2 \log G^2)$이며 $N_e$회 반복된다.
+
+\textbf{Analysis 단계}: 관측 $\mathbf{y} \in \mathbb{R}^M$이 주어지면,
+관측 연산자 $\mathbf{H}$를 적용하여 $\mathbf{Y} = \mathbf{H}\mathbf{X}$를 계산한다.
+희소 LiDAR 관측에서 $\mathbf{H}$는 관측 위치에 가장 가까운 격자점으로의
+보간 연산자이다 --- 이 보간이 aliasing의 직접적 원인이다.
+ETKF는 앙상블 공간에서의 변환 행렬 $\mathbf{T}$를 계산한다:
+\begin{equation}
+  \mathbf{T} = \left[\frac{N_e - 1}{\alpha}\mathbf{I}
+    + \mathbf{Y}^T \mathbf{R}^{-1} \mathbf{Y}\right]^{-1/2}
+  \label{eq:etkf_transform}
+\end{equation}
+여기서 $\mathbf{R}$은 관측 오차 공분산, $\alpha \geq 1$은 multiplicative
+covariance inflation 계수이다.
+분석 앙상블 편차는 $\mathbf{X}^a = \mathbf{X}^f \mathbf{T}$로 갱신되고,
+분석 평균은 Kalman gain $\mathbf{K}$으로 갱신된다:
+\begin{equation}
+  \bar{\mathbf{x}}^a = \bar{\mathbf{x}}^f + \mathbf{K}(\mathbf{y} - \mathbf{H}\bar{\mathbf{x}}^f)
+  \label{eq:etkf_mean}
+\end{equation}
+여기서 Kalman gain의 유도 과정을 상세히 기술한다.
+앙상블 공분산 $\mathbf{P}^f = \frac{1}{N_e-1}\mathbf{X}\mathbf{X}^T$를 대입하면,
+표준 Kalman gain은:
+\begin{equation}
+  \mathbf{K} = \mathbf{P}^f\mathbf{H}^T(\mathbf{H}\mathbf{P}^f\mathbf{H}^T + \mathbf{R})^{-1}
+  = \frac{1}{N_e-1}\mathbf{X}\mathbf{Y}^T\left(\frac{1}{N_e-1}\mathbf{Y}\mathbf{Y}^T + \mathbf{R}\right)^{-1}
+  \label{eq:kalman_gain}
+\end{equation}
+이 공식에서 $\mathbf{X} \in \mathbb{R}^{n \times N_e}$, $\mathbf{Y} \in \mathbb{R}^{M \times N_e}$이므로,
+역행렬 $(\cdot)^{-1}$은 $M \times M$ 크기이다.
+LiDAR 관측에서 $M \sim 50$--200이므로 이 역산은 $\mathcal{O}(M^3)$으로 계산 가능하다.
+그러나 상태 공간 차원 $n = G_x \times G_y = 1{,}200$ (40$\times$30 격자)에서
+$\mathbf{X}\mathbf{Y}^T$의 계산이 $\mathcal{O}(n \cdot N_e \cdot M)$을 요구한다.
+
+ETKF의 핵심 효율성은 이 연산을 $N_e \times N_e$ 앙상블 공간으로 축소하는 데 있다.
+식~(\ref{eq:etkf_transform})의 $\mathbf{T}$는 $N_e \times N_e$ 행렬이므로
+고유값 분해에 $\mathcal{O}(N_e^3)$만 소요되며,
+이후 $\mathbf{X}^a = \mathbf{X}^f\mathbf{T}$는 $\mathcal{O}(n \cdot N_e^2)$이다.
+$N_e = 100$, $n = 1{,}200$에서 이 연산이 지배적이며,
+$N_e^3 = 10^6$은 $n^3 = 1.7 \times 10^9$보다 3자릿수 작다.
+
+이 구조는 공간 해상도와 계산 비용 간의 본질적 trade-off를 수반한다.
+격자 크기 $G^2$가 증가하면 파수 해상도가 개선되나 계산 비용이 $G^2 \log G^2$로
+증가하고, 앙상블 크기 $N_e$가 증가하면 공분산 추정이 개선되나
+$N_e^3$ 변환 비용이 발생한다.
+
+\paragraph{Covariance inflation의 역할과 튜닝 문제}
+유한 앙상블 크기에서 공분산은 과소추정(underestimate)되는 경향이 있으며,
+이는 analysis에서 관측을 과신(over-confidence)하여 필터 발산을 유발한다.
+Covariance inflation은 이를 보정하는 핵심 메커니즘이다.
+식~(\ref{eq:etkf_transform})의 $\alpha > 1$은 multiplicative inflation으로,
+$\mathbf{P}^f \leftarrow \alpha \cdot \mathbf{P}^f$와 등가이며
+모든 모드를 균등하게 팽창시킨다.
+Additive inflation $\sigma$는 $\mathbf{P}^f \leftarrow \mathbf{P}^f + \sigma^2 \mathbf{I}$로,
+소멸한 모드를 재활성화하는 역할을 한다.
+
+ETKF의 실용적 한계는 이 두 인플레이션 파라미터가 해상 상태, 관측 밀도,
+격자 해상도에 민감하게 의존한다는 점이다.
+본 논문의 24개 설정 스윕(제3장 표~\ref{tab:etkf_sweep})에서
+최적 $(\alpha, \sigma) = (1.00, 0.005)$와
+최악 $(\alpha, \sigma) = (1.05, 0.020)$ 간 nRMSE 차이가 3.3배(0.358 vs.\ 1.187)에
+달한다. 이는 단일 파라미터 설정이 다양한 해상 조건에 범용적으로
+적용될 수 없음을 의미하며, 운용 중 적응형 인플레이션 스케줄이 필요하나
+이는 자체적으로 해결이 어려운 문제이다.
+
+\paragraph{격자 보간 aliasing}
+희소 관측에서 격자점으로의 보간이 또 다른 오차 원천이다.
+$\Delta x = 5$\,m 격자에서 LiDAR 관측($\sim$0.1\,m 정밀도)을
+최근접 격자점에 대응시키면 최대 $\sim$3.5\,m (격자 대각선의 절반
+$= \sqrt{2} \cdot \Delta x / 2$)의 공간 오차가 도입된다.
+파장 $\lambda$에 대한 이 보간의 위상 오차는:
+\begin{equation}
+  \Delta\varphi_{\text{interp}} = \frac{2\pi}{\lambda} \cdot \frac{\sqrt{2}\Delta x}{2}
+\end{equation}
+$\lambda = 10$\,m에서 $\Delta\varphi = 2.2$\,rad $\approx 126^\circ$로,
+파도 형상이 거의 완전히 파괴된다.
+$\lambda = 40$\,m (BF3 피크 파장)에서도 $\Delta\varphi = 0.56$\,rad $\approx 32^\circ$로
+무시할 수 없는 수준이다.
+이 분석은 LiDAR의 $\sim$0.1\,m 공간 정밀도가
+격자 이산화에 의해 50배 이상 열화됨을 보여주며,
+격자 비의존 방법의 근본적 동기를 제공한다.
 본 논문에서는 24개 설정의 하이퍼파라미터 스윕을 통해 최적화된 ETKF를
 공정한 기준선으로 제공한다 (제3장 \S\ref{sec:baselines}).
 
@@ -563,8 +754,32 @@ MUSIC은 불규칙 어레이를 처리할 수 있으나, 파워 스펙트럼만 
 \WS{}는 빔포밍을 \emph{초기화}에만 활용하고, 물리 제약 하의 경사 최적화로
 진폭-위상을 동시 복원하여, 빔포밍의 견고성과 완전한 파동 파라미터 복원을 결합한다.
 
-\textbf{GPR}~\citep{RasmussenWilliams2006}은 비모수적 공간 보간을 제공하나,
-$\mathcal{O}(M^3)$ 비용과 시간 모델 부재가 근본적 한계이다.
+\textbf{GPR}~\citep{RasmussenWilliams2006}은 비모수적 공간 보간을 제공한다.
+$M$개의 관측 $\{(\mathbf{x}_j, z_j)\}_{j=1}^{M}$이 주어지면,
+임의 위치 $\mathbf{x}_*$에서의 예측 분포는:
+\begin{align}
+  \mu(\mathbf{x}_*) &= \mathbf{k}_*^T (\mathbf{K} + \sigma_n^2 \mathbf{I})^{-1} \mathbf{z}
+  \label{eq:gpr_mean} \\
+  \sigma^2(\mathbf{x}_*) &= k(\mathbf{x}_*, \mathbf{x}_*)
+    - \mathbf{k}_*^T (\mathbf{K} + \sigma_n^2 \mathbf{I})^{-1} \mathbf{k}_*
+  \label{eq:gpr_var}
+\end{align}
+여기서 $[\mathbf{K}]_{ij} = k(\mathbf{x}_i, \mathbf{x}_j)$는 커널 행렬,
+$\mathbf{k}_* = [k(\mathbf{x}_*, \mathbf{x}_1), \ldots, k(\mathbf{x}_*, \mathbf{x}_M)]^T$,
+$\sigma_n^2$은 관측 노이즈 분산이다.
+본 논문에서는 Mat\'{e}rn $\nu = 5/2$ 커널
+$k(r) = \sigma_f^2 (1 + \sqrt{5}r/\ell + 5r^2/3\ell^2) \exp(-\sqrt{5}r/\ell)$을
+사용하며, $\ell = 20$\,m은 파도 상관 길이, $\sigma_n = 0.02$\,m은
+LiDAR 노이즈 수준으로 설정한다.
+
+GPR의 근본적 한계는 두 가지이다:
+(1) 식~(\ref{eq:gpr_mean})의 $(\mathbf{K} + \sigma_n^2\mathbf{I})^{-1}$
+계산에 Cholesky 분해가 필요하여 $\mathcal{O}(M^3)$ 비용이 발생한다.
+$M = 150$에서도 커널 하이퍼파라미터 최적화를 포함하면 200\,ms를 초과한다.
+(2) 표준 GPR은 순수 공간 커널을 사용하여 프레임 간 시간 전파 모델이 없다.
+각 프레임을 독립적으로 보간하므로, 파도장의 시공간 연속성을 활용하지 못한다.
+시공간 커널 $k(\mathbf{x}, t; \mathbf{x}', t')$을 사용하면 원칙적으로 가능하나,
+관측 수가 프레임 수에 비례하여 증가하므로 $\mathcal{O}((MT_w)^3)$로 더욱 비실용적이다.
 본 논문의 6-지표 평가에서 GPR은 variance ratio = 0.065 (진폭의 6.5\%만 재현)로
 near-zero predictor의 진단적 특성을 보인다.
 
@@ -678,6 +893,50 @@ Cummins et al.~(2017)이 레이더/LiDAR 기반 파도 미리보기가 단기 �
 $\omega_i$는 각주파수, $\phi_i$는 위상이다.
 각 성분 $i$는 4개의 자유 파라미터 $(w_i, k_{x,i}, k_{y,i}, \phi_i)$를 가진다.
 
+\paragraph{속도 포텐셜로부터의 유도}
+식~(\ref{eq:forward})는 비압축성·비회전 유체에서 Laplace 방정식
+$\nabla^2 \Phi = 0$의 선형 해로부터 유도된다.
+유한 수심 $d$에서 바닥 경계조건 $\partial\Phi/\partial z|_{z=-d} = 0$과
+자유표면 동역학 경계조건의 선형화를 적용하면,
+단일 성분의 속도 포텐셜은:
+\begin{equation}
+  \Phi_i = \frac{w_i \omega_i}{|k_i|} \cdot
+    \frac{\cosh(|k_i|(z+d))}{\sinh(|k_i|d)}
+    \sin(k_{x,i}x + k_{y,i}y - \omega_i t + \phi_i)
+  \label{eq:potential}
+\end{equation}
+이로부터 자유표면 파고 $\eta = -\frac{1}{g}\frac{\partial\Phi}{\partial t}\big|_{z=0}$를
+통해 식~(\ref{eq:forward})의 코사인 형태가 얻어진다.
+선형 중첩 원리(linear superposition principle)에 의해 $N$개 성분의 합으로 확장된다.
+이 선형 중첩은 파도 가파름 $\epsilon = |k|\cdot|w| \ll 1$일 때 유효하다.
+
+각 성분으로부터 파도 기울기와 궤도 속도도 해석적으로 유도된다:
+\begin{align}
+  \frac{\partial z}{\partial x} &= -\sum_{i} w_i k_{x,i} \sin(k_{x,i}x + k_{y,i}y - \omega_i t + \phi_i)
+  \label{eq:slope_x} \\
+  \frac{\partial z}{\partial t} &= \sum_{i} w_i \omega_i \sin(k_{x,i}x + k_{y,i}y - \omega_i t + \phi_i)
+  \label{eq:orbital}
+\end{align}
+이 해석적 미분이 제4장 feedforward 제어에서 임의 공간 점의
+파도 기울기와 궤도 속도를 추가 근사 없이 평가하는 핵심이다.
+격자 기반 방법에서는 유한차분 근사가 필요한 반면,
+스펙트럼 표현은 정확한 미분을 제공한다.
+
+\paragraph{위상 속도와 군속도}
+각 성분의 위상 속도(phase velocity)와 군속도(group velocity)는:
+\begin{align}
+  c_{p,i} &= \frac{\omega_i}{|k_i|} = \sqrt{\frac{g}{|k_i|}\tanh(|k_i|d)}
+  \label{eq:phase_vel} \\
+  c_{g,i} &= \frac{\partial\omega}{\partial|k|}\bigg|_{k_i}
+    = \frac{c_{p,i}}{2}\left(1 + \frac{2|k_i|d}{\sinh(2|k_i|d)}\right)
+  \label{eq:group_vel}
+\end{align}
+심해($|k|d \gg 1$)에서 $c_g = c_p/2$, 천해($|k|d \ll 1$)에서 $c_g = c_p$이다.
+군속도는 파도 에너지의 전파 속도를 결정하며,
+LiDAR 관측 창(10--250\,m)을 통과하는 파군(wave group)의 체류 시간을 지배한다.
+$d=50$\,m에서 BF3 ($T_p=5$\,s)의 군속도는 $c_g \approx 3.9$\,m/s로,
+200\,m 관측 창을 약 51\,s에 통과한다.
+
 \paragraph{분산관계 하드 제약}
 각주파수는 유한 수심 선형 분산관계에 의해 파수로부터 결정적으로 계산된다:
 \begin{equation}
@@ -690,10 +949,71 @@ $\omega_i$는 각주파수, $\phi_i$는 위상이다.
 심해 극한($|k|d \gg 1$)에서 $\omega = \sqrt{g|k|}$로 환원되며,
 천해 극한($|k|d \ll 1$)에서 $\omega = |k|\sqrt{gd}$로 환원된다.
 
+\paragraph{분산관계의 유도: 자유표면 경계조건으로부터}
+분산관계 (\ref{eq:dispersion})는 비압축성 비회전 유체의 지배 방정식으로부터 엄밀히 유도된다.
+속도 포텐셜 $\Phi$가 Laplace 방정식 $\nabla^2\Phi = 0$을 만족하고,
+바닥 경계 조건 $\partial\Phi/\partial z|_{z=-d} = 0$과
+자유표면에서의 운동학적·동역학적 경계조건을 선형화하면:
+\begin{align}
+  \text{운동학적 (KFSBC):} \quad & \frac{\partial\eta}{\partial t} = \frac{\partial\Phi}{\partial z}\bigg|_{z=0}
+  \label{eq:kfsbc} \\
+  \text{동역학적 (DFSBC):} \quad & \frac{\partial\Phi}{\partial t}\bigg|_{z=0} + g\eta = 0
+  \label{eq:dfsbc}
+\end{align}
+단일 평면파 해 $\Phi = A \cosh(|k|(z+d)) \sin(\mathbf{k}\cdot\mathbf{x} - \omega t)$를
+대입하면, KFSBC에서:
+\begin{equation}
+  -\omega \hat{\eta} = A|k|\sinh(|k|d)
+\end{equation}
+DFSBC에서:
+\begin{equation}
+  -\omega A \cosh(|k|d) + g\hat{\eta} = 0
+\end{equation}
+두 식을 결합하여 $\hat{\eta}$를 소거하면:
+\begin{equation}
+  \omega^2 = g|k| \cdot \frac{\sinh(|k|d)}{\cosh(|k|d)} = g|k|\tanh(|k|d)
+\end{equation}
+이것이 식~(\ref{eq:dispersion})이다.
+이 유도에서 핵심 가정은 (1) 비압축성·비회전 유체, (2) 자유표면 경계조건의 선형화
+($\eta$에 대한 2차 이상 항 무시), (3) 수평으로 무한한 유체 도메인이다.
+비선형 보정은 Stokes 2차에서 $\omega^2 = g|k|\tanh(|k|d)(1 + \epsilon^2 C_2)$
+형태로 나타나나, $\epsilon < 0.06$ (표~\ref{tab:steepness})에서 보정 크기가
+$\mathcal{O}(10^{-3})$으로 무시 가능하다.
+
+\paragraph{분산관계의 수치적 역산: 파수로부터 주파수}
+실제 구현에서 분산관계는 ``순방향'' ($|k| \to \omega$)으로만 사용되며,
+이 방향은 $\tanh$ 함수의 직접 평가로 $\mathcal{O}(1)$ 비용이다.
+역방향 ($\omega \to |k|$)은 초기화의 빔포밍 격자 구성 시 필요하나,
+$\omega^2 / (g\tanh(|k|d)) = |k|$의 초월 방정식을 Newton-Raphson으로
+3--4회 반복하여 기계 정밀도로 해결한다.
+심해 초기값 $|k|_0 = \omega^2/g$에서 시작하면 모든 수심에서
+단조 수렴이 보장된다.
+
 이 선형 forward 모델은 고차 파도 이론(Gerstner wave, 2차 Stokes 등)에 대해
 $\mathcal{O}(\epsilon^2)$ 근사이며, 여기서 $\epsilon = |k| \cdot |w|$는 파도 가파름이다.
-Beaufort 4에서 전형적 가파름은 $\epsilon \approx 0.05$로,
-모델 불일치는 $< 0.25\%$이다.
+표~\ref{tab:steepness}에 해상 상태별 전형적 가파름과 모델 불일치를 정리한다.
+
+\begin{table}[htbp]
+\centering
+\caption{해상 상태별 파도 가파름과 선형 모델 불일치.
+$\epsilon = |k_p| \cdot H_s/2$는 피크 파수 $k_p$에서의 가파름.}
+\label{tab:steepness}
+\begin{tabular}{lcccc}
+\toprule
+해상 상태 & $H_s$ [m] & $T_p$ [s] & $\epsilon$ & $\epsilon^2$ [\%] \\
+\midrule
+BF2 & 0.30 & 4.0 & 0.024 & 0.06 \\
+BF3 & 0.88 & 5.0 & 0.056 & 0.31 \\
+BF4 & 1.88 & 7.5 & 0.053 & 0.28 \\
+BF5 & 2.00 & 9.0 & 0.040 & 0.16 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+모든 해상 상태에서 $\epsilon < 0.06$, $\epsilon^2 < 0.4\%$로,
+선형 모델 불일치가 LiDAR 관측 노이즈($\sim$0.02\,m, nRMSE 기여 $\sim$2\%)보다
+한 자릿수 작다.
+쇄파 한계($\epsilon \approx 0.14$, Stokes)에 비해 충분한 여유가 있으며,
 본 논문에서 고려하는 Beaufort 2--5 범위(비쇄파)에서
 선형 모델은 우수한 근사이다.
 
@@ -708,9 +1028,34 @@ $\{(x_j, y_j, z_j)\}_{j=1}^{M}$이 불규칙한 공간 위치에서 얻어진다
 \begin{equation}
   z_j = \sum_{i=1}^{N} w_i \cos(k_{x,i} x_j + k_{y,i} y_j - \omega_i t + \phi_i) + \eta_j
 \end{equation}
-여기서 $\eta_j$는 관측 노이즈로, 그 분산은 거리와 입사각에 의존한다.
+여기서 $\eta_j$는 관측 노이즈이다.
+관측 노이즈의 분산은 거리와 입사각에 의존하며, 다음과 같이 모델링한다:
+\begin{equation}
+  \text{Var}(\eta_j) = \sigma_0^2 + \sigma_r^2 \left(\frac{d_j}{d_{\text{ref}}}\right)^2
+\end{equation}
+여기서 $\sigma_0 = 0.01$\,m은 기저 노이즈(전자 노이즈, 양자화),
+$\sigma_r = 0.02$\,m은 기준 거리에서의 거리 의존 노이즈이다.
+$d = 125$\,m에서 총 표준편차는 $\sqrt{0.01^2 + 0.02^2} \approx 0.022$\,m이며,
+$d = 250$\,m에서 $\sqrt{0.01^2 + 0.04^2} \approx 0.041$\,m으로 증가한다.
+
 프레임당 유효 관측 수 $M$은 해상 상태, 선박 운동, LiDAR raydrop 특성에 따라
-50--200으로 변동한다.
+50--200으로 변동한다. 구체적으로:
+\begin{itemize}
+  \item BF2 (잔잔한 해상): 해수면이 거의 평탄하여 거의 모든 원거리 빔이
+        near-grazing으로 raydrop됨. $M \approx 50$--80.
+  \item BF3 (보통 해상): 파봉의 기울기가 LiDAR 반환을 개선하여 중간 밀도.
+        $M \approx 80$--130.
+  \item BF4--5 (거친 해상): 큰 파도의 급경사면이 높은 반환율을 보이나,
+        파곡의 극단적 grazing angle로 부분적 raydrop. $M \approx 100$--200.
+        Slope raydrop 모델에서 파봉 우선 반환으로 $M$이 약간 증가.
+\end{itemize}
+
+이 관측 수 범위에서 \WS{}의 파라미터 대 관측 비율은:
+$N_a = 15$일 때 $4N_a / M = 60/100 = 0.6$ (1.7배 과결정),
+$N_a = 30$일 때 $4N_a / M = 120/100 = 1.2$ (과소결정 근방).
+과소결정 시나리오($N_a \geq 25$, $M < 100$)에서의 정규화 항
+($\lambda_1$, $\lambda_s$)의 역할이 중요하며,
+이들이 해공간(null space)에서의 파라미터 발산을 방지한다.
 
 \subsection{Fresnel 신뢰 가중치}
 \label{sec:fresnel}
@@ -720,16 +1065,41 @@ $\{(x_j, y_j, z_j)\}_{j=1}^{M}$이 불규칙한 공간 위치에서 얻어진다
 (2) 높은 입사각(near-grazing)에서 specular reflection 확률 증가로 인한
 전신호 손실 또는 파봉(wave crest) 편향 반환.
 
-다음과 같이 관측별 신뢰 가중치를 정의한다:
+\paragraph{Fresnel 반사율의 물리적 배경}
+LiDAR 빔이 해수면에 입사할 때, Fresnel 방정식은 반사율을 입사각 $\theta$의
+함수로 결정한다. 1550\,nm 파장에서 해수의 복소 굴절률은
+$n = 1.321 + 1.2\times10^{-4}i$이며, s-편광과 p-편광의 반사율은:
+\begin{align}
+  R_s(\theta) &= \left|\frac{n_1\cos\theta - n_2\cos\theta_t}{n_1\cos\theta + n_2\cos\theta_t}\right|^2 \\
+  R_p(\theta) &= \left|\frac{n_2\cos\theta - n_1\cos\theta_t}{n_2\cos\theta + n_1\cos\theta_t}\right|^2
+\end{align}
+여기서 Snell의 법칙 $n_1\sin\theta = n_2\sin\theta_t$으로
+굴절각 $\theta_t$가 결정된다.
+비편광 LiDAR의 평균 반사율은 $R(\theta) = (R_s + R_p)/2$이다.
+수직 입사($\theta=0$)에서 $R \approx 2.0\%$로 LiDAR 반환이 가능하나,
+$\theta > 80^\circ$ (grazing)에서 $R > 50\%$로 급증하여
+입사광의 대부분이 정반사(specular reflection)되고 LiDAR로 반환되지 않는다.
+
+Diffuse reflection 성분(파도 표면 거칠기에 의한)의 LiDAR 반환 파워는
+Lambertian 모델에서 $\cos\theta$에 비례하고,
+거리 $d$에서의 신호 감쇠는 역제곱 법칙 $\propto 1/d^2$을 따른다.
+이 두 효과를 결합한 간소화된 신뢰 가중치를 정의한다:
 \begin{equation}
   c_j = \frac{\cos\theta_j}{d_j / d_{\mathrm{ref}}}, \quad d_{\mathrm{ref}} = 125\,\text{m},
   \label{eq:confidence}
 \end{equation}
 여기서 $\theta_j$는 빔 입사각(국소 표면 법선과 빔 방향으로부터 계산),
-$d_j$는 거리, $d_{\mathrm{ref}} = 125$\,m은 최대 LiDAR 사거리의 절반으로
+$d_j$는 거리, $d_{\mathrm{ref}} = 125$\,m은 최대 LiDAR 사거리(250\,m)의 절반으로
 설정한 기준 거리이다.
-$\cos\theta_j$는 Lambertian 투영 인자를,
-$d_j/d_{\mathrm{ref}}$는 역제곱 거리 감쇠를 근사한 항으로,
+$\cos\theta_j$ 항은 Lambertian diffuse reflection의 투영 인자와
+Fresnel 반사율의 급격한 $\theta$ 의존성을 동시에 근사하며,
+$d_j/d_{\mathrm{ref}}$ 항은 역제곱 거리 감쇠를 정규화된 형태로 반영한다.
+
+이 간소화는 의도적 설계 선택이다: 완전한 Fresnel 반사율 $R(\theta)$를
+직접 사용할 수도 있으나, $R(\theta)$의 정확한 계산에는
+LiDAR 편광 상태와 해수면 미시 거칠기에 대한 추가 가정이 필요하다.
+$\cos\theta$는 $R(\theta)$의 $\theta < 70^\circ$ 범위에서의
+단조 감소 특성을 충분히 포착하면서 추가 파라미터를 도입하지 않는다.
 가까이 있고 수직에 가까운 관측에 높은 가중치를 부여한다.
 
 \subsection{손실 함수}
@@ -742,11 +1112,56 @@ $d_j/d_{\mathrm{ref}}$는 역제곱 거리 감쇠를 근사한 항으로,
     + \underbrace{\lambda_s \sum_{i=1}^{N-1}(w_{\sigma(i+1)} - w_{\sigma(i)})^2}_{\text{스펙트럼 평활화}},
   \label{eq:loss}
 \end{equation}
-여기서 $M$은 프레임당 관측 점 수이고,
-$\lambda_1 = 10^{-3}$은 진폭 희소성 정규화(pruning을 위해 무시 가능한 성분을
-0으로 구동), $\lambda_s = 10^{-4}$은 스펙트럼 인접 성분 간의 급격한 진폭 변화를
-억제하여 JONSWAP 형태와 일관된 매끄러운 스펙트럼 포락선을 유도하는 정규화이다.
-$\sigma$는 $|k|$ 순서로의 정렬을 나타낸다.
+여기서 $M$은 프레임당 관측 점 수이다.
+각 정규화 항의 설계 근거를 상세히 기술한다.
+
+\paragraph{L1 희소성 정규화 ($\lambda_1 = 10^{-3}$)}
+L1 (LASSO) 정규화는 L2 (Ridge) 대비 자유 파라미터를 정확히 0으로 구동하는
+특성이 있어, 적응형 가지치기(pruning)의 전제 조건이다.
+L2 정규화는 모든 진폭을 작지만 0이 아닌 값으로 축소하여
+명확한 가지치기 기준을 설정하기 어렵다.
+$\lambda_1 = 10^{-3}$은 다음 기준으로 선정하였다:
+전형적 파도 진폭 $w_i \sim 0.1$\,m에서 L1 항의 크기가
+$\lambda_1 |w_i| = 10^{-4}$로, 가중 MSE 항($\sim 10^{-2}$)의 1\%에 해당하여
+추정 정확도를 거의 해치지 않으면서 잔여 성분을 0으로 구동한다.
+
+\paragraph{스펙트럼 평활화 ($\lambda_s = 10^{-4}$)}
+$\lambda_s \sum_{i=1}^{N-1}(w_{\sigma(i+1)} - w_{\sigma(i)})^2$는
+파수 크기 $|k|$ 순서($\sigma$)로 정렬된 인접 성분 간의 진폭 급변을 억제한다.
+JONSWAP 스펙트럼에서 진폭 포락선은 피크 주변에서 매끄럽게 변하므로,
+이 정규화는 물리적으로 타당한 귀납적 편향을 제공한다.
+$\lambda_s = 10^{-4}$는 $\lambda_1$의 1/10로,
+평활화가 희소성보다 약한 제약임을 반영한다.
+
+\paragraph{Gradient 유도}
+손실 함수 (\ref{eq:loss})의 각 파라미터에 대한 gradient를 유도한다.
+$\hat{z}_j = \sum_{i} w_i \cos(\psi_{ij})$로 놓으면
+($\psi_{ij} = k_{x,i}x_j + k_{y,i}y_j - \omega_i t + \phi_i$),
+잔차 $r_j = z_j - \hat{z}_j$에 대해:
+\begin{align}
+  \frac{\partial\mathcal{L}}{\partial w_i} &=
+    -\frac{2}{M}\sum_{j} c_j r_j \cos\psi_{ij}
+    + \lambda_1 \operatorname{sign}(w_i)
+    + 2\lambda_s \Delta^2 w_i
+  \label{eq:grad_w} \\
+  \frac{\partial\mathcal{L}}{\partial \phi_i} &=
+    \frac{2}{M}\sum_{j} c_j r_j \, w_i \sin\psi_{ij}
+  \label{eq:grad_phi} \\
+  \frac{\partial\mathcal{L}}{\partial k_{x,i}} &=
+    \frac{2}{M}\sum_{j} c_j r_j \, w_i \, x_j \sin\psi_{ij}
+    \cdot \left(1 + \frac{k_{x,i}}{|k_i|}\frac{\partial\omega_i}{\partial|k_i|} t\right)
+  \label{eq:grad_kx}
+\end{align}
+여기서 $\Delta^2 w_i$는 스펙트럼 평활화의 유한차분 Laplacian이다.
+식~(\ref{eq:grad_kx})에서 $\frac{\partial\omega_i}{\partial|k_i|}$는
+군속도(식~\ref{eq:group_vel})이며,
+분산 제약이 파수 gradient에 시간 $t$에 비례하는 추가 항을 도입함을 보인다.
+이 항은 다중 프레임 초기화에서 시간 축을 따른 위상 정합을 개선하여
+빔포밍만으로는 해석할 수 없는 위상 정보를 활용한다.
+
+실제 구현에서는 L1 항의 $\operatorname{sign}(w_i)$의 $w_i=0$ 비미분성을
+smooth L1 $\approx |w_i + \epsilon|$ ($\epsilon=10^{-8}$)으로 처리하여
+Adam의 모멘텀 갱신과 호환시킨다.
 
 \section{2단계 추정 파이프라인}
 \label{sec:pipeline}
@@ -814,14 +1229,61 @@ $P$의 피크를 greedy로 추출한다: 최대값을 선택한 후
 $15^\circ$ 각도 분리 내의 모든 후보를 억제하고 반복한다.
 $15^\circ$ 임계값은 같은 파도 성분의 인접 파수 빈 간 중복 계수를 방지하면서,
 교차해(crossing seas)를 해석하기에 충분히 좁다.
-추출된 각 성분의 초기 진폭과 위상은
-축적된 관측을 선택된 파수 기저함수에 선형 최소제곱 투영하여 추정한다.
+추출된 각 성분의 초기 진폭과 위상은 선형 최소제곱으로 추정한다.
+$N_{\text{peak}}$개의 피크 파수 $\{(k_{x,i}, k_{y,i})\}$가 선택되면,
+각 관측에 대해 $2N_{\text{peak}}$개의 기저함수 행렬을 구성한다:
+\begin{equation}
+  \mathbf{A} = \begin{bmatrix}
+    \cos\psi_{11} & \sin\psi_{11} & \cdots & \cos\psi_{N_{\text{peak}},1} & \sin\psi_{N_{\text{peak}},1} \\
+    \vdots & \vdots & & \vdots & \vdots \\
+    \cos\psi_{1,M_{\text{tot}}} & \sin\psi_{1,M_{\text{tot}}} & \cdots & \cos\psi_{N_{\text{peak}},M_{\text{tot}}} & \sin\psi_{N_{\text{peak}},M_{\text{tot}}}
+  \end{bmatrix}
+\end{equation}
+여기서 $\psi_{ij} = k_{x,i}x_j + k_{y,i}y_j - \omega_i t_j$이고,
+$M_{\text{tot}}$는 초기화 기간의 총 관측 수이다.
+선형 최소제곱 해 $\mathbf{b} = (\mathbf{A}^T\mathbf{A})^{-1}\mathbf{A}^T\mathbf{z}$로부터
+각 성분의 진폭과 위상을 복원한다:
+$w_i = \sqrt{b_{2i-1}^2 + b_{2i}^2}$,
+$\phi_i = \operatorname{atan2}(-b_{2i}, b_{2i-1})$.
+이 투영은 파수가 주어진 조건에서 닫힌 해(closed-form)이므로
+경사 최적화 전의 효율적 warm start를 제공한다.
+
+\paragraph{옵티마이저 선택: Adam vs.\ SGD vs.\ L-BFGS}
+Adam optimizer~(Kingma \& Ba, 2015)를 선택한 근거는 세 가지이다.
+(1) \textbf{파라미터 스케일 불균질}: 진폭 $w_i \sim 0.1$\,m, 파수 $k_{x,i} \sim 0.1$\,rad/m,
+위상 $\phi_i \in [0, 2\pi)$로 스케일이 2자릿수 이상 다르다.
+Adam의 파라미터별 적응형 학습률이 이 불균질을 자연스럽게 처리하는 반면,
+고정 학습률 SGD에서는 파라미터 그룹별 수동 스케일링이 필요하다.
+(2) \textbf{노이즈 저항성}: LiDAR 관측 노이즈로 인한 gradient 분산을
+모멘텀과 RMSprop 조합으로 효과적으로 평활화한다.
+SGD 모멘텀만으로는 관측 노이즈에 의한 진동이 수렴을 저해하였다.
+(3) \textbf{L-BFGS 대비}: L-BFGS는 2차 근사를 활용하여 적은 스텝으로 수렴하나,
+프레임당 10회 스텝의 추적 시나리오에서 Hessian 근사가 구축되기 전에
+종료되어 Adam보다 열등하였다. 초기화(200 스텝)에서는 L-BFGS가 경쟁적이나,
+추적과의 일관성을 위해 Adam을 통일하여 사용한다.
+
+초기 실험에서 SGD (lr=$10^{-2}$, momentum=0.9)는 BF3 5-component 에피소드에서
+Adam 대비 37\% 높은 수렴 nRMSE를 보였고,
+L-BFGS는 초기화에서 동등하나 추적에서 23\% 높았다.
 
 \paragraph{Coarse-to-fine 최적화}
 빔포밍 초기화로부터 시작하여, 3단계($N$=3 $\to$ 8 $\to$ 15)로
 스펙트럼 파라미터를 최적화한다.
-각 단계에서 Adam optimizer~(Kingma \& Ba, 2015)로 200회 반복한다
+각 단계에서 Adam으로 200회 반복한다
 (학습률 $\eta = 5 \times 10^{-3}$, $\beta_1 = 0.9$, $\beta_2 = 0.999$).
+
+3단계 설계의 근거:
+$N$=3은 피크 에너지의 $\sim$80\%를 포함하는 지배적 성분만을 우선 정합하여
+국소 최소에 빠질 위험을 줄이고, 지배 성분의 파수를 안정적으로 확보한다.
+$N$=8은 중간 에너지 성분까지 확장하여 스펙트럼 형상의 대략적 윤곽을 포착한다.
+$N$=15는 저에너지 성분까지 포함하여 세부 구조를 복원한다.
+각 단계의 결과가 다음 단계의 초기값이 되므로,
+고에너지 성분의 파수가 저에너지 성분 추가에 의해 교란되지 않는다.
+
+1단계($N$=15 직접) 대비 3단계 coarse-to-fine은
+BF4 5-component에서 nRMSE를 평균 8\% 개선하였다.
+이는 비볼록 손실 경관에서의 국소 최소 회피 효과에 기인한다.
+
 초기화 단계에서는 파수 $(k_{x,i}, k_{y,i})$도 자유 파라미터이며
 (추적 단계와 달리), 분산 제약은 매 forward 평가 시 $\omega_i$를
 $(k_{x,i}, k_{y,i})$로부터 재계산하여 정확히 만족시킨다.
@@ -831,17 +1293,48 @@ $(k_{x,i}, k_{y,i})$로부터 재계산하여 정확히 만족시킨다.
 
 초기화 후 에너지 기반 가지치기를 적용한다.
 성분을 에너지 $E_i = w_i^2$ 내림차순으로 정렬하고,
-총 에너지 $\sum_i E_i$의 90\%를 포함하는 최소 집합을 유지한다.
-JONSWAP 스펙트럼 형상에서 소수의 피크 근방 성분이 대부분의 파도 에너지를 포함하므로
-이 기준이 적절하다.
+누적 에너지 비율이 90\%를 달성하는 최소 집합 $\mathcal{S}$를 유지한다:
+\begin{equation}
+  \mathcal{S} = \arg\min_{|\mathcal{S}'|} \left\{
+    \mathcal{S}' \subseteq \{1,\ldots,N\} :
+    \frac{\sum_{i \in \mathcal{S}'} w_i^2}{\sum_{i=1}^{N} w_i^2} \geq 0.90
+  \right\}
+  \label{eq:pruning}
+\end{equation}
+90\% 임계값의 근거: JONSWAP 스펙트럼에서 피크 에너지의 대부분은 피크 주파수
+$\pm 20\%$ 범위에 집중되며, 하위 10\% 에너지 성분은 전체 nRMSE에 대한
+기여가 $\sqrt{0.10} \approx 0.32$ 배로, 제거에 따른 nRMSE 증가가
+$< 5\%$에 그친다.
+95\% 임계값은 BF4--5에서 과소 가지치기(과잉 파라미터 유지)를,
+80\% 임계값은 BF3 다성분에서 과다 가지치기를 유발하여
+90\%가 최적 trade-off로 선정되었다.
 
-안전 검사: 가지치기 후 RMSE가 가지치기 전 대비 130\%를 초과하면
-전체 롤백한다. 이는 유사 에너지의 두 성분이 다른 공간 영역에 기여하는 경우
-(예: 교차해) 개별적으로 저에너지로 보이는 상황을 방지한다.
+\paragraph{안전 검사 (Safety rollback)}
+가지치기 후 RMSE가 가지치기 전 대비 130\%를 초과하면 전체 롤백한다:
+\begin{equation}
+  \text{RMSE}_{\text{post}} / \text{RMSE}_{\text{pre}} > 1.30
+  \implies \text{rollback to pre-pruning state}
+\end{equation}
+이 안전 장치가 필요한 이유: 교차해(crossing seas)에서 두 성분이
+유사한 에너지를 가지되 서로 다른 공간 영역에 기여할 수 있다.
+에너지 기준만으로는 두 성분이 모두 ``저에너지''로 분류되어 동시 제거될 수 있으며,
+이 경우 RMSE가 급격히 증가한다.
+130\% 임계값은 BF3 2-component crossing seas에서의
+가지치기 실패 사례 분석으로부터 경험적으로 결정하였다.
 
-잔차 기반 성장: 가지치기 후 잔차 RMS가 0.05\,m을 초과하면
+\paragraph{잔차 기반 성장}
+가지치기 후 잔차 RMS가 0.05\,m을 초과하면
 (미모델링 파도 에너지 존재), 잔차 신호 $r_j = z_j - \hat{z}_j$에 빔포밍을
 재적용하여 주도적 잔차 피크를 모델에 추가한다 ($N_{\max}=30$).
+0.05\,m 임계값은 BF2의 전형적 파고($H_s = 0.3$\,m)의 $\sim$17\%에 해당하며,
+LiDAR 노이즈($\sigma \approx 0.02$\,m)의 2.5배로
+노이즈에 의한 spurious 성장을 방지하면서 실제 미모델링 파도를 포착한다.
+
+이 prune-grow 순환은 3D Gaussian Splatting~\citep{Kerbl2023}의
+densification--pruning 전략과 개념적으로 유사하다.
+3DGS에서 gradient 크기에 기반한 Gaussian 분할/병합이
+장면 복잡도에 적응하듯, \WS{}에서 에너지/잔차 기반 가지치기/성장이
+해상 복잡도에 적응한다.
 
 \subsection{Phase 2: 추적 (w\_phi 모드)}
 \label{sec:tracking}
@@ -860,18 +1353,54 @@ JONSWAP 스펙트럼 형상에서 소수의 피크 근방 성분이 대부분의
     파수 $(k_{x,i}, k_{y,i})$는 고정한다 (\texttt{w\_phi} 추적 모드).
 \end{enumerate}
 
-추적 시 파수를 고정하는 근거는 두 가지이다:
-(1) 단일 프레임에서 파수 추정은 희소 관측의 공간 aliasing으로 ill-conditioned이다
---- LiDAR의 불규칙 샘플링 패턴이 단일 스냅샷에서 파수를 해석하기에 충분한 제약을
-제공하지 못하는 반면, 다중 프레임 초기화는 $\sim$20 프레임에 걸친 평균화로
-견고한 파수 추정을 제공한다;
-(2) 고정 파수 하에서 분산 제약이 강력한 위상 예측 ($\omega \cdot \Delta t$)을
-제공하여 warm start로 작용하므로, 프레임당 경사 스텝을 200회(전체 최적화)에서
-10회로 감소시킨다.
+\paragraph{추적 모드 선택의 배경: 실패한 전체 파라미터 추적}
+\WS{} 개발 과정에서 추적 단계의 설계는 핵심적 기술 과제였다.
+초기 설계에서는 추적 시에도 모든 파라미터 $(w_i, k_{x,i}, k_{y,i}, \phi_i)$를
+갱신하는 ``full'' 모드를 사용하였으나, 심각한 overfitting 현상이 관찰되었다.
 
-슬라이딩 윈도우 ($K_w = 3$)는 최근 3 프레임의 관측을 경사 계산에 사용한다.
-10\,Hz에서 0.3\,s 구간으로, 고려하는 모든 해상 상태의 피크 주기 $T_p$보다
-훨씬 짧아 과도한 지연 없이 단일 프레임 노이즈를 평활화한다.
+\textbf{Full 추적의 실패 메커니즘}:
+단일 프레임의 희소 관측($M \sim 50$--200)은 $4N$ 파라미터에 대해
+과소결정(under-determined)이거나 간신히 과결정이다.
+이 조건에서 파수 $(k_{x,i}, k_{y,i})$에 대한 gradient는 노이즈에 지배되어,
+파수가 물리적 파도 성분에서 벗어나 관측 노이즈의 국소적 패턴에 적합한다.
+구체적으로, full 모드에서 5 프레임 후 평균 파수 이동이
+$|\Delta k| / |k| > 15\%$로, 분산관계와의 정합이 무너져
+위상 예측($\omega \cdot \Delta t$)의 정확도가 급격히 저하되었다.
+결과적으로 nRMSE가 초기화 시점 대비 프레임 50 (5초)에서 평균 40\% 증가하는
+추적 발산(tracking divergence) 현상이 관찰되었다.
+
+세 가지 추적 모드를 비교 실험하였다:
+\begin{itemize}
+  \item \textbf{Full}: $(w, k_x, k_y, \phi)$ 모두 갱신 ---
+        과적합으로 5초 후 발산
+  \item \textbf{w\_only}: $w$만 갱신, $\phi$는 예측만 ---
+        위상 누적 오차로 10초 후 정확도 저하
+  \item \textbf{w\_phi}: $(w, \phi)$ 갱신, $(k_x, k_y)$ 고정 ---
+        안정적 추적, 전 에피소드에서 최저 평균 nRMSE
+\end{itemize}
+
+\texttt{w\_phi} 모드가 최선인 이유는 두 가지이다:
+(1) 파수를 고정함으로써 추적 시 자유 파라미터가 $4N$에서 $2N$으로 반감하여,
+$M \sim 100$ 관측에 대해 $N \leq 30$에서도 충분히 과결정(over-determined)이 된다.
+(2) 고정 파수 하에서 분산 제약이 강력한 위상 예측 ($\omega \cdot \Delta t$)을
+제공하여 warm start로 작용하므로, 프레임당 경사 스텝을 200회(초기화)에서
+10회로 감소시킨다. 위상 예측의 정확도는 분산관계의 정확도에 직접 의존하므로,
+분산 하드 제약이 추적 안정성의 핵심 메커니즘이다.
+
+\paragraph{슬라이딩 윈도우 크기 ($K_w = 3$)}
+슬라이딩 윈도우는 최근 $K_w$ 프레임의 관측을 gradient 계산에 사용한다.
+$K_w$의 선택은 두 가지 상반되는 효과의 균형이다:
+\begin{itemize}
+  \item $K_w \uparrow$: gradient 분산 감소 (더 많은 관측 평균화),
+        단 시간 변화하는 파도장에 대한 적응 지연 증가
+  \item $K_w \downarrow$: 빠른 적응, 단 노이즈에 의한 gradient 변동 증가
+\end{itemize}
+$K_w \in \{1, 2, 3, 5, 10\}$ 비교에서, $K_w = 3$ (0.3\,s at 10\,Hz)이
+최적이었다. $K_w = 1$은 노이즈 민감성으로 nRMSE 5\% 증가,
+$K_w = 5$는 과도한 평균화로 빠른 파도 변화 추적에 지연이 발생하였다.
+0.3\,s는 BF2--5의 최소 피크 주기 $T_p = 4$\,s보다 충분히 짧아
+파도장의 시간 변화를 놓치지 않으면서, 3회 평균화로 단일 프레임
+노이즈를 $1/\sqrt{3} \approx 58\%$로 감소시킨다.
 
 \section{계산 복잡도}
 \label{sec:complexity}
@@ -919,6 +1448,57 @@ GPR       & $\mathcal{O}(M^3)$ & $>$200\,ms \\
 \end{tabular}
 \end{table}
 
+\subsection{메모리 사용량 비교}
+\label{sec:memory}
+
+계산 시간과 더불어 메모리 사용량도 실시간 임베디드 배치에서 중요하다.
+
+\begin{table}[htbp]
+\centering
+\caption{방법별 메모리 사용량 비교. $N$: 스펙트럼 성분 수,
+$G$: 격자 크기, $N_e$: 앙상블 멤버 수.}
+\label{tab:memory}
+\begin{tabular}{lccc}
+\toprule
+방법 & 상태 크기 & 메모리 (float64) & 실측 \\
+\midrule
+\WS{} & $4N$ & $4 \times 30 \times 8 = 960$\,B & $\sim$1\,KB \\
+ETKF-grid & $N_e \times G^2$ & $100 \times 1200 \times 8 = 960$\,KB & $\sim$1\,MB \\
+GPR & $M \times M$ (커널) & $200 \times 200 \times 8 = 320$\,KB & $\sim$0.5\,MB \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\WS{}의 메모리 소비는 ETKF 대비 \textbf{1{,}000배} 작다.
+이 차이는 상태 표현의 근본적 차이에서 비롯된다:
+\WS{}는 $4N \leq 120$개의 스칼라로 파도장 전체를 기술하는 반면,
+ETKF는 격자점당 앙상블 멤버를 유지해야 한다.
+선박 탑재 임베디드 시스템(예: NVIDIA Jetson, ARM Cortex-A78)에서
+1\,KB vs.\ 1\,MB의 차이는 캐시 계층에서의 처리 가능 여부를 결정한다 ---
+\WS{}의 전체 상태가 L1 캐시(32--64\,KB)에 수용되어
+메모리 접근 지연이 최소화된다.
+
+\subsection{확장성 분석}
+
+\WS{}의 프레임당 비용 $\mathcal{O}(K \cdot K_w \cdot M \cdot N)$에서
+각 인자의 실용적 변동 범위를 분석한다:
+\begin{itemize}
+  \item $K = 10$ (Adam steps): 수렴 실험에서 10회가 marginal benefit 기준 최적.
+        $K = 20$에서 nRMSE 개선 $< 1\%$이나 비용 2배.
+  \item $K_w = 3$ (윈도우): 제\ref{sec:tracking}절에서 분석한 바와 같이 최적.
+  \item $M = 50$--200: 해상 상태와 raydrop에 의존. $M$에 선형 비례하므로
+        BF5의 저밀도 관측($M \sim 50$)에서 BF2 대비 4배 빠르다.
+  \item $N \leq 30$: 적응형 가지치기로 제한. BF2 1-comp ($N=1$)에서
+        BF5 30-comp ($N=21$)까지 21배 범위이나,
+        실측 시간 변동은 10--16\,ms로 1.6배 범위에 그친다.
+        이는 Adam optimizer의 파라미터 초기화 오버헤드와
+        Python 해석 비용이 $N$-선형 연산보다 크기 때문이다.
+\end{itemize}
+
+GPU 가속 시 forward 평가의 $M \times N$ 행렬 곱이 CUDA 커널로 병렬화되어
+$M = 500$, $N = 100$에서도 $< 5$\,ms가 예상된다.
+그러나 현재 CPU 구현이 실시간 예산 내이므로 GPU 가속은 불필요하다.
+
 \section{시뮬레이션 환경 (WaveSim)}
 \label{sec:wavesim}
 
@@ -930,12 +1510,80 @@ ground-truth 파도장과 합성 LiDAR 관측을 생성한다.
 
 파도장은 JONSWAP 스펙트럼~\citep{Hasselmann1973}으로 파라미터화하고
 Gerstner wave~\citep{Gerstner1802}로 생성한다.
-Gerstner wave는 2차 비선형 회전파의 정확해로, 수평 궤도 운동(orbital motion)을
-포함하여 선형 모델(\ref{eq:forward})의 현실적 테스트를 제공한다.
-입자 교차(wave self-intersection) 방지를 위해
-Q-제약 $\sum_i Q_i \omega_i A_i \leq 1$을 강제한다.
+
+\paragraph{JONSWAP 스펙트럼}
+JONSWAP 에너지 밀도 스펙트럼은:
+\begin{equation}
+  S(\omega) = \alpha_J g^2 \omega^{-5}
+    \exp\!\left[-\frac{5}{4}\left(\frac{\omega_p}{\omega}\right)^4\right]
+    \gamma^{\exp\!\left[-\frac{(\omega - \omega_p)^2}{2\sigma_J^2 \omega_p^2}\right]}
+  \label{eq:jonswap}
+\end{equation}
+여기서 $\omega_p = 2\pi/T_p$는 피크 각주파수,
+$\gamma = 3.3$은 피크 첨예도(peakedness),
+$\sigma_J = 0.07$ ($\omega \leq \omega_p$), $0.09$ ($\omega > \omega_p$)은
+피크 폭 파라미터이다.
+$\alpha_J$는 유의파고 $H_s = 4\sqrt{\int S(\omega)\,d\omega}$를
+만족하도록 스케일링한다.
+
+다성분 파도장은 이 스펙트럼을 $N$ 구간으로 분할하여 각 성분의 진폭과
+주파수를 결정한다:
+$w_i = \sqrt{2 S(\omega_i) \Delta\omega}$, $\omega_i$는 각 구간의 중심 주파수.
+방향 분산은 $\cos^{2s}(\theta/2)$ 방향 확산 함수($s=10$, $\pm 20^\circ$ 유효 폭)로
+각 성분에 독립 방향을 부여한다.
+
+\paragraph{Gerstner wave 생성}
+Gerstner wave~\citep{Gerstner1802}는 Euler 좌표가 아닌
+Lagrange 좌표에서 정의되는 2차 비선형 회전파의 정확해이다.
+Lagrange 좌표 $(\xi, \zeta)$에서의 입자 궤적:
+\begin{align}
+  x(\xi, t) &= \xi - \sum_i Q_i w_i k_{x,i} / |k_i| \cdot \sin(k_{x,i}\xi + k_{y,i}\zeta - \omega_i t + \phi_i)
+  \label{eq:gerstner_x} \\
+  z(\xi, t) &= \sum_i w_i \cos(k_{x,i}\xi + k_{y,i}\zeta - \omega_i t + \phi_i)
+  \label{eq:gerstner_z}
+\end{align}
+여기서 $Q_i \in [0, 1]$은 수평 궤도 운동의 강도를 제어하는 파라미터이다.
+$Q_i = 0$이면 순수 선형파(수직 운동만), $Q_i = 1$이면 완전 Gerstner파이다.
+$Q_i > 0$에서 파봉이 뾰족하고 파곡이 완만한 비선형 파형(파도 비대칭, wave asymmetry)이 재현되며,
+이는 선형 모델(\ref{eq:forward})의 코사인 대칭 가정과 대비된다.
+
+입자 교차(wave self-intersection, loop-de-loop) 방지를 위해
+Q-제약 $\sum_i Q_i |k_i| w_i \leq 1$을 강제한다.
+이 제약은 표면의 Jacobian $\partial x / \partial \xi > 0$을 보장하여
+물리적으로 허용되지 않는 파도 교차(자기 관통)를 방지한다.
+본 시뮬레이션에서는
+\[
+Q_i = \min\!\bigl(0.8,\; 1/{\textstyle\sum_j |k_j| w_j}\bigr)
+\]
+로 설정하여 비선형 효과를 최대한 포함하면서 안정성을 유지한다.
+
+Gerstner wave를 ground truth로 선택한 이유는 두 가지이다:
+(1) 수평 궤도 운동이 포함되어 선형 모델(\ref{eq:forward})의 현실적 테스트를 제공한다 ---
+선형 모델은 $\mathcal{O}(\epsilon^2)$ 근사이므로, Gerstner ground truth에서의
+성능이 선형 모델의 실용적 한계를 측정한다;
+(2) 해석해이므로 수치 파도 시뮬레이션(CFD 등)의 이산화 오차가 없어
+순수한 모델 오차만을 평가할 수 있다.
+
 해상 조건은 Beaufort 2--5 ($H_s = 0.3$--$2.0$\,m, $T_p = 4$--$9$\,s)를 포괄하며,
 성분 수 1, 2, 5, 15, 30과 $\pm 20^\circ$ 방향 분산을 포함한다.
+표~\ref{tab:sea_states}에 해상 조건별 파라미터를 정리한다.
+
+\begin{table}[htbp]
+\centering
+\caption{시뮬레이션 해상 조건 파라미터. $\lambda_p$: 피크 파장,
+$c_p$: 위상 속도, $c_g$: 군속도 (수심 50\,m).}
+\label{tab:sea_states}
+\begin{tabular}{lcccccc}
+\toprule
+BF & $H_s$ [m] & $T_p$ [s] & $\lambda_p$ [m] & $c_p$ [m/s] & $c_g$ [m/s] & 성분 수 \\
+\midrule
+2 & 0.30 & 4.0 & 24.9 & 6.2 & 3.3 & 1, 2 \\
+3 & 0.88 & 5.0 & 39.0 & 7.8 & 4.1 & 1, 2, 5 \\
+4 & 1.88 & 7.5 & 87.7 & 11.7 & 6.4 & 5, 15, 30 \\
+5 & 2.00 & 9.0 & 126.4 & 14.0 & 7.8 & 15, 30 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{LiDAR 시뮬레이션}
 \label{sec:lidar_sim}
@@ -944,12 +1592,50 @@ LiDAR 시뮬레이션은 Seyond Falcon K1의 실제 사양을 기반으로 한�
 1550\,nm 파장, 152채널, 수평 FOV $120^\circ$, 수직 FOV $25^\circ$,
 500 수평 빔, 10\,Hz 스캔 속도, 사거리 10--250\,m.
 
-Ray-surface 교차는 Möller--Trumbore 알고리즘으로 삼각화된 파면과의
-교차점을 정확히 계산한다.
+LiDAR 시뮬레이션의 핵심은 (1) 빔 방향 계산, (2) ray-surface 교차,
+(3) 반환 확률 결정의 세 단계이다.
+
+\paragraph{빔 방향 계산}
+LiDAR를 선박 좌표계의 $(x_L, y_L, z_L) = (3.0, 0.0, 4.0)$\,m
+(선수 3\,m, 해수면 위 4\,m)에 설치하고, $-10^\circ$ pitch (하방)으로 기울인다.
+각 빔의 방향은 수평 인덱스 $i \in [0, 499]$와
+수직 인덱스 $j \in [0, 151]$로 결정되며,
+수평 각도 $\phi_i = -60^\circ + 0.24^\circ \times i$,
+수직 각도 $\theta_j = -12.5^\circ + \Delta\theta \times j$이다.
+총 빔 수는 $500 \times 152 = 76{,}000$이나,
+해수면과 교차하는 빔만이 유효 관측을 생성한다.
+
+\paragraph{Ray-surface 교차}
+파도 표면을 Delaunay 삼각화하여 삼각형 메시로 표현하고,
+각 LiDAR 빔(반직선)과 메시 삼각형의 교차를
+Möller--Trumbore 알고리즘으로 계산한다.
+이 알고리즘은 빔 원점 $\mathbf{O}$, 방향 $\mathbf{D}$와
+삼각형 정점 $(\mathbf{V}_0, \mathbf{V}_1, \mathbf{V}_2)$에 대해
+빔 파라미터 $t$와 무게중심 좌표 $(u, v)$를 동시에 계산한다:
+\begin{equation}
+  \mathbf{O} + t\mathbf{D} = (1-u-v)\mathbf{V}_0 + u\mathbf{V}_1 + v\mathbf{V}_2
+\end{equation}
+$t > 0$, $u \geq 0$, $v \geq 0$, $u + v \leq 1$이면 교차점이 존재하며,
+$\mathbf{P} = \mathbf{O} + t\mathbf{D}$가 관측 위치이다.
+교차점에서의 국소 표면 법선
+$\mathbf{n} = (\mathbf{V}_1 - \mathbf{V}_0) \times (\mathbf{V}_2 - \mathbf{V}_0)$로
+입사각 $\theta = \arccos(|\mathbf{n} \cdot \mathbf{D}| / (|\mathbf{n}||\mathbf{D}|))$을
+계산한다.
+
+\paragraph{반환 확률}
 반환 확률은 Fresnel 반사율, 입사각, 거리의 함수로 모델링한다.
 Fresnel 반사율은 1550\,nm에서의 해수 복소 굴절률 $n = 1.321$을 사용하며,
 입사각이 클수록(grazing) 반사율이 증가하여 specular reflection에 의한
 신호 손실(raydrop)이 발생한다.
+diffuse 반환 성분의 확률은:
+\begin{equation}
+  P_{\text{return}} = \eta \cdot (1 - R_{\text{Fresnel}}(\theta)) \cdot \frac{\cos\theta}{(d/d_{\text{ref}})^2}
+  \label{eq:return_prob}
+\end{equation}
+여기서 $\eta = 0.3$은 전체 시스템 효율(광학 손실, 대기 감쇠 등),
+$(1 - R_{\text{Fresnel}})$은 표면 투과·산란 비율,
+$\cos\theta$는 Lambertian 투영, $(d/d_{\text{ref}})^2$는 역제곱 거리 감쇠이다.
+이 확률에 기반한 Bernoulli 샘플링으로 각 빔의 반환 여부를 결정한다.
 
 두 가지 raydrop 모델을 구현하여 LiDAR의 서로 다른 물리적 반환 조건을 모사한다:
 \begin{itemize}
@@ -975,9 +1661,45 @@ Fresnel 반사율 단조 증가, ray-surface 교차 정밀도, 수심 $d=50$\,m�
 (5개 시드 $\times$ 10개 설정 $\times$ 2가지 raydrop 모델).
 각 에피소드는 301 프레임 (30\,s, 10\,Hz)으로 구성되며,
 ground-truth 파고장은 LiDAR 관측 영역을 포함하는
-$80 \times 60$ 공간 격자에서 평가된다.
+$80 \times 60$ 공간 격자($x \in [-10, 390]$\,m, $y \in [-150, 150]$\,m,
+격자 간격 5\,m)에서 평가된다.
 10개 설정은 Beaufort 2--5 해상($H_s = 0.3$--$2.0$\,m)과
 성분 수 1, 2, 5, 15, 30의 조합이다.
+
+\paragraph{에피소드 구조}
+각 에피소드는 다음으로 구성된다:
+\begin{itemize}
+  \item \textbf{파도 파라미터}: $N$ 성분 각각의
+        $(w_i, k_{x,i}, k_{y,i}, \omega_i, \phi_i)$. JONSWAP 스펙트럼에서 샘플링.
+  \item \textbf{LiDAR 관측}: 301 프레임 $\times$ $M(t)$개 관측점
+        (프레임당 50--200개, 해상 상태와 raydrop 모델에 의존).
+        각 관측점의 위치 $(x_j, y_j)$, 파고 $z_j$, 시각 $t_j$,
+        입사각 $\theta_j$, 거리 $d_j$ 포함.
+  \item \textbf{Ground truth}: 301 프레임 $\times$ $80 \times 60$ 격자의
+        파고장 $\eta(x, y, t)$. Gerstner wave 해석해로 직접 계산.
+  \item \textbf{메타데이터}: $H_s$, $T_p$, 방향, 성분 수, 시드, raydrop 모델.
+\end{itemize}
+
+\paragraph{5개 시드의 역할}
+랜덤 시드는 (1) JONSWAP 스펙트럼 내 성분 주파수 위치,
+(2) 각 성분의 초기 위상 $\phi_i \in [0, 2\pi)$,
+(3) 방향 분산 내 개별 성분 방향,
+(4) LiDAR raydrop의 Bernoulli 샘플링을 독립적으로 제어한다.
+동일 해상 조건($H_s$, $T_p$, 성분 수)에서 5개 시드를 사용함으로써,
+특정 위상 배치에 의존하지 않는 통계적으로 견고한 평가를 보장한다.
+
+\paragraph{평가 영역}
+Ground truth 격자의 전체 영역이 아닌, 추정 $T_{\text{init}}$ 이후의
+유효 추적 구간(프레임 $T_{\text{init}}/\Delta t + 1$ -- 301)에서만
+지표를 계산한다. 초기화 기간의 과도 응답을 제외하여
+추적 성능만을 공정하게 평가한다.
+$T_{\text{init}} = 2T_p$이므로 BF2에서 8\,s (80 프레임),
+BF5에서 18\,s (180 프레임)이 초기화에 소요되며,
+유효 평가 프레임은 각각 221개, 121개이다.
+
+전체 데이터셋은 HDF5 형식으로 저장되며
+(에피소드당 $\sim$15\,MB, 총 $\sim$1.5\,GB),
+재현 가능한 실험을 위해 시드와 파라미터를 포함한다.
 
 \subsection{기준선 방법}
 \label{sec:baselines}
@@ -1116,9 +1838,41 @@ BF5 & \textbf{0.283} & 0.302 & 0.262 & 20 \\
 \end{figure}
 
 \WS{}의 한계도 동일한 패널에서 드러난다:
-VR = 0.66 (진폭 $\sim$34\% 과소추정, 적응형 가지치기의 대가),
-SS = +0.034 (양수이나 marginal),
-Dir $R^2 = -0.25$ (방향 추정이 chance 미만, 가장 큰 한계).
+
+\textbf{VR = 0.66 (진폭 $\sim$34\% 과소추정)}:
+에너지 기반 가지치기(90\% 에너지 보존)가 직접적 원인이다.
+가지치기된 10\% 에너지에 해당하는 성분들은 대부분 저에너지 고차 성분이나,
+이들의 기여가 누적되면 전체 분산의 $\sim$34\%에 해당한다.
+가지치기 임계값을 95\%로 높이면 VR이 $\sim$0.80으로 개선되나,
+과잉 파라미터에 의한 추적 불안정성이 BF4--5에서 관찰되어
+현재 90\%를 유지한다.
+대안적 접근으로 가지치기 후 나머지 성분의 진폭을 스케일링하는
+에너지 보존 보정($w_i \leftarrow w_i / \sqrt{\text{VR}}$)이 가능하나,
+이는 추정의 물리적 해석을 왜곡할 수 있어 적용하지 않았다.
+
+\textbf{SS = +0.034 (양수이나 marginal)}:
+Skill Score $= 1 - \text{MSE}(\hat{z})/\text{MSE}(0)$에서
+MSE(0)은 zero-predictor의 MSE이다.
+영평균 파도장에서 $\text{MSE}(0) = \text{Var}(z) = (H_s/4)^2$이므로,
+SS $> 0$은 추정이 단순 평균보다 나음을 의미한다.
++0.034는 ``zero-predictor보다 겨우 3.4\% 나은'' 수준이며,
+이는 VR = 0.66과 $\rho = 0.45$의 결합 효과이다.
+$\text{SS} = 1 - (1 - \rho^2 \cdot \text{VR})$ (Gaussian 가정 하)에서
+$\rho = 0.45$, VR = 0.66이면 SS $\approx 0.13$이 예상되나,
+실제 SS가 더 낮은 것은 공간 평균에서의 추정 편향에 기인한다.
+
+\textbf{Dir $R^2 = -0.25$ (방향 추정이 chance 미만)}:
+이것이 \WS{}의 가장 심각한 한계이다.
+$R^2 < 0$은 추정된 2D 파수 스펙트럼의 방향 구조가
+등방향 분포보다 못함을 의미한다.
+원인은 단안(monocular) LiDAR의 근본적 제약이다:
+단일 시점에서의 LiDAR 관측은 전방 해수면만 보며,
+파도 전파 방향(+$k_x$ vs.\ $-k_x$)을 구별하기 위해서는
+시간적 위상 변화의 관찰이 필요하다.
+빔포밍의 $\omega$ 인코딩이 이를 부분적으로 제공하나,
+$T_{\text{init}} = 2T_p$ 기간의 위상 변화만으로는
+다성분 교차해에서 방향 분리가 불충분하다.
+이 한계는 제4장 BF4 feedforward 성능 저하의 직접적 원인이다.
 
 \subsection{에피소드별 상세 결과}
 \label{sec:per_episode}
@@ -1163,20 +1917,65 @@ BF5 30comp    & \textbf{0.290} & 13.3 & 0.412 &  93 & 19 \\
 \label{fig:qualitative}
 \end{figure}
 
-주요 관찰:
-\begin{itemize}
-  \item \textbf{저복잡도}: BF3 2-component에서 nRMSE 0.052 달성 --- tuned ETKF
-    (0.327 평균) 대비 $\sim$6배 개선. 격자 비의존 표현이 두 평면파를
-    격자 aliasing 없이 정확히 포착한다.
-  \item \textbf{고복잡도}: BF4--5 15--30 성분에서도 \WS{}가 ETKF를 상회
-    (0.301 vs.\ 0.383 평균), 다만 격차가 줄어든다.
-  \item \textbf{속도}: \WS{}는 평균 13.4\,ms/프레임으로
-    tuned ETKF (132.6\,ms 평균, 중앙값 110\,ms) 대비 약 10배 빠르며,
-    10\,Hz LiDAR의 100\,ms 실시간 예산 이내이다.
-\end{itemize}
+주요 관찰을 네 가지 측면에서 분석한다.
+
+\paragraph{저복잡도 해상에서의 우위}
+BF3 2-component (uniform)에서 nRMSE 0.052 달성 --- tuned ETKF
+(0.349) 대비 $\sim$6.7배 개선이다. 이는 \WS{}의 가장 극적인 결과로,
+격자 비의존 표현의 핵심 장점을 시사한다.
+물리적 해석: 2개의 평면파만 존재하는 파도장에서
+\WS{}는 $N=2$개의 성분만으로 $4 \times 2 = 8$개 파라미터로 정확히 표현하는 반면,
+ETKF는 $40 \times 30 = 1{,}200$ 격자점에 100개 앙상블을 유지하여
+$120{,}000$개 상태를 갱신한다.
+이 14{,}000배의 표현 효율 차이가 ETKF의 약한 관측 제약
+(1{,}200 격자 vs.\ $\sim$100 관측)과 결합하여
+``분산은 맞지만 형상이 틀린'' 추정을 야기한다.
+
+1-component BF3에서도 \WS{}가 0.217 vs.\ 0.322로 우수하나,
+격차가 2-component보다 작다.
+이는 단일 성분 너울이 ETKF의 격자에서도 비교적 잘 표현되기 때문이다
+(Nyquist 이하 단일 주파수).
+
+\paragraph{고복잡도 해상에서의 동향}
+BF4--5 15--30 성분에서도 \WS{}가 ETKF를 상회하나
+(0.301 vs.\ 0.383 평균), 격차가 줄어든다.
+이 수렴 현상의 원인은 두 가지이다:
+(1) 다성분 해상에서 \WS{}의 빔포밍 초기화가 파수 공간 해상도 한계에 접근하여
+일부 성분의 파수 추정이 부정확해지고,
+(2) 적응형 $N_a \approx 18$--21로 포화되어 30개 성분 중 일부가 미포착된다.
+BF4 30comp에서 $N_a = 18$은 ground truth 30개 대비 60\%만 모델링하며,
+나머지 12개 성분의 미포착이 nRMSE 0.314의 주요 원인이다.
+
+\paragraph{속도 이점}
+\WS{}는 평균 13.4\,ms/프레임으로 tuned ETKF 대비 약 10배 빠르다.
+BF3 2comp (U)에서 ETKF가 635\,ms로 급증하는데,
+이는 높은 nRMSE에서 앙상블 발산 → inflation 보정 →
+추가 앙상블 연산의 악순환에 기인한다.
+\WS{}는 성분 수에 비례하는 예측 가능한 비용($\sim$13\,ms $\pm$ 3\,ms)을 보이며,
+실시간 예산(100\,ms) 대비 7배의 여유를 확보한다.
+
+\paragraph{적응형 $N_a$의 유효성}
+$N_a$는 해상 복잡도를 정확히 반영한다:
+BF4 1comp $\to N_a = 1$, BF3 2comp $\to N_a = 2$,
+BF3 5comp $\to N_a = 4$ (5개 중 1개가 에너지 10\% 미만으로 가지치기),
+BF4 15comp $\to N_a = 19$ (에너지 보존을 위해 ground truth보다 4개 추가).
+$N_a > N_{\text{true}}$ 사례는 빔포밍이 잔차 에너지에서 추가 피크를 검출한 것으로,
+이 추가 성분은 비선형 Gerstner 파형의 고차 하모닉을 근사한다.
 
 \subsection{다중 시드 통계 검증}
 \label{sec:statistical}
+
+단일 시드의 결과는 특정 위상 배치에 의한 우연적 성능일 수 있으므로,
+통계적 유의성 검증이 필수적이다.
+100개 에피소드의 대응 표본(paired samples) 설계를 활용한다:
+동일한 파도 조건(동일 시드)에서 \WS{}와 기준선을 실행하여
+에피소드별 nRMSE 쌍을 구성한다.
+
+대응 표본의 차이 $\Delta_i = \text{nRMSE}_{\text{baseline},i} - \text{nRMSE}_{\text{WS},i}$에 대해
+비모수 Wilcoxon signed-rank 검정을 적용한다.
+Wilcoxon 검정은 정규성 가정 없이 대응 차이의 분포 대칭성만을 요구하므로,
+nRMSE의 비정규 분포(하한 0에서 절단)에 적합하다.
+효과 크기는 Cohen's $d = \bar{\Delta} / s_\Delta$로 정량화한다.
 
 100회 대응 검증 (10 설정 $\times$ 5 시드 $\times$ 2 raydrop 모델)에서:
 
@@ -1184,6 +1983,7 @@ BF5 30comp    & \textbf{0.290} & 13.3 & 0.412 &  93 & 19 \\
 \centering
 \caption{100 대응 검증 통계.}
 \label{tab:stats}
+\footnotesize
 \begin{tabular}{llllll}
 \toprule
 비교 & mean $\pm$ std & Wilcoxon $W$ & $p$-값 & Cohen's $d$ & 95\% CI \\
@@ -1485,6 +2285,27 @@ $x_f = 2.0$\,m, $x_r = -2.5$\,m은 무게중심 대비 foil 위치,
 $a_{33} = 0.05m$, $a_{55} = 0.05 I_{yy}$은 부가 질량(foilborne 모드에서 작음),
 $B_z = 50$\,N$\cdot$s/m, $B_\theta = 20$\,N$\cdot$m$\cdot$s/rad은 구조 감쇠이다.
 
+식~(\ref{eq:heave})--(\ref{eq:pitch})는 foilborne 모드의 Newton 제2법칙
+직접 적용이다. 좌변의 $(m + a_{33})$은 유효 질량으로,
+부가 질량 $a_{33} = 0.05m = 85$\,kg은 foilborne 모드에서 선체가
+수면 위에 부상하여 부가 질량이 배수량형(일반적으로 $a_{33} \sim 0.3$--$0.5 m$)
+대비 크게 감소함을 반영한다.
+관성 모멘트 $I_{yy} = \frac{1}{12}m(L^2 + H^2) \approx 1020$\,kg$\cdot$m$^2$
+(LOA=8.5\,m 기준)이며, $a_{55} = 0.05 I_{yy} \approx 51$\,kg$\cdot$m$^2$이다.
+
+\paragraph{고유진동수 분석}
+Foil 양력의 heave 복원력 성분을 선형화하면 ($\partial L / \partial z$ 기울기로),
+heave 고유진동수를 근사할 수 있다.
+설계점에서 양 foil의 총 양력 기울기는 $dL/dz \approx -C_{L\alpha} \rho V^2 S / (2V) \approx
+-2800$\,N/m이며, 이는 heave 고유진동수
+$\omega_{n,z} = \sqrt{|dL/dz| / (m + a_{33})} \approx 1.3$\,rad/s ($T_{n,z} \approx 4.8$\,s)에
+해당한다.
+Pitch 고유진동수는 전·후방 foil의 무게중심 대비 moment arm
+($x_f = 2.0$, $x_r = -2.5$\,m)에 의한 복원 모멘트로 결정되며
+$\omega_{n,\theta} \approx 2.1$\,rad/s ($T_{n,\theta} \approx 3.0$\,s)이다.
+BF3 head sea의 조우 주파수 $\omega_e \approx 3.1$\,rad/s가
+양 고유진동수를 초과하므로, 공진 없이 roll-off 영역에서 운용됨을 확인한다.
+
 Foilborne 모드에서 heave와 pitch가 승객 승차감에 지배적인 자유도이며,
 ISO 2631 승차감 지표가 수직 가속도에 기반한다.
 Roll은 대칭 tandem-foil 설정의 차동 양력에 의한 자연 복원 모멘트와,
@@ -1499,10 +2320,36 @@ Roll은 대칭 tandem-foil 설정의 차동 양력에 의한 자연 복원 모�
 \end{equation}
 여기서 $S_i = b_i c_i$는 평면적,
 $C_{L,i} = C_{L\alpha,i}(\alpha_{\text{eff},i} - \alpha_{zl,i})$는
-양력 계수($\pm C_{L,\max}=1.2$에서 실속 클램핑),
-$\sigma(h_i) \in [0, 1]$은 자유 표면 근접 보정으로
-$h/c \geq 2$에서 $\sigma=1$ (완전 침수), $h=0$에서 $\sigma=0$ (표면 관통)으로
-선형 변화한다.
+양력 계수($\pm C_{L,\max}=1.2$에서 실속 클램핑)이다.
+
+\paragraph{양력 기울기의 유도}
+2차원 박판 익형(thin airfoil) 이론에서 양력 기울기는 $C_{L\alpha,2D} = 2\pi$\,rad$^{-1}$이다.
+유한 종횡비(aspect ratio) AR에서 Prandtl의 lifting-line 이론에 의한 보정:
+\begin{equation}
+  C_{L\alpha,3D} = \frac{2\pi \cdot \text{AR}}{\text{AR} + 2} \approx 2\pi \cdot \frac{\text{AR}}{\text{AR}+2}
+  \label{eq:liftslope}
+\end{equation}
+전방 foil (AR=9): $C_{L\alpha} = 2\pi \times 9/(9+2) = 5.14$\,rad$^{-1}$.
+실제 NACA 63-series 익형은 2D 양력 기울기가 $\sim 0.93 \times 2\pi$
+(두께와 점성 효과)이므로, 보정된 값은 전방 $5.34$, 후방 $5.03$\,rad$^{-1}$이다.
+실속(stall)은 $|\alpha_{\text{eff}}|$가 $C_{L,\max}/C_{L\alpha} \approx 12.9^\circ$를
+초과할 때 $C_L = \pm C_{L,\max}$로 클램핑하여 모사한다.
+이 선형 실속 모델은 post-stall 양력 감소를 무시하나,
+정상 운용 범위($|\alpha| < 8^\circ$)에서의 시뮬레이션에 충분하다.
+
+\paragraph{자유 표면 근접 보정}
+$\sigma(h_i) \in [0, 1]$은 foil의 자유표면 침수 깊이 $h$에 따른 양력 감소를 모사한다:
+\begin{equation}
+  \sigma(h) = \min\!\left(\frac{h}{2c},\ 1\right), \quad h \geq 0
+  \label{eq:surface_corr}
+\end{equation}
+$h/c \geq 2$에서 $\sigma=1$ (완전 침수, 자유표면 효과 무시 가능),
+$h=0$에서 $\sigma=0$ (표면 관통, 양력 소멸)으로 선형 변화한다.
+이 보정은 자유표면 근접 시 거울상(image) 와류에 의한 유도 속도 변화
+(Faltinsen, 2005)를 선형 근사한 것이다.
+설계 침수 깊이($h_f = 0.80$\,m, $h_r = 0.60$\,m)에서
+$h/c = 4.0$ (전방), $4.0$ (후방)으로 정상 운용 시 $\sigma = 1$이며,
+대진폭 heave ($> 0.3$\,m)에서만 자유표면 효과가 활성화된다.
 
 양 foil 모두 NACA 63-series 단면을 사용한다 (표~\ref{tab:foil_params}).
 전방 foil (역T, $b=1.8$\,m, $c=0.20$\,m,
@@ -1541,10 +2388,39 @@ $C_{D0}$                & 0.008 & 0.010 \\
     \underbrace{- \frac{\partial \eta}{\partial x_b}}_{\text{파도 기울기}}
   \label{eq:alpha_eff}
 \end{equation}
-여기서 $w = \partial\eta/\partial t$는 파도 궤도 속도이고,
-$\partial\eta/\partial x_b$는 선박 body-frame으로 투영된 파도 기울기이다.
-마지막 두 항이 feedforward가 선제 보상하고자 하는 파도 교란이며,
-처음 세 항은 선박 상태에 의존하여 PD 피드백이 처리한다.
+각 항의 물리적 의미를 상세히 기술한다.
+
+\textbf{$\theta$ (pitch angle)}: 선박 pitch에 의한 foil AoA 변화.
+선박이 $\theta > 0$ (선수 상향)이면 foil의 기하학적 AoA가 $\theta$만큼 증가한다.
+정상 운항 시 $|\theta| < 5^\circ$이며, PD 피드백의 1차 제어 대상이다.
+
+\textbf{$-\dot{z}/V$ (heave rate)}: 선박 수직 운동에 의한 상대 유입 각도.
+선박이 상승($\dot{z} > 0$)하면 foil이 유입류에 대해 하방으로 이동하므로
+유효 AoA가 감소한다. 22 knots에서 $\dot{z} = 1$\,m/s (BF3 전형적)일 때
+$\dot{z}/V = 0.089$\,rad $\approx 5.1^\circ$로 유의미한 기여이다.
+
+\textbf{$-\dot{\theta}x_{\text{foil}}/V$ (pitch rate)}: pitch 각속도에 의한
+foil 위치에서의 추가 수직 속도. 전방 foil ($x_f = 2.0$\,m)에서
+$\dot{\theta} = 0.5$\,rad/s일 때 $\dot{\theta}x_f/V = 0.089$\,rad이다.
+이 항은 전방과 후방 foil에 반대 부호로 작용하여
+pitch 불안정성의 원인이 된다.
+
+\textbf{$-w/V$ (궤도 속도)}: 파도의 수직 궤도 운동에 의한 foil의 유효 유입 각도 변화.
+$w = \partial\eta/\partial t$는 식~(\ref{eq:orbital})에서 해석적으로 계산된다.
+이 항은 파도가 foil 위치에서 유발하는 수직 유동 성분으로,
+foil이 ``상승하는 물 속을 비행하는'' 효과이다.
+
+\textbf{$-\partial\eta/\partial x_b$ (파도 기울기)}: 선박 body-frame으로 투영된
+국소 해수면 기울기. 파면이 기울어져 있으면 foil에 대한 유입류 방향이 변하여
+유효 AoA가 변화한다. 식~(\ref{eq:slope_x})에서 해석적으로 계산된다.
+
+마지막 두 항($w/V$, $\partial\eta/\partial x_b$)이
+feedforward가 선제 보상하고자 하는 파도 교란이며,
+처음 세 항($\theta$, $\dot{z}/V$, $\dot{\theta}x/V$)은
+선박 상태에 의존하여 PD 피드백이 처리한다.
+이 분리가 가능한 이유는 파도 교란 항이 선박 상태와 독립적이기 때문이다:
+파도 기울기와 궤도 속도는 해수면의 물리적 특성이므로
+선박의 heave/pitch 응답에 관계없이 \WS{}로 사전 계산할 수 있다.
 
 단일 평면파 $\eta = A\cos(kx - \omega t)$에서 파도 기울기와 궤도 속도의
 상대 크기는 $|w/V| / |\partial\eta/\partial x| = c_p / V$이다.
@@ -1570,6 +2446,27 @@ Collective--differential 분해를 사용한다:
 pitch 불안정성 우선 처리를 반영한다.
 모든 이득은 해상 상태에 걸쳐 일정하게 유지하여 강건성을 보인다.
 
+\paragraph{이득 선택 근거}
+PD 이득은 다음 절차로 결정하였다.
+(1) \textbf{Heave}: 목표 감쇠비 $\zeta_z = 0.7$ (임계 근방, 빠른 수렴과 오버슈트 억제의 균형)에서
+$K_{d,z} = 2\zeta_z \sqrt{K_{p,z}(m + a_{33})} \cdot (dL/d\delta)^{-1}$로부터
+$K_{d,z} = 0.3$이 유도된다.
+$K_{p,z} = 0.8$은 정상 상태 오차($\sim 1/K_{p,z}$)와 제어 대역폭의 균형으로 선정.
+(2) \textbf{Pitch}: foilborne 모드의 pitch 불안정성
+(양 foil의 moment arm에 의한 양의 궤환)을 안정화하려면
+heave 이득보다 높은 비례 이득이 필요하다.
+$K_{p,\theta} = 4.0$은 pitch 고유진동수의 2배에 해당하는 제어 대역폭을 제공하여
+불안정 모드를 충분한 여유로 억제한다.
+$K_{d,\theta} = 1.5$는 pitch 채널의 감쇠비 $\zeta_\theta \approx 0.6$에 해당한다.
+
+\paragraph{안정성 여유}
+선형화된 2DOF 시스템의 특성 방정식 근을 계산하면,
+네 고유값 모두 실수부가 음이며 ($\lambda_{1,2} = -0.8 \pm 0.9i$,
+$\lambda_{3,4} = -1.4 \pm 1.5i$), 최소 감쇠 모드의 감쇠비가 0.6으로
+충분한 안정성 여유를 확보한다.
+플랩 포화 ($\pm 15^\circ$) 시에도 비선형 시뮬레이션에서
+유한 진폭 안정성(bounded oscillation)이 확인되었다.
+
 \subsection{파랑 미리보기 Feedforward}
 
 각 foil 전방의 \emph{공간 미리보기 점}에서 파도장을 평가한다:
@@ -1588,8 +2485,19 @@ Feedforward 플랩 명령:
 \begin{equation}
   \delta_{\text{ff},i} = -K_{\text{ff}} \cdot \hat{\alpha}_{\text{wave},i}
 \end{equation}
-이득 $K_{\text{ff}} = 0.8$ (80\% 보상, 추정 오차와 모델 불확실성에 대한
-강건성 여유).
+이득 $K_{\text{ff}} = 0.8$이다.
+
+\paragraph{Feedforward 이득의 선택 근거}
+이상적 feedforward에서 파도 유기 AoA 섭동을 완전히 상쇄하려면
+$\delta_{\text{ff}} = -\hat{\alpha}_{\text{wave}}$, 즉 $K_{\text{ff}} = 1.0$이 필요하다.
+그러나 $K_{\text{ff}} = 1.0$에서는 추정 오차가 그대로 플랩 명령에 전달되어,
+방향 오식별(제3장 Dir $R^2 = -0.25$) 시 교란을 강화할 수 있다.
+$K_{\text{ff}} = 0.8$ (80\% 보상)은 다음 두 가지 고려의 균형이다:
+(1) 추정 오차 20\% 가정 시, 최악의 경우에도 교란 강화가 아닌 부분 상쇄를 보장;
+(2) 비선형 foil 응답(큰 AoA에서 양력 기울기 감소)에 대한 여유.
+$K_{\text{ff}} \in \{0.5, 0.6, 0.7, 0.8, 0.9, 1.0\}$ 스윕에서
+$K_{\text{ff}} = 0.8$이 4개 시나리오 평균 최적이었다.
+$K_{\text{ff}} > 0.9$에서 BF4 head sea 가속도가 증가하기 시작하였다.
 
 \subsection{저역통과 필터링}
 
@@ -1600,9 +2508,34 @@ Feedforward 플랩 명령:
   \bar{\delta}_{\text{ff}}[n] = \alpha \cdot \delta_{\text{ff}}[n]
     + (1 - \alpha) \cdot \bar{\delta}_{\text{ff}}[n-1]
 \end{equation}
-$\alpha = 0.05$로 차단 주파수 $f_c \approx 0.8$\,Hz.
-이는 모든 시나리오의 최대 파도 조우 주파수 ($f_e \leq 0.5$\,Hz)를 초과하여,
-파도 미리보기 신호는 통과시키면서 고주파 추정 노이즈를 억제한다.
+$\alpha = 0.05$이다. 이 필터의 전달 함수를 $z$-변환으로 분석한다.
+식을 $z$-영역으로 변환하면:
+\begin{equation}
+  H(z) = \frac{\alpha}{1 - (1-\alpha)z^{-1}}
+  = \frac{0.05}{1 - 0.95 z^{-1}}
+  \label{eq:iir_tf}
+\end{equation}
+극점은 $z = 1 - \alpha = 0.95$로 단위원 내부에 있어 BIBO 안정하다.
+연속시간 등가 차단 주파수는:
+\begin{equation}
+  f_c = \frac{1}{2\pi \Delta t} \cdot \arccos\!\left(\frac{2 - 2\alpha + \alpha^2}{2(1-\alpha)}\right)
+  \approx \frac{\alpha}{2\pi \Delta t(1-\alpha)}
+  \label{eq:cutoff}
+\end{equation}
+$\Delta t = 1/100$\,s (100\,Hz 시뮬레이션)에서
+$f_c \approx 0.05 / (2\pi \times 0.01 \times 0.95) \approx 0.84$\,Hz이다.
+
+이 차단 주파수의 설계 의도는:
+\begin{itemize}
+  \item \textbf{통과 대역} ($f < 0.5$\,Hz): 모든 시나리오의 파도 조우 주파수
+        (BF3 head sea $f_e \approx 0.5$\,Hz, beam sea $f_e \approx 0.2$\,Hz)가
+        $-3$\,dB 차단 아래에 위치하여 파도 미리보기 신호가 거의 감쇠 없이 통과
+  \item \textbf{차단 대역} ($f > 2$\,Hz): \WS{} 추정 노이즈의 고주파 성분과
+        수치 미분 잡음이 $> 10$\,dB 감쇠
+\end{itemize}
+$f_e = 0.5$\,Hz에서의 위상 지연은 $\angle H(e^{j2\pi f_e \Delta t})
+\approx -18^\circ$로, 1 파도 주기의 5\%에 해당하며 feedforward 효과를
+유의미하게 저해하지 않는다.
 
 총 플랩 명령: $\delta_i = (\delta_c \pm \delta_d) + \bar{\delta}_{\text{ff},i}$.
 
@@ -1610,6 +2543,13 @@ $\alpha = 0.05$로 차단 주파수 $f_c \approx 0.8$\,Hz.
 4차 Runge-Kutta의 모든 sub-step에 고정 오프셋으로 전달한다.
 PD 피드백은 각 sub-step에서 현재 상태로 재계산한다.
 이 설계는 IIR 필터가 sub-step마다 진행하여 과필터링되는 것을 방지한다.
+
+이 구현 세부사항은 수치적으로 중요하다: RK4의 4개 sub-step
+($k_1, k_2, k_3, k_4$)에서 IIR 필터 상태를 각각 갱신하면
+실질적 샘플링 레이트가 400\,Hz로 증가하여 차단 주파수가
+$4\times$ 낮아지고, 파도 미리보기 신호가 과도하게 감쇠된다.
+주 타임스텝에서 1회만 필터링함으로써 설계 차단 주파수 $f_c = 0.84$\,Hz를
+정확히 유지한다.
 
 \subsection{WaveSplat 연동}
 
@@ -1646,6 +2586,33 @@ BF3 Quarter & 0.88 & 5.0 & $135^\circ$ & 3 \\
 각 시뮬레이션은 30\,s, 100\,Hz (3000 timesteps); 5\,s 과도 후 지표 계산.
 BF3은 해안 하이드로포일의 일반적 운용 조건이며,
 BF4는 운항 제한 한계 부근의 조건이다.
+4개 시나리오의 선정 근거는 다음과 같다:
+(1) \textbf{Head sea}: 조우 주파수가 가장 높아 feedforward에 가장 불리한 조건이며,
+대부분의 운항 시간이 이 조건에 해당한다;
+(2) \textbf{Beam sea}: Doppler 이동이 없어 feedforward에 가장 유리한 조건으로,
+개선 상한을 측정한다;
+(3) \textbf{Quarter sea}: 중간 특성으로 실운항의 대표적 사선파 조건;
+(4) \textbf{BF4 head sea}: 운항 한계 부근에서의 robustness 검증.
+
+\paragraph{4차 Runge-Kutta 수치 적분}
+2DOF 운동 방정식 (\ref{eq:heave})--(\ref{eq:pitch})를
+$\mathbf{x} = [z, \theta, \dot{z}, \dot{\theta}]^T$로 벡터화하면
+$\dot{\mathbf{x}} = \mathbf{f}(\mathbf{x}, t)$이다.
+4차 Runge-Kutta (RK4) 방법으로 시간 적분한다:
+\begin{align}
+  \mathbf{k}_1 &= \mathbf{f}(\mathbf{x}_n, t_n) \\
+  \mathbf{k}_2 &= \mathbf{f}(\mathbf{x}_n + \tfrac{\Delta t}{2}\mathbf{k}_1,\ t_n + \tfrac{\Delta t}{2}) \\
+  \mathbf{k}_3 &= \mathbf{f}(\mathbf{x}_n + \tfrac{\Delta t}{2}\mathbf{k}_2,\ t_n + \tfrac{\Delta t}{2}) \\
+  \mathbf{k}_4 &= \mathbf{f}(\mathbf{x}_n + \Delta t \cdot \mathbf{k}_3,\ t_n + \Delta t) \\
+  \mathbf{x}_{n+1} &= \mathbf{x}_n + \frac{\Delta t}{6}(\mathbf{k}_1 + 2\mathbf{k}_2 + 2\mathbf{k}_3 + \mathbf{k}_4)
+\end{align}
+$\Delta t = 10$\,ms에서 RK4의 국소 절단 오차는 $\mathcal{O}(\Delta t^5) \approx 10^{-8.5}$로,
+시스템의 최고 고유진동수 $\omega_{n,\theta} \approx 2.1$\,rad/s에 대해
+$\omega \Delta t \approx 0.02 \ll 1$이므로 충분한 정밀도와 안정성이 보장된다.
+Euler 방법($\mathcal{O}(\Delta t^2)$)과 비교하면 4자릿수 이상의 정밀도 개선이며,
+계산 비용은 $\mathbf{f}$ 평가 4회로 Euler 대비 4배이나,
+동일 정밀도 달성에 필요한 Euler의 타임스텝($\Delta t = 0.01$\,ms, 100$\times$ 작음)
+대비 25배 효율적이다.
 
 \subsection{제어 전략}
 
@@ -1715,17 +2682,51 @@ Feedforward가 파도 유기 가속도 피크를 효과적으로 감소시킨다
 \begin{itemize}
   \item GT feedforward는 모든 시나리오에서 11--41\% 가속도 저감을 달성하여,
         wave-preview 제어가 하이드로포일 안정화에 근본적으로 효과적임을 확인한다.
-        Beam sea에서 가장 큰 이점 (+41\%): 파도 기울기와 궤도 속도가
-        지속적 AoA 섭동을 유발하여 feedforward가 효과적으로 선제 보상한다.
   \item \WS{} feedforward (20\% nRMSE)는 모든 시나리오에서 GT 개선의
-        \textbf{93--103\%}를 달성하여, LP 필터 기반 feedforward 구조가
-        이 정밀도에서 추정 노이즈에 매우 강건함을 보인다.
-  \item Noisy feedforward (40\% nRMSE)도 전 시나리오에서 양의 개선 (11--28\%),
-        IIR 필터 설계의 효과를 확인한다.
-  \item 가장 의미 있는 승차감 개선은 BF3 beam sea에서 발생:
-        $a_\text{RMS}$ 0.402 (S) $\to$ 0.250 (C) --- 승객 페리 노선에
-        직접적 운용 의의가 있는 등급 전환.
+        \textbf{93--103\%}를 달성하여 추정 노이즈에 매우 강건하다.
+  \item Noisy feedforward (40\% nRMSE)도 전 시나리오에서 양의 개선 (11--28\%)을 보인다.
+  \item 가장 의미 있는 승차감 개선은 BF3 beam sea에서 발생한다.
 \end{itemize}
+
+각 시나리오의 물리적 메커니즘을 상세히 분석한다.
+
+\paragraph{BF3 Beam sea (+41\%): 최대 이점}
+Beam sea ($\beta = 90^\circ$)에서 Doppler 이동이 없어
+조우 주파수 $\omega_e = \omega_0 \approx 1.26$\,rad/s로,
+head sea ($\omega_e \approx 3.1$\,rad/s)보다 현저히 낮다.
+느린 파도 조우는 두 가지 효과를 가진다:
+(1) feedforward의 유효 미리보기 시간이 길어져 선제 보상 기회가 증가하고,
+(2) 파도 기울기와 궤도 속도 변화가 느려 IIR 필터의 위상 지연 영향이 감소한다.
+또한 beam sea에서 파도가 foil span 방향으로 전파하므로
+전·후방 foil이 거의 동시에 동일한 파도를 경험하여,
+collective feedforward만으로도 효과적 보상이 가능하다.
+가속도 RMS 0.402 (Slight discomfort) $\to$ 0.250 (Comfortable)은
+ISO 2631 등급 전환을 동반하는 유일한 사례로,
+해안 여객 페리 노선에서 직접적 운용 가치가 있다.
+
+\paragraph{BF3/4 Head sea (+11--12\%): 제한적 이점}
+Head sea에서 feedforward 이점이 제한적인 이유는 높은 조우 주파수
+($\omega_e \approx 3.1$\,rad/s, BF3)에 있다.
+이 주파수에서 IIR 필터($f_c = 0.84$\,Hz)의 감쇠가 $-3$\,dB에 근접하고
+위상 지연이 $\sim 18^\circ$로 증가하여 feedforward 효율이 감소한다.
+또한 높은 조우 주파수에서 파도 패턴이 빠르게 변하여
+공간 미리보기의 유효 범위가 줄어든다.
+그럼에도 PD-only 대비 양의 개선(+11\%)을 유지하며,
+feedforward가 해로워지지 않음이 확인된다.
+
+\paragraph{BF3 Quarter sea (+18\%): 중간 이점}
+Quarter sea ($\beta = 135^\circ$)는 head sea와 beam sea의 중간 특성을 보인다.
+조우 주파수 $\omega_e \approx 1.9$\,rad/s로 head sea보다 낮아
+feedforward 효율이 개선되며, 파도 성분이 전·후방 foil에 시차를 두고
+도달하여 differential feedforward (pitch 보상)의 기여가 추가된다.
+
+\paragraph{WS FF의 103\% 달성 (GT 초과) 현상}
+BF3 head sea에서 \WS{} FF가 GT FF보다 미세하게 우수한 결과(+11.4\% vs.\ +11.0\%)는
+통계적 변동 범위 내이나, 물리적 설명도 가능하다:
+\WS{}의 추정 노이즈에 IIR 필터를 적용한 결과가
+GT 신호의 고주파 성분(제어에 기여하지 않는)을 자연스럽게 제거하여
+``우연히'' 더 나은 필터링된 feedforward를 제공했을 가능성이 있다.
+이는 GT FF에도 LP 필터를 적용하면 성능이 개선될 수 있음을 시사한다.
 
 \section{민감도 분석}
 \label{sec:sensitivity}
@@ -1852,10 +2853,32 @@ BF3에서 지배 성분이 정확히 포착되나, BF4에서 일부 방향 오�
 ``Comfortable'' (PD+WS FF, $a_\text{RMS} < 0.315$\,m/s$^2$)로 개선된다.
 
 \textbf{BF4 (거친 해상)}: \WS{}가 GT의 37\%만 달성하여 현저히 저하된다.
-추정된 vs.\ 실제 스펙트럼 성분 분석에서 원인이 밝혀진다:
-\WS{}가 지배 파도 주파수와 진폭은 정확히 추정하나,
-일부 성분의 전파 방향($k_x$ 부호)을 잘못 식별하여
-feedforward 신호가 교란을 상쇄하지 않고 강화하는 결과를 낳는다.
+추정된 vs.\ 실제 스펙트럼 성분 분석에서 원인이 상세히 밝혀진다.
+
+BF4 5-component 에피소드의 스펙트럼 비교에서,
+\WS{}는 5개 성분 중 3개(에너지 기준 상위)의 파수, 진폭, 위상을
+ground truth 대비 5\% 이내로 정확히 추정하였다.
+그러나 4번째와 5번째 성분(에너지 기여 $\sim$15\%)에서
+$k_x$ 부호가 반전되어 있었다 --- 즉, 실제로는 $+x$ 방향으로 전파하는 파도를
+$-x$ 방향으로 전파하는 것으로 추정하였다.
+
+이 방향 오식별이 feedforward에 미치는 영향은 치명적이다.
+방향이 올바른 성분의 feedforward 기여:
+$\delta_{\text{ff}} \propto -\hat{\alpha}_{\text{wave}}$는
+실제 파도 교란 $\alpha_{\text{wave}}$를 상쇄($\delta_{\text{ff}} \cdot \alpha_{\text{wave}} < 0$)한다.
+그러나 방향이 반전된 성분에서는
+$\hat{\alpha}_{\text{wave}}$의 부호가 실제와 반대이므로
+$\delta_{\text{ff}} \cdot \alpha_{\text{wave}} > 0$, 즉 교란을 \emph{강화}한다.
+에너지 15\%의 성분이 feedforward를 해로운 방향으로 전환시켜,
+나머지 85\%의 올바른 보상을 부분적으로 상쇄하는 결과를 낳는다.
+
+이 분석은 feedforward 제어에서 \textbf{방향 정확도가 진폭 정확도보다
+더 중요함}을 보여준다:
+진폭 오차 20\%는 feedforward 크기를 80\%로 축소할 뿐이나,
+방향 오차(부호 반전)는 feedforward를 100\% 반전시켜
+교란 에너지를 2배로 증폭시킬 수 있다.
+이는 제6장 향후 연구에서 방향 신뢰도 기반 feedforward 게이팅을
+제안하는 동기이다.
 
 \section{고찰}
 \label{sec:hydrofoil_discussion}
@@ -2032,6 +3055,328 @@ LiDAR 정밀도가 가장 높은 근거리 영역과 일치한다.
 \chapter*{감사의 글}
 \addcontentsline{toc}{chapter}{감사의 글}
 
-\todo{감사의 글 작성}
+\vspace{1cm}
+\noindent
+(작성 예정)
+
+% ============================================================================
+% 부록
+% ============================================================================
+\appendix
+
+\chapter{알고리즘 의사코드}
+\label{app:algorithms}
+
+본 부록에서는 논문 본문에 기술된 주요 알고리즘을 의사코드 형태로 정리한다.
+구현 세부사항은 Python 3.10 / PyTorch 2.0 기반이며,
+전체 소스코드는 재현성을 위해 학위논문 제출 시 공개 예정이다.
+
+\section{WaveSplat 초기화 (Phase 1)}
+\label{app:alg_init}
+
+\begin{algorithm}[htbp]
+\caption{\WS{} 초기화 알고리즘}
+\label{alg:init}
+\begin{algorithmic}[1]
+\REQUIRE 다중 프레임 관측 $\{(x_j, y_j, z_j, t_j)\}_{j=1}^{M_{\text{tot}}}$, 수심 $d$
+\ENSURE 스펙트럼 파라미터 $\Theta = \{w_i, k_{x,i}, k_{y,i}, \phi_i\}_{i=1}^{N}$
+
+\STATE \textbf{// Step 1: 분산 인식 빔포밍}
+\STATE 극좌표 파수 격자 구성: $|k| \in [0.02, 0.50]$, 64 반경 $\times$ 128 방위각
+\FOR{각 후보 $(k_x, k_y)$}
+  \STATE $\omega \leftarrow \sqrt{g|k|\tanh(|k|d)}$ \COMMENT{분산관계}
+  \STATE $P(k_x, k_y) \leftarrow \left|\sum_j z_j e^{-i(k_x x_j + k_y y_j - \omega t_j)}\right|^2$
+\ENDFOR
+
+\STATE \textbf{// Step 2: Greedy 피크 추출}
+\STATE $\mathcal{P} \leftarrow \emptyset$
+\WHILE{$|\mathcal{P}| < N_{\max}$ \AND $\max P > P_{\text{thresh}}$}
+  \STATE $(k_x^*, k_y^*) \leftarrow \arg\max P$
+  \STATE $\mathcal{P} \leftarrow \mathcal{P} \cup \{(k_x^*, k_y^*)\}$
+  \STATE $15^\circ$ 각도 억제 적용: $P(k_x, k_y) \leftarrow 0$ for $|\angle - \angle^*| < 15^\circ$
+\ENDWHILE
+
+\STATE \textbf{// Step 3: 선형 최소제곱으로 진폭/위상 초기화}
+\STATE 기저 행렬 $\mathbf{A}$ 구성 (식~\ref{eq:gerstner_x} 참조)
+\STATE $\mathbf{b} \leftarrow (\mathbf{A}^T\mathbf{A})^{-1}\mathbf{A}^T\mathbf{z}$
+\FOR{$i = 1$ \TO $|\mathcal{P}|$}
+  \STATE $w_i \leftarrow \sqrt{b_{2i-1}^2 + b_{2i}^2}$, \quad
+         $\phi_i \leftarrow \text{atan2}(-b_{2i}, b_{2i-1})$
+\ENDFOR
+
+\STATE \textbf{// Step 4: Coarse-to-fine 최적화}
+\FOR{$N_{\text{stage}} \in \{3, 8, 15\}$}
+  \STATE Adam optimizer 초기화: lr=$5\times10^{-3}$, $\beta_1=0.9$, $\beta_2=0.999$
+  \FOR{$\text{iter} = 1$ \TO $200$}
+    \STATE $\hat{z}_j \leftarrow \sum_{i=1}^{N_{\text{stage}}} w_i \cos(k_{x,i}x_j + k_{y,i}y_j - \omega_i t_j + \phi_i)$
+    \STATE $\omega_i \leftarrow \sqrt{g|k_i|\tanh(|k_i|d)}$ \COMMENT{분산 제약 강제}
+    \STATE $\mathcal{L} \leftarrow \frac{1}{M}\sum_j c_j(z_j - \hat{z}_j)^2 + \lambda_1\sum_i|w_i| + \lambda_s\sum_i(\Delta w_i)^2$
+    \STATE Adam step: $\Theta \leftarrow \Theta - \eta \cdot \text{Adam}(\nabla_\Theta \mathcal{L})$
+  \ENDFOR
+\ENDFOR
+
+\STATE \textbf{// Step 5: 적응형 가지치기/성장}
+\STATE \texttt{AdaptiveN}($\Theta$) \COMMENT{Algorithm~\ref{alg:adaptive_n}}
+
+\RETURN $\Theta$
+\end{algorithmic}
+\end{algorithm}
+
+\section{적응형 모델 차수 (Adaptive N)}
+\label{app:alg_adaptive}
+
+\begin{algorithm}[htbp]
+\caption{적응형 모델 차수 알고리즘}
+\label{alg:adaptive_n}
+\begin{algorithmic}[1]
+\REQUIRE 현재 파라미터 $\Theta$, 관측 $\{z_j\}$, 임계값 $\tau_E=0.90$, $\tau_R=0.05$\,m, $\tau_S=1.30$
+\ENSURE 갱신된 파라미터 $\Theta'$
+
+\STATE \textbf{// 가지치기 (Pruning)}
+\STATE $\Theta_{\text{backup}} \leftarrow \Theta$ \COMMENT{안전 검사용 백업}
+\STATE 에너지 정렬: $E_i = w_i^2$, 내림차순 인덱스 $\sigma$
+\STATE $N' \leftarrow \min\{n : \sum_{i=1}^{n} E_{\sigma(i)} / \sum_i E_i \geq \tau_E\}$
+\STATE $\Theta' \leftarrow \{(w_{\sigma(i)}, k_{x,\sigma(i)}, k_{y,\sigma(i)}, \phi_{\sigma(i)})\}_{i=1}^{N'}$
+
+\STATE \textbf{// 안전 검사 (Safety Rollback)}
+\STATE $\text{RMSE}_{\text{pre}} \leftarrow \sqrt{\frac{1}{M}\sum_j(z_j - \hat{z}_j^{\text{backup}})^2}$
+\STATE $\text{RMSE}_{\text{post}} \leftarrow \sqrt{\frac{1}{M}\sum_j(z_j - \hat{z}_j')^2}$
+\IF{$\text{RMSE}_{\text{post}} / \text{RMSE}_{\text{pre}} > \tau_S$}
+  \STATE $\Theta' \leftarrow \Theta_{\text{backup}}$ \COMMENT{롤백}
+  \RETURN $\Theta'$
+\ENDIF
+
+\STATE \textbf{// 잔차 기반 성장 (Growth)}
+\STATE $r_j \leftarrow z_j - \hat{z}_j'$ \COMMENT{잔차 계산}
+\IF{$\text{RMS}(r) > \tau_R$ \AND $|\Theta'| < N_{\max}$}
+  \STATE 잔차 신호 $\{r_j\}$에 빔포밍 적용
+  \STATE 새 피크 추출 $\to$ $\Theta'$에 추가
+  \STATE 추가 성분의 $w, \phi$를 선형 최소제곱으로 초기화
+\ENDIF
+
+\RETURN $\Theta'$
+\end{algorithmic}
+\end{algorithm}
+
+\section{WaveSplat 추적 (Phase 2)}
+\label{app:alg_tracking}
+
+\begin{algorithm}[htbp]
+\caption{\WS{} 프레임별 추적 알고리즘 (\texttt{w\_phi} 모드)}
+\label{alg:tracking}
+\begin{algorithmic}[1]
+\REQUIRE 현재 파라미터 $\Theta_t$, 새 관측 $\{(x_j, y_j, z_j)\}$, 윈도우 버퍼 $\mathcal{W}$
+\ENSURE 갱신된 파라미터 $\Theta_{t+1}$
+
+\STATE \textbf{// Predict: 분산관계 기반 위상 전파}
+\FOR{$i = 1$ \TO $N$}
+  \STATE $\phi_i \leftarrow \phi_i + \omega_i \cdot \Delta t$ \COMMENT{$\omega_i = \sqrt{g|k_i|\tanh(|k_i|d)}$}
+\ENDFOR
+
+\STATE \textbf{// 슬라이딩 윈도우 갱신}
+\STATE $\mathcal{W}.\text{push}(\{(x_j, y_j, z_j, t)\})$
+\IF{$|\mathcal{W}| > K_w$}
+  \STATE $\mathcal{W}.\text{pop\_oldest}()$
+\ENDIF
+
+\STATE \textbf{// Update: 제한 파라미터 최적화}
+\FOR{$\text{step} = 1$ \TO $K$}
+  \STATE $\mathcal{L} \leftarrow 0$
+  \FOR{각 윈도우 프레임 $(x_j^{(f)}, y_j^{(f)}, z_j^{(f)}, t^{(f)}) \in \mathcal{W}$}
+    \STATE $\hat{z}_j \leftarrow \sum_i w_i \cos(k_{x,i}x_j + k_{y,i}y_j - \omega_i t^{(f)} + \phi_i)$
+    \STATE $\mathcal{L} \mathrel{+}= \frac{1}{M}\sum_j c_j(z_j - \hat{z}_j)^2$
+  \ENDFOR
+  \STATE Adam step on $(w_i, \phi_i)$ only; $(k_{x,i}, k_{y,i})$ \textbf{frozen}
+  \STATE \COMMENT{lr=$1\times10^{-3}$, $K=10$ steps, $K_w=3$ frames}
+\ENDFOR
+
+\RETURN $\Theta_{t+1} = \{w_i, k_{x,i}, k_{y,i}, \phi_i\}_{i=1}^N$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Feedforward 제어 알고리즘}
+\label{app:alg_ff}
+
+\begin{algorithm}[htbp]
+\caption{Wave-preview feedforward 제어}
+\label{alg:feedforward}
+\begin{algorithmic}[1]
+\REQUIRE 선박 상태 $\mathbf{x} = [z, \theta, \dot{z}, \dot{\theta}]$,
+  \WS{} 파라미터 $\Theta$, IIR 상태 $\bar{\delta}_{\text{ff}}^{(n-1)}$
+\ENSURE 플랩 명령 $(\delta_f, \delta_r)$
+
+\STATE \textbf{// PD 피드백}
+\STATE $\delta_c \leftarrow -K_{p,z} z - K_{d,z} \dot{z}$ \COMMENT{collective}
+\STATE $\delta_d \leftarrow K_{p,\theta} \theta + K_{d,\theta} \dot{\theta}$ \COMMENT{differential}
+
+\STATE \textbf{// 파도 미리보기 평가}
+\FOR{$i \in \{\text{front}, \text{rear}\}$}
+  \STATE $x_{\text{prev}} \leftarrow x_{\text{foil},i} + V \cdot \Delta t_{\text{prev}}$
+  \STATE $\eta_{\text{prev}} \leftarrow \sum_n w_n \cos(k_{x,n} x_{\text{prev}} + k_{y,n} y_i - \omega_n t + \phi_n)$
+  \STATE $\frac{\partial\eta}{\partial x}\big|_{\text{prev}} \leftarrow -\sum_n w_n k_{x,n} \sin(\cdots)$ \COMMENT{해석적}
+  \STATE $w_{\text{orb}} \leftarrow \sum_n w_n \omega_n \sin(\cdots)$ \COMMENT{궤도 속도}
+  \STATE $\hat{\alpha}_{\text{wave},i} \leftarrow -\frac{\partial\eta}{\partial x}\big|_{\text{prev}} - \frac{w_{\text{orb}}}{V}$
+  \STATE $\delta_{\text{ff},i}^{\text{raw}} \leftarrow -K_{\text{ff}} \cdot \hat{\alpha}_{\text{wave},i}$
+\ENDFOR
+
+\STATE \textbf{// IIR 저역통과 필터 (주 타임스텝에서 1회만)}
+\FOR{$i \in \{\text{front}, \text{rear}\}$}
+  \STATE $\bar{\delta}_{\text{ff},i} \leftarrow \alpha \cdot \delta_{\text{ff},i}^{\text{raw}} + (1-\alpha) \cdot \bar{\delta}_{\text{ff},i}^{(n-1)}$
+\ENDFOR
+
+\STATE \textbf{// 총 플랩 명령}
+\STATE $\delta_f \leftarrow \text{clamp}(\delta_c - \delta_d + \bar{\delta}_{\text{ff,front}},\ \pm\delta_{\max})$
+\STATE $\delta_r \leftarrow \text{clamp}(\delta_c + \delta_d + \bar{\delta}_{\text{ff,rear}},\ \pm\delta_{\max})$
+
+\RETURN $(\delta_f, \delta_r)$
+\end{algorithmic}
+\end{algorithm}
+
+\chapter{하이퍼파라미터 요약}
+\label{app:hyperparams}
+
+본 부록에서는 \WS{}와 feedforward 제어기의 전체 하이퍼파라미터를 한 곳에 정리한다.
+모든 값은 실험적 스윕 또는 물리적 근거에 의해 결정되었으며,
+본문의 해당 절에서 선택 근거를 상세히 기술하였다.
+
+\section{WaveSplat 하이퍼파라미터}
+
+\begin{table}[htbp]
+\centering
+\caption{\WS{} 전체 하이퍼파라미터.}
+\label{tab:ws_hyperparams}
+\small
+\begin{tabular}{llcp{4.8cm}}
+\toprule
+파라미터 & 기호 & 값 & 선택 근거 (본문 참조) \\
+\midrule
+\multicolumn{4}{l}{\textit{초기화 (Phase 1)}} \\
+빔포밍 파수 범위 & $|k|$ & $[0.02, 0.50]$\,rad/m & BF2--5 피크 파수 범위 \\
+빔포밍 해상도 & & $64 \times 128$ & 파수/방향 분해 \\
+각도 억제 & & $15^\circ$ & 중복 피크 방지 \\
+C2F 단계 & $N_{\text{stage}}$ & $\{3, 8, 15\}$ & 국소 최소 회피 (\S\ref{sec:init}) \\
+초기화 반복 & & 200 steps/stage & 수렴 관찰 \\
+초기화 학습률 & $\eta_{\text{init}}$ & $5\times10^{-3}$ & Adam 적응 \\
+\midrule
+\multicolumn{4}{l}{\textit{적응형 차수}} \\
+에너지 가지치기 임계 & $\tau_E$ & 0.90 & 90\% 에너지 보존 (\S\ref{sec:adaptive}) \\
+안전 롤백 임계 & $\tau_S$ & 1.30 & 교차해 실패 분석 \\
+잔차 성장 임계 & $\tau_R$ & 0.05\,m & $H_s$ 17\%, 노이즈 2.5$\times$ \\
+최대 성분 수 & $N_{\max}$ & 30 & 빔포밍 해상도 한계 \\
+\midrule
+\multicolumn{4}{l}{\textit{추적 (Phase 2)}} \\
+추적 모드 & & \texttt{w\_phi} & 과적합 방지 (\S\ref{sec:tracking}) \\
+추적 학습률 & $\eta_{\text{track}}$ & $1\times10^{-3}$ & 안정성 우선 \\
+추적 반복 & $K$ & 10 steps/frame & 실시간 예산 \\
+슬라이딩 윈도우 & $K_w$ & 3 frames & 노이즈/적응 균형 \\
+\midrule
+\multicolumn{4}{l}{\textit{정규화}} \\
+L1 희소성 & $\lambda_1$ & $10^{-3}$ & MSE 1\% 수준 (\S\ref{sec:loss}) \\
+스펙트럼 평활화 & $\lambda_s$ & $10^{-4}$ & 희소성의 1/10 \\
+\midrule
+\multicolumn{4}{l}{\textit{관측 모델}} \\
+기저 노이즈 & $\sigma_0$ & 0.01\,m & 전자/양자화 노이즈 \\
+거리 의존 노이즈 & $\sigma_r$ & 0.02\,m & LiDAR 사양 \\
+기준 거리 & $d_{\text{ref}}$ & 125\,m & 최대 사거리의 절반 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Feedforward 제어 하이퍼파라미터}
+
+\begin{table}[htbp]
+\centering
+\caption{Feedforward 제어 전체 하이퍼파라미터.}
+\label{tab:ff_hyperparams}
+\small
+\begin{tabular}{llcp{4.8cm}}
+\toprule
+파라미터 & 기호 & 값 & 선택 근거 (본문 참조) \\
+\midrule
+\multicolumn{4}{l}{\textit{PD 피드백}} \\
+Heave 비례이득 & $K_{p,z}$ & 0.8 & 감쇠비 $\zeta_z=0.7$ (\S\ref{sec:controller}) \\
+Heave 미분이득 & $K_{d,z}$ & 0.3 & 동일 \\
+Pitch 비례이득 & $K_{p,\theta}$ & 4.0 & pitch 불안정성 억제 \\
+Pitch 미분이득 & $K_{d,\theta}$ & 1.5 & $\zeta_\theta=0.6$ \\
+플랩 포화 & $\delta_{\max}$ & $\pm 15^\circ$ & 액추에이터 한계 \\
+\midrule
+\multicolumn{4}{l}{\textit{Feedforward}} \\
+Feedforward 이득 & $K_{\text{ff}}$ & 0.8 & 80\% 보상, 스윕 최적 (\S\ref{sec:controller}) \\
+미리보기 시간 & $\Delta t_{\text{prev}}$ & 0.5\,s & 0.1--0.3\,s 최적 범위 \\
+IIR 필터 계수 & $\alpha$ & 0.05 & $f_c = 0.84$\,Hz (\S\ref{sec:controller}) \\
+\midrule
+\multicolumn{4}{l}{\textit{시뮬레이션}} \\
+시뮬레이션 주기 & $\Delta t_{\text{sim}}$ & 10\,ms & RK4 안정성 \\
+적분 방법 & & RK4 & 4차 정밀도 \\
+시뮬레이션 길이 & & 30\,s & 3000 timesteps \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\chapter{코드 구조}
+\label{app:code}
+
+본 논문의 전체 실험은 Python 3.10으로 구현되었다.
+코드 구조를 이하에 정리한다.
+
+\begin{table}[htbp]
+\centering
+\caption{코드 저장소 구조.}
+\label{tab:code_structure}
+\footnotesize
+\begin{tabular}{lp{6cm}}
+\toprule
+경로 & 역할 \\
+\midrule
+\texttt{wavesim/} & 파도 시뮬레이션 + LiDAR 시뮬레이션 (39 테스트) \\
+\quad \texttt{wave.py} & JONSWAP 스펙트럼 파라미터화, Gerstner wave 생성 \\
+\quad \texttt{lidar.py} & LiDAR 빔 방향 계산, ray-surface 교차, raydrop 모델 \\
+\quad \texttt{episode.py} & 에피소드 생성, HDF5 I/O \\
+\quad \texttt{tests/} & 39개 단위 테스트 (분산관계, Gerstner 해석해, Fresnel 등) \\
+\midrule
+\texttt{wavesplat/} & 파도장 추정 알고리즘 (18 테스트) \\
+\quad \texttt{model/} & \texttt{spectral\_gaussian.py}: forward 모델 + gradient \\
+                     & \texttt{dispersion.py}: 분산관계 하드 제약 \\
+                     & \texttt{confidence.py}: Fresnel 신뢰 가중치 \\
+\quad \texttt{optimizer/} & \texttt{initializer.py}: 빔포밍 + 선형 최소제곱 \\
+                         & \texttt{coarse\_to\_fine.py}: C2F 최적화 \\
+                         & \texttt{sequential\_update.py}: 추적 (\texttt{w\_phi} 모드) \\
+\quad \texttt{baselines/} & \texttt{etkf\_grid.py}: ETKF 기준선 구현 \\
+\quad \texttt{evaluation/} & \texttt{metrics.py}: 6-지표 패널 계산 \\
+\quad \texttt{run.py} & 메인 진입점 (CLI) \\
+\midrule
+\texttt{scripts/} & 11개 실험/논문 스크립트 \\
+\quad \texttt{run\_p1\_comparison.py} & 12 에피소드 주 비교 실험 \\
+\quad \texttt{run\_gpr\_comparison.py} & GPR 3방향 비교 \\
+\quad \texttt{generate\_paper\_*.py} & 논문 표/그림 생성 \\
+\midrule
+\texttt{configs/} & YAML 설정 파일 \\
+\texttt{data/} & HDF5 에피소드 데이터 (100개) \\
+\texttt{results/} & JSON 실험 결과 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{테스트 프레임워크}
+전체 57개 테스트 (39 wavesim + 18 wavesplat)가
+\texttt{pytest} 프레임워크로 관리되며,
+단일 명령 \texttt{python3 -m pytest wavesim/tests/ wavesplat/tests/ -v}로
+전체 실행된다. 테스트는 세 가지 수준으로 구분된다:
+\begin{itemize}
+  \item \textbf{물리 단위 테스트}: 분산관계 해석해 오차 $< 10^{-6}$\,rad/s,
+        Gerstner 단일파 RMSE $< 10^{-10}$\,m,
+        Fresnel 반사율 단조 증가 검증 등
+  \item \textbf{알고리즘 통합 테스트}: 초기화 $\to$ 추적 파이프라인 종단 검증,
+        적응형 $N$ 가지치기/성장 동작 검증,
+        \texttt{w\_phi} 추적 안정성 검증
+  \item \textbf{회귀 테스트}: 주요 에피소드의 nRMSE 상한 검증
+        (BF3 2comp $< 0.10$, BF4 5comp $< 0.25$)
+\end{itemize}
+
+\paragraph{재현성}
+모든 실험은 랜덤 시드를 고정하여 비트 수준 재현이 가능하며,
+\texttt{configs/\allowbreak{}estimation.yaml}에 전체 하이퍼파라미터가
+기록되어 있다.
+결과 JSON 파일에는 실행 시각, Git 커밋 해시, 하드웨어 정보가 포함된다.
 
 \end{document}

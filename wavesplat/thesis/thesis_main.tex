@@ -34,6 +34,7 @@
 \usepackage{times}                  % Times New Roman (영문 명조)
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
+\usepackage{pgffor}   % \foreach for appendix episode figures
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{array}
@@ -3313,70 +3314,90 @@ IIR 필터 계수 & $\alpha$ & 0.05 & $f_c = 0.84$\,Hz (\S\ref{sec:controller}) 
 \end{tabular}
 \end{table}
 
-\chapter{코드 구조}
-\label{app:code}
+\chapter{전체 에피소드 추정 결과}
+\label{app:episodes}
 
-본 논문의 전체 실험은 Python 3.10으로 구현되었다.
-코드 구조를 이하에 정리한다.
+본 부록에서는 100개 전체 에피소드에 대한 \WS{} 추정 결과를
+Ground Truth와 비교하여 제시한다.
+각 그림은 추적 50번째 프레임에서의 2D 파고장 히트맵이다.
+그림 제목에 프레임 nRMSE 및 에피소드 평균 nRMSE를 표기하였다.
 
-\begin{table}[htbp]
-\centering
-\caption{코드 저장소 구조.}
-\label{tab:code_structure}
-\footnotesize
-\begin{tabular}{lp{6cm}}
-\toprule
-경로 & 역할 \\
-\midrule
-\texttt{wavesim/} & 파도 시뮬레이션 + LiDAR 시뮬레이션 (39 테스트) \\
-\quad \texttt{wave.py} & JONSWAP 스펙트럼 파라미터화, Gerstner wave 생성 \\
-\quad \texttt{lidar.py} & LiDAR 빔 방향 계산, ray-surface 교차, raydrop 모델 \\
-\quad \texttt{episode.py} & 에피소드 생성, HDF5 I/O \\
-\quad \texttt{tests/} & 39개 단위 테스트 (분산관계, Gerstner 해석해, Fresnel 등) \\
-\midrule
-\texttt{wavesplat/} & 파도장 추정 알고리즘 (18 테스트) \\
-\quad \texttt{model/} & \texttt{spectral\_gaussian.py}: forward 모델 + gradient \\
-                     & \texttt{dispersion.py}: 분산관계 하드 제약 \\
-                     & \texttt{confidence.py}: Fresnel 신뢰 가중치 \\
-\quad \texttt{optimizer/} & \texttt{initializer.py}: 빔포밍 + 선형 최소제곱 \\
-                         & \texttt{coarse\_to\_fine.py}: C2F 최적화 \\
-                         & \texttt{sequential\_update.py}: 추적 (\texttt{w\_phi} 모드) \\
-\quad \texttt{baselines/} & \texttt{etkf\_grid.py}: ETKF 기준선 구현 \\
-\quad \texttt{evaluation/} & \texttt{metrics.py}: 6-지표 패널 계산 \\
-\quad \texttt{run.py} & 메인 진입점 (CLI) \\
-\midrule
-\texttt{scripts/} & 11개 실험/논문 스크립트 \\
-\quad \texttt{run\_p1\_comparison.py} & 12 에피소드 주 비교 실험 \\
-\quad \texttt{run\_gpr\_comparison.py} & GPR 3방향 비교 \\
-\quad \texttt{generate\_paper\_*.py} & 논문 표/그림 생성 \\
-\midrule
-\texttt{configs/} & YAML 설정 파일 \\
-\texttt{data/} & HDF5 에피소드 데이터 (100개) \\
-\texttt{results/} & JSON 실험 결과 \\
-\bottomrule
-\end{tabular}
-\end{table}
+10가지 해상 조건별 대표 에피소드 (seed~0, uniform raydrop)는
+GT, \WS{}, ETKF, GPR 4열 비교로 제시하며,
+나머지 에피소드는 GT vs \WS{} 2열 비교로 나열한다.
 
-\paragraph{테스트 프레임워크}
-전체 57개 테스트 (39 wavesim + 18 wavesplat)가
-\texttt{pytest} 프레임워크로 관리되며,
-단일 명령 \texttt{python3 -m pytest wavesim/tests/ wavesplat/tests/ -v}로
-전체 실행된다. 테스트는 세 가지 수준으로 구분된다:
-\begin{itemize}
-  \item \textbf{물리 단위 테스트}: 분산관계 해석해 오차 $< 10^{-6}$\,rad/s,
-        Gerstner 단일파 RMSE $< 10^{-10}$\,m,
-        Fresnel 반사율 단조 증가 검증 등
-  \item \textbf{알고리즘 통합 테스트}: 초기화 $\to$ 추적 파이프라인 종단 검증,
-        적응형 $N$ 가지치기/성장 동작 검증,
-        \texttt{w\_phi} 추적 안정성 검증
-  \item \textbf{회귀 테스트}: 주요 에피소드의 nRMSE 상한 검증
-        (BF3 2comp $< 0.10$, BF4 5comp $< 0.25$)
-\end{itemize}
+\newcommand{\epfour}[3]{%
+  % #1=BF_comp (e.g. BF2_1comp), #2=caption label, #3=fig label
+  \begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures_episodes/episode_#1_seed0_uniform.png}
+  \caption{#2 대표 비교 (seed 0, uniform): GT / \WS{} / ETKF / GPR.}
+  \label{fig:ep_#3_rep}
+  \end{figure}
+}
+\newcommand{\eprest}[3]{%
+  % #1=BF_comp, #2=caption label, #3=fig label
+  \begin{figure}[htbp]
+  \centering
+  \foreach \seed in {0,1,2,3,4}{%
+    \foreach \rd in {slope,uniform}{%
+      \includegraphics[width=0.48\textwidth]{figures_episodes/episode_#1_seed\seed_\rd.png}\hfill
+    }%
+    \par\medskip
+  }
+  \caption{#2: 전체 에피소드 GT vs \WS{} (시드 0--4, slope/uniform).}
+  \label{fig:ep_#3_rest}
+  \end{figure}
+}
 
-\paragraph{재현성}
-모든 실험은 랜덤 시드를 고정하여 비트 수준 재현이 가능하며,
-\texttt{configs/\allowbreak{}estimation.yaml}에 전체 하이퍼파라미터가
-기록되어 있다.
-결과 JSON 파일에는 실행 시각, Git 커밋 해시, 하드웨어 정보가 포함된다.
+%% --- BF2 1-comp ---
+\section{Beaufort 2, 1 성분}
+\epfour{BF2_1comp}{BF2 1-comp}{bf2_1comp}
+\eprest{BF2_1comp}{BF2 1-comp}{bf2_1comp}
+
+%% --- BF3 1-comp ---
+\section{Beaufort 3, 1 성분}
+\epfour{BF3_1comp}{BF3 1-comp}{bf3_1comp}
+\eprest{BF3_1comp}{BF3 1-comp}{bf3_1comp}
+
+%% --- BF3 2-comp ---
+\section{Beaufort 3, 2 성분}
+\epfour{BF3_2comp}{BF3 2-comp}{bf3_2comp}
+\eprest{BF3_2comp}{BF3 2-comp}{bf3_2comp}
+
+%% --- BF3 5-comp ---
+\section{Beaufort 3, 5 성분}
+\epfour{BF3_5comp}{BF3 5-comp}{bf3_5comp}
+\eprest{BF3_5comp}{BF3 5-comp}{bf3_5comp}
+
+%% --- BF4 1-comp ---
+\section{Beaufort 4, 1 성분}
+\epfour{BF4_1comp}{BF4 1-comp}{bf4_1comp}
+\eprest{BF4_1comp}{BF4 1-comp}{bf4_1comp}
+
+%% --- BF4 5-comp ---
+\section{Beaufort 4, 5 성분}
+\epfour{BF4_5comp}{BF4 5-comp}{bf4_5comp}
+\eprest{BF4_5comp}{BF4 5-comp}{bf4_5comp}
+
+%% --- BF4 15-comp ---
+\section{Beaufort 4, 15 성분}
+\epfour{BF4_15comp}{BF4 15-comp}{bf4_15comp}
+\eprest{BF4_15comp}{BF4 15-comp}{bf4_15comp}
+
+%% --- BF4 30-comp ---
+\section{Beaufort 4, 30 성분}
+\epfour{BF4_30comp}{BF4 30-comp}{bf4_30comp}
+\eprest{BF4_30comp}{BF4 30-comp}{bf4_30comp}
+
+%% --- BF5 15-comp ---
+\section{Beaufort 5, 15 성분}
+\epfour{BF5_15comp}{BF5 15-comp}{bf5_15comp}
+\eprest{BF5_15comp}{BF5 15-comp}{bf5_15comp}
+
+%% --- BF5 30-comp ---
+\section{Beaufort 5, 30 성분}
+\epfour{BF5_30comp}{BF5 30-comp}{bf5_30comp}
+\eprest{BF5_30comp}{BF5 30-comp}{bf5_30comp}
 
 \end{document}

@@ -2,6 +2,8 @@
 generate_all_episode_figures.py
 Generate GT vs WaveSplat heatmap figures for all 100 episodes.
 Each episode produces a 1×2 figure: Ground Truth | WaveSplat prediction.
+For 10 representative episodes (seed0_uniform), generates 1×4 comparison
+with ETKF and GPR baselines.
 Used for thesis appendix.
 """
 
@@ -13,16 +15,34 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
+import matplotlib.gridspec as gridspec
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from wavesplat.data_loader import EpisodeDataLoader
 from wavesplat.run import run_estimation, set_seed
 from wavesplat.optimizer.sequential_update import SequentialUpdater
+from wavesplat.baselines.etkf_grid import ETKFGrid
+from wavesplat.baselines.gpr_baseline import GPRBaseline
 from wavesplat.evaluation.metrics import nrmse
+from scipy.interpolate import RegularGridInterpolator
 
 
-TARGET_FRAME_IDX = 50  # Use frame 50 for all episodes
+TARGET_FRAME_IDX = 50
+
+# Representative episodes for 4-column comparison (1 per setting)
+REPRESENTATIVE = {
+    'episode_BF2_1comp_seed0_uniform',
+    'episode_BF3_1comp_seed0_uniform',
+    'episode_BF3_2comp_seed0_uniform',
+    'episode_BF3_5comp_seed0_uniform',
+    'episode_BF4_1comp_seed0_uniform',
+    'episode_BF4_5comp_seed0_uniform',
+    'episode_BF4_15comp_seed0_uniform',
+    'episode_BF4_30comp_seed0_uniform',
+    'episode_BF5_15comp_seed0_uniform',
+    'episode_BF5_30comp_seed0_uniform',
+}
 
 
 def get_ws_prediction(h5_path, target_frame_idx):
@@ -66,37 +86,130 @@ def get_ws_prediction(h5_path, target_frame_idx):
             avg_nrmse)
 
 
-def make_single_figure(gt, ws_pred, Hs, avg_nrmse, label, output_path):
-    """Create 1×2 heatmap: GT | WaveSplat."""
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+def get_etkf_prediction(h5_path, target_frame_idx):
+    """Run ETKF and return prediction at target frame."""
+    np.random.seed(42)
+    loader = EpisodeDataLoader(h5_path)
+    gt_x = loader.gt_grid_x.cpu().numpy()
+    gt_y = loader.gt_grid_y.cpu().numpy()
+
+    etkf = ETKFGrid(
+        np.linspace(gt_x[0], gt_x[-1], 40),
+        np.linspace(gt_y[0], gt_y[-1], 30),
+        depth=loader.depth, n_ensemble=50)
+
+    for i, frame in enumerate(loader):
+        x = frame.x_obs.cpu().numpy()
+        y = frame.y_obs.cpu().numpy()
+        z = frame.z_obs.cpu().numpy()
+        etkf.update(x, y, z)
+
+        if i == target_frame_idx:
+            etkf_pred = etkf.predict_grid()
+            interp = RegularGridInterpolator(
+                (np.linspace(gt_y[0], gt_y[-1], 30),
+                 np.linspace(gt_x[0], gt_x[-1], 40)),
+                etkf_pred, method='linear', bounds_error=False, fill_value=0.0)
+            Xg, Yg = np.meshgrid(gt_x, gt_y)
+            pred = interp(np.column_stack([Yg.ravel(), Xg.ravel()])).reshape(
+                len(gt_y), len(gt_x))
+            return pred
+    return None
+
+
+def get_gpr_prediction(h5_path, target_frame_idx):
+    """Run GPR and return prediction at target frame."""
+    loader = EpisodeDataLoader(h5_path)
+    gt_x = loader.gt_grid_x.cpu().numpy()
+    gt_y = loader.gt_grid_y.cpu().numpy()
+
+    gpr = GPRBaseline(kernel_type='matern', length_scale=20.0,
+                      noise_sigma=0.02, window_frames=1)
+
+    for i, frame in enumerate(loader):
+        x = frame.x_obs.cpu().numpy()
+        y = frame.y_obs.cpu().numpy()
+        z = frame.z_obs.cpu().numpy()
+
+        gpr.reset()
+        gpr.update(x, y, z)
+
+        if i == target_frame_idx:
+            pred = gpr.predict_grid(gt_x, gt_y)
+            return pred
+    return None
+
+
+def make_2col_figure(gt, ws_pred, Hs, avg_nrmse, label, output_path):
+    """Create 1×2 heatmap with colorbar on the far right outside."""
+    fig = plt.figure(figsize=(10, 4))
+    gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1, 0.05], wspace=0.08)
 
     vmax = max(abs(gt.min()), abs(gt.max()))
     norm = TwoSlopeNorm(vmin=-vmax, vcenter=0, vmax=vmax)
 
     # GT
-    im = axes[0].imshow(gt, cmap='RdBu_r', norm=norm,
-                        aspect='auto', origin='lower')
-    axes[0].set_title('Ground Truth', fontsize=12, fontweight='bold')
-    axes[0].set_xticks([])
-    axes[0].set_yticks([])
+    ax0 = fig.add_subplot(gs[0, 0])
+    im = ax0.imshow(gt, cmap='RdBu_r', norm=norm, aspect='auto', origin='lower')
+    ax0.set_title('Ground Truth', fontsize=12, fontweight='bold')
+    ax0.set_xticks([])
+    ax0.set_yticks([])
 
     # WaveSplat
-    axes[1].imshow(ws_pred, cmap='RdBu_r', norm=norm,
-                   aspect='auto', origin='lower')
-    axes[1].set_title('WaveSplat', fontsize=12, fontweight='bold')
-    axes[1].set_xticks([])
-    axes[1].set_yticks([])
-
-    # nRMSE annotation
+    ax1 = fig.add_subplot(gs[0, 1])
+    ax1.imshow(ws_pred, cmap='RdBu_r', norm=norm, aspect='auto', origin='lower')
     frame_nrmse = nrmse(ws_pred, gt, Hs)
-    axes[1].text(0.02, 0.98, f'nRMSE={frame_nrmse:.3f}\navg={avg_nrmse:.3f}',
-                 transform=axes[1].transAxes, fontsize=9,
-                 verticalalignment='top',
-                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    ax1.set_title(f'WaveSplat  (nRMSE={frame_nrmse:.3f}, avg={avg_nrmse:.3f})',
+                  fontsize=11, fontweight='bold')
+    ax1.set_xticks([])
+    ax1.set_yticks([])
 
-    fig.colorbar(im, ax=axes.tolist(), shrink=0.8, label='η [m]')
-    fig.suptitle(label, fontsize=13, fontweight='bold')
-    plt.tight_layout()
+    # Colorbar on far right
+    cax = fig.add_subplot(gs[0, 2])
+    fig.colorbar(im, cax=cax, label='η [m]')
+
+    fig.suptitle(label, fontsize=13, fontweight='bold', y=1.02)
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+
+
+def make_4col_figure(gt, ws_pred, etkf_pred, gpr_pred, Hs, avg_nrmse,
+                     label, output_path):
+    """Create 1×4 heatmap: GT | WS | ETKF | GPR with colorbar outside."""
+    fig = plt.figure(figsize=(18, 4))
+    gs = gridspec.GridSpec(1, 5, width_ratios=[1, 1, 1, 1, 0.05], wspace=0.08)
+
+    vmax = max(abs(gt.min()), abs(gt.max()))
+    norm = TwoSlopeNorm(vmin=-vmax, vcenter=0, vmax=vmax)
+
+    panels = [
+        ('Ground Truth', gt, None),
+        ('WaveSplat', ws_pred, avg_nrmse),
+        ('ETKF', etkf_pred, None),
+        ('GPR', gpr_pred, None),
+    ]
+
+    for col, (method, data, extra) in enumerate(panels):
+        ax = fig.add_subplot(gs[0, col])
+        im = ax.imshow(data, cmap='RdBu_r', norm=norm,
+                       aspect='auto', origin='lower')
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        if col > 0 and data is not None:
+            n = nrmse(data, gt, Hs)
+            title = f'{method}  (nRMSE={n:.3f})'
+            if extra is not None:
+                title = f'{method}  (nRMSE={n:.3f}, avg={extra:.3f})'
+            ax.set_title(title, fontsize=10, fontweight='bold')
+        else:
+            ax.set_title(method, fontsize=11, fontweight='bold')
+
+    # Colorbar on far right
+    cax = fig.add_subplot(gs[0, 4])
+    fig.colorbar(im, cax=cax, label='η [m]')
+
+    fig.suptitle(label, fontsize=13, fontweight='bold', y=1.02)
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
 
@@ -114,17 +227,32 @@ def main():
     for idx, h5_path in enumerate(episodes):
         ep_name = os.path.basename(h5_path).replace('.h5', '')
         out_path = os.path.join(fig_dir, f'{ep_name}.png')
+        is_rep = ep_name in REPRESENTATIVE
 
         if os.path.exists(out_path):
             print(f"[{idx+1}/{total}] SKIP (exists): {ep_name}")
             continue
 
-        print(f"[{idx+1}/{total}] {ep_name} ...", end=" ", flush=True)
+        tag = " [4-col]" if is_rep else ""
+        print(f"[{idx+1}/{total}]{tag} {ep_name} ...", end=" ", flush=True)
+
         try:
             ws_pred, gt, Hs, avg_nrmse = get_ws_prediction(
                 h5_path, TARGET_FRAME_IDX)
             label = ep_name.replace('episode_', '').replace('_', ' ')
-            make_single_figure(gt, ws_pred, Hs, avg_nrmse, label, out_path)
+
+            if is_rep:
+                # 4-column comparison
+                print("ETKF...", end=" ", flush=True)
+                etkf_pred = get_etkf_prediction(h5_path, TARGET_FRAME_IDX)
+                print("GPR...", end=" ", flush=True)
+                gpr_pred = get_gpr_prediction(h5_path, TARGET_FRAME_IDX)
+                make_4col_figure(gt, ws_pred, etkf_pred, gpr_pred,
+                                 Hs, avg_nrmse, label, out_path)
+            else:
+                # 2-column GT vs WS
+                make_2col_figure(gt, ws_pred, Hs, avg_nrmse, label, out_path)
+
             print(f"done (avg nRMSE={avg_nrmse:.3f})")
         except Exception as e:
             print(f"FAILED: {e}")

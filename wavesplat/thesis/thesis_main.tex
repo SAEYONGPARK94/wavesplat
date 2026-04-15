@@ -35,6 +35,7 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
 \usepackage{pgffor}   % \foreach for appendix episode figures
+\usepackage{float}    % [H] placement for appendix figures
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{array}
@@ -3328,7 +3329,7 @@ GT, \WS{}, ETKF, GPR 4열 비교로 제시하며,
 
 \newcommand{\epfour}[3]{%
   % #1=BF_comp (e.g. BF2_1comp), #2=caption label, #3=fig label
-  \begin{figure}[htbp]
+  \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{figures_episodes/episode_#1_seed0_uniform.png}
   \caption{#2 대표 비교 (seed 0, uniform): GT / \WS{} / ETKF / GPR.}
@@ -3337,7 +3338,7 @@ GT, \WS{}, ETKF, GPR 4열 비교로 제시하며,
 }
 \newcommand{\eprest}[3]{%
   % #1=BF_comp, #2=caption label, #3=fig label
-  \begin{figure}[htbp]
+  \begin{figure}[H]
   \centering
   \foreach \seed in {0,1,2,3,4}{%
     \foreach \rd in {slope,uniform}{%
@@ -3354,46 +3355,55 @@ GT, \WS{}, ETKF, GPR 4열 비교로 제시하며,
 \section{Beaufort 2, 1 성분}
 \epfour{BF2_1comp}{BF2 1-comp}{bf2_1comp}
 \eprest{BF2_1comp}{BF2 1-comp}{bf2_1comp}
+\clearpage
 
 %% --- BF3 1-comp ---
 \section{Beaufort 3, 1 성분}
 \epfour{BF3_1comp}{BF3 1-comp}{bf3_1comp}
 \eprest{BF3_1comp}{BF3 1-comp}{bf3_1comp}
+\clearpage
 
 %% --- BF3 2-comp ---
 \section{Beaufort 3, 2 성분}
 \epfour{BF3_2comp}{BF3 2-comp}{bf3_2comp}
 \eprest{BF3_2comp}{BF3 2-comp}{bf3_2comp}
+\clearpage
 
 %% --- BF3 5-comp ---
 \section{Beaufort 3, 5 성분}
 \epfour{BF3_5comp}{BF3 5-comp}{bf3_5comp}
 \eprest{BF3_5comp}{BF3 5-comp}{bf3_5comp}
+\clearpage
 
 %% --- BF4 1-comp ---
 \section{Beaufort 4, 1 성분}
 \epfour{BF4_1comp}{BF4 1-comp}{bf4_1comp}
 \eprest{BF4_1comp}{BF4 1-comp}{bf4_1comp}
+\clearpage
 
 %% --- BF4 5-comp ---
 \section{Beaufort 4, 5 성분}
 \epfour{BF4_5comp}{BF4 5-comp}{bf4_5comp}
 \eprest{BF4_5comp}{BF4 5-comp}{bf4_5comp}
+\clearpage
 
 %% --- BF4 15-comp ---
 \section{Beaufort 4, 15 성분}
 \epfour{BF4_15comp}{BF4 15-comp}{bf4_15comp}
 \eprest{BF4_15comp}{BF4 15-comp}{bf4_15comp}
+\clearpage
 
 %% --- BF4 30-comp ---
 \section{Beaufort 4, 30 성분}
 \epfour{BF4_30comp}{BF4 30-comp}{bf4_30comp}
 \eprest{BF4_30comp}{BF4 30-comp}{bf4_30comp}
+\clearpage
 
 %% --- BF5 15-comp ---
 \section{Beaufort 5, 15 성분}
 \epfour{BF5_15comp}{BF5 15-comp}{bf5_15comp}
 \eprest{BF5_15comp}{BF5 15-comp}{bf5_15comp}
+\clearpage
 
 %% --- BF5 30-comp ---
 \section{Beaufort 5, 30 성분}

@@ -356,9 +356,10 @@ X-band 해상 레이더~\citep{Drazen2008}는 넓은 관측 범위를 제공하�
 이에 비해 선박 탑재 스캐닝 LiDAR는 전방 해수면을 비접촉으로 직접 관측할 수 있는
 실용적 센서로, 10\,Hz의 스캔 속도와 250\,m 이상의 관측 거리에서
 센티미터 수준의 근거리 정밀도를 제공한다.
-최신 solid-state LiDAR (1550\,nm eye-safe 파장, $>$100채널,
-수평 FOV $\sim$$120^\circ$, 수직 FOV $\sim$$25^\circ$)의 발전으로
-실용화 단계에 진입하고 있다~\citep{collins2022}.
+자율주행용으로 개발된 solid-state LiDAR (1550\,nm eye-safe 파장,
+$>$100채널, 수평 FOV $\sim$$120^\circ$, 수직 FOV $\sim$$25^\circ$)를
+해양 관측에 전용(repurpose)할 수 있는 단계에
+진입하고 있다~\citep{collins2022}.
 
 그러나 LiDAR 관측은 본질적으로 희소(sparse)하고 불균질하다.
 고정 각도 분해능에 의해 근거리는 조밀하고 원거리는 희박한 관측 패턴을 생성하며,
@@ -1590,8 +1591,8 @@ BF & $H_s$ [m] & $T_p$ [s] & $\lambda_p$ [m] & $c_p$ [m/s] & $c_g$ [m/s] & 성�
 \subsection{LiDAR 시뮬레이션}
 \label{sec:lidar_sim}
 
-LiDAR 시뮬레이션은 현재 상용화된 해양용 solid-state LiDAR의
-대표적 사양을 기반으로 한다:
+LiDAR 시뮬레이션은 현재 상용 자율주행용 solid-state LiDAR의
+대표적 사양을 해양 환경에 적용한 설정을 기반으로 한다:
 1550\,nm eye-safe 파장, $>$100채널, 수평 FOV $120^\circ$,
 수직 FOV $25^\circ$, 500 수평 빔, 10\,Hz 스캔 속도,
 사거리 10--250\,m.
@@ -2985,8 +2986,12 @@ $T > 2.0$\,s ($|k|d < 4$)에서 유한 수심 효과가 나타나며,
 
 \subsection{LiDAR 센서}
 
-1550\,nm solid-state LiDAR ($>$100채널, FOV $120^\circ \times 25^\circ$, 10\,Hz)를
+자율주행용 solid-state LiDAR인 Seyond Falcon K1
+(1550\,nm, 152채널, FOV $120^\circ \times 25^\circ$, 10\,Hz)을
 수조 일측에 설치한다.
+이 센서는 원래 자동차 자율주행용으로 설계되었으나,
+eye-safe 파장과 높은 각도 분해능으로 인해
+근거리 해수면 관측에도 적합하다.
 설치 조건은 시뮬레이션(제\ref{sec:lidar_sim}절)과 유사하게 구성한다:
 
 \begin{itemize}

@@ -140,10 +140,18 @@ def run_estimation(h5_path: str, config: dict = None,
     grid_y = loader.gt_grid_y
     last_init = init_frames[-1]
 
+    # Detect real data (no GT available): gt_field is None or all zeros
+    has_gt = (last_init.gt_field is not None and
+              float(torch.abs(last_init.gt_field).max()) > 1e-10)
+
     pred_init = updater.predict_field(grid_x, grid_y, last_init.t)
-    init_rmse = rmse(pred_init.cpu().numpy(), last_init.gt_field.cpu().numpy())
-    init_nrmse = nrmse(pred_init.cpu().numpy(), last_init.gt_field.cpu().numpy(),
-                       loader.Hs_true)
+    if has_gt:
+        init_rmse = rmse(pred_init.cpu().numpy(), last_init.gt_field.cpu().numpy())
+        init_nrmse = nrmse(pred_init.cpu().numpy(), last_init.gt_field.cpu().numpy(),
+                           loader.Hs_true)
+    else:
+        init_rmse = float('nan')
+        init_nrmse = float('nan')
 
     if verbose:
         print(f"  Init RMSE={init_rmse:.4f}m, nRMSE={init_nrmse:.4f}")
@@ -163,35 +171,54 @@ def run_estimation(h5_path: str, config: dict = None,
         # Evaluate on GT grid
         pred = updater.predict_field(grid_x, grid_y, frame.t)
         pred_np = pred.cpu().numpy()
-        gt_np = frame.gt_field.cpu().numpy()
 
-        frame_metrics = compute_all_metrics(
-            pred_np, gt_np,
-            grid_x.cpu().numpy(), grid_y.cpu().numpy(),
-            loader.Hs_true,
-            obs_x=frame.x_obs.cpu().numpy() if len(frame.x_obs) > 0 else None,
-            obs_y=frame.y_obs.cpu().numpy() if len(frame.y_obs) > 0 else None,
-        )
+        if has_gt:
+            gt_np = frame.gt_field.cpu().numpy()
+            frame_metrics = compute_all_metrics(
+                pred_np, gt_np,
+                grid_x.cpu().numpy(), grid_y.cpu().numpy(),
+                loader.Hs_true,
+                obs_x=frame.x_obs.cpu().numpy() if len(frame.x_obs) > 0 else None,
+                obs_y=frame.y_obs.cpu().numpy() if len(frame.y_obs) > 0 else None,
+            )
+        else:
+            # Real data mode: no GT metrics, report prediction statistics
+            Hs_pred = float(4.0 * np.std(pred_np))
+            frame_metrics = {
+                'Hs_pred': Hs_pred,
+                'pred_std': float(np.std(pred_np)),
+                'pred_max': float(np.max(pred_np)),
+                'pred_min': float(np.min(pred_np)),
+            }
+
         frame_metrics['elapsed_ms'] = update_result['elapsed_ms']
         frame_metrics['n_pts'] = update_result['n_pts']
         frame_metrics['t'] = frame.t
         frame_results.append(frame_metrics)
 
-        # Check convergence
-        if t_converge is None and frame_metrics['nRMSE'] < converge_threshold:
+        # Check convergence (only with GT)
+        if has_gt and t_converge is None and frame_metrics.get('nRMSE', 1.0) < converge_threshold:
             t_converge = frame.t
 
         if verbose and i % 20 == 0:
-            print(f"  [t={frame.t:.1f}s] RMSE={frame_metrics['RMSE_z']:.4f}m, "
-                  f"nRMSE={frame_metrics['nRMSE']:.4f}, "
-                  f"{update_result['elapsed_ms']:.1f}ms")
+            if has_gt:
+                print(f"  [t={frame.t:.1f}s] RMSE={frame_metrics['RMSE_z']:.4f}m, "
+                      f"nRMSE={frame_metrics['nRMSE']:.4f}, "
+                      f"{update_result['elapsed_ms']:.1f}ms")
+            else:
+                print(f"  [t={frame.t:.1f}s] Hs_pred={frame_metrics['Hs_pred']:.4f}m, "
+                      f"n_pts={frame_metrics['n_pts']}, "
+                      f"{update_result['elapsed_ms']:.1f}ms")
 
     # Aggregate results
     if frame_results:
-        avg_rmse = np.mean([r['RMSE_z'] for r in frame_results])
-        avg_nrmse = np.mean([r['nRMSE'] for r in frame_results])
         avg_ms = np.mean([r['elapsed_ms'] for r in frame_results])
-        avg_hs_err = np.mean([r['Hs_error'] for r in frame_results])
+        if has_gt:
+            avg_rmse = np.mean([r['RMSE_z'] for r in frame_results])
+            avg_nrmse = np.mean([r['nRMSE'] for r in frame_results])
+            avg_hs_err = np.mean([r['Hs_error'] for r in frame_results])
+        else:
+            avg_rmse = avg_nrmse = avg_hs_err = float('nan')
     else:
         avg_rmse = avg_nrmse = avg_ms = avg_hs_err = float('nan')
 

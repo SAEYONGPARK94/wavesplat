@@ -185,5 +185,175 @@ def test_confidence_matches_numpy():
     np.testing.assert_allclose(conf_pt, conf_np, atol=1e-5)
 
 
+# ── Shallow depth (d=3.5m tank) dispersion tests ────────────────────────────
+
+def test_dispersion_shallow_depth():
+    """At d=3.5m, finite-depth effects are significant for long waves."""
+    depth = 3.5
+    # T=3.0s → ω≈2.09, deep-water k≈0.447, kd≈1.56 → tanh(kd)≈0.916
+    # Finite depth makes ω smaller than deep-water value
+    k = torch.tensor([0.447])
+    omega_full = dispersion_omega(k, depth)
+    omega_deep = torch.sqrt(torch.tensor(G) * k)  # deep-water
+
+    # Full dispersion ω must be less than deep-water ω
+    assert omega_full.item() < omega_deep.item(), \
+        f"Finite depth ω={omega_full.item():.4f} should be < deep-water ω={omega_deep.item():.4f}"
+
+
+def test_dispersion_shallow_deep_convergence():
+    """Short waves (kd >> 1) should match deep-water even at d=3.5m."""
+    depth = 3.5
+    # T=0.5s → very short wave, kd >> 1
+    k = torch.tensor([16.0])  # kd = 56 >> 1
+    omega_full = dispersion_omega(k, depth)
+    omega_deep = torch.sqrt(torch.tensor(G) * k)
+    assert torch.allclose(omega_full, omega_deep, rtol=1e-4), \
+        "Short waves at d=3.5m should match deep-water dispersion"
+
+
+def test_inverse_dispersion_shallow():
+    """Inverse dispersion roundtrip at d=3.5m."""
+    depth = 3.5
+    k_orig = torch.tensor([0.3, 0.5, 1.0, 2.0, 5.0])
+    omega = dispersion_omega(k_orig, depth)
+    k_recovered = wavenumber_from_omega(omega, depth)
+    assert torch.allclose(k_orig, k_recovered, rtol=1e-3), \
+        f"Roundtrip failed: orig={k_orig.tolist()}, recovered={k_recovered.tolist()}"
+
+
+def test_dispersion_shallow_wavelength():
+    """Wavelength at d=3.5m should be shorter than deep-water prediction."""
+    from wavesplat.model.dispersion import wavelength_from_period
+    depth = 3.5
+    T = torch.tensor([2.0])  # T=2.0s
+
+    lam_shallow = wavelength_from_period(T, depth)
+    lam_deep = wavelength_from_period(T, 1000.0)  # effectively infinite
+
+    # Finite depth → shorter wavelength
+    assert lam_shallow.item() < lam_deep.item(), \
+        f"λ_shallow={lam_shallow.item():.2f} should be < λ_deep={lam_deep.item():.2f}"
+
+
+def test_dispersion_shallow_known_values():
+    """Validate against hand-calculated values at d=3.5m."""
+    depth = 3.5
+    # For T=1.0s: ω=2π, deep-water k=ω²/g≈4.024
+    # kd = 4.024*3.5 = 14.08, tanh(kd)≈1.0 → deep-water applies
+    T_short = torch.tensor([1.0])
+    omega_short = 2 * math.pi / T_short
+    k_short = wavenumber_from_omega(omega_short, depth)
+    k_deep = omega_short ** 2 / G
+    assert torch.allclose(k_short, k_deep, rtol=1e-2), \
+        "T=1.0s at d=3.5m should be nearly deep-water"
+
+    # For T=3.0s: ω=2.094, deep-water k≈0.447, kd≈1.57
+    # Finite depth: k should be larger than deep-water k
+    T_long = torch.tensor([3.0])
+    omega_long = 2 * math.pi / T_long
+    k_long = wavenumber_from_omega(omega_long, depth)
+    k_deep_long = omega_long ** 2 / G
+    assert k_long.item() > k_deep_long.item(), \
+        "At T=3.0s, d=3.5m: finite-depth k should exceed deep-water k"
+
+
+# ── Real data coordinate transform tests ────────────────────────────────────
+
+def test_falcon_coordinate_transform():
+    """Falcon K1 → WaveSplat coordinate transform."""
+    from wavesplat.real_data import falcon_to_wavesplat, LiDARMountConfig
+
+    mount = LiDARMountConfig(height=3.5, tilt_angle=0.0)
+    # Falcon K1: X=up(3.5), Y=right(1.0), Z=forward(10.0)
+    pts = np.array([[3.5, 1.0, 10.0]])
+    ws_x, ws_y, ws_z = falcon_to_wavesplat(pts, mount)
+
+    # ws_x = k1_z = 10.0 (forward)
+    assert abs(ws_x[0] - 10.0) < 1e-6
+    # ws_y = k1_y = 1.0 (lateral)
+    assert abs(ws_y[0] - 1.0) < 1e-6
+    # ws_z = k1_x - height = 3.5 - 3.5 = 0.0 (water surface)
+    assert abs(ws_z[0] - 0.0) < 1e-6
+
+
+def test_falcon_transform_with_tilt():
+    """Coordinate transform with downward tilt.
+
+    Positive tilt = sensor looking downward.
+    A point on the forward axis in K1 (0, 0, d) should appear
+    at a lower elevation after tilt.
+    """
+    from wavesplat.real_data import falcon_to_wavesplat, LiDARMountConfig
+
+    # No tilt: point at K1 (0, 0, 10) → ws (10, 0, -3.5)
+    mount_flat = LiDARMountConfig(height=3.5, tilt_angle=0.0)
+    pts = np.array([[0.0, 0.0, 10.0]])
+    ws_x0, _, ws_z0 = falcon_to_wavesplat(pts, mount_flat)
+
+    # 30° downward tilt: forward axis points down
+    # K1 point (0, 0, 10) should now have lower z (more negative) in WS
+    mount_tilt = LiDARMountConfig(height=3.5, tilt_angle=math.radians(30))
+    ws_x1, _, ws_z1 = falcon_to_wavesplat(pts, mount_tilt)
+
+    assert ws_z1[0] < ws_z0[0], \
+        f"Downward tilt should lower z: flat={ws_z0[0]:.3f}, tilted={ws_z1[0]:.3f}"
+    assert not np.isnan(ws_x1[0])
+    assert not np.isnan(ws_z1[0])
+
+
+def test_incidence_angle_nadir():
+    """Nadir (straight down): incidence angle should be ~0."""
+    from wavesplat.real_data import compute_incidence_angles, LiDARMountConfig
+
+    mount = LiDARMountConfig(height=3.5)
+    # Point directly below sensor
+    ws_x = np.array([mount.x_offset])
+    ws_y = np.array([mount.y_offset])
+    ws_z = np.array([0.0])  # water surface
+
+    angles = compute_incidence_angles(ws_x, ws_y, ws_z, mount)
+    assert angles[0] < 0.1, f"Nadir angle should be ~0, got {angles[0]:.4f}"
+
+
+def test_incidence_angle_oblique():
+    """Oblique viewing: incidence angle should increase with distance."""
+    from wavesplat.real_data import compute_incidence_angles, LiDARMountConfig
+
+    mount = LiDARMountConfig(height=3.5)
+    # Points at increasing forward distance
+    ws_x = np.array([1.0, 5.0, 20.0, 50.0])
+    ws_y = np.zeros(4)
+    ws_z = np.zeros(4)
+
+    angles = compute_incidence_angles(ws_x, ws_y, ws_z, mount)
+
+    # Incidence angle should increase with forward distance
+    for i in range(len(angles) - 1):
+        assert angles[i] < angles[i + 1], \
+            f"Angle should increase: {angles[i]:.4f} >= {angles[i+1]:.4f}"
+
+
+def test_surface_filter():
+    """Surface filter should reject walls/floor/out-of-range."""
+    from wavesplat.real_data import filter_surface_points, SurfaceFilterConfig
+
+    cfg = SurfaceFilterConfig(z_min=-0.5, z_max=0.5,
+                               x_min=0, x_max=50,
+                               y_min=-4, y_max=4)
+
+    ws_x = np.array([10.0, -5.0, 60.0, 10.0, 10.0])
+    ws_y = np.array([0.0, 0.0, 0.0, 5.0, 0.0])
+    ws_z = np.array([0.1, 0.0, 0.0, 0.0, -3.0])  # surface, behind, far, wall, floor
+    intensity = np.ones(5) * 128
+
+    mask = filter_surface_points(ws_x, ws_y, ws_z, intensity, cfg)
+    assert mask[0] == True   # valid surface
+    assert mask[1] == False  # behind (x<0)
+    assert mask[2] == False  # beyond tank (x>50)
+    assert mask[3] == False  # outside tank width (y>4)
+    assert mask[4] == False  # floor (z<-0.5)
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

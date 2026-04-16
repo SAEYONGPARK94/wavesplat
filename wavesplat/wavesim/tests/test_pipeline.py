@@ -111,5 +111,59 @@ def test_pipeline_different_sea_states():
             assert os.path.exists(fp), f"{ss} did not produce output file"
 
 
+# ── Tank depth d=3.5m pipeline tests ─────────────────────────────────────────
+
+def test_pipeline_tank_depth():
+    """Full pipeline at d=3.5m with tank-scale wave parameters."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fp = run_episode(
+            sea_state='BF3',
+            n_components=5,
+            n_pts=10,
+            seed=0,
+            duration=0.5,
+            dt=0.1,
+            depth=3.5,
+            output_dir=tmpdir,
+            verbose=False
+        )
+        assert os.path.exists(fp)
+        data = load_episode(fp)
+
+        assert data['lidar_points'].shape[0] >= 1
+        gt = data['gt_wave_field']
+        # GT field should be physically valid
+        for i in range(gt.shape[0]):
+            assert abs(np.mean(gt[i])) < 1.0, \
+                f"Frame {i}: mean elevation too large at d=3.5m"
+
+
+def test_pipeline_tank_depth_dispersion():
+    """At d=3.5m, saved wave components satisfy dispersion relation."""
+    from wavesim.wave_generator import full_dispersion
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fp = run_episode(
+            sea_state='BF4',
+            n_components=10,
+            n_pts=10,
+            seed=42,
+            duration=0.2,
+            dt=0.1,
+            depth=3.5,
+            output_dir=tmpdir,
+            verbose=False
+        )
+        data = load_episode(fp)
+        comps = data['wave_components']  # (N, 6): A, omega, kx, ky, phi, Q
+
+        for i in range(comps.shape[0]):
+            omega = comps[i, 1]
+            kx, ky = comps[i, 2], comps[i, 3]
+            k_mag = np.sqrt(kx**2 + ky**2)
+            omega_disp = full_dispersion(k_mag, depth=3.5)
+            assert abs(omega - omega_disp) < 1e-3, \
+                f"Component {i}: ω={omega:.4f} != dispersion ω={omega_disp:.4f} at d=3.5m"
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

@@ -130,5 +130,68 @@ def test_hdf5_roundtrip():
         os.unlink(path)
 
 
+# ── Tank depth d=3.5m tests ──────────────────────────────────────────────────
+
+def test_evaluate_field_tank_depth():
+    """GT field evaluation at d=3.5m produces valid output."""
+    comps = jonswap_components(Hs=0.08, Tp=1.2, n_components=5,
+                                seed=0, depth=3.5)
+    X, Y = make_grid((0, 50), (-4, 4), nx=30, ny=10)
+    Z, NX, NY, NZ = evaluate_field(comps, X, Y, t=0.0)
+    assert Z.shape == (10, 30)
+    assert np.all(NZ > 0), "Surface normals must point upward at d=3.5m"
+    # Wave amplitude should be on tank scale
+    assert np.max(np.abs(Z)) < 1.0, \
+        f"Wave amplitude {np.max(np.abs(Z)):.3f}m too large for tank"
+
+
+def test_hdf5_roundtrip_tank_depth():
+    """HDF5 save/load roundtrip at d=3.5m preserves depth."""
+    comps = jonswap_components(Hs=0.05, Tp=1.0, n_components=3,
+                                seed=0, depth=3.5)
+    cfg = LidarConfig()
+
+    X, Y = make_grid((0, 50), (-4, 4), nx=10, ny=10)
+    gt_x = X[0, :]
+    gt_y = Y[:, 0]
+
+    frames = []
+    rng = np.random.default_rng(42)
+    for i in range(2):
+        Z, _, _, _ = evaluate_field(comps, X, Y, t=i * 0.1)
+        pts = rng.uniform(0, 50, (10, 3))
+        pts[:, 2] = rng.normal(0, 0.02, 10)
+        frames.append({
+            'timestamp': i * 0.1,
+            'lidar_points': pts,
+            'lidar_valid_mask': np.ones(10, dtype=bool),
+            'lidar_incidence_angles': np.deg2rad(rng.uniform(60, 85, 10)),
+            'lidar_confidence': rng.uniform(0.1, 0.9, 10),
+            'gt_wave_field': Z,
+        })
+
+    spec = compute_spectrum_1d(comps, n_freq=16)
+
+    with tempfile.NamedTemporaryFile(suffix='.h5', delete=False) as tmp:
+        path = tmp.name
+
+    try:
+        save_episode(path, comps, cfg, frames, gt_x, gt_y,
+                     'uniform', {'eta': 1.0},
+                     'tank', 0.05, 1.0, 3.3, 3.5, spec)
+        loaded = load_episode(path)
+
+        assert loaded['sea_state'] == 'tank'
+        assert abs(loaded['Hs'] - 0.05) < 1e-9
+        assert abs(loaded['Tp'] - 1.0) < 1e-9
+        assert loaded['gt_wave_field'].shape == (2, 10, 10)
+
+        Z_orig = frames[0]['gt_wave_field']
+        Z_load = loaded['gt_wave_field'][0]
+        assert np.allclose(Z_orig, Z_load)
+    finally:
+        os.unlink(path)
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

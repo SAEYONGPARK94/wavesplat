@@ -146,5 +146,104 @@ def superpose_wrapper(components, X, Y, t):
     return Z, nx, ny, nz
 
 
+# ── 5. Tank depth d=3.5m tests ───────────────────────────────────────────────
+
+def test_dispersion_tank_depth():
+    """Dispersion at d=3.5m: finite-depth effects for long-period waves."""
+    depth = 3.5
+    # T=1.0s (kd >> 1): should match deep water
+    k_short = wavenumber_from_omega(2 * np.pi, depth)
+    k_deep = wavenumber_from_omega(2 * np.pi, 1000.0)
+    assert abs(k_short - k_deep) / k_deep < 0.01, \
+        "T=1.0s at d=3.5m should be deep-water"
+
+    # T=3.0s (kd ≈ 1.6): finite-depth correction significant
+    omega_long = 2 * np.pi / 3.0
+    k_shallow = wavenumber_from_omega(omega_long, depth)
+    k_deep_long = wavenumber_from_omega(omega_long, 1000.0)
+    # Finite depth → k increases (wavelength shortens)
+    assert k_shallow > k_deep_long * 1.01, \
+        f"k_shallow={k_shallow:.4f} should exceed k_deep={k_deep_long:.4f} at T=3.0s"
+
+
+def test_dispersion_crossvalidate_wavesplat():
+    """wavesim and wavesplat dispersion must agree at d=3.5m."""
+    import torch
+    from wavesplat.model.dispersion import dispersion_omega as ws_dispersion
+
+    depth = 3.5
+    k_vals = [0.3, 0.5, 1.0, 2.0, 5.0, 10.0]
+    for k_val in k_vals:
+        omega_sim = full_dispersion(k_val, depth)
+        omega_splat = ws_dispersion(torch.tensor([k_val]), depth).item()
+        assert abs(omega_sim - omega_splat) < 1e-5, \
+            f"k={k_val}, d=3.5: wavesim={omega_sim:.6f}, wavesplat={omega_splat:.6f}"
+
+
+def test_inverse_dispersion_tank_depth():
+    """Inverse dispersion roundtrip at d=3.5m."""
+    depth = 3.5
+    for omega in [1.5, 2.0, 3.0, 5.0, 8.0]:
+        k = wavenumber_from_omega(omega, depth)
+        omega_back = full_dispersion(k, depth)
+        assert abs(omega_back - omega) < 1e-5, \
+            f"ω={omega}: roundtrip error {abs(omega_back-omega):.2e} at d=3.5m"
+
+
+def test_jonswap_tank_depth():
+    """JONSWAP spectrum generation at d=3.5m (tank-scale waves)."""
+    # Tank-scale: Hs=0.05m, Tp=1.0s
+    comps = jonswap_components(Hs=0.05, Tp=1.0, n_components=10,
+                                seed=42, depth=3.5)
+    assert len(comps) == 10
+    for c in comps:
+        assert c.A > 0
+        # Verify dispersion relation is satisfied
+        k_mag = np.sqrt(c.kx**2 + c.ky**2)
+        omega_expected = full_dispersion(k_mag, depth=3.5)
+        assert abs(c.omega - omega_expected) < 1e-4, \
+            f"Component ω={c.omega:.4f} doesn't match dispersion ω={omega_expected:.4f}"
+
+
+def test_jonswap_tank_Hs_accuracy():
+    """JONSWAP at d=3.5m: Hs should be reasonable for tank-scale waves."""
+    x = np.linspace(0, 50, 100)
+    y = np.linspace(-4, 4, 20)
+    X, Y = np.meshgrid(x, y)
+
+    errors = []
+    for Hs_target, Tp in [(0.05, 1.0), (0.10, 1.5), (0.15, 2.0)]:
+        for seed in range(3):
+            comps = jonswap_components(Hs=Hs_target, Tp=Tp,
+                                        n_components=15, seed=seed, depth=3.5)
+            Z, _, _, _ = superpose_wrapper(comps, X, Y, t=0.0)
+            Hs_est = compute_Hs(Z)
+            errors.append(abs(Hs_est - Hs_target) / Hs_target)
+
+    mean_err = np.mean(errors)
+    assert mean_err < 0.30, \
+        f"Tank JONSWAP Hs error = {mean_err*100:.1f}% (should be < 30%)"
+
+
+def test_gerstner_tank_depth():
+    """Gerstner wave evaluation at d=3.5m with Q=0 (linear)."""
+    depth = 3.5
+    omega = 2 * np.pi / 1.5  # T=1.5s
+    k = wavenumber_from_omega(omega, depth)
+    comp = [WaveComponent(A=0.02, omega=omega, kx=k, ky=0.0, phi=0.0, Q=0.0)]
+
+    x = np.linspace(0, 20, 40)
+    y = np.zeros(1)
+    X, Y = np.meshgrid(x, y)
+    t = 1.0
+
+    _, _, Z, _, _, nz = single_gerstner(comp, X, Y, t)
+    Z_analytic = 0.02 * np.cos(k * X - omega * t)
+
+    rmse = np.sqrt(np.mean((Z - Z_analytic)**2))
+    assert rmse < 1e-10, f"Gerstner at d=3.5m RMSE={rmse:.2e}"
+    assert np.all(nz > 0), "Surface normal must point upward"
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

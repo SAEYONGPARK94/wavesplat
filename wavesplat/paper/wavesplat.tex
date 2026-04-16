@@ -152,10 +152,11 @@ images large areas but measures backscatter rather than elevation,
 and satellite altimetry~\citep{queffeulou2004} is too coarse for
 vessel-scale real-time use.  Shipboard scanning LiDAR, by contrast,
 provides \emph{direct} elevation measurements over a wide area at
-$\sim$10~Hz~\citep{nouguier2014, collins2022}; modern solid-state
-units (e.g., Seyond Falcon~K1: 1550~nm, 152~channels,
-$120^\circ\times 25^\circ$ FOV) reach 250~m with centimeter-level
-accuracy in the near field.  However, LiDAR observations are sparse
+$\sim$10~Hz~\citep{nouguier2014, collins2022}.
+Current solid-state LiDAR systems operating at eye-safe wavelengths
+(1550~nm) offer $>$100 channels, wide fields of view
+($\sim$$120^\circ \times 25^\circ$), and ranges up to 250~m with
+centimeter-level accuracy in the near field.  However, LiDAR observations are sparse
 (50--200 valid returns per scan), unevenly distributed (denser near
 the ship), and noisy (degrading with range and incidence angle).
 The challenge is therefore to reconstruct a continuous, physically
@@ -637,8 +638,9 @@ sampling~\citep{hasselmann1973}.  The simulator parameters are:
     providing a realistic test of the linear forward
     model~\eqref{eq:forward}
   \item \textbf{LiDAR model}: 500 horizontal beams, 10~Hz scan rate,
-    range 10--250~m, based on the Seyond Falcon~K1 specifications
-    (1550~nm, 152~channels, $120^\circ \times 25^\circ$ FOV)
+    range 10--250~m, representative of current solid-state
+    maritime LiDAR systems (1550~nm eye-safe wavelength,
+    $>$100 channels, $120^\circ \times 25^\circ$ FOV)
   \item \textbf{Raydrop models}: (a)~uniform---constant drop probability
     independent of surface geometry (diffuse Fresnel reflection); and
     (b)~slope-dependent---higher dropout on steep surfaces with

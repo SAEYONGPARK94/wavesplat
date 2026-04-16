@@ -356,9 +356,9 @@ X-band 해상 레이더~\citep{Drazen2008}는 넓은 관측 범위를 제공하�
 이에 비해 선박 탑재 스캐닝 LiDAR는 전방 해수면을 비접촉으로 직접 관측할 수 있는
 실용적 센서로, 10\,Hz의 스캔 속도와 250\,m 이상의 관측 거리에서
 센티미터 수준의 근거리 정밀도를 제공한다.
-최신 solid-state LiDAR (예: Seyond Falcon K1, 1550\,nm, 152채널,
-수평 FOV $120^\circ$, 수직 FOV $25^\circ$)의 발전으로 실용화 단계에
-진입하고 있다~\citep{SeyondFalconK1}.
+최신 solid-state LiDAR (1550\,nm eye-safe 파장, $>$100채널,
+수평 FOV $\sim$$120^\circ$, 수직 FOV $\sim$$25^\circ$)의 발전으로
+실용화 단계에 진입하고 있다~\citep{collins2022}.
 
 그러나 LiDAR 관측은 본질적으로 희소(sparse)하고 불균질하다.
 고정 각도 분해능에 의해 근거리는 조밀하고 원거리는 희박한 관측 패턴을 생성하며,
@@ -589,7 +589,7 @@ LiDAR의 해양 표면 관측 물리를 상세히 기술한다.
 각도 분해능이 일정하므로, 해수면 위의 관측점 밀도는
 거리의 제곱에 반비례한다:
 $\rho(d) \propto 1/d^2$.
-구체적으로, Seyond Falcon K1 (수평 FOV $120^\circ$, 500 수평 빔)의
+구체적으로, 수평 FOV $120^\circ$에 500 수평 빔을 가정하면
 수평 각도 분해능은 $\Delta\phi = 0.24^\circ$이며,
 해수면 관측 밀도는 $d = 20$\,m에서 $\sim$50\,pts/m$^2$,
 $d = 100$\,m에서 $\sim$2\,pts/m$^2$,
@@ -1590,9 +1590,11 @@ BF & $H_s$ [m] & $T_p$ [s] & $\lambda_p$ [m] & $c_p$ [m/s] & $c_g$ [m/s] & 성�
 \subsection{LiDAR 시뮬레이션}
 \label{sec:lidar_sim}
 
-LiDAR 시뮬레이션은 Seyond Falcon K1의 실제 사양을 기반으로 한다:
-1550\,nm 파장, 152채널, 수평 FOV $120^\circ$, 수직 FOV $25^\circ$,
-500 수평 빔, 10\,Hz 스캔 속도, 사거리 10--250\,m.
+LiDAR 시뮬레이션은 현재 상용화된 해양용 solid-state LiDAR의
+대표적 사양을 기반으로 한다:
+1550\,nm eye-safe 파장, $>$100채널, 수평 FOV $120^\circ$,
+수직 FOV $25^\circ$, 500 수평 빔, 10\,Hz 스캔 속도,
+사거리 10--250\,m.
 
 LiDAR 시뮬레이션의 핵심은 (1) 빔 방향 계산, (2) ray-surface 교차,
 (3) 반환 확률 결정의 세 단계이다.
@@ -2983,7 +2985,7 @@ $T > 2.0$\,s ($|k|d < 4$)에서 유한 수심 효과가 나타나며,
 
 \subsection{LiDAR 센서}
 
-Seyond Falcon K1 (1550\,nm, 152채널, FOV $120^\circ \times 25^\circ$, 10\,Hz)을
+1550\,nm solid-state LiDAR ($>$100채널, FOV $120^\circ \times 25^\circ$, 10\,Hz)를
 수조 일측에 설치한다.
 설치 조건은 시뮬레이션(제\ref{sec:lidar_sim}절)과 유사하게 구성한다:
 

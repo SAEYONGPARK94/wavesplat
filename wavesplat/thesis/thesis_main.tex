@@ -3238,16 +3238,18 @@ Phase~2 이상에서 문제 발생 시 Phase~1 결과만으로도
 
 \begin{table}[H]
 \centering
-\caption{수조 실험과 실선 조건 대응 (Froude 스케일링, $\lambda_s = 50$).}
+\caption{수조 실험 조건과 시뮬레이션 (BF3) 조건 비교.
+수조는 정확한 Froude 축소 모델이 아니며, 스케일 효과보다
+LiDAR 해상도 대비 파고의 SNR 차이가 주요 변수이다.}
 \label{tab:tank_scaling}
 \begin{tabular}{lccc}
 \toprule
-파라미터 & 수조 & 실선 (BF3) & 스케일 법칙 \\
+파라미터 & 수조 & 시뮬레이션 (BF3) & 비고 \\
 \midrule
-$H_s$ & 5\,cm & 0.88\,m ($\approx$2.5\,m at $\lambda_s$=50) & $\lambda_s$ \\
-$T_p$ & 1.2\,s & 5.0\,s ($\approx$8.5\,s at $\lambda_s$=50) & $\sqrt{\lambda_s}$ \\
-수심 $d$ & 3.5\,m & 50\,m & $\lambda_s$ \\
-LiDAR 거리 & 10--50\,m & 10--250\,m & $\lambda_s$ \\
+$H_s$ & 5\,cm & 0.88\,m & 수조는 Froude 환산 시 $\sim$BF4--5급 \\
+$T_p$ & 1.2\,s & 5.0\,s & Froude: $1.2\sqrt{50}=8.5$\,s \\
+수심 $d$ & 3.5\,m & 50\,m & 유한 수심 ($kd<\pi$) \\
+LiDAR 거리 & 10--50\,m & 10--250\,m & 시뮬레이션의 1/5 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -3624,7 +3626,7 @@ Pitch 미분이득 & $K_{d,\theta}$ & 1.5 & $\zeta_\theta=0.6$ \\
 \midrule
 \multicolumn{4}{l}{\textit{Feedforward}} \\
 Feedforward 이득 & $K_{\text{ff}}$ & 0.8 & 80\% 보상, 스윕 최적 (\S\ref{sec:controller}) \\
-미리보기 시간 & $\Delta t_{\text{prev}}$ & 0.5\,s & 0.1--0.3\,s 최적 범위 \\
+미리보기 시간 & $\Delta t_{\text{prev}}$ & 0.5\,s & 기본값; 민감도 분석 최적 0.1--0.3\,s (\S\ref{sec:sensitivity}) \\
 IIR 필터 계수 & $\alpha$ & 0.05 & $f_c = 0.84$\,Hz (\S\ref{sec:controller}) \\
 \midrule
 \multicolumn{4}{l}{\textit{시뮬레이션}} \\

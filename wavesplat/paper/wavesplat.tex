@@ -605,14 +605,15 @@ Table~\ref{tab:complexity} summarizes the scaling comparison.
 \centering
 \caption{Computational complexity comparison.
 $M$: observations/frame, $N$: spectral components,
-$G$: grid size, $N_e$: ensemble members.}
+$G$: grid size, $N_e$: ensemble members.
+ETKF uses the tuned configuration ($N_e=100$, $G=40\times30$).}
 \label{tab:complexity}
 \begin{tabular}{lcc}
 \toprule
 Method & Per-frame complexity & Measured \\
 \midrule
 WaveSplat & $O(K \cdot K_w \cdot M \cdot N)$ & 13.4~ms \\
-ETKF-grid & $O(N_e \cdot G^2 \log G^2)$ & 31.7~ms \\
+ETKF-grid & $O(N_e \cdot G^2 \log G^2)$ & 132.6~ms \\
 GPR       & $O(M^3)$ & $>$200~ms \\
 \bottomrule
 \end{tabular}
@@ -971,11 +972,11 @@ Key observations:
     on average vs.\ 132.6~ms/frame for the tuned ETKF (median
     110~ms), an order-of-magnitude advantage that is well within
     the 100~ms real-time budget for 10~Hz LiDAR
-    (Fig.~\ref{fig:speed}).  Note that the tuned ETKF uses
-    $n_{\text{ens}}$=100 ensemble members---twice the
-    pre-tuning configuration---which accounts for the $\sim$4$\times$
-    higher per-frame cost compared to the 31.7~ms reported in
-    earlier versions of this baseline.
+    (Fig.~\ref{fig:speed}).  The tuned ETKF uses
+    $n_{\text{ens}}$=100 ensemble members---twice the nominal
+    configuration ($n_{\text{ens}}$=50, 31.7~ms)---because the
+    larger ensemble significantly improves nRMSE at the cost of
+    $\sim$4$\times$ higher per-frame latency.
 \end{itemize}
 
 \begin{figure*}[t]
@@ -983,10 +984,8 @@ Key observations:
 \includegraphics[width=\textwidth]{figures/fig3_speed.pdf}
 \caption{Per-frame inference speed comparison. WaveSplat maintains
 consistent $\sim$13~ms/frame across all episodes, while the tuned
-ETKF ranges from 90 to over 600~ms depending on ensemble convergence
-(median 110~ms). The plotted bars reflect the pre-tuning ETKF
-configuration; numeric values in the text correspond to the tuned
-baseline used in Table~\ref{tab:main}.}
+ETKF ($n_{\text{ens}}$=100) ranges from 90 to over 600~ms depending
+on ensemble convergence (median 110~ms, mean 132.6~ms).}
 \label{fig:speed}
 \end{figure*}
 
@@ -1284,6 +1283,16 @@ BF4 15c & 0.302 ($N_a$=19) & 0.303 ($N_a$=19) & \textbf{0.276} ($N_a$=20) & 0.29
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig9_noise.pdf}
+\caption{Noise robustness: nRMSE under additive Gaussian noise
+$\sigma\in\{0, 0.02, 0.05, 0.10\}$~m. All episodes remain within
+$\pm$13\% of the noise-free baseline, demonstrating the spectral
+parameterization's inherent noise averaging.}
+\label{fig:noise}
+\end{figure}
 
 Across all three episodes nRMSE remains within $\pm$13\% of baseline
 even at $\sigma$=0.10~m (5$\times$ baseline), as the spectral

@@ -15,7 +15,7 @@ wavesplat/                   # Root package directory
 │   ├── evaluation/metrics.py
 │   └── run.py               # Main entry point
 ├── scripts/                 # 11 experiment/paper scripts
-├── paper/                   # IEEE LaTeX (wavesplat.tex) + 9 figures
+├── paper/                   # Ocean Engineering LaTeX (wavesplat.tex) + 9 figures
 ├── results/                 # 7 JSON result files
 ├── configs/                 # YAML configs (estimation.yaml, server.yaml, default.yaml)
 ├── data/                    # HDF5 episodes (100 total)
@@ -44,9 +44,9 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
 ## Current State (2026-04-07)
 - **All phases complete**: P0 (init+ablation+ETKF), P1 (adaptive N+tracking), P2 (paper)
 - **57 tests all passing** (39 wavesim + 18 wavesplat)
-- **Paper**: IEEE format ~680 lines, 6 tables, 8 figures
-- **Key result**: WS avg nRMSE 0.233 vs ETKF 0.450 vs GPR 0.276
-- **Speed**: WS 13.4ms, ETKF 31.7ms, GPR >200ms
+- **Paper**: Ocean Engineering format ~1500 lines, 12 tables, 9 figures
+- **Key result**: WS avg nRMSE 0.223 vs ETKF 0.319 vs GPR 0.276
+- **Speed**: WS 13.4ms, ETKF 132.6ms (tuned, Ne=100), GPR >200ms
 
 ## Important Design Decisions
 - `tracking_mode: w_phi` — kx/ky fixed during tracking, only w+φ updated

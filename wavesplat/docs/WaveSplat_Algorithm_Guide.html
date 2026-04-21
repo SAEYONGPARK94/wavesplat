@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WaveSplat 알고리즘 완전 해설</title>
+<script>
+  window.MathJax = { tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] } };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d2e; --surface2: #232740;
+    --accent: #00e676; --cyan: #4dd0e1; --yellow: #ffd54f;
+    --orange: #ff8a65; --red: #ef5350; --purple: #b388ff;
+    --text: #e0e0e0; --text2: #9e9e9e; --white: #ffffff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    line-height: 1.8; font-size: 17px;
+  }
+  /* ── 사이드 네비게이션 ── */
+  nav {
+    position: fixed; left: 0; top: 0; width: 280px; height: 100vh;
+    background: var(--surface); border-right: 1px solid #333;
+    overflow-y: auto; padding: 20px 0; z-index: 100;
+  }
+  nav h2 { color: var(--accent); font-size: 15px; padding: 8px 20px; margin-top: 16px; letter-spacing: 1px; }
+  nav a {
+    display: block; padding: 5px 20px; color: var(--text2);
+    text-decoration: none; font-size: 13px; transition: all 0.2s;
+  }
+  nav a:hover, nav a.active { color: var(--accent); background: rgba(0,230,118,0.08); }
+  nav .nav-title { color: var(--white); font-size: 18px; font-weight: 700; padding: 20px; border-bottom: 1px solid #333; }
+
+  /* ── 메인 콘텐츠 ── */
+  main { margin-left: 280px; max-width: 900px; padding: 40px 60px 100px; }
+
+  h1 {
+    font-size: 42px; color: var(--white); margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .subtitle { color: var(--text2); font-size: 18px; margin-bottom: 50px; }
+
+  h2 {
+    font-size: 28px; color: var(--accent); margin-top: 80px; margin-bottom: 8px;
+    padding-bottom: 8px; border-bottom: 2px solid var(--accent);
+  }
+  h2 .part-num { color: var(--cyan); font-size: 16px; display: block; margin-bottom: 4px; letter-spacing: 2px; }
+
+  h3 { font-size: 22px; color: var(--cyan); margin-top: 40px; margin-bottom: 12px; }
+  h4 { font-size: 18px; color: var(--yellow); margin-top: 28px; margin-bottom: 8px; }
+
+  p { margin-bottom: 14px; }
+
+  /* ── 수식 박스 ── */
+  .eq-box {
+    background: var(--surface2); border-left: 4px solid var(--yellow);
+    padding: 20px 24px; margin: 20px 0; border-radius: 0 8px 8px 0;
+    font-size: 18px; overflow-x: auto;
+  }
+  .eq-box .eq-label { color: var(--text2); font-size: 13px; margin-bottom: 8px; }
+
+  /* ── 핵심 포인트 ── */
+  .key {
+    background: rgba(0,230,118,0.08); border-left: 4px solid var(--accent);
+    padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0;
+  }
+  .key strong { color: var(--accent); }
+
+  /* ── 경고/한계 ── */
+  .warn {
+    background: rgba(239,83,80,0.08); border-left: 4px solid var(--red);
+    padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0;
+  }
+  .warn strong { color: var(--red); }
+
+  /* ── 비교/인사이트 ── */
+  .insight {
+    background: rgba(77,208,225,0.08); border-left: 4px solid var(--cyan);
+    padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0;
+  }
+  .insight strong { color: var(--cyan); }
+
+  /* ── 비유 ── */
+  .analogy {
+    background: rgba(179,136,255,0.08); border-left: 4px solid var(--purple);
+    padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0;
+    font-style: italic;
+  }
+
+  /* ── 테이블 ── */
+  table {
+    width: 100%; border-collapse: collapse; margin: 20px 0;
+    background: var(--surface);
+  }
+  th {
+    background: var(--surface2); color: var(--cyan); padding: 12px 16px;
+    text-align: left; font-size: 14px; letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--cyan);
+  }
+  td { padding: 10px 16px; border-bottom: 1px solid #333; font-size: 15px; }
+  tr:hover { background: rgba(255,255,255,0.03); }
+  .good { color: var(--accent); font-weight: 600; }
+  .bad { color: var(--red); }
+  .mid { color: var(--yellow); }
+
+  /* ── 단계 흐름도 ── */
+  .flow {
+    display: flex; align-items: center; gap: 8px; margin: 20px 0;
+    flex-wrap: wrap; font-size: 15px;
+  }
+  .flow-step {
+    background: var(--surface2); border: 1px solid var(--cyan);
+    padding: 8px 16px; border-radius: 20px; color: var(--cyan); white-space: nowrap;
+  }
+  .flow-arrow { color: var(--accent); font-size: 20px; }
+
+  /* ── 코드/수식 인라인 ── */
+  code {
+    background: var(--surface2); color: var(--yellow); padding: 2px 6px;
+    border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 15px;
+  }
+
+  ul, ol { margin: 10px 0 14px 24px; }
+  li { margin-bottom: 6px; }
+
+  /* ── 반응형 ── */
+  @media (max-width: 1100px) {
+    nav { display: none; }
+    main { margin-left: 0; padding: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════ -->
+<!--  사이드 네비게이션                       -->
+<!-- ════════════════════════════════════════ -->
+<nav>
+  <div class="nav-title">WaveSplat Guide</div>
+  <h2>PART 0</h2>
+  <a href="#p0">문제 정의</a>
+  <h2>PART 1</h2>
+  <a href="#p1">파도의 물리학</a>
+  <a href="#p1-single">단일 평면파</a>
+  <a href="#p1-disp">분산관계</a>
+  <a href="#p1-multi">다성분 중첩</a>
+  <h2>PART 2</h2>
+  <a href="#p2">ETKF (격자 기반)</a>
+  <a href="#p2-kf">칼만 필터 기초</a>
+  <a href="#p2-limit">한계와 실패 모드</a>
+  <h2>PART 3</h2>
+  <a href="#p3">GPR (비모수 보간)</a>
+  <a href="#p3-limit">한계와 실패 모드</a>
+  <h2>PART 4</h2>
+  <a href="#p4">왜 주파수 영역인가</a>
+  <h2>PART 5</h2>
+  <a href="#p5">주파수 영역 기존 방법</a>
+  <a href="#p5-music">MUSIC vs 빔포밍</a>
+  <h2>PART 6</h2>
+  <a href="#p6">빔포밍 초기화</a>
+  <h2>PART 7</h2>
+  <a href="#p7">비선형 최적화</a>
+  <a href="#p7-loss">Loss 함수</a>
+  <a href="#p7-adam">Adam Optimizer</a>
+  <h2>PART 8</h2>
+  <a href="#p8">C2F + Adaptive N</a>
+  <h2>PART 9</h2>
+  <a href="#p9">Tracking</a>
+  <h2>PART 10</h2>
+  <a href="#p10">종합 비교</a>
+  <h2>PART 11</h2>
+  <a href="#p11">평가 지표와 결과</a>
+</nav>
+
+<!-- ════════════════════════════════════════ -->
+<!--  메인 콘텐츠                             -->
+<!-- ════════════════════════════════════════ -->
+<main>
+
+<h1>WaveSplat 알고리즘 완전 해설</h1>
+<p class="subtitle">격자 없는 스펙트럼 파도장 추정 — 왜, 어떻게, 무엇이 다른가<br>박세용 | 2026</p>
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p0"><span class="part-num">PART 0</span>문제 정의</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3>왜 파도를 추정하는가?</h3>
+<p>선박과 해양 구조물은 파도에 의해 <strong>지배적인 외력</strong>을 받는다. 파도를 정확히 알 수 있다면:</p>
+<ol>
+  <li><strong>선박 운동 예측</strong> — 화물 고박 타이밍, 헬기 착함 판단</li>
+  <li><strong>능동 제어</strong> — 하이드로포일 안정화, 파랑 feedforward (이 논문의 응용)</li>
+  <li><strong>구조물 하중 예측</strong> — 피로 수명 계산, 위험 경보</li>
+  <li><strong>항로 최적화</strong> — 연료 절감, 승객 안전</li>
+</ol>
+
+<h3>파도 관측 방법 비교</h3>
+<table>
+  <tr><th>방법</th><th>측정 범위</th><th>공간 해상도</th><th>시간 해상도</th><th>실시간</th></tr>
+  <tr><td>파고 부이</td><td>점 (0D)</td><td>높음</td><td>높음</td><td class="good">O</td></tr>
+  <tr><td>X-band 레이더</td><td>수 km (2D)</td><td>~10m</td><td>~1Hz</td><td class="good">O</td></tr>
+  <tr><td>위성 SAR</td><td>수백 km</td><td>~100m</td><td>수 시간</td><td class="bad">X</td></tr>
+  <tr><td><strong>LiDAR</strong></td><td>10-250m (2D)</td><td>~0.1m</td><td>10Hz</td><td class="good">O</td></tr>
+</table>
+<p>LiDAR는 높은 시공간 해상도를 제공하지만, <strong>관측 점이 극도로 희소</strong>하다 (50~200점/프레임, 250m&times;250m 영역).</p>
+
+<h3>LiDAR 관측의 어려움</h3>
+<ol>
+  <li><strong>희소성</strong>: 250m&times;250m에 점이 ~100개뿐</li>
+  <li><strong>불균일</strong>: 가까이 = 밀집, 멀리 = 희박</li>
+  <li><strong>노이즈</strong>: 물방울, 진동, 반사 각도에 따른 신호 손실 (raydrop)</li>
+  <li><strong>비정렬</strong>: 매 프레임 점의 위치가 달라짐 &mdash; <em>격자 위에 있지 않다!</em></li>
+</ol>
+
+<h3>핵심 문제</h3>
+<div class="key">
+  <strong>입력:</strong> 시공간적으로 희소한 LiDAR 점 $\{(x_j, y_j, z_j, t_j)\}_{j=1}^{M}$<br>
+  <strong>출력:</strong> 임의의 $(x, y, t)$에서의 수면 높이 $\hat{\eta}(x, y, t)$<br><br>
+  <strong>조건:</strong> (1) 실시간 100ms 이내, (2) 물리적으로 유효, (3) 시간 연속, (4) 격자 불필요
+</div>
+
+<h3>기존 방법은 이 조건을 동시에 만족하지 못함</h3>
+<table>
+  <tr><th>조건</th><th>ETKF</th><th>GPR</th><th>WaveSplat</th></tr>
+  <tr><td>실시간 (100ms)</td><td class="bad">132ms &mdash; 초과</td><td class="bad">>200ms &mdash; 초과</td><td class="good">13ms</td></tr>
+  <tr><td>물리법칙 활용</td><td class="mid">간접</td><td class="bad">없음</td><td class="good">직접 내장</td></tr>
+  <tr><td>시간 연속성</td><td class="good">O (KF)</td><td class="bad">X (프레임별)</td><td class="good">O (추적)</td></tr>
+  <tr><td>격자 불필요</td><td class="bad">X (격자 필요)</td><td class="good">O</td><td class="good">O</td></tr>
+</table>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p1"><span class="part-num">PART 1</span>파도의 물리학</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3 id="p1-single">단일 평면파</h3>
+<p>바다의 가장 기본적인 구성 요소는 하나의 <strong>평면파(plane wave)</strong>이다:</p>
+<div class="eq-box">
+  <div class="eq-label">단일 평면파 수식</div>
+  $$\eta(x, y, t) = w \cos(k_x x + k_y y - \omega t + \varphi)$$
+</div>
+<p>각 변수의 의미:</p>
+<table>
+  <tr><th>변수</th><th>의미</th><th>단위</th><th>직관</th></tr>
+  <tr><td>$w$</td><td>진폭</td><td>m</td><td>파도 높이의 절반. 파고 $H = 2w$</td></tr>
+  <tr><td>$k_x, k_y$</td><td>파수 벡터</td><td>rad/m</td><td>파도의 <strong>방향</strong>과 <strong>파장</strong>을 결정</td></tr>
+  <tr><td>$\omega$</td><td>각주파수</td><td>rad/s</td><td>파도가 얼마나 빨리 지나가는지. 주기 $T = 2\pi/\omega$</td></tr>
+  <tr><td>$\varphi$</td><td>위상</td><td>rad</td><td>파도의 시작점 (시간 오프셋)</td></tr>
+</table>
+
+<h4>파수 벡터 $(k_x, k_y)$ &mdash; 파도의 '지문'</h4>
+<p>파수 벡터 $\mathbf{k} = (k_x, k_y)$는 파도의 공간적 특성을 완전히 결정한다:</p>
+<ul>
+  <li><strong>파장:</strong> $\lambda = 2\pi / |\mathbf{k}|$ &mdash; $|\mathbf{k}|$가 크면 짧은 파도(잔물결), 작으면 긴 파도(너울)</li>
+  <li><strong>방향:</strong> $\theta = \arctan(k_y / k_x)$ &mdash; 파도가 어디서 오는지</li>
+</ul>
+<div class="analogy">
+  비유: 라디오에서 주파수를 맞추듯, 바다에서 $(k_x, k_y)$로 '채널'을 맞춘다.
+</div>
+
+<h3 id="p1-disp">분산관계 (Dispersion Relation)</h3>
+<p>파도의 물리학에서 <strong>가장 중요한 법칙</strong>이다:</p>
+<div class="eq-box">
+  <div class="eq-label">분산관계</div>
+  $$\omega^2 = g\,|\mathbf{k}|\,\tanh(|\mathbf{k}|\,d)$$
+  <p style="margin-top:12px; color: var(--text2); font-size: 15px;">
+    심해 ($d \gg \lambda$): $\omega \approx \sqrt{g\,|\mathbf{k}|}$ &nbsp;&nbsp;|&nbsp;&nbsp;
+    천해 ($d \ll \lambda$): $\omega \approx |\mathbf{k}|\sqrt{gd}$
+  </p>
+</div>
+
+<p><strong>직관적 의미:</strong></p>
+<ul>
+  <li>긴 파도(큰 $\lambda$, 작은 $|\mathbf{k}|$)는 <strong>빠르게</strong> 이동</li>
+  <li>짧은 파도(작은 $\lambda$, 큰 $|\mathbf{k}|$)는 <strong>느리게</strong> 이동</li>
+  <li>수심 $d$가 얕으면 모든 파도가 느려짐</li>
+</ul>
+
+<div class="key">
+  <strong>핵심 통찰:</strong> 파장($|\mathbf{k}|$)이 결정되면 속도($\omega$)는 <strong>자동으로 결정</strong>된다.<br>
+  WaveSplat은 $\omega$를 자유변수로 두지 않고 분산관계로 강제한다.<br>
+  &rarr; 추정할 파라미터: 5N &rarr; <strong>4N</strong>개로 감소 (물리적으로 불가능한 해를 원천 차단)
+</div>
+
+<h3 id="p1-multi">다성분 중첩 &mdash; 실제 바다</h3>
+<p>실제 바다는 여러 방향, 여러 파장의 파도가 겹쳐진 것이다:</p>
+<div class="eq-box">
+  <div class="eq-label">다성분 파도 모델</div>
+  $$\eta(x,y,t) = \sum_{i=1}^{N} w_i \cos(k_{x,i}\,x + k_{y,i}\,y - \omega_i\,t + \varphi_i)$$
+  $$\text{where}\quad \omega_i = \sqrt{g\,|\mathbf{k}_i|\,\tanh(|\mathbf{k}_i|\,d)} \quad\text{(분산관계로 결정)}$$
+</div>
+
+<table>
+  <tr><th>해상 조건</th><th>성분 수 $N$</th><th>예시</th></tr>
+  <tr><td>너울 (swell)</td><td>1~3</td><td>먼 바다에서 온 긴 파도</td></tr>
+  <tr><td>BF3 혼합해</td><td>5~10</td><td>바람 + 너울</td></tr>
+  <tr><td>BF4-5 복잡해</td><td>15~30</td><td>다방향, 다주파수</td></tr>
+</table>
+
+<div class="key">
+  <strong>총 자유 파라미터: $4N$개</strong><br>
+  각 성분: $(w_i, k_{x,i}, k_{y,i}, \varphi_i)$ &mdash; $\omega_i$는 분산관계에서 자동 결정<br>
+  $N=15$일 때 60개 (ETKF의 120,000개와 비교!)
+</div>
+
+<h4>JONSWAP 스펙트럼</h4>
+<p>바람에 의해 생성된 파도의 전형적 에너지 분포. 핵심 파라미터:</p>
+<ul>
+  <li>$H_s$ = 유의파고 (상위 1/3 파고의 평균)</li>
+  <li>$T_p$ = 피크 주기 (가장 에너지가 큰 파도의 주기)</li>
+  <li>$\gamma$ = 피크 형상 계수 (좁으면 너울, 넓으면 풍파)</li>
+</ul>
+<table>
+  <tr><th>BF 등급</th><th>$H_s$ [m]</th><th>$T_p$ [s]</th><th>상태</th></tr>
+  <tr><td>BF2</td><td>~0.3</td><td>~3</td><td>잔잔</td></tr>
+  <tr><td>BF3</td><td>~0.88</td><td>~5</td><td>보통</td></tr>
+  <tr><td>BF4</td><td>~1.88</td><td>~7</td><td>거친 해상</td></tr>
+  <tr><td>BF5</td><td>~3.25</td><td>~9</td><td>험한 해상</td></tr>
+</table>
+
+<h4>선형 파도 모델의 충분성</h4>
+<p>BF2-4 범위에서 파고/파장 비(steepness)가 < 0.05이므로 선형 중첩 모델이 충분히 정확하다.
+관측 노이즈가 비선형 오차보다 훨씬 크기 때문에, cos 합으로 모델링하는 것이 실용적으로 최선의 선택이다.</p>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p2"><span class="part-num">PART 2</span>공간 영역 방법 &mdash; ETKF</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3>격자 기반 접근의 기본 아이디어</h3>
+<p>수면을 $N \times M$ 격자로 나누고, <strong>각 격자점의 높이를 상태 벡터로</strong> 정의한다:</p>
+<div class="eq-box">
+  <div class="eq-label">ETKF 상태 벡터</div>
+  $$\mathbf{x} = [h_{1,1},\; h_{1,2},\; \ldots,\; h_{N,M}]^\top$$
+  <p style="color: var(--text2); margin-top: 8px;">$G = 40 \times 30 = 1{,}200$ 격자점 &rarr; 1,200차원 벡터</p>
+</div>
+<p>LiDAR 관측이 50~200개인데 상태가 1,200개 &mdash; <strong>심하게 underdetermined</strong> (해가 무한히 많음). 사전 정보(prior)가 필수 &rarr; 칼만 필터.</p>
+
+<h3 id="p2-kf">칼만 필터 기초</h3>
+<p><strong>Predict-Update 2단계 반복:</strong></p>
+
+<h4>Step 1: Predict (예측)</h4>
+<div class="eq-box">
+  $$\mathbf{x}_{\text{pred}} = F \cdot \mathbf{x}_{\text{prev}} \qquad\text{(물리 모델로 다음 상태 예측)}$$
+  $$P_{\text{pred}} = F\,P\,F^\top + Q \qquad\text{(불확실성 증가)}$$
+</div>
+
+<h4>Step 2: Update (보정)</h4>
+<div class="eq-box">
+  $$K = P_{\text{pred}}\,H^\top\,(H\,P_{\text{pred}}\,H^\top + R)^{-1} \qquad\text{(칼만 이득)}$$
+  $$\mathbf{x}_{\text{new}} = \mathbf{x}_{\text{pred}} + K\,(\mathbf{z} - H\,\mathbf{x}_{\text{pred}}) \qquad\text{(관측으로 보정)}$$
+</div>
+<ul>
+  <li>$K$가 크면 &rarr; 관측을 더 신뢰</li>
+  <li>$K$가 작으면 &rarr; 예측(모델)을 더 신뢰</li>
+</ul>
+
+<div class="warn">
+  <strong>문제:</strong> $P$가 $1200 \times 1200$ 행렬 &rarr; 직접 계산 불가능!<br>
+  &rarr; <strong>앙상블 칼만 필터(EnKF)</strong>: $N_e$개의 샘플로 $P$를 근사
+</div>
+
+<h4>앙상블 칼만 필터 (ETKF)</h4>
+<p>$N_e$개의 '앙상블 멤버'(격자 파도장 샘플)로 공분산을 근사한다:</p>
+<div class="eq-box">
+  $$P \approx \frac{1}{N_e-1} \mathbf{X}_{\text{ens}} \mathbf{X}_{\text{ens}}^\top$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $\mathbf{X}_{\text{ens}}$ = 앙상블 편차 행렬, $N_e = 100$이면 대략적 공분산 구조 포착
+  </p>
+</div>
+
+<p>동작 순서:</p>
+<ol>
+  <li>$N_e$개의 격자 파도장을 초기화 (랜덤 위상의 스펙트럼에서 생성)</li>
+  <li><strong>Predict:</strong> 각 멤버를 FFT 기반 물리 모델로 전파</li>
+  <li>관측이 오면: 각 멤버에서 관측 위치의 높이 추출</li>
+  <li><strong>Update:</strong> 관측과 가까운 멤버에 더 큰 가중치</li>
+  <li>앙상블 평균이 최종 추정값</li>
+</ol>
+
+<h3 id="p2-limit">ETKF의 근본적 한계</h3>
+
+<h4>한계 1: 격자 해상도 vs 계산량</h4>
+<table>
+  <tr><th>격자 설정</th><th>격자점</th><th>$N_e$</th><th>소요 시간</th><th>비고</th></tr>
+  <tr><td>$40 \times 30$</td><td>1,200</td><td>100</td><td class="bad">132.6ms</td><td>실시간 초과</td></tr>
+  <tr><td>$100 \times 75$</td><td>7,500</td><td>200</td><td class="bad">~1초</td><td>완전 불가</td></tr>
+</table>
+<p>격자를 촘촘히 하면 정밀하지만 느리고, 성기면 짧은 파도를 놓친다. <strong>차원의 저주</strong> &mdash; 해상도 2배 &rarr; 계산 ~16배.</p>
+
+<h4>한계 2: 분산관계 미활용</h4>
+<p>ETKF의 상태는 '격자점 높이'이지, 파도의 주파수나 방향이 아니다. 앙상블이 시간 전파를 통해 <em>간접적으로</em> 물리를 학습해야 하는데, $N_e$가 부족하면 물리가 '깨진다'.</p>
+
+<div class="analogy">
+  ETKF는 '사진'을 맞추려는 것이고, WaveSplat은 '악보'를 찾는 것이다.<br>
+  악보를 알면 언제든 사진을 생성할 수 있지만, 사진에서 악보를 추출하기는 어렵다.
+</div>
+
+<h4>실패 모드: "진폭은 맞지만 위치가 틀림"</h4>
+<table>
+  <tr><th>지표</th><th>ETKF 값</th><th>의미</th></tr>
+  <tr><td>VR (에너지 비)</td><td class="good">0.90</td><td>에너지(진폭 제곱합)는 거의 맞음</td></tr>
+  <tr><td>$\rho$ (상관계수)</td><td class="bad">0.11</td><td>형상(파도 위치)은 거의 랜덤</td></tr>
+</table>
+<div class="warn">
+  <strong>해석:</strong> ETKF는 "파고 1m짜리 파도가 있다"는 맞추지만, "어디에 있는지"는 거의 맞추지 못한다.
+  nRMSE만 보면 0.319로 나쁘지 않아 보이지만, VR/&rho; 조합으로 보면 진단적 가치가 매우 낮다.
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p3"><span class="part-num">PART 3</span>공간 영역 방법 &mdash; GPR</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3>가우시안 프로세스(GP)란?</h3>
+<p><strong>함수의 확률 분포</strong>이다. "이 함수가 이런 모양일 확률이 높다"를 수학적으로 표현한다.</p>
+<div class="analogy">
+  점을 찍고 매끄러운 곡선으로 잇기 &mdash; 관측점 근처는 확실하고, 멀면 불확실하다.
+  매끄러움의 정도는 <strong>커널 함수</strong>가 결정한다.
+</div>
+
+<h4>GPR 수식</h4>
+<div class="eq-box">
+  <div class="eq-label">GPR 예측 평균과 분산</div>
+  $$\mu(\mathbf{x}^*) = \mathbf{k}(\mathbf{x}^*, X) \left[K(X,X) + \sigma^2 I\right]^{-1} \mathbf{z}$$
+  $$\sigma^2(\mathbf{x}^*) = k(\mathbf{x}^*,\mathbf{x}^*) - \mathbf{k}(\mathbf{x}^*, X) \left[K + \sigma^2 I\right]^{-1} \mathbf{k}(X, \mathbf{x}^*)$$
+</div>
+<ul>
+  <li>$\mathbf{x}^*$ = 예측 위치, $X$ = 관측 위치들, $\mathbf{z}$ = 관측값 (수면 높이)</li>
+  <li>$k(\cdot,\cdot)$ = 커널 함수 (두 점 사이의 '유사도')</li>
+  <li>$K(X,X)$ = 관측점끼리의 유사도 행렬 ($M \times M$)</li>
+</ul>
+
+<h4>Matern 커널</h4>
+<p>WaveSplat 논문에서 사용한 GPR baseline: <strong>Matern $\nu$=5/2, length scale $l$=20m</strong></p>
+<div class="eq-box">
+  $$k(r) = \left(1 + \frac{\sqrt{5}\,r}{l} + \frac{5\,r^2}{3\,l^2}\right) \exp\!\left(-\frac{\sqrt{5}\,r}{l}\right)$$
+</div>
+<p>$l = 20$m &rarr; "20m 이내의 점들은 강하게 연관". 파도에는 여러 스케일이 동시에 존재하므로
+하나의 $l$로는 모든 스케일을 포착할 수 없다.</p>
+
+<h3 id="p3-limit">GPR의 근본적 한계</h3>
+
+<h4>한계 1: 시간을 무시함</h4>
+<p>GPR 커널 $k(\mathbf{x}_1, \mathbf{x}_2)$는 <strong>공간 거리만</strong> 본다. 파도가 이동한다는 사실을 모른다.</p>
+<div class="warn">
+  <strong>예시:</strong> $t=0$에서 점 A의 파고가 1m, $t=0.1$에서 0.5m (파도가 이동). GPR은 두 관측을 평균하여 0.75m로 추정 &mdash; 파도의 이동을 전혀 반영하지 못한다.
+</div>
+
+<h4>한계 2: $O(M^3)$ 계산</h4>
+<table>
+  <tr><th>관측 수 $M$</th><th>연산 수</th><th>실시간?</th></tr>
+  <tr><td>50</td><td>125,000</td><td class="good">빠름</td></tr>
+  <tr><td>200</td><td>8,000,000</td><td class="bad">느림 (>200ms)</td></tr>
+  <tr><td>500</td><td>125,000,000</td><td class="bad">불가</td></tr>
+</table>
+
+<h4>실패 모드: "near-zero predictor"</h4>
+<table>
+  <tr><th>지표</th><th>GPR 값</th><th>의미</th></tr>
+  <tr><td>VR (에너지 비)</td><td class="bad">0.065</td><td>에너지의 6.5%만 재현</td></tr>
+  <tr><td>SS (Skill Score)</td><td class="bad">&minus;0.140</td><td>zero predictor보다 나쁨!</td></tr>
+</table>
+<div class="warn">
+  <strong>해석:</strong> GPR은 관측점 사이를 '평균'으로 채워 거의 평평한 수면을 예측한다. nRMSE=0.261로 ETKF(0.319)보다 나아 보이지만, 실제로는 '아무것도 예측하지 않는 것'에 가깝다.
+</div>
+
+<h3>공간 영역의 한계 정리</h3>
+<table>
+  <tr><th></th><th>ETKF</th><th>GPR</th><th>필요한 것</th></tr>
+  <tr><td>물리법칙</td><td class="mid">간접 (앙상블)</td><td class="bad">없음</td><td class="good">직접 내장</td></tr>
+  <tr><td>시간 활용</td><td class="good">O (KF predict)</td><td class="bad">X (프레임별)</td><td>시간 연속 추적</td></tr>
+  <tr><td>속도</td><td class="bad">132ms</td><td class="bad">>200ms</td><td class="good">&lt;100ms</td></tr>
+  <tr><td>파라미터</td><td>120,000</td><td>~200</td><td class="good">~60</td></tr>
+  <tr><td>실패 모드</td><td class="bad">형상 불일치</td><td class="bad">평탄화</td><td>&mdash;</td></tr>
+</table>
+<div class="insight">
+  <strong>결론:</strong> 두 방법 모두 '공간 영역'에서 높이를 직접 맞추려 한다. &rarr; 주파수 영역으로의 전환이 필요하다.
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p4"><span class="part-num">PART 4</span>왜 주파수 영역 Splatting이 필요한가</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3>공간 vs 주파수 &mdash; 근본적 차이</h3>
+<table>
+  <tr><th></th><th>공간 영역</th><th>주파수 영역</th></tr>
+  <tr><td>질문</td><td>"여기 높이가 얼마?"</td><td>"어떤 파도들이 섞여있나?"</td></tr>
+  <tr><td>표현</td><td>격자점 높이</td><td>스펙트럼 성분 (w, k, &phi;)</td></tr>
+  <tr><td>파라미터</td><td>해상도에 비례</td><td>파도 복잡도에만 비례</td></tr>
+  <tr><td>외삽</td><td>관측 영역 내에서만</td><td>시공간 어디서든</td></tr>
+</table>
+
+<div class="analogy">
+  <strong>음악 비유:</strong><br>
+  시간 영역(파형) = 마이크로 녹음한 소리 &mdash; 데이터가 방대, "어떤 악기인지" 알기 어려움<br>
+  주파수 영역(악보) = 음(주파수) &times; 크기(진폭) &mdash; 간결, 언제든 파형을 재생 가능<br><br>
+  LiDAR 관측 = 희소한 녹음,&nbsp; WaveSplat = 녹음에서 악보 추출,&nbsp;
+  ETKF = 녹음 직접 복원,&nbsp; GPR = 녹음 사이 보간
+</div>
+
+<h3>주파수 파라미터를 알면 어디서든 복원 가능</h3>
+<p>$(w, k_x, k_y, \varphi)$를 한번 추정하면:</p>
+<ol>
+  <li><strong>관측 영역 밖</strong>에서도 예측 &mdash; 선박 전방 500m도 계산 가능</li>
+  <li><strong>미래 시점</strong>도 예측 &mdash; $t$만 바꾸면 됨 (분산관계가 전파 속도 결정)</li>
+  <li><strong>격자 제한 없음</strong> &mdash; 연속 함수이므로 임의의 $(x,y)$에서 평가</li>
+</ol>
+
+<h3>시간이 자연스럽게 포함되는 이유</h3>
+<p>$\cos(k_x x + k_y y - \omega t + \varphi)$에서 $t$는 변수이다.
+분산관계 $\omega = f(\mathbf{k}, d)$가 '시계' 역할을 한다:</p>
+<ul>
+  <li>각 성분이 고유 속도로 전파: 장파는 빠르게, 단파는 느리게</li>
+  <li>ETKF가 'predict step'에서 FFT로 전파하는 것을 WaveSplat은 수식 하나로 해결</li>
+  <li>GPR는 시간을 아예 모름 &rarr; 매 프레임 독립 추정 &rarr; 불연속</li>
+</ul>
+
+<h3>파라미터 수의 극적 차이</h3>
+<table>
+  <tr><th>방법</th><th>표현</th><th>파라미터 수</th><th>예시 (BF3)</th></tr>
+  <tr><td>ETKF</td><td>격자 높이</td><td>$N_e \times G$</td><td class="bad">120,000</td></tr>
+  <tr><td>GPR</td><td>커널 보간</td><td>$M + \text{hp}$</td><td class="mid">203</td></tr>
+  <tr><td><strong>WaveSplat</strong></td><td>스펙트럼</td><td>$4N$</td><td class="good">60</td></tr>
+</table>
+<div class="key">
+  <strong>Occam's Razor:</strong> 같은 바다를 기술하는데 WaveSplat은 2,000배 적은 파라미터를 사용한다. 단순한 모델이 더 잘 일반화한다.
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p5"><span class="part-num">PART 5</span>주파수 영역의 기존 방법들</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3>FFT &mdash; 고전적 스펙트럼 분석</h3>
+<p>시간/공간 신호를 주파수 성분으로 분해하는 표준 방법이다. 그러나:</p>
+<ul>
+  <li><strong>균일 격자</strong> 위의 등간격 샘플 필요 &mdash; LiDAR 점은 불규칙</li>
+  <li>충분한 샘플 수 필요 (Nyquist) &mdash; 50~200점으로는 부족</li>
+  <li>매 프레임 위치가 변경 &mdash; 일관된 격자 구성 불가</li>
+</ul>
+
+<h3 id="p5-music">MUSIC 알고리즘</h3>
+<p><strong>MUSIC (Multiple Signal Classification)</strong>: 신호 부분공간과 잡음 부분공간을 분리하여 초고해상도 피크 검출.</p>
+
+<h4>원리</h4>
+<ol>
+  <li>데이터의 <strong>공분산 행렬</strong> $R = \mathbb{E}[\mathbf{x}\mathbf{x}^H]$ 계산</li>
+  <li>$R$의 고유분해: 큰 고유값 = 신호, 작은 고유값 = 잡음</li>
+  <li>잡음 부분공간에 '수직'인 방향 탐색 &rarr; 매우 날카로운 피크</li>
+</ol>
+
+<div class="warn">
+  <strong>MUSIC이 LiDAR에 부적합한 이유:</strong><br>
+  MUSIC은 <strong>고정된 센서 배열</strong>을 가정한다 (안테나처럼 같은 위치에서 반복 관측).<br>
+  LiDAR는 매 프레임 관측 위치가 다르다 (선박 움직임 + 스캔 패턴).<br>
+  &rarr; '같은 위치'에서의 반복 관측이 없음 &rarr; <strong>공분산 행렬 추정 불가</strong>.<br>
+  Capon(MVDR), ESPRIT 등 모든 부분공간 방법이 같은 이유로 부적합하다.
+</div>
+
+<h3>MUSIC vs 빔포밍 vs Capon 비교</h3>
+<table>
+  <tr><th>방법</th><th>해상도</th><th>공분산 필요?</th><th>희소 데이터</th><th>LiDAR 적합성</th></tr>
+  <tr><td>MUSIC</td><td class="good">매우 높음</td><td class="bad">필수</td><td class="bad">불안정</td><td class="bad">부적합</td></tr>
+  <tr><td>Capon (MVDR)</td><td class="mid">높음</td><td class="bad">필수</td><td class="bad">불안정</td><td class="bad">부적합</td></tr>
+  <tr><td>빔포밍</td><td class="mid">보통</td><td class="good">불필요</td><td class="good">강건</td><td class="good">적합</td></tr>
+</table>
+
+<div class="key">
+  <strong>WaveSplat의 선택:</strong> 빔포밍의 강건성을 택하고, 해상도 문제는 비선형 최적화로 해결한다.<br>
+  추가로 <strong>분산관계를 빔포밍에 주입</strong>하여 물리적으로 유효한 피크만 탐색한다.
+</div>
+
+<h4>분산관계 인식 빔포밍의 효과</h4>
+<table>
+  <tr><th></th><th>일반 빔포밍</th><th>분산관계 인식 빔포밍</th></tr>
+  <tr><td>탐색 차원</td><td>$(k_x, k_y, \omega)$ 3D</td><td>$(k_x, k_y)$ 2D</td></tr>
+  <tr><td>후보 수</td><td>~1,000,000</td><td class="good">8,192 (128배 감소)</td></tr>
+  <tr><td>허위 피크</td><td>많음</td><td class="good">물리적 불가능 피크 제거</td></tr>
+</table>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p6"><span class="part-num">PART 6</span>WaveSplat &mdash; 빔포밍 초기화</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3>전체 흐름</h3>
+<div class="flow">
+  <span class="flow-step">다중 프레임 축적 (10프레임)</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-step">분산관계 인식 빔포밍</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-step">Greedy 피크 추출</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-step">선형 최소제곱 (w, &phi;)</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-step">초기 파라미터 확보</span>
+</div>
+
+<h3>빔포밍 수식</h3>
+<div class="eq-box">
+  <div class="eq-label">분산관계 인식 빔포밍</div>
+  $$P(k_x, k_y) = \left|\sum_{j=1}^{M} z_j \exp\!\Big(-i\big(k_x x_j + k_y y_j - \omega(\mathbf{k})\,t_j\big)\Big)\right|^2$$
+  $$\text{where}\quad \omega(\mathbf{k}) = \sqrt{g\,|\mathbf{k}|\,\tanh(|\mathbf{k}|\,d)}$$
+</div>
+<p><strong>직관적 의미:</strong> "만약 $(k_x, k_y)$ 방향의 파도가 있다면, 관측값에 위상 보정을 하면 모두 같은 방향을 가리킬 것이다. 그 합의 크기가 클수록 그 방향의 파도가 실제로 존재한다."</p>
+<ul>
+  <li>$\exp(-i\ldots)$ = 위상 보정 (steering). 정렬이 잘 되면 보강 간섭 &rarr; $P$ 큼</li>
+  <li>탐색 격자: $|\mathbf{k}|$ 64개 &times; 방위각 128개 = 8,192 후보 (극좌표)</li>
+</ul>
+
+<h3>Greedy 피크 추출</h3>
+<ol>
+  <li>$P(k_x, k_y)$에서 최대 피크 $(k_x^*, k_y^*)$ 찾기</li>
+  <li>이 피크를 성분 목록에 추가</li>
+  <li>피크 주변 <strong>15&deg; 범위 억제</strong> (sidelobe 제거)</li>
+  <li>다음 최대 피크 찾기</li>
+  <li>반복 ($N_{\max}$개까지 또는 임계값 이하까지)</li>
+</ol>
+<p>15&deg; 각도 억제 이유: 빔포밍의 main lobe 폭이 ~15&deg;이므로, 같은 파도의 sidelobe를 별도 성분으로 오인하는 것을 방지한다.</p>
+
+<h3>선형 최소제곱 &mdash; 진폭과 위상 초기화</h3>
+<p>$k_x, k_y$가 정해지면 $\cos(k_x x + k_y y - \omega t)$은 <strong>'알려진 기저'</strong>가 된다:</p>
+<div class="eq-box">
+  <div class="eq-label">삼각함수 전개 &rarr; 선형 문제</div>
+  $$z_j = \sum_i \left[a_i \cos(k_{x,i} x_j + k_{y,i} y_j - \omega_i t_j) + b_i \sin(\ldots)\right]$$
+  $$\text{행렬 형태: } \mathbf{z} = A\,\mathbf{c} \qquad\Rightarrow\qquad \mathbf{c} = (A^\top A)^{-1} A^\top \mathbf{z}$$
+</div>
+<p>$a_i, b_i$에서 진폭과 위상을 복원:</p>
+<div class="eq-box">
+  $$w_i = \sqrt{a_i^2 + b_i^2}, \qquad \varphi_i = \arctan(-b_i / a_i)$$
+</div>
+<div class="insight">
+  <strong>결과:</strong> $N$개 성분의 초기 파라미터 $(w_i, k_{x,i}, k_{y,i}, \varphi_i)$ 확보.
+  $k_x, k_y$는 빔포밍 해상도 범위 내에서 대략적이고, $w, \varphi$도 이에 영향받는다.
+  &rarr; 충분히 좋은 출발점이지만 정밀하지 않음 &rarr; 비선형 최적화로 미세 조정 필요.
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p7"><span class="part-num">PART 7</span>WaveSplat &mdash; 비선형 최적화</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3>왜 초기화만으로 부족한가</h3>
+<p>빔포밍의 $|\mathbf{k}|$ 해상도는 ~0.0075 rad/m이다. 실제 파도의 $k$가 격자 사이에 있으면:</p>
+<ul>
+  <li>$|\mathbf{k}|$ 오차 2.4% &rarr; 주기 오차 ~1.2%</li>
+  <li>30초 후 위상 오차 ~10&deg; &rarr; 추적 시 성능 저하</li>
+</ul>
+<p>이 '작은' 초기 오차가 시간이 지나면 누적된다 &rarr; $k_x, k_y$를 연속값으로 미세 조정해야 한다.</p>
+
+<h3 id="p7-loss">Loss 함수</h3>
+<div class="eq-box">
+  <div class="eq-label">WaveSplat Loss 함수 (3개 항)</div>
+  $$\mathcal{L} = \underbrace{\frac{1}{M}\sum_j c_j\big(z_j - \hat{z}_j\big)^2}_{\text{데이터 항}}
+  + \underbrace{\lambda_1 \sum_i |w_i|}_{\text{L1 희소성}}
+  + \underbrace{\lambda_s \sum_i (\Delta w_i)^2}_{\text{스펙트럼 평활화}}$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $\hat{z}_j = \sum_i w_i \cos(k_{x,i} x_j + k_{y,i} y_j - \omega_i t_j + \varphi_i)$, &nbsp;
+    $\lambda_1 = 10^{-3}$, $\lambda_s = 10^{-4}$
+  </p>
+</div>
+
+<h4>데이터 항: 관측과 예측의 차이</h4>
+<p>가중 평균제곱오차. 가중치 $c_j$는 <strong>Fresnel confidence</strong>로, 관측의 신뢰도를 반영한다.</p>
+
+<h4>Fresnel Confidence $c_j$</h4>
+<div class="eq-box">
+  $$c_j = \frac{\cos\theta_j}{d_j / d_{\text{ref}}}$$
+</div>
+<ul>
+  <li>$\theta_j$ = 입사각. 수직($\cos \approx 1$)이면 반사 신호 강함 &rarr; 신뢰도 높음</li>
+  <li>$d_j$ = 관측 거리. 가까울수록 점 밀도 높고 노이즈 적음 &rarr; 신뢰도 높음</li>
+  <li>$d_{\text{ref}} = 125$m (최대 사거리의 절반)</li>
+</ul>
+<p><strong>물리적 근거:</strong> Fresnel 반사 법칙 &mdash; 수면은 거의 정반사(specular)하므로 입사각이 중요하다. 원거리 저각도 관측은 자동으로 가중치가 감소한다.</p>
+
+<h4>L1 정규화 &mdash; 자동 모델 선택</h4>
+<p>$\lambda_1 \sum |w_i|$의 역할:</p>
+<table>
+  <tr><th></th><th>L2 ($\sum w_i^2$)</th><th>L1 ($\sum |w_i|$)</th></tr>
+  <tr><td>효과</td><td>모든 $w$를 조금씩 줄임</td><td>일부 $w$를 <strong>정확히 0</strong>으로</td></tr>
+  <tr><td>결과</td><td>0이 되는 성분 없음</td><td class="good">자동 가지치기</td></tr>
+</table>
+<p>BF2 너울에서 $N=15$로 시작해도 L1이 나머지 12개를 0으로 밀어낸다 &rarr; 수동으로 $N$을 결정할 필요 없음.</p>
+
+<h4>스펙트럼 평활화</h4>
+<p>$\lambda_s \sum (\Delta w_i)^2$: 인접 주파수 성분의 진폭이 급변하는 것을 방지. 데이터 항 대비 0.1% 수준으로 약하게 작용.</p>
+
+<h3>Gradient 계산</h3>
+<div class="eq-box">
+  <div class="eq-label">진폭 $w_i$에 대한 gradient</div>
+  $$\frac{\partial\mathcal{L}}{\partial w_i} = -\frac{2}{M}\sum_j c_j(z_j - \hat{z}_j)\cos(\ldots) + \lambda_1 \operatorname{sign}(w_i)$$
+</div>
+<div class="eq-box">
+  <div class="eq-label">파수 $k_{x,i}$에 대한 gradient (chain rule 포함)</div>
+  $$\frac{\partial\mathcal{L}}{\partial k_{x,i}} = \frac{2}{M}\sum_j c_j(z_j - \hat{z}_j)\,w_i\!\left(x_j - \frac{\partial\omega_i}{\partial k_{x,i}} t_j\right)\sin(\ldots)$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $\frac{\partial\omega_i}{\partial k_{x,i}} = \frac{k_{x,i}}{|\mathbf{k}_i|}\cdot\frac{\partial\omega}{\partial|\mathbf{k}|}$
+    &mdash; $\omega$가 $\mathbf{k}$의 함수이므로 chain rule 적용. PyTorch autograd로 자동 계산.
+  </p>
+</div>
+
+<div class="key">
+  <strong>핵심:</strong> 모든 gradient가 <strong>해석적(analytic)</strong>으로 계산됨.
+  $\cos/\sin$의 미분은 $\sin/\cos$ &mdash; 정확한 gradient, 수치 미분 불필요.
+</div>
+
+<h3>경사하강법(SGD)에서 Adam까지</h3>
+
+<h4>Step 1: SGD (Stochastic Gradient Descent)</h4>
+<div class="eq-box">
+  $$\theta_{\text{new}} = \theta - \eta \cdot \nabla\mathcal{L}$$
+</div>
+<p>$\eta$ = 학습률. 너무 크면 진동/발산, 너무 작으면 느림.
+<strong>문제:</strong> 모든 파라미터에 같은 학습률 &mdash; $k_x$(민감)와 $w$(둔감)가 같은 속도로 업데이트됨.</p>
+
+<h4>Step 2: Momentum</h4>
+<div class="eq-box">
+  $$v_{\text{new}} = \beta \cdot v_{\text{old}} + \nabla\mathcal{L} \qquad \theta_{\text{new}} = \theta - \eta \cdot v_{\text{new}}$$
+</div>
+<p>$\beta = 0.9$ &mdash; 이전 방향의 90% 유지. 일관된 gradient 방향은 가속, 진동 방향은 상쇄. 하지만 여전히 모든 파라미터에 같은 학습률.</p>
+
+<h4 id="p7-adam">Step 3: Adam Optimizer</h4>
+<div class="eq-box">
+  <div class="eq-label">Adam — 적응적 학습률</div>
+  $$m \leftarrow \beta_1 m + (1-\beta_1)\,g \qquad\text{(1차 모멘트: 방향)}$$
+  $$v \leftarrow \beta_2 v + (1-\beta_2)\,g^2 \qquad\text{(2차 모멘트: 크기)}$$
+  $$\theta \leftarrow \theta - \eta \cdot \frac{\hat{m}}{\sqrt{\hat{v}} + \epsilon}$$
+</div>
+
+<table>
+  <tr><th>변수</th><th>의미</th><th>값</th><th>효과</th></tr>
+  <tr><td>$m$ (1차 모멘트)</td><td>gradient의 이동 평균</td><td>$\beta_1 = 0.9$</td><td>최근 10 step의 <strong>방향</strong> 안정화</td></tr>
+  <tr><td>$v$ (2차 모멘트)</td><td>gradient 제곱의 이동 평균</td><td>$\beta_2 = 0.999$</td><td>최근 1000 step의 <strong>변동폭</strong> 추정</td></tr>
+  <tr><td>$\eta / \sqrt{v}$</td><td>실효 학습률</td><td>&mdash;</td><td>변동 크면 조심, 작으면 과감</td></tr>
+</table>
+
+<div class="key">
+  <strong>WaveSplat에서 Adam의 효과:</strong><br>
+  $k_x$ (gradient 변동 큼, 민감) &rarr; $v$ 큼 &rarr; 학습률 자동 감소 &rarr; 신중하게 업데이트<br>
+  $w$ (gradient 변동 작음, 둔감) &rarr; $v$ 작음 &rarr; 학습률 자동 증가 &rarr; 과감하게 업데이트<br>
+  &rarr; 각 파라미터의 특성에 맞는 최적 속도로 수렴
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p8"><span class="part-num">PART 8</span>Coarse-to-Fine + Adaptive N</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3>Coarse-to-Fine 전략</h3>
+<div class="flow">
+  <span class="flow-step">N=3 (200 iter)</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-step">N=8 (200 iter)</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-step">N=15 (200 iter)</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-step">Adaptive N</span>
+</div>
+<p>각 단계의 수렴된 파라미터가 다음 단계의 초기값이 된다. 총 600 iterations, lr = $5\times10^{-3}$.</p>
+
+<h4>왜 단계적으로 해야 하는가?</h4>
+<ul>
+  <li>$N=3$: 12개 파라미터 &rarr; landscape가 비교적 매끄러움 &rarr; global minimum 수렴 쉬움</li>
+  <li>$N=15$: 60개 파라미터 &rarr; local minima가 매우 많음 (성분 간 간섭)</li>
+</ul>
+<div class="analogy">
+  그림 그리기: 밑그림(큰 구도) &rarr; 중간 톤 &rarr; 세부 묘사.<br>
+  한 번에 세부부터 그리면 전체 구도가 어긋난다.
+</div>
+
+<h3>적응형 모델 차수 (Adaptive N)</h3>
+
+<h4>Step 1: 에너지 기반 가지치기 (Pruning)</h4>
+<ol>
+  <li>에너지 계산: $E_i = w_i^2$</li>
+  <li>에너지 내림차순 정렬</li>
+  <li>상위 90% 에너지를 커버하는 최소 $N'$개 선택 ($\tau_E = 0.90$)</li>
+  <li>나머지 제거</li>
+</ol>
+<div class="insight">
+  <strong>예시:</strong> 5성분의 에너지 $[0.50, 0.30, 0.10, 0.05, 0.05]$<br>
+  누적: $[0.50, 0.80, \mathbf{0.90}, 0.95, 1.00]$ &rarr; $N'=3$으로 가지치기 (90% 도달)
+</div>
+
+<h4>Step 2: 안전 롤백 (Safety Rollback)</h4>
+<p>가지치기 후 RMSE가 <strong>130% 초과</strong>하면 원복한다 ($\tau_S = 1.30$).
+중요 성분을 실수로 잘라내는 것을 방지 &mdash; 특히 교차해에서 에너지가 비슷한 성분이 많을 때.</p>
+
+<h4>Step 3: 잔차 기반 성장 (Residual Growth)</h4>
+<ol>
+  <li>잔차 $r_j = z_j - \hat{z}_j$ 계산</li>
+  <li>$\text{RMS}(r) > \tau_R = 0.05$m이면: 잔차에 빔포밍 다시 적용 &rarr; 놓친 성분 발견 &rarr; 추가</li>
+</ol>
+
+<div class="key">
+  <strong>결과:</strong> 너울($N_a=1$)에서 복잡해($N_a=21$)까지 자동 적응.<br>
+  고정 $N=15$ 대비 <strong>6.4% 추가 nRMSE 개선</strong>.
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p9"><span class="part-num">PART 9</span>WaveSplat &mdash; 실시간 추적 (Tracking)</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3>Phase 1 (초기화) vs Phase 2 (추적)</h3>
+<table>
+  <tr><th></th><th>Phase 1 &mdash; 초기화</th><th>Phase 2 &mdash; 추적</th></tr>
+  <tr><td>실행 시점</td><td>처음 1초 (10프레임 축적)</td><td>이후 매 프레임</td></tr>
+  <tr><td>반복 수</td><td>600 iter (C2F)</td><td>10 Adam steps</td></tr>
+  <tr><td>소요 시간</td><td>~500ms</td><td class="good">~13ms</td></tr>
+  <tr><td>업데이트 대상</td><td>$w, k_x, k_y, \varphi$ 모두</td><td>$w, \varphi$만 (w_phi 모드)</td></tr>
+</table>
+
+<h3>위상 전파 (Predict Step)</h3>
+<div class="eq-box">
+  $$\varphi_i(t+\Delta t) = \varphi_i(t) + \omega_i \cdot \Delta t$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $\Delta t = 0.1$s (10Hz), $\omega_i$는 분산관계에서 결정 &mdash; 분산관계가 '예측기' 역할
+  </p>
+</div>
+<p>이 예측이 정확한 이유: 분산관계가 정확히 성립하면 위상 예측이 완벽하다.
+실제 편차(비선형 효과, 모델 오차)는 매우 작으므로 <strong>Update에서 소량의 보정만으로 충분</strong>하다.</p>
+
+<div class="insight">
+  <strong>속도 비교:</strong><br>
+  ETKF predict: $N_e$개 앙상블 각각 FFT로 전파 &rarr; $O(N_e \cdot G \log G)$ = 느림<br>
+  WaveSplat predict: $N$개 위상에 덧셈 &rarr; $O(N)$ = <strong>즉시</strong>
+</div>
+
+<h3>w_phi 모드 &mdash; 왜 $k_x, k_y$를 고정하는가</h3>
+<p>추적 시 <strong>$w$(진폭)와 $\varphi$(위상)만</strong> 업데이트하고, $k_x, k_y$는 초기화에서 확정 후 고정한다.</p>
+
+<h4>실험으로 확인된 이유:</h4>
+<table>
+  <tr><th>모드</th><th>단기 (5프레임)</th><th>장기 (50프레임)</th></tr>
+  <tr><td>full (전부 업데이트)</td><td class="good">loss 약간 더 낮음</td><td class="bad">$k_x, k_y$ drift &rarr; 급격한 성능 저하</td></tr>
+  <tr><td>w_phi (w, &phi;만)</td><td>loss 약간 높음</td><td class="good">안정적 추적 유지</td></tr>
+</table>
+<div class="warn">
+  <strong>full 모드의 문제:</strong> $k_x, k_y$가 drift하면 분산관계에서 벗어남 &rarr; 위상 전파 예측이 점점 틀려짐 &rarr; 10프레임 이후 급격한 성능 저하.
+</div>
+
+<h3>슬라이딩 윈도우</h3>
+<p>현재 프레임 + 이전 2프레임 = <strong>3프레임 윈도우</strong> ($K_w = 3$):</p>
+<ul>
+  <li>단일 프레임: 50~200점 &rarr; 노이즈에 취약</li>
+  <li>3프레임: 150~600점 &rarr; 노이즈 평균화</li>
+  <li>3프레임 = 0.3초 = 파도 주기(~5초)의 6% &rarr; 파도 변화를 놓치지 않으면서 충분한 평균화</li>
+</ul>
+
+<h3>실시간 성능</h3>
+<table>
+  <tr><th>단계</th><th>소요 시간</th></tr>
+  <tr><td>위상 전파 (predict)</td><td>&lt; 0.01ms</td></tr>
+  <tr><td>윈도우 구성</td><td>&lt; 0.1ms</td></tr>
+  <tr><td>10 Adam steps</td><td>~13ms</td></tr>
+  <tr><td>적응형 N 검사</td><td>&lt; 0.3ms</td></tr>
+  <tr><td><strong>합계</strong></td><td class="good"><strong>~13.4ms</strong> (100ms 예산의 13.4%)</td></tr>
+</table>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p10"><span class="part-num">PART 10</span>전체 비교 &mdash; 왜 Splatting인가</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3>3가지 패러다임 종합 비교</h3>
+<table>
+  <tr><th></th><th>ETKF (공간-격자)</th><th>GPR (공간-비모수)</th><th>WaveSplat (주파수)</th></tr>
+  <tr><td>표현</td><td>격자점 높이</td><td>커널 보간</td><td class="good">스펙트럼 성분</td></tr>
+  <tr><td>물리 활용</td><td class="mid">간접 (앙상블 전파)</td><td class="bad">없음</td><td class="good">직접 (분산관계 하드코딩)</td></tr>
+  <tr><td>파라미터</td><td class="bad">120,000</td><td>~200</td><td class="good">~60</td></tr>
+  <tr><td>속도</td><td class="bad">132.6ms</td><td class="bad">&gt;200ms</td><td class="good">13.4ms</td></tr>
+  <tr><td>nRMSE</td><td>0.319</td><td>0.261</td><td class="good">0.223</td></tr>
+  <tr><td>시간 연속</td><td class="good">O (KF)</td><td class="bad">X</td><td class="good">O (추적)</td></tr>
+  <tr><td>시공간 외삽</td><td class="bad">X</td><td class="bad">X</td><td class="good">O</td></tr>
+  <tr><td>격자 필요</td><td class="bad">필요</td><td class="good">불필요</td><td class="good">불필요</td></tr>
+</table>
+
+<h3>'Splatting'의 의미 &mdash; 3D Gaussian Splatting에서 영감</h3>
+<table>
+  <tr><th></th><th>3D Gaussian Splatting (3DGS)</th><th>WaveSplat</th></tr>
+  <tr><td>표현 대상</td><td>3D 장면</td><td>파도장</td></tr>
+  <tr><td>기저</td><td>Gaussian 점 (위치, 크기, 색상)</td><td>평면파 (w, k, &phi;)</td></tr>
+  <tr><td>격자</td><td>불필요 (voxel/mesh 없음)</td><td>불필요</td></tr>
+  <tr><td>최적화</td><td>gradient 기반</td><td>gradient 기반 (Adam)</td></tr>
+  <tr><td>적응</td><td>densify / prune</td><td>residual growth / energy prune</td></tr>
+</table>
+
+<h3>결론: 주파수 영역 Splatting이 필요한 이유</h3>
+<div class="key">
+  <strong>희소 LiDAR &rarr; 파도장 복원 문제의 4가지 요구사항:</strong>
+  <ol style="margin-top: 10px;">
+    <li><strong>관측이 극도로 희소</strong> &rarr; 강력한 사전 지식 필요 &rarr; 주파수 영역: 분산관계 직접 내장</li>
+    <li><strong>관측이 불규칙</strong> &rarr; 격자 없는 표현 필요 &rarr; Splatting: 격자 없는 파라메트릭 표현</li>
+    <li><strong>실시간 필요</strong> &rarr; 적은 파라미터 + 빠른 추적 &rarr; 4N개, 위상 전파로 즉시 예측</li>
+    <li><strong>시간 예측 필요</strong> &rarr; 시간이 모델에 내장 &rarr; $\cos(\ldots - \omega t + \varphi)$</li>
+  </ol>
+  <p style="margin-top: 12px;">이 4가지를 <strong>동시에 만족하는 방법은 WaveSplat이 유일</strong>하다.</p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="p11"><span class="part-num">PART 11</span>평가 지표와 결과</h2>
+<!-- ═══════════════════════════════════════════ -->
+
+<h3>6-지표 패널</h3>
+<table>
+  <tr><th>지표</th><th>의미</th><th>WaveSplat</th><th>ETKF</th><th>GPR</th></tr>
+  <tr><td>nRMSE</td><td>전체적 오차 ($\downarrow$)</td><td class="good">0.223</td><td>0.319</td><td>0.261</td></tr>
+  <tr><td>VR</td><td>에너지 재현도 (1이 이상)</td><td class="good">0.73</td><td>0.90</td><td class="bad">0.065</td></tr>
+  <tr><td>$\rho$</td><td>형상 일치도 ($\uparrow$)</td><td class="good">0.76</td><td class="bad">0.11</td><td>0.193</td></tr>
+  <tr><td>SS</td><td>Skill Score ($>0$ 필요)</td><td class="good">0.46</td><td class="bad">&minus;0.02</td><td class="bad">&minus;0.14</td></tr>
+  <tr><td>Dir $R^2$</td><td>방향 추정 ($\uparrow$)</td><td class="mid">&minus;0.25</td><td class="bad">&minus;1.25</td><td>&mdash;</td></tr>
+  <tr><td>$H_s$ err</td><td>유의파고 오차 ($\downarrow$)</td><td class="good">3.7%</td><td class="bad">28.6%</td><td>&mdash;</td></tr>
+</table>
+
+<div class="key">
+  <strong>SS &gt; 0인 방법은 WaveSplat뿐</strong> = zero predictor(아무것도 예측하지 않는 것)를 이기는 유일한 방법.
+</div>
+
+<h4>각 지표의 진단적 가치</h4>
+<ul>
+  <li><strong>ETKF:</strong> VR=0.90(에너지 OK) but $\rho$=0.11(형상 NG) &rarr; "에너지는 맞추지만 위치가 틀림"</li>
+  <li><strong>GPR:</strong> VR=0.065(에너지 6.5%) &rarr; "거의 평평한 수면을 예측 = near-zero predictor"</li>
+  <li><strong>WaveSplat:</strong> VR=0.73, $\rho$=0.76 &rarr; 에너지와 형상 모두 양호</li>
+</ul>
+
+<h3>핵심 결과</h3>
+<div class="eq-box" style="border-left-color: var(--accent);">
+  <p style="font-size: 20px; color: var(--accent); font-weight: bold; margin-bottom: 12px;">100 에피소드 평가 (10 해상조건 &times; 5 시드 &times; 2 raydrop)</p>
+  <table style="background: transparent;">
+    <tr><td style="border: none;">WaveSplat nRMSE:</td><td style="border: none; color: var(--accent); font-weight: bold;">0.223</td></tr>
+    <tr><td style="border: none;">ETKF nRMSE:</td><td style="border: none;">0.319 (WS 대비 +43%)</td></tr>
+    <tr><td style="border: none;">개선율:</td><td style="border: none; color: var(--yellow); font-weight: bold;">30.1%</td></tr>
+    <tr><td style="border: none;">속도:</td><td style="border: none;">13.4ms vs 132.6ms (<strong>10배 빠름</strong>)</td></tr>
+  </table>
+</div>
+
+<h4>통계적 검증</h4>
+<ul>
+  <li><strong>Wilcoxon signed-rank test:</strong> $p = 1.1 \times 10^{-15}$ &mdash; 우연일 확률이 사실상 0</li>
+  <li><strong>Cohen's $d$ = 1.16</strong> &mdash; large effect size (0.8 이상이면 large)</li>
+</ul>
+
+<h3>한계와 향후 연구</h3>
+<div class="warn">
+  <strong>최대 약점: Dir $R^2$ = &minus;0.25 (방향 추정)</strong><br>
+  BF4에서 일부 성분의 방향($k_x$ 부호)이 반전됨. 원인: 선박 전방 LiDAR의 1D 관측 geometry &mdash;
+  $k_x > 0$ (다가오는 파도)와 $k_x < 0$ (멀어지는 파도) 구분이 어려움.
+</div>
+<p>향후 해결 방향:</p>
+<ol>
+  <li>다중 프레임 방향 추적 (시간에 따른 위상 변화로 방향 추론)</li>
+  <li>3D FFT $(k_x, k_y, \omega)$ 초기화</li>
+  <li>방향 신뢰도 기반 feedforward 게이팅</li>
+  <li>수조 실험(Ch5)으로 sim-to-real gap 검증</li>
+</ol>
+
+<hr style="border: 1px solid #333; margin: 60px 0 30px;">
+<p style="text-align: center; color: var(--text2); font-size: 14px;">
+  WaveSplat = 주파수 영역의 Grid-free Splatting<br>
+  <strong style="color: var(--accent);">0.223 nRMSE &nbsp;|&nbsp; 13.4ms/frame &nbsp;|&nbsp; 30.1% better than ETKF &nbsp;|&nbsp; 100 episodes validated</strong>
+</p>
+
+</main>
+</body>
+</html>

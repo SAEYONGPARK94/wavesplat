@@ -615,15 +615,32 @@
   <li>격자 해상도 $\Delta k \approx 0.10$ rad/m, 파장 범위 ~1.6 m ~ 130 m (BF2~5 커버)</li>
 </ul>
 
-<h3>Greedy 피크 추출</h3>
+<h3>Greedy 피크 추출 + Fine Refinement (2-stage)</h3>
 <ol>
-  <li>$P(k_x, k_y)$에서 최대 피크 $(k_x^*, k_y^*)$ 찾기</li>
-  <li>이 피크를 성분 목록에 추가</li>
-  <li>피크 주변 <strong>Cartesian 반경 0.15 rad/m 억제</strong> (sidelobe 제거)</li>
-  <li>다음 최대 피크 찾기</li>
-  <li>반복 ($N_{\max}$개까지 또는 임계값 이하까지)</li>
+  <li><strong>Coarse 피크</strong>: 81×81 격자 ($\Delta k_c = 0.10$ rad/m)에서 최대 $(k_x^c, k_y^c)$ 탐색</li>
+  <li><strong>Fine refinement</strong>: $(k_x^c, k_y^c)$ 주변 $\pm 0.2$ rad/m 영역을 41×41 격자 ($\Delta k_f = 0.01$ rad/m)로 재탐색 &rarr; $(k_x^f, k_y^f)$</li>
+  <li>이 피크를 성분 목록에 추가, 선형 최소제곱으로 $w, \varphi$ 계산</li>
+  <li>이 성분을 <strong>잔차에서 빼고</strong>, coarse map의 피크 주변 <strong>반경 0.15 rad/m 억제</strong> (sidelobe 제거)</li>
+  <li>다음 성분 반복 ($N_{\max}$개까지 또는 파워가 $10^{-12}$ 이하까지)</li>
 </ol>
+
+<div class="insight">
+  <strong>왜 2-stage인가:</strong><br>
+  1-stage coarse만 하면 $\Delta k = 0.10$ rad/m로 $|\mathbf{k}| \approx 0.3$에서 <strong>17% 오차</strong> &rarr; tracking 시 위상 drift.<br>
+  1-stage만 fine 격자(0.01 rad/m)로 전역 탐색하면 $801 \times 801 \approx 640{,}000$ 후보 &rarr; 너무 느림.<br>
+  &rarr; coarse로 <strong>거친 위치</strong> 찾고, fine으로 <strong>국소 정밀화</strong> (총 $81^2 + N \times 41^2 \ll 801^2$).
+</div>
+
 <p>0.15 rad/m 억제 이유: 직교 격자에서 같은 파도의 sidelobe를 별도 성분으로 오인하는 것을 방지하면서, 교차해(crossing seas)를 분리 해상도 내에서 분리한다.</p>
+
+<h4>실제 해상도 요약</h4>
+<table>
+  <tr><th>단계</th><th>격자 크기</th><th>Δk</th><th>역할</th></tr>
+  <tr><td>Coarse</td><td>81×81 전역</td><td>0.10 rad/m</td><td>피크 대략 위치</td></tr>
+  <tr><td>Fine</td><td>41×41 국소</td><td>0.01 rad/m</td><td>피크 정밀화</td></tr>
+  <tr><td>Rayleigh (이론)</td><td>&mdash;</td><td>$\approx 2\pi/L \sim 0.026$ rad/m</td><td>aperture $L\sim240$m 기준 물리 한계</td></tr>
+</table>
+<p>Fine의 $\Delta k = 0.01$ rad/m이 Rayleigh 한계(0.026)보다 작으므로, 이 단계에서는 <strong>여러 fine 격자점이 한 main-lobe를 공유</strong>한다 &rarr; 피크 위치가 격자보다 덜 민감. 최종 $k$ 정확도는 SNR과 관측 분포에 따라 $0.005\sim 0.01$ rad/m 수준.</p>
 
 <h3>선형 최소제곱 &mdash; 진폭과 위상 초기화</h3>
 <p>$k_x, k_y$가 정해지면 $\cos(k_x x + k_y y - \omega t)$은 <strong>'알려진 기저'</strong>가 된다:</p>
@@ -648,12 +665,12 @@
 <!-- ═══════════════════════════════════════════ -->
 
 <h3>왜 초기화만으로 부족한가</h3>
-<p>빔포밍의 $|\mathbf{k}|$ 해상도는 ~0.0075 rad/m이다. 실제 파도의 $k$가 격자 사이에 있으면:</p>
+<p>Fine refinement 후에도 $|\mathbf{k}|$의 정확도는 <strong>격자 $\Delta k_f = 0.01$ rad/m 수준</strong> (실제 SNR 따라 $0.005\sim0.01$ rad/m). $|\mathbf{k}| \approx 0.3$ rad/m에서:</p>
 <ul>
-  <li>$|\mathbf{k}|$ 오차 2.4% &rarr; 주기 오차 ~1.2%</li>
-  <li>30초 후 위상 오차 ~10&deg; &rarr; 추적 시 성능 저하</li>
+  <li>$|\mathbf{k}|$ 오차 ~3% &rarr; 주기 오차 ~1.5%</li>
+  <li>30초 후 위상 오차 ~$16°$ &rarr; 추적 시 성능 저하</li>
 </ul>
-<p>이 '작은' 초기 오차가 시간이 지나면 누적된다 &rarr; $k_x, k_y$를 연속값으로 미세 조정해야 한다.</p>
+<p>격자 기반이라 본질적으로 이산화 오차가 남고, 이 '작은' 초기 오차가 시간이 지나면 누적된다 &rarr; $k_x, k_y$를 <strong>연속값으로 미세 조정</strong>(비선형 최적화)해야 한다.</p>
 
 <h3 id="p7-loss">Loss 함수</h3>
 <div class="eq-box">
@@ -675,11 +692,35 @@
   $$c_j = \frac{\cos\theta_j}{d_j / d_{\text{ref}}}$$
 </div>
 <ul>
-  <li>$\theta_j$ = 입사각. 수직($\cos \approx 1$)이면 반사 신호 강함 &rarr; 신뢰도 높음</li>
+  <li>$\theta_j$ = <strong>ray와 수면 법선 $\mathbf{n}$ 사이 각도</strong> (incidence angle). $\theta_j = 0°$이면 ray가 수면에 수직하게 꽂힘 &rarr; 신뢰도 높음</li>
   <li>$d_j$ = 관측 거리. 가까울수록 점 밀도 높고 노이즈 적음 &rarr; 신뢰도 높음</li>
   <li>$d_{\text{ref}} = 125$m (최대 사거리의 절반)</li>
 </ul>
-<p><strong>물리적 근거:</strong> Fresnel 반사 법칙 &mdash; 수면은 거의 정반사(specular)하므로 입사각이 중요하다. 원거리 저각도 관측은 자동으로 가중치가 감소한다.</p>
+
+<div class="warn">
+  <strong>주의 &mdash; 법선 $\mathbf{n}$을 알아야 하는 문제:</strong><br>
+  $\theta_j$는 ray와 법선 사이 각도인데, 실제 파도면의 법선은 파의 형상에 의존 (파봉은 수평, 파배 경사면은 기울어짐).
+  WaveSim(시뮬레이션)은 Gerstner 메시에서 <strong>정확한 법선 $\mathbf{n}_{\text{true}}$</strong>를 계산하지만,
+  실측 LiDAR에서는 파도면을 모르므로 <strong>"수면 = 수평(flat)" 가정</strong>으로 $\mathbf{n} \approx \hat{\mathbf{z}}$로 근사한다.
+</div>
+
+<h4>실측 vs 시뮬레이션 &mdash; 법선 처리 차이</h4>
+<table>
+  <tr><th></th><th>WaveSim (시뮬레이션)</th><th>실측 LiDAR</th></tr>
+  <tr><td>법선 $\mathbf{n}$</td><td>Gerstner 메시에서 보간</td><td>$\mathbf{n} \approx \hat{\mathbf{z}}$ (연직 가정)</td></tr>
+  <tr><td>$\theta_j$ 정의</td><td>$\arccos(-\mathbf{d}_j \cdot \mathbf{n}_{\text{true}})$</td><td>$\arccos(|d_z|/|\mathbf{d}_j|)$ = ray와 연직선 사이</td></tr>
+  <tr><td>BF4 근사 오차</td><td>&mdash;</td><td>$\pm\epsilon \approx \pm 3°$ (wave slope)</td></tr>
+</table>
+
+<p><strong>오차의 실질적 영향</strong>:</p>
+<ul>
+  <li>$\theta \approx 10°$ 관측: $\cos(10°) \approx 0.985$ vs $\cos(13°) \approx 0.974$ &rarr; <strong>~1% 차이</strong> (무시 가능)</li>
+  <li>$\theta \approx 60°$ 관측(원거리/grazing): $\cos(60°) = 0.500$ vs $\cos(63°) = 0.454$ &rarr; <strong>~9% 차이</strong> (의미 있음)</li>
+</ul>
+
+<p><strong>물리적 근거 & 정직한 한계:</strong> Fresnel 반사 법칙에서 영감을 받았지만, $c_j = \cos\theta/(d/d_{\text{ref}})$는 엄밀한 Fresnel 공식이 아니라
+<strong>경험적 heteroscedastic 가중치</strong> &mdash; (1) Lambertian 투영 면적 $\cos\theta$, (2) range noise의 거리 증가.
+실측에서는 "flat-surface assumption"이 내포되어 있음을 논문에서 명시해야 한다.</p>
 
 <h4>L1 정규화 &mdash; 자동 모델 선택</h4>
 <p>$\lambda_1 \sum |w_i|$의 역할:</p>
@@ -693,23 +734,116 @@
 <h4>스펙트럼 평활화</h4>
 <p>$\lambda_s \sum (\Delta w_i)^2$: 인접 주파수 성분의 진폭이 급변하는 것을 방지. 데이터 항 대비 0.1% 수준으로 약하게 작용.</p>
 
-<h3>Gradient 계산</h3>
+<h3>Gradient 계산 &mdash; Chain Rule 전개</h3>
+
+<h4>설정: 주요 기호</h4>
 <div class="eq-box">
-  <div class="eq-label">진폭 $w_i$에 대한 gradient</div>
-  $$\frac{\partial\mathcal{L}}{\partial w_i} = -\frac{2}{M}\sum_j c_j(z_j - \hat{z}_j)\cos(\ldots) + \lambda_1 \operatorname{sign}(w_i)$$
+  $$\Psi_{ij} \equiv k_{x,i}\,x_j + k_{y,i}\,y_j - \omega_i\,t_j + \varphi_i$$
+  $$\hat{z}_j = \sum_{i=1}^{N} w_i \cos(\Psi_{ij}), \qquad
+    r_j \equiv z_j - \hat{z}_j \;\;\text{(잔차)}$$
+  $$\omega_i = \sqrt{g\,|\mathbf{k}_i|\tanh(|\mathbf{k}_i|\,d)}, \qquad
+    |\mathbf{k}_i| = \sqrt{k_{x,i}^2 + k_{y,i}^2}$$
 </div>
+
+<h4>Step 1: 전체 Loss의 출발 형태</h4>
 <div class="eq-box">
-  <div class="eq-label">파수 $k_{x,i}$에 대한 gradient (chain rule 포함)</div>
-  $$\frac{\partial\mathcal{L}}{\partial k_{x,i}} = \frac{2}{M}\sum_j c_j(z_j - \hat{z}_j)\,w_i\!\left(x_j - \frac{\partial\omega_i}{\partial k_{x,i}} t_j\right)\sin(\ldots)$$
-  <p style="color: var(--text2); margin-top: 8px;">
-    $\frac{\partial\omega_i}{\partial k_{x,i}} = \frac{k_{x,i}}{|\mathbf{k}_i|}\cdot\frac{\partial\omega}{\partial|\mathbf{k}|}$
-    &mdash; $\omega$가 $\mathbf{k}$의 함수이므로 chain rule 적용. PyTorch autograd로 자동 계산.
-  </p>
+  $$\mathcal{L} = \underbrace{\frac{1}{M}\sum_j c_j\,r_j^{2}}_{\mathcal{L}_{\text{data}}}
+  + \underbrace{\lambda_1\sum_i |w_i|}_{\mathcal{L}_{\text{L1}}}
+  + \underbrace{\lambda_s\sum_i (\Delta w_i)^2}_{\mathcal{L}_{\text{smooth}}}$$
+</div>
+
+<h4>Step 2: 진폭 $w_i$에 대한 미분</h4>
+<p>$\hat{z}_j$는 $w_i$에 대해 <strong>선형</strong>이므로 단순함:</p>
+<div class="eq-box">
+  <div class="eq-label">체인: $\mathcal{L} \to r_j \to \hat{z}_j \to w_i$</div>
+  $$\frac{\partial \hat{z}_j}{\partial w_i} = \cos(\Psi_{ij}), \qquad
+    \frac{\partial r_j}{\partial w_i} = -\cos(\Psi_{ij})$$
+  $$\frac{\partial \mathcal{L}_{\text{data}}}{\partial w_i}
+    = \frac{1}{M}\sum_j c_j \cdot 2 r_j \cdot \frac{\partial r_j}{\partial w_i}
+    = -\frac{2}{M}\sum_j c_j\,r_j\cos(\Psi_{ij})$$
+  $$\frac{\partial \mathcal{L}_{\text{L1}}}{\partial w_i} = \lambda_1\operatorname{sign}(w_i), \qquad
+    \frac{\partial \mathcal{L}_{\text{smooth}}}{\partial w_i} = 2\lambda_s\,(2w_i - w_{i-1} - w_{i+1})$$
+  $$\boxed{\;\frac{\partial\mathcal{L}}{\partial w_i}
+    = -\frac{2}{M}\sum_j c_j\,r_j\cos(\Psi_{ij})
+    + \lambda_1\operatorname{sign}(w_i)
+    + 2\lambda_s(2w_i - w_{i-1} - w_{i+1})\;}$$
+</div>
+
+<h4>Step 3: 위상 $\varphi_i$에 대한 미분</h4>
+<p>$\Psi_{ij}$에만 영향 &mdash; $\partial\Psi_{ij}/\partial\varphi_i = 1$:</p>
+<div class="eq-box">
+  <div class="eq-label">체인: $\mathcal{L} \to r_j \to \hat{z}_j \to \Psi_{ij} \to \varphi_i$</div>
+  $$\frac{\partial \hat{z}_j}{\partial \varphi_i} = -w_i\sin(\Psi_{ij}), \qquad
+    \frac{\partial r_j}{\partial \varphi_i} = w_i\sin(\Psi_{ij})$$
+  $$\boxed{\;\frac{\partial\mathcal{L}}{\partial \varphi_i}
+    = \frac{2}{M}\sum_j c_j\,r_j\,w_i\sin(\Psi_{ij})\;}$$
+</div>
+
+<h4>Step 4: 파수 $k_{x,i}$에 대한 미분 (분산관계 chain rule)</h4>
+<p>$k_{x,i}$는 <strong>두 경로</strong>로 $\Psi_{ij}$에 영향:</p>
+<ul>
+  <li><strong>직접 경로</strong>: $k_{x,i} x_j$ 항 &rarr; $\partial\Psi/\partial k_{x,i}\supseteq x_j$</li>
+  <li><strong>간접 경로</strong>: $\omega_i(\mathbf{k})$가 $|\mathbf{k}_i|$를 통해 $k_{x,i}$에 의존 &rarr; $-t_j\,\partial\omega_i/\partial k_{x,i}$</li>
+</ul>
+
+<div class="eq-box">
+  <div class="eq-label">4-1. $\omega$를 $|\mathbf{k}|$로 미분 (분산관계 그 자체)</div>
+  $$\omega^2 = g|\mathbf{k}|\tanh(|\mathbf{k}|d) \;\;\Rightarrow\;\;
+    2\omega\,\frac{\partial\omega}{\partial|\mathbf{k}|}
+    = g\tanh(|\mathbf{k}|d) + g|\mathbf{k}|d\operatorname{sech}^2(|\mathbf{k}|d)$$
+  $$\frac{\partial\omega}{\partial|\mathbf{k}|}
+    = \frac{g}{2\omega}\left[\tanh(|\mathbf{k}|d) + |\mathbf{k}|d\operatorname{sech}^2(|\mathbf{k}|d)\right]
+    \;\;=\;\; v_g \;\;\text{(군속도)}$$
+</div>
+
+<div class="eq-box">
+  <div class="eq-label">4-2. $|\mathbf{k}|$를 $k_{x,i}$로 미분</div>
+  $$|\mathbf{k}_i| = \sqrt{k_{x,i}^2 + k_{y,i}^2}
+    \;\;\Rightarrow\;\;
+    \frac{\partial |\mathbf{k}_i|}{\partial k_{x,i}}
+    = \frac{k_{x,i}}{|\mathbf{k}_i|}$$
+</div>
+
+<div class="eq-box">
+  <div class="eq-label">4-3. 체인 결합: $\omega$를 $k_{x,i}$로</div>
+  $$\frac{\partial \omega_i}{\partial k_{x,i}}
+    = \frac{\partial\omega}{\partial|\mathbf{k}|}\cdot\frac{\partial |\mathbf{k}_i|}{\partial k_{x,i}}
+    = v_g \cdot \frac{k_{x,i}}{|\mathbf{k}_i|}$$
+</div>
+
+<div class="eq-box">
+  <div class="eq-label">4-4. $\Psi_{ij}$를 $k_{x,i}$로 &mdash; 두 경로 결합</div>
+  $$\frac{\partial \Psi_{ij}}{\partial k_{x,i}}
+    = \underbrace{x_j}_{\text{직접 경로}}
+    \;-\; \underbrace{t_j\,\frac{\partial\omega_i}{\partial k_{x,i}}}_{\text{분산관계 경로}}
+    = x_j - t_j\,v_g\,\frac{k_{x,i}}{|\mathbf{k}_i|}$$
+</div>
+
+<div class="eq-box">
+  <div class="eq-label">4-5. 최종: $\mathcal{L}$을 $k_{x,i}$로</div>
+  $$\frac{\partial \hat{z}_j}{\partial k_{x,i}}
+    = -w_i\sin(\Psi_{ij})\cdot\frac{\partial \Psi_{ij}}{\partial k_{x,i}}$$
+  $$\boxed{\;\frac{\partial\mathcal{L}}{\partial k_{x,i}}
+    = \frac{2}{M}\sum_j c_j\,r_j\,w_i\sin(\Psi_{ij})
+    \left(x_j - t_j\,v_g\,\frac{k_{x,i}}{|\mathbf{k}_i|}\right)\;}$$
+</div>
+
+<h4>Step 5: $k_{y,i}$에 대한 미분 (대칭)</h4>
+<div class="eq-box">
+  $$\boxed{\;\frac{\partial\mathcal{L}}{\partial k_{y,i}}
+    = \frac{2}{M}\sum_j c_j\,r_j\,w_i\sin(\Psi_{ij})
+    \left(y_j - t_j\,v_g\,\frac{k_{y,i}}{|\mathbf{k}_i|}\right)\;}$$
+</div>
+
+<div class="insight">
+  <strong>물리적 해석:</strong> $k_x$의 gradient는 <strong>공간 항($x_j$)과 시간-분산 항($t_j v_g k_x/|k|$)의 경쟁</strong>이다.
+  단일 프레임(작은 $t_j$)에서는 공간 항이 지배적이지만, 여러 프레임을 누적하면 시간 항이 커져 분산관계를 따르지 않는 $k$를 강하게 거부한다. &rarr; <strong>슬라이딩 윈도우($K_w = 3$)가 $k$ 정밀도를 올리는 이유</strong>.
 </div>
 
 <div class="key">
   <strong>핵심:</strong> 모든 gradient가 <strong>해석적(analytic)</strong>으로 계산됨.
-  $\cos/\sin$의 미분은 $\sin/\cos$ &mdash; 정확한 gradient, 수치 미분 불필요.
+  $\cos/\sin$의 미분은 $\sin/\cos$, 분산관계의 미분은 <strong>군속도 $v_g$</strong>.
+  &mdash; 정확한 gradient, 수치 미분 불필요. PyTorch autograd가 이 체인을 자동으로 구성.
 </div>
 
 <h3>경사하강법(SGD)에서 Adam까지</h3>
@@ -727,27 +861,66 @@
 </div>
 <p>$\beta = 0.9$ &mdash; 이전 방향의 90% 유지. 일관된 gradient 방향은 가속, 진동 방향은 상쇄. 하지만 여전히 모든 파라미터에 같은 학습률.</p>
 
-<h4 id="p7-adam">Step 3: Adam Optimizer</h4>
-<div class="eq-box">
-  <div class="eq-label">Adam — 적응적 학습률</div>
-  $$m \leftarrow \beta_1 m + (1-\beta_1)\,g \qquad\text{(1차 모멘트: 방향)}$$
-  $$v \leftarrow \beta_2 v + (1-\beta_2)\,g^2 \qquad\text{(2차 모멘트: 크기)}$$
-  $$\theta \leftarrow \theta - \eta \cdot \frac{\hat{m}}{\sqrt{\hat{v}} + \epsilon}$$
+<h4 id="p7-adam">Step 3: Adam Optimizer &mdash; <strong>파라미터별 독립</strong> 적응 학습률</h4>
+
+<div class="warn">
+  <strong>중요 &mdash; element-wise 연산:</strong> 아래의 $g, m, v$는 <strong>스칼라가 아니라 벡터</strong>이며,
+  모든 제곱·제곱근·나눗셈은 <strong>파라미터별 element-wise</strong> 연산이다.
+  즉 각 파라미터 $\theta_i$는 자신만의 $m_i, v_i$를 가지고, 자신만의 실효 학습률을 받는다.
 </div>
 
+<div class="eq-box">
+  <div class="eq-label">Adam &mdash; 파라미터별 수식 ($i$ = 파라미터 인덱스)</div>
+  $$g_i = \frac{\partial \mathcal{L}}{\partial \theta_i}$$
+  $$m_i \leftarrow \beta_1\,m_i + (1-\beta_1)\,g_i \qquad\text{(1차 모멘트: 방향)}$$
+  $$v_i \leftarrow \beta_2\,v_i + (1-\beta_2)\,g_i^{\,2} \qquad\text{(2차 모멘트: 크기, }g_i\text{ 제곱)}$$
+  $$\hat{m}_i = \frac{m_i}{1-\beta_1^t}, \qquad \hat{v}_i = \frac{v_i}{1-\beta_2^t}$$
+  $$\theta_i \leftarrow \theta_i \;-\; \eta \cdot \frac{\hat{m}_i}{\sqrt{\hat{v}_i} + \epsilon}$$
+</div>
+
+<h4>WaveSplat 파라미터 벡터 &mdash; $\theta \in \mathbb{R}^{4N}$</h4>
+<p>$N=15$일 때 60개 파라미터, 각각에 독립된 $m_i, v_i$:</p>
+<div class="eq-box">
+  $$\theta = \underbrace{[w_1, \ldots, w_N]}_{N\text{개}}
+    \;\cup\; \underbrace{[k_{x,1}, \ldots, k_{x,N}]}_{N\text{개}}
+    \;\cup\; \underbrace{[k_{y,1}, \ldots, k_{y,N}]}_{N\text{개}}
+    \;\cup\; \underbrace{[\varphi_1, \ldots, \varphi_N]}_{N\text{개}}$$
+</div>
+
+<h4>파라미터별 전형적인 gradient/모멘트 크기 (BF4, step 50, 수렴 중)</h4>
 <table>
-  <tr><th>변수</th><th>의미</th><th>값</th><th>효과</th></tr>
-  <tr><td>$m$ (1차 모멘트)</td><td>gradient의 이동 평균</td><td>$\beta_1 = 0.9$</td><td>최근 10 step의 <strong>방향</strong> 안정화</td></tr>
-  <tr><td>$v$ (2차 모멘트)</td><td>gradient 제곱의 이동 평균</td><td>$\beta_2 = 0.999$</td><td>최근 1000 step의 <strong>변동폭</strong> 추정</td></tr>
-  <tr><td>$\eta / \sqrt{v}$</td><td>실효 학습률</td><td>&mdash;</td><td>변동 크면 조심, 작으면 과감</td></tr>
+  <tr><th>파라미터</th><th>$g_i$ (gradient)</th><th>$v_i$ (2차 모멘트)</th><th>$\sqrt{v_i}$</th><th>실효 학습률 $\eta/\sqrt{v_i}$</th></tr>
+  <tr><td>$w_i$ (진폭)</td><td>$\sim 10^{-2}$</td><td>$\sim 5\!\times\!10^{-5}$</td><td>$\sim 0.007$</td><td class="good">크다 &rarr; 과감</td></tr>
+  <tr><td>$k_{x,i}$ (파수)</td><td>$\sim 5\!\times\!10^{-1}$</td><td>$\sim 0.25$</td><td>$\sim 0.5$</td><td class="bad">작다 &rarr; 신중</td></tr>
+  <tr><td>$\varphi_i$ (위상)</td><td>$\sim 3\!\times\!10^{-2}$</td><td>$\sim 10^{-3}$</td><td>$\sim 0.03$</td><td class="mid">중간</td></tr>
 </table>
+
+<p>$\eta = 5\times 10^{-3}$은 공통이고, <strong>$1/\sqrt{v_i}$가 파라미터별 스케일 조정자</strong> 역할. 결과적으로:</p>
+<div class="eq-box">
+  $$\Delta w_i = \eta / \sqrt{v_i^w} \sim 0.71, \qquad
+    \Delta k_{x,i} = \eta / \sqrt{v_i^k} \sim 0.01, \qquad
+    \Delta \varphi_i = \eta / \sqrt{v_i^\varphi} \sim 0.17$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    각 파라미터가 자신의 gradient 크기에 맞춰 자동 스케일되어 <strong>비슷한 상대 변화량</strong>으로 업데이트됨.
+  </p>
+</div>
 
 <div class="key">
   <strong>WaveSplat에서 Adam의 효과:</strong><br>
-  $k_x$ (gradient 변동 큼, 민감) &rarr; $v$ 큼 &rarr; 학습률 자동 감소 &rarr; 신중하게 업데이트<br>
-  $w$ (gradient 변동 작음, 둔감) &rarr; $v$ 작음 &rarr; 학습률 자동 증가 &rarr; 과감하게 업데이트<br>
-  &rarr; 각 파라미터의 특성에 맞는 최적 속도로 수렴
+  $k_x$ (gradient 변동 큼, 민감) &rarr; $v_{k_x}$ 큼 &rarr; 학습률 자동 감소 &rarr; 신중하게 업데이트<br>
+  $w$ (gradient 변동 작음, 둔감) &rarr; $v_w$ 작음 &rarr; 학습률 자동 증가 &rarr; 과감하게 업데이트<br>
+  &rarr; 각 파라미터의 특성에 맞는 최적 속도로 수렴 (SGD는 모두 같은 $\eta$를 써서 $k_x$ 발산 또는 $w$ 정체)
 </div>
+
+<h4>Hyperparameters</h4>
+<table>
+  <tr><th>기호</th><th>값</th><th>의미</th></tr>
+  <tr><td>$\eta$</td><td>$5\times10^{-3}$</td><td>기본 학습률 (공통)</td></tr>
+  <tr><td>$\beta_1$</td><td>0.9</td><td>1차 모멘트 감쇠 &mdash; 최근 10 step의 방향 평균</td></tr>
+  <tr><td>$\beta_2$</td><td>0.999</td><td>2차 모멘트 감쇠 &mdash; 최근 1000 step의 변동 추정</td></tr>
+  <tr><td>$\epsilon$</td><td>$10^{-8}$</td><td>0 나눗셈 방지</td></tr>
+  <tr><td>bias 보정</td><td>$\hat{m}, \hat{v}$</td><td>초기 step에서 $m, v$가 0에 편향되지 않도록 보정</td></tr>
+</table>
 
 
 <!-- ═══════════════════════════════════════════ -->
@@ -800,9 +973,84 @@
   <li>$\text{RMS}(r) > \tau_R = 0.05$m이면: 잔차에 빔포밍 다시 적용 &rarr; 놓친 성분 발견 &rarr; 추가</li>
 </ol>
 
+<h4>$\tau_R = 0.05$m &mdash; 왜 이 값인가</h4>
+
+<p>임계값은 <strong>"노이즈 + 모델 오차"의 상한</strong>에 해당한다. 이 값 미만 잔차는 현재 모델이 설명할 수 없는 물리 신호가 거의 없다는 뜻이고, 초과하면 <strong>놓친 성분이 있다는 신호</strong>다.</p>
+
+<table>
+  <tr><th>오차 기여 항목</th><th>크기 [m]</th><th>근거</th></tr>
+  <tr><td>LiDAR range noise $\sigma_r$</td><td>$\sim 0.02$</td><td>Falcon K1 datasheet</td></tr>
+  <tr><td>모델 오차 (Gerstner vs linear) $O(\epsilon^2)$</td><td>$\sim 0.006$</td><td>BF4, $\epsilon \approx 0.05$, $H_s \cdot \epsilon^2 /2 = 1.2 \cdot 0.0025/2 \approx 1.5$mm ~ 6mm</td></tr>
+  <tr><td>Angular noise 투영</td><td>$\sim 0.005$</td><td>$\sigma_\theta = 0.05°$, $d \sim 100$m에서 수직 투영</td></tr>
+  <tr><td><strong>이론 하한 RMS</strong></td><td>$\mathbf{\approx 0.022}$</td><td>$\sqrt{\sigma_r^2 + \sigma_{\text{model}}^2 + \sigma_\theta^2}$</td></tr>
+  <tr><td>$\tau_R$ (safety margin ×2)</td><td>$\mathbf{0.05}$</td><td>노이즈 하한의 ~2.3배</td></tr>
+</table>
+
+<h4>Gerstner vs Linear Model Mismatch</h4>
+
+<p>WaveSplat에서 <strong>시뮬레이터(GT)는 Gerstner wave</strong>, <strong>추정 모델은 linear sinusoidal</strong>:</p>
+<div class="eq-box">
+  <div class="eq-label">Gerstner wave (시뮬레이터 GT)</div>
+  $$x(u,v,t) = u - \sum_i Q_i A_i \frac{k_{x,i}}{|\mathbf{k}_i|}\sin(\Psi_i)$$
+  $$y(u,v,t) = v - \sum_i Q_i A_i \frac{k_{y,i}}{|\mathbf{k}_i|}\sin(\Psi_i)$$
+  $$z(u,v,t) = \sum_i A_i \cos(\Psi_i)$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $(u,v)$는 <strong>라그랑지안 파라미터</strong>(static grid), 실제 관측 $(x,y)$는 $(u,v)$에서 수평 변위된 위치.
+    파봉은 수평으로 뾰족, 파배는 넓음 (비대칭).
+  </p>
+</div>
+
+<div class="eq-box">
+  <div class="eq-label">Linear sinusoidal (추정 모델)</div>
+  $$z(x,y,t) = \sum_i A_i \cos(k_{x,i} x + k_{y,i} y - \omega_i t + \varphi_i)$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    수평 변위 없음 &mdash; $(x,y)$가 직접 위상 인수에 들어감. 파봉/파배 대칭.
+  </p>
+</div>
+
+<p><strong>불일치의 크기</strong>: Gerstner의 horizontal displacement는 $O(\epsilon) = O(kA)$. Z-값 차이는 이 수평 변위가 유발하는 위상 편이로 $O(\epsilon^2)$. BF4에서 $\epsilon \approx 0.05$이므로:</p>
+
+<div class="eq-box">
+  $$\Delta z_{\text{model}} \sim H_s \cdot \epsilon^2 / 2 \approx 1.2 \cdot 0.0025 / 2 \approx 1.5 \text{ mm} \text{ ~ } 6 \text{ mm}$$
+</div>
+
+<p>이 값이 <strong>LiDAR noise($\sim 2$cm)보다 작으므로</strong>, linear 추정 모델로 충분히 정확한 복원 가능. 논문에서 이 mismatch는 "의도된 design choice"로 기술:</p>
+
+<div class="insight">
+  <strong>왜 일부러 linear로 추정하는가:</strong><br>
+  &nbsp;&nbsp;(1) Gerstner는 $z(x,y,t)$를 $(u,v,t)$의 함수로 역변환해야 해서 <strong>해석적 gradient 계산이 복잡</strong><br>
+  &nbsp;&nbsp;(2) 오차 $O(\epsilon^2)$가 BF3~4에서 노이즈 이하 &rarr; 비용 대비 이득 없음<br>
+  &nbsp;&nbsp;(3) "Linear estimator가 weakly nonlinear GT에 robust" &rarr; 논문 Discussion에서 강점으로 활용<br>
+  &nbsp;&nbsp;(4) $\tau_R = 0.05$m 설정 시 이 mismatch가 임계 아래에 있도록 설계됨
+</div>
+
+<h4>$\tau_R$ 초과 = 왜 "빔포밍 실패" 신호인가</h4>
+
+<p>초기화에서 모든 성분이 정확히 잡혔다면 잔차 RMS는 $\sim 0.022$m (노이즈 + 모델 하한) 근처. $\tau_R = 0.05$m 초과는:</p>
+<ul>
+  <li><strong>원인 1:</strong> 격자 $\Delta k_c = 0.10$ rad/m 사이에 있는 성분이 주변 피크에 묻힘 &rarr; fine refinement까지 도달 못함</li>
+  <li><strong>원인 2:</strong> <strong>고주파 성분 ($|\mathbf{k}| \geq 0.4$ rad/m)</strong>의 빔포밍 파워가 낮음. 이유:
+    <ul>
+      <li>aperture $L \sim 240$m 대비 파장 $\lambda = 2\pi/|\mathbf{k}| \leq 16$m &rarr; 관측 범위에 많은 주기 포함</li>
+      <li>분산관계로 $\omega$가 크면 $t$에 따른 위상 진화 빠름 &rarr; 시간 aperture 정렬 어려움</li>
+      <li>sparse LiDAR 포인트로 고주파 신호는 spatial Nyquist 근처 (undersampled)</li>
+    </ul>
+  </li>
+  <li><strong>원인 3:</strong> 사이드로브 억제 0.15 rad/m 반경 안에 두 성분 공존 &rarr; 약한 쪽 탈락</li>
+</ul>
+
+<p>잔차에 빔포밍 재적용하면 <strong>이 놓친 성분이 잔차 신호의 최대 피크로 드러남</strong> &rarr; 추가. 경험적으로 BF5 30-comp에서 $N=15 \to 21$로 성장, 6.4% 추가 nRMSE 개선.</p>
+
 <div class="key">
   <strong>결과:</strong> 너울($N_a=1$)에서 복잡해($N_a=21$)까지 자동 적응.<br>
   고정 $N=15$ 대비 <strong>6.4% 추가 nRMSE 개선</strong>.
+</div>
+
+<div class="warn">
+  <strong>$\tau_R$ 민감도:</strong><br>
+  &nbsp;&nbsp;너무 낮음($\tau_R = 0.02$m): 노이즈까지 "신호"로 오인 &rarr; 무한 성장, 과파라미터화<br>
+  &nbsp;&nbsp;너무 높음($\tau_R = 0.15$m): 유의한 놓친 성분도 "무시" &rarr; adaptive 효과 사라짐<br>
+  &nbsp;&nbsp;0.05m은 BF2~5 sweep에서 실험적으로 검증된 범용 값.
 </div>
 
 
@@ -844,6 +1092,60 @@
 
 <h3>w_phi 모드 &mdash; 왜 $k_x, k_y$를 고정하는가</h3>
 <p>추적 시 <strong>$w$(진폭)와 $\varphi$(위상)만</strong> 업데이트하고, $k_x, k_y$는 초기화에서 확정 후 고정한다.</p>
+
+<h4>Phase별 Adam optimizer 구성</h4>
+
+<p>같은 Adam 알고리즘이지만 각 단계에서 <strong>optimize 대상 파라미터와 hyperparameter가 다르다</strong>:</p>
+
+<div class="eq-box">
+  <div class="eq-label">Phase 1 (초기화) &mdash; C2F: 모든 파라미터 Adam</div>
+  $$\theta^{\text{init}} = \{w_i, k_{x,i}, k_{y,i}, \varphi_i\}_{i=1}^{N} \in \mathbb{R}^{4N}$$
+  $$\text{Adam}(\theta^{\text{init}}, \eta_{\text{init}} = 5\!\times\!10^{-3}, \beta_1=0.9, \beta_2=0.999)$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $N=3 \to 8 \to 15$로 증가하며 각 단계 200 iter &rarr; 총 600 iter. 각 파라미터에 독립된 $(m_i, v_i)$.
+  </p>
+</div>
+
+<div class="eq-box">
+  <div class="eq-label">Phase 2 (추적) &mdash; w_phi: $w, \varphi$만 Adam</div>
+  $$\theta^{\text{track}} = \{w_i, \varphi_i\}_{i=1}^{N} \in \mathbb{R}^{2N}$$
+  $$\theta^{\text{frozen}} = \{k_{x,i}, k_{y,i}\}_{i=1}^{N} \;\;\text{(requires\_grad = False)}$$
+  $$\text{Adam}(\theta^{\text{track}}, \eta_{\text{track}} = 5\!\times\!10^{-3}, \beta_1=0.9, \beta_2=0.999)$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    매 프레임 10 Adam steps, 3-frame window의 loss에 대해 실행.<br>
+    $k_x, k_y$는 initializer의 optimizer에서 제외 &rarr; backward 시에도 gradient 계산 안 함 (PyTorch freeze).
+  </p>
+</div>
+
+<h4>Phase 2 구체 흐름 (프레임당)</h4>
+<div class="flow">
+  <span class="flow-step">Predict: $\varphi_i \mathrel{{+}{=}} \omega_i \Delta t$</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-step">Buffer: FIFO($K_w=3$)</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-step">Loss: 3 frames 합산</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-step">Adam ×10 ($w, \varphi$만)</span>
+</div>
+
+<table>
+  <tr><th>단계</th><th>대상 파라미터</th><th>$m, v$ 초기화</th><th>$\eta$</th><th>Steps</th></tr>
+  <tr><td>Phase 1 (init)</td><td>$w, k_x, k_y, \varphi$ (4N)</td><td>$m=0, v=0$ (새 Adam)</td><td>$5\!\times\!10^{-3}$</td><td>600 (C2F)</td></tr>
+  <tr><td>Phase 2 (track)</td><td>$w, \varphi$ (2N)</td><td>Phase 1 마지막 상태 → <strong>새 Adam 생성</strong> (init된 파라미터만 포함)</td><td>$5\!\times\!10^{-3}$</td><td>10 / frame</td></tr>
+</table>
+
+<div class="insight">
+  <strong>구현 세부:</strong> Phase 전환 시 단순히 $k_x, k_y$에 <code>.requires_grad_(False)</code>를 호출하고
+  새 Adam optimizer를 <code>[w, phi]</code>만 포함하도록 재생성한다.
+  Phase 1의 Adam 상태 $m, v$는 버려지지만, 파라미터 값 자체는 유지되므로 $k$ 값은 init에서 확정된 상태로 얼어붙고
+  $w, \varphi$는 새 $m=0, v=0$에서 출발한다.
+</div>
+
+<div class="warn">
+  <strong>함정:</strong> <code>.requires_grad_(False)</code>만 호출하고 optimizer를 재생성하지 않으면,
+  Adam이 여전히 $k$의 <strong>과거 $v$</strong>로 학습률을 계산해서 이상한 동작을 한다.
+  코드에서는 <code>build_tracking_optimizer()</code>로 명시적 재생성.
+</div>
 
 <h4>실험으로 확인된 이유:</h4>
 <table>

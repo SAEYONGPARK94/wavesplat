@@ -4,6 +4,66 @@
 
 ---
 
+## [0.6.0] — 2026-04-22
+
+### Fixed — 빔포밍 그리드 설명 버그 수정 (코드↔문서 불일치)
+
+#### 핵심 버그
+- `wave_components` 컬럼 인덱스 오류 발견 및 수정
+  - 기존: `wc[:,1]`(omega)를 kx로, `wc[:,2]`(kx)를 ky로 잘못 참조
+  - 수정: `wc[:,2]`=kx, `wc[:,3]`=ky (컬럼 순서: [A, omega, kx, ky, phi, Q])
+  - 영향: beamforming 시각화에서 GT 마커 위치가 전부 틀렸음
+
+#### 논문/코드 불일치 수정
+- 빔포밍 격자: polar 64×128, |k|∈[0.02,0.50] rad/m, 15° 억제
+  → **Cartesian 81×81, kx,ky∈[-4.0,4.0] rad/m, 0.15 rad/m 억제**
+- 수정 대상:
+  - `paper/wavesplat.tex` — 본문, Algorithm 표
+  - `thesis/thesis_main.tex` — 본문, 의사코드, 파라미터 표 (7곳)
+  - `docs/WaveSplat_Algorithm_Guide.html`
+  - `docs/WaveSplat_Algorithm_Guide.pptx` — Slide 46/49/54
+  - `docs/labmeeting_wavesplat.pptx` — Slide 6
+
+### Changed — C1 Novelty 재프레이밍 (tracking 역할 명확화)
+
+#### 변경 이유
+- 페르소나 토론: tracking이 단순 sea state(BF3/4 5comp)에서 C2F 대비 nRMSE 2~3× 악화
+- 원인: w_phi 모드가 고주파 성분(|k|≥0.4 rad/m) 미탐지를 고착시킴
+
+#### C1 수정 (paper + thesis)
+- 기존: "frame-to-frame temporal tracking via dispersion-based phase propagation" (accuracy 함의)
+- 수정: tracking = **계산 효율성** (~10 steps vs ~200 steps) + 연속 동작
+- "Estimation accuracy depends on initialization quality" 명시
+
+#### Limitations 추가 (paper + thesis)
+- Tracking phase dependence on initialization 항목 신설
+- |k|≥0.4 rad/m 미탐지 시 tracking nRMSE 2~3× 악화 조건 기술
+
+### Added — 빔포밍 시각화 스크립트
+
+- `scripts/plot_beamforming_3d.py` — 4 에피소드 × 3단계 비교 그림 생성
+  - Raw 파워맵 → Greedy 추출 → C2F 최적화 후
+  - GT 마커 정확한 컬럼 인덱스 사용
+
+### Analysis — 알고리즘 검증 결과 (수치)
+
+```
+빔포밍 GT 탐지율 (P/Pmax):
+  BF3 GT[0~2]: 0.168~1.000 → 정확 탐지
+  BF3 GT[3,4]: 0.000       → 탐지 불가 (|k|=0.67, 1.01 rad/m)
+  BF4 GT[3,4]: 0.001~0.006 → 탐지 불가 (|k|=0.42, 0.62 rad/m)
+
+C2F 최적화 후 nRMSE:
+  BF2 1comp:  0.264 (단일 성분이지만 SNR 낮아 과파라미터화)
+  BF3 5comp:  0.075 (저주파 성분 정확, 고주파 미탐지)
+  BF4 5comp:  0.067 (동일)
+  BF4 15comp: 0.217 (6/15 정확, 고주파 계통적 누락)
+```
+
+**Commits**: `92f98d1` → `9eb6b29` → `89c0f7a` → `bd01f21` → `617b7e9`
+
+---
+
 ## [0.5.0] — 2026-04-07
 
 ### Added — Raydrop 모델 비교 실험

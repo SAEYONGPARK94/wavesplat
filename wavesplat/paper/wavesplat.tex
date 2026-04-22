@@ -207,12 +207,18 @@ Our key contributions are:
 \begin{enumerate}
   \item \textbf{Grid-free spectral estimation framework (C1)}: Direct
     estimation on sparse, irregularly distributed observations without
-    grid interpolation, with frame-to-frame temporal tracking via
-    dispersion-based phase propagation.
+    grid interpolation, enabling wave field evaluation at arbitrary
+    spatial resolution.
     Unlike single-snapshot sparse spectral methods~\citep{drazen2008},
-    WaveSplat maintains component identity across frames,
-    enabling continuous spatial evaluation at arbitrary resolution
-    while naturally adapting to any observation pattern.
+    the spectral component representation persists across frames,
+    allowing computationally efficient per-frame updates via
+    dispersion-based phase prediction ($\sim$10 gradient steps)
+    rather than full re-initialization ($\sim$200 steps per frame),
+    while supporting continuous monitoring without the discrete
+    update latency of filter-based approaches.
+    Estimation accuracy depends on initialization quality;
+    tracking refines amplitudes and phases given the wavenumbers
+    established during initialization.
   \item \textbf{Dispersion-constrained parameterization (C2)}: Hard
     enforcement of the full dispersion relation (including $\tanh$
     depth dependence) reduces the free parameter count and acts as a
@@ -1406,6 +1412,16 @@ model, and wave tank and sea-trial validation is planned next.
 $<0.5\%$ for the BF2--5 range tested ($\epsilon\approx 0.05$--$0.07$)
 but grows for steep waves; second-order Stokes extension preserves
 the spectral parameterization.
+\emph{Tracking phase dependence on initialization}: the \texttt{w\_phi}
+tracking mode freezes wavenumbers and updates only amplitudes and phases,
+so components missed during beamforming initialization cannot be recovered
+during tracking.  In moderate sea states where high-wavenumber components
+($|k|\gtrsim 0.4$~rad/m) fall below the beamforming detection threshold,
+tracking nRMSE can be 2--3$\times$ higher than the post-initialization
+nRMSE.  The net benefit of tracking is therefore concentrated in
+providing real-time computational efficiency ($\sim$10 gradient steps
+vs.\ $\sim$200 for full re-initialization) rather than accuracy
+improvement beyond initialization.
 \emph{Initialization resolution}: for $N_{\text{true}}\geq 30$,
 beamforming cannot resolve all components due to wavenumber-space
 crowding; higher-resolution or 3D $(k_x,k_y,\omega)$ FFT could help.

@@ -611,18 +611,19 @@
 <p><strong>직관적 의미:</strong> "만약 $(k_x, k_y)$ 방향의 파도가 있다면, 관측값에 위상 보정을 하면 모두 같은 방향을 가리킬 것이다. 그 합의 크기가 클수록 그 방향의 파도가 실제로 존재한다."</p>
 <ul>
   <li>$\exp(-i\ldots)$ = 위상 보정 (steering). 정렬이 잘 되면 보강 간섭 &rarr; $P$ 큼</li>
-  <li>탐색 격자: $|\mathbf{k}|$ 64개 &times; 방위각 128개 = 8,192 후보 (극좌표)</li>
+  <li>탐색 격자: $k_x, k_y \in [-4.0, 4.0]$ rad/m, $81 \times 81 = 6{,}561$ 후보 (직교좌표)</li>
+  <li>격자 해상도 $\Delta k \approx 0.10$ rad/m, 파장 범위 ~1.6 m ~ 130 m (BF2~5 커버)</li>
 </ul>
 
 <h3>Greedy 피크 추출</h3>
 <ol>
   <li>$P(k_x, k_y)$에서 최대 피크 $(k_x^*, k_y^*)$ 찾기</li>
   <li>이 피크를 성분 목록에 추가</li>
-  <li>피크 주변 <strong>15&deg; 범위 억제</strong> (sidelobe 제거)</li>
+  <li>피크 주변 <strong>Cartesian 반경 0.15 rad/m 억제</strong> (sidelobe 제거)</li>
   <li>다음 최대 피크 찾기</li>
   <li>반복 ($N_{\max}$개까지 또는 임계값 이하까지)</li>
 </ol>
-<p>15&deg; 각도 억제 이유: 빔포밍의 main lobe 폭이 ~15&deg;이므로, 같은 파도의 sidelobe를 별도 성분으로 오인하는 것을 방지한다.</p>
+<p>0.15 rad/m 억제 이유: 직교 격자에서 같은 파도의 sidelobe를 별도 성분으로 오인하는 것을 방지하면서, 교차해(crossing seas)를 분리 해상도 내에서 분리한다.</p>
 
 <h3>선형 최소제곱 &mdash; 진폭과 위상 초기화</h3>
 <p>$k_x, k_y$가 정해지면 $\cos(k_x x + k_y y - \omega t)$은 <strong>'알려진 기저'</strong>가 된다:</p>

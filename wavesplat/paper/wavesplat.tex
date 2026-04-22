@@ -435,7 +435,7 @@ the complete pipeline.
 \textbf{Phase 1: Initialization} (frames $1$ to $T_\text{init}/\Delta t$) \\
 \midrule
 1. Accumulate multi-frame observations $\{(x_j, y_j, z_j, t_j)\}$ \\
-2. Compute beamforming power $P(k_x, k_y)$ on polar grid \\
+2. Compute beamforming power $P(k_x, k_y)$ on Cartesian grid \\
 3. Extract top-$N$ wavenumber peaks with greedy suppression \\
 4. Estimate amplitudes/phases via linear least-squares \\
 5. Coarse-to-fine refinement: $N$=3 $\to$ 8 $\to$ 15 \\
@@ -463,16 +463,15 @@ optimize all spectral parameters through a three-stage coarse-to-fine
 procedure.
 
 \textbf{Dispersion-aware beamforming.}
-Initial wavenumber estimates are obtained by scanning a polar grid
-in wavenumber space.  The grid covers
-$|k| \in [0.02, 0.50]$~rad/m (corresponding to wavelengths
-$\lambda = 2\pi/|k| \in [12.6, 314]$~m, spanning Beaufort~2--5
-conditions at $d$=50~m depth) with 64~radial $\times$ 128~azimuthal
-bins.  The radial range is determined by the dispersion relation:
-$|k|_\text{min} = 0.02$ corresponds to BF5 swell ($T_p \approx 9$~s),
-and $|k|_\text{max} = 0.50$ corresponds to the shortest wavelength
-resolvable from the LiDAR spatial extent ($\sim$200~m observation
-radius).
+Initial wavenumber estimates are obtained by scanning a Cartesian
+grid in wavenumber space.  The grid covers
+$k_x, k_y \in [-4.0, 4.0]$~rad/m with $81 \times 81$ bins
+(resolution $\Delta k \approx 0.10$~rad/m), spanning wavelengths
+from $\sim$1.6~m to $\sim$130~m and encompassing Beaufort~2--5
+conditions at $d$=50~m depth.  The search bound of 4.0~rad/m
+is set conservatively above the highest wavenumber component
+present in the dataset ($|k|_\text{max} \approx 1.0$~rad/m for
+BF3--5 sea states), ensuring full coverage with margin.
 
 For each candidate $(k_x, k_y)$, we compute
 $\omega = \sqrt{g|k|\tanh(|k|d)}$ and evaluate the beamforming power:
@@ -486,11 +485,11 @@ wave signals, suppressing noise that does not lie on the
 dispersion surface in $(k_x, k_y, \omega)$ space.
 
 Peaks in $P$ are extracted greedily: the maximum is selected, then
-all candidates within $15^\circ$ angular separation are suppressed,
-and the process repeats.  The $15^\circ$ threshold prevents double-
-counting of the same wave component spread across adjacent
-wavenumber bins, while being narrow enough to resolve crossing sea
-systems.  The initial amplitude and phase of each extracted component
+all candidates within a Cartesian radius of 0.15~rad/m are
+suppressed, and the process repeats.  The 0.15~rad/m threshold
+prevents double-counting of the same wave component spread across
+adjacent wavenumber bins, while being narrow enough to resolve
+crossing sea systems.  The initial amplitude and phase of each extracted component
 are estimated via linear least-squares projection of the accumulated
 observations onto the selected wavenumber basis functions.
 

@@ -54,6 +54,14 @@ class EpisodeDataLoader:
                                        dtype=torch.float32, device=self.device)
 
         # Wave components (for oracle baseline)
+        # Column order (from wavesim/data_writer.py):
+        #   [A, omega, kx, ky, phi, Q]
+        #   col 0: amplitude A [m]
+        #   col 1: angular frequency omega [rad/s]
+        #   col 2: wavenumber kx [rad/m]
+        #   col 3: wavenumber ky [rad/m]
+        #   col 4: phase phi [rad]
+        #   col 5: Q factor (spectral width)
         self.wave_components = self.data.get('wave_components', None)
 
         # Spectrum

@@ -819,6 +819,13 @@
   <tr><td>업데이트 대상</td><td>$w, k_x, k_y, \varphi$ 모두</td><td>$w, \varphi$만 (w_phi 모드)</td></tr>
 </table>
 
+<div class="warn">
+  <strong>추적 정확도는 초기화 품질에 의존한다.</strong><br>
+  w_phi 모드는 $k_x, k_y$를 고정하므로, 빔포밍 초기화에서 탐지되지 못한 고주파 성분($|k|\gtrsim 0.4$ rad/m)은 추적 단계에서도 복원되지 않는다.
+  이 경우 추적 nRMSE가 초기화 직후보다 2~3배 높아질 수 있다.
+  추적의 주된 이점은 정확도 향상이 아니라 <strong>계산 효율성</strong> (~10 steps vs ~600 steps)과 연속적 실시간 동작에 있다.
+</div>
+
 <h3>위상 전파 (Predict Step)</h3>
 <div class="eq-box">
   $$\varphi_i(t+\Delta t) = \varphi_i(t) + \omega_i \cdot \Delta t$$

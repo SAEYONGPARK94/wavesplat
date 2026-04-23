@@ -1,0 +1,106 @@
+\documentclass[11pt, a4paper]{letter}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{hyperref}
+\usepackage{parskip}
+
+\signature{Saeyong Park}
+\address{Saeyong Park\\
+Avikus (HD Hyundai)\\
+Republic of Korea\\
+\texttt{saeyong.park@avikus.ai}}
+
+\begin{document}
+
+\begin{letter}{%
+The Editors\\
+\textit{Ocean Engineering}\\
+Elsevier
+}
+
+\opening{Dear Editors,}
+
+We submit for your consideration the manuscript entitled
+\textbf{``WaveSplat: Grid-Free Spectral Wave Field Estimation from Sparse
+Shipboard LiDAR''} for publication in \textit{Ocean Engineering}.
+
+\textbf{Scope and motivation.}
+Real-time wave field estimation from shipboard sensors is a critical
+enabler for autonomous maritime operations, including proactive motion
+compensation, route optimisation, and wave-preview feedforward control.
+Existing methods rely on spatial grid discretisation combined with ensemble
+Kalman filtering, which introduces interpolation artefacts and fixed spatial
+resolution.
+This submission addresses these limitations with a fundamentally different
+representation.
+
+\textbf{Principal contributions.}
+WaveSplat represents the ocean wave field as a superposition of
+spectral components — plane waves constrained by the linear dispersion
+relation — optimised directly on sparse, irregularly distributed LiDAR
+observations without any spatial grid.
+Four novel contributions are presented:
+\begin{enumerate}
+  \item A \emph{grid-free spectral estimation framework} with persistent
+    cross-frame tracking via dispersion-based phase prediction, enabling
+    real-time operation with approximately 10 gradient steps per frame.
+  \item A \emph{dispersion-constrained parameterisation} that reduces the
+    free parameter count from $5N$ to $4N$ and acts as a physics-based
+    regulariser against overfitting, quantified through ablation.
+  \item An \emph{incidence-angle-weighted observation model} that accounts
+    for the heteroscedastic noise structure of LiDAR measurements on ocean
+    surfaces.
+  \item An \emph{adaptive model complexity} mechanism that automatically
+    selects the number of spectral components from $N{=}1$ for simple swells
+    to $N{=}21$ for complex multi-component seas.
+\end{enumerate}
+
+\textbf{Key results.}
+On a physics-based simulation dataset of 100 episodes spanning Beaufort 2--5
+sea states (1--30 wave components), WaveSplat achieves:
+\begin{itemize}
+  \item \textbf{30.1\% lower normalised RMSE} than a hyperparameter-tuned
+    Ensemble Transform Kalman Filter (ETKF) baseline
+    (0.223 vs.\ 0.319, Wilcoxon $p{=}1.1\!\times\!10^{-15}$,
+    Cohen's $d{=}1.16$);
+  \item \textbf{approximately $10\times$ faster} inference
+    (13.4 vs.\ 132.6 ms/frame, single CPU thread);
+  \item the \textbf{only positive Skill Score} in a pre-registered
+    six-metric evaluation panel against a zero-predictor reference,
+    exposing both the ETKF (shape-incoherent) and sliding-window GPR
+    (near-zero predictor) as failing this basic test.
+\end{itemize}
+The improvement is highly significant across 100 paired runs with five
+random seeds, and is robust to both diffuse and specular LiDAR observation
+models and to extreme observation sparsity ($<$8\% degradation at 20\%
+observation density).
+
+\textbf{Relevance to Ocean Engineering.}
+This work directly addresses the operational challenge of real-time
+wave field reconstruction for vessel-scale maritime applications.
+The method requires no pre-trained models, no offline calibration beyond
+water depth, and runs on standard CPU hardware at 10-Hz LiDAR frame rates.
+Results include a companion application to wave-preview feedforward
+motion control of hydrofoil vessels, demonstrating the practical value
+of the spectral representation for downstream maritime control systems.
+
+\textbf{Originality statement.}
+This work is original and is not under consideration elsewhere.
+The simulation code, all experiment scripts, and five representative
+episodes are openly available at the project repository to ensure
+end-to-end reproducibility of all reported tables and figures.
+
+\textbf{Suggested reviewers.}
+We suggest the following experts in ocean wave sensing and data
+assimilation (the authors have no conflict of interest with any of them):
+\begin{itemize}
+  \item Prof.\ Tianhao Liu (wave sensing from ship-mounted sensors)
+  \item Prof.\ Johannes Gemmrich (ocean surface wave observations)
+  \item Dr.\ Nicolas Desmars (LiDAR-based wave field reconstruction)
+\end{itemize}
+
+We look forward to your consideration of this manuscript.
+
+\closing{Sincerely,}
+
+\end{letter}
+\end{document}

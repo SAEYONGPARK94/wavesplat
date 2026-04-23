@@ -4,6 +4,43 @@
 
 ---
 
+## [0.8.0] — 2026-04-23
+
+### Added — 투고 준비 완료 (Ocean Engineering)
+
+#### 논문 최종 검토 반영 (v0.7.1)
+- Algorithm Table Step 3.5: fine refinement (2-stage beamforming) 추가
+- Dir. R²=-0.25 물리 원인 Discussion 섹션 추가 (§ Directional estimation deficit)
+  - Forward LiDAR ±θ 방향 모호성 설명, yaw variation 완화 제안
+- Grown components C2F 없음 명시 (재현성)
+- 13.4 vs 14.2ms 불일치: Table caption에 median(13.3ms) 추가로 해명
+- 컴파일 에러 수정: L1393 `$\sim$120^\circ$` → `${\sim}120^\circ$`
+
+#### 투고 패키지 완성
+- `paper/cover_letter.tex` — Ocean Engineering 커버레터 (컴파일 완료)
+  - 4개 핵심 기여 설명, 주요 결과 수치, reproducibility statement
+  - 리뷰어 3명 추천 포함
+- `paper/submission/graphical_abstract.pdf` — 3-panel 요약 그림
+  - (a) Sparse LiDAR observations, (b) WaveSplat pipeline, (c) 100-episode results
+
+#### 실험 스크립트 추가
+- `scripts/run_tau_sensitivity.py` — τ_R ∈ {0.02, 0.05, 0.08, 0.10, 0.15}m 민감도 분석
+- `scripts/run_gpr_confidence_ablation.py` — GPR + confidence 4-way ablation
+  - WS+conf / WS-conf / GPR / GPR+conf 비교
+  - C3 novelty가 WaveSplat 고유인지 general technique인지 검증
+
+#### 기타
+- Thesis 컴파일 (pdflatex) 에러 없음 확인
+- Memory 파일 업데이트 (project_status, ocean_eng_conversion)
+
+### 논문 투고 준비 상태
+- Paper 컴파일: ✅ (pdflatex + bibtex 에러 없음)
+- Cover letter: ✅
+- Graphical abstract: ✅
+- CRediT, Data availability, Declaration: ✅ (이전 세션)
+
+---
+
 ## [0.7.0] — 2026-04-23
 
 ### Fixed — Paper/Thesis 재현성 및 정확성 수정 (4-persona 검토 기반)

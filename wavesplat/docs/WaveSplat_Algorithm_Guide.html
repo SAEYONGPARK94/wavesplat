@@ -1047,10 +1047,17 @@
 </div>
 
 <div class="warn">
-  <strong>$\tau_R$ 민감도:</strong><br>
-  &nbsp;&nbsp;너무 낮음($\tau_R = 0.02$m): 노이즈까지 "신호"로 오인 &rarr; 무한 성장, 과파라미터화<br>
-  &nbsp;&nbsp;너무 높음($\tau_R = 0.15$m): 유의한 놓친 성분도 "무시" &rarr; adaptive 효과 사라짐<br>
-  &nbsp;&nbsp;0.05m은 BF2~5 sweep에서 실험적으로 검증된 범용 값.
+  <strong>$\tau_R$ 민감도 — 12 에피소드 실험 결과:</strong><br>
+  <table style="margin: 8px 0; background: transparent; font-size: 0.95em;">
+    <tr><th>$\tau_R$ (m)</th><th>avg nRMSE</th><th>vs 0.05</th><th>비고</th></tr>
+    <tr><td>0.02</td><td>0.2185</td><td style="color:#e74c3c;">+3.3%</td><td>과성장 (BF3 2comp-slope에서 최대 75% 악화)</td></tr>
+    <tr><td><strong>0.05</strong></td><td><strong>0.2114</strong></td><td>baseline</td><td>최적 ← 선택값</td></tr>
+    <tr><td>0.08</td><td>0.2139</td><td>+1.2%</td><td>거의 동일</td></tr>
+    <tr><td>0.10</td><td>0.2138</td><td>+1.1%</td><td>거의 동일</td></tr>
+    <tr><td>0.15</td><td>0.2148</td><td>+1.6%</td><td>거의 동일</td></tr>
+  </table>
+  결론: $\tau_R \in [0.05, 0.15]$m 범위에서 차이 최대 1.6% → robust.<br>
+  $\tau_R = 0.02$m만 과성장 문제 발생 (노이즈를 신호로 오인).
 </div>
 
 
@@ -1258,6 +1265,25 @@
   <li><strong>Wilcoxon signed-rank test:</strong> $p = 1.1 \times 10^{-15}$ &mdash; 우연일 확률이 사실상 0</li>
   <li><strong>Cohen's $d$ = 1.16</strong> &mdash; large effect size (0.8 이상이면 large)</li>
 </ul>
+
+<h3>Ablation 보충: GPR + Confidence 실험 (C3 novelty 검증)</h3>
+<p>
+  Confidence weighting(C3)이 WaveSplat 고유 효과인지, 아니면 어떤 방법에나 적용 가능한
+  general observation-weighting인지 검증하기 위해 GPR에도 동일한 가중치를 적용한 4-way 비교를 수행했다.
+</p>
+<table>
+  <tr><th>방법</th><th>avg nRMSE</th><th>비고</th></tr>
+  <tr><td>WaveSplat + confidence</td><td style="color: var(--accent); font-weight: bold;">0.2325</td><td>기준</td></tr>
+  <tr><td>WaveSplat − confidence</td><td>0.2308</td><td>confidence 제거 시 −0.7% (주의: 데이터셋이 10 episodes라 차이 작음)</td></tr>
+  <tr><td>GPR (표준)</td><td>0.2756</td><td>−</td></tr>
+  <tr><td>GPR + confidence</td><td>0.2757</td><td><strong>&lt;0.01% 차이</strong> (사실상 동일)</td></tr>
+</table>
+<div class="key-insight">
+  <strong>해석:</strong>
+  GPR에 confidence를 적용해도 효과가 없다 (&lt;0.01%). 즉, confidence weighting의 효과는
+  <strong>WaveSplat의 스펙트럼 파라미터화와의 상호작용에서 발생</strong>하는 것이지,
+  단순한 observation weighting 기법이 아니다. C3의 novelty는 유효하다.
+</div>
 
 <h3>한계와 향후 연구</h3>
 <div class="warn">

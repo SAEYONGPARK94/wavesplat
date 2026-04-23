@@ -39,9 +39,12 @@
 - GPR+conf ≈ GPR (차이 <0.01%) → C3 confidence weighting은 WaveSplat spectral parameterization과의 상호작용 효과
 - paper/wavesplat.tex §A2에 반영: "Adding confidence weights to GPR produces no measurable improvement"
 
-#### τ_R Sensitivity Sweep 부분 결과 (12 episodes, 실행 중)
-- 완료된 8개 에피소드 패턴: τ=0.05가 최적, τ=0.08-0.15는 동일, τ=0.02는 BF3_2comp_slope에서 75% 악화
-- 결론: τ_R=0.05m 선택이 robust (±0.05m 범위에서 stable)
+#### τ_R Sensitivity Sweep 완료 (12 episodes)
+- `results/tau_sensitivity.json` 생성
+- τ=0.05 → avg 0.2114 (최적), τ=0.08/0.10/0.15 → +1.1~1.6%, τ=0.02 → +3.3% (과성장)
+- paper/wavesplat.tex §3.2.2 τ_R 유도 단락에 정량 결과 반영
+  ("values in [0.05, 0.15] m differ by at most 1.6% in average nRMSE")
+- 결론: τ_R=0.05m 선택이 robust (±0.10m 범위 stable)
 
 ### 논문 투고 준비 상태
 - Paper 컴파일: ✅ (pdflatex + bibtex 에러 없음)

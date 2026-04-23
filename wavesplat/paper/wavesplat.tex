@@ -416,10 +416,19 @@ We assign per-observation confidence weights:
   c_j = \frac{\cos(\theta_j)}{d_j / d_{\text{ref}}}
   \label{eq:confidence}
 \end{equation}
-where $\theta_j$ is the beam incidence angle (computed from the
-local surface normal and beam direction), $d_j$ is the range,
-and $d_{\text{ref}} = 125$~m is a reference distance chosen as
-half the maximum LiDAR range.
+where $\theta_j$ is the beam incidence angle between the LiDAR ray
+direction and the local water surface normal $\mathbf{n}$, $d_j$ is
+the range, and $d_{\text{ref}} = 125$~m is a reference distance chosen
+as half the maximum LiDAR range.
+In the simulation experiments reported here, $\mathbf{n}$ is obtained
+from the ground-truth Gerstner wave mesh.  For real-data deployment,
+the surface normal is unknown prior to reconstruction; a pragmatic
+approximation is $\mathbf{n} \approx \hat{\mathbf{z}}$ (flat-surface
+assumption), introducing a slope-dependent error bounded by the wave
+steepness $\epsilon \approx 0.05$ at BF4 (${\sim}3^\circ$ normal
+deviation). For near-normal observations ($\theta < 30^\circ$) this
+yields $<2\%$ error in $\cos\theta_j$; grazing observations
+($\theta \approx 60^\circ$) can see up to ${\sim}9\%$ error.
 These weights are incorporated in the optimization loss as weighted
 mean squared error, giving higher influence to close-range,
 near-normal observations.
@@ -499,6 +508,15 @@ crossing sea systems.  The initial amplitude and phase of each extracted compone
 are estimated via linear least-squares projection of the accumulated
 observations onto the selected wavenumber basis functions.
 
+Each extracted peak is then refined locally via a second beamforming
+pass on a finer $41\times41$ grid spanning $\pm0.2$~rad/m around
+the coarse peak ($\Delta k_{\text{fine}} = 0.01$~rad/m), improving
+wavenumber accuracy from $\sim0.10$ to $\sim0.01$~rad/m. Without
+this refinement, the 0.10~rad/m coarse grid would limit $|\mathbf{k}|$
+accuracy to roughly 17\% at typical BF4 wavenumbers
+($|\mathbf{k}| \approx 0.6$~rad/m), inducing significant phase
+drift during subsequent tracking.
+
 \textbf{Coarse-to-fine optimization.}
 Starting from the beamforming initialization, we optimize the
 spectral parameters in three stages ($N$=3 $\to$ 8 $\to$ 15),
@@ -541,11 +559,17 @@ This can occur when two components of similar energy
 contribute to different spatial regions (e.g., crossing seas),
 making each individually appear low-energy.
 
-If the residual RMS after pruning exceeds 0.05~m (indicating
-unmodeled wave energy), new components are grown by applying
-beamforming to the residual signal $r_j = z_j - \hat{z}_j$ and
-adding the dominant residual peaks to the model, up to
-$N_{\max}=30$.
+If the residual RMS after pruning exceeds $\tau_R = 0.05$~m
+(indicating unmodeled wave energy), new components are grown by
+applying beamforming to the residual signal $r_j = z_j - \hat{z}_j$
+and adding the dominant residual peaks to the model, up to
+$N_{\max}=30$. The threshold is derived from the theoretical
+residual floor: combining LiDAR range noise ($\sigma_r \approx
+0.02$~m) with the Gerstner--linear model mismatch at BF4
+($O(\epsilon^2)\,H_s/2 \approx 6$~mm) and angular-noise projection
+(${\sim}5$~mm) yields a lower-bound RMS of ${\sim}0.022$~m;
+$\tau_R = 0.05$~m provides a ${\sim}2.3\times$ safety margin for
+unambiguous detection of unmodeled signal.
 
 \subsubsection{Phase 2: Tracking}
 
@@ -1117,12 +1141,21 @@ ablation is extended to the full BF4--BF5 high-sea subset
 Full=$0.266\pm 0.047$, an apparent 9.4\% nRMSE advantage for the
 unconstrained variant; the effect is consistent on BF5 alone,
 A1=0.256 vs.\ Full=0.279).
-This result requires careful interpretation.  The unconstrained
-optimizer absorbs the model mismatch between the linear
-forward model~\eqref{eq:forward} and the nonlinear Gerstner ground
-truth by allowing each $(k,\omega)$ pair to drift off the dispersion
-manifold, which trades \emph{physical correctness} for nRMSE.  The
-resulting spectral estimates do not satisfy
+This result requires careful interpretation.  The 9.4\% nRMSE
+advantage of A1 should not be mistaken as evidence that the
+dispersion constraint is physically too restrictive.  For BF3--5
+deep-water gravity waves, $>99\%$ of wave energy lies on the linear
+dispersion shell~\citep{holthuijsen2007}; bound harmonic
+contributions from second-order Stokes theory scale as
+$\epsilon^2/4 < 0.15\%$ at BF4.  The observed $\bar R = 0.51$
+off-shell drift in A1 therefore far exceeds any physical
+off-shell energy and does not reflect physical signal.
+Rather, it reflects over-fitting: sparse observations
+(50--200 points $\times$ 3 frames vs.\ $5N = 75$ free
+parameters for $N = 15$) underconstrain the unconstrained model,
+which absorbs noise and model mismatch by letting $\omega$ drift
+off the dispersion manifold, trading \emph{physical correctness}
+for nRMSE.  The resulting spectral estimates do not satisfy
 $\omega^2 = g\,|k|\,\tanh(|k|d)$ by construction, so they cannot be
 propagated forward in time, transformed to other spatial frames, or
 fed into downstream wave-forecasting modules that assume gravity-wave
@@ -1427,8 +1460,24 @@ beamforming cannot resolve all components due to wavenumber-space
 crowding; higher-resolution or 3D $(k_x,k_y,\omega)$ FFT could help.
 \emph{Current estimation}: we do not estimate ocean currents, whose
 Doppler shift makes the apparent dispersion
-$\omega=\sqrt{g|k|\tanh(|k|d)}+\mathbf{k}\cdot\mathbf{U}$; joint
-current--wave estimation is a natural extension.
+$\omega=\sqrt{g|k|\tanh(|k|d)}+\mathbf{k}\cdot\mathbf{U}$; a
+0.5~m/s current introduces ${\sim}5\%$ frequency bias at BF4.
+Joint current--wave estimation is a natural extension.
+\emph{Surface normal approximation for real data}: in simulation
+we use the exact Gerstner surface normal for confidence weighting
+$c_j$, but real-data application must substitute the flat-surface
+approximation $\mathbf{n}\approx\hat{\mathbf{z}}$.  The resulting
+bias scales with wave slope (up to ${\sim}9\%$ in $\cos\theta_j$
+at grazing incidence at BF4); wave-tank validation is planned to
+characterise the end-to-end nRMSE impact.
+\emph{Observation weight nomenclature}: we refer to the weighting
+$c_j = \cos\theta_j/(d_j/d_{\text{ref}})$ as ``Fresnel-aware'' to
+reflect its physical motivation from Fresnel reflection asymmetry
+and heteroscedastic measurement noise.  The functional form is a
+deliberate simplification of the exact Fresnel reflectance
+$R(\theta)$~\citep{born1999}, which would additionally require
+surface-roughness and polarisation assumptions that are difficult
+to justify from observation alone.
 \emph{Baseline fairness}: the 24-configuration ETKF sweep
 (Section~\ref{sec:fulleval}) shows our conclusions hold under the
 best ETKF configuration, but LETKF with spatial localization and

@@ -4,6 +4,45 @@
 
 ---
 
+## [0.7.0] — 2026-04-23
+
+### Fixed — Paper/Thesis 재현성 및 정확성 수정 (4-persona 검토 기반)
+
+#### 문제 1: Fine Refinement 누락 (재현성 필수)
+- **paper/wavesplat.tex** §3 빔포밍 섹션에 2단계 빔포밍 기술 추가
+  - Coarse 81×81 (Δk=0.10 rad/m) + Fine 41×41 (Δk=0.01 rad/m, ±0.2 rad/m)
+  - "Without this refinement, ~17% |k| accuracy limit at BF4" 재현성 경고 추가
+- **thesis/thesis_main.tex** 에 동일 내용 한국어 동기화
+  - Table Step 3.5 추가
+  - 본문 단락 추가 (greedy 추출 뒤)
+  - Algorithm 1 Step 2.5 pseudocode 추가
+
+#### 문제 2: Confidence Normal 가정 — sim/real 구분 명시
+- **paper/wavesplat.tex** L419: "local surface normal" → sim/real 구분 설명으로 교체
+  - Sim: Gerstner true normal, Real: flat 가정 (n≈ẑ), 오차 <2% (θ<30°) ~ 9% (θ~60°)
+- **thesis/thesis_main.tex** L1098: 동일 내용 한국어로 추가
+
+#### 문제 3: A1 Ablation 재해석 — bound harmonics 정량 설명 추가
+- **paper/wavesplat.tex** L1120: A1 해석 단락에 "bound harmonics <0.15% at BF4" 정량 근거 추가
+  - R̄=0.51 >> 물리적 기대값 → over-fitting artifact 논리 강화
+  - `holthuijsen2007` 인용 추가
+
+#### 문제 4: τ_R = 0.05m 유도 보강
+- **paper/wavesplat.tex** L544: 값만 제시 → 이론 하한 (0.022m) × 2.3× safety margin 유도 삽입
+
+### Added — Limitations 보강
+- **paper/wavesplat.tex** Limitations 섹션에 2개 항목 추가:
+  - Surface normal 실측 근사 한계 (grazing ~9% bias)
+  - Fresnel-aware 명칭 정직화 (Lambertian projection × inverse distance 공식 명시)
+- Current estimation 항목에 "0.5m/s → ~5% BF4 bias" 정량 수치 추가
+
+### Added — Bibliography
+- **paper/references.bib**: `born1999` (Born & Wolf, Principles of Optics) 추가
+
+**Commits**: 이번 세션 수정
+
+---
+
 ## [0.6.0] — 2026-04-22
 
 ### Fixed — 빔포밍 그리드 설명 버그 수정 (코드↔문서 불일치)

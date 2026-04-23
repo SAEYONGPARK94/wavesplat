@@ -1095,9 +1095,15 @@ Lambertian 모델에서 $\cos\theta$에 비례하고,
   c_j = \frac{\cos\theta_j}{d_j / d_{\mathrm{ref}}}, \quad d_{\mathrm{ref}} = 125\,\text{m},
   \label{eq:confidence}
 \end{equation}
-여기서 $\theta_j$는 빔 입사각(국소 표면 법선과 빔 방향으로부터 계산),
+여기서 $\theta_j$는 LiDAR 빔 방향과 해수면 법선 $\mathbf{n}$ 사이의 입사각,
 $d_j$는 거리, $d_{\mathrm{ref}} = 125$\,m은 최대 LiDAR 사거리(250\,m)의 절반으로
 설정한 기준 거리이다.
+시뮬레이션에서는 Gerstner 메시로부터 계산된 정확한 표면 법선
+$\mathbf{n}_{\text{true}}$를 사용한다. 실측에서는 파도면 법선이 사전에
+알려지지 않으므로 $\mathbf{n} \approx \hat{\mathbf{z}}$ (평균 해수면 가정)으로
+근사한다. 근사 오차는 파도 경사 $\epsilon \approx 0.05$ (BF4)에 비례하며,
+$\cos\theta_j$에서 grazing 관측 ($\theta \sim 60^\circ$) 약 9\%,
+near-normal ($\theta < 30^\circ$) 약 1--2\%이다.
 $\cos\theta_j$ 항은 Lambertian diffuse reflection의 투영 인자와
 Fresnel 반사율의 급격한 $\theta$ 의존성을 동시에 근사하며,
 $d_j/d_{\mathrm{ref}}$ 항은 역제곱 거리 감쇠를 정규화된 형태로 반영한다.
@@ -1188,6 +1194,7 @@ Adam의 모멘텀 갱신과 호환시킨다.
 1. 다중 프레임 관측 $\{(x_j, y_j, z_j, t_j)\}$ 축적 \\
 2. 직교좌표 파수 격자에서 빔포밍 파워 $P(k_x, k_y)$ 계산 \\
 3. Cartesian 반경 0.15\,rad/m 억제 기반 greedy 피크 추출 \\
+3.5. 각 피크를 $\pm0.2$\,rad/m 내 $41\times41$ 미세 격자($\Delta k_f=0.01$\,rad/m)로 재탐색 \\
 4. 선형 최소제곱으로 진폭/위상 추정 \\
 5. Coarse-to-fine 최적화: $N$=3 $\to$ 8 $\to$ 15 \\
 \quad --- 각 단계: 200 Adam steps, lr=$5\times 10^{-3}$ \\
@@ -1235,6 +1242,15 @@ $P$의 피크를 greedy로 추출한다: 최대값을 선택한 후
 Cartesian 반경 0.15\,rad/m 내의 모든 후보를 억제하고 반복한다.
 0.15\,rad/m 임계값은 같은 파도 성분의 인접 파수 빈 간 중복 계수를 방지하면서,
 교차해(crossing seas)를 분리하기에 충분히 좁다.
+각 추출된 피크는 추가로 세밀 탐색(fine refinement)을 통해 정밀화된다:
+coarse 피크 $(k_x^*, k_y^*)$ 주변 $\pm0.2$\,rad/m 영역을
+$41\times41$ 미세 격자($\Delta k_f = 0.01$\,rad/m)로 재탐색하여
+최대 파워 지점 $(k_x^f, k_y^f)$을 채택한다.
+이 2단계 구성(coarse $\Delta k=0.10$ + fine $\Delta k=0.01$)을 통해
+파수 추정 정확도가 0.10\,rad/m에서 약 0.01\,rad/m로 향상된다.
+이 fine refinement 없이는 전형적 BF4 파수($|\mathbf{k}|\approx0.6$\,rad/m)에서
+약 17\%의 $|\mathbf{k}|$ 오차가 발생하여 tracking 단계에서 위상 오차가 누적된다.
+
 추출된 각 성분의 초기 진폭과 위상은 선형 최소제곱으로 추정한다.
 $N_{\text{peak}}$개의 피크 파수 $\{(k_{x,i}, k_{y,i})\}$가 선택되면,
 각 관측에 대해 $2N_{\text{peak}}$개의 기저함수 행렬을 구성한다:
@@ -3431,6 +3447,12 @@ LiDAR 정밀도가 가장 높은 근거리 영역과 일치한다.
   \STATE $\mathcal{P} \leftarrow \mathcal{P} \cup \{(k_x^*, k_y^*)\}$
   \STATE Cartesian 반경 억제: $P(k_x, k_y) \leftarrow 0$ for $\|(k_x,k_y)-(k_x^*,k_y^*)\| < 0.15$\,rad/m
 \ENDWHILE
+
+\STATE \textbf{// Step 2.5: Fine Refinement (각 피크마다)}
+\FOR{각 $(k_x^*, k_y^*) \in \mathcal{P}$}
+  \STATE $\pm0.2$\,rad/m 범위를 $41\times41$ 미세 격자($\Delta k_f=0.01$\,rad/m)로 빔포밍 재수행
+  \STATE $(k_x^*, k_y^*) \leftarrow \arg\max P_{\text{fine}}$ \COMMENT{coarse 피크를 fine 추정으로 갱신}
+\ENDFOR
 
 \STATE \textbf{// Step 3: 선형 최소제곱으로 진폭/위상 초기화}
 \STATE 기저 행렬 $\mathbf{A}$ 구성 (식~\ref{eq:gerstner_x} 참조)

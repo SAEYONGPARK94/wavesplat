@@ -452,6 +452,7 @@ the complete pipeline.
 1. Accumulate multi-frame observations $\{(x_j, y_j, z_j, t_j)\}$ \\
 2. Compute beamforming power $P(k_x, k_y)$ on Cartesian grid \\
 3. Extract top-$N$ wavenumber peaks with greedy suppression \\
+3.5. Fine-refine each peak on $41\!\times\!41$ local grid ($\Delta k\!=\!0.01$~rad/m, $\pm0.2$~rad/m) \\
 4. Estimate amplitudes/phases via linear least-squares \\
 5. Coarse-to-fine refinement: $N$=3 $\to$ 8 $\to$ 15 \\
 \quad --- At each stage: 200 Adam steps, lr=$5\times 10^{-3}$ \\
@@ -563,7 +564,11 @@ If the residual RMS after pruning exceeds $\tau_R = 0.05$~m
 (indicating unmodeled wave energy), new components are grown by
 applying beamforming to the residual signal $r_j = z_j - \hat{z}_j$
 and adding the dominant residual peaks to the model, up to
-$N_{\max}=30$. The threshold is derived from the theoretical
+$N_{\max}=30$. Grown components are initialized via this residual
+beamforming step and are not re-run through the full $N$=3$\to$8$\to$15
+coarse-to-fine schedule, trading some initialization quality for
+computational efficiency at this stage.
+The threshold is derived from the theoretical
 residual floor: combining LiDAR range noise ($\sigma_r \approx
 0.02$~m) with the Gerstner--linear model mismatch at BF4
 ($O(\epsilon^2)\,H_s/2 \approx 6$~mm) and angular-noise projection
@@ -961,8 +966,10 @@ Table~\ref{tab:main} and Section~\ref{sec:fulleval}.}
 \caption{WaveSplat vs.\ the hyperparameter-tuned ETKF-grid baseline
 ($g$=40$\times$30, $n_{\text{ens}}$=100, $\alpha$=1.0, $\sigma$=0.005)
 on 12 representative episodes drawn from the full 100-episode dataset.
-nRMSE = RMSE/$H_s$; lower is better. ms/f = per-frame inference time
-on a single CPU thread. $N_a$ = adapted component count.}
+nRMSE = RMSE/$H_s$; lower is better. ms/f = per-frame tracking time
+on a single CPU thread (median across 12 episodes: 13.3~ms for WaveSplat,
+110~ms for ETKF; the column average is elevated by BF3 2comp~(U)
+which incurred extra adaptive-$N$ overhead). $N_a$ = adapted component count.}
 \label{tab:main}
 \begin{tabular}{lccccc}
 \toprule
@@ -1376,6 +1383,33 @@ For complex seas (15--30 components), the advantage narrows but
 remains significant (39--52\% improvement), as the spectral
 representation still provides better inductive bias than grid
 discretization.
+
+\subsection{Directional estimation deficit}
+\label{sec:dirdeficit}
+
+The directional $R^2 = -0.25$ in Table~\ref{tab:sixmetric} warrants
+physical explanation.  Forward-looking shipboard LiDAR illuminates a
+narrow angular sector ahead of the vessel: the observation swath spans
+$\sim$250~m in range but only $\sim$120^\circ$ in azimuth, and the
+raydrop geometry preferentially keeps returns along the heading axis.
+This geometric bias means that the beamforming power $P(k_x, k_y)$
+integrates energy predominantly along the heading direction, making
+the along-heading wavenumber component much better resolved than the
+cross-heading component.  A wave whose energy is correctly captured in
+terms of $|k|$ and $\omega$ but whose propagation direction is
+ambiguous between, say, $\theta$ and $-\theta$ relative to the vessel
+heading will score zero on Pearson direction correlation while
+achieving good nRMSE.  This is the sensor geometry analog of the
+phase ambiguity known in radar wave spectroscopy~\citep{nieto2004}.
+
+Two complementary mitigations exist: (a) exploiting vessel yaw
+variation to sample multiple heading angles during initialization,
+resolving the $\pm\theta$ ambiguity; or (b) incorporating a
+prior over the dominant wave direction from onboard meteorological
+data or ship motion analysis.  Both are deferred to future work;
+users of WaveSplat for directional-sensitive downstream applications
+(e.g., heading-dependent ride control) should be aware of this
+limitation.
 
 \subsection{Failure case: BF2 1-component}
 

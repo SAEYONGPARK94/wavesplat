@@ -1208,6 +1208,22 @@ is essential when the observation quality varies significantly
 across the LiDAR field of view, as is characteristic of ocean
 surface measurements.
 
+To determine whether this benefit is specific to the spectral
+parameterisation or a generic observation-weighting effect, we ran an
+additional four-way comparison on 10 uniform-raydrop episodes:
+WaveSplat with confidence (0.232), WaveSplat without confidence (0.231),
+standard GPR (0.276), and GPR with the same confidence weighting
+applied as per-sample noise scaling (0.276).
+Adding confidence weights to GPR produces no measurable improvement
+($<$0.01\%, averaged over 10 episodes), indicating that the
+14.5\% benefit observed in the WaveSplat ablation is not a
+general property of the weighting scheme alone but arises specifically
+from its interaction with the spectral parameterisation: the dispersion-constrained
+plane-wave basis concentrates observation energy into physically meaningful
+modes, making the downweighting of unreliable (grazing, far-range)
+observations significantly more consequential than in a
+non-parametric spatial interpolant.
+
 \subsection{Raydrop model sensitivity}
 
 To evaluate robustness to different LiDAR observation models, we compare

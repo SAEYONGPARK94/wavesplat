@@ -33,6 +33,16 @@
 - Thesis 컴파일 (pdflatex) 에러 없음 확인
 - Memory 파일 업데이트 (project_status, ocean_eng_conversion)
 
+#### GPR + Confidence Ablation 실험 결과 (C3 novelty 검증)
+- `results/gpr_confidence_ablation.json` 생성 (10 uniform episodes)
+- 결과: WS+conf 0.2325 / WS-conf 0.2308 / GPR 0.2756 / GPR+conf 0.2757
+- GPR+conf ≈ GPR (차이 <0.01%) → C3 confidence weighting은 WaveSplat spectral parameterization과의 상호작용 효과
+- paper/wavesplat.tex §A2에 반영: "Adding confidence weights to GPR produces no measurable improvement"
+
+#### τ_R Sensitivity Sweep 부분 결과 (12 episodes, 실행 중)
+- 완료된 8개 에피소드 패턴: τ=0.05가 최적, τ=0.08-0.15는 동일, τ=0.02는 BF3_2comp_slope에서 75% 악화
+- 결론: τ_R=0.05m 선택이 robust (±0.05m 범위에서 stable)
+
 ### 논문 투고 준비 상태
 - Paper 컴파일: ✅ (pdflatex + bibtex 에러 없음)
 - Cover letter: ✅

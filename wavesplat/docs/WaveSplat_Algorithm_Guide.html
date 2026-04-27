@@ -1492,11 +1492,132 @@
   <strong>SS &gt; 0인 방법은 WaveSplat뿐</strong> = zero predictor(아무것도 예측하지 않는 것)를 이기는 유일한 방법.
 </div>
 
-<h4>각 지표의 진단적 가치</h4>
+<h3>각 지표의 정의와 계산법</h3>
+
+<p>$\hat z$ = 추정 파고장, $z$ = GT 파고장 (격자 $N_x \times N_y$). 모든 metric은 한 프레임의 격자 전체에 대해 계산.</p>
+
+<h4>① nRMSE &mdash; Normalized RMSE (전체적 오차)</h4>
+<div class="eq-box">
+  $$\text{RMSE} = \sqrt{\frac{1}{G}\sum_{i,j}(\hat z_{ij} - z_{ij})^2}, \qquad
+    \text{nRMSE} = \frac{\text{RMSE}}{H_s}$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $G = N_x N_y$ 격자점 수. $H_s$ = GT 유의파고 (BF4: 1.2m). 무차원화로 sea state 간 비교 가능.
+  </p>
+</div>
+<ul>
+  <li>의미: GT 대비 평균적 절대 오차를 파고로 정규화</li>
+  <li>$\downarrow$ 작을수록 좋음. WS 0.223 = 평균 0.27m 오차 (BF4 1.2m 대비 22%)</li>
+  <li><strong>함정</strong>: <em>거의 평평한 수면 예측</em>도 nRMSE $\approx 0.25$ (zero predictor의 한계). 즉 nRMSE 0.25 근처는 "예측한 것과 안 한 것이 비슷"이라는 신호 &rarr; nRMSE만으로는 진짜 성능 판별 불가</li>
+</ul>
+
+<h4>② VR &mdash; Variance Ratio (에너지 재현도)</h4>
+<div class="eq-box">
+  $$\text{VR} = \frac{\text{Var}(\hat z)}{\text{Var}(z)} = \frac{\sigma^2_{\hat z}}{\sigma^2_z}$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    분산 비율. 파도 에너지 $\propto \sigma^2$이므로 "추정한 에너지 / 실제 에너지".
+  </p>
+</div>
+<table>
+  <tr><th>VR 값</th><th>해석</th></tr>
+  <tr><td>VR $\approx 1$</td><td>에너지 정확 재현 (이상적)</td></tr>
+  <tr><td>VR $\ll 1$</td><td><strong>Over-smoothing</strong> &mdash; "거의 평면" 예측 (GPR 전형)</td></tr>
+  <tr><td>VR $> 1.2$</td><td>Over-fitting &mdash; 노이즈까지 추적</td></tr>
+</table>
+<p>가장 중요한 진단적 지표. nRMSE 단독으로는 "맞춰서 낮은가" vs "예측 안 해서 낮은가" 구분 불가 &rarr; VR이 답을 줌. <strong>GPR의 VR=0.065</strong>는 "에너지의 6.5%만 재현" = 거의 평평하게 그림 = 진정한 추정이 아님.</p>
+
+<h4>③ ρ &mdash; Pearson Correlation (형상 일치도)</h4>
+<div class="eq-box">
+  $$\rho = \frac{\sum_{i,j}(\hat z_{ij} - \bar{\hat z})(z_{ij} - \bar z)}
+              {\sqrt{\sum_{i,j}(\hat z_{ij} - \bar{\hat z})^2 \cdot \sum_{i,j}(z_{ij} - \bar z)^2}}$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    공간 격자에 대한 Pearson 상관계수. <strong>진폭과 무관</strong>하게 "모양"이 얼마나 닮았는지.
+  </p>
+</div>
+<table>
+  <tr><th>$\rho$</th><th>nRMSE</th><th>해석</th></tr>
+  <tr><td>$\rho \to 1$, nRMSE 작음</td><td>&mdash;</td><td>정확 추정 ✓</td></tr>
+  <tr><td>$\rho \to 1$, nRMSE 큼</td><td>&mdash;</td><td>모양 맞지만 진폭 틀림</td></tr>
+  <tr><td>$\rho \to 0$, nRMSE 작음</td><td>&mdash;</td><td><strong>under-fitting</strong> (평균값 예측)</td></tr>
+  <tr><td>$\rho \to 0$, nRMSE 큼</td><td>&mdash;</td><td>완전 실패</td></tr>
+</table>
+<p><strong>ETKF의 $\rho = 0.11$</strong>은 "에너지(VR=0.90)는 맞지만 파봉/파배 위치는 거의 랜덤". 즉 "1m 파도가 있다"는 알지만 "어디 있는지" 모름 &mdash; 실제 활용 불가.</p>
+
+<h4>④ SS &mdash; Skill Score (사소한 baseline 대비)</h4>
+<div class="eq-box">
+  $$\text{SS} = 1 - \frac{\text{MSE}(\hat z)}{\text{MSE}(\text{ref})} = 1 - \frac{\sum (\hat z - z)^2}{\sum (\text{ref} - z)^2}$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    Reference = <strong>zero predictor</strong> ($\text{ref} = 0$). Zero-mean wave field에서 MSE(ref) = Var($z$).
+  </p>
+</div>
+<table>
+  <tr><th>SS</th><th>해석</th></tr>
+  <tr><td>SS $= 1$</td><td>완벽한 예측</td></tr>
+  <tr><td>SS $> 0$</td><td>아무것도 예측 안 한 것보다 <strong>나음</strong> (실제 추정 가치 있음)</td></tr>
+  <tr><td>SS $= 0$</td><td>zero predictor와 동등</td></tr>
+  <tr><td>SS $< 0$</td><td>예측이 <strong>해롭다</strong> &mdash; 평면을 예측한 것보다 못함</td></tr>
+</table>
+<div class="key">
+  논문의 핵심 차별 지표. WaveSplat <strong>SS = 0.46 &gt; 0</strong>은 "실제로 예측 가치 있음".
+  ETKF($-0.02$)와 GPR($-0.14$)은 <strong>음수</strong> &mdash; <strong>아무것도 예측 안 한 것보다 못함</strong>.
+  이 사실이 nRMSE만 보면 안 보이고 ($\sim 0.3$), SS로만 드러남.
+</div>
+
+<h4>⑤ Dir R² &mdash; Directional R² (방향 추정 정확도)</h4>
+<div class="eq-box">
+  $$\hat S(\mathbf{k}) = |\mathcal{F}_2[\hat z]|^2, \quad S(\mathbf{k}) = |\mathcal{F}_2[z]|^2 \quad\text{(2D FFT 파워)}$$
+  $$\text{Dir } R^2 = 1 - \frac{\sum_\mathbf{k}(\hat S(\mathbf{k}) - S(\mathbf{k}))^2}
+                                {\sum_\mathbf{k}(S(\mathbf{k}) - \bar S)^2}$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    파고장의 2D 파수 스펙트럼을 비교. DC 성분 제외. <strong>방향별 에너지 분포</strong>가 맞는지 측정.
+  </p>
+</div>
+<ul>
+  <li>$\uparrow$ 1에 가까울수록 방향 분포 정확 (1 = 완벽)</li>
+  <li>음수 값 = GT 평균 분포보다도 못함 (분산이 잘못된 방향에 집중)</li>
+  <li>WaveSplat $-0.25$, ETKF $-1.25$ 모두 음수지만, WaveSplat이 4배 우월</li>
+  <li>GPR은 $-$로 표시: 거의 평평한 출력은 spectrum이 의미 없음</li>
+</ul>
+<p>이 지표는 sparse + forward-looking 조건의 어려움을 그대로 반영. 모든 방법이 100% 정확한 방향 추정 못 함 &mdash; 다만 WaveSplat이 다른 것 대비 압도적으로 적게 잘못함.</p>
+
+<h4>⑥ H_s err &mdash; 유의파고 상대 오차</h4>
+<div class="eq-box">
+  $$H_s^{\text{pred}} = 4\,\sigma_{\hat z} = 4\,\sqrt{\text{Var}(\hat z)}, \qquad
+    \text{H}_s\,\text{err} = \frac{|H_s^{\text{pred}} - H_s^{\text{true}}|}{H_s^{\text{true}}}$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $H_s = 4\sigma$는 표준 oceanographic 정의. 추정 파고장의 $\sigma$로부터 거꾸로 계산.
+  </p>
+</div>
+<ul>
+  <li>$\downarrow$ 작을수록 좋음. WS 3.7% &mdash; oceanographic standard "<5%" 충족</li>
+  <li>VR과 직접 연결: $H_s^{\text{pred}}/H_s^{\text{true}} = \sqrt{\text{VR}}$</li>
+  <li>실선 운영에서 가장 자주 사용되는 단일 파라미터 (안전 운항 판단)</li>
+</ul>
+<p>ETKF의 28.6%는 VR=0.90이라도 sea state level에서는 큰 편차로 변환됨 ($\sqrt{0.90} = 0.95$ &rarr; 5% 작아야 하는데 그보다 훨씬 큰 이유: 격자 보간 오차로 분산이 노이즈에 부풀려짐).</p>
+
+<h3>지표 간 의존성 &mdash; 왜 6개가 모두 필요한가</h3>
+
+<p>각 지표는 단독으로는 함정에 빠지기 쉽지만, 6개를 함께 보면 명확한 진단:</p>
+
+<table>
+  <tr><th>패턴</th><th>VR</th><th>$\rho$</th><th>SS</th><th>진단</th></tr>
+  <tr><td>under-fit (GPR)</td><td>$\ll 1$</td><td>$\to 0$</td><td>$< 0$</td><td>거의 평면 예측 = zero predictor 흉내</td></tr>
+  <tr><td>energy without shape (ETKF)</td><td>$\to 1$</td><td>$\ll 1$</td><td>$\to 0$</td><td>"파도 있는 건 안다, 어디 있는지 모름"</td></tr>
+  <tr><td>over-fit</td><td>$> 1$</td><td>$\to 1$ noisy</td><td>$<$ 정상</td><td>노이즈를 신호로 추적</td></tr>
+  <tr><td><strong>이상적 (WS 목표)</strong></td><td>$\to 1$</td><td>$\to 1$</td><td>$\to 1$</td><td>정확 추정 ✓</td></tr>
+</table>
+
+<div class="warn">
+  <strong>nRMSE만 보면 위험한 이유:</strong> Zero predictor의 nRMSE = $\sigma_{\text{wave}}/H_s = 1/4 = 0.25$.
+  즉 어떤 방법이든 nRMSE 0.25 근처면 "맞춰서 낮은가, 안 예측해서 낮은가" 구분 불가.
+  이게 ETKF(0.319), GPR(0.261), WaveSplat(0.223)이 nRMSE만으로는 비슷해 보이지만 SS로 보면
+  WS만 양수($+0.46$), 다른 둘은 음수($-0.02, -0.14$)로 결정적으로 갈리는 이유.
+</div>
+
+<h4>각 방법의 진단적 패턴</h4>
 <ul>
   <li><strong>ETKF:</strong> VR=0.90(에너지 OK) but $\rho$=0.11(형상 NG) &rarr; "에너지는 맞추지만 위치가 틀림"</li>
   <li><strong>GPR:</strong> VR=0.065(에너지 6.5%) &rarr; "거의 평평한 수면을 예측 = near-zero predictor"</li>
-  <li><strong>WaveSplat:</strong> VR=0.73, $\rho$=0.76 &rarr; 에너지와 형상 모두 양호</li>
+  <li><strong>WaveSplat:</strong> VR=0.73, $\rho$=0.76, SS=0.46 &rarr; 에너지·형상·진정한 예측가치 모두 양호</li>
 </ul>
 
 <h3>핵심 결과</h3>

@@ -1031,6 +1031,148 @@
 </table>
 
 
+<h3>한 step 계산 예시 &mdash; SGD vs Momentum vs Adam</h3>
+
+<p><strong>설정</strong>: BF4, $N=15$, step $t = 51$ (50 step 진행 후). 같은 시점에서 세 optimizer의 동작을 비교.</p>
+
+<div class="eq-box">
+  <div class="eq-label">공통 상태 (같은 시점, 같은 gradient)</div>
+  $$w_1 = 0.850 \text{ m}, \qquad g_w = 0.012 \quad\text{(안정적, 부호 일관)}$$
+  $$k_{x,1} = 0.210 \text{ rad/m}, \qquad g_{k_x} = 0.500 \quad\text{(진동, 부호 자주 바뀜)}$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    학습률 공통: $\eta = 5\times10^{-3}$. $w$는 SHM의 진폭, $k_x$는 파수 (gradient 자릿수 차이 $\sim$40배).
+  </p>
+</div>
+
+<h4>① SGD (state 없음)</h4>
+<div class="eq-box">
+  <div class="eq-label">$\theta_{\text{new}} = \theta - \eta\,g$</div>
+  $$\Delta w_1 \;=\; -\eta\,g_w \;=\; -5\!\times\!10^{-3} \times 0.012 \;=\; -6.0\times10^{-5}$$
+  $$\Delta k_{x,1} \;=\; -\eta\,g_{k_x} \;=\; -5\!\times\!10^{-3} \times 0.500 \;=\; -2.5\times10^{-3}$$
+</div>
+<p><strong>문제</strong>: $\Delta k_x / \Delta w = 42$&times;. $\eta$가 $k_x$에 맞으면 $w$는 진행 안 함, $w$에 맞으면 $k_x$가 발산. <strong>같은 $\eta$로 두 파라미터 동시 학습 불가능</strong>.</p>
+
+<h4>② Momentum ($\beta = 0.9$, convention: $v \leftarrow \beta v + g$)</h4>
+<p>이전 step까지 누적된 momentum:</p>
+<ul>
+  <li>$v_w^{(50)} = 0.110$ (안정적 gradient → 정상 상태 $g/(1-\beta) = 0.12$ 근처)</li>
+  <li>$v_{k_x}^{(50)} = 0.180$ (진동 gradient → 양/음 상쇄로 0.5보다 작음)</li>
+</ul>
+
+<div class="eq-box">
+  <div class="eq-label">Momentum update</div>
+  $$v_w^{(51)} = 0.9 \times 0.110 + 0.012 = 0.099 + 0.012 = 0.111$$
+  $$v_{k_x}^{(51)} = 0.9 \times 0.180 + 0.500 = 0.162 + 0.500 = 0.662$$
+  $$\Delta w_1 = -5\!\times\!10^{-3} \times 0.111 = -5.55\times10^{-4}$$
+  $$\Delta k_{x,1} = -5\!\times\!10^{-3} \times 0.662 = -3.31\times10^{-3}$$
+</div>
+
+<p>SGD 대비:</p>
+<ul>
+  <li>$w$: $-6\!\times\!10^{-5} \to -5.55\!\times\!10^{-4}$ &mdash; <strong>9$\times$ 가속</strong> (안정 방향이 누적됨)</li>
+  <li>$k_x$: $-2.5\!\times\!10^{-3} \to -3.31\!\times\!10^{-3}$ &mdash; 32% 가속 (진동 일부 상쇄로 약간만)</li>
+</ul>
+<p><strong>여전한 문제</strong>: $\Delta k_x/\Delta w = 6$&times;. 진동에는 강건해졌지만 <strong>스케일 차이는 그대로</strong>.</p>
+
+<h4>③ Adam ($\beta_1=0.9, \beta_2=0.999, \epsilon=10^{-8}$)</h4>
+
+<p>이전 step까지 누적된 모멘트 (정상 상태 추정값 사용):</p>
+<table>
+  <tr><th></th><th>$m^{(50)}$</th><th>$v^{(50)}$</th><th>물리적 의미</th></tr>
+  <tr><td>$w_1$</td><td>0.0110</td><td>$1.4\times10^{-4}$</td><td>$g \to 0.012$, $g^2 \to 1.44\!\times\!10^{-4}$ 근처 수렴</td></tr>
+  <tr><td>$k_{x,1}$</td><td>0.40</td><td>0.25</td><td>$g$ 진동(평균 ${<}0.5$), $g^2$은 진동 무관(${\approx}0.5^2=0.25$)</td></tr>
+</table>
+
+<p><strong>Step 1 &mdash; 모멘트 업데이트</strong>:</p>
+<div class="eq-box">
+  $$m_w^{(51)} = 0.9 \times 0.0110 + 0.1 \times 0.012 = 0.0099 + 0.0012 = 0.01110$$
+  $$v_w^{(51)} = 0.999 \times 1.4\!\times\!10^{-4} + 0.001 \times (0.012)^2 \approx 1.40\!\times\!10^{-4}$$
+  $$m_{k_x}^{(51)} = 0.9 \times 0.40 + 0.1 \times 0.500 = 0.36 + 0.05 = 0.410$$
+  $$v_{k_x}^{(51)} = 0.999 \times 0.25 + 0.001 \times (0.500)^2 \approx 0.250$$
+</div>
+
+<p><strong>Step 2 &mdash; bias 보정</strong> (step 51에서 $m, v$가 아직 underestimate):</p>
+<div class="eq-box">
+  $$1 - \beta_1^{51} = 1 - 0.9^{51} \approx 1 - 0.0046 = 0.9954$$
+  $$1 - \beta_2^{51} = 1 - 0.999^{51} \approx 1 - 0.9503 = 0.0497$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $m$은 이미 거의 보정 완료(0.9954), $v$는 step 51에서도 아직 5%만 채워짐(0.0497) &rarr; $v$에 큰 보정 필요.
+  </p>
+</div>
+
+<div class="eq-box">
+  $$\hat{m}_w = 0.01110 / 0.9954 \approx 0.01115, \qquad
+    \hat{v}_w = 1.40\!\times\!10^{-4} / 0.0497 \approx 2.81\!\times\!10^{-3}$$
+  $$\hat{m}_{k_x} = 0.410 / 0.9954 \approx 0.412, \qquad
+    \hat{v}_{k_x} = 0.250 / 0.0497 \approx 5.03$$
+</div>
+
+<p><strong>Step 3 &mdash; 최종 업데이트</strong>:</p>
+<div class="eq-box">
+  $$\sqrt{\hat{v}_w} \approx 0.0530, \qquad \sqrt{\hat{v}_{k_x}} \approx 2.242$$
+  $$\Delta w_1 = -\eta \cdot \frac{\hat{m}_w}{\sqrt{\hat{v}_w} + \epsilon}
+    = -5\!\times\!10^{-3} \cdot \frac{0.01115}{0.0530} = -1.05\!\times\!10^{-3}$$
+  $$\Delta k_{x,1} = -\eta \cdot \frac{\hat{m}_{k_x}}{\sqrt{\hat{v}_{k_x}} + \epsilon}
+    = -5\!\times\!10^{-3} \cdot \frac{0.412}{2.242} = -9.19\!\times\!10^{-4}$$
+</div>
+
+<h4>세 optimizer 비교 (한 step 결과)</h4>
+<table>
+  <tr><th>Optimizer</th><th>$\Delta w_1$</th><th>$\Delta k_{x,1}$</th><th>$|\Delta k_x|/|\Delta w|$</th><th>판정</th></tr>
+  <tr><td>SGD</td><td>$-6.0\!\times\!10^{-5}$</td><td>$-2.5\!\times\!10^{-3}$</td><td class="bad">42$\times$</td><td>$w$ 정체, $k_x$ 발산 위험</td></tr>
+  <tr><td>Momentum</td><td>$-5.6\!\times\!10^{-4}$</td><td>$-3.3\!\times\!10^{-3}$</td><td class="bad">6.0$\times$</td><td>가속됐지만 스케일 차이 잔존</td></tr>
+  <tr><td><strong>Adam</strong></td><td>$-1.05\!\times\!10^{-3}$</td><td>$-9.2\!\times\!10^{-4}$</td><td class="good">0.87$\times$</td><td><strong>두 파라미터 균형</strong> (스케일 자동 정규화)</td></tr>
+</table>
+
+<div class="key">
+  <strong>Adam의 핵심 효과:</strong> $\sqrt{\hat{v}}$가 각 파라미터의 gradient RMS를 추정해 분모로 작용 &rarr;
+  $w$의 작은 gradient는 작은 분모로 나누어져 <strong>증폭</strong>, $k_x$의 큰 gradient는 큰 분모로 나누어져 <strong>완화</strong>.
+  결과적으로 모든 파라미터가 비슷한 크기 단위로 업데이트됨.
+</div>
+
+<h3>왜 정확히 Adam인가 &mdash; SGD/Momentum이 부족한 이유</h3>
+
+<h4>이유 1: WaveSplat의 gradient 스케일이 파라미터별로 4자릿수 차이</h4>
+<table>
+  <tr><th>파라미터</th><th>전형적 gradient 크기</th><th>왜?</th></tr>
+  <tr><td>$w_i$ (진폭, $\sim$1m)</td><td>$\sim 10^{-2}$</td><td>$\hat z$가 $w$에 선형 &rarr; gradient $\sim \cos(\Psi) \sim O(1)$ &times; residual $\sim 10^{-2}$</td></tr>
+  <tr><td>$\varphi_i$ (위상, rad)</td><td>$\sim 10^{-2}$</td><td>$\hat z$가 $\varphi$에 sin 종속 &rarr; gradient $\sim w\sin\Psi \sim 0.5 \cdot 1 \cdot 10^{-2}$</td></tr>
+  <tr><td>$k_{x,i}$ (파수, rad/m)</td><td>$\sim 10^{-1}$</td><td>$\partial\Psi/\partial k_x \supseteq x_j \in [10, 250]$m &rarr; <strong>위치 크기만큼 증폭</strong></td></tr>
+</table>
+<p>SGD/Momentum은 <strong>같은 $\eta$를 모두에 적용</strong>하므로 가장 큰 gradient($k_x$)에 맞춰 $\eta$를 잡으면 작은 gradient($w$)는 100$\times$ 느림. 자동 스케일링 없는 optimizer는 <strong>수동 파라미터별 lr 튜닝</strong>이 필요한데, 60개 파라미터에는 비현실적.</p>
+
+<h4>이유 2: C2F 단계 전환에서 gradient 분포가 급변</h4>
+<p>$N=3 \to 8 \to 15$ 전환 시:</p>
+<ul>
+  <li>새 추가된 5~7개 성분의 $w$가 $\sim 0.01$로 초기화됨 &rarr; 초반 gradient가 큼 (data-fit 갈증)</li>
+  <li>기존 성분의 $k_x, k_y$는 이미 거의 수렴 &rarr; gradient 작음</li>
+  <li>같은 $\eta$로는 신/구 성분이 다른 속도로 학습되어야 함 &rarr; <strong>Adam의 자동 스케일링이 자연스럽게 처리</strong></li>
+</ul>
+
+<h4>이유 3: 진동하는 gradient 안전 처리</h4>
+<p>$k_x$의 gradient는 sin/cos 의존성 때문에 step 간 부호가 자주 바뀜:</p>
+<ul>
+  <li><strong>SGD</strong>: 매 step 진동 따라감 &rarr; 진동 폭만큼 손실 발생</li>
+  <li><strong>Momentum</strong>: 진동 일부 상쇄($v$의 부호 평균)되지만, 진동 진폭이 큰 파라미터는 여전히 큰 step</li>
+  <li><strong>Adam</strong>: 진동의 <strong>제곱(부호 무관)</strong>을 $v$에 누적 &rarr; 진동 진폭 = $\sqrt{v}$ &rarr; <strong>진동 큰 파라미터는 자동 신중</strong></li>
+</ul>
+
+<h4>이유 4: 600 iter로 수렴해야 하는 시간 제약</h4>
+<p>C2F 총 600 iter (init phase). SGD는 60개 파라미터에 수동 튜닝된 lr이 필요해 hyperparameter 탐색에 추가 1000$\times$ 실행. Adam은 default lr ($5\!\times\!10^{-3}$)로 거의 항상 작동 &rarr; 실험 반복 횟수 절감.</p>
+
+<div class="warn">
+  <strong>대안 검토 (그리고 기각된 이유):</strong><br>
+  <strong>RMSprop</strong> ($\hat{m}$ 없음, $\sqrt{v}$만): WaveSplat의 안정 방향 누적 효과를 잃음 &rarr; $w$ 수렴 느림.<br>
+  <strong>AdaGrad</strong> ($v$ 평균 없이 무한 누적): step 수가 늘면 학습률이 0으로 수렴 &rarr; tracking phase에서 적응 못함.<br>
+  <strong>L-BFGS</strong> (2차 quasi-Newton): Hessian 근사 메모리 비용 ($4N \times 4N \cdot k_{\text{history}}$), $k_x$ landscape의 비볼록성에서 collapse 위험.
+</div>
+
+<div class="key">
+  <strong>최종 정당화:</strong> Adam = "이동평균 momentum" + "이동평균 분산 정규화" + "bias 보정" 셋의 결합.
+  WaveSplat의 (a) 큰 파라미터별 스케일 차이, (b) 단계 전환의 gradient 분포 변화, (c) $k$ 진동 모두를 단일 hyperparameter set으로 처리할 수 있는 유일한 표준 optimizer. C2F 600 iter, tracking 10 iter 양쪽에서 같은 설정으로 작동.
+</div>
+
+
 <!-- ═══════════════════════════════════════════ -->
 <h2 id="p8"><span class="part-num">PART 8</span>Coarse-to-Fine + Adaptive N</h2>
 <!-- ═══════════════════════════════════════════ -->

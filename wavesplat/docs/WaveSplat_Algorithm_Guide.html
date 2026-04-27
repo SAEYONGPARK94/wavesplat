@@ -152,6 +152,7 @@
   <h2>PART 2</h2>
   <a href="#p2">ETKF (격자 기반)</a>
   <a href="#p2-kf">칼만 필터 기초</a>
+  <a href="#p2-f">$F$ &mdash; 물리 모델</a>
   <a href="#p2-limit">한계와 실패 모드</a>
   <h2>PART 3</h2>
   <a href="#p3">GPR (비모수 보간)</a>
@@ -332,13 +333,25 @@
 <!-- ═══════════════════════════════════════════ -->
 
 <h3>격자 기반 접근의 기본 아이디어</h3>
-<p>수면을 $N \times M$ 격자로 나누고, <strong>각 격자점의 높이를 상태 벡터로</strong> 정의한다:</p>
+<p>수면을 $N_x \times N_y$ 격자로 나누고, <strong>각 격자점의 파고 $\eta$와 시간 미분 $\dot\eta$ 둘 다</strong>를 상태 벡터에 포함한다:</p>
 <div class="eq-box">
-  <div class="eq-label">ETKF 상태 벡터</div>
-  $$\mathbf{x} = [h_{1,1},\; h_{1,2},\; \ldots,\; h_{N,M}]^\top$$
-  <p style="color: var(--text2); margin-top: 8px;">$G = 40 \times 30 = 1{,}200$ 격자점 &rarr; 1,200차원 벡터</p>
+  <div class="eq-label">ETKF 상태 벡터 ($G = N_x N_y$ 격자점)</div>
+  $$\mathbf{x} = \begin{bmatrix} \boldsymbol{\eta} \\[4pt] \dot{\boldsymbol{\eta}} \end{bmatrix}
+    = \begin{bmatrix} \eta_{1,1}, \eta_{1,2}, \ldots, \eta_{N_x,N_y} \\[4pt]
+                       \dot\eta_{1,1}, \dot\eta_{1,2}, \ldots, \dot\eta_{N_x,N_y} \end{bmatrix}^\top
+    \in \mathbb{R}^{2G}$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $40 \times 30 = 1{,}200$ 격자점 &rarr; $\mathbf{x} \in \mathbb{R}^{2{,}400}$
+  </p>
 </div>
-<p>LiDAR 관측이 50~200개인데 상태가 1,200개 &mdash; <strong>심하게 underdetermined</strong> (해가 무한히 많음). 사전 정보(prior)가 필수 &rarr; 칼만 필터.</p>
+
+<div class="insight">
+  <strong>왜 $\dot\eta$도 필요한가?</strong> 선형 파동 방정식이 <strong>2차 시간 미분 방정식</strong>이기 때문이다.
+  진자(harmonic oscillator)의 다음 상태를 알려면 위치 + 속도가 모두 필요한 것과 같다.
+  $\eta$만 있으면 $\partial^2/\partial t^2$ 적분에 모호성 발생 &rarr; 파도가 어느 방향(접근/후퇴)으로 진행 중인지 알 수 없음.
+</div>
+
+<p>LiDAR 관측이 50~200개인데 상태가 2,400개 &mdash; <strong>심하게 underdetermined</strong> (해가 무한히 많음). 사전 정보(prior)가 필수 &rarr; 칼만 필터.</p>
 
 <h3 id="p2-kf">칼만 필터 기초</h3>
 <p><strong>Predict-Update 2단계 반복:</strong></p>
@@ -349,12 +362,107 @@
   $$P_{\text{pred}} = F\,P\,F^\top + Q \qquad\text{(불확실성 증가)}$$
 </div>
 
+<h3 id="p2-f">$F$의 정체 &mdash; 선형 파동 방정식이 물리 모델</h3>
+
+<p>$F$는 단순한 행렬이 아니라 <strong>선형 자유표면 파동 방정식의 정확한 시간 진화 연산자</strong>이다. 분산관계 $\omega^2 = g|\mathbf{k}|\tanh(|\mathbf{k}|d)$를 만족하는 파동이 $\Delta t$ 동안 어떻게 진화하는지를 그대로 코드화한 것.</p>
+
+<h4>출발: 선형 자유표면 파동 방정식</h4>
+<div class="eq-box">
+  <div class="eq-label">2차 시간 미분 방정식</div>
+  $$\frac{\partial^2 \eta}{\partial t^2} = -g\,|\hat{\nabla}|\tanh(|\hat{\nabla}|\,d)\,\eta$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    여기서 $|\hat{\nabla}|$은 푸리에 공간에서 $|\mathbf{k}|$로 작용하는 비국소 연산자.
+    각 푸리에 모드 $\hat\eta(\mathbf{k}, t)$가 자기 고유 진동수 $\omega(\mathbf{k}) = \sqrt{g|\mathbf{k}|\tanh(|\mathbf{k}|d)}$로 진동.
+  </p>
+</div>
+
+<h4>해 $\Delta t$ 동안의 정확한 시간 진화 (모드별 propagator)</h4>
+<p>각 푸리에 모드 $\mathbf{k}$에 대해 단순조화운동(SHM) 형태로 풀린다:</p>
+<div class="eq-box">
+  <div class="eq-label">모드별 $2 \times 2$ propagator $F_\mathbf{k}$</div>
+  $$\begin{bmatrix} \hat\eta(\mathbf{k}, t+\Delta t) \\[4pt] \hat{\dot\eta}(\mathbf{k}, t+\Delta t) \end{bmatrix}
+  = \underbrace{\begin{bmatrix} \cos(\omega \Delta t) & \dfrac{\sin(\omega \Delta t)}{\omega} \\[10pt]
+                                 -\omega\,\sin(\omega \Delta t) & \cos(\omega \Delta t) \end{bmatrix}}_{F_\mathbf{k}}
+    \begin{bmatrix} \hat\eta(\mathbf{k}, t) \\[4pt] \hat{\dot\eta}(\mathbf{k}, t) \end{bmatrix}$$
+</div>
+
+<table>
+  <tr><th>항</th><th>물리적 의미</th></tr>
+  <tr><td>$\cos(\omega\Delta t)$ (대각)</td><td>같은 위상으로 회복 (재진동)</td></tr>
+  <tr><td>$\sin(\omega\Delta t)/\omega$ (위)</td><td>속도 $\dot\eta$가 위치 $\eta$에 기여 (속도 → 위치 적분)</td></tr>
+  <tr><td>$-\omega\sin(\omega\Delta t)$ (아래)</td><td>위치 $\eta$가 속도 $\dot\eta$에 기여 (복원력 → 가속)</td></tr>
+  <tr><td>$\det F_\mathbf{k} = 1$</td><td>에너지 보존 (symplectic) &mdash; 진폭 감쇠 없음</td></tr>
+</table>
+
+<div class="insight">
+  이 $F_\mathbf{k}$는 <strong>진자/스프링 시스템의 정확한 시간 진화 행렬</strong>과 동일한 형태이다.
+  파도의 각 푸리에 모드를 "고유 진동수 $\omega(\mathbf{k})$를 가진 독립 진자"로 보는 관점.
+</div>
+
+<h4>전체 격자 $F$ &mdash; 푸리에 분해</h4>
+<p>공간 격자에서 $F$는 $2G \times 2G = 2{,}400 \times 2{,}400$ <strong>dense matrix</strong>가 되어 직접 곱은 비효율($\sim$5.7M 원소). 푸리에 공간으로 보내면 모드별로 <strong>독립</strong>해 $2 \times 2$ 블록 대각:</p>
+
+<div class="eq-box">
+  $$F = \mathcal{F}^{-1} \cdot \mathrm{diag}\bigl(\{F_\mathbf{k}\}_\mathbf{k}\bigr) \cdot \mathcal{F}$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $\mathcal{F}$ = 2D FFT, $\mathcal{F}^{-1}$ = 역 FFT. 한 번 FFT &rarr; 모든 모드에 동시 propagator 적용 &rarr; 한 번 IFFT.
+  </p>
+</div>
+
+<h4>실제 코드 흐름 (<a href="#" style="color:var(--accent)">etkf_grid.py:55-83</a>)</h4>
+
+<div class="flow">
+  <span class="flow-step">$\eta, \dot\eta$ 격자</span>
+  <span class="flow-arrow">&rarr; FFT</span>
+  <span class="flow-step">$\hat\eta, \hat{\dot\eta}$ (모드별)</span>
+  <span class="flow-arrow">&rarr; $F_\mathbf{k}$</span>
+  <span class="flow-step">진화된 $\hat\eta', \hat{\dot\eta}'$</span>
+  <span class="flow-arrow">&rarr; IFFT</span>
+  <span class="flow-step">$\eta', \dot\eta'$ 격자</span>
+</div>
+
+<div class="eq-box">
+  <div class="eq-label">사전 계산 (한 번만)</div>
+  $$\omega(\mathbf{k}) = \sqrt{g\,|\mathbf{k}|\tanh(|\mathbf{k}|\,d)}, \quad
+    \cos\omega\Delta t,\;\; \sin\omega\Delta t,\;\; \mathrm{sinc}\,\omega\Delta t \equiv \sin(\omega\Delta t)/\omega$$
+  <div class="eq-label" style="margin-top: 12px;">매 predict step (각 앙상블 멤버)</div>
+  $$\hat\eta' \;=\; \hat\eta\,\cos\omega\Delta t \;+\; \hat{\dot\eta}\,\mathrm{sinc}\,\omega\Delta t$$
+  $$\hat{\dot\eta}' \;=\; -\hat\eta\,\omega\sin\omega\Delta t \;+\; \hat{\dot\eta}\,\cos\omega\Delta t$$
+</div>
+
+<h4>추가: 수치 안정화 항 (순수 물리 외)</h4>
+<table>
+  <tr><th>항</th><th>수식</th><th>역할</th></tr>
+  <tr><td>고주파 감쇠</td><td>$\hat\eta' \mathrel{*}= e^{-0.002\,|\mathbf{k}|^2\,\Delta t}$</td><td>Nyquist 근처 모드의 aliasing 방지 (라플라시안 점성 모방)</td></tr>
+  <tr><td>Physical clamp</td><td>$\eta \in [-5, 5]$ m</td><td>앙상블 spread 발산 방지 (수치 안전장치)</td></tr>
+</table>
+
+<h4>WaveSplat의 predict step과 비교</h4>
+<p><strong>같은 분산관계 $\omega^2 = g|\mathbf{k}|\tanh(|\mathbf{k}|d)$를 사용하지만 표현이 완전히 다름</strong>:</p>
+<table>
+  <tr><th>항목</th><th>ETKF</th><th>WaveSplat</th></tr>
+  <tr><td>상태 표현</td><td>격자 $(\eta, \dot\eta)$</td><td>스펙트럼 $(w_i, k_i, \omega_i, \varphi_i)$</td></tr>
+  <tr><td>상태 차원</td><td>$2G = 2{,}400$</td><td>$4N = 60$ ($N=15$)</td></tr>
+  <tr><td>Predict 연산</td><td>FFT &rarr; mode mult &rarr; IFFT</td><td>$\varphi_i \mathrel{+{=}} \omega_i \Delta t$</td></tr>
+  <tr><td>복잡도</td><td>$O(N_e \cdot G \log G)$</td><td>$O(N)$</td></tr>
+  <tr><td>분산관계 사용 위치</td><td>$F$ 안에 <strong>내장</strong> (각 모드 $\omega$로 회전)</td><td>$\omega_i$ <strong>직접 계산</strong> + 위상 누적</td></tr>
+  <tr><td>앙상블</td><td>50~100개 멤버 (불확실성 추적)</td><td>단일 모델 + Adam gradient</td></tr>
+</table>
+
+<div class="key">
+  <strong>핵심 통찰:</strong><br>
+  ETKF: "<strong>모든 격자점의 진동을 동시에 정확히 풀자</strong>" &mdash; 모든 푸리에 모드($G$개) 진화<br>
+  WaveSplat: "<strong>각 활성 성분이 자기 $\omega$로 위상만 진행하면 끝</strong>" &mdash; $N$개 활성 성분만 진화<br>
+  &rarr; 수학적으로 동일한 물리(분산관계)를 표현하지만, WaveSplat은 활성 성분 외의 비활성 푸리에 모드(전체의 $\sim 99\%$)에 연산 없음 &rarr; 압도적으로 빠름.
+</div>
+
 <h4>Step 2: Update (보정)</h4>
 <div class="eq-box">
   $$K = P_{\text{pred}}\,H^\top\,(H\,P_{\text{pred}}\,H^\top + R)^{-1} \qquad\text{(칼만 이득)}$$
   $$\mathbf{x}_{\text{new}} = \mathbf{x}_{\text{pred}} + K\,(\mathbf{z} - H\,\mathbf{x}_{\text{pred}}) \qquad\text{(관측으로 보정)}$$
 </div>
 <ul>
+  <li>$H$ = 관측 연산자 = <strong>격자 $\to$ 관측점 쌍선형 보간</strong> (50~200개 LiDAR 점에서 격자 $\eta$ 평가)</li>
   <li>$K$가 크면 &rarr; 관측을 더 신뢰</li>
   <li>$K$가 작으면 &rarr; 예측(모델)을 더 신뢰</li>
 </ul>

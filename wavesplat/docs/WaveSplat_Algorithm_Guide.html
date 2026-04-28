@@ -149,6 +149,7 @@
   <a href="#p1-single">단일 평면파</a>
   <a href="#p1-disp">분산관계</a>
   <a href="#p1-multi">다성분 중첩</a>
+  <a href="#p1-gerstner">Gerstner 파도 모델</a>
   <h2>PART 2</h2>
   <a href="#p2">ETKF (격자 기반)</a>
   <a href="#p2-kf">칼만 필터 기초</a>
@@ -167,6 +168,7 @@
   <h2>PART 7</h2>
   <a href="#p7">비선형 최적화</a>
   <a href="#p7-loss">Loss 함수</a>
+  <a href="#p7-a1">A1 Ablation (ω 제약)</a>
   <a href="#p7-adam">Adam Optimizer</a>
   <h2>PART 8</h2>
   <a href="#p8">C2F + Adaptive N</a>
@@ -323,9 +325,102 @@
   <tr><td>BF5</td><td>~3.25</td><td>~9</td><td>험한 해상</td></tr>
 </table>
 
+<h4>위상 속도 vs 군속도 — 분산관계에서 파생되는 두 속도</h4>
+<p>분산관계에서 두 가지 중요한 속도가 도출된다:</p>
+<div class="eq-box">
+  <div class="eq-label">위상 속도 (Phase velocity)</div>
+  $$v_p = \frac{\omega}{|\mathbf{k}|} \quad\text{— 파봉(crest)이 이동하는 속도}$$
+</div>
+<div class="eq-box">
+  <div class="eq-label">군속도 (Group velocity)</div>
+  $$v_g = \frac{\partial\omega}{\partial|\mathbf{k}|}
+    = \frac{g}{2\omega}\left[\tanh(|\mathbf{k}|d) + |\mathbf{k}|d\operatorname{sech}^2(|\mathbf{k}|d)\right]$$
+</div>
+<table>
+  <tr><th></th><th>위상 속도 $v_p$</th><th>군속도 $v_g$</th></tr>
+  <tr><td>정의</td><td>파봉의 이동 속도</td><td>에너지(파군)의 전파 속도</td></tr>
+  <tr><td>심해 비율</td><td>$\omega/|k|$</td><td>$v_p / 2$</td></tr>
+  <tr><td>WaveSplat에서 역할</td><td>위상 전파: $\varphi += \omega \Delta t$</td><td>$k$ gradient의 분산 경로: $\partial\omega/\partial k_{x}$ (Part 7)</td></tr>
+</table>
+<div class="insight">
+  <strong>왜 미리 알아야 하나:</strong> Part 7에서 $k_x$에 대한 gradient를 계산할 때 $v_g$가 분산관계 chain rule의 핵심으로 등장한다.
+  공간 항($x_j$)과 시간-분산 항($t_j \cdot v_g$)의 경쟁이 $k$ 추정의 정밀도를 결정한다.
+</div>
+
+<h4 id="p1-gerstner">Gerstner 파도 모델 — 시뮬레이터의 GT (Ground Truth)</h4>
+<p>WaveSplat 시스템에서 파도 모델은 <strong>두 곳에서 다른 형태</strong>로 사용된다:</p>
+<table>
+  <tr><th></th><th>시뮬레이터 (WaveSim GT)</th><th>추정기 (WaveSplat)</th></tr>
+  <tr><td>모델</td><td><strong>Gerstner wave</strong> (비선형)</td><td><strong>Linear sinusoidal</strong> (선형)</td></tr>
+  <tr><td>역할</td><td>"진짜 바다"를 생성</td><td>"바다를 추정"</td></tr>
+  <tr><td>좌표계</td><td>Lagrangian $(u,v) \to (x,y,z)$</td><td>Eulerian $(x,y) \to z$</td></tr>
+</table>
+
+<h4>Gerstner wave란?</h4>
+<p>1802년 Franz Josef von Gerstner가 유도한 <strong>유한 진폭 파도의 정확해(exact solution)</strong>이다.
+선형 파도와 달리 물 입자가 진원 운동이 아닌 <strong>트로코이드(trochoid)</strong> 궤적을 따른다:</p>
+<div class="eq-box">
+  <div class="eq-label">Gerstner 파도 — 단일 성분</div>
+  $$x(u,t) = u - \frac{A k_x}{|\mathbf{k}|}\sin(k_x u + k_y v - \omega t + \varphi)$$
+  $$y(v,t) = v - \frac{A k_y}{|\mathbf{k}|}\sin(k_x u + k_y v - \omega t + \varphi)$$
+  $$z(u,v,t) = A\cos(k_x u + k_y v - \omega t + \varphi)$$
+  <p style="color: var(--text2); margin-top: 8px;">
+    $(u,v)$ = 정적 Lagrangian 좌표 (파도가 없을 때의 수면 위치)<br>
+    $(x,y)$ = 실제 관측 위치 (수평 변위 포함) — <strong>$(u,v)$와 다르다!</strong>
+  </p>
+</div>
+
+<p><strong>선형 파도와의 핵심 차이:</strong></p>
+<table>
+  <tr><th>특성</th><th>Linear sinusoidal</th><th>Gerstner</th></tr>
+  <tr><td>수평 변위</td><td>없음 (z만 진동)</td><td>있음 ($x,y$도 진동)</td></tr>
+  <tr><td>파봉 형상</td><td>대칭 (cos)</td><td>뾰족한 파봉 + 넓은 파배 (비대칭)</td></tr>
+  <tr><td>steepness 한계</td><td>제한 없음 (비물리적)</td><td>$kA \leq 1$ (자체 제한, 파봉 꼭대기에서 cusp)</td></tr>
+  <tr><td>에너지 보존</td><td>정확</td><td>정확 (비압축성, 무회전)</td></tr>
+  <tr><td>Z 값 차이</td><td colspan="2">$\Delta z \sim O(\epsilon^2) = O((kA)^2)$ — BF4에서 ~1.5-6mm</td></tr>
+</table>
+
+<h4>왜 시뮬레이터에 Gerstner를 사용하는가?</h4>
+<ol>
+  <li><strong>물리적 현실성:</strong> 실제 해양파의 비대칭 형상(뾰족한 파봉, 넓은 파배)을 재현 — 선형 모델은 이를 표현하지 못함</li>
+  <li><strong>정확한 표면 법선:</strong> Lagrangian 메시에서 $\partial(x,y,z)/\partial(u,v)$로 <strong>해석적 법선</strong> 계산 가능 → LiDAR 반사 시뮬레이션(Fresnel confidence $c_j$)에 필수</li>
+  <li><strong>다성분 중첩:</strong> 각 성분의 수평 변위를 합산하여 복잡한 해면 재현 ($Q$ 파라미터로 steepness 제어)</li>
+  <li><strong>GPU 병렬 계산:</strong> 해석적 공식이므로 격자 기반 수치 시뮬레이션(CFD)보다 수천 배 빠름 — 100 에피소드 생성 가능</li>
+</ol>
+
+<div class="key">
+  <strong>핵심 설계 결정:</strong><br>
+  GT(시뮬레이터)는 Gerstner(비선형), 추정기는 linear(선형). 이 "의도된 불일치"는:<br>
+  &nbsp;&nbsp;• BF3-4에서 $\Delta z \sim 1.5$-$6$mm &lt; LiDAR noise($\sim$20mm) → 실질적 영향 없음<br>
+  &nbsp;&nbsp;• Linear 추정기가 weakly nonlinear GT에 robust함을 검증하는 실험 설계<br>
+  &nbsp;&nbsp;• Gerstner 역변환 $(x,y) \to (u,v)$ 없이 해석적 gradient 계산 가능 → 속도 이점<br>
+  &nbsp;&nbsp;• Part 8에서 이 불일치의 정량적 오차 분석 상세 설명
+</div>
+
+<h4>Gerstner 파도 적용 방식 — WaveSim 시뮬레이터에서</h4>
+<ol>
+  <li><strong>JONSWAP 스펙트럼에서 $N$ 성분 추출:</strong> $(A_i, k_{x,i}, k_{y,i}, \omega_i, \varphi_i)$ — 각 성분의 에너지는 스펙트럼 밀도에서 결정</li>
+  <li><strong>Lagrangian 메시 생성:</strong> 정적 격자 $(u,v)$에 대해 각 성분의 수평/수직 변위를 합산 → 실제 수면 $(x,y,z)$ 계산</li>
+  <li><strong>표면 법선 계산:</strong> $\mathbf{n} = \frac{\partial\mathbf{r}}{\partial u} \times \frac{\partial\mathbf{r}}{\partial v}$ → 각 메시 점에서 정확한 법선 벡터</li>
+  <li><strong>LiDAR ray-mesh 교차:</strong> 선박 위치에서 발사된 LiDAR ray가 Gerstner 메시와 만나는 점 $(x_j, y_j, z_j)$과 입사각 $\theta_j$ 계산</li>
+  <li><strong>Confidence 가중치:</strong> 법선 $\mathbf{n}$과 ray 방향에서 $c_j = \cos\theta_j / (d_j / d_{\text{ref}})$ → 시뮬레이션에서는 정확한 법선 사용 가능</li>
+</ol>
+
+<div class="warn">
+  <strong>실측 LiDAR에서는?</strong><br>
+  Gerstner 메시가 없으므로 표면 법선을 모른다 → <strong>$\mathbf{n} \approx \hat{\mathbf{z}}$ (flat 가정)</strong>으로 근사.
+  BF4에서 ~3° 법선 오차 → $\cos\theta$ 오차 &lt;2% (θ&lt;30°), ~9% (θ≈60°). Part 7 confidence 절에서 상세 설명.
+</div>
+
 <h4>선형 파도 모델의 충분성</h4>
-<p>BF2-4 범위에서 파고/파장 비(steepness)가 < 0.05이므로 선형 중첩 모델이 충분히 정확하다.
+<p>BF2-4 범위에서 파고/파장 비(steepness)가 &lt; 0.05이므로 선형 중첩 모델이 충분히 정확하다.
 관측 노이즈가 비선형 오차보다 훨씬 크기 때문에, cos 합으로 모델링하는 것이 실용적으로 최선의 선택이다.</p>
+
+<div class="warn">
+  <strong>A1 Ablation 미리보기:</strong> 만약 $\omega$를 분산관계로 제약하지 않고 자유 파라미터로 두면?
+  Part 7에서 상세히 다루겠지만, 결론: <strong>R̄=0.51로 과적합</strong>이 발생한다.
+  물리적으로 불가능한 $(k, \omega)$ 조합이 허용되어 optimizer가 관측 노이즈까지 fit하게 됨.
+</div>
 
 
 <!-- ═══════════════════════════════════════════ -->
@@ -577,6 +672,42 @@
   <strong>해석:</strong> GPR은 관측점 사이를 '평균'으로 채워 거의 평평한 수면을 예측한다. nRMSE=0.261로 ETKF(0.319)보다 나아 보이지만, 실제로는 '아무것도 예측하지 않는 것'에 가깝다.
 </div>
 
+<h4>왜 GPR이 flat prediction을 하는가 — 수학적 메커니즘</h4>
+<p>GPR의 예측이 거의 0에 가까운 이유는 <strong>세 가지 요인의 결합</strong>이다:</p>
+
+<div class="eq-box">
+  <div class="eq-label">GPR 예측 = 가중합</div>
+  $$\mu(\mathbf{x}^*) = \sum_{j=1}^{M} \alpha_j \cdot z_j \qquad\text{where}\quad \boldsymbol{\alpha} = (K + \sigma^2 I)^{-1} \mathbf{k}(\mathbf{x}^*, X)$$
+</div>
+
+<p><strong>요인 1: Sparse LiDAR + 단일 length scale</strong></p>
+<ul>
+  <li>관측점 간 평균 거리 $\sim$10-50m, 하지만 length scale $l = 20$m</li>
+  <li>예측 위치 $\mathbf{x}^*$가 관측점에서 $> 2l = 40$m 떨어지면 $k(\mathbf{x}^*, x_j) \approx 0$ → 가중치 $\alpha_j \approx 0$</li>
+  <li>관측점 밖의 광대한 영역에서 $\mu(\mathbf{x}^*) \approx 0$ (사전 평균으로 수축)</li>
+</ul>
+
+<p><strong>요인 2: 시간 무시 → 위상 평균화</strong></p>
+<ul>
+  <li>3프레임(0.3초)의 관측을 시간 구분 없이 동일 공간으로 취급</li>
+  <li>같은 $(x,y)$ 근처에서 다른 시점의 파고가 양/음으로 섞임</li>
+  <li>커널이 이들을 "유사한 관측"으로 보고 <strong>평균(≈0)</strong>으로 추정</li>
+</ul>
+
+<p><strong>요인 3: Matern ν=5/2 단일 스케일의 한계</strong></p>
+<ul>
+  <li>$\nu=5/2$는 2차 미분 가능 → 충분히 매끄러움. 문제는 이것이 아님</li>
+  <li>단일 $l=20$m은 <strong>짧은 파도(λ~10m)는 과평활, 긴 파도(λ~50m)는 부족</strong></li>
+  <li>다중 스케일 커널(예: 두 Matern 혼합)도 시간 무시 문제를 해결하지 못함 → 근본적 한계</li>
+</ul>
+
+<div class="insight">
+  <strong>수치로 보기:</strong> VR=0.065는 $\text{Var}(\hat{z}) = 0.065 \cdot \text{Var}(z)$.<br>
+  파고 분산의 93.5%가 "삭제"됨 — 이것이 nRMSE=0.261인데도 SS=-0.14(zero보다 나쁨)인 이유.<br>
+  nRMSE만 보면 "괜찮아 보이는" 이유: $\text{nRMSE}(0) = \text{RMSE}(0)/H_s = \sigma/H_s \approx 0.25$이므로
+  GPR의 0.261은 zero predictor(0.25)보다 겨우 4% 나쁜 수준.
+</div>
+
 <h3>공간 영역의 한계 정리</h3>
 <table>
   <tr><th></th><th>ETKF</th><th>GPR</th><th>필요한 것</th></tr>
@@ -692,12 +823,49 @@
   <tr><td>허위 피크</td><td>많음</td><td class="good">물리적 불가능 피크 제거</td></tr>
 </table>
 
+<h4>왜 분산관계가 빔포밍 성능을 높이는가 — Temporal Coherence 메커니즘</h4>
+<p>핵심은 <strong>시간적 위상 정렬(temporal phase alignment)</strong>이다:</p>
+
+<div class="eq-box">
+  <div class="eq-label">빔포밍 스펙트럼 — ω(k) 주입 전후 비교</div>
+  $$P_{\text{naive}}(k_x, k_y) = \left|\sum_j z_j \exp(-i(k_x x_j + k_y y_j))\right|^2 \quad\text{(공간만)}$$
+  $$P_{\text{disp}}(k_x, k_y) = \left|\sum_j z_j \exp(-i(k_x x_j + k_y y_j \;{\color{#e74c3c}{- \omega(\mathbf{k})\,t_j}}))\right|^2 \quad\text{(시공간)}$$
+</div>
+
+<p><strong>메커니즘:</strong></p>
+<ol>
+  <li><strong>문제:</strong> 10프레임(1초) 축적 시 파도가 이동함. 같은 $(k_x, k_y)$ 파도의 위상이 $t_j$마다 다름</li>
+  <li><strong>공간만 빔포밍:</strong> $t_j$에 따른 위상 차이를 무시 → 보강 간섭이 약해지거나 상쇄</li>
+  <li><strong>분산관계 주입:</strong> $\omega(\mathbf{k})\,t_j$로 각 관측의 시간적 위상을 <strong>보정(de-rotate)</strong> → 모든 프레임이 같은 위상으로 정렬 → 보강 간섭 극대화</li>
+  <li><strong>허위 피크 제거:</strong> 잘못된 $(k_x, k_y)$에 대해 $\omega(\mathbf{k})$가 실제 $\omega$와 불일치 → 시간 위상 정렬 실패 → 상쇄 간섭 → 피크 소멸</li>
+</ol>
+
+<div class="insight">
+  <strong>비유:</strong> 라디오에서 주파수가 맞으면 모든 시점의 신호가 보강 간섭하여 맑은 소리가 들린다.
+  주파수가 틀리면 각 시점의 신호가 상쇄되어 잡음만 남는다. 분산관계는 "정확한 주파수 다이얼"이다.
+</div>
+
 
 <!-- ═══════════════════════════════════════════ -->
 <h2 id="p6"><span class="part-num">PART 6</span>WaveSplat &mdash; 빔포밍 초기화</h2>
 <!-- ═══════════════════════════════════════════ -->
 
 <h3>전체 흐름</h3>
+
+<h4>왜 10프레임 축적인가?</h4>
+<p>빔포밍 전 10프레임(1초, 10Hz)을 모아서 사용하는 이유:</p>
+<table>
+  <tr><th>프레임 수</th><th>관측점 수</th><th>시간 aperture</th><th>trade-off</th></tr>
+  <tr><td>1프레임</td><td>50~200</td><td>0s</td><td class="bad">공간만 사용, 시간 coherence 없음</td></tr>
+  <tr><td>5프레임</td><td>250~1000</td><td>0.5s</td><td class="mid">Tp~5s의 10% — 위상 변화 부족</td></tr>
+  <tr><td><strong>10프레임</strong></td><td><strong>500~2000</strong></td><td><strong>1s</strong></td><td class="good">Tp~5s의 20% — 충분한 위상 변화 + 파도 구조 유지</td></tr>
+  <tr><td>20프레임</td><td>1000~4000</td><td>2s</td><td class="mid">BF3(Tp~5s)에서 파도 구조 변화 시작, 계산 느림</td></tr>
+</table>
+<div class="insight">
+  <strong>Pareto 최적점:</strong> 시간 aperture가 $T_p$의 ~20%이면 분산관계 $\omega(\mathbf{k})$로 시간 coherence를 활용하면서도
+  비선형 효과(파도 변형)가 무시 가능. 10프레임 = 초기화 시 1초 대기 → 선박 운영에서 허용 가능한 지연.
+</div>
+
 <div class="flow">
   <span class="flow-step">다중 프레임 축적 (10프레임)</span>
   <span class="flow-arrow">&rarr;</span>
@@ -739,7 +907,16 @@
   &rarr; coarse로 <strong>거친 위치</strong> 찾고, fine으로 <strong>국소 정밀화</strong> (총 $81^2 + N \times 41^2 \ll 801^2$).
 </div>
 
-<p>0.15 rad/m 억제 이유: 직교 격자에서 같은 파도의 sidelobe를 별도 성분으로 오인하는 것을 방지하면서, 교차해(crossing seas)를 분리 해상도 내에서 분리한다.</p>
+<h4>Sidelobe 억제 반경 0.15 rad/m — 왜 이 값인가?</h4>
+<p>Greedy 피크 추출 후 주변을 억제하는 반경의 선택 근거:</p>
+<ul>
+  <li><strong>하한 (Rayleigh 한계):</strong> aperture $L \sim 240$m에서 주로브 폭 $\approx 2\pi/L \approx 0.026$ rad/m. 이보다 작으면 같은 피크의 sidelobe를 놓침</li>
+  <li><strong>상한 (교차해 분리):</strong> 두 교차파의 $\Delta k$ 최소 간격은 JONSWAP 피크 폭 $\sim 0.2$-$0.3$ rad/m. 이보다 크면 인접 교차파도 억제해 버림</li>
+  <li><strong>0.15 rad/m:</strong> coarse 격자 $\Delta k = 0.10$의 1.5배 — sidelobe (±1-2 셀)을 충분히 제거하면서 교차해 분리 유지</li>
+</ul>
+<div class="warn">
+  <strong>경험적 근거:</strong> BF3 2-comp 교차해(두 파도의 $\Delta k \approx 0.3$ rad/m)에서 두 피크를 정확히 분리하면서, BF4 단일 파도의 sidelobe를 완전히 억제. 0.10은 sidelobe 잔류, 0.20은 교차파 탈락.
+</div>
 
 <h4>실제 해상도 요약</h4>
 <table>
@@ -952,6 +1129,40 @@
   <strong>핵심:</strong> 모든 gradient가 <strong>해석적(analytic)</strong>으로 계산됨.
   $\cos/\sin$의 미분은 $\sin/\cos$, 분산관계의 미분은 <strong>군속도 $v_g$</strong>.
   &mdash; 정확한 gradient, 수치 미분 불필요. PyTorch autograd가 이 체인을 자동으로 구성.
+</div>
+
+<h3 id="p7-a1">A1 Ablation: ω를 자유 파라미터로 두면? — 분산관계 hard constraint의 필요성</h3>
+
+<p>Part 1에서 예고한 <strong>핵심 설계 검증</strong>. $\omega$를 $\omega(\mathbf{k}, d)$로 제약하지 않고 5번째 자유 파라미터로 두면:</p>
+
+<table>
+  <tr><th></th><th>A1: Unconstrained $\omega$ (5N params)</th><th>WaveSplat: Constrained $\omega$ (4N params)</th></tr>
+  <tr><td>nRMSE (train)</td><td class="good">0.15 (더 낮음)</td><td>0.22</td></tr>
+  <tr><td>Variance Ratio $\bar{R}$</td><td class="bad">0.51 (over-fit)</td><td class="good">0.73 (적절)</td></tr>
+  <tr><td>off-shell 비율</td><td class="bad">$\omega \neq \omega(k,d)$ 성분 다수</td><td>0% (물리 제약)</td></tr>
+</table>
+
+<h4>왜 over-fitting이 발생하는가?</h4>
+<ol>
+  <li><strong>추가 자유도:</strong> 각 성분에 $\omega_i$가 자유 → $5N$개 파라미터. $N=15$이면 75개 vs 60개</li>
+  <li><strong>Off-shell 해:</strong> 물리적으로 불가능한 $(k, \omega)$ 조합이 허용됨. 예: $|\mathbf{k}|=0.3$ rad/m인데 $\omega = 3.0$ rad/s (분산관계로는 $\omega \approx 1.7$)</li>
+  <li><strong>노이즈 fitting:</strong> Off-shell $\omega$는 "원래 파도가 아닌 관측 노이즈 패턴"에 맞춰짐. 훈련 loss는 낮지만 검증 시 일반화 실패</li>
+  <li><strong>Bound harmonics 혼동:</strong> BF4에서 bound harmonics (2차 성분)은 에너지의 &lt;0.15%뿐. A1의 높은 $\bar{R}$은 이를 잡은 것이 아니라 노이즈를 fit한 결과</li>
+</ol>
+
+<div class="eq-box">
+  <div class="eq-label">핵심 논리</div>
+  <p style="margin: 0;">
+    $\omega$를 자유롭게 두면 → optimizer가 <strong>분산관계 곡선 밖의 해</strong>를 찾음<br>
+    → train loss는 낮지만 <strong>시간 외삽 실패</strong> ($\varphi += \omega_{\text{wrong}} \Delta t$ → 위상 drift)<br>
+    → VR=0.51 (under-energized, 노이즈에 에너지 분배) vs VR=0.73 (적절)
+  </p>
+</div>
+
+<div class="key">
+  <strong>결론:</strong> 분산관계 hard constraint는 단순한 파라미터 감소(5N→4N)가 아니라,
+  <strong>물리적으로 유효한 해 공간만 탐색하게 하는 정규화(regularization)</strong>이다.
+  이것이 WaveSplat의 C1 novelty (Contribution 1)의 실험적 근거.
 </div>
 
 <h3>경사하강법(SGD)에서 Adam까지</h3>
@@ -1274,6 +1485,24 @@
   &nbsp;&nbsp;(4) $\tau_R = 0.05$m 설정 시 이 mismatch가 임계 아래에 있도록 설계됨
 </div>
 
+<h4>BF5에서는? — Gerstner-Linear 불일치의 한계</h4>
+<table>
+  <tr><th>BF 등급</th><th>$H_s$ [m]</th><th>steepness $\epsilon$</th><th>$\Delta z_{\text{model}}$</th><th>vs LiDAR noise</th></tr>
+  <tr><td>BF3</td><td>0.88</td><td>~0.03</td><td>~0.4 mm</td><td class="good">&lt;&lt; 20mm</td></tr>
+  <tr><td>BF4</td><td>1.88</td><td>~0.05</td><td>~1.5-6 mm</td><td class="good">&lt; 20mm</td></tr>
+  <tr><td><strong>BF5</strong></td><td><strong>3.25</strong></td><td><strong>~0.07-0.08</strong></td><td><strong>~8-20 mm</strong></td><td class="mid"><strong>≈ 20mm (경계)</strong></td></tr>
+  <tr><td>BF6+</td><td>&gt;4.0</td><td>&gt;0.10</td><td>&gt;20 mm</td><td class="bad">&gt; 노이즈 (linear 한계)</td></tr>
+</table>
+
+<div class="warn">
+  <strong>BF5는 linear 모델의 실질적 경계이다:</strong><br>
+  &nbsp;&nbsp;• $\epsilon \approx 0.07$-$0.08$일 때 $\Delta z \approx H_s \cdot \epsilon^2 / 2 \approx 3.25 \times 0.006 / 2 \approx 8$-$20$mm<br>
+  &nbsp;&nbsp;• LiDAR noise($\sim$20mm)와 동일 크기 → 모델 오차가 더 이상 "무시 가능"하지 않음<br>
+  &nbsp;&nbsp;• BF5 실험에서도 WaveSplat은 nRMSE ≈ 0.29로 동작하지만, 고차 Stokes 효과가 잔차에 포함됨<br>
+  &nbsp;&nbsp;• BF6 이상에서는 쇄파(breaking wave)까지 발생 → linear 모델의 근본적 한계<br>
+  &nbsp;&nbsp;• 향후: 2차 Stokes 보정 또는 weakly nonlinear 확장이 필요할 수 있음
+</div>
+
 <h4>$\tau_R$ 초과 = 왜 "빔포밍 실패" 신호인가</h4>
 
 <p>초기화에서 모든 성분이 정확히 잡혔다면 잔차 RMS는 $\sim 0.022$m (노이즈 + 모델 하한) 근처. $\tau_R = 0.05$m 초과는:</p>
@@ -1290,6 +1519,15 @@
 </ul>
 
 <p>잔차에 빔포밍 재적용하면 <strong>이 놓친 성분이 잔차 신호의 최대 피크로 드러남</strong> &rarr; 추가. 경험적으로 BF5 30-comp에서 $N=15 \to 21$로 성장, 6.4% 추가 nRMSE 개선.</p>
+
+<div class="warn">
+  <strong>Grown component는 C2F를 거치지 않는다:</strong><br>
+  초기화(Phase 1)에서 성장된 새 성분은 잔차 빔포밍 + 선형 최소제곱으로 $(k_x, k_y, w, \varphi)$가 결정되고,
+  이후 바로 현재 모델에 합류한다. $N=3 \to 8 \to 15$의 C2F 스케줄을 <strong>다시 실행하지 않는다</strong>.<br>
+  &nbsp;&nbsp;• <strong>이유:</strong> 잔차 빔포밍은 이미 기존 성분이 설명하지 못한 "순수 잔차 신호"에서 피크를 찾으므로 기존 성분과의 간섭이 적음<br>
+  &nbsp;&nbsp;• <strong>trade-off:</strong> 초기화 품질이 C2F 거친 성분보다 약간 낮을 수 있지만, 계산 효율성(재C2F 시 추가 ~500ms)을 우선시<br>
+  &nbsp;&nbsp;• <strong>실험 결과:</strong> grown component의 $k$ 정밀도는 fine refinement(Δk=0.01)로 충분하며, 추적 시 $w, \varphi$만 업데이트하므로 $k$ 오차의 영향 제한적
+</div>
 
 <div class="key">
   <strong>결과:</strong> 너울($N_a=1$)에서 복잡해($N_a=21$)까지 자동 적응.<br>
@@ -1421,6 +1659,33 @@
   <li>3프레임: 150~600점 &rarr; 노이즈 평균화</li>
   <li>3프레임 = 0.3초 = 파도 주기(~5초)의 6% &rarr; 파도 변화를 놓치지 않으면서 충분한 평균화</li>
 </ul>
+
+<h4>왜 정확히 10 Adam steps인가?</h4>
+<p>추적 프레임당 10 steps는 <strong>정확도-속도 Pareto 최적점</strong>이다:</p>
+
+<table>
+  <tr><th>Steps</th><th>소요 시간</th><th>수렴 정도</th><th>trade-off</th></tr>
+  <tr><td>1</td><td>~1.3ms</td><td>~15% loss 감소</td><td class="bad">부족 — 진폭/위상 보정이 불완전</td></tr>
+  <tr><td>5</td><td>~6.5ms</td><td>~70% loss 감소</td><td class="mid">대부분 보정, 일부 잔류 오차</td></tr>
+  <tr><td><strong>10</strong></td><td><strong>~13ms</strong></td><td><strong>~95% loss 감소</strong></td><td class="good">수렴 근접 — 추가 step의 한계 이득 &lt;1%</td></tr>
+  <tr><td>20</td><td>~26ms</td><td>~98% loss 감소</td><td class="mid">13ms 추가 투자 → 3% 추가 개선 (과잉)</td></tr>
+  <tr><td>50</td><td>~65ms</td><td>~99% (완전 수렴)</td><td class="bad">100ms 예산의 65% → 여유 없음</td></tr>
+</table>
+
+<div class="insight">
+  <strong>왜 10이면 충분한가:</strong><br>
+  &nbsp;&nbsp;• w_phi 모드에서 $k_x, k_y$가 고정 → 2N개 파라미터만 업데이트 (N=15일 때 30개)<br>
+  &nbsp;&nbsp;• Predict step이 $\varphi += \omega\Delta t$로 정확한 예측 제공 → Update에서 <strong>미세 보정만</strong> 필요<br>
+  &nbsp;&nbsp;• Adam의 적응적 학습률이 파라미터별 스케일 차이를 자동 처리 → SGD보다 빠른 수렴<br>
+  &nbsp;&nbsp;• 실험적 확인: 10 steps 이후 loss 변화율 $< 0.1\%$/step (plateau 도달)
+</div>
+
+<div class="warn">
+  <strong>해상 조건별 차이:</strong><br>
+  &nbsp;&nbsp;• BF2-3 (1-5 comp): 5 steps로도 충분 — 저주파 성분은 $\omega$ 작아 프레임 간 변화 미미<br>
+  &nbsp;&nbsp;• BF4-5 (15-30 comp): 10 steps 필요 — 고주파 성분의 빠른 위상 변화 + 다성분 간 간섭<br>
+  &nbsp;&nbsp;• 10 steps는 모든 해상 조건에서 동작하는 보수적이면서 효율적인 값
+</div>
 
 <h3>실시간 성능</h3>
 <table>
@@ -1657,17 +1922,55 @@
 </div>
 
 <h3>한계와 향후 연구</h3>
+
+<h4>최대 약점: Dir $R^2$ = &minus;0.25 — 물리적 원인 분석</h4>
+
 <div class="warn">
-  <strong>최대 약점: Dir $R^2$ = &minus;0.25 (방향 추정)</strong><br>
-  BF4에서 일부 성분의 방향($k_x$ 부호)이 반전됨. 원인: 선박 전방 LiDAR의 1D 관측 geometry &mdash;
-  $k_x > 0$ (다가오는 파도)와 $k_x < 0$ (멀어지는 파도) 구분이 어려움.
+  <strong>Dir $R^2 < 0$은 방향 추정이 랜덤보다 나쁘다는 뜻이다.</strong>
+  WaveSplat의 nRMSE=0.223 (최고)인데 방향은 왜 실패하는가?
 </div>
-<p>향후 해결 방향:</p>
+
+<p><strong>원인: Forward-looking LiDAR의 기하학적 모호성</strong></p>
+
+<p>선박 전방 LiDAR는 ${\sim}120°$ FOV로 전방을 관측한다. 이 geometry에서 <strong>$k_x$ 부호 구분이 근본적으로 어렵다</strong>:</p>
+
+<div class="eq-box">
+  <div class="eq-label">방향 모호성의 기하학적 근거</div>
+  <p style="margin: 0;">
+    Forward LiDAR 관측 영역: 주로 $x > 0$ (선박 전방)<br>
+    파도 A: $k_x > 0$ (선박을 향해 오는 파도) → 위상: $\Psi = k_x x - \omega t + \varphi_A$<br>
+    파도 B: $k_x < 0$ (선박에서 멀어지는 파도) → 위상: $\Psi = -k_x x - \omega' t + \varphi_B$<br><br>
+    단일 프레임($t$ 고정)에서 두 파도는 $x > 0$ 영역에서 <strong>동일한 공간 패턴</strong>을 만들 수 있다:<br>
+    $\cos(k_x \cdot x + \text{const})$ vs $\cos(-k_x \cdot x + \text{const}')$ — 위상 차이만으로 구분해야 함
+  </p>
+</div>
+
+<p><strong>왜 시간 정보로도 해결되지 않는가?</strong></p>
 <ol>
-  <li>다중 프레임 방향 추적 (시간에 따른 위상 변화로 방향 추론)</li>
-  <li>3D FFT $(k_x, k_y, \omega)$ 초기화</li>
-  <li>방향 신뢰도 기반 feedforward 게이팅</li>
-  <li>수조 실험(Ch5)으로 sim-to-real gap 검증</li>
+  <li><strong>시간 aperture 부족:</strong> 슬라이딩 윈도우 $K_w = 3$ (0.3초). BF4 $T_p \approx 7$s에서 0.3s는 위상 변화 $\Delta\varphi = \omega \cdot 0.3 \approx 0.27$ rad ($\sim$15°). $k_x$와 $-k_x$의 위상 변화 차이는 $2 v_g k_x / |k| \cdot 0.3$ → 매우 작음</li>
+  <li><strong>다성분 간섭:</strong> BF4 15-30개 성분이 겹치면 개별 성분의 방향 신호가 다른 성분의 노이즈에 묻힘</li>
+  <li><strong>FOV 편향:</strong> $x > 0$에서만 관측 → 빔포밍이 $k_x > 0$을 선호하는 편향 발생 (음의 $k_x$는 관측 영역 밖의 정보 필요)</li>
+</ol>
+
+<div class="insight">
+  <strong>핵심 통찰:</strong> 방향 모호성은 <strong>관측 geometry의 근본적 한계</strong>이지, 알고리즘 결함이 아니다.<br>
+  360° 관측(X-band radar 등)에서는 $k_x > 0$과 $k_x < 0$ 영역을 모두 관측하므로 모호성이 사라진다.<br>
+  WaveSplat은 $|k|$ (파장)과 $|k_y/k_x|$ (방위각)은 정확히 추정하지만, $k_x$의 <strong>부호</strong>가 50/50에 가깝게 불확실하다.
+</div>
+
+<table>
+  <tr><th>정확하게 추정되는 것</th><th>모호한 것</th></tr>
+  <tr><td>$|\mathbf{k}|$ (파장) → nRMSE에 직접 영향</td><td>$\text{sign}(k_x)$ (방향 부호)</td></tr>
+  <tr><td>$w$ (진폭) → VR=0.73</td><td>$k_x > 0$ vs $k_x < 0$ 구분</td></tr>
+  <tr><td>$\varphi$ (위상) → ρ=0.76</td><td>교차해에서 두 파도의 상대 방향</td></tr>
+</table>
+
+<p><strong>향후 해결 방향:</strong></p>
+<ol>
+  <li><strong>다중 프레임 방향 추적:</strong> 시간에 따른 위상 변화율 $\dot{\varphi}$의 부호로 방향 추론 — $K_w$를 5-10으로 확대 시 가능성</li>
+  <li><strong>3D FFT $(k_x, k_y, \omega)$ 초기화:</strong> 전체 시공간 스펙트럼에서 분산관계 곡선 위의 피크만 추출 → 방향 모호성 해소</li>
+  <li><strong>방향 신뢰도 기반 feedforward 게이팅:</strong> Dir R²가 낮은 성분은 feedforward 제어에서 제외</li>
+  <li><strong>수조 실험(Ch5):</strong> sim-to-real gap 검증 + 실제 LiDAR에서의 방향 추정 성능 확인</li>
 </ol>
 
 <hr style="border: 1px solid #333; margin: 60px 0 30px;">

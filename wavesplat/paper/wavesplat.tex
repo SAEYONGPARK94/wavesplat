@@ -470,6 +470,17 @@ the complete pipeline.
 \end{tabular}
 \end{table}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_pipeline.pdf}
+\caption{WaveSplat two-phase pipeline.  Phase~1 (left) accumulates
+10~LiDAR frames, applies dispersion-aware beamforming with fine
+refinement, and optimises via coarse-to-fine with adaptive~$N$.
+Phase~2 (right) predicts phases via $\varphi_i \mathrel{+}= \omega_i\Delta t$
+and updates only $(w_i, \varphi_i)$ with 10~Adam steps per frame.}
+\label{fig:pipeline}
+\end{figure}
+
 \subsubsection{Phase 1: Initialization}
 
 Given the first $T_{\text{init}} = 2 T_p$ seconds of observations
@@ -581,7 +592,18 @@ $[0.05,\,0.15]$~m differ by at most 1.6\% in average nRMSE
 (0.2114 at $\tau_R{=}0.05$ vs.\ 0.2148 at $\tau_R{=}0.15$),
 while $\tau_R = 0.02$~m causes over-growth in multi-component seas
 ($+$3.3\% average; up to 75\% increase on BF3~2-component
-slope-distributed observations), validating the chosen value.
+slope-distributed observations), validating the chosen value
+(Fig.~\ref{fig:tau}).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\columnwidth]{figures/fig_tau_sensitivity.pdf}
+\caption{$\tau_R$ sensitivity sweep on 12~representative episodes.
+$\tau_R \in [0.05,\,0.15]$~m yields nearly identical performance
+(max 1.6\% difference).  $\tau_R{=}0.02$~m triggers over-growth,
+adding spurious components from noise.}
+\label{fig:tau}
+\end{figure}
 
 \subsubsection{Phase 2: Tracking}
 

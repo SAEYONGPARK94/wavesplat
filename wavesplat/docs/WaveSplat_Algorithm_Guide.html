@@ -1138,7 +1138,7 @@
 <table>
   <tr><th></th><th>A1: Unconstrained $\omega$ (5N params)</th><th>WaveSplat: Constrained $\omega$ (4N params)</th></tr>
   <tr><td>nRMSE (train)</td><td class="good">0.15 (더 낮음)</td><td>0.22</td></tr>
-  <tr><td>Variance Ratio $\bar{R}$</td><td class="bad">0.51 (over-fit)</td><td class="good">0.73 (적절)</td></tr>
+  <tr><td>Variance Ratio $\bar{R}$</td><td class="bad">0.51 (over-fit)</td><td class="mid">0.661 (적절)</td></tr>
   <tr><td>off-shell 비율</td><td class="bad">$\omega \neq \omega(k,d)$ 성분 다수</td><td>0% (물리 제약)</td></tr>
 </table>
 
@@ -1155,7 +1155,7 @@
   <p style="margin: 0;">
     $\omega$를 자유롭게 두면 → optimizer가 <strong>분산관계 곡선 밖의 해</strong>를 찾음<br>
     → train loss는 낮지만 <strong>시간 외삽 실패</strong> ($\varphi += \omega_{\text{wrong}} \Delta t$ → 위상 drift)<br>
-    → VR=0.51 (under-energized, 노이즈에 에너지 분배) vs VR=0.73 (적절)
+    → VR=0.51 (under-energized, 노이즈에 에너지 분배) vs VR=0.661 (적절)
   </p>
 </div>
 
@@ -1746,11 +1746,11 @@
 <table>
   <tr><th>지표</th><th>의미</th><th>WaveSplat</th><th>ETKF</th><th>GPR</th></tr>
   <tr><td>nRMSE</td><td>전체적 오차 ($\downarrow$)</td><td class="good">0.223</td><td>0.319</td><td>0.261</td></tr>
-  <tr><td>VR</td><td>에너지 재현도 (1이 이상)</td><td class="good">0.73</td><td>0.90</td><td class="bad">0.065</td></tr>
-  <tr><td>$\rho$</td><td>형상 일치도 ($\uparrow$)</td><td class="good">0.76</td><td class="bad">0.11</td><td>0.193</td></tr>
-  <tr><td>SS</td><td>Skill Score ($>0$ 필요)</td><td class="good">0.46</td><td class="bad">&minus;0.02</td><td class="bad">&minus;0.14</td></tr>
-  <tr><td>Dir $R^2$</td><td>방향 추정 ($\uparrow$)</td><td class="mid">&minus;0.25</td><td class="bad">&minus;1.25</td><td>&mdash;</td></tr>
-  <tr><td>$H_s$ err</td><td>유의파고 오차 ($\downarrow$)</td><td class="good">3.7%</td><td class="bad">28.6%</td><td>&mdash;</td></tr>
+  <tr><td>VR</td><td>에너지 재현도 (1이 이상)</td><td class="mid">0.661</td><td>0.898</td><td class="bad">0.065</td></tr>
+  <tr><td>$\rho$</td><td>형상 일치도 ($\uparrow$)</td><td class="good">0.446</td><td class="bad">0.109</td><td>0.193</td></tr>
+  <tr><td>SS</td><td>Skill Score ($>0$ 필요)</td><td class="good">+0.034</td><td class="bad">&minus;0.702</td><td class="bad">&minus;0.140</td></tr>
+  <tr><td>Dir $R^2$</td><td>방향 추정 ($\uparrow$)</td><td class="mid">&minus;0.253</td><td class="good">+0.065</td><td>+0.028</td></tr>
+  <tr><td>$H_s$ err</td><td>유의파고 오차 ($\downarrow$)</td><td>0.277</td><td class="good">0.258</td><td>0.780</td></tr>
 </table>
 
 <div class="key">
@@ -1822,8 +1822,8 @@
   <tr><td>SS $< 0$</td><td>예측이 <strong>해롭다</strong> &mdash; 평면을 예측한 것보다 못함</td></tr>
 </table>
 <div class="key">
-  논문의 핵심 차별 지표. WaveSplat <strong>SS = 0.46 &gt; 0</strong>은 "실제로 예측 가치 있음".
-  ETKF($-0.02$)와 GPR($-0.14$)은 <strong>음수</strong> &mdash; <strong>아무것도 예측 안 한 것보다 못함</strong>.
+  논문의 핵심 차별 지표. WaveSplat <strong>SS = +0.034 &gt; 0</strong>으로 marginal positive &mdash; "겨우지만 zero predictor를 이기는 유일한 방법".
+  ETKF($-0.702$)와 GPR($-0.140$)은 <strong>음수</strong> &mdash; <strong>아무것도 예측 안 한 것보다 못함</strong>.
   이 사실이 nRMSE만 보면 안 보이고 ($\sim 0.3$), SS로만 드러남.
 </div>
 
@@ -1839,10 +1839,10 @@
 <ul>
   <li>$\uparrow$ 1에 가까울수록 방향 분포 정확 (1 = 완벽)</li>
   <li>음수 값 = GT 평균 분포보다도 못함 (분산이 잘못된 방향에 집중)</li>
-  <li>WaveSplat $-0.25$, ETKF $-1.25$ 모두 음수지만, WaveSplat이 4배 우월</li>
-  <li>GPR은 $-$로 표시: 거의 평평한 출력은 spectrum이 의미 없음</li>
+  <li>WaveSplat $-0.253$, ETKF $+0.065$, GPR $+0.028$. ETKF가 방향에서는 가장 우수 (격자 기반이므로 방향 해상도가 높음)</li>
+  <li>WaveSplat의 음수 Dir R²는 forward-looking LiDAR의 $\pm\theta$ 기하학적 모호성 때문 (§11 참조)</li>
 </ul>
-<p>이 지표는 sparse + forward-looking 조건의 어려움을 그대로 반영. 모든 방법이 100% 정확한 방향 추정 못 함 &mdash; 다만 WaveSplat이 다른 것 대비 압도적으로 적게 잘못함.</p>
+<p>이 지표는 sparse + forward-looking 조건의 어려움을 그대로 반영. 흥미롭게도 Dir R²에서는 ETKF(+0.065)가 가장 우수한데, 격자 기반 표현이 방향 해상도에서 유리하기 때문. WaveSplat의 $-0.253$은 LiDAR FOV의 $\pm\theta$ 모호성 때문.</p>
 
 <h4>⑥ H_s err &mdash; 유의파고 상대 오차</h4>
 <div class="eq-box">
@@ -1853,11 +1853,11 @@
   </p>
 </div>
 <ul>
-  <li>$\downarrow$ 작을수록 좋음. WS 3.7% &mdash; oceanographic standard "<5%" 충족</li>
+  <li>$\downarrow$ 작을수록 좋음. WS 0.277, ETKF 0.258 (ETKF가 약간 우수), GPR 0.780</li>
   <li>VR과 직접 연결: $H_s^{\text{pred}}/H_s^{\text{true}} = \sqrt{\text{VR}}$</li>
   <li>실선 운영에서 가장 자주 사용되는 단일 파라미터 (안전 운항 판단)</li>
 </ul>
-<p>ETKF의 28.6%는 VR=0.90이라도 sea state level에서는 큰 편차로 변환됨 ($\sqrt{0.90} = 0.95$ &rarr; 5% 작아야 하는데 그보다 훨씬 큰 이유: 격자 보간 오차로 분산이 노이즈에 부풀려짐).</p>
+<p>ETKF H_s err=0.258이 WS의 0.277보다 약간 좋은데, VR=0.898로 에너지 재현도가 높기 때문. 반면 GPR의 0.780은 VR=0.065 (거의 평면)의 직접적 결과. WaveSplat의 VR=0.661은 adaptive pruning이 보수적으로 저진폭 성분을 제거하기 때문.</p>
 
 <h3>지표 간 의존성 &mdash; 왜 6개가 모두 필요한가</h3>
 
@@ -1875,14 +1875,14 @@
   <strong>nRMSE만 보면 위험한 이유:</strong> Zero predictor의 nRMSE = $\sigma_{\text{wave}}/H_s = 1/4 = 0.25$.
   즉 어떤 방법이든 nRMSE 0.25 근처면 "맞춰서 낮은가, 안 예측해서 낮은가" 구분 불가.
   이게 ETKF(0.319), GPR(0.261), WaveSplat(0.223)이 nRMSE만으로는 비슷해 보이지만 SS로 보면
-  WS만 양수($+0.46$), 다른 둘은 음수($-0.02, -0.14$)로 결정적으로 갈리는 이유.
+  WS만 양수($+0.034$), 다른 둘은 음수($-0.702, -0.140$)로 결정적으로 갈리는 이유.
 </div>
 
 <h4>각 방법의 진단적 패턴</h4>
 <ul>
-  <li><strong>ETKF:</strong> VR=0.90(에너지 OK) but $\rho$=0.11(형상 NG) &rarr; "에너지는 맞추지만 위치가 틀림"</li>
+  <li><strong>ETKF:</strong> VR=0.898(에너지 OK) but $\rho$=0.109(형상 NG), SS=$-0.702$ &rarr; "에너지는 맞추지만 위치가 틀림"</li>
   <li><strong>GPR:</strong> VR=0.065(에너지 6.5%) &rarr; "거의 평평한 수면을 예측 = near-zero predictor"</li>
-  <li><strong>WaveSplat:</strong> VR=0.73, $\rho$=0.76, SS=0.46 &rarr; 에너지·형상·진정한 예측가치 모두 양호</li>
+  <li><strong>WaveSplat:</strong> VR=0.661, $\rho$=0.446, SS=+0.034 &rarr; 에너지 66%·형상 부분 일치·zero predictor는 이김 (marginal positive)</li>
 </ul>
 
 <h3>핵심 결과</h3>
@@ -1961,8 +1961,8 @@
 <table>
   <tr><th>정확하게 추정되는 것</th><th>모호한 것</th></tr>
   <tr><td>$|\mathbf{k}|$ (파장) → nRMSE에 직접 영향</td><td>$\text{sign}(k_x)$ (방향 부호)</td></tr>
-  <tr><td>$w$ (진폭) → VR=0.73</td><td>$k_x > 0$ vs $k_x < 0$ 구분</td></tr>
-  <tr><td>$\varphi$ (위상) → ρ=0.76</td><td>교차해에서 두 파도의 상대 방향</td></tr>
+  <tr><td>$w$ (진폭) → VR=0.661</td><td>$k_x > 0$ vs $k_x < 0$ 구분</td></tr>
+  <tr><td>$\varphi$ (위상) → ρ=0.446</td><td>교차해에서 두 파도의 상대 방향</td></tr>
 </table>
 
 <p><strong>향후 해결 방향:</strong></p>

@@ -429,7 +429,7 @@ steepness $\epsilon \approx 0.05$ at BF4 (${\sim}3^\circ$ normal
 deviation). For near-normal observations ($\theta < 30^\circ$) this
 yields $<2\%$ error in $\cos\theta_j$; grazing observations
 ($\theta \approx 60^\circ$) can see up to ${\sim}9\%$ error.
-These weights are incorporated in the optimization loss as weighted
+These weights~\eqref{eq:confidence} are incorporated in the optimization loss as weighted
 mean squared error, giving higher influence to close-range,
 near-normal observations.
 
@@ -438,7 +438,7 @@ near-normal observations.
 The estimation proceeds in two phases: an initialization phase that
 establishes the spectral model from multi-frame observations, followed
 by a per-frame tracking phase that maintains the model with
-minimal computation.  Table~\ref{alg:wavesplat} summarizes
+minimal computation.  Table~\ref{alg:wavesplat} and Fig.~\ref{fig:pipeline} summarize
 the complete pipeline.
 
 \begin{table}[t]
@@ -1075,7 +1075,7 @@ $p\!=\!4.7\!\times\!10^{-4}$, paired Cohen's $d\!=\!0.42$,
 Both confidence intervals exclude zero, and the effect sizes
 indicate that the WaveSplat--ETKF gap is large (Cohen's $d>0.8$)
 whereas the WaveSplat--sliding-GPR gap is small-to-medium but still
-robust across the 100 paired runs.
+robust across the 100 paired runs (Fig.~\ref{fig:multiseed}).
 The sliding GPR baseline is a stronger spatial interpolant than
 single-frame GPR (VR=0.11 vs.\ 0.06) but still operates as a
 near-zero predictor relative to WaveSplat, consistent with the

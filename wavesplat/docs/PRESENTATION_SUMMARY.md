@@ -82,10 +82,11 @@ L = (1/M) Σⱼ cⱼ (zⱼ − ẑⱼ)² + λ₁ Σ|wᵢ| + λs Σ(w_{σ(i)} −
 
 ### 2.3 Phase 1: Initialization (T_init = 2Tₚ)
 
-1. **Dispersion-aware beamforming** (v2_konly): polar wavenumber grid
-   (|k| ∈ [0.02, 0.50] rad/m, 64 radial × 128 azimuthal), 각 k에서
-   `ω = √(g|k|tanh(|k|d))` 고정, 관측 시계열과 phasor 상관
-2. Greedy peak extraction (15° 각도 suppression)
+1. **Dispersion-aware beamforming** (v2_konly): Cartesian 81×81 grid
+   (kx, ky ∈ [−4.0, 4.0] rad/m, Δk ≈ 0.10 rad/m), 각 k에서
+   `ω = √(g|k|tanh(|k|d))` 고정, 관측 시계열과 phasor 상관.
+   Fine refinement: 41×41 local grid (Δk=0.01, ±0.2 rad/m)
+2. Greedy peak extraction (0.15 rad/m Cartesian suppression)
 3. **Coarse-to-fine** Adam optimization: N=3 → 8 → 15 (200 iters/stage, lr=5e−3)
 4. **Energy-based pruning**: 누적 에너지 90% 잔존, RMSE 130% 초과 시 rollback
 5. **Residual growth**: 잔차 RMS > 0.05 m이면 잔차에 beamforming → 성분 추가 (Nmax = 30)

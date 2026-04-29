@@ -190,7 +190,7 @@ add_textbox(s, 1.5, 1.8, 10.5, 1.5,
             "WaveSplat", 54, bold=True, color=WHITE,
             alignment=PP_ALIGN.CENTER)
 add_textbox(s, 1.5, 3.0, 10.5, 1.0,
-            "Grid-Free Spectral Gaussian Wave Field Estimation\nfrom Sparse Shipboard LiDAR",
+            "Grid-Free Spectral Wave Field Estimation\nfrom Sparse Shipboard LiDAR",
             22, color=RGBColor(0xAA, 0xCC, 0xEE), alignment=PP_ALIGN.CENTER)
 
 add_textbox(s, 1.5, 4.8, 10.5, 0.5,
@@ -268,7 +268,7 @@ s = add_slide()
 add_section_header(s, "02", "WaveSplat의 Novelty", "Why this is new")
 
 add_textbox(s, 0.8, 1.5, 12, 0.6,
-            "핵심 아이디어: 파도장을 N개의 spectral Gaussian (plane wave)으로 직접 파라미터화",
+            "핵심 아이디어: 파도장을 N개의 spectral component (plane wave)로 직접 파라미터화",
             18, bold=True, color=DARK)
 
 add_textbox(s, 1.5, 2.2, 10, 0.6,
@@ -281,7 +281,7 @@ novelties = [
     "• ❷ Dispersion hard constraint: ωᵢ = √(g·|kᵢ|·tanh(|kᵢ|·d))  →  5N → 4N 파라미터",
     "• ❸ Adaptive model order: energy pruning + residual growth + safety rollback",
     "• ❹ Fresnel confidence weighting: cⱼ = cos(θⱼ)/(dⱼ/d_ref)  — LiDAR 관측 품질 모델링",
-    "• ❺ Pre-registered 6-metric evaluation panel — zero-predictor 구분 가능",
+    "• ❺ Pre-specified 6-metric evaluation panel — zero-predictor 구분 가능",
     "• ❻ 24-config ETKF hyperparameter sweep — 공정한 tuned baseline 제공",
 ]
 add_bullet_list(s, 0.8, 3.0, 11.5, 4.0, novelties, font_size=16, bold_prefix=False)
@@ -506,7 +506,7 @@ add_table(s, 7.0, 1.5, 5.5, 2.5, 4, 3, data_bl)
 
 # 6-metric panel
 add_textbox(s, 0.8, 5.0, 12, 0.5,
-            "Pre-registered 6-metric evaluation panel", 20, bold=True, color=ACCENT)
+            "Pre-specified 6-metric evaluation panel", 20, bold=True, color=ACCENT)
 add_textbox(s, 0.8, 5.5, 12, 1.5,
             "nRMSE ↓  |  Variance Ratio (VR) → 1  |  Pearson ρ ↑  |  "
             "Skill Score (SS) ↑  |  Directional R² ↑  |  Hs error ↓\n\n"
@@ -732,11 +732,11 @@ add_bullet_list(s, 0.8, 1.8, 6.0, 4.5, limits, font_size=15, bold_prefix=False)
 add_textbox(s, 7.5, 1.5, 5.3, 0.4,
             "Contributions 요약", 20, bold=True, color=ACCENT)
 contributions = [
-    "• ❶ Grid-free spectral Gaussian 파면 추정",
+    "• ❶ Grid-free spectral 파면 추정",
     "• ❷ Dispersion hard constraint (5N→4N)",
     "• ❸ Adaptive N (pruning + growth)",
     "• ❹ Fresnel confidence weighting",
-    "• ❺ Pre-registered 6-metric panel",
+    "• ❺ Pre-specified 6-metric panel",
     "• ❻ 24-config ETKF sweep (fair baseline)",
     "• ❼ Dispersion drift 정량화 (R̄ metric)",
 ]

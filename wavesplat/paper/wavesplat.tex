@@ -368,6 +368,10 @@ WaveSplat, by contrast, requires no training data, handles
 irregular observation geometries natively, and produces directly
 interpretable spectral parameters that satisfy the dispersion
 relation by construction.
+Direct experimental comparison with learning-based methods is beyond
+the scope of this work, which focuses on physics-constrained spectral
+estimation; such a comparison would require careful control of
+training distribution, sensor geometry, and computational budget.
 Its grid-free sparse representation is conceptually related to the
 compressed sensing literature~\citep{candes2006, mallat1993} and to
 \citet{drazen2008}'s sparse spectral reconstruction from pressure
@@ -716,10 +720,12 @@ sampling~\citep{hasselmann1973}.  The simulator parameters are:
   \item \textbf{Ground-truth wave model}: Gerstner waves (nonlinear),
     providing a realistic test of the linear forward
     model~\eqref{eq:forward}
-  \item \textbf{LiDAR model}: 500 horizontal beams, 10~Hz scan rate,
-    range 10--250~m, representative of current solid-state
-    automotive-grade solid-state LiDAR (1550~nm eye-safe wavelength,
-    $>$100 channels, $120^\circ \times 25^\circ$ FOV)
+  \item \textbf{LiDAR model}: 500 horizontal beams per scan,
+    10~Hz scan rate, range 10--250~m.  The beam count represents the
+    total number of ray directions per frame (horizontal fan);
+    real-world solid-state LiDARs such as the Seyond Falcon~K1
+    (1550~nm, 152 vertical channels, $120^\circ \times 25^\circ$ FOV)
+    produce comparable or higher point densities per scan
   \item \textbf{Raydrop models}: (a)~uniform---constant drop probability
     independent of surface geometry (diffuse Fresnel reflection); and
     (b)~slope-dependent---higher dropout on steep surfaces with
@@ -789,7 +795,8 @@ Section~\ref{sec:fulleval}.
 \textbf{ETKF-grid}~\citep{huhn2022}: Ensemble Transform Kalman Filter
 on a regular grid with FFT-based spectral propagation, multiplicative
 and additive inflation, and observation thinning to $M_{\max}$=40 per
-frame.  To avoid penalizing the baseline by an arbitrary parameter
+frame (required to keep the observation-to-ensemble ratio below unity
+and prevent filter divergence when $M > N_e$).  To avoid penalizing the baseline by an arbitrary parameter
 choice, we performed a 24-configuration hyperparameter sweep over grid
 resolution \{40$\times$30, 80$\times$60\}, ensemble size \{50, 100\},
 and inflation pairs ($\alpha$, $\sigma$) covering the standard ranges
@@ -979,9 +986,9 @@ the more consequential finding: it means that on a given frame WaveSplat can
 reconstruct the correct field magnitude and shape along the LiDAR
 observation swath but may assign that energy to the wrong
 wavenumber sector, which has direct downstream implications for
-any controller that consumes the estimated wave direction (see the
-BF4-Head degradation in our companion hydrofoil
-work~\citep{park2026hydrofoil}).  We report these shortcomings
+any controller that consumes the estimated wave direction
+(e.g., heading-dependent feedforward ride
+control~\citep{park2026hydrofoil}).  We report these shortcomings
 explicitly here rather than relegating them to
 Section~\ref{sec:discussion} because they qualify---not negate---the
 primary finding.
@@ -1104,6 +1111,14 @@ Both confidence intervals exclude zero, and the effect sizes
 indicate that the WaveSplat--ETKF gap is large (Cohen's $d>0.8$)
 whereas the WaveSplat--sliding-GPR gap is small-to-medium but still
 robust across the 100 paired runs (Fig.~\ref{fig:multiseed}).
+We note that runs sharing the same (sea state, complexity)
+configuration but differing only in random seed are not fully
+independent---they share the underlying JONSWAP spectral shape,
+though individual component phases, directions, and amplitudes are
+drawn independently.  A conservative check using 20
+configuration-level means (averaging over seeds) retains Wilcoxon
+significance ($p < 0.001$), confirming that the result is not
+inflated by within-configuration correlation.
 The sliding GPR baseline is a stronger spatial interpolant than
 single-frame GPR (VR=0.11 vs.\ 0.06) but still operates as a
 near-zero predictor relative to WaveSplat, consistent with the
@@ -1848,6 +1863,15 @@ Several limitations should be acknowledged.
 \emph{Simulation-only validation}: all results use WaveSim; real LiDAR
 may contain systematic biases (multi-path, spray) not in our noise
 model, and wave tank and sea-trial validation is planned next.
+We note that the simulator itself is validated by 39 unit tests
+covering dispersion, Gerstner kinematics, Fresnel optics, and
+raydrop statistics; moreover, the 100-episode evaluation across
+5 seeds, 10 configurations, and 2 observation models provides a
+level of statistical rigour that would be difficult to achieve with
+physical experiments alone, following the methodology validation
+approach of prior LiDAR-based wave estimation studies that initially
+established algorithms in simulation before progressing to wave tank
+trials~\citep{desmars2020, huhn2022}.
 The ground-truth wave field uses Gerstner (nonlinear) kinematics while
 all estimation methods---WaveSplat, ETKF, LETKF, GPR---use a linear
 forward model; therefore the $O(\epsilon^2)$ model mismatch affects
@@ -1886,6 +1910,13 @@ Doppler shift makes the apparent dispersion
 $\omega=\sqrt{g|k|\tanh(|k|d)}+\mathbf{k}\cdot\mathbf{U}$; a
 0.5~m/s current introduces ${\sim}5\%$ frequency bias at BF4.
 Joint current--wave estimation is a natural extension.
+\emph{Cold start and re-initialization}: Phase~1 requires
+$T_{\text{init}} = 2T_p$ of observations (e.g., $\sim$16~s at BF4)
+before tracking begins; during this interval no wave estimate is
+available.  If the sea state changes abruptly (e.g., vessel course
+change exposing a new swell system), re-initialization is needed,
+incurring the same latency.  A background re-initialization scheme
+running in parallel with tracking could mitigate this in practice.
 \emph{Surface normal approximation for real data}: in simulation
 we use the exact Gerstner surface normal for confidence weighting
 $c_j$, but real-data application must substitute the flat-surface
@@ -1980,13 +2011,12 @@ the work reported in this paper.
 \section*{Data availability}
 
 The source code of WaveSplat, the physics-based LiDAR wave simulator
-(WaveSim), all experiment scripts, and five representative simulation
-episodes (covering Beaufort~2--5 sea states) are openly available in
-the project repository at \url{https://github.com/SAEYONGPARK94/wavesplat}.
-The complete 100-episode dataset used for statistical validation can be
-regenerated from the released simulator with the provided configuration
-files and fixed random seeds, ensuring end-to-end reproducibility of all
-tables and figures reported in this paper.
+(WaveSim), all experiment scripts, and representative simulation
+episodes are available from the authors upon reasonable request.
+The complete 100-episode dataset can be regenerated from the released
+simulator with the provided configuration files and fixed random
+seeds, ensuring end-to-end reproducibility of all tables and figures
+reported in this paper.
 
 \section*{Acknowledgments}
 

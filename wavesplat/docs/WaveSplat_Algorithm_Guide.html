@@ -1921,6 +1921,46 @@
   단순한 observation weighting 기법이 아니다. C3의 novelty는 유효하다.
 </div>
 
+<h3>강화 베이스라인 비교 (LETKF, Dispersion-aware GPR)</h3>
+
+<div class="warn">
+  <strong>추가 검증 (2026-04):</strong> 기존 비교(ETKF, GPR-1)보다 더 강한 베이스라인과의 비교를 수행.
+  LETKF(Gaspari-Cohn localization)와 dispersion-aware multi-frame GPR을 12 에피소드에서 평가.
+</div>
+
+<table>
+  <tr><th>지표</th><th>WaveSplat</th><th>LETKF(loc50)</th><th>ETKF</th><th>GPR-1</th><th>GPR-disp(3f)</th></tr>
+  <tr><td>nRMSE ↓</td><td class="good"><strong>0.211</strong></td><td>0.238</td><td>0.358</td><td>0.273</td><td>0.267</td></tr>
+  <tr><td>VR → 1</td><td class="good"><strong>0.574</strong></td><td>0.114</td><td>1.214</td><td>0.049</td><td>0.077</td></tr>
+  <tr><td>ρ ↑</td><td class="good"><strong>0.460</strong></td><td>0.346</td><td>0.097</td><td>0.163</td><td>0.215</td></tr>
+  <tr><td>SS ↑</td><td class="good"><strong>+0.162</strong></td><td>+0.128</td><td class="bad">−1.020</td><td class="bad">−0.159</td><td class="bad">−0.106</td></tr>
+  <tr><td>Dir R² ↑</td><td class="good"><strong>0.431</strong></td><td>0.074</td><td>0.045</td><td>0.013</td><td>0.026</td></tr>
+  <tr><td>Hs err ↓</td><td>0.282</td><td>0.668</td><td class="good"><strong>0.242</strong></td><td>0.798</td><td>0.741</td></tr>
+  <tr><td>Speed (ms) ↓</td><td class="good"><strong>13.2</strong></td><td>115.7</td><td>103.9</td><td>208.8</td><td>473.6</td></tr>
+</table>
+
+<div class="key-insight">
+  <strong>핵심 발견:</strong>
+  <ul>
+    <li><strong>WaveSplat이 7개 중 6개 지표에서 1위</strong> (Hs err만 ETKF 우세)</li>
+    <li><strong>Dir R²: 0.431 vs 0.074</strong> — 방향 정확도 5.8배 차이. 스펙트럼 Gaussian 기저가 방향 정보를 자연스럽게 인코딩하기 때문</li>
+    <li><strong>속도: 13.2ms vs 115.7ms</strong> — 8.8배 빠름</li>
+    <li>12-ep subset에서 Dir R² = +0.431 (100-ep 평균 −0.253과 다름) → 방향 결손은 BF2/고복잡도에 집중</li>
+  </ul>
+</div>
+
+<p><strong>SS Bootstrap 95% CI:</strong></p>
+<table>
+  <tr><th>방법</th><th>Mean SS</th><th>95% CI</th><th>0 포함?</th></tr>
+  <tr><td>WaveSplat</td><td>+0.162</td><td>[−0.15, +0.46]</td><td>Yes (variance 큼)</td></tr>
+  <tr><td>LETKF</td><td>+0.128</td><td>[+0.08, +0.17]</td><td><strong>No</strong> (일관 positive)</td></tr>
+  <tr><td>ETKF</td><td>−1.020</td><td>[−1.27, −0.82]</td><td>No (확실히 음수)</td></tr>
+</table>
+
+<p><strong>해석:</strong> LETKF가 "statistically significant positive skill"을 보이는 유일한 방법.
+WaveSplat은 저-중 복잡도(≤5 comp)에서 SS &gt; +0.3으로 강하지만, 고복잡도(≥15 comp)에서 negative.
+이는 N=19-21개 Gaussian으로 15-30개 성분을 표현하는 구조적 한계. 운영 시스템에서는 추정된 스펙트럼 복잡도에 따라 WaveSplat/LETKF를 선택하는 hybrid 전략이 가능.</p>
+
 <h3>한계와 향후 연구</h3>
 
 <h4>최대 약점: Dir $R^2$ = &minus;0.25 — 물리적 원인 분석</h4>

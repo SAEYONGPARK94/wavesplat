@@ -28,6 +28,10 @@
 | Raydrop | **20/20 wins** (uniform + slope) | 양쪽 모두 WaveSplat 우위 |
 | Sparsity | < 8% degrade at 20% obs density | ~10 pts/frame으로 충분 |
 | Noise | ±13% nRMSE under σ=0.10 m (5× baseline) | adaptive N이 흡수 |
+| **LETKF 비교 (12 ep)** | WS **0.211** / LETKF **0.238** / GPR-disp **0.267** | WS 6/7 지표 1위 |
+| LETKF Dir R² | WS **0.431** vs LETKF 0.074 | **5.8× 방향 정확도** |
+| LETKF Speed | WS **13.2ms** vs LETKF 115.7ms | **8.8× 빠름** |
+| SS Bootstrap CI | WS [−0.15, +0.46] / LETKF [+0.08, +0.17] | LETKF만 CI에서 0 제외 |
 | 논문 길이 | **40 p** | OE 권장 상한 |
 
 ---

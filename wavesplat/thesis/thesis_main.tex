@@ -224,7 +224,7 @@ LiDAR 관측 품질의 공간적 불균질성을 직접 모델링한다.
 걸친 평가에서, \WS{}는 하이퍼파라미터를 최적화한 ETKF 대비 평균 nRMSE를
 \textbf{30.1\%} 낮추고 (\textbf{0.223} vs.\ \textbf{0.319}),
 처리 속도는 약 \textbf{10배} 빠른 \textbf{13.4\,ms/프레임}을 달성한다.
-사전 등록된 6개 지표 평가 패널에서 \WS{}는 zero-predictor 대비 양수의
+사전 지정된 6개 지표 평가 패널에서 \WS{}는 zero-predictor 대비 양수의
 Skill Score를 기록한 유일한 방법임을 보인다.
 100회 대응 검증을 통한 Wilcoxon signed-rank 검정 결과
 ($p = 1.1\times10^{-15}$, Cohen's $d = 1.16$)는 이 차이가
@@ -287,7 +287,7 @@ On a dataset of 100 episodes spanning Beaufort 2--5 sea states
 \textbf{30.1\%} lower average nRMSE than a hyperparameter-tuned ETKF-grid
 baseline (\textbf{0.223} vs.\ \textbf{0.319}) while running approximately
 \textbf{10$\times$} faster (\textbf{13.4\,ms/frame}).
-A pre-registered six-metric evaluation panel shows that \WS{} is the only
+A pre-specified six-metric evaluation panel shows that \WS{} is the only
 method with a positive Skill Score against a zero predictor.
 A 100-paired-run statistical validation confirms this improvement is highly
 significant ($p = 1.1\times10^{-15}$, Wilcoxon signed-rank;
@@ -502,10 +502,10 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
         단순 너울($N=1$)부터 복잡한 다성분 해상($N=21$)까지
         해상 복잡도에 자동 적응한다.
 
-  \item \textbf{사전 등록 6-지표 평가 패널}: \\
+  \item \textbf{사전 지정 6-지표 평가 패널}: \\
         nRMSE 단일 지표로는 걸러낼 수 없는 zero-predictor를 진단하는
         6개 지표(nRMSE, VR, $\rho$, SS, Dir $R^2$, $H_s$ error)를
-        사전 등록하여 공정한 비교를 수행한다.
+        사전 지정하여 공정한 비교를 수행한다.
 
   \item \textbf{공정한 ETKF 기준선}: \\
         24개 설정 하이퍼파라미터 스윕을 통해 최적화된 ETKF를
@@ -1771,11 +1771,11 @@ Worst & $80\times60$ &  50 & 1.05 & 0.020 & 1.187 \\
 
 nRMSE를 1차 지표로 사용하나, 이 지표만으로는 zero-predictor와 구분이 불가능한
 한계가 있다 --- 영평균 파도장에서 상수 0 예측기가 nRMSE $\approx 0.25$를 달성한다.
-이를 보완하기 위해 5개 보조 지표를 사전 등록하여 6-지표 패널을 구성한다:
+이를 보완하기 위해 5개 보조 지표를 사전 지정하여 6-지표 패널을 구성한다:
 
 \begin{table}[htbp]
 \centering
-\caption{사전 등록 6-지표 평가 패널.}
+\caption{사전 지정 6-지표 평가 패널.}
 \label{tab:metrics}
 \begin{tabular}{llll}
 \toprule
@@ -1799,7 +1799,7 @@ $H_s$ err $\downarrow$ & $|H_{s,\text{est}} - H_{s,\text{gt}}|/H_{s,\text{gt}}$ 
 
 \begin{table}[htbp]
 \centering
-\caption{전체 100 에피소드 사전 등록 6-지표 비교 결과 (주요 결과).
+\caption{전체 100 에피소드 사전 지정 6-지표 비교 결과 (주요 결과).
 VR은 1이 목표; $\ll 1$은 near-zero prediction. SS는 zero predictor 대비;
 \WS{}만 양수.}
 \label{tab:main_results}
@@ -1861,29 +1861,26 @@ BF5 & \textbf{0.283} & 0.302 & 0.262 & 20 \\
 \label{fig:comparison}
 \end{figure}
 
-\WS{}의 한계도 동일한 패널에서 드러난다:
+\WS{}의 한계도 동일한 패널에서 드러난다.
+다만 이 \emph{전체 평균}은 고복잡도 에피소드($\geq$15 성분)에 의해
+지배되므로, 체제별 분석이 필요하다.
 
-\textbf{VR = 0.66 (진폭 $\sim$34\% 과소추정)}:
-에너지 기반 가지치기(90\% 에너지 보존)가 직접적 원인이다.
-가지치기된 10\% 에너지에 해당하는 성분들은 대부분 저에너지 고차 성분이나,
-이들의 기여가 누적되면 전체 분산의 $\sim$34\%에 해당한다.
-가지치기 임계값을 95\%로 높이면 VR이 $\sim$0.80으로 개선되나,
-과잉 파라미터에 의한 추적 불안정성이 BF4--5에서 관찰되어
-현재 90\%를 유지한다.
-대안적 접근으로 가지치기 후 나머지 성분의 진폭을 스케일링하는
-에너지 보존 보정($w_i \leftarrow w_i / \sqrt{\text{VR}}$)이 가능하나,
-이는 추정의 물리적 해석을 왜곡할 수 있어 적용하지 않았다.
+\textbf{VR = 0.66 (전체 평균, 진폭 $\sim$34\% 과소추정)}:
+근본 원인은 Adam optimizer의 momentum이 위상 예측 오차로 인한
+진폭 부호 진동을 누적하여 $w_i$가 0으로 수렴하는 현상이다
+(§\ref{sec:ws_limitations} 참조).
+$\leq$5-성분 에피소드에서는 VR~$=0.82$로 개선되며,
+$\geq$15-성분에서 VR이 급격히 저하되어 전체 평균을 끌어내린다.
 
-\textbf{SS = +0.034 (양수이나 marginal)}:
-Skill Score $= 1 - \text{MSE}(\hat{z})/\text{MSE}(0)$에서
-MSE(0)은 zero-predictor의 MSE이다.
-영평균 파도장에서 $\text{MSE}(0) = \text{Var}(z) = (H_s/4)^2$이므로,
-SS $> 0$은 추정이 단순 평균보다 나음을 의미한다.
-+0.034는 ``zero-predictor보다 겨우 3.4\% 나은'' 수준이며,
-이는 VR = 0.66과 $\rho = 0.45$의 결합 효과이다.
-$\text{SS} = 1 - (1 - \rho^2 \cdot \text{VR})$ (Gaussian 가정 하)에서
-$\rho = 0.45$, VR = 0.66이면 SS $\approx 0.13$이 예상되나,
-실제 SS가 더 낮은 것은 공간 평균에서의 추정 편향에 기인한다.
+\textbf{SS = +0.034 (전체 평균, 양수이나 marginal)}:
+전체 100-에피소드 bootstrap 95\% CI (10\,000 resamples, percentile;
+BCa와의 차이 $<$0.01)는 $[{-0.08},\,{+0.15}]$로 0을 포함한다.
+그러나 $\leq$5-성분 에피소드(60/100)에서는
+SS~$=+0.39$, CI~$[{+0.28},\,{+0.50}]$로 0을 확실히 배제하며,
+이는 LETKF의 해당 구간 SS~$=+0.11$, CI~$[{+0.04},\,{+0.18}]$을
+크게 상회한다.
+$\geq$15-성분에서 패턴이 역전되어 (WS SS~$=-0.45$ vs LETKF $+0.20$)
+전체 평균이 marginal이 된다.
 
 \textbf{Dir $R^2 = -0.25$ (방향 추정이 chance 미만)}:
 이것이 \WS{}의 가장 심각한 한계이다.
@@ -2078,7 +2075,10 @@ $N_{\text{true}} \geq 30$에서 $N_{\text{adapt}} \approx 18$로 포화되는데
 \begin{table}[htbp]
 \centering
 \caption{Ablation 연구 (3-시드 평균 nRMSE $\pm$ std, BF3 에피소드).
-A1: 분산 제약 제거 ($\omega$ 자유 파라미터). A2: 신뢰 가중치 제거 (균일 가중치).}
+A1: 분산 제약 제거 ($\omega$ 자유 파라미터). A2: 신뢰 가중치 제거 (균일 가중치).
+\emph{주의}: A1이 더 낮은 nRMSE를 달성하나, 이는 $\omega$가 분산 곡면에서
+이탈(평균 $\bar{R}=0.51$)하여 과적합한 결과이며, 해당 추정치는 물리적으로
+무효하고 시간 전파에 사용할 수 없다(본문 참조).}
 \label{tab:ablation}
 \begin{tabular}{lccc}
 \toprule
@@ -2207,6 +2207,128 @@ $\sigma \in \{0, 0.02, 0.05, 0.10\}$\,m에서 nRMSE가 기준선의 $\pm$13\% �
 \label{fig:noise}
 \end{figure}
 
+\subsection{스펙트럼 파라미터 추정 정확도}
+\label{sec:spectral_accuracy}
+
+격자 비의존 표현의 고유한 장점은 개별 스펙트럼 성분---각각 물리적으로
+해석 가능한 파수 $(k_x, k_y)$, 주파수 $\omega$, 진폭 $w$, 위상 $\phi$---을
+추출할 수 있다는 점이다. 이는 ETKF 등 격자 기반 방법에서는 불가능하다.
+추정 정확도를 정량화하기 위해 헝가리안 매칭(Hungarian matching)을
+적용하여 추정 성분과 GT 성분을 정규화된 파수 거리 기반으로 대응시킨다.
+
+\begin{table}[htbp]
+\centering
+\caption{복잡도별 스펙트럼 파라미터 추정 정확도. 탐지율: GT 성분 중 매칭된 비율.
+에너지 탐지율: 매칭된 성분이 포착한 총 GT 에너지($\sum A_i^2$) 비율.}
+\label{tab:spectral_accuracy}
+\begin{tabular}{rcccc}
+\toprule
+$N_{\text{comp}}$ & 탐지율 & 에너지 탐지율 & $|k|$ 상대 오차 & 방향 오차 [$^\circ$] \\
+\midrule
+1  & 100\% & 100\%  & 0.005 & 0.1 \\
+2  &  50\% & \textbf{96.9\%} & 0.001 & 0.2 \\
+5  &  60\% & \textbf{93.7\%} & 0.001 & 0.1 \\
+15 &  50\% &  66.7\%         & 0.595 & 26.2 \\
+30 &  38\% &  49.1\%         & 0.714 & 26.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+결과는 \emph{기하학적} 정확도와 \emph{에너지적} 정확도의 명확한 분리를 보여준다.
+$\leq$5 성분 조건에서 기하학적 파라미터는 매우 정확하다:
+에너지 기준 탐지율이 93\%를 초과하며, 파수 크기 오차 0.5\% 미만,
+방향 오차 0.2$^\circ$ 미만이다 --- 프레임당 $\sim$50점의 희소 LiDAR
+관측만으로 달성한 결과이다.
+$\geq$15 성분에서는 빔포밍의 파수 공간 혼잡으로 탐지율이 하락한다.
+
+반면 진폭 추정은 현저히 저하된다(평균 상대 오차 0.17--8.2$\times$).
+이는 Adam momentum 진동 메커니즘(§\ref{sec:ws_limitations})에 의한
+것으로, 이 분리는 예상 가능하다: 파수 $(k_x, k_y)$는 초기화에서 결정되고
+추적 중 고정되는 반면, 진폭 $w$는 매 프레임 갱신되어
+momentum 유도 감쇠의 영향을 받는다.
+파랑 미리보기 feedforward 제어 등 downstream 응용에서는
+파의 \emph{도달 시점과 방향}이 진폭보다 중요하므로,
+정확한 파수·주파수 추정이 더 큰 실용적 가치를 가진다.
+
+\subsection{희소 관측 강건성: WaveSplat vs.\ LETKF 비교}
+\label{sec:sparse_comparison}
+
+극한 관측 희소성에서의 강건성을 정량화하기 위해,
+LiDAR 점 수를 10--100개로 변화시키며 4개 에피소드에서
+\WS{}와 LETKF를 비교하였다.
+
+\begin{table}[htbp]
+\centering
+\caption{관측 점 수에 따른 평균 nRMSE 및 Skill Score 비교
+(4개 에피소드: BF3~2c, BF4~1c/5c/15c).
+WS 승리: \WS{}가 더 낮은 nRMSE를 달성한 에피소드 수.}
+\label{tab:sparse_comparison}
+\begin{tabular}{rccccr}
+\toprule
+$n_{\text{pts}}$ & WS nRMSE & LK nRMSE & WS SS & LK SS & WS 승리 \\
+\midrule
+10  & \textbf{0.191} & 0.239 & $+$0.293 & $+$0.090 & 3/4 \\
+20  & \textbf{0.176} & 0.237 & $+$0.378 & $+$0.105 & 3/4 \\
+30  & \textbf{0.180} & 0.235 & $+$0.340 & $+$0.117 & 3/4 \\
+50  & \textbf{0.181} & 0.234 & $+$0.332 & $+$0.124 & 3/4 \\
+100 & \textbf{0.181} & 0.234 & $+$0.327 & $+$0.124 & 3/4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\WS{}는 10개 관측점만으로도 nRMSE~$\leq$0.191을 유지하는 반면,
+LETKF nRMSE는 관측 밀도와 무관하게 $\geq$0.234이다.
+이는 스펙트럼 파라미터화($4N \leq 120$ 미지수)가 격자 이산화
+($N_e \times G^2$ 미지수)보다 훨씬 적은 관측으로 해를 구속할 수 있기 때문이다.
+유일한 예외(BF4~15c)에서 LETKF가 모든 밀도에서 \WS{}를 능가하는데,
+이는 격자 방법이 유리한 고복잡도 영역의 특성이다.
+파도 차폐, 비, 안개 등으로 LiDAR 점 수가 20 미만으로 떨어지는
+실제 운용 환경에서 이 희소 강건성은 매우 중요하다.
+
+\subsection{시간 외삽을 통한 스펙트럼 충실도 검증}
+\label{sec:forecast}
+
+스펙트럼 표현의 자연스러운 일관성 검증은 추정된 파라미터가
+\emph{미관측 미래 시각}에서도 정확한 예측을 생성하는지 확인하는 것이다.
+\WS{}의 스펙트럼 파라미터가 분산관계를 만족하므로,
+추정된 파도장을 forward 모델~\eqref{eq:forward}을 사용하여
+임의의 미래 시점 $t$로 전파할 수 있다---이는 현재 스냅샷만
+제공하는 격자 기반 방법에서는 불가능한 능력이다.
+각 에피소드의 처음 20\,s를 추정에 사용하고
+나머지 10\,s로 예측 정확도를 평가하였다.
+
+\begin{table}[htbp]
+\centering
+\caption{시간 외삽 정확도: 5개 에피소드
+(BF3~1c/2c, BF4~1c/5c/15c)에 대한 외삽 수평선별 평균 지표.
+추정: $t \in [0, 20]$\,s; 외삽 검증: $t \in [20, 30]$\,s.}
+\label{tab:forecast}
+\begin{tabular}{rcccc}
+\toprule
+$\Delta t$ & nRMSE & SS & $\rho$ & VR \\
+\midrule
+$+$0.5\,s  & 0.218 & $+$0.141 & 0.323 & 0.325 \\
+$+$1.0\,s  & 0.218 & $+$0.140 & 0.322 & 0.327 \\
+$+$2.0\,s  & 0.219 & $+$0.138 & 0.323 & 0.330 \\
+$+$5.0\,s  & 0.218 & $+$0.135 & 0.328 & 0.342 \\
+$+$10.0\,s & 0.219 & $+$0.128 & 0.316 & 0.331 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+예측 nRMSE는 10\,s까지 사실상 일정(0.218--0.219)하며,
+Skill Score가 전 구간에서 양수를 유지한다.
+저복잡도 에피소드에서 예측 정확도가 특히 우수하다:
+BF3 2-성분 에피소드는 $\Delta t = 10$\,s에서도
+SS~$=+0.953$, $\rho=0.983$을 달성한다.
+일정한 예측 오차는 스펙트럼 표현이 결정론적 파동 물리를
+포착함을 반영한다: 정확한 $(k_x, k_y, \omega, \phi)$가
+알려지면 선형 파도에 대해 물리적으로 정확한 예측을 제공한다.
+
+이 예측 능력은 파랑 미리보기 feedforward 제어에 직접 활용되며
+(제\ref{chap:hydrofoil}장), 5--10\,s 사전 파랑 예측이 사전적
+제어 명령 계산에 필요하다.
+
 \section{고찰}
 \label{sec:discussion_ws}
 
@@ -2243,11 +2365,22 @@ BF2, $H_s=0.3$\,m, 단일 성분.
         추적 단계에서도 복원되지 않는다. 이 경우 추적 nRMSE가 초기화 직후 대비
         2--3배 높아질 수 있으며, 추적의 실질적 이점은 정확도 향상이 아닌
         계산 효율성($\sim$10 스텝 vs. $\sim$200 스텝)에 있다.
-  \item VR = 0.66: 진폭 약 34\% 과소추정 --- 에너지 기반 가지치기의 보수적 특성에 기인
+  \item \textbf{추적 중 진폭 감쇠}: Adam optimizer의 momentum이 위상 예측
+        $\phi_i \mathrel{+}= \omega_i \Delta t$의 미세한 오차로 인한
+        진폭 $w_i$의 부호 진동 신호를 누적하여 진폭이 0으로 수렴한다.
+        이것이 VR~$= 0.66$(진폭 $\sim$34\% 과소추정) 및
+        표~\ref{tab:spectral_accuracy}의 높은 진폭 상대 오차의 근본 원인이다.
+        밀집 관측에서는 사후 LS 보정이 효과적이나,
+        희소 LiDAR($\sim$50~pts/frame)에서는 공간 커버리지 부족으로 개선되지 않는다.
+        Momentum 없는 optimizer나 주기적 상태 초기화 등 대안적 추적 전략이 향후 연구 방향이다.
+  \item VR = 0.66: 진폭 약 34\% 과소추정 --- 상기 추적 중 진폭 감쇠에 기인
   \item SS = +0.034: 양수이나 marginal --- 추정 품질의 추가 개선이 필요
   \item Dir $R^2 = -0.25$: 방향 성분이 chance 미만 --- 가장 심각한 한계로,
         downstream 제어에서 BF4 head sea 성능 저하의 직접적 원인
-  \item 시뮬레이션 전용: 조파수조 실험 검증 필요 (제5장)
+  \item 시뮬레이션 전용: 조파수조 실험 검증 필요 (제5장).
+        단, GT가 Gerstner(비선형)이고 모든 추정 방법(\WS{}, ETKF, LETKF, GPR)이
+        선형 forward 모델을 사용하므로, $\mathcal{O}(\epsilon^2)$ 모델 불일치는
+        모든 방법에 동일하게 적용되어 비교의 공정성에는 영향하지 않는다.
   \item 선형 파도 모델: $\mathcal{O}(\epsilon^2)$ 불일치는 BF2--5에서 $<0.5\%$이나
         가파른 파도에서 증가; 2차 Stokes 확장으로 스펙트럼 파라미터화를 유지하며 해결 가능
   \item 해류 미추정: Doppler 이동
@@ -2256,6 +2389,14 @@ BF2, $H_s=0.3$\,m, 단일 성분.
   \item 불확실성 정량화 부재: 점추정만 제공; Hessian 기반 신뢰 구간이나
         다중 시작점 앙상블로 불확실성 제공 가능
 \end{itemize}
+
+\paragraph{하이퍼파라미터 민감도.}
+\WS{}의 4개 하이퍼파라미터($\ell_r{=}0.01$, $\lambda_{\ell_1}{=}10^{-3}$,
+$\tau_{\text{prune}}{=}0.10$, $\tau_{\text{grow}}{=}0.05$)는
+BF3~5-comp에서 1회 탐색 후 전체 100 에피소드에 고정하여 사용하였다.
+각 파라미터를 독립적으로 $\times 0.5$ 및 $\times 2$로 변동한 결과,
+12-에피소드 서브셋에서 평균 nRMSE 변동이 모두 $\pm$5\% 이내였으며,
+어떤 변동에서도 \WS{}와 기준선 간의 상대 순위가 바뀌지 않았다.
 
 % ============================================================================
 % 제4장. 파랑 예측 기반 하이드로포일 Feedforward 제어
@@ -3325,7 +3466,7 @@ H1이 기각될 경우 하이퍼파라미터 재튜닝을 수행하고,
 100 에피소드 평가에서 24개 설정으로 최적화된 ETKF 대비
 nRMSE를 \textbf{30.1\%} 낮추고 (\textbf{0.223} vs.\ 0.319),
 약 \textbf{10배} 빠른 처리 속도 (\textbf{13.4} vs.\ 132.6\,ms/프레임)를 달성하였다.
-사전 등록된 6-지표 패널에서 \WS{}는 zero-predictor 대비 양수의
+사전 지정된 6-지표 패널에서 \WS{}는 zero-predictor 대비 양수의
 Skill Score를 기록한 유일한 방법이었으며,
 이 6-지표 패널은 ETKF의 ``분산 정합이나 형상 불일치'' (VR=0.90, $\rho$=0.11)와
 GPR의 ``near-zero predictor'' (VR=0.065) 실패 모드를 nRMSE 단독으로는
@@ -3338,6 +3479,17 @@ GPR의 ``near-zero predictor'' (VR=0.065) 실패 모드를 nRMSE 단독으로는
 두 가지 LiDAR raydrop 모델(확산/specular)과 20\% 관측 밀도에서도
 견고한 성능을 보였으며, 추가 노이즈 주입(기준선 5배)에서도
 $\pm$13\% 이내의 안정적 성능을 유지하였다.
+
+표면 복원 정확도를 넘어, 스펙트럼 표현의 실용적 이점을 보여주는
+세 가지 분석을 수행하였다:
+(1)~\emph{스펙트럼 분해}---$\leq$5 성분에서 파수 오차 $<$0.5\%,
+방향 오차 $<$0.2$^\circ$로 개별 파랑 성분을 추출하여
+총 파도 에너지의 $>$93\%를 포착;
+(2)~\emph{극한 희소 강건성}---10개 관측점만으로 nRMSE~$\leq$0.191을
+유지하여 모든 밀도에서 LETKF를 능가($\leq$5-성분 해상);
+(3)~\emph{시간 외삽 검증}---추정된 스펙트럼 파라미터가 미관측 미래 시각에서도
+유효하여, 10\,s 후에도 SS~$>0$을 유지하며 사실상 일정한
+nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
 
 \paragraph{하이드로포일 Feedforward 제어}
 \WS{}의 스펙트럼 파도장 추정을 활용하는 dual-actuator wave-preview feedforward

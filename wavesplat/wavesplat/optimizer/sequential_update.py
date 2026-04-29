@@ -363,6 +363,7 @@ class SequentialUpdater:
             opt.step()
 
         self.model.clamp_steepness()
+
         elapsed_ms = (time.time() - t0) * 1000
 
         return {
@@ -548,6 +549,164 @@ class SequentialUpdater:
             if verbose:
                 print(f"  [Adaptive] Grew: +{n_actual} → N={self.model.n_gaussians} "
                       f"(residual RMS={residual_rms:.4f})")
+
+    def _ls_w_update(self, frames: List[FrameData]):
+        """Analytically update w via least-squares with current kx/ky/phi/omega.
+
+        Builds design matrix A[row,i] = cos(kx_i*x + ky_i*y - omega_i*t + phi_i)
+        and solves w = argmin ||A w - z||^2.
+        """
+        n = self.model.n_gaussians
+        if n == 0:
+            return
+
+        with torch.no_grad():
+            kx = self.model.kx.cpu().numpy()
+            ky = self.model.ky.cpu().numpy()
+            phi = self.model.phi.cpu().numpy()
+            omega = self.model._omega().cpu().numpy()
+
+        rows_A = []
+        rows_z = []
+        for frame in frames:
+            if len(frame.x_obs) == 0:
+                continue
+            x = frame.x_obs.cpu().numpy()
+            y = frame.y_obs.cpu().numpy()
+            z = frame.z_obs.cpu().numpy()
+            t = frame.t
+            phase = (kx[None, :] * x[:, None]
+                     + ky[None, :] * y[:, None]
+                     - omega[None, :] * t
+                     + phi[None, :])
+            rows_A.append(np.cos(phase))
+            rows_z.append(z)
+
+        if not rows_A:
+            return
+
+        A = np.vstack(rows_A)
+        z_vec = np.concatenate(rows_z)
+
+        w_ls, _, _, _ = np.linalg.lstsq(A, z_vec, rcond=None)
+
+        with torch.no_grad():
+            self.model.w.copy_(torch.tensor(w_ls, dtype=torch.float32,
+                                            device=self.model.w.device))
+
+    def amplitude_refit(self, frames: List[FrameData],
+                        verbose: bool = False) -> Dict:
+        """
+        Phase 3: Post-hoc least-squares amplitude+phase calibration.
+
+        Freezes kx, ky and solves for optimal w and phi via linear LS
+        using cos/sin decomposition:
+            z = Σ [a_i cos(θ_i) + b_i sin(θ_i)]
+        where θ_i = kx_i·x + ky_i·y - ω_i·t, then
+            w_i = sqrt(a_i² + b_i²), phi_i = atan2(b_i, a_i)
+
+        This corrects both amplitude decay and phase drift caused by
+        tracking oscillation in Phase 2.
+
+        Args:
+            frames: list of recent FrameData (typically last 5-10 frames)
+            verbose: print progress
+
+        Returns:
+            dict with 'w_before', 'w_after', 'residual_before', 'residual_after'
+        """
+        if self.model is None:
+            raise RuntimeError("Model not initialized")
+
+        n = self.model.n_gaussians
+        if n == 0:
+            return {}
+
+        with torch.no_grad():
+            kx = self.model.kx.cpu().numpy()
+            ky = self.model.ky.cpu().numpy()
+            omega = self.model._omega().cpu().numpy()
+            w_before = self.model.w.cpu().numpy().copy()
+
+        # Build design matrix with cos/sin pairs:
+        # A = [cos(θ_1) sin(θ_1) cos(θ_2) sin(θ_2) ... cos(θ_N) sin(θ_N)]
+        # where θ_i = kx_i·x + ky_i·y - ω_i·t  (no phi — we solve for it)
+        rows_A = []
+        rows_z = []
+        for frame in frames:
+            if len(frame.x_obs) == 0:
+                continue
+            x = frame.x_obs.cpu().numpy()
+            y = frame.y_obs.cpu().numpy()
+            z = frame.z_obs.cpu().numpy()
+            t = frame.t
+
+            # base phase without phi: (M, N)
+            theta = (kx[None, :] * x[:, None]
+                     + ky[None, :] * y[:, None]
+                     - omega[None, :] * t)
+            # Interleave cos/sin columns: (M, 2N)
+            cos_theta = np.cos(theta)
+            sin_theta = np.sin(theta)
+            A_frame = np.empty((len(x), 2 * n), dtype=np.float64)
+            A_frame[:, 0::2] = cos_theta
+            A_frame[:, 1::2] = sin_theta
+            rows_A.append(A_frame)
+            rows_z.append(z)
+
+        if not rows_A:
+            return {}
+
+        A = np.vstack(rows_A)   # (total_obs, 2N)
+        z_vec = np.concatenate(rows_z)  # (total_obs,)
+
+        # Solve [a_1, b_1, a_2, b_2, ...] = argmin ||A c - z||^2
+        coeffs, _, _, _ = np.linalg.lstsq(A, z_vec, rcond=None)
+
+        a = coeffs[0::2]  # cos coefficients
+        b = coeffs[1::2]  # sin coefficients
+        w_refit = np.sqrt(a ** 2 + b ** 2)
+        phi_refit = np.arctan2(b, a)
+
+        # Compute residuals for reporting
+        # Before: use old w, phi
+        phi_before = self.model.phi.detach().cpu().numpy()
+        A_before = np.empty((len(z_vec), n))
+        idx = 0
+        for frame in frames:
+            if len(frame.x_obs) == 0:
+                continue
+            m = len(frame.x_obs)
+            x = frame.x_obs.cpu().numpy()
+            y = frame.y_obs.cpu().numpy()
+            theta = (kx[None, :] * x[:, None]
+                     + ky[None, :] * y[:, None]
+                     - omega[None, :] * frame.t
+                     + phi_before[None, :])
+            A_before[idx:idx + m] = np.cos(theta)
+            idx += m
+        residual_before = float(np.sqrt(np.mean((A_before @ w_before - z_vec) ** 2)))
+        residual_after = float(np.sqrt(np.mean((A @ coeffs - z_vec) ** 2)))
+
+        # Update model weights and phases
+        with torch.no_grad():
+            self.model.w.copy_(torch.tensor(w_refit, dtype=torch.float32,
+                                            device=self.model.w.device))
+            self.model.phi.copy_(torch.tensor(phi_refit, dtype=torch.float32,
+                                              device=self.model.phi.device))
+
+        if verbose:
+            print(f"  [Refit] LS refit (w+phi): "
+                  f"residual {residual_before:.4f} → {residual_after:.4f}")
+            print(f"  [Refit] |w| mean: {np.mean(np.abs(w_before)):.4f} → "
+                  f"{np.mean(np.abs(w_refit)):.4f}")
+
+        return {
+            'w_before': w_before.tolist(),
+            'w_after': w_refit.tolist(),
+            'residual_before': residual_before,
+            'residual_after': residual_after,
+        }
 
     def predict_field(self, grid_x: torch.Tensor, grid_y: torch.Tensor,
                       t: float) -> torch.Tensor:

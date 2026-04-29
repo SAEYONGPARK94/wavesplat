@@ -210,6 +210,33 @@ def run_estimation(h5_path: str, config: dict = None,
                       f"n_pts={frame_metrics['n_pts']}, "
                       f"{update_result['elapsed_ms']:.1f}ms")
 
+    # Phase 3 (optional): Amplitude calibration (LS refit)
+    refit_result = {}
+    if cfg.get('amplitude_refit', False):
+        refit_frames = tracking_frames[-5:] if len(tracking_frames) >= 5 \
+            else tracking_frames
+        if refit_frames:
+            refit_result = updater.amplitude_refit(
+                refit_frames, verbose=verbose)
+
+            # Re-evaluate last frames with refitted amplitudes
+            for fr_result in frame_results[-len(refit_frames):]:
+                t_val = fr_result['t']
+                matching = [f for f in refit_frames
+                            if abs(f.t - t_val) < 1e-6]
+                if matching and has_gt:
+                    pred = updater.predict_field(grid_x, grid_y, t_val)
+                    pred_np = pred.cpu().numpy()
+                    gt_np = matching[0].gt_field.cpu().numpy()
+                    new_metrics = compute_all_metrics(
+                        pred_np, gt_np,
+                        grid_x.cpu().numpy(), grid_y.cpu().numpy(),
+                        loader.Hs_true,
+                        obs_x=matching[0].x_obs.cpu().numpy() if len(matching[0].x_obs) > 0 else None,
+                        obs_y=matching[0].y_obs.cpu().numpy() if len(matching[0].y_obs) > 0 else None,
+                    )
+                    fr_result.update(new_metrics)
+
     # Aggregate results
     if frame_results:
         avg_ms = np.mean([r['elapsed_ms'] for r in frame_results])
@@ -240,6 +267,7 @@ def run_estimation(h5_path: str, config: dict = None,
         'T_converge': t_converge,
         'frame_results': frame_results,
         'spectrum_params': updater.model.get_spectrum_params(),
+        'refit': refit_result,
     }
 
     if verbose:

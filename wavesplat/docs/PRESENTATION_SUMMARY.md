@@ -1,6 +1,6 @@
 # WaveSplat: 교수님 발표 자료 (Ocean Engineering 제출 버전)
 
-> **최근 업데이트**: 2026-04-10
+> **최근 업데이트**: 2026-04-29
 > **저자**: 박세용 (Avikus / HD Hyundai)
 > **논문 제목**: *WaveSplat: Grid-Free Spectral Gaussian Wave Field Estimation from Sparse Shipboard LiDAR*
 > **대상 저널**: Ocean Engineering (Elsevier) — 40p 원고, highlights/cover letter/graphical abstract 준비 완료
@@ -254,7 +254,58 @@ manifold에서 벗어나도록 함으로써 흡수. 결과적으로 **1초 뒤 p
 de-cohere**하여 시간 추적, 공간 프레임 변환, downstream wave forecast에 재사용 불가.
 즉 A1의 16%는 **물리적 유효성을 버리고 얻은 nRMSE**다.
 
-### 4.6 Raydrop Sensitivity (10 paired eps × U/S)
+### 4.6 Spectral Parameter Estimation Accuracy (NEW)
+
+WaveSplat의 고유 기능: 개별 스펙트럼 성분의 물리 파라미터를 추출.
+헝가리안 매칭으로 추정 vs GT 성분 대응 후 오차 평가.
+
+| N_comp | Detection | Energy Det. | |k| Rel Error | Dir Error [°] |
+|--------|-----------|-------------|---------------|---------------|
+| 1      | 100%      | 100%        | 0.005         | 0.1           |
+| 2      | 50%       | **96.9%**   | 0.001         | 0.2           |
+| 5      | 60%       | **93.7%**   | 0.001         | 0.1           |
+| 15     | 50%       | 66.7%       | 0.595         | 26.2          |
+| 30     | 38%       | 49.1%       | 0.714         | 26.1          |
+
+**핵심**: ≤5 comp에서 에너지 기준 93%+ 포착, |k| 오차 <0.5%, 방향 <0.2°.
+LETKF/ETKF는 이런 decomposition 자체가 불가능.
+진폭 오차는 크지만(0.17~8.2), 이는 tracking 중 Adam momentum에 의한
+진폭 감쇠 때문이며 kx/ky/ω/direction은 초기화에서 결정되어 정확.
+
+### 4.7 Sparse Observation Robustness: WS vs LETKF (NEW)
+
+관측 점 수를 10~100개로 변화시키며 4개 에피소드에서 비교.
+
+| n_pts | WS nRMSE | LK nRMSE | WS SS   | LK SS   | WS wins |
+|-------|----------|----------|---------|---------|---------|
+| 10    | **0.191**| 0.239    | +0.293  | +0.090  | 3/4     |
+| 20    | **0.176**| 0.237    | +0.378  | +0.105  | 3/4     |
+| 50    | **0.181**| 0.234    | +0.332  | +0.124  | 3/4     |
+| 100   | **0.181**| 0.234    | +0.327  | +0.124  | 3/4     |
+
+**핵심**: WaveSplat은 10pts에서도 nRMSE 0.191 유지 (LETKF 0.239).
+n_pts에 거의 무관한 robustness. 실무적 가치: LiDAR 포인트 손실(차폐/비/안개)
+상황에서 결정적 이점.
+예외: BF4 15comp에서만 LETKF 우위 (고복잡도 영역).
+
+### 4.8 Deterministic Forecast (NEW)
+
+추정 파라미터로 미래 파도장을 분산관계 기반 forward propagation.
+추정: t=[0,20s], 예측: t=[20,30s]. 5개 에피소드 평균.
+
+| Δt     | nRMSE | SS     | ρ     | VR    |
+|--------|-------|--------|-------|-------|
+| +0.5s  | 0.218 | +0.141 | 0.323 | 0.325 |
+| +1.0s  | 0.218 | +0.140 | 0.322 | 0.327 |
+| +5.0s  | 0.218 | +0.135 | 0.328 | 0.342 |
+| +10.0s | 0.219 | +0.128 | 0.316 | 0.331 |
+
+**핵심**: 10초 후에도 nRMSE 사실상 일정(0.218→0.219), SS>0 유지.
+BF3 2comp는 10초 후에도 SS=+0.953, ρ=0.983.
+LETKF는 스펙트럼 파라미터를 추출할 수 없으므로 forecast 자체가 불가능.
+→ Hydrofoil feedforward(5~10s preview)의 직접적 기반.
+
+### 4.9 Raydrop Sensitivity (10 paired eps × U/S)
 
 | | WS U | WS S | WS Δ% | ETKF U | ETKF S | ETKF Δ% |
 |---|---|---|---|---|---|---|
@@ -329,12 +380,16 @@ LETKF loc_radius sweep (20/50/100/200m): 20m과 50m이 거의 동일 (nRMSE 0.23
 5. **Pre-registered 6-metric evaluation**: zero-predictor 구분을 위한 panel
 6. **24-config ETKF hyperparameter sweep**: 공정한 tuned baseline
 7. **Dispersion manifold drift quantification**: A1 ablation의 "자유도" 비용 정량화
+8. **Spectral decomposition**: ≤5 comp에서 |k| 오차 <0.5%, 방향 <0.2° — 에너지 93%+ 포착
+9. **Extreme sparse robustness**: 10pts에서도 nRMSE 0.191 유지 (LETKF 0.239)
+10. **Deterministic forecast**: 분산관계 기반 10초 예측, SS>0 유지
 
 ### 6.2 Honest Limitations (§V-A 끝 단락)
-1. **VR = 0.66** → 진폭 34% 과소 (pruning의 대가)
+1. **VR = 0.66** → 진폭 34% 과소 — **근본 원인 규명**: Adam momentum이 phase tracking 중 w의 부호 진동을 감쇠시킴
 2. **SS = +0.034** → 양수지만 marginal
 3. **Dir R² = −0.25** → 방향성이 chance 미만. 하이드로포일 BF4-head에서 이 한계가 직접 관찰됨
 4. **시뮬레이션 전용**, 선형 모델, Nₜᵣᵤₑ ≥ 30 한계, current 미추정
+5. **진폭 보정 시도**: post-hoc LS refit은 dense observation에서만 효과적, sparse LiDAR(~50pts)에서는 공간 커버리지 부족으로 무효
 
 ---
 
@@ -363,6 +418,17 @@ LETKF loc_radius sweep (20/50/100/200m): 20m과 50m이 거의 동일 (nRMSE 0.23
 │    WS 0.211 vs LETKF(loc50) 0.238 — 6/7 metrics best         │
 │    Dir R²: WS 0.431 vs LETKF 0.074 (5.8×)                    │
 │    Speed: WS 13.2ms vs LETKF 115.7ms (8.8×)                  │
+│                                                               │
+│  Spectral Decomposition (≤5 comp):                            │
+│    Energy detection: >93%                                     │
+│    |k| error: <0.5%, Direction: <0.2°                         │
+│                                                               │
+│  Sparse Robustness (WS vs LETKF):                            │
+│    10 pts: WS 0.191 vs LETKF 0.239 (3/4 wins)               │
+│                                                               │
+│  Deterministic Forecast:                                      │
+│    t+10s: nRMSE=0.219, SS=+0.128 (constant)                  │
+│    BF3 2c: SS=+0.953, ρ=0.983 at t+10s                       │
 │                                                               │
 │  Dispersion manifold drift (A1 vs Full):                      │
 │    A1:  R̄ = 0.51 ± 0.12  (0.10 Hz off)  → nRMSE 낮지만      │

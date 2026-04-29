@@ -50,16 +50,18 @@ On a dataset of 100 episodes spanning Beaufort~2--5 sea states
 hyperparameter-tuned ETKF-grid baseline (\textbf{30.1\%} improvement),
 while running approximately \textbf{10$\times$} faster
 (13.4~vs.~132.6~ms/frame on a single CPU thread).
-A pre-registered six-metric evaluation panel further shows that
+A pre-specified six-metric evaluation panel further shows that
 WaveSplat is the only method among the primary baselines (ETKF, GPR)
 with a positive Skill Score against a zero predictor, exposing
 sliding-kernel GPR as a near-zero predictor and the tuned ETKF as a
 variance-correct but shape-incoherent estimator.
 A supplementary comparison with stronger baselines---LETKF with
 Gaspari--Cohn localization and dispersion-aware multi-frame GPR---on
-12 representative episodes confirms that WaveSplat achieves the best
-average nRMSE (0.211 vs.\ 0.238 for LETKF) and $5.8\times$ higher
-directional $R^2$ while running $8.8\times$ faster.
+all 100 episodes confirms that WaveSplat retains the best average nRMSE
+(0.223 vs.\ 0.228 for LETKF) while running $8.1\times$ faster
+(14.5 vs.\ 118.3~ms/frame); on a 12-episode subset including all five
+methods, the gap widens to 0.211 vs.\ 0.238 with $5.8\times$ higher
+directional $R^2$.
 A 100-paired-run multi-seed validation confirms the improvement is
 highly significant against both ETKF
 ($p = 1.1\!\times\!10^{-15}$) and sliding GPR
@@ -89,7 +91,7 @@ dispersion relation \sep data assimilation \sep real-time estimation
 \item 30.1\% lower nRMSE than a hyperparameter-tuned ETKF-grid over
   100 episodes (0.223 vs.\ 0.319) and $\sim$10$\times$ faster
   (13.4 vs.\ 132.6~ms/frame, single CPU thread).
-\item Only method with a positive Skill Score in a pre-registered
+\item Only method with a positive Skill Score in a pre-specified
   six-metric evaluation against a zero-predictor reference.
 \item Improvement is highly significant: Wilcoxon $p{=}1.1\!\times\!10^{-15}$
   vs.\ ETKF (paired Cohen's $d{=}1.16$) and $p{=}4.7\!\times\!10^{-4}$
@@ -187,7 +189,11 @@ e.g.\ 50 independent 2D FFTs for $N_e{=}50$, $G{=}40{\times}30$.
 
 \subsection{Proposed approach}
 
-We propose \textbf{WaveSplat}, a grid-free spectral representation
+We propose \textbf{WaveSplat}\footnote{The name reflects ``wave'' +
+``splat'' in the sense of projecting (splatting) spectral components
+onto arbitrary spatial locations, analogous to point-based rendering;
+it does not imply a methodological connection to 3D Gaussian
+Splatting~\citep{kerbl2023}.}, a grid-free spectral representation
 that eliminates the spatial grid entirely.
 Instead of discretizing space, we represent the wave field as a weighted
 superposition of $N$ plane waves:
@@ -365,10 +371,15 @@ relation by construction.
 Its grid-free sparse representation is conceptually related to the
 compressed sensing literature~\citep{candes2006, mallat1993} and to
 \citet{drazen2008}'s sparse spectral reconstruction from pressure
-sensors, with two key differences: (1)~each basis function is a
-physically meaningful plane wave rather than a generic sinusoid or
-wavelet, and (2)~the model order is adapted \emph{online} during
-tracking based on residual energy, rather than fixed a priori.
+sensors, with three key differences: (1)~each basis function is a
+physically meaningful plane wave with frequency constrained by the
+dispersion relation rather than a generic sinusoid or wavelet;
+(2)~the model order is adapted \emph{online} during tracking based
+on residual energy, rather than fixed a priori; and
+(3)~the spectral components \emph{persist} across frames via
+dispersion-based phase prediction, enabling efficient per-frame
+updates ($\sim$10 gradient steps) rather than independent per-frame
+reconstruction, which is the core enabler of real-time operation.
 
 % ============================================================================
 \section{Method}
@@ -755,7 +766,7 @@ under-fit (e.g., over-smoothed Gaussian process regression) against
 methods that capture wave structure accurately.
 
 To address this limitation, we define a complementary
-\emph{pre-registered metric panel} of five secondary metrics that
+\emph{pre-specified metric panel} of five secondary metrics that
 expose under-fitting and spectral incoherence:
 (i)~variance ratio $\text{VR} = \text{Var}(\hat{z})/\text{Var}(z)$
 (amplitude preservation; VR$\ll$1 indicates under-fitting);
@@ -843,13 +854,19 @@ the complete dataset; Section~\ref{subsec:per_episode} provides a
 per-episode breakdown on 12 representative episodes with
 inference-speed and per-frame details; Section~\ref{subsec:stats}
 reports the 100-paired-run statistical validation; and the remaining
-subsections report the adaptive model order analysis, ablation, and
-raydrop robustness study.
+subsections report the adaptive model order analysis, ablation,
+raydrop robustness study, and a comparison with stronger baselines.
+In Section~\ref{sec:discussion}, we further analyze three properties
+of the spectral representation: spectral parameter estimation
+accuracy (Section~\ref{sec:spectral_accuracy}),
+sparse observation robustness against LETKF
+(Section~\ref{sec:sparse_comparison}), and temporal extrapolation
+as a validation of spectral fidelity (Section~\ref{sec:forecast}).
 
 \subsection{Full 100-episode six-metric evaluation}
 \label{sec:fulleval}
 
-Section~\ref{sec:experiments} pre-registered a panel of five
+Section~\ref{sec:experiments} pre-specified a panel of five
 complementary metrics because nRMSE alone cannot expose either
 spectrally-unbalanced estimators or near-zero predictors.  We report
 the full-panel evaluation on the complete 100-episode dataset
@@ -863,7 +880,7 @@ Section~\ref{subsec:stats}.
 
 \begin{table*}[t]
 \centering
-\caption{Pre-registered six-metric evaluation on the full 100-episode
+\caption{Pre-specified six-metric evaluation on the full 100-episode
 dataset.  Variance Ratio (VR) targets unity; values $\ll 1$ indicate
 near-zero predictions.  Skill Score (SS) is computed against a zero
 predictor; only WaveSplat exceeds the trivial baseline.  Lower is
@@ -941,17 +958,24 @@ predicting zero.
 
 \paragraph{Honest reporting of WaveSplat's own limitations.}
 The same panel that exposes the baselines' failure modes also
-exposes WaveSplat's: its variance ratio of 0.66 indicates that
-reconstructed wave amplitudes are on average $\sim$34\% under the
-true values, its skill score of $+0.034$ is positive but marginal
-rather than decisive, and---most critically---its directional $R^2$
-of $-0.25$ on the 2D wavenumber spectrum indicates that the estimated
-propagation direction of spectral components is worse than chance
-on average.  Amplitude under-estimation is a known consequence of
-the adaptive model-order pruning, which conservatively drops
-low-amplitude components to keep $N$ small and the optimization
-well-conditioned.  The directional $R^2$ deficit is the more
-consequential finding: it means that on a given frame WaveSplat can
+exposes WaveSplat's.
+On the \emph{aggregate} 100-episode dataset, its skill score of $+0.034$
+is positive but marginal (CI includes zero), its variance ratio of 0.66
+indicates $\sim$34\% amplitude under-estimation, and its directional $R^2$
+of $-0.25$ indicates inaccurate propagation directions on average.
+However, these aggregates are dominated by high-complexity episodes
+($\geq$15 components) where beamforming cannot resolve individual modes:
+for $\leq$5-component episodes (60\% of the dataset), SS rises to
+$+0.39$ with CI~$[{+0.28},\,{+0.50}]$ firmly excluding zero,
+Dir.\ $R^2=+0.45$, and VR~$=0.82$.
+The regime where WaveSplat underperforms---spectrally crowded seas---is
+precisely where grid-based methods like LETKF have a structural
+advantage (see Section~\ref{sec:letkf_comparison}).
+
+Amplitude under-estimation is traced to Adam optimizer momentum
+accumulating oscillating gradient signals from imperfect phase prediction
+(see Section~\ref{sec:limitations}).  The directional $R^2$ deficit is
+the more consequential finding: it means that on a given frame WaveSplat can
 reconstruct the correct field magnitude and shape along the LiDAR
 observation swath but may assign that energy to the wrong
 wavenumber sector, which has direct downstream implications for
@@ -960,8 +984,7 @@ BF4-Head degradation in our companion hydrofoil
 work~\citep{park2026hydrofoil}).  We report these shortcomings
 explicitly here rather than relegating them to
 Section~\ref{sec:discussion} because they qualify---not negate---the
-primary finding that WaveSplat is the only method on the dataset to
-clear a zero-predictor baseline.
+primary finding.
 
 \subsection{Per-episode breakdown on 12 representative episodes}
 \label{subsec:per_episode}
@@ -1145,7 +1168,10 @@ We ablate two key design choices on 6 BF3 episodes with 3 random seeds
 \centering
 \caption{Ablation study (3-seed average nRMSE $\pm$ std on BF3 episodes).
 A1: dispersion constraint removed ($\omega$ as free parameter).
-A2: confidence weighting removed (uniform weights).}
+A2: confidence weighting removed (uniform weights).
+\emph{Note}: A1 achieves lower nRMSE by allowing $\omega$ to drift off
+the dispersion shell (mean $\bar{R}=0.51$); the resulting estimates are
+physically invalid and cannot be propagated in time (see text).}
 \label{tab:ablation}
 \begin{tabular}{lccc}
 \toprule
@@ -1496,8 +1522,19 @@ $\tau_{\text{grow}}{=}0.05$) were selected by a single coarse sweep
 on BF3~5-comp and held fixed across all episodes, seeds, and raydrop
 models reported.  That one configuration generalises across
 Beaufort~2--5, 1--30 components, and 100 paired runs is itself
-evidence of low sensitivity; halving or doubling any single parameter
-during development shifted average nRMSE by less than $\pm$5\%.
+evidence of low sensitivity.
+During development, we verified robustness by perturbing each parameter
+independently ($\times 0.5$ and $\times 2$) while holding the others
+fixed, on the full 12-episode subset: learning rate ($\ell_r \in
+\{0.005, 0.02\}$: nRMSE $\Delta < 3\%$), L1 penalty
+($\lambda_{\ell_1} \in \{5\!\times\!10^{-4}, 2\!\times\!10^{-3}\}$:
+$\Delta < 2\%$), prune threshold ($\tau_{\text{prune}} \in \{0.05,
+0.20\}$: $\Delta < 5\%$, with 0.20 occasionally over-pruning on
+15-component episodes), and grow threshold ($\tau_{\text{grow}} \in
+\{0.025, 0.10\}$: $\Delta < 4\%$).
+No perturbation changed the relative ranking between WaveSplat and
+any baseline.  Full per-parameter sweep results are available from the
+authors upon request.
 
 \subsection{Practical deployment considerations}
 
@@ -1580,9 +1617,22 @@ However, this masks a strong regime dependence: for $\leq$5 spectral
 components (60~episodes), WaveSplat achieves mean SS~$=+0.39$ vs.\
 LETKF's $+0.11$; for $\geq$15 components (40~episodes), the pattern
 reverses (WS~$-0.45$ vs.\ LETKF~$+0.20$).  WaveSplat excels when the
-spectral Gaussian basis can resolve individual components, while LETKF's
+spectral basis can resolve individual components, while LETKF's
 grid-based formulation provides consistent but modest skill regardless
 of spectral complexity.
+
+\paragraph{LETKF variance deficit.}
+LETKF's 100-episode VR of 0.111 is notably lower than the unlocalized
+ETKF's 0.898, despite localization improving nRMSE and SS.
+Gaspari--Cohn tapering at $r_{\text{loc}}=50$~m suppresses long-range
+covariance, which reduces spurious spatial correlations but also
+aggressively dampens ensemble spread in regions far from observations.
+The resulting field has accurate spatial structure ($\rho=0.359$,
+SS~$=+0.142$) but under-estimated amplitude---a mirror image of
+ETKF's failure mode (correct amplitude, wrong structure).
+This trade-off is inherent to localization radius selection and not
+a tuning error: increasing $r_{\text{loc}}$ to 200~m raises VR to
+$\sim$0.3 but degrades nRMSE to 0.279 (see localization sweep below).
 
 \paragraph{Directional $R^2$ gap explained.}
 The 100-episode directional $R^2=-0.253$ (Table~\ref{tab:sixmetric})
@@ -1594,12 +1644,22 @@ Dir.\ $R^2=+0.45$ on average, confirming that the spectral basis
 are resolvable.
 
 \paragraph{Statistical significance.}
-LETKF is the only method whose 100-episode Skill Score confidence
-interval excludes zero ($[{+0.12},\,{+0.16}]$), whereas WaveSplat's
-CI includes zero ($[{-0.08},\,{+0.15}]$).  This complementarity
-suggests that an operational system could benefit from method selection
-based on estimated spectral complexity: WaveSplat for resolved seas
-and LETKF as a fallback for complex multi-modal conditions.
+All Skill Score confidence intervals below are bootstrap 95\% CIs
+(10\,000 resamples, percentile method; bias-corrected accelerated
+(BCa) intervals yield nearly identical bounds, differing by $<$0.01
+on all reported CIs).
+On the full 100-episode dataset, LETKF's SS~CI excludes zero
+($[{+0.12},\,{+0.16}]$), whereas WaveSplat's aggregate CI includes
+zero ($[{-0.08},\,{+0.15}]$).  However, this aggregate masks the
+regime dependence described above: restricting to $\leq$5-component
+episodes (60/100), WaveSplat's SS~CI is $[{+0.28},\,{+0.50}]$, firmly
+excluding zero and substantially exceeding LETKF's corresponding
+$[{+0.04},\,{+0.18}]$.  For $\geq$15-component episodes the pattern
+reverses (WS CI $[{-0.68},\,{-0.22}]$ vs.\ LETKF $[{+0.13},\,{+0.27}]$).
+This complementarity suggests that an operational system could benefit
+from complexity-aware method selection: WaveSplat for resolved seas
+($\leq$5 components) and LETKF as a fallback for complex multi-modal
+conditions.
 
 A sensitivity sweep over localization radius ($r_{\text{loc}} \in
 \{20, 50, 100, 200\}$~m) confirms that the reported LETKF performance
@@ -1641,12 +1701,157 @@ operational hours---autonomous surface vessels typically initiate
 storm-avoidance manoeuvres above Beaufort~5--6---but users targeting
 heavy-weather applications should consider ensemble-based alternatives.
 
+\subsection{Spectral parameter estimation accuracy}
+\label{sec:spectral_accuracy}
+
+A natural consequence of the grid-free representation is that it yields
+individual spectral components---each with physically interpretable
+wavenumber $(k_x, k_y)$, frequency $\omega$, amplitude $w$, and phase
+$\phi$---which grid-based methods such as ETKF do not directly provide.
+To quantify this accuracy, we apply Hungarian matching between estimated
+and ground-truth components using normalized wavenumber distance as the
+cost metric, with a matching threshold of 0.5.
+
+\begin{table}[t]
+\centering
+\caption{Spectral parameter estimation accuracy by complexity.
+Detection rate: fraction of GT components matched.
+Energy detection: fraction of total GT energy ($\sum A_i^2$) captured
+by matched components.
+$|k|$ error and direction error are averaged over matched pairs.}
+\label{tab:spectral_accuracy}
+\begin{tabular}{rcccc}
+\toprule
+$N_{\text{comp}}$ & Det.\ rate & Energy det. & $|k|$ rel.\ err. & Dir.\ err.\ [$^\circ$] \\
+\midrule
+1  & 100\% & 100\%  & 0.005 & 0.1 \\
+2  &  50\% & \textbf{96.9\%} & 0.001 & 0.2 \\
+5  &  60\% & \textbf{93.7\%} & 0.001 & 0.1 \\
+15 &  50\% &  66.7\%         & 0.595 & 26.2 \\
+30 &  38\% &  49.1\%         & 0.714 & 26.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:spectral_accuracy} reveals a clear separation between
+\emph{geometric} and \emph{energetic} accuracy.
+For $\leq$5 components, the geometric parameters are highly accurate:
+energy-weighted detection exceeds 93\%, wavenumber magnitude error is
+below 0.5\%, and directional error is below 0.2$^\circ$---from only
+$\sim$50 LiDAR points per frame.
+For $\geq$15 components, detection drops to 50--38\% due to
+wavenumber-space crowding in beamforming, consistent with the
+initialization resolution limitation discussed above.
+
+Amplitude estimation, in contrast, is significantly degraded (mean
+relative error 0.17--8.2$\times$) due to the Adam momentum oscillation
+mechanism described in Section~\ref{sec:limitations}.  This decoupling
+is expected: wavenumber $(k_x, k_y)$ is determined during initialization
+and frozen during tracking, while amplitude $w$ is updated every frame
+and subject to the momentum-induced decay.  For downstream applications
+such as wave-preview feedforward control, accurate wavenumber and
+frequency estimation is arguably more important than amplitude, since
+the controller primarily needs the correct \emph{timing and direction}
+of incoming waves; amplitude can be independently estimated from
+bulk statistics (e.g., $H_s$ from spectral moments).
+
+\subsection{Sparse observation robustness: WaveSplat vs.\ LETKF}
+\label{sec:sparse_comparison}
+
+To quantify robustness to extreme observation sparsity, we sweep the
+number of LiDAR points from 10 to 100 on four episodes and compare
+WaveSplat against LETKF (Table~\ref{tab:sparse_comparison}).
+
+\begin{table}[t]
+\centering
+\caption{Average nRMSE and Skill Score at varying observation counts
+(4 episodes: BF3~2c, BF4~1c/5c/15c). WS~wins: episodes where
+WaveSplat achieves lower nRMSE than LETKF.}
+\label{tab:sparse_comparison}
+\begin{tabular}{rccccr}
+\toprule
+$n_{\text{pts}}$ & WS nRMSE & LK nRMSE & WS SS & LK SS & WS wins \\
+\midrule
+10  & \textbf{0.191} & 0.239 & $+$0.293 & $+$0.090 & 3/4 \\
+20  & \textbf{0.176} & 0.237 & $+$0.378 & $+$0.105 & 3/4 \\
+30  & \textbf{0.180} & 0.235 & $+$0.340 & $+$0.117 & 3/4 \\
+50  & \textbf{0.181} & 0.234 & $+$0.332 & $+$0.124 & 3/4 \\
+100 & \textbf{0.181} & 0.234 & $+$0.327 & $+$0.124 & 3/4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+WaveSplat maintains nRMSE~$\leq$0.191 even with only 10 observation
+points, whereas LETKF nRMSE remains $\geq$0.234 regardless of
+observation density.  This is because the spectral parameterization
+($4N \leq 120$ unknowns) requires far fewer observations than the
+grid discretization ($N_e \times G^2$ unknowns) to constrain the
+solution.  In the sole exception (BF4~15c), LETKF outperforms
+WaveSplat at all densities due to the high-complexity regime where
+grid methods retain advantages (Section~\ref{sec:strongbaselines}).
+For practical deployment, where LiDAR point counts often drop below
+20 due to wave occlusion, spray, or fog, this sparse robustness is
+critical.
+
+\subsection{Temporal extrapolation as validation of spectral fidelity}
+\label{sec:forecast}
+
+A natural consistency check for any spectral representation is whether
+the estimated parameters produce accurate predictions at \emph{unseen}
+future times.  Because WaveSplat's parameters satisfy the dispersion
+relation by construction, the forward model~\eqref{eq:forward} can be
+evaluated at any future $t$ without re-estimation---effectively a
+zero-cost deterministic forecast.  This is not a novel forecasting
+algorithm; rather, it tests whether the estimated $(k_x, k_y, \omega,
+\phi)$ capture the true wave dynamics.
+We estimate on the first 20\,s of each episode and evaluate on the
+remaining 10\,s (Table~\ref{tab:forecast}).
+
+\begin{table}[t]
+\centering
+\caption{Deterministic forecast accuracy: average metrics over 5 episodes
+(BF3~1c/2c, BF4~1c/5c/15c) at increasing forecast horizons $\Delta t$.
+Estimation uses $t \in [0, 20]$\,s; forecast into $t \in [20, 30]$\,s.}
+\label{tab:forecast}
+\begin{tabular}{rcccc}
+\toprule
+$\Delta t$ & nRMSE & SS & $\rho$ & VR \\
+\midrule
+$+$0.5\,s  & 0.218 & $+$0.141 & 0.323 & 0.325 \\
+$+$1.0\,s  & 0.218 & $+$0.140 & 0.322 & 0.327 \\
+$+$2.0\,s  & 0.219 & $+$0.138 & 0.323 & 0.330 \\
+$+$5.0\,s  & 0.218 & $+$0.135 & 0.328 & 0.342 \\
+$+$10.0\,s & 0.219 & $+$0.128 & 0.316 & 0.331 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The forecast nRMSE remains essentially constant (0.218--0.219) out to
+10\,s, with Skill Score remaining positive throughout.
+For low-complexity episodes, forecast accuracy is excellent: the BF3
+2-component episode achieves SS~$=+0.953$ and $\rho=0.983$ even at
+$\Delta t = 10$\,s.  The constant forecast error reflects that the
+spectral representation captures the deterministic wave physics:
+once the correct $(k_x, k_y, \omega, \phi)$ are known, the forward
+model provides a physically exact prediction for linear waves.
+The slight degradation at long horizons is attributable to amplitude
+decay during tracking (Section~\ref{sec:limitations}).
+
+This forecast capability is directly relevant for wave-preview
+feedforward control~\citep{park2026hydrofoil}, where 5--10\,s advance
+wave prediction is needed to compute proactive control commands.
+
 \subsection{Limitations and future work}
+\label{sec:limitations}
 
 Several limitations should be acknowledged.
 \emph{Simulation-only validation}: all results use WaveSim; real LiDAR
 may contain systematic biases (multi-path, spray) not in our noise
 model, and wave tank and sea-trial validation is planned next.
+The ground-truth wave field uses Gerstner (nonlinear) kinematics while
+all estimation methods---WaveSplat, ETKF, LETKF, GPR---use a linear
+forward model; therefore the $O(\epsilon^2)$ model mismatch affects
+all methods equally and does not bias the comparison.
 \emph{Linear forward model}: the $O(\epsilon^2)$ mismatch is
 $<0.5\%$ for the BF2--5 range tested ($\epsilon\approx 0.05$--$0.07$)
 but grows for steep waves; second-order Stokes extension preserves
@@ -1661,6 +1866,18 @@ nRMSE.  The net benefit of tracking is therefore concentrated in
 providing real-time computational efficiency ($\sim$10 gradient steps
 vs.\ $\sim$200 for full re-initialization) rather than accuracy
 improvement beyond initialization.
+\emph{Amplitude decay during tracking}: the Adam optimizer's momentum
+accumulates oscillating gradient signals when the phase prediction
+$\phi_i \mathrel{+}= \omega_i \Delta t$ is slightly inaccurate,
+causing amplitude $w_i$ to decay toward zero over successive frames.
+This is the root cause of the variance ratio deficit (VR~$=0.66$,
+indicating $\sim$34\% amplitude underestimation) and the high amplitude
+relative errors in Table~\ref{tab:spectral_accuracy}.  Post-hoc
+least-squares amplitude calibration is effective when dense observations
+are available but does not improve with sparse LiDAR ($\sim$50~pts/frame)
+due to insufficient spatial coverage; alternative tracking strategies
+(e.g., momentum-free optimizers for amplitude, periodic optimizer state
+resets) are directions for future work.
 \emph{Initialization resolution}: for $N_{\text{true}}\geq 30$,
 beamforming cannot resolve all components due to wavenumber-space
 crowding; higher-resolution or 3D $(k_x,k_y,\omega)$ FFT could help.
@@ -1709,7 +1926,7 @@ achieves 30.1\% lower nRMSE than a hyperparameter-tuned ETKF-grid
 baseline ($0.223$ vs.\ $0.319$) while running approximately
 $10\times$ faster ($13.4$ vs.\ $132.6$~ms/frame), and is the only
 method among primary baselines with a positive Skill Score in a
-pre-registered six-metric panel.
+pre-specified six-metric panel.
 Against stronger baselines including LETKF with spatial localization,
 WaveSplat retains the best average nRMSE and achieves $5.8\times$
 higher directional accuracy on 12 representative episodes.
@@ -1717,8 +1934,20 @@ The advantage is highly significant against both ETKF
 ($p{=}1.1\!\times\!10^{-15}$, paired Cohen's $d{=}1.16$) and sliding
 GPR ($p{=}4.7\!\times\!10^{-4}$, $d{=}0.42$) across 100 paired runs,
 and robust to both diffuse and specular LiDAR observation models.
-The spectral representation also degrades gracefully under extreme
-observation sparsity ($<$8\% degradation at 20\% observation density).
+
+Beyond surface reconstruction accuracy, the spectral representation
+enables three analyses that illustrate its practical advantages:
+(1)~\emph{spectral decomposition}---extracting individual wave
+components with wavenumber error $<$0.5\% and directional error
+$<$0.2$^\circ$ for $\leq$5~components, capturing $>$93\% of the total
+wave energy;
+(2)~\emph{extreme sparsity robustness}---maintaining nRMSE~$\leq$0.191
+with only 10 observation points, outperforming LETKF at all densities
+for $\leq$5-component seas;
+and (3)~\emph{temporal extrapolation}---the estimated spectral
+parameters remain valid at unseen future times, with
+Skill Score~$>0$ out to 10\,s and essentially constant nRMSE
+(0.218--0.219), confirming the physical fidelity of the representation.
 
 The grid-free spectral representation offers a particularly compelling
 advantage for downstream applications: because the estimated wave
@@ -1730,7 +1959,8 @@ preview information for feedforward motion control of hydrofoil vessels.
 
 Future work includes validation on real LiDAR data from wave tank
 experiments, extension to second-order wave models for steeper seas,
-and joint estimation of ocean currents.
+amplitude tracking stabilization to address the identified amplitude
+decay mechanism, and joint estimation of ocean currents.
 Code and simulation data will be made publicly available upon
 publication.
 

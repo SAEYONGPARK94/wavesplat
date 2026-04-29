@@ -225,10 +225,11 @@ LiDAR 관측 품질의 공간적 불균질성을 직접 모델링한다.
 \textbf{30.1\%} 낮추고 (\textbf{0.223} vs.\ \textbf{0.319}),
 처리 속도는 약 \textbf{10배} 빠른 \textbf{13.4\,ms/프레임}을 달성한다.
 사전 지정된 6개 지표 평가 패널에서 \WS{}는 zero-predictor 대비 양수의
-Skill Score를 기록한 유일한 방법임을 보인다.
+점추정 Skill Score를 기록한 유일한 방법임을 보인다
+(전체 95\% bootstrap CI는 0을 포함하나, $\leq$5-성분 해상에서는 유의).
 100회 대응 검증을 통한 Wilcoxon signed-rank 검정 결과
 ($p = 1.1\times10^{-15}$, Cohen's $d = 1.16$)는 이 차이가
-통계적으로 매우 유의미한 large effect임을 확인한다.
+통계적으로 유의한 large effect임을 확인한다.
 
 또한 본 논문은 \WS{}의 downstream 응용으로서,
 추정된 파랑 정보를 활용한 하이드로포일 선박의 2자유도 feedforward 제어
@@ -350,7 +351,7 @@ hydrofoil, feedforward control, wave preview
 해당 기능의 성능을 결정한다.
 
 센서 측면에서, wave buoy는 단일 점에서의 시계열만 제공하여 공간 분포를 알 수 없고,
-X-band 해상 레이더~\citep{Drazen2008}는 넓은 관측 범위를 제공하나 산란 강도를
+X-band 해상 레이더~\citep{nieto2004}는 넓은 관측 범위를 제공하나 산란 강도를
 측정하므로 파고 직접 관측이 불가능하며, 위성 고도계는 킬로미터 규모의 해상도와
 비실시간 특성으로 선박 규모 실시간 사용에 부적합하다.
 이에 비해 선박 탑재 스캐닝 LiDAR는 전방 해수면을 비접촉으로 직접 관측할 수 있는
@@ -477,8 +478,9 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
 
 \begin{enumerate}
   \item \textbf{격자 비의존 스펙트럼 Gaussian 파면 추정 프레임워크 (\WS{})}: \\
-        3D Gaussian Splatting~\citep{Kerbl2023}의 아이디어를 해양 파면 추정에
-        최초로 적용하여, 파도장을 $N$개의 평면파 집합으로 직접 파라미터화한다.
+        3D Gaussian Splatting~\citep{Kerbl2023}의 적응형 기저 함수 + gradient
+        optimization 패러다임에서 개념적 영감을 받아,
+        파도장을 $N$개의 평면파 집합으로 직접 파라미터화한다.
         격자 보간 없이 희소·불규칙 관측에서 직접 추정하며, 임의의 공간 위치에서
         파면을 평가할 수 있다.
         스펙트럼 성분 표현이 프레임 간 유지되어, 분산관계 기반 위상 예측을
@@ -800,7 +802,7 @@ FNO의 균일 격자 가정은 LiDAR의 불규칙 샘플링과 비호환적이�
 \WS{}는 이와 대조적으로 학습 데이터가 필요 없고, 불규칙 관측 형상을 자연스럽게
 처리하며, 분산관계를 구조적으로 만족하는 직접 해석 가능한 스펙트럼 파라미터를 생성한다.
 격자 비의존 희소 표현은 compressed sensing~(Cand\`{e}s et al., 2006)과
-\citet{Drazen2008}의 압력 센서 기반 희소 스펙트럼 재구성과 개념적으로 관련되나,
+\citet{Donelan1996}의 방향 스펙트럼 분석과 개념적으로 관련되나,
 (1) 각 기저 함수가 물리적 의미의 평면파인 점과
 (2) 모델 차수가 잔차 에너지에 기반하여 온라인으로 적응하는 점에서 차별화된다.
 
@@ -1654,20 +1656,21 @@ $\mathbf{n} = (\mathbf{V}_1 - \mathbf{V}_0) \times (\mathbf{V}_2 - \mathbf{V}_0)
 Fresnel 반사율은 1550\,nm에서의 해수 복소 굴절률 $n = 1.321$을 사용하며,
 입사각이 클수록(grazing) 반사율이 증가하여 specular reflection에 의한
 신호 손실(raydrop)이 발생한다.
-diffuse 반환 성분의 확률은:
+비정규화 반환 가능도(unnormalized return likelihood)는:
 \begin{equation}
-  P_{\text{return}} = \eta \cdot (1 - R_{\text{Fresnel}}(\theta)) \cdot \frac{\cos\theta}{(d/d_{\text{ref}})^2}
+  P_{\text{raw}} = R_{\text{Fresnel}}(\theta) \cdot \frac{\cos\theta}{(d/d_{\text{ref}})^2}
   \label{eq:return_prob}
 \end{equation}
-여기서 $\eta = 0.3$은 전체 시스템 효율(광학 손실, 대기 감쇠 등),
-$(1 - R_{\text{Fresnel}})$은 표면 투과·산란 비율,
+여기서 $R_{\text{Fresnel}}$은 Fresnel 반사율(입사각에 따른 표면 반사 강도),
 $\cos\theta$는 Lambertian 투영, $(d/d_{\text{ref}})^2$는 역제곱 거리 감쇠이다.
+스케일 인수 $\eta$는 기대 관측점 수 $\sum_i \eta P_{\text{raw},i} = M_{\text{target}}$이
+되도록 프레임마다 보정된다.
 이 확률에 기반한 Bernoulli 샘플링으로 각 빔의 반환 여부를 결정한다.
 
 두 가지 raydrop 모델을 구현하여 LiDAR의 서로 다른 물리적 반환 조건을 모사한다:
 \begin{itemize}
-  \item \textbf{Uniform (확산 반사)}: $P = \eta \cdot R_\text{Fresnel}(\theta) \cdot \cos\theta / (d/d_\text{ref})^2$
-        --- 표면 형상에 독립적인 일정 raydrop 확률
+  \item \textbf{Uniform (Fresnel 가중)}: $P \propto R_\text{Fresnel}(\theta) \cdot \cos\theta / (d/d_\text{ref})^2$
+        --- 반사율과 입사각·거리에 의존하는 raydrop 확률
   \item \textbf{Slope (specular backscatter)}: 파면 기울기에 의한 specular backscatter 조건에서만 반환
         --- 급경사 표면에서 높은 raydrop, 파봉 부근에서 높은 반환율
 \end{itemize}
@@ -1830,7 +1833,7 @@ GPR-1 & 0.261 & 0.780 & 0.065 & 0.193 & $-0.140$ & +0.028 \\
     nRMSE에서 경쟁적으로 보이는 것은 정규화 단위에서 zero-prediction 오차가
     1로 bounded되기 때문이다.
 
-  \item \textbf{ETKF는 분산은 맞지만 형상이 틀리다.}
+  \item \textbf{튜닝된 ETKF 설정은 분산은 맞지만 형상이 비일관적이다.}
     VR = 0.898 (거의 1)이지만 $\rho = 0.109$로,
     앙상블이 적절한 에너지를 담되 비정합적 공간 구조에 분산되어
     가장 낮은 Skill Score ($-0.70$)를 보인다.
@@ -2400,6 +2403,10 @@ BF2, $H_s=0.3$\,m, 단일 성분.
   \item \textbf{Cold start 지연}: Phase~1 초기화에 $T_{\text{init}} = 2T_p$
         ($\sim$16\,s at BF4)가 소요되며, 이 기간 동안 추정값이 제공되지 않는다.
         추적과 병행하는 백그라운드 재초기화 방식으로 완화 가능하다.
+  \item \textbf{선박 운동 미반영}: 시뮬레이션이 고정 센서 플랫폼을 가정한다.
+        실해양에서는 heave, pitch, roll에 의한 빔 패턴 변동이 발생하며,
+        IMU/INS 기반 좌표 변환이 전처리 단계에서 필수적이다.
+        잔여 보정 오차는 추가 노이즈원이 된다.
 \end{itemize}
 
 \paragraph{하이퍼파라미터 민감도.}
@@ -2804,7 +2811,8 @@ Euler 방법($\mathcal{O}(\Delta t^2)$)과 비교하면 4자릿수 이상의 정
 (3) PD + WaveSplat FF ($\sim$20\% nRMSE 추정 노이즈),
 (4) PD + Noisy FF ($\sim$40\% nRMSE 열화 추정).
 전략 3--4는 additive white Gaussian noise로 추정 오차를 모사하며,
-이는 실제 \WS{} 오차(시간 상관, 구조화 편향)보다 보수적인 모델이다.
+이는 실제 \WS{} 오차(시간 상관, 구조화 편향 --- 특히 방향 오식별)와
+질적으로 다른 간소화 모델이다. BF4 E2E 결과(WS/GT=37\%)가 이 차이를 실증한다.
 
 \subsection{평가 지표}
 

@@ -52,7 +52,9 @@ while running approximately \textbf{10$\times$} faster
 (13.4~vs.~132.6~ms/frame on a single CPU thread).
 A pre-specified six-metric evaluation panel further shows that
 WaveSplat is the only method among the primary baselines (ETKF, GPR)
-with a positive Skill Score against a zero predictor, exposing
+with a positive point-estimate Skill Score against a zero predictor
+(the 95\% bootstrap CI includes zero on the aggregate dataset but
+excludes it for $\leq$5-component seas), exposing
 sliding-kernel GPR as a near-zero predictor and the tuned ETKF as a
 variance-correct but shape-incoherent estimator.
 A supplementary comparison with stronger baselines---LETKF with
@@ -63,7 +65,7 @@ all 100 episodes confirms that WaveSplat retains the best average nRMSE
 methods, the gap widens to 0.211 vs.\ 0.238 with $5.8\times$ higher
 directional $R^2$.
 A 100-paired-run multi-seed validation confirms the improvement is
-highly significant against both ETKF
+statistically significant against both ETKF
 ($p = 1.1\!\times\!10^{-15}$) and sliding GPR
 ($p = 4.7\!\times\!10^{-4}$, Wilcoxon signed-rank test).
 The method is robust to both diffuse and specular LiDAR observation
@@ -72,9 +74,8 @@ With adaptive model order, the method matches spectral complexity to
 the observed scene---selecting $N$=2 for simple two-component swells
 and $N$=18--21 for complex multi-component seas---achieving 6.4\%
 average improvement over fixed model order.
-(At very low sea states where signal-to-noise is poor,
-the adaptive mechanism can overfit; this failure mode is analyzed
-in Section~\ref{sec:discussion}.)
+At very low sea states the adaptive mechanism can overfit,
+a failure mode analyzed in the Discussion.
 \end{abstract}
 
 \begin{keyword}
@@ -93,7 +94,7 @@ dispersion relation \sep data assimilation \sep real-time estimation
   (13.4 vs.\ 132.6~ms/frame, single CPU thread).
 \item Only method with a positive Skill Score in a pre-specified
   six-metric evaluation against a zero-predictor reference.
-\item Improvement is highly significant: Wilcoxon $p{=}1.1\!\times\!10^{-15}$
+\item Statistically significant: Wilcoxon $p{=}1.1\!\times\!10^{-15}$
   vs.\ ETKF (paired Cohen's $d{=}1.16$) and $p{=}4.7\!\times\!10^{-4}$
   vs.\ sliding GPR ($d{=}0.42$) across 100 paired runs.
 \item Robust to diffuse and specular LiDAR raydrop models and to
@@ -139,6 +140,7 @@ nRMSE & RMSE normalized by $H_s$ \\
 
 \subsection{Motivation: wave field information for maritime autonomy}
 
+Table~\ref{tab:nomenclature} summarizes the notation used throughout.
 Knowledge of the surrounding ocean wave field is a prerequisite for
 many functions in autonomous and semi-autonomous ship
 operations~\citep{faltinsen2005, holthuijsen2007}: short-term
@@ -220,7 +222,7 @@ Our key contributions are:
     estimation on sparse, irregularly distributed observations without
     grid interpolation, enabling wave field evaluation at arbitrary
     spatial resolution.
-    Unlike single-snapshot sparse spectral methods~\citep{drazen2008},
+    Unlike single-snapshot sparse spectral methods~\citep{donelan1996},
     the spectral component representation persists across frames,
     allowing computationally efficient per-frame updates via
     dispersion-based phase prediction ($\sim$10 gradient steps)
@@ -374,8 +376,8 @@ estimation; such a comparison would require careful control of
 training distribution, sensor geometry, and computational budget.
 Its grid-free sparse representation is conceptually related to the
 compressed sensing literature~\citep{candes2006, mallat1993} and to
-\citet{drazen2008}'s sparse spectral reconstruction from pressure
-sensors, with three key differences: (1)~each basis function is a
+\citet{donelan1996}'s directional spectral analysis of propagating
+waves, with three key differences: (1)~each basis function is a
 physically meaningful plane wave with frequency constrained by the
 dispersion relation rather than a generic sinusoid or wavelet;
 (2)~the model order is adapted \emph{online} during tracking based
@@ -726,8 +728,8 @@ sampling~\citep{hasselmann1973}.  The simulator parameters are:
     real-world solid-state LiDARs such as the Seyond Falcon~K1
     (1550~nm, 152 vertical channels, $120^\circ \times 25^\circ$ FOV)
     produce comparable or higher point densities per scan
-  \item \textbf{Raydrop models}: (a)~uniform---constant drop probability
-    independent of surface geometry (diffuse Fresnel reflection); and
+  \item \textbf{Raydrop models}: (a)~uniform---Fresnel-weighted dropout
+    with $P\propto R_{\text{Fresnel}}(\theta)\cos\theta/d^2$; and
     (b)~slope-dependent---higher dropout on steep surfaces with
     near-grazing geometry (specular backscatter model)
   \item \textbf{Water depth}: $d = 50$~m (intermediate to deep water
@@ -921,9 +923,9 @@ exposes two distinct failure modes that the nRMSE column alone hides:
     GPR is essentially returning a near-flat surface that happens to
     score competitively on nRMSE because, in normalized units, the
     zero-prediction error is bounded by~1.
-  \item \textbf{ETKF is variance-correct but shape-wrong.}
+  \item \textbf{The tuned ETKF configuration is variance-correct but shape-incoherent.}
     Its VR is close to unity (0.898) but Pearson correlation is only
-    0.109; the ensemble carries the right amount of energy but in
+    0.109; under this configuration the ensemble carries the right amount of energy but in
     incoherent spatial structures, giving the worst Skill Score
     ($-0.70$) of all methods.
 \end{itemize}
@@ -1104,9 +1106,13 @@ $0.321 \pm 0.041$ and a 3-frame sliding GPR $0.253 \pm 0.020$
 confirm both improvements:
 WaveSplat vs.\ ETKF ($W\!=\!194$, $p\!=\!1.1\!\times\!10^{-15}$,
 paired Cohen's $d\!=\!1.16$, 95\% CI on mean difference
-$[0.085, 0.119]$) and WaveSplat vs.\ sliding GPR ($W\!=\!1508$,
+$[0.085, 0.119]$, bootstrap percentile, 10\,000 resamples)
+and WaveSplat vs.\ sliding GPR ($W\!=\!1508$,
 $p\!=\!4.7\!\times\!10^{-4}$, paired Cohen's $d\!=\!0.42$,
 95\% CI $[0.018, 0.050]$).
+After Holm--Bonferroni correction for the two primary comparisons,
+both remain significant ($p_1{=}2.2\!\times\!10^{-15}$,
+$p_2{=}4.7\!\times\!10^{-4}$).
 Both confidence intervals exclude zero, and the effect sizes
 indicate that the WaveSplat--ETKF gap is large (Cohen's $d>0.8$)
 whereas the WaveSplat--sliding-GPR gap is small-to-medium but still
@@ -1944,6 +1950,25 @@ provide uncertainty.
 \emph{Directional spreading}: each component is monochromatic;
 representing continuous directional distributions (e.g., $\cos^{2s}$)
 would require directional or von~Mises basis functions.
+\emph{Ship motion}: the current simulation assumes a stationary
+sensor platform.  In practice, heave, pitch, and roll of the vessel
+change the LiDAR beam pattern frame-to-frame; an IMU/INS-based
+coordinate transform is a necessary preprocessing step for
+sea-going deployment, and the residual motion-compensation error
+constitutes an additional noise source not modelled here.
+\emph{Relationship to physics-informed learning}:
+WaveSplat can be viewed as physics-constrained optimization with a
+hand-designed plane-wave basis, structurally analogous to PINNs that
+use a neural-network basis.  The key advantage of the explicit
+plane-wave basis is threefold: (i)~the dispersion relation is
+satisfied by construction rather than as a soft penalty,
+(ii)~beamforming provides an efficient spectral initialization that
+neural bases lack, and (iii)~the $4N$ parameter count is orders of
+magnitude smaller than typical PINN architectures, reducing
+overfitting risk with sparse observations.  Hybrid approaches---e.g.,
+learned initialization or learned observation
+weighting---could combine the interpretability of spectral
+components with the flexibility of neural representations.
 
 % ============================================================================
 \section{Conclusion}
@@ -1960,10 +1985,11 @@ method among primary baselines with a positive Skill Score in a
 pre-specified six-metric panel.
 Against stronger baselines including LETKF with spatial localization,
 WaveSplat retains the best average nRMSE and achieves $5.8\times$
-higher directional accuracy on 12 representative episodes.
-The advantage is highly significant against both ETKF
+higher directional $R^2$ on 12 pre-specified representative episodes.
+The advantage is statistically significant against both ETKF
 ($p{=}1.1\!\times\!10^{-15}$, paired Cohen's $d{=}1.16$) and sliding
-GPR ($p{=}4.7\!\times\!10^{-4}$, $d{=}0.42$) across 100 paired runs,
+GPR ($p{=}4.7\!\times\!10^{-4}$, $d{=}0.42$) across 100 paired runs
+(Holm-corrected: $p_1{=}2.2\!\times\!10^{-15}$, $p_2{=}4.7\!\times\!10^{-4}$),
 and robust to both diffuse and specular LiDAR observation models.
 
 Beyond surface reconstruction accuracy, the spectral representation
@@ -1998,9 +2024,7 @@ publication.
 % ============================================================================
 \section*{CRediT authorship contribution statement}
 
-\textbf{Saeyong Park}: Conceptualization, Methodology, Software,
-Validation, Formal analysis, Investigation, Writing -- original draft,
-Writing -- review \& editing, Visualization.
+The sole author is responsible for all aspects of this work.
 
 \section*{Declaration of competing interest}
 
@@ -2010,9 +2034,8 @@ the work reported in this paper.
 
 \section*{Data availability}
 
-The source code of WaveSplat, the physics-based LiDAR wave simulator
-(WaveSim), all experiment scripts, and representative simulation
-episodes are available from the authors upon reasonable request.
+Code, simulation data, and experiment scripts will be deposited on a
+public repository upon acceptance.
 The complete 100-episode dataset can be regenerated from the released
 simulator with the provided configuration files and fixed random
 seeds, ensuring end-to-end reproducibility of all tables and figures

@@ -1,6 +1,6 @@
 # WaveSplat
 
-**Grid-free Wave Field Estimation from Sparse Ship-mounted LiDAR via Spectral Gaussian Estimation**
+**Grid-Free Spectral Wave Field Estimation from Sparse Shipboard LiDAR**
 
 ---
 
@@ -8,24 +8,25 @@
 
 WaveSplat addresses the problem of reconstructing a continuous wave height field `z(x,y,t)` from the extremely sparse surface point clouds captured by a forward-looking LiDAR mounted on a ship.
 
-Unlike grid-based approaches (e.g., ETKF), WaveSplat represents the wave field as a weighted sum of spectral Gaussian components with physics-based constraints (dispersion relation, Fresnel confidence weighting), enabling grid-free estimation that adapts model complexity to wave scene complexity.
+Unlike grid-based approaches (e.g., ETKF), WaveSplat represents the wave field as a weighted sum of spectral components with physics-based constraints (dispersion relation, Fresnel confidence weighting), enabling grid-free estimation that adapts model complexity to wave scene complexity.
 
-### Key Results
+### Key Results (100-episode, pre-specified 6-metric panel)
 
-| Method | Avg nRMSE | Speed (ms/frame) | Complexity |
-|--------|-----------|-------------------|------------|
-| **WaveSplat (ours)** | **0.233** | **13.4** | O(M·N) |
-| GPR (Matérn 5/2) | 0.276 | >200 | O(M³) |
-| ETKF-grid | 0.450 | 31.7 | O(Nₑ·G²·logG²) |
+| Method | Avg nRMSE | Skill Score | Speed (ms/frame) | Complexity |
+|--------|-----------|-------------|-------------------|------------|
+| **WaveSplat (ours)** | **0.223** | **+0.034** | **13.4** | O(M·N) |
+| GPR (Matérn 5/2) | 0.261 | −0.140 | >200 | O(M³) |
+| ETKF (tuned) | 0.319 | −0.702 | 132.6 | O(Nₑ·G²·logG²) |
 
-- **48.3% lower nRMSE** than ETKF, **15.7% better** than GPR
-- **15× faster** than GPR, **2.4× faster** than ETKF
-- Wilcoxon signed-rank test: p < 0.001
+- **30.1% lower nRMSE** than tuned ETKF, **14.6% better** than GPR
+- **~10× faster** than ETKF, **15× faster** than GPR
+- Wilcoxon signed-rank test: p = 1.1×10⁻¹⁵, Cohen's d = 1.16 (large effect)
+- Only method with positive Skill Score (zero-predictor baseline)
 - Robust to both uniform and slope raydrop observation models (20/20 wins)
 
 ### Key Features
 
-- Grid-free spectral Gaussian representation: `z(x,y,t) = Σ wᵢ·cos(kxᵢ·x + kyᵢ·y - ωᵢ·t + φᵢ)`
+- Grid-free spectral representation: `z(x,y,t) = Σ wᵢ·cos(kxᵢ·x + kyᵢ·y - ωᵢ·t + φᵢ)`
 - Dispersion constraint: `ω = √(g·|k|·tanh(|k|·d))` — hard constraint, no deep-water approximation
 - Fresnel confidence weighting: `cⱼ = cos(θⱼ) / (dⱼ/d_ref)`
 - Adaptive N: energy-based pruning + residual-triggered growth
@@ -42,9 +43,9 @@ Unlike grid-based approaches (e.g., ETKF), WaveSplat represents the wave field a
 |---|---|
 | **Problem** | Ship-mounted forward-looking LiDAR produces only tens to hundreds of surface returns per frame |
 | **Goal** | Recover continuous wave field `z(x,y,t)` from irregular sparse observations |
-| **Method** | Grid-free Spectral Gaussian Estimation with dispersion-constrained parameterization |
-| **Baselines** | ETKF-grid (Ensemble Transform Kalman Filter), GPR (Gaussian Process Regression, Matérn 5/2) |
-| **Target** | OCEANS 2026 Conference |
+| **Method** | Grid-free spectral estimation with dispersion-constrained parameterization |
+| **Baselines** | ETKF (tuned, 24-config sweep), GPR (Matérn 5/2), LETKF (Gaspari-Cohn) |
+| **Target** | Ocean Engineering (Elsevier) |
 
 ---
 
@@ -94,8 +95,8 @@ wavesplat/
 │   ├── generate_paper_figures.py # PDF figures (Fig 1-7)
 │   ├── generate_qualitative_figure.py  # Fig 8: GT vs WS vs ETKF vs GPR heatmap
 │   └── generate_tracking_animation.py  # Tracking animation (MP4)
-├── paper/                      # IEEE conference paper
-│   ├── wavesplat.tex             # Main LaTeX source (~680 lines)
+├── paper/                      # Ocean Engineering journal paper
+│   ├── wavesplat.tex             # Main LaTeX source (~1500 lines)
 │   └── figures/                  # 9 PDF figures (fig1-fig8 + png)
 ├── results/                    # JSON experiment results (7 files)
 │   ├── p1_comparison.json        # Main P1 comparison
@@ -161,18 +162,18 @@ python3 -m pytest wavesim/tests/ wavesplat/tests/ -v
 
 ## Experiment Results
 
-### 3-Way Comparison (10 episodes, WS vs ETKF vs GPR)
+### Full 100-episode Comparison (WS vs ETKF vs GPR)
 
-| Method | Avg nRMSE | Speed | Improvement over ETKF |
-|--------|-----------|-------|-----------------------|
-| **WaveSplat** | **0.233** | **13.4 ms** | **48.3%** |
-| GPR | 0.276 | >200 ms | 38.7% |
-| ETKF | 0.450 | 31.7 ms | — |
+| Method | Avg nRMSE | Skill Score | Speed | Improvement over ETKF |
+|--------|-----------|-------------|-------|-----------------------|
+| **WaveSplat** | **0.223** | **+0.034** | **13.4 ms** | **30.1%** |
+| GPR | 0.261 | −0.140 | >200 ms | 18.2% |
+| ETKF (tuned) | 0.319 | −0.702 | 132.6 ms | — |
 
-### Main Comparison (12 episodes, BF2-BF5)
+### 12-episode Detailed Comparison (BF2-BF5)
 
-- WaveSplat avg nRMSE: **0.211** (ETKF: 0.436, **51.5% better**)
-- Speed: **13.4 ms/frame** (ETKF: 31.7ms, **2.4x faster**)
+- WaveSplat avg nRMSE: **0.211** (ETKF tuned: 0.358, **41.1% better**)
+- Speed: **13.4 ms/frame** (ETKF: 132.6ms, **~10x faster**)
 - Best case: BF3_2comp nRMSE=0.052 (8.5x better than ETKF)
 
 ### Adaptive N

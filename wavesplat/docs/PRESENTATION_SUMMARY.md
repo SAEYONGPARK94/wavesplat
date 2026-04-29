@@ -2,7 +2,7 @@
 
 > **최근 업데이트**: 2026-04-29
 > **저자**: 박세용 (Avikus / HD Hyundai)
-> **논문 제목**: *WaveSplat: Grid-Free Spectral Gaussian Wave Field Estimation from Sparse Shipboard LiDAR*
+> **논문 제목**: *WaveSplat: Grid-Free Spectral Wave Field Estimation from Sparse Shipboard LiDAR*
 > **대상 저널**: Ocean Engineering (Elsevier) — 40p 원고, highlights/cover letter/graphical abstract 준비 완료
 > **관련 파일**: [wavesplat.tex](../paper/wavesplat.tex), [cover_letter.tex](../paper/submission/cover_letter.tex), [graphical_abstract.pdf](../paper/submission/graphical_abstract.pdf)
 
@@ -12,7 +12,7 @@
 
 "LiDAR 희소 관측에 **격자를 쓰지 않고** 물리(분산관계) 제약이 걸린 spectral
 Gaussian 집합을 직접 최적화하여, 100 에피소드 기준 tuned ETKF 대비 nRMSE를
-**30.1% 낮추고 약 10× 빠르게 (13.4 vs 132.6 ms/frame)**, 그리고 **사전 등록된
+**30.1% 낮추고 약 10× 빠르게 (13.4 vs 132.6 ms/frame)**, 그리고 **사전 지정된
 6개 메트릭 패널 중 Skill Score가 양수인 유일한 방법**으로 파면을 복원한다."
 
 핵심 수치는 모두 `paper/wavesplat.tex`의 최신 버전(2026-04-10)과 일치합니다.
@@ -46,7 +46,7 @@ Gaussian 집합을 직접 최적화하여, 100 에피소드 기준 tuned ETKF �
 
 ### 1.3 핵심 아이디어
 
-파도장을 **N개의 plane wave (spectral Gaussian) 집합**으로 직접 파라미터화:
+파도장을 **N개의 plane wave (spectral component) 집합**으로 직접 파라미터화:
 
 ```
 z(x, y, t) = Σᵢ wᵢ · cos(kx,ᵢ · x + ky,ᵢ · y − ωᵢ · t + φᵢ)
@@ -142,9 +142,9 @@ Wave generation: JONSWAP 스펙트럼 + Gerstner (nonlinear) → linear model로
 → 전체 top-10이 모두 σ=0.005 공유, 40×30 격자가 80×60보다 일관 우위
 (관측이 적어 미세 격자는 ensemble이 부족).
 
-### 3.3 Metrics: **Pre-registered 6-metric panel**
+### 3.3 Metrics: **Pre-specified 6-metric panel**
 
-nRMSE 하나로는 "zero-predictor"를 걸러낼 수 없기 때문에 아래 6개를 **사전 등록**:
+nRMSE 하나로는 "zero-predictor"를 걸러낼 수 없기 때문에 아래 6개를 **사전 지정**:
 
 | Metric | 정의 | 목표 | 진단 가치 |
 |--------|-----|------|-----------|
@@ -377,7 +377,7 @@ LETKF loc_radius sweep (20/50/100/200m): 20m과 50m이 거의 동일 (nRMSE 0.23
 2. **Dispersion as hard constraint**: `ωᵢ = f(|kᵢ|, d)`, 파라미터 5N → 4N
 3. **Adaptive model order**: energy pruning + residual growth + safety rollback
 4. **Fresnel-zone confidence weighting**: LiDAR 관측 품질 직접 모델링
-5. **Pre-registered 6-metric evaluation**: zero-predictor 구분을 위한 panel
+5. **Pre-specified 6-metric evaluation**: zero-predictor 구분을 위한 panel
 6. **24-config ETKF hyperparameter sweep**: 공정한 tuned baseline
 7. **Dispersion manifold drift quantification**: A1 ablation의 "자유도" 비용 정량화
 8. **Spectral decomposition**: ≤5 comp에서 |k| 오차 <0.5%, 방향 <0.2° — 에너지 93%+ 포착
@@ -450,7 +450,7 @@ LETKF loc_radius sweep (20/50/100/200m): 20m과 50m이 거의 동일 (nRMSE 0.23
 | 5 | Big Idea | `z = Σwᵢ cos(...)`, `ω=√(g|k|tanh(|k|d))` | "5N → 4N" 숫자 강조 |
 | 6 | Pipeline | Init(beamform→C2F→prune→grow) + Track(predict+update) | Table 알고리즘 요약 참고 |
 | 7 | Why freeze k | Phase 2 의 w_phi mode 그림, "200→10 steps" | overfit 방지 직관 |
-| 8 | Dataset | 100 ep, BF2~5, U/S, 5 seeds | "pre-registered" 단어 |
+| 8 | Dataset | 100 ep, BF2~5, U/S, 5 seeds | "pre-specified" 단어 |
 | 9 | Metrics | 6-metric 패널 정의 표 + SS=1−MSE(ẑ)/MSE(0) | zero-predictor 개념 |
 |10 | ETKF fairness | 24-config sweep 표 (best/worst, 3.3× spread) | "tuned baseline" 어필 |
 |11 | **§5.1 Six-metric table** | 핵심표 (WS SS +0.034 only) | 가장 중요한 슬라이드 |
@@ -475,7 +475,7 @@ LETKF loc_radius sweep (20/50/100/200m): 20m과 50m이 거의 동일 (nRMSE 0.23
 ## 9. 예상 질문 & 모범 답변 (업데이트)
 
 **Q1. "SS만 양수라는 게 정말 novel한 결과인가? Cherry-picked metric 아닌가?"**
-A. SS는 **사전 등록**된 6개 중 하나로, 본 논문을 시작할 때 선언했고 코드에 박혀 있습니다.
+A. SS는 **사전 지정**된 6개 중 하나로, 본 논문을 시작할 때 선언했고 코드에 박혀 있습니다.
 선택된 후 하나만 보여주는 cherry-pick이 아니라, 6개 모두 공개하며 우리 자신의 약점(Dir R² −0.25)
 도 같은 panel에서 함께 드러냅니다. GPR의 VR=0.065가 **zero-predictor 진단**의 결정적 증거입니다.
 
@@ -497,7 +497,7 @@ A. 맞습니다. 본 논문은 이 한계를 §V-A 끝에서 명시적으로 보
 관측 swath 위에서는 정확하지만 **파수 공간에서의 방향 할당은 평균적으로
 chance 미만**이고, 이는 컴패니언 hydrofoil 논문의 BF4-head 시나리오에서
 feedforward gain이 반전되는 현상으로 직접 관찰됩니다. 이 한계를 숨기지 않고
-drive로 명시한 것이 본 논문의 "pre-registered panel" 철학입니다.
+drive로 명시한 것이 본 논문의 "pre-specified panel" 철학입니다.
 
 **Q5. "왜 OCEANS가 아니라 Ocean Engineering인가?"**
 A. OCEANS는 6–8 페이지 conference이고, 본 결과(6-metric panel + 100-ep

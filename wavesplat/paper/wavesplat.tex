@@ -40,7 +40,7 @@ complexity matched to the true wave scene.
 We propose a two-phase estimation pipeline: (1)~initialization via
 dispersion-aware beamforming with coarse-to-fine refinement,
 and (2)~per-frame tracking with physics-based phase prediction and selective
-gradient updates.  A Fresnel-zone confidence weighting scheme accounts for
+gradient updates.  A geometry-aware confidence weighting scheme accounts for
 the range- and angle-dependent noise characteristics of LiDAR measurements
 on ocean surfaces.
 
@@ -49,13 +49,13 @@ On a dataset of 100 episodes spanning Beaufort~2--5 sea states
 (nRMSE) of \textbf{0.223} compared to \textbf{0.319} for a
 hyperparameter-tuned ETKF-grid baseline (\textbf{30.1\%} improvement),
 while running approximately \textbf{10$\times$} faster
-(13.4~vs.~132.6~ms/frame on a single CPU thread).
+(13.4~vs.~132.6~ms/frame on a single CPU thread, Intel i7-12700H).
 A pre-specified six-metric evaluation panel further shows that
 WaveSplat is the only method among the primary baselines (ETKF, GPR)
 with a positive point-estimate Skill Score against a zero predictor
 (the 95\% bootstrap CI includes zero on the aggregate dataset but
 excludes it for $\leq$5-component seas), exposing
-sliding-kernel GPR as a near-zero predictor and the tuned ETKF as a
+3-frame sliding-kernel GPR as a near-zero predictor and the tuned ETKF as a
 variance-correct but shape-incoherent estimator.
 A supplementary comparison with stronger baselines---LETKF with
 Gaspari--Cohn localization and dispersion-aware multi-frame GPR---on
@@ -237,11 +237,11 @@ Our key contributions are:
     depth dependence) reduces the free parameter count and acts as a
     physics-based regularizer, improving tracking stability over
     extended time horizons.
-  \item \textbf{Fresnel-aware confidence weighting (C3)}: Per-observation
-    weights based on incidence angle and range account for the
-    heteroscedastic noise structure of LiDAR measurements on ocean
-    surfaces, where specular reflection probability varies with
-    local surface slope.
+  \item \textbf{Geometry-aware confidence weighting (C3)}: Per-observation
+    weights $c_j = \cos\theta_j/(d_j/d_{\text{ref}})$ based on incidence
+    angle and range account for the heteroscedastic noise structure of
+    LiDAR measurements on ocean surfaces, where specular reflection
+    probability and signal-to-noise ratio vary with incidence geometry.
   \item \textbf{Adaptive model complexity}: Energy-based pruning and
     residual-triggered growth automatically match the number of spectral
     components to scene complexity, from $N$=1 for simple swells to
@@ -360,7 +360,7 @@ dispersion-constrained propagating signal.
 networks~\citep{zhang2022, mohaghegh2021}, the U-Net/Fourier
 neural operator of \citet{ehlers2024} for phase-resolved
 reconstruction, and the nonlinear ETKF extension of
-\citet{desmars2024jfm}.  These approaches show strong results on
+\citet{desmars2023jfm}.  These approaches show strong results on
 their training distributions but face practical challenges for
 arbitrary shipboard sensor configurations: FNO-style models assume
 uniform training grids incompatible with scanning-LiDAR irregular
@@ -416,14 +416,14 @@ At each LiDAR scan at time $t$, we observe $M$ elevation measurements
 $\{(x_j, y_j, z_j)\}_{j=1}^{M}$ at irregular spatial locations.
 The observation model is:
 \begin{equation}
-  z_j = \sum_{i=1}^{N} w_i \cos(k_{x,i} x_j + k_{y,i} y_j - \omega_i t + \varphi_i) + \eta_j
+  z_j = \sum_{i=1}^{N} w_i \cos(k_{x,i} x_j + k_{y,i} y_j - \omega_i t + \varphi_i) + \varepsilon_j
 \end{equation}
-where $\eta_j$ is observation noise with variance depending on range
+where $\varepsilon_j$ is observation noise with variance depending on range
 and incidence angle.  The number of valid observations per frame
 varies between 50 and 200, depending on sea state, vessel motion,
 and LiDAR raydrop characteristics.
 
-\subsection{Fresnel-zone confidence weighting (C3)}
+\subsection{Geometry-aware confidence weighting (C3)}
 
 LiDAR elevation accuracy on ocean surfaces degrades with two
 physical mechanisms:
@@ -555,7 +555,7 @@ drift during subsequent tracking.
 Starting from the beamforming initialization, we optimize the
 spectral parameters in three stages ($N$=3 $\to$ 8 $\to$ 15),
 with 200 iterations of the Adam optimizer~\citep{kingma2015}
-(learning rate $\eta = 5 \times 10^{-3}$,
+(learning rate $\text{lr} = 5 \times 10^{-3}$,
 $\beta_1 = 0.9$, $\beta_2 = 0.999$) at each stage.
 The loss function is:
 \begin{equation}
@@ -677,8 +677,9 @@ on CPU (single-threaded, Intel i7-12700H).
 $N_e$ ensemble members on a $G_x \times G_y$ spatial grid.
 Each update involves FFT-based propagation at
 $O(N_e \cdot G_x G_y \cdot \log(G_x G_y))$ plus the ensemble
-transform at $O(N_e^3 + N_e^2 \cdot M)$. With $N_e{=}50$ and
-$G{=}40 \times 30$, this yields 31.7~ms/frame.
+transform at $O(N_e^3 + N_e^2 \cdot M)$. With the tuned configuration
+($N_e{=}100$, $G{=}40 \times 30$), this yields 132.6~ms/frame
+(Table~\ref{tab:complexity}).
 
 \textbf{GPR}: Gaussian Process Regression with $M$ observations
 requires $O(M^3)$ for Cholesky factorization, making it impractical
@@ -796,9 +797,9 @@ Section~\ref{sec:fulleval}.
 
 \textbf{ETKF-grid}~\citep{huhn2022}: Ensemble Transform Kalman Filter
 on a regular grid with FFT-based spectral propagation, multiplicative
-and additive inflation, and observation thinning to $M_{\max}$=40 per
-frame (required to keep the observation-to-ensemble ratio below unity
-and prevent filter divergence when $M > N_e$).  To avoid penalizing the baseline by an arbitrary parameter
+and additive inflation, and observation thinning to $M_{\max}$=40 per frame to keep the
+observation-state projected matrix numerically well-conditioned
+and bound per-frame computational cost.  To avoid penalizing the baseline by an arbitrary parameter
 choice, we performed a 24-configuration hyperparameter sweep over grid
 resolution \{40$\times$30, 80$\times$60\}, ensemble size \{50, 100\},
 and inflation pairs ($\alpha$, $\sigma$) covering the standard ranges
@@ -840,9 +841,8 @@ Worst & $80\times60$ &  50 & 1.05 & 0.020 & 1.187 \\
 The 3.3$\times$ spread between best and worst ETKF configurations
 (0.358 vs.\ 1.187) confirms that fair ETKF evaluation requires
 tuning, and motivates the extended tuning effort beyond any single
-default setting.  We note that even the worst ETKF configuration
-is still better than a naive guess, and the best (0.358) is what we
-compare WaveSplat against throughout the paper.
+default setting.  The best configuration (nRMSE 0.358) is used as the ETKF reference
+throughout the paper.
 
 \textbf{GPR}: Gaussian Process Regression with Mat\'{e}rn $\nu$=5/2
 kernel (length scale 20~m, noise $\sigma$=0.02~m), operating in
@@ -1102,10 +1102,11 @@ the comparison across 10 (sea state, complexity) configurations with
 models, for a total of 100 paired runs.
 WaveSplat achieves $0.219 \pm 0.079$ vs.\ the tuned ETKF baseline
 $0.321 \pm 0.041$ and a 3-frame sliding GPR $0.253 \pm 0.020$
-(mean $\pm$ std across all runs).  Paired Wilcoxon signed-rank tests
+(mean $\pm$ std across all runs).  Paired Wilcoxon signed-rank tests~\citep{wilcoxon1945}
 confirm both improvements:
 WaveSplat vs.\ ETKF ($W\!=\!194$, $p\!=\!1.1\!\times\!10^{-15}$,
-paired Cohen's $d\!=\!1.16$, 95\% CI on mean difference
+paired Cohen's $d\!=\!\bar{\Delta}/s_{\Delta}\!=\!1.16$~\citep{cohen1988},
+95\% CI on mean difference
 $[0.085, 0.119]$, bootstrap percentile, 10\,000 resamples)
 and WaveSplat vs.\ sliding GPR ($W\!=\!1508$,
 $p\!=\!4.7\!\times\!10^{-4}$, paired Cohen's $d\!=\!0.42$,
@@ -1467,8 +1468,8 @@ grid-based (ETKF) or purely spatial (GPR) methods.}
 
 \subsection{Advantages of grid-free representation}
 
-The most striking result is the 8.5$\times$ advantage on 2-component
-seas (nRMSE 0.052 vs.\ 0.444). For low-complexity wave fields, ETKF
+The most striking result is the ${\sim}6.7\times$ advantage on 2-component
+seas against the tuned ETKF (nRMSE 0.052 vs.\ 0.349). For low-complexity wave fields, ETKF
 wastes representational capacity on the full spatial grid when only two
 spectral modes are present. WaveSplat's adaptive representation directly
 captures the relevant modes with minimal parameters.
@@ -1930,14 +1931,15 @@ approximation $\mathbf{n}\approx\hat{\mathbf{z}}$.  The resulting
 bias scales with wave slope (up to ${\sim}9\%$ in $\cos\theta_j$
 at grazing incidence at BF4); wave-tank validation is planned to
 characterise the end-to-end nRMSE impact.
-\emph{Observation weight nomenclature}: we refer to the weighting
-$c_j = \cos\theta_j/(d_j/d_{\text{ref}})$ as ``Fresnel-aware'' to
-reflect its physical motivation from Fresnel reflection asymmetry
-and heteroscedastic measurement noise.  The functional form is a
-deliberate simplification of the exact Fresnel reflectance
-$R(\theta)$~\citep{born1999}, which would additionally require
-surface-roughness and polarisation assumptions that are difficult
-to justify from observation alone.
+\emph{Observation weight nomenclature}: the weighting
+$c_j = \cos\theta_j/(d_j/d_{\text{ref}})$ is a geometry-aware
+simplification motivated by the incidence-angle dependence of specular
+reflection and the inverse-square range attenuation.  The exact Fresnel
+reflectance $R(\theta)$~\citep{born1999} is not used directly, as it
+would additionally require surface-roughness and polarisation assumptions
+that are difficult to justify from observation alone.  The name
+``geometry-aware'' (previously ``Fresnel-aware'' in an earlier draft)
+more accurately reflects the functional form.
 \emph{Baseline fairness}: the 24-configuration ETKF sweep
 (Section~\ref{sec:fulleval}) and the LETKF/GPR-disp comparison
 (Section~\ref{sec:strongbaselines}) show our conclusions hold under
@@ -1956,6 +1958,14 @@ change the LiDAR beam pattern frame-to-frame; an IMU/INS-based
 coordinate transform is a necessary preprocessing step for
 sea-going deployment, and the residual motion-compensation error
 constitutes an additional noise source not modelled here.
+\emph{Sub-surface volume scattering}: at 1550~nm the absorption
+length of sea water is approximately 1~m, enabling a non-negligible
+volume-backscatter return from below the surface in addition to the
+modelled surface specular/diffuse interaction.  This sub-surface
+contribution could introduce a systematic elevation bias (centroid
+shifted below the true surface) that is not captured by the additive
+Gaussian noise model; characterising this effect requires
+empirical calibration on real water-surface LiDAR data.
 \emph{Relationship to physics-informed learning}:
 WaveSplat can be viewed as physics-constrained optimization with a
 hand-designed plane-wave basis, structurally analogous to PINNs that

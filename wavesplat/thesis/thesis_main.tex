@@ -1095,14 +1095,14 @@ $\theta > 80^\circ$ (grazing)에서 $R > 50\%$로 급증하여
 
 Diffuse reflection 성분(파도 표면 거칠기에 의한)의 LiDAR 반환 파워는
 Lambertian 모델에서 $\cos\theta$에 비례하고,
-거리 $d$에서의 신호 감쇠는 역제곱 법칙 $\propto 1/d^2$을 따른다.
+거리 $r$에서의 신호 감쇠는 역제곱 법칙 $\propto 1/r^2$을 따른다.
 이 두 효과를 결합한 간소화된 신뢰 가중치를 정의한다:
 \begin{equation}
-  c_j = \frac{\cos\theta_j}{d_j / d_{\mathrm{ref}}}, \quad d_{\mathrm{ref}} = 125\,\text{m},
+  c_j = \frac{\cos\theta_j}{r_j / d_{\mathrm{ref}}}, \quad d_{\mathrm{ref}} = 125\,\text{m},
   \label{eq:confidence}
 \end{equation}
 여기서 $\theta_j$는 LiDAR 빔 방향과 해수면 법선 $\mathbf{n}$ 사이의 입사각,
-$d_j$는 거리, $d_{\mathrm{ref}} = 125$\,m은 최대 LiDAR 사거리(250\,m)의 절반으로
+$r_j$는 거리, $d_{\mathrm{ref}} = 125$\,m은 최대 LiDAR 사거리(250\,m)의 절반으로
 설정한 기준 거리이다.
 시뮬레이션에서는 Gerstner 메시로부터 계산된 정확한 표면 법선
 $\mathbf{n}_{\text{true}}$를 사용한다. 실측에서는 파도면 법선이 사전에
@@ -2090,7 +2090,7 @@ BF4 15comp & 15 & 19 & 0.306 & \textbf{0.302} \\
 BF5 15comp & 15 & 21 & 0.331 & \textbf{0.297} \\
 BF4 30comp & 30 & 18 & 0.332 & \textbf{0.314} \\
 \midrule
-\textbf{평균 (6 ep.)} & & & 0.226 & \textbf{0.211} \\
+\textbf{평균 (12 ep.)} & & & 0.226 & \textbf{0.211} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2387,8 +2387,10 @@ SS~$=+0.953$, $\rho=0.983$을 달성한다.
 
 이 우위는 실용적으로도 중요하다: 실해양 조건은 흔히 1--2개의
 지배적 너울 계통과 풍파를 포함하여 저성분 시나리오가 운용 환경에서 흔하다.
-복잡한 해상(15--30 성분)에서도 우위가 유지되나(39--52\% 개선),
-이는 스펙트럼 표현이 격자 이산화보다 나은 귀납적 편향을 제공하기 때문이다.
+복잡한 해상(15--30 성분)에서는 우위가 크게 줄어든다:
+100 에피소드 기준 평균 nRMSE 개선이 ${\sim}5\%$로 하락하며
+(WaveSplat 승리 24/40), 이는 §\ref{sec:letkf_comparison}의
+regime 의존 패턴과 일치한다.
 
 \subsection{실패 사례: BF2 1-성분}
 
@@ -3681,7 +3683,7 @@ LiDAR 정밀도가 가장 높은 근거리 영역과 일치한다.
 \STATE \textbf{// Step 4: Coarse-to-fine 최적화}
 \FOR{$N_{\text{stage}} \in \{3, 8, 15\}$}
   \STATE Adam optimizer 초기화: lr=$1\times10^{-2}$, $\beta_1=0.9$, $\beta_2=0.999$
-  \FOR{$\text{iter} = 1$ \TO $200$}
+  \FOR{$\text{iter} = 1$ \TO $\text{max\_iter}(N_{\text{stage}})$} \COMMENT{200/200/500}
     \STATE $\hat{z}_j \leftarrow \sum_{i=1}^{N_{\text{stage}}} w_i \cos(k_{x,i}x_j + k_{y,i}y_j - \omega_i t_j + \phi_i)$
     \STATE $\omega_i \leftarrow \sqrt{g|k_i|\tanh(|k_i|d)}$ \COMMENT{분산 제약 강제}
     \STATE $\mathcal{L} \leftarrow \frac{1}{M}\sum_j c_j(z_j - \hat{z}_j)^2 + \lambda_1\sum_i|w_i| + \lambda_s\sum_i(\Delta w_i)^2$
@@ -3829,7 +3831,7 @@ LiDAR 정밀도가 가장 높은 근거리 영역과 일치한다.
 빔포밍 해상도 & & $81 \times 81$ ($\Delta k \approx 0.10$\,rad/m) & 파수 분해 \\
 Cartesian 억제 반경 & & $0.15$\,rad/m & 중복 피크 방지 \\
 C2F 단계 & $N_{\text{stage}}$ & $\{3, 8, 15\}$ & 국소 최소 회피 (\S\ref{sec:init}) \\
-초기화 반복 & & 200 steps/stage & 수렴 관찰 \\
+초기화 반복 & & 200/200/500 steps & 수렴 관찰 \\
 초기화 학습률 & $\text{lr}_{\text{init}}$ & $1\times10^{-2}$ & Adam 적응 \\
 \midrule
 \multicolumn{4}{l}{\textit{적응형 차수}} \\

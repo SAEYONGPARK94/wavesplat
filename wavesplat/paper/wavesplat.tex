@@ -55,7 +55,7 @@ WaveSplat is the only method among the primary baselines (ETKF, GPR)
 with a positive point-estimate Skill Score against a zero predictor
 (the 95\% bootstrap CI includes zero on the aggregate dataset but
 excludes it for $\leq$5-component seas), exposing
-3-frame sliding-kernel GPR as a near-zero predictor and the tuned ETKF as a
+3-frame spatial-only sliding-kernel GPR as a near-zero predictor and the tuned ETKF as a
 variance-correct but shape-incoherent estimator.
 A supplementary comparison with stronger baselines---LETKF with
 Gaspari--Cohn localization and dispersion-aware multi-frame GPR---on
@@ -638,7 +638,7 @@ For each subsequent LiDAR frame, we perform a predict--update cycle:
     This prediction is exact for a linear wave field
     satisfying the dispersion relation.
   \item \textbf{Update}: perform $K=10$ Adam steps
-    (lr$=1\times 10^{-3}$) on the weighted MSE loss over a
+    (lr$=5\times 10^{-3}$) on the weighted MSE loss over a
     sliding window of $K_w=3$ recent frames, updating only
     amplitudes $w_i$ and phases $\varphi_i$ while freezing
     wavenumbers $(k_{x,i}, k_{y,i})$ (\texttt{w\_phi} tracking mode).
@@ -884,9 +884,11 @@ the full-panel evaluation on the complete 100-episode dataset
 as the primary comparison in this paper.
 WaveSplat is evaluated against the tuned ETKF baseline and
 single-frame GPR on the metric panel (Table~\ref{tab:sixmetric}); a
-stronger 3-frame sliding-window GPR is additionally evaluated in the
-100-paired-run Wilcoxon validation of
-Section~\ref{subsec:stats}.
+stronger 3-frame sliding-window GPR (spatial-only; no wave-physics prior)
+is additionally evaluated in the 100-paired-run Wilcoxon validation of
+Section~\ref{subsec:stats}.  A dispersion-aware GPR that phase-corrects
+observations using the estimated wavenumber---the more equitable temporal
+comparison---is evaluated in Section~\ref{sec:strongbaselines}.
 
 \begin{table*}[t]
 \centering
@@ -974,7 +976,10 @@ is positive but marginal (CI includes zero), its variance ratio of 0.66
 indicates $\sim$34\% amplitude under-estimation, and its directional $R^2$
 of $-0.25$ indicates inaccurate propagation directions on average.
 However, these aggregates are dominated by high-complexity episodes
-($\geq$15 components) where beamforming cannot resolve individual modes:
+($\geq$15 components) where beamforming cannot resolve individual modes.
+The $\leq$5-component threshold follows from the spatial Nyquist limit
+of the beamforming initializer (Section~\ref{sec:init}) rather than
+a post-hoc search:
 for $\leq$5-component episodes (60\% of the dataset), SS rises to
 $+0.39$ with CI~$[{+0.28},\,{+0.50}]$ firmly excluding zero,
 Dir.\ $R^2=+0.45$, and VR~$=0.82$.
@@ -1034,8 +1039,8 @@ Table~\ref{tab:main} and Section~\ref{sec:fulleval}.}
 ($g$=40$\times$30, $n_{\text{ens}}$=100, $\alpha$=1.0, $\sigma$=0.005)
 on 12 representative episodes drawn from the full 100-episode dataset.
 nRMSE = RMSE/$H_s$; lower is better. ms/f = per-frame tracking time
-on a single CPU thread (median across 12 episodes: 13.3~ms for WaveSplat,
-110~ms for ETKF; the column average is elevated by BF3 2comp~(U)
+on a single CPU thread (median across these 12 episodes: 13.4~ms for WaveSplat,
+121~ms for ETKF; the column average is elevated by BF3 2comp~(U)
 which incurred extra adaptive-$N$ overhead). $N_a$ = adapted component count.}
 \label{tab:main}
 \begin{tabular}{lccccc}
@@ -1065,9 +1070,9 @@ BF5 30comp    & \textbf{0.290} & 13.3 & 0.412 &  93 & 19 \\
 Key observations:
 \begin{itemize}
   \item \textbf{Low complexity}: In BF3 2-component seas,
-    WaveSplat achieves an nRMSE of 0.052---a $\sim$6$\times$
-    improvement over the tuned ETKF (0.327 avg across the two
-    BF3 2comp episodes). The grid-free representation captures two
+    WaveSplat achieves an average nRMSE of 0.057 (0.052~uniform,
+    0.061~slope)---a ${\sim}6\times$ improvement over the tuned
+    ETKF (0.327 avg across both raydrop models). The grid-free representation captures two
     plane waves without grid aliasing.
   \item \textbf{High complexity}: For BF4--5 with 15--30 components,
     WaveSplat still outperforms ETKF (0.301 vs.\ 0.383 average),
@@ -1103,7 +1108,13 @@ the comparison across 10 (sea state, complexity) configurations with
 models, for a total of 100 paired runs.
 WaveSplat achieves $0.219 \pm 0.079$ vs.\ the tuned ETKF baseline
 $0.321 \pm 0.041$ and a 3-frame sliding GPR $0.253 \pm 0.020$
-(mean $\pm$ std across all runs).  Paired Wilcoxon signed-rank tests~\citep{wilcoxon1945}
+(mean $\pm$ std across all runs).%
+\footnote{The paired-run point estimates (WaveSplat 0.219, ETKF 0.321)
+differ marginally from the single-run evaluation in
+Table~\ref{tab:sixmetric} (0.223, 0.319) due to run-to-run
+initialization variability; the paired format is required here because
+the Wilcoxon signed-rank test operates on matched pairs.}
+Paired Wilcoxon signed-rank tests~\citep{wilcoxon1945}
 confirm both improvements:
 WaveSplat vs.\ ETKF ($W\!=\!194$, $p\!=\!1.1\!\times\!10^{-15}$,
 paired Cohen's $d\!=\!\bar{\Delta}/s_{\Delta}\!=\!1.16$~\citep{cohen1988},
@@ -1131,6 +1142,15 @@ The sliding GPR baseline is a stronger spatial interpolant than
 single-frame GPR (VR=0.11 vs.\ 0.06) but still operates as a
 near-zero predictor relative to WaveSplat, consistent with the
 six-metric panel in Table~\ref{tab:sixmetric}.
+We acknowledge a structural asymmetry: the 3-frame sliding GPR
+accumulates observations for spatial coverage but applies no temporal
+wave-physics model, whereas WaveSplat enforces the dispersion relation
+as a hard constraint and propagates phase through the tracking stage.
+The dispersion-aware GPR in Section~\ref{sec:strongbaselines}---which
+applies physics-based phase correction before regression---provides a
+more equitable temporal comparison; on the 12-episode subset,
+WaveSplat (0.211) still outperforms GPR-disp (0.267) by 21\%
+(Table~\ref{tab:strong_baseline}).
 
 \begin{figure*}[t]
 \centering
@@ -1318,7 +1338,11 @@ performance on 10 paired episodes using \emph{uniform} (diffuse Fresnel) vs.\
 \centering
 \caption{Raydrop model comparison: uniform (U) vs.\ slope (S) on paired
 episodes. $\Delta$\%: relative nRMSE change from uniform to slope
-(negative = slope is better).}
+(negative = slope is better).
+ETKF uses the default configuration ($n_{\text{ens}}{=}50$,
+$\alpha{=}1.0$, $\sigma{=}0.005$); nRMSE values are therefore higher
+than those in Table~\ref{tab:main} (tuned, $n_{\text{ens}}{=}100$).
+The relative raydrop sensitivity ($\Delta$\%) is the quantity of interest.}
 \label{tab:raydrop}
 \begin{tabular}{lcccccc}
 \toprule
@@ -1470,7 +1494,7 @@ grid-based (ETKF) or purely spatial (GPR) methods.}
 \subsection{Advantages of grid-free representation}
 
 The most striking result is the ${\sim}6\times$ average advantage on 2-component
-seas against the tuned ETKF (WaveSplat 0.052 vs.\ ETKF 0.327 average
+seas against the tuned ETKF (WaveSplat 0.057 vs.\ ETKF 0.327, both averaged
 across uniform and slope raydrop; Table~\ref{tab:main}). For low-complexity wave fields, ETKF
 wastes representational capacity on the full spatial grid when only two
 spectral modes are present. WaveSplat's adaptive representation directly

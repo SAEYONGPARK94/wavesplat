@@ -478,7 +478,7 @@ the complete pipeline.
 3.5. Fine-refine each peak on $41\!\times\!41$ local grid ($\Delta k\!=\!0.01$~rad/m, $\pm0.2$~rad/m) \\
 4. Estimate amplitudes/phases via linear least-squares \\
 5. Coarse-to-fine refinement: $N$=3 $\to$ 8 $\to$ 15 \\
-\quad --- At each stage: 200 Adam steps, lr=$1\times 10^{-2}$ \\
+\quad --- Adam steps per stage: 200/200/500, lr=$1\times 10^{-2}$ \\
 6. Energy-based pruning (retain 90\% energy) \\
 7. Safety check: if $\Delta\text{RMSE} > 30\%$, rollback \\
 8. Residual growth: if RMSE $> 0.05$~m, add via beamforming \\
@@ -555,7 +555,7 @@ drift during subsequent tracking.
 \textbf{Coarse-to-fine optimization.}
 Starting from the beamforming initialization, we optimize the
 spectral parameters in three stages ($N$=3 $\to$ 8 $\to$ 15),
-with 200 iterations of the Adam optimizer~\citep{kingma2015}
+with up to 200/200/500 iterations of the Adam optimizer~\citep{kingma2015}
 (learning rate $\text{lr} = 1 \times 10^{-2}$,
 $\beta_1 = 0.9$, $\beta_2 = 0.999$) at each stage.
 The loss function is:
@@ -981,8 +981,8 @@ The $\leq$5-component threshold follows from the spatial Nyquist limit
 of the beamforming initializer (Section~\ref{sec:init}) rather than
 a post-hoc search:
 for $\leq$5-component episodes (60\% of the dataset), SS rises to
-$+0.39$ with CI~$[{+0.28},\,{+0.50}]$ firmly excluding zero,
-Dir.\ $R^2=+0.45$, and VR~$=0.82$.
+$+0.37$ with CI~$[{+0.25},\,{+0.48}]$ firmly excluding zero,
+Dir.\ $R^2=+0.41$, and VR~$=0.53$.
 The regime where WaveSplat underperforms---spectrally crowded seas---is
 precisely where grid-based methods like LETKF have a structural
 advantage (see Section~\ref{sec:strongbaselines}).
@@ -1662,9 +1662,9 @@ Three findings merit attention.
 On the full 100-episode dataset, WaveSplat wins 51/100 episodes on
 nRMSE and 49/100 on Skill Score---essentially a draw on aggregate.
 However, this masks a strong regime dependence: for $\leq$5 spectral
-components (60~episodes), WaveSplat achieves mean SS~$=+0.39$ vs.\
+components (60~episodes), WaveSplat achieves mean SS~$=+0.37$ vs.\
 LETKF's $+0.11$; for $\geq$15 components (40~episodes), the pattern
-reverses (WS~$-0.45$ vs.\ LETKF~$+0.20$).  WaveSplat excels when the
+reverses (WS~$-0.46$ vs.\ LETKF~$+0.20$).  WaveSplat excels when the
 spectral basis can resolve individual components, while LETKF's
 grid-based formulation provides consistent but modest skill regardless
 of spectral complexity.
@@ -1687,7 +1687,7 @@ The 100-episode directional $R^2=-0.253$ (Table~\ref{tab:sixmetric})
 is dominated by 30-component episodes (Dir.\ $R^2=-2.13$, 20~episodes),
 where wavenumber-space crowding prevents beamforming from resolving
 individual component directions.  For $\leq$5 components,
-Dir.\ $R^2=+0.45$ on average, confirming that the spectral basis
+Dir.\ $R^2=+0.41$ on average, confirming that the spectral basis
 \emph{does} capture directional structure when individual modes
 are resolvable.
 
@@ -1700,10 +1700,10 @@ On the full 100-episode dataset, LETKF's SS~CI excludes zero
 ($[{+0.12},\,{+0.16}]$), whereas WaveSplat's aggregate CI includes
 zero ($[{-0.08},\,{+0.15}]$).  However, this aggregate masks the
 regime dependence described above: restricting to $\leq$5-component
-episodes (60/100), WaveSplat's SS~CI is $[{+0.28},\,{+0.50}]$, firmly
+episodes (60/100), WaveSplat's SS~CI is $[{+0.25},\,{+0.48}]$, firmly
 excluding zero and substantially exceeding LETKF's corresponding
-$[{+0.04},\,{+0.18}]$.  For $\geq$15-component episodes the pattern
-reverses (WS CI $[{-0.68},\,{-0.22}]$ vs.\ LETKF $[{+0.13},\,{+0.27}]$).
+$[{+0.08},\,{+0.13}]$.  For $\geq$15-component episodes the pattern
+reverses (WS CI $[{-0.57},\,{-0.36}]$ vs.\ LETKF $[{+0.18},\,{+0.22}]$).
 This complementarity suggests that an operational system could benefit
 from complexity-aware method selection: WaveSplat for resolved seas
 ($\leq$5 components) and LETKF as a fallback for complex multi-modal

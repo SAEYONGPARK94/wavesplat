@@ -291,7 +291,7 @@ baseline (\textbf{0.223} vs.\ \textbf{0.319}) while running approximately
 A pre-specified six-metric evaluation panel shows that \WS{} is the only
 method with a positive Skill Score against a zero predictor (full-dataset
 95\% CI: $-0.08$ to $+0.15$; statistically significant only for
-$\leq$5-component seas, 95\% CI: $+0.28$ to $+0.50$).
+$\leq$5-component seas, 95\% CI: $+0.25$ to $+0.48$).
 A 100-paired-run statistical validation confirms this improvement is
 statistically significant ($p = 1.1\times10^{-15}$, Wilcoxon signed-rank;
 Cohen's $d = 1.16$, large effect; Holm-corrected $p = 2.2\times10^{-15}$).
@@ -1206,7 +1206,7 @@ Adam의 모멘텀 갱신과 호환시킨다.
 3.5. 각 피크를 $\pm0.2$\,rad/m 내 $41\times41$ 미세 격자($\Delta k_f=0.01$\,rad/m)로 재탐색 \\
 4. 선형 최소제곱으로 진폭/위상 추정 \\
 5. Coarse-to-fine 최적화: $N$=3 $\to$ 8 $\to$ 15 \\
-\quad --- 각 단계: 200 Adam steps, lr=$1\times 10^{-2}$ \\
+\quad --- Adam steps per stage: 200/200/500, lr=$1\times 10^{-2}$ \\
 6. 에너지 기반 가지치기 (에너지 90\% 기준) \\
 7. 안전 검사: $\Delta$RMSE $> 30\%$ 시 rollback \\
 8. 잔차 기반 성장: 잔차 RMS $> 0.05$\,m 시 빔포밍 재적용 ($N_{\max} = 30$) \\
@@ -1216,7 +1216,7 @@ Adam의 모멘텀 갱신과 호환시킨다.
 1. \textbf{예측}: $\phi_i \mathrel{+}= \omega_i \cdot \Delta t$ \\
 2. \textbf{갱신}: 슬라이딩 윈도우 ($K_w$=3 프레임)에서 $K$=10 Adam steps \\
 \quad --- $(w_i, \phi_i)$만 갱신; $(k_{x,i}, k_{y,i})$는 고정 \\
-\quad --- Learning rate: $1\times 10^{-3}$, scheduling 없음 \\
+\quad --- Learning rate: $5\times 10^{-3}$, scheduling 없음 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1300,7 +1300,7 @@ L-BFGS는 초기화에서 동등하나 추적에서 23\% 높았다.
 \paragraph{Coarse-to-fine 최적화}
 빔포밍 초기화로부터 시작하여, 3단계($N$=3 $\to$ 8 $\to$ 15)로
 스펙트럼 파라미터를 최적화한다.
-각 단계에서 Adam으로 200회 반복한다
+각 단계에서 Adam으로 최대 200/200/500회 반복한다
 (학습률 $\text{lr} = 1 \times 10^{-2}$, $\beta_1 = 0.9$, $\beta_2 = 0.999$).
 
 3단계 설계의 근거:
@@ -1891,7 +1891,7 @@ BF5 & \textbf{0.283} & 0.302 & 0.262 & 20 \\
 근본 원인은 Adam optimizer의 momentum이 위상 예측 오차로 인한
 진폭 부호 진동을 누적하여 $w_i$가 0으로 수렴하는 현상이다
 (§\ref{sec:limitations} 참조).
-$\leq$5-성분 에피소드에서는 VR~$=0.82$로 개선되며,
+$\leq$5-성분 에피소드에서는 VR~$=0.53$으로 개선되며,
 $\geq$15-성분에서 VR이 급격히 저하되어 전체 평균을 끌어내린다.
 
 \textbf{SS = +0.034 (전체 평균, 양수이나 marginal)}:
@@ -1899,10 +1899,10 @@ $\geq$15-성분에서 VR이 급격히 저하되어 전체 평균을 끌어내린
 BCa와의 차이 $<$0.01)는 $[{-0.08},\,{+0.15}]$로 0을 포함한다.
 그러나 $\leq$5-성분 에피소드(60/100)---빔포밍 초기화의 공간 Nyquist 한계에서
 자연스럽게 결정되는 임계값이며 사후 탐색이 아님---에서는
-SS~$=+0.39$, CI~$[{+0.28},\,{+0.50}]$로 0을 확실히 배제하며,
-이는 LETKF의 해당 구간 SS~$=+0.11$, CI~$[{+0.04},\,{+0.18}]$을
+SS~$=+0.37$, CI~$[{+0.25},\,{+0.48}]$로 0을 확실히 배제하며,
+이는 LETKF의 해당 구간 SS~$=+0.11$, CI~$[{+0.08},\,{+0.13}]$을
 크게 상회한다.
-$\geq$15-성분에서 패턴이 역전되어 (WS SS~$=-0.45$ vs LETKF $+0.20$)
+$\geq$15-성분에서 패턴이 역전되어 (WS SS~$=-0.46$ vs LETKF $+0.20$)
 전체 평균이 marginal이 된다.
 
 \textbf{Dir $R^2 = -0.25$ (방향 추정이 chance 미만)}:
@@ -3531,7 +3531,7 @@ nRMSE를 \textbf{30.1\%} 낮추고 (\textbf{0.223} vs.\ 0.319),
 사전 지정된 6-지표 패널에서 \WS{}는 zero-predictor 대비 양수의
 점추정 Skill Score($+0.034$)를 기록한 유일한 방법이었다
 (전체 100 에피소드 95\% bootstrap CI는 $[-0.08, +0.15]$로 0을 포함하나,
-$\leq$5-성분 에피소드 60개에서는 SS$=+0.39$, CI $[+0.28, +0.50]$으로 0을 배제함).
+$\leq$5-성분 에피소드 60개에서는 SS$=+0.37$, CI $[+0.25, +0.48]$으로 0을 배제함).
 이 6-지표 패널은 ETKF의 ``분산 정합이나 형상 불일치'' (VR=0.90, $\rho$=0.11)와
 GPR의 ``near-zero predictor'' (VR=0.065) 실패 모드를 nRMSE 단독으로는
 드러나지 않는 진단적 가치를 입증하였다.

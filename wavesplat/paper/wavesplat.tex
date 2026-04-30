@@ -1958,14 +1958,16 @@ change the LiDAR beam pattern frame-to-frame; an IMU/INS-based
 coordinate transform is a necessary preprocessing step for
 sea-going deployment, and the residual motion-compensation error
 constitutes an additional noise source not modelled here.
-\emph{Sub-surface volume scattering}: at 1550~nm the absorption
-length of sea water is approximately 1~m, enabling a non-negligible
-volume-backscatter return from below the surface in addition to the
-modelled surface specular/diffuse interaction.  This sub-surface
-contribution could introduce a systematic elevation bias (centroid
-shifted below the true surface) that is not captured by the additive
-Gaussian noise model; characterising this effect requires
-empirical calibration on real water-surface LiDAR data.
+\emph{Near-surface false returns}: at 1550~nm the absorption length
+of sea water is approximately 1~mm~\citep{hale1973}, so essentially
+no light penetrates below the surface; sub-surface volume scattering
+is negligible.  However, sea spray, whitecaps, and rain droplets
+above the nominal water surface can generate false LiDAR returns
+that are indistinguishable from surface elevation measurements.
+These super-surface returns introduce a positive elevation bias
+not captured by the additive noise model, and their prevalence
+increases with sea state; empirical calibration on real data is
+needed to assess their impact.
 \emph{Relationship to physics-informed learning}:
 WaveSplat can be viewed as physics-constrained optimization with a
 hand-designed plane-wave basis, structurally analogous to PINNs that

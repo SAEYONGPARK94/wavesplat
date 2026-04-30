@@ -128,6 +128,7 @@ $H_s$ & Significant wave height [m] \\
 $T_p$ & Peak period [s] \\
 $c_j$ & Confidence weight for observation $j$ \\
 $\theta_j$ & Beam incidence angle [rad] \\
+$r_j$ & Slant range to observation $j$ [m] \\
 $M$ & Number of LiDAR observations per frame \\
 nRMSE & RMSE normalized by $H_s$ \\
 \bottomrule
@@ -238,7 +239,7 @@ Our key contributions are:
     physics-based regularizer, improving tracking stability over
     extended time horizons.
   \item \textbf{Geometry-aware confidence weighting (C3)}: Per-observation
-    weights $c_j = \cos\theta_j/(d_j/d_{\text{ref}})$ based on incidence
+    weights $c_j = \cos\theta_j/(r_j/d_{\text{ref}})$ based on incidence
     angle and range account for the heteroscedastic noise structure of
     LiDAR measurements on ocean surfaces, where specular reflection
     probability and signal-to-noise ratio vary with incidence geometry.
@@ -435,12 +436,12 @@ or biased returns from wave crests.
 
 We assign per-observation confidence weights:
 \begin{equation}
-  c_j = \frac{\cos(\theta_j)}{d_j / d_{\text{ref}}}
+  c_j = \frac{\cos(\theta_j)}{r_j / d_{\text{ref}}}
   \label{eq:confidence}
 \end{equation}
 where $\theta_j$ is the beam incidence angle between the LiDAR ray
-direction and the local water surface normal $\mathbf{n}$, $d_j$ is
-the range, and $d_{\text{ref}} = 125$~m is a reference distance chosen
+direction and the local water surface normal $\mathbf{n}$, $r_j$ is
+the slant range to observation $j$, and $d_{\text{ref}} = 125$~m is a reference distance chosen
 as half the maximum LiDAR range.
 In the simulation experiments reported here, $\mathbf{n}$ is obtained
 from the ground-truth Gerstner wave mesh.  For real-data deployment,
@@ -477,7 +478,7 @@ the complete pipeline.
 3.5. Fine-refine each peak on $41\!\times\!41$ local grid ($\Delta k\!=\!0.01$~rad/m, $\pm0.2$~rad/m) \\
 4. Estimate amplitudes/phases via linear least-squares \\
 5. Coarse-to-fine refinement: $N$=3 $\to$ 8 $\to$ 15 \\
-\quad --- At each stage: 200 Adam steps, lr=$5\times 10^{-3}$ \\
+\quad --- At each stage: 200 Adam steps, lr=$1\times 10^{-2}$ \\
 6. Energy-based pruning (retain 90\% energy) \\
 7. Safety check: if $\Delta\text{RMSE} > 30\%$, rollback \\
 8. Residual growth: if RMSE $> 0.05$~m, add via beamforming \\
@@ -487,7 +488,7 @@ the complete pipeline.
 1. \textbf{Predict}: $\varphi_i \mathrel{+}= \omega_i \cdot \Delta t$ \\
 2. \textbf{Update}: $K$=10 Adam steps on sliding window ($K_w$=3 frames) \\
 \quad --- Update only $(w_i, \varphi_i)$; freeze $(k_{x,i}, k_{y,i})$ \\
-\quad --- Learning rate: $1\times 10^{-3}$, no scheduling \\
+\quad --- Learning rate: $5\times 10^{-3}$, no scheduling \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -555,7 +556,7 @@ drift during subsequent tracking.
 Starting from the beamforming initialization, we optimize the
 spectral parameters in three stages ($N$=3 $\to$ 8 $\to$ 15),
 with 200 iterations of the Adam optimizer~\citep{kingma2015}
-(learning rate $\text{lr} = 5 \times 10^{-3}$,
+(learning rate $\text{lr} = 1 \times 10^{-2}$,
 $\beta_1 = 0.9$, $\beta_2 = 0.999$) at each stage.
 The loss function is:
 \begin{equation}
@@ -1539,7 +1540,7 @@ estimation and model selection.
 \subsection{Hyperparameter sensitivity}
 \label{sec:hyper}
 
-WaveSplat's four hyperparameters ($\ell_r{=}0.01$,
+WaveSplat's four hyperparameters ($\text{lr}{=}0.01$,
 $\lambda_1{=}10^{-3}$, $\tau_{\text{prune}}{=}0.10$,
 $\tau_{\text{grow}}{=}0.05$) were selected by a single coarse sweep
 on BF3~5-comp and held fixed across all episodes, seeds, and raydrop
@@ -1548,7 +1549,7 @@ Beaufort~2--5, 1--30 components, and 100 paired runs is itself
 evidence of low sensitivity.
 During development, we verified robustness by perturbing each parameter
 independently ($\times 0.5$ and $\times 2$) while holding the others
-fixed, on the full 12-episode subset: learning rate ($\ell_r \in
+fixed, on the full 12-episode subset: learning rate ($\text{lr} \in
 \{0.005, 0.02\}$: nRMSE $\Delta < 3\%$), L1 penalty
 ($\lambda_1 \in \{5\!\times\!10^{-4}, 2\!\times\!10^{-3}\}$:
 $\Delta < 2\%$), prune threshold ($\tau_{\text{prune}} \in \{0.05,
@@ -1933,7 +1934,7 @@ bias scales with wave slope (up to ${\sim}9\%$ in $\cos\theta_j$
 at grazing incidence at BF4); wave-tank validation is planned to
 characterise the end-to-end nRMSE impact.
 \emph{Observation weight nomenclature}: the weighting
-$c_j = \cos\theta_j/(d_j/d_{\text{ref}})$ is a geometry-aware
+$c_j = \cos\theta_j/(r_j/d_{\text{ref}})$ is a geometry-aware
 simplification motivated by the incidence-angle dependence of specular
 reflection and the inverse-square range attenuation.  The exact Fresnel
 reflectance $R(\theta)$~\citep{born1999} is not used directly, as it

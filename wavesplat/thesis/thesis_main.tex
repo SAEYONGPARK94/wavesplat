@@ -1206,7 +1206,7 @@ Adam의 모멘텀 갱신과 호환시킨다.
 3.5. 각 피크를 $\pm0.2$\,rad/m 내 $41\times41$ 미세 격자($\Delta k_f=0.01$\,rad/m)로 재탐색 \\
 4. 선형 최소제곱으로 진폭/위상 추정 \\
 5. Coarse-to-fine 최적화: $N$=3 $\to$ 8 $\to$ 15 \\
-\quad --- 각 단계: 200 Adam steps, lr=$5\times 10^{-3}$ \\
+\quad --- 각 단계: 200 Adam steps, lr=$1\times 10^{-2}$ \\
 6. 에너지 기반 가지치기 (에너지 90\% 기준) \\
 7. 안전 검사: $\Delta$RMSE $> 30\%$ 시 rollback \\
 8. 잔차 기반 성장: 잔차 RMS $> 0.05$\,m 시 빔포밍 재적용 ($N_{\max} = 30$) \\
@@ -1301,7 +1301,7 @@ L-BFGS는 초기화에서 동등하나 추적에서 23\% 높았다.
 빔포밍 초기화로부터 시작하여, 3단계($N$=3 $\to$ 8 $\to$ 15)로
 스펙트럼 파라미터를 최적화한다.
 각 단계에서 Adam으로 200회 반복한다
-(학습률 $\text{lr} = 5 \times 10^{-3}$, $\beta_1 = 0.9$, $\beta_2 = 0.999$).
+(학습률 $\text{lr} = 1 \times 10^{-2}$, $\beta_1 = 0.9$, $\beta_2 = 0.999$).
 
 3단계 설계의 근거:
 $N$=3은 피크 에너지의 $\sim$80\%를 포함하는 지배적 성분만을 우선 정합하여
@@ -1379,7 +1379,7 @@ densification--pruning 전략과 개념적으로 유사하다.
     이 예측은 분산관계를 만족하는 선형 파도장에서 정확하다.
 
   \item \textbf{갱신 (Update)}: $K_w = 3$ 슬라이딩 프레임 창에서
-    $K = 10$회 Adam 스텝 (lr=$1\times 10^{-3}$)으로
+    $K = 10$회 Adam 스텝 (lr=$5\times 10^{-3}$)으로
     $(w_i, \phi_i)$만 갱신한다.
     파수 $(k_{x,i}, k_{y,i})$는 고정한다 (\texttt{w\_phi} 추적 모드).
 \end{enumerate}
@@ -3668,7 +3668,7 @@ LiDAR 정밀도가 가장 높은 근거리 영역과 일치한다.
 
 \STATE \textbf{// Step 4: Coarse-to-fine 최적화}
 \FOR{$N_{\text{stage}} \in \{3, 8, 15\}$}
-  \STATE Adam optimizer 초기화: lr=$5\times10^{-3}$, $\beta_1=0.9$, $\beta_2=0.999$
+  \STATE Adam optimizer 초기화: lr=$1\times10^{-2}$, $\beta_1=0.9$, $\beta_2=0.999$
   \FOR{$\text{iter} = 1$ \TO $200$}
     \STATE $\hat{z}_j \leftarrow \sum_{i=1}^{N_{\text{stage}}} w_i \cos(k_{x,i}x_j + k_{y,i}y_j - \omega_i t_j + \phi_i)$
     \STATE $\omega_i \leftarrow \sqrt{g|k_i|\tanh(|k_i|d)}$ \COMMENT{분산 제약 강제}
@@ -3818,7 +3818,7 @@ LiDAR 정밀도가 가장 높은 근거리 영역과 일치한다.
 Cartesian 억제 반경 & & $0.15$\,rad/m & 중복 피크 방지 \\
 C2F 단계 & $N_{\text{stage}}$ & $\{3, 8, 15\}$ & 국소 최소 회피 (\S\ref{sec:init}) \\
 초기화 반복 & & 200 steps/stage & 수렴 관찰 \\
-초기화 학습률 & $\text{lr}_{\text{init}}$ & $5\times10^{-3}$ & Adam 적응 \\
+초기화 학습률 & $\text{lr}_{\text{init}}$ & $1\times10^{-2}$ & Adam 적응 \\
 \midrule
 \multicolumn{4}{l}{\textit{적응형 차수}} \\
 에너지 가지치기 임계 & $\tau_E$ & 0.90 & 90\% 에너지 보존 (\S\ref{sec:adaptive}) \\
@@ -3828,7 +3828,7 @@ C2F 단계 & $N_{\text{stage}}$ & $\{3, 8, 15\}$ & 국소 최소 회피 (\S\ref{
 \midrule
 \multicolumn{4}{l}{\textit{추적 (Phase 2)}} \\
 추적 모드 & & \texttt{w\_phi} & 과적합 방지 (\S\ref{sec:tracking}) \\
-추적 학습률 & $\text{lr}_{\text{track}}$ & $1\times10^{-3}$ & 안정성 우선 \\
+추적 학습률 & $\text{lr}_{\text{track}}$ & $5\times10^{-3}$ & 안정성 우선 \\
 추적 반복 & $K$ & 10 steps/frame & 실시간 예산 \\
 슬라이딩 윈도우 & $K_w$ & 3 frames & 노이즈/적응 균형 \\
 \midrule

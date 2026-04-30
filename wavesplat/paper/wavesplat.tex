@@ -1468,8 +1468,9 @@ grid-based (ETKF) or purely spatial (GPR) methods.}
 
 \subsection{Advantages of grid-free representation}
 
-The most striking result is the ${\sim}6.7\times$ advantage on 2-component
-seas against the tuned ETKF (nRMSE 0.052 vs.\ 0.349). For low-complexity wave fields, ETKF
+The most striking result is the ${\sim}6\times$ average advantage on 2-component
+seas against the tuned ETKF (WaveSplat 0.052 vs.\ ETKF 0.327 average
+across uniform and slope raydrop; Table~\ref{tab:main}). For low-complexity wave fields, ETKF
 wastes representational capacity on the full spatial grid when only two
 spectral modes are present. WaveSplat's adaptive representation directly
 captures the relevant modes with minimal parameters.
@@ -1539,7 +1540,7 @@ estimation and model selection.
 \label{sec:hyper}
 
 WaveSplat's four hyperparameters ($\ell_r{=}0.01$,
-$\lambda_{\ell_1}{=}10^{-3}$, $\tau_{\text{prune}}{=}0.10$,
+$\lambda_1{=}10^{-3}$, $\tau_{\text{prune}}{=}0.10$,
 $\tau_{\text{grow}}{=}0.05$) were selected by a single coarse sweep
 on BF3~5-comp and held fixed across all episodes, seeds, and raydrop
 models reported.  That one configuration generalises across
@@ -1549,7 +1550,7 @@ During development, we verified robustness by perturbing each parameter
 independently ($\times 0.5$ and $\times 2$) while holding the others
 fixed, on the full 12-episode subset: learning rate ($\ell_r \in
 \{0.005, 0.02\}$: nRMSE $\Delta < 3\%$), L1 penalty
-($\lambda_{\ell_1} \in \{5\!\times\!10^{-4}, 2\!\times\!10^{-3}\}$:
+($\lambda_1 \in \{5\!\times\!10^{-4}, 2\!\times\!10^{-3}\}$:
 $\Delta < 2\%$), prune threshold ($\tau_{\text{prune}} \in \{0.05,
 0.20\}$: $\Delta < 5\%$, with 0.20 occasionally over-pruning on
 15-component episodes), and grow threshold ($\tau_{\text{grow}} \in

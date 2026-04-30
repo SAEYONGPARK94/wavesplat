@@ -72,7 +72,7 @@ The method is robust to both diffuse and specular LiDAR observation
 models.
 With adaptive model order, the method matches spectral complexity to
 the observed scene---selecting $N$=2 for simple two-component swells
-and $N$=18--21 for complex multi-component seas---achieving 6.4\%
+and $N$=18--21 for complex multi-component seas---achieving 6.6\%
 average improvement over fixed model order.
 At very low sea states the adaptive mechanism can overfit,
 a failure mode analyzed in the Discussion.
@@ -951,7 +951,7 @@ near-zero predictor (cf.\ VR=0.065 in Table~\ref{tab:sixmetric}).}
 \toprule
 Sea state & WaveSplat & ETKF & GPR-1 & $N_{\text{ep}}$ \\
 \midrule
-BF2 & 0.302 & 0.369 & \textbf{0.258} & 10 \\
+BF2 & 0.301 & 0.369 & \textbf{0.258} & 10 \\
 BF3 & \textbf{0.160} & 0.319 & 0.259 & 30 \\
 BF4 & \textbf{0.221} & 0.315 & 0.263 & 40 \\
 BF5 & \textbf{0.283} & 0.302 & 0.262 & 20 \\
@@ -1165,7 +1165,7 @@ episodes and seeds, with non-overlapping error bars in most cases.}
 
 Table~\ref{tab:adaptive} and Fig.~\ref{fig:adaptive} show that
 adaptive $N$ consistently improves over fixed $N$=15, with an average
-6.4\% reduction in nRMSE.
+6.6\% reduction in nRMSE.
 The model correctly identifies scene complexity:
 $N$=1 for single-component swells, $N$=2--4 for moderate seas, and
 $N$=18--21 for complex multi-component fields.
@@ -1471,11 +1471,11 @@ observations and $4N\leq 120$ parameters, and adaptive $N_a$ absorbs
 excess noise into prunable low-energy components.
 
 \paragraph{Sea state trend.}
-Grouping by Beaufort number, the advantage is largest on moderate
-seas (BF3: 66.9\% improvement, 0.130 vs.\ 0.393) and narrows at
-higher complexity (BF5: 39.1\%, 0.293 vs.\ 0.481), reflecting the
-initialization resolution limit as beamforming peaks crowd for
-$N_{\text{true}}\geq 15$.
+Grouping by Beaufort number (Table~\ref{tab:bybf}), the advantage is
+largest on moderate seas (BF3: 50.0\% improvement, 0.160 vs.\ 0.319)
+and narrows at higher complexity (BF5: 6.3\%, 0.283 vs.\ 0.302),
+reflecting the initialization resolution limit as beamforming peaks
+crowd for $N_{\text{true}}\geq 15$.
 
 \begin{figure*}[t]
 \centering
@@ -1641,7 +1641,7 @@ ms $\downarrow$ \\
 \midrule
 \multicolumn{8}{l}{\emph{Full 100-episode comparison}} \\
 \textbf{WaveSplat} & \textbf{0.223} & \textbf{0.661} & \textbf{0.446} &
-+0.034 & $-$0.253 & \textbf{0.278} & \textbf{14.5} \\
++0.034 & $-$0.253 & \textbf{0.277} & \textbf{14.5} \\
 LETKF (loc50)      & 0.228 & 0.111 & 0.359 & \textbf{+0.142} &
 \textbf{+0.087} & 0.692 & 118.3 \\
 \midrule

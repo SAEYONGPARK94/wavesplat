@@ -1518,7 +1518,7 @@ ETKF는 격자점당 앙상블 멤버를 유지해야 한다.
         $K = 20$에서 nRMSE 개선 $< 1\%$이나 비용 2배.
   \item $K_w = 3$ (윈도우): 제\ref{sec:tracking}절에서 분석한 바와 같이 최적.
   \item $M = 50$--200: 해상 상태와 raydrop에 의존. $M$에 선형 비례하므로
-        BF5의 저밀도 관측($M \sim 50$)에서 BF2 대비 4배 빠르다.
+        BF2의 저밀도 관측($M \sim 50$)에서 BF5 대비 4배 빠르다.
   \item $N \leq 30$: 적응형 가지치기로 제한. BF2 1-comp ($N=1$)에서
         BF5 30-comp ($N=21$)까지 21배 범위이나,
         실측 시간 변동은 10--16\,ms로 1.6배 범위에 그친다.
@@ -1864,7 +1864,7 @@ near-zero predictor의 진단적 지문이다.}
 \toprule
 해상 상태 & \WS{} & ETKF & GPR-1 & 에피소드 수 \\
 \midrule
-BF2 & 0.302 & 0.369 & \textbf{0.258} & 10 \\
+BF2 & 0.301 & 0.369 & \textbf{0.258} & 10 \\
 BF3 & \textbf{0.160} & 0.319 & 0.259 & 30 \\
 BF4 & \textbf{0.221} & 0.315 & 0.263 & 40 \\
 BF5 & \textbf{0.283} & 0.302 & 0.262 & 20 \\
@@ -2104,7 +2104,7 @@ BF4 30comp & 30 & 18 & 0.332 & \textbf{0.314} \\
 \label{fig:adaptive_n}
 \end{figure}
 
-적응형 $N$은 고정 $N=15$ 대비 평균 6.4\% nRMSE 개선을 달성한다.
+적응형 $N$은 고정 $N=15$ 대비 평균 6.6\% nRMSE 개선을 달성한다.
 모델이 해상 복잡도를 정확히 식별한다:
 단일 성분 너울에 $N=1$, 중간 해상에 $N=2$--4, 복잡한 다성분 해상에 $N=18$--21.
 $N_{\text{true}} \geq 30$에서 $N_{\text{adapt}} \approx 18$로 포화되는데,
@@ -3539,7 +3539,7 @@ GPR의 ``near-zero predictor'' (VR=0.065) 실패 모드를 nRMSE 단독으로는
 이 차이가 통계적으로 large effect임을 확인하였다.
 
 적응형 모델 차수는 단순 너울($N=1$)에서 복잡한 다성분 해상($N=21$)까지
-자동 적응하여 고정 $N=15$ 대비 6.4\% 추가 개선을 달성하였다.
+자동 적응하여 고정 $N=15$ 대비 6.6\% 추가 개선을 달성하였다.
 두 가지 LiDAR raydrop 모델(확산/specular)과 20\% 관측 밀도에서도
 견고한 성능을 보였으며, 추가 노이즈 주입(기준선 5배)에서도
 $\pm$13\% 이내의 안정적 성능을 유지하였다.
@@ -3761,7 +3761,7 @@ LiDAR 정밀도가 가장 높은 근거리 영역과 일치한다.
     \STATE $\mathcal{L} \mathrel{+}= \frac{1}{M}\sum_j c_j(z_j - \hat{z}_j)^2$
   \ENDFOR
   \STATE Adam step on $(w_i, \phi_i)$ only; $(k_{x,i}, k_{y,i})$ \textbf{frozen}
-  \STATE \COMMENT{lr=$1\times10^{-3}$, $K=10$ steps, $K_w=3$ frames}
+  \STATE \COMMENT{lr=$5\times10^{-3}$, $K=10$ steps, $K_w=3$ frames}
 \ENDFOR
 
 \RETURN $\Theta_{t+1} = \{w_i, k_{x,i}, k_{y,i}, \phi_i\}_{i=1}^N$

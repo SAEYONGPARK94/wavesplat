@@ -44,8 +44,14 @@ def make_wave_components_bf3():
 
 
 def draw_vessel(ax, x_cg, z_cg, theta, front_x, rear_x, front_z, rear_z,
-                color='#2c3e50', label=None):
-    """Draw simplified hydrofoil vessel at given state."""
+                color='#2c3e50', label=None, ride_height=0.0):
+    """Draw simplified hydrofoil vessel at given state.
+
+    Args:
+        ride_height: visual offset added to z_cg. Foil depths are measured
+                     from the actual waterline (z_cg - ride_height), not
+                     from the visually elevated CG.
+    """
     cos_t = np.cos(theta)
     sin_t = np.sin(theta)
 
@@ -70,17 +76,20 @@ def draw_vessel(ax, x_cg, z_cg, theta, front_x, rear_x, front_z, rear_z,
                          zorder=5, label=label)
     ax.add_patch(hull_patch)
 
-    # Draw foil struts + foils
+    # Total strut length: ride_height (visual offset) + foil depth below waterline
+    # This ensures foils are drawn at the correct depth below the wave surface
     for foil_x_body, foil_z_depth, strut_color in [
         (front_x, front_z, '#e74c3c'),   # front foil - red
         (rear_x, rear_z, '#3498db'),      # rear foil - blue
     ]:
-        # Strut top (at hull) in global frame
-        strut_top_body = np.array([foil_x_body, 0])
+        total_depth = ride_height + foil_z_depth
+
+        # Strut top (at hull bottom) in global frame
+        strut_top_body = np.array([foil_x_body, -hull_half_h])
         strut_top = R @ strut_top_body + np.array([x_cg, z_cg])
 
-        # Strut bottom (at foil depth) in global frame
-        strut_bot_body = np.array([foil_x_body, -foil_z_depth])
+        # Strut bottom (at foil depth below waterline) in global frame
+        strut_bot_body = np.array([foil_x_body, -total_depth])
         strut_bot = R @ strut_bot_body + np.array([x_cg, z_cg])
 
         # Draw strut
@@ -89,8 +98,8 @@ def draw_vessel(ax, x_cg, z_cg, theta, front_x, rear_x, front_z, rear_z,
 
         # Draw foil (horizontal bar at bottom of strut)
         foil_hw = 0.35
-        foil_left = R @ np.array([foil_x_body - foil_hw, -foil_z_depth]) + np.array([x_cg, z_cg])
-        foil_right = R @ np.array([foil_x_body + foil_hw, -foil_z_depth]) + np.array([x_cg, z_cg])
+        foil_left = R @ np.array([foil_x_body - foil_hw, -total_depth]) + np.array([x_cg, z_cg])
+        foil_right = R @ np.array([foil_x_body + foil_hw, -total_depth]) + np.array([x_cg, z_cg])
         ax.plot([foil_left[0], foil_right[0]], [foil_left[1], foil_right[1]],
                 color=strut_color, linewidth=4, zorder=6, solid_capstyle='round')
 
@@ -194,7 +203,8 @@ def main():
                     front_x=front_x, rear_x=rear_x,
                     front_z=front_z, rear_z=rear_z,
                     color='#e74c3c',
-                    label='PD-only')
+                    label='PD-only',
+                    ride_height=ride_height)
 
         # Draw PD+FF vessel
         draw_vessel(ax_wave,
@@ -204,7 +214,8 @@ def main():
                     front_x=front_x, rear_x=rear_x,
                     front_z=front_z, rear_z=rear_z,
                     color='#27ae60',
-                    label='PD + Feedforward')
+                    label='PD + Feedforward',
+                    ride_height=ride_height)
 
         ax_wave.set_xlim(x_center - window_half, x_center + window_half)
         ax_wave.set_ylim(-1.5, 2.0)

@@ -363,8 +363,8 @@ add_textbox(s, 0.8, 1.5, 5.8, 0.4,
 
 init_steps = [
     "• ① Dispersion-aware beamforming (v2_konly)",
-    "•    → polar k-grid (64 radial × 128 azimuthal)",
-    "• ② Greedy peak extraction (15° suppression)",
+    "•    → Cartesian 81×81 k-grid (Δk≈0.10 rad/m)",
+    "• ② Greedy peak extraction (0.15 rad/m suppression)",
     "• ③ Coarse-to-fine Adam: N=3 → 8 → 15",
     "•    (200 iters/stage, lr=5e-3)",
     "• ④ Energy-based pruning (90% threshold)",

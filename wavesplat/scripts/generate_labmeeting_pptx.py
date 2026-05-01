@@ -196,7 +196,7 @@ def try_add_hf_image(slide, fig_name, left, top, width, height=None):
             return True
     return False
 
-TOTAL_SLIDES = 23
+TOTAL_SLIDES = 24
 
 # ══════════════════════════════════════════════════════════════
 # SLIDE 1: Title
@@ -779,7 +779,63 @@ p2.font.color.rgb = DARK
 add_page_number(s, 15, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 16: Hydrofoil — Problem & Architecture
+# SLIDE 16: Stronger Baselines — LETKF & GPR-disp
+# ══════════════════════════════════════════════════════════════
+s = add_slide()
+add_section_header(s, "04", "강화 Baseline 비교: LETKF · GPR-disp",
+                   "Are we only beating weak baselines?")
+
+# Full 100-episode table
+add_textbox(s, 0.8, 1.5, 11.5, 0.4,
+            "100-episode 전체 비교 (LETKF: Gaspari-Cohn localization, r_loc=50m)", 18,
+            bold=True, color=ACCENT)
+
+data_strong = [
+    ["Method", "nRMSE ↓", "VR → 1", "ρ ↑", "SS ↑", "Dir R² ↑", "Hs err ↓", "ms ↓"],
+    ["WaveSplat", "0.223", "0.661", "0.446", "+0.034", "−0.253", "0.277", "14.5"],
+    ["LETKF (loc50)", "0.228", "0.111", "0.359", "+0.142", "+0.087", "0.692", "118.3"],
+]
+add_table(s, 0.8, 2.0, 11.5, 1.8, 3, 8, data_strong)
+
+# Regime-dependent analysis
+add_textbox(s, 0.8, 4.0, 5.8, 0.4,
+            "Regime-dependent 분석", 20, bold=True, color=ACCENT2)
+
+regime_items = [
+    "• 전체: WS 51승 vs LETKF 49승 (사실상 draw)",
+    "",
+    "• ≤5 comp (60 ep): WS SS=+0.37 vs LETKF +0.11",
+    "•   → 단순 해상에서 WaveSplat 압도",
+    "",
+    "• ≥15 comp (40 ep): WS SS=−0.46 vs LETKF +0.20",
+    "•   → 복잡 해상에서 LETKF 우세",
+    "",
+    "• 속도: 14.5 vs 118.3 ms (8.1× faster)",
+]
+add_bullet_list(s, 0.8, 4.5, 5.8, 3.0, regime_items, font_size=14, bold_prefix=False)
+
+# 12-episode subset with GPR-disp
+add_textbox(s, 7.0, 4.0, 5.8, 0.4,
+            "12-episode subset (GPR-disp 포함)", 20, bold=True, color=ACCENT2)
+
+gpr_items = [
+    "• GPR-disp (3-frame, dispersion kernel):",
+    "•   nRMSE 0.267 vs WS 0.211 (21% 열위)",
+    "•   473.6 ms (WS 대비 36× 느림)",
+    "",
+    "• 결론:",
+    "•   nRMSE 동등 but WS 8× faster",
+    "•   SS는 regime-dependent",
+    "•   → complexity-aware method selection이 최선",
+    "•   단순 해상: WaveSplat",
+    "•   복잡 해상: LETKF fallback",
+]
+add_bullet_list(s, 7.0, 4.5, 5.8, 3.0, gpr_items, font_size=14, bold_prefix=False)
+
+add_page_number(s, 16, TOTAL_SLIDES)
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 17: Hydrofoil — Problem & Architecture (was 16)
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
 add_section_header(s, "05", "논문 2: Hydrofoil Feedforward Control",
@@ -820,7 +876,7 @@ hf_arch = [
     "  → 추정 노이즈 억제, 파도 신호 통과",
 ]
 add_bullet_list(s, 7.0, 2.0, 5.8, 4.5, hf_arch, font_size=13, bold_prefix=False)
-add_page_number(s, 16, TOTAL_SLIDES)
+add_page_number(s, 17, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
 # SLIDE 17: Hydrofoil — Phase 2 Results (FF Comparison)
@@ -854,7 +910,7 @@ add_bullet_list(s, 1.0, 5.4, 11.3, 2.0, hf_obs, font_size=14, bold_prefix=False)
 
 # Add phase 2 comparison figure
 try_add_hf_image(s, 'fig_phase2_comparison', 9.5, 4.8, 3.3, 2.2)
-add_page_number(s, 17, TOTAL_SLIDES)
+add_page_number(s, 18, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
 # SLIDE 18: Hydrofoil — Sensitivity Analysis
@@ -897,7 +953,7 @@ preview_sens = [
 ]
 add_bullet_list(s, 7.0, 2.0, 5.8, 3.5, preview_sens, font_size=14, bold_prefix=False)
 try_add_hf_image(s, 'fig_preview_sweep', 7.0, 5.0, 5.5, 2.2)
-add_page_number(s, 18, TOTAL_SLIDES)
+add_page_number(s, 19, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
 # SLIDE 19: Hydrofoil — E2E Demo
@@ -932,7 +988,7 @@ add_bullet_list(s, 0.8, 4.5, 5.5, 2.5, e2e_obs, font_size=14, bold_prefix=False)
 # Right: E2E timeseries figure
 try_add_hf_image(s, 'fig_e2e_timeseries', 6.8, 1.5, 6.0, 5.5)
 
-add_page_number(s, 19, TOTAL_SLIDES)
+add_page_number(s, 20, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
 # SLIDE 20: Hydrofoil Animation Demo
@@ -972,7 +1028,7 @@ else:
 add_textbox(s, 1.0, 6.5, 11.3, 0.5,
             "※ 실제 발표 시 GIF 파일(docs/hydrofoil_wave_animation.gif)을 삽입하여 재생",
             12, color=GRAY, alignment=PP_ALIGN.CENTER)
-add_page_number(s, 20, TOTAL_SLIDES)
+add_page_number(s, 21, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
 # SLIDE 21: Honest Limitations
@@ -1035,7 +1091,7 @@ p.font.size = Pt(16)
 p.font.bold = True
 p.font.color.rgb = DARK
 p.alignment = PP_ALIGN.CENTER
-add_page_number(s, 21, TOTAL_SLIDES)
+add_page_number(s, 22, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
 # SLIDE 22: Thesis Structure
@@ -1058,7 +1114,8 @@ thesis_ch = [
     "• Ch.4 Hydrofoil FF Control (논문 2)",
     "•   동역학 모델, 제어 설계, sensitivity, E2E",
     "",
-    "• Ch.5 결론 및 향후 연구",
+    "• Ch.5 수조 실험 검증 (SNU 조파수조 계획)",
+    "• Ch.6 결론 및 향후 연구",
     "• 부록: 파라미터 표, 추가 그래프",
 ]
 add_bullet_list(s, 0.8, 2.0, 5.8, 4.5, thesis_ch, font_size=14, bold_prefix=False)
@@ -1084,7 +1141,7 @@ status_items = [
     "•   ⏳ 지도교수 검토",
 ]
 add_bullet_list(s, 7.0, 2.0, 5.8, 4.5, status_items, font_size=13, bold_prefix=False)
-add_page_number(s, 22, TOTAL_SLIDES)
+add_page_number(s, 23, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
 # SLIDE 23: Plans & Future Work
@@ -1144,7 +1201,7 @@ p3.text = "\n감사합니다. 질문 부탁드립니다."
 p3.font.size = Pt(18)
 p3.font.color.rgb = RGBColor(0xAA, 0xCC, 0xEE)
 p3.alignment = PP_ALIGN.CENTER
-add_page_number(s, 23, TOTAL_SLIDES)
+add_page_number(s, 24, TOTAL_SLIDES)
 
 # ── Save ──
 os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)

@@ -180,7 +180,23 @@ def add_table(slide, left, top, width, height, rows, cols, data,
                 cell.fill.fore_color.rgb = LIGHT_BG
     return table
 
-TOTAL_SLIDES = 16
+HF_FIG_DIR = os.path.join(ROOT, 'hydrofoil', 'figures')
+
+def try_add_hf_image(slide, fig_name, left, top, width, height=None):
+    """Try to add hydrofoil figure image"""
+    for ext in ['.png', '.pdf']:
+        path = os.path.join(HF_FIG_DIR, fig_name + ext)
+        if os.path.exists(path) and ext == '.png':
+            if height:
+                slide.shapes.add_picture(path, Inches(left), Inches(top),
+                                        Inches(width), Inches(height))
+            else:
+                slide.shapes.add_picture(path, Inches(left), Inches(top),
+                                        Inches(width))
+            return True
+    return False
+
+TOTAL_SLIDES = 23
 
 # ══════════════════════════════════════════════════════════════
 # SLIDE 1: Title
@@ -197,7 +213,7 @@ add_textbox(s, 1.5, 4.8, 10.5, 0.5,
             "박세용 (Saeyong Park)", 20, color=WHITE,
             alignment=PP_ALIGN.CENTER)
 add_textbox(s, 1.5, 5.3, 10.5, 0.5,
-            "Avikus · HD현대  |  Lab Meeting 2026", 16,
+            "Avikus · HD현대  |  서울대학교 조선해양공학과  |  Lab Meeting 2026", 16,
             color=GRAY, alignment=PP_ALIGN.CENTER)
 add_textbox(s, 1.5, 6.2, 10.5, 0.4,
             "Target: Ocean Engineering (Elsevier)", 14,
@@ -402,52 +418,41 @@ add_page_number(s, 6, TOTAL_SLIDES)
 s = add_slide()
 add_section_header(s, "03", "시뮬레이션 데이터의 물리적 신뢰성", "WaveSim: Why We Can Trust It")
 
-# Left column: Wave Generation
+# Left column: Wave Generation (simplified)
 add_textbox(s, 0.8, 1.5, 5.8, 0.4,
             "파도 생성: JONSWAP + Gerstner", 20, bold=True, color=ACCENT)
 wave_physics = [
-    "• JONSWAP 스펙트럼 (Hasselmann et al. 1973)",
-    "•   → Hs, Tₚ로 파라미터화, 해양공학 표준",
-    "• Gerstner wave (1802): 2차 비선형 정확해",
-    "•   → 수평 orbital 운동 포함 (trochoid)",
-    "•   → Q-constraint: ΣQᵢωᵢAᵢ ≤ 1 (입자 교차 방지)",
-    "• 분산관계: ω = √(g|k|tanh(|k|d))",
-    "•   → Newton-Raphson 역변환, 오차 < 10⁻⁶ rad/s",
+    "• JONSWAP 스펙트럼 → BF2~BF5 (Hs 0.3~2.0m)",
+    "• Gerstner wave: 2차 비선형 정확해 (trochoid)",
+    "• 분산관계: ω = √(g|k|tanh(|k|d)),  오차 < 10⁻⁶",
     "• 단일 성분 해석해 대비 RMSE < 10⁻¹⁰ m",
 ]
-add_bullet_list(s, 0.8, 2.0, 5.8, 3.5, wave_physics, font_size=13, bold_prefix=False)
+add_bullet_list(s, 0.8, 2.0, 5.8, 2.5, wave_physics, font_size=15, bold_prefix=False)
 
-# Right column: LiDAR Model
+# Right column: LiDAR Model (simplified)
 add_textbox(s, 7.0, 1.5, 5.8, 0.4,
             "LiDAR 모델: Seyond Falcon K1 기반", 20, bold=True, color=ACCENT)
 lidar_physics = [
-    "• 실제 스펙: 1550 nm, 152 ch, 120°×25° FOV",
-    "• Ray-surface 교차: Möller-Trumbore 알고리즘",
-    "•   → 삼각형 메시 위 정확한 교차점 계산",
-    "• 프레임당 ~76,000 ray → raydrop → ~50점 반환",
-    "",
-    "• Fresnel 반사 (unpolarized, n=1.321 @1550nm):",
-    "•   R(0°) ≈ 2%, R(89°) > 80%  — 수면 광학 정확",
-    "• 거리 noise: σ = 0.02 m (2 cm, 1550nm 표준)",
-    "• 각도 noise: σ = 0.05° (beam divergence)",
+    "• 1550 nm, 152 ch, 120°×25° FOV",
+    "• Ray-surface: Möller-Trumbore → ~50점/frame",
+    "• Fresnel 반사 (n=1.321): R(0°)≈2%, R(89°)>80%",
+    "• Noise: σ_range=0.02m, σ_angle=0.05°",
 ]
-add_bullet_list(s, 7.0, 2.0, 5.8, 3.5, lidar_physics, font_size=13, bold_prefix=False)
+add_bullet_list(s, 7.0, 2.0, 5.8, 2.5, lidar_physics, font_size=15, bold_prefix=False)
 
-# Bottom: Raydrop models + validation chain
-add_textbox(s, 0.8, 5.2, 6.0, 0.4,
-            "두 가지 Raydrop 모델", 18, bold=True, color=ACCENT2)
-add_textbox(s, 0.8, 5.6, 6.0, 1.5,
-            "Uniform (diffuse):  P = η · R_Fresnel(θ) · cos(θ) / (d/d_ref)²\n"
-            "  → 확산 반사 + 역제곱 감쇠 + Lambertian 투영\n\n"
-            "Slope (specular):  반사각 r = d − 2(d·n)n 에서\n"
-            "  retroreflection 조건 r·(−d) ≥ cos(5°) 일 때만 반환\n"
-            "  → 파면 기울기에 따라 반환점 분포가 달라짐 (물리적)",
-            12, font_name='Consolas')
+# Bottom left: Raydrop (simplified)
+add_textbox(s, 0.8, 4.8, 5.8, 0.4,
+            "2가지 Raydrop 모델", 18, bold=True, color=ACCENT2)
+raydrop_items = [
+    "• Uniform (diffuse): Fresnel × cos(θ) / d²",
+    "• Slope (specular): retroreflection 조건 기반",
+]
+add_bullet_list(s, 0.8, 5.3, 5.8, 1.2, raydrop_items, font_size=14, bold_prefix=False)
 
-# Validation trust chain box
+# Bottom right: Validation trust chain box
 shape = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
-                            Inches(7.0), Inches(5.2),
-                            Inches(5.8), Inches(1.8))
+                            Inches(7.0), Inches(4.8),
+                            Inches(5.8), Inches(2.0))
 shape.fill.solid()
 shape.fill.fore_color.rgb = RGBColor(0xE8, 0xF5, 0xE9)
 shape.line.color.rgb = GREEN
@@ -461,19 +466,18 @@ p.font.bold = True
 p.font.color.rgb = GREEN
 
 items = [
-    "✓ 분산관계 deep/shallow 극한 해석해 일치",
-    "✓ Gerstner 단일파 RMSE < 10⁻¹⁰ m",
-    "✓ Fresnel R(0°) = ((n−1)/(n+1))² 정확",
-    "✓ Q-constraint 위반 없음 (JONSWAP 전체)",
-    "✓ 파면 법선 항상 상향 (nz > 0)",
-    "✓ Raydrop 확률 ∈ [0,1], 단조 증가",
+    "✓ 분산관계 deep/shallow 해석해 일치",
+    "✓ Gerstner RMSE < 10⁻¹⁰ m",
+    "✓ Fresnel R(0°) = ((n-1)/(n+1))² 정확",
+    "✓ Q-constraint 위반 없음 (BF2~BF5 전체)",
+    "✓ Raydrop 확률 ∈ [0,1], 물리적 일관성",
 ]
 for item in items:
     p2 = tf.add_paragraph()
     p2.text = item
-    p2.font.size = Pt(11)
+    p2.font.size = Pt(12)
     p2.font.color.rgb = DARK
-    p2.space_after = Pt(1)
+    p2.space_after = Pt(2)
 
 add_page_number(s, 7, TOTAL_SLIDES)
 
@@ -536,7 +540,7 @@ observations = [
     "• ⚠️ ETKF는 variance-correct but shape-wrong: VR=0.898 but ρ=0.109",
     "• ⚡ WaveSplat nRMSE 30.1% lower  &  ~10× faster (13.4 vs 132.6 ms)",
     "",
-    "• ❗ WaveSplat 한계도 노출:",
+    "• WaveSplat 한계도 노출:",
     "•    VR=0.66 → 진폭 ~34% 과소추정 (pruning의 대가)",
     "•    Dir R²=−0.25 → 방향 성분은 chance 미만",
 ]
@@ -711,41 +715,313 @@ if not added:
 add_page_number(s, 14, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 15: Honest Limitations
+# SLIDE 15: 3 Additional Contributions
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
-add_section_header(s, "04", "한계와 향후 과제", "Honest Limitations")
+add_section_header(s, "04", "추가 기여: 3가지 고유 능력 검증", "Spectral Accuracy · Sparse Robustness · Forecast")
 
-limits = [
-    "• VR = 0.66 → 진폭 34% 과소추정 (energy pruning의 대가)",
-    "• SS = +0.034 → 양수이지만 marginal (robust하다고 보기엔 작음)",
-    "• Dir R² = −0.25 → 방향 성분이 chance 미만 (가장 큰 한계)",
-    "•   → hydrofoil BF4-head 시나리오에서 feedforward gain 반전 관찰",
-    "• 시뮬레이션 전용 — 조파수조 실험 검증 계획 중",
-    "• 선형 모델 → Stokes-2+ nonlinearity 미반영",
-    "• Nₜᵣᵤₑ ≥ 30 이상 복잡 해상에서 성분 수 한계",
-    "• 해류(current) 미추정",
+# Left: Spectral Accuracy
+add_textbox(s, 0.8, 1.5, 3.8, 0.4,
+            "Spectral Accuracy", 20, bold=True, color=ACCENT)
+spec_items = [
+    "• 5comp 이하: energy det >93%",
+    "• |k| error < 0.5%",
+    "• direction error < 0.2 deg",
+    "• ETKF/GPR에 없는 고유 능력",
+    "  (grid-free spectral → 주파수 직접 추출)",
 ]
-add_bullet_list(s, 0.8, 1.8, 6.0, 4.5, limits, font_size=15, bold_prefix=False)
+add_bullet_list(s, 0.8, 2.0, 3.8, 2.5, spec_items, font_size=14, bold_prefix=False)
 
-# Right: contributions summary
+# Center: Sparse Robustness
+add_textbox(s, 5.0, 1.5, 3.8, 0.4,
+            "Sparse Robustness (WS vs LETKF)", 18, bold=True, color=ACCENT)
+sparse_items = [
+    "• 관측 밀도 10~50점 비교",
+    "• 10pts: WS 0.191 vs LETKF 0.239",
+    "• 희소 관측에서 더 강건",
+    "• Grid-free → aliasing 없음",
+]
+add_bullet_list(s, 5.0, 2.0, 3.8, 2.5, sparse_items, font_size=14, bold_prefix=False)
+
+# Right: Forecast
+add_textbox(s, 9.2, 1.5, 3.8, 0.4,
+            "Wave Forecast", 20, bold=True, color=ACCENT)
+forecast_items = [
+    "• 10초 후 nRMSE 0.219",
+    "• Skill Score > 0 유지",
+    "• BF3 2c: SS = +0.953 @t+10s",
+    "• Dispersion constraint 덕분",
+    "  (A1 없으면 예측 발산)",
+]
+add_bullet_list(s, 9.2, 2.0, 3.8, 2.5, forecast_items, font_size=14, bold_prefix=False)
+
+# Bottom: significance
+shape = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                            Inches(1.0), Inches(5.0),
+                            Inches(11.3), Inches(1.8))
+shape.fill.solid()
+shape.fill.fore_color.rgb = RGBColor(0xE8, 0xF5, 0xE9)
+shape.line.color.rgb = GREEN
+
+tf = shape.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "이 3가지 능력은 WaveSplat만의 고유한 장점 (ETKF/GPR 불가능)"
+p.font.size = Pt(18)
+p.font.bold = True
+p.font.color.rgb = GREEN
+p2 = tf.add_paragraph()
+p2.text = ("Spectral accuracy: 파면 스펙트럼을 직접 파라미터화하므로 가능\n"
+           "Sparse robustness: grid-free → 관측 밀도 무관\n"
+           "Forecast: dispersion constraint가 시간적 일관성 보장 → feedforward 제어의 물리적 근거")
+p2.font.size = Pt(14)
+p2.font.color.rgb = DARK
+add_page_number(s, 15, TOTAL_SLIDES)
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 16: Hydrofoil — Problem & Architecture
+# ══════════════════════════════════════════════════════════════
+s = add_slide()
+add_section_header(s, "05", "논문 2: Hydrofoil Feedforward Control",
+                   "Wave-Preview Control for Hydrofoil Vessels")
+
+# Left: Why hydrofoil?
+add_textbox(s, 0.8, 1.5, 5.8, 0.4,
+            "왜 하이드로포일 제어에 WaveSplat?", 20, bold=True, color=ACCENT)
+hf_motivation = [
+    "• Hydrofoil: 수면 위 비행 → 파도 교란에 극도로 민감",
+    "• Foil 잠수 깊이 0.5~1.0m → AoA 직접 변동",
+    "• PD feedback만으로는 encounter freq 대응 한계",
+    "  (50~100ms loop delay = 파도 주기의 5~10%)",
+    "",
+    "• 핵심 아이디어: WaveSplat의 spectral model로",
+    "  foil 전방 파도를 미리 예측 → feedforward 보상",
+    "• 자동차 preview suspension의 해양 버전",
+]
+add_bullet_list(s, 0.8, 2.0, 5.8, 3.5, hf_motivation, font_size=14, bold_prefix=False)
+
+# Right: Architecture
+add_textbox(s, 7.0, 1.5, 5.8, 0.4,
+            "제어 구조: PD + Wave-Preview FF", 20, bold=True, color=ACCENT2)
+hf_arch = [
+    "• 2DOF 모델: heave + pitch",
+    "• 선박: 1700kg, 22kts, tandem foil",
+    "• NACA 63-series foil sections",
+    "",
+    "• PD feedback: collective-differential",
+    "  δ_f = δ_c - δ_d,  δ_r = δ_c + δ_d",
+    "",
+    "• Feedforward:",
+    "  x_preview = x_foil + V · Δt_prev",
+    "  α_wave = -∂η/∂x - w/V  (at preview pt)",
+    "  δ_ff = -K_ff · α_wave  (K_ff=0.8)",
+    "",
+    "• IIR LP filter (α=0.05, fc≈0.8Hz)",
+    "  → 추정 노이즈 억제, 파도 신호 통과",
+]
+add_bullet_list(s, 7.0, 2.0, 5.8, 4.5, hf_arch, font_size=13, bold_prefix=False)
+add_page_number(s, 16, TOTAL_SLIDES)
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 17: Hydrofoil — Phase 2 Results (FF Comparison)
+# ══════════════════════════════════════════════════════════════
+s = add_slide()
+add_section_header(s, "05", "Hydrofoil 결과 (1): Feedforward 비교",
+                   "PD-only vs PD+GT_FF vs PD+WS_FF vs PD+Noisy_FF")
+
+# Results table
+data_hf = [
+    ["Scenario", "PD-only\naRMS [m/s²]", "GT FF\n↓%", "WS FF\n↓%", "Noisy FF\n↓%"],
+    ["BF3 Head", "1.631", "+11.0%", "+11.4%", "+11.7%"],
+    ["BF4 Head", "2.162", "+12.3%", "+12.2%", "+11.8%"],
+    ["BF3 Beam", "0.402", "+40.7%", "+37.7%", "+27.5%"],
+    ["BF3 Quarter", "1.178", "+17.6%", "+17.7%", "+17.0%"],
+]
+add_table(s, 1.0, 1.5, 11.3, 3.0, 5, 5, data_hf)
+
+# Key insight
+add_textbox(s, 1.0, 4.8, 11.3, 0.5,
+            "WaveSplat FF → GT FF의 93~103% 성능 달성!", 22,
+            bold=True, color=GREEN, alignment=PP_ALIGN.CENTER)
+
+hf_obs = [
+    "• WS 20% nRMSE로도 GT 대비 93~103% feedforward 효과 회복",
+    "• Beam sea에서 가장 큰 개선 (+37.7%) — 파면이 평행하여 추정 유리",
+    "• Noisy FF (인위적 노이즈 주입)도 LP filter 덕분에 효과적",
+    "• BF3 Beam: ISO 2631 'Slight discomfort' → 'Comfortable' 달성 (aRMS < 0.315)",
+]
+add_bullet_list(s, 1.0, 5.4, 11.3, 2.0, hf_obs, font_size=14, bold_prefix=False)
+
+# Add phase 2 comparison figure
+try_add_hf_image(s, 'fig_phase2_comparison', 9.5, 4.8, 3.3, 2.2)
+add_page_number(s, 17, TOTAL_SLIDES)
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 18: Hydrofoil — Sensitivity Analysis
+# ══════════════════════════════════════════════════════════════
+s = add_slide()
+add_section_header(s, "05", "Hydrofoil 결과 (2): Sensitivity Analysis",
+                   "nRMSE Tolerance & Preview Horizon")
+
+# Left: nRMSE sensitivity
+add_textbox(s, 0.8, 1.5, 5.8, 0.4,
+            "추정 오차 허용 범위", 20, bold=True, color=ACCENT)
+nrmse_sens = [
+    "• nRMSE 0~50% 전 구간에서 FF 유효",
+    "• 50% nRMSE에서도 FF 효과 존재",
+    "  → threshold 없음 (graceful degradation)",
+    "• LP filter가 고주파 추정 노이즈 억제",
+    "  → 부정확한 추정도 유용하게 활용",
+    "",
+    "• 실용적 의미:",
+    "  WaveSplat의 20% nRMSE는 충분",
+    "  더 정확할 필요 없이 제어에 활용 가능",
+]
+add_bullet_list(s, 0.8, 2.0, 5.8, 3.5, nrmse_sens, font_size=14, bold_prefix=False)
+try_add_hf_image(s, 'fig_nrmse_sensitivity', 0.8, 5.0, 5.5, 2.2)
+
+# Right: Preview distance
+add_textbox(s, 7.0, 1.5, 5.8, 0.4,
+            "최적 Preview Horizon", 20, bold=True, color=ACCENT)
+preview_sens = [
+    "• Head sea: 최적 0.1s (~1.1m ahead)",
+    "• Beam sea: 최적 0.3s (~3.4m ahead)",
+    "• 물리적 의미: 파도-foil 상호작용 시간 스케일",
+    "",
+    "• 너무 긴 preview → 위상 불일치",
+    "  너무 짧은 preview → reaction 부족",
+    "• Encounter freq에 따라 최적점 변화",
+    "",
+    "• 실용: 0.1~0.3s면 충분",
+    "  (cruise speed에서 1~3m 전방)",
+]
+add_bullet_list(s, 7.0, 2.0, 5.8, 3.5, preview_sens, font_size=14, bold_prefix=False)
+try_add_hf_image(s, 'fig_preview_sweep', 7.0, 5.0, 5.5, 2.2)
+add_page_number(s, 18, TOTAL_SLIDES)
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 19: Hydrofoil — E2E Demo
+# ══════════════════════════════════════════════════════════════
+s = add_slide()
+add_section_header(s, "05", "Hydrofoil 결과 (3): End-to-End Demo",
+                   "LiDAR → WaveSplat → Feedforward → Ride Control")
+
+# E2E results
+add_textbox(s, 0.8, 1.5, 6.0, 0.4,
+            "End-to-End Pipeline 결과", 20, bold=True, color=ACCENT)
+
+e2e_data = [
+    ["Scenario", "WS/GT ratio", "평가"],
+    ["BF3 2-comp", "96%", "near-perfect (simple sea)"],
+    ["BF3 beam", "92%", "excellent"],
+    ["BF4 5-comp", "37%", "limited (direction error)"],
+]
+add_table(s, 0.8, 2.0, 5.5, 2.2, 4, 3, e2e_data)
+
+e2e_obs = [
+    "• BF3: WaveSplat E2E → GT의 92~96% 달성",
+    "• BF4: 37% — directional misestimation 영향",
+    "  → Dir R² = -0.25 문제가 제어에 전파",
+    "",
+    "• 핵심 발견:",
+    "  amplitude 정확도보다 direction 정확도가",
+    "  feedforward 성능에 더 중요",
+]
+add_bullet_list(s, 0.8, 4.5, 5.5, 2.5, e2e_obs, font_size=14, bold_prefix=False)
+
+# Right: E2E timeseries figure
+try_add_hf_image(s, 'fig_e2e_timeseries', 6.8, 1.5, 6.0, 5.5)
+
+add_page_number(s, 19, TOTAL_SLIDES)
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 20: Hydrofoil Animation Demo
+# ══════════════════════════════════════════════════════════════
+s = add_slide()
+add_section_header(s, "05", "Hydrofoil 시뮬레이션 데모",
+                   "PD-only vs PD+Feedforward — BF3 Head Sea Animation")
+
+# Try to embed the GIF as a static frame; note actual GIF playback needs manual
+ANIM_PATH = os.path.join(ROOT, 'docs', 'hydrofoil_wave_animation.gif')
+if os.path.exists(ANIM_PATH):
+    try:
+        from PIL import Image
+        img = Image.open(ANIM_PATH)
+        # Save first frame as PNG for embedding
+        first_frame_path = os.path.join(ROOT, 'docs', '_anim_first_frame.png')
+        img.save(first_frame_path)
+        s.shapes.add_picture(first_frame_path, Inches(1.0), Inches(1.5),
+                             Inches(11.3), Inches(5.0))
+    except Exception:
+        add_textbox(s, 1.0, 2.5, 11.3, 3.0,
+                    "[Animation: docs/hydrofoil_wave_animation.gif]\n\n"
+                    "파도 위를 달리는 하이드로포일 선박\n"
+                    "빨강 = PD-only  /  초록 = PD+Feedforward\n"
+                    "하단: heave acceleration 실시간 비교\n\n"
+                    "→ Feedforward로 가속도 ~48% 감소",
+                    18, color=DARK, alignment=PP_ALIGN.CENTER)
+else:
+    add_textbox(s, 1.0, 2.5, 11.3, 3.0,
+                "[Animation: docs/hydrofoil_wave_animation.gif]\n\n"
+                "파도 위를 달리는 하이드로포일 선박\n"
+                "빨강 = PD-only  /  초록 = PD+Feedforward\n"
+                "하단: heave acceleration 실시간 비교\n\n"
+                "→ Feedforward로 가속도 ~48% 감소",
+                18, color=DARK, alignment=PP_ALIGN.CENTER)
+
+add_textbox(s, 1.0, 6.5, 11.3, 0.5,
+            "※ 실제 발표 시 GIF 파일(docs/hydrofoil_wave_animation.gif)을 삽입하여 재생",
+            12, color=GRAY, alignment=PP_ALIGN.CENTER)
+add_page_number(s, 20, TOTAL_SLIDES)
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 21: Honest Limitations
+# ══════════════════════════════════════════════════════════════
+s = add_slide()
+add_section_header(s, "06", "한계와 향후 과제", "Honest Limitations")
+
+limits_ws = [
+    "• WaveSplat 추정 한계:",
+    "•   VR = 0.66 → 진폭 34% 과소추정 (pruning 대가)",
+    "•   Dir R² = −0.25 → 방향 추정이 가장 큰 약점",
+    "•     → 개선: multi-frame 방향 voting / 2D k-space 정규화",
+    "•   진폭 감쇠 (Adam momentum 부호 진동)",
+    "•   Nₜᵣᵤₑ ≥ 30 이상 복잡 해상 → 성분 수 한계",
+    "",
+    "• Hydrofoil 제어 한계:",
+    "•   BF4 E2E → 37% (direction error 전파)",
+    "•   2DOF (heave+pitch): roll은 별도 roll foil 담당 구조",
+    "•   선형 foil model (ventilation 간소화)",
+    "",
+    "• 공통 한계:",
+    "•   시뮬레이션 전용 → 실측 검증 필요",
+    "•   선형 파도 모델 → Stokes-2+ 미반영",
+    "•   해류/바람 변화에 따른 k 천이 미추정",
+]
+add_bullet_list(s, 0.8, 1.8, 6.0, 5.0, limits_ws, font_size=13, bold_prefix=False)
+
+# Right: contributions summary (both papers)
 add_textbox(s, 7.5, 1.5, 5.3, 0.4,
-            "Contributions 요약", 20, bold=True, color=ACCENT)
+            "전체 Contributions (논문 1+2)", 20, bold=True, color=ACCENT)
 contributions = [
-    "• ❶ Grid-free spectral 파면 추정",
-    "• ❷ Dispersion hard constraint (5N→4N)",
-    "• ❸ Adaptive N (pruning + growth)",
-    "• ❹ Fresnel confidence weighting",
-    "• ❺ Pre-specified 6-metric panel",
-    "• ❻ 24-config ETKF sweep (fair baseline)",
-    "• ❼ Dispersion drift 정량화 (R̄ metric)",
+    "• [논문1] ❶ Grid-free spectral 파면 추정",
+    "• [논문1] ❷ Dispersion hard constraint (5N→4N)",
+    "• [논문1] ❸ Adaptive N (pruning + growth)",
+    "• [논문1] ❹ Fresnel confidence weighting",
+    "• [논문1] ❺ Pre-specified 6-metric panel",
+    "• [논문1] ❻ 24-config ETKF sweep (fair baseline)",
+    "• [논문1] ❼ Spectral accuracy + Sparse robustness + Forecast",
+    "",
+    "• [논문2] ❽ Dual-actuator wave-preview FF architecture",
+    "• [논문2] ❾ nRMSE tolerance + preview horizon 설계 지침",
+    "• [논문2] ❿ E2E LiDAR→추정→제어 파이프라인 실증",
 ]
-add_bullet_list(s, 7.5, 2.0, 5.3, 4.0, contributions, font_size=14, bold_prefix=False)
+add_bullet_list(s, 7.5, 2.0, 5.3, 4.5, contributions, font_size=12, bold_prefix=False)
 
 # Bottom box with key numbers
 shape = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
-                            Inches(0.8), Inches(5.8),
-                            Inches(11.7), Inches(1.2))
+                            Inches(0.8), Inches(6.0),
+                            Inches(11.7), Inches(1.0))
 shape.fill.solid()
 shape.fill.fore_color.rgb = LIGHT_BG
 shape.line.color.rgb = ACCENT
@@ -753,63 +1029,122 @@ shape.line.color.rgb = ACCENT
 tf = shape.text_frame
 tf.word_wrap = True
 p = tf.paragraphs[0]
-p.text = ("Summary:  nRMSE 30.1% lower  |  ~10× faster  |  "
-          "SS only positive  |  Cohen's d=1.16 (large)  |  "
-          "100 paired runs, p=1.1×10⁻¹⁵")
+p.text = ("WaveSplat: nRMSE 30.1%↓, ~10× faster, SS only+  |  "
+          "Hydrofoil: aRMS 11~41%↓, BF3 E2E 92~96%")
 p.font.size = Pt(16)
 p.font.bold = True
 p.font.color.rgb = DARK
 p.alignment = PP_ALIGN.CENTER
-add_page_number(s, 15, TOTAL_SLIDES)
+add_page_number(s, 21, TOTAL_SLIDES)
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 16: Plans — Paper & PhD
+# SLIDE 22: Thesis Structure
 # ══════════════════════════════════════════════════════════════
 s = add_slide()
-add_section_header(s, "05", "계획: 논문 투고 & 박사 학위", "Plans")
+add_section_header(s, "07", "학위논문 구조",
+                   "선박 탑재 LiDAR 기반 실시간 파랑장 추정과 그 제어 응용")
 
-# Left: paper plan
+# Left: thesis chapters
 add_textbox(s, 0.8, 1.5, 5.8, 0.4,
-            "논문 투고 계획", 22, bold=True, color=ACCENT)
-paper_plan = [
-    "• Paper 1 (WaveSplat)",
-    "•   Target: Ocean Engineering (Elsevier)",
-    "•   Status: 40p 원고 + cover letter + graphical abstract 완료",
-    "•   Next: 공동저자 sign-off → 투고",
+            "학위논문 목차", 22, bold=True, color=ACCENT)
+thesis_ch = [
+    "• Ch.1 서론: 연구 배경, 목적, 범위",
+    "• Ch.2 문헌 조사: 파랑 추정 + 제어 선행연구",
     "",
-    "• Paper 2 (Hydrofoil Feedforward)",
-    "•   파면 예측 → 하이드로포일 2DOF feedforward 제어",
-    "•   WaveSplat의 downstream application",
-    "•   Status: 실험 완료, 초안 작성 완료",
-    "•   Target 저널: 미정 (Ocean Engineering / JSR 등)",
+    "• Ch.3 WaveSplat (논문 1)",
+    "•   시뮬레이션, 알고리즘, 실험, 분석",
+    "•   + 3 추가 기여 (spectral/sparse/forecast)",
+    "",
+    "• Ch.4 Hydrofoil FF Control (논문 2)",
+    "•   동역학 모델, 제어 설계, sensitivity, E2E",
+    "",
+    "• Ch.5 결론 및 향후 연구",
+    "• 부록: 파라미터 표, 추가 그래프",
 ]
-add_bullet_list(s, 0.8, 2.0, 5.8, 4.5, paper_plan, font_size=14, bold_prefix=False)
+add_bullet_list(s, 0.8, 2.0, 5.8, 4.5, thesis_ch, font_size=14, bold_prefix=False)
 
-# Right: PhD roadmap
+# Right: current status
 add_textbox(s, 7.0, 1.5, 5.8, 0.4,
-            "박사 학위 로드맵", 22, bold=True, color=ACCENT2)
-phd_plan = [
-    "• Core thesis:",
-    "•   '선박 탑재 LiDAR 기반 실시간 파랑장 추정과",
-    "•    그 제어 응용'",
-    "",
-    "• Paper 1: Wave estimation (WaveSplat)",
-    "• Paper 2: Wave-preview control (Hydrofoil)",
-    "• Paper 3+: 확장 연구",
-    "•   → 수조 실험 검증 (조파수조 + LiDAR)",
-    "•     GT: 파고계/용량식 센서로 ground truth 확보",
-    "•     Sim-to-Real gap 정량화 (spray, multi-path 등)",
-    "•   → MPC 기반 6-DOF 제어",
-    "•   → Stokes-2 nonlinear model",
-    "•   → 해류(current) 추정 통합",
-]
-add_bullet_list(s, 7.0, 2.0, 5.8, 4.5, phd_plan, font_size=14, bold_prefix=False)
+            "현재 진행 상태", 22, bold=True, color=ACCENT2)
 
-# Bottom
-add_textbox(s, 1.5, 6.5, 10.3, 0.5,
-            "감사합니다. 질문 부탁드립니다.",
-            22, bold=True, color=DARK, alignment=PP_ALIGN.CENTER)
-add_page_number(s, 16, TOTAL_SLIDES)
+status_items = [
+    "• 논문 1 (WaveSplat)",
+    "•   ✅ 코드/실험 완료 (57 tests pass)",
+    "•   ✅ 논문 작성 완료 (Ocean Eng. format)",
+    "•   ✅ 적대적 페르소나 10라운드 검토 완료",
+    "•   ⏳ 공동저자 sign-off → 투고",
+    "",
+    "• 논문 2 (Hydrofoil)",
+    "•   ✅ 시뮬레이션 완료 (Phase 1~3)",
+    "•   ✅ 초안 작성 완료",
+    "•   ⏳ 공동저자 검토 → 투고",
+    "",
+    "• 학위논문",
+    "•   ✅ 초안 완성 (203K lines, PDF 생성)",
+    "•   ⏳ 지도교수 검토",
+]
+add_bullet_list(s, 7.0, 2.0, 5.8, 4.5, status_items, font_size=13, bold_prefix=False)
+add_page_number(s, 22, TOTAL_SLIDES)
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 23: Plans & Future Work
+# ══════════════════════════════════════════════════════════════
+s = add_slide()
+add_section_header(s, "07", "향후 계획", "Plans & Future Work")
+
+# Left: immediate plans
+add_textbox(s, 0.8, 1.5, 5.8, 0.4,
+            "단기 계획 (2026)", 22, bold=True, color=ACCENT)
+near_plan = [
+    "• 논문 1 투고 (Ocean Engineering)",
+    "• 논문 2 투고 (Ocean Engineering / JSR)",
+    "• 수조 실험 검증 (SNU 조파수조, 2026 하반기)",
+    "•   → 규칙파/불규칙파 3~5 조건",
+    "•   → 용량식 wave gauge GT + Seyond Falcon K1",
+    "•   → Sim-to-Real gap 정량화 (raydrop, noise)",
+]
+add_bullet_list(s, 0.8, 2.0, 5.8, 3.0, near_plan, font_size=15, bold_prefix=False)
+
+# Right: long-term
+add_textbox(s, 7.0, 1.5, 5.8, 0.4,
+            "확장 연구 방향", 22, bold=True, color=ACCENT2)
+future_plan = [
+    "• MPC 기반 6-DOF 통합 제어",
+    "•   → preview information의 최적 활용",
+    "• Stokes-2 nonlinear wave model",
+    "•   → 급경사파, 쇄파 환경 대응",
+    "• 해류(current) 동시 추정",
+    "• 실선 탑재 → 자율운항 통합",
+]
+add_bullet_list(s, 7.0, 2.0, 5.8, 3.0, future_plan, font_size=15, bold_prefix=False)
+
+# Bottom: PhD thesis title
+shape = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                            Inches(1.5), Inches(5.2),
+                            Inches(10.3), Inches(1.5))
+shape.fill.solid()
+shape.fill.fore_color.rgb = DARK
+shape.line.fill.background()
+
+tf = shape.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "박사학위 논문 주제"
+p.font.size = Pt(14)
+p.font.color.rgb = ACCENT
+p.alignment = PP_ALIGN.CENTER
+p2 = tf.add_paragraph()
+p2.text = "선박 탑재 LiDAR 기반 실시간 파랑장 추정과 그 제어 응용"
+p2.font.size = Pt(22)
+p2.font.bold = True
+p2.font.color.rgb = WHITE
+p2.alignment = PP_ALIGN.CENTER
+p3 = tf.add_paragraph()
+p3.text = "\n감사합니다. 질문 부탁드립니다."
+p3.font.size = Pt(18)
+p3.font.color.rgb = RGBColor(0xAA, 0xCC, 0xEE)
+p3.alignment = PP_ALIGN.CENTER
+add_page_number(s, 23, TOTAL_SLIDES)
 
 # ── Save ──
 os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)

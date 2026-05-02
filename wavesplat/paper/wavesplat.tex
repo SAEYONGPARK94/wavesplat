@@ -146,7 +146,7 @@ Knowledge of the surrounding ocean wave field is a prerequisite for
 many functions in autonomous and semi-autonomous ship
 operations~\citep{faltinsen2005, holthuijsen2007}: short-term
 prediction for proactive motion compensation during cargo handling
-and helicopter landing~\citep{desmars2023}, route optimization to
+and helicopter landing~\citep{desmars2023jfm}, route optimization to
 minimize fuel consumption and fatigue loading~\citep{vettor2016},
 wave-preview feedforward ride control on high-speed hydrofoil
 vessels~\citep{park2026hydrofoil}, and structural health
@@ -162,7 +162,7 @@ images large areas but measures backscatter rather than elevation,
 and satellite altimetry~\citep{queffeulou2004} is too coarse for
 vessel-scale real-time use.  Shipboard scanning LiDAR, by contrast,
 provides \emph{direct} elevation measurements over a wide area at
-$\sim$10~Hz~\citep{nouguier2014, collins2022}.
+$\sim$10~Hz~\citep{hwang2000, belmont2008}.
 Current automotive-grade solid-state LiDAR systems operating at eye-safe wavelengths
 (1550~nm) offer $>$100 channels, wide fields of view
 ($\sim$$120^\circ \times 25^\circ$), and ranges up to 250~m with
@@ -179,7 +179,7 @@ The dominant approach follows a grid-based data assimilation
 paradigm adapted from numerical weather prediction: discretize space
 into a regular grid, represent the wave state at grid points, and
 apply an ensemble Kalman filter (EnKF/ETKF) with FFT-based spectral
-forecasting~\citep{desmars2020, huhn2022, evensen2003}.
+forecasting~\citep{desmars2020, desmars2023jfm, evensen2003}.
 While principled, this approach has three limitations under sparse
 LiDAR: (i)~\emph{interpolation artifacts}---sparse returns must be
 mapped to grid points, introducing smoothing near the Nyquist limit
@@ -308,7 +308,7 @@ spatial resolution ($\sim$7.5~m) is also coarser than LiDAR
 ($\sim$0.1~m in the near field).
 \textbf{Ship-motion-based} methods instead invert the vessel RAO
 to recover the incident wave spectrum from heave/pitch/roll
-measurements~\citep{naaijen2018, nielsen2006}; these require no
+measurements~\citep{naaijen2014, nielsen2006}; these require no
 additional sensors but cannot resolve the spatial wave field, only
 the directional spectrum at the vessel location.
 
@@ -322,10 +322,14 @@ radar using spectral propagation on a regular grid; the Ensemble
 Transform Kalman Filter~\citep{hunt2007} is preferred over the
 stochastic EnKF~\citep{evensen2003} for its deterministic analysis
 step.
-\citet{huhn2022} extended this framework to LiDAR observations
-(``from points to waves''), and \citet{desmars2023} demonstrated
-real-time reconstruction and short-term prediction up to one peak
-period ahead.
+\citet{desmars2023jfm} extended this framework with a nonlinear
+reconstruction-and-prediction scheme on remotely measured surfaces,
+demonstrating short-term forecasting up to one peak period ahead.
+Adaptation of ensemble Kalman filtering to scanning shipboard LiDAR
+has, to our knowledge, not been reported in the open literature; we
+therefore implement an ETKF-grid baseline by porting the radar-based
+formulation of \citet{desmars2020} to LiDAR observations
+(Section~\ref{sec:fulleval}).
 These grid-based methods share a common architecture---discretize
 the 2D domain into a regular grid, maintain an ensemble of spectral
 states, and assimilate observations via the Kalman update---which
@@ -358,7 +362,7 @@ approximations~\citep{titsias2009} mitigate cost but still treat
 the wave field as a generic spatial random process rather than a
 dispersion-constrained propagating signal.
 \textbf{Learning-based} methods include physics-informed neural
-networks~\citep{zhang2022, mohaghegh2021}, the U-Net/Fourier
+networks~\citep{liu2024, mohaghegh2021}, the U-Net/Fourier
 neural operator of \citet{ehlers2024} for phase-resolved
 reconstruction, and the nonlinear ETKF extension of
 \citet{desmars2023jfm}.  These approaches show strong results on
@@ -505,6 +509,7 @@ and updates only $(w_i, \varphi_i)$ with 10~Adam steps per frame.}
 \end{figure}
 
 \subsubsection{Phase 1: Initialization}
+\label{sec:init}
 
 Given the first $T_{\text{init}} = 2 T_p$ seconds of observations
 (where $T_p$ is the expected peak period, estimated from the
@@ -765,7 +770,7 @@ We report:
 \paragraph{Choice of metric and complementary measures.}
 We use nRMSE as the primary metric in the main results for direct
 comparability with prior LiDAR wave estimation
-work~\citep{huhn2022, desmars2020, desmars2023}.
+work~\citep{desmars2020, desmars2023jfm}.
 However, we acknowledge that nRMSE alone has a known limitation:
 a trivial constant-zero predictor on a zero-mean wave field with
 $\sigma_z \approx H_s/4$ achieves $\text{nRMSE} \approx 0.25$,
@@ -796,7 +801,7 @@ Section~\ref{sec:fulleval}.
 
 \subsection{Baselines}
 
-\textbf{ETKF-grid}~\citep{huhn2022}: Ensemble Transform Kalman Filter
+\textbf{ETKF-grid}~\citep{desmars2020}: Ensemble Transform Kalman Filter
 on a regular grid with FFT-based spectral propagation, multiplicative
 and additive inflation, and observation thinning to $M_{\max}$=40 per frame to keep the
 observation-state projected matrix numerically well-conditioned
@@ -804,7 +809,7 @@ and bound per-frame computational cost.  To avoid penalizing the baseline by an 
 choice, we performed a 24-configuration hyperparameter sweep over grid
 resolution \{40$\times$30, 80$\times$60\}, ensemble size \{50, 100\},
 and inflation pairs ($\alpha$, $\sigma$) covering the standard ranges
-recommended by~\citet{huhn2022}; we report the best configuration
+recommended by~\citet{desmars2020}; we report the best configuration
 ($g$=40$\times$30, $n_{\text{ens}}$=100, $\alpha$=1.0,
 $\sigma$=0.005, mean nRMSE=0.358 across 12 sweep episodes) for all
 subsequent comparisons.  The full sweep ranking shows that all top-10
@@ -1904,7 +1909,7 @@ level of statistical rigour that would be difficult to achieve with
 physical experiments alone, following the methodology validation
 approach of prior LiDAR-based wave estimation studies that initially
 established algorithms in simulation before progressing to wave tank
-trials~\citep{desmars2020, huhn2022}.
+trials~\citep{desmars2020, desmars2023jfm}.
 The ground-truth wave field uses Gerstner (nonlinear) kinematics while
 all estimation methods---WaveSplat, ETKF, LETKF, GPR---use a linear
 forward model; therefore the $O(\epsilon^2)$ model mismatch affects

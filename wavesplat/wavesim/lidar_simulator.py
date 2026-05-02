@@ -6,7 +6,7 @@ Physics:
   - Beam pattern: elevation angle range based on sensor height & range
   - Ray-mesh intersection via Möller-Trumbore (Möller & Trumbore 1997)
   - Surface normal at hit point
-  - Grazing/incidence angle computation for Fresnel model
+  - Grazing/incidence angle computation for the Fresnel raydrop model
 """
 
 import numpy as np

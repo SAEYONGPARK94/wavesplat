@@ -22,7 +22,7 @@
 
 - **C1**: Grid-free spectral estimation framework — 기존 ETKF의 grid 보간 한계를 극복하여 sparse irregular 관측에서 직접 wave field 복원
 - **C2**: Dispersion-constrained spectral Gaussian parameterization — 물리 법칙(dispersion relation)을 구조적 제약으로 내장
-- **C3**: Fresnel-aware confidence model — LiDAR 수면 관측의 입사각/거리 의존 신뢰�� 가중
+- **C3**: Geometry-aware confidence model — LiDAR 수면 관측의 입사각/거리 의존 신뢰도 가중 (Lambertian 투영 × 역거리; 정확한 Fresnel R(θ)는 raydrop 시뮬에만 사용)
 - **C4**: (선택적, 후속 연구) 2nd order bound harmonic correction
 
 ---
@@ -43,7 +43,7 @@
 - 파랑 스펙트럼을 (k, ω) 공간의 Gaussian mixture로 표현
 - Dispersion relation을 dynamics model에 하드코딩 (soft loss가 아님)
 - Sequential update로 시간에 따른 관측 누적
-- Fresnel-aware observation noise model (입사각 의존 신뢰도)
+- Geometry-aware observation noise model (입사각/거리 의존 신뢰도)
 
 ### 논문 제목
 
@@ -219,7 +219,7 @@ WaveSplat의 고유 특성:
 1. **이동하는 센서** (관측 영역 변화)
 2. **Irregular sparse point cloud** (grid 보간 불가)
 3. **극한 sparsity** (프레임당 수십 개)
-4. **입사각 의존적 신뢰도** (Fresnel 기반)
+4. **입사각·거리 의존적 신뢰도** (geometry-aware: Lambertian × inverse range)
 
 ---
 

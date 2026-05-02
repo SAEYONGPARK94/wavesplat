@@ -215,7 +215,7 @@ $\mathcal{O}(M^3)$ 계산 복잡도와 시간 모델의 부재로 인해
 각주파수를 선형 분산관계
 $\omega_i = \sqrt{g|k_i|\tanh(|k_i|d)}$로 구속함으로써
 자유 파라미터를 $5N$에서 $4N$으로 감소시킨다.
-입사각과 거리에 의존하는 Fresnel 신뢰 가중치를 도입하여
+입사각과 거리에 의존하는 기하 신뢰 가중치를 도입하여
 LiDAR 관측 품질의 공간적 불균질성을 직접 모델링한다.
 또한 에너지 기반 가지치기(pruning)와 잔차 기반 성장(growth)을 통해
 파도 성분 수 $N$을 관측된 해상(海象) 복잡도에 자동 적응시킨다.
@@ -500,7 +500,7 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
         이 제약은 추적 단계에서 위상 예측의 warm start를 제공하여
         프레임당 최적화 스텝을 200회에서 10회로 감소시킨다.
 
-  \item \textbf{Fresnel 신뢰 가중치}: \\
+  \item \textbf{기하 신뢰 가중치}: \\
         LiDAR 관측의 입사각·거리 의존 품질을 직접 모델링하여,
         관측 품질이 공간적으로 크게 변하는 해양 표면 측정의
         이분산성(heteroscedasticity)을 반영한다.
@@ -642,7 +642,7 @@ LiDAR의 단일 스캔($\sim$100\,ms)은 순간적이지 않으며,
 \WS{}의 다중 프레임 접근은 각 프레임의 시각 정보($t_j$)를
 forward 모델에 직접 반영하여 이 smearing을 자연스럽게 처리한다.
 
-본 논문에서 이러한 물리적 특이성을 Fresnel 신뢰 가중치(제3장)로
+본 논문에서 이러한 물리적 특이성을 기하 신뢰 가중치(제3장)로
 직접 모델링한다.
 
 \section{격자 기반 파도장 추정}
@@ -1074,15 +1074,15 @@ $N_a = 30$일 때 $4N_a / M = 120/100 = 1.2$ (과소결정 근방).
 ($\lambda_1$, $\lambda_s$)의 역할이 중요하며,
 이들이 해공간(null space)에서의 파라미터 발산을 방지한다.
 
-\subsection{Fresnel 신뢰 가중치}
-\label{sec:fresnel}
+\subsection{기하 신뢰 가중치}
+\label{sec:geom_confidence}
 
 해양 표면에서의 LiDAR 파고 정밀도는 두 가지 물리적 메커니즘에 의해 저하된다:
 (1) 빔 발산으로 인한 원거리 footprint 확대, 이로 인한 국소 표면 곡률 평균화;
 (2) 높은 입사각(near-grazing)에서 specular reflection 확률 증가로 인한
 전신호 손실 또는 파봉(wave crest) 편향 반환.
 
-\paragraph{Fresnel 반사율의 물리적 배경}
+\paragraph{Fresnel 반사율의 물리적 배경 (가중치 설계 동기)}
 LiDAR 빔이 해수면에 입사할 때, Fresnel 방정식은 반사율을 입사각 $\theta$의
 함수로 결정한다. 1550\,nm 파장에서 해수의 복소 굴절률은
 $n = 1.321 + 1.2\times10^{-4}i$이며, s-편광과 p-편광의 반사율은:
@@ -1093,8 +1093,9 @@ $n = 1.321 + 1.2\times10^{-4}i$이며, s-편광과 p-편광의 반사율은:
 여기서 Snell의 법칙 $n_1\sin\theta = n_2\sin\theta_t$으로
 굴절각 $\theta_t$가 결정된다.
 비편광 LiDAR의 평균 반사율은 $R(\theta) = (R_s + R_p)/2$이다.
-수직 입사($\theta=0$)에서 $R \approx 2.0\%$로 LiDAR 반환이 가능하나,
-$\theta > 80^\circ$ (grazing)에서 $R > 50\%$로 급증하여
+수직 입사($\theta=0$)에서 $R \approx 1.9\%$로 LiDAR 반환이 가능하나,
+$\theta=80^\circ$에서 $R\approx 34\%$, $\theta=85^\circ$에서 $R\approx 58\%$,
+$\theta=89^\circ$에서 $R\approx 90\%$로 급증하여
 입사광의 대부분이 정반사(specular reflection)되고 LiDAR로 반환되지 않는다.
 
 Diffuse reflection 성분(파도 표면 거칠기에 의한)의 LiDAR 반환 파워는
@@ -2171,7 +2172,7 @@ Full은 $\bar{R} \equiv 0$이다.
 프레임당 상태를 $2N$으로 축소시키는 핵심 역할을 한다.
 따라서 이 ablation은 제약의 정규화 가치가 아닌 물리적 유효성의 비용을 측정한다.
 
-\textbf{A2 (신뢰 가중치 제거)}: Fresnel 신뢰 가중치 제거는 평균 14.5\% 성능 저하
+\textbf{A2 (신뢰 가중치 제거)}: 기하 신뢰 가중치 제거는 평균 14.5\% 성능 저하
 (0.215 vs.\ 0.188)를 초래하며, slope-model 에피소드에서 가장 큰 저하가 관찰된다
 (BF3 2comp (S): $0.088 \to 0.204$, 2.3배 증가).
 관측 품질이 LiDAR 시야 내에서 크게 변하는 해양 표면 측정에서

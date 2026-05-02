@@ -296,7 +296,7 @@ novelties = [
     "• ❶ Grid-free spectral representation — 3D Gaussian Splatting의 해양파 버전",
     "• ❷ Dispersion hard constraint: ωᵢ = √(g·|kᵢ|·tanh(|kᵢ|·d))  →  5N → 4N 파라미터",
     "• ❸ Adaptive model order: energy pruning + residual growth + safety rollback",
-    "• ❹ Fresnel confidence weighting: cⱼ = cos(θⱼ)/(dⱼ/d_ref)  — LiDAR 관측 품질 모델링",
+    "• ❹ Geometry-aware confidence weighting: cⱼ = cos(θⱼ)/(dⱼ/d_ref)  — LiDAR 관측 품질 모델링",
     "• ❺ Pre-specified 6-metric evaluation panel — zero-predictor 구분 가능",
     "• ❻ 24-config ETKF hyperparameter sweep — 공정한 tuned baseline 제공",
 ]
@@ -322,7 +322,7 @@ add_textbox(s, 0.8, 2.1, 5.5, 2.5,
 
 # Right: Observation model
 add_textbox(s, 7.0, 1.5, 5.5, 0.5,
-            "Observation Model (Fresnel Confidence)", 22, bold=True, color=ACCENT)
+            "Observation Model (Geometry-aware Confidence)", 22, bold=True, color=ACCENT)
 
 add_textbox(s, 7.0, 2.1, 5.5, 2.5,
             "cⱼ = cos(θⱼ) / (dⱼ / d_ref)\n\n"
@@ -435,7 +435,7 @@ add_textbox(s, 7.0, 1.5, 5.8, 0.4,
 lidar_physics = [
     "• 1550 nm, 152 ch, 120°×25° FOV",
     "• Ray-surface: Möller-Trumbore → ~50점/frame",
-    "• Fresnel 반사 (n=1.321): R(0°)≈2%, R(89°)>80%",
+    "• Fresnel 반사 (n=1.321): R(0°)≈1.9%, R(85°)≈58%, R(89°)≈90%",
     "• Noise: σ_range=0.02m, σ_angle=0.05°",
 ]
 add_bullet_list(s, 7.0, 2.0, 5.8, 2.5, lidar_physics, font_size=15, bold_prefix=False)
@@ -1063,7 +1063,7 @@ contributions = [
     "• [논문1] ❶ Grid-free spectral 파면 추정",
     "• [논문1] ❷ Dispersion hard constraint (5N→4N)",
     "• [논문1] ❸ Adaptive N (pruning + growth)",
-    "• [논문1] ❹ Fresnel confidence weighting",
+    "• [논문1] ❹ Geometry-aware confidence weighting",
     "• [논문1] ❺ Pre-specified 6-metric panel",
     "• [논문1] ❻ 24-config ETKF sweep (fair baseline)",
     "• [논문1] ❼ Spectral accuracy + Sparse robustness + Forecast",

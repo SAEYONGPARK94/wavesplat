@@ -70,10 +70,15 @@ def compute_confidence(incidence_angles: np.ndarray,
                         distances: np.ndarray,
                         d_ref: float = 125.0) -> np.ndarray:
     """
-    Fresnel-based confidence weight for each LiDAR point.
+    Geometry-aware confidence weight for each LiDAR point.
     Higher at near-normal incidence and close range.
 
     c = cos(θ_i) / (d/d_ref)
+
+    The cos(θ_i) factor combines the Lambertian projected-area term
+    and a monotone surrogate for the angle-dependent specular loss
+    (the exact Fresnel R(θ) is used in the raydrop model, not here).
+    The 1/(d/d_ref) factor is a normalised inverse-range falloff.
 
     Args:
         incidence_angles: (N,) [radians]

@@ -8,7 +8,7 @@
 
 WaveSplat addresses the problem of reconstructing a continuous wave height field `z(x,y,t)` from the extremely sparse surface point clouds captured by a forward-looking LiDAR mounted on a ship.
 
-Unlike grid-based approaches (e.g., ETKF), WaveSplat represents the wave field as a weighted sum of spectral components with physics-based constraints (dispersion relation, Fresnel confidence weighting), enabling grid-free estimation that adapts model complexity to wave scene complexity.
+Unlike grid-based approaches (e.g., ETKF), WaveSplat represents the wave field as a weighted sum of spectral components with physics-based constraints (dispersion relation, geometry-aware confidence weighting), enabling grid-free estimation that adapts model complexity to wave scene complexity.
 
 ### Key Results (100-episode, pre-specified 6-metric panel)
 
@@ -28,11 +28,11 @@ Unlike grid-based approaches (e.g., ETKF), WaveSplat represents the wave field a
 
 - Grid-free spectral representation: `z(x,y,t) = Σ wᵢ·cos(kxᵢ·x + kyᵢ·y - ωᵢ·t + φᵢ)`
 - Dispersion constraint: `ω = √(g·|k|·tanh(|k|·d))` — hard constraint, no deep-water approximation
-- Fresnel confidence weighting: `cⱼ = cos(θⱼ) / (dⱼ/d_ref)`
+- Geometry-aware confidence weighting: `cⱼ = cos(θⱼ) / (dⱼ/d_ref)` (Lambertian projection × inverse range)
 - Adaptive N: energy-based pruning + residual-triggered growth
 - Two-phase estimation: Init (beamforming + coarse-to-fine) → Tracking (phase prediction + gradient update)
 - Physics-based wave simulation (Gerstner waves + JONSWAP spectrum)
-- Two LiDAR return models: uniform Fresnel-based and specular slope-dependent
+- Two LiDAR return models: uniform Fresnel-based (raydrop) and specular slope-dependent
 - 57 unit tests, all passing (39 wavesim + 18 wavesplat)
 
 ---
@@ -72,7 +72,7 @@ wavesplat/
 │   ├── model/
 │   │   ├── spectral_gaussian.py  # N spectral Gaussian components
 │   │   ├── dispersion.py         # ω = √(g|k|tanh(|k|d))
-│   │   └── confidence.py         # Fresnel-zone confidence weights
+│   │   └── confidence.py         # Geometry-aware confidence weights
 │   ├── optimizer/
 │   │   ├── initializer.py        # Beamforming init (v1/v2/v2_konly)
 │   │   ├── coarse_to_fine.py     # N=3→8→15 schedule

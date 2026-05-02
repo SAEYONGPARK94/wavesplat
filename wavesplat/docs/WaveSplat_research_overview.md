@@ -102,10 +102,12 @@ z(x, y, t) = Σᵢ wᵢ · cos(kxᵢ·x + kyᵢ·y - ωᵢ·t + φᵢ)
 cⱼ = cos(θⱼ) / (dⱼ / d_ref)
 ```
 
-- θⱼ: 입사각 (Fresnel 반사 영향)
+- θⱼ: LiDAR 빔과 해수면 법선의 입사각 (시뮬: GT 법선, 실측: $\hat z$ 근사)
 - dⱼ: 센서-관측점 거리
-- **관측 노이즈의 이분산성(heteroscedasticity)** 모델링
+- cos(θⱼ): Lambertian 투영 인자 + 입사각 의존 specular 손실의 단조 근사
+- **관측 노이즈의 이분산성(heteroscedasticity)** 모델링 — 가중치, likelihood 아님
 - "이 관측점의 z 측정이 얼마나 정확한가"를 가중치로 반영
+- 정확한 Fresnel R(θ)는 raydrop 시뮬에서만 사용
 
 ### 2.5 손실 함수 (Loss Function)
 
@@ -224,10 +226,10 @@ JONSWAP 스펙트럼 → Gerstner 파도 → 메쉬 생성 → LiDAR 레이캐�
 
 **WaveSplat**: `ω = f(k, d)` 분산 관계가 **모델 구조에 내장**. (kx, ky)를 자유 파라미터로 최적화하면 ω가 자동 결정. 물리 위반 불가능. Projected gradient descent로 hard constraint 유지.
 
-### C3: Fresnel-aware Observation Confidence
+### C3: Geometry-aware Observation Confidence
 **기존**: 관측 노이즈를 등방(isotropic)으로 가정하거나 무시.
 
-**WaveSplat**: LiDAR의 Fresnel 반사 특성에 기반한 입사각·거리 의존 신뢰도 가중치. 해수면 관측 특화. 센서 물리에서 직접 도출.
+**WaveSplat**: 입사각·거리에 의존하는 기하 신뢰 가중치 `cⱼ = cos(θⱼ) / (dⱼ/d_ref)`. cos(θⱼ)는 Lambertian 투영 인자 + Fresnel R(θ)의 단조 surrogate, 1/(d/d_ref)은 정규화된 역거리 감쇠. 해수면 관측 특화. 정확한 Fresnel은 raydrop 시뮬에서만 사용 (편광·미시 거칠기 가정 회피).
 
 ### 부가 Novelty
 - **WaveSim**: 완전 물리 기반 LiDAR 해수면 시뮬레이터 (Gerstner + Möller-Trumbore + Fresnel raydrop)

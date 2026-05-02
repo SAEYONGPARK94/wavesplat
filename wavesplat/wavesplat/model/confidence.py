@@ -1,9 +1,15 @@
 """
 confidence.py
-Observation noise weighting for LiDAR wave measurements.
+Geometry-aware observation weighting for LiDAR wave measurements.
 
 The confidence weight cⱼ reflects observation noise heteroscedasticity:
     cⱼ = cos(θᵢ) / (d / d_ref)
+
+cos(θᵢ) acts as a Lambertian projected-area factor and as a monotone
+surrogate for angle-dependent specular loss; (d/d_ref) is a normalised
+inverse-range falloff. This is NOT the exact Fresnel reflectance R(θ)
+(which is used only in the raydrop model in wavesim.raydrop_uniform),
+but a parameter-free geometric simplification.
 
 This is NOT the wave model accuracy — it's how accurate the z-measurement
 is at each observation point. Higher incidence angle and larger distance

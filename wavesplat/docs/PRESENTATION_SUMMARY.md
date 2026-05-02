@@ -55,7 +55,7 @@ z(x, y, t) = Σᵢ wᵢ · cos(kx,ᵢ · x + ky,ᵢ · y − ωᵢ · t + φᵢ)
 - **grid-free**: 공간 격자 없음 → aliasing 없음
 - **dispersion hard constraint**: `ωᵢ = √(g · |kᵢ| · tanh(|kᵢ|·d))` — 자유 파라미터에서 제거 (5N → 4N)
 - **adaptive N**: 에너지 기반 pruning + 잔차 기반 growth
-- **Fresnel confidence weighting**: 입사각/거리 의존 관측 가중치
+- **Geometry-aware confidence weighting**: 입사각/거리 의존 관측 가중치 (Lambertian × inverse range)
 
 ---
 
@@ -70,7 +70,7 @@ z(x, y, t) = Σᵢ wᵢ cos(kx,ᵢ x + ky,ᵢ y − ωᵢ t + φᵢ)
 
 파라미터: `{wᵢ, kx,ᵢ, ky,ᵢ, φᵢ}` → **4N**개 (ω는 k로부터 파생)
 
-### 2.2 Observation Model (C3: Fresnel Confidence)
+### 2.2 Observation Model (C3: Geometry-aware Confidence)
 
 ```
 cⱼ = cos(θⱼ) / (dⱼ / d_ref)     d_ref = 125 m
@@ -376,7 +376,7 @@ LETKF loc_radius sweep (20/50/100/200m): 20m과 50m이 거의 동일 (nRMSE 0.23
 1. **Grid-free spectral representation**: 3D GS(Kerbl 2023)의 아이디어를 해양 파면 추정에 최초 적용
 2. **Dispersion as hard constraint**: `ωᵢ = f(|kᵢ|, d)`, 파라미터 5N → 4N
 3. **Adaptive model order**: energy pruning + residual growth + safety rollback
-4. **Fresnel-zone confidence weighting**: LiDAR 관측 품질 직접 모델링
+4. **Geometry-aware confidence weighting**: LiDAR 관측 품질 직접 모델링 (Lambertian × inverse range; 정확한 Fresnel은 raydrop에서만)
 5. **Pre-specified 6-metric evaluation**: zero-predictor 구분을 위한 panel
 6. **24-config ETKF hyperparameter sweep**: 공정한 tuned baseline
 7. **Dispersion manifold drift quantification**: A1 ablation의 "자유도" 비용 정량화

@@ -83,7 +83,7 @@
 
 - **C1**: Grid-free spectral estimation framework (기존 ETKF의 grid 보간 한계 극복)
 - **C2**: Dispersion-constrained spectral Gaussian parameterization (물리를 구조에 내장)
-- **C3**: Fresnel-aware confidence model (LiDAR 수면 관측 특화)
+- **C3**: Geometry-aware confidence model (LiDAR 수면 관측 특화; cos(θ)/(d/d_ref) — Lambertian 투영 × 역거리)
 - **C4**: 2nd order bound harmonic correction (선택적, 후속 연구 가능)
 
 ---

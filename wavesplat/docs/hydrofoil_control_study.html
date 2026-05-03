@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>하이드로포일 동역학 + 제어 학습 자료 — WaveSplat 응용 연구</title>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  body {
+    font-family: 'Times New Roman', 'Noto Serif KR', serif;
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+    line-height: 1.65;
+    color: #1f2937;
+    background: #fafafa;
+  }
+  h1 { color: #1a1a2e; border-bottom: 3px solid #c05317; padding-bottom: 0.5rem; }
+  h2 { color: #c05317; margin-top: 2.5rem; border-left: 5px solid #c05317; padding-left: 0.6rem; }
+  h3 { color: #1a1a2e; margin-top: 1.6rem; }
+  h4 { color: #4b5563; margin-top: 1.2rem; }
+  code, pre {
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    background: #f3f4f6;
+    border-radius: 4px;
+  }
+  code { padding: 0.1em 0.4em; font-size: 0.92em; }
+  pre {
+    padding: 0.8rem 1rem;
+    border-left: 4px solid #c05317;
+    overflow-x: auto;
+    font-size: 0.88em;
+    background: #fdf6f0;
+  }
+  blockquote {
+    border-left: 4px solid #6b7280;
+    padding: 0.4rem 1rem;
+    margin: 1rem 0;
+    background: #f9fafb;
+    color: #374151;
+  }
+  .why-box {
+    background: #fff7ed;
+    border: 1px solid #c05317;
+    border-left: 5px solid #c05317;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+  }
+  .why-box::before {
+    content: '💡 왜 이렇게 했는가  ';
+    font-weight: bold;
+    color: #c05317;
+  }
+  .key-point {
+    background: #f0fdf4;
+    border-left: 5px solid #16a34a;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+  }
+  .key-point::before {
+    content: '✅ 핵심  ';
+    font-weight: bold;
+    color: #16a34a;
+  }
+  .warning {
+    background: #fef2f2;
+    border-left: 5px solid #dc2626;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+  }
+  .warning::before {
+    content: '⚠️ 주의  ';
+    font-weight: bold;
+    color: #dc2626;
+  }
+  .glossary { background: #f1f5f9; border-left: 5px solid #475569; padding: 0.6rem 1rem; margin: 0.8rem 0; }
+  .glossary::before { content: '📖 용어  '; font-weight: bold; color: #475569; }
+  table {
+    border-collapse: collapse;
+    margin: 1rem 0;
+    width: 100%;
+    font-size: 0.92em;
+  }
+  th, td { border: 1px solid #d1d5db; padding: 0.5rem 0.7rem; text-align: left; }
+  th { background: #c05317; color: #fff; }
+  tr:nth-child(even) { background: #faebdd; }
+  .toc {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 1.2rem 1.6rem;
+    margin: 1.5rem 0 2.5rem;
+  }
+  .toc h2 { border: none; padding: 0; margin: 0 0 0.8rem; color: #1a1a2e; }
+  .toc ol { margin: 0; padding-left: 1.4rem; }
+  .toc a { color: #c05317; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .symbol { font-family: 'Times New Roman', serif; font-style: italic; }
+</style>
+</head>
+<body>
+
+<h1>하이드로포일 동역학 + 제어 학습 자료</h1>
+<p style="font-style: italic; color: #6b7280;">
+WaveSplat 응용 연구 — Wave-Preview Feedforward Control for Hydrofoil Vessels<br>
+대상: 본 연구실에서 처음 제어/유체동역학 응용을 보는 분.<br>
+Reference 차량: Candela C-8 (Swedish electric hydrofoil, 1700 kg, 22 knots foilborne)
+</p>
+
+<div class="toc">
+<h2>목차</h2>
+<ol>
+  <li><a href="#sec1">하이드로포일이 무엇이고 왜 능동 제어가 필요한가</a></li>
+  <li><a href="#sec2">차량 사양 — Candela C-8 reference</a></li>
+  <li><a href="#sec3">2-DOF 동역학 — Heave + Pitch 방정식</a></li>
+  <li><a href="#sec4">Foil 유체역학 — Lift, Drag, Submergence, Ventilation</a></li>
+  <li><a href="#sec5">Effective Angle of Attack — 5 가지 기여 항</a></li>
+  <li><a href="#sec6">파동 외란 + Encounter Frequency</a></li>
+  <li><a href="#sec7">PD Feedback Controller — Collective/Differential 분해</a></li>
+  <li><a href="#sec8">Wave-Preview Feedforward — 핵심 설계 결정</a></li>
+  <li><a href="#sec9">수치 적분 — RK4 + FF Filter 타이밍</a></li>
+  <li><a href="#sec10">설계 결정 한눈에 보기 — Why 정리표</a></li>
+  <li><a href="#sec11">한계와 확장 방향</a></li>
+  <li><a href="#sec12">Glossary — 비전공자용 용어 정리</a></li>
+</ol>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec1">1. 하이드로포일이 무엇이고 왜 능동 제어가 필요한가</h2>
+
+<h3>1.1 하이드로포일 개념</h3>
+<p>
+일반 선박은 부력으로 떠있어 hull(선체)이 물에 잠긴 채 항행한다. <strong>하이드로포일(hydrofoil)</strong>은
+배 아래에 비행기 날개와 유사한 작은 foil을 두고, 일정 속도 이상으로 가속하면
+foil의 양력(lift)이 부력을 대체하면서 선체가 수면 위로 떠오른다. 이 상태를
+<em>foilborne</em>이라 부르고, 그 전 hull-borne(일반 항해) 모드와 구분한다.
+</p>
+
+<div class="key-point">
+Foilborne 의 장점: <br>
+• Hull 의 wave-making drag 가 사라져 동일 추력으로 2~3 배 빠르게 (속도 제곱으로 항력 ↓)<br>
+• 파도가 hull 까지 올라오지 않아 승차감이 비행기처럼 부드러움 — 단, <em>foil 만 잘 제어된다면</em>.
+</div>
+
+<h3>1.2 왜 능동 제어가 필수인가</h3>
+<p>
+Foil 의 lift 는 <span class="symbol">L = ½ρV²S·C<sub>L</sub>(α)</span> 로, AoA(받음각)<span class="symbol">α</span>에 거의 선형 비례한다.
+파도가 foil 깊이에서 변화시키는 효과:
+</p>
+<ul>
+  <li><strong>Wave slope ∂η/∂x</strong>: 파면이 기울어지면 foil 입장에서는 입사각이 변함 → AoA 직접 변동</li>
+  <li><strong>Orbital vertical velocity ∂η/∂t</strong>: 파도의 수직 운동이 foil 에 추가 induced angle 부여</li>
+  <li><strong>Submergence h(t)</strong>: 파봉/파골에 따라 foil 깊이가 변함 → free-surface 효과로 lift 변화</li>
+</ul>
+<p>
+이 모든 외란이 foil AoA 의 0.5~5° 진동을 일으키고, 이는 foil lift 의 ±20~30% 변화에 해당한다.
+가만히 두면 selfbore(=foilborne 상실)·flap 한계 도달 등의 위험이 생기므로, foil 의 flap 으로
+AoA 를 능동 보상해야 한다.
+</p>
+
+<div class="why-box">
+PD feedback 만으로 부족한 이유:
+<ul>
+<li>PD 는 "에러를 감지한 후" 보상 — 50~100 ms 의 control loop delay 가 있다.</li>
+<li>파도 주기가 4~7 s 일 때 100 ms 는 주기의 1.4~2.5% 로 보일 수 있지만, encounter frequency 에서 본 phase
+  지연은 8~22° 로 커진다 (V·k 항이 추가됨).</li>
+<li>이 phase 지연은 ride comfort 에 직접 악영향. → "에러를 미리 알고 보상" 하는 <strong>feedforward (FF)</strong>가 필요.</li>
+</ul>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec2">2. 차량 사양 — Candela C-8 Reference</h2>
+
+<p>
+실제 상용 hydrofoil 중 양산되어 데이터가 공개된 차량을 reference 로 채택했다 — Swedish 의
+Candela C-8 (전기 추진).
+</p>
+
+<table>
+<tr><th>Parameter</th><th>Value</th><th>의미</th></tr>
+<tr><td>LOA (전장)</td><td>8.5 m</td><td>중대형 leisure boat</td></tr>
+<tr><td>Beam (폭)</td><td>2.4 m</td><td>1 차로 수준</td></tr>
+<tr><td>Mass m</td><td>1700 kg</td><td>vessel + payload</td></tr>
+<tr><td>Pitch I<sub>yy</sub></td><td>4900 kg·m²</td><td>~ m·(L/5)² 추정</td></tr>
+<tr><td>Cruise V</td><td>11.3 m/s (~22 knots)</td><td>foilborne 안정 속도</td></tr>
+<tr><td>Foil 배치</td><td>Tandem (전·후)</td><td>전방 inverted-T + 후방 T-foil</td></tr>
+<tr><td>전방 foil x_pos</td><td>+2.0 m (CG 앞)</td><td>주 lift 분담 ~56%</td></tr>
+<tr><td>후방 foil x_pos</td><td>−2.5 m (CG 뒤)</td><td>pitch 안정 분담 ~44%</td></tr>
+<tr><td>Foil 깊이 z_pos</td><td>0.6~0.8 m</td><td>quarter-chord 기준</td></tr>
+<tr><td>Flap 한계 δ_max</td><td>±0.26 rad (±15°)</td><td>actuator saturation</td></tr>
+</table>
+
+<div class="why-box">
+Candela C-8 을 reference 로 한 이유:
+<ul>
+<li>실제 양산 중인 hydrofoil → 파라미터가 검증 가능 (mass, foil 면적, 속도)</li>
+<li>전자 제어 flap 을 이미 사용 중 → 본 연구의 controller 결과가 적용 가능한 platform</li>
+<li>크기 (8.5 m) 가 Avikus NEUBOAT 시험 platform 과 유사 → sim-to-real 거리 짧음</li>
+</ul>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec3">3. 2-DOF 동역학 — Heave + Pitch 방정식</h2>
+
+<h3>3.1 Why 2-DOF (6-DOF 가 아니라)</h3>
+<p>강체 선박은 본래 6-DOF (surge·sway·heave·roll·pitch·yaw) 운동을 하지만, foilborne hydrofoil 의
+ride control 에서는 다음 이유로 <strong>heave + pitch 만</strong> 모델링한다.</p>
+
+<table>
+<tr><th>DOF</th><th>제어 의미</th><th>본 연구 처리</th></tr>
+<tr><td>Heave (z)</td><td>수직 진동 → ISO 2631 승차감 직접 영향</td><td>✅ 모델링</td></tr>
+<tr><td>Pitch (θ)</td><td>foil AoA 변동 → lift 변화 → 다시 heave</td><td>✅ 모델링</td></tr>
+<tr><td>Roll (φ)</td><td>좌우 흔들림</td><td>❌ 별도 roll-foil 이 처리 (tandem 대칭으로 자연 안정)</td></tr>
+<tr><td>Yaw (ψ)</td><td>방위각</td><td>❌ rudder 가 처리, ride 와 분리</td></tr>
+<tr><td>Surge (x)</td><td>전후 진동</td><td>❌ 추진 시스템이 V 일정하게 유지</td></tr>
+<tr><td>Sway (y)</td><td>횡방향 drift</td><td>❌ 1차 근사 무시</td></tr>
+</table>
+
+<div class="why-box">
+2-DOF 채택 근거:
+<ul>
+<li>승차감 (ISO 2631) 의 핵심은 <em>vertical acceleration</em> — heave 가 직접 측정.</li>
+<li>Pitch 는 foil AoA 를 modulate 해서 다시 heave 로 결합 → 둘은 강한 coupling, 분리 불가.</li>
+<li>Roll 은 tandem 대칭 배치로 자연스럽게 자가 안정 (Faltinsen 2005, Ch.7) + 별도 roll-foil 가 담당.</li>
+<li>나머지 4-DOF 는 다른 actuator (rudder, propulsion) 가 담당하므로 ride control 과 분리됨.</li>
+</ul>
+</div>
+
+<h3>3.2 운동 방정식</h3>
+<p>Newton-Euler 식을 vertical plane (x-z plane) 에서 작성:</p>
+
+<pre><code>(m + a_33) z_ddot   = L_f + L_r − m·g − B_z · z_dot          (heave)
+(I_yy + a_55) θ_ddot = L_f · x_f + L_r · x_r − B_θ · θ_dot   (pitch)</code></pre>
+
+<p>각 항의 의미:</p>
+<ul>
+<li><strong>m + a<sub>33</sub></strong>: 질량 + heave 방향 added mass. Foilborne 에서 hull 이 수면 위에 있으므로
+    a<sub>33</sub> ≈ 0.05·m (보수적 추정). hull-borne 대비 매우 작음 → 응답이 빠름.</li>
+<li><strong>I<sub>yy</sub> + a<sub>55</sub></strong>: pitch moment of inertia + added inertia.</li>
+<li><strong>L<sub>f</sub>, L<sub>r</sub></strong>: 전·후 foil lift (다음 절에서 자세히).</li>
+<li><strong>x<sub>f</sub> = +2.0, x<sub>r</sub> = −2.5</strong>: CG 기준 좌표. 전방 + lift 는 nose-up,
+    후방 + lift 는 nose-down 모멘트.</li>
+<li><strong>B<sub>z</sub> = 50 N·s/m, B<sub>θ</sub> = 20 N·m·s/rad</strong>:
+    구조적·기생 damping. foil lift slope (\(C_{L\alpha}\)) 가 이미 hydrodynamic damping 을 자연 제공하므로,
+    여기는 strut drag + 구조 dissipation 만 표시.</li>
+</ul>
+
+<div class="why-box">
+Damping 항이 작은 이유:<br>
+foilborne 에서 가장 큰 damping 은 hydrodynamic — 즉 <em>z_dot 이 발생하면 foil 의 effective AoA 가 −z_dot/V 만큼 감소</em>해서
+lift 가 자동으로 줄어드는 효과 (다음 절 참조). 이 항은 lift 식 안에 이미 들어있으므로,
+B<sub>z</sub>, B<sub>θ</sub> 는 strut/스트럭처 drag 의 작은 잔여만 표현.
+</div>
+
+<h3>3.3 상태 벡터</h3>
+<p>4 차원 상태 벡터로 1 차 ODE 시스템 변환:</p>
+<pre><code>state = [z, θ, z_dot, θ_dot]ᵀ
+state_dot = [z_dot, θ_dot, z_ddot, θ_ddot]ᵀ</code></pre>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec4">4. Foil 유체역학 — Lift, Drag, Submergence, Ventilation</h2>
+
+<h3>4.1 기본 lift/drag 식</h3>
+<pre><code>L = ½·ρ·V² · S · C_L(α)
+D = ½·ρ·V² · S · C_D(α)
+where  C_L(α) = C_Lα · (α − α_zl),   clipped at ±C_L,max
+       C_D    = C_D0 + C_L² / (π·AR·e)   ← drag polar</code></pre>
+
+<table>
+<tr><th>기호</th><th>설명</th><th>본 연구 값</th></tr>
+<tr><td>ρ</td><td>해수 밀도</td><td>1025 kg/m³</td></tr>
+<tr><td>V</td><td>flow 속도 (≈ vessel speed)</td><td>11.3 m/s</td></tr>
+<tr><td>S = b·c</td><td>planform 면적</td><td>전방 0.36 m², 후방 0.18 m²</td></tr>
+<tr><td>AR = b/c</td><td>aspect ratio</td><td>전방 9, 후방 8</td></tr>
+<tr><td>C_Lα</td><td>lift slope (per rad)</td><td>2π × 0.85 ≈ 5.34 (전방), 2π × 0.80 ≈ 5.03 (후방)</td></tr>
+<tr><td>C_L,max</td><td>stall 한계</td><td>1.2 (NACA 63-series 일반값)</td></tr>
+<tr><td>C_D0</td><td>zero-lift drag</td><td>0.008 (전방), 0.010 (후방)</td></tr>
+<tr><td>e</td><td>Oswald efficiency</td><td>0.85</td></tr>
+<tr><td>α_zl</td><td>zero-lift AoA</td><td>(trim 계산에서 결정 — 다음 절)</td></tr>
+</table>
+
+<div class="why-box">
+NACA 63-series 채택 이유:<br>
+• 1940s 이래 가장 잘 측정된 airfoil family (Abbott & von Doenhoff 1959)<br>
+• Lift slope 2π·k_AR (k_AR ≈ AR/(AR+2)) 의 finite-span 보정이 유효<br>
+• 적당한 두께/캠버로 cavitation 시작 점이 V > 15 m/s 부근 — 본 연구 11.3 m/s 에서 안전
+</div>
+
+<h3>4.2 Trim α<sub>zl</sub> 자동 결정</h3>
+<p>α = 0 (vessel level) 일 때 자동으로 lift = mg, moment balance = 0 이 되도록 design 단계에서
+α<sub>zl</sub> 을 결정한다. 이는 controller 입장에서 "외란 없으면 flap = 0" 의 nominal point 를 만든다.</p>
+
+<pre><code>From force balance:    L_f + L_r = m·g
+From moment balance:   L_f · x_f + L_r · x_r = 0
+
+→ L_f = m·g · (−x_r) / (x_f − x_r) = m·g · 2.5 / 4.5 ≈ 0.556 m·g  ← 56% 분담
+  L_r = m·g ·   x_f  / (x_f − x_r) = m·g · 2.0 / 4.5 ≈ 0.444 m·g  ← 44% 분담
+
+각 foil 에서 required CL → required α → α_zl = −α_required (zero-lift offset 으로 흡수)</code></pre>
+
+<div class="key-point">
+이 design step 의 의미: <em>"foil 자체가 hull weight 를 안정적으로 지지하도록 설계되어 있고,
+controller 는 외란만 보상한다"</em>는 separation of concerns. Controller bug 가 있어도 vessel 은
+trim 상태에서 자연 안정.
+</div>
+
+<h3>4.3 Submergence Factor σ(h) — Free Surface Effect</h3>
+<p>Foil 이 수면 가까이 가면 lift 가 떨어진다. 이는 (a) free surface 가 foil 위 압력을 외기로 풀어버리고
+(b) 너무 얕으면 air 가 foil 표면으로 빨려 들어와 (ventilation) 양력을 망친다.</p>
+
+<pre><code>σ(h) = 1.0           if h/c ≥ 2.0   (deep, no FSE)
+       0.7 + 0.3·(h/c − 0.5)/1.5  if h/c ∈ [0.5, 2.0]   (gradual degradation)
+       0.7 · (h/c)/0.5            if h/c ∈ [0.0, 0.5]   (ventilation risk zone)
+       0.0                          if h ≤ 0           (foil 이 수면 위로 노출)
+
+L_corrected = ½ρV²·S·C_L · σ(h)</code></pre>
+
+<div class="warning">
+σ(h) = 0 (foil breach) 가 발생하면 catastrophic — 한 foil 의 lift 가 0 이 되면서 vessel 이
+non-foilborne 으로 떨어짐 (selfbore). 이걸 피하기 위해 controller 는 foil 깊이를 항상
+chord 의 0.5 배 이상으로 유지하도록 설계.
+</div>
+
+<div class="why-box">
+σ(h) 모델 단순화 근거:<br>
+• Faltinsen (2005, Ch.7) 의 free-surface proximity 결과를 piecewise linear approximation<br>
+• 정확한 모델은 fully-nonlinear potential flow + Kelvin wake — 본 연구 scope 밖<br>
+• 이 단순화는 controller robustness 분석에 충분 (실제 σ 보다 보수적으로 lift 감소시킴)
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec5">5. Effective Angle of Attack — 5 가지 기여 항</h2>
+
+<p>각 foil 에서 실제 lift 를 결정하는 effective AoA 는 5 가지 항의 합:</p>
+
+\[
+\alpha_{\text{eff}} = \underbrace{\theta}_{\text{(1) pitch}}
+  \underbrace{- \tfrac{\dot z}{V}}_{\text{(2) heave rate}}
+  \underbrace{- \tfrac{\dot\theta\, x_{\text{foil}}}{V}}_{\text{(3) pitch rate}}
+  \underbrace{- \tfrac{w}{V}}_{\text{(4) wave orbital vel.}}
+  \underbrace{- \tfrac{\partial\eta}{\partial x_b}}_{\text{(5) wave slope}}
+\]
+
+<table>
+<tr><th>#</th><th>항</th><th>물리적 의미</th><th>제어 처리</th></tr>
+<tr><td>1</td><td>θ</td><td>vessel 이 nose-up 이면 foil 도 nose-up → AoA 증가</td><td>State-dependent → PD feedback</td></tr>
+<tr><td>2</td><td>−ż/V</td><td>vessel 이 위로 솟으면 foil 이 상대 flow 와 만나는 각도 감소 (자연 damping)</td><td>State-dependent → PD feedback</td></tr>
+<tr><td>3</td><td>−θ̇·x/V</td><td>pitch rate 가 foil 위치에서 induced velocity 발생</td><td>State-dependent → PD feedback</td></tr>
+<tr><td>4</td><td>−w/V</td><td>파도 orbital motion (수직 속도 ∂η/∂t) 이 induced angle</td><td><strong>외란 → FF preview</strong></td></tr>
+<tr><td>5</td><td>−∂η/∂x</td><td>파면 자체가 기울어 있으면 그 위 흐름도 기울어짐</td><td><strong>외란 → FF preview</strong></td></tr>
+</table>
+
+<div class="key-point">
+항 (4), (5) 만이 vessel state 와 무관한 외란 — 이 둘이 feedforward 가 미리 보상해야 할 대상.
+나머지 (1), (2), (3) 은 state-dependent 이므로 PD feedback 으로 충분히 처리 가능.
+</div>
+
+<div class="why-box">
+"−ż/V" 항이 자연 damping 의 핵심:<br>
+vessel 이 위로 빠르게 움직이면 (ż > 0), foil 입장에서는 상대 flow 가 위에서 비스듬히 들어오는
+것으로 보이고 → AoA 감소 → lift 감소 → vessel 이 다시 내려옴. 이게 외부 damping 없이도
+foilborne 이 안정한 본질적 이유. controller 는 이 자연 damping 을 보강만 해주면 됨.
+</div>
+
+<h3>5.1 Wave slope ∂η/∂x<sub>b</sub> — body-frame 보정</h3>
+<p>Vessel heading <span class="symbol">ψ</span>이 0 이 아니면, x-축 방향 wave slope 는 inertial 좌표의 ∂η/∂x 와 ∂η/∂y 의 조합:</p>
+\[
+\partial\eta/\partial x_b = (\partial\eta/\partial x)\cos\psi + (\partial\eta/\partial y)\sin\psi
+\]
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec6">6. 파동 외란 + Encounter Frequency</h2>
+
+<h3>6.1 Wave field 표현</h3>
+<p>WaveSplat 과 같은 spectral 표현 — N 개의 plane wave 의 가중합:</p>
+\[
+\eta(x,y,t) = \sum_{i=1}^{N} A_i \cos(k_{x,i}\,x + k_{y,i}\,y - \omega_i\,t + \varphi_i)
+\]
+<p>각도 주파수는 dispersion 으로 강제 (Holthuijsen 2007):</p>
+\[
+\omega_i = \sqrt{g\,|\mathbf{k}_i|\,\tanh(|\mathbf{k}_i|\,d)},\quad d = 50\text{ m}
+\]
+
+<h3>6.2 Slope, vertical velocity 해석적 계산</h3>
+<pre><code>∂η/∂x = −Σ A_i · k_x,i · sin(k_x,i x + k_y,i y − ω_i t + φ_i)
+∂η/∂y = −Σ A_i · k_y,i · sin(...)
+∂η/∂t =  Σ A_i · ω_i  · sin(...)</code></pre>
+
+<div class="key-point">
+Spectral 표현의 결정적 장점: 이 세 가지 양 (η, slope, w) 모두를 <em>임의 (x, y, t) 점에서 해석적으로
+계산</em>할 수 있다. ETKF 같은 grid 표현은 격자 보간 + 수치 미분이 필요해서 noise 누적이 큼.
+</div>
+
+<h3>6.3 Encounter Frequency</h3>
+<p>Vessel 이 V 로 움직이면 fixed point 의 wave frequency 와 vessel 이 만나는 frequency 가 다르다:</p>
+\[
+\omega_e = \omega - k\,V\cos\mu
+\]
+<p>where μ 는 wave 진행 방향과 vessel heading 사이 각도.</p>
+
+<table>
+<tr><th>μ (rad)</th><th>해상 명칭</th><th>ω<sub>e</sub> 비교</th><th>제어 의미</th></tr>
+<tr><td>0</td><td>Following sea (선미파)</td><td>ω<sub>e</sub> &lt; ω</td><td>encounter 가 느림 → FF preview 길이 짧아도 OK</td></tr>
+<tr><td>π/2</td><td>Beam sea (횡파)</td><td>ω<sub>e</sub> = ω</td><td>vessel 이 wave 와 평행 이동 — preview 가장 길어야 효과적</td></tr>
+<tr><td>π</td><td>Head sea (선수파)</td><td>ω<sub>e</sub> &gt; ω</td><td>가장 빠른 encounter — preview 짧게도 충분</td></tr>
+</table>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec7">7. PD Feedback Controller — Collective/Differential 분해</h2>
+
+<h3>7.1 왜 PD (PID 가 아니라)</h3>
+<p>제어 변수는 z (heave), θ (pitch). 적분 항 (I) 이 빠진 이유:</p>
+<ul>
+<li><strong>Steady-state error 가 본질적으로 작음</strong>: foil 의 자연 damping (−ż/V) 이 이미 강하고,
+    trim α<sub>zl</sub> 가 design 으로 zero-error 보장</li>
+<li><strong>Integral windup 위험</strong>: actuator saturation (±15°) 가 자주 발생할 수 있는 환경에서
+    integral 항은 wind-up 을 일으켜 transient 악화</li>
+<li><strong>Wave 외란은 zero-mean</strong>: 시간 평균이 0 이므로 integral 누적 의미 없음</li>
+</ul>
+
+<h3>7.2 Collective + Differential 분해</h3>
+<p>두 foil 을 독립으로 다루는 대신, 두 가지 mode 로 분해해서 직관적으로 제어:</p>
+
+<pre><code>delta_collective (δ_c)  =  −K_p,z · z   −  K_d,z · z_dot       ← heave 제어
+delta_differential (δ_d) =   K_p,θ · θ   +  K_d,θ · θ_dot      ← pitch 제어
+
+flap commands:
+  delta_front = δ_c − δ_d
+  delta_rear  = δ_c + δ_d</code></pre>
+
+<table>
+<tr><th>Gain</th><th>값</th><th>의미</th></tr>
+<tr><td>K_p,z</td><td>0.8 [rad/m]</td><td>heave error 1m → flap 0.8 rad (saturation 도달 직전)</td></tr>
+<tr><td>K_d,z</td><td>0.3 [rad·s/m]</td><td>heave 속도 댐핑 비율 ζ ≈ 0.6 목표</td></tr>
+<tr><td>K_p,θ</td><td>4.0 [rad/rad]</td><td>pitch 1° → flap 4° (좀 더 강하게 — pitch 가 lift 에 더 sensitive)</td></tr>
+<tr><td>K_d,θ</td><td>1.5 [rad·s/rad]</td><td>pitch 댐핑 ζ ≈ 0.7 목표</td></tr>
+<tr><td>δ_max</td><td>0.26 rad (15°)</td><td>servo physical limit + post-stall 회피</td></tr>
+</table>
+
+<div class="why-box">
+Collective + differential 분해의 장점:
+<ul>
+<li>물리적으로 분리된 두 mode (heave / pitch) 가 두 actuator (전·후 foil) 에 깔끔하게 매핑됨</li>
+<li>Tuning 이 직관적: heave 응답이 느리면 K_z ↑, pitch overshoot 이면 K_d,θ ↑ — 단순</li>
+<li>Tandem foil 의 cross-coupling (전방 lift 변화가 pitch moment 도 만듦) 이 자연스럽게 처리</li>
+<li>2×2 MIMO 형태로 LQR 설계도 가능 — 다만 PD 로 충분한 성능 + tuning 단순성 우선</li>
+</ul>
+</div>
+
+<h3>7.3 Saturation 처리</h3>
+<pre><code>delta_front = clip(delta_front, −0.26, +0.26)
+delta_rear  = clip(delta_rear,  −0.26, +0.26)</code></pre>
+<p>±15° 는 (a) servo physical limit, (b) post-stall AoA 회피 (C_L,max = 1.2) 의 두 이유로 결정.
+saturation 시 차분 (δ_d) 가 priority — pitch 안정이 heave 보다 critical (foilborne 유지 위해).</p>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec8">8. Wave-Preview Feedforward — 핵심 설계 결정</h2>
+
+<h3>8.1 Preview 위치 계산</h3>
+<p>Vessel 이 V 로 움직이므로, "현재 시점에 Δt 후 foil 이 도달할 위치" 의 wave 를 미리 평가:</p>
+
+\[
+x_{\text{preview}} = x_{\text{foil}} + V \cdot \Delta t_{\text{prev}}
+\]
+
+<pre><code># pseudocode
+x_preview_front = x_cg + x_front · cos(ψ) + V · Δt · cos(ψ)
+y_preview_front = x_front · sin(ψ) + V · Δt · sin(ψ)
+slope_preview_x = ∂η/∂x evaluated at (x_preview, y_preview, t_now)</code></pre>
+
+<div class="key-point">
+"공간 preview" 라는 것이 핵심: 시간을 미루지 않고 (t = t_now 그대로), <em>공간상 앞쪽</em>의 wave 를
+지금 바로 계산. 이는 wave 가 V 로 vessel 에 다가오는 효과와 등가 (Galilean 변환).
+</div>
+
+<h3>8.2 Raw FF 명령 — Wave AoA 보상</h3>
+<p>Preview 위치에서 wave 가 만들 effective AoA 변화량:</p>
+\[
+\alpha_{\text{wave}} = -\partial\eta/\partial x - w/V
+\]
+<p>그 반대 부호로 flap 을 미리 deflect:</p>
+\[
+\delta_{\text{ff}} = -K_{\text{ff}} \cdot \alpha_{\text{wave}}
+\]
+
+<table>
+<tr><th>파라미터</th><th>값</th><th>의미</th></tr>
+<tr><td>K_ff</td><td>0.8 (1.0 아님)</td><td>under-compensation — 추정 오차 대응</td></tr>
+<tr><td>Δt_preview</td><td>0.1~0.3 s</td><td>vessel speed × Δt = 1~3 m 전방</td></tr>
+<tr><td>LP filter α</td><td>0.05</td><td>fc ≈ 0.8 Hz cutoff @ dt=0.01s</td></tr>
+</table>
+
+<div class="why-box">
+K<sub>ff</sub> = 0.8 인 이유 (1.0 이 아니라):
+<ul>
+<li>완전 보상 (K = 1) 시 추정 오차 + actuator dynamics 지연 → over-correction → oscillation</li>
+<li>0.8 은 sensitivity sweep 에서 robust 영역의 중심 (0.6~0.9 모두 유효, 0.8 이 명목값)</li>
+<li>Linear quadratic 관점: process noise + measurement noise 조합에서 optimal 해석 K* &lt; 1</li>
+<li>Foil actual lift slope vs ideal slope 비 ≈ 0.85 (model mismatch) → K ≈ 0.85 가 자연스러움</li>
+</ul>
+</div>
+
+<h3>8.3 IIR Low-Pass Filter — 추정 노이즈 억제</h3>
+<p>WaveSplat 추정에는 노이즈가 있음. Raw FF 신호를 그대로 actuator 로 보내면 high-freq jitter 가 발생.
+1 차 IIR low-pass filter 로 smoothing:</p>
+
+<pre><code>y[n] = α · x[n] + (1 − α) · y[n−1]
+
+α = 0.05  →  effective cutoff fc ≈ α / (2π · dt) ≈ 0.8 Hz
+                     (dt = 0.01 s, sampling 100 Hz)</code></pre>
+
+<div class="why-box">
+fc = 0.8 Hz 선택 이유:
+<ul>
+<li>파도 주기 4~7 s → wave 주파수 0.14~0.25 Hz: pass-band 에 위치 (왜곡 없이 통과)</li>
+<li>WaveSplat 추정 노이즈는 주로 1 Hz 이상 high-freq → stop-band 에서 −20 dB attenuation</li>
+<li>Servo bandwidth (≈ 5 Hz) 보다 훨씬 낮음 → actuator 가 추적 가능</li>
+</ul>
+</div>
+
+<h3>8.4 PD + FF 합산 + Saturation</h3>
+<pre><code>raw_ff_front = −K_ff · (−slope_pre_front − w_pre_front / V)
+raw_ff_rear  = −K_ff · (−slope_pre_rear  − w_pre_rear  / V)
+
+filtered_ff_front, filtered_ff_rear = LP_filter(raw_ff)
+
+flap_front = clip(δ_c − δ_d + filtered_ff_front, −0.26, +0.26)
+flap_rear  = clip(δ_c + δ_d + filtered_ff_rear,  −0.26, +0.26)</code></pre>
+
+<div class="key-point">
+PD 와 FF 가 <em>합산</em>되는 이유: FF 가 100% 정확하면 PD 는 거의 0 이 되어야 정상이지만,
+실제로는 FF 추정 오차 + 모델링 안 된 외란 (current, wind) 이 있으므로 PD 가 잔존 오차를 처리.
+즉 FF 는 "주된 외란 미리 보상", PD 는 "잔여 오차 + safety net" 역할.
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec9">9. 수치 적분 — RK4 + FF Filter 타이밍</h2>
+
+<h3>9.1 RK4 4 차 Runge-Kutta</h3>
+<p>비선형 ODE 를 dt = 0.01 s (100 Hz) 로 적분.</p>
+<pre><code>k1 = f(y_n, t_n)
+k2 = f(y_n + dt/2 · k1, t_n + dt/2)
+k3 = f(y_n + dt/2 · k2, t_n + dt/2)
+k4 = f(y_n + dt · k3, t_n + dt)
+y_{n+1} = y_n + (dt/6) · (k1 + 2k2 + 2k3 + k4)</code></pre>
+
+<div class="why-box">
+RK4 채택 이유:
+<ul>
+<li>Stiffness 가 낮음 (가장 빠른 mode = pitch ~ 2 Hz, dt = 0.01 s 로 100× oversampling)</li>
+<li>4th-order 정확도로 dt = 0.01 s 면 accumulated error 가 simulation 시간 30 s 동안 ~10⁻⁴ 수준</li>
+<li>Implicit method 불필요 (stiff 가 아니므로) → 계산 비용 ↓</li>
+</ul>
+</div>
+
+<h3>9.2 FF Filter 의 critical timing</h3>
+<div class="warning">
+구현 함정: <em>RK4 의 4 substep 안에서 FF filter 를 호출하면</em> filter state 가 4 번 update 되어
+effective filter bandwidth 가 4× 변경됨 → 잘못된 결과.
+</div>
+
+<p>해결: <strong>FF 필터는 main timestep 당 한 번만 호출, RK4 substep 에서는 fixed offset 으로 사용</strong>:</p>
+
+<pre><code># main loop (per dt = 0.01 s)
+ff_info = compute_preview(state, t_now)          # 한 번
+raw_ff = compute_raw_ff(ff_info)                  # 한 번
+filtered_ff = LP_filter.update(raw_ff)            # 한 번 (filter state advance)
+
+# RK4 substeps — filtered_ff 를 fixed value 로 사용
+for substep in [k1, k2, k3, k4]:
+    state_substep = ...
+    pd_command = compute_pd(state_substep)         # PD 만 substep 마다 재계산
+    flap = pd_command + filtered_ff                # FF 는 고정
+    derivative = compute_dynamics(state_substep, flap, ...)
+</code></pre>
+
+<div class="key-point">
+이 분리는 paper Section 4.6 에서 강조한 "feedforward signal is low-pass filtered once per main timestep
+and passed as a fixed offset" 의 구체적 implementation. 같은 LP filter coefficient 로 다른 결과가 나오면
+이 점을 의심해야 함.
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec10">10. 설계 결정 한눈에 보기 — Why 정리표</h2>
+
+<table>
+<tr><th>설계 결정</th><th>대안</th><th>채택 이유</th></tr>
+<tr><td>2-DOF (heave + pitch)</td><td>6-DOF</td><td>승차감 (ISO 2631) 핵심 = vertical accel; roll 은 자연 안정 + 별도 foil</td></tr>
+<tr><td>Tandem foil</td><td>Single canard</td><td>moment arm + load split 자유도 → trim 안정</td></tr>
+<tr><td>NACA 63-series</td><td>NACA 4/5-digit</td><td>Cavitation 영역이 V > 15 m/s 까지 안전 + 잘 알려진 데이터</td></tr>
+<tr><td>PD (PID 아님)</td><td>PID</td><td>integral windup 회피 + zero-mean wave 외란 → I 항 의미 없음</td></tr>
+<tr><td>Collective + diff 분해</td><td>independent foil PID</td><td>physical mode 분리 → tuning 직관적</td></tr>
+<tr><td>K_ff = 0.8</td><td>K_ff = 1.0</td><td>추정 오차 + actuator delay 대응 under-compensation</td></tr>
+<tr><td>IIR LP filter (1st order)</td><td>FIR / no filter</td><td>computational cost 최소 + 추정 노이즈 충분히 억제</td></tr>
+<tr><td>Δt_preview = 0.1~0.3 s</td><td>0.5+ s</td><td>preview 길수록 추정 부정확 → 짧을수록 안전 (Sec 8 sweep 결과)</td></tr>
+<tr><td>RK4 + dt = 0.01 s</td><td>Implicit / shorter dt</td><td>stiffness 낮음 → explicit RK4 충분 + 계산 비용 ↓</td></tr>
+<tr><td>FF filter 1×/timestep</td><td>filter in each RK4 substep</td><td>filter bandwidth 일관성 유지</td></tr>
+<tr><td>±15° saturation</td><td>±30°</td><td>servo physical limit + post-stall 회피</td></tr>
+<tr><td>α_zl auto-tuned trim</td><td>fixed α_zl</td><td>controller 부담 분리 — design 단계에서 weight balance</td></tr>
+</table>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec11">11. 한계와 확장 방향</h2>
+
+<h3>현재 한계</h3>
+<ul>
+<li><strong>Linear lift model</strong>: stall (C_L,max clamp) 외엔 모든 영역 linear. 실제는 thick boundary
+    layer 영역에서 nonlinear 가 약간 있음.</li>
+<li><strong>Constant V 가정</strong>: surge 무시. 추진력 변동 (waste-gate, throttle) 미모델.</li>
+<li><strong>2D 만 고려</strong>: oblique sea (μ ≠ 0, π) 에서 roll·yaw coupling 무시.</li>
+<li><strong>Ventilation 단순 모델</strong>: σ(h) 가 piecewise linear. 실제는 air entrainment dynamics 가 nonlinear.</li>
+<li><strong>Strut drag 미모델</strong>: foil 을 hull 에 연결하는 strut 의 wave-piercing drag 가 별도 효과
+    (현재 B<sub>z</sub>, B<sub>θ</sub> 에 lumped).</li>
+</ul>
+
+<h3>확장 가능 방향</h3>
+<ul>
+<li><strong>MPC (Model Predictive Control)</strong>: PD + FF 대신 finite horizon optimal control —
+    K_ff, Δt_preview 자동 최적화 + actuator constraint 직접 반영.</li>
+<li><strong>Adaptive K_ff</strong>: WaveSplat 의 nRMSE estimate 를 받아서 K_ff 를 실시간 조절.</li>
+<li><strong>3-DOF (heave + pitch + roll)</strong>: oblique sea 에서 roll-foil 의 FF 도 함께 설계.</li>
+<li><strong>Cavitation-aware control</strong>: foil 압력 분포 모델 + cavitation 회피 constraint 추가.</li>
+<li><strong>Sim-to-real</strong>: NEUBOAT / Candela C-8 실선 시험 데이터로 model 보정.</li>
+</ul>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec12">12. Glossary — 비전공자용 용어 정리</h2>
+
+<div class="glossary"><strong>AoA (Angle of Attack, 받음각)</strong>: foil chord 와 incoming flow 사이 각도. lift 의 선형 함수.</div>
+<div class="glossary"><strong>Foilborne</strong>: foil lift 가 부력을 대체해 hull 이 수면 위로 부상한 운항 모드.</div>
+<div class="glossary"><strong>Hull-borne</strong>: foilborne 이전 일반 항해 모드 — hull 이 부력으로 떠 있음.</div>
+<div class="glossary"><strong>Selfbore</strong>: foilborne 에서 lift 부족으로 hull 이 다시 수면에 닿는 사건. 승차감 급변 + 추진 손실.</div>
+<div class="glossary"><strong>Cavitation</strong>: foil 표면 저압 영역에서 물이 vapor 로 변하는 현상. lift 손실 + erosion 유발.</div>
+<div class="glossary"><strong>Ventilation</strong>: foil 이 수면 가까울 때 air 가 foil 표면으로 빨려 들어와 lift 가 무너짐.</div>
+<div class="glossary"><strong>Free-surface effect</strong>: foil 이 수면 가까이 갈수록 수면 위 압력이 외기로 빠져나가 lift 가 감소하는 현상.</div>
+<div class="glossary"><strong>Tandem foil</strong>: 전방·후방 두 foil 을 분리 배치. moment balance 자유도 + 안정성.</div>
+<div class="glossary"><strong>Inverted-T foil</strong>: 위에서 보면 T 자, 단 stem 이 위를 향한 형태. 전방 foil 흔한 layout.</div>
+<div class="glossary"><strong>T-foil</strong>: 일반 T 자 형태. 후방 stabilizer 로 흔히 사용.</div>
+<div class="glossary"><strong>NACA 63-series</strong>: NACA 가 1940s 에 정의한 airfoil family. Cavitation 시작 영역이 비교적 늦어 hydrofoil 에 적합.</div>
+<div class="glossary"><strong>Aspect ratio (AR)</strong>: 날개 폭 / 코드 비. 클수록 induced drag ↓, lift slope ↑.</div>
+<div class="glossary"><strong>Lift slope (C_Lα)</strong>: AoA 단위 (rad) 당 lift 계수 증가율. 2D 이론값 = 2π, 3D finite-span 보정으로 작아짐.</div>
+<div class="glossary"><strong>Drag polar</strong>: C_D = C_D0 + C_L²/(π·AR·e). lift 가 클수록 drag 가 quadratic 증가.</div>
+<div class="glossary"><strong>Stall</strong>: AoA 가 너무 크면 flow separation 으로 lift 급감. 본 연구는 C_L,max = 1.2 로 단순 clamp.</div>
+<div class="glossary"><strong>Submergence (h)</strong>: foil quarter-chord 가 수면 아래 깊이. h/c 가 lift 감소 인자.</div>
+<div class="glossary"><strong>Trim</strong>: 외란 없는 평형 상태. 본 연구는 z = θ = 0 에서 lift = mg, moment = 0 자동 만족.</div>
+<div class="glossary"><strong>Heave (z)</strong>: vessel 의 수직 변위. 양수 = 위로.</div>
+<div class="glossary"><strong>Pitch (θ)</strong>: vessel 의 종방향 회전각. 양수 = bow-up.</div>
+<div class="glossary"><strong>Encounter frequency (ω_e)</strong>: 움직이는 vessel 이 만나는 wave 의 겉보기 주파수. ω - kV·cosμ.</div>
+<div class="glossary"><strong>Head/Beam/Following sea</strong>: vessel heading 과 wave 진행 방향이 각각 180°/90°/0°.</div>
+<div class="glossary"><strong>Orbital velocity (w = ∂η/∂t)</strong>: 파도 표면 입자의 수직 속도. foil 에 induced angle 부여.</div>
+<div class="glossary"><strong>Wave slope (∂η/∂x)</strong>: 파면의 기울기. foil 에 직접 AoA 변화 부여.</div>
+<div class="glossary"><strong>Dispersion relation</strong>: ω = √(g|k|·tanh(|k|d)). 파장 ↔ 주기를 잇는 물리 법칙.</div>
+<div class="glossary"><strong>Added mass</strong>: 가속하는 body 가 주변 물을 함께 가속시키는 inertia 추가 효과. foilborne 에서는 작음.</div>
+<div class="glossary"><strong>JONSWAP spectrum</strong>: 1968-69 북해 관측 기반 wind-wave 스펙트럼 모델. peak enhancement γ 로 sharpness 조절.</div>
+<div class="glossary"><strong>Hs (significant wave height)</strong>: 파고 분포의 4σ. "체감 파고".</div>
+<div class="glossary"><strong>Tp (peak period)</strong>: spectrum 이 가장 큰 주파수의 주기 (s).</div>
+<div class="glossary"><strong>Beaufort scale (BF)</strong>: 풍속 기반 해상 강도. BF2 (Hs ≈ 0.3 m) ~ BF5 (Hs ≈ 2.0 m).</div>
+<div class="glossary"><strong>PD (Proportional-Derivative)</strong>: 에러와 에러 변화율로 제어. integral 항 없음.</div>
+<div class="glossary"><strong>PID</strong>: PD + integral 항. steady-state error 제거에 유리하나 windup 위험.</div>
+<div class="glossary"><strong>Feedforward (FF)</strong>: 외란을 미리 알고 보상. feedback 의 phase 지연 회피.</div>
+<div class="glossary"><strong>Preview control</strong>: 미래 외란 정보를 사용한 FF. vehicle suspension 의 road preview, hydrofoil 의 wave preview 등.</div>
+<div class="glossary"><strong>Saturation</strong>: actuator 가 물리 한계에 도달해 더 이상 출력을 늘릴 수 없는 상태.</div>
+<div class="glossary"><strong>IIR (Infinite Impulse Response)</strong>: 과거 출력을 사용하는 디지털 필터. 1 차 IIR = exponential smoothing.</div>
+<div class="glossary"><strong>Cutoff frequency (fc)</strong>: 필터의 −3 dB 통과 한계. 본 연구 LP filter fc ≈ 0.8 Hz.</div>
+<div class="glossary"><strong>RK4 (Runge-Kutta 4)</strong>: 4 차 정확도의 명시적 ODE 적분. 본 연구는 100 Hz (dt = 0.01 s).</div>
+<div class="glossary"><strong>aRMS</strong>: vertical acceleration 의 RMS 값. ISO 2631 승차감 기준 [m/s²].</div>
+<div class="glossary"><strong>ISO 2631</strong>: 인체 vibration 노출 평가 표준. < 0.315 Comfortable, 0.315~0.63 Slight discomfort 등.</div>
+<div class="glossary"><strong>Wind-up</strong>: integral 항이 saturation 동안 계속 누적되어 actuator 가 풀려도 한참 떨어지지 않는 현상.</div>
+
+<hr style="margin: 3rem 0; border: 0; border-top: 2px solid #c05317;">
+<p style="text-align: center; color: #6b7280; font-size: 0.9em;">
+WaveSplat 응용 연구 — Hydrofoil 동역학 + 제어 학습 자료<br>
+저자: 박세용 (Saeyong Park), Avikus·HD현대 / SNU Towing Tank<br>
+Source: <code>wavesplat/hydrofoil/</code> + <code>hydrofoil/paper/hydrofoil_feedforward.tex</code>
+</p>
+
+</body>
+</html>

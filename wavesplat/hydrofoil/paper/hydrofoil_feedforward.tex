@@ -976,6 +976,145 @@ scale of wave-foil interaction (chord-scale, $\sim$0.2~m) rather
 than by the preview distance itself.
 
 % ============================================================================
+\section{Comparison with Single-Point Bow Sensor}
+\label{sec:single_point}
+
+Commercial hydrofoil vessels such as the Candela C-8 already deploy a
+single downward-facing bow sensor (ultrasonic or sonar) that measures
+wave elevation at one spatial point ahead of the vessel and feeds the
+measurement directly into the ride controller~\citep{candela2023}.
+A natural question is: \emph{is the complexity of a shipboard LiDAR and
+full spectral estimation necessary, or does a simpler single-point sensor
+achieve comparable feedforward benefit?}
+
+We address this by comparing two single-point baselines against WaveSplat.
+
+\subsection{Single-point sensor models}
+
+\paragraph{SP-1pt (best-case single-point).}
+We evaluate GT wave components analytically at a \emph{single} spatial
+preview point ($x_\text{CG} + V \Delta t_\text{prev}$) and apply the
+resulting slope and orbital-velocity signals identically to both front
+and rear foils.  This represents the theoretical upper bound for any
+single-point sensor regardless of measurement quality: it has no
+estimation noise but cannot discriminate per-foil wave phase.
+
+\paragraph{SP-temporal (realistic bow sensor).}
+We simulate a noisy bow elevation sensor ($\sigma = 0.02$~m) located
+at $x_\text{CG} + 4.0$~m (bow position on the Candela C-8 reference
+vessel).  Wave slope is estimated from the temporal derivative via the
+head-sea assumption:
+\begin{equation}
+  \frac{\partial\eta}{\partial x_b} \approx -\frac{1}{c_p} \frac{\partial\eta}{\partial t},
+  \quad c_p = \frac{\omega_p}{k_p} \text{ (dispersion at peak period)}
+  \label{eq:headseaassump}
+\end{equation}
+This is the dominant operating mode for a realistic bow sensor.
+Equation~\eqref{eq:headseaassump} holds when the wave propagates along
+the vessel heading (\emph{head sea}), but introduces a systematic error
+proportional to $\sin\mu$ for oblique/beam seas.
+
+Both baselines apply the same LP filter ($\alpha = 0.05$) and
+feedforward gain ($K_\text{ff} = 0.8$) as the WaveSplat strategy.
+
+\subsection{Results}
+
+Table~\ref{tab:single_point} summarises $a_\text{RMS}$ improvements
+over PD-only for all four sea-state scenarios.
+
+\begin{table}[t]
+\centering
+\caption{Heave acceleration RMS improvement (\%) over PD-only baseline,
+  averaged over $N{=}5$ random wave realisations (seeds 0--3 and 42).
+  Negative values indicate degradation.  SP-1pt/GT\% is the ratio of
+  mean SP-1pt to mean GT-FF improvement, indicating what fraction of the
+  theoretical maximum single-point recovers.  Standard deviations across
+  seeds are given in parentheses.}
+\label{tab:single_point}
+\begin{tabular}{lrrrrr}
+\toprule
+Scenario & GT-FF & WS-FF & SP-1pt & SP-temporal & SP-1pt/GT \\
+\midrule
+BF3 Head ($\mu{=}180°$) & $+12.0\ (\pm3.0)$ & $+11.9\ (\pm3.3)$ & $\mathbf{-13.3}\ (\pm0.7)$ & $-0.2\ (\pm1.6)$  & $-111\%$ \\
+BF4 Head ($\mu{=}180°$) & $+9.9\  (\pm1.4)$ & $+10.0\ (\pm1.3)$ & $+7.0\ (\pm1.1)$           & $\approx 0$       & $71\%$   \\
+BF3 Beam ($\mu{=}90°$)  & $+38.4\ (\pm11.0)$& $+33.0\ (\pm11.3)$& $+21.4\ (\pm31.5)$         & $-35.0\ (\pm11.8)$& $56\%$   \\
+BF3 Quarter ($\mu{=}135°$) & $+15.2\ (\pm7.2)$ & $+15.2\ (\pm7.3)$ & $+2.5\ (\pm9.2)$        & $-1.9\ (\pm3.3)$  & $16\%$   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two findings stand out.
+
+\paragraph{SP-1pt degrades in short-period head sea.}
+For BF3 head sea (Tp\,=\,5~s, $\lambda \approx 39$~m), SP-1pt produces
+a \emph{mean 13.3\% degradation} in acceleration RMS (std $\pm 0.7\%$
+across five wave realisations), consistently worse than PD-only.
+The cause is the \emph{per-foil phase mismatch}: applying a single
+preview-point signal to both foils introduces a phase error of
+$2\pi \times 2.25\,/\,39 \approx 21^\circ$ per foil relative to the
+actual wave at each foil position, which drives the feedforward partially
+against the wave, amplifying rather than damping the disturbance.
+This degradation is highly repeatable across seeds (std 0.7\%), confirming
+it is a structural limitation independent of wave realisation.
+
+For BF4 (Tp\,=\,7.5~s, $\lambda \approx 88$~m) the phase mismatch reduces
+to $\approx 10^\circ$ and SP-1pt recovers 71\% of GT-FF benefit on average.
+
+Crucially, \emph{this limitation cannot be resolved by better sensors}:
+it is a fundamental consequence of providing the same signal to two foils
+separated by 4.5~m in a wave field with $\lambda \approx 39$~m.
+WaveSplat, by evaluating each foil's preview point independently in the
+estimated spectral model, avoids this phase conflict entirely.
+
+\paragraph{SP-temporal fails in beam sea.}
+The head-sea slope assumption (Eq.~\ref{eq:headseaassump}) inverts the
+slope sign for beam/oblique seas.  In BF3 beam sea, the body-frame
+longitudinal slope $\partial\eta/\partial x_b \approx 0$ (wave travels
+laterally), but SP-temporal injects a non-zero slope estimate
+$-w/c_p \neq 0$, effectively adding a spurious feedforward term that
+amplifies heave by \emph{mean $-35.0\%$} over PD-only (std $\pm 11.8\%$).
+For quarter sea ($\mu = 135^\circ$) the mean degradation is $-1.9\%$.
+This failure is consistent across all seeds.
+
+\paragraph{SP-1pt in beam sea: unreliable due to directional spreading.}
+With directional spreading ($\sigma_\theta = 20^\circ$), even a nominally
+beam sea ($\mu = 90^\circ$) contains components with non-zero $k_x$.
+Depending on how those components phase-align at the two foil positions
+(a function of wave realisation), SP-1pt can benefit or harm.
+Across five realisations, SP-1pt ranges from $-26.6\%$ to $+54.4\%$
+with mean $+21.4\%$ and std $\pm 31.5\%$ — a variance so large
+($\sigma/\mu \approx 1.5$) that the outcome is unpredictable in practice.
+WaveSplat maintains $+33.0\%$ (std $\pm 11.3\%$), benefiting from its
+per-foil spectral evaluation.  Similarly, for quarter sea SP-1pt yields
+only $+2.5\%$ (std $\pm 9.2\%$) vs WaveSplat's $+15.2\%$.
+
+\subsection{Implications for sensor selection}
+
+Table~\ref{tab:single_point} provides clear guidance:
+
+\begin{itemize}
+  \item \emph{Head-sea-only routes with long-period swell} (Tp $> 7$~s):
+    SP-1pt may be acceptable (71\% of GT-FF, std $\pm 1.1\%$); a bow
+    sensor is a practical low-cost option.
+  \item \emph{Short-period head seas} (Tp $\lesssim 5$~s):
+    SP-1pt is \emph{actively harmful} ($-13.3\%$, consistent across seeds).
+    A 2D spectral model is necessary.
+  \item \emph{Beam, oblique, or mixed-heading conditions}:
+    SP-1pt is unpredictable (beam sea std $\pm 31.5\%$) and SP-temporal
+    is reliably harmful ($-35.0\%$).  Only a full 2D spectral model
+    (LiDAR + WaveSplat) achieves consistent and substantial improvement.
+  \item \emph{SP-temporal is not recommended} outside of near-perfect head-sea
+    conditions without real-time direction estimation, which itself requires
+    directional wave field knowledge — the same information WaveSplat provides.
+\end{itemize}
+
+In summary, a single-point bow sensor provides meaningful feedforward benefit
+only under a narrow combination of conditions (head sea, long period).
+For the broad operating envelope of a commercial hydrofoil (mixed headings,
+BF3--BF4 sea states), the per-foil spectral feedforward enabled by
+LiDAR-based wave estimation is necessary to achieve robust ride improvement.
+
+% ============================================================================
 \section{End-to-End Demonstration}
 \label{sec:e2e}
 

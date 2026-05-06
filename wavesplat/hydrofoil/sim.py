@@ -170,7 +170,7 @@ def find_trim(front_foil, rear_foil, hull, sim,
 def run_simulation(cfg, components, vessel_heading=0.0,
                    initial_state=None, find_trim_first=True,
                    controller=None, use_default_controller=True,
-                   feedforward=None):
+                   feedforward=None, ff_info_provider=None):
     """Run hydrofoil simulation.
 
     Args:
@@ -182,6 +182,10 @@ def run_simulation(cfg, components, vessel_heading=0.0,
         controller: PDControllerConfig (None = use default)
         use_default_controller: use default PD if no controller given
         feedforward: FeedforwardConfig (None = PD only)
+        ff_info_provider: optional callable(state, front_foil, rear_foil,
+            sim, components, t, vessel_heading, ff_cfg) -> FeedforwardWaveInfo.
+            If provided, replaces the default _compute_feedforward_info.
+            Used for single-point sensor baselines and custom FF models.
 
     Returns:
         SimResult
@@ -233,9 +237,14 @@ def run_simulation(cfg, components, vessel_heading=0.0,
         ff_delta_front = 0.0
         ff_delta_rear = 0.0
         if ff_cfg and ff_cfg.K_ff > 0:
-            ff_info = _compute_feedforward_info(
-                state, front_foil, rear_foil, sim, components,
-                t, vessel_heading, ff_cfg)
+            if ff_info_provider is not None:
+                ff_info = ff_info_provider(
+                    state, front_foil, rear_foil, sim, components,
+                    t, vessel_heading, ff_cfg)
+            else:
+                ff_info = _compute_feedforward_info(
+                    state, front_foil, rear_foil, sim, components,
+                    t, vessel_heading, ff_cfg)
             # Compute raw FF deltas
             K = ff_cfg.K_ff
             raw_front = -K * (-ff_info.slope_front - ff_info.w_front / sim.speed)

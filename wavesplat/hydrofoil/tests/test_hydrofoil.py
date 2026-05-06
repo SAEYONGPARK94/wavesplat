@@ -288,5 +288,270 @@ class TestEffectiveAlpha:
         assert alpha < 0  # wave slope reduces effective incidence
 
 
+# ============================================================
+# Test 5: Single-point feedforward (SP-1pt)
+# ============================================================
+
+class TestSinglePointFF:
+    """Verify compute_single_point_ff_info behaviour."""
+
+    @staticmethod
+    def _single_wave(A=0.3, T=6.0, direction_deg=180.0, depth=50.0):
+        try:
+            from wavesim.wave_generator import WaveComponent, wavenumber_from_omega
+            omega = 2 * np.pi / T
+            k = wavenumber_from_omega(omega, depth)
+            theta = np.radians(direction_deg)
+            return [WaveComponent(A=A, omega=omega, kx=k*np.cos(theta),
+                                  ky=k*np.sin(theta), phi=0.0, Q=0.0)]
+        except ImportError:
+            from types import SimpleNamespace
+            omega = 2 * np.pi / T
+            k = omega**2 / 9.81
+            theta = np.radians(direction_deg)
+            return [SimpleNamespace(A=A, omega=omega, kx=k*np.cos(theta),
+                                    ky=k*np.sin(theta), phi=0.0, Q=0.0)]
+
+    def test_same_signal_both_foils(self):
+        """SP-1pt must feed identical slope/w to front and rear foils."""
+        from hydrofoil.single_point_ff import compute_single_point_ff_info
+        comps = self._single_wave()
+        info = compute_single_point_ff_info(
+            x_cg=0.0, components=comps, t=1.0,
+            vessel_heading=0.0, speed=11.3, preview_dt=0.3)
+        assert info.slope_front == info.slope_rear
+        assert info.w_front == info.w_rear
+
+    def test_head_sea_slope_and_w_nonzero(self):
+        """Head sea wave should produce nonzero slope and w at preview point."""
+        from hydrofoil.single_point_ff import compute_single_point_ff_info
+        comps = self._single_wave(A=0.5, T=6.0, direction_deg=180.0)
+        # Average over one wave period to avoid phase coincidences
+        values = [compute_single_point_ff_info(
+            x_cg=0.0, components=comps, t=t,
+            vessel_heading=0.0, speed=11.3, preview_dt=0.3)
+                  for t in np.linspace(0, 6.0, 60)]
+        slopes = [v.slope_front for v in values]
+        ws = [v.w_front for v in values]
+        assert np.max(np.abs(slopes)) > 0.01
+        assert np.max(np.abs(ws)) > 0.01
+
+    def test_beam_sea_heading_projection_near_zero(self):
+        """Pure beam sea slope projects to ~0 along vessel heading (x-axis)."""
+        from hydrofoil.single_point_ff import compute_single_point_ff_info
+        comps = self._single_wave(A=0.5, T=6.0, direction_deg=90.0)
+        # Average over time to eliminate phase luck
+        slopes = [compute_single_point_ff_info(
+            x_cg=0.0, components=comps, t=t,
+            vessel_heading=0.0, speed=11.3, preview_dt=0.3).slope_front
+                  for t in np.linspace(0, 6.0, 120)]
+        # For pure beam sea kx=0 → deta/dx=0 → slope=0 always
+        assert np.max(np.abs(slopes)) < 1e-10
+
+    def test_preview_position_uses_cg_not_foil(self):
+        """Preview point should be CG + V*dt, not foil-specific position."""
+        from hydrofoil.single_point_ff import compute_single_point_ff_info
+        from hydrofoil.disturbance import wave_slope_x_at_point
+        comps = self._single_wave(A=0.5, T=5.0, direction_deg=180.0)
+        t, speed, preview_dt = 2.5, 11.3, 0.3
+        x_cg = 50.0
+        info = compute_single_point_ff_info(
+            x_cg=x_cg, components=comps, t=t,
+            vessel_heading=0.0, speed=speed, preview_dt=preview_dt)
+        # Manually compute expected slope at CG+V*dt
+        x_expected = x_cg + speed * preview_dt
+        slope_expected = wave_slope_x_at_point(comps, x_expected, 0.0, t)
+        assert info.slope_front == pytest.approx(slope_expected, abs=1e-12)
+
+
+# ============================================================
+# Test 6: TemporalBowSensor
+# ============================================================
+
+class TestTemporalBowSensor:
+    """Verify TemporalBowSensor behaviour."""
+
+    @staticmethod
+    def _single_wave_pure(A=0.3, T=6.0, direction_deg=180.0):
+        from types import SimpleNamespace
+        omega = 2 * np.pi / T
+        k = omega**2 / 9.81
+        theta = np.radians(direction_deg)
+        return [SimpleNamespace(A=A, omega=omega, kx=k*np.cos(theta),
+                                ky=k*np.sin(theta), phi=0.0, Q=0.0)]
+
+    def test_first_call_returns_zero(self):
+        """Without history, sensor should return zero FF info."""
+        from hydrofoil.single_point_ff import TemporalBowSensor
+        sensor = TemporalBowSensor(dt=0.01, c_phase=8.0, noise_std=0.0)
+        comps = self._single_wave_pure()
+        info = sensor.compute_ff_info(
+            x_cg=0.0, components=comps, t=0.0,
+            vessel_heading=0.0, speed=11.3, preview_dt=0.3)
+        assert info.slope_front == 0.0
+        assert info.w_front == 0.0
+
+    def test_temporal_derivative_tracks_wave(self):
+        """After warm-up, w_est should match wave deta/dt at bow position."""
+        from hydrofoil.single_point_ff import TemporalBowSensor
+        from hydrofoil.disturbance import wave_vertical_velocity_at_point
+        dt = 0.01
+        sensor = TemporalBowSensor(dt=dt, c_phase=8.0, noise_std=0.0,
+                                   bow_offset=4.0)
+        comps = self._single_wave_pure(A=0.3, T=6.0)
+        # Warm up 100 steps
+        for i in range(100):
+            info = sensor.compute_ff_info(
+                x_cg=0.0, components=comps, t=i*dt,
+                vessel_heading=0.0, speed=11.3, preview_dt=0.0)
+        t_now = 100 * dt
+        # w_est should approximate deta/dt at bow+preview point
+        x_bow = 0.0 + (4.0 + 11.3 * 0.0)  # bow_offset + V*preview_dt
+        w_true = wave_vertical_velocity_at_point(comps, x_bow, 0.0, t_now)
+        # Finite difference is 1st-order, allow ~2% amplitude tolerance
+        assert abs(info.w_front - w_true) < 0.05 * comps[0].A * comps[0].omega
+
+    def test_sensor_state_advances_per_call(self):
+        """Each call should update internal state (_eta_prev)."""
+        from hydrofoil.single_point_ff import TemporalBowSensor
+        sensor = TemporalBowSensor(dt=0.01, noise_std=0.0)
+        comps = self._single_wave_pure()
+        # First call initialises state
+        sensor.compute_ff_info(x_cg=0.0, components=comps, t=0.0,
+                               vessel_heading=0.0, speed=11.3, preview_dt=0.0)
+        eta_after_1 = sensor._eta_prev
+        # Second call at different time → state should change
+        sensor.compute_ff_info(x_cg=0.0, components=comps, t=0.01,
+                               vessel_heading=0.0, speed=11.3, preview_dt=0.0)
+        eta_after_2 = sensor._eta_prev
+        assert eta_after_1 != eta_after_2
+
+    def test_head_sea_slope_sign(self):
+        """In head sea, slope_est sign should be correct (positive w → negative slope)."""
+        from hydrofoil.single_point_ff import TemporalBowSensor
+        dt = 0.01
+        c_phase = 9.81 * 6.0 / (2 * np.pi)  # deep-water c = g*T/(2π)
+        sensor = TemporalBowSensor(dt=dt, c_phase=c_phase, noise_std=0.0)
+        comps = self._single_wave_pure(A=0.5, T=6.0, direction_deg=180.0)
+        # Warm up to find a time when w_est is clearly positive or negative
+        prev = None
+        for i in range(200):
+            info = sensor.compute_ff_info(
+                x_cg=0.0, components=comps, t=i*dt,
+                vessel_heading=0.0, speed=11.3, preview_dt=0.0)
+            if abs(info.w_front) > 0.3:
+                # slope_est = -w/c → opposite sign to w
+                assert np.sign(info.slope_front) == -np.sign(info.w_front)
+                break
+
+
+# ============================================================
+# Test 7: ff_info_provider parameter in run_simulation
+# ============================================================
+
+class TestFfInfoProvider:
+    """Verify that ff_info_provider correctly replaces the default FF computation."""
+
+    @staticmethod
+    def _make_jonswap(seed=42):
+        try:
+            from wavesim.wave_generator import jonswap_components
+            return jonswap_components(
+                Hs=0.88, Tp=5.0, n_components=8, depth=50.0,
+                direction_deg=180.0, direction_spread_deg=20.0, seed=seed)
+        except ImportError:
+            return []
+
+    def test_zero_provider_equals_pd_only(self):
+        """A provider that always returns zero FF should give PD-only result."""
+        from hydrofoil.controller import FeedforwardWaveInfo, FeedforwardConfig
+        comps = self._make_jonswap()
+        if not comps:
+            pytest.skip("wavesim not available")
+
+        cfg = candela_c8()
+        cfg['sim'].duration = 10.0
+
+        # Zero-output provider
+        def zero_provider(state, ff, rf, sim, comps, t, heading, ff_cfg):
+            return FeedforwardWaveInfo(slope_front=0.0, slope_rear=0.0,
+                                      w_front=0.0, w_rear=0.0)
+
+        np.random.seed(42)
+        r_pd = run_simulation(cfg, comps, vessel_heading=0.0,
+                              feedforward=None)
+        np.random.seed(42)
+        r_zero = run_simulation(cfg, comps, vessel_heading=0.0,
+                                feedforward=FeedforwardConfig(
+                                    preview_dt=0.3, K_ff=0.8),
+                                ff_info_provider=zero_provider)
+
+        # With zero provider, FF is all-zero → same as PD-only
+        np.testing.assert_allclose(r_pd.heave_accel, r_zero.heave_accel,
+                                   rtol=1e-6)
+
+    def test_provider_called_during_simulation(self):
+        """ff_info_provider should be called at every timestep."""
+        from hydrofoil.controller import FeedforwardWaveInfo, FeedforwardConfig
+        comps = self._make_jonswap()
+        if not comps:
+            pytest.skip("wavesim not available")
+
+        cfg = candela_c8()
+        cfg['sim'].duration = 5.0
+        call_count = [0]
+
+        def counting_provider(state, ff, rf, sim, comps, t, heading, ff_cfg):
+            call_count[0] += 1
+            return FeedforwardWaveInfo()
+
+        run_simulation(cfg, comps, vessel_heading=0.0,
+                       feedforward=FeedforwardConfig(preview_dt=0.3, K_ff=0.8),
+                       ff_info_provider=counting_provider)
+
+        expected = int(cfg['sim'].duration / cfg['sim'].dt) + 1
+        assert call_count[0] == pytest.approx(expected, abs=1)
+
+    def test_sp1pt_provider_factory(self):
+        """make_sp1pt_provider should return a callable that runs without error."""
+        from hydrofoil.controller import FeedforwardConfig
+        from hydrofoil.run_single_point_comparison import make_sp1pt_provider
+        comps = self._make_jonswap()
+        if not comps:
+            pytest.skip("wavesim not available")
+
+        cfg = candela_c8()
+        cfg['sim'].duration = 5.0
+        np.random.seed(0)
+        result = run_simulation(
+            cfg, comps, vessel_heading=0.0,
+            feedforward=FeedforwardConfig(preview_dt=0.3, K_ff=0.8),
+            ff_info_provider=make_sp1pt_provider(comps))
+
+        assert result.heave_accel is not None
+        assert len(result.heave_accel) > 0
+        assert np.isfinite(result.heave_accel).all()
+
+    def test_sp_temporal_provider_factory(self):
+        """make_sp_temporal_provider should return a callable that runs without error."""
+        from hydrofoil.controller import FeedforwardConfig
+        from hydrofoil.run_single_point_comparison import make_sp_temporal_provider
+        comps = self._make_jonswap()
+        if not comps:
+            pytest.skip("wavesim not available")
+
+        cfg = candela_c8()
+        cfg['sim'].duration = 5.0
+        dt = cfg['sim'].dt
+        np.random.seed(0)
+        result = run_simulation(
+            cfg, comps, vessel_heading=0.0,
+            feedforward=FeedforwardConfig(preview_dt=0.3, K_ff=0.8),
+            ff_info_provider=make_sp_temporal_provider(comps, 5.0, dt))
+
+        assert result.heave_accel is not None
+        assert np.isfinite(result.heave_accel).all()
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

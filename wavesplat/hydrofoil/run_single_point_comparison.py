@@ -115,12 +115,13 @@ def saturation_pct(flap_arr: np.ndarray, delta_max: float = 0.26) -> float:
 
 PREVIEW_DT = 0.5    # [s] — same for all strategies (5.65 m ahead at 11.3 m/s)
 DURATION   = 30.0   # [s]
-SEED       = 42
+SEED       = 42     # default seed; main() uses multi-seed averaging
+SEEDS      = [42, 0, 1, 2, 3]  # five seeds for paper Table~\ref{tab:single_point}
 
 
 def run_scenario(scenario_name: str, Hs: float, Tp: float,
-                 direction_deg: float) -> dict:
-    """Run all five strategies for one scenario."""
+                 direction_deg: float, seed: int = SEED) -> dict:
+    """Run all five strategies for one scenario with a given random seed."""
     cfg = candela_c8()
     cfg['sim'].duration = DURATION
     dt = cfg['sim'].dt  # 0.01 s
@@ -130,7 +131,7 @@ def run_scenario(scenario_name: str, Hs: float, Tp: float,
         depth=cfg['sim'].depth,
         direction_deg=direction_deg,
         direction_spread_deg=20.0,
-        seed=SEED,
+        seed=seed,
     )
 
     ctrl = PDControllerConfig()
@@ -154,7 +155,7 @@ def run_scenario(scenario_name: str, Hs: float, Tp: float,
 
     results = {}
     for name, (ff_cfg, provider) in strategies.items():
-        np.random.seed(SEED)
+        np.random.seed(seed)
         r = run_simulation(
             cfg, components, vessel_heading=0.0,
             controller=ctrl,
@@ -215,6 +216,11 @@ def print_scenario(results: dict, scenario_name: str) -> dict:
 
 
 def main():
+    """Run multi-seed comparison reproducing Table tab:single_point in the paper.
+
+    Each scenario is run over SEEDS = [42, 0, 1, 2, 3].  Results are reported
+    as mean ± std over the five wave realisations, matching the paper table.
+    """
     scenarios = [
         ("BF3 Head sea   (Hs=0.88m Tp=5.0s μ=180°)", 0.88, 5.0, 180.0),
         ("BF4 Head sea   (Hs=1.88m Tp=7.5s μ=180°)", 1.88, 7.5, 180.0),
@@ -222,52 +228,63 @@ def main():
         ("BF3 Quarter    (Hs=0.88m Tp=5.0s μ=135°)", 0.88, 5.0, 135.0),
     ]
 
-    print("=" * 100)
-    print("  Single-Point Bow Sensor vs WaveSplat Feedforward")
+    print("=" * 110)
+    print("  Single-Point Bow Sensor vs WaveSplat Feedforward  (N={} seeds)".format(
+        len(SEEDS)))
     print("  Reference vessel: Candela C-8  |  V=11.3 m/s  |  preview_dt=0.5 s")
     print("  SP-1pt:    GT components, single preview point, same signal both foils")
     print("  SP-temporal: temporal dη/dt from noisy bow sensor, head-sea slope assumption")
-    print("=" * 100)
+    print("=" * 110)
 
-    all_metrics = {}
-    all_results = {}
+    # ── Collect per-seed improvements ─────────────────────────────────────
+    # imps[scenario_name][strategy_name] = list of improvement values
+    imps = {name: {'GT-FF': [], 'WS-FF': [], 'SP-1pt': [], 'SP-temporal': []}
+            for name, *_ in scenarios}
+
     for name, Hs, Tp, d in scenarios:
-        print(f"\n  Running: {name}...", end=" ", flush=True)
-        results = run_scenario(name, Hs, Tp, d)
-        all_results[name] = results
-        print("done")
+        for seed in SEEDS:
+            print(f"  {name}  seed={seed}...", end=" ", flush=True)
+            results = run_scenario(name, Hs, Tp, d, seed=seed)
+            mask = results['PD-only'].time > 5.0
+            a_pd = np.std(results['PD-only'].heave_accel[mask])
+            for strat in ('GT-FF', 'WS-FF', 'SP-1pt', 'SP-temporal'):
+                imp = (1 - np.std(results[strat].heave_accel[mask]) / a_pd) * 100
+                imps[name][strat].append(imp)
+            print("done")
+        print()
 
-    for name, results in all_results.items():
-        Hs = next(s[1] for s in scenarios if s[0] == name)
-        all_metrics[name] = print_scenario(results, name)
+    # ── Per-scenario detail table ──────────────────────────────────────────
+    for name, Hs, Tp, d in scenarios:
+        results_seed42 = run_scenario(name, Hs, Tp, d, seed=42)
+        print_scenario(results_seed42, name + "  [seed=42 detail]")
 
-    # ── Summary table ──────────────────────────────────────────────────────
-    print(f"\n{'=' * 100}")
-    print("  SUMMARY: aRMS improvement over PD-only [%]")
-    print(f"{'=' * 100}")
-    print(f"  {'Scenario':<42} {'GT-FF':>9} {'WS-FF':>9} "
-          f"{'SP-1pt':>9} {'SP-temp':>9} {'SP-1pt/WS':>11} {'SP-temp/WS':>11}")
-    print("  " + "-" * 100)
+    # ── Multi-seed summary table ───────────────────────────────────────────
+    print(f"\n{'=' * 110}")
+    print(f"  SUMMARY (mean ± std over N={len(SEEDS)} seeds)  — reproduces paper Table tab:single_point")
+    print(f"{'=' * 110}")
+    hdr = "  {:<44} {:>14} {:>14} {:>14} {:>14} {:>9}".format(
+        "Scenario", "GT-FF", "WS-FF", "SP-1pt", "SP-temporal", "SP1/GT%")
+    print(hdr)
+    print("  " + "-" * 108)
 
-    for name, metrics in all_metrics.items():
-        a_pd = metrics['PD-only']
-        imp = {k: (1 - v / a_pd) * 100 for k, v in metrics.items()
-               if k != 'PD-only'}
-        # Ratio of SP to WS (how much of WS benefit does SP recover?)
-        ratio_1pt  = imp['SP-1pt']  / imp['GT-FF'] * 100 if imp['GT-FF'] > 0 else 0
-        ratio_temp = imp['SP-temporal'] / imp['GT-FF'] * 100 if imp['GT-FF'] > 0 else 0
+    for name, *_ in scenarios:
+        v = imps[name]
+        def fmt(lst):
+            return "{:+.1f}(±{:.1f})".format(np.mean(lst), np.std(lst))
+        gt_mean = np.mean(v['GT-FF'])
+        sp1_mean = np.mean(v['SP-1pt'])
+        ratio = sp1_mean / gt_mean * 100 if gt_mean != 0 else float('nan')
+        print("  {:<44} {:>14} {:>14} {:>14} {:>14} {:>8.0f}%".format(
+            name[:44],
+            fmt(v['GT-FF']), fmt(v['WS-FF']),
+            fmt(v['SP-1pt']), fmt(v['SP-temporal']),
+            ratio))
 
-        sname = name[:42]
-        print(f"  {sname:<42} {imp['GT-FF']:>+8.1f}% {imp['WS-FF']:>+8.1f}% "
-              f"{imp['SP-1pt']:>+8.1f}% {imp['SP-temporal']:>+8.1f}% "
-              f"{ratio_1pt:>10.0f}% {ratio_temp:>10.0f}%")
-
-    print(f"\n  SP-1pt/WS  = (SP-1pt improvement) / (GT-FF improvement) × 100")
-    print(f"  SP-temp/WS = (SP-temporal improvement) / (GT-FF improvement) × 100")
-    print(f"\n  Interpretation:")
-    print(f"    Head sea: SP-1pt ≈ GT-FF  → single-point sufficient for 1D head sea")
-    print(f"    Beam/oblique: SP-1pt < GT-FF  → per-foil 2D model is necessary")
-    print(f"    SP-temporal << SP-1pt  → head-sea slope assumption fails in oblique seas")
+    print(f"\n  SP1/GT% = mean(SP-1pt improvement) / mean(GT-FF improvement) × 100")
+    print(f"\n  Key findings:")
+    print(f"    BF3 Head: SP-1pt consistently degrades (structural per-foil phase mismatch)")
+    print(f"    BF3 Beam: SP-1pt highly variable (directional spreading → seed-dependent)")
+    print(f"    SP-temporal: reliably harmful in beam/oblique sea (head-sea assumption)")
 
 
 if __name__ == '__main__':

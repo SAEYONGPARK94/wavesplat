@@ -1388,6 +1388,57 @@ estimation system needs to be accurate primarily in the near-field
 (within $\sim$3~m of each foil in the heading direction), where
 LiDAR accuracy is typically highest.
 
+\subsection{Per-foil spectral evaluation vs single-point sensors}
+\label{sec:discuss_sp}
+
+Section~\ref{sec:single_point} quantified that the gain from using a 2D
+spectral model over a single-point bow sensor comes primarily from two
+physically distinct mechanisms.
+
+\paragraph{Per-foil phase resolution.}
+For short-period head seas (BF3, Tp\,=\,5~s, $\lambda \approx 39$~m),
+the front and rear foils are separated by 4.5~m, corresponding to a
+phase difference of $2\pi \times 4.5/39 \approx 41^\circ$ in the wave
+field.  A single-point sensor applies the same signal to both foils,
+introducing a phase error of $\approx \pm 21^\circ$ per foil.
+This does not merely reduce effectiveness --- it inverts the feedforward
+direction at each foil, converting the controller into an amplifier of
+the disturbance.  The 13.3\% mean degradation from SP-1pt in this
+condition is consistent across seeds (std $\pm 0.7\%$), confirming it
+is a structural limitation of single-point architectures rather than a
+tuning issue.
+
+WaveSplat addresses this by evaluating $\partial\eta/\partial x$ and
+$\partial\eta/\partial t$ independently at each foil's preview position
+from the estimated spectral model.  The key property is that this
+evaluation is \emph{analytic}: given spectral parameters $(A_i, \omega_i,
+k_{xi}, k_{yi}, \phi_i)$, the wave field is known everywhere, and the
+per-foil phase difference is captured exactly.
+
+\paragraph{Directional robustness.}
+For beam and oblique seas, the head-sea slope assumption
+(Eq.~\ref{eq:headseaassump}) underlying SP-temporal fails systematically,
+since the body-frame longitudinal slope approaches zero but the temporal
+derivative does not.  SP-1pt avoids this assumption entirely; however,
+with directional spreading ($\sigma_\theta = 20^\circ$), even nominally
+beam-sea conditions contain components with non-zero $k_x$, producing
+seed-dependent per-foil phase conflicts (SP-1pt std $\pm 31.5\%$ in beam
+sea).
+
+WaveSplat's per-component spectral representation handles directional
+spreading naturally: each component's $k_x$, $k_y$ are estimated
+independently, so the feedforward evaluation at each foil is direction-correct
+regardless of sea heading.  The residual WaveSplat variance in beam sea
+($\pm 11.3\%$) reflects estimation uncertainty in individual spectral
+components, not a structural limitation.
+
+\paragraph{Summary.}
+The practical threshold for recommending a bow sensor over LiDAR-based
+estimation is head-sea operation with $\lambda \gg$ foil separation
+(i.e., $T_p \gtrsim 7$~s).  Below this threshold, or for mixed/oblique
+sea states, per-foil spectral evaluation is necessary for reliable
+feedforward benefit.
+
 \subsection{Limitations}
 
 \begin{enumerate}
@@ -1468,6 +1519,14 @@ The key findings are:
     accuracy for feedforward performance, as evidenced by the
     BF4 degradation (WS/GT = 37\%).  This finding provides a clear
     design target for wave estimation system improvement.
+  \item A single downward-facing bow sensor is \emph{insufficient} for
+    robust ride control across the full operating envelope.
+    Averaged over five wave realisations, SP-1pt degrades BF3 head-sea
+    acceleration by $13.3\%$ (consistently across all seeds), and is
+    highly unreliable in beam sea (std $\pm 31.5\%$).  SP-temporal
+    amplifies beam-sea acceleration by $35.0\%$.  Only a 2D spectral model
+    (LiDAR + WaveSplat) provides consistent improvement across all tested
+    sea states and headings.
 \end{enumerate}
 
 These results establish that even moderate wave estimation accuracy
@@ -1490,8 +1549,9 @@ The natural next steps are:
     flap limits) and optimize over a receding horizon, potentially
     improving performance in rough seas where actuator saturation
     is a concern;
-(3)~longer simulation campaigns (60--120~s) with multiple random
-    seeds for statistically robust comfort assessment;
+(3)~longer simulation campaigns (60--120~s) for statistically robust
+    comfort assessment (the present study uses 30~s episodes; five-seed
+    averaging was completed for the single-point sensor comparison);
 (4)~directional confidence weighting in the feedforward gain,
     reducing the feedforward authority for components with uncertain
     propagation direction; and

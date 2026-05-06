@@ -77,7 +77,7 @@ def compute_single_point_ff_info(
 
     dx = speed * preview_dt
     x_p = x_cg + dx * cos_h
-    y_p =        dx * sin_h
+    y_p =        dx * sin_h   # y_cg = 0 always in current sim
 
     deta_dx = wave_slope_x_at_point(components, x_p, y_p, t)
     deta_dy = wave_slope_y_at_point(components, x_p, y_p, t)

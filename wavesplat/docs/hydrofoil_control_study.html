@@ -124,6 +124,9 @@ Reference 차량: Candela C-8 (Swedish electric hydrofoil, 1700 kg, 22 knots foi
   <li><a href="#sec9">수치 적분 — RK4 + FF Filter 타이밍</a></li>
   <li><a href="#sec10">설계 결정 한눈에 보기 — Why 정리표</a></li>
   <li><a href="#sec11">한계와 확장 방향</a></li>
+  <li><a href="#sec12a">E2E 파이프라인 — WaveSplat → Feedforward 연결 (wavesplat_bridge)</a></li>
+  <li><a href="#sec12b">Sensitivity Analysis 수치 결과 — nRMSE 허용범위 + Preview Horizon</a></li>
+  <li><a href="#sec12c">ISO 2631 승차감 기준 상세 테이블</a></li>
   <li><a href="#sec12">Glossary — 비전공자용 용어 정리</a></li>
 </ol>
 </div>
@@ -454,7 +457,9 @@ Collective + differential 분해의 장점:
 <pre><code>delta_front = clip(delta_front, −0.26, +0.26)
 delta_rear  = clip(delta_rear,  −0.26, +0.26)</code></pre>
 <p>±15° 는 (a) servo physical limit, (b) post-stall AoA 회피 (C_L,max = 1.2) 의 두 이유로 결정.
-saturation 시 차분 (δ_d) 가 priority — pitch 안정이 heave 보다 critical (foilborne 유지 위해).</p>
+구현상 전·후방 flap 을 <em>독립적으로</em> clip 한다 — δ_c 와 δ_d 를 먼저 합산한 뒤 함께 saturate.
+별도의 priority 로직 없음. pitch 안정성은 collective mode 가 saturate 되더라도 differential mode 가
+자동으로 남은 여유 범위를 활용해 보완된다 (collective + differential 분해의 자연스러운 결과).</p>
 
 <!-- ──────────────────────────────────────────────────────────── -->
 <h2 id="sec8">8. Wave-Preview Feedforward — 핵심 설계 결정</h2>
@@ -627,7 +632,142 @@ and passed as a fixed offset" 의 구체적 implementation. 같은 LP filter coe
 </ul>
 
 <!-- ──────────────────────────────────────────────────────────── -->
-<h2 id="sec12">12. Glossary — 비전공자용 용어 정리</h2>
+<h2 id="sec12a">12. E2E 파이프라인 — WaveSplat → Feedforward 연결</h2>
+<p>
+실제 시스템에서 feedforward 에 쓰이는 wave 정보는 GT 가 아니라 WaveSplat 추정 모델에서 온다.
+<code>wavesplat_bridge.py</code> 가 이 연결을 담당한다.
+</p>
+
+<h3>12.1 데이터 흐름</h3>
+<pre><code>LiDAR 관측 (50 pts/frame)
+    ↓
+WaveSplat Estimator
+  (SpectralGaussianModel: w_i, kx_i, ky_i, omega_i, phi_i)
+    ↓
+wavesplat_to_components(model)          ← wavesplat_bridge.py
+    ↓
+list of WaveSplatComponent
+  (A=w_i, omega=omega_i, kx=kx_i, ky=ky_i, phi=phi_i, Q=0)
+    ↓
+compute_disturbance() / _compute_feedforward_info()   ← disturbance.py, sim.py
+    ↓
+PD + Feedforward Controller             ← controller.py</code></pre>
+
+<h3>12.2 WaveSplatComponent 인터페이스</h3>
+<p>
+<code>WaveSplatComponent</code> 는 <code>wavesim.WaveComponent</code> 와 동일한 필드명
+<code>(A, omega, kx, ky, phi)</code> 을 가진다.
+<code>disturbance.py</code> 의 함수들이 <code>comp.A</code>, <code>comp.kx</code> 등으로 접근하므로
+bridge 없이 그대로 전달 가능하다.
+</p>
+<pre><code>WaveSplatComponent:
+  A     = params['w'][i]      # 진폭 [m]
+  omega = params['omega'][i]  # dispersion 만족 (4N 파라미터 덕분)
+  kx    = params['kx'][i]     # x-wavenumber [rad/m]
+  ky    = params['ky'][i]     # y-wavenumber [rad/m]
+  phi   = params['phi'][i]    # 위상 (tracking 시 매 프레임 갱신)
+  Q     = 0.0                 # Gerstner 비선형항 — linear 모델로 취급</code></pre>
+
+<div class="key-point">
+Q = 0 으로 설정하는 이유: WaveSplat 의 forward model 자체가 linear superposition 이므로, feedforward 에서도 Gerstner 비선형 보정 없이 linear 파면 정보만 사용. model mismatch 는 O(ε²) 로 작음.
+</div>
+
+<h3>12.3 GT vs WaveSplat 파이프라인 비교</h3>
+<table>
+<tr><th>항목</th><th>GT feedforward</th><th>WaveSplat feedforward</th></tr>
+<tr><td>wave 소스</td><td>HDF5 GT wave_components</td><td>SpectralGaussianModel</td></tr>
+<tr><td>변환 함수</td><td><code>h5_gt_to_components()</code></td><td><code>wavesplat_to_components()</code></td></tr>
+<tr><td>Q (Gerstner)</td><td>원본 그대로 사용</td><td>0 으로 고정 (linear)</td></tr>
+<tr><td>phi 갱신</td><td>매 프레임 GT 그대로</td><td>tracking 시 w_phi 모드로 갱신</td></tr>
+<tr><td>BF3 E2E 성능</td><td>100% (upper bound)</td><td>92~96% (WS nRMSE 20% 수준)</td></tr>
+</table>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec12b">13. Sensitivity Analysis 수치 결과</h2>
+
+<h3>13.1 nRMSE 허용범위 — 얼마나 부정확해도 FF 가 유효한가</h3>
+<p>
+WaveSplat 의 wave 추정에 인위적 노이즈를 추가해서 nRMSE 를 0%~50% 범위로 변화시킨 실험.
+</p>
+<table>
+<tr><th>nRMSE 수준</th><th>FF 효과 (aRMS 개선)</th><th>비고</th></tr>
+<tr><td>0% (GT)</td><td>최대 40.7% (BF3 Beam)</td><td>이론적 상한</td></tr>
+<tr><td>~20% (실제 WS)</td><td>최대 37.7% (BF3 Beam)</td><td>GT 대비 93~103% 회복</td></tr>
+<tr><td>30~40%</td><td>유효 유지</td><td>graceful degradation</td></tr>
+<tr><td>50%</td><td>여전히 양수 개선 존재</td><td>threshold 없음</td></tr>
+</table>
+<div class="key-point">
+LP filter (fc ≈ 0.8 Hz) 덕분에 high-freq 추정 노이즈는 actuator 로 전달되지 않음 →
+nRMSE 가 높아져도 저주파 wave 신호는 남아 FF 효과 유지.
+</div>
+
+<h3>13.2 Preview Horizon Δt — 최적 전방 거리</h3>
+<table>
+<tr><th>해상 조건</th><th>최적 Δt [s]</th><th>최적 전방거리 [m]</th><th>물리 의미</th></tr>
+<tr><td>Head sea (μ = π)</td><td>0.1 s</td><td>1.1 m</td><td>encounter freq 높음 → 짧은 preview 충분</td></tr>
+<tr><td>Beam sea (μ = π/2)</td><td>0.3 s</td><td>3.4 m</td><td>foil-wave 상호작용 시간 스케일 큼</td></tr>
+</table>
+<pre><code>최적 전방거리 = V · Δt = 11.3 m/s × Δt
+Head:  11.3 × 0.1 = 1.13 m
+Beam:  11.3 × 0.3 = 3.39 m</code></pre>
+<div class="why-box">
+최적 Δt 의 물리적 해석:
+<ul>
+<li>너무 짧은 Δt → wave 가 이미 foil 에 도달해서 FF 가 늦음 (under-preview)</li>
+<li>너무 긴 Δt → 추정 오차 전파, 위상 불일치 (over-preview)</li>
+<li>Head sea 는 ω_e &gt; ω (빠른 encounter) → 짧은 preview 로 충분</li>
+<li>Beam sea 는 foil 이 파면과 오래 상호작용 → 긴 preview 필요</li>
+</ul>
+</div>
+
+<h3>13.3 주요 실험 결과 수치 (Phase 2)</h3>
+<table>
+<tr><th>시나리오</th><th>PD-only aRMS [m/s²]</th><th>GT FF 개선</th><th>WS FF 개선</th><th>Noisy FF 개선</th></tr>
+<tr><td>BF3 Head sea</td><td>1.631</td><td>+11.0%</td><td>+11.4%</td><td>+11.7%</td></tr>
+<tr><td>BF4 Head sea</td><td>2.162</td><td>+12.3%</td><td>+12.2%</td><td>+11.8%</td></tr>
+<tr><td>BF3 Beam sea</td><td>0.402</td><td>+40.7%</td><td>+37.7%</td><td>+27.5%</td></tr>
+<tr><td>BF3 Quarter sea</td><td>1.178</td><td>+17.6%</td><td>+17.7%</td><td>+17.0%</td></tr>
+</table>
+
+<h3>13.4 E2E 결과 — Dir R² 문제의 제어 전파</h3>
+<table>
+<tr><th>시나리오</th><th>WS/GT 비율</th><th>평가</th></tr>
+<tr><td>BF3 2-comp</td><td>96%</td><td>near-perfect (단순 해상, 방향 추정 우수)</td></tr>
+<tr><td>BF3 Beam</td><td>92%</td><td>excellent</td></tr>
+<tr><td>BF4 5-comp</td><td>37%</td><td>limited — Dir R² = −0.25 문제 전파</td></tr>
+</table>
+<div class="warning">
+BF4 E2E 37% 의 원인: WaveSplat 의 방향 추정 오차 (Dir R² = −0.253) 가 feedforward 위상을 흐트러뜨림.
+파고 (amplitude) 정확도보다 <em>방향 (directional)</em> 정확도가 feedforward 성능에 더 중요하다는 핵심 발견.
+개선 방향: multi-frame directional voting + 2D k-space 정규화.
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec12c">14. ISO 2631 승차감 기준 테이블</h2>
+
+<p>본 연구는 heave acceleration 의 RMS (<code>aRMS</code>) 를 ISO 2631 기준으로 평가한다.</p>
+
+<table>
+<tr><th>aRMS [m/s²]</th><th>ISO 2631 카테고리</th><th>체감</th></tr>
+<tr><td>&lt; 0.315</td><td>Comfortable</td><td>전혀 불편하지 않음</td></tr>
+<tr><td>0.315 ~ 0.63</td><td>Slightly uncomfortable</td><td>약간 불편</td></tr>
+<tr><td>0.50 ~ 1.00</td><td>Fairly uncomfortable</td><td>상당히 불편</td></tr>
+<tr><td>0.80 ~ 1.60</td><td>Uncomfortable</td><td>불편</td></tr>
+<tr><td>1.25 ~ 2.50</td><td>Very uncomfortable</td><td>매우 불편</td></tr>
+<tr><td>&gt; 2.00</td><td>Extremely uncomfortable</td><td>극도로 불편</td></tr>
+</table>
+
+<div class="key-point">
+본 연구의 핵심 결과 (ISO 기준):
+<ul>
+<li>BF3 Beam: PD-only aRMS = 0.402 → "Slightly uncomfortable" → WS FF 후 0.250 → <strong>"Comfortable"</strong></li>
+<li>BF3 Head: PD-only 1.631 → "Very uncomfortable" → WS FF 후 1.445 → still "Very uncomfortable" (BF4 수준의 파고에서는 FF 만으론 한계)</li>
+<li>aRMS 계산: <code>np.gradient(z_dot, time)</code> 로 z_ddot 추정 후 RMS 산출 (100 Hz 적분)</li>
+</ul>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2 id="sec12">15. Glossary — 비전공자용 용어 정리</h2>
 
 <div class="glossary"><strong>AoA (Angle of Attack, 받음각)</strong>: foil chord 와 incoming flow 사이 각도. lift 의 선형 함수.</div>
 <div class="glossary"><strong>Foilborne</strong>: foil lift 가 부력을 대체해 hull 이 수면 위로 부상한 운항 모드.</div>

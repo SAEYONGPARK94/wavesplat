@@ -388,8 +388,65 @@ ML supervised 카테고리의 SOTA. 1.9 ms 의 inference 속도가 인상적이�
 
 ---
 
-# (Day 2 작업 종료 시 update)
+# (Day 2 작업 종료 — Slide 4-10 draft 완료)
 
-다음: Day 3 — Slide 11-14 (WaveSim + exploration phase)
+---
+
+# PPT 생성 완료 (2026-05-08)
+
+**Generator script**: [scripts/generate_labmeeting_2026_05_13.py](../scripts/generate_labmeeting_2026_05_13.py)
+**Output PPT**: [docs/labmeeting_2026_05_13.pptx](labmeeting_2026_05_13.pptx)
+**Slides**: 19 main + 7 backup = 26 total
+**Size**: ~514 KB
+
+## 재생성 명령어
+
+```bash
+cd /home/saeyong/reserch/wavesplat
+python3 scripts/generate_labmeeting_2026_05_13.py
+```
+
+## 19 main + 7 backup 모두 PPT 에 들어감
+
+| # | Status | Content |
+|---|---|---|
+| S1-S3 | ✅ Day 1 full content | Title + Motivation + Problem |
+| S4-S10 | ✅ Day 2 full content | 5-category + 5 prior art detail + matrix |
+| S11-S14 | ⏳ Day 3 — outline+key bullets in PPT, refine on Wed | WaveSim + exploration phase |
+| S15-S17 | ⏳ Day 4 — outline+key bullets in PPT, refine on Thu | New framing + mechanism |
+| S18-S19 | ⏳ Day 5 — outline+key bullets in PPT, refine on Fri | Limitations + Plan |
+| A1-A7 | ✅ Backup outline | Supporting prior art |
+
+> **Note**: Day 3-5 의 slides 도 generator script 에 outline + key bullets + presenter notes 포함되어 있음. 각 day 작업은 *content refinement* (figure 추가, content 강화) 임. PowerPoint 에서 직접 다듬어도 되고, generator script 를 수정 후 재생성해도 됨.
+
+## Figure 자리 (placeholder 들)
+
+생성된 PPT 에서 placeholder 로 남은 figure (PowerPoint 에서 paper PDF 캡처해서 수동 삽입):
+
+- S5: Desmars 2023 setup + result figures (paper Fig. 2, 8)
+- S6: Wang-Pan EnKF-HOS pipeline + predictable zone
+- S7: Ehlers 2023 FNO architecture + SSP results
+- S8: Ehlers 2025 PFT-PINN architecture + MARATHON results
+- S9: Yan 2025 VOF-EnKF pipeline + plunging breaker (Fig. 18)
+
+이미 삽입된 figure (PNG path 존재 시):
+- S2: hydrofoil_controller_flow.png
+- S3: wavesim_BF4_5c_wave_lidar.png
+- S11: wavesim_BF4_5c_wave_field.png
+- S12: wavesim_BF4_5c_wave_lidar.png
+- S13: paper/figures/fig_pipeline.png
+- S17: paper/figures/fig_beamforming_2stage.png
+
+---
+
+# 다음 작업 (다른 서버에서 이어가기)
+
+## 우선순위
+1. **Wang 2025 정독** (받은 후 즉시 §32 추가, Slide 6 update)
+2. **Day 3-5 content refinement**:
+   - PowerPoint 에서 직접 다듬거나
+   - `scripts/generate_labmeeting_2026_05_13.py` 의 `build_s11()`-`build_s19()` 수정 후 재실행
+3. **Paper figure 추출 + 삽입** (PowerPoint 에서 직접)
+4. **Rehearsal** (5/12 또는 5/13 오전)
 
 ---

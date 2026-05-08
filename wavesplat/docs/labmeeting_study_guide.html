@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WaveSplat Lab Meeting Study Guide (2026-05-13)</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Pretendard', -apple-system, 'Segoe UI', sans-serif;
+    background: #f5f7fa;
+    color: #1a1a2e;
+    line-height: 1.7;
+    padding: 0 0 60px 0;
+}
+.header {
+    background: linear-gradient(135deg, #007ACC, #005fa3);
+    color: white;
+    padding: 40px 20px;
+    text-align: center;
+}
+.header h1 { font-size: 28px; margin-bottom: 8px; }
+.header p { font-size: 15px; opacity: 0.9; }
+.container { max-width: 900px; margin: 0 auto; padding: 20px; }
+.toc {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 20px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.toc h2 { color: #007ACC; margin-bottom: 12px; font-size: 20px; }
+.toc ol { padding-left: 24px; }
+.toc li { margin: 6px 0; }
+.toc a { color: #007ACC; text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+.section {
+    background: white;
+    border-radius: 12px;
+    padding: 28px;
+    margin: 24px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.section h2 {
+    color: #007ACC;
+    font-size: 22px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #e0e8f0;
+    padding-bottom: 8px;
+}
+.section h3 {
+    color: #333;
+    font-size: 17px;
+    margin: 18px 0 10px 0;
+}
+.section h4 {
+    color: #555;
+    font-size: 15px;
+    margin: 14px 0 8px 0;
+}
+.concept-box {
+    background: #f0f7ff;
+    border-left: 4px solid #007ACC;
+    padding: 16px 20px;
+    margin: 14px 0;
+    border-radius: 0 8px 8px 0;
+}
+.concept-box strong { color: #007ACC; }
+.warning-box {
+    background: #fff5f5;
+    border-left: 4px solid #e8553a;
+    padding: 16px 20px;
+    margin: 14px 0;
+    border-radius: 0 8px 8px 0;
+}
+.warning-box strong { color: #e8553a; }
+.tip-box {
+    background: #f0fff0;
+    border-left: 4px solid #2ca02c;
+    padding: 16px 20px;
+    margin: 14px 0;
+    border-radius: 0 8px 8px 0;
+}
+.tip-box strong { color: #2ca02c; }
+.qa-card {
+    background: #fafbfc;
+    border: 1px solid #e0e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 12px 0;
+}
+.qa-card .q { font-weight: bold; color: #e8553a; margin-bottom: 8px; }
+.qa-card .a { color: #333; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+}
+th {
+    background: #007ACC;
+    color: white;
+    padding: 10px 12px;
+    text-align: left;
+}
+td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e0e8f0;
+}
+tr:nth-child(even) { background: #f8fafc; }
+.formula {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 10px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    text-align: center;
+}
+.slide-ref {
+    display: inline-block;
+    background: #007ACC;
+    color: white;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+}
+.number-highlight {
+    display: inline-block;
+    background: #007ACC;
+    color: white;
+    font-weight: bold;
+    padding: 2px 10px;
+    border-radius: 4px;
+    margin: 0 2px;
+}
+.comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 14px 0;
+}
+.comparison-card {
+    background: #f8fafc;
+    border: 1px solid #e0e8f0;
+    border-radius: 8px;
+    padding: 16px;
+}
+.comparison-card h4 { margin-bottom: 8px; font-size: 15px; }
+ul { padding-left: 20px; margin: 8px 0; }
+li { margin: 4px 0; }
+.checklist { list-style: none; padding-left: 0; }
+.checklist li::before { content: "[ ] "; font-family: monospace; }
+.glossary dt { font-weight: bold; color: #007ACC; margin-top: 10px; }
+.glossary dd { margin-left: 20px; margin-bottom: 6px; }
+.paper-card {
+    background: #fafbfc;
+    border: 1px solid #e0e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 12px 0;
+}
+.paper-card h4 { color: #007ACC; margin-bottom: 8px; }
+.paper-card .meta { font-size: 13px; color: #666; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>WaveSplat Lab Meeting Study Guide</h1>
+    <p>2026-05-13 Lab Meeting | Saeyong Park</p>
+    <p>아무것도 모르는 상태에서 발표를 완벽히 소화하기 위한 공부 자료</p>
+</div>
+
+<div class="container">
+
+<div class="toc">
+<h2>목차</h2>
+<ol>
+    <li><a href="#basics">기초 개념</a></li>
+    <li><a href="#problem">연구 문제</a></li>
+    <li><a href="#priorart">선행 연구 개요</a></li>
+    <li><a href="#priorart-detail">선행 연구 상세 (Q&A 대비)</a></li>
+    <li><a href="#wavesim-detail">WaveSim — 시뮬레이터 상세</a></li>
+    <li><a href="#method">우리 방법 (WaveSplat)</a></li>
+    <li><a href="#method-detail">방법론 상세 — 알고리즘 내부</a></li>
+    <li><a href="#results">결과</a></li>
+    <li><a href="#ablation">Ablation Study</a></li>
+    <li><a href="#limits">한계</a></li>
+    <li><a href="#future">향후 연구 방향 상세</a></li>
+    <li><a href="#qa">예상 질문과 답변</a></li>
+    <li><a href="#glossary">용어 사전</a></li>
+    <li><a href="#checklist">발표 전 체크리스트</a></li>
+</ol>
+</div>
+
+<!-- 1. 기초 개념 -->
+<div class="section" id="basics">
+<h2>1. 기초 개념 <span class="slide-ref">S1-S3</span></h2>
+
+<h3>1.1 파도란 무엇인가?</h3>
+<p>바다의 파도는 바람에 의해 만들어지는 수면의 요동입니다.
+물리적으로 파도는 여러 개의 <strong>사인파(sine wave)</strong>가 겹쳐진 것으로 근사할 수 있습니다.</p>
+
+<div class="concept-box">
+<strong>파도 = 여러 사인파의 합</strong><br>
+각 사인파는 5가지 물리량으로 설명됩니다:
+<ul>
+    <li><strong>진폭 (A)</strong> — 파도의 높이</li>
+    <li><strong>파수 (k<sub>x</sub>, k<sub>y</sub>)</strong> — 어떤 방향으로, 얼마나 빽빽한 파도인지</li>
+    <li><strong>주파수 (ω)</strong> — 파도가 얼마나 빨리 지나가는지</li>
+    <li><strong>위상 (φ)</strong> — 파도가 지금 어디에 위치해 있는지</li>
+</ul>
+</div>
+
+<div class="formula">
+η(x, y, t) = Σ A<sub>n</sub> cos(k<sub>xn</sub>·x + k<sub>yn</sub>·y - ω<sub>n</sub>·t + φ<sub>n</sub>)
+</div>
+<p style="text-align:center; font-size:13px; color:#666;">η = 수면 높이, x,y = 위치, t = 시간, n = 각 파도 성분</p>
+
+<h3>1.2 Statistical vs Phase-resolved 추정</h3>
+<div class="comparison-grid">
+    <div class="comparison-card">
+        <h4>Statistical (통계적) 추정</h4>
+        <ul>
+            <li>유의파고 H<sub>s</sub>, 첨두주기 T<sub>p</sub> 등 평균값</li>
+            <li>"파도가 대략 2m 정도다" 수준</li>
+            <li><strong>실시간 제어에는 부족</strong></li>
+        </ul>
+    </div>
+    <div class="comparison-card">
+        <h4>Phase-resolved (위상 결정론적) 추정</h4>
+        <ul>
+            <li>각 파도의 위치, 시점, 높이를 구체적으로</li>
+            <li>"x=120m에 5초 후 높이 2m 파도가 온다"</li>
+            <li><strong>이 연구의 목표</strong></li>
+        </ul>
+    </div>
+</div>
+
+<h3>1.3 분산 관계 (Dispersion Relation)</h3>
+<p><strong>"파도의 주파수는 파수에 의해 결정된다"</strong> — 파도 물리의 가장 중요한 법칙입니다.</p>
+<div class="formula">ω = √(g · |k| · tanh(|k| · d))</div>
+<p>g = 중력가속도(9.81), k = 파수, d = 수심. 긴 파도는 빨리, 짧은 파도는 느리게 이동합니다.</p>
+
+<h3>1.4 LiDAR (라이다)</h3>
+<ul>
+    <li>레이저로 거리를 측정하는 센서. 선박 위에서 바다 표면을 스캔</li>
+    <li>한 프레임에 약 <strong>50개 유효 점</strong>, 탐지 거리 ~<strong>250m</strong></li>
+    <li><strong>Raydrop</strong>: 파도 경사로 레이저가 반사 안 됨 / <strong>Shadowing</strong>: 앞 파도가 뒤를 가림</li>
+</ul>
+
+<h3>1.5 nRMSE</h3>
+<div class="concept-box">
+<strong>nRMSE = RMSE / (max - min)</strong>. 0=완벽, 1=최악. 0.2 ≈ "80% 맞춤", 0.05 ≈ "거의 완벽"
+</div>
+
+<h3>1.6 Beaufort Scale (BF)</h3>
+<table>
+    <tr><th>BF</th><th>풍속</th><th>파고</th><th>상태</th></tr>
+    <tr><td>2</td><td>1.6-3.3 m/s</td><td>0.1-0.3 m</td><td>잔잔</td></tr>
+    <tr><td>3</td><td>3.4-5.4 m/s</td><td>0.3-1.0 m</td><td>약간 거침</td></tr>
+    <tr><td>4</td><td>5.5-7.9 m/s</td><td>1.0-1.5 m</td><td>다소 거침</td></tr>
+    <tr><td>5</td><td>8.0-10.7 m/s</td><td>2.0-2.5 m</td><td>거침</td></tr>
+    <tr><td>6</td><td>10.8-13.8 m/s</td><td>3.0-4.0 m</td><td>매우 거침</td></tr>
+</table>
+</div>
+
+<!-- 2. 연구 문제 -->
+<div class="section" id="problem">
+<h2>2. 연구 문제 <span class="slide-ref">S2-S3</span></h2>
+
+<h3>2.1 핵심 응용: Hydrofoil Ride Control</h3>
+<p>수중익선이 파도를 미리 보고 날개 각도를 조절하면 승차감을 크게 개선 → <strong>앞으로 5~30초 후의 파도를 실시간으로 예측</strong>해야 함.</p>
+
+<h3>2.2 세 가지 어려움</h3>
+<div class="concept-box">
+<strong>C1: 희소 측정</strong> — LiDAR 50점으로 파장 50~300m 파도를 추정<br>
+<strong>C2: 실시간</strong> — 100ms 이내 (10Hz 제어 루프)<br>
+<strong>C3: 2D 방향성</strong> — 여러 방향의 파도가 동시에 존재
+</div>
+</div>
+
+<!-- 3. 선행 연구 개요 -->
+<div class="section" id="priorart">
+<h2>3. 선행 연구 개요 <span class="slide-ref">S5-S8</span></h2>
+
+<table>
+    <tr><th>#</th><th>접근법</th><th>대표 논문</th><th>속도</th><th>한계</th></tr>
+    <tr><td>1</td><td><strong>격자 기반 최적화</strong></td><td>Desmars 2018/20/23</td><td>중간</td><td>격자 해상도 한계, 1D</td></tr>
+    <tr><td>2</td><td><strong>앙상블 칼만 필터</strong></td><td>Wang 2025</td><td>632ms</td><td>실시간 불가</td></tr>
+    <tr><td>3</td><td><strong>지도학습 NN (FNO)</strong></td><td>Ehlers 2023</td><td>1.9ms</td><td>학습데이터, 1D</td></tr>
+    <tr><td>4</td><td><strong>물리 비지도 NN (PINN)</strong></td><td>Ehlers 2025</td><td>~30분</td><td>1D, 오프라인</td></tr>
+    <tr><td>5</td><td><strong>연속 파라미터 (Ours)</strong></td><td>WaveSplat</td><td>13ms</td><td>선형 근사</td></tr>
+</table>
+</div>
+
+<!-- 4. 선행 연구 상세 -->
+<div class="section" id="priorart-detail">
+<h2>4. 선행 연구 상세 (Q&A 대비)</h2>
+
+<div class="paper-card">
+<h4>Wang et al. 2025 (Coastal Engineering 197)</h4>
+<div class="meta">"From points to waves" | Harbin Engineering Univ. | 우리의 주 비교 대상</div>
+<ul>
+    <li><strong>방법</strong>: stereo camera → sparse 3D points → Delaunay 보간 → 격자에 투영 → ETKF로 스펙트럼 추정</li>
+    <li><strong>핵심 혁신</strong>: (1) WASSfast의 constrained optimization과 Kalman filter의 이론적 등가성 증명, (2) Fuzzy logic으로 관측 노이즈 R 자동 적응, (3) sub-state localization으로 병렬화</li>
+    <li><strong>앙상블</strong>: Ne=300, state dim = 16384×1 or 65536×1 (격자 크기 의존)</li>
+    <li><strong>실험</strong>: Acqua Alta 공개 데이터셋 + 자체 현장 데이터 (선박에서 stereo camera)</li>
+    <li><strong>성능</strong>: WASSfast보다 CPU 3-4배, GPU 2배 빠름. Sparse 조건에서도 robust</li>
+    <li><strong>우리 재현</strong>: Ne=300, 80x60 grid(dx=3m), fuzzy R, Delaunay — 원논문에 충실</li>
+    <li><strong>원논문과 우리 비교의 차이</strong>: 원논문은 stereo camera(수천 점), 우리는 LiDAR(~50점)</li>
+</ul>
+</div>
+
+<div class="paper-card">
+<h4>Ehlers et al. 2025 — PFT-PINN (Phys. Rev. Fluids 10, 094901)</h4>
+<div class="meta">"Physics-informed neural networks for phase-resolved DA" | TUHH + Imperial + Oxford</div>
+<ul>
+    <li><strong>구조</strong>: 2개 병렬 NN — η(x,t) 수면 + Φ(x,t,z) 속도 포텐셜 동시 추정</li>
+    <li><strong>NN 구조</strong>: 4 hidden layers × 200 neurons, tanh 활성화, Fourier feature embedding</li>
+    <li><strong>물리 loss</strong>: L_Lap(Laplace 방정식) + L_BC,kin + L_BC,dyn + L_BC,bot = 4개 PDE residual</li>
+    <li><strong>관측 데이터 처리</strong>: <strong>Hard constraint</strong> — η̄(x,t) = M(x,t) + R(x,t)·N_η(x,t). 관측점에서 NN 출력이 정확히 관측값이 되도록 강제</li>
+    <li><strong>Loss balancing</strong>: ReLoBRaLo — 4개 loss component의 가중치를 자동 조절 (α=0.95, τ=20)</li>
+    <li><strong>학습</strong>: Adam(lr=0.0005, 5000 epoch) + L-BFGS(~35000 epoch) → RTX 3090에서 ~30분</li>
+    <li><strong>검증</strong>: (1) 해석해(LWT 3성분, deep water), (2) 실험(Imperial MARATHON wave flume, ε=0.05~0.11)</li>
+    <li><strong>prediction</strong>: sequential training — 시간 도메인을 52 segment로 분할, 순차 학습</li>
+    <li><strong>결과</strong>: assimilation SSP≤0.049, prediction SSP=0.084 (1 peak period ahead)</li>
+    <li><strong>핵심 능력</strong>: 수면 측정만으로 <strong>수중 속도 포텐셜까지 추론</strong> (우리는 수면만)</li>
+    <li><strong>한계</strong>: 1D(x+t)만, instance마다 재학습, ~30분 소요</li>
+    <li><strong>향후(논문 명시)</strong>: 2D+t 확장, multi-GPU, pre-training, PINO 탐색</li>
+</ul>
+</div>
+
+<div class="paper-card">
+<h4>Ehlers et al. 2023 — FNO (Ocean Engineering 288)</h4>
+<div class="meta">"ML for phase-resolved reconstruction from sparse remote sensing" | TUHH + DLR</div>
+<ul>
+    <li><strong>방법</strong>: HOS(비선형)로 합성 레이더 데이터 생성 → FNO/U-Net으로 지도학습</li>
+    <li><strong>데이터</strong>: 130 (L<sub>p</sub>,ε) 조합 × 4 랜덤 위상 = 520 HOS 시뮬레이션 → 3120 학습 샘플</li>
+    <li><strong>FNO 구조</strong>: Fourier embedding → 3 Fourier layers(n<sub>m</sub>=64 modes) → linear output</li>
+    <li><strong>FNO의 강점</strong>: Fourier 공간에서 전역 매핑 학습 → 파도의 주기적 구조에 inductive bias 일치</li>
+    <li><strong>결과</strong>: FNO(n<sub>s</sub>=9): nL2=0.153, SSP=0.077 / U-Net(n<sub>s</sub>=10): nL2=0.123, SSP=0.061</li>
+    <li><strong>추론 속도</strong>: ~1.9ms (RTX 3050 Ti)</li>
+    <li><strong>한계</strong>: (1) 1D만, (2) 3120개 학습 데이터 필요, (3) shadowed 영역 복원 정확도 낮음</li>
+</ul>
+</div>
+
+<div class="paper-card">
+<h4>Desmars et al. 2023 (J. Fluid Mech. 975, A8)</h4>
+<div class="meta">"Nonlinear deterministic reconstruction and prediction" | TUHH + DLR, JFM</div>
+<ul>
+    <li><strong>방법</strong>: HOS-Observation Coupling Method (HOS-OCM) — HOS M=1(LWT)~M=3(3차) 비교</li>
+    <li><strong>관측</strong>: 3가지 type — (1) 균일 분포 수면 높이, (2) shadowing만, (3) shadowing+tilt modulation</li>
+    <li><strong>핵심 결과</strong>: M=3 HOS가 가장 정확, 특히 extreme wave 예측. LWT는 steepness 높을수록 부정확</li>
+    <li><strong>한계</strong>: 1D 레이더 관측 기반, variational optimization (실시간 아님)</li>
+    <li><strong>우리와 차이</strong>: 센서(레이더 vs LiDAR), 차원(1D vs 2D), 표현(격자 vs 연속), 속도(offline vs 13ms)</li>
+</ul>
+</div>
+
+<div class="paper-card">
+<h4>Yan et al. 2025 — VOF-EnKF (arXiv:2510.14356)</h4>
+<div class="meta">"Sequential wave reconstruction in VOF-based numerical wave tanks" | Shanghai Jiao Tong U.</div>
+<ul>
+    <li><strong>방법</strong>: Navier-Stokes(VOF) + EnKF + POD 차원 축소 — wave breaking까지 재현 가능</li>
+    <li><strong>핵심 혁신</strong>: free surface에만 inflation 적용 + LWT로 속도장 물리적 일관성 보장</li>
+    <li><strong>한계</strong>: CFD 기반이라 계산 비용 매우 높음 (오프라인 수치 수조 재현 전용)</li>
+    <li><strong>우리와 관계</strong>: 경쟁이 아닌 <strong>보완</strong>. 우리=실시간 제어, 그들=정밀 재현/설계</li>
+</ul>
+</div>
+
+<div class="paper-card">
+<h4>Klein et al. 2020 (Fluids 5(1), 9)</h4>
+<div class="meta">"On the deterministic prediction of water waves" | TUHH</div>
+<ul>
+    <li><strong>핵심</strong>: wave steepness ε &lt; 0.07 이면 LWT 충분히 정확 → <strong>우리 방법 적용 범위의 근거</strong></li>
+    <li>ε = k·A (파수 × 진폭). BF6까지 대부분 ε &lt; 0.07 충족</li>
+</ul>
+</div>
+</div>
+
+<!-- 4.5 WaveSim 상세 -->
+<div class="section" id="wavesim-detail">
+<h2>4.5 WaveSim — 시뮬레이터 상세 <span class="slide-ref">S9-S10</span></h2>
+
+<div class="concept-box">
+<strong>WaveSim이란?</strong> WaveSplat 알고리즘을 평가하기 위한 <strong>합성 데이터 생성 시뮬레이터</strong>입니다.
+실제 바다의 파도와 LiDAR 센서를 물리적으로 모사하여, ground truth(정답)와 관측 데이터를 동시에 생성합니다.
+</div>
+
+<h3>왜 시뮬레이터가 필요한가?</h3>
+<ul>
+    <li>실해역에서 "파도의 정답"을 알 수 없음 — 평가 자체가 불가능</li>
+    <li>시뮬레이터는 정답(η<sub>GT</sub>)을 정확히 알고 있으므로 알고리즘 평가 가능</li>
+    <li>다양한 해상 상태(BF2~BF7), 파도 복잡도(1~30 comp)를 체계적으로 실험</li>
+    <li>LiDAR 센서의 물리적 특성(raydrop, shadowing, noise)까지 포함</li>
+</ul>
+
+<h3>파이프라인 구조 (5단계)</h3>
+
+<h4>① 파도 생성 (wave_generator.py)</h4>
+<div class="concept-box">
+<strong>JONSWAP 스펙트럼 + Gerstner 파도</strong>
+</div>
+<ul>
+    <li><strong>JONSWAP 스펙트럼</strong>: 유의파고 H<sub>s</sub>와 첨두주기 T<sub>p</sub>를 입력하면, 각 주파수별 에너지 분포를 계산 (Hasselmann et al. 1973)</li>
+    <li><strong>성분 추출</strong>: 스펙트럼에서 N개 주파수를 샘플링하고, 각 성분의 진폭 A<sub>n</sub> = √(2·S(ω<sub>n</sub>)·Δω) 계산</li>
+    <li><strong>Gerstner 파도</strong>: 단순 사인파가 아닌 Gerstner 공식으로 수면 변위 계산 — 꼭대기 뾰족, 골 평평한 현실적 형태</li>
+    <li><strong>Q constraint</strong>: Σ Q<sub>n</sub> ≤ 1 — 물 입자가 겹치지 않는(particle crossing prevention) 조건 (Tessendorf 2001)</li>
+    <li><strong>분산 관계</strong>: ω = √(g·|k|·tanh(|k|·d)) — 깊은물 근사가 아닌 유한 수심 고려</li>
+    <li>방향: 각 성분의 (k<sub>x</sub>, k<sub>y</sub>)를 무작위로 배정하여 2D 방향성 파도 생성</li>
+</ul>
+<div class="formula">η(x,y,t) = Σ<sub>n</sub> A<sub>n</sub> cos(k<sub>xn</sub>·x + k<sub>yn</sub>·y - ω<sub>n</sub>·t + φ<sub>n</sub>)</div>
+
+<h4>② Ground Truth 생성 (gt_generator.py)</h4>
+<ul>
+    <li>80×60 정규 격자(x: 10~250m, y: -100~100m)에서 파도면 높이 η(x,y,t) 계산</li>
+    <li>매 시간 step(dt=0.1s, 30초간)에서 전체 격자 평가 → 300 프레임의 정답 데이터</li>
+    <li>법선 벡터(N<sub>x</sub>, N<sub>y</sub>, N<sub>z</sub>)도 함께 계산 — LiDAR 시뮬레이션에 사용</li>
+    <li>1D 에너지 스펙트럼 S(ω) 저장 — 결과 분석용</li>
+</ul>
+
+<h4>③ LiDAR 시뮬레이션 (lidar_simulator.py)</h4>
+<div class="concept-box">
+<strong>실제 LiDAR 센서의 물리를 모사</strong> — 단순 점 샘플링이 아님
+</div>
+<ul>
+    <li><strong>센서 설정</strong>: 높이 5m, 152채널, 10Hz, FOV 120°(수평) × 25°(수직), 탐지거리 1.5~250m</li>
+    <li><strong>빔 생성</strong>: 500(수평) × 152(수직) = 76,000개 레이저 빔을 각 프레임에서 방출</li>
+    <li><strong>수면 메시 구성</strong>: 파도면을 삼각형 메시(40×30 격자 → 2×39×29 = 2,262 삼각형)로 변환</li>
+    <li><strong>Ray-mesh 교차</strong>: <strong>Möller-Trumbore 알고리즘</strong>으로 각 빔과 삼각형의 교차점 계산</li>
+    <li><strong>교차점</strong> = LiDAR가 감지한 수면 위의 3D 점 → (x, y, z<sub>obs</sub>) 형태로 출력</li>
+</ul>
+
+<h4>④ Raydrop 모델 (raydrop_slope.py, raydrop_uniform.py)</h4>
+<div class="warning-box">
+<strong>실제 LiDAR는 모든 빔이 성공적으로 반사되지 않음</strong> — 이를 모사하는 것이 raydrop 모델
+</div>
+<ul>
+    <li><strong>Slope-based raydrop</strong> (물리 기반):
+        <ul>
+            <li>LiDAR는 <em>specular reflection</em> (정반사) 원리로 작동 — 수면 법선이 센서 방향과 정렬되어야 반사</li>
+            <li>파도 경사가 가파르면 법선이 틀어져 레이저가 센서로 돌아오지 않음 → 점 누락</li>
+            <li>반사 조건: r = d - 2(d·n)n에서 r·(-d) ≥ cos(α<sub>threshold</sub>)</li>
+            <li>결과: 파도 앞면(센서를 향한 면)은 잘 보이지만, 뒷면은 거의 안 보임</li>
+        </ul>
+    </li>
+    <li><strong>Uniform raydrop</strong> (통계적): 전체 hit점에서 무작위로 target_n_pts개만 남김 (baseline)</li>
+    <li><strong>Shadowing</strong>: 앞 파도가 높으면 뒤 파도 영역에 빔이 도달하지 못함 — ray-mesh 교차에서 자연 발생</li>
+    <li>최종 결과: 76,000개 빔 중 약 <strong>~50개 유효 점</strong>만 남음</li>
+</ul>
+
+<h4>⑤ 노이즈 모델 (noise_model.py)</h4>
+<ul>
+    <li><strong>Range noise</strong>: σ = 2cm — 빔 방향으로 Gaussian 랜덤 섭동 (1550nm solid-state LiDAR 스펙 기반)</li>
+    <li><strong>Angular noise</strong>: σ = 0.05° — 빔 방향 수직으로 Gaussian 섭동 (빔 확산)</li>
+    <li><strong>Confidence</strong>: 각 점의 입사각 기반 신뢰도 가중치 (grazing angle이 작으면 신뢰도 낮음)</li>
+</ul>
+
+<h3>데이터셋 구성</h3>
+<table>
+    <tr><th>항목</th><th>내용</th></tr>
+    <tr><td>총 에피소드</td><td>100개</td></tr>
+    <tr><td>해상 상태</td><td>BF2 (H<sub>s</sub>=0.3m) ~ BF7</td></tr>
+    <tr><td>파도 성분 수</td><td>1, 2, 5, 15, 30 comp</td></tr>
+    <tr><td>에피소드 길이</td><td>30초 (300 프레임 at 10Hz)</td></tr>
+    <tr><td>수심</td><td>50m (고정)</td></tr>
+    <tr><td>관측 영역</td><td>x: 10~250m, y: -100~100m</td></tr>
+    <tr><td>유효 점 수</td><td>~50점/프레임</td></tr>
+    <tr><td>저장 형식</td><td>HDF5 (.h5)</td></tr>
+</table>
+
+<h3>HDF5 에피소드 파일 내용</h3>
+<ul>
+    <li><strong>components/</strong>: 각 성분의 (A, ω, k<sub>x</sub>, k<sub>y</sub>, φ, Q) — 파도의 정답</li>
+    <li><strong>gt_fields/</strong>: 시간별 80×60 격자의 η(x,y,t) — 평가용 정답</li>
+    <li><strong>lidar_frames/</strong>: 시간별 관측 점군 (x, y, z, confidence) — 알고리즘 입력</li>
+    <li><strong>metadata</strong>: 해상 상태, 성분 수, seed, 센서 설정 등</li>
+</ul>
+
+<h3>테스트 구조 (39 tests)</h3>
+<ul>
+    <li><strong>test_wave_generator.py</strong>: JONSWAP 스펙트럼, 분산관계, Q constraint, Gerstner 형상</li>
+    <li><strong>test_raycast.py</strong>: Möller-Trumbore 교차 정확성, 빔 생성, 메시 구축</li>
+    <li><strong>test_raydrop.py</strong>: specular 반사 조건, slope 기반 dropout 비율</li>
+    <li><strong>test_gt.py</strong>: 격자 생성, 파도면 평가, 스펙트럼 계산</li>
+    <li><strong>test_pipeline.py</strong>: 전체 파이프라인 end-to-end, HDF5 입출력</li>
+</ul>
+
+<h3>강점 (Strengths)</h3>
+
+<div class="tip-box">
+<strong>1. 물리 기반 LiDAR 센서 모델</strong><br>
+대부분의 wave reconstruction 연구(Desmars 2023, Ehlers 2023)는 관측을 "격자 위의 수면 높이"로 단순화합니다.
+WaveSim은 실제 LiDAR의 <strong>빔 기하학 → ray-mesh 교차 → specular 반사 → raydrop → 노이즈</strong>까지
+물리적으로 모사하여, 실제 센서에서 나올 데이터에 가까운 합성 데이터를 생성합니다.
+</div>
+
+<div class="tip-box">
+<strong>2. 완전한 Ground Truth 보유</strong><br>
+시뮬레이터이므로 파도의 모든 물리 파라미터(A, k<sub>x</sub>, k<sub>y</sub>, ω, φ)와
+전체 공간의 수면 높이 η(x,y,t)를 정확히 알고 있습니다.
+실해역에서는 원리적으로 불가능한 <strong>전역적 정량 평가(nRMSE)</strong>가 가능합니다.
+</div>
+
+<div class="tip-box">
+<strong>3. 체계적 실험 설계</strong><br>
+BF2~BF7(파고 0.3~4m), 1~30 comp(파도 복잡도), uniform/slope(raydrop 모델),
+5개 random seed — 조합을 통해 <strong>100개 에피소드</strong>를 체계적으로 생성합니다.
+특정 조건에서만 잘 되는지, 전반적으로 잘 되는지 판별 가능합니다.
+</div>
+
+<div class="tip-box">
+<strong>4. 재현성 (Reproducibility)</strong><br>
+모든 에피소드는 seed로 결정론적으로 생성됩니다. 동일 seed → 동일 파도 → 동일 LiDAR 점.
+다른 연구자가 코드만 있으면 정확히 동일한 실험을 재현할 수 있습니다.
+HDF5 파일에 모든 중간 데이터(components, gt_fields, lidar_frames)가 저장되어 있어
+시뮬레이션 재실행 없이도 분석이 가능합니다.
+</div>
+
+<div class="tip-box">
+<strong>5. 충분한 테스트 커버리지 (39 tests)</strong><br>
+파도 생성(JONSWAP, 분산관계, Q constraint), ray casting(Möller-Trumbore),
+raydrop(specular 반사), ground truth, 전체 파이프라인까지 각 모듈을 독립적으로 검증합니다.
+코드 수정 시 regression을 즉시 감지할 수 있습니다.
+</div>
+
+<h3>한계 (Limitations)</h3>
+
+<div class="warning-box">
+<strong>1. 선형파 근사 (LWT)</strong><br>
+Gerstner 파도는 LWT의 exact rotational solution이지만, 여전히 <strong>선형 중첩(superposition)</strong>을 가정합니다.
+실제 바다에서 발생하는 비선형 효과들이 누락됩니다:
+<ul>
+    <li><strong>파도-파도 상호작용</strong>: 두 파도가 만나면 에너지가 교환됨 (4-wave interaction)</li>
+    <li><strong>Bound waves</strong>: 2차 이상의 고조파 성분이 자연 발생 (Stokes drift)</li>
+    <li><strong>Wave breaking</strong>: ε > ~0.14에서 파도 꼭대기가 부서짐 — LWT로 표현 불가</li>
+</ul>
+Klein 2020에 따르면 ε < 0.07이면 LWT가 충분히 정확하므로, BF2~BF5에서는 유효합니다.
+BF6~BF7에서는 Stokes 2차 보정이 필요합니다.
+</div>
+
+<div class="warning-box">
+<strong>2. 단순화된 해양 환경</strong><br>
+실제 바다에는 시뮬레이터에 포함되지 않은 요소들이 있습니다:
+<ul>
+    <li><strong>해류 (ocean current)</strong>: 파도의 분산관계를 변화시킴 (Doppler shift)</li>
+    <li><strong>바람 효과</strong>: 수면 위 물보라(spray), 거품(whitecap)이 LiDAR 반사에 영향</li>
+    <li><strong>수심 변화</strong>: 고정 수심 50m 가정 — 천해역에서는 굴절/천수 효과 발생</li>
+    <li><strong>해저 지형</strong>: 균일 평탄 해저 가정</li>
+</ul>
+</div>
+
+<div class="warning-box">
+<strong>3. LiDAR 센서 모델의 단순화</strong><br>
+실제 LiDAR와 WaveSim의 차이:
+<ul>
+    <li><strong>수면 반사 모델</strong>: 실제는 specular + diffuse + capillary wave 혼합. WaveSim은 specular or uniform 2가지만</li>
+    <li><strong>다중 반사 (multi-path)</strong>: 파도 사이에서 레이저가 여러 번 반사되는 현상 — 미반영</li>
+    <li><strong>대기 감쇠</strong>: 수증기, 물보라에 의한 레이저 감쇠 — 미반영</li>
+    <li><strong>센서 동적 특성</strong>: 스캔 중 선박 운동에 의한 motion distortion — 부분 반영</li>
+    <li><strong>수면 아래 투과</strong>: 1550nm 파장은 수면에서 거의 반사되지만, 일부 투과 가능 — 미반영</li>
+</ul>
+</div>
+
+<div class="warning-box">
+<strong>4. Sim-to-Real Gap</strong><br>
+시뮬레이터에서 잘 작동해도 실제 환경에서 동일한 성능을 보장하지 않습니다.
+이를 <strong>sim-to-real gap</strong>이라 합니다. 주요 차이 원인:
+<ul>
+    <li>실제 파도 스펙트럼은 JONSWAP보다 복잡 (swell + wind sea 혼합, bimodal spectrum)</li>
+    <li>실제 LiDAR 점 분포는 센서별 특성에 크게 의존 (Seyond vs Livox vs Velodyne)</li>
+    <li>실해역 raydrop 패턴은 해상 상태, 시각(태양 위치), 수면 오염도에 따라 변동</li>
+</ul>
+이 gap을 줄이기 위해 <strong>Avikus 자율운항 선박에서 실제 LiDAR 데이터를 수집하는 계획</strong>이 향후 연구에 포함되어 있습니다.
+</div>
+
+<div class="warning-box">
+<strong>5. 고정 센서 구성</strong><br>
+현재 모든 에피소드가 동일한 센서 설정(높이 5m, 152ch, FOV 120°)을 사용합니다.
+실제로는 선박 크기, LiDAR 모델, 설치 위치에 따라 관측 패턴이 크게 달라질 수 있습니다.
+다양한 센서 구성에서의 robustness 검증이 추후 필요합니다.
+</div>
+
+<div class="tip-box">
+<strong>시뮬레이터의 핵심 가치 요약</strong>: WaveSim은 "완벽한 현실 모사"가 아니라
+<strong>"통제된 환경에서 알고리즘의 기본 성능을 검증"</strong>하기 위한 도구입니다.
+물리 기반 센서 모델을 포함함으로써 단순한 toy problem이 아닌,
+실해역에 가까운 조건에서의 평가를 가능하게 합니다.
+한계들은 향후 실데이터 검증과 시뮬레이터 고도화를 통해 보완할 예정입니다.
+</div>
+</div>
+
+<!-- 5. 우리 방법 -->
+<div class="section" id="method">
+<h2>5. 우리 방법 (WaveSplat) <span class="slide-ref">S9-S11</span></h2>
+
+<h3>5.2 핵심 아이디어</h3>
+<div class="concept-box">
+<strong>격자 없이 파도의 물리 파라미터를 직접 최적화</strong><br>
+각 성분 = (A, k<sub>x</sub>, k<sub>y</sub>, ω, φ). 분산 관계로 ω를 k에서 계산 → 자유도 5N → 4N.
+</div>
+
+<h3>5.3 2단계 과정</h3>
+<table>
+    <tr><th>단계</th><th>무엇을</th><th>어떻게</th><th>시간</th></tr>
+    <tr><td><strong>Init</strong></td><td>파수(k) 결정</td><td>multi-frame beamforming</td><td>&lt;1초 (1회)</td></tr>
+    <tr><td><strong>Track</strong></td><td>A, ω, φ 업데이트</td><td>k 고정 + Adam</td><td>~13ms/frame</td></tr>
+</table>
+
+<div class="tip-box">
+<strong>비유: 라디오 맞추기</strong> — 채널(k)을 찾는 건 처음 한 번, 이후엔 볼륨(A,φ)만 조절.
+</div>
+
+<h3>5.4 Adaptive N</h3>
+<ul>
+    <li><strong>Pruning</strong>: 약한 성분 제거 / <strong>Growth</strong>: 잔여 오차 크면 추가 / <strong>Rollback</strong>: 악화 시 복구</li>
+</ul>
+</div>
+
+<!-- 6. 방법론 상세 -->
+<div class="section" id="method-detail">
+<h2>6. 방법론 상세 — 알고리즘 내부</h2>
+
+<h3>6.1 Beamforming 초기화 (v2_konly)</h3>
+<div class="concept-box">
+<strong>Beamforming</strong>: 레이더/음향에서 신호 방향 추정에 쓰이는 기법.
+여러 관측점 신호를 특정 방향으로 합산 → 그 방향 신호가 강화됨.
+</div>
+
+<p>WaveSplat 적용:</p>
+<ol>
+    <li>여러 프레임 LiDAR 점군 누적 (synthetic aperture 효과)</li>
+    <li>후보 파수(k<sub>x</sub>, k<sub>y</sub>) 격자 생성</li>
+    <li>각 후보의 관측 데이터 상관 계산</li>
+    <li>피크 파수를 초기값으로 선택</li>
+</ol>
+
+<div class="tip-box">
+<strong>"v2_konly"</strong>: v1(FFT) → v2(beamforming)으로 변경하여 <strong>평균 18% 개선</strong>.
+"konly" = k만 초기화, ω와 φ는 분산 관계와 최적화에 맡김.
+</div>
+
+<h3>6.2 Tracking: w_phi mode</h3>
+<table>
+    <tr><th>파라미터</th><th>상태</th><th>이유</th></tr>
+    <tr><td>k<sub>x</sub>, k<sub>y</sub></td><td><strong>고정</strong></td><td>변경 시 50점에 overfitting</td></tr>
+    <tr><td>ω</td><td>업데이트 (k에서 계산)</td><td>분산 관계 hard constraint</td></tr>
+    <tr><td>φ, A</td><td>업데이트</td><td>파도 이동에 따라 변함</td></tr>
+</table>
+
+<div class="warning-box">
+<strong>k 고정의 중요성</strong>: k까지 자유로우면 50개 점에 5N개 파라미터가 과적합.
+k를 고정하면 물리적으로 의미 있는 해만 탐색. 이 설계가 tracking 성능을 결정적으로 개선 (2026-04-06 발견).
+</div>
+
+<h3>6.3 분산 관계 Hard Constraint</h3>
+<div class="formula">ω<sub>n</sub> = √(g · |k<sub>n</sub>| · tanh(|k<sub>n</sub>| · d))</div>
+<table>
+    <tr><th></th><th>Hard Constraint (우리)</th><th>Soft Constraint</th></tr>
+    <tr><td>구현</td><td>ω를 k에서 직접 계산</td><td>ω-k 차이를 loss에 추가</td></tr>
+    <tr><td>자유도</td><td>5N → <strong>4N</strong></td><td>5N 유지</td></tr>
+    <tr><td>물리 위반</td><td>원리적 불가능</td><td>가중치 따라 위반 가능</td></tr>
+</table>
+
+<h3>6.4 Loss Function</h3>
+<div class="formula">L = Σ<sub>i</sub> (η<sub>model</sub>(x<sub>i</sub>, y<sub>i</sub>, t) - η<sub>obs</sub>(x<sub>i</sub>, y<sub>i</sub>, t))²</div>
+<p>LiDAR 점 위치에서 모델-관측 차이 최소화. 관측 50개 vs 파라미터 4N개 → N을 적게 유지해야 함.</p>
+</div>
+
+<!-- 7. 결과 -->
+<div class="section" id="results">
+<h2>7. 결과 <span class="slide-ref">S4, S12-S13</span></h2>
+
+<h3>7.1 전체 비교 (12 에피소드 평균)</h3>
+<table>
+    <tr><th>방법</th><th>nRMSE</th><th>속도</th><th>비고</th></tr>
+    <tr style="background:#e6f3ff;">
+        <td><strong>WaveSplat</strong></td>
+        <td><span class="number-highlight">0.211</span></td>
+        <td><span class="number-highlight">13 ms</span></td>
+        <td>16% 정확 + 47배 빠름</td>
+    </tr>
+    <tr><td>Wang2025 (Ne=300)</td><td>0.253</td><td>632 ms</td><td>논문 충실 재현</td></tr>
+</table>
+
+<h3>7.2 에피소드별 패턴</h3>
+<table>
+    <tr><th>복잡도</th><th>WaveSplat</th><th>Wang2025</th><th>결과</th></tr>
+    <tr style="background:#e6f3ff;"><td>BF3_2comp</td><td>0.052</td><td>0.250</td><td>WS 압도 (5배)</td></tr>
+    <tr><td>BF3_5comp</td><td>0.167</td><td>0.250</td><td>WS 우위</td></tr>
+    <tr><td>BF4_5comp</td><td>0.200</td><td>0.252</td><td>WS 우위</td></tr>
+    <tr style="background:#fff5f5;"><td>BF4_15comp</td><td>0.302</td><td>0.249</td><td>Wang 우위 (역전)</td></tr>
+    <tr style="background:#fff5f5;"><td>BF4_30comp</td><td>0.314</td><td>0.255</td><td>Wang 우위</td></tr>
+</table>
+
+<div class="warning-box">
+<strong>역전 원인</strong>: 격자는 모든 성분을 한번에 담지만, WaveSplat은 하나하나 찾아야 → 30개 초기화가 어려움.
+단, 격자는 nRMSE ~0.25 이하로 못 내려감 (해상도 한계).
+</div>
+</div>
+
+<!-- 8. Ablation -->
+<div class="section" id="ablation">
+<h2>8. Ablation Study <span class="slide-ref">S14-S15</span></h2>
+
+<div class="concept-box">
+<strong>Ablation = 기술을 하나씩 빼서 기여도 확인</strong>. 논문 심사에서 반드시 요구됨.
+비유: 레시피에서 재료를 빼 보며 맛 변화 확인.
+</div>
+
+<table>
+    <tr><th>변형</th><th>초기화</th><th>ω</th><th>프레임</th><th>nRMSE</th></tr>
+    <tr><td>A</td><td>FFT</td><td>자유</td><td>단일</td><td>0.213</td></tr>
+    <tr><td>B</td><td>Beamform</td><td>자유</td><td>복수</td><td>0.208</td></tr>
+    <tr><td>C</td><td>Beamform</td><td>분산관계</td><td>단일</td><td>0.226</td></tr>
+    <tr style="background:#e6f3ff;"><td><strong>D (WaveSplat)</strong></td><td>Beamform</td><td>분산관계</td><td>복수</td><td><strong>0.211</strong></td></tr>
+</table>
+
+<ul>
+    <li><strong>A→B</strong>: multi-frame → 0.005 개선 (시간 정보 활용)</li>
+    <li><strong>A→C</strong>: dispersion만 → 0.013 <strong>악화</strong> (k 오류가 ω로 전파)</li>
+    <li><strong>D</strong>: 모두 결합 → 가장 안정. dispersion + multi-frame 시너지</li>
+</ul>
+
+<div class="tip-box">
+<strong>핵심</strong>: 분산 관계 = '물리적 정규화(regularizer)'. 올바른 초기화 + 충분한 정보와 결합해야 효과적.
+</div>
+</div>
+
+<!-- 9. 한계 -->
+<div class="section" id="limits">
+<h2>9. 한계 <span class="slide-ref">S17</span></h2>
+<div class="warning-box"><strong>1. 선형 근사</strong>: BF6까지 유효, 그 이상은 Stokes 2차 보정 필요.</div>
+<div class="warning-box"><strong>2. 고복잡도 역전</strong>: 15+ comp에서 격자 방법에 역전. Hybrid init으로 개선 계획.</div>
+<div class="warning-box"><strong>3. 파쇄/유속장 미지원</strong>: 비선형 전용 (VOF-EnKF 등). 다른 응용 영역.</div>
+</div>
+
+<!-- 10. 향후 연구 방향 -->
+<div class="section" id="future">
+<h2>10. 향후 연구 방향 상세 <span class="slide-ref">S18</span></h2>
+
+<h3>10.1 Stokes 2차 보정</h3>
+<div class="concept-box">
+<strong>문제</strong>: LWT는 완벽한 사인파 가정. 실제 파도는 꼭대기 뾰족, 골 평평.<br>
+<strong>Stokes 2차</strong>: 2배 주파수 성분을 추가하여 비선형 효과를 근사:
+</div>
+<div class="formula">η<sub>Stokes2</sub> = Σ A<sub>n</sub>cos(ψ<sub>n</sub>) + Σ<sub>n,m</sub> B<sub>nm</sub>cos(ψ<sub>n</sub> + ψ<sub>m</sub>)</div>
+<ul>
+    <li>B<sub>nm</sub>은 k<sub>n</sub>, k<sub>m</sub>에서 <strong>해석적으로 계산</strong> (추가 자유 파라미터 없음)</li>
+    <li>유효 범위: ε &lt; 0.07 → ε ~ 0.10까지 확장 (BF6~7 커버)</li>
+    <li>Desmars 2023도 HOS M=1→M=3으로 개선 효과 보고</li>
+    <li><strong>속도 저하 최소</strong>: 기존 파라미터에서 계산만 추가</li>
+</ul>
+
+<h3>10.2 Hybrid Init</h3>
+<div class="concept-box">
+<strong>고복잡도(15-30 comp) 역전 해결</strong>:
+<ol>
+    <li>격자 방법(FFT/ETKF)으로 대략적 파도장 빠르게 추정</li>
+    <li>격자 결과에서 peak 추출 → WaveSplat 초기값</li>
+    <li>WaveSplat 연속 최적화로 정밀도 향상</li>
+</ol>
+격자의 "넓은 탐색" + WaveSplat의 "정밀 추정" 결합.
+</div>
+
+<h3>10.3 Learned Init</h3>
+<div class="concept-box">
+작은 NN으로 LiDAR 점군 → 초기 파라미터 직접 예측. NN이 틀려도 WaveSplat이 최적화로 보정 → 견고한 시스템.
+</div>
+
+<h3>10.4 실해역 검증</h3>
+<div class="warning-box">
+<strong>현재</strong>: 합성 데이터만. <strong>필요</strong>: 실제 ship-mounted LiDAR 데이터.<br>
+시뮬레이터에 포함: raydrop, shadowing, 선박 운동.<br>
+미포함: 물보라, 비선형, 해류, 바람 흔들림. Avikus 자율운항 선박에서 수집 계획.
+</div>
+</div>
+
+<!-- 11. Q&A -->
+<div class="section" id="qa">
+<h2>11. 예상 질문과 답변</h2>
+
+<div class="qa-card">
+<div class="q">Q: 실제 바다에서도 작동하나요?</div>
+<div class="a">현재 합성 데이터에서 검증. 시뮬레이터에 raydrop, shadowing 등 LiDAR 물리 효과 포함. 실제 환경과의 차이가 크지 않을 것으로 기대하며, Avikus 선박에서 실데이터 수집 계획 중.</div>
+</div>
+
+<div class="qa-card">
+<div class="q">Q: 왜 선형 파도 이론만?</div>
+<div class="a">비선형(PFT-PINN, VOF-EnKF)은 30분~수시간 소요 → 실시간 불가. BF6까지 LWT 유효(Klein 2020). Stokes 2차 보정으로 비선형 영역 일부 확장 가능.</div>
+</div>
+
+<div class="qa-card">
+<div class="q">Q: Wang2025 비교가 공정한가?</div>
+<div class="a">원논문 세팅 그대로 (Ne=300, fuzzy R, Delaunay). 동일한 물리(LWT) + 동일한 LiDAR 데이터. 원논문은 stereo camera(dense) 사용이지만, ETKF 알고리즘은 입력 형태에 무관.</div>
+</div>
+
+<div class="qa-card">
+<div class="q">Q: 고복잡도에서 지는데?</div>
+<div class="a">정직하게 보고. Limitation에 명시 + 원인(초기화 한계) + 해결(hybrid init) 제시. 리뷰어는 한계 숨기기보다 정직한 보고를 높이 평가.</div>
+</div>
+
+<div class="qa-card">
+<div class="q">Q: PFT-PINN이 빨라지면?</div>
+<div class="a">PINN은 instance마다 40000 epoch 학습 필요 (PDE residual + backprop 반복). 실시간급 달성 원리적으로 어려움. 설령 빨라져도 응용이 다름: PINN=속도포텐셜까지 추론하는 설계 도구, 우리=수면만 빠르게 추정하는 제어 컴포넌트.</div>
+</div>
+
+<div class="qa-card">
+<div class="q">Q: FNO가 1.9ms로 더 빠른데?</div>
+<div class="a">FNO: 학습 데이터 3120개 필요, 1D만, 환경 변하면 재학습. 우리: 비지도, 2D, 즉시 작동. 속도는 둘 다 실시간급(100ms 이내)이라 실용적 차이 없음.</div>
+</div>
+
+<div class="qa-card">
+<div class="q">Q: "Spectral Gaussian"이 3DGS와 관련?</div>
+<div class="a">이름 영감만 동일. 공통점: 연속 파라미터를 직접 최적화하는 off-grid 접근. 차이: 3DGS=3D 장면 표현, WaveSplat=스펙트럼 공간에서 파도 표현.</div>
+</div>
+
+<div class="qa-card">
+<div class="q">Q: Wang2025는 stereo camera인데 같은 조건?</div>
+<div class="a">원논문은 수천 점 stereo, 우리 비교에서는 동일 LiDAR 데이터(~50점)를 양쪽에 제공. 우리 문제 설정이 sparse scanning LiDAR이므로 공정한 비교.</div>
+</div>
+
+<div class="qa-card">
+<div class="q">Q: Desmars 2023과 왜 비교 안 했나?</div>
+<div class="a">센서(레이더 vs LiDAR), 차원(1D vs 2D), 속도(offline vs 13ms) 모두 다름. 직접 비교 어려워 Related Work에서 positioning으로 다룸.</div>
+</div>
+
+<div class="qa-card">
+<div class="q">Q: VOF-EnKF와 차이?</div>
+<div class="a">완전히 다른 레벨. VOF-EnKF=Navier-Stokes로 파도 파쇄/유속장 재현(CFD급). 우리=수면만 빠르게. 경쟁 아닌 보완 관계.</div>
+</div>
+
+<div class="qa-card">
+<div class="q">Q: Ablation에서 D가 A보다 약간만 좋은데?</div>
+<div class="a">평균은 비슷하지만 에피소드별 패턴이 다름. 단순 파도에서 D가 최대 42% 우위. 핵심: D의 해가 '물리적으로 의미 있는 해'. A는 물리 불가능한 답 가능.</div>
+</div>
+</div>
+
+<!-- 12. 용어 사전 -->
+<div class="section" id="glossary">
+<h2>12. 용어 사전</h2>
+<dl class="glossary">
+    <dt>Phase-resolved estimation</dt><dd>각 파도의 위치·시점·높이를 결정론적으로 추정. 통계적 추정과 반대.</dd>
+    <dt>nRMSE</dt><dd>정규화된 평균 제곱근 오차. 0=완벽, 1=최악.</dd>
+    <dt>Dispersion relation</dt><dd>ω = √(g·|k|·tanh(|k|·d)). 긴 파도=빠름, 짧은 파도=느림.</dd>
+    <dt>Wavenumber (k)</dt><dd>k = 2π/파장. 클수록 짧은 파도.</dd>
+    <dt>Wave steepness (ε)</dt><dd>ε = k·A. &lt;0.07이면 LWT 유효 (Klein 2020).</dd>
+    <dt>Beamforming</dt><dd>여러 관측점 데이터를 결합하여 신호 방향 추정.</dd>
+    <dt>ETKF</dt><dd>Ensemble Transform Kalman Filter. 앙상블로 불확실성 추정 + 관측 보정.</dd>
+    <dt>Raydrop</dt><dd>LiDAR 레이저가 파도 표면에서 반사 실패로 점 누락.</dd>
+    <dt>Shadowing</dt><dd>앞 파도가 뒤 파도를 가려 측정 불가.</dd>
+    <dt>Synthetic Aperture</dt><dd>선박 이동으로 여러 시점 데이터 누적 → 가상 큰 안테나 효과.</dd>
+    <dt>Ablation Study</dt><dd>구성 요소를 하나씩 제거하여 기여도 분석.</dd>
+    <dt>Regularizer</dt><dd>최적화에서 답의 범위를 제한하는 장치.</dd>
+    <dt>LWT (Linear Wave Theory)</dt><dd>파도를 사인파 합으로 근사. 가장 단순한 파도 이론.</dd>
+    <dt>Stokes wave theory</dt><dd>LWT + 고차 보정. 2차는 꼭대기 뾰족/골 평평 효과 추가.</dd>
+    <dt>HOS</dt><dd>High-Order Spectral. 비선형 파도 계산. M=1=LWT, M=3=3차 비선형.</dd>
+    <dt>PFT</dt><dd>Potential Flow Theory. 비압축·비점성·비회전 유체. Laplace 방정식.</dd>
+    <dt>VOF</dt><dd>Volume of Fluid. N-S 방정식의 자유표면 추적. 파쇄 재현 가능.</dd>
+    <dt>PINN</dt><dd>Physics-Informed NN. 물리 법칙을 loss에 포함. 데이터 없이 학습 가능.</dd>
+    <dt>FNO</dt><dd>Fourier Neural Operator. Fourier 공간에서 전역 매핑 학습.</dd>
+    <dt>Adam</dt><dd>딥러닝 표준 최적화. 적응적 학습률 + 모멘텀.</dd>
+    <dt>SSP</dt><dd>Surface Similarity Parameter. Fourier 기반 수면 유사도. 0=일치, 1=반대.</dd>
+    <dt>Delaunay triangulation</dt><dd>불규칙 점을 삼각형 격자로 연결. Wang2025의 보간 방법.</dd>
+    <dt>POD</dt><dd>Proper Orthogonal Decomposition. 고차원→저차원 축소. VOF-EnKF에서 사용.</dd>
+    <dt>ReLoBRaLo</dt><dd>Relative Loss Balancing with Random Lookbacks. PFT-PINN의 loss 가중치 자동 조절.</dd>
+</dl>
+</div>
+
+<!-- 13. 체크리스트 -->
+<div class="section" id="checklist">
+<h2>13. 발표 전 체크리스트</h2>
+
+<h3>핵심 숫자</h3>
+<ul class="checklist">
+    <li>WS: 0.211 / Wang: 0.253 → 16% 우위</li>
+    <li>WS: 13ms / Wang: 632ms → 47배</li>
+    <li>최고: BF3_2comp = 0.052</li>
+    <li>역전: 15+ comp</li>
+    <li>PFT-PINN: ~30분 / FNO: 1.9ms</li>
+    <li>Ablation: A=0.213, B=0.208, C=0.226, D=0.211</li>
+    <li>LWT 유효: ε &lt; 0.07 (Klein 2020)</li>
+</ul>
+
+<h3>핵심 메시지</h3>
+<ul class="checklist">
+    <li>"실시간 + 2D + 희소 LiDAR + 비지도 = 선행연구에 없는 조합"</li>
+    <li>"분산 관계 = 물리적 정규화"</li>
+    <li>"격자 없이 연속 파라미터 직접 최적화"</li>
+    <li>"한계도 정직하게 — 고복잡도 역전, 선형 근사"</li>
+</ul>
+
+<h3>발표 흐름</h3>
+<ul class="checklist">
+    <li>S1-S3: 동기 + 문제 정의</li>
+    <li>S4: 결과 먼저 (hook)</li>
+    <li>S5-S8: 선행 연구 5분류 + 핵심 2편 + niche</li>
+    <li>S9-S10: 시뮬레이터 + 데이터셋</li>
+    <li>S11-S13: 알고리즘 + 비교 + 에피소드 분석</li>
+    <li>S14-S16: Ablation + 메커니즘 + 2단계 설계</li>
+    <li>S17-S18: 한계 + 향후 방향</li>
+</ul>
+
+<h3>선행연구 차이점 요약</h3>
+<ul class="checklist">
+    <li>vs Wang2025: 격자/연속, 632/13ms, 둘 다 LWT</li>
+    <li>vs PFT-PINN: 실시간/30분, 수면/수면+포텐셜, 2D/1D</li>
+    <li>vs FNO: 비지도/지도, 2D/1D, 둘 다 실시간</li>
+    <li>vs VOF-EnKF: 제어/재현, 선형/비선형, 보완관계</li>
+    <li>vs Desmars: LiDAR/레이더, off-grid/on-grid, TUHH 선행연구</li>
+</ul>
+</div>
+
+</div>
+</body>
+</html>

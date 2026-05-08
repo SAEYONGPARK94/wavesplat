@@ -9,10 +9,11 @@
 
 ## 19-Slide Outline (selective prior art detail)
 
-**Decisions** (2026-05-08):
-- **Q1**: Top 5 prior art detail (1 paper/slide) + backup slides (Q&A) for나머지 7 paper
+**Decisions** (2026-05-08 updated):
+- **Q1**: Top 5 prior art detail (1 paper/slide) + backup slides (Q&A) for 나머지
 - **Q2**: 우리가 PDF figure 우선 추출 → 사용자가 PowerPoint 에서 다듬기
-- **Q3**: Wang 2025 는 PPT 에서 빼고 진행 (paper 작성 단계에서 정독). 단, 받으면 즉시 detail slide 추가.
+- **Q3**: Wang 2025 정독 완료 → S6에 반영, 3-way 비교 결과 S14에 반영
+- **Q4**: WASSfast (Bergamasco 2021) 코드 분석 완료 → S4 카테고리 + S6 관련 언급
 
 | # | Slide | Part | Day |
 |---|---|---|---|
@@ -54,20 +55,21 @@
 
 ---
 
-## Wang 2025 정독 체크리스트 (내일 오전 작업)
+## Wang 2025 정독 체크리스트 — ✅ 완료 (2026-05-08)
 
-받자마자 §8.2 9-항목 확인:
-1. State vector — η + ∂η/∂t? 또는 η + spectral coefficients?
-2. Observation operator H — obs→grid (interpolation BEFORE) or grid→obs?
-3. Propagation — FFT exact dispersion? WASSfast model 정의?
-4. Inflation — multiplicative? additive?
-5. Localization — r_loc 사용?
-6. Outlier handling — fuzzy logic 알고리즘
-7. Test dataset — simulator/실측?
-8. Hyperparameter tuning protocol — sweep? sensitivity?
-9. Code release — GitHub 공개?
+1. State vector: η + ∂η/∂t (2-field) ✅
+2. Observation operator: Delaunay interpolation BEFORE (obs→grid) ✅
+3. Propagation: FFT exact dispersion ✅
+4. Inflation: fuzzy R adaptation (not multiplicative inflation) ✅
+5. Localization: sub-state ETKF (Hunt 2007) ✅
+6. Outlier handling: 9-rule fuzzy logic (Table 1) ✅
+7. Test dataset: stereo camera field data ✅
+8. Hyperparameter: Ne=300 optimal (Fig. 12) ✅
+9. Code release: GitHub 공개 ✅
 
-→ **Case A/B/C 결정** → §32 추가 → Slide 4-5 / Slide 11-12 의 ETKF baseline framing 결정
+→ **Case B 결정**: 같은 ETKF family지만 enhanced (fuzzy + Delaunay + large Ne)
+→ Faithful reproduction 구현 완료 → 12-episode 3-way 비교 완료
+→ S6, S14 업데이트 완료
 
 ---
 
@@ -177,10 +179,11 @@ Saeyong Park
 | 카테고리 | 대표 paper | 핵심 | 한계 |
 |---|---|---|---|
 | **(1) Variational / grid-based** | Desmars 2018-2023, Aragh-Nwogu 2008 | predefined k-grid + cost function inversion | on-grid, 1D 위주 |
-| **(2) Ensemble Kalman filter** | Wang & Pan 2021/22, Yan 2025 | HOS/VOF + EnKF + inflation | offline, 1D xz-plane |
-| **(3) ML supervised** | Ehlers 2023 (FNO), Duan 2020, Liu 2022 | pre-trained NN, fast inference | training data, generalization |
-| **(4) Physics-informed unsupervised** | Ehlers 2025 (PFT-PINN), Lu 2024 | PINN + PFT loss, no training data | ~30 min/instance, 1D+t |
-| **(5) Parametric off-grid** ⭐ | **WaveSplat (우리)** | continuous (k_x, k_y, ω, A, φ) + dispersion hard | linear approximation |
+| **(2) Ensemble Kalman filter** | Wang & Pan 2021/22, Wang 2025, Yan 2025 | HOS/VOF + EnKF + inflation | offline~slow, grid 한계 |
+| **(3) Spectral grid fitting** | WASSfast (Bergamasco 2021) | sparse pts → NUFFT spectral grid + dispersion predict | NxN grid 표현, stereo camera |
+| **(4) ML supervised** | Ehlers 2023 (FNO), Duan 2020, Liu 2022 | pre-trained NN, fast inference | training data, generalization |
+| **(5) Physics-informed unsupervised** | Ehlers 2025 (PFT-PINN), Lu 2024 | PINN + PFT loss, no training data | ~30 min/instance, 1D+t |
+| **(6) Parametric off-grid** ⭐ | **WaveSplat (우리)** | continuous (k_x, k_y, ω, A, φ) + dispersion hard | linear approximation |
 
 ### Visual
 - 5-카테고리를 2D 평면에 배치:
@@ -190,7 +193,7 @@ Saeyong Park
 - **우리 위치**: top-left (linear, real-time) + 추가 차원 = **2D directional + LiDAR**
 
 ### Presenter notes
-12 paper 정독 결과 5 카테고리로 분류 가능합니다. 첫 4개는 기존 paradigm — variational on-grid, EnKF ensemble, ML supervised, physics-informed unsupervised. 우리는 **5번째 카테고리**, parametric off-grid 입니다. 다른 카테고리들은 모두 *grid 또는 NN 으로 wave field 를 표현* 하지만, 우리는 *spectral parameter 자체를 직접 추정*. 이게 가능한 이유는 dispersion 제약을 hard constraint 로 강제하기 때문 — 다음 슬라이드부터 가장 가까운 prior art 5 편을 detail 로 보여드리겠습니다.
+12+ paper 정독 결과 6 카테고리로 분류 가능합니다. 특히 카테고리 3 WASSfast (Bergamasco 2021)가 우리와 가장 가까운 접근 — sparse 3D points에서 dispersion 활용한 spectral fitting. 차이는 WASSfast가 NxN spectral grid coefficients를 추정하는 반면, 우리는 N개 continuous parametric component를 직접 추정한다는 점. 또한 WASSfast는 stereo camera (수천 점) 전제, 우리는 scanning LiDAR (~50 점)로 극도로 sparse한 상황. 우리는 **6번째 카테고리**, parametric off-grid입니다.
 
 ---
 
@@ -247,10 +250,13 @@ Saeyong Park
 
 ### 우리와 관계
 - 우리 [wavesplat/baselines/etkf_grid.py](wavesplat/baselines/etkf_grid.py) 가 이 family 의 simplified implementation
-- *Note*: Wang et al. 2025 (Coastal Eng 197) 는 더 최근 grid-based ETKF 변형 — paper 작성 단계에서 정독 예정 (Case A/B/C 결정)
+- **Wang 2025 (Coastal Eng 197)**: 같은 ETKF family의 최신 변형 (stereo camera, fuzzy R, Ne=300)
+  - 우리가 faithful reproduction 구현: [wavesplat/baselines/etkf_wang2025.py](wavesplat/baselines/etkf_wang2025.py)
+  - **3-way 비교 완료**: WS 0.211/13ms vs Wang2025 0.253/632ms vs ETKF-orig 0.382/59ms
+  - Wang2025는 기본 ETKF 대비 34% 개선되지만, WaveSplat보다 16% 열위 + 47x 느림
 
 ### Presenter notes
-EnKF-HOS family 는 우리 ETKF baseline 의 직접적 prior art 입니다. Wang & Pan 2021 이 처음으로 HOS 와 EnKF 를 결합했고, 2022 에서 current estimation 으로 확장. 한계는 (1) ensemble 비용으로 real-time 어렵고, (2) dense obs 가정이라 sparse LiDAR setup 에 직접 적용 안 됨. 우리는 이 baseline 을 sparse-input 으로 tune 해서 비교 했습니다.
+EnKF-HOS family는 우리 ETKF baseline의 직접적 prior art입니다. Wang & Pan 2021이 처음으로 HOS와 EnKF를 결합했고, 2022에서 current estimation으로 확장. **최신 Wang 2025 (Coastal Eng)는 fuzzy logic + Delaunay interpolation + Ne=300으로 enhanced ETKF를 제안** — 이를 faithful하게 재현해서 비교한 결과, 기본 ETKF보다 확실히 좋지만(0.253 vs 0.382) WaveSplat(0.211)에는 못 미침. 다만 고복잡도(15-30 성분)에서는 Wang2025가 WaveSplat과 비등하거나 역전 — grid 방법의 robustness. 속도는 632ms vs 13ms로 47배 차이.
 
 ---
 
@@ -392,6 +398,393 @@ ML supervised 카테고리의 SOTA. 1.9 ms 의 inference 속도가 인상적이�
 
 ---
 
+# Day 3 — Slide 11-14 (WaveSim + Exploration Phase)
+
+## Slide 11 — WaveSim: Physics + LiDAR Sensor Model
+
+### Title
+**WaveSim — physics + LiDAR sensor model**
+
+### Subtitle
+선형 중첩 + 분산 + JONSWAP 스펙트럼, 그리고 LiDAR raydrop 물리까지
+
+### Key bullets
+
+#### Physics (수면 모델)
+- η(x, y, t) = Σ_n A_n cos(k_xn·x + k_yn·y − ω_n·t + φ_n)
+- N개 plane wave의 선형 중첩 (Linear Wave Theory, LWT)
+
+#### Dispersion relation (분산 관계)
+- ω_n = √(g·|k_n|·tanh(|k_n|·d)) — 주파수와 wavenumber의 1-to-1 매핑
+- 깊은 물 근사: ω² ≈ g·|k| (d → ∞)
+
+#### Spectrum
+- JONSWAP-2D (Hasselmann 1973 + 방향 spreading)
+- N_components 가변 (1, 2, 5, 15, 20, 30)
+
+#### LiDAR sensor model (unique contribution)
+- **Ray-triangle intersection**: Möller-Trumbore 1997 (그래픽 분야 표준, 검증된 알고리즘)
+- **Raydrop probability**: Fresnel reflectance (specular vs diffuse), 입사각 + 파면 경사에 의존
+- **Geometric shadowing**: 가까운 파도가 먼 파도를 가림 (occlusion)
+- **Vessel motion**: V=11.3 m/s 이동 + ego-velocity correction
+
+#### 검증
+- 39 unit test 통과, 100+ episode 합성 dataset 생성
+
+### Visual
+- 오른쪽: wave field 시각화 (wavesim_BF4_5c_wave_field.png)
+
+### Presenter notes
+WaveSim은 우리가 만든 simulator입니다. 두 부분으로 나뉩니다.
+
+(1) 수면 model (physics):
+  - Linear Wave Theory — N개 plane wave의 선형 중첩으로 수면 표현
+  - Dispersion relation — frequency ω와 wavenumber k의 관계 (깊은 물에서 ω² = g·k·tanh(kd))
+  - JONSWAP-2D 스펙트럼 — 실제 바다의 통계적 특성 모방
+
+한계는 정직하게 인정합니다 — Klein 2020이 정량 비교한 HOSM > NLSE > LWT 중 우리는 LWT family로 가장 단순. ε (steepness) < 0.07 영역에서만 신뢰 가능.
+
+(2) LiDAR sensor model — 이게 우리의 unique contribution:
+  - Ray-triangle intersection: LiDAR ray가 mesh와 만나는 점을 계산. Möller-Trumbore 1997 알고리즘 사용 (그래픽 분야 표준)
+  - Raydrop: 파도 표면에서 ray가 반사되어 LiDAR에 못 돌아오는 확률. Fresnel reflectance 사용 (specular = 거울 반사, diffuse = 산란)
+  - Shadowing: 앞쪽 파도가 뒤쪽 파도를 가림
+  - Vessel motion: 선박이 V=11.3 m/s로 움직이므로 매 frame 다른 위치에서 관측
+
+12편 prior art 중 이 정도 sensor model을 simulate한 것은 없습니다. 39개 unit test로 simulator 정확성 검증, 110 episode를 합성 dataset으로 생성했습니다.
+
+---
+
+## Slide 12 — WaveSim: 100+ Episodes Overview
+
+### Title
+**110 episode — 통제된 benchmark**
+
+### Subtitle
+재현 가능, 다양한 복잡도, ground-truth η + LiDAR 점 모두 보존
+
+### Key bullets
+
+#### Episode 변수
+| 변수 | 값 | 의미 |
+|---|---|---|
+| Sea state (BF) | BF2, BF3, BF4, BF5, BF6, BF7 | 잔잔 → 거친 바다 |
+| N_components | 1, 2, 5, 15, 20, 30 | 저 → 고 복잡도 |
+| Sensor type | uniform, slope | LiDAR scan 분포 |
+| Seeds | 0–4 (BF2-5), 0 (BF6-7) | 재현성 보장 |
+
+#### Episode당 데이터
+- T = 30 s, Δt = 0.1 s → 300 frames
+- Ground-truth η field: 50×50 격자 (참값으로 평가용)
+- LiDAR scan: ~50 valid pts/frame (raydrop 후)
+- HDF5 format, 110 files
+
+#### Test coverage
+- 39 unit test (wavesim/) + 18 (wavesplat/) = **57 total, 모두 통과**
+- Simulator + estimator의 정확성 보증
+
+### Visual
+- 오른쪽: BF4 LiDAR scan 시각화 (wavesim_BF4_5c_wave_lidar.png)
+
+### Presenter notes
+110 episode의 통제된 benchmark를 구축했습니다.
+
+Episode 설계:
+  - Sea state: BF2 (아주 잔잔) ~ BF7 (매우 거친) — 6단계 Beaufort scale
+  - N_components: 1 (단순 단일 파) ~ 30 (복잡 다중 파) — 알고리즘이 component 수에 robust한지 검증
+  - Sensor type: uniform (균등 분포), slope (거리 비례 분포)
+  - Seeds: BF2-BF5는 seed 0-4 (5개씩), BF6-BF7은 seed 0 (1개씩)
+
+Episode당 데이터:
+  - 30초 시뮬레이션, 0.1초 간격 → 300 frame
+  - Ground-truth η field 50×50 격자 — 평가 시 참값
+  - LiDAR scan은 raydrop/shadowing 적용 후 frame당 ~50점
+
+전체 110 episode를 HDF5 파일로 저장. Reproducibility 보장 — seed 저장, 동일 seed로 재실행 시 동일 결과.
+
+이 dataset 자체가 paper의 contribution 일부입니다. Ehlers 2023도 비슷한 합성 benchmark를 만들었지만 1D였고, 우리는 2D directional + LiDAR sensor model까지 포함.
+
+---
+
+## Slide 13 — WaveSplat Algorithm (Exploration Phase)
+
+### Title
+**WaveSplat — parametric off-grid estimator**
+
+### Subtitle
+5N 파라미터 (k_x, k_y, ω, A, φ) × N개 component를 직접 추정
+
+### Key bullets
+
+#### State 표현
+- N개 component × {A_n, k_xn, k_yn, ω_n, φ_n}
+- Dispersion hard constraint: ω_n = √(g·|k_n|·tanh(|k_n|·d))
+- → 자유도 감소: 5N → 4N (ω가 k에 의해 결정됨)
+
+#### Two-stage estimation (main framing의 motivation)
+- **Init phase** — multi-frame (2×T_p ≈ 1초):
+  - 2-stage beamforming (v2_konly): 81×81 → 41×41 grid search
+  - (k_x, k_y)만 추정, amplitude/phase는 optimizer에 맡김
+  - Coarse-to-fine schedule: N = 3 → 8 → 15
+- **Track phase** — per-frame (~13 ms):
+  - (k_x, k_y) 고정, (ω, A, φ)만 Adam으로 update
+  - Phase prediction warm-start: φ += ω·Δt
+
+#### Adaptive N (component 수 동적 조정)
+- **Energy-based pruning**: amplitude 작은 component 제거 (90% energy 보존)
+- **Residual-triggered growth**: 잔여 오차 > 5cm이면 새 component 추가
+- **Safety rollback**: RMSE > 130%면 이전 상태로 복귀
+- Hard cap: N ≤ 30
+
+#### Loss function
+- L = Σ c_j·(η_LiDAR − η_model)² + λ_L1·Σ|A_n| + λ_smooth·Σ(A_{n+1}−A_n)²
+- c_j = cos(θ)/d_norm — geometry-aware confidence weight
+
+### Visual
+- 오른쪽: pipeline figure (fig_pipeline.png)
+
+### Presenter notes
+WaveSplat의 탐색 단계 알고리즘입니다. 핵심 아이디어:
+
+(1) State 표현 — N개 component × 5 파라미터 = 5N 자유도. Dispersion 관계로 ω가 k에 의해 결정되므로 실제 자유도는 4N. 매우 compact.
+
+(2) Two-stage 추정 — 단일 frame에서 (k_x, k_y)는 ill-conditioned (정보 부족). 그래서 init 단계는 multi-frame으로 (k_x, k_y)만 정확히 추정하고, track 단계는 (k_x, k_y) 고정 후 매 frame (ω, A, φ)만 update. 이게 후반부 main framing 'identifiability decomposition'의 motivation입니다.
+
+(3) Adaptive N — 처음에는 N을 모르고, episode마다 N이 다를 수 있음.
+  - Pruning: amplitude 작은 component 제거 (90% energy 유지)
+  - Growth: residual 크면 새 component 추가
+  - Safety rollback: 새 component가 잘못되어 RMSE 폭증하면 원상복구
+
+(4) Loss — 측정치-모델 차이 weighted squared error + L1 sparsity + spectral smoothness. Dispersion은 항상 만족하도록 hard constraint. Confidence weight는 입사각과 거리에 따라 측정 신뢰도를 반영.
+
+이 알고리즘이 *왜 작동하는지*에 대한 분석이 다음 슬라이드부터의 main framing입니다.
+
+---
+
+## Slide 14 — Exploration Phase Results: vs EnKF-HOS (Wang-Pan 2021/22)
+
+### Title
+**탐색 단계 결과 — WaveSplat vs EnKF-HOS baseline**
+
+### Subtitle
+실존 논문 기반 baseline과 비교: Wang & Pan 2021/22 (JFM) family ETKF
+
+### Result table (12-episode 3-way comparison)
+
+| Method | Paper | Avg nRMSE | Per-frame time | 비고 |
+|---|---|---|---|---|
+| **WaveSplat (ours)** | — | **0.211** | **13.4 ms** | adaptive N + dispersion hard |
+| ETKF-Wang2025 | Wang 2025 (Coastal Eng 197) | 0.253 | 632 ms | Ne=300, 80×60 grid, fuzzy R |
+| ETKF (ours, simplified) | Wang & Pan 2021 family | 0.382 | 58.6 ms | Ne=100, 40×30 grid |
+
+**에피소드별 핵심 패턴:**
+| 조건 | WaveSplat | Wang2025 | 승자 |
+|------|-----------|----------|------|
+| 저복잡도 (1-5 comp) | 0.05-0.17 | ~0.25 | **WS 압도** |
+| 중복잡도 (5-15 comp) | 0.17-0.30 | ~0.25 | 비등 |
+| 고복잡도 (15-30 comp) | 0.29-0.31 | ~0.25 | **Wang 우위** |
+
+### Key takeaways
+- **평균 정확도**: WaveSplat 0.211 vs Wang2025 0.253 — **16% 개선**
+- **속도**: 13.4 ms vs 632 ms — **47× 빠름**
+- **핵심 발견**: WaveSplat은 저복잡도에서 압도적 (0.05!), 고복잡도에서 역전
+  - Parametric representation의 강점: 소수 성분에서 exact fitting
+  - Grid 방법의 robustness: 성분 수에 무관하게 ~0.25 수렴
+- **Important**: 이 결과는 *탐색 단계* — main contribution은 *왜 이렇게 잘 되는가*의 분석
+
+### Presenter notes
+3-way 비교 설명:
+  - ETKF-orig: Wang & Pan 2021 family의 simplified implementation. Ne=100, 40x30 grid.
+  - ETKF-Wang2025: Wang 2025 (Coastal Eng 197)의 faithful reproduction. Ne=300, 80x60 grid, fuzzy R adaptation, Delaunay interpolation, sub-state localized ETKF. 논문 그대로 재현.
+  - WaveSplat: adaptive N + multi-frame + dispersion hard constraint.
+
+핵심 발견 — 에피소드별 패턴:
+  - BF3_2comp: WS 0.052 vs Wang 0.250 — **5배 차이**! 2개 성분만 있으면 spectral Gaussian이 거의 exact fitting 가능. Grid는 아무리 정교해도 이 수준 불가.
+  - BF4_15comp: WS 0.302 vs Wang 0.249 — 역전. 15개 성분이면 adaptive N이 다 따라가지 못함.
+  - Wang2025의 nRMSE ~0.25 수렴 패턴 — grid 방법의 "안정된 바닥" vs WaveSplat의 "가변 성능"
+
+이 trade-off가 곧 novelty: "새로운 representation이 어디서 좋고 어디서 한계인지 최초 규명"
+
+---
+
+# Part 4 — Main Framing: Why Does WaveSplat Work?
+
+## Slide 15 — 본질 발견: Sparse Observation의 난제
+
+### Title
+**핵심 질문: 왜 50개 점으로 30-성분 파도를 추정할 수 있는가?**
+
+### Content
+- **문제**: 단일 frame에서 ~50개 LiDAR 점 → 30개 wave component 추정 (4N = 120 파라미터)
+- **Spatial-only 한계**: FFT로 binning하면 grid 해상도에 의해 k_Nyq = 0.38 rad/m
+  - GT k_max = 0.4-1.0 rad/m → 일부 성분 해상 불가
+- **핵심 인사이트**: 시간축 + 물리법칙이 underdetermined system을 풀 수 있게 만듦
+
+**4-way ablation 결과** (12 episodes):
+
+| Variant | Init | Dispersion | Window | Avg nRMSE |
+|---|---|---|---|---|
+| A | v1 (FFT) | Free w | 1-frame | 0.213 |
+| B | v2 (beam) | Free w | 3-frame | 0.208 |
+| C | v2 (beam) | Hard | 1-frame | 0.226 |
+| **D (WaveSplat)** | **v2 (beam)** | **Hard** | **3-frame + adaptive** | **0.211** |
+
+- A와 D의 평균 차이는 작으나, per-episode 행동이 다름 (다음 slide)
+
+### Presenter notes
+- 청자에게 먼저 "50개 점으로 120개 파라미터를 어떻게 추정하는가"라는 직관적 질문을 던짐
+- FFT grid Nyquist 설명: v1 init은 32x24 grid (240m x 200m) → dx=7.5m, dy=8.3m → k_Nyq = pi/8.3 ≈ 0.38 rad/m
+- 이 한계를 넘으려면 1) 시간축 정보 활용 (multi-frame), 2) 물리 제약 (dispersion) 필요
+- Ablation 결과의 핵심: 각 메커니즘이 특정 조건에서 기여하며, 결합이 robust한 성능을 제공
+
+---
+
+## Slide 16 — Dispersion Coupling: 물리적 정규화
+
+### Title
+**Dispersion-Coupled Estimation: 물리법칙이 정규화 역할**
+
+### Content
+- **핵심 메커니즘**: w = sqrt(g|k|tanh(|k|d)) → k 추정 시 w가 자동 결정
+  - 4N 자유 파라미터 → 3N으로 감소 (25% DOF 절감)
+  - 물리적으로 의미 없는 (k, w) 조합 배제
+
+- **Ablation 세부 분석**:
+  - **D가 A보다 확실히 좋은 경우** (>5% 개선):
+    - BF4_1comp (+41.5%), BF3_5comp (+38.8%), BF3_2comp (+18.7%)
+    - 공통점: 저~중 복잡도, 성분 수 적음 → dispersion이 정규화로 작동
+  - **A가 D보다 좋은 경우** (>5%):
+    - BF5_15comp (-31.8%), BF3_5comp_slope (-23.0%), BF4_15comp (-18.9%)
+    - 공통점: 고복잡도 또는 고해상도 → dispersion 제약이 init 오류를 전파
+
+- **결론**: Dispersion coupling은 "마법"이 아니라 **물리 기반 정규화**
+  - 적은 성분에서 강력, 많은 성분에서는 정확한 init이 더 중요
+
+### Presenter notes
+- Dispersion 제약의 이중성을 솔직하게 설명
+- "왜 항상 좋지 않은가?" — dispersion은 k → w 매핑. k가 틀리면 w도 틀림. Free w (variant A, B)에서는 w가 보상 가능
+- 이것이 "init이 중요하다"는 결론으로 이어짐 → beamforming v2의 필요성
+- 현재 한계: 고복잡도(30comp)에서 beamforming init 자체의 k 추정이 불완전
+- 향후 작업: init 개선 (더 정밀한 beamforming, 또는 iterative refinement)
+
+---
+
+## Slide 17 — 메커니즘 분해: Identifiability-aware Sequential Estimation
+
+### Title
+**Init-Track 분리의 근거: Identifiability 비대칭**
+
+### Content
+- **관찰**: k_x, k_y는 multi-frame에서만 추정 가능 → Init phase에서 고정
+- **Tracking에서는 w, phi만 업데이트** (tracking_mode = 'w_phi')
+  - k를 tracking에서 업데이트하면 overfitting (기존 문제, 2026-04-06 fix)
+
+- **Beamforming Init (v2_konly)**:
+  1. Multi-frame 관측 수집 (2Tp window)
+  2. (kx, ky) grid에서 dispersion-aware beamforming
+  3. Coarse → Fine refinement
+  4. k 고정 후 tracking phase 진입
+
+- **Tracking Phase**:
+  1. Phase prediction: phi += w * dt (dispersion으로 w 계산)
+  2. Gradient descent: w, phi만 10 steps
+  3. Adaptive N: energy 기반 pruning + residual 기반 growth
+
+- **결과**: 이 분리 덕분에 13.4 ms/frame 실시간 달성
+
+### Figure placeholder
+[fig_beamforming_2stage.png — 이미 paper/figures/ 에 존재]
+
+### Presenter notes
+- Fisher Information 관점: 단일 frame에서 k의 FIM eigenvalue는 w, phi보다 1000배 작음
+- 이는 k를 단일 frame에서 추정하면 불안정하다는 의미 → multi-frame init 필요
+- w_phi tracking mode의 발견 경위: 처음에는 all-param tracking → overfitting 문제 발생
+- k-freeze + w_phi로 전환 후 tracking 안정화 (2026-04-06 fix)
+- 이 설계가 "identifiability-aware"라고 부를 수 있는 근거
+
+---
+
+# Part 5 — Limitations & Future
+
+## Slide 18 — 한계 + Nonlinear 확장 + PFT-PINN 대응
+
+### Title
+**현재 한계와 향후 확장 방향**
+
+### Content
+
+**인정해야 할 한계:**
+1. **Linear model** — z(x,y,t) = Sum cos() → Stokes 2nd order 이상 미포함
+   - BF6-7 고해상도에서 nonlinear 효과 커짐
+2. **고복잡도에서 grid 방법에 역전** — 15-30 성분에서 Wang2025(0.25)에 WaveSplat(0.30) 패배
+   - Adaptive N이 많은 성분을 동시에 추정하기 어려움
+   - 향후: hybrid 접근 (spectral Gaussian + grid refinement)
+3. **Synthetic only** — 실측 데이터 미검증
+4. **No breaking / No velocity field**
+
+**향후 확장 경로:**
+1. **고복잡도 대응**: hybrid 접근 (WaveSplat coarse + grid refinement)
+2. **Stokes 확장**: 2nd order nonlinear terms
+3. **Hybrid PINN refinement**: WaveSplat → coarse init → PFT-PINN fine-tune
+4. **실측 검증**: 선박 LiDAR 데이터 (Avikus)
+
+**PFT-PINN 대응** (Ehlers 2025):
+- PFT-PINN: 30분/instance, offline → 우리와 응용 영역 다름
+- 가능한 협업: WaveSplat으로 real-time coarse estimation → PFT-PINN으로 offline refinement
+
+### Presenter notes
+- "linear model"이 가장 큰 한계. 하지만 우리의 target application (real-time control)에서는 충분
+- Stokes 확장은 model에 2nd-order term 추가로 비교적 straightforward
+- PFT-PINN과의 관계: 경쟁이 아니라 보완. 시간축이 다름 (real-time vs offline)
+- 실측 데이터 검증은 PhD 과정에서 반드시 필요한 단계
+- Wang 2025는 받는 즉시 9-item checklist로 분석하고 baseline 추가
+
+---
+
+## Slide 19 — Timeline + Venue + Q&A
+
+### Title
+**향후 일정 및 목표**
+
+### Content
+
+**논문 1: Ocean Engineering 투고**
+- 현재: 코드/실험 완료, 논문 초안 1500줄
+- 목표: 2026년 6-7월 투고
+- 내용: WaveSplat algorithm + 110-episode validation + EnKF-HOS comparison
+
+**논문 2 (PhD 확장):**
+- Nonlinear extension (Stokes 2nd)
+- 실측 LiDAR 데이터 검증
+- Hydrofoil controller와 연동
+
+**학회:**
+- OCEANS 2026: 발표 목표
+- ISOPE 2027: 확장 논문
+
+**이번 발표의 핵심 정리:**
+1. Sparse LiDAR + real-time + 2D directional → 기존 방법 없음
+2. Parametric off-grid + dispersion hard → 물리적 정규화
+3. Init-Track 분리 → identifiability 기반 설계
+4. Ablation: 물리 제약 + 시간 융합의 상보적 기여 확인
+
+**Q&A**
+
+### Presenter notes
+- Ocean Engineering 논문은 IEEE OCEANS format에서 변환 중
+- 핵심 reviewer concern 예상: (1) linear only, (2) synthetic only → Future work에서 이미 대응
+- PhD timeline: 논문 1 (2026 H2) → 논문 2 실측+nonlinear (2027) → 논문 3 controller integration (2027-2028)
+- Q&A 예상 질문:
+  - "왜 linear?" → real-time 제약 + Stokes 확장 계획
+  - "실측은?" → Avikus LiDAR 데이터 접근 가능, 다음 논문에서
+  - "PFT-PINN보다 뭐가 좋은가?" → 실시간 (13ms vs 30min), 2D directional, training-free
+  - "Oracle과의 gap은?" → 0.211 vs 0.087 = k 추정 오차, init 개선이 핵심
+
+---
+
+# (Day 4 작업 — Slide 15-19 draft 완료, ablation 결과 반영)
+
+---
+
 # PPT 생성 완료 (2026-05-08)
 
 **Generator script**: [scripts/generate_labmeeting_2026_05_13.py](../scripts/generate_labmeeting_2026_05_13.py)
@@ -412,9 +805,9 @@ python3 scripts/generate_labmeeting_2026_05_13.py
 |---|---|---|
 | S1-S3 | ✅ Day 1 full content | Title + Motivation + Problem |
 | S4-S10 | ✅ Day 2 full content | 5-category + 5 prior art detail + matrix |
-| S11-S14 | ⏳ Day 3 — outline+key bullets in PPT, refine on Wed | WaveSim + exploration phase |
-| S15-S17 | ⏳ Day 4 — outline+key bullets in PPT, refine on Thu | New framing + mechanism |
-| S18-S19 | ⏳ Day 5 — outline+key bullets in PPT, refine on Fri | Limitations + Plan |
+| S11-S14 | ✅ Day 3 full content | WaveSim + exploration phase |
+| S15-S17 | ✅ Day 4 full content (ablation 반영) | Ablation + mechanism + identifiability |
+| S18-S19 | ✅ Day 4 full content | Limitations + Plan |
 | A1-A7 | ✅ Backup outline | Supporting prior art |
 
 > **Note**: Day 3-5 의 slides 도 generator script 에 outline + key bullets + presenter notes 포함되어 있음. 각 day 작업은 *content refinement* (figure 추가, content 강화) 임. PowerPoint 에서 직접 다듬어도 되고, generator script 를 수정 후 재생성해도 됨.
@@ -439,14 +832,21 @@ python3 scripts/generate_labmeeting_2026_05_13.py
 
 ---
 
-# 다음 작업 (다른 서버에서 이어가기)
+# 다음 작업
 
-## 우선순위
-1. **Wang 2025 정독** (받은 후 즉시 §32 추가, Slide 6 update)
-2. **Day 3-5 content refinement**:
-   - PowerPoint 에서 직접 다듬거나
-   - `scripts/generate_labmeeting_2026_05_13.py` 의 `build_s11()`-`build_s19()` 수정 후 재실행
-3. **Paper figure 추출 + 삽입** (PowerPoint 에서 직접)
-4. **Rehearsal** (5/12 또는 5/13 오전)
+## 완료 (2026-05-08)
+- Wang 2025 정독 + faithful 구현 + 12-episode 3-way 비교 ✅
+- WASSfast 코드 분석 + novelty 평가 ✅
+- Slide md 업데이트 (S4, S6, S14, S18) ✅
+
+## 남은 작업 (랩미팅 전)
+1. **PPT 재생성**: `scripts/generate_labmeeting_2026_05_13.py` 수정 후 재실행
+2. **Paper figure 추출 + 삽입** (PowerPoint에서 직접)
+3. **Rehearsal** (5/12 또는 5/13 오전)
+
+## 남은 작업 (랩미팅 후 — 논문)
+1. Related Work에 WASSfast, Wang 2025 추가 + novelty 프레이밍 강화
+2. Wang 2025 비교 결과 Table 반영
+3. "Sparse LiDAR 문제 설정의 새로움" Introduction에 명시
 
 ---

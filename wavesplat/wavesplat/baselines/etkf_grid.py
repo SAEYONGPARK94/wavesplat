@@ -69,36 +69,34 @@ class ETKFGrid:
         # Initialize ensemble with meaningful perturbations
         self.ensemble = np.random.randn(n_ensemble, self.n_state) * 0.1
 
-    def _forecast_member(self, state: np.ndarray) -> np.ndarray:
-        """Spectral propagation: exact linear wave equation in Fourier space."""
-        eta = state[:self.n_grid].reshape(self.ny, self.nx)
-        deta = state[self.n_grid:].reshape(self.ny, self.nx)
+    def _forecast_all(self):
+        """Batch spectral propagation for all ensemble members at once."""
+        Ne = self.n_ensemble
+        eta_all = self.ensemble[:, :self.n_grid].reshape(Ne, self.ny, self.nx)
+        deta_all = self.ensemble[:, self.n_grid:].reshape(Ne, self.ny, self.nx)
 
-        eta_hat = np.fft.rfft2(eta)
-        deta_hat = np.fft.rfft2(deta)
+        eta_hat = np.fft.rfft2(eta_all, axes=(-2, -1))
+        deta_hat = np.fft.rfft2(deta_all, axes=(-2, -1))
 
-        eta_hat_new = (eta_hat * self._cos_wdt
-                       + deta_hat * self._sinc_wdt)
-        deta_hat_new = (-eta_hat * self._omega * self._sin_wdt
-                        + deta_hat * self._cos_wdt)
+        eta_hat_new = (eta_hat * self._cos_wdt[None]
+                       + deta_hat * self._sinc_wdt[None])
+        deta_hat_new = (-eta_hat * self._omega[None] * self._sin_wdt[None]
+                        + deta_hat * self._cos_wdt[None])
 
-        eta_hat_new *= self._damp
-        deta_hat_new *= self._damp
+        eta_hat_new *= self._damp[None]
+        deta_hat_new *= self._damp[None]
 
-        new_state = state.copy()
-        new_state[:self.n_grid] = np.fft.irfft2(
-            eta_hat_new, s=(self.ny, self.nx)).ravel()
-        new_state[self.n_grid:] = np.fft.irfft2(
-            deta_hat_new, s=(self.ny, self.nx)).ravel()
+        self.ensemble[:, :self.n_grid] = np.fft.irfft2(
+            eta_hat_new, s=(self.ny, self.nx), axes=(-2, -1)).reshape(Ne, -1)
+        self.ensemble[:, self.n_grid:] = np.fft.irfft2(
+            deta_hat_new, s=(self.ny, self.nx), axes=(-2, -1)).reshape(Ne, -1)
 
-        # Physical clamp
-        np.clip(new_state[:self.n_grid],
+        np.clip(self.ensemble[:, :self.n_grid],
                 -self.max_eta, self.max_eta,
-                out=new_state[:self.n_grid])
-        np.clip(new_state[self.n_grid:],
+                out=self.ensemble[:, :self.n_grid])
+        np.clip(self.ensemble[:, self.n_grid:],
                 -self.max_eta * 2, self.max_eta * 2,
-                out=new_state[self.n_grid:])
-        return new_state
+                out=self.ensemble[:, self.n_grid:])
 
     def _thin_observations(self, obs_x, obs_y, obs_z):
         """Subsample observations to at most max_obs for ensemble stability."""
@@ -135,9 +133,8 @@ class ETKFGrid:
         M = len(obs_x)
         Ne = self.n_ensemble
 
-        # Forecast all ensemble members
-        for i in range(Ne):
-            self.ensemble[i] = self._forecast_member(self.ensemble[i])
+        # Forecast all ensemble members (batch FFT)
+        self._forecast_all()
 
         # Ensemble mean and perturbations
         x_mean = np.mean(self.ensemble, axis=0)

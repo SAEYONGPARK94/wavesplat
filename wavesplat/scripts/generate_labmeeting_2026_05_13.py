@@ -881,20 +881,136 @@ def build_s13():
                              placeholder_text='[WaveSplat pipeline]')
     add_page_number(s, 11)
     add_notes(s, (
-        "WaveSplat의 탐색 단계 알고리즘입니다. 핵심 아이디어:\n\n"
-        "(1) State 표현 — N개 component × 5 파라미터 = 5N 자유도. "
-        "Dispersion 관계로 ω가 k에 의해 결정되므로 실제 자유도는 4N. 매우 compact.\n\n"
-        "(2) Two-stage 추정 — 단일 frame에서 (k_x, k_y)는 ill-conditioned (정보 부족). "
-        "그래서 init 단계는 multi-frame으로 (k_x, k_y)만 정확히 추정하고, "
-        "track 단계는 (k_x, k_y) 고정 후 매 frame (ω, A, φ)만 update. "
-        "이게 후반부 main framing 'identifiability decomposition'의 motivation입니다.\n\n"
-        "(3) Adaptive N — 처음에는 N을 모르고, episode마다 N이 다를 수 있음. "
-        "  - Pruning: amplitude 작은 component 제거\n"
-        "  - Growth: residual 크면 새 component 추가\n"
-        "  - Safety rollback: 새 component가 잘못되어 RMSE 폭증하면 원상복구\n\n"
-        "(4) Loss — 측정치-모델 차이 squared error + dispersion penalty. "
-        "Dispersion은 항상 만족하도록 hard constraint.\n\n"
-        "이 알고리즘이 *왜 작동하는지*에 대한 분석이 다음 슬라이드부터의 main framing입니다."
+        "WaveSplat의 전체 구조를 한 장에 보여주는 슬라이드입니다.\n\n"
+        "핵심 아이디어를 먼저 설명합니다:\n\n"
+        "기존 방법(Wang2025, Desmars 등)은 파도를 NxN 격자 위의 높이값으로 표현합니다.\n"
+        "격자점이 4800개(80×60)면 파라미터도 4800개 — 관측점 50개로 추정하기엔 너무 많습니다.\n\n"
+        "WaveSplat은 완전히 다른 접근:\n"
+        "  파도 = '소수의 사인파 합' → 각 성분을 5개 물리량으로 표현\n"
+        "  N=5개 성분이면 파라미터 25개 → 관측점 50개로 충분히 추정 가능\n\n"
+        "분산 관계(ω = √(g|k|tanh(|k|d)))를 hard constraint로 적용하면\n"
+        "ω를 k에서 자동 계산하므로 자유도가 5N → 4N으로 줄어듭니다.\n\n"
+        "다음 두 슬라이드에서 Init(초기화)과 Track(추적) 각각을 자세히 설명합니다."
+    ))
+
+
+# S13b — Beamforming Init detail (NEW)
+def build_s13b_init():
+    s = add_blank(WHITE)
+    add_section_tag(s, "Part 3 · WaveSplat — 초기화 단계 (Init)", color=GOLD)
+    add_title(s, "Beamforming 초기화: 파수(k)를 정확히 결정하는 과정")
+    add_subtitle(s, "여러 프레임의 LiDAR 점군을 모아서 파도의 '공간 패턴'을 추정합니다")
+    bullets = [
+        "**왜 초기화가 중요한가?**",
+        "  한 프레임의 LiDAR 50점 → 커버 영역 ~5-8m → 파장 50-300m 파도 패턴 파악 불가",
+        "  여러 프레임을 모으면 (선박 이동) → 관측 영역이 수십m로 확장",
+        "",
+        "**v2_konly Beamforming (2단계 파수 추정)**:",
+        "  ① Coarse: 후보 (kx, ky) 격자 생성 → 각 후보의 관측 상관 계산",
+        "     수천 개 후보 중 에너지가 높은 peak N개를 초기 파수로 선택",
+        "  ② Fine: 선택된 peak 주변에서 정밀 탐색 (sub-grid resolution)",
+        "     최종 (kx, ky) 결정 → 분산 관계로 ω 자동 계산",
+        "",
+        "**'konly'의 의미**: k만 초기화하고 ω, A, φ는 최적화에 맡김",
+        "  이전 v1(FFT 기반) 대비 **평균 18% 개선** (특히 방향 추정 정확도↑)",
+        "",
+        "**Synthetic Aperture 효과**:",
+        "  선박 속도 V = 11.3 m/s → 1초간 11.3m 이동",
+        "  10 프레임 누적 시 유효 개구(aperture) = 11.3m",
+        "  파수 분해능 Δk ≈ 2π / aperture ≈ 0.56 rad/m",
+    ]
+    add_bullets(s, 0.6, 1.85, 12.0, 5.3, bullets, font_size=12,
+                line_space_after=2)
+    add_page_number(s, 12)
+    add_notes(s, (
+        "초기화 단계를 상세히 설명합니다.\n\n"
+        "왜 초기화가 어려운가?\n"
+        "  LiDAR 한 프레임에 50개 점이 있지만, 이 점들이 커버하는 영역은 약 5-8m입니다.\n"
+        "  그런데 우리가 찾으려는 파도의 파장은 50-300m입니다.\n"
+        "  비유하면: 코끼리의 다리 일부만 만져보고 코끼리 전체 모양을 맞추는 것과 같습니다.\n\n"
+        "해결책: Synthetic Aperture (합성 개구)\n"
+        "  선박이 이동하면서 여러 시점의 데이터를 모읍니다.\n"
+        "  각 시점의 50개 점이 모이면 수백 개의 점이 넓은 영역에 분포합니다.\n"
+        "  이제 파도 패턴을 파악할 수 있는 충분한 정보가 됩니다.\n\n"
+        "Beamforming 작동 원리:\n"
+        "  '만약 파도가 이 방향(kx, ky)으로 온다면, 관측 데이터와 얼마나 잘 맞는가?'\n"
+        "  모든 후보 방향에 대해 이 질문을 던지고, 가장 잘 맞는 방향을 선택합니다.\n"
+        "  레이더/음향 분야에서 신호 방향을 찾는 것과 같은 원리입니다.\n\n"
+        "v1(FFT) → v2(beamforming) 변경 이유:\n"
+        "  FFT는 균일 격자 위의 데이터가 필요하지만, LiDAR 점은 불규칙합니다.\n"
+        "  Beamforming은 불규칙 점에서도 작동합니다.\n"
+        "  이 변경으로 평균 18% 정확도 개선 (2026-04 확인)."
+    ))
+
+
+# S13c — Tracking + Adaptive N detail (NEW)
+def build_s13c_track():
+    s = add_blank(WHITE)
+    add_section_tag(s, "Part 3 · WaveSplat — 추적 단계 (Track)", color=GOLD)
+    add_title(s, "실시간 추적: 매 프레임 13ms로 파도 상태 업데이트")
+    add_subtitle(s, "파수(k)는 고정하고, 진폭·위상만 빠르게 최적화합니다")
+    # Left column: Tracking
+    bullets_left = [
+        "**w_phi Tracking Mode**:",
+        "  k_x, k_y → 고정 (Init에서 결정된 값 유지)",
+        "  ω → k에서 자동 계산 (분산 관계)",
+        "  A, φ → Adam optimizer로 매 프레임 update",
+        "",
+        "**왜 k를 고정하는가?**",
+        "  50점으로 5N개 변수를 모두 최적화하면 과적합(overfitting)",
+        "  k 고정 시 자유도 = 2N (A와 φ만) → 안정적 추정",
+        "  이 설계가 tracking 성능을 결정적으로 개선 (04-06 발견)",
+        "",
+        "**Loss Function**:",
+        "  L = Σ (η_model(xi, yi, t) − η_obs(xi, yi, t))²",
+        "  관측 50점에서의 모델-관측 높이 차이 최소화",
+        "  Adam: lr=0.01, 50 iterations/frame → ~13ms",
+    ]
+    add_bullets(s, 0.5, 1.85, 6.5, 5.3, bullets_left, font_size=11,
+                line_space_after=2)
+    # Right column: Adaptive N
+    bullets_right = [
+        "**Adaptive N (동적 성분 수)**:",
+        "",
+        "① Pruning (가지치기):",
+        "  |A_n| < threshold → 제거",
+        "  에너지 기여도 낮은 성분 정리",
+        "",
+        "② Growth (성장):",
+        "  residual > growth_threshold",
+        "  → 잔여 오차에서 새 성분 추출",
+        "  → beamforming으로 (kx, ky) 결정",
+        "",
+        "③ Safety Rollback (안전 복귀):",
+        "  RMSE_new > 1.3 × RMSE_old",
+        "  → 이전 상태로 즉시 복구",
+        "  → 잘못된 성분 추가 방지",
+    ]
+    add_bullets(s, 7.2, 1.85, 5.8, 5.3, bullets_right, font_size=11,
+                line_space_after=2, color=ACCENT)
+    add_page_number(s, 13)
+    add_notes(s, (
+        "추적 단계와 Adaptive N을 자세히 설명합니다.\n\n"
+        "Tracking의 핵심 — w_phi mode:\n"
+        "  파수(k)를 고정하는 것이 WaveSplat의 가장 중요한 설계 결정입니다.\n"
+        "  2026년 4월 6일에 발견한 것인데, k까지 자유롭게 업데이트하면\n"
+        "  50개 점에 맞추려고 물리적으로 무의미한 값으로 변해버립니다 (overfitting).\n\n"
+        "  비유하면: 라디오 채널(k)을 이미 맞춰놨는데,\n"
+        "  매번 채널을 다시 바꾸면 오히려 잡음만 들립니다.\n"
+        "  채널은 고정하고 볼륨(A)과 위상(φ)만 조절하면 됩니다.\n\n"
+        "Adam optimizer:\n"
+        "  딥러닝에서 가장 많이 쓰이는 최적화 알고리즘입니다.\n"
+        "  각 파라미터의 gradient를 계산하고, 적응적 학습률로 업데이트합니다.\n"
+        "  50 iterations × 50 관측점 → ~13ms (CPU).\n\n"
+        "Adaptive N이 필요한 이유:\n"
+        "  실제 파도의 성분 수(N)를 미리 알 수 없습니다.\n"
+        "  BF2의 단순한 파도는 2-3개, BF5의 복잡한 파도는 15-30개.\n"
+        "  N을 고정하면 과소추정(underfitting) 또는 과대추정(overfitting) 발생.\n\n"
+        "Safety rollback의 중요성:\n"
+        "  새 성분을 추가했는데 오히려 RMSE가 30% 이상 증가하면,\n"
+        "  그 성분은 '잘못된 추가'였다는 뜻입니다.\n"
+        "  즉시 이전 상태로 되돌려서 시스템 안정성을 보장합니다.\n"
+        "  이 메커니즘이 없으면 한 번의 실수로 전체가 붕괴할 수 있습니다."
     ))
 
 
@@ -935,7 +1051,7 @@ def build_s14():
     add_text(s, 0.3, 5.2, 6.5, 0.5,
              '📝 화살표 추가: ① "47x faster" (속도 바 사이) ② "16% more accurate" (nRMSE 바 사이)',
              font_size=9, italic=True, color=RGBColor(0x99, 0x99, 0x99))
-    add_page_number(s, 12)
+    add_page_number(s, 14)
     add_notes(s, (
         "이 슬라이드가 핵심 결과입니다.\n\n"
         "먼저 비교 방법을 설명드리겠습니다:\n\n"
@@ -985,7 +1101,7 @@ def build_s13_scatter():
     add_text(s, 0.5, 6.0, 12.0, 0.3,
              '📝 화살표 추가: ① BF3_2comp 강조 원 ② Wang2025 ceiling 점선 (≈0.25) ③ "reversal point" (15comp 부근)',
              font_size=9, italic=True, color=RGBColor(0x99, 0x99, 0x99))
-    add_page_number(s, 13)
+    add_page_number(s, 15)
     add_notes(s, (
         "이 그래프가 우리 연구의 핵심 통찰을 보여줍니다.\n\n"
         "그래프 읽는 법을 먼저 설명드리겠습니다:\n"
@@ -1049,7 +1165,7 @@ def build_s15():
     add_text(s, 0.3, 6.8, 7.0, 0.3,
              '📝 화살표 추가: ① C→D "dispersion regularizer" 효과 화살표 ② A→B "multi-frame" 효과 화살표',
              font_size=9, italic=True, color=RGBColor(0x99, 0x99, 0x99))
-    add_page_number(s, 14)
+    add_page_number(s, 16)
     add_notes(s, (
         "Ablation study(절제 연구)가 무엇인지부터 설명드리겠습니다.\n\n"
         "Ablation이란?\n"
@@ -1119,7 +1235,7 @@ def build_s16():
     ]
     add_bullets(s, 0.6, 2.75, 12.0, 4.6, bullets, font_size=12,
                 line_space_after=3)
-    add_page_number(s, 15)
+    add_page_number(s, 17)
     add_notes(s, (
         "이 슬라이드가 우리 연구의 핵심 메시지입니다.\n\n"
         "처음에 'super-resolution(초해상도)'이라는 멋진 표현을 쓰려 했지만,\n"
@@ -1174,7 +1290,7 @@ def build_s17():
     fig_bf = os.path.join(PAPER_FIG_DIR, 'fig_beamforming_2stage.png')
     add_image_or_placeholder(s, fig_bf, 8.7, 2.0, 4.3,
                              placeholder_text='[2-stage beamforming]')
-    add_page_number(s, 16)
+    add_page_number(s, 18)
     add_notes(s, (
         "이 슬라이드는 '왜 2단계 설계가 자연스러운가'를 설명합니다.\n\n"
         "핵심 관찰을 쉽게 설명하겠습니다:\n\n"
@@ -1225,7 +1341,7 @@ def build_s18():
     ]
     add_bullets(s, 0.6, 1.85, 12.0, 5.5, bullets, font_size=12,
                 line_space_after=3)
-    add_page_number(s, 17)
+    add_page_number(s, 19)
     add_notes(s, (
         "한계를 정직하게 공유하는 시간입니다.\n"
         "연구의 신뢰도를 높이려면, 잘 되는 점뿐 아니라 한계도 먼저 인정해야 합니다.\n\n"
@@ -1287,7 +1403,7 @@ def build_s19():
              "질문과 토론을 환영합니다",
              font_size=16, italic=True, color=ACCENT,
              alignment=PP_ALIGN.CENTER)
-    add_page_number(s, 18)
+    add_page_number(s, 20)
     add_notes(s, (
         "향후 연구 방향을 3가지로 정리했습니다.\n\n"
         "(1) 고복잡도 파도 대응:\n"
@@ -1687,7 +1803,9 @@ def main():
         build_s10,              # App matrix (num=8)
         build_s11,              # WaveSim (num=9)
         build_s12,              # Dataset (num=10)
-        build_s13,              # Algorithm (num=11)
+        build_s13,              # Algorithm overview (num=11)
+        build_s13b_init,        # Init detail (num=11b)
+        build_s13c_track,       # Track detail (num=11c)
         build_s14,              # Results (num=12)
         build_s13_scatter,      # NEW: episode scatter (num=13)
         build_s15,              # Ablation (num=14)

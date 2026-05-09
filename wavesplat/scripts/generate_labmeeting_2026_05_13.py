@@ -382,7 +382,7 @@ def build_s5_categories():
          "관측치와 model 사이 차이를 비용함수로 정의해 최소화. 수치해석에서 안정성·수렴성이 정립되어 검증된 framework",
          "추정 가능한 wavenumber 가 미리 정한 격자 위에만 한정 — 격자 간격보다 짧은 wave 표현 불가. 거의 모두 1D 가정"],
         ["2", "앙상블\n칼만 필터",
-         "Wang-Pan 2021/22\nWang 2025\nYan 2025 (VOF)",
+         "Wang & Pan 2021/22\nFeng Wang et al. 2025\nYan et al. 2025 (VOF)",
          "비선형 wave model (HOS, Navier-Stokes) 을 forecast 모델로 사용 가능 — Stokes 비선형, breaking 까지 reconstruction",
          "50–300 개 simulation 을 매 step 동시 진행해야 함 → GPU 사용해도 수백 ms 이상 → real-time control loop 에 부적합. 대부분 1D"],
         ["3", "지도학습\n신경망",
@@ -407,7 +407,7 @@ def build_s5_categories():
     add_notes(s, (
         "13 편의 논문을 정독한 결과를 5 가지 접근법으로 분류했습니다. 각 접근법의 작동 원리와 강점·한계를 자세히 풀어 설명드리겠습니다.\n\n"
         "첫 번째는 *격자 기반 최적화* 로 Desmars 2018, 2020, 2023 이 대표적입니다. 공간을 일정 간격 격자로 나누고 각 격자점에서 파도 진폭을 추정한 뒤, 추정값이 만들어내는 측정값과 실제 측정값의 차이를 비용함수로 최소화합니다. 강점은 수치해석 분야에서 framework 가 잘 정립되어 있다는 것이고요, 한계는 추정 가능한 wavenumber 가 격자 간격에 묶인다는 점 — Nyquist 한계로 격자 사이 wavenumber 는 표현 불가능 — 그리고 거의 모두 1D 가정이라는 점입니다.\n\n"
-        "두 번째는 *앙상블 칼만 필터* 로 Wang-Pan 2021/22, Wang 2025, Yan 2025 가 있습니다. 50 에서 300 개의 wave simulation 을 동시에 돌리면서 측정값으로 베이지안 업데이트하는 방식인데요, Wang-Pan 은 비선형 wave model 인 HOS 를 forecast 에 쓰고, Yan 2025 는 Navier-Stokes 까지 써서 wave breaking 도 처리합니다. 강점은 가장 높은 물리 충실도이고, 한계는 ensemble 비용으로 GPU 써도 수백 ms 이상 걸려서 실시간 제어에 부적합하다는 것입니다.\n\n"
+        "두 번째는 *앙상블 칼만 필터* 로 Wang & Pan 2021/22, Feng Wang et al. 2025, Yan et al. 2025 가 있습니다. 50 에서 300 개의 wave simulation 을 동시에 돌리면서 측정값으로 베이지안 업데이트하는 방식인데요, Wang-Pan 은 비선형 wave model 인 HOS 를 forecast 에 쓰고, Yan 2025 는 Navier-Stokes 까지 써서 wave breaking 도 처리합니다. 강점은 가장 높은 물리 충실도이고, 한계는 ensemble 비용으로 GPU 써도 수백 ms 이상 걸려서 실시간 제어에 부적합하다는 것입니다.\n\n"
         "세 번째는 *지도학습 신경망* 으로 Ehlers 2023 의 FNO 가 대표적입니다. 3120 개의 합성 데이터로 NN 을 미리 학습시킨 뒤 sparse measurement 에서 wave field 를 출력하는데, 학습 후 inference 가 1.9 ms 로 매우 빠릅니다. 한계는 학습 데이터 자체가 큰 비용이고, 학습 분포 밖에서는 정확도가 떨어지는 distribution shift 문제가 있습니다.\n\n"
         "네 번째는 *물리 기반 비지도 NN* 으로 Ehlers 2025 의 PFT-PINN 이 있습니다. PDE residual 을 loss 로 강제해서 학습 데이터 없이 비선형 wave 까지 처리합니다. 한계는 instance 마다 30 분 학습이 필요해서 real-time 불가능하고, buoy 시계열만 처리해서 LiDAR setup 미지원입니다.\n\n"
         "마지막 다섯 번째가 우리 WaveSplat 입니다. 격자 없이 N 개 plane wave 의 파라미터를 직접 추정하는데, 분산 관계를 hard constraint 로 강제해서 자유도를 5N 에서 4N 으로 줄입니다. 강점은 100 ms 이내 추정에 2D directional + LiDAR raydrop 까지 모사한다는 것이고, 한계는 linear superposition 가정 — ε < 0.07 영역에서만 신뢰한다는 것입니다.\n\n"
@@ -481,16 +481,16 @@ def build_s5_desmars():
 def build_s6():
     build_prior_art(
         num=6,
-        title_full="Wang & Pan 2021/22 (JFM) + Wang 2025 (Coastal Eng) — EnKF family",
+        title_full="EnKF + wave model: Wang & Pan 2021/22 + Feng Wang et al. 2025",
         key_msg=[
+            "**두 독립 그룹의 EnKF 기반 접근** (서로 별개 group):",
+            "  Wang & Pan (Yulin Pan, U.Michigan) — JFM 2021/22, EnKF + HOS 결합",
+            "  Feng Wang et al. (Harbin Engineering Univ., China) — Coastal Eng 2025, ETKF + fuzzy R",
             "**EnKF (Ensemble Kalman Filter)**: 50–300 개 wave simulation 을 동시에 진행 후 measurement 로 update",
-            "  Forecast 단계: 각 ensemble member 가 wave model 로 시간 진행",
-            "  Analysis 단계: ensemble 의 covariance 와 measurement 로 베이지안 update",
-            "**HOS (High-Order Spectral method)**: 비선형 wave model — Linear Wave Theory (LWT) 의 확장",
-            "  표면 boundary condition 의 비선형 항 (wave-wave interaction) 까지 spectral 표현으로 계산",
-            "  Wave steepness ε ~ 0.1 까지 처리 가능 (LWT 는 ε < 0.07)",
-            "  Dommermuth & Yue 1987, West et al. 1987 에서 출발한 표준 비선형 wave model",
-            "**Wang 2025 (Coastal Eng 197)**: Ne=300, fuzzy R 적응, Delaunay 보간",
+            "**HOS (High-Order Spectral method)**: 비선형 wave model (LWT 확장, Dommermuth-Yue 1987 / West 1987)",
+            "  Wave-wave interaction 까지 spectral 로 계산. ε ~ 0.1 까지 (LWT 는 ε < 0.07)",
+            "**Feng Wang et al. 2025 (Coastal Eng 197, 104690)**: Ne=300, fuzzy R, Delaunay 보간",
+            "  → 우리 baseline 의 직접 prior art (etkf_wang2025.py 가 이 논문 재현)",
         ],
         limits=[
             "**격자 해상도 한계** — nRMSE 가 ~0.25 아래로 내려가지 않음 (격자 밖 wavenumber 표현 불가)",
@@ -502,11 +502,12 @@ def build_s6():
         ],
         notes=(
             "이 논문 family 가 우리의 가장 직접적인 비교 대상입니다. 두 핵심 용어부터 정의해드리겠습니다.\n\n"
-            "EnKF — 앙상블 칼만 필터입니다. 50 에서 300 개의 wave simulation 을 동시에 진행하면서, 측정값이 들어올 때마다 베이지안 업데이트로 갱신하는 방식입니다. Forecast 단계에서는 각 ensemble member 가 wave model 로 시간을 진행하고, Analysis 단계에서는 ensemble 평균과 covariance 로부터 Kalman gain 을 계산해 update 합니다. 원래 기상학 데이터 동화에서 출발한 기법인데 Wang-Pan 2021 이 wave estimation 에 처음 적용했습니다.\n\n"
-            "HOS — High-Order Spectral method 라고 부르는 비선형 wave model 입니다. 우리가 쓰는 LWT 는 plane wave 의 단순 선형 중첩으로만 표현해서 ε < 0.07 에서만 정확합니다. 반면 HOS 는 표면 경계 조건의 비선형 항 — 두 파도가 만나서 생기는 추가 파도 같은 wave-wave interaction — 까지 spectral 로 계산해서 ε ~ 0.1 까지 처리 가능합니다. Dommermuth & Yue 1987 과 West et al. 1987 이 독립적으로 제안한 후 ocean engineering 의 표준이 됐고요, Klein 2020 의 정량 비교에서 HOSM > NLSE2 > NLSE > LWT 순으로 정확도가 정리됐습니다.\n\n"
-            "이 family 의 발전 과정을 보면 — Wang & Pan 2021 이 EnKF + HOS 를 처음 결합했고, 2022 에서 current 까지 동시 추정하도록 확장 (EnKF-HOS-C), 그리고 가장 최근 Wang 2025 가 앙상블 300 개에 fuzzy R (측정 노이즈 자동 적응) 과 Delaunay 보간 (불규칙 측정점 처리) 을 추가했습니다.\n\n"
-            "우리는 Wang 2025 의 방법을 코드로 충실히 재현했습니다 — Ne=300, 80×60 격자, dx=3m, fuzzy R, Delaunay 모두 포함. 원논문과의 차이는 forecast 모델로 HOS 대신 linear dispersion 을 사용한 것인데요, 이건 우리 WaveSplat 도 linear 이므로 공정 비교를 위해서입니다.\n\n"
-            "비교 결과 WaveSplat 이 nRMSE 0.211 에 13 ms 인 반면 Wang2025 는 0.253 에 632 ms 입니다. 에피소드별로 보면 단순 파도 (1-5 성분) 에서는 WaveSplat 이 압도적이지만 — 예를 들어 BF3 2-comp 에서 0.052 vs 0.250 — 복잡한 파도 (15-30 성분) 에서는 Wang2025 가 더 나은 경우도 있어서 이 trade-off 는 정직하게 보고할 예정입니다."
+            "이 슬라이드의 핵심 — EnKF 기반 wave estimation 의 두 독립 그룹입니다. *Wang & Pan (Yulin Pan, U.Michigan)* 그룹과 *Feng Wang et al. (Harbin Engineering Univ., China)* 그룹은 *서로 다른 사람* 이고 각자 독립적으로 EnKF 를 wave 추정에 적용했습니다. 이름이 비슷해서 혼동되기 쉽지만 별개의 work 입니다.\n\n"
+            "EnKF — 앙상블 칼만 필터입니다. 50 에서 300 개의 wave simulation 을 동시에 진행하면서 측정값이 들어올 때마다 베이지안 업데이트로 갱신. 원래 기상학 데이터 동화에서 출발한 기법인데 Wang & Pan 2021 이 wave estimation 에 처음 적용했습니다.\n\n"
+            "HOS — High-Order Spectral method 라고 부르는 비선형 wave model 입니다. LWT 가 plane wave 의 선형 중첩만 다루는 반면, HOS 는 표면 경계 조건의 비선형 항 (wave-wave interaction) 까지 spectral 로 계산해서 ε ~ 0.1 까지 처리 가능합니다. Dommermuth & Yue 1987, West et al. 1987 이 독립 제안.\n\n"
+            "Wang & Pan 그룹의 발전: 2021 (JFM 918, A19) 이 EnKF + HOS 첫 결합, 2022 (JFM 949, A31) 가 current 까지 동시 추정 (EnKF-HOS-C).\n\n"
+            "Feng Wang et al. 2025 (Coastal Engineering 197, 104690) — *우리 baseline 의 직접 prior art* 입니다. ETKF 변형 + fuzzy R (관측 노이즈 자동 적응) + Delaunay 보간 (불규칙 측정점 처리) 추가. GitHub 까지 공개 (fengHEU/Wave-ETKF). 우리 etkf_wang2025.py 가 이 논문을 충실히 재현 — Ne=300, 80×60 격자, dx=3m, fuzzy R, Delaunay 모두 포함. 원논문과의 차이는 forecast 모델로 HOS 대신 linear dispersion 사용 — 공정 비교 위해서입니다.\n\n"
+            "비교 결과 WaveSplat 이 nRMSE 0.211 에 13 ms 인 반면 Feng Wang 2025 는 0.253 에 632 ms 입니다. 에피소드별로 보면 단순 파도 (1-5 성분) 에서는 WaveSplat 압도적이고 (BF3 2-comp 에서 0.052 vs 0.250), 복잡한 파도 (15-30 성분) 에서는 Feng Wang 2025 가 더 나은 경우도 있어 이 trade-off 는 정직하게 보고할 예정입니다."
         ),
         star=True,
     )
@@ -856,7 +857,7 @@ def build_s13b_init():
         "  → 추정해야 할 k ∈ **0.5–3 rad/m** = Nyquist (0.4) 의 **1.25–7.5× 초과** 🚨",
         "",
         "**해결책 — Synthetic Aperture (합성 개구) 발상**:",
-        "  Antenna 분야의 SAR (Synthetic Aperture Radar, Wiley 1965) 와 같은 원리",
+        "  Antenna 분야의 SAR (Synthetic Aperture Radar, Wiley 1954 / Cumming-Wong 2005) 와 같은 원리",
         "  *Single antenna 분해능* = λ / D (D = antenna 크기) — 작은 antenna 는 분해능 나쁨",
         "  *움직이는 antenna 가 매 시점 다른 위치에서 측정* → 누적된 measurement 가 마치 D = V·T 만큼 큰 antenna 처럼 작동",
         "  → 이 가상의 큰 antenna 가 **'effective aperture'** — 즉 *합성된 측정 개구*",
@@ -876,7 +877,7 @@ def build_s13b_init():
         "먼저 Nyquist 한계가 무엇인지 부터 짚어드립니다. Shannon-Nyquist 정리 (1949) 는 신호처리의 표준 결과인데요 — 어떤 wavelength 의 신호를 추정하려면 *최소 그 wavelength 의 절반 간격* 으로 sampling 해야 한다는 정리입니다. 즉 점 간격이 Δy 면 추정 가능한 최대 wavenumber 는 π/Δy 입니다.\n\n"
         "이 한계를 우리 single-frame LiDAR 에 적용해보면 — 240 m 영역에 valid 점이 50 개 정도이니 평균 점 간격 Δy 가 5 에서 8 m 사이입니다. Nyquist 식에 넣으면 k_max 가 약 0.4–0.6 rad/m 인데, 보수적으로 0.4 rad/m 를 한계로 봅니다. 즉 single frame 으로 추정 가능한 wavenumber 는 약 0.4 rad/m 까지입니다.\n\n"
         "그런데 우리가 추정해야 할 wavenumber 는 그것보다 훨씬 큽니다. 파도 파장 λ 는 BF3 swell 이 약 12 m, BF6 short wave 가 2 m 정도이니 k = 2π/λ 로 0.52 에서 3.14 rad/m 입니다. single-frame Nyquist (0.4) 의 1.25 에서 7.5 배 초과 영역이죠. *Paradox* 입니다.\n\n"
-        "**해결책은 *synthetic aperture* — 합성 개구 발상** 입니다. 이 개념은 1965 년 Wiley 가 제안한 SAR (Synthetic Aperture Radar) 에서 출발했습니다. 핵심 아이디어를 설명드리면 — antenna 의 분해능은 *antenna 크기* D 에 비례합니다. λ/D. 그래서 작은 antenna 는 분해능이 나쁘죠. 그런데 *움직이는 antenna 가 매 시점 다른 위치에서 측정* 하면, 누적된 measurement 가 마치 D = V·T 크기의 큰 antenna 처럼 작동합니다. 이 가상의 큰 antenna 가 *effective aperture* 즉 *합성된 측정 개구* 입니다.\n\n"
+        "**해결책은 *synthetic aperture* — 합성 개구 발상** 입니다. 이 개념은 1950 년대 Carl Wiley (1954 년 발표) 가 제안한 SAR (Synthetic Aperture Radar) 에서 출발했습니다. 핵심 아이디어를 설명드리면 — antenna 의 분해능은 *antenna 크기* D 에 비례합니다. λ/D. 그래서 작은 antenna 는 분해능이 나쁘죠. 그런데 *움직이는 antenna 가 매 시점 다른 위치에서 측정* 하면, 누적된 measurement 가 마치 D = V·T 크기의 큰 antenna 처럼 작동합니다. 이 가상의 큰 antenna 가 *effective aperture* 즉 *합성된 측정 개구* 입니다.\n\n"
         "**Effective aperture 가 12 페이지에 나오는 이유** — multi-frame stacking 의 효과를 정량으로 표현하는 표준 metric 이기 때문입니다. 우리 case 에서 effective aperture L_SA = V × T_init = 11.3 m/s × 1 s = **11.3 m** 입니다. Single frame 의 점 간격 Δy 5-8 m 의 약 1.5-2 배죠. 이 effective aperture 로부터 wavenumber 분해능이 결정됩니다 — Δk ≈ 2π / L_SA ≈ **0.56 rad/m**. 이 분해능으로 0.5 에서 3 rad/m 영역의 wave 를 추정할 수 있어서 Nyquist 한계 0.4 를 우회한 셈입니다.\n\n"
         "여기서 *왜 단순히 점이 500 개로 늘어나는 것이 아니라 effective aperture 가 핵심인가* 가 중요합니다. 점 수 증가만으로는 spatial Nyquist 가 그대로일 수 있어요 — 점들이 같은 영역에 모여 있으면 (e.g. 모두 vessel 근처) Δy 가 그대로. 하지만 *vessel 이 이동하면서 vessel-frame 으로는 같은 위치에 있는 점이 world-frame 으로는 다른 위치* 가 됩니다. 그래서 effective coverage 가 V·T 만큼 확장되는 거죠. 추가로 *시간 정보 t_i 가 phase 기준점을 제공* 해서 각 점이 (x, y, t, η) 4D 로 temporal coherence 까지 활용 가능. 이 두 효과가 결합해서 synthetic aperture 가 완성됩니다.\n\n"
         "다음 슬라이드에서 *어떻게* — 즉 beamforming 식과 coarse-to-fine + Adam 정밀화 — 를 자세히 설명드립니다."
@@ -907,8 +908,10 @@ def build_s13b2_beamforming():
         "  Beamforming 은 *초기값 추정만* — 그 후 Adam 으로 정밀 최적화",
         "  Loss: L(θ) = Σ_frame Σ_i [η_model(x_i, t; θ) − η_obs(x_i, t)]²",
         "  파라미터: (k_x, k_y, ω, A, φ) — multi-frame init window 전체에 fit",
-        "  Coarse-to-fine schedule: stage 1 (low N, lr 0.05) → stage 2 (more N, lr 0.01)",
-        "  default: 200 + 200 + 500 = 900 iterations 까지 (loss threshold 도달 시 조기 종료)",
+        "  Coarse-to-fine schedule: stage 1 (low N, lr 0.05) → stage 2 (more N, lr 0.02) → stage 3 (full N, lr 0.01)",
+        "  Loss threshold 로 stage advancement: stage 1 < 0.1, stage 2 < 0.05, stage 3 = None (full max_iters)",
+        "    → 빨리 수렴된 stage 는 즉시 다음 단계로 advance (전체 시간 단축)",
+        "  Max iter: 200 + 200 + 500 = 900 까지",
         "",
         "**왜 두 단계 (beamforming + Adam)?**",
         "  Beamforming: 글로벌 search — 격자 위 모든 후보 평가 (느리지만 global optima 잘 찾음)",
@@ -925,7 +928,8 @@ def build_s13b2_beamforming():
         "Init 단계는 사실 *3 단계로 작동* 합니다 — beamforming 으로 global search, coarse-to-fine 으로 sub-grid 정밀화, 그리고 Adam 으로 multi-frame fitting refinement. 사용자 지적이 정확합니다 — beamforming 만으로 끝나는 게 아니라 Adam 정밀화도 같이 들어갑니다.\n\n"
         "(1) **Beamforming score 식** — 코러스 효과 직관: 각 후보 wavenumber 에 대해 'wave 가 이 방향으로 이 주파수로 진행한다고 가정' 했을 때, 측정 데이터의 phase 와 얼마나 일치하는지 점수로 평가합니다. 수식 S(k) = | Σ_i η_obs · exp(j(k·x_i − ω(k)·t_i)) |² 에서 i 는 누적된 500 점, ω(k) 는 분산 관계로 자동입니다. 실제 wave 방향이면 모든 점의 phase 가 *일치* 해서 합의 절댓값이 커지고, 다른 방향이면 random cancel 되어 작아지죠. 50×50 격자 후보 중 S(k) 큰 top-N peak 를 선택합니다.\n\n"
         "(2) **Coarse-to-fine sub-grid 정밀화** — 격자 위 peak 만으로는 정확도 한계가 있어서 각 peak 주변에서 local quadratic fit 과 Newton step 을 합니다. 예를 들어 peak 가 격자 위 (0.5, 0.7) 에 있더라도 fine 으로 (0.534, 0.692) 같은 더 정밀한 값을 얻습니다.\n\n"
-        "(3) **Adam refinement (중요)** — beamforming 결과는 *초기값 추정* 일 뿐입니다. 그 후 Adam optimizer 로 multi-frame init window 전체에 fitting 합니다. Loss 는 모든 frame 의 measurement 와 model prediction 의 squared error 합. 파라미터는 (k_x, k_y, ω, A, φ) 모두. Coarse-to-fine schedule 로 stage 1 (low N, lr=0.05) → stage 2 (more N, lr=0.01) 처럼 점진적 정밀화. 기본 max iteration 은 stage 별 200, 200, 500 합쳐서 900 iter — loss threshold 도달 시 조기 종료.\n\n"
+        "(3) **Adam refinement (중요)** — beamforming 결과는 *초기값 추정* 일 뿐입니다. 그 후 Adam optimizer 로 multi-frame init window 전체에 fitting 합니다. Loss 는 모든 frame 의 measurement 와 model prediction 의 squared error 합. 파라미터는 (k_x, k_y, ω, A, φ) 모두. Coarse-to-fine schedule 로 stage 1 (low N, lr=0.05) → stage 2 (more N, lr=0.02) → stage 3 (full N, lr=0.01) 처럼 점진적 정밀화.\n\n"
+        "여기서 *loss threshold* 는 stage advancement 의 기준입니다. Stage 1 의 threshold 0.1, stage 2 의 threshold 0.05 — 현 stage 의 loss 가 그 값 이하로 떨어지면 *즉시 다음 stage 로 advance* 합니다. 빨리 수렴된 stage 에서 추가 iter 낭비 안 하고 더 정밀한 단계로 넘어가는 거죠. Max iter 가 stage 별 200, 200, 500 으로 총 900 까지지만, threshold 도달 시 일찍 advance 합니다.\n\n"
         "**왜 두 단계가 필요한가** — Beamforming 은 글로벌 search 라 global optima 잘 찾지만 격자 해상도 한계가 있고요, Adam 은 로컬 최적화라 빠르고 정밀하지만 초기값 의존이 큽니다. 두 가지를 결합하면 beamforming 으로 글로벌 잡고 Adam 으로 정밀화 — robust 하면서 정확합니다.\n\n"
         "신호처리 연관은 DOA (Direction-of-Arrival) estimation 기법 — antenna array 에서 신호 방향 찾는 표준 — 의 ocean wave 적용입니다. Init 의 Adam refinement 단계가 끝나면 (k_x, k_y) 는 거의 정착된 상태이고요, 그 다음 tracking 단계에서는 *k 고정 + (A, φ) 만 매 frame update* 하는 방식으로 빠르게 처리합니다."
     ))
@@ -953,7 +957,7 @@ def build_s13c_track():
         "  i: LiDAR 측정점 (frame 당 ~50 점)",
         "  최소화 → wave model 이 측정값에 가장 가깝게 fit",
         "",
-        "**Adam optimizer (Kingma & Ba 2014) — update rule**:",
+        "**Adam optimizer (Kingma & Ba, ICLR 2015; arXiv:1412.6980) — update rule**:",
         "  m_t = β₁·m_{t-1} + (1−β₁)·∇L   (1차 모멘트, β₁=0.9)",
         "  v_t = β₂·v_{t-1} + (1−β₂)·(∇L)²  (2차 모멘트, β₂=0.999)",
         "  θ ← θ − lr · m̂_t / (√v̂_t + ε)   (적응적 학습률)",
@@ -1345,10 +1349,10 @@ def build_backups():
          "EnKF-HOS-C (current 동시 추정)",
          "Current estimation 확장",
          "여전히 1D, dense obs"],
-        ["6", "Wang 2025 (Coastal Eng 197)",
-         "EnKF + Ne=300 + fuzzy R + Delaunay",
-         "Stereo camera 2D 실시간 (격자 기반)",
-         "**우리 baseline 의 충실 재현 대상**, 격자 한계, 632 ms"],
+        ["6", "Feng Wang et al. 2025\n(Coastal Eng 197, 104690)",
+         "ETKF + Ne=300 + fuzzy R + Delaunay 보간",
+         "**우리 baseline 의 직접 prior art** (Harbin group)",
+         "격자 한계, 632 ms (실시간 불가)"],
         ["7", "Hunt 2007 (Tellus A)",
          "LETKF (Local Ensemble Transform KF)",
          "모든 EnKF wave 의 이론 기반",
@@ -1357,15 +1361,15 @@ def build_backups():
          "Wave model 정량 비교 (LWT/NLSE/NLSE2/HOSM)",
          "ε < 0.07 operational range 정당화 출처",
          "Comparison study, 새 알고리즘 아님"],
-        ["9", "Ehlers 2023 (Ocean Eng)",
+        ["9", "Ehlers et al. 2023\n(Ocean Eng 288, 116059)",
          "Fourier Neural Operator (FNO) supervised",
          "1.9 ms inference, fastest ML",
          "3120 sample 학습 필요, 1D, distribution shift"],
-        ["10", "Ehlers 2025 PFT-PINN (PRF)",
+        ["10", "Ehlers et al. 2025\n(arXiv 2501.08430,\nPRF 10, 094901)",
          "Physics-informed NN + PFT loss, unsupervised",
          "비선형 처리 + training data 0개",
          "30 분/instance, 1D + t, buoy only"],
-        ["11", "Yan 2025 (arXiv VOF-EnKF)",
+        ["11", "Yan et al. 2025\n(arXiv 2510.14356)",
          "Navier-Stokes + EnKF + POD",
          "Plunging breaker 처리 (가장 정확)",
          "Offline only, 1D xz-plane, 50 OpenFOAM × 수일"],

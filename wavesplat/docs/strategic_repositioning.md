@@ -19,7 +19,9 @@
 
 → **방법론 family 동일**. WaveSplat 이 추가한 부분은 LiDAR 적응 + real-time tracking + adaptive N + LiDAR-specific confidence — 모두 **engineering 적응** 수준.
 
-### 1.2 Wang 2025 (Coastal Eng 197, 104690) 와의 관계
+### 1.2 Feng Wang et al. 2025 (Coastal Eng 197, 104690) 와의 관계
+> **Note**: First author 가 *Feng Wang* (Harbin Engineering Univ., China) 으로, JFM 의 Wang & Pan (Yulin Pan, U.Michigan) 과 *별개 그룹*. 이름 혼동 주의. 우리 baseline (etkf_wang2025.py) 가 이 Feng Wang et al. 의 Coastal Eng paper 를 재현.
+> DOI: 10.1016/j.coastaleng.2024.104690. GitHub: fengHEU/Wave-ETKF.
 - 우리 ETKF baseline 코드 docstring 자체가 *"baseline from 'From Points to Waves'"* 라고 명시 (Wang 2025 인용)
 - 우리는 Wang family 의 ETKF 를 baseline 으로 구현해서 비교한 것이지, 새로운 ETKF 를 만든 게 아님
 

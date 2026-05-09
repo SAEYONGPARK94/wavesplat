@@ -267,7 +267,7 @@ def build_s1():
         "안녕하세요, Saeyong Park 입니다. 오늘 발표는 *선박 LiDAR 로 파도를 실시간 추정하는 연구* 에 관한 것입니다.\n\n"
         "발표는 크게 두 부분으로 진행하겠습니다. 앞 절반은 지난 6 개월간 진행한 탐색 단계의 결과 — "
         "선행 연구 13 편을 정독한 결과와, 우리가 만든 시뮬레이터 WaveSim 그리고 추정기 WaveSplat 이 어떻게 작동하는지를 보여드립니다. "
-        "뒤 절반은 그 과정에서 발견한 본질적 mechanism — 선박이 움직이면서 생기는 효과와 파도의 분산 관계가 결합해서 LiDAR 의 공간 해상도 한계를 어떻게 우회하는지 — 그리고 이것을 paper 의 main contribution 으로 격상시키려는 plan 입니다.\n\n"
+        "뒤 절반은 그 과정에서 발견한 본질적 mechanism — *wave 자체의 시간 진화* 와 파도의 분산 관계가 결합해서 LiDAR 의 공간 해상도 한계를 어떻게 우회하는지 (선박은 정지 가정) — 그리고 이것을 paper 의 main contribution 으로 격상시키려는 plan 입니다.\n\n"
         "외부 청자분들이 계시므로 도메인 배경부터 천천히 시작하겠습니다. 전공 용어가 처음 나오면 옆에 짧게 풀어 설명드리니 편하게 들어 주시면 됩니다."
     ))
 
@@ -738,7 +738,7 @@ def build_s12():
         "  코드: wavesim/raydrop_uniform.py 의 fresnel_reflectance() 함수",
         "",
         "**Fresnel 수식 — 두 polarization 평균** (LiDAR laser unpolarized 가정):",
-        "  Step 1 (Snell): sin θ_t = sin θ_i / n   (n=1.318, water at 1550 nm)",
+        "  Step 1 (Snell): sin θ_t = sin θ_i / n   (n=1.321, water at 1550 nm)",
         "  Step 2 (Fresnel s, p):",
         "    R_s = ((cos θ_i − n·cos θ_t) / (cos θ_i + n·cos θ_t))²",
         "    R_p = ((n·cos θ_i − cos θ_t) / (n·cos θ_i + cos θ_t))²",
@@ -771,7 +771,7 @@ def build_s12():
         "  - 19 세기 Augustin-Jean Fresnel 정립 (1820 년대). 광학 교과서 Hecht, Optics §4.6 에 표준 등장.\n"
         "  - 모든 광학 시뮬레이션 (rendering, oceanographic optics, satellite remote sensing) 에서 동일한 식 사용.\n"
         "  - Ocean LiDAR 분야 Nouguier-Grilli-Guérin 2014 (IEEE TGRS) 에서 그대로 적용 — 검증된 표준.\n"
-        "  - 우리 simulator 의 1550 nm 파장 기준 물 굴절률 n = 1.318 은 광학 표준 데이터.\n\n"
+        "  - 우리 simulator 의 1550 nm 파장 기준 물 굴절률 n = 1.321 (코드 wavesim/raydrop_uniform.py:24, Seyond Falcon K1 spec).\n\n"
         "(3) Geometric shadowing — 추가 모델 없음:\n"
         "  - Ray tracing 의 first-hit 결과로 자동 처리.\n"
         "  - 광선 직진 + 첫 충돌점만 측정 = geometric optics 의 자연 결과.\n"
@@ -899,7 +899,7 @@ def build_s13b2_beamforming():
         "",
         "**① Beamforming score 식 (coarse search)**:",
         "  S(k_x⁰, k_y⁰) = | Σ_i η_obs(x_i, y_i, t_i) · exp(j (k⁰·x_i − ω(k⁰)·t_i)) |²",
-        "  i: 누적된 모든 점 (10 frame × 50 점 = 500 점)",
+        "  i: init window 의 모든 점 (2·T_p ≈ 11–20s, 110–200 frame × 50 점 ≈ 5,500–10,000)",
         "  ω(k⁰) = √(g·|k⁰|·tanh(|k⁰|·d)) — 분산 관계로 자동 결정",
         "  Search range: k_x, k_y ∈ [-4, 4] rad/m, grid 81×81 = 6,561 후보",
         "  → top-N peak 선택",
@@ -933,7 +933,7 @@ def build_s13b2_beamforming():
     add_notes(s, (
         "이전 슬라이드에서 *왜 multi-frame 이 필요한지* 를 보여드렸고요, 이번 슬라이드는 *어떻게 작동하는지* 를 수식까지 풀어 설명드립니다.\n\n"
         "Init 단계는 사실 *3 단계로 작동* 합니다 — beamforming 으로 global search, coarse-to-fine 으로 sub-grid 정밀화, 그리고 Adam 으로 multi-frame fitting refinement. 사용자 지적이 정확합니다 — beamforming 만으로 끝나는 게 아니라 Adam 정밀화도 같이 들어갑니다.\n\n"
-        "(1) **Beamforming score 식** — 코러스 효과 직관: 각 후보 wavenumber 에 대해 'wave 가 이 방향으로 이 주파수로 진행한다고 가정' 했을 때, 측정 데이터의 phase 와 얼마나 일치하는지 점수로 평가합니다. 수식 S(k) = | Σ_i η_obs · exp(j(k·x_i − ω(k)·t_i)) |² 에서 i 는 누적된 500 점, ω(k) 는 분산 관계로 자동입니다. 실제 wave 방향이면 모든 점의 phase 가 *일치* 해서 합의 절댓값이 커지고, 다른 방향이면 random cancel 되어 작아지죠. 50×50 격자 후보 중 S(k) 큰 top-N peak 를 선택합니다.\n\n"
+        "(1) **Beamforming score 식** — 코러스 효과 직관: 각 후보 wavenumber 에 대해 'wave 가 이 방향으로 이 주파수로 진행한다고 가정' 했을 때, 측정 데이터의 phase 와 얼마나 일치하는지 점수로 평가합니다. 수식 S(k) = | Σ_i η_obs · exp(j(k·x_i − ω(k)·t_i)) |² 에서 i 는 init window (2·Tp ≈ 11–20s) 의 5,500–10,000 점, ω(k) 는 분산 관계로 자동입니다. 실제 wave 방향이면 모든 점의 phase 가 *일치* 해서 합의 절댓값이 커지고, 다른 방향이면 random cancel 되어 작아지죠. 81×81 격자 후보 중 S(k) 큰 top-N peak 를 선택합니다.\n\n"
         "(2) **Coarse-to-fine sub-grid 정밀화** — 격자 위 peak 만으로는 정확도 한계가 있어서 각 peak 주변에서 local quadratic fit 과 Newton step 을 합니다. 예를 들어 peak 가 격자 위 (0.5, 0.7) 에 있더라도 fine 으로 (0.534, 0.692) 같은 더 정밀한 값을 얻습니다.\n\n"
         "(3) **Adam refinement (중요)** — beamforming 결과는 *초기값 추정* 일 뿐입니다. 그 후 Adam optimizer 로 multi-frame init window 전체에 fitting 합니다. Loss 는 모든 frame 의 measurement 와 model prediction 의 squared error 합. 파라미터는 (k_x, k_y, ω, A, φ) 모두 — 단 코드에서 (k_x, k_y) 는 lr 의 절반 (0.005) 으로 천천히 update 합니다. 점진 정밀화는 *N (component 수) 의 증가* 로 — stage 1 (low N) → stage 2 (more N) → stage 3 (full N) — lr 자체는 self.lr=0.01 공유.\n\n"
         "여기서 *loss threshold* 는 stage advancement 의 기준입니다. Stage 1 의 threshold 0.1, stage 2 의 threshold 0.05 — 현 stage 의 loss 가 그 값 이하로 떨어지면 *즉시 다음 stage 로 advance* 합니다. 빨리 수렴된 stage 에서 추가 iter 낭비 안 하고 더 정밀한 단계로 넘어가는 거죠. Max iter 가 stage 별 200, 200, 500 으로 총 900 까지지만, threshold 도달 시 일찍 advance 합니다.\n\n"
@@ -961,7 +961,7 @@ def build_s13b3_score_derivation():
         "  S(k) = | Σ_i η_obs(x_i, t_i) · exp(−j(k·x_i − ω(k)·t_i)) |²",
         "  맞는 (k, ω) 일 때: |Σ| ≈ N · A/2 · |exp(jφ)| = NA/2 → S = (NA/2)² ∝ N²",
         "  틀린 (k, ω) 일 때: |Σ| ≈ √N · noise (random phase) → S ∝ N",
-        "  → SNR gain = N²/N = N (점 수에 비례, 500 점이면 27 dB gain)",
+        "  → SNR gain = N²/N = N (점 수에 비례, 5,500–10,000 점이면 ~37–40 dB gain)",
         "",
         "**왜 이 형태가 표준인가**:",
         "  Delay-and-sum beamforming (Kraus 1988, Van Trees 2002) — signal processing 의 standard",
@@ -984,7 +984,7 @@ def build_s13b3_score_derivation():
     add_notes(s, (
         "이 슬라이드는 *왜 beamforming score 식이 그 형태인가* 를 유도로 설명드립니다. 청자가 'Σ η·exp(j(k·x − ω·t)) 의 절댓값 제곱이라는 식이 어디서 나왔는가?' 의문이 들 텐데요, 답은 *matched filter 원리* 입니다.\n\n"
         "직관부터 설명드리면 — 만약 실제 wave 가 우리가 가정한 (k, ω) 방향으로 진행한다면, 측정값 η_obs 는 A·cos(k·x − ω·t + φ) + 잡음 형태입니다. 여기에 가정한 (k, ω) 의 *phase factor exp(−j(k·x − ω·t))* 를 곱하면 cos 가 (1/2)·[exp(jφ) + exp(−j(2(k·x − ω·t) + φ))] 로 분해되고, 곱하면 첫 항은 *모든 점에서 동일한 (1/2)·A·exp(jφ)* 가 되고 둘째 항은 *2배 빠르게 oscillate* 합니다. 점들의 합을 취하면 첫 항은 *coherent 하게 더해져 NA/2* 가 되고, 둘째 항은 *cancel* 되어 0 에 가까워집니다.\n\n"
-        "이게 *코러스 효과* 의 수학적 정확한 표현입니다. 맞는 (k, ω) 에서 신호가 *N 배 (점 수)* 증가하고, 잡음은 random phase 라 *√N 으로만* 증가하므로 SNR gain 이 N. 점 500 개면 27 dB gain — 매우 큰 SNR 향상입니다.\n\n"
+        "이게 *코러스 효과* 의 수학적 정확한 표현입니다. 맞는 (k, ω) 에서 신호가 *N 배 (점 수)* 증가하고, 잡음은 random phase 라 *√N 으로만* 증가하므로 SNR gain 이 N. 점 5,500–10,000 개 (init window 2·Tp) 면 약 37–40 dB gain — 매우 큰 SNR 향상입니다.\n\n"
         "이 form 이 표준인 이유는 — *matched filter 정리* (Turin 1960) 가 Gaussian 잡음 환경에서 SNR 을 최대화하는 *optimal filter* 가 정확히 이 형태임을 증명. *Delay-and-sum beamforming* (Kraus 1988, Van Trees 2002) 으로도 알려진 이 방법이 신호처리의 standard 입니다.\n\n"
         "Dispersion 의 critical 한 역할도 강조드립니다. Dispersion 없이 (ω 를 자유 파라미터로 두면) 3D search 가 필요해서 81³ ≈ 53 만 후보 — 계산 불가능. Dispersion 으로 ω 를 k 로부터 자동 결정하면 2D search 만 충분 → 81² = 6,561 후보 — 80 배 축소.\n\n"
         "다른 spectral estimation 방법과 비교도 의미 있습니다. *MUSIC, ESPRIT* 같은 subspace methods 는 더 정확하지만 covariance matrix 추정이 필요해서 sparse 점에 부적합. *Capon (MVDR)* 같은 adaptive beamforming 은 resolution 이 좋지만 ill-conditioning 우려. 우리 *delay-and-sum* 은 가장 단순하면서 robust 해서 init 단계로 적합하고, 그 후 Adam refinement 로 정밀화하는 hybrid 가 best of both worlds 입니다.\n\n"
@@ -1012,7 +1012,7 @@ def build_s13c_track():
         "**Loss function (3 항: data fit + L1 + smoothness)**:",
         "  ① Data fit (averaged, confidence-weighted):",
         "     L_data(θ) = (1/N_obs) · Σ_i c_i · [η_model(x_i, y_i, t; θ) − η_obs(x_i, y_i, t)]²",
-        "     i: 측정점, c_i: geometry-aware confidence weight (가까울수록 ↑)",
+        "     i: 측정점, c_i = cos(θ_i)/(d_i/d_ref) clamped to [0,1] (d_ref=125m, 코드: model/confidence.py)",
         "  ② Amplitude L1 sparsity (sparsity 유도):",
         "     L_L1 = λ_L1 · Σ_n |A_n|       (코드: lambda_l1 = 0.001)",
         "  ③ Spectral smoothness (|k| 정렬 후 인접 amplitude 차분 제곱):",
@@ -1508,7 +1508,7 @@ def build_backups():
              font_size=12, bold=True, color=ACCENT)
     add_bullets(s, 0.6, 5.9, 6.0, 1.4, [
         "T = 30 s, Δt = 0.1 s → 300 frames",
-        "Ground-truth η field: 50×50 격자 (참값)",
+        "Ground-truth η field: 80×60 격자 (240 × 200 m 영역, 참값)",
         "LiDAR scan: ~50 valid pts/frame (raydrop 후)",
         "총 110 episode = 약 1.2 GB (각 episode 12 MB)",
     ], font_size=11, line_space_after=2)
@@ -1526,7 +1526,7 @@ def build_backups():
     add_notes(s, (
         "Appendix B 는 WaveSim 의 110 episode 합성 dataset 구성을 한 눈에 정리한 표입니다. Q&A 시 dataset 관련 질문 받으면 참조하시면 됩니다.\n\n"
         "Sea state 별로 episode 수를 정리하면 — BF2 부터 BF5 까지는 각 sea state × 다양한 N_components × seed 0-4 (5 개씩) 으로 총 70 개 정도 episode 가 있어서 통계 평가가 가능합니다. BF6-BF7 은 극한 sea state 라 seed 0 한 개씩만 — operational range 한계 확인용이고요. Calibration 은 raydrop η scale 같은 sensor 모델 calibration 용으로 별도 episode 입니다.\n\n"
-        "Per-episode 데이터는 30 초 시뮬레이션, 0.1 초 간격으로 frame 300 개입니다. Ground-truth η field 50×50 격자가 평가 시 참값이고, LiDAR scan 은 raydrop / shadowing / Fresnel 적용 후 frame 당 50 점 정도 valid 합니다. HDF5 format 으로 각 episode 약 12 MB, 총 110 episode 1.2 GB.\n\n"
+        "Per-episode 데이터는 30 초 시뮬레이션, 0.1 초 간격으로 frame 301 개입니다. Ground-truth η field 80×60 격자 (240 × 200 m 영역) 가 평가 시 참값이고, LiDAR scan 은 raydrop / shadowing / Fresnel 적용 후 frame 당 50 점 정도 valid 합니다. HDF5 format 으로 총 110 episode 1.2 GB.\n\n"
         "Reproducibility 는 보장됩니다. Seed 저장, Wave generator (Gerstner+JONSWAP) 와 LiDAR raydrop 모두 deterministic, 그리고 49 (wavesim) + 51 (wavesplat) = 100 unit test 가 simulator 와 estimator 모두 검증합니다.\n\n"
         "이 dataset 자체가 paper 의 contribution 일부입니다 — Ehlers 2023 의 1D radar dataset 보다 풍부한 setup (2D directional + LiDAR sensor + 다양한 sea state) 이거든요."
     ))

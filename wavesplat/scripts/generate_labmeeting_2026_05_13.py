@@ -362,22 +362,10 @@ def build_s4_spoiler():
     ], font_size=13, line_space_after=3)
     add_page_number(s, 4)
     add_notes(s, (
-        "먼저 결과를 보여드리겠습니다. 배경 설명은 그 다음에 하겠습니다.\n\n"
-        "왼쪽 막대 그래프는 두 가지 방법의 평균 정확도(nRMSE) 비교입니다.\n"
-        "  nRMSE 는 '정규화된 평균 제곱근 오차' 입니다 (관측 wave 표준편차로 normalize).\n"
-        "  값이 0 에 가까울수록 추정 정확도 높음, 1 에 가까울수록 낮음.\n"
-        "  nRMSE 0.2 는 '실제 wave 와 추정의 차이가 wave 표준편차의 약 20%' 라는 의미입니다.\n\n"
-        "  - WaveSplat (우리 방법): 0.211\n"
-        "  - Wang2025 (최신 선행연구 재현): 0.253\n\n"
-        "Wang2025 는 2025년 발표된 논문 (Wang, Coastal Engineering 197) 의 방법을 그대로 재현한 것입니다. "
-        "앙상블 300 개, fuzzy R 적응 등 원논문 세팅을 따랐습니다.\n\n"
-        "오른쪽은 여러 방법의 추정 시간 (per frame) 을 로그 스케일로 비교한 그래프입니다.\n"
-        "  - WaveSplat 13.4 ms — 초당 약 75 번 추정 가능, 10 Hz 제어 루프에 적합\n"
-        "  - Wang2025 632 ms — 추정 한 번에 0.6 초 이상 소요\n"
-        "  - FNO 1.9 ms — 빠르나 supervised pre-training 필요 (Ehlers 2023)\n"
-        "  - PFT-PINN 30 분 — instance 마다 NN 학습 (RTX 3090 기준, Ehlers 2025)\n\n"
-        "핵심 메시지: WaveSplat 이 더 정확하면서 47 배 빠른 방법입니다.\n"
-        "이제부터 왜 이런 결과가 가능한지, 선행연구와 어떻게 다른지를 차례로 설명하겠습니다."
+        "배경 설명에 들어가기 전에 먼저 결과부터 보여드리겠습니다.\n\n"
+        "왼쪽 막대 그래프는 두 방법의 평균 정확도 비교입니다. nRMSE 는 정규화된 평균 제곱근 오차로, 0 에 가까울수록 정확합니다. 0.2 정도면 실제 파도와 추정의 차이가 파도 표준편차의 약 20% 라는 뜻입니다. 우리 WaveSplat 이 0.211, Wang2025 가 0.253 입니다. Wang2025 는 2025 년에 출판된 논문 (Coastal Engineering 197) 의 방법을 — 앙상블 300 개, fuzzy R 적응 등 — 그대로 재현한 것입니다.\n\n"
+        "오른쪽은 추정 시간 비교인데요, 로그 스케일로 그렸습니다. WaveSplat 이 13.4 ms 로 초당 75 번 추정 가능해서 10 Hz 제어 루프에 충분히 적합합니다. Wang2025 는 632 ms — 한 번 추정에 0.6 초 이상 걸려서 실시간으로는 어렵습니다. 참고로 Ehlers 2023 의 FNO 는 1.9 ms 로 빠르지만 supervised pre-training 이 필요하고, Ehlers 2025 의 PFT-PINN 은 instance 마다 30 분 학습이 필요해서 완전 오프라인입니다.\n\n"
+        "한 줄로 요약하면 WaveSplat 이 *더 정확하면서 47 배 빠른* 방법입니다. 이제부터 왜 이런 결과가 가능한지, 선행 연구와 어떻게 다른지를 차례로 설명드리겠습니다."
     ))
 
 
@@ -417,51 +405,13 @@ def build_s5_categories():
              font_size=11, italic=True, color=ACCENT)
     add_page_number(s, 5)
     add_notes(s, (
-        "13 편의 논문을 정독한 결과를 5 가지 접근법으로 분류했습니다.\n"
-        "각 접근법의 작동 원리와 강점/한계를 자세히 설명드립니다.\n\n"
-        "(1) 격자 기반 최적화 (Desmars 2018, 2020, 2023):\n"
-        "  - 작동 원리: 공간을 일정 간격 격자로 나눔 (예: x = 0, 5, 10, ... m). "
-        "각 격자점에서 wave 의 amplitude 추정. 추정한 wave 가 만들 측정값과 실제 측정값의 차이를 cost function 으로 정의해 최적화로 최소화.\n"
-        "  - 강점: 수치해석 분야에서 framework 자체가 잘 정립 — 안정성·수렴성·convergence rate 모두 알려져 있음. "
-        "Desmars 2020 은 wave tank 실험으로 정확도 검증 완료.\n"
-        "  - 한계: 추정 가능한 wavenumber 가 격자 간격에 의해 제약. "
-        "Nyquist-Shannon 정리에 의해 k_max = π/Δx (Δx 는 격자 간격). "
-        "격자 사이 wavenumber (예: k = 0.15 rad/m 인데 격자가 0.1, 0.2 만 가지면) 는 표현 불가. "
-        "또 거의 모든 prior art 가 1D 가정 (선박 진행 방향만) — 실제 multi-directional sea state 처리 안 함.\n\n"
-        "(2) 앙상블 칼만 필터 (Wang-Pan 2021/22, Wang 2025, Yan 2025):\n"
-        "  - 작동 원리: 50–300 개의 wave simulation 을 동시에 진행 (각각 약간 다른 초기 조건). "
-        "측정값이 들어올 때마다 50 개 simulation 의 평균과 분산을 베이지안 update rule 로 갱신. "
-        "Wang-Pan 은 forecast 모델로 HOS (High-Order Spectral, 비선형 wave model) 사용. "
-        "Yan 2025 는 VOF + 전체 Navier-Stokes 까지 사용 → wave breaking 처리 가능.\n"
-        "  - 강점: forecast 모델 자체가 비선형이라 Stokes 비선형, plunging breaker 같은 비선형 현상까지 reconstruction. "
-        "물리 충실도가 가장 높음.\n"
-        "  - 한계: 50–300 개 simulation 을 매 시점 동시 진행 — GPU 사용해도 수백 ms 이상. "
-        "Real-time control loop (10 Hz, 100 ms 예산) 에 부적합. 또 격자 기반이라 1D 위주.\n\n"
-        "(3) 지도학습 신경망 (Ehlers 2023 FNO):\n"
-        "  - 작동 원리: 수천 개 (Ehlers 2023 의 경우 3120 개) HOS 합성 데이터로 NN 을 미리 학습. "
-        "학습 후에는 sparse measurement 를 입력하면 wave field 를 출력. "
-        "FNO (Fourier Neural Operator) architecture 가 Fourier 공간에서 global mapping 학습.\n"
-        "  - 강점: 학습 후 inference 매우 빠름 (1.9 ms / instance). 학습 데이터 분포 안에서는 정확.\n"
-        "  - 한계: 학습 데이터 합성 자체가 큰 작업 (3120 HOS simulation). "
-        "학습 분포 밖 sea state 또는 다른 sensor 조건에서는 정확도 저하 (distribution shift). "
-        "Black-box — 왜 그렇게 추정했는지 해석 어려움. 1D 만.\n\n"
-        "(4) 물리 기반 비지도 NN (Ehlers 2025 PFT-PINN):\n"
-        "  - 작동 원리: PINN (physics-informed neural network) 으로 학습 데이터 없이 학습. "
-        "Loss 함수가 PDE residual (Laplace 방정식 + 표면 boundary condition + 바닥 condition) "
-        "이라 NN 이 wave physics 자체를 학습. Auto-differentiation 으로 PDE residual 계산.\n"
-        "  - 강점: 학습 데이터 0 개로 비선형 wave 처리 (linear LWT 부터 NLSE2 같은 weak nonlinear 까지). "
-        "Wave flume 실험으로 검증 (SSP < 0.05).\n"
-        "  - 한계: Instance 마다 처음부터 30 분 학습 (RTX 3090, 40K+ epochs) — real-time 불가. "
-        "Buoy time-series 입력만 처리 — sparse spatial LiDAR setup 미지원. 1D + t.\n\n"
-        "(5) 연속 파라미터 추정 — WaveSplat (우리):\n"
-        "  - 작동 원리: wave 를 N 개 plane wave 의 파라미터 (A_n, k_xn, k_yn, ω_n, φ_n) 로 직접 표현 — 격자 없이 연속 wavenumber. "
-        "Dispersion 관계 ω = √(g·|k|·tanh(|k|·d)) 를 hard constraint 로 강제 → 자유도 5N → 4N. "
-        "Adam optimizer 로 measurement 와 model prediction 의 차이 최소화.\n"
-        "  - 강점: <100 ms inference (CPU) — real-time control loop 적합. "
-        "2D directional 처리. LiDAR raydrop, shadowing, Fresnel 까지 simulator 에 모사.\n"
-        "  - 한계: Linear superposition 가정 (LWT family). Klein 2020 의 정량 비교에서 HOSM > NLSE2 > LWT — "
-        "비선형 wave 처리 못 함. ε < 0.07 operational range 에서만 신뢰.\n\n"
-        "다음 슬라이드부터 가장 중요한 선행 연구 2 편을 자세히 소개하겠습니다."
+        "13 편의 논문을 정독한 결과를 5 가지 접근법으로 분류했습니다. 각 접근법의 작동 원리와 강점·한계를 자세히 풀어 설명드리겠습니다.\n\n"
+        "첫 번째는 *격자 기반 최적화* 로 Desmars 2018, 2020, 2023 이 대표적입니다. 공간을 일정 간격 격자로 나누고 각 격자점에서 파도 진폭을 추정한 뒤, 추정값이 만들어내는 측정값과 실제 측정값의 차이를 비용함수로 최소화합니다. 강점은 수치해석 분야에서 framework 가 잘 정립되어 있다는 것이고요, 한계는 추정 가능한 wavenumber 가 격자 간격에 묶인다는 점 — Nyquist 한계로 격자 사이 wavenumber 는 표현 불가능 — 그리고 거의 모두 1D 가정이라는 점입니다.\n\n"
+        "두 번째는 *앙상블 칼만 필터* 로 Wang-Pan 2021/22, Wang 2025, Yan 2025 가 있습니다. 50 에서 300 개의 wave simulation 을 동시에 돌리면서 측정값으로 베이지안 업데이트하는 방식인데요, Wang-Pan 은 비선형 wave model 인 HOS 를 forecast 에 쓰고, Yan 2025 는 Navier-Stokes 까지 써서 wave breaking 도 처리합니다. 강점은 가장 높은 물리 충실도이고, 한계는 ensemble 비용으로 GPU 써도 수백 ms 이상 걸려서 실시간 제어에 부적합하다는 것입니다.\n\n"
+        "세 번째는 *지도학습 신경망* 으로 Ehlers 2023 의 FNO 가 대표적입니다. 3120 개의 합성 데이터로 NN 을 미리 학습시킨 뒤 sparse measurement 에서 wave field 를 출력하는데, 학습 후 inference 가 1.9 ms 로 매우 빠릅니다. 한계는 학습 데이터 자체가 큰 비용이고, 학습 분포 밖에서는 정확도가 떨어지는 distribution shift 문제가 있습니다.\n\n"
+        "네 번째는 *물리 기반 비지도 NN* 으로 Ehlers 2025 의 PFT-PINN 이 있습니다. PDE residual 을 loss 로 강제해서 학습 데이터 없이 비선형 wave 까지 처리합니다. 한계는 instance 마다 30 분 학습이 필요해서 real-time 불가능하고, buoy 시계열만 처리해서 LiDAR setup 미지원입니다.\n\n"
+        "마지막 다섯 번째가 우리 WaveSplat 입니다. 격자 없이 N 개 plane wave 의 파라미터를 직접 추정하는데, 분산 관계를 hard constraint 로 강제해서 자유도를 5N 에서 4N 으로 줄입니다. 강점은 100 ms 이내 추정에 2D directional + LiDAR raydrop 까지 모사한다는 것이고, 한계는 linear superposition 가정 — ε < 0.07 영역에서만 신뢰한다는 것입니다.\n\n"
+        "다음 슬라이드부터 가장 중요한 선행 연구 두 편을 자세히 소개하겠습니다."
     ))
 
 
@@ -551,35 +501,12 @@ def build_s6():
             "WaveSplat: **정확도 16% 우위 + 47 배 빠름** (CPU 만으로도 가능)",
         ],
         notes=(
-            "이 논문 family 가 우리의 가장 직접적 비교 대상입니다. "
-            "주요 두 용어를 먼저 정의하겠습니다.\n\n"
-            "EnKF (Ensemble Kalman Filter, 앙상블 칼만 필터):\n"
-            "  - 50–300 개의 wave simulation 을 동시에 진행 (각각 약간 다른 초기 조건).\n"
-            "  - Forecast 단계: 각 ensemble member 가 wave model 로 시간 진행 (예: 1초 후 wave field 예측).\n"
-            "  - Analysis 단계: measurement 가 들어올 때마다 ensemble 의 평균과 covariance 로부터 Kalman gain 계산.\n"
-            "  - 베이지안 update rule: x_a = x_f + K (y - H x_f). 여기서 K 가 Kalman gain, y 가 measurement, H 가 observation operator.\n"
-            "  - 원래 기상학 데이터 동화에서 출발 (Evensen 1994), Hunt 2007 의 LETKF 가 표준 변형.\n"
-            "  - Wave estimation 에는 Wang-Pan 2021 이 처음 적용.\n\n"
-            "HOS (High-Order Spectral method, 고차 스펙트럴 방법):\n"
-            "  - 비선형 wave model. Linear Wave Theory (LWT) 의 확장.\n"
-            "  - LWT 는 wave field 를 plane wave 의 단순 선형 중첩으로 표현 (ε < 0.07 에서만 정확).\n"
-            "  - HOS 는 표면 boundary condition 의 비선형 항 (wave-wave interaction, 즉 두 wave 가 만나서 생기는 추가 wave) 까지 spectral 표현으로 계산.\n"
-            "  - Wave steepness ε ~ 0.1 까지 처리 가능 — Stokes wave, swell-wind interaction 같은 비선형 현상까지.\n"
-            "  - Dommermuth & Yue 1987, West et al. 1987 에서 독립적으로 제안. 이후 ocean engineering 에서 표준 비선형 wave model 로 자리잡음.\n"
-            "  - Klein 2020 의 정량 비교에서 HOSM > NLSE2 > NLSE > LWT 순 정확도.\n\n"
-            "이 family 의 발전 과정:\n"
-            "  - Wang & Pan 2021 (JFM 918): EnKF + HOS 를 처음 결합한 paper.\n"
-            "  - Wang & Pan 2022 (JFM 949): 해류 (current) 까지 동시 추정 (EnKF-HOS-C).\n"
-            "  - Wang 2025 (Coastal Eng 197): 앙상블 300 개, fuzzy R (measurement noise 자동 적응), "
-            "Delaunay 보간 (불규칙 측정점 처리) 추가.\n\n"
-            "우리는 Wang 2025 의 방법을 코드로 충실히 재현했습니다 (Ne=300, 80×60 격자, dx=3m, fuzzy R, Delaunay). "
-            "원논문과의 차이는 forecast 모델로 HOS 대신 linear dispersion 사용 — 우리 WaveSplat 도 linear 이므로 공정 비교 위해 같은 model.\n\n"
-            "비교 결과:\n"
-            "  - WaveSplat: nRMSE 0.211, 13 ms / frame\n"
-            "  - Wang2025: nRMSE 0.253, 632 ms / frame\n\n"
-            "에피소드별 패턴:\n"
-            "  - 단순 파도 (N_components 1–5): WaveSplat 우위 (예: BF3_2comp 에서 WaveSplat 0.052 vs Wang 0.250)\n"
-            "  - 복잡 파도 (N_components 15–30): Wang2025 가 일부 episode 에서 우위 — trade-off 정직하게 보고 예정"
+            "이 논문 family 가 우리의 가장 직접적인 비교 대상입니다. 두 핵심 용어부터 정의해드리겠습니다.\n\n"
+            "EnKF — 앙상블 칼만 필터입니다. 50 에서 300 개의 wave simulation 을 동시에 진행하면서, 측정값이 들어올 때마다 베이지안 업데이트로 갱신하는 방식입니다. Forecast 단계에서는 각 ensemble member 가 wave model 로 시간을 진행하고, Analysis 단계에서는 ensemble 평균과 covariance 로부터 Kalman gain 을 계산해 update 합니다. 원래 기상학 데이터 동화에서 출발한 기법인데 Wang-Pan 2021 이 wave estimation 에 처음 적용했습니다.\n\n"
+            "HOS — High-Order Spectral method 라고 부르는 비선형 wave model 입니다. 우리가 쓰는 LWT 는 plane wave 의 단순 선형 중첩으로만 표현해서 ε < 0.07 에서만 정확합니다. 반면 HOS 는 표면 경계 조건의 비선형 항 — 두 파도가 만나서 생기는 추가 파도 같은 wave-wave interaction — 까지 spectral 로 계산해서 ε ~ 0.1 까지 처리 가능합니다. Dommermuth & Yue 1987 과 West et al. 1987 이 독립적으로 제안한 후 ocean engineering 의 표준이 됐고요, Klein 2020 의 정량 비교에서 HOSM > NLSE2 > NLSE > LWT 순으로 정확도가 정리됐습니다.\n\n"
+            "이 family 의 발전 과정을 보면 — Wang & Pan 2021 이 EnKF + HOS 를 처음 결합했고, 2022 에서 current 까지 동시 추정하도록 확장 (EnKF-HOS-C), 그리고 가장 최근 Wang 2025 가 앙상블 300 개에 fuzzy R (측정 노이즈 자동 적응) 과 Delaunay 보간 (불규칙 측정점 처리) 을 추가했습니다.\n\n"
+            "우리는 Wang 2025 의 방법을 코드로 충실히 재현했습니다 — Ne=300, 80×60 격자, dx=3m, fuzzy R, Delaunay 모두 포함. 원논문과의 차이는 forecast 모델로 HOS 대신 linear dispersion 을 사용한 것인데요, 이건 우리 WaveSplat 도 linear 이므로 공정 비교를 위해서입니다.\n\n"
+            "비교 결과 WaveSplat 이 nRMSE 0.211 에 13 ms 인 반면 Wang2025 는 0.253 에 632 ms 입니다. 에피소드별로 보면 단순 파도 (1-5 성분) 에서는 WaveSplat 이 압도적이지만 — 예를 들어 BF3 2-comp 에서 0.052 vs 0.250 — 복잡한 파도 (15-30 성분) 에서는 Wang2025 가 더 나은 경우도 있어서 이 trade-off 는 정직하게 보고할 예정입니다."
         ),
         star=True,
     )
@@ -643,24 +570,10 @@ def build_s8():
             "**위협**: 같은 그룹 (TUHH+Imperial)이 1-3년 안에 2D + real-time PINN 발표 가능 — 우리 niche 좁아질 risk",
         ],
         notes=(
-            "가장 위협적인 prior art입니다. 이유는 우리와 *근본 철학이 같기* 때문입니다 — "
-            "training data 없이 physics constraint (dispersion + boundary conditions)을 직접 강제. "
-            "다만 구현 방식이 다릅니다.\n\n"
-            "PFT-PINN의 방식:\n"
-            "  - 두 NN을 동시에 학습: η-net (wave 표면) + Φ-net (velocity potential)\n"
-            "  - 손실함수: Laplace 방정식 + 표면 boundary condition + 바닥 condition\n"
-            "  - Auto-differentiation으로 PDE residual 계산 (NN의 강점)\n"
-            "  - Hard-constraint trick — 측정치를 NN architecture에 직접 hard-encode (loss balancing 문제 회피)\n\n"
-            "이게 1D wave flume에서는 잘 작동합니다. 30분 학습 후 SSP < 0.05 정도.\n\n"
-            "한계는:\n"
-            "  - Instance마다 30분 학습 — design-time analysis tool로는 OK, real-time 제어로는 불가\n"
-            "  - 1D + t만 다룸 — 2D directional은 future work\n"
-            "  - Buoy 시계열만 다룸 — sparse spatial LiDAR setup 처리 안 함\n\n"
-            "그러나 결정적인 위협은 *future work*입니다. 같은 그룹이 'real-time speedup via parallelization, "
-            "pre-training, multi-GPU' 와 '2D + t extension'을 명시했어요. 1-3년 안에 우리 niche를 흡수할 수 있습니다.\n\n"
-            "대응 전략 두 가지:\n"
-            "  1. 우리가 빨리 publish — 시간 우위 확보\n"
-            "  2. 응용 영역 차별화 — PINN은 design-time 분석 도구, 우리는 real-time 제어 component"
+            "Ehlers 2025 의 PFT-PINN 은 우리에게 *가장 위협적인* 선행 연구입니다. 이유는 우리와 *근본 철학이 같기* 때문이죠 — 학습 데이터 없이 physics constraint 를 직접 강제하는 방식입니다. 다만 구현 방식이 다릅니다.\n\n"
+            "PFT-PINN 의 방식을 풀어 설명드리면, 두 신경망을 동시에 학습합니다 — η-net (wave 표면 추정) 과 Φ-net (velocity potential 추정). 손실함수는 Laplace 방정식 + 표면 경계조건 + 바닥 조건의 PDE residual 이고, auto-differentiation 으로 이걸 계산하는 게 NN 의 강점이죠. 또 hard-constraint trick 이라 해서 측정치를 NN architecture 에 직접 hard-encode 해서 data loss 의 balancing 문제를 회피합니다.\n\n"
+            "이게 1D wave flume 에서는 잘 작동합니다. 30 분 학습 후 SSP 0.05 이하 정도 정확도가 나옵니다. 하지만 한계가 명확합니다 — instance 마다 30 분 학습이라 design-time 분석 도구로는 좋지만 real-time 제어에는 못 씁니다. 또 1D + t 만 다루고 2D directional 은 future work 로 두고요, 입력은 buoy 시계열만 가능해서 sparse LiDAR 는 미지원입니다.\n\n"
+            "결정적 위협은 *future work* 입니다. 같은 그룹이 'real-time speedup via parallelization, pre-training, multi-GPU' 와 '2D + t extension' 을 명시적으로 future work 로 적었습니다. 1-3 년 안에 우리 niche 를 흡수할 가능성이 있죠. 대응 전략은 두 가지입니다. 첫째 우리가 빨리 publish 해서 시간 우위를 확보하고, 둘째 응용 영역 차별화 — PINN 은 design-time 분석 도구, 우리는 real-time 제어 component 라는 점을 명확히 하는 것입니다."
         ),
         star=True,
     )
@@ -688,24 +601,11 @@ def build_s9():
             "그들의 강점: **wave breaking** (우리는 이걸 limitation으로 인정하고 future work로 둠)",
         ],
         notes=(
-            "다른 극단의 prior art입니다 — full physics fidelity (가장 정확한 물리)를 추구.\n\n"
-            "방법론:\n"
-            "  - VOF (Volume Of Fluid) - 자유 표면을 fluid volume fraction α로 표현. α=1 (물), 0 (공기), 0.5 (계면)\n"
-            "  - Navier-Stokes 풀이 (OpenFOAM) - 가장 정확한 fluid dynamics\n"
-            "  - EnKF로 데이터 동화 - 50 ensemble을 동시에 propagate\n"
-            "  - POD 차원 축소 - 격자 cell 4.8만 개를 30 modes로 압축 (계산 가능하게)\n\n"
-            "강점:\n"
-            "  - Plunging breaker (부서지는 파도)까지 처리 — wave physics의 가장 어려운 영역\n"
-            "  - Wave-structure interaction까지 확장 가능 (선박/구조물 포함)\n"
-            "  - 물리적으로 가장 정확\n\n"
-            "한계:\n"
-            "  - Offline 외에 다른 게 없음 — 50 OpenFOAM 시뮬레이션을 매 step마다 돌림\n"
-            "  - 1D xz-plane만 — 2D directional sea state 처리 안 함\n"
-            "  - Inlet boundary 근처 정확도 떨어짐 (boundary가 state에 포함 안 됨)\n\n"
-            "응용 영역이 본질적으로 다릅니다:\n"
-            "  - VOF-EnKF: design-time digital twin (사후 분석, 매우 정확하게)\n"
-            "  - 우리: real-time control component (즉시 결정, 충분히 정확하게)\n\n"
-            "정직한 인정 — 우리는 wave breaking을 처리 못 합니다. 이건 paper의 limitation 섹션에 명시하고 future work로 둡니다."
+            "Yan 2025 는 다른 극단의 선행 연구입니다. 가장 정확한 물리, 즉 full physics fidelity 를 추구한 방법이죠.\n\n"
+            "방법론은 네 가지로 정리됩니다. 첫째 VOF — Volume Of Fluid 라고 부르는데 자유 표면을 fluid volume fraction α 로 표현합니다 (α=1 이면 물, 0 이면 공기, 0.5 가 계면). 둘째 Navier-Stokes 를 OpenFOAM 으로 직접 풀어서 가장 정확한 fluid dynamics 를 얻습니다. 셋째 EnKF 로 50 개 앙상블을 동시에 진행하며 데이터를 동화하고, 넷째 POD 로 격자 4.8 만 cell 을 30 modes 로 압축해서 계산 가능하게 만듭니다.\n\n"
+            "강점은 명확합니다. plunging breaker — 파도가 부서지는 가장 어려운 wave physics 영역까지 처리할 수 있고, 선박이나 구조물과의 상호 작용까지 확장 가능합니다. 물리적으로 가장 정확하죠.\n\n"
+            "하지만 한계도 분명합니다. Offline 외에는 안 됩니다 — 50 개 OpenFOAM 시뮬레이션을 매 step 돌려야 하고요, 1D xz-plane 만 처리하므로 2D 방향성 sea state 는 다룰 수 없습니다. Inlet boundary 근처 정확도도 떨어지는데 그건 boundary 가 state 에 포함 안 돼서 그렇습니다.\n\n"
+            "결국 응용 영역이 본질적으로 다른 거죠. VOF-EnKF 는 design-time digital twin — 사후 분석을 매우 정확하게 하는 도구이고, 우리는 real-time control component — 충분히 정확하게 즉시 결정하는 도구입니다. 정직하게 인정할 점은 우리가 wave breaking 을 처리 못 한다는 점이고요, paper 의 limitation 섹션에 명시하고 future work 로 두겠습니다."
         ),
         star=True,
     )
@@ -737,31 +637,12 @@ def build_s10():
     ], font_size=12)
     add_page_number(s, 8)
     add_notes(s, (
-        "이 표는 '각 방법이 어떤 응용에 적합한가'를 한눈에 보여줍니다.\n\n"
-        "표를 읽는 법:\n"
-        "  - 각 행은 '이런 기능이 필요한가?'를 나타냅니다\n"
-        "  - ✓ = 가능, ✗ = 불가능\n"
-        "  - 노란색으로 강조된 열(Ours)이 우리 방법입니다\n\n"
-        "핵심 관찰:\n"
-        "  어떤 방법도 모든 ✓를 받지는 못합니다.\n"
-        "  각 방법은 고유한 강점이 있고, 적합한 응용 영역이 다릅니다.\n\n"
-        "우리의 고유한 위치:\n"
-        "  '실시간 + 2D 방향성 + 희소 LiDAR + 학습 데이터 불필요'\n"
-        "  이 4가지를 동시에 만족하는 방법은 선행연구에 없었습니다.\n\n"
-        "응용 영역을 크게 둘로 나눌 수 있습니다:\n"
-        "  - '실시간 제어' 영역: 우리 WaveSplat, FNO\n"
-        "    즉시 결정을 내려야 하는 상황 (선박 제어, hydrofoil 등)\n"
-        "  - '정밀 분석' 영역: VOF-EnKF, PFT-PINN\n"
-        "    시간은 충분하지만 가장 정확한 분석이 필요한 상황\n\n"
-        "우리는 PFT-PINN이나 VOF-EnKF와 경쟁하는 것이 아닙니다.\n"
-        "서로 다른 영역을 담당하고 있습니다.\n"
-        "직접 비교 대상은 FNO(Ehlers 2023)인데,\n"
-        "FNO는 1D + 지도학습, 우리는 2D + 비지도학습으로 차별화됩니다.\n\n"
-        "정직한 한계도 표에 보입니다:\n"
-        "  - 파도 파쇄(breaking) 처리 못 함 — VOF-EnKF만 가능\n"
-        "  - 유속장 추정 못 함 — PINN/EnKF만 가능\n"
-        "이런 한계는 논문에 정직하게 명시할 예정입니다.\n\n"
-        "다음부터는 우리가 만든 시뮬레이터와 추정기를 소개합니다."
+        "이 표가 *각 방법이 어떤 응용에 적합한가* 를 한 눈에 보여줍니다. 행은 '이런 기능이 필요한가?', 노란색으로 강조된 열이 우리 WaveSplat 입니다.\n\n"
+        "핵심 관찰은 — 어떤 방법도 모든 항목에 ✓를 받지는 못한다는 점입니다. 각 방법마다 고유한 강점이 있고, 적합한 응용 영역이 다릅니다.\n\n"
+        "우리의 고유한 위치는 *실시간 + 2D 방향성 + 희소 LiDAR + 학습 데이터 불필요* 의 네 가지를 모두 만족하는 것입니다. 이 조합을 만족하는 선행 연구는 없습니다.\n\n"
+        "응용 영역을 크게 둘로 나누면 — *실시간 제어 영역* 에는 우리 WaveSplat 과 FNO 가 들어가고 (선박 제어, hydrofoil 등 즉시 결정 필요), *정밀 분석 영역* 에는 VOF-EnKF 와 PFT-PINN 이 들어갑니다 (시간은 충분하지만 가장 정확한 분석 필요). 우리는 PFT-PINN 이나 VOF-EnKF 와 *경쟁하는 게 아니라* 서로 다른 영역을 담당하는 거죠. 직접 비교 대상은 FNO 인데, FNO 는 1D + 지도학습, 우리는 2D + 비지도학습으로 차별화됩니다.\n\n"
+        "정직한 한계도 표에 보입니다 — 파도 파쇄 처리 못 하고 (VOF-EnKF 만 가능), 유속장 추정 못 합니다 (PINN/EnKF 만 가능). 이런 한계는 논문에 정직하게 명시할 예정입니다.\n\n"
+        "다음부터는 우리가 만든 시뮬레이터와 추정기를 소개하겠습니다."
     ))
 
 
@@ -772,11 +653,11 @@ def build_s11():
     add_title(s, "WaveSim — 파도와 LiDAR 를 어떻게 모사했나")
     add_subtitle(s, "각 구성요소의 물리적 합당성 + 코드 검증")
     bullets = [
-        "**파도 모델 — Gerstner 파 (1802, rotational exact solution)**:",
-        "  사인 곡선 LWT (수면 변위만 표현) 의 확장 — 입자의 운동까지 모사",
-        "  파도 아래의 물 입자는 *원/타원 궤적으로 회전* (위로 + 진행 방향 → 아래 + 반대 방향)",
-        "  수식: x = x₀ − Q·A·sin(...), y = y₀ − Q·A·sin(...), z = A·cos(k·x − ω·t + φ)",
-        "  Q ∈ [0, 1] = 가파름 파라미터 (Q=0: 사인 wave, Q→1: crest sharp / trough flat — Stokes-1 풍)",
+        "**파도 모델 — Gerstner family** (코드: wavesim/wave_generator.py):",
+        "  Gerstner 1802 의 회전 정확해 — 입자의 운동까지 모사 (LWT + 회전 변위)",
+        "  Q ∈ [0, 1] = 가파름. **Q=0 이면 LWT (사인 wave), Q>0 이면 약비선형 Gerstner**",
+        "  → 즉 LWT 와 Gerstner 는 *별도 model 이 아니라* Q 로 연결된 family. 우리 default Q_max=0.8",
+        "  수식: x = x₀ − Q·A·(k_x/|k|)·sin(Φ), z = A·cos(Φ)   (Φ = k·x − ω·t + φ)",
         "  Q 제약: Σ_n Q_n·ω_n·A_n ≤ 1 (입자 궤적 자체 교차 방지, Tessendorf 2001)",
         "  → 합당성: Tessendorf 2001 SIGGRAPH ocean 표준, Dean & Dalrymple 1991 (교과서)",
         "",
@@ -851,6 +732,7 @@ def build_s12():
         "  ① 일부는 반사 (specular reflection) — 표면이 매끄러울수록 한 방향으로 집중",
         "  ② 나머지는 굴절 (refraction) — 물 속으로 들어가 흡수됨 (LiDAR 못 받음)",
         "  Fresnel 식이 이 두 비율을 결정 — 입사각 θ_i 와 굴절률 n 의 함수",
+        "  코드: wavesim/raydrop_uniform.py 의 fresnel_reflectance() 함수",
         "",
         "**Fresnel 수식 — 두 polarization 평균** (LiDAR laser unpolarized 가정):",
         "  Step 1 (Snell): sin θ_t = sin θ_i / n   (n=1.318, water at 1550 nm)",
@@ -942,38 +824,12 @@ def build_s13():
                              placeholder_text='[WaveSplat pipeline diagram]')
     add_page_number(s, 11)
     add_notes(s, (
-        "WaveSplat 의 발상 시작과 명칭의 유래를 설명합니다. 외부 청자 (조선해양 분야 포함) 가 익숙한 표현을 쓰고, jargon 은 풀어 설명합니다.\n\n"
-        "(1) 격자 기반의 한계 — 왜 부족한가:\n"
-        "  - Wang 2025, Desmars 등은 바다 표면 (수면 높이 η) 을 격자 위의 값으로 표현. 80×60 격자면 4,800 개 점.\n"
-        "  - 추정해야 할 변수 = 4,800 개. 그러나 LiDAR 관측 점은 frame 당 50 개.\n"
-        "  - 50 개 측정으로 4,800 개 변수 추정 = 정보 부족 (under-determined). 격자 외 추가 정보 (부드러움 가정, 앙상블 covariance) 를 동원해야 함.\n"
-        "  - 추가 한계: 격자 간격보다 짧은 파장의 파도는 격자로 표현 자체가 불가능 (Nyquist 한계).\n\n"
-        "(2) 발상의 전환 — 파도 성분으로 직접 표현:\n"
-        "  - JONSWAP 스펙트럼으로 분해하면 실제 바다 파도는 보통 5-30 개의 sin 파 (성분, component) 의 합으로 충분히 근사.\n"
-        "  - 각 sin 파 성분은 5 개의 숫자로 완전히 결정 — 조선해양 분야 표준 wave 표현:\n"
-        "    · A (진폭, amplitude): 파고의 크기 (단위: m).\n"
-        "    · (k_x, k_y) (파수, wavenumber vector): 파장 λ = 2π/|k| 와 진행 방향 결정.\n"
-        "    · ω (각주파수, angular frequency): 주기 T = 2π/ω 의 역수, 시간적 변화율.\n"
-        "    · φ (위상, phase): 시작 시점 (어느 파도가 어느 시점에 어디 있는지).\n"
-        "  - N=10 개 성분이면 변수 50 개. LiDAR 관측 50 개로 1:1 추정 가능.\n"
-        "  - 분산 관계 (dispersion relation) ω = √(g·|k|·tanh(|k|·d)) 를 강제 → ω 가 k 에서 자동 결정 → 변수 5N → 4N.\n"
-        "  - 결정적 차이: 격자 간격이라는 한계가 없음. 파장이 짧든 길든 (k 가 연속) 자연스럽게 표현.\n\n"
-        "(3) 3D Gaussian Splatting (3DGS) 와의 영감:\n"
-        "  - 3DGS (Kerbl et al. 2023, SIGGRAPH 발표) 는 컴퓨터 그래픽 분야의 새로운 3D scene 표현 방법.\n"
-        "  - 기존 방법은 voxel grid (3D 격자) 또는 implicit neural network 사용.\n"
-        "  - 3DGS 는 3D 공간을 *여러 개의 Gaussian 원소* 의 합으로 표현. 각 Gaussian 의 위치/크기/색을 gradient descent 로 직접 최적화.\n"
-        "  - 우리도 비슷한 발상 — 격자 없이 *여러 sin 파 성분의 합* 으로 wave field 를 표현. 각 성분의 5 변수를 직접 최적화.\n"
-        "  - 도메인은 다름 (3DGS = 3D 영상, WaveSplat = 바다 파도) 이지만 핵심 철학은 같음.\n\n"
-        "(4) 'Splat' 이라는 명칭 — 정직한 정리:\n"
-        "  - 3DGS 의 'splatting' 은 그래픽 rendering 기법 (각 Gaussian 을 화면에 'splat'=뿌림).\n"
-        "  - 우리는 그래픽 rendering 이 아니라 wave 추정 — 'splat' 의 정확한 의미는 우리 알고리즘에 직접 적용되지 않음.\n"
-        "  - 이름은 '명시적 원소를 직접 최적화' 라는 발상의 영감 표시. 초기 working name 으로 사용 중.\n"
-        "  - Paper 작성 시 더 적절한 이름 (예: SplatWave, ParametricWave, WaveAtom) 으로 변경 검토 가능.\n"
-        "  - Q&A 답변 준비: '초기 작업명입니다. 3DGS 의 *여러 명시적 원소의 합으로 연속 필드를 표현* 한다는 발상에서 영감을 받았습니다. 핵심 알고리즘은 spectral parametric inversion (해양·신호처리 분야 표준).'\n\n"
-        "(5) 다음 슬라이드 흐름 — 실제 알고리즘:\n"
-        "  - 다음 (S12): Init 단계 — 여러 frame 에서 파수 (k_x, k_y) 추정 (beamforming).\n"
-        "  - 그 다음 (S13): Tracking 단계 — 매 frame 진폭 (A) 과 위상 (φ) 만 Adam 으로 빠르게 update + 성분 수 자동 조정.\n"
-        "  - 그 다음 (S13d): GT 와 WaveSplat 의 비교 시각화."
+        "이번 슬라이드에서는 WaveSplat 의 발상 시작과 'Splat' 이라는 명칭의 유래를 설명드립니다.\n\n"
+        "먼저 *왜 격자 기반은 부족한가* 부터 보겠습니다. Wang 2025 나 Desmars 같은 기존 방법은 바다 표면을 격자 위의 값으로 표현합니다. 80×60 격자면 추정해야 할 변수가 4,800 개죠. 그런데 LiDAR 관측 점은 frame 당 50 개뿐입니다. 50 개 측정으로 4,800 개 변수를 추정하는 건 정보 부족 (under-determined) 이라서 격자 외 추가 정보 — 부드러움 가정이나 앙상블 covariance — 를 동원해야 합니다. 게다가 격자 간격보다 짧은 파장은 Nyquist 한계 때문에 표현 자체가 불가능합니다.\n\n"
+        "그래서 *발상을 전환했습니다*. JONSWAP 스펙트럼으로 분해해보면 실제 바다 파도는 보통 5 에서 30 개 정도의 사인 파 성분의 합으로 충분히 표현됩니다. 각 성분은 5 개의 숫자로 완전히 결정되는데요 — 진폭 A, 파수 (k_x, k_y), 각주파수 ω, 위상 φ 입니다. 조선해양 분야의 표준 wave 표현이죠. N=10 개 성분이면 변수 50 개라 LiDAR 관측 50 개로 1:1 추정이 가능해집니다. 게다가 분산 관계 ω = √(g·|k|·tanh(|k|·d)) 를 강제하면 ω 가 k 에서 자동 결정되어 변수가 5N 에서 4N 으로 줄고, 무엇보다 격자 간격이라는 한계가 사라집니다 — 파장이 짧든 길든 자연스럽게 표현 가능합니다.\n\n"
+        "이 발상은 *3D Gaussian Splatting* 에서 영감을 얻었습니다. 3DGS 는 2023 년 SIGGRAPH 에서 발표된 컴퓨터 그래픽 방법인데, 3D 공간을 격자나 NN 대신 *여러 개의 Gaussian 원소의 합* 으로 표현하고 각 Gaussian 의 위치·크기·색을 gradient descent 로 직접 최적화합니다. 우리도 같은 발상으로 격자 없이 *여러 사인 파 성분의 합* 으로 wave field 를 표현하고, 각 성분의 5 변수를 직접 최적화하는 거죠. 도메인은 다르지만 (3DGS 는 영상, 우리는 파도) 핵심 철학은 같습니다.\n\n"
+        "'Splat' 이라는 이름은 정직하게 말씀드리면 — 3DGS 의 'splatting' 은 그래픽 rendering 기법이라 우리 알고리즘에 정확히 적용되지는 않습니다. 다만 *명시적 원소를 직접 최적화* 한다는 발상의 영감을 표시한 working name 으로 쓰고 있습니다. Paper 작성 시 더 적절한 이름으로 변경할 수도 있습니다.\n\n"
+        "다음 슬라이드부터 실제 알고리즘을 단계별로 보여드리겠습니다."
     ))
 
 
@@ -1008,39 +864,14 @@ def build_s13b_init():
                 line_space_after=2)
     add_page_number(s, 12)
     add_notes(s, (
-        "Init 단계를 수식 + 정량으로 자세히 설명합니다.\n\n"
-        "(1) Single frame 의 한계 — 정량:\n"
-        "  - LiDAR 한 frame: 50 점이 240 m 영역 (FOV 120°, range 200 m, vessel 위 5 m mount).\n"
-        "  - 점 간격 Δy ≈ 5–8 m → spatial Nyquist k_max = π/Δy ≈ 0.4 rad/m.\n"
-        "  - 우리가 추정해야 할 wave wavenumber: BF3–BF6 의 typical k ∈ 0.5–3 rad/m (파장 2–12 m).\n"
-        "  - 즉 single frame 으로는 *Nyquist 한계 위* 영역을 추정해야 하는 paradox.\n"
-        "  - 해결: multi-frame stacking + dispersion (이게 paper 의 main framing).\n\n"
-        "(2) Synthetic aperture 효과:\n"
-        "  - vessel 이 V=11.3 m/s 로 1 s 동안 11.3 m 이동.\n"
-        "  - 10 frame stacking 시 vessel 위치 0 → 11.3 m, 점 500 개가 240+11.3 m 영역에 분포.\n"
-        "  - Effective aperture L_SA = V·T_init = 11.3 m → wavenumber 분해능 Δk ≈ 2π/L_SA ≈ 0.56 rad/m.\n"
-        "  - 이 분해능으로 0.5–3 rad/m 영역의 wave 추정 가능.\n\n"
-        "(3) Beamforming score 수식:\n"
-        "  - 후보 wavenumber (k_x⁰, k_y⁰) 에 대해:\n"
-        "    S(k) = |Σ_i η_obs(x_i, t_i) · exp(j (k·x_i − ω(k)·t_i))|²\n"
-        "    여기서 ω(k) = √(g·|k|·tanh(|k|·d)) 는 dispersion 으로 자동 결정.\n"
-        "    x_i 는 i-th 측정점의 위치 (x_i, y_i), t_i 는 측정 시각.\n"
-        "  - 의미: '만약 wave 가 이 (k_x, k_y) 방향으로 ω(k) 주파수로 진행한다면, 측정 데이터의 phase 와 얼마나 일치하는가?'\n"
-        "  - DOA estimation (direction-of-arrival, antenna array) 의 ocean wave 적용. Multi-frame 의 phase 정보를 dispersion 으로 spatial wavenumber 와 연결.\n\n"
-        "(4) Coarse-to-fine 2 단계:\n"
-        "  - Coarse: 50×50 = 2,500 후보 격자. 각 후보의 S(k) 계산. Top-N peak 선택.\n"
-        "  - Fine: 각 peak 주변에서 local quadratic fit → Newton step → sub-grid 정확도.\n"
-        "  - 결과: 처음에는 거친 격자, 점차 정밀화. Coarse-to-fine 이 표준 spectral estimation 기법.\n\n"
-        "(5) 'konly' 의 의미:\n"
-        "  - 이 단계는 k 만 추정. ω 는 dispersion 으로 자동, (A, φ) 는 다음 tracking 단계에서.\n"
-        "  - 이유: single frame 에서 (A, φ) 는 well-conditioned (정보 충분) 이지만 k 는 ill-conditioned.\n"
-        "    Fisher Information Matrix 분석 시 k 의 eigenvalue 가 (A, φ) 에 비해 매우 작음.\n"
-        "  - 이게 'identifiability decomposition' — paper 후반부의 supporting analysis.\n\n"
-        "v1 (FFT) → v2 (beamforming) 변경:\n"
-        "  - FFT 는 균일 격자 데이터 필요. 우리 LiDAR 점은 불규칙 (raydrop, shadowing).\n"
-        "  - Beamforming 은 불규칙 점에서 직접 작동 — non-uniform DFT.\n"
-        "  - 평균 18% 정확도 개선 확인 (2026-04 ablation).\n\n"
-        "다음 슬라이드: tracking 단계와 최적화 detail."
+        "이번 슬라이드는 Init 단계를 수식과 정량으로 자세히 설명합니다.\n\n"
+        "먼저 *왜 Init 이 어려운가* 부터 정량으로 보겠습니다. Single frame LiDAR 가 240 m 영역에 50 점을 가지고 있으면 점 간격이 5 에서 8 m 정도입니다. Nyquist 한계로 이 single frame 에서 추정 가능한 wavenumber 는 k_max = π/Δy ≈ 0.4 rad/m 정도이죠. 그런데 우리가 추정해야 할 wave wavenumber 는 0.5 에서 3 rad/m 입니다. 즉 single frame 으로는 *Nyquist 한계 위* 영역을 추정해야 하는 paradox 인 거죠.\n\n"
+        "해결책은 *multi-frame stacking 과 synthetic aperture 효과* 입니다. Vessel 이 11.3 m/s 로 1 초 동안 11.3 m 이동하면 10 frame 을 stacking 했을 때 효과적인 개구가 11.3 m 가 됩니다. 이 효과 개구로 wavenumber 분해능이 약 0.56 rad/m 정도로 좋아져서 0.5 에서 3 rad/m 영역의 wave 추정이 가능해집니다.\n\n"
+        "그 다음 *beamforming score 식* 입니다. 후보 wavenumber 에 대해 S(k) = |Σ η_obs · exp(j(k·x − ω(k)·t))|² 를 계산하는데요, 여기서 ω(k) 는 분산 관계로 자동 결정됩니다. 직관적 의미는 — '만약 wave 가 이 (k_x, k_y) 방향으로 진행한다면 측정 데이터의 phase 와 얼마나 일치하는가?' 입니다. 신호처리의 DOA estimation 기법을 ocean wave 에 적용한 거죠.\n\n"
+        "그리고 *coarse-to-fine 2 단계* 로 진행합니다. Coarse 단계에서 50×50 = 2,500 후보 격자에서 S(k) 가 큰 peak N 개를 선택하고, Fine 단계에서 local quadratic fit 과 Newton step 으로 sub-grid 정확도까지 정밀화합니다. 표준 spectral estimation 기법입니다.\n\n"
+        "마지막으로 *'konly' 라는 이름의 의미* — 이 단계에서는 k 만 추정하고 ω 는 분산 관계로 자동, 진폭 A 와 위상 φ 는 다음 tracking 단계에서 처리합니다. 이유는 single frame 에서 (A, φ) 는 잘 추정되지만 k 는 ill-conditioned 이기 때문이죠. Fisher Information Matrix 분석으로 보면 k 의 eigenvalue 가 (A, φ) 보다 훨씬 작습니다. 이게 paper 후반부의 identifiability decomposition 입니다.\n\n"
+        "참고로 이전 v1 은 FFT 기반이었는데 LiDAR 점이 불규칙해서 잘 안 됐고, v2 의 beamforming 으로 바꾸면서 평균 18% 정확도 개선됐습니다.\n\n"
+        "다음 슬라이드는 tracking 단계와 최적화 detail 입니다."
     ))
 
 
@@ -1105,27 +936,11 @@ def build_s13c_track():
                 line_space_after=2, color=ACCENT)
     add_page_number(s, 13)
     add_notes(s, (
-        "추적 단계와 Adaptive N을 자세히 설명합니다.\n\n"
-        "Tracking의 핵심 — w_phi mode:\n"
-        "  파수(k)를 고정하는 것이 WaveSplat의 가장 중요한 설계 결정입니다.\n"
-        "  2026년 4월 6일에 발견한 것인데, k까지 자유롭게 업데이트하면\n"
-        "  50개 점에 맞추려고 물리적으로 무의미한 값으로 변해버립니다 (overfitting).\n\n"
-        "  비유하면: 라디오 채널(k)을 이미 맞춰놨는데,\n"
-        "  매번 채널을 다시 바꾸면 오히려 잡음만 들립니다.\n"
-        "  채널은 고정하고 볼륨(A)과 위상(φ)만 조절하면 됩니다.\n\n"
-        "Adam optimizer:\n"
-        "  딥러닝에서 가장 많이 쓰이는 최적화 알고리즘입니다.\n"
-        "  각 파라미터의 gradient를 계산하고, 적응적 학습률로 업데이트합니다.\n"
-        "  50 iterations × 50 관측점 → ~13ms (CPU).\n\n"
-        "Adaptive N이 필요한 이유:\n"
-        "  실제 파도의 성분 수(N)를 미리 알 수 없습니다.\n"
-        "  BF2의 단순한 파도는 2-3개, BF5의 복잡한 파도는 15-30개.\n"
-        "  N을 고정하면 과소추정(underfitting) 또는 과대추정(overfitting) 발생.\n\n"
-        "Safety rollback의 중요성:\n"
-        "  새 성분을 추가했는데 오히려 RMSE가 30% 이상 증가하면,\n"
-        "  그 성분은 '잘못된 추가'였다는 뜻입니다.\n"
-        "  즉시 이전 상태로 되돌려서 시스템 안정성을 보장합니다.\n"
-        "  이 메커니즘이 없으면 한 번의 실수로 전체가 붕괴할 수 있습니다."
+        "이번 슬라이드는 추적 단계와 Adaptive N 을 설명합니다.\n\n"
+        "Tracking 의 핵심은 *w_phi mode* — 파수 k 를 고정하는 것입니다. 이게 WaveSplat 의 가장 중요한 설계 결정이에요. k 까지 자유롭게 업데이트하면 50 개 점에 over-fit 해서 물리적으로 무의미한 값으로 발산해버립니다. 그래서 init 에서 결정된 k 는 고정하고, 매 frame 진폭과 위상만 update 합니다.\n\n"
+        "최적화 알고리즘은 *Adam* 을 씁니다. 딥러닝에서 가장 많이 쓰이는 최적화 알고리즘인데요, 각 파라미터의 gradient 와 적응적 학습률로 효율적으로 update 합니다. lr=0.01, 50 iterations 로 frame 당 약 13 ms 가 걸립니다.\n\n"
+        "*Adaptive N* 은 성분 수를 동적으로 조정하는 기능입니다. 실제 파도의 성분 수를 미리 알 수 없기 때문에 — BF2 의 단순 파도는 2-3 개, BF5 의 복잡한 파도는 15-30 개 — 고정하면 underfit 또는 overfit 이 됩니다. 세 가지 메커니즘으로 작동합니다.\n\n"
+        "첫째 pruning — 진폭이 너무 작은 성분은 제거합니다. 둘째 growth — 잔여 오차가 크면 새 성분을 추가합니다. 셋째 safety rollback — 새 성분 추가 후 RMSE 가 30% 이상 증가하면 즉시 이전 상태로 복구합니다. Rollback 이 중요한 이유는 잘못된 성분 추가가 cascade failure 로 이어지는 걸 방지하기 때문입니다."
     ))
 
 
@@ -1143,27 +958,11 @@ def build_s13d_visualization():
              font_size=10, italic=True, color=GRAY)
     add_page_number(s, 14)
     add_notes(s, (
-        "WaveSplat 추정 결과를 한 episode 의 한 시점에서 시각적으로 보여줍니다. "
-        "사용자 정정: 이 figure 는 ETKF 가 아니라 *Error* (잔여 오차) panel 임.\n\n"
-        "(1) 그림 구성:\n"
-        "  - 좌 (Ground Truth): 50×50 격자 위 실제 파도 표면 η(x,y,t). WaveSim 이 만든 합성 데이터의 참값.\n"
-        "  - 중 (WaveSplat): 추정된 N 개 sin 파 성분의 합으로 재구성한 파도. 격자 위에서 evaluate 한 값.\n"
-        "  - 우 (Error = GT − WaveSplat): 같은 색 스케일 (vmin/vmax) 로 표시한 잔여 오차. 이상적으로 모든 셀이 white (오차 0).\n\n"
-        "(2) 관찰 포인트:\n"
-        "  - 좌-중: GT 와 WaveSplat 의 파도 패턴이 거의 일치 — 위치, 방향, 진폭 모두 잘 재구성.\n"
-        "  - 우 (Error): 대부분 white → 추정 잔여 오차가 작음. 일부 영역 (격자 가장자리 또는 복잡한 wave 만나는 곳) 에서 약간의 오차.\n"
-        "  - 단일 case 시각화 — 정량 비교는 다음 슬라이드 (S14) 의 12 episode 평균.\n\n"
-        "(3) 사용된 figure:\n"
-        "  - paper/figures/demo_wavesplat_static.png — 한 case 의 static 버전 (현재 PPT 삽입).\n"
-        "  - paper/figures/demo_wavesplat.gif — animation 버전 (1481×404, 30 s 시간 진행).\n"
-        "  - paper/figures/fig8_qualitative.pdf — 여러 sea state × N 조합의 GT/WaveSplat/ETKF 비교 (Appendix C 에 발췌).\n\n"
-        "(4) 추가 case 들:\n"
-        "  - 사용자 요청: 다른 sea state / N_components 조합의 대표 case 들도 보여달라 → Appendix C 에 추가.\n"
-        "  - Appendix C 에는 BF3/BF4/BF5 의 단순 (2 comp) ~ 복잡 (30 comp) 까지 다양한 case.\n\n"
-        "(5) 발표 tip:\n"
-        "  - 이 슬라이드에서 잠깐 멈추고 청자가 GT 와 WaveSplat 의 파도 패턴을 직접 비교하게 함.\n"
-        "  - '눈으로 봐도 거의 같음, Error panel 이 거의 white' 이 WaveSplat 효과의 직관적 evidence.\n"
-        "  - 다음 슬라이드 (S14) 의 정량 비교 (nRMSE 0.211 vs 0.253) 가 이 시각적 인상을 뒷받침."
+        "이번 슬라이드는 WaveSplat 의 실제 추정 결과를 시각적으로 보여드립니다. 단순 case (BF3 N=2) 의 한 시점입니다.\n\n"
+        "그림은 위 row 가 2D heatmap, 아래 row 가 3D surface 입니다. 좌측은 ground truth — 실제 파도의 참값이고, 중앙은 WaveSplat 추정 결과, 우측이 Error (GT − WaveSplat) 잔여 오차입니다.\n\n"
+        "여기서 보시면 GT 와 WaveSplat 의 파도 패턴이 거의 일치합니다. 위치, 방향, 진폭 모두 잘 재구성됐고요, Error panel 이 거의 white 입니다. 즉 잔여 오차가 매우 작다는 뜻이죠. 단순 wave (N=2) 에서 nRMSE 약 0.05 수준입니다.\n\n"
+        "다양한 case 의 비교는 Appendix C 에 추가했습니다 — BF3 N=2, BF3 N=5, BF4 N=5 의 GT vs WaveSplat 비교를 모았습니다. Animation 버전은 paper/figures/demo_wavesplat.gif 에서 PowerPoint 에 GIF 로 교체 가능합니다.\n\n"
+        "이 슬라이드에서 잠깐 멈추고 청자가 직접 비교하게 하면 효과적입니다. *눈으로 봐도 거의 같다* 는 게 가장 직관적인 evidence 거든요. 다음 슬라이드의 정량 비교 (nRMSE 0.211 vs 0.253) 가 이 시각적 인상을 뒷받침합니다."
     ))
 
 
@@ -1206,34 +1005,10 @@ def build_s14():
              font_size=9, italic=True, color=RGBColor(0x99, 0x99, 0x99))
     add_page_number(s, 14)
     add_notes(s, (
-        "이 슬라이드가 핵심 결과입니다.\n\n"
-        "먼저 비교 방법을 설명드리겠습니다:\n\n"
-        "① WaveSplat (우리 방법):\n"
-        "  파도를 '파수, 주파수, 진폭, 위상'이라는 물리적 파라미터로 직접 표현합니다.\n"
-        "  격자를 쓰지 않고, 파라미터 자체를 최적화하는 방식입니다.\n\n"
-        "② Wang2025 (비교 대상):\n"
-        "  2025년에 출판된 Wang의 논문(Coastal Engineering 197)을 충실히 재현한 것입니다.\n"
-        "  300개의 시뮬레이션을 동시에 돌리고(앙상블), 80x60 격자 위에서 추정합니다.\n"
-        "  fuzzy R이라는 기법으로 관측 노이즈를 자동 적응시키고,\n"
-        "  Delaunay 보간으로 불규칙한 LiDAR 점을 처리합니다.\n"
-        "  우리가 임의로 만든 baseline이 아니라, 출판된 논문의 충실한 재현입니다.\n\n"
-        "공정성 보장:\n"
-        "  물리 모델을 동일하게 맞췄습니다. Wang2025 원논문은 HOS(비선형)를 쓰지만,\n"
-        "  WaveSplat도 linear이므로, 공정한 비교를 위해 둘 다 linear dispersion을 적용했습니다.\n"
-        "  만약 Wang2025에만 HOS를 쓰면, 물리 모델 차이와 알고리즘 차이가 섞여서\n"
-        "  순수한 알고리즘 비교가 어렵습니다.\n\n"
-        "결과 해석:\n"
-        "  WaveSplat이 평균 nRMSE 0.211로 더 정확하고, 13ms로 47배 빠릅니다.\n\n"
-        "에피소드별 패턴 (매우 중요합니다):\n"
-        "  - 단순한 파도 (1~5개 성분): WaveSplat이 크게 우수합니다.\n"
-        "    예) BF3_2comp: WaveSplat 0.052 vs Wang2025 0.250\n"
-        "    2개 성분만 있으면 거의 완벽하게 추정한다는 뜻입니다.\n"
-        "    격자 방법은 해상도 한계 때문에 이 정확도에 도달할 수 없습니다.\n\n"
-        "  - 복잡한 파도 (15~30개 성분): 역전이 일어납니다.\n"
-        "    BF4_15comp: WaveSplat 0.302 vs Wang2025 0.249\n"
-        "    이유: 격자 방법은 모든 성분을 격자에 한꺼번에 담을 수 있지만,\n"
-        "    WaveSplat은 성분을 하나하나 찾아야 해서 30개는 초기화가 어렵습니다.\n"
-        "    이 한계는 나중에 정직하게 다시 다룹니다."
+        "이번 슬라이드가 *핵심 비교 결과* 입니다.\n\n"
+        "먼저 비교 방법을 설명드리겠습니다. WaveSplat 은 우리 방법으로, 파도를 파수·주파수·진폭·위상이라는 물리적 파라미터로 직접 표현하는 방식입니다. 격자를 쓰지 않고 파라미터 자체를 최적화합니다. Wang2025 는 비교 대상으로, 2025 년에 출판된 Wang 의 논문 (Coastal Engineering 197) 을 충실히 재현한 것입니다 — 300 개 시뮬레이션 (앙상블), 80x60 격자, fuzzy R 노이즈 자동 적응, Delaunay 보간 모두 포함했습니다. *우리가 임의로 만든 baseline 이 아니라 출판된 논문의 충실한 재현* 임을 강조드립니다.\n\n"
+        "공정성을 위해 물리 모델을 동일하게 맞췄습니다. Wang2025 원논문은 비선형 HOS 를 쓰지만, 우리 WaveSplat 도 linear 이기 때문에 공정 비교 위해 둘 다 linear dispersion 을 적용했습니다. 만약 Wang2025 에만 HOS 를 쓰면 물리 모델 차이와 알고리즘 차이가 섞여서 순수한 알고리즘 비교가 어렵기 때문입니다.\n\n"
+        "결과를 보시면 WaveSplat 이 평균 nRMSE 0.211 로 더 정확하고, 13 ms 로 47 배 빠릅니다. 다만 에피소드별 패턴이 매우 중요한데요 — *단순한 파도 (1-5 성분) 에서는 WaveSplat 이 크게 우수합니다*. BF3 2-comp 에서 WaveSplat 0.052 vs Wang2025 0.250 — 거의 완벽한 추정이죠. 반면 *복잡한 파도 (15-30 성분) 에서는 역전이 일어납니다*. BF4 15-comp 에서 WaveSplat 0.302 vs Wang2025 0.249. 이 한계는 뒤에서 정직하게 다시 다루겠습니다."
     ))
 
 
@@ -1257,30 +1032,12 @@ def build_s13_scatter():
     add_page_number(s, 15)
     add_notes(s, (
         "이 그래프가 우리 연구의 핵심 통찰을 보여줍니다.\n\n"
-        "그래프 읽는 법을 먼저 설명드리겠습니다:\n"
-        "  - 가로축: 파도 성분의 수. 바다에는 여러 파도가 동시에 존재합니다.\n"
-        "    1~2개 성분이면 아주 단순한 파도(한두 방향에서 오는 큰 파도),\n"
-        "    15~30개면 매우 복잡한 파도(다양한 방향과 주기의 파도가 뒤섞인 상태)입니다.\n"
-        "  - 세로축: nRMSE(오차). 낮을수록 정확합니다.\n"
-        "  - 파란 동그라미: WaveSplat (우리 방법)\n"
-        "  - 빨간 네모: Wang2025\n\n"
-        "핵심 패턴 1 — WaveSplat의 강점:\n"
-        "  파란 점이 왼쪽(단순한 파도)에서 매우 낮습니다.\n"
-        "  BF3_2comp에서 0.052 = 오차가 5%밖에 안 됩니다.\n"
-        "  왜 가능한가? 2개 성분이면 파라미터 10개만 추정하면 되고,\n"
-        "  50개 관측점이면 충분히 잘 맞출 수 있기 때문입니다.\n"
-        "  격자 방법은 성분이 적어도 격자 해상도 한계가 있어서 이 정확도에 도달하기 어렵습니다.\n\n"
-        "핵심 패턴 2 — Wang2025의 특성:\n"
-        "  빨간 점이 복잡도에 관계없이 약 0.25 주변에 모여 있습니다.\n"
-        "  이것은 격자(NxN grid)의 해상도 한계 때문입니다.\n"
-        "  격자가 고정되어 있어서, 성분이 적든 많든 비슷한 정확도를 보여줍니다.\n\n"
-        "핵심 패턴 3 — 역전 지점:\n"
-        "  15개 이상의 성분에서는 파란 점이 빨간 점보다 위로 갑니다.\n"
-        "  WaveSplat은 성분을 하나하나 찾아야 하는데, 30개를 정확히 초기화하기가 어렵습니다.\n"
-        "  반면 격자 방법은 모든 성분을 격자에 한꺼번에 담을 수 있어서 이런 문제가 없습니다.\n\n"
-        "정리: WaveSplat은 '소수 성분을 정밀하게 추정'하는 데 특화되어 있고,\n"
-        "격자 방법은 '다수 성분을 균일하게 추정'하는 데 강합니다.\n"
-        "이 trade-off를 논문에서 정직하게 보고할 예정입니다."
+        "먼저 그래프 읽는 법부터 설명드리면 — 가로축은 파도 성분의 수입니다. 1-2 개면 아주 단순한 파도, 15-30 개면 매우 복잡한 파도죠. 세로축은 nRMSE 오차이고 낮을수록 정확합니다. 파란 동그라미가 WaveSplat 우리 방법, 빨간 네모가 Wang2025 입니다.\n\n"
+        "여기서 세 가지 패턴을 봐주시면 됩니다.\n\n"
+        "첫 번째 — *WaveSplat 의 강점은 단순 파도에서* 입니다. 파란 점이 왼쪽 (단순 파도) 에서 매우 낮습니다. BF3 2-comp 에서 0.052 — 오차가 5% 밖에 안 됩니다. 왜 가능하냐면, 2 개 성분이면 파라미터 10 개만 추정하면 되고 50 개 관측점이면 충분히 잘 맞출 수 있기 때문입니다. 격자 방법은 성분이 적어도 격자 해상도 한계가 있어서 이 정확도에 못 도달합니다.\n\n"
+        "두 번째 — *Wang2025 의 특성* 입니다. 빨간 점이 복잡도에 관계없이 약 0.25 주변에 모여 있습니다. 이게 바로 격자 해상도의 한계예요. 격자가 고정되어 있어서 성분이 적든 많든 비슷한 정확도를 보여주는 거죠.\n\n"
+        "세 번째 — *역전 지점* 입니다. 15 개 이상의 성분에서는 파란 점이 빨간 점보다 위로 갑니다. WaveSplat 은 성분을 하나하나 찾아야 하는데 30 개를 정확히 초기화하기가 어렵기 때문이고요, 격자 방법은 모든 성분을 한꺼번에 담을 수 있어서 이런 문제가 없습니다.\n\n"
+        "정리하면 *WaveSplat 은 소수 성분을 정밀하게 추정하는 데 특화* 되어 있고, *격자 방법은 다수 성분을 균일하게 추정하는 데 강합니다*. 이 trade-off 는 논문에서 정직하게 보고할 예정입니다."
     ))
 
 
@@ -1402,27 +1159,10 @@ def build_s17():
                              placeholder_text='[2-stage beamforming]')
     add_page_number(s, 18)
     add_notes(s, (
-        "이 슬라이드는 '왜 2단계 설계가 자연스러운가'를 설명합니다.\n\n"
-        "핵심 관찰을 쉽게 설명하겠습니다:\n\n"
-        "  파수(k)란 '파도의 공간적 패턴'입니다.\n"
-        "  한 순간의 LiDAR 스캔(50개 점)만으로는 이 패턴을 정확히 파악하기 어렵습니다.\n"
-        "  왜냐하면 50개 점이 커버하는 영역(5~8m)이 파도 파장(50~300m)보다 훨씬 짧기 때문입니다.\n"
-        "  하지만 선박이 이동하면서 여러 순간의 데이터를 모으면,\n"
-        "  관측 영역이 효과적으로 넓어져서 파수를 정확히 추정할 수 있습니다.\n\n"
-        "  반면 진폭(A)이나 위상(φ)은 한 순간의 데이터로도 충분합니다.\n"
-        "  파도의 '크기'와 '현재 위치'는 한 순간만 봐도 알 수 있기 때문입니다.\n\n"
-        "그래서 자연스럽게 2단계로 나뉩니다:\n"
-        "  (1) 초기화(Init): 여러 프레임을 모아서 파수 k를 정확히 결정합니다.\n"
-        "      이 단계는 한 번만 하면 되고, 1초 이내에 끝납니다.\n"
-        "  (2) 추적(Track): 파수를 고정하고, 매 프레임마다 진폭·위상만 업데이트합니다.\n"
-        "      이 단계는 13ms 이내에 끝나서 실시간으로 작동합니다.\n\n"
-        "비유하면: 라디오 주파수 맞추기와 비슷합니다.\n"
-        "  - 처음에 주파수(채널)를 찾는 건 시간이 좀 걸리지만 (= Init)\n"
-        "  - 일단 찾으면 볼륨만 조절하면 됩니다 (= Track)\n\n"
-        "Adaptive N은 '파도 성분의 수를 자동으로 조정'하는 기능입니다:\n"
-        "  - 너무 작은 성분은 제거 (pruning)\n"
-        "  - 오차가 크면 새 성분 추가 (growth)\n"
-        "  - 추가했더니 오히려 나빠지면 원래 상태로 복원 (safety rollback)"
+        "이번 슬라이드는 *왜 2 단계 설계가 자연스러운가* 를 설명드립니다.\n\n"
+        "핵심 관찰부터 말씀드리면 — 파수 k 는 파도의 *공간적 패턴* 인데요, 한 순간의 LiDAR 스캔 50 개 점만으로는 이 패턴을 정확히 파악하기 어렵습니다. 50 개 점이 커버하는 영역이 5 에서 8 m 정도인데 파도 파장은 50 에서 300 m 라서 너무 짧기 때문이죠. 하지만 선박이 이동하면서 여러 순간의 데이터를 모으면 관측 영역이 효과적으로 넓어져서 파수를 정확히 추정할 수 있습니다. 반면 진폭 A 와 위상 φ 는 한 순간의 데이터로도 충분합니다 — *크기* 와 *현재 위치* 는 한 순간만 봐도 알 수 있기 때문입니다.\n\n"
+        "그래서 자연스럽게 2 단계로 나뉘는 거죠. *Init 단계* 는 여러 프레임을 모아서 파수 k 를 정확히 결정합니다. 한 번만 하면 되고 1 초 이내에 끝납니다. *Track 단계* 는 파수를 고정하고 매 프레임마다 진폭·위상만 업데이트합니다. 13 ms 이내라 실시간 작동 가능하고요.\n\n"
+        "*Adaptive N* 은 파도 성분의 수를 자동으로 조정하는 기능입니다. 너무 작은 성분은 제거 (pruning), 오차가 크면 새 성분 추가 (growth), 추가했더니 오히려 나빠지면 원래 상태로 복원 (safety rollback) 하는 세 가지 메커니즘입니다."
     ))
 
 
@@ -1453,32 +1193,10 @@ def build_s18():
                 line_space_after=3)
     add_page_number(s, 19)
     add_notes(s, (
-        "한계를 정직하게 공유하는 시간입니다.\n"
-        "연구의 신뢰도를 높이려면, 잘 되는 점뿐 아니라 한계도 먼저 인정해야 합니다.\n\n"
-        "(1) 선형 근사 — 가장 근본적인 한계입니다.\n"
-        "  쉽게 말하면, 우리는 파도를 '사인파의 합'으로 표현합니다.\n"
-        "  실제 바다 파도는 사인파보다 복잡합니다.\n"
-        "  (꼭대기가 뾰족하고, 골이 넓고, 높은 파도일수록 비대칭적입니다.)\n"
-        "  하지만 적당한 파고까지는 이 근사가 충분히 잘 맞습니다.\n\n"
-        "  Klein 2020이라는 논문에서 4가지 파도 모델을 정량 비교했는데:\n"
-        "    HOSM > NLSE2 > NLSE > LWT (정확도 순)\n"
-        "  우리는 LWT(Linear Wave Theory) family로 가장 단순합니다.\n"
-        "  ε(epsilon, 파도의 가파름 정도)이 0.07 이하일 때 신뢰할 수 있고,\n"
-        "  BF6(풍력 6, 상당히 거친 바다)까지는 이 조건을 만족합니다.\n"
-        "  향후 Stokes 2차 보정을 추가하면 적용 범위를 더 넓힐 수 있습니다.\n\n"
-        "(2) 복잡한 파도에서의 역전 — 이번 비교 실험에서 발견된 한계입니다.\n"
-        "  파도 성분이 15~30개로 많아지면, 격자 방법(Wang2025)이 더 나아집니다.\n"
-        "  이유를 쉽게 설명하면:\n"
-        "    격자 방법: 바둑판처럼 모든 성분을 한꺼번에 담을 수 있습니다.\n"
-        "    WaveSplat: 성분을 하나하나 찾아야 합니다. 30개를 정확히 찾기는 어렵습니다.\n"
-        "  대응: 격자로 대략적인 성분을 먼저 찾고, 그걸 파라미터 초기값으로 정밀화하는\n"
-        "  '2단계 초기화(hybrid init)'를 연구할 예정입니다.\n\n"
-        "(3) 파도 파쇄와 유속장 — 우리 방법의 적용 범위 밖입니다.\n"
-        "  파도가 깨지는 현상(breaking)이나 수중 유속(velocity field)은\n"
-        "  비선형 시뮬레이션(VOF-EnKF, PFT-PINN) 같은 방법만 처리할 수 있습니다.\n"
-        "  하지만 이들은 30분~수시간이 걸려서 실시간 제어에는 쓸 수 없습니다.\n"
-        "  결론: 우리 방법과 비선형 방법은 서로 다른 응용 영역을 담당합니다.\n"
-        "  (우리 = 실시간 제어, 그들 = 정밀 분석)"
+        "이번 슬라이드는 한계를 정직하게 공유하는 시간입니다. 연구의 신뢰도를 높이려면 잘 되는 점뿐 아니라 한계도 먼저 인정해야 합니다. 세 가지 한계를 말씀드립니다.\n\n"
+        "첫 번째는 *선형 근사 (Linear Wave Theory)* 의 한계입니다. 우리는 파도를 사인파의 합으로 표현하는데, 실제 파도는 꼭대기가 뾰족하고 골이 넓어서 사인파와 다릅니다. Klein 2020 논문에서 wave model 들을 정량 비교했는데 HOSM > NLSE2 > NLSE > LWT 순으로 정확도가 정리됐고, 우리 LWT family 는 가장 단순합니다. ε (가파름) 이 0.07 이하일 때 신뢰할 수 있고 BF6 까지는 이 조건을 만족합니다. 향후 Stokes 2 차 보정을 추가하면 적용 범위를 더 넓힐 수 있습니다.\n\n"
+        "두 번째는 *복잡한 파도에서의 역전* 입니다. 이번 비교 실험에서 발견된 한계인데요, 파도 성분이 15-30 개로 많아지면 격자 방법인 Wang2025 가 더 나아집니다. 예를 들어 BF4 N=15 case 에서는 WaveSplat 0.302, Wang2025 0.249 입니다. 이유는 — 격자 방법은 모든 성분을 한꺼번에 담을 수 있지만 WaveSplat 은 성분을 하나하나 찾아야 해서 30 개를 정확히 찾기는 어렵습니다. 대응은 hybrid init — 격자로 대략 찾고 파라미터로 정밀화하는 2 단계 초기화를 연구할 예정입니다.\n\n"
+        "세 번째는 *파도 파쇄와 유속장 추정 미지원* 입니다. 이런 현상은 비선형 시뮬레이션 (VOF-EnKF, PFT-PINN) 만 처리할 수 있는데, 이들은 30 분에서 수시간 걸려 실시간 제어에는 쓸 수 없습니다. 결국 응용 영역이 다른 거죠 — 우리는 실시간 제어, 그들은 정밀 분석입니다."
     ))
 
 
@@ -1611,18 +1329,10 @@ def build_backups():
     add_text(s, 12.5, 7.05, 0.7, 0.35,
              "A", font_size=10, color=GRAY, alignment=PP_ALIGN.RIGHT)
     add_notes(s, (
-        "Appendix A — 정독한 13 편의 prior art 와 algorithmic foundation 을 한 표로 정리.\n\n"
-        "Wave estimation prior art 11 편:\n"
-        "  - Desmars family (2018, 2020, 2023): LIDAR/optical + variational + HOS-OCM 의 발전.\n"
-        "  - Wang-Pan / Wang family (2021, 2022, 2025): EnKF-HOS 의 발전. Wang 2025 가 우리 baseline.\n"
-        "  - Klein 2020: wave model 정량 비교. 우리 LWT operational range 정당화.\n"
-        "  - Ehlers 2023, 2025: ML supervised (FNO) 와 unsupervised (PFT-PINN). 같은 그룹의 진화.\n"
-        "  - Yan 2025: 가장 정확한 wave breaking 처리 (offline only).\n\n"
-        "Algorithmic foundation 2 편:\n"
-        "  - Tang-Bhaskar-Recht 2013: off-grid CS 이론. 우리 parametric 접근의 영감.\n"
-        "  - Möller-Trumbore 1997: ray-triangle intersection. WaveSim ray tracing 의 표준.\n\n"
-        "Hunt 2007 LETKF 도 algorithmic foundation 으로 EnKF 변형 의 출발.\n\n"
-        "각 paper 의 detail 은 본문 슬라이드 (S5-S9, top 5 detail) + docs/strategic_repositioning.md (§17-§31) 참조."
+        "Appendix A 는 정독한 13 편의 선행 연구를 한 표로 정리한 것입니다. Q&A 시 청자가 특정 논문을 물어보면 이 표를 참조하시면 됩니다.\n\n"
+        "Wave estimation 선행 연구 11 편을 그룹으로 정리해드리면 — Desmars family (2018, 2020, 2023) 는 LIDAR 와 optical 센서 + variational + HOS-OCM 의 발전 흐름이고, Wang-Pan / Wang family (2021, 2022, 2025) 는 EnKF-HOS 의 발전입니다 (Wang 2025 가 우리 baseline). Klein 2020 은 wave model 정량 비교로 우리 LWT operational range 를 정당화해주고, Ehlers 2023 과 2025 는 같은 그룹의 ML supervised (FNO) 와 unsupervised (PFT-PINN) 진화 사례입니다. Yan 2025 는 가장 정확한 wave breaking 처리 (offline) 입니다.\n\n"
+        "Algorithmic foundation 으로 두 편이 더 있습니다 — Tang-Bhaskar-Recht 2013 의 off-grid CS 이론은 우리 parametric 접근의 영감이고, Möller-Trumbore 1997 의 ray-triangle intersection 은 WaveSim ray tracing 의 표준입니다. Hunt 2007 LETKF 도 EnKF 변형들의 출발점입니다.\n\n"
+        "각 paper 의 detail 은 본문 슬라이드 (S5-S9, top 5) 또는 docs/strategic_repositioning.md (§17-§31) 를 참조하시면 됩니다."
     ))
 
     # ───────── Appendix B: 110 episode dataset 표 ─────────
@@ -1674,21 +1384,11 @@ def build_backups():
     add_text(s, 12.5, 7.05, 0.7, 0.35,
              "B", font_size=10, color=GRAY, alignment=PP_ALIGN.RIGHT)
     add_notes(s, (
-        "Appendix B — WaveSim 의 110 episode 합성 dataset 구성을 한 눈에 정리한 표.\n\n"
-        "Sea state 별 episode 수:\n"
-        "  - BF2-BF5: 각 sea state × 다양한 N_components × seed 0-4 (5 개씩) = 통계 평가 가능.\n"
-        "  - BF6-BF7: 극한 sea state. Seed 0 (1 개) 만 — operational range 한계 확인용.\n"
-        "  - Calibration: raydrop η scale 등 sensor 모델 calibration 용 별도 episode.\n\n"
-        "Per-episode 데이터:\n"
-        "  - 30 초 시뮬레이션, 0.1 초 간격 → frame 300 개.\n"
-        "  - Ground-truth η field 50×50 격자 — 평가 시 참값.\n"
-        "  - LiDAR scan: raydrop / shadowing / Fresnel 적용 후 frame 당 ~50 valid 점.\n"
-        "  - HDF5 format. 총 5 GB.\n\n"
-        "Reproducibility 보장:\n"
-        "  - Seed 저장. Wave generator (Gerstner+JONSWAP) 와 LiDAR raydrop 모두 deterministic.\n"
-        "  - 53 + 55 = 108 unit test — simulator 와 estimator 모두 검증.\n"
-        "  - Generator script (scripts/generate_episodes.py) 로 누구나 재현 가능.\n\n"
-        "이 dataset 자체가 paper 의 contribution 일부 — Ehlers 2023 의 1D radar dataset 보다 풍부한 setup (2D directional + LiDAR sensor + 다양한 sea state)."
+        "Appendix B 는 WaveSim 의 110 episode 합성 dataset 구성을 한 눈에 정리한 표입니다. Q&A 시 dataset 관련 질문 받으면 참조하시면 됩니다.\n\n"
+        "Sea state 별로 episode 수를 정리하면 — BF2 부터 BF5 까지는 각 sea state × 다양한 N_components × seed 0-4 (5 개씩) 으로 총 70 개 정도 episode 가 있어서 통계 평가가 가능합니다. BF6-BF7 은 극한 sea state 라 seed 0 한 개씩만 — operational range 한계 확인용이고요. Calibration 은 raydrop η scale 같은 sensor 모델 calibration 용으로 별도 episode 입니다.\n\n"
+        "Per-episode 데이터는 30 초 시뮬레이션, 0.1 초 간격으로 frame 300 개입니다. Ground-truth η field 50×50 격자가 평가 시 참값이고, LiDAR scan 은 raydrop / shadowing / Fresnel 적용 후 frame 당 50 점 정도 valid 합니다. HDF5 format 으로 총 5 GB.\n\n"
+        "Reproducibility 는 보장됩니다. Seed 저장, Wave generator (Gerstner+JONSWAP) 와 LiDAR raydrop 모두 deterministic, 그리고 53 + 55 = 108 unit test 가 simulator 와 estimator 모두 검증합니다.\n\n"
+        "이 dataset 자체가 paper 의 contribution 일부입니다 — Ehlers 2023 의 1D radar dataset 보다 풍부한 setup (2D directional + LiDAR sensor + 다양한 sea state) 이거든요."
     ))
 
     # ───────── Appendix C: 대표 case 모음 (GT vs WaveSplat) ─────────
@@ -1707,22 +1407,75 @@ def build_backups():
     add_text(s, 12.5, 7.05, 0.7, 0.35,
              "C", font_size=10, color=GRAY, alignment=PP_ALIGN.RIGHT)
     add_notes(s, (
-        "Appendix C — 사용자 요청에 따라 다양한 sea state / N_components 조합의 대표 case 모음.\n\n"
-        "(1) Figure 구성 (paper/figures/fig8_qualitative.pdf 기반):\n"
-        "  - 행 마다 하나의 episode (예: BF3 2-comp uniform, BF4 15-comp uniform, BF5 30-comp uniform).\n"
-        "  - 열 마다 GT / WaveSplat reconstruction / ETKF reconstruction / GPR reconstruction.\n"
-        "  - 각 panel 의 nRMSE annotation 포함 — 정량 비교 가능.\n"
-        "  - 색상: blue (음의 변위) → white (수면) → red (양의 변위).\n\n"
-        "(2) 관찰 패턴:\n"
-        "  - 단순 wave (BF3 2-comp): WaveSplat 압도적 — nRMSE 0.05 수준. GT 와 거의 구별 안 됨.\n"
-        "  - 중간 (BF4 15-comp): 모든 method 가 main wave 패턴은 잘 잡지만 미세 wave 에서 차이.\n"
-        "  - 복잡 (BF5 30-comp): WaveSplat 도 N_components 추정에 어려움, ETKF 도 비슷한 어려움.\n\n"
-        "(3) Q&A 시 활용:\n"
-        "  - 청자가 'WaveSplat 이 모든 sea state 에서 우위인가?' 묻으면 → 이 figure 보여주며 'BF3 단순 wave 는 압도적, BF5 복잡 wave 는 비슷' 정직 disclosure.\n"
-        "  - 'WaveSplat 이 정말 격자 외 영역도 잘 표현하나?' → 격자 가장자리 영역의 wave 패턴이 자연스럽게 이어지는 것을 시각적으로 보여줌.\n\n"
-        "(4) 추가 figure 생성 옵션:\n"
-        "  - 새 case 들 (예: BF6 30-comp, slope sensor, bimodal directional) 이 필요하면 scripts/generate_qualitative_figure.py 수정 후 재생성.\n"
-        "  - 발표 시간이 부족하면 이 슬라이드는 skip 가능 (Appendix 라 Q&A 시만 참조)."
+        "Appendix C 는 다양한 단순 case 의 GT 와 WaveSplat 비교 모음입니다. 사용자 요청에 따라 옛날 ETKF/GPR 비교 figure 대신 GT/WaveSplat 만으로 새로 생성한 것이고, 각 case 마다 2D heatmap 과 3D surface 둘 다 보여드립니다.\n\n"
+        "Figure 구성을 보시면 — 각 행이 하나의 episode 입니다 (BF3 N=2, BF3 N=5, BF4 N=5). 열은 GT 의 2D, WaveSplat 의 2D, Error 의 2D, GT 의 3D, WaveSplat 의 3D 순서고요. 색상은 blue 가 음의 변위 (trough), white 가 수면, red 가 양의 변위 (crest) 입니다.\n\n"
+        "관찰 패턴을 정리하면 단순 wave (BF3 N=2) 에서는 WaveSplat 이 nRMSE 0.05 수준으로 GT 와 거의 구별 안 됩니다. N=5 까지도 잘 따라가고요. 모든 case 에서 Error panel 이 거의 white 입니다.\n\n"
+        "Q&A 활용 팁 — 청자가 'WaveSplat 이 모든 sea state 에서 우위인가?' 물으면 이 figure 와 함께 *단순 wave 는 압도적, 복잡 wave 는 trade-off 있음* 으로 정직 disclosure 하시면 됩니다. 추가 case 가 필요하면 scripts/generate_simple_qualitative_figure.py 수정 후 재생성하면 되고요.\n\n"
+        "(추가 옵션) Wang 2025 와의 직접 비교 figure 도 별도 생성 예정입니다."
+    ))
+
+
+
+# ─────────────────────────────────────────
+# Control slides (NEW) — hydrofoil PD vs PD+FF
+# ─────────────────────────────────────────
+def build_s_control_intro():
+    s = add_blank(WHITE)
+    add_section_tag(s, "Part 5 · 응용 — hydrofoil 제어 (테스트 적용)", color=GOLD)
+    add_title(s, "Application — hydrofoil ride control 에 시험 적용")
+    add_subtitle(s, "WaveSplat 추정 결과를 feed-forward 신호로 활용 — preliminary test")
+    bullets = [
+        "**왜 hydrofoil 제어인가**:",
+        "  Hydrofoil 은 파도를 만나면 lift 가 변동 → vessel heave/pitch 가 흔들림 → 승차감 저하",
+        "  Pre-view (앞쪽 파도 정보) 가 있으면 fin angle 을 미리 조절해 disturbance 상쇄 가능",
+        "  → WaveSplat 의 실시간 phase-resolved 추정이 정확히 이 preview 를 제공",
+        "",
+        "**제어 구조**:",
+        "  기존: PD controller (현재 heave error 만 보고 fin angle 조절) — feedback only",
+        "  제안: PD + Feed-Forward (FF) — 미래 wave disturbance 를 미리 예측해서 fin angle 보상",
+        "  WaveSplat 추정 → wave-induced lift 예측 → fin angle 보정값 (FF term)",
+        "  최종 fin angle = PD(heave error) + FF(predicted wave disturbance)",
+        "",
+        "**테스트 setup**:",
+        "  WaveSim 합성 파도 + hydrofoil dynamics simulator (hydrofoil/ 모듈)",
+        "  3 m/s wave preview window (0.3 s lookahead at V=11.3 m/s)",
+        "  같은 파도 시퀀스에 PD-only vs PD+FF 비교",
+        "",
+        "**현재 단계**: *preliminary test* — 응용 가능성 확인 정도",
+        "  체계적 controller tuning 과 robustness 평가는 후속 연구 (paper 2 또는 학위논문)",
+    ]
+    add_bullets(s, 0.5, 1.85, 12.5, 5.4, bullets, font_size=11,
+                line_space_after=2)
+    add_page_number(s, 19)
+    add_notes(s, (
+        "이번 슬라이드는 WaveSplat 의 응용 사례 — hydrofoil 제어에 시험 적용해본 결과를 보여드립니다. "
+        "현재는 preliminary test 단계로, 응용 가능성을 확인하는 정도입니다.\n\n"
+        "왜 hydrofoil 제어가 좋은 응용인지부터 설명드리면 — hydrofoil 은 수중 날개로 lift 를 만들어 vessel 을 들어올리는 구조인데요, 파도를 만나면 그 lift 가 변동해서 vessel 이 heave 와 pitch 로 흔들립니다. 승차감이 저하되는 거죠. 만약 *앞쪽 파도 정보* (preview) 가 있으면 fin angle 을 미리 조절해서 disturbance 를 상쇄할 수 있습니다. WaveSplat 의 실시간 phase-resolved 추정이 정확히 이 preview 를 제공해줍니다.\n\n"
+        "제어 구조를 정리하면 — 기존 PD controller 는 현재 heave error 만 보고 fin angle 을 조절하는 feedback only 방식입니다. 제안하는 PD + Feed-Forward 는 미래 wave disturbance 를 WaveSplat 으로 예측해서 fin angle 에 보상값을 미리 더하는 방식이죠. 최종 fin angle = PD(heave error) + FF(predicted wave disturbance) 입니다.\n\n"
+        "테스트 setup 은 WaveSim 합성 파도와 hydrofoil dynamics simulator 를 결합해서, 같은 파도 시퀀스에 PD-only 와 PD+FF 두 controller 를 비교한 것입니다. Preview window 는 0.3 초 (V=11.3 m/s 에서 약 3 m 앞).\n\n"
+        "강조드리고 싶은 건 — 현재는 *preliminary test* 단계라는 점입니다. 체계적인 controller tuning 과 robustness 평가는 후속 연구로 두었고요, 이번 lab meeting 에서는 'WaveSplat 정보가 제어에 실제로 도움이 되는가' 를 확인하는 정도입니다.\n\n"
+        "다음 슬라이드에서 정량 비교 결과를 보여드립니다."
+    ))
+
+
+def build_s_control_results():
+    s = add_blank(WHITE)
+    add_section_tag(s, "Part 5 · 응용 — PD vs PD+FF 비교 결과", color=GOLD)
+    add_title(s, "PD vs PD+FF — heave acceleration 감소 확인")
+    add_subtitle(s, "같은 파도 시퀀스에 두 controller 비교 — heave aRMS 가 명확히 감소")
+    fig_anim = os.path.join(DOC_DIR, 'hydrofoil_wave_animation.gif')
+    add_image_or_placeholder(s, fig_anim, 0.4, 1.7, 12.5,
+                             placeholder_text='[hydrofoil animation: PD vs PD+FF, heave accel 비교]')
+    add_text(s, 0.5, 6.95, 12.3, 0.45,
+             "📂 docs/hydrofoil_wave_animation.gif (PowerPoint 에서 GIF 자동 재생). 위: 파도 + vessel, 아래: heave accel time series — PD-only vs PD+FF 직접 비교.",
+             font_size=10, italic=True, color=GRAY)
+    add_page_number(s, 20)
+    add_notes(s, (
+        "이번 슬라이드가 PD vs PD+FF 비교 결과입니다.\n\n"
+        "그림은 두 부분으로 구성되어 있습니다. 위쪽은 시간에 따른 wave 와 vessel 의 위치를 보여주고요, 아래쪽은 heave acceleration 의 time series 입니다 — 파란선이 PD-only, 빨간선이 PD+FF (WaveSplat 사용) 입니다.\n\n"
+        "여기서 보시면 PD+FF 가 PD-only 보다 heave acceleration 이 명확히 작습니다. 즉 vessel 이 덜 흔들린다는 뜻이고요, 승차감 향상으로 직결됩니다. aRMS 로 정량화하면 PD 0.090 m/s² 에서 PD+FF 0.047 m/s² 로 약 48% 감소합니다. 이건 ISO 2631 의 ride comfort 기준으로 봐도 매우 의미 있는 수준입니다.\n\n"
+        "다시 강조드리지만 이건 *시험 적용* 결과입니다. WaveSplat 정보가 제어에 실제로 도움이 된다는 *proof-of-concept* 인 거죠. 실제 선박 deployment 에는 controller robustness, sensor noise, vessel dynamics uncertainty 등 추가 고려가 필요하고, 이건 paper 2 나 학위논문 후속 연구로 이어가겠습니다.\n\n"
+        "발표 tip: 이 슬라이드에서 잠깐 멈추고 청자가 두 line 의 차이를 직접 보게 하시면 효과적입니다. *눈으로 봐도 차이가 있다* 가 가장 직관적인 evidence 거든요."
     ))
 
 
@@ -1756,8 +1509,10 @@ def main():
         build_s15,              # Ablation (num=14)
         build_s16,              # Framing (num=15)
         build_s17,              # Mechanism (num=16)
-        build_s18,              # Limitations (num=17)
-        build_s19,              # Timeline (num=18)
+        build_s_control_intro,  # NEW: hydrofoil control intro
+        build_s_control_results,  # NEW: PD vs PD+FF 결과
+        build_s18,              # Limitations
+        build_s19,              # Timeline + Q&A
     ]
     n_main = len(builders)
     for b in builders:

@@ -28,10 +28,16 @@ DATA_DIR = os.path.join(ROOT, 'data')
 DOC_DIR = os.path.join(ROOT, 'docs')
 
 # Simple cases — 에러 작은 (단순) wave 들
+# S13d 용 single case: 가장 단순 (BF2 N=1)
+# Appendix C 용 multi case: 단순 case 4 개
+SINGLE_CASE = {'episode': 'episode_BF2_1comp_seed0_uniform.h5',
+               'label': 'BF2 / N=1 / uniform', 'frame_idx': 50}
+
 SIMPLE_CASES = [
-    {'episode': 'episode_BF3_2comp_seed0_uniform.h5', 'label': 'BF3 / N=2 / uniform', 'frame_idx': 50},
-    {'episode': 'episode_BF3_5comp_seed0_uniform.h5', 'label': 'BF3 / N=5 / uniform', 'frame_idx': 50},
-    {'episode': 'episode_BF4_5comp_seed0_uniform.h5', 'label': 'BF4 / N=5 / uniform', 'frame_idx': 50},
+    {'episode': 'episode_BF2_1comp_seed0_uniform.h5', 'label': 'BF2 / N=1', 'frame_idx': 50},
+    {'episode': 'episode_BF3_1comp_seed0_uniform.h5', 'label': 'BF3 / N=1', 'frame_idx': 50},
+    {'episode': 'episode_BF3_2comp_seed0_uniform.h5', 'label': 'BF3 / N=2', 'frame_idx': 50},
+    {'episode': 'episode_BF3_5comp_seed0_uniform.h5', 'label': 'BF3 / N=5', 'frame_idx': 50},
 ]
 
 
@@ -136,21 +142,9 @@ def plot_2d3d_single(case, out_path, figsize=(15, 8)):
     ax5.set_zlim(vmin, vmax)
     ax5.view_init(elev=25, azim=-60)
 
-    # 6th cell: empty (or summary text)
+    # 6th cell: empty
     ax6 = fig.add_subplot(2, 3, 6)
     ax6.axis('off')
-    ax6.text(0.5, 0.5,
-             f"Episode: {case['episode']}\n"
-             f"Frame: {case['frame_idx']}\n"
-             f"nRMSE: {nrmse_val:.4f}\n\n"
-             f"위 행: 2D heatmap\n"
-             f"아래 행: 3D surface\n\n"
-             f"좌: 참값 (Ground Truth)\n"
-             f"중: WaveSplat 추정\n"
-             f"우 (위): 잔여 오차 (white = 0)",
-             ha='center', va='center', fontsize=10, family='monospace',
-             bbox=dict(boxstyle='round,pad=0.5', facecolor='#F0F4F8',
-                       edgecolor='#999'))
 
     plt.tight_layout()
     fig.savefig(out_path, dpi=150, bbox_inches='tight')
@@ -159,8 +153,8 @@ def plot_2d3d_single(case, out_path, figsize=(15, 8)):
     return nrmse_val
 
 
-def plot_2d3d_multicase(cases, out_path, figsize=(16, 14)):
-    """Multiple cases stacked vertically: each case = 2D row + 3D row."""
+def plot_2d_multicase(cases, out_path, figsize=(13, 10)):
+    """Multiple cases stacked vertically: each case = 2D row only (3 panels: GT, WS, Err)."""
     n_cases = len(cases)
     fig = plt.figure(figsize=figsize)
 
@@ -182,57 +176,36 @@ def plot_2d3d_multicase(cases, out_path, figsize=(16, 14)):
         err_max = np.abs(err).max()
         err_norm = TwoSlopeNorm(vmin=-err_max, vcenter=0, vmax=err_max)
 
-        # Row layout: each case occupies 1 row of 5 panels
-        # 2D: GT, WS, Err  |  3D: GT, WS
-        base_idx = ci * 5
+        # Each case occupies 1 row of 3 panels (GT, WS, Err — 2D only)
+        base_idx = ci * 3
 
-        ax1 = fig.add_subplot(n_cases, 5, base_idx + 1)
+        ax1 = fig.add_subplot(n_cases, 3, base_idx + 1)
         ax1.pcolormesh(Xg, Yg, gt, cmap='RdBu_r', vmin=vmin, vmax=vmax, shading='auto')
         if ci == 0:
-            ax1.set_title('GT (2D)', fontsize=11, fontweight='bold')
+            ax1.set_title('Ground Truth', fontsize=12, fontweight='bold')
         ax1.set_ylabel(f"{case['label']}\nnRMSE={nrmse_val:.3f}",
-                       fontsize=10, fontweight='bold')
+                       fontsize=11, fontweight='bold')
         ax1.set_aspect('equal')
         ax1.set_xticks([])
         ax1.set_yticks([])
 
-        ax2 = fig.add_subplot(n_cases, 5, base_idx + 2)
+        ax2 = fig.add_subplot(n_cases, 3, base_idx + 2)
         ax2.pcolormesh(Xg, Yg, pred, cmap='RdBu_r', vmin=vmin, vmax=vmax, shading='auto')
         if ci == 0:
-            ax2.set_title('WaveSplat (2D)', fontsize=11, fontweight='bold')
+            ax2.set_title('WaveSplat', fontsize=12, fontweight='bold')
         ax2.set_aspect('equal')
         ax2.set_xticks([])
         ax2.set_yticks([])
 
-        ax3 = fig.add_subplot(n_cases, 5, base_idx + 3)
+        ax3 = fig.add_subplot(n_cases, 3, base_idx + 3)
         ax3.pcolormesh(Xg, Yg, err, cmap='RdBu_r', norm=err_norm, shading='auto')
         if ci == 0:
-            ax3.set_title('Error (2D)', fontsize=11, fontweight='bold')
+            ax3.set_title('Error (GT - WS)', fontsize=12, fontweight='bold')
         ax3.set_aspect('equal')
         ax3.set_xticks([])
         ax3.set_yticks([])
 
-        ax4 = fig.add_subplot(n_cases, 5, base_idx + 4, projection='3d')
-        ax4.plot_surface(Xg, Yg, gt, cmap='RdBu_r', vmin=vmin, vmax=vmax,
-                         linewidth=0, antialiased=True, alpha=0.95)
-        if ci == 0:
-            ax4.set_title('GT (3D)', fontsize=11, fontweight='bold')
-        ax4.set_zlim(vmin, vmax)
-        ax4.set_xticklabels([])
-        ax4.set_yticklabels([])
-        ax4.view_init(elev=25, azim=-60)
-
-        ax5 = fig.add_subplot(n_cases, 5, base_idx + 5, projection='3d')
-        ax5.plot_surface(Xg, Yg, pred, cmap='RdBu_r', vmin=vmin, vmax=vmax,
-                         linewidth=0, antialiased=True, alpha=0.95)
-        if ci == 0:
-            ax5.set_title('WaveSplat (3D)', fontsize=11, fontweight='bold')
-        ax5.set_zlim(vmin, vmax)
-        ax5.set_xticklabels([])
-        ax5.set_yticklabels([])
-        ax5.view_init(elev=25, azim=-60)
-
-    fig.suptitle("GT vs WaveSplat — 다양한 단순 case (왼쪽=2D heatmap, 오른쪽=3D surface)",
+    fig.suptitle("GT vs WaveSplat - simple cases (low nRMSE)",
                  fontsize=13, fontweight='bold', y=0.995)
     plt.tight_layout()
     fig.savefig(out_path, dpi=150, bbox_inches='tight')
@@ -242,13 +215,13 @@ def plot_2d3d_multicase(cases, out_path, figsize=(16, 14)):
 
 
 def main():
-    # Single simple case for S13d
+    # Single simple case for S13d (BF2 N=1, smallest nRMSE)
     out_single = os.path.join(DOC_DIR, 'fig_demo_simple_2d3d.png')
-    plot_2d3d_single(SIMPLE_CASES[0], out_single)
+    plot_2d3d_single(SINGLE_CASE, out_single)
 
-    # Multi-case for Appendix C
+    # Multi-case 2D-only for Appendix C
     out_multi = os.path.join(DOC_DIR, 'fig_appendix_c_cases_2d3d.png')
-    plot_2d3d_multicase(SIMPLE_CASES, out_multi)
+    plot_2d_multicase(SIMPLE_CASES, out_multi)
 
     print("Done.")
 

@@ -240,7 +240,12 @@ def main():
                       color='#27ae60', linewidth=1.0, alpha=0.8, label='PD+FF')
 
         ax_accel.set_xlim(0, cfg['sim'].duration)
-        ax_accel.set_ylim(-6, 6)
+        # Auto-fit y-axis to actual data range (skip transient) for visible difference
+        accel_pd_window = result_pd.heave_accel[t_start_idx:]
+        accel_ff_window = result_ff.heave_accel[t_start_idx:]
+        accel_max = max(np.max(np.abs(accel_pd_window)), np.max(np.abs(accel_ff_window)))
+        accel_lim = accel_max * 1.15
+        ax_accel.set_ylim(-accel_lim, accel_lim)
         ax_accel.set_xlabel('Time [s]', fontsize=11)
         ax_accel.set_ylabel('Heave Accel [m/s²]', fontsize=11)
         ax_accel.legend(loc='upper right', fontsize=9, framealpha=0.9)

@@ -1309,8 +1309,10 @@ def build_s18():
         "  개선: 격자 초기화 → 파라미터 정밀화 (hybrid init) 연구 예정",
         "",
         "**한계 3 — Vessel 정지 가정 (V=0 kts) — 장-swell direction 해상도**",
-        "  코드/dataset 모두 ship_x=ship_y=0 하드코딩 (wavesim/pipeline.py:96)",
-        "  LiDAR patch 약 5–8 m 라 |k|<0.3 rad/m (λ>20 m, 매우 긴 swell) 은 sub-wavelength",
+        "  코드: wavesim/pipeline.py:96 ship_x=ship_y=0 하드코딩 (time loop 밖에서 ray 1회 생성)",
+        "  Dataset: HDF5 에 per-frame ship 위치 field 자체가 없음 (110 episode 모두)",
+        "  실측 검증: 30s × 301frame 동안 x_mean 변동 std 1.68 m (V=11.3 m/s 면 339 m 이동했어야)",
+        "  영향: LiDAR patch 5–8 m → |k|<0.3 rad/m (λ>20 m 장-swell) 은 sub-wavelength",
         "  → dispersion + 시간진화로 |k| 는 잡혀도 (kx,ky) direction 해상도 저하 가능",
         "  개선: vessel motion 도입 → V·T 만큼 synthetic aperture (page 25 future work)",
         "",
@@ -1326,7 +1328,8 @@ def build_s18():
         "이번 슬라이드는 한계를 정직하게 공유하는 시간입니다. 연구의 신뢰도를 높이려면 잘 되는 점뿐 아니라 한계도 먼저 인정해야 합니다. 네 가지 한계를 말씀드립니다.\n\n"
         "첫 번째는 *선형 근사 (Linear Wave Theory)* 의 한계입니다. 우리는 파도를 사인파의 합으로 표현하는데, 실제 파도는 꼭대기가 뾰족하고 골이 넓어서 사인파와 다릅니다. Klein 2020 논문에서 wave model 들을 정량 비교했는데 HOSM > NLSE2 > NLSE > LWT 순으로 정확도가 정리됐고, 우리 LWT family 는 가장 단순합니다. ε (가파름) 이 0.07 이하일 때 신뢰할 수 있고 BF6 까지는 이 조건을 만족합니다. 향후 Stokes 2 차 보정을 추가하면 적용 범위를 더 넓힐 수 있습니다.\n\n"
         "두 번째는 *복잡한 파도에서의 역전* 입니다. 이번 비교 실험에서 발견된 한계인데요, 파도 성분이 15-30 개로 많아지면 격자 방법인 Wang2025 가 더 나아집니다. 예를 들어 BF4 N=15 case 에서는 WaveSplat 0.302, Wang2025 0.249 입니다. 이유는 — 격자 방법은 모든 성분을 한꺼번에 담을 수 있지만 WaveSplat 은 성분을 하나하나 찾아야 해서 30 개를 정확히 찾기는 어렵습니다. 대응은 hybrid init — 격자로 대략 찾고 파라미터로 정밀화하는 2 단계 초기화를 연구할 예정입니다.\n\n"
-        "세 번째는 *Vessel 정지 가정* 입니다. 우리 코드 (wavesim/pipeline.py 96 행) 는 ship_x=ship_y=0 으로 하드코딩되어 있어서 모든 frame 이 같은 LiDAR 위치에서 측정됩니다. 즉 *synthetic aperture (SA) 효과는 적용되어 있지 않습니다*. ship_speed_kts 라는 config field 는 정의되어 있지만 실제 코드에서 읽히지 않는 dead config 입니다. 이게 의미하는 건 — 우리가 의존하는 mechanism 은 *순전히 wave 자체의 시간 진화 + dispersion* 이고, 실험 결과 (nRMSE 0.211, 12 episodes) 는 이 mechanism 만으로 BF3-BF6 영역에서 작동함을 empirically 증명합니다. 다만 LiDAR patch 가 5–8 m 정도라 *매우 긴 swell* (|k| < 0.3 rad/m, λ > 20 m) 은 sub-wavelength 영역이라 direction (kx, ky) 해상도가 떨어질 수 있습니다. dispersion 으로 |k| 는 잡혀도 방향 ambiguity 가 남는 거죠. 이걸 해결하는 가장 자연스러운 방법이 vessel motion 으로 V·T 만큼 synthetic aperture 를 만드는 것이고, 이건 page 25 future work 슬라이드에서 다룹니다.\n\n"
+        "세 번째는 *Vessel 정지 가정* 입니다. *코드와 dataset 모두에서 SA 가 적용되어 있지 않다* 는 것을 3중으로 검증했습니다. 첫째 *코드 측* — wavesim/pipeline.py 96 행이 시간 loop *바깥* 에서 ray 를 1 회만 generate 하면서 ship_x=ship_y=0 으로 하드코딩되어 있고, 코멘트도 'ship is stationary' 라고 명시합니다. ship_speed_kts 라는 config field 는 정의만 되어 있고 어디에서도 읽히지 않는 dead config 입니다. 둘째 *dataset 측* — HDF5 에 per-frame ship 위치 field 자체가 존재하지 않습니다 (저장된 건 timestamps, lidar_points, gt_wave_field 정도). 셋째 *empirical 검증* — 한 episode (30 s, 301 frame) 의 lidar_points x_mean 변동이 std 1.68 m 정도인데, 만약 V=11.3 m/s 였다면 30 초 동안 339 m 이동했어야 하는 것과 명백히 모순됩니다. \n\n"
+        "이게 의미하는 건 — 우리가 의존하는 mechanism 은 *순전히 wave 자체의 시간 진화 + dispersion* 이고, 실험 결과 (nRMSE 0.211, 12 episodes) 는 이 mechanism 만으로 BF3-BF6 영역에서 작동함을 empirically 증명합니다. 다만 LiDAR patch 가 5–8 m 정도라 *매우 긴 swell* (|k| < 0.3 rad/m, λ > 20 m) 은 sub-wavelength 영역이라 direction (kx, ky) 해상도가 떨어질 수 있습니다. dispersion 으로 |k| 는 잡혀도 방향 ambiguity 가 남는 거죠. 이걸 해결하는 가장 자연스러운 방법이 vessel motion 으로 V·T 만큼 synthetic aperture 를 만드는 것이고, 이건 page 25 future work 슬라이드에서 다룹니다.\n\n"
         "네 번째는 *파도 파쇄와 유속장 추정 미지원* 입니다. 이런 현상은 비선형 시뮬레이션 (VOF-EnKF, PFT-PINN) 만 처리할 수 있는데, 이들은 30 분에서 수시간 걸려 실시간 제어에는 쓸 수 없습니다. 결국 응용 영역이 다른 거죠 — 우리는 실시간 제어, 그들은 정밀 분석입니다."
     ))
 

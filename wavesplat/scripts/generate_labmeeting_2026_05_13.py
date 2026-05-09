@@ -848,26 +848,25 @@ def build_s13b_init():
         "",
         "**Single-frame LiDAR 의 정량**:",
         "  240 m 영역 × 50 valid 점 → 평균 점 간격 Δy ≈ 5–8 m",
-        "  Nyquist: k_max = π / 5 ≈ **0.6 rad/m** (best case), π / 8 ≈ **0.4 rad/m** (worst case)",
+        "  Nyquist: k_max = π / 5 ≈ **0.6 rad/m** (best), π / 8 ≈ **0.4 rad/m** (worst)",
         "  → Single frame 으로 추정 가능한 wavenumber 한계: 약 0.4 rad/m",
         "",
-        "**필요한 wavenumber 범위 (BF3–BF6 sea state)**:",
-        "  Wave 파장 λ = 2π / k → k = 2π / λ",
-        "  BF3 swell (λ = 12 m): k = 2π/12 ≈ 0.52 rad/m",
-        "  BF4 wind wave (λ = 6 m): k = 2π/6 ≈ 1.05 rad/m",
-        "  BF6 short wave (λ = 2 m): k = 2π/2 ≈ 3.14 rad/m",
-        "  → 추정해야 할 k ∈ **0.5–3 rad/m** = single-frame Nyquist (0.4) 의 **1.25–7.5× 초과**",
+        "**필요한 wavenumber 범위 (BF3–BF6)**:",
+        "  k = 2π / λ. BF3 swell (λ=12m) → 0.52, BF6 short (λ=2m) → 3.14 rad/m",
+        "  → 추정해야 할 k ∈ **0.5–3 rad/m** = Nyquist (0.4) 의 **1.25–7.5× 초과** 🚨",
         "",
-        "**🚨 Paradox**: 이론상 single frame 으로는 추정 불가능한 영역. 어떻게 추정?",
+        "**해결책 — Synthetic Aperture (합성 개구) 발상**:",
+        "  Antenna 분야의 SAR (Synthetic Aperture Radar, Wiley 1965) 와 같은 원리",
+        "  *Single antenna 분해능* = λ / D (D = antenna 크기) — 작은 antenna 는 분해능 나쁨",
+        "  *움직이는 antenna 가 매 시점 다른 위치에서 측정* → 누적된 measurement 가 마치 D = V·T 만큼 큰 antenna 처럼 작동",
+        "  → 이 가상의 큰 antenna 가 **'effective aperture'** — 즉 *합성된 측정 개구*",
         "",
-        "**해결책 — Multi-frame stacking (synthetic aperture)**:",
-        "  Vessel V=11.3 m/s 로 1 s 이동 → 10 frame 누적 → vessel 위치 0 → 11.3 m",
-        "  10 frame × 50 점 = **500 점**, 영역 240 + 11.3 = 251 m",
-        "  하지만 핵심은 점 수 증가가 아니라 *시간 정보 (t_i) 가 phase 기준점 제공*:",
-        "    각 점이 (x_i, y_i, t_i, η_i) 로 4D — temporal coherence 활용",
-        "    Phase 정보로 wavenumber 모호성 해소 → Nyquist 한계 우회",
-        "  Effective aperture L_SA = V·T_init = 11.3 m → Δk_aperture ≈ 2π / L_SA ≈ **0.56 rad/m 분해능**",
-        "  → 다음 슬라이드에서 *어떻게* (beamforming 식) 자세히",
+        "**Effective aperture 정의 + 우리 case 의 정량**:",
+        "  L_SA (effective aperture) = V · T_init",
+        "  V = 11.3 m/s (vessel 속도), T_init = 1 s (multi-frame 누적 시간)",
+        "  → L_SA = **11.3 m** (single frame 의 Δy 5-8 m 보다 1.5-2× 큼)",
+        "  → Wavenumber 분해능 Δk ≈ 2π / L_SA ≈ **0.56 rad/m** (single frame 0.4 rad/m 한계 우회)",
+        "  → 핵심: *시간 정보 t_i 가 phase 기준점* — 각 점이 (x, y, t, η) 4D 로 temporal coherence 활용",
     ]
     add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=10,
                 line_space_after=1)
@@ -875,13 +874,12 @@ def build_s13b_init():
     add_notes(s, (
         "이 슬라이드가 paper 의 main framing 으로 가는 핵심입니다. *왜 multi-frame 이 필요한가* 를 정량으로 풀어 설명드립니다.\n\n"
         "먼저 Nyquist 한계가 무엇인지 부터 짚어드립니다. Shannon-Nyquist 정리 (1949) 는 신호처리의 표준 결과인데요 — 어떤 wavelength 의 신호를 추정하려면 *최소 그 wavelength 의 절반 간격* 으로 sampling 해야 한다는 정리입니다. 즉 점 간격이 Δy 면 추정 가능한 최대 wavenumber 는 π/Δy 입니다.\n\n"
-        "이 한계를 우리 single-frame LiDAR 에 적용해보면 — 240 m 영역에 valid 점이 50 개 정도이니 평균 점 간격 Δy 가 5 에서 8 m 사이입니다. Nyquist 식에 넣으면 k_max 가 약 0.4–0.6 rad/m 인데, 보수적으로 0.4 rad/m 를 한계로 봅니다. 즉 single frame 으로 추정 가능한 wavenumber 는 약 0.4 rad/m 까지 입니다.\n\n"
-        "그런데 우리가 추정해야 할 wavenumber 는 그것보다 훨씬 큽니다. 파도 파장 λ 는 BF3 swell 이 약 12 m, BF4 wind wave 가 6 m, BF6 short wave 가 2 m 정도입니다. wavenumber k = 2π/λ 식에 넣으면 k 가 0.52 부터 3.14 rad/m 까지입니다. 즉 single-frame Nyquist (0.4) 의 1.25 배에서 7.5 배 초과 영역이죠.\n\n"
-        "이게 *paradox* 입니다 — 이론상 single frame 으로는 추정 불가능한 영역의 wave 를 우리는 추정해야 합니다. 어떻게 가능할까요?\n\n"
-        "해결책은 *multi-frame stacking* 입니다. Vessel 이 11.3 m/s 로 1 초 동안 11.3 m 이동하면서 10 frame 의 데이터를 누적하면 점이 500 개로 늘고 영역도 약간 확장됩니다. 그런데 *핵심은 점 수 증가가 아니라 시간 정보가 phase 기준점을 제공한다* 는 점입니다.\n\n"
-        "각 점이 단순한 (x, y, η) 가 아니라 *시간까지 포함한 (x, y, t, η) 4D 좌표* 를 갖게 되고요, wave 가 시간에 따라 propagate 하는 phase 진화를 보면서 *wavenumber 의 모호성을 해소* 할 수 있게 됩니다. 이게 synthetic aperture 효과의 핵심입니다.\n\n"
-        "정량적으로 — effective aperture L_SA = V × T_init = 11.3 m 로, wavenumber 분해능이 약 0.56 rad/m 가 됩니다. 이 분해능으로 0.5 에서 3 rad/m 영역의 wave 를 추정할 수 있게 되는 거죠. Nyquist 한계 0.4 를 우회한 셈입니다.\n\n"
-        "다음 슬라이드에서 *어떻게* — 즉 beamforming 식과 coarse-to-fine 정밀화 — 를 자세히 설명드립니다."
+        "이 한계를 우리 single-frame LiDAR 에 적용해보면 — 240 m 영역에 valid 점이 50 개 정도이니 평균 점 간격 Δy 가 5 에서 8 m 사이입니다. Nyquist 식에 넣으면 k_max 가 약 0.4–0.6 rad/m 인데, 보수적으로 0.4 rad/m 를 한계로 봅니다. 즉 single frame 으로 추정 가능한 wavenumber 는 약 0.4 rad/m 까지입니다.\n\n"
+        "그런데 우리가 추정해야 할 wavenumber 는 그것보다 훨씬 큽니다. 파도 파장 λ 는 BF3 swell 이 약 12 m, BF6 short wave 가 2 m 정도이니 k = 2π/λ 로 0.52 에서 3.14 rad/m 입니다. single-frame Nyquist (0.4) 의 1.25 에서 7.5 배 초과 영역이죠. *Paradox* 입니다.\n\n"
+        "**해결책은 *synthetic aperture* — 합성 개구 발상** 입니다. 이 개념은 1965 년 Wiley 가 제안한 SAR (Synthetic Aperture Radar) 에서 출발했습니다. 핵심 아이디어를 설명드리면 — antenna 의 분해능은 *antenna 크기* D 에 비례합니다. λ/D. 그래서 작은 antenna 는 분해능이 나쁘죠. 그런데 *움직이는 antenna 가 매 시점 다른 위치에서 측정* 하면, 누적된 measurement 가 마치 D = V·T 크기의 큰 antenna 처럼 작동합니다. 이 가상의 큰 antenna 가 *effective aperture* 즉 *합성된 측정 개구* 입니다.\n\n"
+        "**Effective aperture 가 12 페이지에 나오는 이유** — multi-frame stacking 의 효과를 정량으로 표현하는 표준 metric 이기 때문입니다. 우리 case 에서 effective aperture L_SA = V × T_init = 11.3 m/s × 1 s = **11.3 m** 입니다. Single frame 의 점 간격 Δy 5-8 m 의 약 1.5-2 배죠. 이 effective aperture 로부터 wavenumber 분해능이 결정됩니다 — Δk ≈ 2π / L_SA ≈ **0.56 rad/m**. 이 분해능으로 0.5 에서 3 rad/m 영역의 wave 를 추정할 수 있어서 Nyquist 한계 0.4 를 우회한 셈입니다.\n\n"
+        "여기서 *왜 단순히 점이 500 개로 늘어나는 것이 아니라 effective aperture 가 핵심인가* 가 중요합니다. 점 수 증가만으로는 spatial Nyquist 가 그대로일 수 있어요 — 점들이 같은 영역에 모여 있으면 (e.g. 모두 vessel 근처) Δy 가 그대로. 하지만 *vessel 이 이동하면서 vessel-frame 으로는 같은 위치에 있는 점이 world-frame 으로는 다른 위치* 가 됩니다. 그래서 effective coverage 가 V·T 만큼 확장되는 거죠. 추가로 *시간 정보 t_i 가 phase 기준점을 제공* 해서 각 점이 (x, y, t, η) 4D 로 temporal coherence 까지 활용 가능. 이 두 효과가 결합해서 synthetic aperture 가 완성됩니다.\n\n"
+        "다음 슬라이드에서 *어떻게* — 즉 beamforming 식과 coarse-to-fine + Adam 정밀화 — 를 자세히 설명드립니다."
     ))
 
 
@@ -892,44 +890,44 @@ def build_s13b2_beamforming():
     add_title(s, "Beamforming + coarse-to-fine — (k_x, k_y) 정밀 결정")
     add_subtitle(s, "어떤 후보 wavenumber 가 측정 데이터와 가장 잘 맞는지 search — 신호처리 DOA 의 ocean wave 적용")
     bullets = [
-        "**Beamforming 직관**:",
-        "  각 후보 wavenumber (k_x⁰, k_y⁰) 에 대해 'wave 가 이 방향으로 ω(k) 주파수로 진행한다' 가정",
-        "  측정 데이터의 phase 와 가정한 wave 의 phase 가 얼마나 일치하는지 score 로 평가",
-        "  Score 가 가장 높은 (k_x, k_y) 를 선택 — 직관: '코러스 효과' (모든 점이 동시에 일치)",
+        "**Init 의 3 단계 — Beamforming + Coarse-to-fine + Adam refinement** (코드: wavesplat/optimizer/sequential_update.py):",
         "",
-        "**Beamforming score 식**:",
+        "**① Beamforming score 식 (coarse search)**:",
         "  S(k_x⁰, k_y⁰) = | Σ_i η_obs(x_i, y_i, t_i) · exp(j (k⁰·x_i − ω(k⁰)·t_i)) |²",
-        "  여기서:",
-        "    i: 누적된 모든 점 (10 frame × 50 점 = 500 점)",
-        "    η_obs: i-th 점에서 측정한 wave 변위",
-        "    k⁰·x_i = k_x⁰·x_i + k_y⁰·y_i (후보 wavenumber 와 점 위치의 내적)",
-        "    ω(k⁰) = √(g·|k⁰|·tanh(|k⁰|·d)) — 분산 관계로 자동 결정 (별도 자유도 아님)",
-        "    exp(j·...) — phase factor (가정한 wave 의 위상)",
+        "  i: 누적된 모든 점 (10 frame × 50 점 = 500 점)",
+        "  ω(k⁰) = √(g·|k⁰|·tanh(|k⁰|·d)) — 분산 관계로 자동 결정",
+        "  → 50×50 = 2,500 후보 격자에서 S(k) peak top-N 선택",
+        "  직관: '코러스 효과' — 실제 wave 방향이면 모든 점의 phase 일치 → S(k) ↑",
         "",
-        "**해석**:",
-        "  실제 wave 가 (k_x⁰, k_y⁰) 방향이라면 모든 점의 phase 가 일치 → 합의 절댓값 ↑ → S(k) 가 peak",
-        "  실제 wave 가 다른 방향이라면 phase 가 random 하게 cancel → S(k) 작음",
-        "  → S(k) 가 큰 (k_x, k_y) = 실제 wave 의 wavenumber",
+        "**② Coarse-to-fine sub-grid 정밀화**:",
+        "  각 peak 주변에서 local quadratic fit → Newton step → sub-grid 정확도",
+        "  예: peak 가 격자 위 (0.5, 0.7) → fine 후 (0.534, 0.692) 처럼 정밀",
         "",
-        "**Coarse-to-fine 2 단계 — 정밀화**:",
-        "  ① Coarse: (k_x, k_y) 후보 격자 50×50 = 2,500 개. 각 후보의 S(k) 계산 → top-N peak 선택",
-        "  ② Fine: 각 peak 주변에서 local quadratic fit → Newton step → sub-grid 정확도",
-        "    (예: peak 가 격자 위 (0.5, 0.7) 인데 fine 으로 (0.534, 0.692) 처럼 정밀)",
+        "**③ Adam refinement — beamforming 결과를 모든 frame 에 fitting**:",
+        "  Beamforming 은 *초기값 추정만* — 그 후 Adam 으로 정밀 최적화",
+        "  Loss: L(θ) = Σ_frame Σ_i [η_model(x_i, t; θ) − η_obs(x_i, t)]²",
+        "  파라미터: (k_x, k_y, ω, A, φ) — multi-frame init window 전체에 fit",
+        "  Coarse-to-fine schedule: stage 1 (low N, lr 0.05) → stage 2 (more N, lr 0.01)",
+        "  default: 200 + 200 + 500 = 900 iterations 까지 (loss threshold 도달 시 조기 종료)",
         "",
-        "**signal processing 연관**: DOA (Direction-of-Arrival) estimation — array antenna 에서 신호 도달 방향 찾는 표준 기법",
-        "  우리는 이걸 wave estimation 에 적용 (LiDAR scan = sparse sensor array 로 간주)",
+        "**왜 두 단계 (beamforming + Adam)?**",
+        "  Beamforming: 글로벌 search — 격자 위 모든 후보 평가 (느리지만 global optima 잘 찾음)",
+        "  Adam: 로컬 최적화 — beamforming 결과 주변에서 정밀 (빠르지만 초기값 의존)",
+        "  결합: beamforming 으로 global 잡고 Adam 으로 정밀화 → robust + 정확",
+        "",
+        "**signal processing 연관**: DOA (Direction-of-Arrival) estimation 기법의 wave 적용",
     ]
     add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=10,
                 line_space_after=1)
     add_page_number(s, 13)
     add_notes(s, (
         "이전 슬라이드에서 *왜 multi-frame 이 필요한지* 를 보여드렸고요, 이번 슬라이드는 *어떻게 작동하는지* 를 수식까지 풀어 설명드립니다.\n\n"
-        "Beamforming 의 직관부터 말씀드리면 — 각 후보 wavenumber 에 대해 *만약 실제 wave 가 이 방향으로 이 주파수로 진행한다고 가정* 했을 때, 측정 데이터의 phase 와 얼마나 잘 맞는지를 점수로 평가하는 방법입니다. 점수가 가장 높은 후보를 선택하는 거죠. 직관적으로는 '코러스 효과' 같은 거예요 — 모든 점들이 *동시에* 일치하면 신호가 강해지고, 다르면 random 하게 cancel 되어 약해집니다.\n\n"
-        "수식을 보시면 — S(k_x⁰, k_y⁰) = | Σ_i η_obs · exp(j(k⁰·x_i − ω(k⁰)·t_i)) |² 입니다. i 는 누적된 모든 점 (500 점), η_obs 는 i-th 점에서 측정한 wave 변위, k⁰·x_i 는 후보 wavenumber 와 점 위치의 내적이고요, ω(k⁰) 는 분산 관계로 자동 결정됩니다. exp(j·...) 가 가정한 wave 의 phase factor 입니다.\n\n"
-        "해석은 명확합니다. 만약 실제 wave 가 우리가 가정한 (k_x⁰, k_y⁰) 방향이라면 모든 점의 phase 가 *일치* 합니다. 그러면 sum 의 절댓값이 커지고요, S(k) 가 peak 가 됩니다. 반면 실제 wave 가 다른 방향이라면 phase 가 random 하게 cancel 되어 S(k) 가 작아집니다. 결국 S(k) 가 큰 후보들이 실제 wavenumber 인 거죠.\n\n"
-        "Coarse-to-fine 정밀화 — 처음에는 거친 격자 (50×50 = 2,500 후보) 에서 search 해서 top-N peak 를 찾고요, 그 다음 각 peak 주변에서 local quadratic fit 과 Newton step 으로 sub-grid 정확도까지 정밀화합니다. 예를 들어 peak 가 격자 위 (0.5, 0.7) 에 있더라도 fine 으로 (0.534, 0.692) 같은 더 정밀한 값을 얻습니다.\n\n"
-        "신호처리 분야에서는 이걸 *DOA estimation* (Direction-of-Arrival estimation) 이라고 부릅니다. Antenna array 에서 신호가 어느 방향에서 도달하는지 찾는 표준 기법인데요, 우리는 LiDAR scan 을 sparse sensor array 로 간주하고 ocean wave 에 적용한 거죠.\n\n"
-        "다음 슬라이드는 tracking 단계 — k 가 결정된 후 매 frame (A, φ) 만 빠르게 update 하는 방식입니다."
+        "Init 단계는 사실 *3 단계로 작동* 합니다 — beamforming 으로 global search, coarse-to-fine 으로 sub-grid 정밀화, 그리고 Adam 으로 multi-frame fitting refinement. 사용자 지적이 정확합니다 — beamforming 만으로 끝나는 게 아니라 Adam 정밀화도 같이 들어갑니다.\n\n"
+        "(1) **Beamforming score 식** — 코러스 효과 직관: 각 후보 wavenumber 에 대해 'wave 가 이 방향으로 이 주파수로 진행한다고 가정' 했을 때, 측정 데이터의 phase 와 얼마나 일치하는지 점수로 평가합니다. 수식 S(k) = | Σ_i η_obs · exp(j(k·x_i − ω(k)·t_i)) |² 에서 i 는 누적된 500 점, ω(k) 는 분산 관계로 자동입니다. 실제 wave 방향이면 모든 점의 phase 가 *일치* 해서 합의 절댓값이 커지고, 다른 방향이면 random cancel 되어 작아지죠. 50×50 격자 후보 중 S(k) 큰 top-N peak 를 선택합니다.\n\n"
+        "(2) **Coarse-to-fine sub-grid 정밀화** — 격자 위 peak 만으로는 정확도 한계가 있어서 각 peak 주변에서 local quadratic fit 과 Newton step 을 합니다. 예를 들어 peak 가 격자 위 (0.5, 0.7) 에 있더라도 fine 으로 (0.534, 0.692) 같은 더 정밀한 값을 얻습니다.\n\n"
+        "(3) **Adam refinement (중요)** — beamforming 결과는 *초기값 추정* 일 뿐입니다. 그 후 Adam optimizer 로 multi-frame init window 전체에 fitting 합니다. Loss 는 모든 frame 의 measurement 와 model prediction 의 squared error 합. 파라미터는 (k_x, k_y, ω, A, φ) 모두. Coarse-to-fine schedule 로 stage 1 (low N, lr=0.05) → stage 2 (more N, lr=0.01) 처럼 점진적 정밀화. 기본 max iteration 은 stage 별 200, 200, 500 합쳐서 900 iter — loss threshold 도달 시 조기 종료.\n\n"
+        "**왜 두 단계가 필요한가** — Beamforming 은 글로벌 search 라 global optima 잘 찾지만 격자 해상도 한계가 있고요, Adam 은 로컬 최적화라 빠르고 정밀하지만 초기값 의존이 큽니다. 두 가지를 결합하면 beamforming 으로 글로벌 잡고 Adam 으로 정밀화 — robust 하면서 정확합니다.\n\n"
+        "신호처리 연관은 DOA (Direction-of-Arrival) estimation 기법 — antenna array 에서 신호 방향 찾는 표준 — 의 ocean wave 적용입니다. Init 의 Adam refinement 단계가 끝나면 (k_x, k_y) 는 거의 정착된 상태이고요, 그 다음 tracking 단계에서는 *k 고정 + (A, φ) 만 매 frame update* 하는 방식으로 빠르게 처리합니다."
     ))
 
 

@@ -938,6 +938,56 @@ def build_s13b2_beamforming():
     ))
 
 
+def build_s13b3_score_derivation():
+    """Beamforming score 식의 유도 + 다른 방법과의 비교."""
+    s = add_blank(WHITE)
+    add_section_tag(s, "Part 3 · WaveSplat — Init (3/3): Score 식이 *왜* 이렇게 정의되나", color=GOLD)
+    add_title(s, "Beamforming Score 식의 유도 — phase coherence")
+    add_subtitle(s, "matched filter 원리 — 맞는 (k, ω) 일 때 phase 가 정렬되어 신호가 강해짐")
+    bullets = [
+        "**핵심 직관 — matched filter 의 코러스 효과**:",
+        "  실제 wave 가 (k, ω) 로 진행 → 측정값 η_obs(x_i, t_i) = A·cos(k·x_i − ω·t_i + φ) + noise",
+        "  맞는 (k, ω) 로 phase factor exp(−j(k·x − ω·t)) 곱하면:",
+        "    η_obs · exp(−j(k·x − ω·t)) = (A/2)·[exp(jφ) + exp(−j(2(k·x − ω·t) + φ))] + noise·phase",
+        "  → 첫 항 (jφ) 는 *모든 점에서 일정* → coherent sum (signal stack)",
+        "  → 둘째 항은 oscillating → average 하면 cancel",
+        "  → noise 도 phase random → cancel (√N 으로만 증가)",
+        "",
+        "**Score 식 → coherent gain**:",
+        "  S(k) = | Σ_i η_obs(x_i, t_i) · exp(−j(k·x_i − ω(k)·t_i)) |²",
+        "  맞는 (k, ω) 일 때: |Σ| ≈ N · A/2 · |exp(jφ)| = NA/2 → S = (NA/2)² ∝ N²",
+        "  틀린 (k, ω) 일 때: |Σ| ≈ √N · noise (random phase) → S ∝ N",
+        "  → SNR gain = N²/N = N (점 수에 비례, 500 점이면 27 dB gain)",
+        "",
+        "**왜 이 형태가 표준인가**:",
+        "  Delay-and-sum beamforming (Kraus 1988, Van Trees 2002) — signal processing 의 standard",
+        "  Matched filter 정리 (Turin 1960) — Gaussian noise 에서 SNR 최대화하는 optimal filter",
+        "  단순하고 robust — covariance matrix 추정 불필요 (sparse 점에 적합)",
+        "",
+        "**Dispersion 으로 차원 축소**:",
+        "  ω(k) = √(g·|k|·tanh(|k|·d)) 자동 결정 → 2D search (k_x, k_y) 만 (3D 가 아님)",
+        "  Dispersion 없이 ω 자유 시: 3D (k_x, k_y, ω) search → 81³ = 531,441 후보 (불가)",
+        "  → Dispersion 강제로 6,561 후보로 80× 축소",
+        "",
+        "**다른 spectral estimation 방법과 비교**:",
+        "  - MUSIC, ESPRIT (subspace): 더 정확하나 covariance matrix 필요 → sparse 점 부적합",
+        "  - Capon/MVDR (adaptive): 더 좋은 resolution 이지만 복잡 + ill-conditioning",
+        "  - **우리 (delay-and-sum)**: 가장 단순, 가장 robust, init 단계로 충분",
+    ]
+    add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=10,
+                line_space_after=1)
+    add_page_number(s, 14)
+    add_notes(s, (
+        "이 슬라이드는 *왜 beamforming score 식이 그 형태인가* 를 유도로 설명드립니다. 청자가 'Σ η·exp(j(k·x − ω·t)) 의 절댓값 제곱이라는 식이 어디서 나왔는가?' 의문이 들 텐데요, 답은 *matched filter 원리* 입니다.\n\n"
+        "직관부터 설명드리면 — 만약 실제 wave 가 우리가 가정한 (k, ω) 방향으로 진행한다면, 측정값 η_obs 는 A·cos(k·x − ω·t + φ) + 잡음 형태입니다. 여기에 가정한 (k, ω) 의 *phase factor exp(−j(k·x − ω·t))* 를 곱하면 cos 가 (1/2)·[exp(jφ) + exp(−j(2(k·x − ω·t) + φ))] 로 분해되고, 곱하면 첫 항은 *모든 점에서 동일한 (1/2)·A·exp(jφ)* 가 되고 둘째 항은 *2배 빠르게 oscillate* 합니다. 점들의 합을 취하면 첫 항은 *coherent 하게 더해져 NA/2* 가 되고, 둘째 항은 *cancel* 되어 0 에 가까워집니다.\n\n"
+        "이게 *코러스 효과* 의 수학적 정확한 표현입니다. 맞는 (k, ω) 에서 신호가 *N 배 (점 수)* 증가하고, 잡음은 random phase 라 *√N 으로만* 증가하므로 SNR gain 이 N. 점 500 개면 27 dB gain — 매우 큰 SNR 향상입니다.\n\n"
+        "이 form 이 표준인 이유는 — *matched filter 정리* (Turin 1960) 가 Gaussian 잡음 환경에서 SNR 을 최대화하는 *optimal filter* 가 정확히 이 형태임을 증명. *Delay-and-sum beamforming* (Kraus 1988, Van Trees 2002) 으로도 알려진 이 방법이 신호처리의 standard 입니다.\n\n"
+        "Dispersion 의 critical 한 역할도 강조드립니다. Dispersion 없이 (ω 를 자유 파라미터로 두면) 3D search 가 필요해서 81³ ≈ 53 만 후보 — 계산 불가능. Dispersion 으로 ω 를 k 로부터 자동 결정하면 2D search 만 충분 → 81² = 6,561 후보 — 80 배 축소.\n\n"
+        "다른 spectral estimation 방법과 비교도 의미 있습니다. *MUSIC, ESPRIT* 같은 subspace methods 는 더 정확하지만 covariance matrix 추정이 필요해서 sparse 점에 부적합. *Capon (MVDR)* 같은 adaptive beamforming 은 resolution 이 좋지만 ill-conditioning 우려. 우리 *delay-and-sum* 은 가장 단순하면서 robust 해서 init 단계로 적합하고, 그 후 Adam refinement 로 정밀화하는 hybrid 가 best of both worlds 입니다.\n\n"
+        "Q&A 시 청자가 'Capon 이나 MUSIC 도 시도했나?' 물으면 — '시도해봤지만 점이 너무 sparse 해서 covariance estimation 이 불안정. Delay-and-sum 의 단순성이 robustness 와 결합돼 우리 setup 에 더 적합' 정도로 답변."
+    ))
+
+
 # S13c — Tracking + Adaptive N detail (NEW)
 def build_s13c_track():
     s = add_blank(WHITE)
@@ -1621,9 +1671,10 @@ def main():
         build_s11,              # WaveSim (num=9)
         build_s12,              # Dataset (num=10)
         build_s13,              # Algorithm overview (num=11)
-        build_s13b_init,        # Init (1/2): 왜 multi-frame
-        build_s13b2_beamforming,  # NEW: Init (2/2): beamforming 어떻게
-        build_s13c_track,       # Track detail (num=11c)
+        build_s13b_init,        # Init (1/3): 왜 multi-frame
+        build_s13b2_beamforming,  # Init (2/3): beamforming 어떻게
+        build_s13b3_score_derivation,  # NEW Init (3/3): score 식 유도
+        build_s13c_track,       # Track detail
         build_s13d_visualization,  # NEW: GT vs WaveSplat 시각화 (num=11d)
         build_s14,              # Results (num=12)
         build_s13_scatter,      # episode scatter (num=13)

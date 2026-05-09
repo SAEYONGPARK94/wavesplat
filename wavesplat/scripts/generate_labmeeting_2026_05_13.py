@@ -385,20 +385,19 @@ def build_s4_spoiler():
     add_notes(s, (
         "먼저 결과를 보여드리겠습니다. 배경 설명은 그 다음에 하겠습니다.\n\n"
         "왼쪽 막대 그래프는 두 가지 방법의 평균 정확도(nRMSE) 비교입니다.\n"
-        "  nRMSE란 무엇인가? '정규화된 평균 제곱근 오차'입니다.\n"
-        "  쉽게 말하면 0에 가까울수록 좋고, 1에 가까울수록 나쁩니다.\n"
-        "  예를 들어 nRMSE 0.2는 '실제 파도의 80% 정도를 맞춘다'고 이해하시면 됩니다.\n\n"
-        "  - WaveSplat (우리 방법): 0.211 — 약 79% 수준으로 맞춤\n"
-        "  - Wang2025 (최신 선행연구를 충실히 재현한 것): 0.253 — 약 75% 수준\n\n"
-        "비교 대상인 Wang2025는 우리가 임의로 만든 baseline이 아니라,\n"
-        "2025년에 출판된 논문(Wang, Coastal Engineering 197)의 방법을\n"
-        "그대로 재현한 것입니다. 앙상블 300개, fuzzy R 적응 등 원논문 세팅을 따랐습니다.\n\n"
-        "오른쪽은 여러 방법의 속도를 로그 스케일로 비교한 그래프입니다.\n"
-        "  - 빨간 점선이 '실시간 기준선' (100ms)입니다. 이 왼쪽에 있어야 제어에 쓸 수 있습니다.\n"
-        "  - WaveSplat 13ms = 초당 약 75번 추정 가능 → 10Hz 제어 루프에 충분히 여유 있습니다\n"
-        "  - Wang2025 632ms = 실시간으로는 쓸 수 없는 속도입니다\n"
-        "  - PFT-PINN 30분 = 완전히 오프라인 전용입니다 (Ehlers 2025, RTX 3090 기준)\n\n"
-        "핵심 메시지: 우리 방법이 '더 정확하면서 47배 빠른' 방법입니다.\n"
+        "  nRMSE 는 '정규화된 평균 제곱근 오차' 입니다 (관측 wave 표준편차로 normalize).\n"
+        "  값이 0 에 가까울수록 추정 정확도 높음, 1 에 가까울수록 낮음.\n"
+        "  nRMSE 0.2 는 '실제 wave 와 추정의 차이가 wave 표준편차의 약 20%' 라는 의미입니다.\n\n"
+        "  - WaveSplat (우리 방법): 0.211\n"
+        "  - Wang2025 (최신 선행연구 재현): 0.253\n\n"
+        "Wang2025 는 2025년 발표된 논문 (Wang, Coastal Engineering 197) 의 방법을 그대로 재현한 것입니다. "
+        "앙상블 300 개, fuzzy R 적응 등 원논문 세팅을 따랐습니다.\n\n"
+        "오른쪽은 여러 방법의 추정 시간 (per frame) 을 로그 스케일로 비교한 그래프입니다.\n"
+        "  - WaveSplat 13.4 ms — 초당 약 75 번 추정 가능, 10 Hz 제어 루프에 적합\n"
+        "  - Wang2025 632 ms — 추정 한 번에 0.6 초 이상 소요\n"
+        "  - FNO 1.9 ms — 빠르나 supervised pre-training 필요 (Ehlers 2023)\n"
+        "  - PFT-PINN 30 분 — instance 마다 NN 학습 (RTX 3090 기준, Ehlers 2025)\n\n"
+        "핵심 메시지: WaveSplat 이 더 정확하면서 47 배 빠른 방법입니다.\n"
         "이제부터 왜 이런 결과가 가능한지, 선행연구와 어떻게 다른지를 차례로 설명하겠습니다."
     ))
 
@@ -408,59 +407,82 @@ def build_s5_categories():
     s = add_blank(WHITE)
     add_section_tag(s, "Part 1 · Prior art landscape — 선행 연구 분류")
     add_title(s, "기존 연구를 5 가지 접근법으로 분류했습니다")
-    add_subtitle(s, "13편 정독 결과 — 각 접근법에는 고유한 강점과 한계가 있습니다")
-    headers = ["#", "접근법 (쉬운 설명)", "대표 논문 (정독)", "강점", "한계"]
+    add_subtitle(s, "13편 정독 결과 — 각 접근법의 강점과 한계를 풀어 설명합니다")
+    headers = ["#", "접근법", "대표 논문", "강점", "한계"]
     rows = [
-        ["1", "격자 기반 최적화\n(공간을 격자로 나누고\n차이를 최소화)",
-         "Desmars 2018/20/23",
-         "성숙한 이론\n실험 검증됨", "격자 해상도 한계\n1D 위주"],
-        ["2", "앙상블 칼만 필터\n(수백 개 시뮬레이션을\n동시에 돌려 보정)",
+        ["1", "격자 기반\n최적화",
+         "Desmars\n2018/20/23",
+         "관측치와 model 사이 차이를 비용함수로 정의해 최소화. 수치해석에서 안정성·수렴성이 정립되어 검증된 framework",
+         "추정 가능한 wavenumber 가 미리 정한 격자 위에만 한정 — 격자 간격보다 짧은 wave 표현 불가. 거의 모두 1D 가정"],
+        ["2", "앙상블\n칼만 필터",
          "Wang-Pan 2021/22\nWang 2025\nYan 2025 (VOF)",
-         "높은 물리 충실도", "실시간 불가\n(앙상블 비용)"],
-        ["3", "지도학습 신경망\n(데이터로 미리 학습한\nNN으로 빠르게 추정)",
-         "Ehlers 2023 (FNO)",
-         "매우 빠름 (1.9 ms)", "학습 데이터 필요\n1D, 일반화 한계"],
-        ["4", "물리 기반 비지도 NN\n(학습 데이터 없이\n물리 법칙으로 학습)",
-         "Ehlers 2025\n(PFT-PINN)",
-         "학습 데이터 불필요\n비선형 가능", "~30 분/instance\n1D 위주"],
-        ["5", "연속 파라미터 추정 (Ours)\n(격자 없이 파도 성분의\n물리 파라미터를 직접 최적화)",
+         "비선형 wave model (HOS, Navier-Stokes) 을 forecast 모델로 사용 가능 — Stokes 비선형, breaking 까지 reconstruction",
+         "50–300 개 simulation 을 매 step 동시 진행해야 함 → GPU 사용해도 수백 ms 이상 → real-time control loop 에 부적합. 대부분 1D"],
+        ["3", "지도학습\n신경망",
+         "Ehlers 2023 FNO\nDuan 2020",
+         "Pre-train 후 inference 매우 빠름 (1.9 ms) — sparse measurement → wave field 의 mapping 을 NN 이 학습",
+         "수천 개 학습 데이터 합성 필요 (Ehlers 의 경우 3120 HOS sample). 학습 분포 밖 (다른 sea state, 다른 sensor) 에서는 정확도 저하. 1D"],
+        ["4", "물리 기반\n비지도 NN",
+         "Ehlers 2025\nPFT-PINN",
+         "학습 데이터 0 개 — Laplace 방정식과 표면 boundary condition 을 NN loss 로 강제. Linear/nonlinear 모두 처리 (ε ~ 0.1 까지)",
+         "Instance 마다 처음부터 30 분 학습 (RTX 3090) — real-time 불가. Buoy time-series 만 처리, sparse spatial LiDAR 미지원. 1D"],
+        ["5", "연속 파라미터\n추정 (Ours) ⭐",
          "WaveSplat",
-         "실시간 + 2D\n+ LiDAR 센서 모델", "선형 근사"],
+         "Wave 를 N 개 plane wave 의 파라미터 (A, k_x, k_y, ω, φ) 로 직접 추정 — 격자 없이 연속 wavenumber 추정. <100 ms inference + 2D directional + LiDAR raydrop 모사",
+         "Linear superposition 가정 (LWT family) — 비선형 wave (HOSM 류) 처리 못 함. ε < 0.07 operational range 에서만 신뢰"],
     ]
-    add_table_simple(s, 0.4, 1.85, 12.5, 4.8, headers, rows,
+    add_table_simple(s, 0.3, 1.85, 12.7, 5.0, headers, rows,
                      header_color=ACCENT, font_size=9)
-    add_text(s, 0.5, 6.8, 12.3, 0.6,
-             "핵심: 실시간(100ms 이내) + 2D 방향성 + 희소 LiDAR + 비지도학습을 "
-             "모두 만족하는 선행연구는 없었습니다. 우리 WaveSplat이 이 조합을 처음 시도합니다.",
-             font_size=12, italic=True, color=ACCENT)
+    add_text(s, 0.5, 7.0, 12.3, 0.4,
+             "핵심: 실시간 + 2D 방향성 + 희소 LiDAR + 비지도학습을 모두 만족하는 선행연구는 없습니다. WaveSplat 이 이 조합의 첫 사례.",
+             font_size=11, italic=True, color=ACCENT)
     add_page_number(s, 5)
     add_notes(s, (
-        "13편의 논문을 정독한 결과를 5가지 접근법으로 분류했습니다.\n"
-        "각 카테고리를 쉽게 설명하겠습니다.\n\n"
-        "(1) 격자 기반 최적화 — 가장 전통적인 방법입니다.\n"
-        "  비유: 바둑판 위에 파도를 그리는 것과 비슷합니다.\n"
-        "  공간을 일정 간격의 격자로 나누고, 각 격자 점에서 파고를 추정합니다.\n"
-        "  '내가 추정한 파도'와 '실제 관측한 점'의 차이를 줄이도록 최적화합니다.\n"
-        "  Desmars 2018/2020/2023이 대표적이고, 우리와 문제 설정이 가장 비슷합니다.\n"
-        "  한계: 격자 간격보다 짧은 파도는 표현할 수 없습니다 (Nyquist 한계).\n\n"
-        "(2) 앙상블 칼만 필터 — 확률론적 방법입니다.\n"
-        "  비유: '300명이 각자 파도를 추측하고, 실제 관측을 보면서 다 함께 고치는' 방식입니다.\n"
-        "  Wang-Pan 2021이 처음 시도, Wang 2025가 최신 변형입니다.\n"
-        "  Yan 2025는 가장 정확한 유체역학(Navier-Stokes)에 이 필터를 적용했습니다.\n"
-        "  물리적으로 가장 정확하지만, 수백 개 시뮬레이션 비용 때문에 느립니다.\n\n"
-        "(3) 지도학습 신경망 — 미리 학습된 인공지능으로 빠르게 추정합니다.\n"
-        "  Ehlers 2023의 FNO가 1.9ms로 가장 빠릅니다.\n"
-        "  하지만 학습 데이터 3120개가 필요하고, 학습하지 않은 환경에서는 성능이 떨어집니다.\n\n"
-        "(4) 물리 기반 비지도 NN — 학습 데이터 없이 물리 법칙만으로 학습합니다.\n"
-        "  Ehlers 2025의 PFT-PINN이 대표적입니다.\n"
-        "  비선형 파도까지 처리할 수 있지만, 한 번 추정에 약 30분이 걸립니다.\n\n"
-        "(5) 연속 파라미터 추정 — 우리 WaveSplat의 접근법입니다.\n"
-        "  격자를 쓰지 않고, 파도 하나하나를 '파수, 주파수, 진폭, 위상'이라는\n"
-        "  물리적 파라미터로 직접 표현합니다.\n"
-        "  핵심 비결: 분산 관계(dispersion relation)라는 물리 법칙을 강제합니다.\n"
-        "  ω = √(g·|k|·tanh(|k|·d)) — 이 관계 덕분에 추정해야 할 변수가 줄어들고,\n"
-        "  50개 관측점만으로도 파도장을 추정할 수 있습니다.\n\n"
-        "다음 슬라이드에서 가장 중요한 선행연구 2편을 자세히 소개합니다."
+        "13 편의 논문을 정독한 결과를 5 가지 접근법으로 분류했습니다.\n"
+        "각 접근법의 작동 원리와 강점/한계를 자세히 설명드립니다.\n\n"
+        "(1) 격자 기반 최적화 (Desmars 2018, 2020, 2023):\n"
+        "  - 작동 원리: 공간을 일정 간격 격자로 나눔 (예: x = 0, 5, 10, ... m). "
+        "각 격자점에서 wave 의 amplitude 추정. 추정한 wave 가 만들 측정값과 실제 측정값의 차이를 cost function 으로 정의해 최적화로 최소화.\n"
+        "  - 강점: 수치해석 분야에서 framework 자체가 잘 정립 — 안정성·수렴성·convergence rate 모두 알려져 있음. "
+        "Desmars 2020 은 wave tank 실험으로 정확도 검증 완료.\n"
+        "  - 한계: 추정 가능한 wavenumber 가 격자 간격에 의해 제약. "
+        "Nyquist-Shannon 정리에 의해 k_max = π/Δx (Δx 는 격자 간격). "
+        "격자 사이 wavenumber (예: k = 0.15 rad/m 인데 격자가 0.1, 0.2 만 가지면) 는 표현 불가. "
+        "또 거의 모든 prior art 가 1D 가정 (선박 진행 방향만) — 실제 multi-directional sea state 처리 안 함.\n\n"
+        "(2) 앙상블 칼만 필터 (Wang-Pan 2021/22, Wang 2025, Yan 2025):\n"
+        "  - 작동 원리: 50–300 개의 wave simulation 을 동시에 진행 (각각 약간 다른 초기 조건). "
+        "측정값이 들어올 때마다 50 개 simulation 의 평균과 분산을 베이지안 update rule 로 갱신. "
+        "Wang-Pan 은 forecast 모델로 HOS (High-Order Spectral, 비선형 wave model) 사용. "
+        "Yan 2025 는 VOF + 전체 Navier-Stokes 까지 사용 → wave breaking 처리 가능.\n"
+        "  - 강점: forecast 모델 자체가 비선형이라 Stokes 비선형, plunging breaker 같은 비선형 현상까지 reconstruction. "
+        "물리 충실도가 가장 높음.\n"
+        "  - 한계: 50–300 개 simulation 을 매 시점 동시 진행 — GPU 사용해도 수백 ms 이상. "
+        "Real-time control loop (10 Hz, 100 ms 예산) 에 부적합. 또 격자 기반이라 1D 위주.\n\n"
+        "(3) 지도학습 신경망 (Ehlers 2023 FNO):\n"
+        "  - 작동 원리: 수천 개 (Ehlers 2023 의 경우 3120 개) HOS 합성 데이터로 NN 을 미리 학습. "
+        "학습 후에는 sparse measurement 를 입력하면 wave field 를 출력. "
+        "FNO (Fourier Neural Operator) architecture 가 Fourier 공간에서 global mapping 학습.\n"
+        "  - 강점: 학습 후 inference 매우 빠름 (1.9 ms / instance). 학습 데이터 분포 안에서는 정확.\n"
+        "  - 한계: 학습 데이터 합성 자체가 큰 작업 (3120 HOS simulation). "
+        "학습 분포 밖 sea state 또는 다른 sensor 조건에서는 정확도 저하 (distribution shift). "
+        "Black-box — 왜 그렇게 추정했는지 해석 어려움. 1D 만.\n\n"
+        "(4) 물리 기반 비지도 NN (Ehlers 2025 PFT-PINN):\n"
+        "  - 작동 원리: PINN (physics-informed neural network) 으로 학습 데이터 없이 학습. "
+        "Loss 함수가 PDE residual (Laplace 방정식 + 표면 boundary condition + 바닥 condition) "
+        "이라 NN 이 wave physics 자체를 학습. Auto-differentiation 으로 PDE residual 계산.\n"
+        "  - 강점: 학습 데이터 0 개로 비선형 wave 처리 (linear LWT 부터 NLSE2 같은 weak nonlinear 까지). "
+        "Wave flume 실험으로 검증 (SSP < 0.05).\n"
+        "  - 한계: Instance 마다 처음부터 30 분 학습 (RTX 3090, 40K+ epochs) — real-time 불가. "
+        "Buoy time-series 입력만 처리 — sparse spatial LiDAR setup 미지원. 1D + t.\n\n"
+        "(5) 연속 파라미터 추정 — WaveSplat (우리):\n"
+        "  - 작동 원리: wave 를 N 개 plane wave 의 파라미터 (A_n, k_xn, k_yn, ω_n, φ_n) 로 직접 표현 — 격자 없이 연속 wavenumber. "
+        "Dispersion 관계 ω = √(g·|k|·tanh(|k|·d)) 를 hard constraint 로 강제 → 자유도 5N → 4N. "
+        "Adam optimizer 로 measurement 와 model prediction 의 차이 최소화.\n"
+        "  - 강점: <100 ms inference (CPU) — real-time control loop 적합. "
+        "2D directional 처리. LiDAR raydrop, shadowing, Fresnel 까지 simulator 에 모사.\n"
+        "  - 한계: Linear superposition 가정 (LWT family). Klein 2020 의 정량 비교에서 HOSM > NLSE2 > LWT — "
+        "비선형 wave 처리 못 함. ε < 0.07 operational range 에서만 신뢰.\n\n"
+        "다음 슬라이드부터 가장 중요한 선행 연구 2 편을 자세히 소개하겠습니다."
     ))
 
 
@@ -532,43 +554,53 @@ def build_s6():
         num=6,
         title_full="Wang & Pan 2021/22 (JFM) + Wang 2025 (Coastal Eng) — EnKF family",
         key_msg=[
-            "**앙상블 칼만 필터(EnKF) + 파도 시뮬레이터(HOS) 첫 결합**",
-            "  쉽게 말해: 300개의 시뮬레이션을 동시에 돌리고, 관측값으로 보정하는 방식",
-            "  날씨 예보에서 출발한 기법이 파도 추정에 쓰이게 된 것입니다",
+            "**EnKF (Ensemble Kalman Filter)**: 50–300 개 wave simulation 을 동시에 진행 후 measurement 로 update",
+            "  Forecast 단계: 각 ensemble member 가 wave model 로 시간 진행",
+            "  Analysis 단계: ensemble 의 covariance 와 measurement 로 베이지안 update",
+            "**HOS (High-Order Spectral method)**: 비선형 wave model — Linear Wave Theory (LWT) 의 확장",
+            "  표면 boundary condition 의 비선형 항 (wave-wave interaction) 까지 spectral 표현으로 계산",
+            "  Wave steepness ε ~ 0.1 까지 처리 가능 (LWT 는 ε < 0.07)",
+            "  Dommermuth & Yue 1987, West et al. 1987 에서 출발한 표준 비선형 wave model",
             "**Wang 2025 (Coastal Eng 197)**: Ne=300, fuzzy R 적응, Delaunay 보간",
-            "  → 우리가 원논문 방법을 충실히 재현하여 12개 에피소드에서 비교했습니다",
         ],
         limits=[
-            "**격자 해상도 한계** — nRMSE가 ~0.25 아래로 내려가지 않음 (격자 밖 파수 표현 불가)",
-            "**앙상블 비용** — Ne=300개 시뮬레이션 → **632 ms/frame** (실시간 불가)",
+            "**격자 해상도 한계** — nRMSE 가 ~0.25 아래로 내려가지 않음 (격자 밖 wavenumber 표현 불가)",
+            "**앙상블 비용** — Ne=300 simulation → **632 ms / frame** (real-time control loop 불가)",
         ],
         contrast=[
-            "**12-episode 비교 결과**: WaveSplat **0.211** / 13ms  vs  Wang2025 0.253 / 632ms",
-            "WaveSplat: **정확도 16% 우위 + 47배 빠름** (GPU 없이, CPU만으로도 가능)",
+            "**12-episode 비교**: WaveSplat **0.211** / 13 ms  vs  Wang2025 0.253 / 632 ms",
+            "WaveSplat: **정확도 16% 우위 + 47 배 빠름** (CPU 만으로도 가능)",
         ],
         notes=(
-            "이 논문 family가 우리의 가장 직접적인 비교 대상입니다.\n\n"
-            "EnKF(앙상블 칼만 필터)를 쉽게 설명하면:\n"
-            "  '시뮬레이션 300개를 동시에 돌리고, 실제 관측을 받을 때마다\n"
-            "   각 시뮬레이션을 확률적으로 보정하는 필터'입니다.\n"
-            "  원래 날씨 예보에서 쓰이던 기법인데, 파도 추정에도 적용된 것입니다.\n\n"
-            "이 family의 발전 과정:\n"
-            "  - Wang & Pan 2021 (JFM 918): EnKF + HOS를 처음 결합\n"
-            "  - Wang & Pan 2022 (JFM 949): 해류(current)까지 동시 추정하도록 확장\n"
-            "  - Wang 2025 (Coastal Eng 197): 앙상블 300개, fuzzy R(노이즈 자동 적응),\n"
-            "    Delaunay 보간(불규칙 관측점 처리)으로 개선\n\n"
-            "우리는 Wang 2025를 코드로 충실하게 재현했습니다:\n"
-            "  - Ne=300, 80x60 격자(dx=3m), fuzzy R, Delaunay, sub-state ETKF\n"
-            "  - 원논문과의 차이: HOS 대신 linear dispersion 사용\n"
-            "    (우리 방법도 linear이므로, 공정한 비교를 위해 같은 물리 모델을 적용)\n\n"
+            "이 논문 family 가 우리의 가장 직접적 비교 대상입니다. "
+            "주요 두 용어를 먼저 정의하겠습니다.\n\n"
+            "EnKF (Ensemble Kalman Filter, 앙상블 칼만 필터):\n"
+            "  - 50–300 개의 wave simulation 을 동시에 진행 (각각 약간 다른 초기 조건).\n"
+            "  - Forecast 단계: 각 ensemble member 가 wave model 로 시간 진행 (예: 1초 후 wave field 예측).\n"
+            "  - Analysis 단계: measurement 가 들어올 때마다 ensemble 의 평균과 covariance 로부터 Kalman gain 계산.\n"
+            "  - 베이지안 update rule: x_a = x_f + K (y - H x_f). 여기서 K 가 Kalman gain, y 가 measurement, H 가 observation operator.\n"
+            "  - 원래 기상학 데이터 동화에서 출발 (Evensen 1994), Hunt 2007 의 LETKF 가 표준 변형.\n"
+            "  - Wave estimation 에는 Wang-Pan 2021 이 처음 적용.\n\n"
+            "HOS (High-Order Spectral method, 고차 스펙트럴 방법):\n"
+            "  - 비선형 wave model. Linear Wave Theory (LWT) 의 확장.\n"
+            "  - LWT 는 wave field 를 plane wave 의 단순 선형 중첩으로 표현 (ε < 0.07 에서만 정확).\n"
+            "  - HOS 는 표면 boundary condition 의 비선형 항 (wave-wave interaction, 즉 두 wave 가 만나서 생기는 추가 wave) 까지 spectral 표현으로 계산.\n"
+            "  - Wave steepness ε ~ 0.1 까지 처리 가능 — Stokes wave, swell-wind interaction 같은 비선형 현상까지.\n"
+            "  - Dommermuth & Yue 1987, West et al. 1987 에서 독립적으로 제안. 이후 ocean engineering 에서 표준 비선형 wave model 로 자리잡음.\n"
+            "  - Klein 2020 의 정량 비교에서 HOSM > NLSE2 > NLSE > LWT 순 정확도.\n\n"
+            "이 family 의 발전 과정:\n"
+            "  - Wang & Pan 2021 (JFM 918): EnKF + HOS 를 처음 결합한 paper.\n"
+            "  - Wang & Pan 2022 (JFM 949): 해류 (current) 까지 동시 추정 (EnKF-HOS-C).\n"
+            "  - Wang 2025 (Coastal Eng 197): 앙상블 300 개, fuzzy R (measurement noise 자동 적응), "
+            "Delaunay 보간 (불규칙 측정점 처리) 추가.\n\n"
+            "우리는 Wang 2025 의 방법을 코드로 충실히 재현했습니다 (Ne=300, 80×60 격자, dx=3m, fuzzy R, Delaunay). "
+            "원논문과의 차이는 forecast 모델로 HOS 대신 linear dispersion 사용 — 우리 WaveSplat 도 linear 이므로 공정 비교 위해 같은 model.\n\n"
             "비교 결과:\n"
-            "  - WaveSplat: 0.211 nRMSE / 13ms (더 정확하고 훨씬 빠름)\n"
-            "  - Wang2025: 0.253 nRMSE / 632ms (격자 한계로 0.25 아래로 못 내려감)\n\n"
-            "에피소드별 패턴 (뒤에서 자세히 보여드립니다):\n"
-            "  - 단순한 파도(1~5개 성분): WaveSplat이 압도적으로 우수\n"
-            "    예) BF3_2comp: WaveSplat 0.052 vs Wang 0.250\n"
-            "  - 복잡한 파도(15~30개 성분): Wang2025가 더 나은 경우도 있음\n"
-            "  - 이 trade-off는 정직하게 보고할 예정입니다"
+            "  - WaveSplat: nRMSE 0.211, 13 ms / frame\n"
+            "  - Wang2025: nRMSE 0.253, 632 ms / frame\n\n"
+            "에피소드별 패턴:\n"
+            "  - 단순 파도 (N_components 1–5): WaveSplat 우위 (예: BF3_2comp 에서 WaveSplat 0.052 vs Wang 0.250)\n"
+            "  - 복잡 파도 (N_components 15–30): Wang2025 가 일부 episode 에서 우위 — trade-off 정직하게 보고 예정"
         ),
         star=True,
     )
@@ -754,100 +786,127 @@ def build_s10():
     ))
 
 
-# S11 — WaveSim physics + raydrop
+# S11 — WaveSim physics + LiDAR 모사 (어떻게)
 def build_s11():
     s = add_blank(WHITE)
-    add_section_tag(s, "Part 2 · WaveSim — 우리가 만든 simulator", color=ACCENT2)
-    add_title(s, "WaveSim — physics + LiDAR sensor model")
-    add_subtitle(s, "선형 중첩 + 분산 + JONSWAP 스펙트럼, 그리고 LiDAR raydrop 물리까지")
+    add_section_tag(s, "Part 2 · WaveSim — LiDAR 모사 (1/2: 어떻게)", color=ACCENT2)
+    add_title(s, "WaveSim — LiDAR 센서를 어떻게 시뮬레이션했나")
+    add_subtitle(s, "Wave 수면 model + ray-mesh intersection + vessel motion 보정")
     bullets = [
-        "**Physics (수면 모델)**:",
+        "**수면 model (간략)**:",
         "  η(x, y, t) = Σ_n A_n cos(k_xn·x + k_yn·y − ω_n·t + φ_n)",
-        "  N개 plane wave의 선형 중첩 (Linear Wave Theory, LWT)",
+        "  N 개 plane wave 의 선형 중첩 (Linear Wave Theory, LWT)",
+        "  Dispersion: ω_n = √(g·|k_n|·tanh(|k_n|·d))",
         "",
-        "**Dispersion relation (분산 관계, 깊은 물)**:",
-        "  ω_n = √(g·|k_n|·tanh(|k_n|·d))   — 주파수와 wavenumber의 1-to-1 매핑",
+        "**LiDAR 센서 모사 — 단계별 처리**:",
         "",
-        "**Spectrum**: JONSWAP-2D (Hasselmann 1973 + 방향 spreading), N_components 가변",
+        "**1) Ray emit (광선 발사)**:",
+        "  vessel 위치에서 모든 (azimuth × elevation) 방향으로 laser ray 발사",
+        "  실제 LiDAR (예: Velodyne, Ouster) 의 angular grid 와 동일한 패턴",
         "",
-        "**LiDAR sensor model** (이 부분이 우리의 unique contribution):",
-        "  Ray-triangle intersection (Möller-Trumbore 1997, 검증된 알고리즘)",
-        "  Raydrop probability — Fresnel reflectance (specular vs diffuse 선택)",
-        "  Geometric shadowing — 가까운 파도가 먼 파도를 가림",
-        "  Vessel motion + ego-velocity correction",
+        "**2) Wave mesh 생성**:",
+        "  η(x, y, t) 를 매 frame 격자 (50×50) 로 sampling 후 triangulation",
+        "  → 시간 t 에서의 wave 표면 = triangle 들",
         "",
-        "**검증**: 108 unit test 통과, 110 episode 합성 dataset 생성",
+        "**3) Ray-triangle intersection** (Möller-Trumbore 1997):",
+        "  각 ray 가 모든 triangle 과 교차하는지 계산 → first-hit point 반환",
+        "  Möller-Trumbore: graphics 분야 표준 알고리즘, 수치적 안정 + 빠름",
+        "  → first-hit point 까지 거리 = LiDAR 측정값",
+        "",
+        "**4) Vessel motion 보정**:",
+        "  선박 V=11.3 m/s 이동 (매 frame Δt=0.1 s 동안 1.13 m 전진)",
+        "  vessel-frame 측정 → world-frame 변환 (좌표계 변환)",
     ]
-    add_bullets(s, 0.6, 1.85, 8.0, 5.3, bullets, font_size=12,
+    add_bullets(s, 0.5, 1.85, 8.5, 5.3, bullets, font_size=11,
                 line_space_after=2)
-    fig_field = os.path.join(DOC_DIR, 'wavesim_BF4_5c_wave_field.png')
-    add_image_or_placeholder(s, fig_field, 8.7, 2.0, 4.3,
-                             placeholder_text='[wavesim wave field]')
+    fig_lidar = os.path.join(DOC_DIR, 'wavesim_BF4_5c_wave_lidar.png')
+    add_image_or_placeholder(s, fig_lidar, 9.2, 2.2, 3.9,
+                             placeholder_text='[LiDAR scan visualization]')
     add_page_number(s, 9)
     add_notes(s, (
-        "WaveSim은 우리가 만든 simulator입니다. 두 부분으로 나뉩니다.\n\n"
-        "(1) 수면 model (physics):\n"
-        "  - Linear Wave Theory — N개 plane wave의 선형 중첩으로 수면 표현\n"
-        "  - Dispersion relation — frequency ω와 wavenumber k의 관계 (깊은 물에서 ω² = g·k·tanh(kd))\n"
-        "  - JONSWAP-2D 스펙트럼 — 실제 바다의 통계적 특성 모방\n\n"
-        "한계는 정직하게 인정합니다 — Klein 2020이 정량 비교한 HOSM > NLSE > LWT 중 우리는 LWT family로 가장 단순. "
-        "ε (steepness) < 0.07 영역에서만 신뢰 가능.\n\n"
-        "(2) LiDAR sensor model — 이게 우리의 unique contribution:\n"
-        "  - Ray-triangle intersection: LiDAR ray가 mesh와 만나는 점을 계산. Möller-Trumbore 1997 알고리즘 사용 (그래픽 분야 표준)\n"
-        "  - Raydrop: 파도 표면에서 ray가 반사되어 LiDAR에 못 돌아오는 확률. Fresnel reflectance 사용 (specular = 거울 반사, diffuse = 산란)\n"
-        "  - Shadowing: 앞쪽 파도가 뒤쪽 파도를 가림\n"
-        "  - Vessel motion: 선박이 V=11.3 m/s로 움직이므로 매 frame 다른 위치에서 관측\n\n"
-        "12편 prior art 중 이 정도 sensor model을 simulate한 것은 없습니다. "
-        "39개 unit test로 simulator 정확성 검증, 100 episode를 합성 dataset으로 생성했습니다."
+        "WaveSim 의 LiDAR 센서 모사 부분을 단계별로 설명드립니다. "
+        "다음 슬라이드에서 raydrop 과 shadowing 의 합당성을 다루겠습니다.\n\n"
+        "(1) Ray emit — vessel 위치 (선박의 LiDAR 장착 점) 에서 laser ray 발사. "
+        "실제 LiDAR (Velodyne VLP-16, Ouster OS1-64 등) 는 azimuth (수평 방위각) × elevation (수직 각도) 의 fixed angular grid 로 ray 를 발사. "
+        "예: 수평 0–360°, 수직 −15° ~ +15°, 1024 azimuth × 16 elevation = 16,384 ray / scan. "
+        "우리는 이 angular grid 를 시뮬레이션 입력으로 받음 — 실제 sensor spec 그대로 적용 가능.\n\n"
+        "(2) Wave mesh 생성 — wave 표면 η(x, y, t) 를 격자 (50×50 또는 더 dense) 로 sampling 후 두 triangle/cell 로 triangulation. "
+        "결과: 시간 t 에서의 wave 표면 = 약 4900 개 triangle 의 mesh.\n\n"
+        "(3) Ray-triangle intersection — 각 ray 가 발사된 후 모든 triangle 과 교차 검사. "
+        "Möller & Trumbore 1997 알고리즘 사용 — 1997 년 Journal of Graphics Tools 에 발표된 표준 ray-triangle intersection 알고리즘. "
+        "특징: barycentric 좌표 직접 계산, 수치적 안정, preprocessing 불필요, 매우 빠름. "
+        "이 알고리즘은 그래픽 (ray tracing renderer), 시뮬레이션, 물리 엔진 분야에서 30 년 동안 표준으로 사용. "
+        "각 ray 의 first-hit point (가장 가까운 intersection) 가 LiDAR 의 측정값.\n\n"
+        "(4) Vessel motion 보정 — 선박이 frame 사이 (Δt = 0.1 s) 에 1.13 m 전진. "
+        "각 ray 의 emit 위치는 vessel 의 frame 별 위치 (world frame). "
+        "측정된 hit point 도 world frame 으로 표현. "
+        "실제 선박에서는 IMU + GPS 로 vessel pose (위치 + orientation) 측정 → 좌표계 변환의 표준 절차.\n\n"
+        "이 4 단계가 LiDAR scan 한 번의 시뮬레이션 절차입니다. "
+        "다음 슬라이드에서 raydrop (점이 누락되는 현상) 과 shadowing (가려짐) 의 모사가 왜 합당한지 설명드립니다."
     ))
 
 
-# S12 — WaveSim 100 episodes
+# S12 — WaveSim LiDAR 모사 (합당성 + 검증)
 def build_s12():
     s = add_blank(WHITE)
-    add_section_tag(s, "Part 2 · WaveSim — 합성 dataset", color=ACCENT2)
-    add_title(s, "110 episode — 통제된 benchmark")
-    add_subtitle(s, "재현 가능, 다양한 복잡도, ground-truth η + LiDAR 점 모두 보존")
+    add_section_tag(s, "Part 2 · WaveSim — LiDAR 모사 (2/2: 합당성)", color=ACCENT2)
+    add_title(s, "Raydrop, shadowing — 합당성과 검증")
+    add_subtitle(s, "Fresnel 반사 + 기하 차폐 — 광학·기하학의 표준; 108 unit test + 110 episodes 로 검증")
     bullets = [
-        "**Episode 변수**:",
-        "  Sea state: BF2–BF7 (6단계 Beaufort scale, 잔잔 → 매우 거친)",
-        "  N_components: 1, 2, 5, 15, 20, 30 (저/중/고 복잡도)",
-        "  Sensor type: uniform / slope (LiDAR scan 분포)",
-        "  Seeds: 0–4 (BF2–5), 0 (BF6–7) — 재현성 보장",
+        "**Raydrop — 점이 왜 누락되는가**:",
+        "  실제 LiDAR: 파도 표면이 specular (반사가 한 방향으로 집중) 이면 ray 가 LiDAR 가 아닌 다른 방향으로 반사 → return signal 없음",
+        "  입사각이 표면 normal 에서 멀어질수록 specular 비중 증가 → raydrop 확률 ↑",
+        "  **모사**: Fresnel reflectance R(θ_i) = ((n₁cos θ_i − n₂cos θ_t) / (n₁cos θ_i + n₂cos θ_t))² 로 specular 확률 계산",
+        "  **합당성**: Fresnel 식은 air-water 광학 경계의 표준 physics — 광학 교과서 표준, ocean LiDAR (Nouguier 2014) 에서 검증",
         "",
-        "**Episode당 데이터**:",
-        "  T = 30 s, Δt = 0.1 s → 300 frames",
-        "  Ground-truth η field: 50×50 격자 (참값으로 평가용)",
-        "  LiDAR scan: ~50 valid pts/frame (raydrop 후)",
-        "  HDF5 format, 110 files",
+        "**Geometric shadowing**:",
+        "  실제 LiDAR: 앞쪽 큰 파도 (높은 crest) 가 뒤쪽 파도를 가림 → 가려진 영역 점 누락",
+        "  **모사**: ray-triangle intersection 의 first-hit 결과로 자동 처리",
+        "  **합당성**: ray tracing 의 geometric optics 결과, 추가 가정 없음 (광선 직진 + 첫 충돌점만 측정)",
         "",
-        "**Test coverage**:",
-        "  53 unit test (wavesim/) + 55 (wavesplat/) = **108 total, 모두 통과**",
-        "  → simulator + estimator의 정확성 보증",
+        "**검증 (validation)**:",
+        "  108 unit test — ray-triangle 정확성, Fresnel 계산, shadowing edge case, vessel motion 모두 검증 통과",
+        "  110 episodes 합성 dataset — BF2–BF7 × N=1–30 × directional spreading 으로 다양성 확보",
+        "  Sea trial 실측 LiDAR 데이터와 시각적 비교 (sea_trial_lidar.png — 분포 패턴 일치)",
+        "",
+        "**한계 (정직 인정)**:",
+        "  미세파 (capillary, mm 단위), foam, breaking wave 영향 미반영 — operational sea state (BF2–BF6) 에서는 부차적",
     ]
-    add_bullets(s, 0.6, 1.85, 8.0, 5.3, bullets, font_size=13,
-                line_space_after=3)
-    fig_lidar = os.path.join(DOC_DIR, 'wavesim_BF4_5c_wave_lidar.png')
-    add_image_or_placeholder(s, fig_lidar, 8.7, 2.0, 4.3,
-                             placeholder_text='[BF4 LiDAR scan]')
+    add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=11,
+                line_space_after=2)
     add_page_number(s, 10)
     add_notes(s, (
-        "110 episode의 통제된 benchmark를 구축했습니다.\n\n"
-        "Episode 설계:\n"
-        "  - Sea state: BF2 (아주 잔잔) ~ BF7 (매우 거친) — 6단계 Beaufort scale\n"
-        "  - N_components: 1 ~ 30 — 알고리즘이 component 수에 robust한지 검증\n"
-        "  - Sensor type: uniform (균등 분포), slope (거리 비례 분포)\n"
-        "  - Seeds: BF2-BF5는 seed 0-4 (5개씩), BF6-BF7은 seed 0 (1개씩)\n\n"
-        "Episode당 데이터:\n"
-        "  - 30초 시뮬레이션, 0.1초 간격 → 300 frame\n"
-        "  - Ground-truth η field 50×50 격자 — 평가 시 참값\n"
-        "  - LiDAR scan은 raydrop/shadowing 적용 후 frame당 ~50점\n\n"
-        "전체 110 episode를 HDF5 파일로 저장.\n\n"
-        "Reproducibility 보장:\n"
-        "  - Seed 저장 — 동일 seed로 재실행 시 동일 결과\n"
-        "  - 53 + 55 = 108개 unit test — simulator와 estimator 모두 검증\n\n"
-        "이 dataset 자체가 paper의 contribution 일부입니다. Ehlers 2023도 비슷한 합성 benchmark를 만들었지만 1D였고, "
-        "우리는 2D directional + LiDAR sensor model까지 포함."
+        "이전 슬라이드에서 LiDAR 모사 단계 (ray emit → mesh → intersection → vessel motion 보정) 를 설명드렸습니다. "
+        "이 슬라이드는 두 가지 핵심 효과 — raydrop 과 shadowing — 의 모사가 왜 합당한지 자세히 설명드립니다.\n\n"
+        "(1) Raydrop 의 합당성:\n"
+        "  실제 LiDAR 에서 점이 누락되는 가장 큰 원인은 specular reflection (일방향 반사) 입니다. "
+        "물 표면은 매끄러우면 specular, 거칠면 diffuse (다방향 산란) 가 됩니다. "
+        "Specular 비중이 높을 때, ray 가 LiDAR receiver 가 아닌 다른 방향으로 모두 반사되면 return signal 이 없어 점이 누락됩니다. "
+        "  - 입사각 (incidence angle, θ_i) 이 표면 normal 에 가까우면 일부 ray 가 LiDAR 로 돌아옴 (점 검출).\n"
+        "  - θ_i 가 표면 normal 에서 멀어질수록 specular 가 강해지고 LiDAR 로 안 돌아옴 (점 누락).\n"
+        "이 specular 비중을 Fresnel reflectance 식 R(θ_i) 로 계산. "
+        "Fresnel 식 자체는 air-water 광학 경계의 표준 physics — 대학 광학 교과서 (예: Hecht, Optics) 에 표준으로 등장. "
+        "Air refractive index n₁ ≈ 1, water n₂ ≈ 1.33 가 우리 simulator 의 default 값. "
+        "이 식은 ocean LiDAR 분야 (Nouguier-Grilli-Guérin 2014, IEEE TGRS) 에서도 동일하게 사용 — 검증된 표준.\n\n"
+        "(2) Geometric shadowing 의 합당성:\n"
+        "  실제 LiDAR 에서 앞쪽 큰 파도가 뒤쪽 파도를 가리는 현상 (shadowing). "
+        "우리 simulator 는 이걸 별도 modeling 안 함 — ray-triangle intersection 의 first-hit (가장 가까운 intersection) 만 반환. "
+        "결과적으로 앞쪽 triangle 이 뒤쪽 triangle 의 ray path 를 자연스럽게 차단. "
+        "이건 geometric optics (광선 직진 + 첫 충돌점 측정) 의 자연스러운 결과 — 추가 가정 0. "
+        "Möller-Trumbore 알고리즘이 first-hit 만 반환하므로 코드 수준에서도 자동으로 처리됨.\n\n"
+        "(3) 검증 (validation):\n"
+        "  - 108 unit test 통과 — ray-triangle intersection, Fresnel 계산, shadowing edge case (예: 거의 수직 입사), vessel motion 모두 별도 검증.\n"
+        "  - 110 episode 합성 dataset — BF2 (아주 잔잔) ~ BF7 (매우 거친), N_components 1–30, directional spreading 다양화. "
+        "각 episode 30 초 / 0.1 초 간격 / 50×50 ground-truth grid + LiDAR scan ~50 점/frame. HDF5 format.\n"
+        "  - Sea trial 실측 LiDAR 데이터 (sea_trial_lidar.png 참조) 와 시각적 비교. "
+        "Synthetic LiDAR scan 의 점 분포 (raydrop 패턴, 거리에 따른 density 변화) 가 실측과 정성적으로 일치.\n\n"
+        "(4) 정직한 한계:\n"
+        "  - 미세파 (capillary wave, mm 단위 surface roughness): 실제 LiDAR raydrop 에 추가 영향. 우리는 미반영. "
+        "Operational sea state (BF2–BF6) 에서는 dominant 영향 아님.\n"
+        "  - Foam, white cap (BF6 이상): wave breaking 시 발생, 우리 LWT family 가 처리 못 하는 비선형 현상.\n"
+        "  - Breaking wave: VOF-EnKF 영역, 우리는 future work 로.\n\n"
+        "이 정도의 sensor model 을 simulate 한 prior art 는 12 편 정독 결과 0 편입니다. "
+        "Sensor 물리까지 포함된 simulator + 110 episode 합성 dataset 자체가 paper 의 contribution 일부입니다."
     ))
 
 
@@ -1780,6 +1839,39 @@ def build_backups():
                  "  Delaunay 삼각분할 → 격자점으로 보간하여 ETKF에 입력합니다.\n\n"
                  "계산 비용: Ne=300, 80x60 grid일 때 각 time step에서\n"
                  "300개 FFT propagation + ETKF analysis = ~632ms/frame (CPU).")
+    # ── A12: WaveSim 110 episodes dataset detail ──
+    build_backup("A12",
+                 "WaveSim — 110 episodes 합성 dataset",
+                 [
+                     "**Episode 변수**:",
+                     "  Sea state: BF2–BF7 (6 단계 Beaufort scale, 잔잔 → 매우 거친)",
+                     "  N_components: 1, 2, 5, 15, 20, 30 (저/중/고 복잡도)",
+                     "  Sensor type: uniform / slope (LiDAR scan 분포)",
+                     "  Seeds: BF2–BF5 = seed 0–4 (5 개씩), BF6–BF7 = seed 0",
+                     "**Episode 당 데이터**:",
+                     "  T = 30 s, Δt = 0.1 s → 300 frames",
+                     "  Ground-truth η field: 50×50 격자 (참값으로 평가용)",
+                     "  LiDAR scan: ~50 valid pts/frame (raydrop 후)",
+                     "  HDF5 format, 110 files",
+                     "**Reproducibility**: seed 저장 — 동일 seed 로 재실행 시 동일 결과",
+                     "**Test coverage**: 53 (wavesim) + 55 (wavesplat) = 108 unit test 모두 통과",
+                 ],
+                 "WaveSim 합성 dataset 의 detail 입니다.\n\n"
+                 "Episode 설계:\n"
+                 "  - Sea state: BF2 (잔잔) ~ BF7 (매우 거친) 6 단계. ε (steepness) 는 BF2 ~0.02, BF7 ~0.10.\n"
+                 "  - N_components: 1 ~ 30 — 알고리즘이 component 수에 robust 한지 검증.\n"
+                 "  - Sensor type 두 가지: uniform (균등 분포), slope (거리 비례 분포 — 실제 LiDAR 의 elevation grid).\n"
+                 "  - Seeds: BF2-BF5 는 seed 0-4 (5 개씩, 통계 평가용), BF6-BF7 은 seed 0 (1 개씩, 극한 sea state).\n\n"
+                 "Episode 당 데이터 구성:\n"
+                 "  - 30 초 시뮬레이션, 0.1 초 간격 → 300 frame.\n"
+                 "  - Ground-truth η field 50×50 격자 — 평가 시 참값.\n"
+                 "  - LiDAR scan: raydrop / shadowing 적용 후 frame 당 ~50 점.\n\n"
+                 "Reproducibility 보장:\n"
+                 "  - Seed 저장 — 동일 seed 로 재실행 시 동일 결과.\n"
+                 "  - 53 + 55 = 108 unit test — simulator 와 estimator 모두 검증.\n\n"
+                 "이 dataset 자체가 paper 의 contribution 일부입니다. "
+                 "Ehlers 2023 도 비슷한 합성 benchmark 만들었지만 1D + radar 였고, "
+                 "우리는 2D directional + LiDAR sensor model 까지 포함.")
 
 
 # ─────────────────────────────────────────

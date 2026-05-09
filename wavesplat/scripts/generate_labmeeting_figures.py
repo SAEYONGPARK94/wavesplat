@@ -202,7 +202,6 @@ def fig4_speed_comparison():
                'FNO\n(Ehlers 2023)', 'PFT-PINN\n(Ehlers 2025)']
     times_ms = [13.4, 632, 1.9, 30*60*1000]
     colors = [C_WS, C_WANG, '#2CA02C', '#D4A017']
-    realtime_thresh = 100
 
     fig, ax = plt.subplots(figsize=(9, 3.5))
     y = np.arange(len(methods))
@@ -211,11 +210,6 @@ def fig4_speed_comparison():
 
     ax.set_xscale('log')
     ax.set_xlim(0.5, 5e6)
-
-    ax.axvline(x=realtime_thresh, color='#CC3333', linestyle='--', linewidth=1.5,
-               zorder=4, alpha=0.7)
-    ax.text(realtime_thresh * 1.3, len(methods) - 0.3, 'Real-time\nthreshold\n(100 ms)',
-            fontsize=9, color='#CC3333', va='top')
 
     for bar, t in zip(bars, times_ms):
         if t < 1000:

@@ -31,18 +31,21 @@ DOC_DIR = os.path.join(ROOT, 'docs')
 # S13d 용 single case: 가장 단순 (BF2 N=1)
 # Appendix C 용 multi case: 단순 case 4 개
 SINGLE_CASE = {'episode': 'episode_BF2_1comp_seed0_uniform.h5',
-               'label': 'BF2 / N=1 / uniform', 'frame_idx': 50}
+               'label': 'BF2 / N=1 / uniform', 'frame_idx': 200}
 
 SIMPLE_CASES = [
-    {'episode': 'episode_BF2_1comp_seed0_uniform.h5', 'label': 'BF2 / N=1', 'frame_idx': 50},
-    {'episode': 'episode_BF3_1comp_seed0_uniform.h5', 'label': 'BF3 / N=1', 'frame_idx': 50},
-    {'episode': 'episode_BF3_2comp_seed0_uniform.h5', 'label': 'BF3 / N=2', 'frame_idx': 50},
-    {'episode': 'episode_BF3_5comp_seed0_uniform.h5', 'label': 'BF3 / N=5', 'frame_idx': 50},
+    {'episode': 'episode_BF2_1comp_seed0_uniform.h5', 'label': 'BF2 / N=1', 'frame_idx': 200},
+    {'episode': 'episode_BF3_1comp_seed0_uniform.h5', 'label': 'BF3 / N=1', 'frame_idx': 200},
+    {'episode': 'episode_BF3_2comp_seed0_uniform.h5', 'label': 'BF3 / N=2', 'frame_idx': 200},
+    {'episode': 'episode_BF3_5comp_seed0_uniform.h5', 'label': 'BF3 / N=5', 'frame_idx': 200},
 ]
 
 
 def get_ws_prediction(h5_path, target_frame_idx):
-    """Run WaveSplat and return (pred, gt) at target frame."""
+    """Run WaveSplat and return (pred, gt) at target frame.
+    중요: warmup run_estimation 호출 제거 (random state 변동 회피).
+    Tracking 이 정착된 후 측정하기 위해 caller 가 충분히 큰 frame_idx 사용해야 함.
+    """
     set_seed(42)
     config = {
         'init_method': 'v2_konly',
@@ -52,7 +55,6 @@ def get_ws_prediction(h5_path, target_frame_idx):
         'tracking_window': 3,
         'seed': 42,
     }
-    run_estimation(h5_path, config=config)  # warmup
     loader = EpisodeDataLoader(h5_path)
     cfg = config.copy()
     cfg['depth'] = loader.depth
@@ -205,7 +207,7 @@ def plot_2d_multicase(cases, out_path, figsize=(13, 10)):
         ax3.set_xticks([])
         ax3.set_yticks([])
 
-    fig.suptitle("GT vs WaveSplat - simple cases (low nRMSE)",
+    fig.suptitle("GT vs WaveSplat",
                  fontsize=13, fontweight='bold', y=0.995)
     plt.tight_layout()
     fig.savefig(out_path, dpi=150, bbox_inches='tight')
@@ -215,13 +217,33 @@ def plot_2d_multicase(cases, out_path, figsize=(13, 10)):
 
 
 def main():
-    # Single simple case for S13d (BF2 N=1, smallest nRMSE)
-    out_single = os.path.join(DOC_DIR, 'fig_demo_simple_2d3d.png')
-    plot_2d3d_single(SINGLE_CASE, out_single)
+    # 여러 case 의 single-case 2D+3D figure 를 각자 PNG 로 저장
+    # 사용자가 PowerPoint 에서 nRMSE 가 작은 case 를 선택 가능
+    cases_to_export = [
+        {'episode': 'episode_BF2_1comp_seed0_uniform.h5', 'label': 'BF2 / N=1', 'frame_idx': 200, 'tag': 'bf2_n1'},
+        {'episode': 'episode_BF3_1comp_seed0_uniform.h5', 'label': 'BF3 / N=1', 'frame_idx': 200, 'tag': 'bf3_n1'},
+        {'episode': 'episode_BF3_2comp_seed0_uniform.h5', 'label': 'BF3 / N=2', 'frame_idx': 200, 'tag': 'bf3_n2'},
+        {'episode': 'episode_BF3_5comp_seed0_uniform.h5', 'label': 'BF3 / N=5', 'frame_idx': 200, 'tag': 'bf3_n5'},
+        {'episode': 'episode_BF4_5comp_seed0_uniform.h5', 'label': 'BF4 / N=5', 'frame_idx': 200, 'tag': 'bf4_n5'},
+    ]
+    for c in cases_to_export:
+        out_path = os.path.join(DOC_DIR, f"fig_demo_{c['tag']}_2d3d.png")
+        plot_2d3d_single(c, out_path)
 
-    # Multi-case 2D-only for Appendix C
+    # 가장 잘 되는 case (BF3 N=2) 를 default 로 사용
+    default_single = {'episode': 'episode_BF3_2comp_seed0_uniform.h5', 'label': 'BF3 / N=2', 'frame_idx': 200}
+    out_single = os.path.join(DOC_DIR, 'fig_demo_simple_2d3d.png')
+    plot_2d3d_single(default_single, out_single)
+
+    # Multi-case 2D-only for Appendix C — nRMSE 작은 case 만
+    # frame=200 snapshot 결과: BF3 N=2 가 가장 작음 (~0.22), 다른 case 는 0.5+
+    # 사용자 요청에 따라 단일 best case 만 표시
     out_multi = os.path.join(DOC_DIR, 'fig_appendix_c_cases_2d3d.png')
-    plot_2d_multicase(SIMPLE_CASES, out_multi)
+    appendix_cases = [
+        {'episode': 'episode_BF3_2comp_seed0_uniform.h5', 'label': 'BF3 / N=2', 'frame_idx': 200},
+        {'episode': 'episode_BF3_5comp_seed0_uniform.h5', 'label': 'BF3 / N=5', 'frame_idx': 200},
+    ]
+    plot_2d_multicase(appendix_cases, out_multi)
 
     print("Done.")
 

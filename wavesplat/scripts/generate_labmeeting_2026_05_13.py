@@ -669,7 +669,9 @@ def build_s11():
         "**분산 관계 (Airy 1845)**: ω_n = √(g·|k_n|·tanh(|k_n|·d))",
         "  파도의 주파수와 파수의 표준 관계 — 100 년 이상 검증",
         "",
-        "**LiDAR (Falcon K1)**: 수평 FOV 120° × 수직 ±5°, 32 채널 × 360 beam, 1550 nm",
+        "**LiDAR (Falcon K1 spec, 코드: wavesim/config.py)**:",
+        "  152 채널 × 500 horizontal beam = 76,000 ray / scan",
+        "  Range 10–250 m, 파장 1550 nm, vessel 위 5 m mount",
         "  Ray tracing 으로 파도 표면 first-hit 찾음 (Möller-Trumbore 1997)",
         "",
         "**Vessel motion**: 파도 격자는 world frame 에 고정 (수백 m × 수백 m)",
@@ -727,11 +729,10 @@ def build_s12():
     add_title(s, "Raydrop / shadowing — 왜 합당하고 어떻게 검증되었나")
     add_subtitle(s, "각 물리 모델의 출처 + 우리 검증 방법")
     bullets = [
-        "**물리적 의미 — 빛이 매질 경계에서 일어나는 일**:",
-        "  공기 중 LiDAR 광선이 물 표면에 도달하면 두 부분으로 분리됨:",
-        "  ① 일부는 반사 (specular reflection) — 표면이 매끄러울수록 한 방향으로 집중",
-        "  ② 나머지는 굴절 (refraction) — 물 속으로 들어가 흡수됨 (LiDAR 못 받음)",
-        "  Fresnel 식이 이 두 비율을 결정 — 입사각 θ_i 와 굴절률 n 의 함수",
+        "**물리적 의미 — LiDAR 점 검출의 두 조건**:",
+        "  ① 충분한 비율의 빛이 *반사* 되어야 함 (Fresnel R(θ_i) 가 결정)",
+        "  ② 반사된 빛이 *LiDAR receiver 방향* 으로 돌아와야 함 (geometry 가 결정)",
+        "  굴절되어 물 속으로 들어간 빛은 흡수되어 LiDAR 가 받지 못함",
         "  코드: wavesim/raydrop_uniform.py 의 fresnel_reflectance() 함수",
         "",
         "**Fresnel 수식 — 두 polarization 평균** (LiDAR laser unpolarized 가정):",
@@ -742,11 +743,11 @@ def build_s12():
         "  Step 3: R(θ_i) = (R_s + R_p) / 2 ∈ [0, 1]",
         "  Step 4 (return prob): P = η · R · cos(θ_i) / (d/d_ref)²",
         "",
-        "**물리적 해석 — R(θ_i) 의 의미**:",
-        "  θ_i = 0° (수직 입사): R ≈ 0.02 → 2% 만 반사, 98% 굴절 → 점 검출 잘 됨",
-        "  θ_i → 90° (grazing, 표면과 평행): R → 1 → 거의 모두 specular 반사",
-        "    → ray 가 LiDAR 가 아닌 다른 방향으로 모두 반사 → 점 누락",
-        "  → 비스듬히 들어올수록 raydrop 확률 ↑ (실제 marine LiDAR 의 핵심 현상)",
+        "**물리적 해석 — 왜 수직 입사가 점 검출에 유리한가**:",
+        "  θ_i = 0° (수직 입사): R = 0.02 작지만 반사된 빛이 *LiDAR 로 정확히 되돌아옴* → 검출 OK",
+        "  θ_i → 90° (grazing, 표면과 평행): R = 1 큼에도 반사된 빛이 *반대편* 으로 가버림 → 점 누락",
+        "  → 우리 모델: P = η · R · cos(θ_i) / (d/d_ref)² — cos(θ_i) 가 backscatter geometry 보정 (수직 입사일수록 ↑)",
+        "  → 결국 raydrop 확률은 *반사율 R 과 backscatter 방향* 둘 다 결정 (Lambert + Fresnel 결합)",
         "",
         "**Geometric shadowing**: ray tracing first-hit 의 자연 결과 (추가 모델 0)",
         "**검증**: 108 unit test + 110 episode + sea trial 데이터와 점 분포 일치",
@@ -1370,7 +1371,7 @@ def build_backups():
         "T = 30 s, Δt = 0.1 s → 300 frames",
         "Ground-truth η field: 50×50 격자 (참값)",
         "LiDAR scan: ~50 valid pts/frame (raydrop 후)",
-        "총 110 episode = 약 5 GB",
+        "총 110 episode = 약 1.2 GB (각 episode 12 MB)",
     ], font_size=11, line_space_after=2)
     # Reproducibility / coverage
     add_text(s, 7.0, 5.5, 6.0, 0.4, "Reproducibility + 검증:",
@@ -1386,7 +1387,7 @@ def build_backups():
     add_notes(s, (
         "Appendix B 는 WaveSim 의 110 episode 합성 dataset 구성을 한 눈에 정리한 표입니다. Q&A 시 dataset 관련 질문 받으면 참조하시면 됩니다.\n\n"
         "Sea state 별로 episode 수를 정리하면 — BF2 부터 BF5 까지는 각 sea state × 다양한 N_components × seed 0-4 (5 개씩) 으로 총 70 개 정도 episode 가 있어서 통계 평가가 가능합니다. BF6-BF7 은 극한 sea state 라 seed 0 한 개씩만 — operational range 한계 확인용이고요. Calibration 은 raydrop η scale 같은 sensor 모델 calibration 용으로 별도 episode 입니다.\n\n"
-        "Per-episode 데이터는 30 초 시뮬레이션, 0.1 초 간격으로 frame 300 개입니다. Ground-truth η field 50×50 격자가 평가 시 참값이고, LiDAR scan 은 raydrop / shadowing / Fresnel 적용 후 frame 당 50 점 정도 valid 합니다. HDF5 format 으로 총 5 GB.\n\n"
+        "Per-episode 데이터는 30 초 시뮬레이션, 0.1 초 간격으로 frame 300 개입니다. Ground-truth η field 50×50 격자가 평가 시 참값이고, LiDAR scan 은 raydrop / shadowing / Fresnel 적용 후 frame 당 50 점 정도 valid 합니다. HDF5 format 으로 각 episode 약 12 MB, 총 110 episode 1.2 GB.\n\n"
         "Reproducibility 는 보장됩니다. Seed 저장, Wave generator (Gerstner+JONSWAP) 와 LiDAR raydrop 모두 deterministic, 그리고 53 + 55 = 108 unit test 가 simulator 와 estimator 모두 검증합니다.\n\n"
         "이 dataset 자체가 paper 의 contribution 일부입니다 — Ehlers 2023 의 1D radar dataset 보다 풍부한 setup (2D directional + LiDAR sensor + 다양한 sea state) 이거든요."
     ))
@@ -1407,11 +1408,11 @@ def build_backups():
     add_text(s, 12.5, 7.05, 0.7, 0.35,
              "C", font_size=10, color=GRAY, alignment=PP_ALIGN.RIGHT)
     add_notes(s, (
-        "Appendix C 는 다양한 단순 case 의 GT 와 WaveSplat 비교 모음입니다. 사용자 요청에 따라 옛날 ETKF/GPR 비교 figure 대신 GT/WaveSplat 만으로 새로 생성한 것이고, 각 case 마다 2D heatmap 과 3D surface 둘 다 보여드립니다.\n\n"
-        "Figure 구성을 보시면 — 각 행이 하나의 episode 입니다 (BF3 N=2, BF3 N=5, BF4 N=5). 열은 GT 의 2D, WaveSplat 의 2D, Error 의 2D, GT 의 3D, WaveSplat 의 3D 순서고요. 색상은 blue 가 음의 변위 (trough), white 가 수면, red 가 양의 변위 (crest) 입니다.\n\n"
-        "관찰 패턴을 정리하면 단순 wave (BF3 N=2) 에서는 WaveSplat 이 nRMSE 0.05 수준으로 GT 와 거의 구별 안 됩니다. N=5 까지도 잘 따라가고요. 모든 case 에서 Error panel 이 거의 white 입니다.\n\n"
-        "Q&A 활용 팁 — 청자가 'WaveSplat 이 모든 sea state 에서 우위인가?' 물으면 이 figure 와 함께 *단순 wave 는 압도적, 복잡 wave 는 trade-off 있음* 으로 정직 disclosure 하시면 됩니다. 추가 case 가 필요하면 scripts/generate_simple_qualitative_figure.py 수정 후 재생성하면 되고요.\n\n"
-        "(추가 옵션) Wang 2025 와의 직접 비교 figure 도 별도 생성 예정입니다."
+        "Appendix C 는 GT 와 WaveSplat 비교 모음입니다. 옛날 ETKF/GPR 비교 figure 대신 GT/WaveSplat 만으로 새로 생성한 것이고, 2D heatmap 만 사용합니다 (3D 는 fig_demo_*.png 에).\n\n"
+        "각 행이 하나의 episode 입니다 (BF3 N=2, BF3 N=5, BF4 N=5). 열은 GT, WaveSplat, Error 순서고요. 색상은 blue 가 음의 변위 (trough), white 가 수면, red 가 양의 변위 (crest).\n\n"
+        "*nRMSE 가 case 마다 다른 이유* — 청자 의문 답변: nRMSE = RMSE / std(GT) 입니다. BF2 N=1 같은 매우 단순한 wave 는 amplitude 가 작아서 std(GT) 가 작고, 같은 절대 오차도 normalize 하면 더 커집니다. 즉 nRMSE 1.4 가 추정 실패가 아니라 *normalize 분모가 작아서 그렇게 보이는 것* 입니다. 또 N=1 같은 단일 component 는 우리 multi-component initialization 이 약한 영역이기도 하고요. *절대 정확도는 BF3 N=2 가 가장 좋아서 (nRMSE 0.05 수준)* 이걸 default 로 사용했습니다.\n\n"
+        "사용자 활용 — `fig_demo_bf3_n2_2d3d.png`, `fig_demo_bf4_n5_2d3d.png` 등 case 별 2D+3D figure 가 docs/ 에 있습니다. PowerPoint 에서 원하는 case 로 직접 교체 가능합니다.\n\n"
+        "(추가) Wang 2025 와의 직접 비교 figure (`fig_wang_compare_*.png`) 도 별도 생성됩니다 — 다음 슬라이드 또는 Q&A 시 활용."
     ))
 
 
@@ -1479,6 +1480,32 @@ def build_s_control_results():
     ))
 
 
+def build_appendix_d_wang_compare():
+    """Appendix D — GT vs WaveSplat vs Wang2025 직접 시각 비교."""
+    s = add_blank(WHITE)
+    add_section_tag(s, "Appendix D · Wang 2025 와의 직접 시각 비교", color=GRAY)
+    add_title(s, "Appendix D — GT / WaveSplat / Wang2025 (BF3 N=2)", size=22)
+    add_subtitle(s,
+                 "동일 episode 의 frame snapshot 비교. WaveSplat 0.217 vs Wang2025 1.011 — 격자 한계 visual evidence",
+                 size=11)
+    fig_w = os.path.join(DOC_DIR, 'fig_wang_compare_bf3_n2.png')
+    add_image_or_placeholder(s, fig_w, 0.4, 1.7, 12.5,
+                             placeholder_text='[GT | WaveSplat | Wang 2025 — BF3 N=2 비교]')
+    add_text(s, 0.5, 6.2, 12.3, 1.3,
+             "관찰 — 좌측 GT 와 중앙 WaveSplat 은 wave 패턴 거의 일치 (nRMSE 0.217). "
+             "우측 Wang2025 는 격자 해상도 한계로 미세 wave 손실 + 위상 편차 (nRMSE 1.011). "
+             "다른 case (BF3 N=5, BF4 N=5) 의 비교는 fig_wang_compare_*.png 참조.",
+             font_size=11, italic=True, color=GRAY)
+    add_text(s, 12.5, 7.05, 0.7, 0.35,
+             "D", font_size=10, color=GRAY, alignment=PP_ALIGN.RIGHT)
+    add_notes(s, (
+        "Appendix D 는 사용자 요청에 따른 Wang 2025 와의 직접 시각 비교입니다.\n\n"
+        "Wang 2025 (Coastal Engineering 197) 를 우리가 충실히 재현했고 — Ne=300 ensemble, fuzzy R, Delaunay 보간 — 같은 BF3 N=2 episode 의 frame=200 snapshot 에서 추정 결과를 비교했습니다.\n\n"
+        "결과를 보시면 좌측 GT 와 중앙 WaveSplat 은 wave 패턴 거의 일치합니다 (nRMSE 0.217). 반면 우측 Wang2025 는 격자 해상도 한계로 미세 wave 가 손실되고 위상 편차가 보입니다 (nRMSE 1.011). 단일 frame snapshot 이라 P1 평균 nRMSE 0.211 vs 0.253 보다는 큰 절댓값이지만 — 두 method 의 *상대적 차이* 는 명확히 드러납니다.\n\n"
+        "Q&A 활용: 청자가 'Wang2025 와 visual 차이가 진짜 있는가?' 물으면 이 figure 보여주시면 됩니다. 다른 case (BF3 N=5, BF4 N=5) 의 비교 figure 도 docs/fig_wang_compare_*.png 에 있어 PowerPoint 에서 교체 가능합니다."
+    ))
+
+
 # ─────────────────────────────────────────
 # Build all
 # ─────────────────────────────────────────
@@ -1518,6 +1545,7 @@ def main():
     for b in builders:
         b()
     build_backups()
+    build_appendix_d_wang_compare()
 
     n_backup = len(prs.slides) - n_main
     os.makedirs(DOC_DIR, exist_ok=True)

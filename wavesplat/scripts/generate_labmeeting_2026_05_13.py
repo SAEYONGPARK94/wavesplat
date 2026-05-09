@@ -908,7 +908,8 @@ def build_s13b2_beamforming():
         "  Beamforming 은 *초기값 추정만* — 그 후 Adam 으로 정밀 최적화",
         "  Loss: L(θ) = Σ_frame Σ_i [η_model(x_i, t; θ) − η_obs(x_i, t)]²",
         "  파라미터: (k_x, k_y, ω, A, φ) — multi-frame init window 전체에 fit",
-        "  Coarse-to-fine schedule: stage 1 (low N, lr 0.05) → stage 2 (more N, lr 0.02) → stage 3 (full N, lr 0.01)",
+        "  Coarse-to-fine schedule: 3 stage 의 *N (component 수) 점진 증가* (lr 은 self.lr=0.01 공유)",
+        "  Parameter group 별 lr: (A, φ): 0.01 / (k_x, k_y): 0.005 (k 는 절반 lr 로 천천히)",
         "  Loss threshold 로 stage advancement: stage 1 < 0.1, stage 2 < 0.05, stage 3 = None (full max_iters)",
         "    → 빨리 수렴된 stage 는 즉시 다음 단계로 advance (전체 시간 단축)",
         "  Max iter: 200 + 200 + 500 = 900 까지",
@@ -928,7 +929,7 @@ def build_s13b2_beamforming():
         "Init 단계는 사실 *3 단계로 작동* 합니다 — beamforming 으로 global search, coarse-to-fine 으로 sub-grid 정밀화, 그리고 Adam 으로 multi-frame fitting refinement. 사용자 지적이 정확합니다 — beamforming 만으로 끝나는 게 아니라 Adam 정밀화도 같이 들어갑니다.\n\n"
         "(1) **Beamforming score 식** — 코러스 효과 직관: 각 후보 wavenumber 에 대해 'wave 가 이 방향으로 이 주파수로 진행한다고 가정' 했을 때, 측정 데이터의 phase 와 얼마나 일치하는지 점수로 평가합니다. 수식 S(k) = | Σ_i η_obs · exp(j(k·x_i − ω(k)·t_i)) |² 에서 i 는 누적된 500 점, ω(k) 는 분산 관계로 자동입니다. 실제 wave 방향이면 모든 점의 phase 가 *일치* 해서 합의 절댓값이 커지고, 다른 방향이면 random cancel 되어 작아지죠. 50×50 격자 후보 중 S(k) 큰 top-N peak 를 선택합니다.\n\n"
         "(2) **Coarse-to-fine sub-grid 정밀화** — 격자 위 peak 만으로는 정확도 한계가 있어서 각 peak 주변에서 local quadratic fit 과 Newton step 을 합니다. 예를 들어 peak 가 격자 위 (0.5, 0.7) 에 있더라도 fine 으로 (0.534, 0.692) 같은 더 정밀한 값을 얻습니다.\n\n"
-        "(3) **Adam refinement (중요)** — beamforming 결과는 *초기값 추정* 일 뿐입니다. 그 후 Adam optimizer 로 multi-frame init window 전체에 fitting 합니다. Loss 는 모든 frame 의 measurement 와 model prediction 의 squared error 합. 파라미터는 (k_x, k_y, ω, A, φ) 모두. Coarse-to-fine schedule 로 stage 1 (low N, lr=0.05) → stage 2 (more N, lr=0.02) → stage 3 (full N, lr=0.01) 처럼 점진적 정밀화.\n\n"
+        "(3) **Adam refinement (중요)** — beamforming 결과는 *초기값 추정* 일 뿐입니다. 그 후 Adam optimizer 로 multi-frame init window 전체에 fitting 합니다. Loss 는 모든 frame 의 measurement 와 model prediction 의 squared error 합. 파라미터는 (k_x, k_y, ω, A, φ) 모두 — 단 코드에서 (k_x, k_y) 는 lr 의 절반 (0.005) 으로 천천히 update 합니다. 점진 정밀화는 *N (component 수) 의 증가* 로 — stage 1 (low N) → stage 2 (more N) → stage 3 (full N) — lr 자체는 self.lr=0.01 공유.\n\n"
         "여기서 *loss threshold* 는 stage advancement 의 기준입니다. Stage 1 의 threshold 0.1, stage 2 의 threshold 0.05 — 현 stage 의 loss 가 그 값 이하로 떨어지면 *즉시 다음 stage 로 advance* 합니다. 빨리 수렴된 stage 에서 추가 iter 낭비 안 하고 더 정밀한 단계로 넘어가는 거죠. Max iter 가 stage 별 200, 200, 500 으로 총 900 까지지만, threshold 도달 시 일찍 advance 합니다.\n\n"
         "**왜 두 단계가 필요한가** — Beamforming 은 글로벌 search 라 global optima 잘 찾지만 격자 해상도 한계가 있고요, Adam 은 로컬 최적화라 빠르고 정밀하지만 초기값 의존이 큽니다. 두 가지를 결합하면 beamforming 으로 글로벌 잡고 Adam 으로 정밀화 — robust 하면서 정확합니다.\n\n"
         "신호처리 연관은 DOA (Direction-of-Arrival) estimation 기법 — antenna array 에서 신호 방향 찾는 표준 — 의 ocean wave 적용입니다. Init 의 Adam refinement 단계가 끝나면 (k_x, k_y) 는 거의 정착된 상태이고요, 그 다음 tracking 단계에서는 *k 고정 + (A, φ) 만 매 frame update* 하는 방식으로 빠르게 처리합니다."
@@ -961,7 +962,9 @@ def build_s13c_track():
         "  m_t = β₁·m_{t-1} + (1−β₁)·∇L   (1차 모멘트, β₁=0.9)",
         "  v_t = β₂·v_{t-1} + (1−β₂)·(∇L)²  (2차 모멘트, β₂=0.999)",
         "  θ ← θ − lr · m̂_t / (√v̂_t + ε)   (적응적 학습률)",
-        "  lr=0.01, 50 iter / frame → ~13 ms (CPU)",
+        "  **tracking_lr = 0.005** (config default), tracking_steps = **10 / frame** → ~13 ms (CPU)",
+        "  Tracking window = 3 frames (recent frames buffer for stable gradients)",
+        "  Phase prediction: φ_i ← φ_i + ω_i·Δt (kinematic preview, optimization 전)",
         "",
         "**왜 k 고정?** (Identifiability):",
         "  Single frame 에서 k 의 FIM eigenvalue 가 (A, φ) 보다 10⁻³ 작음",
@@ -999,7 +1002,7 @@ def build_s13c_track():
     add_notes(s, (
         "이번 슬라이드는 추적 단계와 Adaptive N 을 설명합니다.\n\n"
         "Tracking 의 핵심은 *w_phi mode* — 파수 k 를 고정하는 것입니다. 이게 WaveSplat 의 가장 중요한 설계 결정이에요. k 까지 자유롭게 업데이트하면 50 개 점에 over-fit 해서 물리적으로 무의미한 값으로 발산해버립니다. 그래서 init 에서 결정된 k 는 고정하고, 매 frame 진폭과 위상만 update 합니다.\n\n"
-        "최적화 알고리즘은 *Adam* 을 씁니다. 딥러닝에서 가장 많이 쓰이는 최적화 알고리즘인데요, 각 파라미터의 gradient 와 적응적 학습률로 효율적으로 update 합니다. lr=0.01, 50 iterations 로 frame 당 약 13 ms 가 걸립니다.\n\n"
+        "최적화 알고리즘은 *Adam* 을 씁니다. 딥러닝에서 가장 많이 쓰이는 최적화 알고리즘인데요, 각 파라미터의 gradient 와 적응적 학습률로 효율적으로 update 합니다. **Tracking lr = 0.005**, **tracking_steps = 10 / frame** 으로 frame 당 약 13 ms 가 걸립니다. 추가로 *tracking window 3 frames* 의 buffer 를 사용해 gradient 를 안정적으로 계산하고, 매 update 전 *phase prediction* (φ_i ← φ_i + ω_i·Δt) 를 kinematic preview 로 진행합니다.\n\n"
         "*Adaptive N* 은 성분 수를 동적으로 조정하는 기능입니다. 실제 파도의 성분 수를 미리 알 수 없기 때문에 — BF2 의 단순 파도는 2-3 개, BF5 의 복잡한 파도는 15-30 개 — 고정하면 underfit 또는 overfit 이 됩니다. 세 가지 메커니즘으로 작동합니다.\n\n"
         "첫째 pruning — 진폭이 너무 작은 성분은 제거합니다. 둘째 growth — 잔여 오차가 크면 새 성분을 추가합니다. 셋째 safety rollback — 새 성분 추가 후 RMSE 가 30% 이상 증가하면 즉시 이전 상태로 복구합니다. Rollback 이 중요한 이유는 잘못된 성분 추가가 cascade failure 로 이어지는 걸 방지하기 때문입니다."
     ))

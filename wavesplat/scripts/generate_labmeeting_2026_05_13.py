@@ -264,16 +264,11 @@ def build_s1():
              font_size=14, color=GRAY,
              alignment=PP_ALIGN.CENTER)
     add_notes(s, (
-        "안녕하세요. 오늘 발표는 두 부분으로 나뉩니다.\n\n"
-        "[앞 절반] 우리가 지난 6개월 동안 진행한 *exploration phase*의 결과를 정리합니다. "
-        "구체적으로 (1) 이 분야 prior art 12편을 정독한 결과, (2) 우리가 만든 simulator(WaveSim)와 "
-        "estimator(WaveSplat)이 어떻게 작동하는지를 설명드립니다.\n\n"
-        "[뒤 절반] 그 과정에서 발견한 본질적 mechanism을 보여드립니다. "
-        "선박이 움직이면서 발생하는 효과(synthetic aperture)와 파도의 분산 관계(dispersion physics)가 "
-        "어떻게 결합해서 LiDAR의 공간 해상도 한계를 우회하는지 — 이것을 우리 paper의 main contribution으로 "
-        "격상시키려는 plan입니다.\n\n"
-        "외부 청자분들이 계셔서 도메인 background부터 천천히 시작하겠습니다. "
-        "전공 용어가 처음 나오면 옆에 짧게 설명을 붙였으니 부담 없이 들으시면 됩니다."
+        "안녕하세요, Saeyong Park 입니다. 오늘 발표는 *선박 LiDAR 로 파도를 실시간 추정하는 연구* 에 관한 것입니다.\n\n"
+        "발표는 크게 두 부분으로 진행하겠습니다. 앞 절반은 지난 6 개월간 진행한 탐색 단계의 결과 — "
+        "선행 연구 13 편을 정독한 결과와, 우리가 만든 시뮬레이터 WaveSim 그리고 추정기 WaveSplat 이 어떻게 작동하는지를 보여드립니다. "
+        "뒤 절반은 그 과정에서 발견한 본질적 mechanism — 선박이 움직이면서 생기는 효과와 파도의 분산 관계가 결합해서 LiDAR 의 공간 해상도 한계를 어떻게 우회하는지 — 그리고 이것을 paper 의 main contribution 으로 격상시키려는 plan 입니다.\n\n"
+        "외부 청자분들이 계시므로 도메인 배경부터 천천히 시작하겠습니다. 전공 용어가 처음 나오면 옆에 짧게 풀어 설명드리니 편하게 들어 주시면 됩니다."
     ))
 
 
@@ -304,19 +299,11 @@ def build_s2():
                              placeholder_text='[hydrofoil control flow]')
     add_page_number(s, 2)
     add_notes(s, (
-        "파도 추정 분야에는 두 단계가 있습니다.\n\n"
-        "첫째 statistical estimation — 우리가 흔히 듣는 H_s (significant wave height, "
-        "유의파고), T_p (peak period, 첨두주기), JONSWAP 스펙트럼 같은 '평균적 통계'. "
-        "선박 디자인이나 해양 구조물 설계에는 이걸로 충분합니다.\n\n"
-        "둘째 phase-resolved estimation — 각 파도의 위치와 시점을 결정론적으로 추정. "
-        "예를 들어 'BF4 sea state' 라는 통계가 아니라 'x = 120 m 위치에 5초 후 H = 2 m 파도가 도착한다' "
-        "같은 구체적 정보입니다.\n\n"
-        "왜 phase-resolved가 필요한가? 실시간 제어에서는 '평균적으로 파도가 강하다' 는 정보로는 "
-        "특정 시점의 제어 결정을 못 합니다. 어디에 큰 파도가 오는지 정확히 알아야 ride control, "
-        "hydrofoil, autonomous navigation 같은 응용이 가능합니다.\n\n"
-        "응용 중 가장 직접적인 것은 hydrofoil ride control입니다 — 우리 연구실에서 "
-        "진행 중인 hydrofoil 연구의 motivation이기도 합니다. 파도를 미리 보고 hydrofoil의 angle을 "
-        "조절하면 승차감(ride RMS)을 크게 줄일 수 있습니다."
+        "먼저 왜 이 연구가 필요한지 동기부터 말씀드리겠습니다.\n\n"
+        "파도 추정 분야에는 두 단계가 있습니다. 첫째는 통계적 추정입니다 — 유의파고 H_s, 첨두주기 T_p, JONSWAP 스펙트럼 같은 *평균적 통계량* 이죠. 이건 선박 설계나 해양 구조물 설계에는 충분합니다.\n\n"
+        "둘째는 phase-resolved estimation, 즉 *위상까지 추정* 하는 단계입니다. 각 파도의 위치와 시점을 결정론적으로 추정합니다. 'BF4 sea state' 라는 통계가 아니라 'x = 120 m 위치에 5 초 후 H = 2 m 파도가 도착한다' 같은 구체적인 정보를 얻는 거죠.\n\n"
+        "왜 이게 필요할까요? 실시간 제어에서는 '평균적으로 파도가 강하다' 라는 정보로는 특정 시점의 제어 결정을 내릴 수 없습니다. 어디에 큰 파도가 오는지 정확히 알아야 선박 ride control, hydrofoil, autonomous navigation 같은 응용이 가능해집니다.\n\n"
+        "가장 직접적인 응용은 hydrofoil ride control 입니다. 우리 연구실에서 진행 중인 hydrofoil 연구의 동기이기도 한데요, 파도를 미리 보고 hydrofoil 의 angle 을 미리 조절하면 승차감 (ride RMS) 을 크게 줄일 수 있습니다."
     ))
 
 
@@ -347,19 +334,11 @@ def build_s3():
                              placeholder_text='[sparse LiDAR scan]')
     add_page_number(s, 3)
     add_notes(s, (
-        "이 세 조건을 동시에 만족하는 setup은 prior art에 거의 없습니다. 하나씩 보겠습니다.\n\n"
-        "(1) Sparse non-uniform — LiDAR는 흔히 쓰이는 wave gauge나 dense radar와 매우 다릅니다. "
-        "한 frame에 점 50개 정도로 매우 희소하고, 거리에 따라 점밀도가 변합니다. "
-        "또 raydrop(파도가 LiDAR 빔을 반사하지 못해 점 누락), shadowing(앞쪽 파도가 뒤쪽을 가림) 같은 "
-        "물리 효과로 점이 더 줄어듭니다. 기존 wave estimation 방법론은 dense·균일 측정 가정으로 "
-        "설계되어서 LiDAR setup에 직접 적용하기 어렵습니다.\n\n"
-        "(2) Real-time — 제어 루프에 들어가야 하므로 100 ms 안에 끝나야 합니다. "
-        "EnKF 같은 ensemble 방법론, PINN 같은 NN 학습 방법론은 분 단위에서 시간 단위까지 걸려서 "
-        "이 제약을 만족 못 합니다.\n\n"
-        "(3) 2D directional — 실제 바다는 한 방향 파도가 아니라 여러 방향 파도가 섞여 있습니다. "
-        "Wavenumber도 단순한 k가 아니라 vector (k_x, k_y)를 추정해야 합니다. "
-        "Klein 2020, Desmars 2023 같은 prior art는 대부분 1D 가정으로 단순화하지만, 우리는 2D를 그대로 다룹니다.\n\n"
-        "다음 슬라이드부터 prior art 12편을 검토한 결과를 보여드리고, 이 niche가 실제로 비어 있다는 것을 보이겠습니다."
+        "그런데 이 문제가 왜 어려운지 세 가지 도전 과제로 나눠서 설명드리겠습니다.\n\n"
+        "첫 번째는 *희소하고 비균일한 측정* 입니다. LiDAR 는 흔히 쓰이는 wave gauge 나 dense radar 와 매우 다릅니다. 한 frame 에 유효한 점이 50 개 정도로 매우 희소하고, 거리에 따라 점밀도가 변합니다. 또 raydrop — 파도가 LiDAR 빔을 반사하지 못해 점이 누락되는 현상 — 과 shadowing — 앞쪽 파도가 뒤쪽을 가리는 현상 — 같은 물리 효과로 점이 더 줄어듭니다. 기존 wave estimation 방법론은 dense 하고 균일한 측정 가정으로 설계되어 있어서 LiDAR setup 에 직접 적용하기 어렵습니다.\n\n"
+        "두 번째는 *실시간 제약* 입니다. 제어 루프에 들어가야 하므로 한 frame 처리에 100 ms 이내여야 합니다. EnKF 같은 앙상블 방법론이나 PINN 같은 신경망 학습 방법론은 분 단위에서 시간 단위까지 걸려서 이 제약을 만족하지 못합니다.\n\n"
+        "세 번째는 *2D 방향성 sea state* 입니다. 실제 바다는 한 방향 파도가 아니라 여러 방향 파도가 섞여 있습니다. 따라서 wavenumber 도 단순한 k 가 아니라 vector (k_x, k_y) 를 추정해야 합니다. Klein 2020, Desmars 2023 같은 선행 연구는 대부분 1D 가정으로 단순화하지만, 우리는 2D 를 그대로 다룹니다.\n\n"
+        "다음 슬라이드부터 선행 연구 13 편을 검토한 결과를 보여드리고, 이 niche 가 실제로 비어 있음을 보여드리겠습니다."
     ))
 
 
@@ -793,31 +772,28 @@ def build_s11():
     add_title(s, "WaveSim — 파도와 LiDAR 를 어떻게 모사했나")
     add_subtitle(s, "각 구성요소의 물리적 합당성 + 코드 검증")
     bullets = [
-        "**파도 모델 — Gerstner 파 + JONSWAP 스펙트럼**:",
-        "  η(x, y, t) = Σ_n A_n cos(k_xn·x + k_yn·y − ω_n·t + φ_n) + Gerstner 추가 변위",
-        "  Gerstner 1802 의 회전 정확해 — 입자가 원/타원 궤적으로 회전 (Q=0 → 선형, Q>0 → 약비선형)",
-        "  → 합당성: Tessendorf 2001 SIGGRAPH ocean 표준, Dean & Dalrymple 1991 교과서",
-        "  → 검증: Q 제약 (Σ Q·ω·A ≤ 1, 입자 궤적 자체 교차 방지) 의 unit test 통과",
+        "**파도 모델 — Gerstner 파 (1802, rotational exact solution)**:",
+        "  사인 곡선 LWT (수면 변위만 표현) 의 확장 — 입자의 운동까지 모사",
+        "  파도 아래의 물 입자는 *원/타원 궤적으로 회전* (위로 + 진행 방향 → 아래 + 반대 방향)",
+        "  수식: x = x₀ − Q·A·sin(...), y = y₀ − Q·A·sin(...), z = A·cos(k·x − ω·t + φ)",
+        "  Q ∈ [0, 1] = 가파름 파라미터 (Q=0: 사인 wave, Q→1: crest sharp / trough flat — Stokes-1 풍)",
+        "  Q 제약: Σ_n Q_n·ω_n·A_n ≤ 1 (입자 궤적 자체 교차 방지, Tessendorf 2001)",
+        "  → 합당성: Tessendorf 2001 SIGGRAPH ocean 표준, Dean & Dalrymple 1991 (교과서)",
         "",
-        "**스펙트럼 — JONSWAP (Hasselmann et al. 1973)**:",
-        "  S(ω) = α·g²·ω⁻⁵·exp(−5/4·(ω_p/ω)⁴) · γ^r — 북해 측정 데이터 기반",
-        "  입력: H_s (유의파고), T_p (첨두주기), γ (peak factor)",
-        "  → 합당성: 해양공학 표준 (ITTC, IACS 채택). 파도 성분 amplitude·주파수 sampling 에 사용",
+        "**스펙트럼 — JONSWAP (Hasselmann 1973, 북해 측정)**:",
+        "  S(ω) = α·g²·ω⁻⁵·exp(−5/4·(ω_p/ω)⁴) · γ^r — 입력: H_s, T_p, γ",
+        "  → N 개 성분의 (A_n, ω_n) sampling, 방향 spreading 으로 (k_xn, k_yn) 분배",
+        "  → 합당성: 해양공학 표준 (ITTC, IACS 채택)",
         "",
-        "**분산 관계**: ω_n = √(g·|k_n|·tanh(|k_n|·d))",
-        "  Airy 1845 의 linear wave theory 결과 — 파도의 주파수와 파수의 표준 관계",
-        "  → 합당성: 100 년 이상 검증된 표준 (수심 d, 중력 g 만 입력)",
+        "**분산 관계 (Airy 1845)**: ω_n = √(g·|k_n|·tanh(|k_n|·d))",
+        "  파도의 주파수와 파수의 표준 관계 — 100 년 이상 검증",
         "",
-        "**LiDAR 센서 (Falcon K1 spec)**:",
-        "  Vessel 위 5 m mount, FOV 수평 120° × 수직 ±5° (선수 방향 반구만, 전방향 360° 아님)",
-        "  32 채널 × 360 beam = 11,520 ray / scan, range 10–200 m, 1550 nm 파장",
-        "  Ray tracing: laser ray 가 파도 표면에 부딪힌 첫 점을 찾음 (Möller-Trumbore 1997)",
+        "**LiDAR (Falcon K1)**: 수평 FOV 120° × 수직 ±5°, 32 채널 × 360 beam, 1550 nm",
+        "  Ray tracing 으로 파도 표면 first-hit 찾음 (Möller-Trumbore 1997)",
         "",
-        "**Vessel motion 처리** (사용자 질문 답: '관측 창만 이동' 맞음):",
-        "  파도 격자는 충분히 큰 영역 (수백 m × 수백 m) 의 world frame 에 고정",
-        "  Vessel 은 그 격자 안을 V=11.3 m/s 로 이동 (매 frame Δt=0.1 s 동안 1.13 m 전진)",
-        "  → LiDAR FOV (관측 창) 가 vessel 따라 이동, 파도 격자 자체는 변경 없음",
-        "  → 파도 자체는 t 의 진행으로 자연 propagate (η(x,y,t) 의 t 만 update)",
+        "**Vessel motion**: 파도 격자는 world frame 에 고정 (수백 m × 수백 m)",
+        "  Vessel (LiDAR mount) 만 격자 안을 V=11.3 m/s 로 이동 → 관측 창만 이동",
+        "  파도는 t 의 진행으로 자연 propagate (격자 자체는 그대로)",
     ]
     add_bullets(s, 0.4, 1.85, 8.7, 5.3, bullets, font_size=9,
                 line_space_after=1)
@@ -870,33 +846,32 @@ def build_s12():
     add_title(s, "Raydrop / shadowing — 왜 합당하고 어떻게 검증되었나")
     add_subtitle(s, "각 물리 모델의 출처 + 우리 검증 방법")
     bullets = [
-        "**Raydrop (점 누락) 의 물리**:",
-        "  파도 표면이 매끄러우면 ray 가 specular 반사 — LiDAR receiver 가 아닌 방향으로 가서 return 없음",
-        "  입사각 θ_i 가 grazing (90°) 에 가까울수록 specular 비중 ↑ → 점 누락 ↑",
-        "  → 모사: Fresnel reflectance R(θ_i) 로 specular 비중 계산 (식은 backup A 참조)",
+        "**물리적 의미 — 빛이 매질 경계에서 일어나는 일**:",
+        "  공기 중 LiDAR 광선이 물 표면에 도달하면 두 부분으로 분리됨:",
+        "  ① 일부는 반사 (specular reflection) — 표면이 매끄러울수록 한 방향으로 집중",
+        "  ② 나머지는 굴절 (refraction) — 물 속으로 들어가 흡수됨 (LiDAR 못 받음)",
+        "  Fresnel 식이 이 두 비율을 결정 — 입사각 θ_i 와 굴절률 n 의 함수",
         "",
-        "**Fresnel 식의 합당성**:",
-        "  19 세기 Augustin-Jean Fresnel 정립 (1820 년대)",
-        "  광학 교과서 표준 (Hecht, Optics §4.6) — 모든 광학 시뮬레이션에서 사용",
-        "  Ocean LiDAR 분야 (Nouguier-Grilli-Guérin 2014, IEEE TGRS) 에서 검증된 표준",
-        "  Falcon K1 의 1550 nm 파장 기준 물 굴절률 n = 1.318 사용",
+        "**Fresnel 수식 — 두 polarization 평균** (LiDAR laser unpolarized 가정):",
+        "  Step 1 (Snell): sin θ_t = sin θ_i / n   (n=1.318, water at 1550 nm)",
+        "  Step 2 (Fresnel s, p):",
+        "    R_s = ((cos θ_i − n·cos θ_t) / (cos θ_i + n·cos θ_t))²",
+        "    R_p = ((n·cos θ_i − cos θ_t) / (n·cos θ_i + cos θ_t))²",
+        "  Step 3: R(θ_i) = (R_s + R_p) / 2 ∈ [0, 1]",
+        "  Step 4 (return prob): P = η · R · cos(θ_i) / (d/d_ref)²",
         "",
-        "**Geometric shadowing — 별도 모델 없음**:",
-        "  앞쪽 큰 파도가 뒤쪽을 가림 — ray tracing 의 first-hit 결과로 자동 처리",
-        "  광선 직진 + 첫 충돌점 측정 = geometric optics 의 자연 결과 (추가 가정 0)",
+        "**물리적 해석 — R(θ_i) 의 의미**:",
+        "  θ_i = 0° (수직 입사): R ≈ 0.02 → 2% 만 반사, 98% 굴절 → 점 검출 잘 됨",
+        "  θ_i → 90° (grazing, 표면과 평행): R → 1 → 거의 모두 specular 반사",
+        "    → ray 가 LiDAR 가 아닌 다른 방향으로 모두 반사 → 점 누락",
+        "  → 비스듬히 들어올수록 raydrop 확률 ↑ (실제 marine LiDAR 의 핵심 현상)",
         "",
-        "**검증 (validation)**:",
-        "  ① 108 unit test 통과 — ray tracing 정확성, Fresnel 계산, shadowing edge case 모두 검증",
-        "  ② 110 episode 합성 dataset — BF2–BF7 × N=1–30 다양한 sea state 에서 동작 확인",
-        "  ③ Sea trial 실측 LiDAR 데이터 (sea_trial_lidar.png) 와 점 분포 패턴 정성 비교 — 일치",
-        "",
-        "**정직한 한계**:",
-        "  미세파 (capillary, mm 단위 surface roughness): 실제 LiDAR raydrop 에 추가 영향, 우리는 미반영",
-        "  Foam, white cap (BF6 이상): wave breaking 시 발생, LWT family 처리 못 함",
-        "  Operational sea state (BF2–BF6) 에서는 부차적 효과로 가정",
+        "**Geometric shadowing**: ray tracing first-hit 의 자연 결과 (추가 모델 0)",
+        "**검증**: 108 unit test + 110 episode + sea trial 데이터와 점 분포 일치",
+        "**한계**: 미세파 (capillary), foam, breaking 미반영 (BF6 이하 부차적)",
     ]
     add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=10,
-                line_space_after=2)
+                line_space_after=1)
     add_page_number(s, 10)
     add_notes(s, (
         "이전 슬라이드에서 wave model + LiDAR 모사 4 단계를 설명드렸습니다. "
@@ -1159,18 +1134,12 @@ def build_s13d_visualization():
     s = add_blank(WHITE)
     add_section_tag(s, "Part 3 · WaveSplat — GT 와의 비교 시각화", color=GOLD)
     add_title(s, "Ground Truth vs WaveSplat 재구성 — 실제 결과 한 케이스")
-    add_subtitle(s, "한 episode 의 한 시점 — 좌측 GT, 중앙 WaveSplat 추정, 우측 오차 (Error = GT − WaveSplat)")
-    fig_demo = os.path.join(PAPER_FIG_DIR, 'demo_wavesplat_static.png')
-    add_image_or_placeholder(s, fig_demo, 0.4, 1.7, 12.5,
-                             placeholder_text='[GT | WaveSplat | Error heatmap]')
-    add_bullets(s, 0.5, 5.7, 12.3, 1.4, [
-        "**좌 (GT)**: Ground Truth η(x, y, t) — 50×50 격자 위 실제 파도 표면 (참값)",
-        "**중 (WaveSplat)**: WaveSplat 재구성 — 추정된 N 개 sin 파 성분의 합으로 다시 만든 파도 표면",
-        "**우 (Error)**: 오차 = GT − WaveSplat — 같은 색 스케일로 표시 (잔여 차이가 작을수록 추정 정확)",
-        "색상 의미: blue (음의 변위, trough) → white (수면) → red (양의 변위, crest)",
-    ], font_size=11, line_space_after=2)
+    add_subtitle(s, "단순 case (BF3 / N=2) — 위 row: 2D heatmap, 아래 row: 3D surface")
+    fig_demo = os.path.join(DOC_DIR, 'fig_demo_simple_2d3d.png')
+    add_image_or_placeholder(s, fig_demo, 0.3, 1.7, 12.7,
+                             placeholder_text='[BF3 N=2 GT vs WaveSplat — 2D + 3D]')
     add_text(s, 0.5, 7.05, 12.3, 0.35,
-             "📂 paper/figures/demo_wavesplat.gif (animation), fig8_qualitative.pdf (다른 case 들) 참조 · 대표 case 모음은 Appendix C",
+             "단순 wave (N=2 성분) 에서 WaveSplat nRMSE ~ 0.05 — Error panel 거의 white. 다양한 case 는 Appendix C 참조.",
              font_size=10, italic=True, color=GRAY)
     add_page_number(s, 14)
     add_notes(s, (
@@ -1351,39 +1320,15 @@ def build_s15():
              font_size=9, italic=True, color=RGBColor(0x99, 0x99, 0x99))
     add_page_number(s, 16)
     add_notes(s, (
-        "Ablation study(절제 연구)가 무엇인지부터 설명드리겠습니다.\n\n"
-        "Ablation이란?\n"
-        "  우리 시스템에는 여러 기술이 들어 있습니다.\n"
-        "  이 기술들을 하나씩 빼 보면서, 빠진 기술이 실제로 도움이 되는지 확인합니다.\n"
-        "  비유하면: 레시피에서 재료를 하나씩 빼 보면서 맛이 어떻게 변하는지 보는 것입니다.\n"
-        "  의학에서 '절제(ablation)'라는 용어에서 왔습니다.\n\n"
-        "왜 ablation이 필요한가?\n"
-        "  여러 기술을 한꺼번에 넣으면 '전체 결과'는 보이지만,\n"
-        "  '어떤 기술이 실제로 효과가 있는지'는 알 수 없습니다.\n"
-        "  예를 들어 결과가 좋아도, 실은 한 가지 기술만 효과가 있고\n"
-        "  나머지는 아무 도움이 안 될 수도 있습니다.\n"
-        "  논문 심사에서 '각 기술의 기여도를 증명하라'는 요구가 반드시 나옵니다.\n\n"
-        "4가지 변형의 의미:\n"
-        "  A: 가장 기본적인 방법. FFT로 초기 파수를 추정하고, 주파수(omega)를 자유롭게 둠.\n"
-        "     단일 프레임(한 순간의 LiDAR 점)만 사용.\n"
-        "  B: beamforming이라는 더 좋은 초기화 + 여러 프레임(시간 정보 활용).\n"
-        "     주파수는 여전히 자유.\n"
-        "  C: beamforming + 물리 법칙(분산 관계) 강제. 하지만 단일 프레임만 사용.\n"
-        "  D (WaveSplat): 모든 기술 결합 — beamforming + 물리 법칙 + multi-frame.\n\n"
-        "결과 해석:\n"
-        "  - A→B: 0.213 → 0.208 — multi-frame이 도움됨 (시간 정보 활용)\n"
-        "  - A→C: 0.213 → 0.226 — 물리 법칙만 넣으면 오히려 악화!\n"
-        "    이유: 단일 프레임에서 초기 파수 추정이 부정확하면,\n"
-        "    물리 법칙이 그 오류를 주파수로 전파시킵니다.\n"
-        "  - D (모두 결합): 0.211 — 가장 안정적인 결과\n"
-        "    물리 법칙과 multi-frame을 함께 써야 시너지가 발생합니다.\n\n"
-        "에피소드별 상세:\n"
-        "  - 단순 파도에서는 D가 A보다 최대 42% 더 좋음 (물리 법칙 효과)\n"
-        "  - 복잡 파도에서는 A가 D보다 더 좋은 경우도 있음 (자유도 높아서 fitting 유리)\n"
-        "  - 하지만 D의 해가 물리적으로 더 의미 있는 해입니다.\n\n"
-        "핵심 메시지:\n"
-        "  '물리 법칙(dispersion)은 마법이 아니라 정규화(regularizer) 역할을 한다.'\n"
-        "  쉽게 말하면, 물리 법칙이 '물리적으로 가능한 답만 찾도록' 범위를 좁혀주는 것입니다."
+        "이번 슬라이드는 ablation study, 즉 *각 기술의 기여도* 를 분리해서 보는 실험입니다.\n\n"
+        "Ablation 이란 시스템에 들어간 기술을 하나씩 빼 보면서 빠진 게 실제로 도움이 되는지 확인하는 실험입니다. 의학의 '절제' 라는 용어에서 왔는데요, 논문 심사에서 '각 기술의 기여도를 증명하라' 는 요구가 반드시 나오기 때문에 필수적인 검증입니다.\n\n"
+        "4 가지 변형을 비교했습니다.\n"
+        "  - A 는 가장 기본 — FFT 초기화 + 단일 프레임. nRMSE 0.213.\n"
+        "  - B 는 A 에 beamforming 과 multi-frame 을 추가한 버전. 0.208 로 약간 개선.\n"
+        "  - C 는 A 에 분산 관계 (물리 법칙) 만 추가한 버전. 그런데 0.226 으로 *오히려 악화* 됩니다.\n"
+        "  - D 는 모두 결합한 우리 WaveSplat. 0.211 로 가장 안정적입니다.\n\n"
+        "여기서 흥미로운 점은 C 가 왜 악화되는가 인데요, 단일 프레임에서 초기 파수 추정이 부정확하면 물리 법칙이 그 오류를 주파수까지 전파시키기 때문입니다. 즉 *물리 법칙은 multi-frame 과 함께 써야 시너지가 난다* 는 게 핵심 메시지입니다.\n\n"
+        "한마디로, 물리 법칙 (dispersion) 은 마법이 아니라 *정규화* 역할입니다. 물리적으로 가능한 답만 찾도록 범위를 좁혀주는 거죠."
     ))
 
 
@@ -1421,29 +1366,10 @@ def build_s16():
                 line_space_after=3)
     add_page_number(s, 17)
     add_notes(s, (
-        "이 슬라이드가 우리 연구의 핵심 메시지입니다.\n\n"
-        "처음에 'super-resolution(초해상도)'이라는 멋진 표현을 쓰려 했지만,\n"
-        "정확히 말하면 '물리적 정규화(physical regularization)'가 맞습니다.\n\n"
-        "메커니즘 1을 쉽게 설명하면:\n"
-        "  분산 관계란 '파도의 주파수와 파수 사이의 물리 법칙'입니다.\n"
-        "  깊은 바다에서 짧은 파도(큰 k)는 느리고, 긴 파도(작은 k)는 빠릅니다.\n"
-        "  이 관계를 알고 있으면, 파수(k)를 알면 주파수(ω)를 계산할 수 있습니다.\n"
-        "  결과적으로 추정해야 할 변수가 5N개에서 4N개로 20% 줄어듭니다.\n"
-        "  게다가, 물리적으로 불가능한 답(예: 짧은 파도인데 빠른 주파수)이 자동으로 배제됩니다.\n\n"
-        "메커니즘 2를 쉽게 설명하면:\n"
-        "  한 순간(단일 프레임)의 LiDAR 점만으로는 파도의 방향을 정확히 알기 어렵습니다.\n"
-        "  하지만 선박이 이동하면서 여러 순간의 데이터를 모으면,\n"
-        "  마치 긴 안테나를 만든 것처럼 방향 분해능이 좋아집니다.\n"
-        "  이것을 'synthetic aperture(합성 개구)'라고 부릅니다.\n"
-        "  레이더 분야의 SAR(Synthetic Aperture Radar)과 같은 원리입니다.\n\n"
-        "Ablation에서 핵심 발견:\n"
-        "  물리 법칙과 multi-frame은 각각 단독으로는 불완전합니다.\n"
-        "  물리 법칙만 쓰면(C): 초기 파수 추정이 틀렸을 때, 그 오류가 주파수로 전파됩니다.\n"
-        "  multi-frame만 쓰면(B): 개선되지만 물리적 제약 없이 자유도가 너무 높아 불안정합니다.\n"
-        "  둘을 함께 쓰면(D): 시너지가 발생합니다.\n"
-        "  — multi-frame으로 파수를 잘 추정하고,\n"
-        "  — 물리 법칙으로 물리적으로 가능한 해만 탐색하고,\n"
-        "  — 결과적으로 가장 안정적인 추정이 됩니다."
+        "이 슬라이드가 우리 연구의 핵심 메시지입니다. 두 가지 메커니즘이 결합해서 작동합니다.\n\n"
+        "첫 번째 메커니즘은 *분산 관계의 정규화 효과* 입니다. 분산 관계란 파도의 주파수와 파수 사이의 물리 법칙인데요, 깊은 바다에서 짧은 파도는 느리고 긴 파도는 빠릅니다. 이 관계를 알면 파수 k 가 결정되는 순간 주파수 ω 가 자동으로 결정됩니다. 추정해야 할 변수가 5N 개에서 4N 개로 20% 줄어들고, 더 중요하게 *물리적으로 불가능한 답이 자동으로 배제* 됩니다.\n\n"
+        "두 번째 메커니즘은 *선박 이동의 합성 개구 효과* 입니다. 한 순간의 LiDAR 점 50 개만으로는 파도의 방향을 정확히 알기 어렵습니다. 하지만 선박이 이동하면서 여러 순간의 데이터를 모으면 마치 긴 안테나를 만든 것처럼 분해능이 좋아집니다. 이것을 합성 개구 (synthetic aperture) 라 부르고, 레이더 분야의 SAR 과 같은 원리입니다.\n\n"
+        "Ablation 에서 발견한 핵심은 — *두 메커니즘은 각각 단독으로는 불완전하고 함께 써야 시너지가 난다* 는 것입니다. 물리 법칙만 쓰면 초기 파수 오류가 주파수로 전파되고, multi-frame 만 쓰면 자유도가 너무 높아 불안정합니다. 둘을 결합하면 multi-frame 으로 파수를 잘 추정하고 물리 법칙으로 답을 좁혀서 가장 안정적인 추정이 됩니다."
     ))
 
 
@@ -1589,31 +1515,12 @@ def build_s19():
              alignment=PP_ALIGN.CENTER)
     add_page_number(s, 20)
     add_notes(s, (
-        "향후 연구 방향을 3가지로 정리했습니다.\n\n"
-        "(1) 고복잡도 파도 대응:\n"
-        "  지금까지의 실험에서, 파도 성분이 15개 이상이면 정확도가 떨어지는 것을 확인했습니다.\n"
-        "  원인은 beamforming 초기화가 많은 성분을 동시에 분리하기 어렵기 때문입니다.\n"
-        "  해결 방향 1: hybrid init — 먼저 격자(grid) 방법으로 대략적인 성분을 찾고,\n"
-        "    그 결과를 파라미터 초기값으로 사용하여 정밀하게 최적화합니다.\n"
-        "  해결 방향 2: learned init — 신경망(NN)을 활용하여\n"
-        "    LiDAR 점으로부터 초기 파도 성분을 바로 추정합니다.\n"
-        "  기대 효과: 현재 고복잡도에서의 역전 현상을 해소할 수 있습니다.\n\n"
-        "(2) 비선형 파도 확장:\n"
-        "  현재는 파도를 사인파의 합(Linear Wave Theory)으로 표현합니다.\n"
-        "  실제 파도는 비선형적이어서(꼭대기가 뾰족, 골이 넓음),\n"
-        "  높은 파도에서는 정확도가 떨어집니다.\n"
-        "  Stokes 2차 보정을 추가하면, 파도의 비대칭성을 일부 반영할 수 있습니다.\n"
-        "  Klein 2020 논문에 따르면, 이 보정으로 적용 범위가 크게 넓어집니다.\n\n"
-        "(3) 실측 데이터 검증:\n"
-        "  현재까지의 결과는 모두 시뮬레이터(합성 데이터)에서 나온 것입니다.\n"
-        "  실제 바다에서 실제 LiDAR로 측정한 데이터로 검증해야 합니다.\n"
-        "  가장 큰 도전은 'ground-truth(정답)'를 어떻게 확보하느냐입니다.\n"
-        "  Wave buoy(파고계)나 X-band radar로 동시 측정하는 방법을 고려하고 있습니다.\n\n"
-        "최종 목표:\n"
-        "  선박에 탑재된 LiDAR로 주변 파도를 실시간(13ms 이내)으로 추정하고,\n"
-        "  이 정보를 활용하여 선박 제어(hydrofoil ride control, 자율운항 등)에\n"
-        "  직접 활용할 수 있는 시스템을 만드는 것입니다.\n\n"
-        "이상으로 발표를 마치겠습니다. 질문이나 피드백을 환영합니다."
+        "마지막으로 향후 연구 방향 세 가지를 말씀드리겠습니다.\n\n"
+        "첫 번째는 *고복잡도 파도 대응* 입니다. 지금까지의 실험에서 파도 성분이 15 개 이상이면 정확도가 떨어지는 것을 확인했습니다. 원인은 beamforming 초기화가 많은 성분을 동시에 분리하기 어렵기 때문인데요, 두 가지 해결 방향이 있습니다. 하나는 hybrid init — 격자 방법으로 먼저 대략적인 성분을 찾고 그 결과를 파라미터 초기값으로 정밀화하는 것이고, 다른 하나는 learned init — 신경망을 활용해서 LiDAR 점으로부터 초기 성분을 바로 추정하는 것입니다.\n\n"
+        "두 번째는 *비선형 파도 확장* 입니다. 현재는 사인파의 합 (Linear Wave Theory) 으로 파도를 표현하는데, 실제 파도는 비선형적이어서 꼭대기가 뾰족하고 골이 넓습니다. 높은 파도에서는 정확도가 떨어지죠. Stokes 2 차 보정을 추가하면 파도의 비대칭성을 일부 반영할 수 있고, Klein 2020 논문에 따르면 이 보정으로 적용 범위가 크게 넓어집니다.\n\n"
+        "세 번째는 *실측 데이터 검증* 입니다. 지금까지 결과는 모두 시뮬레이터에서 나온 것입니다. 실제 바다 LiDAR 데이터로 검증해야 하는데, 가장 큰 도전은 ground-truth 를 어떻게 확보하느냐 입니다. Wave buoy 나 X-band radar 로 동시 측정하는 방법을 고려하고 있습니다.\n\n"
+        "최종 목표는 *선박 LiDAR 로 주변 파도를 실시간 추정하고 그 정보를 hydrofoil ride control 이나 자율운항 같은 선박 제어에 직접 활용할 수 있는 시스템* 을 만드는 것입니다.\n\n"
+        "이상으로 발표를 마치겠습니다. 질문이나 피드백 환영합니다. 감사합니다."
     ))
 
 
@@ -1727,25 +1634,25 @@ def build_backups():
                  size=11)
     # Episode breakdown table
     headers = ["Sea state", "ε (steepness)", "N_components", "Seeds",
-               "Episode 수", "용도"]
+               "Episode 수"]
     rows = [
-        ["BF2 (잔잔)", "~0.02", "1, 2, 5",
-         "0–4 (5 개)", "15", "단순 wave, 알고리즘 sanity check"],
-        ["BF3", "~0.03", "1, 2, 5, 15",
-         "0–4 (5 개)", "20", "low complexity, 통계 평가용"],
-        ["BF4 (보통)", "~0.05", "5, 15, 20",
-         "0–4 (5 개)", "15", "operational sea state 중심 평가"],
-        ["BF5", "~0.07", "5, 15, 20, 30",
-         "0–4 (5 개)", "20", "high complexity boundary"],
-        ["BF6 (거친)", "~0.08", "15, 20, 30",
-         "0 (1 개)", "15", "operational 한계 검증"],
-        ["BF7 (매우 거친)", "~0.10", "20, 30",
-         "0 (1 개)", "10", "extreme sea state, LWT 한계"],
-        ["Calibration", "—", "(separate)",
-         "—", "15", "raydrop η, scale 등 calibration 용"],
+        ["BF2 (잔잔)", "~0.02", "1, 2, 5", "0–4 (5 개)", "15"],
+        ["BF3", "~0.03", "1, 2, 5, 15", "0–4 (5 개)", "20"],
+        ["BF4 (보통)", "~0.05", "5, 15, 20", "0–4 (5 개)", "15"],
+        ["BF5", "~0.07", "5, 15, 20, 30", "0–4 (5 개)", "20"],
+        ["BF6 (거친)", "~0.08", "15, 20, 30", "0 (1 개)", "15"],
+        ["BF7 (매우 거친)", "~0.10", "20, 30", "0 (1 개)", "10"],
+        ["Calibration", "—", "(separate)", "—", "15"],
     ]
-    add_table_simple(s, 0.4, 1.85, 12.5, 3.5, headers, rows,
-                     header_color=ACCENT2, font_size=10)
+    add_table_simple(s, 0.4, 1.85, 12.5, 3.0, headers, rows,
+                     header_color=ACCENT2, font_size=11)
+    # 용어 의미 설명
+    add_text(s, 0.4, 5.0, 12.5, 0.4, "용어 설명:",
+             font_size=12, bold=True, color=ACCENT)
+    add_bullets(s, 0.6, 5.4, 12.5, 1.0, [
+        "**ε (steepness, 가파름)**: H_s · k_p / 2 — 유의파고와 첨두파수의 곱. 클수록 비선형성 강함 (ε<0.07 = LWT 신뢰 영역, ε>0.10 = breaking 위험)",
+        "**Seed**: 난수 발생기의 초기값 — 같은 (sea state, N) 에 다른 seed 로 여러 realization 생성. 통계 평가의 신뢰도 ↑",
+    ], font_size=11, line_space_after=2)
     # Episode-level data spec
     add_text(s, 0.4, 5.5, 6.0, 0.4, "Per-episode 데이터 (HDF5 format):",
              font_size=12, bold=True, color=ACCENT)
@@ -1784,18 +1691,18 @@ def build_backups():
         "이 dataset 자체가 paper 의 contribution 일부 — Ehlers 2023 의 1D radar dataset 보다 풍부한 setup (2D directional + LiDAR sensor + 다양한 sea state)."
     ))
 
-    # ───────── Appendix C: 대표 case 모음 (GT vs WaveSplat vs ETKF) ─────────
+    # ───────── Appendix C: 대표 case 모음 (GT vs WaveSplat) ─────────
     s = add_blank(WHITE)
-    add_section_tag(s, "Appendix C · 대표 case 모음 (GT vs WaveSplat vs ETKF)", color=GRAY)
-    add_title(s, "Appendix C — 다양한 sea state × N 조합의 대표 결과", size=22)
+    add_section_tag(s, "Appendix C · 대표 case 모음 (GT vs WaveSplat)", color=GRAY)
+    add_title(s, "Appendix C — 단순 case 들의 GT vs WaveSplat (2D + 3D)", size=22)
     add_subtitle(s,
-                 "BF3 2-comp (단순) → BF4 15-comp (중간) → BF5 30-comp (복잡) — 한 시점 비교",
+                 "각 행: BF3 N=2 / BF3 N=5 / BF4 N=5 — 열: GT(2D), WS(2D), Error(2D), GT(3D), WS(3D)",
                  size=11)
-    fig_qual = os.path.join(DOC_DIR, 'fig8_qualitative-1.png')
-    add_image_or_placeholder(s, fig_qual, 0.4, 1.7, 12.5,
-                             placeholder_text='[fig8_qualitative — 다양한 case 의 GT/WaveSplat/ETKF 비교]')
+    fig_qual = os.path.join(DOC_DIR, 'fig_appendix_c_cases_2d3d.png')
+    add_image_or_placeholder(s, fig_qual, 0.3, 1.7, 12.7,
+                             placeholder_text='[Appendix C — 다양한 case 의 GT/WaveSplat 2D+3D]')
     add_text(s, 0.5, 7.0, 12.3, 0.4,
-             "Source: paper/figures/fig8_qualitative.pdf — 행 마다 다른 episode, 열 마다 GT / WaveSplat / ETKF / GPR. 단순 wave 일수록 WaveSplat 우위.",
+             "Source: scripts/generate_simple_qualitative_figure.py — 옛날 ETKF/GPR 비교 figure 대신 GT/WaveSplat 만으로 새로 생성. Wang 2025 비교는 별도 figure 예정.",
              font_size=10, italic=True, color=GRAY)
     add_text(s, 12.5, 7.05, 0.7, 0.35,
              "C", font_size=10, color=GRAY, alignment=PP_ALIGN.RIGHT)

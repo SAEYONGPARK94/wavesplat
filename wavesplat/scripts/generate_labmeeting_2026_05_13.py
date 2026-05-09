@@ -789,152 +789,143 @@ def build_s10():
 # S11 — WaveSim physics + LiDAR 모사 (어떻게)
 def build_s11():
     s = add_blank(WHITE)
-    add_section_tag(s, "Part 2 · WaveSim — LiDAR 모사 (1/2: 어떻게)", color=ACCENT2)
-    add_title(s, "WaveSim — LiDAR 센서를 어떻게 시뮬레이션했나")
-    add_subtitle(s, "Gerstner wave (JONSWAP 분포) + ray tracing + vessel motion 분리 처리")
+    add_section_tag(s, "Part 2 · WaveSim (1/2): 파도 + LiDAR 시뮬레이션", color=ACCENT2)
+    add_title(s, "WaveSim — 파도와 LiDAR 를 어떻게 모사했나")
+    add_subtitle(s, "각 구성요소의 물리적 합당성 + 코드 검증")
     bullets = [
-        "**수면 model — Gerstner wave (회전 정확해, Tessendorf 2001 식)**:",
-        "  단순 sinusoidal (LWT) 가 아니라 Gerstner — 입자가 원/타원 궤적으로 회전",
-        "  η(x, y, t) = Σ_n A_n cos(k_xn·x + k_yn·y − ω_n·t + φ_n) (수면 변위)",
-        "  추가 변위: x, y 방향으로 −Q_n·A_n·(k/|k|)·sin(...) (Gerstner 특성, 비선형)",
-        "  Q ∈ [0, 1] = steepness — Q=0 이면 LWT, Q>0 이면 Stokes-1 류 비선형",
-        "  Dispersion: ω_n = √(g·|k_n|·tanh(|k_n|·d))",
+        "**파도 모델 — Gerstner 파 + JONSWAP 스펙트럼**:",
+        "  η(x, y, t) = Σ_n A_n cos(k_xn·x + k_yn·y − ω_n·t + φ_n) + Gerstner 추가 변위",
+        "  Gerstner 1802 의 회전 정확해 — 입자가 원/타원 궤적으로 회전 (Q=0 → 선형, Q>0 → 약비선형)",
+        "  → 합당성: Tessendorf 2001 SIGGRAPH ocean 표준, Dean & Dalrymple 1991 교과서",
+        "  → 검증: Q 제약 (Σ Q·ω·A ≤ 1, 입자 궤적 자체 교차 방지) 의 unit test 통과",
         "",
-        "**Spectrum — JONSWAP (Hasselmann 1973, 북해 표준)**:",
-        "  S(ω) = α·g²·ω⁻⁵·exp(−5/4·(ω_p/ω)⁴) · γ^r — H_s, T_p, γ 로 결정",
-        "  N 개 component 의 (A_n, ω_n, k_n) 가 이 spectrum 으로부터 sampling",
+        "**스펙트럼 — JONSWAP (Hasselmann et al. 1973)**:",
+        "  S(ω) = α·g²·ω⁻⁵·exp(−5/4·(ω_p/ω)⁴) · γ^r — 북해 측정 데이터 기반",
+        "  입력: H_s (유의파고), T_p (첨두주기), γ (peak factor)",
+        "  → 합당성: 해양공학 표준 (ITTC, IACS 채택). 파도 성분 amplitude·주파수 sampling 에 사용",
         "",
-        "**LiDAR 센서 모사**:",
-        "  **1) Ray emit (광선 발사)** — vessel 위 5 m LiDAR mount 에서 발사",
-        "    Falcon-class LiDAR spec: horizontal FOV **120°**, vertical FOV **±5°**",
-        "    32 channels (vertical) × 360 beams (horizontal) per scan = 11,520 ray",
-        "    range 10–200 m (전 방향 360° 아님, 선수 방향 반구만)",
-        "  **2) Ray tracing** — laser ray 가 wave 표면에 부딪힌 첫 점을 찾음",
-        "    각 ray 마다 wave 표면 (격자) 과의 교차 검사 후 first-hit 반환",
-        "  **3) Vessel motion**: wave 격자는 world frame 에 고정, vessel 만 이동",
-        "    Wave 자체가 시간 t 에 따라 propagate, vessel 위치 (ray emit 점) 는 매 frame 1.13 m 전진",
-        "    → 별도 좌표계 변환 없이, ray emit 위치만 frame 별로 update",
+        "**분산 관계**: ω_n = √(g·|k_n|·tanh(|k_n|·d))",
+        "  Airy 1845 의 linear wave theory 결과 — 파도의 주파수와 파수의 표준 관계",
+        "  → 합당성: 100 년 이상 검증된 표준 (수심 d, 중력 g 만 입력)",
+        "",
+        "**LiDAR 센서 (Falcon K1 spec)**:",
+        "  Vessel 위 5 m mount, FOV 수평 120° × 수직 ±5° (선수 방향 반구만, 전방향 360° 아님)",
+        "  32 채널 × 360 beam = 11,520 ray / scan, range 10–200 m, 1550 nm 파장",
+        "  Ray tracing: laser ray 가 파도 표면에 부딪힌 첫 점을 찾음 (Möller-Trumbore 1997)",
+        "",
+        "**Vessel motion 처리** (사용자 질문 답: '관측 창만 이동' 맞음):",
+        "  파도 격자는 충분히 큰 영역 (수백 m × 수백 m) 의 world frame 에 고정",
+        "  Vessel 은 그 격자 안을 V=11.3 m/s 로 이동 (매 frame Δt=0.1 s 동안 1.13 m 전진)",
+        "  → LiDAR FOV (관측 창) 가 vessel 따라 이동, 파도 격자 자체는 변경 없음",
+        "  → 파도 자체는 t 의 진행으로 자연 propagate (η(x,y,t) 의 t 만 update)",
     ]
-    add_bullets(s, 0.5, 1.85, 8.5, 5.3, bullets, font_size=10,
-                line_space_after=2)
+    add_bullets(s, 0.4, 1.85, 8.7, 5.3, bullets, font_size=9,
+                line_space_after=1)
     fig_lidar = os.path.join(DOC_DIR, 'wavesim_BF4_5c_wave_lidar.png')
-    add_image_or_placeholder(s, fig_lidar, 9.2, 2.2, 3.9,
+    add_image_or_placeholder(s, fig_lidar, 9.3, 2.2, 3.8,
                              placeholder_text='[LiDAR scan visualization]')
     add_page_number(s, 9)
     add_notes(s, (
-        "WaveSim 의 LiDAR 센서 모사 부분을 단계별로 설명드립니다. 두 부분 — wave model 과 LiDAR 모사.\n\n"
-        "(1) Wave model — Gerstner wave (단순 sinusoidal 의 확장):\n"
-        "  - 단순 LWT 는 수면 변위만 sinusoidal 로 표현 (η = A cos(...)).\n"
-        "  - Gerstner wave 는 입자의 운동까지 모사: 입자가 원 또는 타원 궤적으로 회전하면서 표면을 형성. "
-        "Gerstner 1802 의 회전 정확해 (rotational exact solution), 후에 Dean & Dalrymple 1991, Tessendorf 2001 에서 시뮬레이션용 수식 정리.\n"
-        "  - Q parameter: steepness 의 척도 (0 ≤ Q ≤ 1). Q=0 이면 LWT 와 동일, Q>0 이면 Stokes-1 류 weakly nonlinear (crest 가 sharp, trough 가 flat).\n"
-        "  - Q 제약: ΣQ_i·ω_i·A_i ≤ 1 — 입자 궤적이 자체 교차하지 않도록 (particle crossing prevention, Tessendorf 2001).\n"
-        "  - 우리 simulator 의 default: Q_max = 0.8, conservative.\n\n"
-        "(2) Spectrum — JONSWAP (Joint North Sea Wave Project):\n"
-        "  - Hasselmann et al. 1973 가 북해 측정 데이터로 정립한 표준 wave spectrum.\n"
-        "  - S(ω) = α·g²·ω⁻⁵·exp(−5/4·(ω_p/ω)⁴) · γ^r — Pierson-Moskowitz 에 peak enhancement γ 추가.\n"
-        "  - 입력: H_s (significant wave height), T_p (peak period), γ (peak factor, default 3.3).\n"
-        "  - N 개 wave component 의 (A_n, ω_n) 를 이 spectrum 으로부터 sampling — 각 component 의 amplitude 는 √(2·S(ω)·Δω).\n"
-        "  - 방향 spreading: cos²ˢ 함수로 directional component 분배.\n\n"
-        "(3) LiDAR 센서 모사 — Falcon-class spec 기준:\n"
-        "  - 우리 simulator 의 default config 가 Falcon LiDAR 의 spec 과 같음.\n"
-        "  - Horizontal FOV 120°: 전 방향 360° 가 아니라 선수 방향 ±60° 반구 (실제 marine LiDAR 의 일반적 setup).\n"
-        "  - Vertical FOV ±5°: 수평 기준 ±5°, 총 10° 좁음 (먼 거리 표면 측정용).\n"
-        "  - 32 channels × 360 horizontal beams = 11,520 ray per scan.\n"
-        "  - Range 10–200 m (raydrop 후 valid 점 ~50 개).\n\n"
-        "(4) Ray tracing 단계:\n"
-        "  - Wave 표면 η(x, y, t) 를 매 frame 격자로 sampling 후 triangle mesh 로 표현.\n"
-        "  - 각 ray 가 wave 표면 (mesh) 과 만나는 첫 점 (first-hit) 을 찾음 — 이 점이 LiDAR 측정값.\n"
-        "  - 표준 ray-triangle intersection 알고리즘 사용 (Möller-Trumbore 1997, 그래픽 분야 30 년 표준).\n\n"
-        "(5) Vessel motion 처리 — 사용자 지적의 답:\n"
-        "  - Wave 격자는 world frame (고정 절대 좌표) 에 있음.\n"
-        "  - Wave 자체가 시간 t 에 따라 propagate (Σ A cos(kx − ωt + φ) 의 t 가 매 frame 진행).\n"
-        "  - Vessel 위치 (ray emit 점) 는 매 frame Δt=0.1 s 동안 V·Δt = 1.13 m 전진.\n"
-        "  - 즉 wave 격자는 그대로 두고 ray 의 시작점만 따라 이동 — 별도 좌표계 변환 없이 자연 처리.\n"
-        "  - 결과: 매 frame 다른 vessel 위치에서 wave 의 다른 부분을 관측 (synthetic aperture 효과).\n\n"
-        "다음 슬라이드에서 raydrop (점이 누락되는 현상) 의 합당성 — Snell 법칙 + Fresnel 식 — 을 자세히 설명드립니다."
+        "WaveSim 시뮬레이터의 4 가지 구성 — 파도 모델, 스펙트럼, 분산 관계, LiDAR 센서 — 각각의 물리적 합당성과 검증을 설명드립니다.\n\n"
+        "(1) 파도 모델 — Gerstner 파:\n"
+        "  - 단순 sinusoidal (LWT) 는 수면 변위만 표현 (η = A cos(...)).\n"
+        "  - Gerstner 파는 입자의 운동까지 모사 — 입자가 원/타원 궤적으로 회전하면서 표면 형성.\n"
+        "  - Q ∈ [0, 1]: 가파름 척도. Q=0 이면 LWT 와 동일, Q>0 이면 약비선형 (crest sharp, trough flat — Stokes-1 풍).\n"
+        "  - Q 제약: Σ Q_i · ω_i · A_i ≤ 1. 이 제약을 어기면 입자 궤적이 자체 교차해서 비물리적 — Tessendorf 2001 의 particle crossing prevention.\n"
+        "  - 합당성: Tessendorf 2001 SIGGRAPH 의 ocean simulation 표준, Dean & Dalrymple 1991 교과서.\n"
+        "  - 검증: wavesim/tests/ 의 Q-constraint test 가 ΣQ·ω·A 가 1 이하 유지 확인.\n\n"
+        "(2) 스펙트럼 — JONSWAP (Joint North Sea Wave Project):\n"
+        "  - Hasselmann et al. 1973 이 북해 측정 데이터로 정립한 표준 wave spectrum.\n"
+        "  - S(ω) = α · g² · ω⁻⁵ · exp(−5/4 · (ω_p/ω)⁴) · γ^r — Pierson-Moskowitz 에 peak enhancement γ 추가.\n"
+        "  - 입력: H_s (유의파고), T_p (첨두주기), γ (peak factor, default 3.3).\n"
+        "  - N 개 wave 성분의 (A_n, ω_n) 를 spectrum 으로부터 sampling: amplitude 는 √(2·S(ω)·Δω).\n"
+        "  - 방향 spreading: cos²ˢ 함수로 방향 성분 분배.\n"
+        "  - 합당성: 해양공학 분야 표준 wave spectrum. ITTC (International Towing Tank Conference) 와 IACS (International Association of Classification Societies) 모두 채택.\n\n"
+        "(3) 분산 관계 — Airy 1845:\n"
+        "  - ω_n = √(g·|k_n|·tanh(|k_n|·d)) — frequency 와 wavenumber 의 표준 관계.\n"
+        "  - linear wave theory 의 기본 결과 (Airy 1845 가 처음 정립).\n"
+        "  - 입력: 중력 g = 9.81 m/s², 수심 d. 깊은 물 한계 (kd >> 1) 에서 ω = √(g·k).\n"
+        "  - 합당성: 100 년 이상 사용된 표준. 모든 wave estimation paper 에서 그대로 사용.\n\n"
+        "(4) LiDAR 센서 모사 — Falcon K1 spec 기준:\n"
+        "  - 우리 simulator 의 default config 가 Falcon K1 LiDAR spec 과 일치.\n"
+        "  - Horizontal FOV 120°: 전방향 360° 아니라 선수 방향 ±60° 반구 (marine LiDAR 의 일반 setup).\n"
+        "  - Vertical FOV ±5°: 수평 기준 ±5° 좁음 (먼 거리 surface 측정용).\n"
+        "  - 32 채널 × 360 horizontal beam = 11,520 ray / scan, range 10–200 m, 1550 nm 파장.\n"
+        "  - Ray tracing: 각 ray 가 파도 표면 (격자에서 만든 triangle mesh) 과 만나는 첫 점 (first-hit) 을 찾음.\n"
+        "  - Möller-Trumbore 1997: graphics 분야 표준 ray-triangle intersection 알고리즘.\n\n"
+        "(5) Vessel motion 처리 — 사용자 질문의 답 ('관측 창만 이동') 맞음:\n"
+        "  - 파도 field 는 충분히 큰 world frame 격자 (예: 500 m × 500 m) 에 고정. 시뮬레이션 시작 시 한 번 만들고 변경 없음.\n"
+        "  - Vessel (LiDAR mount 점) 만 그 격자 안을 V=11.3 m/s 로 이동.\n"
+        "  - 매 frame Δt=0.1 s 동안 vessel 위치가 1.13 m 전진. LiDAR FOV (관측 창) 도 함께 이동 — 매 frame 다른 영역 관측.\n"
+        "  - 파도 자체의 시간 변화는 η(x, y, t) 의 t 가 진행하는 것으로 자연 처리. 격자 자체는 그대로.\n"
+        "  - 결과: 매 frame 다른 vessel 위치에서 wave 의 다른 부분을 관측 — 이게 paper 의 main framing 인 synthetic aperture 효과의 원천.\n\n"
+        "다음 슬라이드에서 raydrop (점이 왜 누락되는가) 과 검증을 다룹니다 — Fresnel 식 자체의 단계별 계산은 발표자에게는 별도 설명, 슬라이드에는 합당성·검증 위주."
     ))
 
 
-# S12 — WaveSim LiDAR 모사 (Fresnel 계산 단계별 + 검증)
+# S12 — WaveSim raydrop 합당성 + 검증
 def build_s12():
     s = add_blank(WHITE)
-    add_section_tag(s, "Part 2 · WaveSim — LiDAR 모사 (2/2: 합당성)", color=ACCENT2)
-    add_title(s, "Raydrop — Fresnel 식의 단계별 계산")
-    add_subtitle(s, "입사각 θ_i → Snell 로 굴절각 θ_t → Fresnel reflectance R → return probability P")
+    add_section_tag(s, "Part 2 · WaveSim (2/2): raydrop 합당성 + 검증", color=ACCENT2)
+    add_title(s, "Raydrop / shadowing — 왜 합당하고 어떻게 검증되었나")
+    add_subtitle(s, "각 물리 모델의 출처 + 우리 검증 방법")
     bullets = [
-        "**Raydrop 의 물리**: 파도 표면이 매끄러우면 specular 반사 — ray 가 LiDAR 가 아닌 방향으로 가서 return 없음",
-        "  → 입사각 θ_i 에 따라 specular 비중이 다름 → Fresnel 식으로 정확히 계산",
+        "**Raydrop (점 누락) 의 물리**:",
+        "  파도 표면이 매끄러우면 ray 가 specular 반사 — LiDAR receiver 가 아닌 방향으로 가서 return 없음",
+        "  입사각 θ_i 가 grazing (90°) 에 가까울수록 specular 비중 ↑ → 점 누락 ↑",
+        "  → 모사: Fresnel reflectance R(θ_i) 로 specular 비중 계산 (식은 backup A 참조)",
         "",
-        "**계산 step 1 — Snell 의 법칙으로 굴절각 θ_t 구함**:",
-        "  air n₁=1 → water n₂=n=1.318 (Falcon K1 의 1550 nm 파장 기준 굴절률)",
-        "  n₁ sin θ_i = n₂ sin θ_t  →  sin θ_t = sin θ_i / n",
-        "  cos θ_t = √(1 − sin²θ_t)   (Snell 은 굴절각 구하는 도구일 뿐, raydrop 계산은 Fresnel)",
+        "**Fresnel 식의 합당성**:",
+        "  19 세기 Augustin-Jean Fresnel 정립 (1820 년대)",
+        "  광학 교과서 표준 (Hecht, Optics §4.6) — 모든 광학 시뮬레이션에서 사용",
+        "  Ocean LiDAR 분야 (Nouguier-Grilli-Guérin 2014, IEEE TGRS) 에서 검증된 표준",
+        "  Falcon K1 의 1550 nm 파장 기준 물 굴절률 n = 1.318 사용",
         "",
-        "**계산 step 2 — Fresnel reflectance 두 polarization 평균** (unpolarized 가정):",
-        "  R_s = ((cos θ_i − n·cos θ_t) / (cos θ_i + n·cos θ_t))²    (s-polarization)",
-        "  R_p = ((n·cos θ_i − cos θ_t) / (n·cos θ_i + cos θ_t))²    (p-polarization)",
-        "  R(θ_i) = (R_s + R_p) / 2 ∈ [0, 1]",
-        "  특성: θ_i = 0 (수직 입사) 에서 R ≈ 0.02 (낮음, 대부분 통과). θ_i → 90° (grazing) 에서 R → 1",
+        "**Geometric shadowing — 별도 모델 없음**:",
+        "  앞쪽 큰 파도가 뒤쪽을 가림 — ray tracing 의 first-hit 결과로 자동 처리",
+        "  광선 직진 + 첫 충돌점 측정 = geometric optics 의 자연 결과 (추가 가정 0)",
         "",
-        "**계산 step 3 — Return probability 종합**:",
-        "  P = η · R(θ_i) · cos(θ_i) / (d / d_ref)²    (return likelihood)",
-        "  R(θ_i): Fresnel 반사율 (위에서 계산)",
-        "  cos(θ_i): grazing 보정 (수직 입사일수록 강한 신호)",
-        "  1/d² 항: 거리 attenuation (Falcon K1 의 d_ref = 125 m)",
-        "  η: calibration scale (sea trial 데이터로 tune)",
+        "**검증 (validation)**:",
+        "  ① 108 unit test 통과 — ray tracing 정확성, Fresnel 계산, shadowing edge case 모두 검증",
+        "  ② 110 episode 합성 dataset — BF2–BF7 × N=1–30 다양한 sea state 에서 동작 확인",
+        "  ③ Sea trial 실측 LiDAR 데이터 (sea_trial_lidar.png) 와 점 분포 패턴 정성 비교 — 일치",
         "",
-        "**Geometric shadowing**: 앞쪽 wave 가 뒤쪽 가림 — ray tracing 의 first-hit 결과로 자동 처리 (별도 모델 없음)",
-        "",
-        "**검증**: 108 unit test 통과 + 110 episode dataset + sea trial LiDAR 데이터와 분포 패턴 일치",
-        "**한계**: 미세파 (capillary, mm 단위), foam, breaking wave 영향 미반영",
+        "**정직한 한계**:",
+        "  미세파 (capillary, mm 단위 surface roughness): 실제 LiDAR raydrop 에 추가 영향, 우리는 미반영",
+        "  Foam, white cap (BF6 이상): wave breaking 시 발생, LWT family 처리 못 함",
+        "  Operational sea state (BF2–BF6) 에서는 부차적 효과로 가정",
     ]
     add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=10,
                 line_space_after=2)
     add_page_number(s, 10)
     add_notes(s, (
-        "이전 슬라이드에서 LiDAR 모사 단계 (ray emit → wave mesh → ray tracing → vessel motion 처리) 를 설명드렸습니다. "
-        "이 슬라이드는 raydrop (점 누락) 의 핵심 — Fresnel 식의 단계별 계산을 자세히 설명합니다. "
-        "Snell 의 법칙은 굴절각을 구하는 도구일 뿐, 실제 raydrop 확률을 결정하는 것은 Fresnel 식입니다.\n\n"
-        "(1) Raydrop 의 물리:\n"
-        "  실제 LiDAR 에서 점이 누락되는 가장 큰 원인은 specular reflection 입니다.\n"
-        "  - 물 표면이 매끄러우면 ray 가 거울처럼 한 방향으로 반사. LiDAR receiver 가 그 방향에 없으면 return 없음 → 점 누락.\n"
-        "  - 입사각 (θ_i) 가 normal 에 가까우면 일부 ray 가 LiDAR 로 돌아옴 (점 검출).\n"
-        "  - θ_i 가 grazing (90°) 에 가까우면 specular 비중이 강해 거의 모든 ray 가 다른 방향으로 가버림.\n\n"
-        "(2) Fresnel 식의 계산 — step by step:\n\n"
-        "  [Step 1: Snell 의 법칙으로 굴절각 θ_t 계산]\n"
-        "  - air 의 굴절률 n₁ = 1, water 의 굴절률 n₂ = n.\n"
-        "  - n 값은 LiDAR 파장에 따라 다름. Falcon K1 LiDAR 는 1550 nm 파장 사용 → water 의 1550 nm 굴절률 n = 1.318.\n"
-        "  - Snell 의 법칙: n₁ sin θ_i = n₂ sin θ_t → sin θ_t = sin θ_i / n.\n"
-        "  - 이 sin θ_t 로부터 cos θ_t = √(1 − sin²θ_t) 계산.\n"
-        "  - Snell 자체는 raydrop 확률을 주지 않음 — 단지 다음 step 의 Fresnel 식 입력으로 쓸 θ_t 를 구하는 도구.\n\n"
-        "  [Step 2: Fresnel reflectance — 두 polarization 평균]\n"
-        "  - 광선은 두 polarization (s, p) 의 합으로 표현. LiDAR laser 는 polarization 이 무작위이거나 균일 (unpolarized) 이라 가정.\n"
-        "  - s-polarization (전기장이 입사 평면 수직): R_s = ((cos θ_i − n·cos θ_t) / (cos θ_i + n·cos θ_t))².\n"
-        "  - p-polarization (전기장이 입사 평면 안): R_p = ((n·cos θ_i − cos θ_t) / (n·cos θ_i + cos θ_t))².\n"
-        "  - Unpolarized 평균: R(θ_i) = (R_s + R_p) / 2 ∈ [0, 1].\n"
-        "  - 특성: θ_i = 0 (수직) 일 때 R ≈ ((1−n)/(1+n))² ≈ 0.02 — 거의 통과 (반사 2%). "
-        "θ_i → 90° (grazing) 일 때 R → 1 — 거의 모두 specular 반사.\n\n"
-        "  [Step 3: 거리·grazing 보정으로 최종 return probability]\n"
-        "  - P = η · R(θ_i) · cos(θ_i) / (d / d_ref)².\n"
-        "  - R(θ_i): 위에서 계산한 Fresnel 반사율 (0–1).\n"
-        "  - cos(θ_i): 수직 입사일수록 강한 신호 (Lambert cosine law).\n"
-        "  - 1/d² 항: 거리 attenuation (LiDAR signal 의 기본 광학). d_ref = 125 m (Falcon K1 spec 의 reference 거리).\n"
-        "  - η: calibration scale parameter — sea trial 데이터로 tune.\n\n"
-        "  [코드 위치]: wavesim/raydrop_uniform.py 의 fresnel_reflectance() 함수가 위 식을 정확히 구현.\n\n"
-        "(3) Fresnel 의 합당성:\n"
-        "  - 식 자체는 19 세기 Augustin-Jean Fresnel 이 정립 (1820s). 광학 교과서 (Hecht, Optics §4.6) 표준.\n"
-        "  - air-water 경계의 표준 physics — 모든 광학 시뮬레이션 (rendering, oceanographic optics) 에서 사용.\n"
-        "  - Ocean LiDAR 분야 (Nouguier-Grilli-Guérin 2014, IEEE TGRS) 에서 검증된 표준.\n\n"
-        "(4) Geometric shadowing 은 별도 모델 없음:\n"
-        "  - Ray tracing 의 first-hit 결과로 자동 처리 (ray 가 첫 wave triangle 에 막히면 뒤쪽 못 보임).\n"
-        "  - geometric optics (광선 직진 + 첫 충돌점만 측정) 의 자연 결과 — 추가 가정 0.\n\n"
-        "(5) 검증 + 한계:\n"
-        "  - 108 unit test 통과 (ray tracing 정확성, Fresnel 계산, shadowing edge case 모두 검증).\n"
-        "  - 110 episode 합성 dataset 으로 다양한 sea state 에서 동작 확인.\n"
-        "  - Sea trial 실측 LiDAR 데이터와 시각적 비교 (sea_trial_lidar.png) — 점 분포 패턴 일치.\n"
-        "  - 한계: 미세파 (capillary), foam, breaking wave 영향 미반영. Operational BF2–BF6 에서는 부차적.\n\n"
-        "이 정도의 sensor 물리까지 포함된 simulator + 110 episode dataset 자체가 paper 의 contribution 일부입니다."
+        "이전 슬라이드에서 wave model + LiDAR 모사 4 단계를 설명드렸습니다. "
+        "이 슬라이드는 raydrop / shadowing 의 합당성과 검증을 다룹니다. "
+        "Fresnel 식 자체의 단계별 계산은 backup A (또는 발표자에게 직접 설명) 으로 두고, 슬라이드는 *왜 합당한가 + 어떻게 검증되었나* 위주.\n\n"
+        "(1) Raydrop 물리:\n"
+        "  - 실제 LiDAR 에서 점 누락의 주 원인은 specular reflection.\n"
+        "  - 매끄러운 표면은 ray 를 한 방향으로 반사 → LiDAR receiver 가 그 방향에 없으면 점 누락.\n"
+        "  - 입사각 θ_i 가 grazing (90°) 에 가까울수록 specular 가 강해서 raydrop 확률 ↑.\n"
+        "  - 모사: Fresnel reflectance R(θ_i) 와 거리 보정 1/d² 으로 종합 계산. 식 detail 은 backup.\n\n"
+        "(2) Fresnel 의 합당성 — 발표 시 청자 질문에 대비:\n"
+        "  - 19 세기 Augustin-Jean Fresnel 정립 (1820 년대). 광학 교과서 Hecht, Optics §4.6 에 표준 등장.\n"
+        "  - 모든 광학 시뮬레이션 (rendering, oceanographic optics, satellite remote sensing) 에서 동일한 식 사용.\n"
+        "  - Ocean LiDAR 분야 Nouguier-Grilli-Guérin 2014 (IEEE TGRS) 에서 그대로 적용 — 검증된 표준.\n"
+        "  - 우리 simulator 의 1550 nm 파장 기준 물 굴절률 n = 1.318 은 광학 표준 데이터.\n\n"
+        "(3) Geometric shadowing — 추가 모델 없음:\n"
+        "  - Ray tracing 의 first-hit 결과로 자동 처리.\n"
+        "  - 광선 직진 + 첫 충돌점만 측정 = geometric optics 의 자연 결과.\n"
+        "  - 추가 가정 0, 자체 일관성 보장.\n\n"
+        "(4) 검증 — 3 단계:\n"
+        "  ① Unit test 108 개 — ray tracing 정확성, Fresnel 계산, shadowing edge case 각각 별도 test.\n"
+        "  ② 110 episode 합성 dataset 으로 다양한 sea state 에서 동작 확인 (BF2–BF7).\n"
+        "  ③ Sea trial 실측 LiDAR 데이터 (sea_trial_lidar.png) 와 점 분포 패턴 정성 비교 — 일치 확인.\n\n"
+        "(5) 정직한 한계:\n"
+        "  - 미세파 (capillary, mm 단위): LiDAR raydrop 에 추가 영향, 우리는 미반영.\n"
+        "  - Foam, white cap: BF6 이상 wave breaking 시 발생.\n"
+        "  - Breaking wave: VOF-EnKF 영역, 우리는 future work.\n\n"
+        "발표 시 청자가 'Fresnel 어떻게 계산?' 물으면: 'Snell 로 굴절각 → 두 polarization 평균 → 거리 보정' 3 단계 라고 답변. "
+        "수식 자세히는 backup A 또는 wavesim/raydrop_uniform.py 의 fresnel_reflectance() 함수 참조."
     ))
 
 
@@ -942,64 +933,72 @@ def build_s12():
 def build_s13():
     s = add_blank(WHITE)
     add_section_tag(s, "Part 3 · WaveSplat — 우리 estimator (탐색 단계)", color=GOLD)
-    add_title(s, "WaveSplat — 아이디어의 시작과 명칭의 유래")
-    add_subtitle(s, "왜 격자 없이 파라미터 자체를 추정하는가? 왜 'Splat' 이라는 이름인가?")
+    add_title(s, "WaveSplat — 아이디어의 시작과 'Splat' 이라는 이름")
+    add_subtitle(s, "왜 격자가 아닌 '파도 성분 한 개씩' 추정하는가? 왜 'Splat' 이름인가?")
     bullets = [
-        "**아이디어 시작 — 격자 기반의 본질적 제약**:",
-        "  Wang/Desmars 류는 파도를 격자 위 높이값 4,800 개 (80×60) 로 표현",
-        "  관측 점은 frame 당 50 개 — 파라미터 4,800 개 추정에 턱없이 부족 → ill-posed",
-        "  격자 간격보다 짧은 wave 는 표현 불가 (Nyquist 한계)",
+        "**아이디어 출발 — 격자 기반의 한계**:",
+        "  Wang2025/Desmars 류: 바다 표면을 격자 위 높이값으로 표현 (예: 80×60 = 4,800 개 점)",
+        "  관측은 LiDAR 점 50 개뿐 → 4,800 개 높이값 추정은 정보 부족 (under-determined)",
+        "  격자 간격보다 짧은 파장의 파도는 표현 불가 (Nyquist 한계)",
         "",
-        "**발상의 전환 — wave 의 atomic parameter 로 직접 표현**:",
-        "  실제 ocean wave 는 소수 (N=5–30) 의 plane wave 의 합으로 충분히 근사 (JONSWAP 분해)",
-        "  각 plane wave 는 5 개 물리량: A (진폭), k_x, k_y (파수), ω (주파수), φ (위상)",
-        "  N=10 이면 파라미터 50 개 — 관측 50 개로 추정 가능",
-        "  Dispersion 으로 ω 가 k 에 의해 결정됨: 5N → 4N 자유도",
+        "**발상 전환 — 파도 성분 한 개씩 직접 추정**:",
+        "  실제 바다 파도는 보통 5–30 개의 sin 파 (성분) 의 합으로 충분히 표현 (JONSWAP 분해)",
+        "  각 파도 성분은 5 개 숫자로 완전 결정:",
+        "    · 진폭 A (파고 크기)",
+        "    · 파수 (k_x, k_y) — 파장과 진행 방향 결정",
+        "    · 주파수 ω (= 2π / 주기 T) — 시간적 변화율",
+        "    · 위상 φ (시작 시점)",
+        "  성분 N=10 이면 추정 변수 50 개 — 관측 50 개로 추정 가능",
+        "  분산 관계 ω = √(g·|k|·tanh(|k|·d)) 를 강제 → ω 는 k 에서 자동 → 변수 5N → 4N",
         "",
-        "**3D Gaussian Splatting (3DGS) 의 영감**:",
-        "  3DGS: 3D 공간을 명시적 Gaussian 원소들의 합으로 표현, 각 원소를 직접 최적화",
-        "  WaveSplat: spectrum 공간 (k, ω) 을 명시적 plane wave 원소들의 합으로 표현",
-        "  → 핵심 발상 동일: 격자/볼륨 대신 explicit parametric form 으로 직접 최적화",
+        "**3D Gaussian Splatting (3DGS) 와의 영감**:",
+        "  3DGS (Kerbl 2023, SIGGRAPH): 3D 공간을 voxel/NN 대신 'Gaussian 원소 여러 개의 합' 으로 표현, 각 원소를 직접 최적화",
+        "  WaveSplat: 바다 파도를 격자 대신 'sin 파 성분 여러 개의 합' 으로 표현, 각 성분을 직접 최적화",
+        "  → 같은 철학 (격자 없이 명시적 원소 직접 최적화), 다른 영역 (3DGS=영상, WaveSplat=파도)",
         "",
         "**'Splat' 명칭의 의미**:",
-        "  3DGS 처럼 명시적 원소 (component) 를 직접 최적화하되,",
-        "  격자/볼륨 대신 **spectrum 공간 (k_x, k_y, ω)** 에 각 원소가 'splat' 됨",
-        "  → Grid-free + Explicit parametric form (3DGS 와 같은 철학, 다른 도메인)",
+        "  '여러 명시적 원소를 위치시키고 직접 최적화' 한다는 점에서 3DGS 와 발상 동일",
+        "  단 graphics rendering 은 아님 — paper 작성 시 명칭 변경 검토 가능 (현재 working name)",
     ]
-    add_bullets(s, 0.5, 1.85, 8.5, 5.3, bullets, font_size=11,
-                line_space_after=2)
+    add_bullets(s, 0.4, 1.85, 8.7, 5.4, bullets, font_size=10,
+                line_space_after=1)
     fig_pipe = os.path.join(PAPER_FIG_DIR, 'fig_pipeline.png')
-    add_image_or_placeholder(s, fig_pipe, 9.2, 2.0, 3.9,
+    add_image_or_placeholder(s, fig_pipe, 9.3, 2.0, 3.8,
                              placeholder_text='[WaveSplat pipeline diagram]')
     add_page_number(s, 11)
     add_notes(s, (
-        "WaveSplat 의 발상 시작과 명칭의 유래를 설명합니다.\n\n"
-        "(1) 왜 격자 기반은 부족한가:\n"
-        "  - Wang2025, Desmars 등 기존 방법은 wave field 를 80×60 = 4,800 개 격자 위 높이값으로 표현.\n"
-        "  - 추정해야 할 파라미터 수 = 4,800 개. 그러나 관측 점은 LiDAR frame 당 50 개.\n"
-        "  - 50 개로 4,800 개 추정 = ill-posed (under-determined). 어떻게든 격자 외 정보 (smoothness prior, ensemble covariance) 를 동원해야 함.\n"
-        "  - 추가 한계: 격자 간격보다 짧은 wave 는 Nyquist 한계로 표현 불가.\n\n"
-        "(2) 발상의 전환 — atomic parameter 로 직접 표현:\n"
-        "  - JONSWAP spectrum 으로 분해해보면 실제 ocean wave 는 N=5–30 개 plane wave 의 합으로 충분히 근사 가능.\n"
-        "  - 각 plane wave 는 5 개 파라미터로 완전 결정: A (진폭), k_x, k_y (파수 vector), ω (각주파수), φ (초기 위상).\n"
-        "  - N=10 component 면 파라미터 50 개. 관측 50 개로 추정 가능.\n"
-        "  - Dispersion 관계 ω = √(g·|k|·tanh(|k|·d)) 를 hard constraint 로 강제 → ω 가 k 로부터 결정됨 → 자유도 5N → 4N.\n"
-        "  - 결정적 차이: 격자 간격이라는 한계가 없음 (k 가 연속). Wavelength 가 길든 짧든 자연스럽게 표현.\n\n"
-        "(3) 3D Gaussian Splatting (3DGS) 의 영감:\n"
-        "  - 3DGS (Kerbl et al. 2023, SIGGRAPH) 는 3D 공간을 voxel grid 또는 implicit NN 대신 *명시적 Gaussian 원소들의 합* 으로 표현.\n"
-        "  - 각 Gaussian 의 위치, 크기, 색을 직접 gradient descent 로 최적화.\n"
-        "  - 우리는 비슷한 발상을 spectrum 공간에 적용 — wave 를 명시적 plane wave 원소들의 합으로 표현, 각 원소의 5 파라미터를 직접 최적화.\n"
-        "  - 도메인은 다름 (3DGS=3D 공간, WaveSplat=spectrum 공간) 이지만 핵심 철학은 같음: grid-free + explicit parametric.\n\n"
-        "(4) 'Splat' 이라는 명칭의 정직한 정리:\n"
-        "  - 3DGS 의 'splatting' 용어는 graphics 분야의 rendering 기법 (각 Gaussian 을 view plane 에 splat=뿌림).\n"
-        "  - 우리 work 의 '명시적 원소를 spectrum 공간에 위치시킨다' 는 발상은 3DGS 의 철학에서 영감.\n"
-        "  - 단 우리 알고리즘 자체는 graphics rendering 이 아니라 spectral parametric inversion (Tang 2013 atomic-norm 류).\n"
-        "  - 이름이 misleading 할 수 있어 paper 작성 시 명칭 변경 검토 중. 현재는 working name.\n"
-        "  - Q&A 답변 준비: '초기 작업명. 3DGS 의 \"여러 기저 함수의 가중합으로 연속 필드 표현\" 발상에서 영감. 핵심 알고리즘은 표준 spectral parametric inversion.'\n\n"
-        "(5) 다음 슬라이드의 흐름 — 실제 알고리즘:\n"
-        "  - S12 (다음): Init 단계 — 다중 frame 에서 (k_x, k_y) 추정 (beamforming + dispersion).\n"
-        "  - S13 (그 다음): Tracking 단계 — 매 frame (A, φ) 만 Adam 으로 빠르게 update + Adaptive N.\n"
-        "  - S14 (그 다음): GT vs WaveSplat 비교 시각화."
+        "WaveSplat 의 발상 시작과 명칭의 유래를 설명합니다. 외부 청자 (조선해양 분야 포함) 가 익숙한 표현을 쓰고, jargon 은 풀어 설명합니다.\n\n"
+        "(1) 격자 기반의 한계 — 왜 부족한가:\n"
+        "  - Wang 2025, Desmars 등은 바다 표면 (수면 높이 η) 을 격자 위의 값으로 표현. 80×60 격자면 4,800 개 점.\n"
+        "  - 추정해야 할 변수 = 4,800 개. 그러나 LiDAR 관측 점은 frame 당 50 개.\n"
+        "  - 50 개 측정으로 4,800 개 변수 추정 = 정보 부족 (under-determined). 격자 외 추가 정보 (부드러움 가정, 앙상블 covariance) 를 동원해야 함.\n"
+        "  - 추가 한계: 격자 간격보다 짧은 파장의 파도는 격자로 표현 자체가 불가능 (Nyquist 한계).\n\n"
+        "(2) 발상의 전환 — 파도 성분으로 직접 표현:\n"
+        "  - JONSWAP 스펙트럼으로 분해하면 실제 바다 파도는 보통 5-30 개의 sin 파 (성분, component) 의 합으로 충분히 근사.\n"
+        "  - 각 sin 파 성분은 5 개의 숫자로 완전히 결정 — 조선해양 분야 표준 wave 표현:\n"
+        "    · A (진폭, amplitude): 파고의 크기 (단위: m).\n"
+        "    · (k_x, k_y) (파수, wavenumber vector): 파장 λ = 2π/|k| 와 진행 방향 결정.\n"
+        "    · ω (각주파수, angular frequency): 주기 T = 2π/ω 의 역수, 시간적 변화율.\n"
+        "    · φ (위상, phase): 시작 시점 (어느 파도가 어느 시점에 어디 있는지).\n"
+        "  - N=10 개 성분이면 변수 50 개. LiDAR 관측 50 개로 1:1 추정 가능.\n"
+        "  - 분산 관계 (dispersion relation) ω = √(g·|k|·tanh(|k|·d)) 를 강제 → ω 가 k 에서 자동 결정 → 변수 5N → 4N.\n"
+        "  - 결정적 차이: 격자 간격이라는 한계가 없음. 파장이 짧든 길든 (k 가 연속) 자연스럽게 표현.\n\n"
+        "(3) 3D Gaussian Splatting (3DGS) 와의 영감:\n"
+        "  - 3DGS (Kerbl et al. 2023, SIGGRAPH 발표) 는 컴퓨터 그래픽 분야의 새로운 3D scene 표현 방법.\n"
+        "  - 기존 방법은 voxel grid (3D 격자) 또는 implicit neural network 사용.\n"
+        "  - 3DGS 는 3D 공간을 *여러 개의 Gaussian 원소* 의 합으로 표현. 각 Gaussian 의 위치/크기/색을 gradient descent 로 직접 최적화.\n"
+        "  - 우리도 비슷한 발상 — 격자 없이 *여러 sin 파 성분의 합* 으로 wave field 를 표현. 각 성분의 5 변수를 직접 최적화.\n"
+        "  - 도메인은 다름 (3DGS = 3D 영상, WaveSplat = 바다 파도) 이지만 핵심 철학은 같음.\n\n"
+        "(4) 'Splat' 이라는 명칭 — 정직한 정리:\n"
+        "  - 3DGS 의 'splatting' 은 그래픽 rendering 기법 (각 Gaussian 을 화면에 'splat'=뿌림).\n"
+        "  - 우리는 그래픽 rendering 이 아니라 wave 추정 — 'splat' 의 정확한 의미는 우리 알고리즘에 직접 적용되지 않음.\n"
+        "  - 이름은 '명시적 원소를 직접 최적화' 라는 발상의 영감 표시. 초기 working name 으로 사용 중.\n"
+        "  - Paper 작성 시 더 적절한 이름 (예: SplatWave, ParametricWave, WaveAtom) 으로 변경 검토 가능.\n"
+        "  - Q&A 답변 준비: '초기 작업명입니다. 3DGS 의 *여러 명시적 원소의 합으로 연속 필드를 표현* 한다는 발상에서 영감을 받았습니다. 핵심 알고리즘은 spectral parametric inversion (해양·신호처리 분야 표준).'\n\n"
+        "(5) 다음 슬라이드 흐름 — 실제 알고리즘:\n"
+        "  - 다음 (S12): Init 단계 — 여러 frame 에서 파수 (k_x, k_y) 추정 (beamforming).\n"
+        "  - 그 다음 (S13): Tracking 단계 — 매 frame 진폭 (A) 과 위상 (φ) 만 Adam 으로 빠르게 update + 성분 수 자동 조정.\n"
+        "  - 그 다음 (S13d): GT 와 WaveSplat 의 비교 시각화."
     ))
 
 
@@ -1159,44 +1158,43 @@ def build_s13c_track():
 def build_s13d_visualization():
     s = add_blank(WHITE)
     add_section_tag(s, "Part 3 · WaveSplat — GT 와의 비교 시각화", color=GOLD)
-    add_title(s, "Ground Truth vs WaveSplat reconstruction — 실제 결과")
-    add_subtitle(s, "BF3/BF4/BF5 episode 의 wave field 재구성: 좌측 GT, 중앙 WaveSplat, 우측 ETKF")
-    # demo_wavesplat_static.png is wide (1481x404) - GT/WaveSplat/ETKF side by side
+    add_title(s, "Ground Truth vs WaveSplat 재구성 — 실제 결과 한 케이스")
+    add_subtitle(s, "한 episode 의 한 시점 — 좌측 GT, 중앙 WaveSplat 추정, 우측 오차 (Error = GT − WaveSplat)")
     fig_demo = os.path.join(PAPER_FIG_DIR, 'demo_wavesplat_static.png')
     add_image_or_placeholder(s, fig_demo, 0.4, 1.7, 12.5,
-                             placeholder_text='[GT vs WaveSplat vs ETKF heatmap]')
+                             placeholder_text='[GT | WaveSplat | Error heatmap]')
     add_bullets(s, 0.5, 5.7, 12.3, 1.4, [
-        "**좌**: Ground Truth η(x, y, t=15s) — 50×50 격자 위 wave 표면 (참값)",
-        "**중**: WaveSplat reconstruction — N component 의 합 — 격자 외 영역까지 자연스럽게 표현",
-        "**우**: ETKF reconstruction — 80×60 격자 위 추정 — 격자 해상도 한계로 미세 wave 손실",
-        "각 panel 의 색상: blue (음의 변위, trough) → white (수면) → red (양의 변위, crest)",
+        "**좌 (GT)**: Ground Truth η(x, y, t) — 50×50 격자 위 실제 파도 표면 (참값)",
+        "**중 (WaveSplat)**: WaveSplat 재구성 — 추정된 N 개 sin 파 성분의 합으로 다시 만든 파도 표면",
+        "**우 (Error)**: 오차 = GT − WaveSplat — 같은 색 스케일로 표시 (잔여 차이가 작을수록 추정 정확)",
+        "색상 의미: blue (음의 변위, trough) → white (수면) → red (양의 변위, crest)",
     ], font_size=11, line_space_after=2)
-    # Footer info on existing animation
     add_text(s, 0.5, 7.05, 12.3, 0.35,
-             "🎬 paper/figures/demo_wavesplat.gif — animation 버전 (PowerPoint 에서 GIF 로 교체 가능)",
+             "📂 paper/figures/demo_wavesplat.gif (animation), fig8_qualitative.pdf (다른 case 들) 참조 · 대표 case 모음은 Appendix C",
              font_size=10, italic=True, color=GRAY)
     add_page_number(s, 14)
     add_notes(s, (
-        "이 슬라이드는 WaveSplat 의 실제 추정 결과를 시각적으로 보여줍니다.\n\n"
+        "WaveSplat 추정 결과를 한 episode 의 한 시점에서 시각적으로 보여줍니다. "
+        "사용자 정정: 이 figure 는 ETKF 가 아니라 *Error* (잔여 오차) panel 임.\n\n"
         "(1) 그림 구성:\n"
-        "  - 가로로 3 panel — 각각 다른 sea state / N_components 조합의 wave field.\n"
-        "  - 각 row 는 하나의 episode (예: BF3 2-comp, BF4 15-comp, BF5 30-comp).\n"
-        "  - 각 column: Ground Truth (좌), WaveSplat (중), ETKF (우).\n"
-        "  - Color: blue (음의 변위, wave trough) → white (수면) → red (양의 변위, wave crest).\n\n"
+        "  - 좌 (Ground Truth): 50×50 격자 위 실제 파도 표면 η(x,y,t). WaveSim 이 만든 합성 데이터의 참값.\n"
+        "  - 중 (WaveSplat): 추정된 N 개 sin 파 성분의 합으로 재구성한 파도. 격자 위에서 evaluate 한 값.\n"
+        "  - 우 (Error = GT − WaveSplat): 같은 색 스케일 (vmin/vmax) 로 표시한 잔여 오차. 이상적으로 모든 셀이 white (오차 0).\n\n"
         "(2) 관찰 포인트:\n"
-        "  - GT 와 WaveSplat 의 wave 패턴이 거의 일치 — 위치, 방향, 진폭 모두 잘 재구성.\n"
-        "  - 격자 외 영역에서 WaveSplat 은 자연스럽게 wave 패턴 연장 (parametric model 의 장점).\n"
-        "  - ETKF 는 격자 위에서만 추정 → 격자 사이 미세 wave 손실. 격자 해상도 한계가 명확히 보임.\n"
-        "  - 단순한 파도 (2 comp) 는 WaveSplat 이 압도적, 복잡한 파도 (30 comp) 는 둘 다 어려움 — 다음 슬라이드에서 정량.\n\n"
+        "  - 좌-중: GT 와 WaveSplat 의 파도 패턴이 거의 일치 — 위치, 방향, 진폭 모두 잘 재구성.\n"
+        "  - 우 (Error): 대부분 white → 추정 잔여 오차가 작음. 일부 영역 (격자 가장자리 또는 복잡한 wave 만나는 곳) 에서 약간의 오차.\n"
+        "  - 단일 case 시각화 — 정량 비교는 다음 슬라이드 (S14) 의 12 episode 평균.\n\n"
         "(3) 사용된 figure:\n"
-        "  - paper/figures/demo_wavesplat_static.png — static 버전 (현재 PPT 에 삽입).\n"
-        "  - paper/figures/demo_wavesplat.gif — animation 버전 (1481×404, 시간 진행 30 s).\n"
-        "  - PowerPoint 에서 GIF 로 교체하면 발표 시 wave 가 시간에 따라 propagate 하는 것을 보여줄 수 있음.\n"
-        "  - 추가 figure: paper/figures/fig8_qualitative.pdf 도 같은 비교 (PDF, 더 자세한 nRMSE annotation 포함).\n\n"
-        "(4) 발표 tip:\n"
-        "  - 발표 시 이 슬라이드에서 잠깐 멈추고 청자가 GT 와 WaveSplat 의 wave 패턴을 직접 비교하게 함.\n"
-        "  - '눈으로 봐도 거의 같은 wave 패턴' 이 WaveSplat 의 효과를 가장 직관적으로 전달.\n"
-        "  - 다음 슬라이드의 정량 비교 (nRMSE 0.211 vs 0.253) 가 이 시각적 인상을 뒷받침."
+        "  - paper/figures/demo_wavesplat_static.png — 한 case 의 static 버전 (현재 PPT 삽입).\n"
+        "  - paper/figures/demo_wavesplat.gif — animation 버전 (1481×404, 30 s 시간 진행).\n"
+        "  - paper/figures/fig8_qualitative.pdf — 여러 sea state × N 조합의 GT/WaveSplat/ETKF 비교 (Appendix C 에 발췌).\n\n"
+        "(4) 추가 case 들:\n"
+        "  - 사용자 요청: 다른 sea state / N_components 조합의 대표 case 들도 보여달라 → Appendix C 에 추가.\n"
+        "  - Appendix C 에는 BF3/BF4/BF5 의 단순 (2 comp) ~ 복잡 (30 comp) 까지 다양한 case.\n\n"
+        "(5) 발표 tip:\n"
+        "  - 이 슬라이드에서 잠깐 멈추고 청자가 GT 와 WaveSplat 의 파도 패턴을 직접 비교하게 함.\n"
+        "  - '눈으로 봐도 거의 같음, Error panel 이 거의 white' 이 WaveSplat 효과의 직관적 evidence.\n"
+        "  - 다음 슬라이드 (S14) 의 정량 비교 (nRMSE 0.211 vs 0.253) 가 이 시각적 인상을 뒷받침."
     ))
 
 
@@ -1784,6 +1782,40 @@ def build_backups():
         "  - 53 + 55 = 108 unit test — simulator 와 estimator 모두 검증.\n"
         "  - Generator script (scripts/generate_episodes.py) 로 누구나 재현 가능.\n\n"
         "이 dataset 자체가 paper 의 contribution 일부 — Ehlers 2023 의 1D radar dataset 보다 풍부한 setup (2D directional + LiDAR sensor + 다양한 sea state)."
+    ))
+
+    # ───────── Appendix C: 대표 case 모음 (GT vs WaveSplat vs ETKF) ─────────
+    s = add_blank(WHITE)
+    add_section_tag(s, "Appendix C · 대표 case 모음 (GT vs WaveSplat vs ETKF)", color=GRAY)
+    add_title(s, "Appendix C — 다양한 sea state × N 조합의 대표 결과", size=22)
+    add_subtitle(s,
+                 "BF3 2-comp (단순) → BF4 15-comp (중간) → BF5 30-comp (복잡) — 한 시점 비교",
+                 size=11)
+    fig_qual = os.path.join(DOC_DIR, 'fig8_qualitative-1.png')
+    add_image_or_placeholder(s, fig_qual, 0.4, 1.7, 12.5,
+                             placeholder_text='[fig8_qualitative — 다양한 case 의 GT/WaveSplat/ETKF 비교]')
+    add_text(s, 0.5, 7.0, 12.3, 0.4,
+             "Source: paper/figures/fig8_qualitative.pdf — 행 마다 다른 episode, 열 마다 GT / WaveSplat / ETKF / GPR. 단순 wave 일수록 WaveSplat 우위.",
+             font_size=10, italic=True, color=GRAY)
+    add_text(s, 12.5, 7.05, 0.7, 0.35,
+             "C", font_size=10, color=GRAY, alignment=PP_ALIGN.RIGHT)
+    add_notes(s, (
+        "Appendix C — 사용자 요청에 따라 다양한 sea state / N_components 조합의 대표 case 모음.\n\n"
+        "(1) Figure 구성 (paper/figures/fig8_qualitative.pdf 기반):\n"
+        "  - 행 마다 하나의 episode (예: BF3 2-comp uniform, BF4 15-comp uniform, BF5 30-comp uniform).\n"
+        "  - 열 마다 GT / WaveSplat reconstruction / ETKF reconstruction / GPR reconstruction.\n"
+        "  - 각 panel 의 nRMSE annotation 포함 — 정량 비교 가능.\n"
+        "  - 색상: blue (음의 변위) → white (수면) → red (양의 변위).\n\n"
+        "(2) 관찰 패턴:\n"
+        "  - 단순 wave (BF3 2-comp): WaveSplat 압도적 — nRMSE 0.05 수준. GT 와 거의 구별 안 됨.\n"
+        "  - 중간 (BF4 15-comp): 모든 method 가 main wave 패턴은 잘 잡지만 미세 wave 에서 차이.\n"
+        "  - 복잡 (BF5 30-comp): WaveSplat 도 N_components 추정에 어려움, ETKF 도 비슷한 어려움.\n\n"
+        "(3) Q&A 시 활용:\n"
+        "  - 청자가 'WaveSplat 이 모든 sea state 에서 우위인가?' 묻으면 → 이 figure 보여주며 'BF3 단순 wave 는 압도적, BF5 복잡 wave 는 비슷' 정직 disclosure.\n"
+        "  - 'WaveSplat 이 정말 격자 외 영역도 잘 표현하나?' → 격자 가장자리 영역의 wave 패턴이 자연스럽게 이어지는 것을 시각적으로 보여줌.\n\n"
+        "(4) 추가 figure 생성 옵션:\n"
+        "  - 새 case 들 (예: BF6 30-comp, slope sensor, bimodal directional) 이 필요하면 scripts/generate_qualitative_figure.py 수정 후 재생성.\n"
+        "  - 발표 시간이 부족하면 이 슬라이드는 skip 가능 (Appendix 라 Q&A 시만 참조)."
     ))
 
 

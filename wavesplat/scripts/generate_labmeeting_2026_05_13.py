@@ -710,13 +710,13 @@ def build_s11():
         "(4) LiDAR 센서 모사 — Falcon K1 spec 기준:\n"
         "  - 우리 simulator 의 default config 가 Falcon K1 LiDAR spec 과 일치.\n"
         "  - Horizontal FOV 120°: 전방향 360° 아니라 선수 방향 ±60° 반구 (marine LiDAR 의 일반 setup).\n"
-        "  - Vertical FOV ±5°: 수평 기준 ±5° 좁음 (먼 거리 surface 측정용).\n"
-        "  - 32 채널 × 360 horizontal beam = 11,520 ray / scan, range 10–200 m, 1550 nm 파장.\n"
+        "  - Vertical FOV: −25° ~ 0° (수평선 아래 25° 까지 down-looking, surface 측정용).\n"
+        "  - 152 채널 × 500 horizontal beam = 76,000 ray / scan, range 10–250 m, 1550 nm 파장.\n"
         "  - Ray tracing: 각 ray 가 파도 표면 (격자에서 만든 triangle mesh) 과 만나는 첫 점 (first-hit) 을 찾음.\n"
         "  - Möller-Trumbore 1997: graphics 분야 표준 ray-triangle intersection 알고리즘.\n\n"
         "(5) Vessel motion 처리 — 중요한 정정:\n"
         "  - 우리 110-episode dataset 의 default ship_speed = 0 kts (vessel 정지 상태) 입니다 (configs/default.yaml).\n"
-        "  - 파도 field 는 충분히 큰 world frame 격자 (예: 500 m × 500 m) 에 고정. 시뮬레이션 시작 시 한 번 만들고 변경 없음.\n"
+        "  - 파도 field 는 world frame 격자 240 × 200 m (configs/default.yaml: x∈[10,250], y∈[−100,100]) 에 고정. GT grid 는 80×60 cells.\n"
         "  - 파도 자체의 시간 변화는 η(x, y, t) 의 t 가 진행하는 것으로 자연 처리. 격자 자체는 그대로.\n"
         "  - 결과: 매 frame *같은 vessel 위치* 에서 *다른 phase 의 wave* 를 관측 — temporal coherence 가 multi-frame 효과의 원천.\n"
         "  - Future deployment 시 (V > 0 kts) 추가 synthetic aperture 효과 — 현재는 미적용.\n\n"
@@ -752,7 +752,7 @@ def build_s12():
         "  → 결국 raydrop 확률은 *반사율 R 과 backscatter 방향* 둘 다 결정 (Lambert + Fresnel 결합)",
         "",
         "**Geometric shadowing**: ray tracing first-hit 의 자연 결과 (추가 모델 0)",
-        "**검증**: 108 unit test + 110 episode + sea trial 데이터와 점 분포 일치",
+        "**검증**: 100 unit test (49 wavesim + 51 wavesplat) + 110 episode + sea trial 점 분포 일치",
         "**한계**: 미세파 (capillary), foam, breaking 미반영 (BF6 이하 부차적)",
     ]
     add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=10,
@@ -842,29 +842,32 @@ def build_s13b_init():
     s = add_blank(WHITE)
     add_section_tag(s, "Part 3 · WaveSplat — Init (1/2): 왜 multi-frame 인가?", color=GOLD)
     add_title(s, "Init: single-frame 의 한계와 multi-frame 의 발상")
-    add_subtitle(s, "Nyquist 가 무엇인지 → 왜 0.4 rad/m 인지 → 왜 0.5–3 rad/m 추정 필요 → multi-frame 으로 어떻게 우회")
+    add_subtitle(s, "Nyquist 가 무엇인지 → 왜 0.4 rad/m 인지 → BF3 short tail 만 일부 초과 → multi-frame 으로 어떻게 우회")
     bullets = [
         "**Nyquist 한계 (Shannon-Nyquist 정리, 1949)**:",
         "  '신호를 추정하려면 신호의 wavelength 보다 *최소 절반 간격* 으로 sampling 해야 함'",
         "  → 점 간격 Δy 일 때 추정 가능한 최대 wavenumber = π/Δy",
         "",
-        "**Single-frame LiDAR 의 정량**:",
-        "  240 m 영역 × 50 valid 점 → 평균 점 간격 Δy ≈ 5–8 m",
+        "**Single-frame LiDAR 의 정량 (실측)**:",
+        "  Patch coverage ≈ 50–150 m, valid 점 ≈ 50 개 → 평균 점 간격 Δy ≈ 5–8 m",
         "  Nyquist: k_max = π / 5 ≈ **0.6 rad/m** (best), π / 8 ≈ **0.4 rad/m** (worst)",
         "  → Single frame 으로 추정 가능한 wavenumber 한계: 약 0.4 rad/m",
         "",
-        "**필요한 wavenumber 범위 (BF3–BF6)**:",
-        "  k = 2π / λ. BF3 swell (λ=12m) → 0.52, BF6 short (λ=2m) → 3.14 rad/m",
-        "  → 추정해야 할 k ∈ **0.5–3 rad/m** = Nyquist (0.4) 의 **1.25–7.5× 초과** 🚨",
+        "**JONSWAP wavenumber 범위 (configs/default.yaml, depth=50m, 검증)**:",
+        "  BF3 (Hs=0.6, Tp=5.5s): k = 0.04–1.16 rad/m, λ = 5.4–155 m, λ_peak ≈ 47 m",
+        "  BF4 (Hs=1.2, Tp=7.0s): k = 0.027–0.72 rad/m, λ = 8.7–229 m, λ_peak ≈ 77 m",
+        "  BF5 (Hs=2.0, Tp=9.0s): k = 0.019–0.43 rad/m, λ_peak ≈ 126 m",
+        "  BF6 (Hs=3.0, Tp=10s): k = 0.017–0.35 rad/m, λ_peak ≈ 156 m (전부 Nyquist 이내)",
+        "  → BF3 short tail (k > 0.4 rad/m, 최대 ~2.9× Nyquist) 만 single-frame Nyquist 초과 🚨",
         "",
         "**해결책 — Temporal coherence (시간 정보가 phase 기준점)**:",
         "  Vessel 이 정지해 있어도 *wave 자체의 시간 진화* 가 multi-frame 효과 제공",
         "  Wave propagation: η(x, t) = A·cos(k·x − ω·t + φ) 의 시간 t 가 *phase 변화* 를 만듦",
         "  각 frame 이 (x_i, y_i, t_i, η_i) 4D 점 — temporal coherence 로 wavenumber 모호성 해소",
         "",
-        "**우리 case 의 정량**:",
+        "**우리 case 의 정량 (init window = 2·T_p, data_loader.py)**:",
         "  Multi-frame temporal sampling + dispersion 의 ω→k 매핑 → wavenumber 추정",
-        "  10 frame × 50 점 = 500 점, T_window = 1 s 로 phase 변화 sampling",
+        "  Init window: 2·T_p ≈ 11–20 s = 110–200 frames × ~50 점 = 5,500–10,000 (x, y, t, η) 4D 점",
         "  → Spatial Nyquist 0.4 rad/m 우회 가능 (다음 슬라이드 score 식 참조)",
         "",
         "**Note** — Vessel motion 기반 synthetic aperture (SAR-style) 는 *향후 연구 (Future work)*",
@@ -876,8 +879,8 @@ def build_s13b_init():
     add_notes(s, (
         "이 슬라이드가 paper 의 main framing 으로 가는 핵심입니다. *왜 multi-frame 이 필요한가* 를 정량으로 풀어 설명드립니다.\n\n"
         "먼저 Nyquist 한계가 무엇인지 부터 짚어드립니다. Shannon-Nyquist 정리 (1949) 는 신호처리의 표준 결과인데요 — 어떤 wavelength 의 신호를 추정하려면 *최소 그 wavelength 의 절반 간격* 으로 sampling 해야 한다는 정리입니다. 즉 점 간격이 Δy 면 추정 가능한 최대 wavenumber 는 π/Δy 입니다.\n\n"
-        "이 한계를 우리 single-frame LiDAR 에 적용해보면 — 240 m 영역에 valid 점이 50 개 정도이니 평균 점 간격 Δy 가 5 에서 8 m 사이입니다. Nyquist 식에 넣으면 k_max 가 약 0.4–0.6 rad/m 인데, 보수적으로 0.4 rad/m 를 한계로 봅니다. 즉 single frame 으로 추정 가능한 wavenumber 는 약 0.4 rad/m 까지입니다.\n\n"
-        "그런데 우리가 추정해야 할 wavenumber 는 그것보다 훨씬 큽니다. 파도 파장 λ 는 BF3 swell 이 약 12 m, BF6 short wave 가 2 m 정도이니 k = 2π/λ 로 0.52 에서 3.14 rad/m 입니다. single-frame Nyquist (0.4) 의 1.25 에서 7.5 배 초과 영역이죠. *Paradox* 입니다.\n\n"
+        "이 한계를 우리 single-frame LiDAR 에 적용해보면 — *patch coverage 가 50–150 m* (실측, 5 개 episode 평균) 에 valid 점이 50 개 정도이니 평균 점 간격 Δy 가 5 에서 8 m 사이입니다. Nyquist 식에 넣으면 k_max 가 약 0.4–0.6 rad/m 인데, 보수적으로 0.4 rad/m 를 한계로 봅니다. 즉 single frame 으로 추정 가능한 wavenumber 는 약 0.4 rad/m 까지입니다.\n\n"
+        "JONSWAP 으로 BF3-BF6 dataset 의 wavenumber 분포를 실측하면 (configs/default.yaml, depth=50m, 30 components) — BF3 (Hs=0.6, Tp=5.5s) k=0.04–1.16 rad/m λ_peak=47m; BF4 (Hs=1.2, Tp=7s) k=0.03–0.72 rad/m λ_peak=77m; BF5 (Hs=2.0, Tp=9s) k=0.02–0.43 rad/m λ_peak=126m; BF6 (Hs=3.0, Tp=10s) k=0.02–0.35 rad/m λ_peak=156m (전부 Nyquist 이내). 즉 *BF3 의 short component tail (k > 0.4 rad/m, 최대 ~2.9× Nyquist) 만 single-frame Nyquist 초과* 영역이고 BF5-BF6 dominant wave 는 본래 single-frame 으로도 충분합니다. 그래도 BF3 short tail 의 *Paradox* 는 유효합니다.\n\n"
         "**중요** — 우리 110-episode dataset 의 default vessel speed 는 **0 kts (정지)** 입니다 (configs/default.yaml ship_speed_kts=0). 그러므로 *우리 코드/실험에서 의존하는 것은 wave 자체의 시간 진화* 입니다. wave η(x, t) = A·cos(k·x − ω·t + φ) 의 *시간 t 의 진행* 이 매 frame 의 phase 를 변화시켜서, 같은 위치의 LiDAR 점이라도 frame 마다 *다른 phase 정보* 를 제공합니다.\n\n"
         "**우리 데이터에서 작동하는 본질** — *temporal coherence + dispersion 의 ω↔k 매핑* 입니다. Multi-frame 의 t 정보로 phase 변화를 sampling 하고, dispersion 으로 ω 와 k 를 결합하면 spatial Nyquist 한계를 우회할 수 있습니다. 다음 슬라이드의 beamforming score 식이 이를 정량으로 보여줍니다.\n\n"
         "**(Future work)** Vessel motion 기반 synthetic aperture (SAR-style) 는 *향후 연구* 로 분리합니다. Wiley 1954 의 SAR 원리를 ocean LiDAR 에 적용하면 V·T 만큼 추가 spatial coverage 가 생기지만, 현재 코드와 dataset 은 vessel 정지 가정이라 검증 못 했습니다. Future work 슬라이드 (page 25) 에서 다룰 예정입니다.\n\n"
@@ -1235,7 +1238,7 @@ def build_s16():
         "**메커니즘 2 — 시간 정보 활용 (multi-frame temporal coherence)**",
         "  Wave η(x, t) = A·cos(k·x − ω·t + φ) 의 *t 진행* 이 매 frame phase 변화 제공",
         "  현재 dataset (vessel 정지, V=0 kts) 에서 wave 자체의 시간 진화로 multi-frame 효과 작동",
-        "  10 frame × 50 점 = 500 점, T_window=1s 의 (x_i, y_i, t_i, η_i) 4D 정보로 k 모호성 해소",
+        "  Init window 2·T_p ≈ 11–20s, 110–200 frame × 50 점 = 5,500–10,000 (x, y, t, η) 4D 정보로 k 모호성 해소",
         "  Note: vessel motion 기반 synthetic aperture 는 *현재 미적용* → 향후 연구 (page 25)",
         "",
         "**Ablation에서 확인된 것 — 두 메커니즘의 시너지**:",
@@ -1284,7 +1287,7 @@ def build_s17():
     add_page_number(s, 21)
     add_notes(s, (
         "이번 슬라이드는 *왜 2 단계 설계가 자연스러운가* 를 설명드립니다.\n\n"
-        "핵심 관찰부터 말씀드리면 — 파수 k 는 파도의 *공간적 패턴* 인데요, 한 순간의 LiDAR 스캔 50 개 점만으로는 이 패턴을 정확히 파악하기 어렵습니다. 50 개 점이 커버하는 영역이 5 에서 8 m 정도인데 파도 파장은 50 에서 300 m 라서 너무 짧기 때문이죠. 하지만 *wave 자체가 시간에 따라 propagate* 하므로 여러 순간의 데이터를 모으면 같은 위치에서도 *다른 phase 정보* 를 얻을 수 있고, dispersion 으로 ω 와 k 를 연결하면 파수 추정이 가능해집니다 (현재 dataset 의 vessel 은 정지 상태). 반면 진폭 A 와 위상 φ 는 한 순간의 데이터로도 충분합니다 — *크기* 와 *현재 위치* 는 한 순간만 봐도 알 수 있기 때문입니다.\n\n"
+        "핵심 관찰부터 말씀드리면 — 파수 k 는 파도의 *공간적 패턴* 인데요, 한 순간의 LiDAR 스캔 50 개 점만으로는 이 패턴을 정확히 파악하기 어렵습니다. patch 가 50–150 m 정도로 wave 1–2 wavelength 만 담는 데다 점 간격 Δy ≈ 5–8 m 라 spatial Nyquist 가 약 0.4 rad/m — BF3 의 short component (k > 0.4) 는 single frame 으로 못 잡습니다. 하지만 *wave 자체가 시간에 따라 propagate* 하므로 여러 순간의 데이터를 모으면 같은 위치에서도 *다른 phase 정보* 를 얻을 수 있고, dispersion 으로 ω 와 k 를 연결하면 파수 추정이 가능해집니다 (현재 dataset 의 vessel 은 정지 상태). 반면 진폭 A 와 위상 φ 는 한 순간의 데이터로도 충분합니다 — *크기* 와 *현재 위치* 는 한 순간만 봐도 알 수 있기 때문입니다.\n\n"
         "그래서 자연스럽게 2 단계로 나뉘는 거죠. *Init 단계* 는 여러 프레임을 모아서 파수 k 를 정확히 결정합니다. 한 번만 하면 되고 1 초 이내에 끝납니다. *Track 단계* 는 파수를 고정하고 매 프레임마다 진폭·위상만 업데이트합니다. 13 ms 이내라 실시간 작동 가능하고요.\n\n"
         "*Adaptive N* 은 파도 성분의 수를 자동으로 조정하는 기능입니다. 너무 작은 성분은 제거 (pruning), 오차가 크면 새 성분 추가 (growth), 추가했더니 오히려 나빠지면 원래 상태로 복원 (safety rollback) 하는 세 가지 메커니즘입니다."
     ))
@@ -1308,12 +1311,12 @@ def build_s18():
         "  원인: 성분이 많으면 초기화 단계에서 정확한 분리가 어려워짐",
         "  개선: 격자 초기화 → 파라미터 정밀화 (hybrid init) 연구 예정",
         "",
-        "**한계 3 — Vessel 정지 가정 (V=0 kts) — 장-swell direction 해상도**",
+        "**한계 3 — Vessel 정지 가정 (V=0 kts) — 매우 긴 swell direction 해상도**",
         "  코드: wavesim/pipeline.py:96 ship_x=ship_y=0 하드코딩 (time loop 밖에서 ray 1회 생성)",
         "  Dataset: HDF5 에 per-frame ship 위치 field 자체가 없음 (110 episode 모두)",
         "  실측 검증: 30s × 301frame 동안 x_mean 변동 std 1.68 m (V=11.3 m/s 면 339 m 이동했어야)",
-        "  영향: LiDAR patch 5–8 m → |k|<0.3 rad/m (λ>20 m 장-swell) 은 sub-wavelength",
-        "  → dispersion + 시간진화로 |k| 는 잡혀도 (kx,ky) direction 해상도 저하 가능",
+        "  영향: patch 50–150 m 라 BF3-BF6 dominant wave (λ_peak 47–156 m) 는 1–3 wavelength 충분",
+        "  단 *매우 긴 swell* (λ > 200 m, BF5-BF6 의 long tail) 은 patch 가 sub-wavelength → SA 가 도움",
         "  개선: vessel motion 도입 → V·T 만큼 synthetic aperture (page 25 future work)",
         "",
         "**한계 4 — 파도 파쇄(breaking)와 유속장 추정은 미지원**",
@@ -1329,7 +1332,7 @@ def build_s18():
         "첫 번째는 *선형 근사 (Linear Wave Theory)* 의 한계입니다. 우리는 파도를 사인파의 합으로 표현하는데, 실제 파도는 꼭대기가 뾰족하고 골이 넓어서 사인파와 다릅니다. Klein 2020 논문에서 wave model 들을 정량 비교했는데 HOSM > NLSE2 > NLSE > LWT 순으로 정확도가 정리됐고, 우리 LWT family 는 가장 단순합니다. ε (가파름) 이 0.07 이하일 때 신뢰할 수 있고 BF6 까지는 이 조건을 만족합니다. 향후 Stokes 2 차 보정을 추가하면 적용 범위를 더 넓힐 수 있습니다.\n\n"
         "두 번째는 *복잡한 파도에서의 역전* 입니다. 이번 비교 실험에서 발견된 한계인데요, 파도 성분이 15-30 개로 많아지면 격자 방법인 Wang2025 가 더 나아집니다. 예를 들어 BF4 N=15 case 에서는 WaveSplat 0.302, Wang2025 0.249 입니다. 이유는 — 격자 방법은 모든 성분을 한꺼번에 담을 수 있지만 WaveSplat 은 성분을 하나하나 찾아야 해서 30 개를 정확히 찾기는 어렵습니다. 대응은 hybrid init — 격자로 대략 찾고 파라미터로 정밀화하는 2 단계 초기화를 연구할 예정입니다.\n\n"
         "세 번째는 *Vessel 정지 가정* 입니다. *코드와 dataset 모두에서 SA 가 적용되어 있지 않다* 는 것을 3중으로 검증했습니다. 첫째 *코드 측* — wavesim/pipeline.py 96 행이 시간 loop *바깥* 에서 ray 를 1 회만 generate 하면서 ship_x=ship_y=0 으로 하드코딩되어 있고, 코멘트도 'ship is stationary' 라고 명시합니다. ship_speed_kts 라는 config field 는 정의만 되어 있고 어디에서도 읽히지 않는 dead config 입니다. 둘째 *dataset 측* — HDF5 에 per-frame ship 위치 field 자체가 존재하지 않습니다 (저장된 건 timestamps, lidar_points, gt_wave_field 정도). 셋째 *empirical 검증* — 한 episode (30 s, 301 frame) 의 lidar_points x_mean 변동이 std 1.68 m 정도인데, 만약 V=11.3 m/s 였다면 30 초 동안 339 m 이동했어야 하는 것과 명백히 모순됩니다. \n\n"
-        "이게 의미하는 건 — 우리가 의존하는 mechanism 은 *순전히 wave 자체의 시간 진화 + dispersion* 이고, 실험 결과 (nRMSE 0.211, 12 episodes) 는 이 mechanism 만으로 BF3-BF6 영역에서 작동함을 empirically 증명합니다. 다만 LiDAR patch 가 5–8 m 정도라 *매우 긴 swell* (|k| < 0.3 rad/m, λ > 20 m) 은 sub-wavelength 영역이라 direction (kx, ky) 해상도가 떨어질 수 있습니다. dispersion 으로 |k| 는 잡혀도 방향 ambiguity 가 남는 거죠. 이걸 해결하는 가장 자연스러운 방법이 vessel motion 으로 V·T 만큼 synthetic aperture 를 만드는 것이고, 이건 page 25 future work 슬라이드에서 다룹니다.\n\n"
+        "이게 의미하는 건 — 우리가 의존하는 mechanism 은 *순전히 wave 자체의 시간 진화 + dispersion* 이고, 실험 결과 (nRMSE 0.211, 12 episodes) 는 이 mechanism 만으로 BF3-BF6 영역에서 작동함을 empirically 증명합니다. 실측한 patch 크기는 약 50–150 m 이고 BF3-BF6 dominant wave 의 λ_peak 가 47 m (BF3), 77 m (BF4), 126 m (BF5), 156 m (BF6) 라서 patch 안에 1–3 wavelength 가 들어와 direction 추정에 충분합니다. 다만 *매우 긴 swell* (λ > 250 m, BF5-BF6 의 long tail) 은 patch 가 sub-wavelength 영역에 가까워져 direction (kx, ky) 해상도가 떨어질 수 있습니다. dispersion 으로 |k| 는 잡혀도 방향 ambiguity 가 남는 거죠. 이걸 해결하는 가장 자연스러운 방법이 vessel motion 으로 V·T 만큼 synthetic aperture 를 만드는 것이고, 이건 page 25 future work 슬라이드에서 다룹니다.\n\n"
         "네 번째는 *파도 파쇄와 유속장 추정 미지원* 입니다. 이런 현상은 비선형 시뮬레이션 (VOF-EnKF, PFT-PINN) 만 처리할 수 있는데, 이들은 30 분에서 수시간 걸려 실시간 제어에는 쓸 수 없습니다. 결국 응용 영역이 다른 거죠 — 우리는 실시간 제어, 그들은 정밀 분석입니다."
     ))
 
@@ -1429,7 +1432,7 @@ def build_backups():
          "ETKF + Ne=300 + fuzzy R + Delaunay 보간",
          "**우리 baseline 의 직접 prior art** (Harbin group)",
          "격자 한계, 632 ms (실시간 불가)"],
-        ["7", "Hunt 2007 (Tellus A)",
+        ["7", "Hunt 2007 (Physica D 230)",
          "LETKF (Local Ensemble Transform KF)",
          "모든 EnKF wave 의 이론 기반",
          "Wave-specific 아님 (기상학 출신)"],
@@ -1449,7 +1452,7 @@ def build_backups():
          "Navier-Stokes + EnKF + POD",
          "Plunging breaker 처리 (가장 정확)",
          "Offline only, 1D xz-plane, 50 OpenFOAM × 수일"],
-        ["12", "Tang-Bhaskar-Recht 2013 (TIT)",
+        ["12", "Tang-Bhaskar-Shah-Recht 2013 (IEEE TIT 59)",
          "Atomic norm off-grid CS",
          "Theoretical recovery bound (off-grid CS 영감)",
          "1D 신호, SDP 비용"],
@@ -1468,7 +1471,7 @@ def build_backups():
     add_notes(s, (
         "Appendix A 는 정독한 13 편의 선행 연구를 한 표로 정리한 것입니다. Q&A 시 청자가 특정 논문을 물어보면 이 표를 참조하시면 됩니다.\n\n"
         "Wave estimation 선행 연구 11 편을 그룹으로 정리해드리면 — Desmars family (2018, 2020, 2023) 는 LIDAR 와 optical 센서 + variational + HOS-OCM 의 발전 흐름이고, Wang-Pan / Wang family (2021, 2022, 2025) 는 EnKF-HOS 의 발전입니다 (Wang 2025 가 우리 baseline). Klein 2020 은 wave model 정량 비교로 우리 LWT operational range 를 정당화해주고, Ehlers 2023 과 2025 는 같은 그룹의 ML supervised (FNO) 와 unsupervised (PFT-PINN) 진화 사례입니다. Yan 2025 는 가장 정확한 wave breaking 처리 (offline) 입니다.\n\n"
-        "Algorithmic foundation 으로 두 편이 더 있습니다 — Tang-Bhaskar-Recht 2013 의 off-grid CS 이론은 우리 parametric 접근의 영감이고, Möller-Trumbore 1997 의 ray-triangle intersection 은 WaveSim ray tracing 의 표준입니다. Hunt 2007 LETKF 도 EnKF 변형들의 출발점입니다.\n\n"
+        "Algorithmic foundation 으로 두 편이 더 있습니다 — Tang-Bhaskar-Shah-Recht 2013 (IEEE TIT 59) 의 atomic norm off-grid CS 이론은 우리 parametric 접근의 영감이고, Möller-Trumbore 1997 의 ray-triangle intersection 은 WaveSim ray tracing 의 표준입니다. Hunt 2007 (Physica D 230) LETKF 도 EnKF 변형들의 출발점입니다.\n\n"
         "각 paper 의 detail 은 본문 슬라이드 (S5-S9, top 5) 또는 docs/strategic_repositioning.md (§17-§31) 를 참조하시면 됩니다."
     ))
 
@@ -1524,7 +1527,7 @@ def build_backups():
         "Appendix B 는 WaveSim 의 110 episode 합성 dataset 구성을 한 눈에 정리한 표입니다. Q&A 시 dataset 관련 질문 받으면 참조하시면 됩니다.\n\n"
         "Sea state 별로 episode 수를 정리하면 — BF2 부터 BF5 까지는 각 sea state × 다양한 N_components × seed 0-4 (5 개씩) 으로 총 70 개 정도 episode 가 있어서 통계 평가가 가능합니다. BF6-BF7 은 극한 sea state 라 seed 0 한 개씩만 — operational range 한계 확인용이고요. Calibration 은 raydrop η scale 같은 sensor 모델 calibration 용으로 별도 episode 입니다.\n\n"
         "Per-episode 데이터는 30 초 시뮬레이션, 0.1 초 간격으로 frame 300 개입니다. Ground-truth η field 50×50 격자가 평가 시 참값이고, LiDAR scan 은 raydrop / shadowing / Fresnel 적용 후 frame 당 50 점 정도 valid 합니다. HDF5 format 으로 각 episode 약 12 MB, 총 110 episode 1.2 GB.\n\n"
-        "Reproducibility 는 보장됩니다. Seed 저장, Wave generator (Gerstner+JONSWAP) 와 LiDAR raydrop 모두 deterministic, 그리고 53 + 55 = 108 unit test 가 simulator 와 estimator 모두 검증합니다.\n\n"
+        "Reproducibility 는 보장됩니다. Seed 저장, Wave generator (Gerstner+JONSWAP) 와 LiDAR raydrop 모두 deterministic, 그리고 49 (wavesim) + 51 (wavesplat) = 100 unit test 가 simulator 와 estimator 모두 검증합니다.\n\n"
         "이 dataset 자체가 paper 의 contribution 일부입니다 — Ehlers 2023 의 1D radar dataset 보다 풍부한 setup (2D directional + LiDAR sensor + 다양한 sea state) 이거든요."
     ))
 

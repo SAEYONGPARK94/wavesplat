@@ -836,43 +836,100 @@ def build_s13():
 
 # S13b — Beamforming Init detail (NEW)
 def build_s13b_init():
+    """Init (1/2): 왜 multi-frame 이 필요한가 — Nyquist 한계 + synthetic aperture 발상."""
     s = add_blank(WHITE)
-    add_section_tag(s, "Part 3 · WaveSplat — Init 단계 (1/2)", color=GOLD)
-    add_title(s, "Init: 다중 frame beamforming 으로 (k_x, k_y) 결정")
-    add_subtitle(s, "왜 multi-frame 인가? 어떻게 작동하는가? 수식까지 단계별로")
+    add_section_tag(s, "Part 3 · WaveSplat — Init (1/2): 왜 multi-frame 인가?", color=GOLD)
+    add_title(s, "Init: single-frame 의 한계와 multi-frame 의 발상")
+    add_subtitle(s, "Nyquist 가 무엇인지 → 왜 0.4 rad/m 인지 → 왜 0.5–3 rad/m 추정 필요 → multi-frame 으로 어떻게 우회")
     bullets = [
-        "**왜 Init 이 어려운가** (정량 설명):",
-        "  Single frame: LiDAR 50 점이 커버하는 영역 ~ 240 m (FOV 120°, range 200 m)",
-        "  격자 간격 Δy ≈ 5–8 m → spatial Nyquist k_max = π/Δy ≈ 0.4 rad/m",
-        "  필요한 wave wavenumber k ∈ 0.5–3 rad/m → single frame 으론 추정 불가",
+        "**Nyquist 한계 (Shannon-Nyquist 정리, 1949)**:",
+        "  '신호를 추정하려면 신호의 wavelength 보다 *최소 절반 간격* 으로 sampling 해야 함'",
+        "  → 점 간격 Δy 일 때 추정 가능한 최대 wavenumber = π/Δy",
         "",
-        "**Multi-frame stacking (Synthetic Aperture)**:",
-        "  vessel V=11.3 m/s 로 1 s 동안 11.3 m 이동 → 10 frames × 50 점 = 500 점, 영역 확장",
-        "  Effective aperture = V·T_init = 11.3 m, Δk_aperture ≈ 2π/11.3 ≈ 0.56 rad/m 분해능",
+        "**Single-frame LiDAR 의 정량**:",
+        "  240 m 영역 × 50 valid 점 → 평균 점 간격 Δy ≈ 5–8 m",
+        "  Nyquist: k_max = π / 5 ≈ **0.6 rad/m** (best case), π / 8 ≈ **0.4 rad/m** (worst case)",
+        "  → Single frame 으로 추정 가능한 wavenumber 한계: 약 0.4 rad/m",
         "",
-        "**v2_konly Beamforming — 2 단계**:",
-        "  **① Coarse**: (k_x, k_y) 후보 격자 생성 (예: 50×50 = 2,500 개)",
-        "    각 후보 (k_x⁰, k_y⁰) 에 대해 score: S(k) = |Σ_i η_obs(x_i, t_i) · exp(j(k·x_i − ω(k)·t_i))|²",
-        "    ω(k) 는 dispersion 관계로 자동: ω(k) = √(g·|k|·tanh(|k|·d))",
-        "    S(k) 가 큰 peak N 개를 초기 파수로 선택",
-        "  **② Fine**: 선택된 peak 주변에서 sub-grid resolution 으로 정밀 탐색",
-        "    Local quadratic fit + Newton step → (k_x*, k_y*) 정확도 향상",
+        "**필요한 wavenumber 범위 (BF3–BF6 sea state)**:",
+        "  Wave 파장 λ = 2π / k → k = 2π / λ",
+        "  BF3 swell (λ = 12 m): k = 2π/12 ≈ 0.52 rad/m",
+        "  BF4 wind wave (λ = 6 m): k = 2π/6 ≈ 1.05 rad/m",
+        "  BF6 short wave (λ = 2 m): k = 2π/2 ≈ 3.14 rad/m",
+        "  → 추정해야 할 k ∈ **0.5–3 rad/m** = single-frame Nyquist (0.4) 의 **1.25–7.5× 초과**",
         "",
-        "**'konly' 의미**: 이 단계에서는 *k 만* 초기화. ω 는 dispersion 으로 자동, (A, φ) 는 다음 단계 (track) 에서 최적화.",
-        "  이전 v1 (FFT 기반) 대비 평균 18% 개선 (불규칙 LiDAR 점에 직접 적용 가능)",
+        "**🚨 Paradox**: 이론상 single frame 으로는 추정 불가능한 영역. 어떻게 추정?",
+        "",
+        "**해결책 — Multi-frame stacking (synthetic aperture)**:",
+        "  Vessel V=11.3 m/s 로 1 s 이동 → 10 frame 누적 → vessel 위치 0 → 11.3 m",
+        "  10 frame × 50 점 = **500 점**, 영역 240 + 11.3 = 251 m",
+        "  하지만 핵심은 점 수 증가가 아니라 *시간 정보 (t_i) 가 phase 기준점 제공*:",
+        "    각 점이 (x_i, y_i, t_i, η_i) 로 4D — temporal coherence 활용",
+        "    Phase 정보로 wavenumber 모호성 해소 → Nyquist 한계 우회",
+        "  Effective aperture L_SA = V·T_init = 11.3 m → Δk_aperture ≈ 2π / L_SA ≈ **0.56 rad/m 분해능**",
+        "  → 다음 슬라이드에서 *어떻게* (beamforming 식) 자세히",
     ]
-    add_bullets(s, 0.5, 1.85, 12.5, 5.3, bullets, font_size=10,
-                line_space_after=2)
+    add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=10,
+                line_space_after=1)
     add_page_number(s, 12)
     add_notes(s, (
-        "이번 슬라이드는 Init 단계를 수식과 정량으로 자세히 설명합니다.\n\n"
-        "먼저 *왜 Init 이 어려운가* 부터 정량으로 보겠습니다. Single frame LiDAR 가 240 m 영역에 50 점을 가지고 있으면 점 간격이 5 에서 8 m 정도입니다. Nyquist 한계로 이 single frame 에서 추정 가능한 wavenumber 는 k_max = π/Δy ≈ 0.4 rad/m 정도이죠. 그런데 우리가 추정해야 할 wave wavenumber 는 0.5 에서 3 rad/m 입니다. 즉 single frame 으로는 *Nyquist 한계 위* 영역을 추정해야 하는 paradox 인 거죠.\n\n"
-        "해결책은 *multi-frame stacking 과 synthetic aperture 효과* 입니다. Vessel 이 11.3 m/s 로 1 초 동안 11.3 m 이동하면 10 frame 을 stacking 했을 때 효과적인 개구가 11.3 m 가 됩니다. 이 효과 개구로 wavenumber 분해능이 약 0.56 rad/m 정도로 좋아져서 0.5 에서 3 rad/m 영역의 wave 추정이 가능해집니다.\n\n"
-        "그 다음 *beamforming score 식* 입니다. 후보 wavenumber 에 대해 S(k) = |Σ η_obs · exp(j(k·x − ω(k)·t))|² 를 계산하는데요, 여기서 ω(k) 는 분산 관계로 자동 결정됩니다. 직관적 의미는 — '만약 wave 가 이 (k_x, k_y) 방향으로 진행한다면 측정 데이터의 phase 와 얼마나 일치하는가?' 입니다. 신호처리의 DOA estimation 기법을 ocean wave 에 적용한 거죠.\n\n"
-        "그리고 *coarse-to-fine 2 단계* 로 진행합니다. Coarse 단계에서 50×50 = 2,500 후보 격자에서 S(k) 가 큰 peak N 개를 선택하고, Fine 단계에서 local quadratic fit 과 Newton step 으로 sub-grid 정확도까지 정밀화합니다. 표준 spectral estimation 기법입니다.\n\n"
-        "마지막으로 *'konly' 라는 이름의 의미* — 이 단계에서는 k 만 추정하고 ω 는 분산 관계로 자동, 진폭 A 와 위상 φ 는 다음 tracking 단계에서 처리합니다. 이유는 single frame 에서 (A, φ) 는 잘 추정되지만 k 는 ill-conditioned 이기 때문이죠. Fisher Information Matrix 분석으로 보면 k 의 eigenvalue 가 (A, φ) 보다 훨씬 작습니다. 이게 paper 후반부의 identifiability decomposition 입니다.\n\n"
-        "참고로 이전 v1 은 FFT 기반이었는데 LiDAR 점이 불규칙해서 잘 안 됐고, v2 의 beamforming 으로 바꾸면서 평균 18% 정확도 개선됐습니다.\n\n"
-        "다음 슬라이드는 tracking 단계와 최적화 detail 입니다."
+        "이 슬라이드가 paper 의 main framing 으로 가는 핵심입니다. *왜 multi-frame 이 필요한가* 를 정량으로 풀어 설명드립니다.\n\n"
+        "먼저 Nyquist 한계가 무엇인지 부터 짚어드립니다. Shannon-Nyquist 정리 (1949) 는 신호처리의 표준 결과인데요 — 어떤 wavelength 의 신호를 추정하려면 *최소 그 wavelength 의 절반 간격* 으로 sampling 해야 한다는 정리입니다. 즉 점 간격이 Δy 면 추정 가능한 최대 wavenumber 는 π/Δy 입니다.\n\n"
+        "이 한계를 우리 single-frame LiDAR 에 적용해보면 — 240 m 영역에 valid 점이 50 개 정도이니 평균 점 간격 Δy 가 5 에서 8 m 사이입니다. Nyquist 식에 넣으면 k_max 가 약 0.4–0.6 rad/m 인데, 보수적으로 0.4 rad/m 를 한계로 봅니다. 즉 single frame 으로 추정 가능한 wavenumber 는 약 0.4 rad/m 까지 입니다.\n\n"
+        "그런데 우리가 추정해야 할 wavenumber 는 그것보다 훨씬 큽니다. 파도 파장 λ 는 BF3 swell 이 약 12 m, BF4 wind wave 가 6 m, BF6 short wave 가 2 m 정도입니다. wavenumber k = 2π/λ 식에 넣으면 k 가 0.52 부터 3.14 rad/m 까지입니다. 즉 single-frame Nyquist (0.4) 의 1.25 배에서 7.5 배 초과 영역이죠.\n\n"
+        "이게 *paradox* 입니다 — 이론상 single frame 으로는 추정 불가능한 영역의 wave 를 우리는 추정해야 합니다. 어떻게 가능할까요?\n\n"
+        "해결책은 *multi-frame stacking* 입니다. Vessel 이 11.3 m/s 로 1 초 동안 11.3 m 이동하면서 10 frame 의 데이터를 누적하면 점이 500 개로 늘고 영역도 약간 확장됩니다. 그런데 *핵심은 점 수 증가가 아니라 시간 정보가 phase 기준점을 제공한다* 는 점입니다.\n\n"
+        "각 점이 단순한 (x, y, η) 가 아니라 *시간까지 포함한 (x, y, t, η) 4D 좌표* 를 갖게 되고요, wave 가 시간에 따라 propagate 하는 phase 진화를 보면서 *wavenumber 의 모호성을 해소* 할 수 있게 됩니다. 이게 synthetic aperture 효과의 핵심입니다.\n\n"
+        "정량적으로 — effective aperture L_SA = V × T_init = 11.3 m 로, wavenumber 분해능이 약 0.56 rad/m 가 됩니다. 이 분해능으로 0.5 에서 3 rad/m 영역의 wave 를 추정할 수 있게 되는 거죠. Nyquist 한계 0.4 를 우회한 셈입니다.\n\n"
+        "다음 슬라이드에서 *어떻게* — 즉 beamforming 식과 coarse-to-fine 정밀화 — 를 자세히 설명드립니다."
+    ))
+
+
+def build_s13b2_beamforming():
+    """Init (2/2): Beamforming + coarse-to-fine 어떻게 작동하나."""
+    s = add_blank(WHITE)
+    add_section_tag(s, "Part 3 · WaveSplat — Init (2/2): Beamforming 어떻게 작동?", color=GOLD)
+    add_title(s, "Beamforming + coarse-to-fine — (k_x, k_y) 정밀 결정")
+    add_subtitle(s, "어떤 후보 wavenumber 가 측정 데이터와 가장 잘 맞는지 search — 신호처리 DOA 의 ocean wave 적용")
+    bullets = [
+        "**Beamforming 직관**:",
+        "  각 후보 wavenumber (k_x⁰, k_y⁰) 에 대해 'wave 가 이 방향으로 ω(k) 주파수로 진행한다' 가정",
+        "  측정 데이터의 phase 와 가정한 wave 의 phase 가 얼마나 일치하는지 score 로 평가",
+        "  Score 가 가장 높은 (k_x, k_y) 를 선택 — 직관: '코러스 효과' (모든 점이 동시에 일치)",
+        "",
+        "**Beamforming score 식**:",
+        "  S(k_x⁰, k_y⁰) = | Σ_i η_obs(x_i, y_i, t_i) · exp(j (k⁰·x_i − ω(k⁰)·t_i)) |²",
+        "  여기서:",
+        "    i: 누적된 모든 점 (10 frame × 50 점 = 500 점)",
+        "    η_obs: i-th 점에서 측정한 wave 변위",
+        "    k⁰·x_i = k_x⁰·x_i + k_y⁰·y_i (후보 wavenumber 와 점 위치의 내적)",
+        "    ω(k⁰) = √(g·|k⁰|·tanh(|k⁰|·d)) — 분산 관계로 자동 결정 (별도 자유도 아님)",
+        "    exp(j·...) — phase factor (가정한 wave 의 위상)",
+        "",
+        "**해석**:",
+        "  실제 wave 가 (k_x⁰, k_y⁰) 방향이라면 모든 점의 phase 가 일치 → 합의 절댓값 ↑ → S(k) 가 peak",
+        "  실제 wave 가 다른 방향이라면 phase 가 random 하게 cancel → S(k) 작음",
+        "  → S(k) 가 큰 (k_x, k_y) = 실제 wave 의 wavenumber",
+        "",
+        "**Coarse-to-fine 2 단계 — 정밀화**:",
+        "  ① Coarse: (k_x, k_y) 후보 격자 50×50 = 2,500 개. 각 후보의 S(k) 계산 → top-N peak 선택",
+        "  ② Fine: 각 peak 주변에서 local quadratic fit → Newton step → sub-grid 정확도",
+        "    (예: peak 가 격자 위 (0.5, 0.7) 인데 fine 으로 (0.534, 0.692) 처럼 정밀)",
+        "",
+        "**signal processing 연관**: DOA (Direction-of-Arrival) estimation — array antenna 에서 신호 도달 방향 찾는 표준 기법",
+        "  우리는 이걸 wave estimation 에 적용 (LiDAR scan = sparse sensor array 로 간주)",
+    ]
+    add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=10,
+                line_space_after=1)
+    add_page_number(s, 13)
+    add_notes(s, (
+        "이전 슬라이드에서 *왜 multi-frame 이 필요한지* 를 보여드렸고요, 이번 슬라이드는 *어떻게 작동하는지* 를 수식까지 풀어 설명드립니다.\n\n"
+        "Beamforming 의 직관부터 말씀드리면 — 각 후보 wavenumber 에 대해 *만약 실제 wave 가 이 방향으로 이 주파수로 진행한다고 가정* 했을 때, 측정 데이터의 phase 와 얼마나 잘 맞는지를 점수로 평가하는 방법입니다. 점수가 가장 높은 후보를 선택하는 거죠. 직관적으로는 '코러스 효과' 같은 거예요 — 모든 점들이 *동시에* 일치하면 신호가 강해지고, 다르면 random 하게 cancel 되어 약해집니다.\n\n"
+        "수식을 보시면 — S(k_x⁰, k_y⁰) = | Σ_i η_obs · exp(j(k⁰·x_i − ω(k⁰)·t_i)) |² 입니다. i 는 누적된 모든 점 (500 점), η_obs 는 i-th 점에서 측정한 wave 변위, k⁰·x_i 는 후보 wavenumber 와 점 위치의 내적이고요, ω(k⁰) 는 분산 관계로 자동 결정됩니다. exp(j·...) 가 가정한 wave 의 phase factor 입니다.\n\n"
+        "해석은 명확합니다. 만약 실제 wave 가 우리가 가정한 (k_x⁰, k_y⁰) 방향이라면 모든 점의 phase 가 *일치* 합니다. 그러면 sum 의 절댓값이 커지고요, S(k) 가 peak 가 됩니다. 반면 실제 wave 가 다른 방향이라면 phase 가 random 하게 cancel 되어 S(k) 가 작아집니다. 결국 S(k) 가 큰 후보들이 실제 wavenumber 인 거죠.\n\n"
+        "Coarse-to-fine 정밀화 — 처음에는 거친 격자 (50×50 = 2,500 후보) 에서 search 해서 top-N peak 를 찾고요, 그 다음 각 peak 주변에서 local quadratic fit 과 Newton step 으로 sub-grid 정확도까지 정밀화합니다. 예를 들어 peak 가 격자 위 (0.5, 0.7) 에 있더라도 fine 으로 (0.534, 0.692) 같은 더 정밀한 값을 얻습니다.\n\n"
+        "신호처리 분야에서는 이걸 *DOA estimation* (Direction-of-Arrival estimation) 이라고 부릅니다. Antenna array 에서 신호가 어느 방향에서 도달하는지 찾는 표준 기법인데요, 우리는 LiDAR scan 을 sparse sensor array 로 간주하고 ocean wave 에 적용한 거죠.\n\n"
+        "다음 슬라이드는 tracking 단계 — k 가 결정된 후 매 frame (A, φ) 만 빠르게 update 하는 방식입니다."
     ))
 
 
@@ -884,29 +941,30 @@ def build_s13c_track():
     add_subtitle(s, "k 고정 후 (A, φ) 만 빠르게 update — 13 ms/frame")
     # Left column: Tracking + optimizer detail
     bullets_left = [
-        "**w_phi Tracking 단계**:",
+        "**w_phi Tracking 단계 — 무엇을 update 하는가**:",
         "  (k_x, k_y): Init 결과 고정 (변경 안 함)",
-        "  ω: dispersion 으로 자동 (k 에서 계산)",
-        "  (A, φ): Adam 으로 매 frame update — 자유도 2N",
+        "  ω: dispersion 으로 자동 (k 에서 계산, 별도 자유도 아님)",
+        "  (A, φ): Adam 으로 매 frame update — 자유도 2N (N=10 이면 20)",
         "",
-        "**Loss function**:",
-        "  L(θ) = Σ_i [η_model(x_i, t; θ) − η_obs(x_i, t)]²",
-        "  N 개 component 의 wave 합산 vs LiDAR 측정값",
-        "  η_model = Σ_n A_n cos(k_n·x − ω_n·t + φ_n)",
+        "**Wave model 식**:",
+        "  η_model(x, y, t; θ) = Σ_n A_n · cos(k_xn·x + k_yn·y − ω_n·t + φ_n)",
+        "  파라미터 θ = {A_n, φ_n} (k_n, ω_n 은 고정)",
         "",
-        "**Optimizer — Adam (Kingma & Ba 2014)**:",
-        "  lr = 0.01 (현재 default)",
-        "  50 iterations × ∇L 계산 / frame → ~13 ms (CPU)",
-        "  Adam 의 adaptive learning rate 가 (A, φ) 의 다른 scale 처리",
+        "**Loss function (least squares)**:",
+        "  L(θ) = Σ_i [η_model(x_i, y_i, t; θ) − η_obs(x_i, y_i, t)]²",
+        "  i: LiDAR 측정점 (frame 당 ~50 점)",
+        "  최소화 → wave model 이 측정값에 가장 가깝게 fit",
         "",
-        "**Coarse-to-fine 학습률 스케줄 (option)**:",
-        "  Stage 1 (lr 0.05, 20 iter): 큰 step 으로 빠른 수렴",
-        "  Stage 2 (lr 0.01, 30 iter): 작은 step 으로 미세 조정",
+        "**Adam optimizer (Kingma & Ba 2014) — update rule**:",
+        "  m_t = β₁·m_{t-1} + (1−β₁)·∇L   (1차 모멘트, β₁=0.9)",
+        "  v_t = β₂·v_{t-1} + (1−β₂)·(∇L)²  (2차 모멘트, β₂=0.999)",
+        "  θ ← θ − lr · m̂_t / (√v̂_t + ε)   (적응적 학습률)",
+        "  lr=0.01, 50 iter / frame → ~13 ms (CPU)",
         "",
-        "**왜 k 고정?** (Identifiability)",
+        "**왜 k 고정?** (Identifiability):",
         "  Single frame 에서 k 의 FIM eigenvalue 가 (A, φ) 보다 10⁻³ 작음",
         "  k 자유 시 50 점에 over-fit → 비물리적 값으로 발산",
-        "  k 고정 → 안정적 추정 + paper 의 main contribution mechanism",
+        "  k 고정 → 자유도 5N → 2N 으로 줄어 안정적 추정",
     ]
     add_bullets(s, 0.4, 1.85, 6.7, 5.4, bullets_left, font_size=10,
                 line_space_after=2)
@@ -1480,6 +1538,32 @@ def build_s_control_results():
     ))
 
 
+def build_appendix_e_complex_cases():
+    """Appendix E — 복잡 case (BF4 N=15, BF5 N=15, BF5 N=30) 의 GT vs WaveSplat."""
+    s = add_blank(WHITE)
+    add_section_tag(s, "Appendix E · 복잡 case 의 GT vs WaveSplat", color=GRAY)
+    add_title(s, "Appendix E — 복잡 case (BF4–BF5 / N=15–30)", size=22)
+    add_subtitle(s,
+                 "성분 수 많은 어려운 case — WaveSplat 한계 확인 + Wang 2025 와의 trade-off 영역",
+                 size=11)
+    fig_complex = os.path.join(DOC_DIR, 'fig_appendix_e_complex_cases.png')
+    add_image_or_placeholder(s, fig_complex, 0.3, 1.7, 12.7,
+                             placeholder_text='[Appendix E — 복잡 case GT vs WaveSplat]')
+    add_text(s, 0.5, 7.0, 12.3, 0.4,
+             "각 행: BF4 N=15 / BF5 N=15 / BF5 N=30 — 열: GT, WaveSplat, Error. "
+             "성분이 많을수록 init 에서 모든 성분을 정확히 분리하기 어려워 nRMSE 가 ↑.",
+             font_size=10, italic=True, color=GRAY)
+    add_text(s, 12.5, 7.05, 0.7, 0.35,
+             "E", font_size=10, color=GRAY, alignment=PP_ALIGN.RIGHT)
+    add_notes(s, (
+        "Appendix E 는 *복잡 case* — BF4 부터 BF5 의 성분 수 15-30 인 어려운 case 들의 GT vs WaveSplat 비교입니다. Appendix C 가 단순 case 위주였다면 이 슬라이드는 *trade-off 영역* 을 보여드립니다.\n\n"
+        "각 행이 하나의 episode 입니다 — BF4 N=15, BF5 N=15, BF5 N=30. 열은 GT, WaveSplat, Error 순서입니다.\n\n"
+        "관찰 패턴: 성분 수가 많아질수록 nRMSE 가 커집니다. 이유는 init 단계의 beamforming 이 *N 개 peak 를 동시에 정확히 분리* 해야 하는데, 30 개를 정확히 분리하는 건 어렵기 때문입니다. 이 영역에서는 Wang 2025 의 격자 기반 방법이 *모든 성분을 격자에 한꺼번에 담을 수 있어* 더 안정적입니다.\n\n"
+        "이게 우리가 Limitations 슬라이드에서 정직하게 disclosure 한 trade-off 입니다. 후속 연구에서 hybrid init (격자 → 파라미터 정밀화) 으로 이 영역도 개선할 계획입니다.\n\n"
+        "Q&A 활용: 청자가 '복잡 case 에서는 어떤가?' 물으면 이 slide 보여드리며 *우리 약점도 정직히 인정* 하시면 됩니다."
+    ))
+
+
 def build_appendix_d_wang_compare():
     """Appendix D — GT vs WaveSplat vs Wang2025 직접 시각 비교."""
     s = add_blank(WHITE)
@@ -1528,7 +1612,8 @@ def main():
         build_s11,              # WaveSim (num=9)
         build_s12,              # Dataset (num=10)
         build_s13,              # Algorithm overview (num=11)
-        build_s13b_init,        # Init detail (num=11b)
+        build_s13b_init,        # Init (1/2): 왜 multi-frame
+        build_s13b2_beamforming,  # NEW: Init (2/2): beamforming 어떻게
         build_s13c_track,       # Track detail (num=11c)
         build_s13d_visualization,  # NEW: GT vs WaveSplat 시각화 (num=11d)
         build_s14,              # Results (num=12)
@@ -1536,9 +1621,9 @@ def main():
         build_s15,              # Ablation (num=14)
         build_s16,              # Framing (num=15)
         build_s17,              # Mechanism (num=16)
-        build_s_control_intro,  # NEW: hydrofoil control intro
-        build_s_control_results,  # NEW: PD vs PD+FF 결과
-        build_s18,              # Limitations
+        build_s18,              # Limitations (paper main story 닫기)
+        build_s_control_intro,  # 응용 사례: hydrofoil control intro
+        build_s_control_results,  # 응용 사례: PD vs PD+FF 결과
         build_s19,              # Timeline + Q&A
     ]
     n_main = len(builders)
@@ -1546,6 +1631,7 @@ def main():
         b()
     build_backups()
     build_appendix_d_wang_compare()
+    build_appendix_e_complex_cases()
 
     n_backup = len(prs.slides) - n_main
     os.makedirs(DOC_DIR, exist_ok=True)

@@ -235,15 +235,22 @@ def main():
     out_single = os.path.join(DOC_DIR, 'fig_demo_simple_2d3d.png')
     plot_2d3d_single(default_single, out_single)
 
-    # Multi-case 2D-only for Appendix C — nRMSE 작은 case 만
-    # frame=200 snapshot 결과: BF3 N=2 가 가장 작음 (~0.22), 다른 case 는 0.5+
-    # 사용자 요청에 따라 단일 best case 만 표시
+    # Multi-case 2D-only for Appendix C — nRMSE 작은 case
     out_multi = os.path.join(DOC_DIR, 'fig_appendix_c_cases_2d3d.png')
-    appendix_cases = [
+    appendix_c_cases = [
         {'episode': 'episode_BF3_2comp_seed0_uniform.h5', 'label': 'BF3 / N=2', 'frame_idx': 200},
         {'episode': 'episode_BF3_5comp_seed0_uniform.h5', 'label': 'BF3 / N=5', 'frame_idx': 200},
     ]
-    plot_2d_multicase(appendix_cases, out_multi)
+    plot_2d_multicase(appendix_c_cases, out_multi)
+
+    # Appendix E — 복잡 case (BF4 N=15, BF5 N=15, BF5 N=30)
+    out_complex = os.path.join(DOC_DIR, 'fig_appendix_e_complex_cases.png')
+    appendix_e_cases = [
+        {'episode': 'episode_BF4_15comp_seed0_uniform.h5', 'label': 'BF4 / N=15', 'frame_idx': 200},
+        {'episode': 'episode_BF5_15comp_seed0_uniform.h5', 'label': 'BF5 / N=15', 'frame_idx': 200},
+        {'episode': 'episode_BF5_30comp_seed0_uniform.h5', 'label': 'BF5 / N=30', 'frame_idx': 200},
+    ]
+    plot_2d_multicase(appendix_e_cases, out_complex)
 
     print("Done.")
 

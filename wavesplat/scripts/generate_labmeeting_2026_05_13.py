@@ -363,7 +363,7 @@ def build_s4_spoiler():
     add_page_number(s, 4)
     add_notes(s, (
         "배경 설명에 들어가기 전에 먼저 결과부터 보여드리겠습니다.\n\n"
-        "왼쪽 막대 그래프는 두 방법의 평균 정확도 비교입니다. nRMSE 는 정규화된 평균 제곱근 오차로, 0 에 가까울수록 정확합니다. 0.2 정도면 실제 파도와 추정의 차이가 파도 표준편차의 약 20% 라는 뜻입니다. 우리 WaveSplat 이 0.211, Wang2025 가 0.253 입니다. Wang2025 는 2025 년에 출판된 논문 (Coastal Engineering 197) 의 방법을 — 앙상블 300 개, fuzzy R 적응 등 — 그대로 재현한 것입니다.\n\n"
+        "왼쪽 막대 그래프는 두 방법의 평균 정확도 비교입니다. nRMSE 는 정규화된 평균 제곱근 오차로, 0 에 가까울수록 정확합니다. 0.2 정도면 실제 파도와 추정의 차이가 파도 표준편차의 약 20% 라는 뜻입니다. 우리 WaveSplat 이 0.211, Wang2025 (Feng Wang et al. 2025, Coastal Engineering 197) 가 0.253 입니다. Wang2025 는 — 앙상블 300 개, fuzzy R 적응 등 — 원논문 세팅을 그대로 재현한 것입니다.\n\n"
         "오른쪽은 추정 시간 비교인데요, 로그 스케일로 그렸습니다. WaveSplat 이 13.4 ms 로 초당 75 번 추정 가능해서 10 Hz 제어 루프에 충분히 적합합니다. Wang2025 는 632 ms — 한 번 추정에 0.6 초 이상 걸려서 실시간으로는 어렵습니다. 참고로 Ehlers 2023 의 FNO 는 1.9 ms 로 빠르지만 supervised pre-training 이 필요하고, Ehlers 2025 의 PFT-PINN 은 instance 마다 30 분 학습이 필요해서 완전 오프라인입니다.\n\n"
         "한 줄로 요약하면 WaveSplat 이 *더 정확하면서 47 배 빠른* 방법입니다. 이제부터 왜 이런 결과가 가능한지, 선행 연구와 어떻게 다른지를 차례로 설명드리겠습니다."
     ))
@@ -675,9 +675,10 @@ def build_s11():
         "  Range 10–250 m, 파장 1550 nm, vessel 위 5 m mount",
         "  Ray tracing 으로 파도 표면 first-hit 찾음 (Möller-Trumbore 1997)",
         "",
-        "**Vessel motion**: 파도 격자는 world frame 에 고정 (수백 m × 수백 m)",
-        "  Vessel (LiDAR mount) 만 격자 안을 V=11.3 m/s 로 이동 → 관측 창만 이동",
-        "  파도는 t 의 진행으로 자연 propagate (격자 자체는 그대로)",
+        "**Vessel motion (현재 dataset 가정)**:",
+        "  현재 110 episode 의 default: ship_speed = 0 kts (vessel 정지 상태)",
+        "  → multi-frame stacking 의 효과는 *wave 자체의 시간 진화* 에서 옴 (vessel 이동 X)",
+        "  Deployment 시나리오 (V=11.3 m/s 등): 추가 synthetic aperture 효과 — future work",
     ]
     add_bullets(s, 0.4, 1.85, 8.7, 5.3, bullets, font_size=9,
                 line_space_after=1)
@@ -713,12 +714,12 @@ def build_s11():
         "  - 32 채널 × 360 horizontal beam = 11,520 ray / scan, range 10–200 m, 1550 nm 파장.\n"
         "  - Ray tracing: 각 ray 가 파도 표면 (격자에서 만든 triangle mesh) 과 만나는 첫 점 (first-hit) 을 찾음.\n"
         "  - Möller-Trumbore 1997: graphics 분야 표준 ray-triangle intersection 알고리즘.\n\n"
-        "(5) Vessel motion 처리 — 사용자 질문의 답 ('관측 창만 이동') 맞음:\n"
+        "(5) Vessel motion 처리 — 중요한 정정:\n"
+        "  - 우리 110-episode dataset 의 default ship_speed = 0 kts (vessel 정지 상태) 입니다 (configs/default.yaml).\n"
         "  - 파도 field 는 충분히 큰 world frame 격자 (예: 500 m × 500 m) 에 고정. 시뮬레이션 시작 시 한 번 만들고 변경 없음.\n"
-        "  - Vessel (LiDAR mount 점) 만 그 격자 안을 V=11.3 m/s 로 이동.\n"
-        "  - 매 frame Δt=0.1 s 동안 vessel 위치가 1.13 m 전진. LiDAR FOV (관측 창) 도 함께 이동 — 매 frame 다른 영역 관측.\n"
         "  - 파도 자체의 시간 변화는 η(x, y, t) 의 t 가 진행하는 것으로 자연 처리. 격자 자체는 그대로.\n"
-        "  - 결과: 매 frame 다른 vessel 위치에서 wave 의 다른 부분을 관측 — 이게 paper 의 main framing 인 synthetic aperture 효과의 원천.\n\n"
+        "  - 결과: 매 frame *같은 vessel 위치* 에서 *다른 phase 의 wave* 를 관측 — temporal coherence 가 multi-frame 효과의 원천.\n"
+        "  - Future deployment 시 (V > 0 kts) 추가 synthetic aperture 효과 — 현재는 미적용.\n\n"
         "다음 슬라이드에서 raydrop (점이 왜 누락되는가) 과 검증을 다룹니다 — Fresnel 식 자체의 단계별 계산은 발표자에게는 별도 설명, 슬라이드에는 합당성·검증 위주."
     ))
 
@@ -856,18 +857,21 @@ def build_s13b_init():
         "  k = 2π / λ. BF3 swell (λ=12m) → 0.52, BF6 short (λ=2m) → 3.14 rad/m",
         "  → 추정해야 할 k ∈ **0.5–3 rad/m** = Nyquist (0.4) 의 **1.25–7.5× 초과** 🚨",
         "",
-        "**해결책 — Synthetic Aperture (합성 개구) 발상**:",
-        "  Antenna 분야의 SAR (Synthetic Aperture Radar, Wiley 1954 / Cumming-Wong 2005) 와 같은 원리",
-        "  *Single antenna 분해능* = λ / D (D = antenna 크기) — 작은 antenna 는 분해능 나쁨",
-        "  *움직이는 antenna 가 매 시점 다른 위치에서 측정* → 누적된 measurement 가 마치 D = V·T 만큼 큰 antenna 처럼 작동",
-        "  → 이 가상의 큰 antenna 가 **'effective aperture'** — 즉 *합성된 측정 개구*",
+        "**해결책 — Temporal coherence (시간 정보가 phase 기준점)**:",
+        "  현재 dataset (vessel 정지) 에서도 *wave 자체의 시간 진화* 가 multi-frame 효과 제공",
+        "  Wave propagation: η(x, t) = A·cos(k·x − ω·t + φ) 의 시간 t 가 *phase 변화* 를 만듦",
+        "  각 frame 이 (x_i, y_i, t_i, η_i) 4D 점 — temporal coherence 로 wavenumber 모호성 해소",
         "",
-        "**Effective aperture 정의 + 우리 case 의 정량**:",
-        "  L_SA (effective aperture) = V · T_init",
-        "  V = 11.3 m/s (vessel 속도), T_init = 1 s (multi-frame 누적 시간)",
-        "  → L_SA = **11.3 m** (single frame 의 Δy 5-8 m 보다 1.5-2× 큼)",
-        "  → Wavenumber 분해능 Δk ≈ 2π / L_SA ≈ **0.56 rad/m** (single frame 0.4 rad/m 한계 우회)",
-        "  → 핵심: *시간 정보 t_i 가 phase 기준점* — 각 점이 (x, y, t, η) 4D 로 temporal coherence 활용",
+        "**(Future scenario) Synthetic Aperture from vessel motion**:",
+        "  Antenna 분야의 SAR (Wiley 1954 / Cumming-Wong 2005) 와 같은 원리",
+        "  Vessel 이 V·T 만큼 이동 시 effective aperture L_SA = V·T 추가",
+        "  예: V=11.3 m/s · T_init=1 s → L_SA = 11.3 m (synthetic aperture 효과)",
+        "  현재 dataset 에는 미적용 — 향후 deployment 시 추가 효과",
+        "",
+        "**우리 case 의 정량** (vessel 정지):",
+        "  Multi-frame temporal sampling + dispersion 의 ω→k 매핑 → wavenumber 추정",
+        "  10 frame × 50 점 = 500 점, T_window = 1 s 로 phase 변화 sampling",
+        "  → Spatial Nyquist 0.4 rad/m 우회 가능 (다음 슬라이드 score 식 참조)",
     ]
     add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=10,
                 line_space_after=1)
@@ -877,9 +881,10 @@ def build_s13b_init():
         "먼저 Nyquist 한계가 무엇인지 부터 짚어드립니다. Shannon-Nyquist 정리 (1949) 는 신호처리의 표준 결과인데요 — 어떤 wavelength 의 신호를 추정하려면 *최소 그 wavelength 의 절반 간격* 으로 sampling 해야 한다는 정리입니다. 즉 점 간격이 Δy 면 추정 가능한 최대 wavenumber 는 π/Δy 입니다.\n\n"
         "이 한계를 우리 single-frame LiDAR 에 적용해보면 — 240 m 영역에 valid 점이 50 개 정도이니 평균 점 간격 Δy 가 5 에서 8 m 사이입니다. Nyquist 식에 넣으면 k_max 가 약 0.4–0.6 rad/m 인데, 보수적으로 0.4 rad/m 를 한계로 봅니다. 즉 single frame 으로 추정 가능한 wavenumber 는 약 0.4 rad/m 까지입니다.\n\n"
         "그런데 우리가 추정해야 할 wavenumber 는 그것보다 훨씬 큽니다. 파도 파장 λ 는 BF3 swell 이 약 12 m, BF6 short wave 가 2 m 정도이니 k = 2π/λ 로 0.52 에서 3.14 rad/m 입니다. single-frame Nyquist (0.4) 의 1.25 에서 7.5 배 초과 영역이죠. *Paradox* 입니다.\n\n"
-        "**해결책은 *synthetic aperture* — 합성 개구 발상** 입니다. 이 개념은 1950 년대 Carl Wiley (1954 년 발표) 가 제안한 SAR (Synthetic Aperture Radar) 에서 출발했습니다. 핵심 아이디어를 설명드리면 — antenna 의 분해능은 *antenna 크기* D 에 비례합니다. λ/D. 그래서 작은 antenna 는 분해능이 나쁘죠. 그런데 *움직이는 antenna 가 매 시점 다른 위치에서 측정* 하면, 누적된 measurement 가 마치 D = V·T 크기의 큰 antenna 처럼 작동합니다. 이 가상의 큰 antenna 가 *effective aperture* 즉 *합성된 측정 개구* 입니다.\n\n"
-        "**Effective aperture 가 12 페이지에 나오는 이유** — multi-frame stacking 의 효과를 정량으로 표현하는 표준 metric 이기 때문입니다. 우리 case 에서 effective aperture L_SA = V × T_init = 11.3 m/s × 1 s = **11.3 m** 입니다. Single frame 의 점 간격 Δy 5-8 m 의 약 1.5-2 배죠. 이 effective aperture 로부터 wavenumber 분해능이 결정됩니다 — Δk ≈ 2π / L_SA ≈ **0.56 rad/m**. 이 분해능으로 0.5 에서 3 rad/m 영역의 wave 를 추정할 수 있어서 Nyquist 한계 0.4 를 우회한 셈입니다.\n\n"
-        "여기서 *왜 단순히 점이 500 개로 늘어나는 것이 아니라 effective aperture 가 핵심인가* 가 중요합니다. 점 수 증가만으로는 spatial Nyquist 가 그대로일 수 있어요 — 점들이 같은 영역에 모여 있으면 (e.g. 모두 vessel 근처) Δy 가 그대로. 하지만 *vessel 이 이동하면서 vessel-frame 으로는 같은 위치에 있는 점이 world-frame 으로는 다른 위치* 가 됩니다. 그래서 effective coverage 가 V·T 만큼 확장되는 거죠. 추가로 *시간 정보 t_i 가 phase 기준점을 제공* 해서 각 점이 (x, y, t, η) 4D 로 temporal coherence 까지 활용 가능. 이 두 효과가 결합해서 synthetic aperture 가 완성됩니다.\n\n"
+        "**중요한 정정** — 우리 110-episode dataset 의 default vessel speed 는 **0 kts (정지)** 입니다 (configs/default.yaml ship_speed_kts=0). 그러므로 *현재 데이터에서 우리가 의존하는 것은 vessel motion 이 아니라 wave 자체의 시간 진화* 입니다. wave η(x, t) = A·cos(k·x − ω·t + φ) 의 *시간 t 의 진행* 이 매 frame 의 phase 를 변화시켜서, 같은 위치의 LiDAR 점이라도 frame 마다 *다른 phase 정보* 를 제공합니다.\n\n"
+        "**그래도 effective aperture 라는 개념은 유효** — 합성 개구의 본질은 *움직이는 reference 가 다른 위치/시점의 정보 sampling* 입니다. 우리 case 에서는 reference (vessel) 가 정지지만 *wave 가 propagate* 하므로 *상대 운동* 으로 보면 동일한 효과. *Wave 가 vessel 을 통과하면서* 매 frame 다른 phase 영역을 보여주는 거죠.\n\n"
+        "**(Future scenario) Vessel 이 실제로 이동하면 추가 효과** — Wiley 1954 의 SAR (Synthetic Aperture Radar) 원리 그대로. Antenna 분해능이 antenna 크기 D 에 비례 (λ/D), 작은 antenna 가 움직이며 누적 측정 시 D = V·T 큰 antenna 처럼 작동. V=11.3 m/s · T_init=1 s → L_SA=11.3 m 추가 spatial coverage. 이건 deployment 시 future work.\n\n"
+        "**우리 데이터에서 작동하는 본질** — *temporal coherence + dispersion 의 ω↔k 매핑* 입니다. Multi-frame 의 t 정보로 phase 변화를 sampling 하고, dispersion 으로 ω 와 k 를 결합하면 spatial Nyquist 한계를 우회할 수 있습니다. 다음 슬라이드의 beamforming score 식이 이를 정량으로 보여줍니다.\n\n"
         "다음 슬라이드에서 *어떻게* — 즉 beamforming 식과 coarse-to-fine + Adam 정밀화 — 를 자세히 설명드립니다."
     ))
 
@@ -907,8 +912,8 @@ def build_s13b2_beamforming():
         "",
         "**③ Adam refinement — beamforming 결과를 모든 frame 에 fitting**:",
         "  Beamforming 은 *초기값 추정만* — 그 후 Adam 으로 정밀 최적화",
-        "  Loss: L(θ) = Σ_frame Σ_i [η_model(x_i, t; θ) − η_obs(x_i, t)]²",
-        "  파라미터: (k_x, k_y, ω, A, φ) — multi-frame init window 전체에 fit",
+        "  Loss = L_data + L_L1 + L_smooth (3 항, 자세한 식은 다음 슬라이드 + S14)",
+        "  파라미터: (k_x, k_y, A, φ) — multi-frame init window 전체에 fit (ω 는 dispersion 으로 자동)",
         "  Coarse-to-fine schedule: 3 stage 의 *N (component 수) 점진 증가* — N: 3 → 8 → 15 (config default)",
         "  lr 은 모든 stage 공유 (init_lr=0.01). Parameter group 별: (w, φ): 0.01 / (k_x, k_y): 0.005 (k 절반)",
         "  Loss threshold 로 stage advancement: stage 1 < 0.1, stage 2 < 0.05, stage 3 = None (full max_iters)",
@@ -1035,20 +1040,20 @@ def build_s13c_track():
     bullets_right = [
         "**Adaptive N — component 수 동적 조정**:",
         "",
-        "**① Pruning (가지치기)**:",
-        "  prune_threshold = 0.10 (energy fraction)",
-        "  하위 10% energy component 제거 (top 90% 유지)",
+        "**① Pruning (cumulative energy 기반)**:",
+        "  energy_n = A_n² 계산 → 내림차순 정렬",
+        "  Top components 가 (1 − prune_threshold) = **90% cumulative energy** 도달까지만 유지",
+        "  prune_threshold = 0.10 (config default)",
         "",
         "**② Growth (성장)**:",
         "  grow_residual_threshold = 0.05 m (잔차 RMS)",
         "  잔여 오차에 다시 beamforming → 새 (k_x, k_y)",
         "  → component 추가 (max_n = 30 limit)",
         "",
-        "**③ Safety rollback (안전 복귀)**:",
-        "  새 component 추가 후 RMSE 측정",
-        "  RMSE_new > 1.3 · RMSE_old:",
-        "  → 즉시 이전 state 로 복구",
-        "  → 잘못된 추가의 cascade failure 방지",
+        "**③ Safety rollback (pruning + growth 둘 다 적용)**:",
+        "  변경 (prune 또는 grow) 전후 residual RMS 측정",
+        "  RMS_after > 1.3 · RMS_before → 즉시 saved state 복구",
+        "  → 잘못된 prune/grow 의 cascade failure 방지",
         "",
         "**기타 코드 detail**:",
         "  max_steepness = 0.15 (Q clamp, particle crossing 방지)",
@@ -1231,11 +1236,11 @@ def build_s16():
         "  적용 후: 성분당 4개 변수 (A, kx, ky, φ) = 4N개 → 20% 감소",
         "  추가 효과: 물리적으로 불가능한 (k, ω) 조합이 자동으로 배제됨",
         "",
-        "**메커니즘 2 — 시간 정보 활용 (multi-frame 융합)**",
-        "  선박이 V=11.3 m/s로 이동하면, 1초 동안 11.3m를 쓸고 지나감",
-        "  이 효과로 '가상의 긴 안테나(synthetic aperture)'가 만들어짐",
-        "  단일 프레임 LiDAR 범위 5-8m → multi-frame으로 11m+ 확장",
-        "  → 파수(k)의 모호성이 해소됨 (어떤 파도인지 구분 가능해짐)",
+        "**메커니즘 2 — 시간 정보 활용 (multi-frame temporal coherence)**",
+        "  Wave η(x, t) = A·cos(k·x − ω·t + φ) 의 *t 진행* 이 매 frame phase 변화 제공",
+        "  현재 dataset (vessel 정지) 에서도 wave 자체의 시간 진화로 multi-frame 효과 작동",
+        "  10 frame × 50 점 = 500 점, T_window=1s 의 (x_i, y_i, t_i, η_i) 4D 정보로 k 모호성 해소",
+        "  Future: vessel motion (V > 0) 시 추가 synthetic aperture 효과 (V·T 만큼)",
         "",
         "**Ablation에서 확인된 것 — 두 메커니즘의 시너지**:",
         "  물리 법칙만 단독으로 쓰면(C) → 오히려 성능 저하 (초기 오류가 전파됨)",
@@ -1248,7 +1253,7 @@ def build_s16():
     add_notes(s, (
         "이 슬라이드가 우리 연구의 핵심 메시지입니다. 두 가지 메커니즘이 결합해서 작동합니다.\n\n"
         "첫 번째 메커니즘은 *분산 관계의 정규화 효과* 입니다. 분산 관계란 파도의 주파수와 파수 사이의 물리 법칙인데요, 깊은 바다에서 짧은 파도는 느리고 긴 파도는 빠릅니다. 이 관계를 알면 파수 k 가 결정되는 순간 주파수 ω 가 자동으로 결정됩니다. 추정해야 할 변수가 5N 개에서 4N 개로 20% 줄어들고, 더 중요하게 *물리적으로 불가능한 답이 자동으로 배제* 됩니다.\n\n"
-        "두 번째 메커니즘은 *선박 이동의 합성 개구 효과* 입니다. 한 순간의 LiDAR 점 50 개만으로는 파도의 방향을 정확히 알기 어렵습니다. 하지만 선박이 이동하면서 여러 순간의 데이터를 모으면 마치 긴 안테나를 만든 것처럼 분해능이 좋아집니다. 이것을 합성 개구 (synthetic aperture) 라 부르고, 레이더 분야의 SAR 과 같은 원리입니다.\n\n"
+        "두 번째 메커니즘은 *시간 정보 활용 (temporal coherence)* 입니다. 한 순간의 LiDAR 점 50 개만으로는 파도의 방향을 정확히 알기 어렵습니다. 하지만 *wave 자체가 시간에 따라 propagate* 하므로 — η(x, t) = A·cos(k·x − ω·t + φ) 의 t 진행이 매 frame 의 phase 를 변화시킵니다 — 여러 순간의 데이터를 모으면 같은 위치에서도 *다른 phase 정보* 를 얻을 수 있고요, dispersion 으로 ω 와 k 를 연결하면 wavenumber 모호성이 해소됩니다. 우리 dataset 의 vessel 은 정지 상태 (default 0 kts) 라 *wave 의 시간 진화* 가 본질이고, deployment 시 vessel motion 추가하면 synthetic aperture 효과로 분해능이 더 좋아집니다 (future work).\n\n"
         "Ablation 에서 발견한 핵심은 — *두 메커니즘은 각각 단독으로는 불완전하고 함께 써야 시너지가 난다* 는 것입니다. 물리 법칙만 쓰면 초기 파수 오류가 주파수로 전파되고, multi-frame 만 쓰면 자유도가 너무 높아 불안정합니다. 둘을 결합하면 multi-frame 으로 파수를 잘 추정하고 물리 법칙으로 답을 좁혀서 가장 안정적인 추정이 됩니다."
     ))
 
@@ -1270,8 +1275,8 @@ def build_s17():
         "  → 무거운 작업은 처음 한 번만, 가벼운 작업은 매 프레임 실시간으로",
         "",
         "**전체 흐름 정리:**",
-        "  1. 선박 이동 → synthetic aperture(합성 개구) 형성 → 파수 추정",
-        "  2. 분산 관계로 물리적 제약 부여 → 탐색 공간 축소",
+        "  1. Multi-frame temporal coherence (wave 시간 진화) → 파수 추정",
+        "  2. 분산 관계로 ω↔k 결합 → 자유도 5N→4N + 물리적 제약",
         "  3. 매 프레임 Adam 최적화 → 실시간 추적",
         "  4. Adaptive N: 성분 수를 자동으로 조정 (추가/제거/복원)",
     ]
@@ -1283,7 +1288,7 @@ def build_s17():
     add_page_number(s, 18)
     add_notes(s, (
         "이번 슬라이드는 *왜 2 단계 설계가 자연스러운가* 를 설명드립니다.\n\n"
-        "핵심 관찰부터 말씀드리면 — 파수 k 는 파도의 *공간적 패턴* 인데요, 한 순간의 LiDAR 스캔 50 개 점만으로는 이 패턴을 정확히 파악하기 어렵습니다. 50 개 점이 커버하는 영역이 5 에서 8 m 정도인데 파도 파장은 50 에서 300 m 라서 너무 짧기 때문이죠. 하지만 선박이 이동하면서 여러 순간의 데이터를 모으면 관측 영역이 효과적으로 넓어져서 파수를 정확히 추정할 수 있습니다. 반면 진폭 A 와 위상 φ 는 한 순간의 데이터로도 충분합니다 — *크기* 와 *현재 위치* 는 한 순간만 봐도 알 수 있기 때문입니다.\n\n"
+        "핵심 관찰부터 말씀드리면 — 파수 k 는 파도의 *공간적 패턴* 인데요, 한 순간의 LiDAR 스캔 50 개 점만으로는 이 패턴을 정확히 파악하기 어렵습니다. 50 개 점이 커버하는 영역이 5 에서 8 m 정도인데 파도 파장은 50 에서 300 m 라서 너무 짧기 때문이죠. 하지만 *wave 자체가 시간에 따라 propagate* 하므로 여러 순간의 데이터를 모으면 같은 위치에서도 *다른 phase 정보* 를 얻을 수 있고, dispersion 으로 ω 와 k 를 연결하면 파수 추정이 가능해집니다 (현재 dataset 의 vessel 은 정지 상태). 반면 진폭 A 와 위상 φ 는 한 순간의 데이터로도 충분합니다 — *크기* 와 *현재 위치* 는 한 순간만 봐도 알 수 있기 때문입니다.\n\n"
         "그래서 자연스럽게 2 단계로 나뉘는 거죠. *Init 단계* 는 여러 프레임을 모아서 파수 k 를 정확히 결정합니다. 한 번만 하면 되고 1 초 이내에 끝납니다. *Track 단계* 는 파수를 고정하고 매 프레임마다 진폭·위상만 업데이트합니다. 13 ms 이내라 실시간 작동 가능하고요.\n\n"
         "*Adaptive N* 은 파도 성분의 수를 자동으로 조정하는 기능입니다. 너무 작은 성분은 제거 (pruning), 오차가 크면 새 성분 추가 (growth), 추가했더니 오히려 나빠지면 원래 상태로 복원 (safety rollback) 하는 세 가지 메커니즘입니다."
     ))

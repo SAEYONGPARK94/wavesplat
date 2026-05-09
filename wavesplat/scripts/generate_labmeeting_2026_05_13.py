@@ -49,7 +49,7 @@ prs = Presentation()
 prs.slide_width = Inches(13.333)
 prs.slide_height = Inches(7.5)
 
-TOTAL_MAIN = 18
+TOTAL_MAIN = 25
 
 
 # ─────────────────────────────────────────
@@ -676,9 +676,9 @@ def build_s11():
         "  Ray tracing 으로 파도 표면 first-hit 찾음 (Möller-Trumbore 1997)",
         "",
         "**Vessel motion (현재 dataset 가정)**:",
-        "  현재 110 episode 의 default: ship_speed = 0 kts (vessel 정지 상태)",
-        "  → multi-frame stacking 의 효과는 *wave 자체의 시간 진화* 에서 옴 (vessel 이동 X)",
-        "  Deployment 시나리오 (V=11.3 m/s 등): 추가 synthetic aperture 효과 — future work",
+        "  현재 110 episode 의 default: ship_speed = 0 kts (vessel 정지 상태, configs/default.yaml)",
+        "  → multi-frame stacking 의 효과는 *wave 자체의 시간 진화* 에서 옴",
+        "  Vessel motion 기반 synthetic aperture 는 *향후 연구* 로 분리 (page 25 Future work 참조)",
     ]
     add_bullets(s, 0.4, 1.85, 8.7, 5.3, bullets, font_size=9,
                 line_space_after=1)
@@ -838,7 +838,7 @@ def build_s13():
 
 # S13b — Beamforming Init detail (NEW)
 def build_s13b_init():
-    """Init (1/2): 왜 multi-frame 이 필요한가 — Nyquist 한계 + synthetic aperture 발상."""
+    """Init (1/3): 왜 multi-frame 이 필요한가 — Nyquist 한계 + temporal coherence."""
     s = add_blank(WHITE)
     add_section_tag(s, "Part 3 · WaveSplat — Init (1/2): 왜 multi-frame 인가?", color=GOLD)
     add_title(s, "Init: single-frame 의 한계와 multi-frame 의 발상")
@@ -858,20 +858,17 @@ def build_s13b_init():
         "  → 추정해야 할 k ∈ **0.5–3 rad/m** = Nyquist (0.4) 의 **1.25–7.5× 초과** 🚨",
         "",
         "**해결책 — Temporal coherence (시간 정보가 phase 기준점)**:",
-        "  현재 dataset (vessel 정지) 에서도 *wave 자체의 시간 진화* 가 multi-frame 효과 제공",
+        "  Vessel 이 정지해 있어도 *wave 자체의 시간 진화* 가 multi-frame 효과 제공",
         "  Wave propagation: η(x, t) = A·cos(k·x − ω·t + φ) 의 시간 t 가 *phase 변화* 를 만듦",
         "  각 frame 이 (x_i, y_i, t_i, η_i) 4D 점 — temporal coherence 로 wavenumber 모호성 해소",
         "",
-        "**(Future scenario) Synthetic Aperture from vessel motion**:",
-        "  Antenna 분야의 SAR (Wiley 1954 / Cumming-Wong 2005) 와 같은 원리",
-        "  Vessel 이 V·T 만큼 이동 시 effective aperture L_SA = V·T 추가",
-        "  예: V=11.3 m/s · T_init=1 s → L_SA = 11.3 m (synthetic aperture 효과)",
-        "  현재 dataset 에는 미적용 — 향후 deployment 시 추가 효과",
-        "",
-        "**우리 case 의 정량** (vessel 정지):",
+        "**우리 case 의 정량**:",
         "  Multi-frame temporal sampling + dispersion 의 ω→k 매핑 → wavenumber 추정",
         "  10 frame × 50 점 = 500 점, T_window = 1 s 로 phase 변화 sampling",
         "  → Spatial Nyquist 0.4 rad/m 우회 가능 (다음 슬라이드 score 식 참조)",
+        "",
+        "**Note** — Vessel motion 기반 synthetic aperture (SAR-style) 는 *향후 연구 (Future work)*",
+        "  현재 코드/dataset 은 vessel 정지 가정. SA 추가 시 추가 분해능 향상 가능 → page 25 Future work 참조",
     ]
     add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=10,
                 line_space_after=1)
@@ -881,10 +878,9 @@ def build_s13b_init():
         "먼저 Nyquist 한계가 무엇인지 부터 짚어드립니다. Shannon-Nyquist 정리 (1949) 는 신호처리의 표준 결과인데요 — 어떤 wavelength 의 신호를 추정하려면 *최소 그 wavelength 의 절반 간격* 으로 sampling 해야 한다는 정리입니다. 즉 점 간격이 Δy 면 추정 가능한 최대 wavenumber 는 π/Δy 입니다.\n\n"
         "이 한계를 우리 single-frame LiDAR 에 적용해보면 — 240 m 영역에 valid 점이 50 개 정도이니 평균 점 간격 Δy 가 5 에서 8 m 사이입니다. Nyquist 식에 넣으면 k_max 가 약 0.4–0.6 rad/m 인데, 보수적으로 0.4 rad/m 를 한계로 봅니다. 즉 single frame 으로 추정 가능한 wavenumber 는 약 0.4 rad/m 까지입니다.\n\n"
         "그런데 우리가 추정해야 할 wavenumber 는 그것보다 훨씬 큽니다. 파도 파장 λ 는 BF3 swell 이 약 12 m, BF6 short wave 가 2 m 정도이니 k = 2π/λ 로 0.52 에서 3.14 rad/m 입니다. single-frame Nyquist (0.4) 의 1.25 에서 7.5 배 초과 영역이죠. *Paradox* 입니다.\n\n"
-        "**중요한 정정** — 우리 110-episode dataset 의 default vessel speed 는 **0 kts (정지)** 입니다 (configs/default.yaml ship_speed_kts=0). 그러므로 *현재 데이터에서 우리가 의존하는 것은 vessel motion 이 아니라 wave 자체의 시간 진화* 입니다. wave η(x, t) = A·cos(k·x − ω·t + φ) 의 *시간 t 의 진행* 이 매 frame 의 phase 를 변화시켜서, 같은 위치의 LiDAR 점이라도 frame 마다 *다른 phase 정보* 를 제공합니다.\n\n"
-        "**그래도 effective aperture 라는 개념은 유효** — 합성 개구의 본질은 *움직이는 reference 가 다른 위치/시점의 정보 sampling* 입니다. 우리 case 에서는 reference (vessel) 가 정지지만 *wave 가 propagate* 하므로 *상대 운동* 으로 보면 동일한 효과. *Wave 가 vessel 을 통과하면서* 매 frame 다른 phase 영역을 보여주는 거죠.\n\n"
-        "**(Future scenario) Vessel 이 실제로 이동하면 추가 효과** — Wiley 1954 의 SAR (Synthetic Aperture Radar) 원리 그대로. Antenna 분해능이 antenna 크기 D 에 비례 (λ/D), 작은 antenna 가 움직이며 누적 측정 시 D = V·T 큰 antenna 처럼 작동. V=11.3 m/s · T_init=1 s → L_SA=11.3 m 추가 spatial coverage. 이건 deployment 시 future work.\n\n"
+        "**중요** — 우리 110-episode dataset 의 default vessel speed 는 **0 kts (정지)** 입니다 (configs/default.yaml ship_speed_kts=0). 그러므로 *우리 코드/실험에서 의존하는 것은 wave 자체의 시간 진화* 입니다. wave η(x, t) = A·cos(k·x − ω·t + φ) 의 *시간 t 의 진행* 이 매 frame 의 phase 를 변화시켜서, 같은 위치의 LiDAR 점이라도 frame 마다 *다른 phase 정보* 를 제공합니다.\n\n"
         "**우리 데이터에서 작동하는 본질** — *temporal coherence + dispersion 의 ω↔k 매핑* 입니다. Multi-frame 의 t 정보로 phase 변화를 sampling 하고, dispersion 으로 ω 와 k 를 결합하면 spatial Nyquist 한계를 우회할 수 있습니다. 다음 슬라이드의 beamforming score 식이 이를 정량으로 보여줍니다.\n\n"
+        "**(Future work)** Vessel motion 기반 synthetic aperture (SAR-style) 는 *향후 연구* 로 분리합니다. Wiley 1954 의 SAR 원리를 ocean LiDAR 에 적용하면 V·T 만큼 추가 spatial coverage 가 생기지만, 현재 코드와 dataset 은 vessel 정지 가정이라 검증 못 했습니다. Future work 슬라이드 (page 25) 에서 다룰 예정입니다.\n\n"
         "다음 슬라이드에서 *어떻게* — 즉 beamforming 식과 coarse-to-fine + Adam 정밀화 — 를 자세히 설명드립니다."
     ))
 
@@ -912,7 +908,7 @@ def build_s13b2_beamforming():
         "",
         "**③ Adam refinement — beamforming 결과를 모든 frame 에 fitting**:",
         "  Beamforming 은 *초기값 추정만* — 그 후 Adam 으로 정밀 최적화",
-        "  Loss = L_data + L_L1 + L_smooth (3 항, 자세한 식은 다음 슬라이드 + S14)",
+        "  Loss = L_data + L_L1 + L_smooth (3 항, 자세한 식은 Track slide page 15 참조)",
         "  파라미터: (k_x, k_y, A, φ) — multi-frame init window 전체에 fit (ω 는 dispersion 으로 자동)",
         "  Coarse-to-fine schedule: 3 stage 의 *N (component 수) 점진 증가* — N: 3 → 8 → 15 (config default)",
         "  lr 은 모든 stage 공유 (init_lr=0.01). Parameter group 별: (w, φ): 0.01 / (k_x, k_y): 0.005 (k 절반)",
@@ -1062,7 +1058,7 @@ def build_s13c_track():
     ]
     add_bullets(s, 7.3, 1.85, 5.7, 5.4, bullets_right, font_size=10,
                 line_space_after=2, color=ACCENT)
-    add_page_number(s, 13)
+    add_page_number(s, 15)
     add_notes(s, (
         "이번 슬라이드는 추적 단계와 Adaptive N 을 설명합니다.\n\n"
         "Tracking 의 핵심은 *w_phi mode* — 파수 k 를 고정하는 것입니다. 이게 WaveSplat 의 가장 중요한 설계 결정이에요. k 까지 자유롭게 업데이트하면 50 개 점에 over-fit 해서 물리적으로 무의미한 값으로 발산해버립니다. 그래서 init 에서 결정된 k 는 고정하고, 매 frame 진폭과 위상만 update 합니다.\n\n"
@@ -1084,7 +1080,7 @@ def build_s13d_visualization():
     add_text(s, 0.5, 7.05, 12.3, 0.35,
              "단순 wave (N=2 성분) 에서 WaveSplat nRMSE ~ 0.05 — Error panel 거의 white. 다양한 case 는 Appendix C 참조.",
              font_size=10, italic=True, color=GRAY)
-    add_page_number(s, 14)
+    add_page_number(s, 16)
     add_notes(s, (
         "이번 슬라이드는 WaveSplat 의 실제 추정 결과를 시각적으로 보여드립니다. 단순 case (BF3 N=2) 의 한 시점입니다.\n\n"
         "그림은 위 row 가 2D heatmap, 아래 row 가 3D surface 입니다. 좌측은 ground truth — 실제 파도의 참값이고, 중앙은 WaveSplat 추정 결과, 우측이 Error (GT − WaveSplat) 잔여 오차입니다.\n\n"
@@ -1131,7 +1127,7 @@ def build_s14():
     add_text(s, 0.3, 5.2, 6.5, 0.5,
              '📝 화살표 추가: ① "47x faster" (속도 바 사이) ② "16% more accurate" (nRMSE 바 사이)',
              font_size=9, italic=True, color=RGBColor(0x99, 0x99, 0x99))
-    add_page_number(s, 14)
+    add_page_number(s, 17)
     add_notes(s, (
         "이번 슬라이드가 *핵심 비교 결과* 입니다.\n\n"
         "먼저 비교 방법을 설명드리겠습니다. WaveSplat 은 우리 방법으로, 파도를 파수·주파수·진폭·위상이라는 물리적 파라미터로 직접 표현하는 방식입니다. 격자를 쓰지 않고 파라미터 자체를 최적화합니다. Wang2025 는 비교 대상으로, 2025 년에 출판된 Wang 의 논문 (Coastal Engineering 197) 을 충실히 재현한 것입니다 — 300 개 시뮬레이션 (앙상블), 80x60 격자, fuzzy R 노이즈 자동 적응, Delaunay 보간 모두 포함했습니다. *우리가 임의로 만든 baseline 이 아니라 출판된 논문의 충실한 재현* 임을 강조드립니다.\n\n"
@@ -1157,7 +1153,7 @@ def build_s13_scatter():
     add_text(s, 0.5, 6.0, 12.0, 0.3,
              '📝 화살표 추가: ① BF3_2comp 강조 원 ② Wang2025 ceiling 점선 (≈0.25) ③ "reversal point" (15comp 부근)',
              font_size=9, italic=True, color=RGBColor(0x99, 0x99, 0x99))
-    add_page_number(s, 15)
+    add_page_number(s, 18)
     add_notes(s, (
         "이 그래프가 우리 연구의 핵심 통찰을 보여줍니다.\n\n"
         "먼저 그래프 읽는 법부터 설명드리면 — 가로축은 파도 성분의 수입니다. 1-2 개면 아주 단순한 파도, 15-30 개면 매우 복잡한 파도죠. 세로축은 nRMSE 오차이고 낮을수록 정확합니다. 파란 동그라미가 WaveSplat 우리 방법, 빨간 네모가 Wang2025 입니다.\n\n"
@@ -1203,7 +1199,7 @@ def build_s15():
     add_text(s, 0.3, 6.8, 7.0, 0.3,
              '📝 화살표 추가: ① C→D "dispersion regularizer" 효과 화살표 ② A→B "multi-frame" 효과 화살표',
              font_size=9, italic=True, color=RGBColor(0x99, 0x99, 0x99))
-    add_page_number(s, 16)
+    add_page_number(s, 19)
     add_notes(s, (
         "이번 슬라이드는 ablation study, 즉 *각 기술의 기여도* 를 분리해서 보는 실험입니다.\n\n"
         "Ablation 이란 시스템에 들어간 기술을 하나씩 빼 보면서 빠진 게 실제로 도움이 되는지 확인하는 실험입니다. 의학의 '절제' 라는 용어에서 왔는데요, 논문 심사에서 '각 기술의 기여도를 증명하라' 는 요구가 반드시 나오기 때문에 필수적인 검증입니다.\n\n"
@@ -1238,9 +1234,9 @@ def build_s16():
         "",
         "**메커니즘 2 — 시간 정보 활용 (multi-frame temporal coherence)**",
         "  Wave η(x, t) = A·cos(k·x − ω·t + φ) 의 *t 진행* 이 매 frame phase 변화 제공",
-        "  현재 dataset (vessel 정지) 에서도 wave 자체의 시간 진화로 multi-frame 효과 작동",
+        "  현재 dataset (vessel 정지, V=0 kts) 에서 wave 자체의 시간 진화로 multi-frame 효과 작동",
         "  10 frame × 50 점 = 500 점, T_window=1s 의 (x_i, y_i, t_i, η_i) 4D 정보로 k 모호성 해소",
-        "  Future: vessel motion (V > 0) 시 추가 synthetic aperture 효과 (V·T 만큼)",
+        "  Note: vessel motion 기반 synthetic aperture 는 *현재 미적용* → 향후 연구 (page 25)",
         "",
         "**Ablation에서 확인된 것 — 두 메커니즘의 시너지**:",
         "  물리 법칙만 단독으로 쓰면(C) → 오히려 성능 저하 (초기 오류가 전파됨)",
@@ -1249,11 +1245,11 @@ def build_s16():
     ]
     add_bullets(s, 0.6, 2.75, 12.0, 4.6, bullets, font_size=12,
                 line_space_after=3)
-    add_page_number(s, 17)
+    add_page_number(s, 20)
     add_notes(s, (
         "이 슬라이드가 우리 연구의 핵심 메시지입니다. 두 가지 메커니즘이 결합해서 작동합니다.\n\n"
         "첫 번째 메커니즘은 *분산 관계의 정규화 효과* 입니다. 분산 관계란 파도의 주파수와 파수 사이의 물리 법칙인데요, 깊은 바다에서 짧은 파도는 느리고 긴 파도는 빠릅니다. 이 관계를 알면 파수 k 가 결정되는 순간 주파수 ω 가 자동으로 결정됩니다. 추정해야 할 변수가 5N 개에서 4N 개로 20% 줄어들고, 더 중요하게 *물리적으로 불가능한 답이 자동으로 배제* 됩니다.\n\n"
-        "두 번째 메커니즘은 *시간 정보 활용 (temporal coherence)* 입니다. 한 순간의 LiDAR 점 50 개만으로는 파도의 방향을 정확히 알기 어렵습니다. 하지만 *wave 자체가 시간에 따라 propagate* 하므로 — η(x, t) = A·cos(k·x − ω·t + φ) 의 t 진행이 매 frame 의 phase 를 변화시킵니다 — 여러 순간의 데이터를 모으면 같은 위치에서도 *다른 phase 정보* 를 얻을 수 있고요, dispersion 으로 ω 와 k 를 연결하면 wavenumber 모호성이 해소됩니다. 우리 dataset 의 vessel 은 정지 상태 (default 0 kts) 라 *wave 의 시간 진화* 가 본질이고, deployment 시 vessel motion 추가하면 synthetic aperture 효과로 분해능이 더 좋아집니다 (future work).\n\n"
+        "두 번째 메커니즘은 *시간 정보 활용 (temporal coherence)* 입니다. 한 순간의 LiDAR 점 50 개만으로는 파도의 방향을 정확히 알기 어렵습니다. 하지만 *wave 자체가 시간에 따라 propagate* 하므로 — η(x, t) = A·cos(k·x − ω·t + φ) 의 t 진행이 매 frame 의 phase 를 변화시킵니다 — 여러 순간의 데이터를 모으면 같은 위치에서도 *다른 phase 정보* 를 얻을 수 있고요, dispersion 으로 ω 와 k 를 연결하면 wavenumber 모호성이 해소됩니다. 우리 dataset 의 vessel 은 정지 상태 (default 0 kts) 이고 코드도 정지 vessel 가정으로 작성/검증되어 있어서 *wave 자체의 시간 진화* 가 multi-frame 의 본질입니다. Vessel motion 기반 synthetic aperture (SAR-style) 는 현재 미적용이고 향후 연구 슬라이드 (page 25) 에서 별도로 다룹니다.\n\n"
         "Ablation 에서 발견한 핵심은 — *두 메커니즘은 각각 단독으로는 불완전하고 함께 써야 시너지가 난다* 는 것입니다. 물리 법칙만 쓰면 초기 파수 오류가 주파수로 전파되고, multi-frame 만 쓰면 자유도가 너무 높아 불안정합니다. 둘을 결합하면 multi-frame 으로 파수를 잘 추정하고 물리 법칙으로 답을 좁혀서 가장 안정적인 추정이 됩니다."
     ))
 
@@ -1285,7 +1281,7 @@ def build_s17():
     fig_bf = os.path.join(PAPER_FIG_DIR, 'fig_beamforming_2stage.png')
     add_image_or_placeholder(s, fig_bf, 8.7, 2.0, 4.3,
                              placeholder_text='[2-stage beamforming]')
-    add_page_number(s, 18)
+    add_page_number(s, 21)
     add_notes(s, (
         "이번 슬라이드는 *왜 2 단계 설계가 자연스러운가* 를 설명드립니다.\n\n"
         "핵심 관찰부터 말씀드리면 — 파수 k 는 파도의 *공간적 패턴* 인데요, 한 순간의 LiDAR 스캔 50 개 점만으로는 이 패턴을 정확히 파악하기 어렵습니다. 50 개 점이 커버하는 영역이 5 에서 8 m 정도인데 파도 파장은 50 에서 300 m 라서 너무 짧기 때문이죠. 하지만 *wave 자체가 시간에 따라 propagate* 하므로 여러 순간의 데이터를 모으면 같은 위치에서도 *다른 phase 정보* 를 얻을 수 있고, dispersion 으로 ω 와 k 를 연결하면 파수 추정이 가능해집니다 (현재 dataset 의 vessel 은 정지 상태). 반면 진폭 A 와 위상 φ 는 한 순간의 데이터로도 충분합니다 — *크기* 와 *현재 위치* 는 한 순간만 봐도 알 수 있기 때문입니다.\n\n"
@@ -1312,19 +1308,26 @@ def build_s18():
         "  원인: 성분이 많으면 초기화 단계에서 정확한 분리가 어려워짐",
         "  개선: 격자 초기화 → 파라미터 정밀화 (hybrid init) 연구 예정",
         "",
-        "**한계 3 — 파도 파쇄(breaking)와 유속장 추정은 미지원**",
+        "**한계 3 — Vessel 정지 가정 (V=0 kts) — 장-swell direction 해상도**",
+        "  코드/dataset 모두 ship_x=ship_y=0 하드코딩 (wavesim/pipeline.py:96)",
+        "  LiDAR patch 약 5–8 m 라 |k|<0.3 rad/m (λ>20 m, 매우 긴 swell) 은 sub-wavelength",
+        "  → dispersion + 시간진화로 |k| 는 잡혀도 (kx,ky) direction 해상도 저하 가능",
+        "  개선: vessel motion 도입 → V·T 만큼 synthetic aperture (page 25 future work)",
+        "",
+        "**한계 4 — 파도 파쇄(breaking)와 유속장 추정은 미지원**",
         "  이런 현상은 VOF-EnKF, PFT-PINN 같은 비선형 방법만 가능",
         "  하지만 이들은 30분~수시간이 필요하므로 실시간 적용은 불가",
         "  우리의 응용 영역(실시간 제어)과는 본질적으로 다른 영역",
     ]
     add_bullets(s, 0.6, 1.85, 12.0, 5.5, bullets, font_size=12,
                 line_space_after=3)
-    add_page_number(s, 19)
+    add_page_number(s, 22)
     add_notes(s, (
-        "이번 슬라이드는 한계를 정직하게 공유하는 시간입니다. 연구의 신뢰도를 높이려면 잘 되는 점뿐 아니라 한계도 먼저 인정해야 합니다. 세 가지 한계를 말씀드립니다.\n\n"
+        "이번 슬라이드는 한계를 정직하게 공유하는 시간입니다. 연구의 신뢰도를 높이려면 잘 되는 점뿐 아니라 한계도 먼저 인정해야 합니다. 네 가지 한계를 말씀드립니다.\n\n"
         "첫 번째는 *선형 근사 (Linear Wave Theory)* 의 한계입니다. 우리는 파도를 사인파의 합으로 표현하는데, 실제 파도는 꼭대기가 뾰족하고 골이 넓어서 사인파와 다릅니다. Klein 2020 논문에서 wave model 들을 정량 비교했는데 HOSM > NLSE2 > NLSE > LWT 순으로 정확도가 정리됐고, 우리 LWT family 는 가장 단순합니다. ε (가파름) 이 0.07 이하일 때 신뢰할 수 있고 BF6 까지는 이 조건을 만족합니다. 향후 Stokes 2 차 보정을 추가하면 적용 범위를 더 넓힐 수 있습니다.\n\n"
         "두 번째는 *복잡한 파도에서의 역전* 입니다. 이번 비교 실험에서 발견된 한계인데요, 파도 성분이 15-30 개로 많아지면 격자 방법인 Wang2025 가 더 나아집니다. 예를 들어 BF4 N=15 case 에서는 WaveSplat 0.302, Wang2025 0.249 입니다. 이유는 — 격자 방법은 모든 성분을 한꺼번에 담을 수 있지만 WaveSplat 은 성분을 하나하나 찾아야 해서 30 개를 정확히 찾기는 어렵습니다. 대응은 hybrid init — 격자로 대략 찾고 파라미터로 정밀화하는 2 단계 초기화를 연구할 예정입니다.\n\n"
-        "세 번째는 *파도 파쇄와 유속장 추정 미지원* 입니다. 이런 현상은 비선형 시뮬레이션 (VOF-EnKF, PFT-PINN) 만 처리할 수 있는데, 이들은 30 분에서 수시간 걸려 실시간 제어에는 쓸 수 없습니다. 결국 응용 영역이 다른 거죠 — 우리는 실시간 제어, 그들은 정밀 분석입니다."
+        "세 번째는 *Vessel 정지 가정* 입니다. 우리 코드 (wavesim/pipeline.py 96 행) 는 ship_x=ship_y=0 으로 하드코딩되어 있어서 모든 frame 이 같은 LiDAR 위치에서 측정됩니다. 즉 *synthetic aperture (SA) 효과는 적용되어 있지 않습니다*. ship_speed_kts 라는 config field 는 정의되어 있지만 실제 코드에서 읽히지 않는 dead config 입니다. 이게 의미하는 건 — 우리가 의존하는 mechanism 은 *순전히 wave 자체의 시간 진화 + dispersion* 이고, 실험 결과 (nRMSE 0.211, 12 episodes) 는 이 mechanism 만으로 BF3-BF6 영역에서 작동함을 empirically 증명합니다. 다만 LiDAR patch 가 5–8 m 정도라 *매우 긴 swell* (|k| < 0.3 rad/m, λ > 20 m) 은 sub-wavelength 영역이라 direction (kx, ky) 해상도가 떨어질 수 있습니다. dispersion 으로 |k| 는 잡혀도 방향 ambiguity 가 남는 거죠. 이걸 해결하는 가장 자연스러운 방법이 vessel motion 으로 V·T 만큼 synthetic aperture 를 만드는 것이고, 이건 page 25 future work 슬라이드에서 다룹니다.\n\n"
+        "네 번째는 *파도 파쇄와 유속장 추정 미지원* 입니다. 이런 현상은 비선형 시뮬레이션 (VOF-EnKF, PFT-PINN) 만 처리할 수 있는데, 이들은 30 분에서 수시간 걸려 실시간 제어에는 쓸 수 없습니다. 결국 응용 영역이 다른 거죠 — 우리는 실시간 제어, 그들은 정밀 분석입니다."
     ))
 
 
@@ -1333,23 +1336,25 @@ def build_s19():
     s = add_blank(LIGHT_BG)
     add_section_tag(s, "Closing · 향후 연구 방향", color=ACCENT)
     add_title(s, "앞으로의 연구 방향", color=DARK)
-    add_subtitle(s, "현재 한계를 극복하기 위한 3가지 연구 방향을 계획하고 있습니다")
+    add_subtitle(s, "현재 한계를 극복하기 위한 4가지 연구 방향을 계획하고 있습니다")
     bullets = [
         "**방향 1 — 고복잡도 파도 대응 (초기화 개선)**",
         "  현재 문제: 15개 이상 성분에서 초기화 정확도 저하",
         "  계획: 격자 기반 초기 추정 → 파라미터 정밀화 (hybrid init)",
         "  또는: 신경망으로 초기 파도 성분을 추정 (learned init)",
-        "  기대: 고복잡도에서도 Wang2025 수준 이상의 정확도 달성",
         "",
         "**방향 2 — 비선형 파도 확장**",
         "  현재: 선형 파도 이론(LWT)만 사용 → BF6까지 적용 가능",
-        "  계획: Stokes 2차 보정 추가 → 더 높은 파도까지 정확",
-        "  장기: Klein 2020의 NLSE 수준 도달 목표",
+        "  계획: Stokes 2차 보정 추가 → 더 높은 파도까지 정확 (Klein 2020 NLSE 수준)",
         "",
-        "**방향 3 — 실측 데이터 검증**",
+        "**방향 3 — Vessel motion 기반 synthetic aperture (SAR-style)**",
+        "  현재: 코드/dataset 모두 vessel 정지 (V=0 kts) 가정 — SA 미적용",
+        "  계획: V > 0 시 V·T 만큼 추가 spatial coverage → 분해능 향상 검증",
+        "  Reference: Wiley 1954 SAR 원리, ship-mounted LiDAR 응용 첫 시도",
+        "",
+        "**방향 4 — 실측 데이터 검증**",
         "  현재: 합성 데이터(시뮬레이터)로만 검증",
-        "  계획: 실제 선박 LiDAR 데이터로 현장 검증",
-        "  도전 과제: ground-truth 확보 (wave buoy 또는 radar 병행 측정)",
+        "  계획: 실제 선박 LiDAR + wave buoy / X-band radar 병행 측정",
         "",
         "**최종 목표 — 선박 실시간 제어에 활용 가능한 파도 추정 시스템**",
     ]
@@ -1359,12 +1364,13 @@ def build_s19():
              "질문과 토론을 환영합니다",
              font_size=16, italic=True, color=ACCENT,
              alignment=PP_ALIGN.CENTER)
-    add_page_number(s, 20)
+    add_page_number(s, 25)
     add_notes(s, (
-        "마지막으로 향후 연구 방향 세 가지를 말씀드리겠습니다.\n\n"
+        "마지막으로 향후 연구 방향 네 가지를 말씀드리겠습니다.\n\n"
         "첫 번째는 *고복잡도 파도 대응* 입니다. 지금까지의 실험에서 파도 성분이 15 개 이상이면 정확도가 떨어지는 것을 확인했습니다. 원인은 beamforming 초기화가 많은 성분을 동시에 분리하기 어렵기 때문인데요, 두 가지 해결 방향이 있습니다. 하나는 hybrid init — 격자 방법으로 먼저 대략적인 성분을 찾고 그 결과를 파라미터 초기값으로 정밀화하는 것이고, 다른 하나는 learned init — 신경망을 활용해서 LiDAR 점으로부터 초기 성분을 바로 추정하는 것입니다.\n\n"
         "두 번째는 *비선형 파도 확장* 입니다. 현재는 사인파의 합 (Linear Wave Theory) 으로 파도를 표현하는데, 실제 파도는 비선형적이어서 꼭대기가 뾰족하고 골이 넓습니다. 높은 파도에서는 정확도가 떨어지죠. Stokes 2 차 보정을 추가하면 파도의 비대칭성을 일부 반영할 수 있고, Klein 2020 논문에 따르면 이 보정으로 적용 범위가 크게 넓어집니다.\n\n"
-        "세 번째는 *실측 데이터 검증* 입니다. 지금까지 결과는 모두 시뮬레이터에서 나온 것입니다. 실제 바다 LiDAR 데이터로 검증해야 하는데, 가장 큰 도전은 ground-truth 를 어떻게 확보하느냐 입니다. Wave buoy 나 X-band radar 로 동시 측정하는 방법을 고려하고 있습니다.\n\n"
+        "세 번째는 *Vessel motion 기반 synthetic aperture* 입니다. 현재 코드와 dataset 은 모두 vessel 정지 (V=0 kts) 가정으로 만들어져 있어서 SA 효과는 검증된 적이 없습니다. Wiley 1954 의 SAR 원리에 따르면 vessel 이 V 의 속도로 T 시간 동안 이동하면 V·T 만큼 추가 spatial coverage 가 생기고, 이것이 wave 의 시간 진화와 결합되면 wavenumber 분해능이 더 향상될 수 있습니다. Ship-mounted LiDAR 에서 SA 를 적용한 사례는 아직 없어서, 우리가 첫 시도가 될 수 있습니다.\n\n"
+        "네 번째는 *실측 데이터 검증* 입니다. 지금까지 결과는 모두 시뮬레이터에서 나온 것입니다. 실제 바다 LiDAR 데이터로 검증해야 하는데, 가장 큰 도전은 ground-truth 를 어떻게 확보하느냐 입니다. Wave buoy 나 X-band radar 로 동시 측정하는 방법을 고려하고 있습니다.\n\n"
         "최종 목표는 *선박 LiDAR 로 주변 파도를 실시간 추정하고 그 정보를 hydrofoil ride control 이나 자율운항 같은 선박 제어에 직접 활용할 수 있는 시스템* 을 만드는 것입니다.\n\n"
         "이상으로 발표를 마치겠습니다. 질문이나 피드백 환영합니다. 감사합니다."
     ))
@@ -1574,7 +1580,7 @@ def build_s_control_intro():
     ]
     add_bullets(s, 0.5, 1.85, 12.5, 5.4, bullets, font_size=11,
                 line_space_after=2)
-    add_page_number(s, 19)
+    add_page_number(s, 23)
     add_notes(s, (
         "이번 슬라이드는 WaveSplat 의 응용 사례 — hydrofoil 제어에 시험 적용해본 결과를 보여드립니다. "
         "현재는 preliminary test 단계로, 응용 가능성을 확인하는 정도입니다.\n\n"
@@ -1597,7 +1603,7 @@ def build_s_control_results():
     add_text(s, 0.5, 6.95, 12.3, 0.45,
              "📂 docs/hydrofoil_wave_animation.gif (PowerPoint 에서 GIF 자동 재생). 위: 파도 + vessel, 아래: heave accel time series — PD-only vs PD+FF 직접 비교.",
              font_size=10, italic=True, color=GRAY)
-    add_page_number(s, 20)
+    add_page_number(s, 24)
     add_notes(s, (
         "이번 슬라이드가 PD vs PD+FF 비교 결과입니다.\n\n"
         "그림은 두 부분으로 구성되어 있습니다. 위쪽은 시간에 따른 wave 와 vessel 의 위치를 보여주고요, 아래쪽은 heave acceleration 의 time series 입니다 — 파란선이 PD-only, 빨간선이 PD+FF (WaveSplat 사용) 입니다.\n\n"

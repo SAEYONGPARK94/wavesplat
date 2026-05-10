@@ -98,40 +98,41 @@ S1_C_SPOILER = [
 S2_A_CATEGORIES = [
     (0, '선행 연구 5가지 접근법'),
     (1, '① 격자 기반 최적화'),
-    (2, 'Desmars 2018 (OMAE), 2020 (OE 212), 2023 (JFM 975 A8)'),
+    (2, 'Desmars 2018, 2020, 2023'),
     (2, 'Pre-defined wavenumber grid 위 variational 최적화'),
     (2, '한계: on-grid (격자 사이 wavenumber 표현 불가), 대부분 1D'),
     (1, '② 앙상블 칼만 필터'),
-    (2, 'Wang & Pan 2021/22 (JFM 918, 949) — EnKF + HOS 비선형 wave'),
-    (2, 'Feng Wang 2025 (Coastal Eng 197) — ETKF + fuzzy R + Delaunay'),
-    (2, 'Yan 2025 (arXiv 2510.14356) — VOF-EnKF + Navier-Stokes (wave breaking)'),
+    (2, 'Wang & Pan 2021/22 — EnKF + HOS 비선형 wave'),
+    (2, 'Feng Wang 2025 — ETKF + fuzzy R + Delaunay'),
+    (2, 'Yan 2025 — VOF-EnKF + Navier-Stokes (wave breaking 처리)'),
     (2, '한계: 50–300 ensemble × 수백 ms+ → real-time 불가, 대부분 1D'),
     (1, '③ 지도학습 신경망'),
-    (2, 'Ehlers 2023 (OE 288) — Fourier Neural Operator (FNO)'),
+    (2, 'Ehlers 2023 — Fourier Neural Operator (FNO)'),
     (2, 'Inference 1.9 ms (학습 후), HOS 합성 데이터 3120 sample 학습 필요'),
     (2, '한계: distribution shift, 1D, black-box'),
     (1, '④ 물리 기반 비지도 NN'),
-    (2, 'Ehlers 2025 (arXiv 2501.08430) — PFT-PINN'),
+    (2, 'Ehlers 2025 — PFT-PINN'),
     (2, '학습 데이터 0개로 비선형 처리, hard-constraint trick'),
     (2, '한계: instance 마다 ~30 분 학습, 1D + t, buoy only'),
     (1, '⑤ 연속 파라미터 추정 (Ours) ⭐'),
     (2, 'WaveSplat — 격자 없이 N개 plane wave 파라미터 직접 추정'),
     (2, '< 100 ms inference + 2D directional + LiDAR raydrop sensor model'),
     (2, '한계: linear superposition (LWT), ε < 0.07 영역에서만 신뢰'),
+    (1, '※ 자세한 paper 정보는 Appendix A 참조'),
 ]
 
 # slide B: EnKF prior art detail
 S2_B_ENKF = [
     (0, 'EnKF 기반 wave estimation — 두 독립 group'),
     (1, 'Wang & Pan group (Yulin Pan, U.Michigan)'),
-    (2, '2021 (JFM 918, A19): EnKF + HOS 첫 결합'),
-    (2, '2022 (JFM 949, A31): IEnKF-HOS-C — current 동시 추정'),
+    (2, '2021: EnKF + HOS 첫 결합'),
+    (2, '2022: IEnKF-HOS-C — current 동시 추정'),
     (2, 'Sensor: X-band radar, Data: synthetic + 실측 shipborne radar'),
     (1, 'Feng Wang et al. (Harbin Engineering Univ., China)'),
-    (2, '2025 (Coastal Eng 197, 104690): ETKF + fuzzy R + Delaunay 보간'),
+    (2, '2025: ETKF + fuzzy R + Delaunay 보간'),
     (2, 'Ne=300, 80×60 grid, dx≈3 m'),
     (2, 'Sensor: Stereo camera (WASS), Data: 실측 (Acqua Alta 해양 플랫폼 + 자체 2024)'),
-    (2, 'GitHub 공개 (fengHEU/Wave-ETKF) — 본 baseline 의 직접 prior art'),
+    (2, '본 baseline 의 직접 prior art (GitHub 공개)'),
     (1, '본 연구의 baseline 재현 (공정 비교를 위한 통일)'),
     (2, '알고리즘만 재현 — Ne=300, 80×60 격자, fuzzy R, Delaunay 보간 동일'),
     (2, '입력 sensor 는 LiDAR sim 으로 통일 (원논문은 stereo camera)'),
@@ -144,12 +145,12 @@ S2_B_ENKF = [
 # slide C: PFT-PINN detail (Ehlers 2025) + FNO (Ehlers 2023)
 S2_C_PINN = [
     (0, '학습 기반 접근 — Ehlers group (TUHH + Imperial)'),
-    (1, 'Ehlers 2023 (Ocean Eng 288) — FNO supervised'),
+    (1, 'Ehlers 2023 — FNO supervised'),
     (2, 'Architecture: Fourier Neural Operator (Fourier 공간에서 global mapping)'),
     (2, 'Training data: 3120 sample (HOS sim + geometric radar model)'),
     (2, 'Inference 1.9 ms, U-Net 보다 wave 패턴에 적합'),
     (2, '한계: distribution shift, 1D unidirectional, black-box'),
-    (1, 'Ehlers 2025 (arXiv:2501.08430) — PFT-PINN'),
+    (1, 'Ehlers 2025 — PFT-PINN'),
     (2, 'Architecture: 두 NN 병렬 — η-net (wave 표면) + Φ-net (velocity potential)'),
     (2, 'PDE residual 강제 (Laplace + 표면 BC + 바닥 BC) via auto-diff'),
     (2, 'Hard-constraint trick: 관측치 NN architecture에 직접 hard-encode'),
@@ -548,19 +549,361 @@ S5_D_FUTURE = [
 # Each spec: ('content', section_title, body_items) or ('keep', source_idx, ...)
 # ───────────────────────────────────────────────────────────
 
+# ───────────────────────────────────────────────────────────
+# Presenter notes (발표자 프롬프트) — 각 슬라이드별 발표 스크립트
+# ───────────────────────────────────────────────────────────
+
+NOTES = {
+    'S1_A': (
+        "파 추정의 한계부터 짚어드립니다. 현재 표준은 통계적 추정 — 유의파고, 첨두주기, "
+        "JONSWAP 스펙트럼 — 으로 평균적 sea state 만 알 수 있습니다. 선박 설계나 해양 "
+        "구조물 설계에는 충분하지만, 실시간 제어처럼 *언제 어디서 큰 파도가 오는가* 를 "
+        "정확히 알아야 하는 응용에는 부족합니다.\n\n"
+        "그래서 본 연구는 phase-resolved estimation — 파도장 η(x, y, t) 를 직접 추정 — "
+        "을 목표로 합니다. 평균 정보가 아니라 특정 위치, 특정 시점에 어떤 파도가 오는지 "
+        "구체적으로 답하는 것이죠. 응용 영역은 hydrofoil ride control, 자율운항 안전 "
+        "판단, 선박 motion 예측 등 다양합니다."
+    ),
+    'S1_B': (
+        "본 task 가 어려운 이유 세 가지로 정리합니다.\n\n"
+        "첫째 *희소·비균일 측정* — LiDAR 는 frame 당 valid 점이 약 50 개 정도로 매우 "
+        "희소하고, raydrop·shadowing 으로 점이 누락되며 거리에 따라 점밀도가 달라집니다. "
+        "기존 wave gauge·dense radar 가정과 다른 setup 이라 직접 적용이 어렵습니다.\n\n"
+        "둘째 *실시간 제약* — 제어 루프 10 Hz 이므로 frame 당 100 ms 이내 처리가 필요한데, "
+        "선행 방법들은 모두 이를 초과합니다. Wang & Pan 의 EnKF + HOS 는 비선형 wave model "
+        "이라 수백 ms 이상, Feng Wang 의 ETKF + linear 도 Ne=300 으로 632 ms, PFT-PINN 은 "
+        "아예 instance 마다 30 분 학습이 필요합니다. FNO 만 1.9 ms 로 빠르지만 학습 데이터 "
+        "3120 개를 미리 만들어야 합니다.\n\n"
+        "셋째 *2D directional* — 실해 파도는 한 방향이 아니라 wind sea 와 다방향 swell 이 "
+        "섞여 있어서 wavenumber 도 vector (k_x, k_y) 추정이 필요합니다. 선행 연구 다수가 "
+        "1D 로 단순화하지만 본 연구는 2D 그대로 처리합니다."
+    ),
+    'S1_C': (
+        "배경 설명에 들어가기 전에 결과부터 보여드립니다 — 왜 이 연구를 계속할 가치가 있는가 "
+        "를 숫자로 먼저 제시.\n\n"
+        "12 episode benchmark (BF2~BF5 sweep) 평균 결과: WaveSplat 0.211 nRMSE / 13.4 ms, "
+        "Feng Wang 2025 baseline (Ne=300, fuzzy R) 0.253 / 632 ms. 정확도 16% 우위 + 속도 "
+        "47 배 빠름, CPU only 입니다. 13 ms 는 초당 약 75 frame 이라 10 Hz 제어 루프에 "
+        "충분히 적합합니다.\n\n"
+        "이게 가능한 핵심 메커니즘은 두 가지 — 분산 관계 hard constraint 가 자유도를 5N → "
+        "4N 으로 20% 줄이면서 물리적으로 불가능한 답을 자동 배제하는 정규화 역할을 하고, "
+        "multi-frame temporal coherence 가 wave 자체의 시간 진화로 phase 정보를 추출합니다. "
+        "두 메커니즘이 결합되어야 spatial Nyquist 0.4 rad/m 한계를 우회할 수 있습니다.\n\n"
+        "응용 사례 — hydrofoil ride control 시험에서 heave aRMS 0.090 → 0.047 m/s² (약 "
+        "48% 감소) 까지 확인했습니다. 이제부터 이 결과가 어떻게 나왔는지, 선행 연구와 "
+        "어떻게 다른지를 차례로 설명드립니다."
+    ),
+    'S2_A': (
+        "13 편 prior art 를 정독해 5 가지 접근법으로 분류했습니다.\n\n"
+        "① 격자 기반 최적화 (Desmars family) — pre-defined wavenumber grid 위 비용함수 "
+        "최소화. 수치해석 분야에서 framework 가 잘 정립돼 안정적이지만, 격자 사이 "
+        "wavenumber 표현 불가 (Nyquist 한계) + 대부분 1D 가정.\n\n"
+        "② 앙상블 칼만 필터 (Wang & Pan, Feng Wang, Yan VOF) — 50–300 개 wave simulation "
+        "을 동시 진행하며 측정값으로 베이지안 update. Wang-Pan 은 HOS 비선형, Feng Wang 은 "
+        "linear + fuzzy R, Yan 은 Navier-Stokes 까지 써서 wave breaking 처리. 강점은 물리 "
+        "충실도, 한계는 ensemble 비용으로 real-time 불가.\n\n"
+        "③ 지도학습 (Ehlers FNO) — 학습 후 inference 1.9 ms 매우 빠름. 단 HOS 합성 데이터 "
+        "3120 개 학습 필요 + distribution shift + 1D + black-box.\n\n"
+        "④ 비지도 PINN (Ehlers PFT-PINN) — 학습 데이터 0 개로 비선형 처리. 단 instance "
+        "마다 30 분 학습이라 real-time 불가.\n\n"
+        "⑤ 본 연구 WaveSplat — 격자 없이 N 개 plane wave 파라미터 직접 추정. 100 ms 이내 "
+        "+ 2D directional + LiDAR sensor model 까지 갖춘 첫 사례. 한계는 LWT linear "
+        "superposition 가정, ε < 0.07 영역에서만 신뢰. 자세한 paper 정보는 Appendix A 참조."
+    ),
+    'S2_B': (
+        "EnKF 기반 wave estimation 의 두 독립 그룹을 자세히 소개합니다.\n\n"
+        "*Wang & Pan group* (Yulin Pan, U.Michigan) 은 2021 년 EnKF + HOS 첫 결합으로 "
+        "phase-resolved 의 시작을 열었고, 2022 년 IEnKF-HOS-C 로 wave + current 동시 추정 "
+        "까지 확장했습니다. Sensor 는 X-band radar, 데이터는 합성 + 실측 shipborne radar.\n\n"
+        "*Feng Wang et al.* (Harbin Engineering Univ., 중국) 은 2025 년 ETKF + fuzzy R + "
+        "Delaunay 보간 — 우리 baseline 의 직접 prior art 입니다. Ne=300, 80×60 격자, "
+        "dx ≈ 3 m. Sensor 는 stereo camera (WASS), 데이터는 Acqua Alta 해양 플랫폼 + 자체 "
+        "2024 년 vessel keeping 측정. GitHub 까지 공개되어 있습니다.\n\n"
+        "본 연구는 Feng Wang 의 *알고리즘만* 재현하고 입력 sensor 와 forecast model 을 "
+        "공정 비교를 위해 통일했습니다 — 입력은 LiDAR sim, forecast 는 HOS 대신 linear "
+        "dispersion. EnKF 류의 공통 한계는 격자 해상도 (≈ 0.25 nRMSE floor) 와 ensemble "
+        "비용 (632 ms / frame, real-time 불가) 입니다."
+    ),
+    'S2_C': (
+        "학습 기반 접근의 두 paper — Ehlers group 의 supervised 와 unsupervised 진화 사례.\n\n"
+        "*Ehlers 2023* 의 FNO 는 ML supervised SOTA 입니다. Fourier Neural Operator 가 "
+        "Fourier 공간에서 global mapping 을 학습해 U-Net 같은 지역 CNN 보다 wave 패턴에 "
+        "잘 맞습니다. 학습 후 inference 1.9 ms — 가장 빠름. 단 HOS 합성 데이터 3120 개 "
+        "학습이 필요하고 distribution shift, 1D, black-box 한계가 있습니다.\n\n"
+        "*Ehlers 2025* 의 PFT-PINN 은 우리에게 *가장 위협적인* 선행 연구입니다. 이유는 "
+        "근본 철학이 같기 때문 — 학습 데이터 없이 physics constraint 를 직접 강제. 두 NN "
+        "병렬 (η-net + Φ-net) + Laplace + 표면 BC + 바닥 BC 의 PDE residual 강제 + "
+        "hard-constraint trick. MARATHON wave flume 실측 검증, SSP 0.049–0.084. 한계는 "
+        "instance 마다 30 분 학습 (RTX 3090) → real-time 불가, 1D + t, buoy only.\n\n"
+        "본 연구와의 차이는 속도 — 13 ms vs 30 분 (수만 배 차이). 응용 영역도 다름 — "
+        "WaveSplat = real-time control, PINN = design-time analysis. 다만 같은 group 이 "
+        "1-3 년 안에 2D + real-time PINN 발표 가능 — niche 좁아질 risk 도 있습니다."
+    ),
+    'S2_D': (
+        "응용 매트릭스로 본 연구의 정확한 위치를 확정합니다.\n\n"
+        "행은 6 가지 응용 요구사항, 열은 본 연구와 5 개 baseline. 핵심 관찰은 — *어떤 "
+        "방법도 모든 항목에 ✓ 를 받지는 못한다*. 각 방법마다 고유한 강점이 있고 적합한 "
+        "응용 영역이 다릅니다.\n\n"
+        "본 연구의 고유 위치는 *real-time + 2D directional + sparse LiDAR + 학습 데이터 "
+        "0개* 의 4 가지 동시 만족 — 이 조합을 만족하는 선행 연구는 없습니다.\n\n"
+        "응용 영역을 둘로 나누면, *real-time control 영역* 에는 WaveSplat, FNO 가 들어가고 "
+        "(즉시 결정), *design-time analysis 영역* 에는 VOF-EnKF, PFT-PINN 이 들어갑니다 "
+        "(시간 충분, 정확도 추구). 두 영역은 경쟁이 아닌 보완 관계.\n\n"
+        "정직한 한계도 표에 보입니다 — 파도 파쇄는 VOF-EnKF 만, 유속장은 PINN/EnKF 영역. "
+        "본 연구는 응용 영역 자체가 다릅니다."
+    ),
+    'S3_A': (
+        "WaveSim 시뮬레이터의 4 가지 구성 — 파도 모델, 스펙트럼, 분산 관계, LiDAR 센서.\n\n"
+        "*파도 모델* 은 Gerstner family. 단순 sinusoidal LWT 는 수면 변위만 표현하지만, "
+        "Gerstner 는 입자 운동까지 모사 — 입자가 원/타원 궤적으로 회전하며 표면을 형성합니다. "
+        "Q ∈ [0, 1] 가파름 척도로 Q=0 이면 LWT, Q>0 이면 약비선형 (crest sharp, trough flat). "
+        "Q 제약 ΣQ·ω·A ≤ 1 은 입자 궤적 자체 교차 방지 (Tessendorf 2001).\n\n"
+        "*스펙트럼* 은 JONSWAP — Hasselmann 1973 이 북해 측정으로 정립한 표준. 입력 H_s, T_p "
+        "에서 N 개 성분의 (A, ω) sampling. 방향 spreading 으로 (k_x, k_y) 분배. ITTC, IACS "
+        "모두 채택한 표준이라 합당성은 검증됨.\n\n"
+        "*분산 관계* 는 Airy 1845 — ω = √(g·|k|·tanh(|k|·d)). 100 년 이상 검증된 표준. "
+        "깊은 물에서 ω ≈ √(g·|k|) 로 단순화."
+    ),
+    'S3_B': (
+        "LiDAR 센서 모사 — Falcon K1 spec 기준입니다.\n\n"
+        "*Sensor 사양* — 152 채널 × 500 horizontal beam = 76,000 ray / scan, range 10–250 m, "
+        "파장 1550 nm, vessel 위 5 m mount. HFOV 120° 는 선수 ±60° 반구 (marine LiDAR 의 "
+        "일반 setup), VFOV −25° ~ 0° 로 surface 측정용 down-looking.\n\n"
+        "*Ray tracing* 은 Möller-Trumbore 1997 의 graphics 표준 알고리즘 — 각 ray 가 wave "
+        "표면 mesh 와 만나는 first-hit 점 검출.\n\n"
+        "*Raydrop 모델* 은 Fresnel + geometry 결합. 충분한 비율의 빛이 LiDAR receiver 방향 "
+        "으로 돌아와야 점이 찍힙니다. Snell 굴절 (n=1.321 water at 1550 nm) → Fresnel s/p "
+        "polarization 평균 → Lambert + Fresnel 결합으로 backscatter probability 계산.\n\n"
+        "중요한 정정 — 본 dataset 은 vessel 정지 (V=0 kts) 로 합성. 모든 frame 동일 위치 "
+        "에서 측정이고, multi-frame 효과는 wave 자체의 시간 진화에서 옵니다. Vessel motion "
+        "기반 synthetic aperture (SAR-style) 는 향후 연구."
+    ),
+    'S3_C': (
+        "합성 dataset 의 구성과 정량입니다.\n\n"
+        "BF2 (Hs=0.3, Tp=4) 부터 BF7 (Hs=5.0, Tp=12) 까지 6 개 sea state, N components 1 ~ "
+        "30 (단순 ~ 복잡), seed 0–4 재현 가능, raydrop uniform/slope 두 가지. 총 110 episode.\n\n"
+        "Per episode — 30 초 시뮬레이션, dt 0.1 s (10 Hz) 로 frame 301 개. GT η field 는 "
+        "80×60 격자, 240 m × 200 m 영역. LiDAR scan 은 76,000 ray 발사 후 raydrop 적용해 "
+        "valid 점 약 50 개 / frame. 실측해보면 patch coverage 50–150 m 정도.\n\n"
+        "전체 용량 1.2 GB. JONSWAP 으로 BF3-BF6 의 wavenumber 분포를 보면 λ_peak 이 BF3 "
+        "47 m, BF4 77 m, BF5 126 m, BF6 156 m — 대부분 patch 안에 1–3 wavelength 가 들어와 "
+        "direction 추정에 충분합니다. BF6 는 전부 Nyquist 이내."
+    ),
+    'S3_D': (
+        "WaveSplat 알고리즘의 근본 발상 — 격자 대신 파라미터로 직접 표현.\n\n"
+        "JONSWAP 분해를 보면 실해 파도는 보통 5–30 개 sine wave 의 합으로 충분히 표현됩니다. "
+        "각 성분은 5 개 파라미터 (A, k_x, k_y, ω, φ) 로 완전 결정. N=10 이면 변수 50 개 — "
+        "LiDAR 50 점으로 1:1 추정 가능합니다. 이게 격자 4,800 개와의 큰 차이.\n\n"
+        "Wave field 표현은 η = Σ A_n · cos(k_n·x − ω_n·t + φ_n). 분산 관계 hard constraint "
+        "강제 — ω(k) = √(g·|k|·tanh(|k|·d)) 로 ω 가 k 에서 자동 결정. 자유도 5N → 4N "
+        "(20% 감소) + 물리적으로 불가능한 (k, ω) 조합 자동 배제.\n\n"
+        "2 단계 흐름 — Init (1 회, 1 초 이내) 은 beamforming + coarse-to-fine + Adam 정밀화로 "
+        "(k_x, k_y) 결정. Track (매 frame, 13 ms) 은 k 고정하고 (A, φ) 만 update. 무거운 "
+        "작업은 처음 한 번만, 가벼운 작업은 매 frame 실시간."
+    ),
+    'S3_E': (
+        "Init 의 핵심 도전 — 왜 multi-frame 이 필요한가.\n\n"
+        "Spatial Nyquist 한계 (Shannon 1949) — 점 간격 Δy 면 추정 가능한 최대 wavenumber 가 "
+        "π/Δy. 우리 LiDAR 의 점 간격이 5–8 m 이라 single-frame 으로 추정 가능한 k 는 "
+        "약 0.4 rad/m 까지.\n\n"
+        "그런데 추정해야 할 wavenumber 범위를 보면 — BF3 의 짧은 wave 성분이 Nyquist 한계의 "
+        "약 3 배까지 도달. Paradox 입니다. 단 BF5-BF6 dominant wave 는 longer wave 라 대부분 "
+        "Nyquist 이내 — BF3 short tail 만 문제.\n\n"
+        "해결 — *temporal coherence*. Vessel 이 정지해 있어도 wave 자체가 시간에 따라 "
+        "propagate 하므로 multi-frame 효과가 자연스럽게 옵니다. η(x, t) = A·cos(k·x − ω·t "
+        "+ φ) 의 t 진행이 phase 변화를 만들고, 여러 frame 의 (x, y, t, η) 4D 데이터 + "
+        "dispersion 의 ω↔k 매핑이 결합되면 spatial Nyquist 우회 가능.\n\n"
+        "Init window 길이는 sea state 별 약 10–20 초 (2·T_p), 수천 개 4D 점이 누적됩니다."
+    ),
+    'S3_F': (
+        "Init 의 세 단계 — beamforming + coarse-to-fine + Adam refinement.\n\n"
+        "*Beamforming score* 는 matched filter 형태 — S(k) = | Σ η_obs · exp(−j(k·x − ω(k)·t)) |². "
+        "ω(k) 는 dispersion 으로 자동이라 2D search (k_x, k_y) 만 필요. Search range "
+        "k_x, k_y ∈ [-4, 4], 81×81 격자에서 수천 개 후보 평가.\n\n"
+        "*Coarse-to-fine schedule* — 3 stage 의 N 점진 증가 (3 → 8 → 15). Loss threshold 충족 "
+        "시 다음 stage advance. 빠르게 수렴하는 stage 는 즉시 진행해서 전체 시간 단축.\n\n"
+        "*Adam refinement* — beamforming 결과는 *초기값* 일 뿐. 그 후 multi-frame init "
+        "window 전체에 fitting 합니다. (k_x, k_y, A, φ) 동시 update, 단 (k_x, k_y) 는 lr 의 "
+        "절반 (0.005) 으로 천천히 — k 변화에 신중. Loss 는 data fit + L1 sparsity + spectral "
+        "smoothness 3 항.\n\n"
+        "주요 hyperparameter — λ_L1 = 0.001, λ_smooth = 0.0001, max_steepness = 0.15."
+    ),
+    'S3_G': (
+        "Beamforming score 식이 *왜* 이 형태인지 유도.\n\n"
+        "*핵심 직관* — matched filter 의 코러스 효과. 실제 wave 가 (k, ω) 로 진행하면 측정 "
+        "η_obs 에 phase factor exp(−j(k·x − ω·t)) 곱했을 때 모든 점에서 phase 가 정렬됩니다. "
+        "맞는 (k, ω): 합 절댓값 N 배 증가 → power N². 틀린 (k, ω): random phase 라 √N 으로만 "
+        "증가 → power N. 결과: SNR gain = N²/N = N (점 수에 비례). Init window 의 수천 4D 점 "
+        "이면 충분한 dB gain (약 10·log10(N)) 확보.\n\n"
+        "*왜 표준 형태인가* — Delay-and-sum beamforming (Kraus 1988, Van Trees 2002) 이 "
+        "신호처리의 standard, Matched filter 정리 (Turin 1960) 가 Gaussian noise 에서 SNR "
+        "최대화하는 optimal filter 임을 보장. 단순 robust + covariance 추정 불필요라 sparse "
+        "에 적합.\n\n"
+        "*Dispersion 의 차원 축소 효과* — 없으면 (k_x, k_y, ω) 3D search → 후보 수십만 개 "
+        "(계산 비현실적). 강제하면 2D search → 수천 개로 축소. 80 배 정도 절약.\n\n"
+        "다른 spectral 방법 (MUSIC, ESPRIT, Capon/MVDR) 도 있지만 covariance matrix 필요 "
+        "또는 ill-conditioning 위험으로 sparse 점에는 부적합."
+    ),
+    'S3_H': (
+        "Track 단계와 Adaptive N — 매 frame 13 ms 의 핵심.\n\n"
+        "*w_phi tracking mode* — k 는 Init 결과로 *고정* 합니다. 이게 WaveSplat 의 가장 "
+        "중요한 설계 결정. Single frame 에서 k 의 FIM eigenvalue 가 (A, φ) 보다 ~10⁻³ 작아 "
+        "k 자유 시 50 점에 over-fit 해서 비물리적 발산. ω 는 dispersion 으로 자동, (A, φ) "
+        "만 매 frame Adam update.\n\n"
+        "*Adam optimizer* update rule — m_t (1차 모멘트, β₁=0.9) + v_t (2차 모멘트, "
+        "β₂=0.999) + bias correction. tracking_lr = 0.005, tracking_steps = 10/frame 로 "
+        "약 13 ms / frame. 매 update 전 phase prediction (φ ← φ + ω·Δt) 로 kinematic "
+        "preview, tracking window 3 frames 의 buffer 로 stable gradient.\n\n"
+        "*Adaptive N* — 성분 수 동적 조정. (1) Pruning: cumulative energy 90% 유지 (작은 "
+        "성분 제거). (2) Growth: residual RMS > 0.05 m 이면 새 (k_x, k_y) 추가 (max_n=30). "
+        "(3) Safety rollback: 변경 후 RMS 가 1.3 배 초과 증가하면 즉시 이전 상태 복구. "
+        "이게 잘못된 prune/grow 의 cascade failure 방지."
+    ),
+    'S4_A': (
+        "12 episode benchmark 결과 — 이 표가 *핵심 비교* 입니다.\n\n"
+        "WaveSplat 평균 0.211 nRMSE / 13.4 ms 대비 Wang2025 (Feng Wang 충실 재현, Ne=300) "
+        "0.253 / 632 ms. 정확도 16% 우위, 속도 47 배 빠름, CPU only 입니다. 13 ms = 75 fps "
+        "이라 10 Hz 제어 충분. 632 ms 는 1.6 fps 라 real-time 부적합.\n\n"
+        "참고 데이터 — Ehlers FNO 1.9 ms 매우 빠르지만 학습 데이터 3120 개 필요. Ehlers "
+        "PFT-PINN 은 학습 데이터 0 이지만 instance 마다 30 분 학습. Yan VOF-EnKF 는 wave "
+        "breaking 처리 가능하지만 offline only.\n\n"
+        "WaveSplat 의 우위는 *모든 항목 동시 만족* — 정확도 + 속도 + 학습 데이터 0 + 2D "
+        "directional + sparse LiDAR. 다만 다음 슬라이드에서 Episode-level 패턴 보면 강점과 "
+        "한계가 보입니다."
+    ),
+    'S4_B': (
+        "Episode-level 패턴 — 강점과 한계를 정직하게 보여드립니다.\n\n"
+        "*단순 파도 (1–5 components) 에서는 WaveSplat 압도* — BF3_2comp 에서 0.052 vs "
+        "Wang2025 0.250. 거의 완벽한 추정이죠. 왜? 2 개 성분이면 파라미터 10 개, LiDAR "
+        "50 점이면 충분히 잘 맞습니다. 격자 방법은 성분이 적어도 격자 해상도 한계가 있어 "
+        "이 정확도에 못 도달.\n\n"
+        "*복잡 파도 (15–30 components) 에서는 일부 역전* — BF4_15comp 에서 WaveSplat 0.302 "
+        "vs Wang2025 0.249. 격자는 모든 성분을 한꺼번에 담을 수 있지만, WaveSplat 은 "
+        "beamforming 으로 peak 를 하나하나 분리해야 해서 30 개를 정확히 찾기 어렵기 때문.\n\n"
+        "Reversal point 는 약 N=15. 단순 파도는 파라미터 표현이 효율, 복잡 파도는 격자가 "
+        "표현력 우위.\n\n"
+        "대응은 hybrid init — 격자로 대략 분포 파악 → 파라미터로 정밀화. 두 표현의 장점 "
+        "결합. Learned init (NN) 도 대안. 향후 연구."
+    ),
+    'S4_C': (
+        "Ablation — 두 메커니즘 (multi-frame + dispersion) 의 시너지 검증.\n\n"
+        "4 가지 변형 비교 (12 episodes):\n"
+        "  A (spatial-only, single-frame, no dispersion): 0.213\n"
+        "  B (+multi-frame, no dispersion): 0.208 (개선)\n"
+        "  C (+dispersion, single-frame): 0.226 (오히려 악화!)\n"
+        "  D (= WaveSplat full): 0.211 (가장 안정)\n\n"
+        "*C 가 왜 악화되는가* — single frame 에서 k 추정이 부정확하면 dispersion 으로 "
+        "잘못된 ω 가 결정되고, 그 오류가 amplify 됩니다 (cascading failure). 즉 dispersion 은 "
+        "multi-frame 과 함께 써야 효과 발휘.\n\n"
+        "*D 의 안정성* — multi-frame 으로 k 정확 추정 → dispersion 으로 ω 자동 → 시너지. "
+        "두 메커니즘 단독은 불완전, 결합 시 안정.\n\n"
+        "핵심 메시지 — 물리 법칙 (dispersion) 은 마법이 아닌 *정규화* 역할. 데이터로 "
+        "잘 잡힌 k 위에서 작동해야 합니다."
+    ),
+    'S4_D': (
+        "본 연구의 핵심 메커니즘 — 분산 관계가 *정규화 장치* 라는 발견.\n\n"
+        "*메커니즘 1: 자유도 감소* — ω = √(g·|k|·tanh(|k|·d)) 로 ω 가 k 에서 자동 결정. "
+        "변수 5N → 4N (20% 감소) + 물리적으로 불가능한 (k, ω) 조합 자동 배제. 정규화 효과.\n\n"
+        "*메커니즘 2: Multi-frame temporal coherence* — η(x, t) 의 t 진행이 매 frame phase "
+        "변화 제공. Vessel 정지 상태에서도 wave 자체의 시간 진화로 multi-frame 효과 작동. "
+        "여러 frame 의 (x, y, t, η) 4D 정보로 wavenumber 모호성 해소. Vessel motion 기반 "
+        "synthetic aperture (SAR-style) 는 *향후 연구* — 현재는 wave 시간 진화만 활용.\n\n"
+        "*두 메커니즘의 시너지* — Ablation 결과: dispersion 단독 0.226 (악화), multi-frame "
+        "단독 0.208 (개선되나 불안정), 결합 D=WaveSplat 0.211 (가장 안정).\n\n"
+        "비유로 정리하면 — Dispersion = 눈가리개 (물리 법칙으로 답 좁히기), Multi-frame = "
+        "여러 사진 (시점 차이로 모호성 해소). 둘 다 있어야 sparse LiDAR 로 phase-resolved "
+        "추정 가능."
+    ),
+    'S4_E': (
+        "왜 2 단계 (Init/Track) 설계가 자연스러운가 — Identifiability 분석.\n\n"
+        "*핵심 관찰* — 변수마다 필요한 정보가 다릅니다. 파수 k 는 *공간적 패턴* 이라 한 "
+        "순간의 LiDAR 50 점만으로는 정확히 파악 어려움 — 여러 frame 의 시간 정보 필요. "
+        "반면 진폭 A 와 위상 φ 는 *크기와 현재 위치* 라 한 순간 데이터로도 충분.\n\n"
+        "*Identifiability 증거* — single frame 에서 k 의 FIM eigenvalue 가 (A, φ) 보다 "
+        "약 10⁻³ 작음. 즉 k 변화에 데이터가 거의 반응 안 함. k 자유 시 50 점에 over-fit "
+        "해서 비물리적 발산. k 고정하면 자유도 5N → 2N 으로 안정적 추정.\n\n"
+        "*전체 흐름* — (1) Multi-frame temporal coherence 로 파수 추정 (Init), (2) "
+        "Dispersion 으로 ω↔k 결합 → 자유도 감소 + 물리 제약, (3) 매 frame Adam 으로 "
+        "real-time (A, φ) 추적, (4) Adaptive N 으로 성분 수 자동 조정.\n\n"
+        "이 4 단계가 합쳐져 13 ms / frame 의 real-time + 정확도 0.211 을 동시 달성합니다."
+    ),
+    'S5_A': (
+        "한계를 정직하게 공유합니다 — 신뢰도를 높이려면 잘 되는 점뿐 아니라 한계도 먼저 "
+        "인정해야 합니다.\n\n"
+        "*한계 1 — 선형 근사 (LWT)* — 파도를 사인파의 합으로 표현. 실제 파도는 비선형 "
+        "(꼭대기 뾰족, 골 넓음). Klein 2020 의 wave model 비교: HOSM > NLSE2 > NLSE > LWT. "
+        "ε < 0.07 신뢰 영역, BF6 까지 적용 가능. 향후 Stokes 2차 보정으로 확장 가능.\n\n"
+        "*한계 2 — 복잡 파도 정확도 저하* — 15 components 이상에서 격자 방법이 일부 우세. "
+        "BF4_15comp 0.302 vs 0.249 (역전). 원인은 beamforming 이 다수 peak 분리 어려움. "
+        "Hybrid init (격자 + 파라미터 정밀화) 로 향후 해결 예정.\n\n"
+        "*한계 3 — Vessel 정지 가정 (V=0 kts)* — 본 dataset 은 vessel 정지로 합성. SA "
+        "(synthetic aperture) 효과 미적용. 영향: 매우 긴 swell (λ > 250 m) direction 해상도 "
+        "저하 가능. 향후 vessel motion 도입 시 V·T 만큼 추가 spatial coverage.\n\n"
+        "*한계 4 — Wave breaking + 유속장 미지원* — VOF-EnKF, PFT-PINN 영역 (offline). 본 "
+        "연구는 real-time 제어 영역 — 응용 자체가 다름. 협업 연구로 보완 가능."
+    ),
+    'S5_B': (
+        "WaveSplat 의 응용 사례 — hydrofoil ride control 에 시험 적용.\n\n"
+        "*왜 hydrofoil 인가* — 수중 날개로 lift 생성해 vessel 부양하는 구조인데, 파도 "
+        "만나면 lift 변동으로 heave/pitch 흔들림 → 승차감 저하. 앞쪽 파도 preview 가 있으면 "
+        "fin angle 미리 조절해서 disturbance 상쇄 가능. WaveSplat 의 real-time phase-resolved "
+        "추정이 정확히 이 preview 를 제공.\n\n"
+        "*제어 구조 비교* — 기존 PD: heave error 만 보고 fin 조절 (feedback only). 제안 "
+        "PD + Feed-Forward: WaveSplat 추정 → 미래 wave disturbance 예측 → fin angle 보상 "
+        "추가. 최종 fin angle = PD(heave error) + FF(predicted wave).\n\n"
+        "*Test setup* — WaveSim 합성 파도 + hydrofoil dynamics simulator. Preview window "
+        "0.3 s lookahead (V=11.3 m/s 에서 약 3 m 앞). 같은 파도 시퀀스에 두 controller 비교.\n\n"
+        "*현재 단계* — preliminary test, 응용 가능성 확인 정도. 체계적 controller tuning + "
+        "robustness 평가는 후속 연구."
+    ),
+    'S5_C': (
+        "Hydrofoil 결과 — 위 영상이 PD vs PD+FF 의 직접 비교입니다.\n\n"
+        "위쪽은 시간에 따른 wave + vessel 위치, 아래쪽은 heave acceleration time series. "
+        "파란선 PD-only, 빨간선 PD+FF (WaveSplat 사용). PD+FF 가 명확히 진동이 작습니다.\n\n"
+        "정량 — aRMS PD 0.090 m/s² → PD+FF 0.047 m/s² (약 48% 감소). ISO 2631 ride comfort "
+        "기준에서 의미 있는 수준 — 승차감 향상으로 직결됩니다.\n\n"
+        "이건 *시험 적용* 결과 — WaveSplat 정보가 제어에 실제로 도움이 된다는 *proof-of-"
+        "concept* 입니다. 실제 deployment 에는 controller robustness, sensor noise, vessel "
+        "dynamics uncertainty 등 추가 고려가 필요. 후속 연구로 이어가겠습니다.\n\n"
+        "발표 tip — 잠시 영상 정지하고 청자가 두 line 의 차이를 직접 보게 하면 효과적. "
+        "*눈으로 봐도 차이* 가 가장 직관적인 evidence."
+    ),
+    'S5_D': (
+        "마지막 — 향후 연구 4 가지 방향.\n\n"
+        "*방향 1: 고복잡도 파도 대응 (초기화 개선)* — 현재 15 component 이상에서 정확도 "
+        "저하. 계획: hybrid init (격자 → 파라미터 정밀화) 또는 learned init (NN 으로 초기 "
+        "성분 추정). 기대: Wang2025 수준 이상.\n\n"
+        "*방향 2: 비선형 파도 확장* — 현재 LWT (BF6 까지 신뢰). 계획: Stokes 2 차 보정 "
+        "추가. 장기: NLSE 수준 도달.\n\n"
+        "*방향 3: Vessel motion 기반 synthetic aperture (SAR-style)* — 현재 코드/dataset "
+        "모두 vessel 정지 가정. 계획: V > 0 시 V·T 만큼 추가 spatial coverage 검증. "
+        "Wiley 1954 의 SAR 원리, ship-mounted LiDAR 첫 시도가 될 가능성.\n\n"
+        "*방향 4: 실측 데이터 검증* — 현재 합성 dataset 만 검증. 계획: 실제 선박 LiDAR + "
+        "wave buoy 또는 X-band radar 병행 측정으로 ground-truth 확보.\n\n"
+        "최종 목표 — 선박 LiDAR 로 주변 파도를 real-time 추정하고 hydrofoil ride control, "
+        "자율운항 같은 선박 제어에 직접 활용 가능한 시스템.\n\n"
+        "이상으로 발표 마치겠습니다. 질문 환영합니다."
+    ),
+}
+
+
 CONTENT_SLIDES = [
-    # Each spec: dict with title, body, optional fig (path relative to ROOT)
+    # Each spec: dict with title, body, optional fig (path relative to ROOT), notes
     # §1 Introduction & Motivation (3 content slides)
-    {'title': '1. Introduction & Motivation', 'body': S1_A_USER, 'fig': None},
+    {'title': '1. Introduction & Motivation', 'body': S1_A_USER, 'fig': None,
+     'notes': NOTES['S1_A']},
     {'title': '1. Introduction & Motivation', 'body': S1_B_CHALLENGES,
-     'fig': 'docs/sea_trial_lidar.png'},
+     'fig': 'docs/sea_trial_lidar.png', 'notes': NOTES['S1_B']},
     {'title': '1. Introduction & Motivation', 'body': S1_C_SPOILER,
-     'fig': 'docs/fig_3way_bar.png'},
+     'fig': 'docs/fig_3way_bar.png', 'notes': NOTES['S1_C']},
 
     # §2 Related work (4 slides — text-heavy, no figures)
-    {'title': '2. Related work', 'body': S2_A_CATEGORIES, 'fig': None},
-    {'title': '2. Related work', 'body': S2_B_ENKF, 'fig': None},
-    {'title': '2. Related work', 'body': S2_C_PINN, 'fig': None},
+    {'title': '2. Related work', 'body': S2_A_CATEGORIES, 'fig': None,
+     'notes': NOTES['S2_A']},
+    {'title': '2. Related work', 'body': S2_B_ENKF, 'fig': None,
+     'notes': NOTES['S2_B']},
+    {'title': '2. Related work', 'body': S2_C_PINN, 'fig': None,
+     'notes': NOTES['S2_C']},
     {'title': '2. Related work',
      'body': [
          (0, '응용 매트릭스 — 본 연구의 위치'),
@@ -579,22 +922,26 @@ CONTENT_SLIDES = [
          ],
          'top': 2.5, 'left': 0.35, 'width': 9.3, 'height': 3.0,
          'highlight_col': 1, 'font_size': 9, 'body_height': 1.4,
-     }},
+     },
+     'notes': NOTES['S2_D']},
 
     # §3 Method (8 slides)
     {'title': '3. Method', 'body': S3_A_WAVESIM,
-     'fig': 'docs/wavesim_BF4_5c_wave_lidar.png'},
+     'fig': 'docs/wavesim_BF4_5c_wave_lidar.png', 'notes': NOTES['S3_A']},
     {'title': '3. Method', 'body': S3_B_LIDAR,
-     'fig': 'docs/wavesim_BF3_1c_wave_lidar.png'},
+     'fig': 'docs/wavesim_BF3_1c_wave_lidar.png', 'notes': NOTES['S3_B']},
     {'title': '3. Method', 'body': S3_C_DATASET,
-     'fig': 'docs/fig_demo_simple_2d3d.png'},
+     'fig': 'docs/fig_demo_simple_2d3d.png', 'notes': NOTES['S3_C']},
     {'title': '3. Method', 'body': S3_D_OVERVIEW,
-     'fig': 'paper/figures/fig_pipeline.png'},
-    {'title': '3. Method', 'body': S3_E_INIT1, 'fig': None},
+     'fig': 'paper/figures/fig_pipeline.png', 'notes': NOTES['S3_D']},
+    {'title': '3. Method', 'body': S3_E_INIT1, 'fig': None,
+     'notes': NOTES['S3_E']},
     {'title': '3. Method', 'body': S3_F_INIT2,
-     'fig': 'paper/figures/fig_beamforming_2stage.png'},
-    {'title': '3. Method', 'body': S3_G_INIT3, 'fig': None},
-    {'title': '3. Method', 'body': S3_H_TRACK, 'fig': None},
+     'fig': 'paper/figures/fig_beamforming_2stage.png', 'notes': NOTES['S3_F']},
+    {'title': '3. Method', 'body': S3_G_INIT3, 'fig': None,
+     'notes': NOTES['S3_G']},
+    {'title': '3. Method', 'body': S3_H_TRACK, 'fig': None,
+     'notes': NOTES['S3_H']},
 
     # §4 Experiments & Mechanism (5 slides)
     {'title': '4. Experiments & Mechanism',
@@ -615,24 +962,28 @@ CONTENT_SLIDES = [
          ],
          'top': 3.2, 'left': 0.35, 'width': 9.3, 'height': 3.5,
          'highlight_col': 0, 'font_size': 10, 'body_height': 2.0,
-     }},
+     },
+     'notes': NOTES['S4_A']},
     {'title': '4. Experiments & Mechanism', 'body': S4_B_SCATTER,
-     'fig': 'docs/fig_complexity_scatter.png'},
+     'fig': 'docs/fig_complexity_scatter.png', 'notes': NOTES['S4_B']},
     {'title': '4. Experiments & Mechanism', 'body': S4_C_ABLATION,
-     'fig': 'docs/fig_ablation_bar.png'},
+     'fig': 'docs/fig_ablation_bar.png', 'notes': NOTES['S4_C']},
     {'title': '4. Experiments & Mechanism', 'body': S4_D_MECHANISM,
-     'fig': 'docs/3dgs_analogy.png'},
+     'fig': 'docs/3dgs_analogy.png', 'notes': NOTES['S4_D']},
     {'title': '4. Experiments & Mechanism', 'body': S4_E_STAGES,
-     'fig': 'paper/figures/fig_beamforming_2stage.png'},
+     'fig': 'paper/figures/fig_beamforming_2stage.png', 'notes': NOTES['S4_E']},
 
     # §5 Limitations & Research plan (4 slides)
-    {'title': '5. Limitations & Research plan', 'body': S5_A_LIMITS, 'fig': None},
+    {'title': '5. Limitations & Research plan', 'body': S5_A_LIMITS, 'fig': None,
+     'notes': NOTES['S5_A']},
     {'title': '5. Limitations & Research plan', 'body': S5_B_HYDROFOIL,
-     'fig': 'docs/hydrofoil_controller_flow.png'},
+     'fig': 'docs/hydrofoil_controller_flow.png', 'notes': NOTES['S5_B']},
     {'title': '5. Limitations & Research plan', 'body': S5_C_HYDROFOIL_RESULTS,
      'fig': 'docs/hydrofoil_wave_animation.gif',
-     'fig_layout': 'top_full'},   # animation 풀-슬라이드 + 짧은 caption 아래
-    {'title': '5. Limitations & Research plan', 'body': S5_D_FUTURE, 'fig': None},
+     'fig_layout': 'top_full',   # animation 풀-슬라이드 + 짧은 caption 아래
+     'notes': NOTES['S5_C']},
+    {'title': '5. Limitations & Research plan', 'body': S5_D_FUTURE, 'fig': None,
+     'notes': NOTES['S5_D']},
 ]
 
 
@@ -827,8 +1178,18 @@ def add_inline_table(slide, headers, rows, left_in, top_in, width_in, height_in,
     return table
 
 
+def add_presenter_notes(slide, text):
+    """Add presenter notes (발표자 노트 / 프롬프트) to a slide."""
+    if not text:
+        return
+    notes_slide = slide.notes_slide
+    tf = notes_slide.notes_text_frame
+    tf.text = text
+
+
 def fill_content_slide(slide, section_title, body_items, fig=None, table=None,
-                       fig_layout='split', date_text='May 13, 2026'):
+                       fig_layout='split', notes=None,
+                       date_text='May 13, 2026'):
     """spec: section_title, body bullets, optional fig (path) or table (dict).
 
     fig_layout:
@@ -896,6 +1257,9 @@ def fill_content_slide(slide, section_title, body_items, fig=None, table=None,
             for r in p.runs:
                 if r.text and ('April' in r.text or '2023' in r.text or '2026' in r.text):
                     r.text = date_text
+
+    if notes:
+        add_presenter_notes(slide, notes)
 
 
 def fill_divider_slide(slide, section_num, date_text='May 13, 2026'):
@@ -977,10 +1341,11 @@ def main():
         fig_path = spec.get('fig')
         table_spec = spec.get('table')
         fig_layout = spec.get('fig_layout', 'split')
+        notes = spec.get('notes')
         new_slide = prs.slides.add_slide(content_layout)
         fill_content_slide(new_slide, section_title, body_items,
                            fig=fig_path, table=table_spec,
-                           fig_layout=fig_layout)
+                           fig_layout=fig_layout, notes=notes)
         marker = ''
         if fig_path:
             marker = f'  📷 {os.path.basename(fig_path)}'

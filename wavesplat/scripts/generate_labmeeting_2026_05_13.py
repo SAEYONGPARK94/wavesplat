@@ -485,12 +485,14 @@ def build_s6():
         key_msg=[
             "**두 독립 그룹의 EnKF 기반 접근** (서로 별개 group):",
             "  Wang & Pan (Yulin Pan, U.Michigan) — JFM 2021/22, EnKF + HOS 결합",
+            "    Sensor: **X-band radar** | Data: 합성 (HOS) + **실측 shipborne radar** (2022)",
             "  Feng Wang et al. (Harbin Engineering Univ., China) — Coastal Eng 2025, ETKF + fuzzy R",
+            "    Sensor: **Stereo camera (WASS)** | Data: **실측** (Acqua Alta 해양 플랫폼 + 자체 2024)",
             "**EnKF (Ensemble Kalman Filter)**: 50–300 개 wave simulation 을 동시에 진행 후 measurement 로 update",
             "**HOS (High-Order Spectral method)**: 비선형 wave model (LWT 확장, Dommermuth-Yue 1987 / West 1987)",
             "  Wave-wave interaction 까지 spectral 로 계산. ε ~ 0.1 까지 (LWT 는 ε < 0.07)",
             "**Feng Wang et al. 2025 (Coastal Eng 197, 104690)**: Ne=300, fuzzy R, Delaunay 보간",
-            "  → 우리 baseline 의 직접 prior art (etkf_wang2025.py 가 이 논문 재현)",
+            "  → 우리 baseline 의 직접 prior art (etkf_wang2025.py 가 알고리즘만 재현, 입력은 LiDAR sim)",
         ],
         limits=[
             "**격자 해상도 한계** — nRMSE 가 ~0.25 아래로 내려가지 않음 (격자 밖 wavenumber 표현 불가)",
@@ -558,7 +560,8 @@ def build_s8():
             "**Physics-Informed NN + Potential Flow Theory** — 두 NN 병렬 (η-net + Φ-net)",
             "  η = wave 표면, Φ = velocity potential (속도 함수). 둘 다 NN으로 표현",
             "**Hard-constraint trick**: 관측치를 NN architecture에 직접 hard-encode (data loss 회피)",
-            "**Wave flume 검증** (MARATHON, T_p=1.2 s): SSP=0.049 (assimilation), 0.084 (prediction)",
+            "Sensor: **Wave gauge** (point sensor) | Data: **실측 (실험실 wave flume)** + analytical PFT 비교",
+            "**Wave flume 검증** (MARATHON laboratory, T_p=1.2 s): SSP=0.049 (assimilation), 0.084 (prediction)",
         ],
         limits=[
             "**~30 분 학습 / instance** (RTX 3090, 40K+ epochs) — instance마다 처음부터",
@@ -1406,63 +1409,63 @@ def build_backups():
     add_subtitle(s,
                  "Detail 은 본문 슬라이드 (S5-S9) + docs/strategic_repositioning.md 참조",
                  size=11)
-    headers = ["#", "Paper (Year)", "핵심 방법", "강점", "한계 / 우리 차별"]
+    headers = ["#", "Paper (Year)", "Sensor / Data", "핵심 방법", "한계 / 우리 차별"]
     rows = [
         ["1", "Desmars 2018 (OMAE)",
+         "LIDAR (proposed) /\n**Sim only** (HOS synthetic)",
          "LIDAR + ICWM, predefined k-grid, variational",
-         "LIDAR 응용 첫 시도 (concept proposal)",
-         "Simulator only, 1D, on-grid"],
+         "LIDAR 응용 첫 시도 (concept proposal). 1D, on-grid"],
         ["2", "Desmars 2020 (Ocean Eng)",
+         "Wave gauge array /\n**실측** (wave tank lab)",
          "Wave gauge array + dispersion correction",
-         "첫 실측 (wave tank) 검증",
          "Wave gauge ≠ LiDAR, 1D"],
         ["3", "Desmars 2023 (JFM 975)",
+         "X-band radar (modeled) /\n**Sim only** (3 types) +\nwave tank validation",
          "HOS-OCM, vessel-mounted optical, 3-stage",
-         "**가장 가까운 prior art** (vessel + phase-resolved)",
-         "1D, on-grid, sensor model 미명시"],
+         "1D, on-grid, sensor model 미명시. **가장 가까운 prior art**"],
         ["4", "Wang & Pan 2021 (JFM 918)",
+         "X-band radar /\nSim (HOS) + **실측 radar**",
          "EnKF + HOS 첫 결합, 1D",
-         "EnKF-HOS family 의 시작",
          "Dense obs 가정, 1D, ensemble cost"],
         ["5", "Wang & Pan 2022 (JFM 949)",
+         "Shipborne X-band radar /\n**실측** + sim",
          "EnKF-HOS-C (current 동시 추정)",
-         "Current estimation 확장",
          "여전히 1D, dense obs"],
         ["6", "Feng Wang et al. 2025\n(Coastal Eng 197, 104690)",
-         "ETKF + Ne=300 + fuzzy R + Delaunay 보간",
-         "**우리 baseline 의 직접 prior art** (Harbin group)",
-         "격자 한계, 632 ms (실시간 불가)"],
+         "**Stereo camera (WASS)** /\n**실측** (Acqua Alta 플랫폼\n+ 자체 2024 vessel)",
+         "ETKF + Ne=300 + fuzzy R + Delaunay",
+         "격자 한계, 632 ms. **우리 baseline 직접 prior art**"],
         ["7", "Hunt 2007 (Physica D 230)",
+         "(기상학) /\nSim (atmospheric)",
          "LETKF (Local Ensemble Transform KF)",
-         "모든 EnKF wave 의 이론 기반",
          "Wave-specific 아님 (기상학 출신)"],
         ["8", "Klein 2020 (Fluids 5(1))",
+         "(model 비교) /\n**Sim + 실험 (semi-exp)**",
          "Wave model 정량 비교 (LWT/NLSE/NLSE2/HOSM)",
-         "ε < 0.07 operational range 정당화 출처",
          "Comparison study, 새 알고리즘 아님"],
         ["9", "Ehlers et al. 2023\n(Ocean Eng 288, 116059)",
+         "X-band radar /\n**Sim only** (HOS + geom radar)",
          "Fourier Neural Operator (FNO) supervised",
-         "1.9 ms inference, fastest ML",
          "3120 sample 학습 필요, 1D, distribution shift"],
-        ["10", "Ehlers et al. 2025\n(arXiv:2501.08430,\n14 Jan 2025)",
+        ["10", "Ehlers et al. 2025\n(arXiv:2501.08430)",
+         "Wave gauge (point) /\n**실측** (실험실 wave flume\nMARATHON) + analytical",
          "Physics-informed NN + PFT loss, unsupervised",
-         "비선형 처리 + training data 0개",
          "30 분/instance, 1D + t, buoy only"],
         ["11", "Yan et al. 2025\n(arXiv 2510.14356)",
+         "(synthetic) /\n**Sim only** (VOF NWT)",
          "Navier-Stokes + EnKF + POD",
-         "Plunging breaker 처리 (가장 정확)",
          "Offline only, 1D xz-plane, 50 OpenFOAM × 수일"],
-        ["12", "Tang-Bhaskar-Shah-Recht 2013 (IEEE TIT 59)",
+        ["12", "Tang-Bhaskar-Shah-Recht 2013\n(IEEE TIT 59)",
+         "(이론) /\n— (theoretical only)",
          "Atomic norm off-grid CS",
-         "Theoretical recovery bound (off-grid CS 영감)",
          "1D 신호, SDP 비용"],
         ["13", "Möller-Trumbore 1997 (JGT)",
+         "(graphics) /\n— (algorithm only)",
          "Ray-triangle intersection (graphics)",
-         "WaveSim 의 ray tracing 표준 알고리즘",
          "비물리적 (geometry only)"],
     ]
     add_table_simple(s, 0.2, 1.85, 12.95, 5.0, headers, rows,
-                     header_color=ACCENT, font_size=8)
+                     header_color=ACCENT, font_size=7)
     add_text(s, 0.5, 7.0, 12.3, 0.4,
              "총 13 편 정독. Möller-Trumbore 와 Hunt 2007 은 algorithmic foundation, 나머지 11 편은 wave estimation prior art.",
              font_size=10, italic=True, color=GRAY)
@@ -1470,6 +1473,12 @@ def build_backups():
              "A", font_size=10, color=GRAY, alignment=PP_ALIGN.RIGHT)
     add_notes(s, (
         "Appendix A 는 정독한 13 편의 선행 연구를 한 표로 정리한 것입니다. Q&A 시 청자가 특정 논문을 물어보면 이 표를 참조하시면 됩니다.\n\n"
+        "*Sensor / Data 컬럼* 이 새로 추가되었습니다 — 각 paper 가 어떤 센서를 가정하고 (실측인지 sim only 인지) 어떤 데이터로 검증했는지 명시합니다. 핵심 관찰:\n"
+        "  - **Sim only 4편**: Desmars 2018, Desmars 2023 (3 type synthetic), Ehlers 2023 (FNO, HOS+geom radar synth), Yan 2025 (VOF NWT 합성)\n"
+        "  - **실측 (실험실 wave flume/tank) 2편**: Desmars 2020 (wave gauge array), Ehlers 2025 (MARATHON laboratory flume)\n"
+        "  - **실측 (필드/플랫폼) 2편**: Wang & Pan 2022 (shipborne radar), Feng Wang 2025 (Acqua Alta 해양 플랫폼 stereo camera + 자체 2024 vessel)\n"
+        "  - **혼합 (sim + 실측)**: Wang & Pan 2021 (HOS sim + 실측 radar), Klein 2020 (sim + semi-exp)\n"
+        "  - 우리 *WaveSplat 도 현재 Sim only* (110 episode 합성 dataset). 실측 검증은 future work (page 25 방향 4)\n\n"
         "Wave estimation 선행 연구 11 편을 그룹으로 정리해드리면 — Desmars family (2018, 2020, 2023) 는 LIDAR 와 optical 센서 + variational + HOS-OCM 의 발전 흐름이고, Wang-Pan / Wang family (2021, 2022, 2025) 는 EnKF-HOS 의 발전입니다 (Wang 2025 가 우리 baseline). Klein 2020 은 wave model 정량 비교로 우리 LWT operational range 를 정당화해주고, Ehlers 2023 과 2025 는 같은 그룹의 ML supervised (FNO) 와 unsupervised (PFT-PINN) 진화 사례입니다. Yan 2025 는 가장 정확한 wave breaking 처리 (offline) 입니다.\n\n"
         "Algorithmic foundation 으로 두 편이 더 있습니다 — Tang-Bhaskar-Shah-Recht 2013 (IEEE TIT 59) 의 atomic norm off-grid CS 이론은 우리 parametric 접근의 영감이고, Möller-Trumbore 1997 의 ray-triangle intersection 은 WaveSim ray tracing 의 표준입니다. Hunt 2007 (Physica D 230) LETKF 도 EnKF 변형들의 출발점입니다.\n\n"
         "각 paper 의 detail 은 본문 슬라이드 (S5-S9, top 5) 또는 docs/strategic_repositioning.md (§17-§31) 를 참조하시면 됩니다."

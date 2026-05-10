@@ -25,6 +25,8 @@ from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
+from pptx.oxml.ns import qn
+from lxml import etree
 
 # ── paths ──
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -44,12 +46,40 @@ GREEN = RGBColor(0x2C, 0xA0, 0x2C)
 RED = RGBColor(0xCC, 0x33, 0x33)
 GOLD = RGBColor(0xD4, 0xA0, 0x17)
 
-# ── presentation ──
+# ── presentation (4:3 aspect, 10 × 7.5 in) ──
 prs = Presentation()
-prs.slide_width = Inches(13.333)
+prs.slide_width = Inches(10)
 prs.slide_height = Inches(7.5)
 
 TOTAL_MAIN = 25
+
+# ── fonts ──
+LATIN_FONT = 'Times New Roman'   # English / digits / symbols
+EA_FONT = '맑은 고딕'             # Korean (Malgun Gothic body)
+
+# Original slide design uses 13.333-wide coordinates; 4:3 is 10-wide → scale by 0.75
+WIDTH_SCALE = 10.0 / 13.333
+
+
+def _xw(val):
+    """Scale x-coordinate or width to fit 4:3 (10-wide) slide layout."""
+    return val * WIDTH_SCALE
+
+
+def _set_dual_font(font, latin=LATIN_FONT, ea=EA_FONT):
+    """Set both Latin (English) and East Asian (Korean) typeface on python-pptx Font."""
+    font.name = latin  # writes <a:latin typeface=...>
+    try:
+        rpr = font._rPr
+        if rpr is None:
+            return
+        ea_tag = qn('a:ea')
+        ea_elem = rpr.find(ea_tag)
+        if ea_elem is None:
+            ea_elem = etree.SubElement(rpr, ea_tag)
+        ea_elem.set('typeface', ea)
+    except Exception:
+        pass
 
 
 # ─────────────────────────────────────────
@@ -67,9 +97,9 @@ def add_blank(bg_color=WHITE):
 
 def add_text(slide, left, top, width, height, text, font_size=18,
              bold=False, color=DARK, alignment=PP_ALIGN.LEFT,
-             italic=False, font_name='Calibri'):
-    box = slide.shapes.add_textbox(Inches(left), Inches(top),
-                                   Inches(width), Inches(height))
+             italic=False, font_name=None):
+    box = slide.shapes.add_textbox(Inches(_xw(left)), Inches(top),
+                                   Inches(_xw(width)), Inches(height))
     tf = box.text_frame
     tf.word_wrap = True
     p = tf.paragraphs[0]
@@ -78,8 +108,15 @@ def add_text(slide, left, top, width, height, text, font_size=18,
     p.font.bold = bold
     p.font.italic = italic
     p.font.color.rgb = color
-    p.font.name = font_name
+    _set_dual_font(p.font, latin=font_name or LATIN_FONT)
     p.alignment = alignment
+    # Also apply to runs (created by p.text=...) so font is on <a:rPr> directly
+    for r in p.runs:
+        r.font.size = Pt(font_size)
+        r.font.bold = bold
+        r.font.italic = italic
+        r.font.color.rgb = color
+        _set_dual_font(r.font, latin=font_name or LATIN_FONT)
     return tf
 
 
@@ -87,8 +124,8 @@ def add_bullets(slide, left, top, width, height, items, font_size=14,
                 color=DARK, bullet_char='•', line_space_after=4,
                 indent_str='  '):
     """items: list of strings. '**...**' = bold. '  ' prefix = indented sub-bullet."""
-    box = slide.shapes.add_textbox(Inches(left), Inches(top),
-                                   Inches(width), Inches(height))
+    box = slide.shapes.add_textbox(Inches(_xw(left)), Inches(top),
+                                   Inches(_xw(width)), Inches(height))
     tf = box.text_frame
     tf.word_wrap = True
     for i, item in enumerate(items):
@@ -107,6 +144,7 @@ def add_bullets(slide, left, top, width, height, items, font_size=14,
             run = p.add_run()
             run.text = ' '
             run.font.size = Pt(font_size // 2)
+            _set_dual_font(run.font)
             continue
         else:
             prefix = f"{bullet_char} "
@@ -119,7 +157,7 @@ def add_bullets(slide, left, top, width, height, items, font_size=14,
             run0.text = prefix
             run0.font.size = Pt(font_size)
             run0.font.color.rgb = color
-            run0.font.name = 'Calibri'
+            _set_dual_font(run0.font)
             for j, part in enumerate(parts):
                 if not part:
                     continue
@@ -127,14 +165,14 @@ def add_bullets(slide, left, top, width, height, items, font_size=14,
                 run.text = part
                 run.font.size = Pt(font_size)
                 run.font.color.rgb = color
-                run.font.name = 'Calibri'
                 run.font.bold = (j % 2 == 1)
+                _set_dual_font(run.font)
         else:
             run = p.add_run()
             run.text = prefix + item_clean
             run.font.size = Pt(font_size)
             run.font.color.rgb = color
-            run.font.name = 'Calibri'
+            _set_dual_font(run.font)
     return tf
 
 
@@ -163,17 +201,17 @@ def add_image_or_placeholder(slide, fig_path, left, top, width, height=None,
                              placeholder_text='[FIGURE]'):
     if fig_path and os.path.exists(fig_path):
         if height is None:
-            slide.shapes.add_picture(fig_path, Inches(left), Inches(top),
-                                     width=Inches(width))
+            slide.shapes.add_picture(fig_path, Inches(_xw(left)), Inches(top),
+                                     width=Inches(_xw(width)))
         else:
-            slide.shapes.add_picture(fig_path, Inches(left), Inches(top),
-                                     width=Inches(width), height=Inches(height))
+            slide.shapes.add_picture(fig_path, Inches(_xw(left)), Inches(top),
+                                     width=Inches(_xw(width)), height=Inches(height))
         return True
     else:
-        h = height if height else width * 0.6
+        h = height if height else _xw(width) * 0.6
         shape = slide.shapes.add_shape(
             MSO_SHAPE.RECTANGLE,
-            Inches(left), Inches(top), Inches(width), Inches(h))
+            Inches(_xw(left)), Inches(top), Inches(_xw(width)), Inches(h))
         shape.fill.solid()
         shape.fill.fore_color.rgb = LIGHT_BG
         shape.line.color.rgb = GRAY
@@ -186,6 +224,7 @@ def add_image_or_placeholder(slide, fig_path, left, top, width, height=None,
         run.font.size = Pt(11)
         run.font.color.rgb = GRAY
         run.font.italic = True
+        _set_dual_font(run.font)
         return False
 
 
@@ -200,8 +239,8 @@ def add_table_simple(slide, left, top, width, height, headers, rows,
     cols = len(headers)
     n_rows = len(rows) + 1
     table = slide.shapes.add_table(n_rows, cols,
-                                   Inches(left), Inches(top),
-                                   Inches(width), Inches(height)).table
+                                   Inches(_xw(left)), Inches(top),
+                                   Inches(_xw(width)), Inches(height)).table
     for c, h in enumerate(headers):
         cell = table.cell(0, c)
         cell.fill.solid()
@@ -214,6 +253,7 @@ def add_table_simple(slide, left, top, width, height, headers, rows,
         run.font.size = Pt(font_size)
         run.font.bold = True
         run.font.color.rgb = WHITE
+        _set_dual_font(run.font)
     for r, row in enumerate(rows):
         for c, val in enumerate(row):
             cell = table.cell(r + 1, c)
@@ -229,6 +269,7 @@ def add_table_simple(slide, left, top, width, height, headers, rows,
             run.text = str(val)
             run.font.size = Pt(font_size)
             run.font.color.rgb = DARK
+            _set_dual_font(run.font)
     return table
 
 

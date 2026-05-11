@@ -99,6 +99,24 @@ def append_notes(slide, extra):
 slides = list(prs.slides)
 
 # ============================================================
+# Fix slide title text (Init 1/3, 2/3 → 1/2, 2/2)
+# ============================================================
+
+def fix_slide_text(slide, old, new):
+    """Replace text in slide shapes (title etc.)."""
+    for shape in slide.shapes:
+        if shape.has_text_frame:
+            for para in shape.text_frame.paragraphs:
+                for run in para.runs:
+                    if old in run.text:
+                        run.text = run.text.replace(old, new)
+                        print(f"  Fixed: '{old}' → '{new}'")
+
+# Init (3/3) moved to Appendix, so main slides become (1/2), (2/2)
+fix_slide_text(slides[16], "Init (1/3)", "Init (1/2)")
+fix_slide_text(slides[17], "Init (2/3)", "Init (2/2)")
+
+# ============================================================
 # Speaker notes updates (friendly persona + fact-checked)
 # ============================================================
 
@@ -216,7 +234,7 @@ append_notes(slides[12], """
 "이 시뮬레이터로 만든 데이터셋을 간단히 말씀드리면:
  - 총 110개 에피소드, 각 300 frame (30초, 10Hz)
  - 4가지 sea state: BF2 (Hs=0.3m, 잔잔) ~ BF5 (Hs=3.5m, 거친 바다)
- - 각 sea state별 complexity: 1, 2, 5, 10, 15, 30 성분 조합
+ - 각 sea state별 complexity: 1, 2, 5, 15, 20, 30 성분 조합
  - 3가지 방향 분포: uniform, narrow, bimodal
  - 비교 실험에는 대표 12개 에피소드 사용, 전체 결과는 Appendix H에 있습니다.
 

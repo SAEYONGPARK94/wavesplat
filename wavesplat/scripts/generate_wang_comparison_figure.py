@@ -123,11 +123,20 @@ def plot_wang_comparison_single(case, out_path, figsize=(15, 4)):
 
 
 def main():
-    # 사용자가 비교 보고싶은 case 들
+    # 12-episode benchmark 전체 (wang2025_comparison.json 와 동일)
     cases = [
-        {'episode': 'episode_BF3_2comp_seed0_uniform.h5', 'label': 'BF3 / N=2', 'frame_idx': 200, 'tag': 'bf3_n2'},
-        {'episode': 'episode_BF3_5comp_seed0_uniform.h5', 'label': 'BF3 / N=5', 'frame_idx': 200, 'tag': 'bf3_n5'},
-        {'episode': 'episode_BF4_5comp_seed0_uniform.h5', 'label': 'BF4 / N=5', 'frame_idx': 200, 'tag': 'bf4_n5'},
+        {'episode': 'episode_BF2_1comp_seed0_uniform.h5',  'label': 'BF2 / N=1',  'frame_idx': 200, 'tag': 'bf2_n1'},
+        {'episode': 'episode_BF3_1comp_seed0_uniform.h5',  'label': 'BF3 / N=1',  'frame_idx': 200, 'tag': 'bf3_n1'},
+        {'episode': 'episode_BF3_2comp_seed0_uniform.h5',  'label': 'BF3 / N=2 (uniform)', 'frame_idx': 200, 'tag': 'bf3_n2'},
+        {'episode': 'episode_BF3_2comp_seed0_slope.h5',    'label': 'BF3 / N=2 (slope)',   'frame_idx': 200, 'tag': 'bf3_n2_slope'},
+        {'episode': 'episode_BF3_5comp_seed0_uniform.h5',  'label': 'BF3 / N=5 (uniform)', 'frame_idx': 200, 'tag': 'bf3_n5'},
+        {'episode': 'episode_BF3_5comp_seed0_slope.h5',    'label': 'BF3 / N=5 (slope)',   'frame_idx': 200, 'tag': 'bf3_n5_slope'},
+        {'episode': 'episode_BF4_1comp_seed0_uniform.h5',  'label': 'BF4 / N=1',  'frame_idx': 200, 'tag': 'bf4_n1'},
+        {'episode': 'episode_BF4_5comp_seed0_uniform.h5',  'label': 'BF4 / N=5',  'frame_idx': 200, 'tag': 'bf4_n5'},
+        {'episode': 'episode_BF4_15comp_seed0_uniform.h5', 'label': 'BF4 / N=15', 'frame_idx': 200, 'tag': 'bf4_n15'},
+        {'episode': 'episode_BF4_30comp_seed0_uniform.h5', 'label': 'BF4 / N=30', 'frame_idx': 200, 'tag': 'bf4_n30'},
+        {'episode': 'episode_BF5_15comp_seed0_uniform.h5', 'label': 'BF5 / N=15', 'frame_idx': 200, 'tag': 'bf5_n15'},
+        {'episode': 'episode_BF5_30comp_seed0_uniform.h5', 'label': 'BF5 / N=30', 'frame_idx': 200, 'tag': 'bf5_n30'},
     ]
     results = []
     for c in cases:

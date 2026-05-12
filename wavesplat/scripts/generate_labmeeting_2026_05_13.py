@@ -933,56 +933,61 @@ def build_s13b_init():
 
 
 def build_s13b2_beamforming():
-    """Init (2/2): Beamforming + coarse-to-fine 어떻게 작동하나."""
+    """Init (2/2): Beamforming → Adam → Coarse-to-fine N schedule."""
     s = add_blank(WHITE)
-    add_section_tag(s, "Part 3 · WaveSplat — Init (2/2): Beamforming 어떻게 작동?", color=GOLD)
-    add_title(s, "Beamforming + coarse-to-fine — (k_x, k_y) 정밀 결정")
-    add_subtitle(s, "어떤 후보 wavenumber 가 측정 데이터와 가장 잘 맞는지 search — 신호처리 DOA 의 ocean wave 적용")
+    add_section_tag(s, "Part 3 · WaveSplat — Init (2/2): Beamforming + Adam 어떻게 작동?", color=GOLD)
+    add_title(s, "Beamforming + Adam (with coarse-to-fine N schedule)")
+    add_subtitle(s, "① 글로벌 탐색 (S(k)) → ② Adam 정밀화 (Loss 최소화) → ③ N 점진 증가 schedule")
     bullets = [
-        "**Init 의 3 단계 — Beamforming + Coarse-to-fine + Adam refinement** (코드: wavesplat/optimizer/sequential_update.py):",
+        "**Init 의 2 단계 — Beamforming → Adam (coarse-to-fine N schedule 포함)**",
         "",
-        "**① Beamforming score 식 (coarse search)**:",
-        "  S(k_x⁰, k_y⁰) = | Σ_i η_obs(x_i, y_i, t_i) · exp(j (k⁰·x_i − ω(k⁰)·t_i)) |²",
+        "**① Beamforming score (초기 (k_x, k_y) 글로벌 탐색)**",
+        "  S(k_x⁰, k_y⁰) = | Σ_i η_obs(x_i, y_i, t_i) · exp(−j (k⁰·x_i − ω(k⁰)·t_i)) |²",
         "  i: init window 의 모든 점 (2·T_p ≈ 11–20s, 110–200 frame × 50 점 ≈ 5,500–10,000)",
         "  ω(k⁰) = √(g·|k⁰|·tanh(|k⁰|·d)) — 분산 관계로 자동 결정",
-        "  Search range: k_x, k_y ∈ [-4, 4] rad/m, grid 81×81 = 6,561 후보",
-        "  → top-N peak 선택",
-        "  직관: '코러스 효과' — 실제 wave 방향이면 모든 점의 phase 일치 → S(k) ↑",
+        "  Search range: k_x, k_y ∈ [−4, 4] rad/m, 81×81 = 6,561 후보",
+        "  → top-N peak 선택 (Adam 초기값으로 전달)",
+        "  직관: '코러스 효과' — 맞는 wave 방향이면 모든 점의 phase 일치 → S(k) ↑ (N²)",
         "",
-        "**② Coarse-to-fine sub-grid 정밀화**:",
-        "  각 peak 주변에서 local quadratic fit → Newton step → sub-grid 정확도",
-        "  예: peak 가 격자 위 (0.5, 0.7) → fine 후 (0.534, 0.692) 처럼 정밀",
+        "**② Adam refinement (multi-frame fitting, Loss 최소화)**",
+        "  Loss(θ) = L_data(θ) + λ_L1 · L_L1(θ) + λ_smooth · L_smooth(θ)",
+        "    L_data(θ) = (1/N_obs) · Σ_i c_i · [η_model(x_i, y_i, t_i; θ) − η_obs(x_i, y_i, t_i)]²",
+        "       (confidence-weighted MSE, c_i: geometry-aware weight ∈ [0,1])",
+        "    L_L1(θ) = Σ_n |A_n|                                          (amplitude sparsity)",
+        "    L_smooth(θ) = Σ_n (A_↑[n+1] − A_↑[n])²    (|k| 오름차순 정렬 후 인접 차분 제곱)",
+        "  계수: λ_L1 = 0.001, λ_smooth = 0.0001",
+        "  η_model(x, y, t; θ) = Σ_n A_n · cos(k_xn·x + k_yn·y − ω_n·t + φ_n)",
+        "  θ = (A, k_x, k_y, φ), ω_n = √(g·|k_n|·tanh(|k_n|·d))  (dispersion 자동, 별도 자유도 아님)",
+        "  Adam lr: (A, φ) 0.01 / (k_x, k_y) 0.005 (k 절반, 변화 신중)",
         "",
-        "**③ Adam refinement — beamforming 결과를 모든 frame 에 fitting**:",
-        "  Beamforming 은 *초기값 추정만* — 그 후 Adam 으로 정밀 최적화",
-        "  Loss = L_data + L_L1 + L_smooth (3 항, 자세한 식은 Track slide page 15 참조)",
-        "  파라미터: (k_x, k_y, A, φ) — multi-frame init window 전체에 fit (ω 는 dispersion 으로 자동)",
-        "  Coarse-to-fine schedule: 3 stage 의 *N (component 수) 점진 증가* — N: 3 → 8 → 15 (config default)",
-        "  lr 은 모든 stage 공유 (init_lr=0.01). Parameter group 별: (w, φ): 0.01 / (k_x, k_y): 0.005 (k 절반)",
-        "  Loss threshold 로 stage advancement: stage 1 < 0.1, stage 2 < 0.05, stage 3 = None (full max_iters)",
-        "    → 빨리 수렴된 stage 는 즉시 다음 단계로 advance (전체 시간 단축)",
-        "  Max iter per stage: 200 / 200 / 500 = total 900",
-        "  Init window 길이: tp_factor × T_p (default tp_factor=2.0)",
+        "**③ Coarse-to-fine N schedule (Adam stage 진행 방식)**",
+        "  N: 3 → 8 → 15 (성분 수 점진 증가, 큰 성분 먼저 찾기)",
+        "  Stage advance 조건 — *둘 중 하나* 만족 시 다음 stage 로:",
+        "    (a) Loss < threshold (stage 1: 0.1, stage 2: 0.05, stage 3: None)",
+        "    (b) Max iter 도달 (stage 1·2: 200, stage 3: 500 — 총 ≤ 900)",
+        "  → 빨리 수렴된 stage 는 즉시 advance (시간 절약)",
+        "  Stage advance 시 residual 분석으로 새 (k_x, k_y) 추가 (빈 slot 채우기)",
         "",
-        "**왜 두 단계 (beamforming + Adam)?**",
-        "  Beamforming: 글로벌 search — 격자 위 모든 후보 평가 (느리지만 global optima 잘 찾음)",
-        "  Adam: 로컬 최적화 — beamforming 결과 주변에서 정밀 (빠르지만 초기값 의존)",
-        "  결합: beamforming 으로 global 잡고 Adam 으로 정밀화 → robust + 정확",
-        "",
-        "**signal processing 연관**: DOA (Direction-of-Arrival) estimation 기법의 wave 적용",
+        "**왜 두 단계 (Beamforming + Adam)?**",
+        "  Beamforming: 글로벌 search — 격자 위 모든 후보 평가, global optima 잘 찾지만 격자 해상도 한계",
+        "  Adam: 로컬 정밀화 — beamforming 초기값 주변에서 sub-grid 정확도까지 + multi-frame fitting",
+        "  결합 → robust (global 잡음) + 정확 (sub-grid 정밀화)",
     ]
     add_bullets(s, 0.4, 1.85, 12.5, 5.5, bullets, font_size=10,
                 line_space_after=1)
     add_page_number(s, 13)
     add_notes(s, (
         "이전 슬라이드에서 *왜 multi-frame 이 필요한지* 를 보여드렸고요, 이번 슬라이드는 *어떻게 작동하는지* 를 수식까지 풀어 설명드립니다.\n\n"
-        "Init 단계는 사실 *3 단계로 작동* 합니다 — beamforming 으로 global search, coarse-to-fine 으로 sub-grid 정밀화, 그리고 Adam 으로 multi-frame fitting refinement. 사용자 지적이 정확합니다 — beamforming 만으로 끝나는 게 아니라 Adam 정밀화도 같이 들어갑니다.\n\n"
-        "(1) **Beamforming score 식** — 코러스 효과 직관: 각 후보 wavenumber 에 대해 'wave 가 이 방향으로 이 주파수로 진행한다고 가정' 했을 때, 측정 데이터의 phase 와 얼마나 일치하는지 점수로 평가합니다. 수식 S(k) = | Σ_i η_obs · exp(j(k·x_i − ω(k)·t_i)) |² 에서 i 는 init window (2·Tp ≈ 11–20s) 의 5,500–10,000 점, ω(k) 는 분산 관계로 자동입니다. 실제 wave 방향이면 모든 점의 phase 가 *일치* 해서 합의 절댓값이 커지고, 다른 방향이면 random cancel 되어 작아지죠. 81×81 격자 후보 중 S(k) 큰 top-N peak 를 선택합니다.\n\n"
-        "(2) **Coarse-to-fine sub-grid 정밀화** — 격자 위 peak 만으로는 정확도 한계가 있어서 각 peak 주변에서 local quadratic fit 과 Newton step 을 합니다. 예를 들어 peak 가 격자 위 (0.5, 0.7) 에 있더라도 fine 으로 (0.534, 0.692) 같은 더 정밀한 값을 얻습니다.\n\n"
-        "(3) **Adam refinement (중요)** — beamforming 결과는 *초기값 추정* 일 뿐입니다. 그 후 Adam optimizer 로 multi-frame init window 전체에 fitting 합니다. Loss 는 모든 frame 의 measurement 와 model prediction 의 squared error 합. 파라미터는 (k_x, k_y, ω, A, φ) 모두 — 단 코드에서 (k_x, k_y) 는 lr 의 절반 (0.005) 으로 천천히 update 합니다. 점진 정밀화는 *N (component 수) 의 증가* 로 — stage 1 (low N) → stage 2 (more N) → stage 3 (full N) — lr 자체는 self.lr=0.01 공유.\n\n"
-        "여기서 *loss threshold* 는 stage advancement 의 기준입니다. Stage 1 의 threshold 0.1, stage 2 의 threshold 0.05 — 현 stage 의 loss 가 그 값 이하로 떨어지면 *즉시 다음 stage 로 advance* 합니다. 빨리 수렴된 stage 에서 추가 iter 낭비 안 하고 더 정밀한 단계로 넘어가는 거죠. Max iter 가 stage 별 200, 200, 500 으로 총 900 까지지만, threshold 도달 시 일찍 advance 합니다.\n\n"
-        "**왜 두 단계가 필요한가** — Beamforming 은 글로벌 search 라 global optima 잘 찾지만 격자 해상도 한계가 있고요, Adam 은 로컬 최적화라 빠르고 정밀하지만 초기값 의존이 큽니다. 두 가지를 결합하면 beamforming 으로 글로벌 잡고 Adam 으로 정밀화 — robust 하면서 정확합니다.\n\n"
-        "신호처리 연관은 DOA (Direction-of-Arrival) estimation 기법 — antenna array 에서 신호 방향 찾는 표준 — 의 ocean wave 적용입니다. Init 의 Adam refinement 단계가 끝나면 (k_x, k_y) 는 거의 정착된 상태이고요, 그 다음 tracking 단계에서는 *k 고정 + (A, φ) 만 매 frame update* 하는 방식으로 빠르게 처리합니다."
+        "Init 은 *Beamforming → Adam* 두 단계로 작동합니다. Beamforming 으로 초기 (k_x, k_y) 후보를 글로벌 탐색하고, 그 결과를 Adam optimizer 의 초기값으로 넘겨서 정밀화하는 흐름이에요. Adam 안에서는 *coarse-to-fine N schedule* 이라는 trick 으로 성분 수를 점진적으로 늘려갑니다. 이렇게 세 가지 요소가 결합되어 동작합니다.\n\n"
+        "(1) **Beamforming score 식** — 코러스 효과 직관으로 설명드릴게요. 각 후보 wavenumber 에 대해 'wave 가 이 방향으로 이 주파수로 진행한다고 가정' 했을 때 측정 데이터의 phase 가 얼마나 일치하는지 점수로 평가합니다. 수식 S(k) = | Σ_i η_obs · exp(−j(k·x_i − ω(k)·t_i)) |² 에서 i 는 init window (2·Tp ≈ 11–20s) 의 5,500–10,000 점, ω(k) 는 분산 관계로 자동입니다. 맞는 wave 방향이면 모든 점의 phase 가 *일치* 해서 합의 절댓값이 N 배로 커지고 (∝ N²), 다른 방향이면 random cancel 되어 √N 으로만 커져요. 81×81 격자 후보 중 S(k) 큰 top-N peak 를 선택해 Adam 초기값으로 넘깁니다.\n\n"
+        "(2) **Adam refinement — Loss 최소화로 정밀 fitting** — 여기서 *Loss 함수* 가 등장합니다. 식으로 쓰면 Loss(θ) = L_data + λ_L1·L_L1 + λ_smooth·L_smooth 의 3 항 구조예요.\n\n"
+        "  첫째 L_data(θ) = (1/N_obs) · Σ_i c_i · [η_model − η_obs]² 는 측정 점과 model 예측 사이의 confidence-weighted MSE 입니다. c_i 는 geometry-aware weight 로 가까운 점일수록 높습니다.\n\n"
+        "  둘째 L_L1(θ) = Σ_n |A_n| (계수 λ_L1=0.001) 은 amplitude 의 sparsity 를 유도해서 의미 없는 작은 성분이 살아남지 않게 합니다.\n\n"
+        "  셋째 L_smooth(θ) = Σ_n (A_↑[n+1] − A_↑[n])² (계수 λ_smooth=0.0001) 은 |k| 오름차순 정렬한 후 인접 amplitude 의 차분 제곱으로 *spectrum 의 부드러움* 을 유도합니다.\n\n"
+        "  η_model(x, y, t; θ) = Σ_n A_n · cos(k_xn·x + k_yn·y − ω_n·t + φ_n) 이고, 파라미터 θ = (A, k_x, k_y, φ), ω 는 dispersion 으로 자동 (별도 자유도 아님). Adam 이 이 Loss 를 최소화하는 방향으로 update 하는데, k 는 변화에 신중해야 해서 lr 을 절반 (0.005) 으로 줍니다.\n\n"
+        "(3) **Coarse-to-fine N schedule — Adam 의 stage 진행 방식** — N 을 3 → 8 → 15 로 점진 증가시킵니다. *큰 성분 먼저 찾고, 그 다음 작은 성분 추가* 하는 거예요. *Stage advance 조건은 두 가지 중 하나만 만족* 하면 됩니다 — (a) Loss < threshold (stage 1 의 0.1, stage 2 의 0.05) 또는 (b) Max iter 도달 (stage 1·2 의 200, stage 3 의 500). 빨리 수렴된 stage 는 일찍 넘어가서 시간 절약하고, 수렴 안 된 stage 는 iter cap 으로 강제 advance 합니다. 여기서 *Loss 는 (2) 에서 정의한 fit Loss* 이지 beamforming S(k) 와는 다른 함수예요.\n\n"
+        "**왜 두 단계가 필요한가** — Beamforming 은 글로벌 search 라 global optima 잘 찾지만 격자 해상도 (0.05 rad/m 정도) 한계가 있고요, Adam 은 로컬 최적화라 sub-grid 정확도까지 정밀화하지만 초기값 의존이 큽니다. 두 가지를 결합하면 *beamforming 으로 글로벌 잡고 Adam 으로 정밀화* — robust 하면서 정확합니다.\n\n"
+        "신호처리 연관은 DOA (Direction-of-Arrival) estimation 기법의 ocean wave 적용입니다. Init 의 Adam refinement 끝나면 (k_x, k_y) 는 거의 정착된 상태이고, 다음 tracking 단계에서는 *k 고정 + (A, φ) 만 매 frame update* 하는 방식으로 13 ms 안에 빠르게 처리합니다."
     ))
 
 

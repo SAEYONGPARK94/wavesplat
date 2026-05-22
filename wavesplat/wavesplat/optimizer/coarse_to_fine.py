@@ -104,7 +104,7 @@ class CoarseToFineSchedule:
         # Compute residuals
         result = residual_fn(model, frames)
 
-        use_beamform = self.init_method in ('v2', 'v2_konly')
+        use_beamform = self.init_method in ('v2', 'v2_konly', 'relax', 'relax_konly')
 
         if use_beamform and len(result) == 4:
             # v2: beamforming on residuals with timestamps

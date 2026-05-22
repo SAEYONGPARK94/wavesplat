@@ -468,6 +468,15 @@ def initialize_from_frames(frames, n_gaussians: int, depth: float,
             frames, n_gaussians, depth, x_range, y_range,
             seed=seed
         )
+    elif init_method == 'relax':
+        from wavesplat.optimizer.relax_estimator import initialize_relax
+        return initialize_relax(frames, n_gaussians, depth, seed=seed)
+    elif init_method == 'relax_konly':
+        from wavesplat.optimizer.relax_estimator import initialize_relax
+        kx, ky, w, phi = initialize_relax(frames, n_gaussians, depth, seed=seed)
+        init_w = torch.ones(n_gaussians) * 0.01
+        init_phi = torch.rand(n_gaussians) * 2 * math.pi
+        return kx, ky, init_w, init_phi
     else:  # 'v2_konly'
         kx, ky, w, phi = initialize_from_frames_v2(
             frames, n_gaussians, depth, x_range, y_range,

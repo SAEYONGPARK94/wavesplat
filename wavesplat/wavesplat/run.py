@@ -299,8 +299,8 @@ def main():
     parser.add_argument('--tracking_lr', type=float, default=None,
                         help='Learning rate for tracking phase')
     parser.add_argument('--init_method', type=str, default=None,
-                        choices=['v1', 'v2', 'v2_konly'],
-                        help='Init method: v1 (spatial FFT), v2 (beamform+proj), v2_konly (beamform kx/ky only)')
+                        choices=['v1', 'v2', 'v2_konly', 'relax', 'relax_konly'],
+                        help='Init method: v1/v2/v2_konly/relax/relax_konly')
     parser.add_argument('--seed', type=int, default=None,
                         help='Random seed for reproducibility (default: 42)')
     parser.add_argument('--adaptive_n', type=str, default=None,
@@ -310,6 +310,8 @@ def main():
                         help='Maximum number of Gaussians for adaptive N')
     parser.add_argument('--tracking_window', type=int, default=None,
                         help='Number of recent frames for multi-frame tracking')
+    parser.add_argument('--neural_corrector', type=str, default=None,
+                        help='Path to neural corrector checkpoint (.pt)')
     parser.add_argument('--output', type=str, default=None,
                         help='Output JSON path for results')
     parser.add_argument('--verbose', action='store_true')
@@ -344,6 +346,8 @@ def main():
         config['max_n'] = args.max_n
     if args.tracking_window is not None:
         config['tracking_window'] = args.tracking_window
+    if args.neural_corrector is not None:
+        config['neural_corrector_path'] = args.neural_corrector
 
     result = run_estimation(args.episode, config, verbose=args.verbose)
 

@@ -49,6 +49,17 @@ class GtGridCfg:
 
 
 @dataclass
+class HOSCfg:
+    enabled: bool = False       # use HOS instead of linear Gerstner
+    M: int = 2                  # nonlinear order (1=linear, 2=second, 3=third)
+    Nx: int = 128               # spectral modes x
+    Ny: int = 128               # spectral modes y
+    dt: float = 0.02            # HOS internal time step [s] (must be smaller than episode dt)
+    Lx: float = 600.0           # domain length x [m]
+    Ly: float = 400.0           # domain length y [m]
+
+
+@dataclass
 class EpisodeCfg:
     duration: float = 30.0
     dt: float = 0.1
@@ -81,6 +92,7 @@ class WaveSimConfig:
     mesh: MeshCfg = field(default_factory=MeshCfg)
     gt_grid: GtGridCfg = field(default_factory=GtGridCfg)
     episode: EpisodeCfg = field(default_factory=EpisodeCfg)
+    hos: HOSCfg = field(default_factory=HOSCfg)
     sea_states: Dict[str, dict] = field(default_factory=lambda: {
         'BF2': {'Hs': 0.3, 'Tp': 4.0},
         'BF3': {'Hs': 0.6, 'Tp': 5.5},
@@ -114,6 +126,8 @@ def load_config(path: str = None) -> WaveSimConfig:
         )
     if 'episode' in raw:
         cfg.episode = EpisodeCfg(**raw['episode'])
+    if 'hos' in raw:
+        cfg.hos = HOSCfg(**raw['hos'])
     if 'sea_states' in raw:
         cfg.sea_states = raw['sea_states']
     if 'dataset' in raw:

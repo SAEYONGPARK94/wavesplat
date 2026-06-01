@@ -71,6 +71,9 @@ class SequentialUpdater:
         self.use_confidence = config.get('use_confidence', True)
         self.seed = config.get('seed', None)
 
+        # Neural corrector (nonlinear correction)
+        self.neural_corrector_path = config.get('neural_corrector_path', None)
+
         n_gaussians = config.get('n_gaussians', [3, 8, 15])
         if isinstance(n_gaussians, int):
             self.stages = [n_gaussians]
@@ -93,8 +96,18 @@ class SequentialUpdater:
         self._last_dt = 0.1
 
     def _build_model(self, n: int) -> SpectralGaussianModel:
+        # Build model WITHOUT neural corrector (optimization should be clean)
+        # NN corrector is loaded but disabled during optimization, enabled only for prediction
         model = SpectralGaussianModel(
-            n, depth=self.depth, use_dispersion=self.use_dispersion)
+            n, depth=self.depth, use_dispersion=self.use_dispersion,
+            use_neural_corrector=False)
+        if self.neural_corrector_path is not None:
+            # Preserve RNG state: NN corrector creation changes torch random state
+            rng_state = torch.random.get_rng_state()
+            model.load_neural_corrector(self.neural_corrector_path)
+            torch.random.set_rng_state(rng_state)
+            # Disable during optimization — will be re-enabled for prediction
+            model.use_neural_corrector = False
         model.to(self.device)
         return model
 
@@ -710,8 +723,17 @@ class SequentialUpdater:
 
     def predict_field(self, grid_x: torch.Tensor, grid_y: torch.Tensor,
                       t: float) -> torch.Tensor:
-        """Predict wave field on regular grid at time t."""
+        """Predict wave field on regular grid at time t.
+
+        Temporarily enables neural corrector (if loaded) for prediction only.
+        """
         if self.model is None:
             raise RuntimeError("Model not initialized")
         with torch.no_grad():
-            return self.model.predict_grid(grid_x, grid_y, t)
+            # Enable NN corrector for prediction if loaded
+            had_nn = self.model.use_neural_corrector
+            if self.neural_corrector_path and self.model._neural_corrector is not None:
+                self.model.use_neural_corrector = True
+            result = self.model.predict_grid(grid_x, grid_y, t)
+            self.model.use_neural_corrector = had_nn
+            return result

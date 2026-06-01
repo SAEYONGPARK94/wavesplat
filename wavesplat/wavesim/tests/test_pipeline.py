@@ -165,5 +165,40 @@ def test_pipeline_tank_depth_dispersion():
                 f"Component {i}: ω={omega:.4f} != dispersion ω={omega_disp:.4f} at d=3.5m"
 
 
+# ── HOS pipeline test ────────────────────────────────────────────────────────
+
+def test_pipeline_hos_basic():
+    """Pipeline runs with HOS enabled and produces valid nonlinear output."""
+    from wavesim.config import WaveSimConfig, HOSCfg
+
+    cfg = WaveSimConfig()
+    cfg.hos = HOSCfg(enabled=True, M=2, Nx=64, Ny=64, Lx=300.0, Ly=250.0, dt=0.02)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fp = run_episode(
+            sea_state='BF3',
+            n_components=5,
+            n_pts=10,
+            seed=0,
+            duration=0.3,
+            dt=0.1,
+            output_dir=tmpdir,
+            verbose=False,
+            cfg=cfg,
+        )
+        assert os.path.exists(fp), "HOS pipeline did not produce output file"
+        data = load_episode(fp)
+
+        # Must have produced frames
+        assert data['lidar_points'].shape[0] >= 1
+        gt = data['gt_wave_field']
+        assert gt.shape[0] >= 2, f"Expected >=2 frames, got {gt.shape[0]}"
+
+        # GT field should be physically valid (zero-mean waves)
+        for i in range(gt.shape[0]):
+            assert abs(np.mean(gt[i])) < 0.5, \
+                f"Frame {i}: mean elevation {np.mean(gt[i]):.3f}m != ~0"
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

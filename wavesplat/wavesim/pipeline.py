@@ -15,6 +15,7 @@ import os
 
 from wavesim.config import WaveSimConfig, load_config
 from wavesim.wave_generator import jonswap_components, check_q_constraint
+from wavesim.hos_simulator import HOSSimulator, HOSConfig
 from wavesim.lidar_simulator import (
     LidarConfig, build_mesh, generate_rays, raycast_surface,
     compute_incidence_angles, interpolate_normals
@@ -63,13 +64,29 @@ def run_episode(sea_state: str = 'BF4',
     Hs, Tp = params['Hs'], params['Tp']
 
     # ── 1. Generate wave components ──────────────────────────────────────────
+    use_hos = cfg.hos.enabled
     components = jonswap_components(Hs=Hs, Tp=Tp, n_components=n_components,
                                      depth=depth, seed=seed)
     satisfied, q_val = check_q_constraint(components)
     assert satisfied, f"Q constraint violated: {q_val:.3f}"
-    if verbose:
-        print(f"[Wave] {sea_state}: Hs={Hs}m, Tp={Tp}s, {n_components} components, "
-              f"Q-sum={q_val:.3f}")
+
+    hos_sim = None
+    if use_hos:
+        hos_cfg = HOSConfig(
+            Lx=cfg.hos.Lx, Ly=cfg.hos.Ly,
+            Nx=cfg.hos.Nx, Ny=cfg.hos.Ny,
+            depth=depth, M=cfg.hos.M,
+        )
+        hos_sim = HOSSimulator(hos_cfg)
+        hos_sim.initialize_jonswap(Hs=Hs, Tp=Tp, seed=seed)
+        if verbose:
+            print(f"[Wave] HOS M={cfg.hos.M}: Hs={Hs}m, Tp={Tp}s, "
+                  f"grid={cfg.hos.Nx}×{cfg.hos.Ny}, "
+                  f"Hs_init={hos_sim.get_Hs():.3f}m")
+    else:
+        if verbose:
+            print(f"[Wave] {sea_state}: Hs={Hs}m, Tp={Tp}s, {n_components} components, "
+                  f"Q-sum={q_val:.3f}")
 
     # ── 2. Setup grid & LiDAR from config ────────────────────────────────────
     x_range = cfg.gt_grid.x_range
@@ -95,14 +112,28 @@ def run_episode(sea_state: str = 'BF4',
     # Pre-generate rays (same for all frames since ship is stationary)
     origins, ray_dirs = generate_rays(lidar_cfg, ship_x=0.0, ship_y=0.0)
 
+    hos_t_current = 0.0  # track HOS internal time
     for t in timestamps:
         # Evaluate wave surface on dense grid
-        Z_gt, NX_gt, NY_gt, NZ_gt = evaluate_field(components, X_gt, Y_gt, t)
+        if use_hos:
+            # Advance HOS to time t
+            if t > hos_t_current + 1e-10:
+                hos_dt = cfg.hos.dt
+                while hos_t_current < t - 1e-10:
+                    step_dt = min(hos_dt, t - hos_t_current)
+                    hos_sim.step(step_dt)
+                    hos_t_current += step_dt
+            Z_gt, NX_gt, NY_gt, NZ_gt = hos_sim.evaluate_at(X_gt, Y_gt)
+        else:
+            Z_gt, NX_gt, NY_gt, NZ_gt = evaluate_field(components, X_gt, Y_gt, t)
 
         # Build mesh for raycasting
         X_mesh, Y_mesh = make_grid(x_range, y_range,
                                     nx=cfg.mesh.nx, ny=cfg.mesh.ny)
-        Z_mesh, _, _, _ = evaluate_field(components, X_mesh, Y_mesh, t)
+        if use_hos:
+            Z_mesh, _, _, _ = hos_sim.evaluate_at(X_mesh, Y_mesh)
+        else:
+            Z_mesh, _, _, _ = evaluate_field(components, X_mesh, Y_mesh, t)
         verts, tris = build_mesh(X_mesh, Y_mesh, Z_mesh)
 
         # Raycast

@@ -24,6 +24,10 @@ import torch.nn as nn
 import math
 
 from wavesplat.model.dispersion import dispersion_omega, G
+from wavesplat.model.stokes2 import Stokes2Transfer
+from wavesplat.model.neural_corrector import (
+    NeuralCorrector, NeuralFieldCorrector, NeuralFieldCorrectorV2
+)
 
 
 class SpectralGaussianModel(nn.Module):
@@ -38,11 +42,16 @@ class SpectralGaussianModel(nn.Module):
     """
 
     def __init__(self, n_gaussians: int, depth: float = 50.0,
-                 use_dispersion: bool = True):
+                 use_dispersion: bool = True, use_stokes2: bool = False,
+                 use_neural_corrector: bool = False):
         super().__init__()
         self.n_gaussians = n_gaussians
         self.depth = depth
         self.use_dispersion = use_dispersion
+        self.use_stokes2 = use_stokes2
+        self.use_neural_corrector = use_neural_corrector
+        self._stokes2_transfer = None  # lazy init
+        self._neural_corrector = None  # loaded from checkpoint
 
         # Free parameters — initialized small; proper init via initializer.py
         self.w = nn.Parameter(torch.randn(n_gaussians) * 0.01)
@@ -53,6 +62,37 @@ class SpectralGaussianModel(nn.Module):
         # A1 ablation: ω as free parameter (no dispersion constraint)
         if not use_dispersion:
             self.omega_free = nn.Parameter(torch.randn(n_gaussians) * 0.5)
+
+    def load_neural_corrector(self, checkpoint_path: str):
+        """Load a trained neural field corrector from checkpoint."""
+        ckpt = torch.load(checkpoint_path, map_location='cpu')
+        arch = ckpt.get('arch', 'v1')
+        if arch == 'v2':
+            self._neural_corrector = NeuralFieldCorrectorV2(
+                hidden_dim=ckpt['hidden_dim'],
+                n_heads=ckpt.get('n_heads', 4),
+                n_attn_layers=ckpt['n_layers'],
+            )
+        else:
+            self._neural_corrector = NeuralFieldCorrector(
+                hidden_dim=ckpt['hidden_dim'],
+                n_layers=ckpt['n_layers'],
+            )
+        self._neural_corrector.load_state_dict(ckpt['model_state_dict'])
+        self._neural_corrector.eval()
+        for p in self._neural_corrector.parameters():
+            p.requires_grad_(False)
+        self.use_neural_corrector = True
+
+    def update_stokes2_transfer(self):
+        """Recompute Stokes 2nd-order transfer functions from current kx/ky.
+        Call this after kx/ky change (e.g., after init or coarse-to-fine)."""
+        if not self.use_stokes2:
+            return
+        with torch.no_grad():
+            kx_np = self.kx.detach().cpu().numpy()
+            ky_np = self.ky.detach().cpu().numpy()
+        self._stokes2_transfer = Stokes2Transfer(kx_np, ky_np, self.depth)
 
     def _omega(self) -> torch.Tensor:
         """Compute ω — via dispersion or as free parameter (ablation A1)."""
@@ -85,6 +125,20 @@ class SpectralGaussianModel(nn.Module):
 
         # z = Σᵢ wᵢ · cos(phaseᵢ)  → (M,)
         z = torch.sum(self.w[None, :] * torch.cos(phase), dim=1)
+
+        # Stokes 2nd-order correction
+        if self.use_stokes2 and self._stokes2_transfer is not None:
+            z2 = self._stokes2_transfer.correction(
+                x, y, t, self.w, self.kx, self.ky, self.phi, omega)
+            z = z + z2
+
+        # Neural field corrector: additive 3rd+ order correction
+        if self.use_neural_corrector and self._neural_corrector is not None:
+            z_nn = self._neural_corrector(
+                self.kx, self.ky, self.w, self.phi, omega,
+                self.depth, x, y, t)
+            z = z + z_nn
+
         return z
 
     def predict_grid(self, grid_x: torch.Tensor, grid_y: torch.Tensor,

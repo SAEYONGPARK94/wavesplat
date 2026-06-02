@@ -1,0 +1,90 @@
+{
+  "version": "wave_diffusion_v7_cnp_cond",
+  "best_val_nRMSE": 0.27275073205431305,
+  "best_epoch": 100,
+  "n_params": 2380178,
+  "cnp_params": 0,
+  "training_time_s": 20747.532661914825,
+  "changes": [
+    "ConvCNP v2 output as additional condition channel (frozen)",
+    "in_ch=4: noisy + SetConv(2) + ConvCNP(1)",
+    "epsilon-prediction, linear schedule, base_ch=48"
+  ],
+  "config": {
+    "grid_nx": 80,
+    "grid_ny": 60,
+    "base_ch": 48,
+    "n_timesteps": 1000,
+    "ddim_steps": 50,
+    "guidance_scale": 3.0,
+    "cond_drop_prob": 0.1,
+    "epochs": 300,
+    "lr": 0.0002,
+    "batch_size": 8,
+    "disp_k_min": 0.02,
+    "disp_k_max": 0.5,
+    "disp_strength": 0.3
+  },
+  "test_results": {
+    "baseline gs=1 1s": {
+      "nrmse": 0.31110126843882935,
+      "amp": 0.7736977122986054,
+      "per_episode": {
+        "BF3_5comp_seed0_slope": 0.3100393538673719,
+        "BF4_5comp_seed0_uniform": 0.30856667583187425,
+        "BF4_15comp_seed0_uniform": 0.30939693376421934,
+        "BF4_30comp_seed0_uniform": 0.3119414212803046,
+        "BF5_15comp_seed0_uniform": 0.31021048352122305,
+        "BF5_30comp_seed0_uniform": 0.3164527423679829
+      }
+    },
+    "baseline gs=3 1s": {
+      "nrmse": 0.326278342679143,
+      "amp": 1.0117206281101283,
+      "per_episode": {
+        "BF3_5comp_seed0_slope": 0.3426945197085539,
+        "BF4_5comp_seed0_uniform": 0.3352300350864728,
+        "BF4_15comp_seed0_uniform": 0.32216543828447664,
+        "BF4_30comp_seed0_uniform": 0.3331688555578391,
+        "BF5_15comp_seed0_uniform": 0.2968208059668541,
+        "BF5_30comp_seed0_uniform": 0.32759040147066115
+      }
+    },
+    "disp gs=3 1s": {
+      "nrmse": 0.2803794756945636,
+      "amp": 0.4641740529279228,
+      "per_episode": {
+        "BF3_5comp_seed0_slope": 0.2889934716125329,
+        "BF4_5comp_seed0_uniform": 0.2728627485533555,
+        "BF4_15comp_seed0_uniform": 0.26683755218982697,
+        "BF4_30comp_seed0_uniform": 0.28157467767596245,
+        "BF5_15comp_seed0_uniform": 0.27135852426290513,
+        "BF5_30comp_seed0_uniform": 0.3006498798727989
+      }
+    },
+    "disp gs=3 5s": {
+      "nrmse": 0.2608800084640583,
+      "amp": 0.31243859287225517,
+      "per_episode": {
+        "BF3_5comp_seed0_slope": 0.25876784448822343,
+        "BF4_5comp_seed0_uniform": 0.25449755663673085,
+        "BF4_15comp_seed0_uniform": 0.24652000144124037,
+        "BF4_30comp_seed0_uniform": 0.26116966456174845,
+        "BF5_15comp_seed0_uniform": 0.2567522332072258,
+        "BF5_30comp_seed0_uniform": 0.2875727504491806
+      }
+    },
+    "disp gs=3 3s": {
+      "nrmse": 0.26420684924556154,
+      "amp": 0.338580694862866,
+      "per_episode": {
+        "BF3_5comp_seed0_slope": 0.26362574721376103,
+        "BF4_5comp_seed0_uniform": 0.25850257774194085,
+        "BF4_15comp_seed0_uniform": 0.25186675290266675,
+        "BF4_30comp_seed0_uniform": 0.2635113659004371,
+        "BF5_15comp_seed0_uniform": 0.2583341203629971,
+        "BF5_30comp_seed0_uniform": 0.2894005313515663
+      }
+    }
+  }
+}

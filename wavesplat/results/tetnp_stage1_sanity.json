@@ -1,0 +1,35 @@
+{
+  "stage": 1,
+  "description": "TE-TNP single-episode overfit sanity check",
+  "episode": "episode_BF4_5comp_seed0_uniform.h5",
+  "model": {
+    "embed_dim": 64,
+    "num_heads": 4,
+    "head_dim": 16,
+    "num_layers": 3,
+    "params": 106830
+  },
+  "training": {
+    "steps": 10000,
+    "lr": 0.001,
+    "nc": 128,
+    "nt": 512,
+    "batch_size": 4,
+    "eta_scale": 0.5
+  },
+  "results": {
+    "first_nll": 0.9925,
+    "best_nll": -0.0664,
+    "final_nll": 0.0610,
+    "nll_drop": 1.0589,
+    "nrmse_train_ep": 0.3887,
+    "time_s": 393.4,
+    "ms_per_step": 39.3
+  },
+  "verdict": "PASS (NLL drop 1.06 > 1.0; model learns, gradient flows)",
+  "notes": [
+    "NLL collapses to ~0 by step 9000 — model can memorize episode",
+    "nRMSE 0.39 vs threshold 0.30: small model (64-dim) cannot fully reconstruct grid from NC=128",
+    "Stage 2 will use full model (128-dim, 5L) + 92 episodes"
+  ]
+}

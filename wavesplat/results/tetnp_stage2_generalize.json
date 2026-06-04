@@ -1,0 +1,36 @@
+{
+  "test_avg_nrmse": 1.0002,
+  "best_val_nll": 0.5789,
+  "test_per_episode": {
+    "BF3_5comp_seed0_slope": 1.0,
+    "BF4_5comp_seed0_uniform": 1.0,
+    "BF4_15comp_seed0_uniform": 1.0,
+    "BF4_30comp_seed0_uniform": 1.0,
+    "BF5_15comp_seed0_uniform": 1.0005,
+    "BF5_30comp_seed0_uniform": 1.0006
+  },
+  "training": {
+    "steps": 15000,
+    "lr": 0.0005,
+    "batch_size": 4,
+    "nc": 128,
+    "nt": 512,
+    "embed": 128,
+    "heads": 8,
+    "layers": 5,
+    "params": 1249490
+  },
+  "total_time_s": 1260.9,
+  "failure_diagnosis": {
+    "symptom": "pred mean = 0.00005 everywhere (constant), sigma = 0.615 (uniform)",
+    "root_cause": "TE attention kernel failed to learn spatial wave correlation — model collapsed to constant-mean prediction",
+    "why": [
+      "Wave field correlation structure is complex (multi-component sinusoids with dispersion)",
+      "TE-TNP must learn spatial locality purely from data — no physics inductive bias",
+      "15000 steps / 74 episodes insufficient for attention kernel to converge",
+      "Same failure pattern as vanilla TNP (Stage 3, nRMSE 0.693)"
+    ],
+    "why_convcnp_works": "Grid convolutions provide built-in spatial locality + UNet multi-scale structure matches wave physics"
+  },
+  "verdict": "FAIL — same fundamental limitation as vanilla TNP"
+}

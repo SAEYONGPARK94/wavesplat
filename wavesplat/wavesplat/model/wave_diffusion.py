@@ -664,6 +664,106 @@ class GaussianDiffusionV4:
         """Min-SNR-gamma loss weighting."""
         return self.snr_weights[t]
 
+    def sample_ddim_dpps_v4(self, model, cond, shape, n_steps=50,
+                            guidance_scale=1.0,
+                            obs_mask=None, obs_values=None,
+                            k_min=0.02, k_max=0.5, disp_strength=0.3,
+                            obs_guidance_scale=1.0):
+        """DPPS adapted for v-prediction (GaussianDiffusionV4).
+
+        Same algorithm as GaussianDiffusion.sample_ddim_dpps but uses
+        v-prediction to recover x0_hat for the DPS gradient.
+
+        Args:
+            model: DiffusionUNet (outputs v-prediction)
+            cond: [B, 2, H, W]
+            shape: (B, 1, H, W)
+            n_steps: DDIM steps
+            guidance_scale: CFG scale
+            obs_mask: [B, 1, H, W] binary mask
+            obs_values: [B, 1, H, W] observed values (Hs-normalized)
+            k_min/k_max: dispersion wavenumber bounds [rad/m]
+            disp_strength: dispersion projection strength
+            obs_guidance_scale: DPS step size ζ
+
+        Returns:
+            [B, 1, H, W] generated wave field
+        """
+        device = cond.device
+        B = shape[0]
+        H, W = shape[2], shape[3]
+
+        step_size = self.n_timesteps // n_steps
+        timesteps = list(range(0, self.n_timesteps, step_size))
+        timesteps = list(reversed(timesteps))
+
+        x = torch.randn(shape, device=device)
+        uncond = torch.zeros_like(cond) if guidance_scale > 1.0 else None
+
+        # Pre-compute dispersion bandpass mask
+        disp_mask_tensor = None
+        if disp_strength > 0:
+            disp_mask_tensor = _make_dispersion_mask(H, W, k_min, k_max, device)
+
+        has_obs = (obs_mask is not None and obs_values is not None
+                   and obs_guidance_scale > 0)
+
+        for i, t_cur in enumerate(timesteps):
+            t = torch.full((B,), t_cur, device=device, dtype=torch.long)
+            sqrt_alpha = self.sqrt_alphas_cumprod[t_cur]
+            sqrt_one_minus = self.sqrt_one_minus_alphas_cumprod[t_cur]
+
+            # --- DPS: observation guidance via gradient (v-prediction) ---
+            if has_obs and t_cur > 0:
+                x.requires_grad_(True)
+
+                with torch.enable_grad():
+                    if guidance_scale > 1.0 and uncond is not None:
+                        v_cond = model(x, t, cond)
+                        v_uncond = model(x, t, uncond)
+                        v_g = v_uncond + guidance_scale * (v_cond - v_uncond)
+                    else:
+                        v_g = model(x, t, cond)
+
+                    # x0 from v-prediction: x0 = sqrt_alpha*x_t - sqrt_one_minus*v
+                    x0_hat = sqrt_alpha * x - sqrt_one_minus * v_g
+
+                    diff = (obs_values - x0_hat) * obs_mask
+                    obs_loss = (diff ** 2).sum()
+                    grad = torch.autograd.grad(obs_loss, x)[0]
+
+                x = x.detach()
+                n_obs = obs_mask.sum().clamp(min=1.0)
+                x = x - obs_guidance_scale * grad / n_obs
+
+            # --- Standard noise prediction (no grad) ---
+            with torch.no_grad():
+                if guidance_scale > 1.0 and uncond is not None:
+                    v_cond = model(x, t, cond)
+                    v_uncond = model(x, t, uncond)
+                    v_pred = v_uncond + guidance_scale * (v_cond - v_uncond)
+                else:
+                    v_pred = model(x, t, cond)
+
+                # Recover x0 and noise from v
+                x0_pred = sqrt_alpha * x - sqrt_one_minus * v_pred
+                pred_noise = sqrt_one_minus * x + sqrt_alpha * v_pred
+
+                # Dispersion projection on x0_pred
+                if disp_mask_tensor is not None and disp_strength > 0:
+                    x0_pred = _apply_dispersion_filter(x0_pred, disp_mask_tensor,
+                                                       disp_strength)
+
+                if i < len(timesteps) - 1:
+                    t_next = timesteps[i + 1]
+                    alpha_bar_next = self.alphas_cumprod[t_next]
+                    x = (torch.sqrt(alpha_bar_next) * x0_pred +
+                         torch.sqrt(1 - alpha_bar_next) * pred_noise)
+                else:
+                    x = x0_pred
+
+        return x
+
     @torch.no_grad()
     def sample_ddim_v4(self, model, cond, shape, n_steps=50,
                        guidance_scale=1.0, self_cond=True,

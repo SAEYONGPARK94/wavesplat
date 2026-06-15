@@ -163,18 +163,70 @@ Result file: `nstarts_comparison.json`
 
 ---
 
-## Comparison vs WavePINO (6-episode reference)
+## Comparison vs WavePINO — Fair 30-Episode Protocol
 
-| Metric | GP ws_ms5_reg_amp | WavePINO S4 | Notes |
-|--------|-----------------|-------------|-------|
-| nRMSE | **0.223** (30ep) | **0.220** (6ep) | Nearly equivalent; different protocol |
-| VR | 0.783 | 0.292 | GP 2.7× better amplitude |
-| Pearson | 0.489 (30ep) | 0.498 (6ep) | Comparable |
-| UQ | full posterior | none | GP advantage |
-| Physics | dispersion prior | physics loss | GP principled |
-| Speed | ~60s/ep (CPU) | ~fast (GPU) | WavePINO faster at inference |
+Result file: `pino_s4_30ep_eval.json`
 
-Note: Direct comparison on identical 30 episodes not yet done. WavePINO uses different eval protocol.
+| Metric | GP ws_ms5_reg_amp | WavePINO S4 | Δ (GP−PINO) |
+|--------|-----------------|-------------|-------------|
+| **nRMSE** | **0.2232** | 0.2279 | **−2.1% (GP wins)** |
+| **VR** | **0.783** | 0.309 | GP 2.5× better amplitude |
+| **Pearson** | **0.489** | 0.376 | GP +30% spatial correlation |
+| Skill | −0.012 | **+0.107** | WavePINO better Skill |
+| UQ | ✓ full posterior | ✗ none | GP only |
+| Training data | ✗ none | ✓ 90 episodes | GP more practical |
+| Init cost | ~892s/ep (CPU) | ~0.5s/ep (GPU) | WavePINO ~1800× faster |
+
+**Key finding**: WavePINO's original 0.220 result was on a different 6-episode protocol
+(slope+uniform mixed, seed 0 only). On the same 30-episode fair comparison,
+WavePINO = 0.228 and GP K_disp = 0.223. **GP K_disp is the better method on this benchmark.**
+
+## Computational Cost Comparison
+
+Result file: `compute_cost_comparison.json`
+
+| Method | Init | Inference | Total/episode | Training |
+|--------|------|-----------|--------------|---------|
+| WaveSplat | 110s | 13ms/frame | 110s | None |
+| GP K_disp (ms5) | 889s | 79ms/frame | 892s | None |
+| WavePINO S4 | 0s | 18ms/frame | 0.5s | 90 episodes |
+
+**GP tradeoff**: No training data required, but 15-minute init per episode.
+GP inference (Cholesky solve) is O(N_obs³) per frame; N_obs varies by episode
+(slope episodes have more observations → slower, up to 190ms; 30-comp has fewer → 6ms).
+
+---
+
+## UQ Calibration Analysis (ws_ms5_reg_amp, 6 pilot episodes)
+
+Result file: `gp_uq_coverage_eval.json`
+
+| Nominal | Empirical | Error | Status |
+|---------|-----------|-------|--------|
+| 50% | 1.000 | +0.500 | **under-confident** |
+| 68% | 1.000 | +0.320 | **under-confident** |
+| 80% | 1.000 | +0.200 | **under-confident** |
+| 90% | 1.000 | +0.100 | **under-confident** |
+| 95% | 1.000 | +0.050 | **under-confident** |
+
+CRPS mean: 0.822 | Mean posterior std: 3.44 m
+
+**Diagnosis: GP posterior is severely under-confident (intervals too wide).**
+- Prior variance = Σ_n A_n²/2 ≈ 8-16 m² → prior std ≈ 3-4 m
+- Observation coverage is sparse (LiDAR near-ship only)
+- Most prediction grid points far from obs → posterior ≈ prior
+- Result: 100% of true values fall within ±2σ of prior mean
+
+**Physical interpretation**:
+- GP correctly captures near-obs region (good nRMSE)
+- Far from obs, uncertainty stays near prior (physically correct but over-conservative)
+- Full-grid empirical coverage = 100% because prior std >> wave amplitude at unobserved locations
+
+**Implication for thesis**:
+- GP K_disp provides valid UQ in the sense that true values always fall in intervals
+- BUT intervals are not sharp (CRPS=0.82, sharpness std=3.44m >> Hs/4)
+- Calibration improvement: scale prior variance, or report coverage near-obs only
+- This is a known limitation of GPs with very sparse observations relative to domain size
 
 ---
 

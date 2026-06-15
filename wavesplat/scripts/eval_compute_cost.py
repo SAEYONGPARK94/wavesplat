@@ -61,9 +61,9 @@ def measure_gp_cost(h5_path, n_frames=N_FRAMES_MEAS):
         if len(x_obs) < 5:
             continue
         X_obs = np.column_stack([x_obs, y_obs])
+        t0 = time.time()
         K_oo = build_K_disp_oracle(X_obs, X_obs, beam_components)
         K_po = build_K_disp_oracle(X_pred, X_obs, beam_components)
-        t0 = time.time()
         _ = gp_predict(K_oo, K_po, z_obs, SIGMA_OBS)
         inference_times.append((time.time() - t0) * 1000)
 

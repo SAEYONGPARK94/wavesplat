@@ -23,7 +23,7 @@ Reference (6-episode, pilot, different protocol):
 | Method | nRMSE | VR | Pearson | Skill | Notes |
 |--------|-------|-----|---------|-------|-------|
 | WaveSplat | 0.259 | 0.588 | 0.293 | -0.095 | Phase0 comparison (6 ep) |
-| WavePINO S4 | 0.220 | 0.292 | 0.498 | 0.264 | Phase0 comparison (6 ep) |
+| WavePINO S4 | 0.228 | 0.309 | 0.376 | 0.107 | Fair 30-ep comparison |
 
 ---
 
@@ -33,7 +33,7 @@ Reference (6-episode, pilot, different protocol):
 - **vs WaveSplat**: nRMSE **15.2%** improvement (0.263 → 0.223), Pearson 41% improvement
 - **vs ws_multistart**: nRMSE 5.1% improvement (0.235 → 0.223), Pearson 8% improvement
 - **vs ws_reg_amp**: nRMSE 2.8% improvement (0.230 → 0.223), VR 0.648→0.783 (amplitude quality↑↑)
-- **vs WavePINO S4**: nRMSE 0.223 vs 0.220 — **within 1.4%** (nearly equivalent; different eval protocols)
+- **vs WavePINO S4**: nRMSE 0.223 vs 0.228 (fair 30-ep protocol) — **GP K_disp is 2.1% better**
 
 ### 2. reg_amp + ms5 synergy
 - ws_multistart (ms5, global scale): VR=0.782, Pearson=0.453
@@ -188,11 +188,13 @@ Result file: `compute_cost_comparison.json`
 | Method | Init | Inference | Total/episode | Training |
 |--------|------|-----------|--------------|---------|
 | WaveSplat | 110s | 13ms/frame | 110s | None |
-| GP K_disp (ms5) | 889s | 79ms/frame | 892s | None |
+| GP K_disp (ms5) | 889s | ~97ms/frame* | 892s | None |
 | WavePINO S4 | 0s | 18ms/frame | 0.5s | 90 episodes |
 
+*GP inference includes kernel construction (~33ms) + Cholesky solve (~79ms). Previous report measured solve only.
+
 **GP tradeoff**: No training data required, but 15-minute init per episode.
-GP inference (Cholesky solve) is O(N_obs³) per frame; N_obs varies by episode
+GP inference is O(N_obs³) per frame; N_obs varies by episode
 (slope episodes have more observations → slower, up to 190ms; 30-comp has fewer → 6ms).
 
 ---
@@ -201,32 +203,36 @@ GP inference (Cholesky solve) is O(N_obs³) per frame; N_obs varies by episode
 
 Result file: `gp_uq_coverage_eval.json`
 
+**Bug fixed**: Previous results (100% coverage) used column 3 (ky) instead of column 0 (amplitude).
+Corrected 2026-06-15, re-run completed.
+
 | Nominal | Empirical | Error | Status |
 |---------|-----------|-------|--------|
-| 50% | 1.000 | +0.500 | **under-confident** |
-| 68% | 1.000 | +0.320 | **under-confident** |
-| 80% | 1.000 | +0.200 | **under-confident** |
-| 90% | 1.000 | +0.100 | **under-confident** |
-| 95% | 1.000 | +0.050 | **under-confident** |
+| 50% | 0.104 | **-0.396** | over-confident |
+| 68% | 0.152 | **-0.528** | over-confident |
+| 80% | 0.195 | **-0.605** | over-confident |
+| 90% | 0.248 | **-0.652** | over-confident |
+| 95% | 0.292 | **-0.658** | over-confident |
 
-CRPS mean: 0.822 | Mean posterior std: 3.44 m
+CRPS mean: 0.236 | Mean posterior std: **0.052 m**
 
-**Diagnosis: GP posterior is severely under-confident (intervals too wide).**
-- Prior variance = Σ_n A_n²/2 ≈ 8-16 m² → prior std ≈ 3-4 m
-- Observation coverage is sparse (LiDAR near-ship only)
-- Most prediction grid points far from obs → posterior ≈ prior
-- Result: 100% of true values fall within ±2σ of prior mean
+**Root cause: reg_amp amplitude degeneration**
+- L2 regularization (λ=2.0) collapses all A_n to single value = sqrt(2·s_global/n_comp)
+- Estimated var captures only **11-31%** of true wave variance:
+  - BF3_5comp: est=0.002 vs true=0.023 (11%)
+  - BF4_15comp: est=0.018 vs true=0.090 (20%)
+  - BF5_30comp: est=0.078 vs true=0.250 (31%)
+- Result: posterior std ≈ 0.02-0.09m while actual residuals ≈ 0.1-0.5m
 
-**Physical interpretation**:
-- GP correctly captures near-obs region (good nRMSE)
-- Far from obs, uncertainty stays near prior (physically correct but over-conservative)
-- Full-grid empirical coverage = 100% because prior std >> wave amplitude at unobserved locations
+**Why GP mean is still accurate despite wrong amplitude:**
+- GP mean = K_po·(K_oo + σ²I)^{-1}·z_obs — the inverse compensates for small K
+- Variance = K(x*,x*) - reduction → both terms scale with wrong A² → UQ fails
 
 **Implication for thesis**:
-- GP K_disp provides valid UQ in the sense that true values always fall in intervals
-- BUT intervals are not sharp (CRPS=0.82, sharpness std=3.44m >> Hs/4)
-- Calibration improvement: scale prior variance, or report coverage near-obs only
-- This is a known limitation of GPs with very sparse observations relative to domain size
+- GP K_disp **cannot provide meaningful UQ** with current amplitude estimation
+- reg_amp trades UQ quality for prediction stability (amplitude is nuisance parameter)
+- **Recommendation**: present GP UQ as a "framework capability", not validated result
+- Possible fix: post-hoc variance scaling via empirical calibration factor
 
 ---
 
@@ -251,14 +257,14 @@ CRPS mean: 0.822 | Mean posterior std: 3.44 m
 2. **Method**: Two-stage K_disp estimation algorithm
    - Stage 1: WaveSplat multi-start direction estimation (physics-constrained Adam, 5 seeds)
    - Stage 2: Regularized per-component amplitude MAP estimation
-   - GP posterior: amplitude-aware, exact Bayesian inference, full UQ
+   - GP posterior: exact Bayesian inference, UQ framework (amplitude calibration needed)
 
 3. **Results**: Improvements on 30-episode benchmark (same eval protocol)
    - nRMSE: 0.263 (WaveSplat) → **0.223** (ws_ms5_reg_amp) [**15.2% improvement**]
    - Pearson: 0.346 (WaveSplat) → **0.489** (ws_ms5_reg_amp) [**41% improvement**]
    - Skill: -0.275 → **-0.012** [**95% improvement**]
-   - Full uncertainty quantification (posterior variance)
-   - vs WavePINO S4 (0.220): 1.4% gap — comparable on different eval protocols
+   - UQ framework via GP posterior (currently overconfident — needs amplitude calibration)
+   - vs WavePINO S4 (0.228, fair 30-ep): GP wins by 2.1% on same evaluation protocol
 
 4. **Future work**: Close oracle-practical gap (0.126 → 0.223)
    - λ=0.5 + tp=4.0 tuning on ws_ms5_reg_amp (estimated ~0.215-0.218)

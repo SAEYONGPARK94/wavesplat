@@ -47,7 +47,7 @@ def gp_predict_full(K_oo, K_po, z_obs, sigma_obs, beam_components):
     reduction = np.sum(V**2, axis=0)   # (n_pred,)
 
     # Prior diagonal: K_disp(x*, x*) = sum_n A_n^2/2
-    A = beam_components[:, 3]   # amplitude column
+    A = beam_components[:, 0]   # amplitude = column 0 (NOT 3, which is ky)
     prior_var = float(np.sum(A**2 / 2.0))
     prior_diag = prior_var * np.ones(K_po.shape[0])
 

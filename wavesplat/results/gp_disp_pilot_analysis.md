@@ -175,7 +175,7 @@ Result file: `pino_s4_30ep_eval.json`
 | Skill | −0.012 | **+0.107** | WavePINO better Skill |
 | UQ | ✓ full posterior | ✗ none | GP only |
 | Training data | ✗ none | ✓ 90 episodes | GP more practical |
-| Init cost | ~892s/ep (CPU) | ~0.5s/ep (GPU) | WavePINO ~1800× faster |
+| Init cost | ~385s/ep (CPU) | ~0.4s/ep (GPU) | WavePINO ~960× faster |
 
 **Key finding**: WavePINO's original 0.220 result was on a different 6-episode protocol
 (slope+uniform mixed, seed 0 only). On the same 30-episode fair comparison,
@@ -187,15 +187,15 @@ Result file: `compute_cost_comparison.json`
 
 | Method | Init | Inference | Total/episode | Training |
 |--------|------|-----------|--------------|---------|
-| WaveSplat | 110s | 13ms/frame | 110s | None |
-| GP K_disp (ms5) | 889s | ~97ms/frame* | 892s | None |
-| WavePINO S4 | 0s | 18ms/frame | 0.5s | 90 episodes |
+| WaveSplat | 77s | 13ms/frame | 78s | None |
+| GP K_disp (ms5) | 385s | 14ms/frame | 385s | None |
+| WavePINO S4 | 0s | 12ms/frame | 0.4s | 90 episodes |
 
-*GP inference includes kernel construction (~33ms) + Cholesky solve (~79ms). Previous report measured solve only.
+Measured on RTX 3060 Ti 8GB + CPU (single process, no contention).
+GP inference = kernel construction + Cholesky solve (14ms total for ~60 obs, 15 components).
 
-**GP tradeoff**: No training data required, but 15-minute init per episode.
-GP inference is O(N_obs³) per frame; N_obs varies by episode
-(slope episodes have more observations → slower, up to 190ms; 30-comp has fewer → 6ms).
+**GP tradeoff**: No training data required, but ~6min init per episode (5-seed WaveSplat).
+GP inference is O(N_obs³) per frame; N_obs varies by episode (10-21ms range).
 
 ---
 

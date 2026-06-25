@@ -15,6 +15,7 @@ Physical basis:
   - Full dispersion: omega = sqrt(g * k * tanh(k * d))
 """
 
+import math
 import numpy as np
 from dataclasses import dataclass
 from typing import Optional, Tuple, List
@@ -163,7 +164,7 @@ class HOSSimulator:
                 if j not in eta_powers:
                     eta_powers[j] = eta_powers[j - 1] * eta_phys
                 eta_j = eta_powers[j]
-                factorial_j = np.math.factorial(j)
+                factorial_j = math.factorial(j)
 
                 # L_j * phi^(m-j) in physical space
                 Lj_phi = self._to_physical(self.Ln[j] * phi_m_hat[m - j])
@@ -180,7 +181,7 @@ class HOSSimulator:
                 if j not in eta_powers and j > 0:
                     eta_powers[j] = eta_powers[j - 1] * eta_phys
                 eta_j = eta_powers.get(j, np.ones_like(eta_phys))
-                factorial_j = np.math.factorial(j)
+                factorial_j = math.factorial(j)
 
                 Ljp1_phi = self._to_physical(self.Ln[j + 1] * phi_m_hat[m - j])
                 W_phys += eta_j * Ljp1_phi / factorial_j

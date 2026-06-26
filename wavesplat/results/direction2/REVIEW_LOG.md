@@ -119,3 +119,18 @@ off-grid 연속 성분 정밀화). 이게 Direction I과 II를 묶는 박사 핵
 ### 판정
 ✅ **개념(prior) GO / 격자·naive-합성 NO-GO / 근본원인 = 단일윈도우 정보부족.**
 → 다음 우선순위 전환: **Direction I (CRB + synthetic-aperture 이론)** 으로 "시간융합이 정답"을 증명.
+
+---
+
+## 방법론 추가 검토 (종합) — 2026-06-26
+
+**메타 결론: 병목은 알고리즘이 아니라 정보(information-limited).** 상세: [docs/direction2_methodology_review.md](../../docs/direction2_methodology_review.md)
+
+**핵심 추가 실험 (synthetic aperture):** 관측 200점 고정, 시간폭 변화 → 미세방향(10°) 식별력이
+단순해상에서 시간폭 따라 증가(0.7s:1.1 → 3.1s:5.9), 복잡해상은 noisy/평평. → **시간이 방향정보를
+추가하나 ~3초(0.3주기)라 제한적.** ST-DF-GP(시간융합 0.205)가 single-window(0.28)보다 좋은 이유.
+
+**3분류 판정:** (A)추론 재배열=한계효과 ✗ / (B)정보추가(시간개구)=진짜 레버 ◯ / (C)불확실성 끌어안기(보정 UQ)=정직+novel ◎.
+
+**연구 방향 전환:** 방향 point추정기 개선 중단 → (I)CRB 백본 + (B)전-윈도우 dispersion-manifold 추정 +
+(C)확률적 predictable zone/보정 UQ. 부정결과(T-NSE, Step3/4)는 "왜 영리한 추정기로 안 되는가"의 토대.

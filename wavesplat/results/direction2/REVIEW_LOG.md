@@ -87,3 +87,35 @@
 ### E. 판정
 ✅ **개념 GO / 격자 NO-GO.** 다음 = **Step 4: grid-free 합성**(diffusion prior 방향 초기화 →
 off-grid 연속 성분 정밀화). 이게 Direction I과 II를 묶는 박사 핵심 기여 후보.
+
+---
+
+## Step 4 — grid-free 합성 (prior init → off-grid refine)
+
+**날짜:** 2026-06-26
+
+### 결과 (field nRMSE, 3 에피소드 평균)
+| init \ refine | no refine | reg refine(best) |
+|---|---|---|
+| no-prior(grid-MLE) | 1.000 (실패) | 1.000 |
+| **diffusion prior** | 0.294 | **0.278** (거의 불변) |
+| oracle 방향 | **0.090** | 0.104 |
+| (참고) exact 연속 | 0.090 | — |
+
+### 핵심 결론 — 깨끗한 NO-GO, 정밀 진단
+- **off-grid refinement가 oracle gap을 못 닫는다:** prior 0.294 → refine 0.278 (5%만 개선). oracle(0.09)에 한참 못 미침.
+- **과적합은 trust-region으로 해결되나(oracle 0.167→0.104), prior-init은 애초에 안 움직임.**
+- **근본 원인 = Step1의 "30° flat".** 정답 근방 likelihood가 평평(0.18 nat/obs) → local 최적화가 받을 gradient 신호가 없음. prior가 거친 위치를 줘도 미세 정밀화 불가.
+
+### 통합 통찰 (모든 단계 수렴) — 박사 핵심 서사
+1. **데이터 자체에 미세 방향정보가 없다(aperture problem).** Step1(30° flat) = 낮은 Fisher 정보 = 높은 CRB. prior·refine 어떤 영리한 추론도 *없는 정보*를 만들 순 없음.
+2. **유일한 탈출구 = 유효 개구 확장(synthetic aperture) = 시간(여러 프레임) 활용.** 이게 정확히 **ST-DF-GP(W프레임 융합, 0.205)** 가 single-window(0.28)보다 잘 되는 이유.
+3. → 박사 기여는 "마법 추정기"가 아니라 **(I) 근본한계(CRB) 규명 + (II) 학습 prior의 견고성·한계 + 결론적으로 (winning) space-time 합성이 정답임을 이론·실증으로 입증.**
+
+### 박사 novelty / contribution
+- **음성결과도 강한 기여:** "single-window에선 prior로도 한계 — 정보가 없어서"를 CRB로 증명하면, ST-DF-GP의 시간융합이 *필연*임을 보이는 이론적 정당화. 이게 Direction I을 박사 1순위로 끌어올림.
+- 정직: Step4 naive 합성은 실패. 그러나 실패가 "왜 시간융합이 답인가"를 규정 → 연구 서사 완성.
+
+### 판정
+✅ **개념(prior) GO / 격자·naive-합성 NO-GO / 근본원인 = 단일윈도우 정보부족.**
+→ 다음 우선순위 전환: **Direction I (CRB + synthetic-aperture 이론)** 으로 "시간융합이 정답"을 증명.

@@ -79,7 +79,10 @@ def main():
     rng = np.random.default_rng(0); phases = rng.uniform(0, 2*np.pi, len(wc))
     t_star = float(L[I_STAR].t)
     T_obs_list = [2, 4, 6, 8, 10, 12, 15, 20]
-    T_coh_list = [(None, 'stationary'), (20., 'T_coh=20s'), (10., 'T_coh=10s'), (6., 'T_coh=6s')]
+    # realistic spectral quasi-stationarity ~20 min (120 wave periods); 10-20s is unrealistic
+    T_coh_list = [(None, 'stationary'), (1200., 'T_coh=20min (realistic)'),
+                  (300., 'T_coh=5min'), (20., 'T_coh=20s (unrealistic)'),
+                  (10., 'T_coh=10s (unrealistic)')]
 
     res = {}
     for T_coh, name in T_coh_list:

@@ -33,7 +33,11 @@ def main():
     tags = list(gp.keys())
     out = {}
     for ti, tag in enumerate(tags):
-        L = EpisodeDataLoader('data/' + slope_file(tag)); depth = L.depth; Hs = L.Hs_true
+        try:
+            L = EpisodeDataLoader('data/' + slope_file(tag))
+        except Exception as e:
+            print(f"[{ti+1:2d}/30] {tag:12s} SKIP (corrupt slope file)", flush=True); continue
+        depth = L.depth; Hs = L.Hs_true
         wc = np.array(L.wave_components); tkx, tky = wc[:, 2], wc[:, 3]
         gx = L.gt_grid_x.numpy(); gy = L.gt_grid_y.numpy()
         Tobs = K_TP * L.Tp_true; n_back = int(round(Tobs / 0.1))

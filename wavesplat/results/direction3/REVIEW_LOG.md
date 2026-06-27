@@ -57,3 +57,33 @@
 ✅ **grid-free GO** (격자 병목 해소, grid-oracle 격파, 보정 UQ 획득) /
 **정보의 벽은 잔존**(Dir-I 확증). 다음: (C) DPS posterior UQ를 CRB predictable-zone에 보정,
 또는 전-윈도우(시간융합) likelihood로 정보의 벽 자체를 낮추기(Dir-I이 가리킨 유일한 레버).
+
+---
+
+## Step 2 — pilot (a) 시간융합 + (b) UQ 보정 (둘 다 검토)
+
+**날짜:** 2026-06-27 · 코드: [d4_timefusion.py](../../scripts/d4_timefusion.py), [d4_uq_calibration.py](../../scripts/d4_uq_calibration.py)
+
+### (a) 전-윈도우 시간융합 — "정보의 벽 낮추기" (GO, 복잡도 의존)
+grid-free DPS 관측창 W를 고정 target에서 키우며 BMA nRMSE:
+| 에피소드 | W=10(1s) | W=30(3s) | W=60(6s) |
+|---|---|---|---|
+| BF4 5c | 0.252 | **0.190** | 0.190 |
+| BF4 15c | 0.270 | 0.270 | 0.269 |
+- **5c(식별가능):** 1→3s에서 0.252→0.190 급감 후 포화. **0.190 < WaveSplat fused 0.205** — 시간융합(synthetic aperture)이 벽을 실제로 낮춤. ✅
+- **15c(복잡):** 6s까지 평평 — 벽이 높아 6s 부족. Dir-I "복잡할수록 T_wall 큼"과 정확히 일치.
+- → 시간은 진짜 레버, 단 복잡한 바다엔 더 긴 윈도우 필요.
+
+### (b) DPS UQ 보정 vs CRB predictable-zone (GO for C)
+BF4_5c, posterior 16샘플:
+- **공간구조(물리일관성):** corr(log σ_post, log CRB σ_z) = **0.648** — DPS posterior 불확실성 맵이
+  Dir-I CRB predictable-zone과 강한 공간일치. **불확실한 곳=CRB가 어렵다는 곳.**
+- **scale(reliability):** raw ±1σ coverage 0.39 (이상 0.68) → **과신(overconfident)**. corr(σ_post,|err|)=0.18.
+- **1-파라미터 재보정(s=1.97):** ±1σ→0.68, ±2σ→0.95 (교과서적 보정). → scale은 온도 1개로 해결.
+- → **DPS UQ는 물리일관 공간구조 + 1-param 보정으로 calibrated** = (C) 기여 성립.
+
+### 통합 결론 (둘 다 검토 완료)
+- (a)+(b)는 상보적: **시간융합으로 벽을 낮추고(achievable↓), 못 낮춘 잔여 불확실성은 CRB-일관 보정 UQ로 정직하게 표현.**
+- 박사 최종 서사: **(I) 벽의 위치를 CRB로 규명 → (III) grid-free prior로 표현병목 제거 →
+  (a) 시간융합으로 벽을 낮춤(식별가능 영역) → (b) 남은 불확실성은 CRB-calibrated UQ로 보고.**
+- 다음 본작업 후보: 시간융합 likelihood + 보정 UQ를 결합한 grid-free 추정기를 전체 데이터셋에 평가.

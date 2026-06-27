@@ -162,3 +162,24 @@ UQ: 전역 보정 s=1.38 → **±1σ coverage 0.68 / ±2σ 0.93** (잘 보정됨
 ### E. 판정
 ✅ **메인 결과 성립.** grid-free DPS = 복잡 다방향 해상 전용 강건 추정기 + 보정 UQ. 다음: 다중프레임 평균으로
 노이즈 축소(공정성↑), raydrop=slope 일반화, 논문 메인 figure/table 확정.
+
+---
+
+## Step 5 — 실배포 순차추정기 + 메인결과 + 예보 + 일반화 (2026-06-28 자율세션)
+
+**실배포 순차추정기 (관측만):** 트랙누적 → 분산제약 beamform → RELAX add/prune → off-grid refine → warm-start. 비단조성(처음부터 재추정 불안정) 해소, Pearson 단조↑, 모델차수 자가적응.
+
+**메인 결과 (전 30ep×5프레임, 주기비례 윈도우 2.2·Tp):**
+overall **nRMSE 0.130 (P0.81, skill0.64) vs ST-DF-GP 0.205 (−37%)**, oracle 0.037. 6개 sea-state 전부 격파. 진짜 재구성(P 0.57~0.98, VR 0.77~0.84). [d23, fig_main_results]
+
+**예보:** 성분 분산전파 → 0~5초 리드 skill 평평(P 0.95~0.98), persistence ~1초후 붕괴. [d24, fig_forecast]
+
+**slope 일반화:** 일반화 + 오히려 개선(0.060 vs uniform 0.135). 검증: 성분·GT 동일, slope 샘플링이 ~6~30배 informative(CRB 491→79). **실센서모델 능동센싱 증거.** [d25] ⚠️ slope 8개 손상(데이터 이슈).
+
+**비정상성 정정:** sea coherence ~20분(문헌) >> 윈도우 → stationarity-safe. (10~20s 가정은 ~2자릿수 오류, 정정).
+
+**정직성 (FACT_CHECK_2026-06-27.md):** oracle=상한 vs 배포=실현 구분; 주기비례 윈도우 이점=시간누적(운용공짜·정상성안전·GP는 못씀); 전 지표 보고; hybrid 게이트=메타데이터.
+
+**논문:** docs/paper_draft_v2.md(scaffold), paper_draft_full.md(전문). STATUS: STATUS_2026-06-28.md.
+
+**판정:** ✅ 논문 센터피스 + 응용 페이오프 + 일반화 + 정직 프레이밍 완비. 남은 것: oracle gap(성분ID) 좁히기, 실데이터/다방향(ocean basin), DPS 동일 시간예산 대칭표.

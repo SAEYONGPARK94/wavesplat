@@ -171,6 +171,23 @@ where the wall bites.
 - **Forecast-skill product (predictable-zone CRB → calibrated forecasts):** turns the
   predictable-zone into a deliverable; pairs naturally with sequential fusion.
 
+### 5.3b Sequential time fusion — breaks the wall on complex seas (`d15`)
+Growing the observation window over a track [t*−T_obs, t*] and reconstructing at t*
+with the efficient estimator — both CRB and achieved error collapse:
+| sea | 1 s (single-window) | 6 s | 15 s | single-window DPS / ST-DF-GP |
+|---|---|---|---|---|
+| BF4 15c | 0.082 | 0.040 | **0.033** | 0.227 / 0.232 |
+| BF4 30c | 0.131 | 0.042 | **0.030** | 0.230 / 0.287 |
+| BF5 30c | 0.163 | 0.064 | **0.018** | 0.192 / 0.274 |
+Accumulating ~10–15 s of track (operationally free — the ship scans continuously)
+reconstructs the *hardest* seas to **0.02–0.03**, far below both single-window
+methods and below the old "single-window exact" 0.06 floor. This is **the** lever:
+ST-DF-GP fuses only W=10 (1 s) — below T_wall for complex seas — which is exactly
+why it fails there. *(Efficient estimator uses the true wavenumbers — it establishes
+that the information is present once T_obs > T_wall; building the actual sequential
+estimator over the fused window is the implementation, and is far easier than the
+single-window case because the CRB is now 0.01–0.27.)*
+
 ### 5.4 Updated recommendation (control excluded)
 1. **Harden the hybrid** — implement+validate the deployable gate (5.1) on 100
    episodes + multi-frame. *Proven-win consolidation.*

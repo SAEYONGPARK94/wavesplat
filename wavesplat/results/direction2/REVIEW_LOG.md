@@ -134,3 +134,10 @@ off-grid 연속 성분 정밀화). 이게 Direction I과 II를 묶는 박사 핵
 
 **연구 방향 전환:** 방향 point추정기 개선 중단 → (I)CRB 백본 + (B)전-윈도우 dispersion-manifold 추정 +
 (C)확률적 predictable zone/보정 UQ. 부정결과(T-NSE, Step3/4)는 "왜 영리한 추정기로 안 되는가"의 토대.
+
+---
+
+## ➡️ Direction I 착수 (2026-06-27)
+CRB 백본 구현·검증 완료. "병목=정보"를 **엄밀 증명**: 정보의 벽 T_wall(5c:0.1s / 15c:4.3s / 30c:9.7s),
+유효개구 D_eff=L+c_g·T_obs(검증 slope −1.09), 추정기 near-optimality(5c는 CRB 3배 이내, 15/30c는
+CRB 발산→편향 필수). 상세: [direction1/REVIEW_LOG.md](../direction1/REVIEW_LOG.md), [direction1/REPORT.md](../direction1/REPORT.md).

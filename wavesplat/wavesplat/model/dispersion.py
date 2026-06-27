@@ -33,6 +33,32 @@ def dispersion_omega(k_mag: torch.Tensor, depth: float) -> torch.Tensor:
     return torch.sqrt(G * k_mag * torch.tanh(kd) + 1e-12)
 
 
+def group_velocity(k_mag: torch.Tensor, depth: float) -> torch.Tensor:
+    """
+    Group velocity c_g = dω/dk for the full dispersion relation.
+
+        ω² = g·k·tanh(kd)
+        2ω·dω/dk = g·[tanh(kd) + kd·sech²(kd)]
+        c_g = g·[tanh(kd) + kd·sech²(kd)] / (2ω)
+
+    Deep-water limit (kd→∞): c_g → g/(2ω) = c/2 (half the phase speed).
+    This is the advection speed of wave energy and sets the synthetic
+    aperture c_g·T_obs accumulated over an observation window (Direction I).
+
+    Args:
+        k_mag: (N,) wavenumber magnitudes [rad/m], must be > 0
+        depth: water depth [m]
+
+    Returns:
+        c_g: (N,) group velocity [m/s]
+    """
+    kd = k_mag * depth
+    tanh_kd = torch.tanh(kd)
+    sech2_kd = 1.0 - tanh_kd ** 2
+    omega = torch.sqrt(G * k_mag * tanh_kd + 1e-12)
+    return G * (tanh_kd + kd * sech2_kd) / (2.0 * omega + 1e-12)
+
+
 def wavenumber_from_omega(omega: torch.Tensor, depth: float,
                           n_iter: int = 20) -> torch.Tensor:
     """

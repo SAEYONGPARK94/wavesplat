@@ -61,5 +61,32 @@
 
 ### F. 판정
 ✅ **GO — CRB 백본 성립.** FIM 검증·유효개구 검증·정보의 벽 정량화·추정기 near-optimality 판정 모두 완료.
-다음: (1) 다seed CRB 밴드, (2) **predictable-zone CRB**(목표 예보시각에 CRB<thr 공간영역) →
-(C) 보정UQ/predictable-zone 작업과 연결, (3) ST-DF-GP 효율 vs T_obs 전구간 추적.
+
+---
+
+## Step 2 — predictable-zone CRB (식별성 기반, 기하학 아님)
+
+**날짜:** 2026-06-27 · 코드: [scripts/d1_predictable_zone.py](../../scripts/d1_predictable_zone.py)
+
+### A. 무엇을 했나
+관측창 [0,t_now]의 F로부터 예보시각 t*=t_now+Δt 에서 점별 field CRB σ_z(x,y,t*)/Hs=√(gᵀF⁻¹g)
+공간맵 계산. predictable zone = {σ_z/Hs < 0.10}. 기하학적 c_g-cone(footprint를 성분별 군속도로
+이류) overlay로 대조.
+
+### B. 결과 (두 체제)
+| 체제 | 설정 | Δt=0 | Δt=4s | Δt=8s |
+|---|---|---|---|---|
+| **식별됨** | 5c, t_now=2s (벽 통과) | 100% 격자 | 100% | 100% |
+| **부분식별** | 15c, t_now=5s (벽 근처) | 77% | 87% | 90% |
+
+### C. 핵심 발견 — predictability는 식별성 속성이지 전파 속성이 아니다
+- **식별된 모델(5c)**: 한번 파라미터가 잡히면 field는 **모든 공간·모든 미래시각에서 예측가능** →
+  기하학적 predictable zone 자체가 없음 (parametric 전역모델이라 당연).
+- **부분식별(15c 벽 근처)**: zone이 **유계+구조적**(σ/Hs 최대 0.45, 국소적으로 zero보다 나쁜 패치).
+  경계는 **FIM이 어떤 스펙트럼 성분을 고정하는가**로 결정 — **c_g-cone과 불일치**(cyan은 footprint
+  근처, predictable 영역은 훨씬 멀리). → 고전 DSWP(기하학적 cone)와 **본질적으로 다른** novel 결과.
+- → (C) 연결: CRB 맵 = 물리기반 predictability mask. 보정UQ/hydrofoil feedforward의 신뢰영역.
+
+### D. 판정
+✅ **GO — novel predictable-zone 정식화.** "predictability = 정보의 벽을 field로 전파한 식별성"이
+한 줄 결론. 다음: ST-DF-GP UQ를 이 CRB mask에 보정 (C 작업).

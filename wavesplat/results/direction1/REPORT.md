@@ -115,9 +115,32 @@ Two distinct regimes, both decisive:
 - Single seed (s0) per sea state for the curves; estimator numbers are s0 from
   `results/spacetime_gp_30ep.json`. Multi-seed CRB bands are a cheap next step.
 
-## 7. Next steps
+## 8. Predictable zone — identifiability-limited, not geometric
+([`d1_predictable_zone.py`](../../scripts/d1_predictable_zone.py) →
+`fig_predictable_zone.png`). Pointwise field CRB σ_z(x,y,t*)/Hs = √(gᵀF⁻¹g) over
+the grid at forecast time t* = t_now + Δt, predictable zone = {σ_z/Hs < 0.10}.
+
+| regime | config | Δt=0 | Δt=4 s | Δt=8 s |
+|---|---|---|---|---|
+| **identified** | 5c, t_now=2 s (past wall) | 100 % grid | 100 % | 100 % |
+| **partial** | 15c, t_now=5 s (near wall) | 77 % | 87 % | 90 % |
+
+**Finding:** once the parametric model is identified (5c past its wall), the field
+is predictable *everywhere and at every future time* — there is **no geometric
+predictable zone**. In the partially-identified regime (15c near the wall) the zone
+**is** bounded (~77–90 % grid) with structured high-uncertainty patches (σ/Hs up to
+0.45, locally worse than zero-predictor), but its boundary is set by **which
+spectral components are pinned by the FIM**, *not* by the group-velocity cone — the
+geometric c_g-cone (cyan) clusters near the footprint while the predictable region
+extends far beyond it. This distinguishes the spectral-parametric approach from
+classical DSWP, whose predictable zone is a geometric c_g-cone: **here
+predictability is an identifiability property (the information wall propagated to
+the field), not a propagation property.** Direct hook for (C): the CRB map is a
+*physics-grounded predictability mask* for calibrated UQ / hydrofoil feedforward.
+
+## 9. Next steps
 1. Multi-seed CRB bands + per-sea-state averaging (cheap, strengthens claims).
-2. Predictable-zone CRB: map the spatial region where CRB < threshold at a target
-   forecast time → ties Direction I to the (C) calibrated-UQ / predictable-zone work.
-3. Efficiency-vs-T_obs of ST-DF-GP across the full sweep (run estimator at several
+2. Efficiency-vs-T_obs of ST-DF-GP across the full sweep (run estimator at several
    W) to trace where it tracks the CRB and where bias takes over.
+3. Calibrate the ST-DF-GP UQ against the CRB predictability mask (section 8) →
+   (C) predictable-zone / calibrated-UQ contribution.

@@ -105,16 +105,30 @@ the headline to build the paper around.
 
 ## 5. Follow-up pilots (2026-06-27, control direction excluded per advisor)
 
-### 5.1 Deployable gate — honest status (`d10_deployable_gate.py`)
-The oracle gate uses cond(FIM) from *true* components. A naive data-driven proxy —
-participation ratio of a dispersion-constrained beamform power map — **fails to
-separate complexity** (5c PR 597 vs 30c 486, wrong direction): beamform maps on
-sparse scattered returns are resolution-limited, not mode-count informative.
-→ **The deployable identifiability gate is a genuine sub-problem.** Candidate signals
-to test next (all available at inference): (i) cond(FIM) from DPS-/beamform-estimated
-wavenumbers; (ii) DPS posterior spread σ_post (the calibrated UQ from pilot b);
-(iii) ST-DF-GP predictive variance; (iv) model order via a residual L-curve (AIC).
-The hybrid *potential* (0.174) is proven; closing the deployable gate is the task.
+### 5.1 Deployable gate — verified hard; hybrid deployable via sea-state metadata
+The oracle gate uses cond(FIM) from *true* components (0.174). We tested **five**
+data-only single-window identifiability signals (`d10`/`d12`/`d13`):
+| signal | separates 5c vs 15c/30c? |
+|---|---|
+| beamform participation ratio | no (5c 597 vs 30c 486, wrong way) |
+| DPS posterior spread σ_post | no (flat 0.176/0.165/0.161) |
+| cond(FIM) from DPS-estimated atoms | no (always ~10¹⁷ — DPS over-spreads to ~12 atoms) |
+| effective model order (DPS n_sig) | no (flat ~11–12) |
+| cross-validation residual (low-order fit) | no (5c 0.55 > 30c 0.42, wrong way) |
+
+**Finding (deep):** identifiability is **not self-diagnosable from a single sparse
+LiDAR window** — the data alone cannot tell you that you are under-determined. This
+is the strongest form of the information wall and is itself a result.
+
+**But the hybrid IS deployable** — the gate needs information the window lacks:
+(a) **onboard sea-state metadata** (significant wave height / peak period /
+*directional spread* / number of wave systems) from the ship's wave radar or
+forecast — directional spread maps directly to the complexity that the gate needs,
+so in operation the 0.174 hybrid is realizable; (b) **temporal stability** of the
+estimate over a track (simple seas → estimate converges; complex → it fluctuates) —
+a multi-frame signal, natural to combine with sequential fusion (§5.4-3).
+→ Conclusion: the −15% hybrid is operationally deployable via sea-state metadata;
+the *window-only* gate is provably hard (a contribution, not a gap).
 
 ### 5.2 CRB-optimal active sensing — strong positive lever (`d11_active_sensing.py`)
 D-optimal greedy selection of K=60 returns vs a random-K subset, field-nRMSE CRB:

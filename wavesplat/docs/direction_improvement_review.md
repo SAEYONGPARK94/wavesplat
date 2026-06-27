@@ -145,6 +145,20 @@ Active sensing *lowers the wall where information exists*; it cannot manufacture
 information for a severely under-sampled complex sea (30c, K=60). This is the most
 "new-capability" pivot and is built entirely on the Dir-I FIM.
 
+**End-to-end confirmation (`d14_active_sensing_e2e.py`):** running the efficient
+estimator (component-LS) on the selected subsets, the CRB reduction *translates to
+achieved error*, and it matters most for the marginal/complex regime:
+| sea | random nRMSE | cross-range (deployable) | D-optimal |
+|---|---|---|---|
+| BF3 5c | 0.069 | 0.068 | 0.062 |
+| BF4 5c | 0.050 | 0.049 | 0.048 |
+| BF4 15c | 0.204 | **0.163 (−20%)** | **0.138 (−32%)** |
+For simple seas the estimator is already near-floor (small achieved gain despite big
+CRB headroom); for the complex 15c sea smart sampling cuts achieved nRMSE by 20–32%.
+The **deployable** cross-range-spread rule (needs only the dominant direction) keeps
+most of the gain → active sensing is a real, deployable lever, most valuable exactly
+where the wall bites.
+
 ### 5.3 Design-level assessment of the remaining directions
 - **Sequential Bayesian fusion (track filtering with the prior):** high promise for
   complex seas — accumulates the time information the single-window CRB lacks

@@ -90,10 +90,12 @@ We realize the time-fusion lever from observations only: accumulate the track �
 dispersion-constrained beamforming → RELAX-style matching-pursuit component add with
 amplitude pruning → off-grid atomic refinement → warm-start across the growing window.
 Across **all 30 benchmark episodes × 5 frames**, with a period-scaled window, the
-estimator reconstructs the field with overall **nRMSE 0.130 (Pearson 0.81, skill
-0.64)** versus a tuned space-time GP at **0.205 (−37%)**, beating it on **every**
-sea-state (BF3-5c…BF5-30c) with real reconstruction (Pearson 0.57–0.98, VR 0.77–0.84),
-approaching the information bound (oracle 0.037). A CRB-gated hybrid (route precise-GP
+estimator reconstructs the field with overall **nRMSE 0.119 (Pearson 0.84)** versus a
+tuned space-time GP at **0.205 (−42%)**, beating it on **every** sea-state
+(BF3-5c…BF5-30c) with real reconstruction (Pearson 0.62–0.98), approaching the
+information bound (oracle 0.037). Iterating the add/refine passes recovers masked
+components (single-pass 0.130 → 3-pass 0.119); the slope-raydrop sampling is even more
+favorable (0.060, see §5.1). A CRB-gated hybrid (route precise-GP
 vs robust-prior by the FIM condition) gives −15% as an alternative when a sea-state
 estimate is available. *(Honest: the period-scaled window uses more observation time
 than the 1-s GP; the advantage is time accumulation — operationally free under

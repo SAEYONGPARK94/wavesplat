@@ -22,9 +22,9 @@ prior is inert, and post-hoc sharpening fails — all predicted by the CRB. The 
 levers that move the bound are (a) CRB-optimal active sensing (scan design) and
 (b) sequential time fusion. We realize the latter in a deployable recursive estimator
 (dispersion-constrained beamforming + RELAX component management + off-grid
-refinement) that, from observations only and with a period-scaled fusion window,
-reconstructs the field with field nRMSE 0.13 (Pearson 0.81) across BF3–BF5 and 5–30
-components — a 37% improvement over a tuned space-time GP — and provides calibrated
+refinement, iterated) that, from observations only and with a period-scaled fusion
+window, reconstructs the field with field nRMSE 0.119 (Pearson 0.84) across BF3–BF5
+and 5–30 components — a 42% improvement over a tuned space-time GP — and provides calibrated
 posterior uncertainty. We delimit honest scope (simulation; multi-directional
 generalization; a towing-tank validation plan) and position the contribution as the
 limits of the problem plus an uncertainty-aware estimator that respects them.
@@ -60,16 +60,18 @@ limits of the problem plus an uncertainty-aware estimator that respects them.
    future work.
 9. **Conclusion** — limits + design + deployable calibrated estimator.
 
-## Main table (Table 1) — to fill from main_results.json
-| sea-state | ST-DF-GP | deployable RELAX (P) | oracle |
+## Main table (Table 1) — iterative (3-pass) estimator, from main_results_iter.json
+| sea-state | ST-DF-GP | deployable estimator (P) | oracle |
 |---|---|---|---|
-| BF3 5c | 0.106 | 0.084 (0.95) | 0.074 |
-| BF4 5c | 0.073 | 0.055 (0.98) | 0.044 |
-| BF4 15c | 0.232 | 0.131 (0.84) | 0.034 |
-| BF4 30c | 0.287 | 0.209 (0.57) | 0.035 |
-| BF5 15c | 0.255 | 0.125 (0.86) | 0.016 |
-| BF5 30c | 0.274 | 0.178 (0.66) | 0.022 |
-| **overall** | **0.205** | **0.130 (0.81)** | **0.037** |
+| BF3 5c | 0.106 | 0.086 (0.95) | 0.074 |
+| BF4 5c | 0.073 | 0.051 (0.98) | 0.044 |
+| BF4 15c | 0.232 | 0.102 (0.89) | 0.034 |
+| BF4 30c | 0.287 | 0.194 (0.62) | 0.035 |
+| BF5 15c | 0.255 | 0.115 (0.88) | 0.016 |
+| BF5 30c | 0.274 | 0.164 (0.71) | 0.022 |
+| **overall** | **0.205** | **0.119 (0.84)** | **0.037** |
+(single-pass 0.130; iterative 3-pass 0.119 = −42% vs ST-DF-GP. Slope-raydrop even
+lower, 0.060 — see active sensing.)
 
 ## Figure inventory (all generated, in results/direction1, results/direction3)
 fig_information_wall, fig_synthetic_aperture, fig_predictable_zone (Dir-I);

@@ -52,9 +52,13 @@ def eval_W(model, stats, abar, betas, L, W, depth, target, guidance=0.1, nsamp=6
 
 
 def main():
-    ck = torch.load(DP.CKPT, map_location=DEVICE)
+    import argparse
+    ap = argparse.ArgumentParser(); ap.add_argument('--ckpt', default=DP.CKPT)
+    args = ap.parse_args()
+    ck = torch.load(args.ckpt, map_location=DEVICE)
     stats = ck['stats']
-    model = SetDenoiser().to(DEVICE); model.load_state_dict(ck['model']); model.eval()
+    model = SetDenoiser(**ck.get('arch', {})).to(DEVICE)
+    model.load_state_dict(ck['model']); model.eval()
     abar = ck['abar'].to(DEVICE); betas = ck['betas'].to(DEVICE)
 
     episodes = ['episode_BF4_5comp_seed0_uniform.h5', 'episode_BF4_15comp_seed0_uniform.h5']

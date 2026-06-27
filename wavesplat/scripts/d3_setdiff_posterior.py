@@ -119,11 +119,13 @@ def main():
         'episode_BF3_5comp_seed1_uniform.h5'])
     ap.add_argument('--guidance', type=float, default=0.3)
     ap.add_argument('--nsamp', type=int, default=4)   # posterior samples (UQ)
+    ap.add_argument('--ckpt', default=CKPT)
     a = ap.parse_args()
 
-    ck = torch.load(CKPT, map_location=DEVICE)
+    ck = torch.load(a.ckpt, map_location=DEVICE)
     stats = ck['stats']
-    model = SetDenoiser().to(DEVICE); model.load_state_dict(ck['model']); model.eval()
+    model = SetDenoiser(**ck.get('arch', {})).to(DEVICE)
+    model.load_state_dict(ck['model']); model.eval()
     abar = ck['abar'].to(DEVICE); betas = ck['betas'].to(DEVICE)
 
     print(f"guidance={a.guidance}  nsamp={a.nsamp}")

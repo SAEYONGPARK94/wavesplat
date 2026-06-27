@@ -100,3 +100,54 @@ Both convert the CRB from a limit into a tool, which is the advisor-positive arc
 
 Numbers: ST-DF-GP 0.205 → CRB-gated hybrid **0.174** (−15%, ≈ oracle 0.171). That is
 the headline to build the paper around.
+
+---
+
+## 5. Follow-up pilots (2026-06-27, control direction excluded per advisor)
+
+### 5.1 Deployable gate — honest status (`d10_deployable_gate.py`)
+The oracle gate uses cond(FIM) from *true* components. A naive data-driven proxy —
+participation ratio of a dispersion-constrained beamform power map — **fails to
+separate complexity** (5c PR 597 vs 30c 486, wrong direction): beamform maps on
+sparse scattered returns are resolution-limited, not mode-count informative.
+→ **The deployable identifiability gate is a genuine sub-problem.** Candidate signals
+to test next (all available at inference): (i) cond(FIM) from DPS-/beamform-estimated
+wavenumbers; (ii) DPS posterior spread σ_post (the calibrated UQ from pilot b);
+(iii) ST-DF-GP predictive variance; (iv) model order via a residual L-curve (AIC).
+The hybrid *potential* (0.174) is proven; closing the deployable gate is the task.
+
+### 5.2 CRB-optimal active sensing — strong positive lever (`d11_active_sensing.py`)
+D-optimal greedy selection of K=60 returns vs a random-K subset, field-nRMSE CRB:
+| sea | random | cross-range heuristic | **D-optimal** | gain |
+|---|---|---|---|---|
+| BF4 5c  | 0.302 | 0.160 | **0.092** | **69%** |
+| BF4 15c | 69.6 | 51.8 | **17.2** | 75% (still vacuous abs.) |
+| BF4 30c | 1458 | 1513 | 1519 | −4% (under-sampled) |
+
+**Where you sample matters enormously** — up to 69% CRB reduction for identifiable
+seas — so **scan/return design is a real, novel lever**. The cross-range-spread
+heuristic alone gives 47%, confirming Dir-I's "direction is cross-range-limited".
+Active sensing *lowers the wall where information exists*; it cannot manufacture
+information for a severely under-sampled complex sea (30c, K=60). This is the most
+"new-capability" pivot and is built entirely on the Dir-I FIM.
+
+### 5.3 Design-level assessment of the remaining directions
+- **Sequential Bayesian fusion (track filtering with the prior):** high promise for
+  complex seas — accumulates the time information the single-window CRB lacks
+  (the wall needs ~10 s). Medium effort (filter loop around DPS). Recommended #2.
+- **Conditional (amortised) diffusion posterior p(S|z):** removes DPS guidance
+  tuning, fast inference, can be gated; distinct from the failed T-NSE point
+  regressor. Higher effort (train a conditional model). Good medium-term bet.
+- **Real-data + weakly-nonlinear (Stokes-2/HOS):** the credibility upgrade; removes
+  "sim-only/linear". Effort = data access. Strategic, do before publication.
+- **Forecast-skill product (predictable-zone CRB → calibrated forecasts):** turns the
+  predictable-zone into a deliverable; pairs naturally with sequential fusion.
+
+### 5.4 Updated recommendation (control excluded)
+1. **Harden the hybrid** — implement+validate the deployable gate (5.1) on 100
+   episodes + multi-frame. *Proven-win consolidation.*
+2. **CRB-optimal active sensing** (5.2) — the standout novel positive pivot;
+   demonstrate on simulated scan patterns end-to-end (CRB → achieved error).
+3. **Sequential Bayesian fusion** (5.3) — to attack complex seas via accumulated time
+   information, where active sensing alone saturates.
+Real-data + nonlinear validation underpins all three for publication.

@@ -78,3 +78,21 @@ way past them, with a deployable estimator and calibrated UQ."
 3. **Give DPS/ST-DF-GP the same time budget** in head-to-heads (fairness).
 4. Always report **VR/Pearson/skill**, never nRMSE alone.
 5. State **oracle vs deployable** and **gate = metadata** explicitly wherever cited.
+
+## E. CORRECTION (2026-06-28) — non-stationarity timescale was unrealistic
+Earlier I suggested a sea-state coherence time of ~10–20 s as a fusion-window upper
+bound. **That is wrong by ~2 orders of magnitude.** Oceanographic literature:
+- **Standard quasi-stationarity ≈ 20 min (≈120 wave periods)**; often 1 h–several h.
+- **Minimum quasi-stationarity ≈ 8–12 min** (500–700 s ≈ 100 char. periods).
+- Sea states = alternating stationary periods + brief transitions.
+
+**Concrete check** (`d22`, realistic T_coh): non-stationarity error over a 20 s window
+is **0.011 at T_coh=20 min** (negligible) and 0.043 at 5 min; only the unrealistic
+10–20 s T_coh gives 0.11–0.24.
+
+**Corrected conclusion:** the ~15–25 s (even up to minutes) fusion window is **deep
+within the stationary regime** — non-stationarity is **NOT a practical upper bound**.
+What changes on ~10 s scales is wave *groups* (deterministic, already modelled) and
+nonlinear evolution (~minutes), not the spectrum. Real window limits = ship
+ego-motion / predictable-zone geometry, compute, deterministic forecast horizon.
+Recency weighting is a cheap safeguard for rare sea-state *transitions* only.

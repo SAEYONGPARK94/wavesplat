@@ -181,6 +181,44 @@ def extract_peaks(Hp, n_max=32, thresh=0.1):
 
 
 @torch.no_grad()
+def net_detect_iterative(model, P, z, rounds=3, per_round=12):
+    """Detect -> ridge-fit -> subtract -> re-beamform residual -> detect more.
+    The residual iteration was the ingredient that made beamform-detect reach
+    RELAX level in the d3 line; the single-shot map buries secondary peaks
+    under the dominant ones."""
+    kx_all = np.zeros(0, np.float32)
+    ky_all = np.zeros(0, np.float32)
+    z_res = z.copy()
+    for _ in range(rounds):
+        Bmap = beamform(torch.tensor(P[None], device=DEVICE,
+                                     dtype=torch.float32),
+                        torch.tensor(z_res[None], device=DEVICE,
+                                     dtype=torch.float32))
+        kx, ky = extract_peaks(model(Bmap)[0], n_max=per_round)
+        if len(kx) == 0:
+            break
+        # drop near-duplicates of already-kept bins
+        if len(kx_all):
+            dm = np.hypot(kx[:, None] - kx_all[None], ky[:, None] - ky_all[None])
+            keep = dm.min(1) > (2 * KLIM / (NK - 1)) * 1.5
+            kx, ky = kx[keep], ky[keep]
+        if len(kx) == 0:
+            break
+        kx_all = np.concatenate([kx_all, kx])
+        ky_all = np.concatenate([ky_all, ky])
+        obs = np.column_stack([P, z]).astype(np.float32)
+        A_f, ph_f = fit_amplitudes_phases(kx_all, ky_all, obs, DEPTH,
+                                          lambda_reg=1.0)
+        om_f = omega_of(kx_all.astype(float), ky_all.astype(float), DEPTH)
+        psi = (kx_all[None].astype(float) * P[:, 0:1]
+               + ky_all[None].astype(float) * P[:, 1:2]
+               - om_f[None] * P[:, 2:3] + np.asarray(ph_f, float)[None])
+        z_res = (z - (np.asarray(A_f, float)[None] * np.cos(psi)).sum(1)) \
+            .astype(np.float32)
+    return kx_all, ky_all
+
+
+@torch.no_grad()
 def evaluate(model, n_seas=10):
     """Same seas/conditions/pixels as the continuous achievability run."""
     lam, cp, T, fp, side, gx, gy = regime_geometry()
@@ -211,11 +249,8 @@ def evaluate(model, n_seas=10):
                    - om[None] * P[:, 2:3] + th_full[3][None])
             z = (th_full[2][None] * np.cos(psi)).sum(1) \
                 + rng.normal(0, sigma, N_OBS)
-            Bmap = beamform(torch.tensor(P[None], device=DEVICE,
-                                         dtype=torch.float32),
-                            torch.tensor(z[None], device=DEVICE,
-                                         dtype=torch.float32))
-            kx, ky = extract_peaks(model(Bmap)[0])
+            kx, ky = net_detect_iterative(model, P.astype(np.float32),
+                                          z.astype(np.float32))
             if len(kx) == 0:
                 res[cname].append(0.0)
                 continue

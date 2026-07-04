@@ -255,6 +255,26 @@ def main():
                     render_from_grid(f_ref, gx, gy, Xs, Ys), gt_u)
             except Exception as e:
                 row['oracle_ref'] = np.nan
+            # dense-bin ridge: ALL patch-FFT-lattice bins within the sea band,
+            # both propagation signs, ridge lambda=1.0 — no selection, no
+            # greedy, no learning. If this reaches oracle_ls2, the moving-
+            # platform fix is "replace greedy with dense linear GLS"; if not,
+            # bin SELECTION is the real value of detection.
+            kp_here = 2 * np.pi / lam
+            nb = int(np.ceil(2.5 * kp_here / dk_bin))
+            kxb, kyb = np.meshgrid(np.arange(-nb, nb + 1) * dk_bin,
+                                   np.arange(0, nb + 1) * dk_bin)
+            kk = np.hypot(kxb, kyb)
+            selb = (kk > 0.35 * kp_here) & (kk < 2.5 * kp_here)
+            kxd = np.concatenate([kxb[selb], -kxb[selb]]).astype(np.float32)
+            kyd = np.concatenate([kyb[selb], -kyb[selb]]).astype(np.float32)
+            A_d, ph_d = fit_amplitudes_phases(kxd, kyd, obs, DEPTH,
+                                              lambda_reg=1.0)
+            row['dense'] = corr(
+                render_modes(kxd.astype(float), kyd.astype(float),
+                             np.asarray(A_d, float), np.asarray(ph_d, float),
+                             DEPTH, Xs, Ys, t_star), gt_u)
+            row['dense_nbins'] = int(len(kxd))
             # relax
             fld, N, _ = iterative_relax_cv(P32.copy(), z32.copy(), DEPTH,
                                            target, n_outer=2, seed=si)
@@ -281,8 +301,8 @@ def main():
     ests = ['bound']
     if args.spectrum == 'continuous':
         ests += ['bound_white', 'bound_col']
-    ests += ['oracle_ls', 'oracle_ls2', 'oracle_ref', 'relax', 'ridge'] + \
-            (['net'] if net is not None else [])
+    ests += ['oracle_ls', 'oracle_ls2', 'oracle_ref', 'dense', 'relax',
+             'ridge'] + (['net'] if net is not None else [])
     print(f"{'cond':10s}" + "".join(f"{e:>11s}" for e in ests))
     summ = {}
     for cname, _ in conds:

@@ -138,6 +138,109 @@ def corr(a, b):
     return float(np.corrcoef(np.asarray(a).ravel(), np.asarray(b).ravel())[0, 1])
 
 
+# ------------------------------------------------- support-identification zoo
+def phi_design(kx, ky, P, depth):
+    om = omega_of(kx, ky, depth)
+    psi = kx[None] * P[:, 0:1] + ky[None] * P[:, 1:2] - om[None] * P[:, 2:3]
+    return np.concatenate([np.cos(psi), np.sin(psi)], axis=1)   # (n, 2B)
+
+
+def render_coef(kx, ky, coef, depth, Xs, Ys, t):
+    Pq = np.column_stack([Xs, Ys, np.full(len(Xs), t)])
+    return phi_design(kx, ky, Pq, depth) @ coef
+
+
+def dense_cv_fit(kxd, kyd, P, z, depth, rng,
+                 lams=(1., 10., 30., 100., 300., 1000., 3000.)):
+    """Dense lattice ridge with holdout-tuned lambda — kills the 'dense failed
+    because lambda=1.0 is 0.5% shrinkage' confound (Phi^T Phi diag ~ n/2)."""
+    Phi = phi_design(kxd, kyd, P, depth)
+    n = len(z)
+    vm = np.zeros(n, bool)
+    vm[rng.choice(n, n // 4, replace=False)] = True
+    best = None
+    for lam in lams:
+        A = Phi[~vm].T @ Phi[~vm] + lam * np.eye(Phi.shape[1])
+        c = np.linalg.solve(A, Phi[~vm].T @ z[~vm])
+        vr = float(np.sqrt(np.mean((Phi[vm] @ c - z[vm]) ** 2)))
+        if best is None or vr < best[0]:
+            best = (vr, lam)
+    lam = best[1]
+    c = np.linalg.solve(Phi.T @ Phi + lam * np.eye(Phi.shape[1]), Phi.T @ z)
+    return c, lam
+
+
+def omp_cv(kxd, kyd, P, z, depth, rng, max_bins=40, patience=3):
+    """Group-OMP over lattice bins (cos/sin pair = one group), holdout stop."""
+    Phi = phi_design(kxd, kyd, P, depth)
+    B = len(kxd)
+    n = len(z)
+    vm = np.zeros(n, bool)
+    vm[rng.choice(n, n // 4, replace=False)] = True
+    Ptr, Pv, ztr, zv = Phi[~vm], Phi[vm], z[~vm], z[vm]
+    nrm = (Ptr ** 2).sum(0) + 1e-12
+    sel, bad = [], 0
+    best = (np.inf, [])
+    r = ztr.copy()
+    for _ in range(max_bins):
+        sc = (Ptr.T @ r) ** 2 / nrm
+        g = sc[:B] + sc[B:]
+        g[sel] = -np.inf
+        b = int(np.argmax(g))
+        sel.append(b)
+        cols = [c_ for b_ in sel for c_ in (b_, B + b_)]
+        A = Ptr[:, cols]
+        c = np.linalg.solve(A.T @ A + 1.0 * np.eye(len(cols)), A.T @ ztr)
+        r = ztr - A @ c
+        vr = float(np.sqrt(np.mean((Pv[:, cols] @ c - zv) ** 2)))
+        if vr < best[0] - 1e-6:
+            best, bad = (vr, list(sel)), 0
+        else:
+            bad += 1
+            if bad >= patience:
+                break
+    sel = best[1]
+    cols = [c_ for b_ in sel for c_ in (b_, B + b_)]
+    A = Phi[:, cols]
+    c = np.linalg.solve(A.T @ A + 1.0 * np.eye(len(cols)), A.T @ z)
+    coef = np.zeros(2 * B)
+    coef[cols] = c
+    return coef, len(sel)
+
+
+def sbl_group(kxd, kyd, P, z, depth, sigma, rng, iters=60):
+    """Group-ARD SBL: one variance per bin (cos+sin share). Noise level picked
+    from {sigma, 3 sigma} by holdout val RMSE (off-lattice mismatch inflates
+    the effective noise)."""
+    Phi = phi_design(kxd, kyd, P, depth)
+    B = len(kxd)
+    n = len(z)
+    vm = np.zeros(n, bool)
+    vm[rng.choice(n, n // 4, replace=False)] = True
+    best = None
+    for s_mult in (1.0, 3.0):
+        s2 = (s_mult * sigma) ** 2
+        gam = np.full(B, np.var(z) / max(B, 1))
+        Ptr, ztr = Phi[~vm], z[~vm]
+        for _ in range(iters):
+            Ginv = 1.0 / np.concatenate([gam, gam])
+            Sig = np.linalg.inv(Ptr.T @ Ptr / s2 + np.diag(Ginv))
+            mu = Sig @ Ptr.T @ ztr / s2
+            dS = np.diag(Sig)
+            gam = np.maximum(0.5 * (mu[:B] ** 2 + mu[B:] ** 2
+                                    + dS[:B] + dS[B:]), 1e-14)
+        vr = float(np.sqrt(np.mean((Phi[vm] @ mu - z[vm]) ** 2)))
+        if best is None or vr < best[0]:
+            best = (vr, s2, gam.copy())
+    # final fit on all obs with the selected noise level and learned gammas
+    s2, gam = best[1], best[2]
+    Ginv = 1.0 / np.concatenate([gam, gam])
+    Sig = np.linalg.inv(Phi.T @ Phi / s2 + np.diag(Ginv))
+    mu = Sig @ Phi.T @ z / s2
+    n_active = int((gam > 1e-2 * gam.max()).sum())
+    return mu, n_active
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--n_seas', type=int, default=12)
@@ -275,6 +378,50 @@ def main():
                              np.asarray(A_d, float), np.asarray(ph_d, float),
                              DEPTH, Xs, Ys, t_star), gt_u)
             row['dense_nbins'] = int(len(kxd))
+            kxdf, kydf = kxd.astype(float), kyd.astype(float)
+            # dense with holdout-tuned lambda
+            c_cv, lam_cv = dense_cv_fit(kxdf, kydf, P, z, DEPTH,
+                                        np.random.default_rng(100 + si))
+            row['dense_cv'] = corr(
+                render_coef(kxdf, kydf, c_cv, DEPTH, Xs, Ys, t_star), gt_u)
+            row['dense_cv_lam'] = lam_cv
+            # group-OMP with CV stop
+            c_omp, n_omp = omp_cv(kxdf, kydf, P, z, DEPTH,
+                                  np.random.default_rng(200 + si))
+            row['omp'] = corr(
+                render_coef(kxdf, kydf, c_omp, DEPTH, Xs, Ys, t_star), gt_u)
+            row['omp_nbins'] = n_omp
+            # group-ARD SBL
+            c_sbl, n_sbl = sbl_group(kxdf, kydf, P, z, DEPTH, sigma,
+                                     np.random.default_rng(300 + si))
+            row['sbl'] = corr(
+                render_coef(kxdf, kydf, c_sbl, DEPTH, Xs, Ys, t_star), gt_u)
+            row['sbl_nactive'] = n_sbl
+            # SBL support + continuous off-grid refine: the lattice zoo is
+            # capped by k-quantization (oracle_bins collapse: delta-omega =
+            # cg*delta-k over 10 Tp decoheres the fit) — refine the active
+            # bins' k continuously, then LS
+            gam_top = np.argsort(-(c_sbl[:len(kxdf)] ** 2
+                                   + c_sbl[len(kxdf):] ** 2))[:24]
+            try:
+                kxr, kyr, f_sr = refine_params(
+                    kxdf[gam_top].copy(), kydf[gam_top].copy(),
+                    P32.copy(), z32.copy(), DEPTH, target, iters=400)
+                row['sbl_refine'] = corr(render_from_grid(f_sr, gx, gy,
+                                                          Xs, Ys), gt_u)
+            except Exception:
+                row['sbl_refine'] = np.nan
+            # oracle_bins: TRUE support, k QUANTIZED to the lattice —
+            # separates support value from off-lattice k precision
+            kxq = np.round(theta[0] / dk_bin) * dk_bin
+            kyq = np.round(theta[1] / dk_bin) * dk_bin
+            A_q, ph_q = fit_amplitudes_phases(
+                kxq.astype(np.float32), kyq.astype(np.float32), obs, DEPTH,
+                lambda_reg=1.0)
+            row['oracle_bins'] = corr(
+                render_modes(kxq, kyq, np.asarray(A_q, float),
+                             np.asarray(ph_q, float), DEPTH, Xs, Ys, t_star),
+                gt_u)
             # relax
             fld, N, _ = iterative_relax_cv(P32.copy(), z32.copy(), DEPTH,
                                            target, n_outer=2, seed=si)
@@ -301,8 +448,9 @@ def main():
     ests = ['bound']
     if args.spectrum == 'continuous':
         ests += ['bound_white', 'bound_col']
-    ests += ['oracle_ls', 'oracle_ls2', 'oracle_ref', 'dense', 'relax',
-             'ridge'] + (['net'] if net is not None else [])
+    ests += ['oracle_ls', 'oracle_ls2', 'oracle_bins', 'oracle_ref', 'dense',
+             'dense_cv', 'omp', 'sbl', 'sbl_refine', 'relax', 'ridge'] + \
+            (['net'] if net is not None else [])
     print(f"{'cond':10s}" + "".join(f"{e:>11s}" for e in ests))
     summ = {}
     for cname, _ in conds:

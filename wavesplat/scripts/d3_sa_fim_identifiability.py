@@ -316,8 +316,16 @@ def run_all(args):
             fld_m = render_modes(theta_kx, theta_ky, theta_A, theta_phi,
                                  cfg['depth'], Xg[ij[:, 0], ij[:, 1]],
                                  Yg[ij[:, 0], ij[:, 1]], t_star)
-            extract_q = float(np.corrcoef(fld_m, gt[ij[:, 0], ij[:, 1]])[0, 1])
-            row = dict(record=key, wi=wi, i0=int(i0), Hs=Hs,
+            gt_px = gt[ij[:, 0], ij[:, 1]]
+            extract_q = float(np.corrcoef(fld_m, gt_px)[0, 1])
+            # effective noise: stereo noise + unmodeled field variance (the
+            # 32-mode model class misses 1-q^2 of the field; that residual acts
+            # as interference on the obs — first-order: fold into sigma)
+            var_resid = float(np.var(gt_px - fld_m))
+            if args.sigma == 'effective':
+                sigma = float(np.sqrt(sigma ** 2 + var_resid))
+            row = dict(record=key, wi=wi, i0=int(i0), Hs=Hs, sigma_used=sigma,
+                       var_resid=var_resid,
                        lam_p=w['lam_p'], extract_q=extract_q, conds={})
             # A (fixed) + moving conditions at the run's ratios
             rng = np.random.default_rng(rec_seed + 10 * wi)
@@ -409,6 +417,8 @@ def validate(out, store, q_min=0.5):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--selftest', action='store_true')
+    ap.add_argument('--sigma', choices=['nominal', 'effective'],
+                    default='nominal')
     args = ap.parse_args()
     if not selftest():
         sys.exit(1)
@@ -416,10 +426,12 @@ def main():
         return
     out = run_all(args)
     store = json.load(open(JSON_RUN))
-    summary = validate(out, store)
-    payload = dict(sigma_frac=SIGMA_FRAC, M=M_MODES, rows=out, summary=summary)
-    json.dump(payload, open(OUT, 'w'), indent=1, default=float)
-    print(f"saved {OUT}")
+    summary = validate(out, store, q_min=0.2)
+    payload = dict(sigma_frac=SIGMA_FRAC, sigma_mode=args.sigma, M=M_MODES,
+                   rows=out, summary=summary)
+    path = OUT if args.sigma == 'nominal' else OUT.replace('.json', '_eff.json')
+    json.dump(payload, open(path, 'w'), indent=1, default=float)
+    print(f"saved {path}")
 
 
 if __name__ == '__main__':

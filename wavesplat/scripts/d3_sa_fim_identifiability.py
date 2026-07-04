@@ -196,17 +196,30 @@ def field_bound(theta, Jinv, depth, Xs, Ys, t_star):
     return float(np.mean(np.einsum('ij,jk,ik->i', Gd, Jinv, Gd)))
 
 
-def predicted_corr(theta, P_obs, depth, sigma, Xs, Ys, t_star, dk_bin):
+def predicted_corr(theta, P_obs, depth, sigma, Xs, Ys, t_star, dk_bin,
+                   theta_resid=None):
     D = design_matrix(theta, P_obs, depth)
     lam_inv = prior_precision(theta, dk_bin)
-    J = D.T @ D / sigma ** 2 + np.diag(lam_inv)
+    if theta_resid is None:
+        Jd = D.T @ D / sigma ** 2
+    else:
+        # structured residual: unmodeled (bin-quantized) modes as a colored
+        # noise field, random-phase quadratures with variance A^2/4 each
+        rkx, rky, rA, _ = theta_resid
+        omr = omega_of(rkx, rky, depth)
+        psir = (rkx[None] * P_obs[:, 0:1] + rky[None] * P_obs[:, 1:2]
+                - omr[None] * P_obs[:, 2:3])
+        Phi = np.concatenate([np.cos(psir), np.sin(psir)], axis=1)
+        wq = np.concatenate([rA ** 2 / 4.0, rA ** 2 / 4.0])
+        C = (Phi * wq[None]) @ Phi.T + sigma ** 2 * np.eye(len(P_obs))
+        Jd = D.T @ np.linalg.solve(C, D)
+    J = Jd + np.diag(lam_inv)
     Jinv = np.linalg.inv(J)
     b = field_bound(theta, Jinv, depth, Xs, Ys, t_star)
     fld = render_modes(*_reorder(theta), depth, Xs, Ys, t_star)
     var = float(np.var(fld))
     r2 = max(0.0, 1.0 - b / max(var, 1e-12))
     # identifiability: data-dominated directions of Lambda^{1/2} J_data Lambda^{1/2}
-    Jd = D.T @ D / sigma ** 2
     S = np.sqrt(1.0 / lam_inv)
     eig = np.linalg.eigvalsh(S[:, None] * Jd * S[None, :])
     n_ident = int((eig > 1.0).sum())
@@ -278,10 +291,15 @@ def run_all(args):
             tic = time.time()
             i0 = w['i0']
             Zwin = rec.window(i0, nf)
-            theta_kx, theta_ky, theta_A, theta_phi = extract_modes(
-                Zwin, rec.dt, rec.dx, rec.dy, cfg['depth'],
+            m_tot = M_MODES + (100 if args.sigma == 'colored' else 0)
+            ekx, eky, eA, ephi = extract_modes(
+                Zwin, rec.dt, rec.dx, rec.dy, cfg['depth'], M=m_tot,
                 gx=rec.gx, gy=rec.gy)
+            theta_kx, theta_ky, theta_A, theta_phi = (
+                ekx[:M_MODES], eky[:M_MODES], eA[:M_MODES], ephi[:M_MODES])
             theta = (theta_kx, theta_ky, theta_A, theta_phi)
+            theta_resid = (tuple(v[M_MODES:] for v in (ekx, eky, eA, ephi))
+                           if args.sigma == 'colored' else None)
             Hs = w['Hs_win']
             sigma = SIGMA_FRAC * Hs
             dk_bin = 2 * np.pi / max(rec.gx.max() - rec.gx.min(),
@@ -333,7 +351,8 @@ def run_all(args):
                                      'fixed', rng)
             P_A[:, 2] -= t_off
             cA, nA = predicted_corr(theta, P_A, cfg['depth'], sigma,
-                                    Xs, Ys, t_star, dk_bin)
+                                    Xs, Ys, t_star, dk_bin,
+                                    theta_resid=theta_resid)
             row['conds']['A'] = dict(corr_pred=cA, n_ident=nA)
             for r in run['ratios']:
                 U = r * w['cp']
@@ -344,7 +363,8 @@ def run_all(args):
                                          'moving', rngB, U=U, track=seg)
                 P_B[:, 2] -= t_off
                 cB, nB = predicted_corr(theta, P_B, cfg['depth'], sigma,
-                                        Xs, Ys, t_star, dk_bin)
+                                        Xs, Ys, t_star, dk_bin,
+                                        theta_resid=theta_resid)
                 row['conds'][f'B_r{r:g}'] = dict(corr_pred=cB, n_ident=nB,
                                                  gain_pred=cB - cA)
             del Zwin
@@ -417,7 +437,7 @@ def validate(out, store, q_min=0.5):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--selftest', action='store_true')
-    ap.add_argument('--sigma', choices=['nominal', 'effective'],
+    ap.add_argument('--sigma', choices=['nominal', 'effective', 'colored'],
                     default='nominal')
     args = ap.parse_args()
     if not selftest():
@@ -429,7 +449,8 @@ def main():
     summary = validate(out, store, q_min=0.2)
     payload = dict(sigma_frac=SIGMA_FRAC, sigma_mode=args.sigma, M=M_MODES,
                    rows=out, summary=summary)
-    path = OUT if args.sigma == 'nominal' else OUT.replace('.json', '_eff.json')
+    suffix = {'nominal': '', 'effective': '_eff', 'colored': '_colored'}
+    path = OUT.replace('.json', suffix[args.sigma] + '.json')
     json.dump(payload, open(path, 'w'), indent=1, default=float)
     print(f"saved {path}")
 

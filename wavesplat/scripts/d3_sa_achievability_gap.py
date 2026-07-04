@@ -101,10 +101,31 @@ def masks_common_unobs(gx, gy, r_fp, margin):
     return (dA > r_fp + margin) & (dB > r_fp + margin)
 
 
-def fim_bound(theta, P, sigma, depth, Xs, Ys, t_star, dk_bin):
+def fim_bound(theta, P, sigma, depth, Xs, Ys, t_star, dk_bin,
+              theta_resid=None):
+    """CRB-implied corr for estimating the theta modes from obs at P.
+    theta_resid: unmodeled modes treated as a COLORED noise field with
+    per-mode variance A^2/2 (random phase) -> GLS FIM with
+    C = Phi diag(A^2/2) Phi^T (+ same at the query points for the target
+    variance). This is the structured-residual treatment: white-sigma_eff
+    over-penalizes because wave-like residual is largely separable."""
     D = design_matrix(theta, P, depth)
     lam_inv = prior_precision(theta, dk_bin)
-    J = D.T @ D / sigma ** 2 + np.diag(lam_inv)
+    n = len(P)
+    if theta_resid is None:
+        Ci_D = D / sigma ** 2
+        J = D.T @ Ci_D + np.diag(lam_inv)
+    else:
+        rkx, rky, rA, _ = theta_resid
+        om = omega_of(rkx, rky, depth)
+        psi = (rkx[None] * P[:, 0:1] + rky[None] * P[:, 1:2]
+               - om[None] * P[:, 2:3])
+        # random-phase mode == cos and sin quadratures, each var A^2/4
+        Phi = np.concatenate([np.cos(psi), np.sin(psi)], axis=1)
+        w = np.concatenate([rA ** 2 / 4.0, rA ** 2 / 4.0])
+        C = (Phi * w[None]) @ Phi.T + sigma ** 2 * np.eye(n)
+        Ci_D = np.linalg.solve(C, D)
+        J = D.T @ Ci_D + np.diag(lam_inv)
     Ji = np.linalg.inv(J)
     Pq = np.column_stack([Xs, Ys, np.full(len(Xs), t_star)])
     Gd = design_matrix(theta, Pq, depth)
@@ -121,6 +142,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--n_seas', type=int, default=12)
     ap.add_argument('--smoke', action='store_true')
+    ap.add_argument('--spectrum', choices=['discrete', 'continuous'],
+                    default='discrete',
+                    help='continuous: nc=200, model class = top-32 true modes,'
+                         ' rest = structured residual (bound calibration)')
     args = ap.parse_args()
     n_seas = 2 if args.smoke else args.n_seas
 
@@ -158,15 +183,22 @@ def main():
     conds = [('fixed', None), ('track043', 0.43), ('track100', 1.0)]
     res = {c: {} for c, _ in conds}
     for si in range(n_seas):
-        nc = 15 if si % 2 == 0 else 30
+        nc = (200 if args.spectrum == 'continuous'
+              else (15 if si % 2 == 0 else 30))
         c = jonswap_components(Hs=HS, Tp=TP, n_components=nc, depth=DEPTH,
                                seed=4000 + si)
-        theta = (np.array([x.kx for x in c]), np.array([x.ky for x in c]),
-                 np.array([x.A for x in c]), np.array([x.phi for x in c]))
-        om = omega_of(theta[0], theta[1], DEPTH)
-        gt = true_field(theta, DEPTH, Xg, Yg, t_star)
-        gt_u = gt[mu] if len(Xg[mu]) == len(Xs) else None
-        gt_u = render_modes(*theta, DEPTH, Xs, Ys, t_star)
+        theta_full = (np.array([x.kx for x in c]), np.array([x.ky for x in c]),
+                      np.array([x.A for x in c]), np.array([x.phi for x in c]))
+        if args.spectrum == 'continuous':
+            order = np.argsort(theta_full[2])[::-1]
+            top, rest = order[:32], order[32:]
+            theta = tuple(v[top] for v in theta_full)
+            theta_resid = tuple(v[rest] for v in theta_full)
+        else:
+            theta, theta_resid = theta_full, None
+        om = omega_of(theta_full[0], theta_full[1], DEPTH)
+        gt = true_field(theta_full, DEPTH, Xg, Yg, t_star)
+        gt_u = render_modes(*theta_full, DEPTH, Xs, Ys, t_star)
         sigma = NOISE_FRAC * HS
         Hs_w = 4 * gt.std()
         for cname, ur in conds:
@@ -174,15 +206,24 @@ def main():
             U = (ur or 0) * cp
             P = sample_obs('fixed' if cname == 'fixed' else 'moving', U, lam,
                            cp, T, gx, gy, r_fp, rng)
-            psi = (theta[0][None] * P[:, 0:1] + theta[1][None] * P[:, 1:2]
-                   - om[None] * P[:, 2:3] + theta[3][None])
-            z = (theta[2][None] * np.cos(psi)).sum(1) + rng.normal(0, sigma,
-                                                                   N_OBS)
+            psi = (theta_full[0][None] * P[:, 0:1]
+                   + theta_full[1][None] * P[:, 1:2]
+                   - om[None] * P[:, 2:3] + theta_full[3][None])
+            z = (theta_full[2][None] * np.cos(psi)).sum(1) \
+                + rng.normal(0, sigma, N_OBS)
             P32 = P.astype(np.float32)
             z32 = z.astype(np.float32)
             row = res[cname].setdefault(si, {})
             row['bound'] = fim_bound(theta, P, sigma, DEPTH, Xs, Ys, t_star,
                                      dk_bin)
+            if theta_resid is not None:
+                var_resid = float((theta_resid[2] ** 2).sum() / 2.0)
+                sig_w = float(np.sqrt(sigma ** 2 + var_resid))
+                row['bound_white'] = fim_bound(theta, P, sig_w, DEPTH, Xs, Ys,
+                                               t_star, dk_bin)
+                row['bound_col'] = fim_bound(theta, P, sigma, DEPTH, Xs, Ys,
+                                             t_star, dk_bin,
+                                             theta_resid=theta_resid)
             # oracle_ls: true k given, ridge LS for A/phi
             obs = np.column_stack([P32, z32]).astype(np.float32)
             A_ls, phi_ls = fit_amplitudes_phases(
@@ -192,6 +233,15 @@ def main():
                                  np.asarray(phi_ls, float), DEPTH, Xs, Ys,
                                  t_star)
             row['oracle_ls'] = corr(f_ols, gt_u)
+            # stronger ridge: rules out under-regularization as the cause of
+            # an oracle collapse on dense continuous spectra
+            A_l2, phi_l2 = fit_amplitudes_phases(
+                theta[0].astype(np.float32), theta[1].astype(np.float32),
+                obs, DEPTH, lambda_reg=1.0)
+            row['oracle_ls2'] = corr(
+                render_modes(theta[0], theta[1], np.asarray(A_l2, float),
+                             np.asarray(phi_l2, float), DEPTH, Xs, Ys, t_star),
+                gt_u)
             # oracle_ref: + joint nonconvex refine from the true k init
             target = {'gx': gx, 'gy': gy, 't': t_star,
                       'gt': gt, 'Hs': Hs_w}
@@ -228,8 +278,11 @@ def main():
 
     # summary
     print("\n===== ACHIEVABILITY (mean corr on common_unobs) =====")
-    ests = ['bound', 'oracle_ls', 'oracle_ref', 'relax', 'ridge'] + \
-           (['net'] if net is not None else [])
+    ests = ['bound']
+    if args.spectrum == 'continuous':
+        ests += ['bound_white', 'bound_col']
+    ests += ['oracle_ls', 'oracle_ls2', 'oracle_ref', 'relax', 'ridge'] + \
+            (['net'] if net is not None else [])
     print(f"{'cond':10s}" + "".join(f"{e:>11s}" for e in ests))
     summ = {}
     for cname, _ in conds:
@@ -246,10 +299,13 @@ def main():
         for cname in ('track043', 'track100'):
             gsum = summ[cname][e] - summ['fixed'][e]
             print(f"  {e:10s} {cname}: {gsum:+.3f}")
+    path = (OUT if args.spectrum == 'discrete'
+            else OUT.replace('.json', '_cont.json'))
     json.dump(dict(summary=summ, rows={c: res[c] for c in res},
-                   lam=lam, T=T, fp=fp, n_seas=n_seas),
-              open(OUT, 'w'), indent=1, default=float)
-    print(f"saved {OUT}")
+                   lam=lam, T=T, fp=fp, n_seas=n_seas,
+                   spectrum=args.spectrum),
+              open(path, 'w'), indent=1, default=float)
+    print(f"saved {path}")
 
 
 def render_from_grid(fld, gx, gy, Xs, Ys):

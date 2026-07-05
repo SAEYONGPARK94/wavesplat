@@ -39,6 +39,19 @@ from d3_sa_achievability_gap import (dispersion_lam, sample_obs,
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 OUT = 'results/direction3/prior_net_eval.json'
 
+_NET_CACHE = {}
+
+
+def get_net(ckpt='results/direction3/prior_net_v3.pt'):
+    """Lazy singleton for harness use (d3_sa_uspeed --estimator mmse_net)."""
+    if ckpt not in _NET_CACHE:
+        ck = torch.load(ckpt, map_location=DEVICE)
+        net = PriorNet().to(DEVICE)
+        net.load_state_dict(ck['model'])
+        net.eval()
+        _NET_CACHE[ckpt] = net
+    return _NET_CACHE[ckpt]
+
 
 def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
                    use_em=False, max_em=6):

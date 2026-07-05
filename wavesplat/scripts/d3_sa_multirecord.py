@@ -277,10 +277,12 @@ def main():
     ap.add_argument('--n_rep', type=int, default=None)
     ap.add_argument('--seed', type=int, default=0)
     ap.add_argument('--ratios', type=float, nargs='+', default=None)
-    ap.add_argument('--estimator', choices=['relax', 'mmse'],
+    ap.add_argument('--estimator', choices=['relax', 'mmse', 'mmse_net'],
                     default='relax',
                     help="mmse: spectrum-weighted linear MMSE over the fine "
-                         "continuous bank (2026-07-05 synthetic winner)")
+                         "continuous bank (2026-07-05 synthetic winner); "
+                         "mmse_net: amortized prior net v3 gamma (G3 "
+                         "transfer gate)")
     ap.add_argument('--out', default=None)
     args = ap.parse_args()
     args.n_rep = args.n_rep or (2 if args.smoke else 3)

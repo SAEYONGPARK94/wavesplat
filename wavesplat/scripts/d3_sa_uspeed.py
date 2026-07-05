@@ -307,14 +307,22 @@ def run_window(rec, i0, args, ratios, lfracs, rng_seed):
                 P, z, _, _ = build_obs(Zwin, rec, i0, args.nobs, r_fp, 'moving', rng,
                                        U=cf['U'], track=cf['seg'])
             P[:, 2] -= t_off
-            if getattr(args, 'estimator', 'relax') == 'mmse':
-                from d3_sa_nomp import mmse_bank_estimate
+            est_name = getattr(args, 'estimator', 'relax')
+            if est_name in ('mmse', 'mmse_net'):
                 Xq, Yq = np.meshgrid(rec.gx, rec.gy)
                 Pq = np.column_stack([Xq.ravel(), Yq.ravel(),
                                       np.full(Xq.size, t_star)])
-                fld = mmse_bank_estimate(P, z, args.depth, Pq,
-                                         sigma0=0.05 * Hs_w, kp_hint=kp,
-                                         seed=seed).reshape(Xq.shape)
+                if est_name == 'mmse':
+                    from d3_sa_nomp import mmse_bank_estimate
+                    fld = mmse_bank_estimate(P, z, args.depth, Pq,
+                                             sigma0=0.05 * Hs_w,
+                                             kp_hint=kp,
+                                             seed=seed).reshape(Xq.shape)
+                else:
+                    from d3_prior_net_eval import get_net, net_gamma_mmse
+                    fld = net_gamma_mmse(get_net(), P, z, args.depth, Pq,
+                                         0.05 * Hs_w, seed=seed,
+                                         use_em=False).reshape(Xq.shape)
                 N, klim = 0, 0.0
             else:
                 fld, N, klim = iterative_relax_cv(P.copy(), z.copy(),

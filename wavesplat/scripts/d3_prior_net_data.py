@@ -108,7 +108,19 @@ def gen_sample(rng):
     np.add.at(Yv, (iy[ok], ix[ok]), Am[ok] ** 2 / 2.0)
     Y = np.log10(Yv / max(Yv.max(), 1e-12) + 1e-6).astype(np.float32)
 
+    # GT at random query pixels (task-loss target; excludes obs corridor
+    # subtlety on purpose — random over the full patch is a superset of the
+    # common-unobs scoring region)
+    qx = rng.uniform(0, side, 256)
+    qy = rng.uniform(0, side, 256)
+    tq = np.full(256, T)
+    psi_q = (kxm[None] * qx[:, None] + kym[None] * qy[:, None]
+             - om[None] * tq[:, None] + phm[None])
+    gt_q = (Am[None] * np.cos(psi_q)).sum(1)
+    Q = np.column_stack([qx, qy, tq]).astype(np.float32)
+
     return dict(X=X, Y=Y, P=P.astype(np.float32), z=z.astype(np.float32),
+                Q=Q, gt_q=gt_q.astype(np.float32),
                 kp_e=float(kp_e), Hs=float(Hs), Tp=float(Tp),
                 ucp=float(ucp), nfrac=float(nfrac))
 
@@ -135,6 +147,8 @@ def main():
                 Y=np.stack([b['Y'] for b in buf]),
                 P=np.stack([b['P'] for b in buf]),
                 z=np.stack([b['z'] for b in buf]),
+                Q=np.stack([b['Q'] for b in buf]),
+                gt_q=np.stack([b['gt_q'] for b in buf]),
                 meta=np.array([[b['kp_e'], b['Hs'], b['Tp'], b['ucp'],
                                 b['nfrac']] for b in buf], np.float32))
             print(f"shard {si} ({i + 1}/{a.n}) {time.time()-t0:.0f}s "

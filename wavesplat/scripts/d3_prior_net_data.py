@@ -58,6 +58,12 @@ def gen_sample(rng):
     phm = np.array([x.phi for x in c])
     k = np.hypot(kxm, kym)
     om = np.sqrt(G * k * np.tanh(k * DEPTH) + 1e-12)
+    # ambient current (v4): true dispersion Doppler-shifted, model/labels
+    # unchanged -> the net learns Doppler-TOLERANT priors (blind Uc
+    # estimation is closed: 4 objectives picked spurious currents)
+    uc_mag = rng.uniform(0.0, 0.4)
+    uc_ang = rng.uniform(0, 2 * np.pi)
+    om = om + kxm * uc_mag * np.cos(uc_ang) + kym * uc_mag * np.sin(uc_ang)
 
     lam = dispersion_lam(Tp, DEPTH)
     cp = lam / Tp

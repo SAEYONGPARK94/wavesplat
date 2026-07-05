@@ -101,6 +101,28 @@ DPS×이동 양성도 기각. 오늘의 사슬은 어제의 결론 두 개를 �
 - 헤드라인화 전에 "moving platform + sparse point sampling + phase-resolved MMSE"
   협대역 재검색 필요.
 
+## 오후 연장 세션 (사용자 지시: 멈추라 할 때까지 계속)
+
+진행: ④실측 6-record 확장(AA15a·BS11b·BS13a·BS13b·AA15b·YS17, LJ는 kp 패치
+아티팩트로 bank 대역 어긋남 — lam_ref 처리 후 별도) ⑤공간-분할(extrapolation)
+val 프로브 ⑥HOS M=3 검증(`d3_sa_hos_mmse.py`) ⑦협대역 novelty 정독 완료
+(2504.13943 EnKF-HOS-CMI=동화·예보, 2508.03315 PINO=부이/레이더, Ocean Eng 2025
+SNU/FIT=이동선박 스테레오 영상 DL — 셋 다 "sparse 점 샘플링 병목 해부" 각도 아님.
+DSGP-Net 스니펫만 출처 미확정, 추적 필요).
+
+**⑤ 공간-분할(extrapolation) val 판정 — 한계효과, 채택 안 함** (10 seas,
+`tmp/probe_mmse_spatial.py`): track100만 +0.047(7/10), fixed −0.007·track043
+−0.019. "on-track val 미정렬"은 남은 상금의 binding constraint가 아님.
+**보너스 발견**: bank 간격 kp/10(≈0.008, promote본 기본값)이 오전 프로브의
+0.015보다 강함 — random-val 기준 **0.340/0.264/0.234** (오전 보고치
+0.272/0.239/0.241 대비 fixed +0.07). 공식 수치는 kp/10 기준으로 갱신.
+
+**④ 판정 기준 (사전 등록, 결과 보기 전):**
+1. 1차: record별 Δabs(MMSE−RELAX), supra-임계 이동셀(B_r0.43·B_r1)과 A(fixed).
+2. 2차: record-레벨 corr(gain, A_abs)=−0.56 구조가 MMSE에서 약화되는가
+   (= "starvation"의 추정기 성분 비율).
+3. 3차: MMSE 기준 이동 gain ≥ +0.1 생존 record 집합 (BS11a형 개구이득의 실재 범위).
+
 ## 남은 것 (내일 후보)
 
 1. 실측 풀런 판독 + (양성이면) 나머지 8 record로 확장 — 특히 supra-0.7λ 음수

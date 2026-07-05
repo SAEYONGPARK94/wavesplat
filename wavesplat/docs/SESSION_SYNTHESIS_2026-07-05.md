@@ -280,6 +280,16 @@ net ≈ oracle(0.59/0.57/0.41 vs 0.65/0.55/0.52) = 정보 소진 상태.
 2~6배" (predictable-zone 프레임, Direction I 연결) — "절대적으로 잘 맞음"
 주장 금지.** GIF: `results/gifs/ladder_track100_sea4.gif`.
 
+**⑭ ablation + 예산 스윕 (오후 재개 세션 후반):**
+- Tp/패치 ablation 통과(`tmp/probe_ablation_tp_patch.py`): Tp 5/7/9 net
+  0.51~0.55(track)·0.37~0.38(fixed) 안정, 패치 1.3/2/3λ 전 셀 net>hand
+  — k/kp 정규화의 스케일-공변 실증, 프로토콜-패밀리 과적합 리스크 폐쇄.
+- **관측예산 스윕 = 무효 발견**(`tmp/probe_budget_sweep.py`): n_obs
+  400→4800(12×)에 net 0.58→0.52(근접)/0.08→0.06(원거리) — 1D 궤적 위
+  추가 표본은 커버리지 0. **3단 결론: ①반경내 net≈oracle(추정기 종결)
+  ②표본수 무효 ③병목=관측 기하(커버리지)** → 다음 챕터 = 센싱 설계
+  (교차 궤적·2D 스캔·footprint·순차 누적; d40 학습-acquisition 자산 연결).
+
 ## 남은 것 (내일 후보)
 
 1. 실측 풀런 판독 + (양성이면) 나머지 8 record로 확장 — 특히 supra-0.7λ 음수

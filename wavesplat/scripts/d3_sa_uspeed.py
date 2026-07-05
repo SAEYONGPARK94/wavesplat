@@ -307,8 +307,20 @@ def run_window(rec, i0, args, ratios, lfracs, rng_seed):
                 P, z, _, _ = build_obs(Zwin, rec, i0, args.nobs, r_fp, 'moving', rng,
                                        U=cf['U'], track=cf['seg'])
             P[:, 2] -= t_off
-            fld, N, klim = iterative_relax_cv(P.copy(), z.copy(), args.depth, target,
-                                              n_outer=args.n_outer, seed=seed)
+            if getattr(args, 'estimator', 'relax') == 'mmse':
+                from d3_sa_nomp import mmse_bank_estimate
+                Xq, Yq = np.meshgrid(rec.gx, rec.gy)
+                Pq = np.column_stack([Xq.ravel(), Yq.ravel(),
+                                      np.full(Xq.size, t_star)])
+                fld = mmse_bank_estimate(P, z, args.depth, Pq,
+                                         sigma0=0.05 * Hs_w, kp_hint=kp,
+                                         seed=seed).reshape(Xq.shape)
+                N, klim = 0, 0.0
+            else:
+                fld, N, klim = iterative_relax_cv(P.copy(), z.copy(),
+                                                  args.depth, target,
+                                                  n_outer=args.n_outer,
+                                                  seed=seed)
             fld_bl = lowpass_field(fld, rec.dx, rec.dy, k_cut)
             frd = ridge_field(P, z, args.depth, kp, rec.gx, rec.gy, t_star)
             frd_bl = lowpass_field(frd, rec.dx, rec.dy, k_cut)

@@ -216,7 +216,7 @@ def run_record(key, cfg, args):
         T=cfg['T'], nobs=args.nobs, fp_diam=cfg['fp'], margin=0.6 * cfg['fp'],
         depth=cfg['depth'], n_outer=args.n_outer, n_rep=args.n_rep,
         heading=False, ratio_best=0.85, hs_lo=cfg['hs'][0], hs_hi=cfg['hs'][1],
-        track_fn=track_fn)
+        track_fn=track_fn, estimator=getattr(args, 'estimator', 'relax'))
     nf = int(round(rc.T / rec.dt))
     n_win = args.n_windows or (2 if args.smoke else cfg['nw'])
     starts = np.linspace(200, rec.T_all - nf - 10, n_win).astype(int)
@@ -277,6 +277,10 @@ def main():
     ap.add_argument('--n_rep', type=int, default=None)
     ap.add_argument('--seed', type=int, default=0)
     ap.add_argument('--ratios', type=float, nargs='+', default=None)
+    ap.add_argument('--estimator', choices=['relax', 'mmse'],
+                    default='relax',
+                    help="mmse: spectrum-weighted linear MMSE over the fine "
+                         "continuous bank (2026-07-05 synthetic winner)")
     ap.add_argument('--out', default=None)
     args = ap.parse_args()
     args.n_rep = args.n_rep or (2 if args.smoke else 3)

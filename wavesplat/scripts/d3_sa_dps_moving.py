@@ -100,7 +100,12 @@ def main():
     ap.add_argument('--guidance', type=float, default=0.1)
     ap.add_argument('--nsamp', type=int, default=4)
     ap.add_argument('--polish_iters', type=int, default=80)
+    ap.add_argument('--windows', type=int, nargs='+', default=[25],
+                    help='frame indices ti; >1 window switches to the '
+                         'multi-window confirmation protocol + _multiwin.json')
     a = ap.parse_args()
+    out_path = (OUT if len(a.windows) == 1
+                else OUT.replace('.json', '_multiwin.json'))
 
     ck = torch.load(CKPT, map_location=DEVICE)
     stats = ck['stats']
@@ -121,42 +126,61 @@ def main():
         r_fp = 0.09 * lam_p
         mu = unobs_mask(gx, gy, r_fp, 1.2 * r_fp)
         frames = L.get_tracking_frames(2.0)
-        ti = 25
-        tgt = frames[ti + 1]
-        target = {'gx': gx, 'gy': gy, 't': float(tgt.t),
-                  'gt': tgt.gt_field.numpy(), 'Hs': Hs}
-        gt = target['gt']
         print(f"[{ep}] lam_p={lam_p:.0f} m patch "
               f"{gx.max()-gx.min():.0f}x{gy.max()-gy.min():.0f} m "
               f"({(gx.max()-gx.min())/lam_p:.1f} lam) unobs px {int(mu.sum())}")
         out[ep] = {}
-        for mode, ur in [('fixed', None), ('track043', 0.43),
-                         ('track100', 1.0)]:
-            rng = np.random.default_rng(42)
-            P, z = build_obs(frames, ti, gx, gy,
-                             'fixed' if mode == 'fixed' else 'moving',
-                             (ur or 0) * cp, r_fp, rng)
-            # DPS + polish (B2)
-            Xd = dps_sample(model, stats, abar, betas, P, z, depth,
-                            guidance=a.guidance, n=a.nsamp, seed=0)
-            f_pol, r_pol = field_set(Xd, stats, P, z, depth, target,
-                                     polish=True, pit=a.polish_iters)
-            fb = np.mean(np.stack(f_pol), axis=0)
-            c_dps = float(np.corrcoef(fb[mu], gt[mu])[0, 1])
-            # RELAX on identical obs
-            fr, N, _ = iterative_relax_cv(P.copy(), z.copy(), depth, target,
-                                          n_outer=2, seed=0)
-            nr_rlx = float(np.sqrt(np.mean((fr - gt) ** 2)) / (Hs / 4))
-            c_rlx = float(np.corrcoef(fr[mu], gt[mu])[0, 1])
-            out[ep][mode] = dict(dps_nrmse=float(np.mean(r_pol)),
-                                 dps_corr_unobs=c_dps,
-                                 relax_nrmse=nr_rlx, relax_corr_unobs=c_rlx,
-                                 relax_N=int(N))
-            print(f"  {mode:9s} DPS+pol nrmse {np.mean(r_pol):.3f} "
-                  f"unobs corr {c_dps:+.3f} | RELAX nrmse {nr_rlx:.3f} "
-                  f"unobs corr {c_rlx:+.3f}")
-    json.dump(out, open(OUT, 'w'), indent=1, default=float)
-    print(f"saved {OUT}")
+        for ti in a.windows:
+            tgt = frames[ti + 1]
+            target = {'gx': gx, 'gy': gy, 't': float(tgt.t),
+                      'gt': tgt.gt_field.numpy(), 'Hs': Hs}
+            gt = target['gt']
+            for mode, ur in [('fixed', None), ('track043', 0.43),
+                             ('track100', 1.0)]:
+                rng = np.random.default_rng(42 + ti)
+                P, z = build_obs(frames, ti, gx, gy,
+                                 'fixed' if mode == 'fixed' else 'moving',
+                                 (ur or 0) * cp, r_fp, rng)
+                # DPS + polish (B2)
+                Xd = dps_sample(model, stats, abar, betas, P, z, depth,
+                                guidance=a.guidance, n=a.nsamp, seed=0)
+                f_pol, r_pol = field_set(Xd, stats, P, z, depth, target,
+                                         polish=True, pit=a.polish_iters)
+                fb = np.mean(np.stack(f_pol), axis=0)
+                c_dps = float(np.corrcoef(fb[mu], gt[mu])[0, 1])
+                # RELAX on identical obs
+                fr, N, _ = iterative_relax_cv(P.copy(), z.copy(), depth,
+                                              target, n_outer=2, seed=0)
+                nr_rlx = float(np.sqrt(np.mean((fr - gt) ** 2)) / (Hs / 4))
+                c_rlx = float(np.corrcoef(fr[mu], gt[mu])[0, 1])
+                out[ep].setdefault(mode, []).append(
+                    dict(ti=ti, dps_nrmse=float(np.mean(r_pol)),
+                         dps_corr_unobs=c_dps,
+                         relax_nrmse=nr_rlx, relax_corr_unobs=c_rlx,
+                         relax_N=int(N)))
+                print(f"  ti={ti:3d} {mode:9s} DPS+pol nrmse "
+                      f"{np.mean(r_pol):.3f} unobs corr {c_dps:+.3f} | "
+                      f"RELAX nrmse {nr_rlx:.3f} unobs corr {c_rlx:+.3f}",
+                      flush=True)
+
+    # summary: is the moving-condition DPS advantage systematic?
+    summ = {}
+    for mode in ('fixed', 'track043', 'track100'):
+        dc = [r['dps_corr_unobs'] for ep in out for r in out[ep][mode]]
+        rc = [r['relax_corr_unobs'] for ep in out for r in out[ep][mode]]
+        dn = [r['dps_nrmse'] for ep in out for r in out[ep][mode]]
+        summ[mode] = dict(dps_corr_mean=float(np.mean(dc)),
+                          dps_corr_median=float(np.median(dc)),
+                          dps_corr_pos_frac=float(np.mean(np.array(dc) > 0)),
+                          relax_corr_mean=float(np.mean(rc)),
+                          dps_nrmse_mean=float(np.mean(dn)), n=len(dc))
+        print(f"{mode:9s} DPS corr mean {np.mean(dc):+.3f} med "
+              f"{np.median(dc):+.3f} pos {np.mean(np.array(dc) > 0):.2f} "
+              f"(n={len(dc)}) | RELAX corr mean {np.mean(rc):+.3f}")
+    json.dump(dict(rows=out, summary=summ,
+                   windows=a.windows, episodes=a.episodes),
+              open(out_path, 'w'), indent=1, default=float)
+    print(f"saved {out_path}")
 
 
 if __name__ == '__main__':

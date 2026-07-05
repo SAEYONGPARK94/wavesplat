@@ -25,8 +25,9 @@ from d3_sa_achievability_gap import (dispersion_lam, sample_obs,
 NSEAS = 8
 
 
-def mmse_current(P, z, depth, Pq, sigma0, seed=0):
-    """hand-prior MMSE with val-selected global current (Ucx, Ucy)."""
+def mmse_current(P, z, depth, Pq, sigma0, seed=0, uc_known=None):
+    """hand-prior MMSE with global current: selected by GP evidence, or
+    given (uc_known) — the oracle-Uc decisive test."""
     rng = np.random.default_rng(seed)
     n = len(z)
     vi = rng.choice(n, max(8, n // 4), replace=False)
@@ -54,15 +55,20 @@ def mmse_current(P, z, depth, Pq, sigma0, seed=0):
             - omc[None] * Q[:, 2:3]
         return np.concatenate([np.cos(psi), np.sin(psi)], axis=1)
 
-    # prior shape (uc=0 power map is adequate for the shape)
-    pw = np.empty(len(kxb))
-    for i in range(0, len(kxb), 512):
-        psi = (kxb[i:i + 512, None] * P[None, :, 0]
-               + kyb[i:i + 512, None] * P[None, :, 1]
-               - om0[i:i + 512, None] * P[None, :, 2])
-        pw[i:i + 512] = (z[None] * np.cos(psi)).sum(1) ** 2 \
-            + (z[None] * np.sin(psi)).sum(1) ** 2
-    pw = pw / max(pw.max(), 1e-12)
+    def pw_of(ucx, ucy):
+        """Prior-shape beamform power with CURRENT-CORRECTED dispersion —
+        the uncorrected map smears under current (found via the oracle-Uc
+        non-restoration bug)."""
+        omc = om0 + kxb * ucx + kyb * ucy
+        pw = np.empty(len(kxb))
+        for i in range(0, len(kxb), 512):
+            psi = (kxb[i:i + 512, None] * P[None, :, 0]
+                   + kyb[i:i + 512, None] * P[None, :, 1]
+                   - omc[i:i + 512, None] * P[None, :, 2])
+            pw[i:i + 512] = (z[None] * np.cos(psi)).sum(1) ** 2 \
+                + (z[None] * np.sin(psi)).sum(1) ** 2
+        return pw / max(pw.max(), 1e-12)
+
     m = len(ztr)
 
     def fit_val(ucx, ucy):
@@ -83,35 +89,47 @@ def mmse_current(P, z, depth, Pq, sigma0, seed=0):
                     best = (vr, gam, s2)
         return best
 
-    # current selection by DISPERSION-SHELL POWER CONCENTRATION (classic
-    # X-band current inversion objective; all-data, no val split — the
-    # on-track val RMSE picked spurious currents, |Uc|=0.29 at truth 0)
-    def shell_score(ucx, ucy):
-        omc = om0 + kxb * ucx + kyb * ucy
-        s = 0.0
-        for i in range(0, len(kxb), 512):
-            psi = (kxb[i:i + 512, None] * P[None, :, 0]
-                   + kyb[i:i + 512, None] * P[None, :, 1]
-                   - omc[i:i + 512, None] * P[None, :, 2])
-            pwc = (z[None] * np.cos(psi)).sum(1) ** 2 \
-                + (z[None] * np.sin(psi)).sum(1) ** 2
-            s += float((pwc ** 2).sum())
-        return s
+    # v3: current selection by GP EVIDENCE (log marginal likelihood) on ALL
+    # obs — principled, no val split, log|K| penalizes spurious currents
+    # (v1 on-track val and v2 shell-concentration both picked |Uc|~0.3-0.5
+    # at truth 0 on sparse moving samples)
+    def evidence(ucx, ucy):
+        Phi_all = design(P, ucx, ucy)
+        pw = pw_of(ucx, ucy)
+        best_e = None
+        for pexp in (1.0, 2.0):
+            g = pw ** pexp
+            g = g / g.sum()
+            gam = np.concatenate([g, g]) * np.var(z)
+            for smult in (1.0, 3.0):
+                s2 = (smult * sigma0) ** 2
+                K = (Phi_all * gam[None]) @ Phi_all.T + s2 * np.eye(n)
+                L = np.linalg.cholesky(K)
+                alpha = np.linalg.solve(L.T, np.linalg.solve(L, z))
+                ll = -0.5 * float(z @ alpha) \
+                    - float(np.log(np.diag(L)).sum())
+                if best_e is None or ll > best_e[0]:
+                    best_e = (ll, gam, s2)
+        return best_e
 
-    best_u = None
-    for ucx in np.linspace(-0.3, 0.3, 5):
-        for ucy in np.linspace(-0.3, 0.3, 5):
-            sc = shell_score(ucx, ucy)
-            if best_u is None or sc > best_u[0]:
-                best_u = (sc, ucx, ucy)
-    _, ux0, uy0 = best_u
-    for ucx in ux0 + np.array([-0.075, 0, 0.075]):
-        for ucy in uy0 + np.array([-0.075, 0, 0.075]):
-            sc = shell_score(ucx, ucy)
-            if sc > best_u[0]:
-                best_u = (sc, ucx, ucy)
-    _, ucx, ucy = best_u
-    _, gam, s2 = fit_val(ucx, ucy)
+    if uc_known is not None:
+        ucx, ucy = uc_known
+        e = evidence(ucx, ucy)
+        gam, s2 = e[1], e[2]
+    else:
+        best_u = None
+        for ucx in np.linspace(-0.3, 0.3, 5):
+            for ucy in np.linspace(-0.3, 0.3, 5):
+                e = evidence(ucx, ucy)
+                if best_u is None or e[0] > best_u[0]:
+                    best_u = (e[0], ucx, ucy, e[1], e[2])
+        _, ux0, uy0, _, _ = best_u
+        for ucx in ux0 + np.array([-0.075, 0, 0.075]):
+            for ucy in uy0 + np.array([-0.075, 0, 0.075]):
+                e = evidence(ucx, ucy)
+                if e[0] > best_u[0]:
+                    best_u = (e[0], ucx, ucy, e[1], e[2])
+        _, ucx, ucy, gam, s2 = best_u
     Phi_all = design(P, ucx, ucy)
     K = (Phi_all * gam[None]) @ Phi_all.T + s2 * np.eye(n)
     w = Phi_all.T @ np.linalg.solve(K, z)
@@ -169,10 +187,13 @@ for uc_mag in (0.0, 0.3):
                 fp_, tuple) else fp_, gt_u))
             fc, uh = mmse_current(P, z, DEPTH, Pq, sigma, seed=si)
             res[cname]['curfit'].append(corr(fc, gt_u))
+            fo, _ = mmse_current(P, z, DEPTH, Pq, sigma, seed=si,
+                                 uc_known=(ucx, ucy))
+            res[cname].setdefault('curORACLE', []).append(corr(fo, gt_u))
             if cname == 'track100':
                 uhat.append(uh)
     print(f"\n== true |Uc| = {uc_mag} m/s ==")
-    for est in ('plain', 'curfit'):
+    for est in ('plain', 'curfit', 'curORACLE'):
         f0 = np.mean(res['fixed'][est])
         f1 = np.mean(res['track100'][est])
         d = np.array(res['track100'][est]) - np.array(res['fixed'][est])

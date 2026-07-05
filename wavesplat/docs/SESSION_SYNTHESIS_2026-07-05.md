@@ -117,6 +117,21 @@ DSGP-Net 스니펫만 출처 미확정, 추적 필요).
 0.015보다 강함 — random-val 기준 **0.340/0.264/0.234** (오전 보고치
 0.272/0.239/0.241 대비 fixed +0.07). 공식 수치는 kp/10 기준으로 갱신.
 
+**⑥ HOS M=3 검증 — 통과** (6 seas, `sa_hos_mmse_M3.json`): fixed RELAX
++0.016(2 seas −0.33/−0.22 붕괴) vs **MMSE +0.263**(무붕괴), 이동 동급
+(0.241/0.228 vs 0.221/0.232). 비선형에서 헤드라인 유지 — 오히려 RELAX의
+greedy가 bound-harmonic에 취약. caveat: M=1 대조군은 HOS 시뮬레이터
+수치불안정(NaN) — 선형 대조는 합성 하니스가 대체.
+
+**⑧ 학습 방향 재개 (사용자 지시: 학습 정확도가 논문/학위의 골격).**
+설계 = `docs/DESIGN_amortized_prior_2026-07-05.md`: "net은 prior만, 추정은
+물리가" (γ(k) 예측 → 물리 MMSE; mean-collapse 면역 + sim2real 안전판 +
+gap-to-bound 평가 내장). 정규화 k-공간(51×51, dk=0.1kp) bank로 net이
+구조적으로 record-agnostic. **v1(8k 샘플, 라벨회귀): G1 미달**
+(netEM−hand −0.08/−0.01/+0.02; 3k step 과적합 = 데이터 부족, 판단 보류).
+v2: 40k 샘플 + log 입력채널(raw 파워맵 피크포화 → 약모드 불가시 문제;
+상금이 약모드에 있음). 인프라: `d3_prior_net_{data,train,eval}.py`.
+
 **④ 판정 기준 (사전 등록, 결과 보기 전):**
 1. 1차: record별 Δabs(MMSE−RELAX), supra-임계 이동셀(B_r0.43·B_r1)과 A(fixed).
 2. 2차: record-레벨 corr(gain, A_abs)=−0.56 구조가 MMSE에서 약화되는가

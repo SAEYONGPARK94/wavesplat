@@ -271,6 +271,15 @@ PFN(Müller'22)·neural process 계열도 인용권. DSGP-Net 소스 미확인(�
 (Tp/패치/수심 ablation 필요), net 합성평가 in-distribution, BS11a B_r1
 미해명, DSGP-Net 미추적.
 
+**⑬ 거리별 스킬 분해 (사용자 "잘 안 맞는 것 같다" → 정직 정량,
+`tmp/probe_zone_metrics.py`, 3 seas·track100):** 절대 기준 근접(0~0.15λ)도
+corr 0.59/nRMSE 0.72 — "반쯤 맞는" 수준이 사실. 원거리(>0.6λ)는 oracle48
+(참 파수)도 0.34, 전 추정기 ~0.07 = **관측예산의 정보 한계**. 0.6λ 이내에선
+net ≈ oracle(0.59/0.57/0.41 vs 0.65/0.55/0.52) = 정보 소진 상태.
+**논문 주장 형태 확정: "예측가능 반경(~0.6λ) 내 이론한계 근접 + 경쟁 대비
+2~6배" (predictable-zone 프레임, Direction I 연결) — "절대적으로 잘 맞음"
+주장 금지.** GIF: `results/gifs/ladder_track100_sea4.gif`.
+
 ## 남은 것 (내일 후보)
 
 1. 실측 풀런 판독 + (양성이면) 나머지 8 record로 확장 — 특히 supra-0.7λ 음수

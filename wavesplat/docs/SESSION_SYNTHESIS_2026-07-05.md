@@ -138,6 +138,26 @@ v2: 40k 샘플 + log 입력채널(raw 파워맵 피크포화 → 약모드 불�
    (= "starvation"의 추정기 성분 비율).
 3. 3차: MMSE 기준 이동 gain ≥ +0.1 생존 record 집합 (BS11a형 개구이득의 실재 범위).
 
+**⑧-G1 통과 (v3 task-loss)**: 라벨회귀(v2)는 G1 미달(동률선), **미분가능
+MMSE 관통 task-loss fine-tune(v3)이 돌파** — net-MMSE 0.387/0.446/0.468
+(hand 0.340/0.264/0.234, RELAX 0.199/0.222/0.183), oracle_ls2@32 초과,
+**이동 gain 최초 양수(+0.08)**, ceiling 속도-성장 추적. "목적함수가 병목"
+진단 적중. in-distribution 합성 주의 문구 유지.
+
+**⑧-G3 통과 (실측 무-FT 전이, 사상 최초)**: BS11a fixed 0.579/AA14 0.582
+(hand 0.474/0.505), 이동 9/10셀 hand 초과. **B_r0.7 이상이 net에서 양 레코드
+해소**(AA14 r0.7 gain +0.002, 6/6 윈도우 +0.338) — 학습분포가 U/cp≤1.2의
+encounter-frozen 대역(k*=g/U², r0.7일 때 2kp 대역 내)을 본 덕으로 해석.
+잔여 퇴행 1건: BS11a B_r1 (net 0.409 vs hand 0.588; RELAX gain +0.28이
+여전히 왕좌) — r1은 k*=kp(피크 동결)라 학습분포 경계, 추적.
+정규화 k-공간(51×51, dk=0.1kp) bank + "net은 prior만, 추정은 물리" 구조가
+역대 sim2real 전멸을 뚫은 첫 사례.
+
+**B_r0.7 4연속 악화(hand-MMSE)의 기제 가설**: encounter-frequency 영점
+k*=g/U²이 U=0.7cp에서 2.04kp(대역 내) — following-leg에서 해당 대역 모드가
+시간 동결→설계 준특이→dense bank가 greedy보다 취약. U=0.43은 k*=5.4kp
+대역 밖. 검증 프로브(대역 downweight) 내일 후보.
+
 ## 남은 것 (내일 후보)
 
 1. 실측 풀런 판독 + (양성이면) 나머지 8 record로 확장 — 특히 supra-0.7λ 음수

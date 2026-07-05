@@ -189,6 +189,12 @@ k*=g/U²이 U=0.7cp에서 2.04kp(대역 내) — following-leg에서 해당 대�
    내일의 첫 질문 (패치 스케일? valid-mask? broadband 시간정보?).
    주장 강도 조절: "이 패치 스케일·예산에서 검출 불가" (worthless 아님).
 
+**UQ calibration (저녁 프로브, `tmp/probe_uq_calibration.py`):** MMSE 해석적
+posterior 분산의 정직도 — hand prior는 이동에서 과신 악화(z-std 1.10/1.20/
+**1.47**, cov95 0.83@track100), **net prior는 전 연산자 균일 근사-보정**
+(z-std 1.12~1.17, cov95 0.90~0.93). 학습 prior가 정확도뿐 아니라 이동-조건
+UQ 정직도까지 개선. 잔여 ~15% 과신은 단일 인플레이션 계수 교정 대상.
+
 ## 남은 것 (내일 후보)
 
 1. 실측 풀런 판독 + (양성이면) 나머지 8 record로 확장 — 특히 supra-0.7λ 음수

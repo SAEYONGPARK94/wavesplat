@@ -158,6 +158,17 @@ k*=g/U²이 U=0.7cp에서 2.04kp(대역 내) — following-leg에서 해당 대�
 시간 동결→설계 준특이→dense bank가 greedy보다 취약. U=0.43은 k*=5.4kp
 대역 밖. 검증 프로브(대역 downweight) 내일 후보.
 
+**④ 8-record 완주 판정 (hand-MMSE, 사전 등록 기준):**
+1. Δabs: 이동 절대치 광범위 상승. **완전 반전 2건**(AA15b r0.43 +0.001→+0.222·
+   r1 −0.162→+0.143; BS13b r1 −0.071→+0.153), 대폭 완화 2건(AA14, AA15a),
+   불변/악화 2건(BS13a 혼조, YS17 역행 — 거리희석형).
+2. **corr(gain_supra, A_abs): RELAX −0.58 → MMSE −0.24** — "이동은 고정
+   정보기아일 때만 돈" 구조의 절반 이상이 추정기 아티팩트로 판명. 평균
+   supra gain −0.148 → −0.047.
+3. gain≥+0.1 집합: {BS11a} → {BS11a, AA15b} (+BS13b r1 셀).
+오버나이트: net-MMSE(G3 승자)로 나머지 6 record 실행 중
+(`sa_multirecord_mmse_net.json` 병합) — 내일 8-record 3-way 완전판.
+
 ## 남은 것 (내일 후보)
 
 1. 실측 풀런 판독 + (양성이면) 나머지 8 record로 확장 — 특히 supra-0.7λ 음수

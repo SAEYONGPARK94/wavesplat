@@ -230,6 +230,47 @@ hand gain 0 (+0.013/−0.029 비유의 — 8-sea +0.088은 시드 럭),
 정착 주장: "합성 이동 이득 = net-prior × 고속 한정, +0.07 수준(2σ)".
 절대 정확도 우위(net fixed 0.372/t100 0.441)는 견고.
 
+**⑫ 해류 아크 최종 폐쇄 + BMA (5번째 실패)**: BMA-over-Uc도 실패
+(bma < plain 전 셀; ESS 2.2~4.6/25 = evidence 면이 **틀린** Uc에 뾰족 —
+평탄이 아니라 편향). v4 해류-증강 학습도 무효(γ-prior는 전 스펙트럼
+시프트를 보상 불가). **kp_known 조건에선 해류 손실 자체가 미미(−0.002~
+−0.04)** → 해악의 주 채널 = kp/대역 배치 (beamform argmax의 Doppler 취약).
+실전 처방 확정: ①외부 해류 주입 ②kp_hint(characterize)를 net 경로에도
+전달(실측 net은 내부 beamform kp 사용 중 — 즉시 개선 후보) ③광대역 밴드.
+폐쇄 정리: 맹목 해류 복원 5/5 실패(val·shell·evidence·multiwin·BMA),
+oracle 복원, 채널 특정 — "sparse 이동 궤적의 해류 비식별성" 소정리.
+
+## 팩트체크 + novelty/contribution 리뷰 (사용자 요청, 재개 세션 말)
+
+**팩트체크**: 모든 헤드라인 수치가 저장 JSON에서 재도출됨 (10-sea, G1,
+HOS, orderprobe, 8-record 3-way, 14커밋). 표현 교정 2건:
+① "net이 oracle_ls2@32 초과" → track043 +0.040 유효 / track100 +0.009
+   = **동률**로 완화.
+② 합성 이동 gain은 대표본 교정본(+0.069±0.033, net×고속 한정)이 공식.
+추가 정직 노트: 실측 hand는 kp_hint(characterize) 사용, net은 내부
+beamform kp — net이 불리한 kp 소스로도 이김 (주장 강화 + 개선 여지).
+
+**novelty 위협 갱신**: ★AHGP(Liu et al., NeurIPS 2020) — 신경망이 데이터
+→GP 커널 스펙트럼밀도 예측, 합성학습→실측 zero-shot까지 모듈1과 방법
+골격 동일. **"amortized spectral prior" 자체는 우리 것이 아님 — 인용 필수.**
+차별점으로 재배치: ⓐ분산-구속 시공간 커널(물리 다양체) ⓑtask-loss
+(정확 선형해 관통; AHGP는 주변우도 계열) — v2 라벨회귀 실패/v3 성공
+ablation이 이 차별점의 실증 ⓒ이동 연산자 분포 ⓓ해양 실측 검증.
+PFN(Müller'22)·neural process 계열도 인용권. DSGP-Net 소스 미확인(리스크).
+
+**contribution 구조 (재배치 후):**
+- C1 [강]: 이동 sparse 파랑 추정의 병목 해부 (oracle 사슬 + FIM + 해류
+  채널·비식별) — 조합 선행 없음.
+- C2 [중, AHGP 인용 하 재프레임]: 해양파-특화 amortized spectral prior ×
+  물리 MMSE, task-loss가 결정적이라는 ablation, 실측 zero-shot.
+- C3 [강·도발적]: 추정기 사다리로 본 이동 프리미엄 증발 (corr −0.58→−0.11,
+  8 record) — synthetic-aperture 서사 교정.
+- C4 [소·깔끔]: sparse 이동 궤적 해류 비식별성 (5 목적함수 + oracle + 채널).
+- C5 [보조]: UQ 근사-보정.
+박사 골격: C1-C3 = 3챕터, C4/C5 보조. 리스크: 단일 프로토콜 패밀리
+(Tp/패치/수심 ablation 필요), net 합성평가 in-distribution, BS11a B_r1
+미해명, DSGP-Net 미추적.
+
 ## 남은 것 (내일 후보)
 
 1. 실측 풀런 판독 + (양성이면) 나머지 8 record로 확장 — 특히 supra-0.7λ 음수

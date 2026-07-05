@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 from d18_relax_estimator import beamform_top, omega
 
 def mmse_current_lib(P, z, depth, Pq, sigma0, seed=0, uc_known=None,
-                     kp_known=None):
+                     kp_known=None, return_ll=False):
     """hand-prior MMSE with global current: selected by GP evidence, or
     given (uc_known) — the oracle-Uc decisive test."""
     rng = np.random.default_rng(seed)
@@ -99,7 +99,7 @@ def mmse_current_lib(P, z, depth, Pq, sigma0, seed=0, uc_known=None,
     if uc_known is not None:
         ucx, ucy = uc_known
         e = evidence(ucx, ucy)
-        gam, s2 = e[1], e[2]
+        ll_sel, gam, s2 = e[0], e[1], e[2]
     else:
         best_u = None
         for ucx in np.linspace(-0.3, 0.3, 5):
@@ -113,13 +113,37 @@ def mmse_current_lib(P, z, depth, Pq, sigma0, seed=0, uc_known=None,
                 e = evidence(ucx, ucy)
                 if e[0] > best_u[0]:
                     best_u = (e[0], ucx, ucy, e[1], e[2])
-        _, ucx, ucy, gam, s2 = best_u
+        ll_sel, ucx, ucy, gam, s2 = best_u
     Phi_all = design(P, ucx, ucy)
     K = (Phi_all * gam[None]) @ Phi_all.T + s2 * np.eye(n)
     w = Phi_all.T @ np.linalg.solve(K, z)
     out = np.empty(len(Pq))
     for i in range(0, len(Pq), 4096):
         out[i:i + 4096] = (design(Pq[i:i + 4096], ucx, ucy) * gam[None]) @ w
+    if return_ll:
+        return out, np.hypot(ucx, ucy), ll_sel
     return out, np.hypot(ucx, ucy)
 
 
+
+
+def mmse_current_bma(P, z, depth, Pq, sigma0, seed=0, kp_known=None,
+                     grid=0.15, half=2):
+    """Bayesian model averaging over the Uc grid: prediction = sum_u w_u
+    pred_u, w ~ exp(log-evidence). Honest treatment under weak
+    identifiability (argmax picked spurious currents, 4/4 objectives)."""
+    cands = [(i * grid, j * grid)
+             for i in range(-half, half + 1)
+             for j in range(-half, half + 1)]
+    lls, preds = [], []
+    for (ux, uy) in cands:
+        f, _, ll = mmse_current_lib(P, z, depth, Pq, sigma0, seed=seed,
+                                    uc_known=(ux, uy), kp_known=kp_known,
+                                    return_ll=True)
+        preds.append(f)
+        lls.append(ll)
+    lls = np.array(lls)
+    w = np.exp(lls - lls.max())
+    w = w / w.sum()
+    ess = float(1.0 / (w ** 2).sum())
+    return (w[:, None] * np.stack(preds)).sum(0), ess

@@ -58,7 +58,12 @@ def main():
     a = ap.parse_args()
     net = get_net()
     out = {}
+    if os.path.exists(OUT):
+        out = json.load(open(OUT))
     for ep in a.episodes:
+        if len(out.get(ep, [])) >= a.n_win:
+            print(f"[{ep}] already done, skipping", flush=True)
+            continue
         L = EpisodeDataLoader('data/' + ep)
         depth, Hs = L.depth, L.Hs_true
         gx = L.gt_grid_x.numpy()

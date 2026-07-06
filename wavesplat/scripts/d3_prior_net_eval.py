@@ -54,8 +54,12 @@ def get_net(ckpt='results/direction3/prior_net_v3.pt'):
 
 
 def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
-                   use_em=False, max_em=6):
-    """MMSE with the net-predicted prior on the normalized 51x51 bank."""
+                   use_em=False, max_em=6, kp_hint=None, return_var=False,
+                   diag_out=None):
+    """MMSE with the net-predicted prior on the normalized 51x51 bank.
+    kp_hint: externally known peak wavenumber (real records:
+    characterize()) — the internal beamform-argmax kp is the estimator's
+    most Doppler/current-fragile stage (2026-07-05 current-arc verdict)."""
     rng = np.random.default_rng(seed)
     n = len(z)
     vi = rng.choice(n, max(8, int(val_frac * n)), replace=False)
@@ -63,12 +67,15 @@ def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
     vmask[vi] = True
     Ptr, ztr = P[~vmask], z[~vmask]
     Pv, zv = P[vmask], z[vmask]
-    bx, by = beamform_top(P.astype(np.float32), z.astype(np.float32),
-                          depth, klim=2.0, n=120)
-    kp = max(np.hypot(bx, by), 1e-3)
-    bx, by = beamform_top(P.astype(np.float32), z.astype(np.float32),
-                          depth, klim=3.5 * kp, n=120)
-    kp = max(np.hypot(bx, by), 1e-3)
+    if kp_hint is not None:
+        kp = float(kp_hint)
+    else:
+        bx, by = beamform_top(P.astype(np.float32), z.astype(np.float32),
+                              depth, klim=2.0, n=120)
+        kp = max(np.hypot(bx, by), 1e-3)
+        bx, by = beamform_top(P.astype(np.float32), z.astype(np.float32),
+                              depth, klim=3.5 * kp, n=120)
+        kp = max(np.hypot(bx, by), 1e-3)
     # net input maps (identical recipe to the data generator)
     m1, m2 = split_masks(P, mode='legs')
     _, _, p1 = beamform_power(P[m1], z[m1], depth, KREL * kp, NGRID)
@@ -128,12 +135,25 @@ def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
             else:
                 break
         gam = best_em[1]
+    if diag_out is not None:
+        diag_out['vr'] = float(vr0)
+        diag_out['vr_rel'] = float(vr0 / (np.std(zv) + 1e-12))
     Phi_all = design(P)
     K = (Phi_all * gam[None]) @ Phi_all.T + s2 * np.eye(n)
     w_pred = Phi_all.T @ np.linalg.solve(K, z)
     out = np.empty(len(Pq))
+    var = np.empty(len(Pq)) if return_var else None
+    Ki = np.linalg.inv(K) if return_var else None
     for i in range(0, len(Pq), 4096):
-        out[i:i + 4096] = (design(Pq[i:i + 4096]) * gam[None]) @ w_pred
+        Phi_q = design(Pq[i:i + 4096])
+        A_ = Phi_q * gam[None]
+        out[i:i + 4096] = A_ @ w_pred
+        if return_var:
+            Bq = A_ @ Phi_all.T
+            var[i:i + 4096] = np.einsum('ij,ij->i', A_, Phi_q) \
+                - np.einsum('ij,ij->i', Bq @ Ki, Bq)
+    if return_var:
+        return out, np.maximum(var, 0.0)
     return out
 
 

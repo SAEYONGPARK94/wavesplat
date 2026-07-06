@@ -38,6 +38,7 @@ def main():
     ap.add_argument('--record', default='YS17')
     ap.add_argument('--win', type=int, default=3)
     ap.add_argument('--W', type=float, default=40.0)
+    ap.add_argument('--suffix', default='')
     ap.add_argument('--n_win', type=int, default=6)
     ap.add_argument('--m_scan', type=int, default=12)
     ap.add_argument('--m_cap', type=int, default=600)
@@ -190,7 +191,7 @@ def main():
 
     ani = animation.FuncAnimation(fig, update, frames=len(leads))
     os.makedirs('results/gifs', exist_ok=True)
-    out = OUT.format(a.record)
+    out = OUT.format(a.record + a.suffix)
     ani.save(out, writer=animation.PillowWriter(fps=2))
     print(f"saved {out} ({os.path.getsize(out) / 1e6:.1f} MB, "
           f"enc corr {cc:+.2f})")

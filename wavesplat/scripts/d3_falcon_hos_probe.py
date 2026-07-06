@@ -59,6 +59,17 @@ def main():
     ap.add_argument('--lead_max', type=float, default=20.0)
     ap.add_argument('--lead_step', type=float, default=2.0)
     ap.add_argument('--tag', default='')
+    ap.add_argument('--noise', type=float, default=NOISE,
+                    help='range noise 1-sigma [m]')
+    ap.add_argument('--noise_range', type=float, default=0.0,
+                    help='range-proportional vertical error [rad] '
+                         '(IMU attitude error: sigma_z = r * this)')
+    ap.add_argument('--m_scan', type=int, default=M_PER_SCAN)
+    ap.add_argument('--heading_deg', type=float, default=0.0,
+                    help='ship course angle off the up-wave axis [deg]')
+    ap.add_argument('--shadow_h', type=float, default=0.0,
+                    help='sensor height above SWL [m]; >0 enables '
+                         'geometric crest shadowing (occlusion raydrop)')
     a = ap.parse_args()
     global LEADS
     LEADS = np.arange(0.0, a.lead_max + 1e-9, a.lead_step)
@@ -74,9 +85,11 @@ def main():
         rng = np.random.default_rng(400 + si)
         t0 = SPINUP + max(ws)                  # 'now'
         cx, cy = 250.0, 200.0                  # domain center (periodic)
+        hb = np.radians(a.heading_deg)
+        hv = np.array([-np.cos(hb), np.sin(hb)])   # course unit vector
 
-        def ship_pos(t):                       # heading -x into +x waves
-            return np.array([cx - a.U * (t - t0), cy])
+        def ship_pos(t):                       # course hv, into +x waves
+            return np.array([cx, cy]) + a.U * (t - t0) * hv
 
         # ---- causal scans while stepping the nonlinear sea
         scan_ts = np.arange(t0 - max(ws), t0 + 1e-9, SCAN_DT)
@@ -86,13 +99,31 @@ def main():
             while sim.t < t_s - 1e-9:
                 sim.step(DT_HOS)
             sp = ship_pos(t_s)
-            rr = rng.uniform(20.0, 100.0, M_PER_SCAN)
-            aa = rng.uniform(-np.pi / 3, np.pi / 3, M_PER_SCAN)  # +-60 deg
-            xs = sp[0] - rr * np.cos(aa)       # fan ahead = -x
-            ys = sp[1] + rr * np.sin(aa)
+            rr = rng.uniform(20.0, 100.0, a.m_scan)
+            aa = rng.uniform(-np.pi / 3, np.pi / 3, a.m_scan)  # +-60 deg
+            dx_ = hv[0] * np.cos(aa) - hv[1] * np.sin(aa)
+            dy_ = hv[1] * np.cos(aa) + hv[0] * np.sin(aa)
+            xs = sp[0] + rr * dx_              # fan ahead along course
+            ys = sp[1] + rr * dy_
             z = sim.get_eta_at(np.mod(xs, cfg.Lx), np.mod(ys, cfg.Ly))
-            Pall.append(np.column_stack([xs, ys, np.full(M_PER_SCAN, t_s)]))
-            zall.append(z + rng.normal(0, NOISE, M_PER_SCAN))
+            keep = np.ones(a.m_scan, bool)
+            if a.shadow_h > 0:                 # crest occlusion along rays
+                r_chk = np.arange(10.0, 100.0, 4.0)
+                Xc = sp[0] + r_chk[None, :] * dx_[:, None]
+                Yc = sp[1] + r_chk[None, :] * dy_[:, None]
+                zc = sim.get_eta_at(np.mod(Xc.ravel(), cfg.Lx),
+                                    np.mod(Yc.ravel(), cfg.Ly)
+                                    ).reshape(Xc.shape)
+                el_c = (zc - a.shadow_h) / r_chk[None, :]
+                el_t = (z - a.shadow_h) / rr
+                for i_ in range(a.m_scan):
+                    blk = r_chk < rr[i_]
+                    if blk.any() and el_c[i_, blk].max() > el_t[i_]:
+                        keep[i_] = False
+            sig = a.noise + a.noise_range * rr
+            Pall.append(np.column_stack(
+                [xs, ys, np.full(a.m_scan, t_s)])[keep])
+            zall.append((z + rng.normal(0, 1, a.m_scan) * sig)[keep])
         Pall = np.vstack(Pall)
         zall = np.concatenate(zall)
 
@@ -113,7 +144,8 @@ def main():
                                     sigma0=0.05 * a.Hs, kp_hint=kp, seed=si)
             res[W].append((fq.tolist(), gt_q.tolist()))
         print(f"sea {si} done (Hs_run={4 * np.std(sim.get_eta()):.2f} m, "
-              f"n_obs W=40: {int(m.sum())})", flush=True)
+              f"n_obs last-W: {int(m.sum())}, kept "
+              f"{len(zall)}/{len(scan_ts) * a.m_scan})", flush=True)
 
     print(f"\nHOS M={a.M} causal forward-fan encounter forecast "
           f"(hand-MMSE, {a.n_seas} seas)")

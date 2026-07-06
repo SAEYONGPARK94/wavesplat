@@ -141,6 +141,7 @@ def run_hos(a):
 
 
 def run_ys17(a):
+    refresh = a.gamma_refresh
     cfg = RECORDS['YS17']
     rec = MRecord(cfg['path'], stride=cfg['stride'])
     depth, U = cfg['depth'], cfg['U']
@@ -151,7 +152,7 @@ def run_ys17(a):
     cy = 0.5 * (rec.gy.min() + rec.gy.max())
     Xg, Yg = np.meshgrid(rec.gx, rec.gy)
     i0s = np.linspace(nfw + 1, rec.T_all - lead_pad - 202, 6).astype(int)
-    preds, lat = [], []
+    preds, lat, win_stats = [], [], []
     for wi, i0 in enumerate(i0s):
         i0 = int(i0)
         rng = np.random.default_rng(700 + wi)
@@ -202,42 +203,81 @@ def run_ys17(a):
                                  0.05 * Hs, depth)
         st = StreamMMSE(kxb, kyb, om, gam, s2, tau=20.0, dt=rec.dt,
                         prune=400)
+        kx_f, ky_f, om_f = kxb, kyb, om            # full bank (for rebuild)
         k0 = 0
         for j in range(nfw):                       # replay memory as stream
             n_j = min(M_FRAME, len(zw) - k0)
             st.step(Pw[k0:k0 + n_j], zw[k0:k0 + n_j])
             k0 += n_j
-        # live streaming + forecasting
+        # live streaming + forecasting (+ online gamma + NIS gate)
+        buf_P, buf_z = [Pw], [zw]
+        nis_win, w_preds = [], []
+        t_last_ref = t0
         for j in range(nfw, nfw + n_live):
             t_j = float(rec.t[i0 - nfw + 1 + j])
             P, z = fan_obs(j, t_j)
             if P is None:
                 continue
             t1 = time.perf_counter()
-            st.step(P, z)
+            nis = st.step(P, z)
             tq = t_j + LEADS
             spq = np.array([ship_pos(tt) for tt in tq])
             f, _ = st.predict(np.column_stack([spq, tq]))
             lat.append(time.perf_counter() - t1)
+            nis_win.append(nis)
+            buf_P.append(P)
+            buf_z.append(z)
+            if refresh > 0 and t_j - t_last_ref >= refresh:
+                Pb = np.vstack(buf_P)
+                zb = np.concatenate(buf_z)
+                mrec = Pb[:, 2] >= t_j - 20.0      # trailing 20 s buffer
+                Pb, zb = Pb[mrec], zb[mrec]
+                if len(zb) > 600:
+                    ib = np.random.default_rng(3).choice(len(zb), 600,
+                                                         False)
+                    Pb, zb = Pb[ib], zb[ib]
+                gam_n, s2_n = gamma_beamform(kx_f, ky_f, om_f, Pb, zb,
+                                             0.05 * Hs, depth)
+                st.s2 = s2_n
+                st.rebuild(Pb, zb, gam_n, kx_f, ky_f, om_f, prune=400)
+                t_last_ref = t_j
             for l_, tt, (xq, yq), fv in zip(LEADS, tq, spq, f):
                 jj = j + int(round(l_ / rec.dt))
                 gt = bilinear(Zall[jj], rec.gx, rec.gy, xq, yq)
                 preds.append((l_, fv, gt))
-        print(f"win {wi} done ({len(preds)} preds)", flush=True)
+                w_preds.append((l_, fv, gt))
+        pp = np.array([p_ for (_l, p_, g_) in w_preds])
+        gg = np.array([g_ for (_l, p_, g_) in w_preds])
+        vv = np.isfinite(gg)
+        c_w = float(np.corrcoef(pp[vv], gg[vv])[0, 1])
+        win_stats.append(dict(wi=wi, corr=c_w,
+                              nis=float(np.mean(nis_win))))
+        print(f"win {wi} done (corr={c_w:+.2f}, "
+              f"mean NIS={np.mean(nis_win):.2f})", flush=True)
     lat = np.array(lat) * 1e3
     res = score(preds, 'YS17 real streaming')
     print(f"latency/frame (update+forecast): median {np.median(lat):.1f} ms"
           f", p95 {np.percentile(lat, 95):.1f} ms")
-    json.dump(dict(mode='ys17', U=U, leads=LEADS.tolist(), by_lead=res,
+    if len(win_stats) > 2:
+        from scipy.stats import spearmanr
+        rho, pv = spearmanr([w_['nis'] for w_ in win_stats],
+                            [w_['corr'] for w_ in win_stats])
+        print(f"NIS gate: spearman(mean NIS, window corr) = {rho:+.2f} "
+              f"(p={pv:.3f}, n={len(win_stats)})")
+    tag = 'ys17' if refresh <= 0 else f'ys17_ref{refresh:g}'
+    json.dump(dict(mode=tag, U=U, leads=LEADS.tolist(), by_lead=res,
+                   gamma_refresh=refresh, win_stats=win_stats,
                    lat_ms_median=float(np.median(lat)),
                    lat_ms_p95=float(np.percentile(lat, 95))),
-              open(OUT.format('ys17'), 'w'), indent=1)
-    print(f"saved {OUT.format('ys17')}")
+              open(OUT.format(tag), 'w'), indent=1)
+    print(f"saved {OUT.format(tag)}")
 
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('mode', choices=['hos', 'ys17'])
     ap.add_argument('--n_seas', type=int, default=2)
+    ap.add_argument('--gamma_refresh', type=float, default=0.0,
+                    help='slow-loop gamma refresh period [s]; 0=off')
     a = ap.parse_args()
     run_hos(a) if a.mode == 'hos' else run_ys17(a)

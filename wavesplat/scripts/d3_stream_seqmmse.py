@@ -119,7 +119,9 @@ class StreamMMSE:
         self.a = 1.0 if tau is None else float(np.exp(-dt / tau))
 
     def step(self, Pf, zf):
-        """One frame: AR(1) fade toward prior, then RLS update."""
+        """One frame: AR(1) fade toward prior, then RLS update.
+        Returns the normalized innovation squared (NIS, ~1 if
+        calibrated) — a causal per-frame health/gate signal."""
         if self.a < 1.0:
             a2 = self.a ** 2
             self.w *= self.a
@@ -128,10 +130,38 @@ class StreamMMSE:
         Phi = design(self.kxb, self.kyb, self.om, Pf)
         PPt = self.P @ Phi.T
         S = Phi @ PPt + self.s2 * np.eye(len(zf))
-        K = PPt @ np.linalg.inv(S)
-        self.w += K @ (zf - Phi @ self.w)
+        Si = np.linalg.inv(S)
+        nu = zf - Phi @ self.w
+        K = PPt @ Si
+        self.w += K @ nu
         self.P -= K @ PPt.T
         self.P = 0.5 * (self.P + self.P.T)   # keep symmetric (300+ steps)
+        return float(nu @ Si @ nu / len(zf))
+
+    def rebuild(self, P_obs, z_obs, gam_full, kx_full, ky_full, om_full,
+                prune=None):
+        """Slow-loop gamma refresh: re-prune the bank by the NEW gamma
+        and rebuild (w, P) from a batch solve on the trailing buffer —
+        state transfer without filter drift. O(n_obs^3), run ~every 10 s
+        (async in a real deployment)."""
+        B = len(kx_full)
+        if prune is not None and prune < B:
+            top = np.argsort(gam_full[:B])[-prune:]
+            self.kxb, self.kyb, self.om = (kx_full[top], ky_full[top],
+                                           om_full[top])
+            self.gam = np.concatenate([gam_full[:B][top],
+                                       gam_full[B:][top]])
+        else:
+            self.kxb, self.kyb, self.om = kx_full, ky_full, om_full
+            self.gam = gam_full
+        self.n = len(self.gam)
+        Phi = design(self.kxb, self.kyb, self.om, P_obs)
+        K = (Phi * self.gam[None]) @ Phi.T + self.s2 * np.eye(len(z_obs))
+        Ki_z = np.linalg.solve(K, z_obs)
+        self.w = self.gam * (Phi.T @ Ki_z)
+        Ki_Phi = np.linalg.solve(K, Phi * self.gam[None])
+        self.P = np.diag(self.gam) - (Phi * self.gam[None]).T @ Ki_Phi
+        self.P = 0.5 * (self.P + self.P.T)
 
     def predict(self, Q, with_var=False):
         Phi = design(self.kxb, self.kyb, self.om, Q)

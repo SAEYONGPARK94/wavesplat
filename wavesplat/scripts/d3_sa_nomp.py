@@ -498,7 +498,8 @@ def bank_irls_estimate(P, z, depth, n_sel=48, dk_c=0.015, val_frac=0.25,
 
 def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
                        val_frac=0.25, seed=0, max_em=6, return_var=False,
-                       Uc=None, diag_out=None, dual_band=False):
+                       Uc=None, diag_out=None, dual_band=False,
+                       gamma_tilt=0.0):
     """Spectrum-weighted linear MMSE over the fine continuous bank — the
     2026-07-05 winner (10-sea harness: 0.272/0.239/0.241 vs RELAX
     0.199/0.222/0.183). NO identification: prior variance per candidate
@@ -585,6 +586,9 @@ def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
         pw[i:i + CH] = (z[None] * np.cos(psi)).sum(1) ** 2 \
             + (z[None] * np.sin(psi)).sum(1) ** 2
     pw = pw / max(pw.max(), 1e-12)
+    if gamma_tilt:                # high-k prior lift (slope-aware FF use)
+        pw = pw * (np.hypot(kxb, kyb) / kp) ** gamma_tilt
+        pw = pw / max(pw.max(), 1e-12)
     m = len(ztr)
     best = None
     for pexp in (0.5, 1.0, 2.0):

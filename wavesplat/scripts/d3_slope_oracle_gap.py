@@ -39,9 +39,9 @@ NOISE = 0.02
 DX, DT_FD = 0.5, 0.05
 
 
-def oracle_predict(kxm, kym, Am, om_m, P, z, Pq, kp, s2):
+def oracle_predict(kxm, kym, Am, om_m, P, z, Pq, kp, s2, dk_frac=10.0):
     """Posterior mean with the TRUE binned spectrum as gamma."""
-    dk = kp / 10.0
+    dk = kp / dk_frac
     ax = np.arange(-2.5 * kp, 2.5 * kp + dk / 2, dk)
     KX, KY = np.meshgrid(ax, ax)
     kk = np.hypot(KX, KY)
@@ -70,6 +70,14 @@ def oracle_predict(kxm, kym, Am, om_m, P, z, Pq, kp, s2):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--n_seas', type=int, default=4)
+    ap.add_argument('--sampling', default='random',
+                    choices=['random', 'lines'],
+                    help='random points in fan vs Falcon-structured '
+                         'clusters (0.18 deg azimuth pairs + elevation-'
+                         'step range pairs) at the SAME budget')
+    ap.add_argument('--dk_frac', type=float, default=10.0,
+                    help='bank spacing kp/dk_frac (both achieved+oracle)')
+    ap.add_argument('--tag', default='')
     a = ap.parse_args()
     kp = (2 * np.pi / TP) ** 2 / G
     acc = {m: {k: ([], []) for k in ('eta', 'slope', 'vel')}
@@ -98,13 +106,26 @@ def main():
         Pl, zl = [], []
         for t_s in np.arange(0.0, t0 + 1e-9, SCAN_DT):
             sp = ship_pos(t_s)
-            rr = rng.uniform(20.0, 100.0, M_SCAN)
-            aa = rng.uniform(-np.pi / 3, np.pi / 3, M_SCAN)
+            if a.sampling == 'random':
+                rr = rng.uniform(20.0, 100.0, M_SCAN)
+                aa = rng.uniform(-np.pi / 3, np.pi / 3, M_SCAN)
+            else:
+                # Falcon-structured: M_SCAN/4 clusters of 4 = center,
+                # azimuth-neighbor (r * 0.18 deg lateral), elevation-
+                # neighbor (~5 m range step at 3 m sensor height), both
+                n_cl = M_SCAN // 4
+                r0 = rng.uniform(20.0, 95.0, n_cl)
+                a0 = rng.uniform(-np.pi / 3, np.pi / 3, n_cl)
+                dlat = r0 * np.radians(0.18)
+                dr = np.clip(r0 ** 2 * np.radians(0.24) / 3.0, 1.0, 8.0)
+                rr = np.concatenate([r0, r0, r0 + dr, r0 + dr])
+                aa = np.concatenate([a0, a0 + dlat / r0, a0,
+                                     a0 + dlat / r0])
             xs = sp[0] - rr * np.cos(aa)
             ys = sp[1] + rr * np.sin(aa)
-            Q = np.column_stack([xs, ys, np.full(M_SCAN, t_s)])
+            Q = np.column_stack([xs, ys, np.full(len(rr), t_s)])
             Pl.append(Q)
-            zl.append(eta_st(Q) + rng.normal(0, NOISE, M_SCAN))
+            zl.append(eta_st(Q) + rng.normal(0, NOISE, len(rr)))
         P = np.vstack(Pl)
         z = np.concatenate(zl)
 
@@ -118,9 +139,10 @@ def main():
         preds = {
             'achieved': mmse_bank_estimate(
                 P, z, DEPTH, Pq, sigma0=0.05 * HS, kp_hint=kp,
-                seed=si).reshape(-1, 5),
+                seed=si, dk_c=kp / a.dk_frac).reshape(-1, 5),
             'oracle': oracle_predict(kxm, kym, Am, om_m, P, z, Pq, kp,
-                                     NOISE ** 2).reshape(-1, 5)}
+                                     NOISE ** 2,
+                                     dk_frac=a.dk_frac).reshape(-1, 5)}
         for mth, fq in preds.items():
             pe = fq[:, 0]
             ps = (fq[:, 1] - fq[:, 2]) / (2 * DX)
@@ -146,8 +168,9 @@ def main():
             res[mth][k] = dict(corr=cc, amp_ratio=amp)
             line += f"  {k} {cc:+.3f}({amp:.2f})"
         print(line)
-    json.dump(res, open(OUT, 'w'), indent=1)
-    print(f"saved {OUT}")
+    out_p = OUT.replace('.json', a.tag + '.json') if a.tag else OUT
+    json.dump(res, open(out_p, 'w'), indent=1)
+    print(f"saved {out_p}")
 
 
 if __name__ == '__main__':

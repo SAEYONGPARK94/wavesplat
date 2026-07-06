@@ -111,15 +111,37 @@ pre-registration trail.
 
 ## 2. Problem Setting and Information Analysis (C1)
 
-2.1 Observation class: forward fan ±60°, 20–100 m, 10 FPS, ~48
-returns/frame (median of the spec-faithful simulation incl. raydrop),
-2 cm noise; exogenous straight course; earth-fixed estimation (forward
-speed invariance); latency budget 100 ms.
+**2.1 The observation class.** The sensor is taken as given: a
+Falcon-class forward-looking LiDAR (specifications verified against the
+manufacturer's manual, Table 2: 120°×25° FOV, 0.18°×0.24° angular
+resolution, 250 m detection range at 10 % reflectivity, 2 cm (1σ)
+ranging precision, 10 FPS). Mounted on a foiling vessel and directed at
+the sea surface at grazing incidence, its usable product is a forward
+fan of returns spanning roughly 20–100 m ahead within ±60° of the
+course. The number of surviving returns is not a free parameter but a
+physical outcome of reflectivity-driven dropout: our spec-faithful
+simulation yields a median of 48 usable returns per frame, spatially
+clustered near sensor-facing crests (nearest-neighbour median ≈2 m).
+The vessel's trajectory is exogenous — we forecast for a course, we do
+not design one — and estimation is performed in earth-fixed
+coordinates, which renders the estimator forward-speed invariant by
+construction. The computational budget is 100 ms per 10 Hz frame,
+set by the flight controller.
 
-2.2 Encounter-frame predictable zone: ℓ\* ≈ R_max/(U+c_g); demand-side
-scaling (encounter period shrinks with U as preview demand does) —
-Fig. `fig_horizon` (flat 0.91 through the FF band; decay shoulder at
-~4.5 s; collapse beyond ℓ\*=6.0 s).
+**2.2 The encounter-frame predictable zone.** Phase-resolved forecasts
+are bounded by group-velocity geometry [Naaijen et al.]: information
+observed at range R arrives at the vessel no later than the group
+transit time. In the encounter frame of a vessel advancing at U into
+head seas, the wave energy that will be met at lead ℓ is currently at
+range (U+c_g)ℓ, so the usable lead of a sensor with maximum water
+range R_max is ℓ\* ≈ R_max/(U+c_g) — about 6 s at the design point
+(22 kt, BF4). Critically, the *demand* scales the same way: the
+encounter period shrinks with U, and the feedforward controller's
+preview requirement (0.1–0.5 s [companion]) sits an order of magnitude
+inside ℓ\*. Fig. `fig_horizon` shows the measured skill-versus-lead
+curve on HOS M=3 seas (12 seeds): flat at 0.91 through the FF band, a
+decay shoulder near 4.5 s, and collapse beyond the predicted ℓ\*=6.0 s.
+The boundary is where the physics says it should be.
 
 2.3 The limit ladder (each rung = one falsifiable "the gap is X"
 hypothesis, each rejected):
@@ -150,14 +172,45 @@ information-poorest and already at its examined-class ceiling.
 
 ## 3. A Streaming Estimator that Attains the Limit (C2)
 
-3.1 Bank MMSE (no identification): beamform-power prior, validation-
-selected hyperparameters, val-gated EM. 3.2 Weight-space equivalence:
-batch MMSE ≡ RLS with prior (derivation; machine-precision assert;
-unit-tested). Finite memory as AR(1)-toward-prior with group-coherence
-interpretation. 3.3 Two-timescale architecture: per-frame filter +
-slow-loop γ refresh (rebuild); NIS as health signal. 3.4 Measured
-compatibility: 18 ms median / 37 ms p95 per frame (solo, 48 pts/frame,
-CPU), 10-min drift-free, inline gate evaluation 0.8 s in the slow loop.
+**3.1 Bank MMSE without identification.** The field is represented on
+a fixed bank of ~1,900 wavenumber cells (annulus 0.35–2.5 k_p, spacing
+k_p/10), each carrying a cosine/sine pair whose time dependence is
+fixed by the dispersion relation. No component identification is
+attempted — the 200-mode identification programme of our earlier work
+consistently lost to a prior-weighted linear estimator. The prior
+variance per cell is shaped by the beamform power of the observations,
+its two shape hyperparameters selected on a 25 % held-out split, and
+refined by validation-gated EM. Prediction at any space-time query is
+then linear in the observations.
+
+**3.2 Exact streaming equivalence.** Because the dispersion phase is
+inside the design row, the bank coefficients are *static* for a
+stationary linear sea, and the batch MMSE posterior mean is exactly a
+recursive least-squares filter with prior P₀ = diag(γ): process each
+frame's returns as a rank-m update. We verify the identity to machine
+precision (max deviation 3×10⁻¹⁴; unit-tested in CI). Finite memory
+enters as AR(1)-toward-prior dynamics, w←aw, P←a²P+(1−a²)diag(γ) with
+a = exp(−Δt/τ) — a proper linear-Gaussian model whose stationary law
+is the prior, physically read as a finite wave-group coherence time.
+One numerical caveat proved load-bearing: after hundreds of rank-m
+downdates the covariance loses symmetry and skill silently collapses;
+a per-step symmetrization P←(P+Pᵀ)/2 removes the failure (regression-
+tested).
+
+**3.3 Two-timescale architecture.** The per-frame filter never touches
+its own prior; a slow loop (every ~10 s) may re-estimate γ from a
+trailing buffer and rebuild (w, P) by one batch solve — state transfer
+without drift. The per-frame normalized innovation squared (NIS) is
+exposed as a health signal, and the estimator's held-out residual is
+exposed as the (preliminary) reliability gate of §5.
+
+**3.4 Measured control compatibility.** Under the realistic return
+density (48/frame) and with no concurrent load, the filter plus
+forecast costs 18 ms median / 31 ms p95 per frame at the design point
+and 17.6/37 ms on real-sea data (CPU, numpy) — a factor ≈5 inside the
+100 ms budget; a 10-minute continuous run shows no skill or covariance
+drift; the slow-loop gate evaluation costs 0.8 s and is asynchronous
+by construction.
 3.5 Relation to prior recursive wave estimators:
 
 | aspect | CN-RLS [RS 2024] | DSWP (radar) | **this work** |

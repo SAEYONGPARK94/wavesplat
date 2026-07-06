@@ -30,7 +30,7 @@ from wavesim.hos_simulator import HOSSimulator, HOSConfig
 from realdata_analysis import directional_spread
 from d3_falcon_real_operator import RECORDS, bilinear, resolve_direction
 from d3_sa_multirecord import MRecord
-from d3_stream_seqmmse import make_bank, gamma_beamform, StreamMMSE
+from d3_stream_seqmmse import make_bank, gamma_beamform, StreamMMSE, design
 
 G = 9.81
 OUT = 'results/direction3/stream_design_pipeline_{}.json'
@@ -214,6 +214,7 @@ def run_ys17(a):
         buf_P, buf_z = [Pw], [zw]
         nis_win, w_preds = [], []
         t_last_ref = t0
+        gate_vals, gate_hist, t_last_gate, gate_ms = [], [], t0, []
         for j in range(nfw, nfw + n_live):
             t_j = float(rec.t[i0 - nfw + 1 + j])
             P, z = fan_obs(j, t_j)
@@ -228,6 +229,36 @@ def run_ys17(a):
             nis_win.append(nis)
             buf_P.append(P)
             buf_z.append(z)
+            if a.gate and t_j - t_last_gate >= 5.0:
+                tg0 = time.perf_counter()
+                Pb = np.vstack(buf_P)
+                zb = np.concatenate(buf_z)
+                mrec = Pb[:, 2] >= t_j - 20.0
+                Pb, zb = Pb[mrec], zb[mrec]
+                if len(zb) > 480:
+                    ib = np.random.default_rng(4).choice(len(zb), 480,
+                                                         False)
+                    Pb, zb = Pb[ib], zb[ib]
+                nv = max(8, len(zb) // 4)
+                iv = np.random.default_rng(5).choice(len(zb), nv, False)
+                vm = np.zeros(len(zb), bool)
+                vm[iv] = True
+                Phi_tr = design(st.kxb, st.kyb, st.om, Pb[~vm])
+                Phi_v = design(st.kxb, st.kyb, st.om, Pb[vm])
+                Kb = (Phi_tr * st.gam[None]) @ Phi_tr.T \
+                    + st.s2 * np.eye((~vm).sum())
+                fv = (Phi_v * st.gam[None]) @ (
+                    Phi_tr.T @ np.linalg.solve(Kb, zb[~vm]))
+                vr = float(np.sqrt(np.mean((fv - zb[vm]) ** 2))
+                           / (np.std(zb[vm]) + 1e-12))
+                gate_hist.append(vr)
+                med_g = float(np.median(gate_hist))
+                mad_g = float(np.median(np.abs(np.array(gate_hist)
+                                               - med_g))) + 1e-9
+                gate_vals.append((vr - med_g) / mad_g
+                                 if len(gate_hist) >= 4 else 0.0)
+                gate_ms.append((time.perf_counter() - tg0) * 1e3)
+                t_last_gate = t_j
             if refresh > 0 and t_j - t_last_ref >= refresh:
                 Pb = np.vstack(buf_P)
                 zb = np.concatenate(buf_z)
@@ -251,10 +282,15 @@ def run_ys17(a):
         gg = np.array([g_ for (_l, p_, g_) in w_preds])
         vv = np.isfinite(gg)
         c_w = float(np.corrcoef(pp[vv], gg[vv])[0, 1])
+        gz = float(np.mean(gate_vals)) if gate_vals else None
         win_stats.append(dict(wi=wi, corr=c_w,
-                              nis=float(np.mean(nis_win))))
+                              nis=float(np.mean(nis_win)), gate=gz,
+                              gate_ms=(float(np.median(gate_ms))
+                                       if gate_ms else None)))
         print(f"win {wi} done (corr={c_w:+.2f}, "
-              f"mean NIS={np.mean(nis_win):.2f})", flush=True)
+              f"mean NIS={np.mean(nis_win):.2f}"
+              + (f", gate_z={gz:+.2f}, gate {np.median(gate_ms):.0f}ms"
+                 if gz is not None else "") + ")", flush=True)
     lat = np.array(lat) * 1e3
     res = score(preds, 'YS17 real streaming')
     print(f"latency/frame (update+forecast): median {np.median(lat):.1f} ms"
@@ -265,6 +301,11 @@ def run_ys17(a):
                             [w_['corr'] for w_ in win_stats])
         print(f"NIS gate: spearman(mean NIS, window corr) = {rho:+.2f} "
               f"(p={pv:.3f}, n={len(win_stats)})")
+        if win_stats[0].get('gate') is not None:
+            rho2, pv2 = spearmanr([w_['gate'] for w_ in win_stats],
+                                  [w_['corr'] for w_ in win_stats])
+            print(f"INLINE val-res gate: spearman = {rho2:+.2f} "
+                  f"(p={pv2:.3f}, n={len(win_stats)})")
     tag = ('ys17' if refresh <= 0 else f'ys17_ref{refresh:g}') + a.tag2
     json.dump(dict(mode=tag, U=U, leads=LEADS.tolist(), by_lead=res,
                    gamma_refresh=refresh, win_stats=win_stats,
@@ -282,6 +323,9 @@ if __name__ == '__main__':
                     help='slow-loop gamma refresh period [s]; 0=off')
     ap.add_argument('--m_frame', type=int, default=12,
                     help='fan returns per frame (episodes: median 48)')
+    ap.add_argument('--gate', action='store_true',
+                    help='inline rolling val-residual gate (5 s period, '
+                         'causal running median/MAD normalization)')
     ap.add_argument('--tag2', default='',
                     help='output filename suffix')
     a = ap.parse_args()

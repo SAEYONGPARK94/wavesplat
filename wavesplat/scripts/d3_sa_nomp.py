@@ -497,7 +497,8 @@ def bank_irls_estimate(P, z, depth, n_sel=48, dk_c=0.015, val_frac=0.25,
 
 
 def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
-                       val_frac=0.25, seed=0, max_em=6):
+                       val_frac=0.25, seed=0, max_em=6, return_var=False,
+                       Uc=None):
     """Spectrum-weighted linear MMSE over the fine continuous bank — the
     2026-07-05 winner (10-sea harness: 0.272/0.239/0.241 vs RELAX
     0.199/0.222/0.183). NO identification: prior variance per candidate
@@ -536,6 +537,8 @@ def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
     kxb, kyb = KX[sel].astype(float), KY[sel].astype(float)
     B = len(kxb)
     om = omega(np.hypot(kxb, kyb) + 1e-12, depth)
+    if Uc is not None:                    # current Doppler (earth frame)
+        om = om + kxb * Uc[0] + kyb * Uc[1]
 
     def design(Q):
         psi = kxb[None] * Q[:, 0:1] + kyb[None] * Q[:, 1:2] \
@@ -593,8 +596,18 @@ def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
     w_pred = Phi_all.T @ alpha
     # chunked query render (real grids can be ~1e4 px)
     out = np.empty(len(Pq))
+    var = np.empty(len(Pq)) if return_var else None
+    Ki = np.linalg.inv(K) if return_var else None
     for i in range(0, len(Pq), 4096):
-        out[i:i + 4096] = (design(Pq[i:i + 4096]) * gam[None]) @ w_pred
+        Phi_q = design(Pq[i:i + 4096])
+        A = Phi_q * gam[None]
+        out[i:i + 4096] = A @ w_pred
+        if return_var:
+            Bq = A @ Phi_all.T                          # (c, n)
+            var[i:i + 4096] = np.einsum('ij,ij->i', A, Phi_q) \
+                - np.einsum('ij,ij->i', Bq @ Ki, Bq)
+    if return_var:
+        return out, np.maximum(var, 0.0)
     return out
 
 

@@ -109,6 +109,7 @@ def main():
     a = ap.parse_args()
     cfg = RECORDS[a.record]
     U = a.U if a.U is not None else cfg['U']
+    tag = a.record if a.U is None else f"{a.record}_U{U:g}"
     rec = MRecord(cfg['path'], stride=cfg['stride'])
     depth = cfg['depth']
     leads = np.arange(0.0, cfg['lead_max'] + 1e-9, 1.0)
@@ -213,7 +214,7 @@ def main():
             print(f"    W={W:4.0f}s n={len(z):4d} enc_corr={cc:+.2f} "
                   f"map_now_corr={c_map:+.2f}", flush=True)
         out['windows'].append(row)
-        json.dump(out, open(OUT.format(a.record), 'w'), indent=1,
+        json.dump(out, open(OUT.format(tag), "w"), indent=1,
                   default=float)
 
     # ---- pooled summary: corr by lead band, per memory W
@@ -231,7 +232,7 @@ def main():
             v = np.isfinite(g_)
             line += f"   {corr(p_[v], g_[v]):+.2f} (n={v.sum()})"
         print(line)
-    print(f"saved {OUT.format(a.record)}")
+    print(f"saved {OUT.format(tag)}")
 
 
 if __name__ == '__main__':

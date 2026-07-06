@@ -35,7 +35,7 @@ from d3_sa_achievability_gap import corr
 G = 9.81
 OUT = 'results/direction3/falcon_hos_probe.json'
 
-HS, TP, DEPTH = 2.0, 8.0, 50.0
+HS, TP, DEPTH = 2.0, 8.0, 50.0            # overridable (design pt: BF4)
 WS = [10.0, 20.0, 40.0]
 LEADS = np.arange(0.0, 21.0, 2.0)
 SCAN_DT = 0.5
@@ -50,24 +50,36 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--n_seas', type=int, default=4)
     ap.add_argument('--M', type=int, default=3)
+    ap.add_argument('--U', type=float, default=U_SHIP)
+    ap.add_argument('--Hs', type=float, default=HS)
+    ap.add_argument('--Tp', type=float, default=TP)
+    ap.add_argument('--Lx', type=float, default=500.0)
+    ap.add_argument('--Nx', type=int, default=128)
+    ap.add_argument('--w_mems', type=float, nargs='+', default=WS)
+    ap.add_argument('--lead_max', type=float, default=20.0)
+    ap.add_argument('--lead_step', type=float, default=2.0)
+    ap.add_argument('--tag', default='')
     a = ap.parse_args()
-    kp = (2 * np.pi / TP) ** 2 / G            # deep-ish water peak k
-    res = {W: [] for W in WS}
+    global LEADS
+    LEADS = np.arange(0.0, a.lead_max + 1e-9, a.lead_step)
+    kp = (2 * np.pi / a.Tp) ** 2 / G          # deep-ish water peak k
+    ws = list(a.w_mems)
+    res = {W: [] for W in ws}
     for si in range(a.n_seas):
-        cfg = HOSConfig(Lx=500.0, Ly=400.0, Nx=128, Ny=128,
+        cfg = HOSConfig(Lx=a.Lx, Ly=400.0, Nx=a.Nx, Ny=128,
                         depth=DEPTH, M=a.M)
         sim = HOSSimulator(cfg)
-        sim.initialize_jonswap(Hs=HS, Tp=TP, direction_deg=0.0,
+        sim.initialize_jonswap(Hs=a.Hs, Tp=a.Tp, direction_deg=0.0,
                                direction_spread_deg=25.0, seed=9000 + si)
         rng = np.random.default_rng(400 + si)
-        t0 = SPINUP + max(WS)                  # 'now'
+        t0 = SPINUP + max(ws)                  # 'now'
         cx, cy = 250.0, 200.0                  # domain center (periodic)
 
         def ship_pos(t):                       # heading -x into +x waves
-            return np.array([cx - U_SHIP * (t - t0), cy])
+            return np.array([cx - a.U * (t - t0), cy])
 
         # ---- causal scans while stepping the nonlinear sea
-        scan_ts = np.arange(t0 - max(WS), t0 + 1e-9, SCAN_DT)
+        scan_ts = np.arange(t0 - max(ws), t0 + 1e-9, SCAN_DT)
         Pall, zall = [], []
         t_next = 0.0
         for t_s in scan_ts:
@@ -95,10 +107,10 @@ def main():
         gt_q = np.array(gt_q)
         Pq = np.array([[*ship_pos(t0 + l), t0 + l] for l in LEADS])
 
-        for W in WS:
+        for W in ws:
             m = Pall[:, 2] >= t0 - W
             fq = mmse_bank_estimate(Pall[m], zall[m], DEPTH, Pq,
-                                    sigma0=0.05 * HS, kp_hint=kp, seed=si)
+                                    sigma0=0.05 * a.Hs, kp_hint=kp, seed=si)
             res[W].append((fq.tolist(), gt_q.tolist()))
         print(f"sea {si} done (Hs_run={4 * np.std(sim.get_eta()):.2f} m, "
               f"n_obs W=40: {int(m.sum())})", flush=True)
@@ -107,7 +119,7 @@ def main():
           f"(hand-MMSE, {a.n_seas} seas)")
     print(f"{'W_mem':>6s} | corr by lead band:   0-10s   10-20s")
     summary = {}
-    for W in WS:
+    for W in ws:
         preds = np.array([p for p, _ in res[W]])
         gts = np.array([g for _, g in res[W]])
         line = f"{W:6.0f} |"
@@ -118,12 +130,13 @@ def main():
             summary[W][f'{lo}-{hi}'] = cc
             line += f"          {cc:+.2f}"
         print(line)
-    json.dump(dict(M=a.M, n_seas=a.n_seas, Hs=HS, Tp=TP, U=U_SHIP,
+    out_p = OUT.replace('.json', a.tag + '.json')
+    json.dump(dict(M=a.M, n_seas=a.n_seas, Hs=a.Hs, Tp=a.Tp, U=a.U,
                    leads=LEADS.tolist(),
                    summary={str(k): v for k, v in summary.items()},
                    raw={str(k): v for k, v in res.items()}),
-              open(OUT, 'w'), indent=1)
-    print(f"saved {OUT}")
+              open(out_p, 'w'), indent=1)
+    print(f"saved {out_p}")
 
 
 if __name__ == '__main__':

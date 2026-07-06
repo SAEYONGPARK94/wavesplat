@@ -177,7 +177,7 @@
   dl.gloss dd { margin: 0 0 6px; font-size: 15px; color: var(--ink); }
 
   /* ---------- study passes ---------- */
-  .passes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0; }
+  .passes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 18px 0; }
   @media (max-width: 640px) { .passes { grid-template-columns: 1fr; } }
   .pass { background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
     padding: 16px 18px; box-shadow: var(--shadow); }
@@ -205,8 +205,12 @@
     자기가 경계 근처에 있음을 <em>알고</em>, 경계 너머가 요구하는 사양을
     <em>말할</em> 수 있는가?"</p>
     <p class="sub">이 네 동사(끝나는가/도달/알고/말할)가 논문의 네 기둥입니다:
-    ① 정보 한계 지도(§2) ② 스트리밍 추정기(§3) ③ 신뢰 게이트(§5) ④ 요구-역산(§7).
-    공부할 때 항상 "지금 이 내용이 네 동사 중 어디에 붙는가"를 물어보세요.</p>
+    ① 정보 한계 지도(논문 §2) ② 스트리밍 추정기(논문 §3) ③ 신뢰 게이트(논문 §5)
+    ④ 요구-역산(논문 §7). 공부할 때 항상 "지금 이 내용이 네 동사 중 어디에
+    붙는가"를 물어보세요. 이 가이드의 §1–11은 논문의 내용을,
+    <strong>§12–16은 그 결론에 도달하기까지의 연구 아크</strong>(학습 접근의
+    역사·네트워크 해부·이동 개구·해류)를 다룹니다 — 심사에서 "왜 이 구조인가"라는
+    질문의 답이 §12–16에 있습니다.</p>
   </div>
 </header>
 
@@ -224,10 +228,15 @@
     <li><a href="#s9"><span class="n">09</span>실측 5사이트 이야기</a></li>
     <li><a href="#s10"><span class="n">10</span>게이트 — 통계 위생의 교과서</a></li>
     <li><a href="#s11"><span class="n">11</span>제어 폐쇄 (E2E)</a></li>
-    <li><a href="#s12"><span class="n">12</span>통계 도구 미니 사전</a></li>
-    <li><a href="#s13"><span class="n">13</span>예상 심사 문답</a></li>
-    <li><a href="#s14"><span class="n">14</span>용어집</a></li>
-    <li><a href="#s15"><span class="n">15</span>공부 순서 제안 (3-패스)</a></li>
+    <li><a href="#s12"><span class="n">12</span>학습 접근의 전체 역사</a></li>
+    <li><a href="#s13"><span class="n">13</span>네트워크 해부 — amortized prior net</a></li>
+    <li><a href="#s14"><span class="n">14</span>학습이 준 것과 못 준 것</a></li>
+    <li><a href="#s15"><span class="n">15</span>이동 개구 아크</a></li>
+    <li><a href="#s16"><span class="n">16</span>해류 비식별성 소정리</a></li>
+    <li><a href="#s17"><span class="n">17</span>통계 도구 미니 사전</a></li>
+    <li><a href="#s18"><span class="n">18</span>예상 심사 문답</a></li>
+    <li><a href="#s19"><span class="n">19</span>용어집</a></li>
+    <li><a href="#s20"><span class="n">20</span>공부 순서 제안 (4-패스)</a></li>
   </ul>
 </nav>
 
@@ -637,6 +646,200 @@
 <!-- ============================================================ -->
 <section id="s12">
   <div class="step">STEP 12</div>
+  <h2 class="sec">학습 접근의 전체 역사 — 실패의 지도와 두 번의 돌파</h2>
+  <p class="sec-sub">mean-collapse 시대에서 표현 전환·생성 prior까지.</p>
+
+  <h3>12.1 왜 학습이 필요했나</h3>
+  <p>hand 추정기의 prior(beamform 파워^p)는 손튜닝된 휴리스틱입니다. 바다 스펙트럼의
+  구조(피크 모양·방향 spreading·대역폭)는 데이터에서 배울 수 있는 사전지식이고,
+  "amortized"란 레코드마다 최적화를 다시 푸는 대신 <strong>한 번 학습해두고 새 관측엔
+  forward pass 한 번으로 즉시 답하는 것</strong> — 실시간 제약과 정확히 맞는 형태입니다.</p>
+
+  <h3>12.2 실패의 지도 — mean-collapse 시대</h3>
+  <p>점구름→성분/장을 직접 회귀하는 시도는 전부 실패했습니다: raw 점 회귀, 판별망,
+  amortized 직접 회귀, mode-seeking 모두 <strong>mean-collapse</strong>(출력이 흐릿한
+  평균≈0으로 붕괴). 원인은 모델 크기가 아니라 문제의 구조 — 위상·방향이
+  다봉(multimodal)인데 픽셀 MSE는 다봉 분포에서 봉우리가 아닌 평균을 맞히는 게 최적이기
+  때문입니다.</p>
+  <div class="key"><span class="tag">핵심</span>
+    <p><strong>회귀 목적함수가 원리적으로 부적합했던 것</strong> — 망을 키워서 풀리는
+    문제가 아니었습니다.</p>
+  </div>
+
+  <h3>12.3 돌파 1 — 표현(도메인)을 바꾸니 뚫림</h3>
+  <p>입력을 점구름이 아니라 <strong>beamform 파워맵</strong>(k-공간)으로 바꾸자 단순 CNN
+  검출+잔차 반복이 RELAX급이 됐습니다. 도메인 지식이 다봉성을 제거해 준 것 — k-공간에서
+  에너지 위치는 유일하니까. 연장선의 Neural-guided RELAX: net이 전 성분을
+  <strong>동시에</strong> 제안(component-distill, Chamfer 거리 손실)하고 물리 refine이
+  다듬음 → greedy가 막히는 sparse/고성분 격자에서 RELAX를 이김(15중 10).</p>
+
+  <h3>12.4 돌파 2 — 생성 prior (DPS set-diffusion)</h3>
+  <p>성분 집합의 분포 자체를 diffusion 모델로 학습하고, 관측 가능도로 조건화(DPS)해
+  사후 샘플을 뽑는 접근. 복잡/고성분/HOS 비선형에서 강점 + UQ가 공짜(사후 샘플들의
+  산포). 단순한 경우엔 물리만으로 충분 — "단순=반복 검출, 복잡=생성 prior"의 상보
+  구조로 정리됐습니다.</p>
+
+  <h3>12.5 sim2real의 벽</h3>
+  <p>합성-clean으로 학습한 망은 실측 직접 전이에 실패(≈0 vs RELAX 0.6–0.7). 원인:
+  broadband+노이즈+스케일 gap. 물리 기반(RELAX/MMSE)은 무학습이라 그대로 전이됨.
+  처방 = realistic 분포로 학습 + <strong>정규화로 레코드 의존성 제거</strong> —
+  이것이 다음 절 네트워크의 두 열쇠입니다.</p>
+  <p class="backtop"><a href="#top">↑ 목차로</a></p>
+</section>
+
+<!-- ============================================================ -->
+<section id="s13">
+  <div class="step">STEP 13</div>
+  <h2 class="sec">네트워크 해부 — amortized prior net</h2>
+  <p class="sec-sub">최종 승자 구조: "net은 prior만" + record-agnostic 정규화 + task-loss.</p>
+
+  <h3>13.1 구조적 아이디어: "net은 prior만"</h3>
+  <p>물리(MMSE·분산관계·Woodbury 해)는 그대로 두고, 네트워크는 <strong>γ(k) prior
+  맵만</strong> 공급합니다. 물리가 보증할 수 있는 것(위상 정합, 분산 제약)은 학습에
+  맡기지 않고, 데이터가 더 잘 아는 것(스펙트럼 모양)만 학습 — 실패해도 hand prior로
+  폴백되는 안전한 분업입니다. G3 통과의 열쇠로 확인된 구조.</p>
+
+  <h3>13.2 입출력 — record-agnostic 정규화</h3>
+  <ul>
+    <li>입력 6×51×51: <strong>정규화 파수 격자 k/kp ∈ [−2.5, 2.5]²</strong> 위의
+      beamform 파워맵 3장(관측 전반부 / 후반부 / 둘의 min) + 같은 3장의 log10 스케일.
+      <ul>
+        <li><strong>min 채널</strong>: 두 반쪽 모두에 있는 피크만 통과 → 노이즈 유령 억제</li>
+        <li><strong>log 채널</strong>: 선형 맵은 피크 근처에서 포화 — "48-리턴의 상금은
+          약한 모드에 있다"는 진단으로 v2에서 추가</li>
+      </ul></li>
+    <li>출력: 같은 51×51 격자의 log10 γ(각 파수 후보의 prior 분산).</li>
+    <li><strong>kp로 정규화</strong>했으므로 어떤 레코드든 입력 분포가 같음 —
+      실측 zero-shot 전이의 열쇠.</li>
+  </ul>
+
+  <h3>13.3 몸통 — 작은 U-Net풍 CNN</h3>
+  <div class="eq">enc: 6ch → 48 → 96 → 192  (AvgPool 51→25→12)
+dec: bilinear 업샘플 + skip 연결,  GroupNorm + SiLU,  1×1 conv → log10 γ</div>
+  <p>파라미터 수는 작음 — <strong>표현이 좋으면 큰 망이 필요 없다</strong>는 §12.3
+  교훈의 재확인.</p>
+
+  <h3>13.4 학습 데이터 — 합성 분포 설계</h3>
+  <p>전부 정규화 k-공간 합성: Tp~U[5,11]s, Hs~U[1,3]m, JONSWAP γ~U[1.5,6],
+  spreading~U[15,45]°, 방향 U[0,360)°, 노이즈 2–10%, 관측 1/3 고정 / 2/3 이동
+  (U/c_p~U[0.1,1.2]). 증강 2종: 전방 팬 기하(fan_frac), 교차해(bimodal_frac — 2차 계
+  에너지비 0.15–0.5). 조우-동결 대역까지 학습 분포가 덮은 것이 r0.7 이상 해소의 원인.</p>
+
+  <h3>13.5 v1→v2→v3 — "목적함수가 병목"</h3>
+  <ul>
+    <li><strong>v1/v2 (라벨 회귀)</strong>: 참 γ 맵을 SmoothL1로 회귀(대역 마스크 +
+      고에너지 가중). → G1 실패(이동 동률, 고정 −0.05). 이유: 라벨 회귀는 hand prior가
+      이미 쓰는 정보의 재가공일 뿐이고, 라벨 자체가 1-draw 확률 노이즈를 가짐.</li>
+    <li><strong>v3 (task-loss)</strong>: net의 γ를 <strong>미분가능 MMSE(torch
+      Woodbury)에 통과시켜</strong> 홀드아웃 질의점의 장(field) 오차를 직접 최소화.
+      전역 노이즈 배율도 공동 학습. → G1 통과.</li>
+  </ul>
+  <div class="key"><span class="tag">핵심</span>
+    <p>같은 망, 같은 데이터에서 목적함수만 바꿔 실패→성공. 라벨이 아니라
+    <strong>태스크에 손실을 붙여라.</strong></p>
+  </div>
+
+  <h3>13.6 실측 성적 — G3와 8-record</h3>
+  <ul>
+    <li><strong>G3</strong> = 프로젝트 최초의 학습 실측 양성 전이: BS11a fixed 0.579
+      (hand 0.474), AA14 0.582(hand 0.505), 이동 9/10셀 net&gt;hand.</li>
+    <li><strong>8-record 3-way</strong>: net-MMSE fixed 0.538(+34%, 8/8승), supra-band
+      0.375(+48%) — 무-fine-tune 실측 최강.</li>
+    <li><strong>UQ 보정</strong>: net prior가 이동 관측의 과신까지 교정(z-std
+      1.47→1.17, cov95 0.90+). 정확도+대역 해소+UQ의 3박자.</li>
+  </ul>
+  <p class="backtop"><a href="#top">↑ 목차로</a></p>
+</section>
+
+<!-- ============================================================ -->
+<section id="s14">
+  <div class="step">STEP 14</div>
+  <h2 class="sec">학습이 준 것과 못 준 것</h2>
+  <p class="sec-sub">그리고 왜 본 논문엔 hand prior인가.</p>
+
+  <div class="tbl"><table>
+    <thead><tr><th>학습이 준 것 (실측·미스매치 영역)</th><th>학습이 못 준 것 (설계점)</th></tr></thead>
+    <tbody>
+      <tr><td>실측 prior 개선 <b>+34%/+48%</b> (8/8승)</td>
+          <td class="num">4k→20k→50k 학습 = 0.552/0.609/0.595 vs hand 0.595</td></tr>
+      <tr><td>supra-band·kp-shift 치유, r0.7 해소</td>
+          <td>스케일 무효 — oracle 갭≈0의 예측 그대로</td></tr>
+      <tr><td>UQ 과신 교정</td><td></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="key"><span class="tag">핵심</span>
+    <p><strong>학습의 가치 = prior 미스매치의 크기.</strong> 실측은 hand prior의
+    가정(단봉 JONSWAP형)이 깨지는 곳(광대역·교차해·조우 시프트)이라 채울 공간이 있고,
+    설계점 합성은 가정이 정확해 공간이 없습니다. 그래서 본 논문(설계점+실측 협대역)은
+    단순한 hand prior로 가고, net prior는 미스매치 상황용 확장으로 남습니다.</p>
+  </div>
+
+  <p>선행연구: <strong>AHGP(NeurIPS 2020)</strong>가 amortized spectral prior의 선행 —
+  인용 필수. 차별점 = 물리 분산-구속 + task-loss ablation(v2 vs v3) + 이동 관측
+  연산자 + 실측 zero-shot.</p>
+
+  <h3>방법론 교훈 4개</h3>
+  <ol>
+    <li>mean-collapse는 목적함수/표현의 문제다 (모델 크기 아님)</li>
+    <li>충분히 학습한 뒤 판단하라 (수만 step + 수렴 확인)</li>
+    <li>"안 된다" 결론 전에 격리실험+하이퍼파라미터+multi-seed</li>
+    <li>라벨이 아니라 태스크에 손실을 붙여라</li>
+  </ol>
+  <p class="backtop"><a href="#top">↑ 목차로</a></p>
+</section>
+
+<!-- ============================================================ -->
+<section id="s15">
+  <div class="step">STEP 15</div>
+  <h2 class="sec">이동 개구 아크 — "개구의 벽은 대부분 알고리즘의 벽"</h2>
+  <p class="sec-sub">매력적인 가설이 강한 추정기 앞에서 증발한 여정.</p>
+
+  <p>가설: 센서가 이동하면 궤적이 합성 개구(synthetic aperture)가 되어 파수 해상도가
+  좋아진다. 여정:</p>
+  <ol>
+    <li>DPS×이동 +0.51 발견 → 15윈도 평균 +0.04로 <strong>요행 판명</strong></li>
+    <li>추정기가 강해질수록 이동 이득이 소멸: corr(gain, 개구크기) −0.58→−0.24→−0.11;
+      3회 재현됐던 BS11a 앵커 +0.31도 net-fixed 0.58 앞에서 증발; "gain≥0.1 집합"이
+      {BS11a}→∅</li>
+    <li>대표본(n=32) 교정: hand 이동 gain 0(시드 요동 수준), net×고속만 +0.069±0.033</li>
+  </ol>
+  <div class="key"><span class="tag">결론</span>
+    <p><strong>약한 추정기의 이동 이득은 대부분 그 추정기의 결함을 이동이 보상해준
+    것.</strong> 진짜 상금은 모델 차수+정규화에 있었고(§5.1의 bank MMSE가 여기서
+    태어남), "이득"이 아니라 "이득의 증발" 자체가 발견입니다. 이동의 가치를 주장하려면
+    반드시 강한 추정기 기준으로.</p>
+  </div>
+  <p class="backtop"><a href="#top">↑ 목차로</a></p>
+</section>
+
+<!-- ============================================================ -->
+<section id="s16">
+  <div class="step">STEP 16</div>
+  <h2 class="sec">해류 비식별성 소정리</h2>
+  <p class="sec-sub">5개 방법의 체계적 실패가 만든 부정적 결과.</p>
+
+  <p>해류 U_c가 있으면 분산관계가 Doppler 시프트됩니다:</p>
+  <div class="eq">ω = √( g·k·tanh(k·d) ) + k·U_c</div>
+  <ul>
+    <li>0.15 m/s의 해류에도 hand 추정기의 이동 이득이 전멸할 만큼 민감.</li>
+    <li><strong>맹목 복원 5/5 실패</strong>: val-선택, shell 탐색, GP-증거,
+      multi-window, BMA 전부 — evidence가 틀린 U_c에서 뾰족(=편향)해서 원리적으로
+      실패. → "sparse 이동 궤적에서 해류는 비식별"이라는 소정리.</li>
+    <li>단 oracle(U_c와 kp를 알려주면)은 완전 복원; kp만 알아도 손실 미미 →
+      <strong>주 채널은 kp/대역 배치</strong>였음.</li>
+    <li>처방: 외부 U_c(해류 예보/ADCP), kp_hint 전달, 광대역 밴드.</li>
+  </ul>
+  <div class="warn"><span class="tag">구조적 한계의 예</span>
+    <p>v4 해류-증강 학습은 무효 — γ-prior는 "어디를 볼지"를 정할 뿐, 스펙트럼 좌표계의
+    시프트를 보상하지 못합니다.</p>
+  </div>
+  <p class="backtop"><a href="#top">↑ 목차로</a></p>
+</section>
+
+<!-- ============================================================ -->
+<section id="s17">
+  <div class="step">STEP 17</div>
   <h2 class="sec">통계 도구 미니 사전</h2>
   <p class="sec-sub">심사에서 튀어나올 것들.</p>
 
@@ -653,8 +856,8 @@
 </section>
 
 <!-- ============================================================ -->
-<section id="s13">
-  <div class="step">STEP 13</div>
+<section id="s18">
+  <div class="step">STEP 18</div>
   <h2 class="sec">예상 심사 문답</h2>
   <p class="sec-sub">페르소나 토론 요약본 — 질문을 먼저 보고 답을 스스로 만든 뒤 펼쳐보세요.</p>
 
@@ -692,12 +895,33 @@
     전부 기각했고, 요구-역산으로 "기울기 티어는 다른 관측이 필요"를 사양 문장으로
     남겼습니다. 제어 쪽에선 preview 튜닝으로 GT 마진을 2배 회복했습니다.</p></div>
   </details>
+
+  <details class="qa"><summary><span class="q">Q7</span>왜 net prior를 본 논문의 추정기에 쓰지 않았나?</summary>
+    <div class="a"><p>설계점에선 oracle 갭이 ≈0이라 net이 채울 공간이 없고(4k→50k
+    스케일링 정체로 실증), hand prior가 더 단순·검증 용이합니다. net prior의 가치는
+    prior 미스매치 영역(광대역 실측 supra-band +48%)에 있고, 그곳이 net의 자리임을
+    함께 보였습니다.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="q">Q8</span>이동 플랫폼이면 합성 개구 이득이 있어야 하지 않나?</summary>
+    <div class="a"><p>약한 추정기에선 보이던 이득(+0.31 앵커 포함)이 강한 추정기 기준
+    대표본(n=32)에서 증발했습니다(hand 0, net×고속 +0.069±0.033뿐). "이동 이득은
+    대부분 알고리즘 결함의 보상"이라는 부정적 결과 자체가 발견이며, 이동 가치 주장은
+    반드시 강한 추정기 기준이어야 합니다.</p></div>
+  </details>
+
+  <details class="qa"><summary><span class="q">Q9</span>해류가 있으면 분산관계가 깨질 텐데?</summary>
+    <div class="a"><p>Doppler 시프트에 민감한 건 사실이고, sparse 이동 궤적에선 맹목
+    복원이 비식별임을 5개 방법의 체계적 실패(+편향 증거)로 보였습니다. 처방은 외부
+    U_c·kp_hint·광대역 밴드이고, 본 논문의 전방-팬 구성은 이 민감도가 완화되는
+    구성입니다.</p></div>
+  </details>
   <p class="backtop"><a href="#top">↑ 목차로</a></p>
 </section>
 
 <!-- ============================================================ -->
-<section id="s14">
-  <div class="step">STEP 14</div>
+<section id="s19">
+  <div class="step">STEP 19</div>
   <h2 class="sec">용어집</h2>
   <p class="sec-sub">각 항목을 15초 안에 설명하는 연습용.</p>
 
@@ -715,33 +939,48 @@
     <dt>사전등록</dt><dd>실행 전 프로토콜 고정·공증.</dd>
     <dt>quasi-held-out</dt><dd>부분적으로만 분리된 검증(우리 잔차 신호).</dd>
     <dt>요구-역산</dt><dd>성능 목표 → 관측 사양의 역방향 설계.</dd>
+    <dt>amortized 추론</dt><dd>최적화를 학습으로 선지불하고 추론은 forward pass 한 번으로.</dd>
+    <dt>task-loss</dt><dd>라벨이 아니라 최종 태스크 오차(미분가능 파이프라인 관통)로 학습하는 손실.</dd>
+    <dt>mean-collapse</dt><dd>다봉 분포를 MSE로 회귀할 때 출력이 평균으로 붕괴하는 실패 모드.</dd>
+    <dt>DPS / set-diffusion</dt><dd>생성(diffusion) prior를 관측 가능도로 조건화해 사후 샘플을 뽑는 방법 / 성분 집합에 대한 그 변형.</dd>
+    <dt>Chamfer 거리</dt><dd>두 점 집합 간 최근접 매칭 거리 — 성분 집합 학습의 손실.</dd>
+    <dt>합성 개구(SA)</dt><dd>센서 이동 궤적을 큰 가상 개구로 쓰는 아이디어.</dd>
+    <dt>Doppler 시프트(해류)</dt><dd>ω에 k·U_c가 더해져 분산관계가 이동하는 효과.</dd>
+    <dt>G1/G3</dt><dd>학습 접근의 사전 정의 관문(G1=합성 이득, G3=실측 전이).</dd>
+    <dt>supra-band</dt><dd>kp보다 높은 파수 대역(조우 시프트로 실측에서 중요).</dd>
   </dl>
   <p class="backtop"><a href="#top">↑ 목차로</a></p>
 </section>
 
 <!-- ============================================================ -->
-<section id="s15">
-  <div class="step">STEP 15</div>
-  <h2 class="sec">공부 순서 제안 (3-패스)</h2>
-  <p class="sec-sub">한 번에 다 읽지 말고 세 번에 나눠서.</p>
+<section id="s20">
+  <div class="step">STEP 20</div>
+  <h2 class="sec">공부 순서 제안 (4-패스)</h2>
+  <p class="sec-sub">한 번에 다 읽지 말고 네 번에 나눠서.</p>
 
   <div class="passes">
     <div class="pass">
       <div class="pn">PASS 1 · 스토리</div>
-      <h4>§0 → 1 → 4 → 7 → 13</h4>
+      <h4>§0 → 1 → 4 → 7 → 18</h4>
       <p>한 문장 질문과 답의 골격. 논문이 무엇을 주장하는지 서사로 잡기.</p>
     </div>
     <div class="pass">
       <div class="pn">PASS 2 · 수학</div>
-      <h4>§2 → 5 → 6</h4>
-      <p>분산관계에서 RLS까지 손으로 유도. 특히 5.4의 MMSE 식과 6.1의 등가성 —
-      A4 한 장씩.</p>
+      <h4>§2 → 5 → 6 → 13</h4>
+      <p>분산관계에서 RLS까지 손으로 유도(특히 5.4의 MMSE 식과 6.1의 등가성 —
+      A4 한 장씩), 그 다음 네트워크의 입출력·task-loss 구조.</p>
     </div>
     <div class="pass">
       <div class="pn">PASS 3 · 방어</div>
-      <h4>§8 → 10 → 12 → 13</h4>
+      <h4>§8 → 10 → 17 → 18</h4>
       <p>아티팩트 사건과 게이트 원장을 자기 말로 3분 발표 연습. 이 두 이야기가
       "정직한 연구자" 인상을 결정합니다.</p>
+    </div>
+    <div class="pass">
+      <div class="pn">PASS 4 · 연구사</div>
+      <h4>§12 → 13 → 14 → 15 → 16</h4>
+      <p>"왜 이 구조에 도달했나"의 답 — mean-collapse→표현 전환→task-loss의 학습
+      아크, 이동 개구 이득의 증발, 해류 비식별. 과거 작업 질문의 재료.</p>
     </div>
   </div>
 

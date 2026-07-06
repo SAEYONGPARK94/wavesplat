@@ -74,10 +74,12 @@ real-time system reach that boundary, detect when it fails, and state
 what capability lies beyond it?** That single question threads this
 paper.
 
-Radar DSWP studies report encounter/reconstruction correlations in the
-0.7–0.9 range [OE 2020; RS 2024 — VERIFY exact per-paper values against
-full texts before submission]; CN-RLS [RS 2024] applies recursive least
-squares to coherent radar reconstruction; predictable-zone theory [Naaijen et al.] bounds
+The radar DSWP sea trial of Al-Ani, Belmont and Christmas [OE 2020]
+reports mean temporal correlations of 0.95 falling to ≈0.8 at leads up
+to ~2 minutes — with an X-band radar observing square kilometres, whose
+much longer information horizon is itself an instance of the
+range-scaling this paper quantifies (ℓ\* ∝ R_max); CN-RLS [RS 2024]
+applies recursive least squares to coherent radar reconstruction; predictable-zone theory [Naaijen et al.] bounds
 phase-resolved forecasting by group-velocity geometry. Against this
 literature our gaps are concrete: (a) no published *quantified design
 verdict* for a given sensor×vehicle pair; (b) no *measured* real-time
@@ -389,7 +391,10 @@ controller design, not of the estimator.
 - US10259544, US10538299 (predictive sea state mapping for ship motion control)
 - Connell et al., FutureWaves™ real-time ship motion forecasting (2016)
 - Naaijen et al., predictable zone for phase-resolved wave prediction
-- Ocean Eng. 2020, DSWP sea trial (corr 0.76)
+- Al-Ani, M., Belmont, M., Christmas, J., "Sea trial on deterministic
+  sea waves prediction using wave-profiling radar," Ocean Eng. (2020)
+  — VERIFIED against full text: mean corr 0.95 (T1) → ~0.8 (T5, ~2 min
+  lead), X-band km-scale coverage
 - Remote Sens. 2024, CN-RLS coherent radar reconstruction
 - Ocean Eng. 2023, real-time phase-resolved directional prediction (LiDAR)
 - Ocean Eng. 2004, optimal preview servo for fully-submerged hydrofoil

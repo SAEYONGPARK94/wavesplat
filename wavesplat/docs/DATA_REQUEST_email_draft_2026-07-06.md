@@ -1,43 +1,66 @@
-# 데이터 요청 이메일 초안 (C-13, 사용자 발송용)
-(2026-07-06. 대상 후보: ①Scripps AirSea Lab (L. Grare — shipborne/
-platform LiDAR wave data) ②OE 2023 "experimental study on monitoring
-wave profiles with LiDAR" 저자 ③OE 2025 "Wave characteristics analysis
-by LiDAR point cloud" 저자. 목적: 실기 LiDAR 해수면 원시 점군 —
-리턴 통계(인접성·raydrop)와 센서-실물 검증용.)
+# 데이터 요청 이메일 초안 v2 (사용자 피드백 반영: 서울대 소속,
+# 연구 내용 절제 — 응용/시스템 상세 비공개, "파랑 계측 연구" 프레임)
+(2026-07-06. 발송 대상 2건 + 예비 1건.)
 
----
-Subject: Request for LiDAR sea-surface point-cloud data for a wave
-encounter-forecasting study
+## 대상 1 — Scripps Institution of Oceanography, Air-Sea Interaction Lab
+수신: Dr. Luc Lenain (PI), Dr. Laurent Grare
+(instrumented platforms/wave measurement 캠페인 다수 보유)
 
-Dear Dr. [NAME],
+Subject: Request for a sample of LiDAR sea-surface returns
 
-I am a Ph.D. student at [INSTITUTION] working on real-time
-phase-resolved wave encounter forecasting from forward-looking marine
-LiDAR, for feedforward control of foiling vessels. We validate our
-estimator on the open stereo dataset of Guimarães et al. (2020) and on
-spec-faithful simulation of a commercial 1550-nm LiDAR, and we have
-been careful to separate what the simulation can and cannot establish.
+Dear Dr. Lenain and Dr. Grare,
 
-The one element we cannot obtain from stereo data is the statistics of
-actual LiDAR returns from the sea surface at grazing incidence —
-return density, dropout behaviour, and the spatial adjacency of
-surviving returns — which set the information available for
-slope-resolved estimation. Your [PAPER, YEAR] presents exactly such
-measurements.
+I am a Ph.D. student at Seoul National University working on wave
+measurement from marine LiDAR. A part of my study concerns the
+statistics of LiDAR returns from the sea surface at low grazing
+angles — return density, dropout, and the spatial pattern of surviving
+returns — for which no public raw point-cloud dataset appears to
+exist.
 
-Would you be willing to share a sample of raw (or lightly processed)
-point-cloud data from that campaign — even a few minutes of returns
-with timestamps and geometry would be highly valuable? We would of
-course cite the data appropriately, follow any licensing terms you
-specify, and share our derived return-statistics analysis back with
-you before publication.
+Your group's field campaigns are, to my knowledge, the most relevant
+measurements of this kind. Would you be willing to share a short
+sample (even a few minutes) of raw or lightly processed sea-surface
+returns with timestamps and beam geometry? I would follow any terms
+you specify, cite the data appropriately, and gladly share the derived
+return-statistics analysis back with your group.
 
 Thank you for considering this request.
 
 Best regards,
-[USER NAME / affiliation / link to preprint when available]
+[사용자 성함]
+Ph.D. student, Seoul National University
+[이메일 서명]
 
----
-비고: FloWave(에든버러) 수조 게이지 어레이는 datashare 컬렉션에서
-개별 데이터셋 확인 필요(landing page엔 목록 없음; flowave@ed.ac.uk)
-— 관측 기하가 달라(고정점 어레이) 보조 일반화용으로만.
+## 대상 2 — Hohai Univ. 그룹 (OE 2023 LiDAR 파랑 계측)
+수신: Prof. Jian Shi / Prof. Jinhai Zheng (교신 확인 후), 공저:
+Lipeng Zhang, Chi Zhang, Zhe Zhang
+논문: "An experimental study on monitoring wave profiles with LiDAR",
+Ocean Engineering (2023)
+
+Subject: Data request regarding your 2023 Ocean Engineering LiDAR
+wave-profile study
+
+Dear Prof. Shi,
+
+I am a Ph.D. student at Seoul National University working on wave
+measurement from marine LiDAR. I read your 2023 Ocean Engineering
+paper on monitoring wave profiles with LiDAR with great interest.
+
+For a study of LiDAR return statistics over water (return density,
+dropout, and spatial adjacency of returns), a short sample of the raw
+point clouds from your experiments — even a few minutes — would be
+extremely valuable, as no public dataset of this kind appears to
+exist. I would follow any terms you specify, cite the data
+appropriately, and share the derived analysis back with you.
+
+Best regards,
+[사용자 성함]
+Ph.D. student, Seoul National University
+
+## 예비 대상 3 — OE 2025 "Wave characteristics analysis by LiDAR point
+cloud" 저자 (저자명 미확인 — 발송 전 논문 페이지에서 확인 필요)
+
+## 절제 원칙 (v2에서 뺀 것)
+- 응용(하이드로포일/제어), 시스템 구성(예보기/게이트), 센서 기종/사양
+  역산 논의 — 전부 비공개. "파랑 계측 + 리턴 통계 연구"로만 소개.
+- 상대 논문 내용 요약도 최소화(관심 표명 한 줄).

@@ -95,9 +95,12 @@ tuned space-time GP at **0.205 (−42%)**, beating it on **every** sea-state
 (BF3-5c…BF5-30c) with real reconstruction (Pearson 0.62–0.98), approaching the
 information bound (oracle 0.037). Iterating the add/refine passes recovers masked
 components (single-pass 0.130 → 3-pass 0.119); the slope-raydrop sampling is even more
-favorable (0.060, see §5.1). A CRB-gated hybrid (route precise-GP
-vs robust-prior by the FIM condition) gives −15% as an alternative when a sea-state
-estimate is available. *(Honest: the period-scaled window uses more observation time
+favorable (0.060, see §5.1). *(Note: an intermediate CRB-gated hybrid — route the
+precise GP vs the robust prior by the FIM condition — gave −15% when the single-window
+prior was weak on simple seas; the period-scaled sequential estimator supersedes it,
+beating the GP on **every** sea-state including the simple ones, so no routing is
+needed. The hybrid remains of interest as a CRB-as-design-rule illustration.)*
+*(Honest: the period-scaled window uses more observation time
 than the 1-s GP; the advantage is time accumulation — operationally free under
 continuous scanning, stationarity-safe, and unavailable to the over-smoothing GP. The
 oracle gap is component-identification headroom.)*

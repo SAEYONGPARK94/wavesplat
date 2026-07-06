@@ -38,7 +38,8 @@ diagnosed reliability*: real-sea skill is bimodal across 20 s windows
 (half near synthetic-level 0.85–0.95, half at 0.4–0.5); a forensic
 elimination of the usual suspects (currents, spread, GT noise,
 observation budget) leaves site-specific failure modes, and a site-
-adaptive held-out-residual gate—thresholded against the vessel's own
+adaptive quasi-held-out-residual gate (hyperparameter selection is
+held out; the prior shape is not — see Methods)—thresholded against the vessel's own
 running statistics—raises conditional skill from 0.49 (ungated) to 0.68
 at 50 % availability in exploratory analysis. Two pre-registered
 confirmations reproduce the gate's direction and effect size on unseen
@@ -143,7 +144,10 @@ bimodality as a *marker* (patch −0.84, onboard beamform −0.78 on the
 discovery site) that fails to transfer (+0.13 holdout) and fails causal
 reproduction in linear crossing seas → site-specific failure modes.
 5.4 The site-adaptive residual gate: definition (running median/MAD of
-the estimator's own held-out residual); exploratory operating curve
+the estimator's own quasi-held-out residual — the validation split is
+excluded from hyperparameter scoring but the beamform prior shape sees
+all observations; leakage is uniform across windows and cannot create
+per-window ranking bias); exploratory operating curve
 0.49→0.68@50 % (Fig. `fig_gate_roc`). 5.5 **Pre-registered
 confirmations** (both released with git-timestamped protocols):
 #1 small-patch records — direction and split reproduced (+0.17) but

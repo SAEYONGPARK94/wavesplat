@@ -59,6 +59,14 @@ RECORDS = {
                  depth=17.0, stride=1, r_fan=(8.0, 40.0), U=1.2,
                  lead_max=14.0,
                  note='70x86 m, valid 0.43 (center clean) — 3rd gate record'),
+    'AA15b': dict(path='data/real_bergamasco/AA_2015/Surfaces_20150515_090000.nc',
+                  depth=17.0, stride=1, r_fan=(8.0, 40.0), U=1.2,
+                  lead_max=14.0, note='site #4 — same scaling as AA15a'),
+    'LJ18g': dict(path='data/real_bergamasco/LJ_2018/Surfaces_20180103_093938_Grid2_short.nc',
+                  depth=45.0, stride=2, r_fan=(20.0, 100.0), U=2.4,
+                  lead_max=20.0,
+                  note='250x300 m storm swell lam~300 m — fan<<lambda '
+                       'stress regime (real-scale fan)'),
 }
 
 

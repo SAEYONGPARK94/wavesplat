@@ -1,6 +1,7 @@
-# DRAFT v0 — Control-Compatible Real-Time Wave Encounter Forecasting with a Given Forward-Looking LiDAR: Information Limits, Streaming Equivalence, and Self-Diagnosed Reliability
+# DRAFT v1 — Control-Compatible Real-Time Wave Encounter Forecasting with a Given Forward-Looking LiDAR: Information Limits, Streaming Equivalence, and Self-Diagnosed Reliability
 
-(2026-07-06 v0. English draft; numbers wired to
+(2026-07-06 v1 — v0 + 감사 정정(oracle 갭≈0, 상한 0.65, 인접성 철회)
++ 서론/결론 완문 + CN-RLS 표 + 탐색/확증 라벨 + 인용 목록. English draft; numbers wired to
 `docs/REPRODUCIBILITY_2026-07-06.md`. Gate = "preliminary finding" tier
 per pre-registered confirmations #1/#2. Thread sentence of the whole
 work: **"Where does the information in a given forward-looking wave
@@ -54,28 +55,58 @@ after a matched-conditions audit).
 
 ## 1. Introduction
 
-**Thread.** [Para 1] Fast foiling vessels ride through waves they can,
-in principle, see coming... FF control needs η (and its gradient) at
-the foils 0.1–0.5 s ahead [hydrofoil companion paper: 11–41 %
-heave-acceleration reduction with perfect preview]. The question is not
-whether forward-looking wave sensing can serve control—patents
-[US10259544, US10538299], the FutureWaves radar system, LiDAR DSWP
-[OE 2023], and classical preview servos [OE 2004] establish the
-concept—but **where the information in a specific, purchasable
-observation ends**, whether a real-time estimator can reach that end,
-and whether it can detect, online, the sea states in which it fails.
+A fast foiling vessel rides through waves that its own sensors can, in
+principle, see coming. A wave-preview feedforward (FF) controller needs
+the encountered surface elevation—and, ideally, its slope and vertical
+velocity—at the foil positions a fraction of a second ahead, computed
+within a hard real-time budget; with perfect preview, simulated
+feedforward reduces heave acceleration by 11–41 % on a Candela
+C-8-class hydrofoil [companion]. The *concept* of forward-looking wave
+sensing for vessel control is not new: it is covered by patents
+[US10259544; US10538299], realized commercially by radar-based ship
+motion forecasting [FutureWaves], demonstrated with LiDAR-based
+deterministic wave prediction [OE 2023], and preceded by classical
+preview servos for hydrofoil craft [OE 2004]. What none of this prior
+art provides is an answer to the question that actually decides a
+design: **for a specific, purchasable sensor on a specific vessel,
+where does the information in the observation end — and can a
+real-time system reach that boundary, detect when it fails, and state
+what capability lies beyond it?** That single question threads this
+paper.
 
-[Para 2 — prior art, honest] Radar DSWP sea trials report encounter
-correlations of ~0.76 [OE 2020]; CN-RLS [RS 2024] applies recursive
-estimation to coherent radar; predictable-zone theory [Naaijen et al.]
-bounds phase-resolved forecasting by group-velocity geometry. What is
-missing from this literature is (a) a quantified design verdict for a
-given sensor×vehicle pair, (b) measured real-time latency for a
-phase-resolved forecaster, (c) zero-shot validation on real seas, and
-(d) any form of online self-diagnosis.
+Radar DSWP sea trials report encounter correlations of ≈0.76 [OE
+2020]; CN-RLS [RS 2024] applies recursive least squares to coherent
+radar reconstruction; predictable-zone theory [Naaijen et al.] bounds
+phase-resolved forecasting by group-velocity geometry. Against this
+literature our gaps are concrete: (a) no published *quantified design
+verdict* for a given sensor×vehicle pair; (b) no *measured* real-time
+latency for a phase-resolved forecaster; (c) no *zero-shot* validation
+on real seas (methods are typically tuned on the data they report);
+(d) no *online self-diagnosis* of forecast reliability.
 
-[Para 3 — contributions C1/C2/C3 as in outline; state the negative/
-limit propositions as first-class results.]
+We answer the threaded question in three parts, and we state our
+negative results with the same prominence as the positive ones.
+**(C1) The boundary, mapped.** Applying predictable-zone reasoning in
+the encounter frame gives a usable lead ℓ\* ≈ R_max/(U+c_g); at the
+design point (22 kt, Beaufort 4) this is ≈6 s, comfortably above the
+0.1–0.5 s the FF controller consumes, and the skill-versus-lead curve
+measured on nonlinear (HOS M=3) seas tracks the prediction. A ladder
+of falsification experiments—true-spectrum oracle, observation-budget,
+learning-scale, bank-resolution, bound-wave, and sampling-structure
+interventions—shows the estimator is saturated within the examined
+class (oracle gap ≈ 0 at realistic return density), with the slope
+channel information-limited at ≈0.65. **(C2) The boundary, reached in
+real time.** The bank-limited MMSE estimator is exactly a recursive
+least-squares filter with a spectral prior; its streaming form matches
+the batch solution to machine precision and runs at 18 ms median per
+10 Hz frame, drift-free over 10-minute runs, transferring zero-shot to
+real stereo seas. **(C3) The boundary, self-detected — honestly
+graded.** Real-sea window skill is strongly heterogeneous; a
+site-adaptive residual gate raises conditional skill from 0.49 to 0.68
+at 50 % availability in exploratory analysis, but two pre-registered
+confirmations reproduce only its direction, not its significance, so
+we report the gate as a preliminary finding and publish the
+pre-registration trail.
 
 ## 2. Problem Setting and Information Analysis (C1)
 
@@ -126,9 +157,16 @@ interpretation. 3.3 Two-timescale architecture: per-frame filter +
 slow-loop γ refresh (rebuild); NIS as health signal. 3.4 Measured
 compatibility: 18 ms median / 37 ms p95 per frame (solo, 48 pts/frame,
 CPU), 10-min drift-free, inline gate evaluation 0.8 s in the slow loop.
-3.5 Relation to CN-RLS/DSWP (table): what is shared (recursive form),
-what is new (equivalence proof, latency measurement, prior slot,
-zero-shot real-sea transfer). 3.6 Learned priors: amortized net as a
+3.5 Relation to prior recursive wave estimators:
+
+| aspect | CN-RLS [RS 2024] | DSWP (radar) | **this work** |
+|---|---|---|---|
+| observation | coherent radar image | X-band image seq. | given fwd LiDAR fan (48 pt/frame) |
+| recursion | RLS on image basis | batch per window | RLS ≡ batch MMSE (proof + machine-precision test) |
+| prior | condition-number reg. | spectrum fit | beamform-power γ + val-select/EM; learned-prior slot |
+| latency | not reported | not reported | **18 ms med / 37 ms p95 measured** |
+| real-sea validation | same-data tuning | sea trial (0.76) | **zero-shot, 4+ sites** |
+| self-diagnosis | — | — | preliminary gate + pre-registrations | 3.6 Learned priors: amortized net as a
 slot — parity zero-shot; retraining tracks the oracle gap prediction
 (evidence that learning cannot beat the information boundary; AHGP
 cited).
@@ -137,10 +175,14 @@ cited).
 
 4.1 Spec-faithful simulation (episodes; native bench: 2–4 s forecast ≡
 nowcast). 4.2 HOS M=3 (0.94–0.96 at U=3; design point Fig. horizon;
-nonlinearity costs nothing at BF2–BF5 steepness). 4.3 Real seas: three
-stereo sites zero-shot, pooled 0.70 [0.59, 0.79]; streaming beats the
-600-obs batch protocol (0.76–0.78 at 15 ms) because it has no window
-cap. 4.4 Robustness table (Fig. `fig_robust`): FF-band ≥0.90 under pose
+nonlinearity costs nothing at BF2–BF5 steepness). 4.3 Real seas: **five** stereo sites zero-shot (best 0-10 s band per
+site): YS17 0.71, AA15a 0.71, LJ18g 0.62 (storm swell, λ≈300 m ≫ fan —
+narrowband temporal coherence compensates spatial under-resolution and
+gives the best long-lead skill, 0.44 at 10–20 s), AA15b 0.57, AA14
+0.43 (43 % valid pixels, GT-starved); development-pair pooled 0.70
+[0.59, 0.79]. Streaming beats the 600-obs batch protocol (0.76–0.78 at
+15 ms) because it has no window cap. Site heterogeneity is reported,
+not averaged away. 4.4 Robustness table (Fig. `fig_robust`): FF-band ≥0.90 under pose
 0.05–0.3° (white model; frame-correlated left as limitation), crest
 shadowing (3 m sensor height), headings 30–60°, BF2/BF5. 4.5 What the
 real GT can and cannot support (stereo cross-contamination note).
@@ -196,13 +238,58 @@ adjacency; gate confirmation ↔ larger-patch or field records.
 
 ## 8. Conclusion
 
-[Thread closed: boundary mapped (C1), reached in real time (C2), its
-detection prototyped and honestly graded (C3), and the next boundary
-priced in sensor terms.]
+We asked where the information in a given forward-looking wave
+observation ends, and whether a real-time system can reach that
+boundary, know it, and specify what lies beyond. The boundary is now
+mapped: at the design point the encounter forecast is limited by the
+predictable-zone horizon ℓ\* ≈ R_max/(U+c_g) in lead, and by an
+information ceiling of ≈0.65 in slope—both properties of the
+observation class, established by a ladder of falsification
+experiments whose strongest rung is a zero oracle gap at realistic
+return density. The boundary is reached in real time: a streaming
+filter provably identical to the batch estimator runs at 18 ms per
+frame and transfers zero-shot to real seas at 0.70 pooled encounter
+correlation. The boundary's self-detection remains open at the
+standard we set for it: the site-adaptive gate reproduces its
+direction on unseen data but not its significance across two
+pre-registered confirmations, and we publish that trail rather than
+soften the standard. What lies beyond is now a specification, not a
+speculation: longer leads are bought by range; the slope tier is not
+buyable by sampling structure within this sensor's return budget; and
+the failure regimes that the gate must learn to see are site-specific.
+For the vessel that motivated this work, the verdict is concrete —
+the given sensor already saturates the band its feedforward controller
+consumes, in real time, with a documented margin; the remaining
+distance to the perfect-preview benefit is a property of physics and
+controller design, not of the estimator.
+
+## References (to wire)
+- US10259544, US10538299 (predictive sea state mapping for ship motion control)
+- Connell et al., FutureWaves™ real-time ship motion forecasting (2016)
+- Naaijen et al., predictable zone for phase-resolved wave prediction
+- Ocean Eng. 2020, DSWP sea trial (corr 0.76)
+- Remote Sens. 2024, CN-RLS coherent radar reconstruction
+- Ocean Eng. 2023, real-time phase-resolved directional prediction (LiDAR)
+- Ocean Eng. 2004, optimal preview servo for fully-submerged hydrofoil
+- Guimarães et al. 2020, Sci. Data — stereo sea-surface dataset (validation data)
+- Bergamasco et al. 2017, WASS pipeline
+- AHGP (NeurIPS 2020) — amortized spectral priors
+- Companion: hydrofoil wave-preview feedforward paper (this project)
+- Seyond Falcon FK24 datasheet (sensor specification)
+
+### Figure plan
+- Fig.1 concept: vessel + fan + encounter track (from stream demo GIF still)
+- Fig.2 `fig_horizon` (§2.2) — n=12 seas
+- Fig.3 limit ladder (table, §2.3)
+- Fig.4 `fig_robust` (§4.4)
+- Fig.5 real-sea window heterogeneity + `fig_gate_roc` (§5)
+- Fig.6 E2E bars (§6)
+- Supplementary: GIFs (stream demo, good/bad window), reproducibility ledger
 
 ---
-### TODO (v1 편집 시)
-- [x] 확증 2호 결과 반영 (5.5) — 확증 실패, 방향 일관
+### TODO (v2 편집 시)
+- [x] 확증 2호 반영 / 서론·결론 완문 / CN-RLS 표 / 인용·그림 계획 (v1)
+- [x] 사이트 확대 결과(AA15b/AA14/LJ18g) §4.3 반영 — 5사이트
 - [ ] CN-RLS 대비 표 작성 (3.5)
 - [ ] 인용 목록: 특허 2, FutureWaves, Naaijen predictable zone, OE
       2020/2023, CN-RLS 2024, preview servo 2004, AHGP, Bergamasco/

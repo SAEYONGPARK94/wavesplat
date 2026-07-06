@@ -18,6 +18,11 @@ results/direction3/, 실행형 검증은 supplementary/d3_final_verification.py)
 5. `fig_sites` — 실측 5사이트 + 창 이질성 (§4)
 6. `fig_gate_roc` — 게이트 운용곡선 (§5, 'exploratory' 라벨)
 7. `fig_e2e` — 제어 폐쇄 막대 (§6)
+8. `fig_ladder` — ★신규: 한계-사다리 롤리팝 (§2.3 표의 시각판)
+9. `fig_architecture` — ★신규: 2-시간스케일 스트리밍 블록도 (§3)
+10. `fig_gate_ledger` — ★신규: 게이트 3-평가 원장 (탐색+확증 1·2, §5)
+11. `fig_realexample` — ★신규: 실측 정성 예시 정지판 (LJ18g 폭풍
+    스웰, corr 0.93 — §4의 '실제 장' 그림)
 
 ## 보충자료 (supplementary/)
 - `gifs/` 11종 — 목록·용도는 `REPRODUCIBILITY_README.md` 참조
@@ -30,5 +35,5 @@ results/direction3/, 실행형 검증은 supplementary/d3_final_verification.py)
 ## 이식 시 잔여 작업 (tex)
 - [ ] markdown §1-8 → tex 본문 이식 (+§5 재구성: 법의학 주, 게이트 종절)
 - [ ] references.bib 정식화 (초안 인용 목록 12종)
-- [ ] fig_robust에 추파(180°, FF 0.95) 막대 추가 재렌더
+- [x] fig_robust 추파(180°) 막대 추가 완료
 - [ ] 저자/소속/사사 기입 (Saeyong Park, Seoul National University)

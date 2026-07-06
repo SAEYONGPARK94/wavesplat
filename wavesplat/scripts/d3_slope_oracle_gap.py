@@ -78,12 +78,14 @@ def main():
     ap.add_argument('--dk_frac', type=float, default=10.0,
                     help='bank spacing kp/dk_frac (both achieved+oracle)')
     ap.add_argument('--tag', default='')
+    ap.add_argument('--m_scan', type=int, default=M_SCAN)
+    ap.add_argument('--n_comp', type=int, default=200)
     a = ap.parse_args()
     kp = (2 * np.pi / TP) ** 2 / G
     acc = {m: {k: ([], []) for k in ('eta', 'slope', 'vel')}
            for m in ('achieved', 'oracle')}
     for si in range(a.n_seas):
-        comps = jonswap_components(Hs=HS, Tp=TP, n_components=200,
+        comps = jonswap_components(Hs=HS, Tp=TP, n_components=a.n_comp,
                                    depth=DEPTH, direction_spread_deg=25.0,
                                    seed=9000 + si)
         kxm = np.array([c.kx for c in comps])
@@ -107,13 +109,13 @@ def main():
         for t_s in np.arange(0.0, t0 + 1e-9, SCAN_DT):
             sp = ship_pos(t_s)
             if a.sampling == 'random':
-                rr = rng.uniform(20.0, 100.0, M_SCAN)
-                aa = rng.uniform(-np.pi / 3, np.pi / 3, M_SCAN)
+                rr = rng.uniform(20.0, 100.0, a.m_scan)
+                aa = rng.uniform(-np.pi / 3, np.pi / 3, a.m_scan)
             else:
                 # Falcon-structured: M_SCAN/4 clusters of 4 = center,
                 # azimuth-neighbor (r * 0.18 deg lateral), elevation-
                 # neighbor (~5 m range step at 3 m sensor height), both
-                n_cl = M_SCAN // 4
+                n_cl = a.m_scan // 4
                 r0 = rng.uniform(20.0, 95.0, n_cl)
                 a0 = rng.uniform(-np.pi / 3, np.pi / 3, n_cl)
                 dlat = r0 * np.radians(0.18)

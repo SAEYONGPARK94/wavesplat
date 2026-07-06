@@ -25,9 +25,10 @@ robust to pose error, crest shadowing, oblique headings, and sea states
 BF2–BF5. A ladder of oracle experiments (true-spectrum prior, 4×
 observation budget, 12× learning scale, bank refinement, bound-wave
 correction) shows the estimator is saturated within the examined model
-class: the remaining error—most consequentially a slope-estimation
-ceiling of ≈0.49—is a property of the observation class, not the
-algorithm. (ii) *Streaming equivalence*: the bank-limited minimum
+class: at realistic return density the estimator matches a
+true-spectrum oracle (gap ≈ 0), and the most consequential residual—a
+slope-estimation ceiling of ≈0.65—is a property of the observation
+class, not the algorithm. (ii) *Streaming equivalence*: the bank-limited minimum
 mean-square-error estimator is shown to be exactly a recursive
 least-squares filter with a spectral prior; the streaming form matches
 the batch solution to machine precision, runs at 18 ms median (p95
@@ -46,8 +47,10 @@ confirmations reproduce the gate's direction and effect size on unseen
 data but not its rank significance; we therefore report the gate as a
 preliminary finding and release the pre-registrations. We close by
 inverting the analysis: the information boundary itself specifies the
-sensor requirements (adjacent-return preservation for slope; range for
-lead) for the next capability tier.
+sensor requirements for the next capability tier (range for lead; for
+slope, no sampling-structure lever exists within the sensor's return
+budget—an early positive result on an artifact testbed was retracted
+after a matched-conditions audit).
 
 ## 1. Introduction
 
@@ -88,23 +91,30 @@ Fig. `fig_horizon` (flat 0.91 through the FF band; decay shoulder at
 
 2.3 The limit ladder (each rung = one falsifiable "the gap is X"
 hypothesis, each rejected):
-| rung | intervention | Δ skill |
+| rung | intervention | Δ skill (clean testbed, n=2000 comps) |
 |---|---|---|
-| spectrum prior | oracle (true binned spectrum) | +0.06 |
+| spectrum prior | oracle (true binned spectrum) | ≈0 (achieved 0.652 vs oracle 0.648, slope) |
 | observation budget | 12→48 pts/frame (real data) | ~0 |
 | learning scale | amortized prior 4k→50k samples | ~0 (redistributes) |
 | bank resolution | dk/2 | ~0 |
 | nonlinearity | 2nd-order bound-wave correction | 0 (ka≈0.025) |
-| sampling policy | pair-preserving subsample (real pattern) | −0.20 (!) |
-| sampling structure | idealized adjacent clusters (same budget) | **+0.13 (slope)** |
-→ saturation *within the examined class*; the one positive rung
-(adjacency structure) is a **sensor-firmware requirement**, not an
-algorithmic option, because the real raydrop pattern clusters returns
-on crests (coverage dominates a fixed budget).
+| sampling policy | pair-preserving subsample (real pattern) | −0.20 |
+| sampling structure | idealized adjacent clusters (same budget) | −0.14 (hurts) |
+→ saturation *within the examined class*, now anchored by a **zero
+oracle gap at realistic return density**. Audit note: an earlier +0.13
+adjacency result was traced to a 200-component testbed artifact
+(discrete spectral lines make the sea artificially hard and invert the
+oracle); with ≥2000 components the linear and HOS testbeds agree and
+the adjacency advantage disappears — coverage dominates any fixed
+return budget. Sampling structure is therefore NOT a viable slope
+lever; this retraction is documented in the audit appendix.
 
-2.4 The slope ceiling: η 0.94 / slope 0.68 (amp 0.62) / vertical
-velocity 0.85 at the design point; oracle slope 0.49 → the quantity FF
-control consumes is information-poorest. (Sets up §6.)
+2.4 The slope ceiling: η 0.94–0.98 / slope 0.65–0.68 (amp 0.6–0.7) /
+vertical velocity 0.85–0.88 at the design point, consistent across the
+HOS and (clean) linear testbeds; true-spectrum oracle matches the
+achieved slope → the quantity FF control consumes is
+information-poorest and already at its examined-class ceiling.
+(Sets up §6.)
 
 ## 3. A Streaming Estimator that Attains the Limit (C2)
 
@@ -169,8 +179,10 @@ fraction unchanged → the slope ceiling of §2.4 is the single remaining
 bottleneck, and de-weighting slope does not help (the margin is not
 recoverable by ignoring the bad channel). 6.4 Requirement inversion:
 corr is necessary, not sufficient; the FF benefit is (slope
-information) × (controller design). What sensor change buys slope:
-adjacent-return preservation (+0.13 projected, model-based label).
+information) × (controller design). No sensor-side sampling lever for
+slope was found (the adjacency projection was retracted after the
+testbed audit); raising the slope tier requires range/noise-class
+changes, left as an open requirement.
 
 ## 7. Limitations and Requirements for the Next Tier
 

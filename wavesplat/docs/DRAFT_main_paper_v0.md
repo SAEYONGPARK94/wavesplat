@@ -227,10 +227,25 @@ cited).
 
 ## 4. Validation (three legs)
 
-4.1 Spec-faithful simulation (episodes; native bench: 2–4 s forecast ≡
-nowcast). 4.2 HOS M=3 (0.94–0.96 at U=3; design point Fig. horizon;
-nonlinearity costs nothing at BF2–BF5 steepness). 4.3 Real seas (config: m=12 returns/frame unless noted): **five**
-stereo sites zero-shot (best 0-10 s band per
+**4.1 Spec-faithful simulation.** The first leg uses episodes generated
+by a LiDAR simulator configured to the manufacturer's specification,
+including reflectivity-driven raydrop. On these native observations,
+2–4 s forecasts cost nothing over the nowcast — the dispersion
+relation carries the phase for free at short lead — establishing the
+baseline property the whole design relies on.
+
+**4.2 Nonlinear seas.** The second leg replaces the linear sea with
+HOS M=3 simulations. At BF2–BF5 steepness (ka ≈ 0.01–0.04) the linear
+estimator loses nothing measurable: encounter skill is 0.94–0.96 at
+U=3 m/s and 0.91 in the FF band at the design point (Fig. horizon),
+and an explicit second-order bound-wave correction changes skill by
+exactly zero — the bound-harmonic amplitude (~mm) is far below the
+error floor. Nonlinearity is not a binding constraint in the design
+envelope.
+
+**4.3 Real seas.** The third leg is zero-shot transfer (config: m=12
+returns/frame unless noted): **five**
+stereo sites (best 0-10 s band per
 site): YS17 0.71, AA15a 0.71, LJ18g 0.62 (storm swell, λ≈300 m ≫ fan —
 narrowband temporal coherence compensates spatial under-resolution and
 gives the best long-lead skill, 0.44 at 10–20 s), AA15b 0.57, AA14
@@ -247,12 +262,29 @@ real GT can and cannot support (stereo cross-contamination note).
 
 ## 5. Real-Sea Failure Forensics and a Preliminary Reliability Gate (C3)
 
-5.1 The window-skill bimodality. 5.2 Suspect elimination (currents via
-Doppler sweep ≤+0.03; directional spread already matched; GT white
-noise floor ≈0; naive drift metrics null; budget null). 5.3 Directional
-bimodality as a *marker* (patch −0.84, onboard beamform −0.78 on the
-discovery site) that fails to transfer (+0.13 holdout) and fails causal
-reproduction in linear crossing seas → site-specific failure modes.
+**5.1 The phenomenon.** Real-sea skill is not a number but a
+distribution: across 20 s windows, roughly half sit at synthetic-level
+0.85–0.95 and half at 0.4–0.5, with occasional negative windows. Any
+operational claim must face this heterogeneity rather than average it
+away.
+
+**5.2 Suspect elimination (all exploratory analyses labeled as such).**
+The usual explanations fail affirmatively: an ambient-current Doppler
+sweep improves nothing (≤+0.03 at the optimum); the directional spread
+of the real records (25–35°) already matches the synthetic probes; the
+stereo ground truth carries no measurable white-noise floor (the
+surfaces are smoothed products); naive nonstationarity metrics
+(ΔTp, ΔHs, Δdirection) do not rank window skill; and quadrupling the
+observation budget changes nothing on real data — the failure is model
+mismatch, not data starvation.
+
+**5.3 A marker that is not a cause.** Directional bimodality of the
+observed spectrum ranks window skill strongly on the discovery site
+(patch-side −0.84, onboard beamform-side −0.78, p≈0.001–0.003) — but
+fails to transfer to a second site (+0.13) and fails causal
+reproduction: imposing linear crossing seas of matched geometry does
+not collapse the estimator. Failure modes are site-specific; a
+universal onboard predictor of them remains open.
 5.4 The site-adaptive residual gate: definition (running median/MAD of
 the estimator's own quasi-held-out residual — the validation split is
 excluded from hyperparameter scoring but the beamform prior shape sees
@@ -271,15 +303,27 @@ would require (larger patches / more sites / field data).
 
 ## 6. Control Closure (application demonstration)
 
-6.1 E2E protocol (C-8 simulator, paper scenarios). 6.2 With the
-original controller: GT-FF −6–16 %, stream recovers 19–47 %. 6.3
-Controller-side lever: preview 0.5→0.2 s doubles the GT margin
-(consistent with the companion paper's 0.1–0.3 s optimum); stream
-fraction unchanged → the slope ceiling of §2.4 is the single remaining
-bottleneck, and de-weighting slope does not help (the margin is not
-recoverable by ignoring the bad channel). 6.4 Requirement inversion:
-corr is necessary, not sufficient; the FF benefit is (slope
-information) × (controller design). No sensor-side sampling lever for
+**6.1 Protocol.** The forecast is wired into the companion
+feedforward controller on the full vessel simulator (paper scenarios:
+BF3/BF4 head seas at cruise speed), and scored in the control
+currency: heave-acceleration RMS reduction relative to feedback-only.
+
+**6.2–6.3 Results, honestly.** With the original controller settings
+the perfect-preview (GT-FF) margin is itself modest (−6 to −16 %), and
+the streaming forecast recovers 19–47 % of it. Tuning the controller
+(preview 0.5→0.2 s, consistent with the companion paper's 0.1–0.3 s
+optimum) doubles the GT margin — the earlier evaluations were run at a
+sub-optimal preview — but leaves the streaming fraction unchanged at
+≈20 %. De-weighting the slope term does not help either: the loss is
+not avoidable by ignoring the badly-estimated channel, because the
+channel carries irreplaceable disturbance information. Both
+observations point at the same object: the slope information ceiling
+of §2.4.
+
+**6.4 Requirement inversion.** Encounter correlation is necessary but
+not sufficient for control benefit; the benefit factorizes,
+approximately, into (slope information available in the observation
+class) × (controller design quality). No sensor-side sampling lever for
 slope was found (the adjacency projection was retracted after the
 testbed audit); raising the slope tier requires range/noise-class
 changes, left as an open requirement. One concrete sensor-side lever exists in
@@ -292,13 +336,27 @@ sweep; ROI is therefore not a slope remedy either.
 
 ## 7. Limitations and Requirements for the Next Tier
 
-Raydrop model v1; pose frame-correlation untested (decoupled-mount
-assumption); no own-vessel field data — validation strategy is
-third-party real seas + spec-faithful simulation (defended in §4.5);
-gate at preliminary tier; 22 kt not directly testable on ≤240 m stereo
-patches (role split: real data validates the operator, HOS validates
-the design speed). Requirement inversion table: lead ↔ range; slope ↔
-adjacency; gate confirmation ↔ larger-patch or field records.
+Our raydrop model is specification-derived, not field-measured; the
+return-adjacency statistics that would settle the sensor-side slope
+question require raw LiDAR point clouds over real seas, which no
+public dataset currently provides (a data request trail is included in
+the supplementary material). Pose error is validated under a white
+model only (frame-correlated attitude error is subsumed under a
+decoupled-mount assumption); a constant ranging bias of the
+specification's ±5 cm class was tested and has zero effect. There is
+no own-vessel field campaign: the validation strategy is deliberately
+third-party — open real-sea surface truth plus specification-faithful
+simulation — and §4 argues this is sufficient for the claims made,
+which are about an observation class. The reliability gate is reported
+at preliminary tier by our own pre-registered standard. The design
+speed itself (22 kt) cannot be exercised on ≤300 m stereo patches; the
+role split is explicit — real data validates the operator, HOS
+validates the speed. What the next capability tier requires is now a
+specification: longer leads are bought by water range; the slope tier
+is not bought by sampling structure, density concentration (ROI), or
+learned priors within this sensor's budget — it requires a different
+observation class; and gate confirmation requires genuinely new
+mid/large-patch records or field data.
 
 ## 8. Conclusion
 

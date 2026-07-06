@@ -35,7 +35,7 @@ from d3_stream_seqmmse import make_bank, gamma_beamform, StreamMMSE
 G = 9.81
 OUT = 'results/direction3/stream_design_pipeline_{}.json'
 LEADS = np.array([0.5, 1.0, 2.0, 4.0])
-M_FRAME = 12
+M_FRAME = 12                        # overridden by --m_frame
 NOISE = 0.02
 
 
@@ -133,11 +133,12 @@ def run_hos(a):
     print(f"latency/frame (update+forecast): median {np.median(lat):.1f} ms"
           f", p95 {np.percentile(lat, 95):.1f} ms")
     json.dump(dict(mode='hos_design22kt', U=U, Hs=Hs, Tp=Tp,
+                   m_frame=M_FRAME,
                    leads=LEADS.tolist(), by_lead=res,
                    lat_ms_median=float(np.median(lat)),
                    lat_ms_p95=float(np.percentile(lat, 95))),
-              open(OUT.format('hos'), 'w'), indent=1)
-    print(f"saved {OUT.format('hos')}")
+              open(OUT.format('hos' + a.tag2), 'w'), indent=1)
+    print(f"saved {OUT.format('hos' + a.tag2)}")
 
 
 def run_ys17(a):
@@ -264,7 +265,7 @@ def run_ys17(a):
                             [w_['corr'] for w_ in win_stats])
         print(f"NIS gate: spearman(mean NIS, window corr) = {rho:+.2f} "
               f"(p={pv:.3f}, n={len(win_stats)})")
-    tag = 'ys17' if refresh <= 0 else f'ys17_ref{refresh:g}'
+    tag = ('ys17' if refresh <= 0 else f'ys17_ref{refresh:g}') + a.tag2
     json.dump(dict(mode=tag, U=U, leads=LEADS.tolist(), by_lead=res,
                    gamma_refresh=refresh, win_stats=win_stats,
                    lat_ms_median=float(np.median(lat)),
@@ -279,5 +280,10 @@ if __name__ == '__main__':
     ap.add_argument('--n_seas', type=int, default=2)
     ap.add_argument('--gamma_refresh', type=float, default=0.0,
                     help='slow-loop gamma refresh period [s]; 0=off')
+    ap.add_argument('--m_frame', type=int, default=12,
+                    help='fan returns per frame (episodes: median 48)')
+    ap.add_argument('--tag2', default='',
+                    help='output filename suffix')
     a = ap.parse_args()
+    globals()['M_FRAME'] = a.m_frame
     run_hos(a) if a.mode == 'hos' else run_ys17(a)

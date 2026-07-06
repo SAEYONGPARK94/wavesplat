@@ -498,7 +498,7 @@ def bank_irls_estimate(P, z, depth, n_sel=48, dk_c=0.015, val_frac=0.25,
 
 def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
                        val_frac=0.25, seed=0, max_em=6, return_var=False,
-                       Uc=None, diag_out=None):
+                       Uc=None, diag_out=None, dual_band=False):
     """Spectrum-weighted linear MMSE over the fine continuous bank — the
     2026-07-05 winner (10-sea harness: 0.272/0.239/0.241 vs RELAX
     0.199/0.222/0.183). NO identification: prior variance per candidate
@@ -535,6 +535,34 @@ def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
     kk = np.hypot(KX, KY)
     sel = (kk > 0.35 * kp) & (kk < 2.5 * kp)
     kxb, kyb = KX[sel].astype(float), KY[sel].astype(float)
+    if dual_band:
+        # wide radial scan for a secondary spectral band (crossing seas:
+        # swell + windsea at different |k| — a single kp-annulus clips it)
+        kr = np.linspace(0.12 * kp, 3.2 * kp, 40)
+        thg = np.linspace(-np.pi, np.pi, 36, endpoint=False)
+        KR, TH = np.meshgrid(kr, thg)
+        kxs = (KR * np.cos(TH)).ravel()
+        kys = (KR * np.sin(TH)).ravel()
+        oms = omega(np.hypot(kxs, kys) + 1e-12, depth)
+        psi_s = (kxs[:, None] * P[None, :, 0] + kys[:, None] * P[None, :, 1]
+                 - oms[:, None] * P[None, :, 2])
+        pw_s = ((z[None] * np.cos(psi_s)).sum(1) ** 2
+                + (z[None] * np.sin(psi_s)).sum(1) ** 2).reshape(KR.shape)
+        prof = pw_s.max(axis=0)                       # radial profile
+        inside = (kr > 0.6 * kp) & (kr < 1.5 * kp)
+        p_pri = prof[inside].max()
+        prof_out = np.where(inside, -np.inf, prof)
+        k2 = float(kr[np.argmax(prof_out)])
+        if prof_out.max() > 0.25 * p_pri and \
+                not (0.35 * kp < k2 < 2.5 * kp):
+            dk2 = k2 / 10.0
+            ax2 = np.arange(-1.6 * k2, 1.6 * k2 + dk2 / 2, dk2)
+            KX2, KY2 = np.meshgrid(ax2, ax2)
+            kk2 = np.hypot(KX2, KY2)
+            sel2 = ((kk2 > 0.6 * k2) & (kk2 < 1.6 * k2)
+                    & ~((kk2 > 0.35 * kp) & (kk2 < 2.5 * kp)))
+            kxb = np.concatenate([kxb, KX2[sel2].astype(float)])
+            kyb = np.concatenate([kyb, KY2[sel2].astype(float)])
     B = len(kxb)
     om = omega(np.hypot(kxb, kyb) + 1e-12, depth)
     if Uc is not None:                    # current Doppler (earth frame)

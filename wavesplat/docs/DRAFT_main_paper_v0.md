@@ -22,8 +22,9 @@ can know, online, when its forecast is trustworthy. Three results. (i)
 frame gives a usable lead ℓ\* ≈ R_max/(U+c_g) ≈ 6 s at the design
 point; within the feedforward band (0–2 s) the encounter-forecast
 correlation is 0.91 (95% CI [0.88, 0.94], HOS M=3, n=12 seas) and is
-robust to pose error, crest shadowing, oblique headings, and sea states
-BF2–BF5. A ladder of oracle experiments (true-spectrum prior, 4×
+robust to pose error, crest shadowing, oblique and following headings
+(0–180°, FF-band 0.95 in the near-frozen following-sea regime), and sea
+states BF2–BF5. A ladder of oracle experiments (true-spectrum prior, 4×
 observation budget, 12× learning scale, bank refinement, bound-wave
 correction) shows the estimator is saturated within the examined model
 class: at realistic return density the estimator matches a
@@ -237,7 +238,7 @@ relation carries the phase for free at short lead — establishing the
 baseline property the whole design relies on.
 
 **4.2 Nonlinear seas.** The second leg replaces the linear sea with
-HOS M=3 simulations. At BF2–BF5 steepness (ka ≈ 0.01–0.04) the linear
+HOS M=3 simulations. At BF2–BF5 steepness (ka ≈ 0.027–0.035) the linear
 estimator loses nothing measurable: encounter skill is 0.94–0.96 at
 U=3 m/s and 0.91 in the FF band at the design point (Fig. horizon),
 and an explicit second-order bound-wave correction changes skill by
@@ -259,7 +260,11 @@ all configurations labeled in the reproducibility appendix) because it
 has no window cap. Site heterogeneity is reported,
 not averaged away. 4.4 Robustness table (Fig. `fig_robust`): FF-band ≥0.90 under pose
 0.05–0.3° (white model; frame-correlated left as limitation), crest
-shadowing (3 m sensor height), headings 30–60°, BF2/BF5. 4.5 What the
+shadowing (3 m sensor height), headings 30–60°, and following seas
+(180°: FF-band 0.95, 0–10 s 0.91, 10–20 s 0.73 — at U ≈ c_p the
+encounter field is near-frozen, so the following-sea regime is the
+easy one; head seas, with the shortest horizon, are correctly the
+design case), BF2/BF5. 4.5 What the
 real GT can and cannot support (stereo cross-contamination note).
 
 ## 5. Real-Sea Failure Forensics and a Preliminary Reliability Gate (C3)

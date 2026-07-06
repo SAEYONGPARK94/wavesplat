@@ -498,7 +498,7 @@ def bank_irls_estimate(P, z, depth, n_sel=48, dk_c=0.015, val_frac=0.25,
 
 def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
                        val_frac=0.25, seed=0, max_em=6, return_var=False,
-                       Uc=None):
+                       Uc=None, diag_out=None):
     """Spectrum-weighted linear MMSE over the fine continuous bank — the
     2026-07-05 winner (10-sea harness: 0.272/0.239/0.241 vs RELAX
     0.199/0.222/0.183). NO identification: prior variance per candidate
@@ -590,6 +590,9 @@ def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
         else:
             break
     gam = best_em[1]
+    if diag_out is not None:      # held-out predictive misfit (gate signal)
+        diag_out['vr'] = float(best_em[0])
+        diag_out['vr_rel'] = float(best_em[0] / (np.std(zv) + 1e-12))
     Phi_all = design(P)
     K = (Phi_all * gam[None]) @ Phi_all.T + s2 * np.eye(n)
     alpha = np.linalg.solve(K, z)

@@ -34,8 +34,10 @@ def save(fig, name):
 
 
 def fig_horizon():
-    d = json.load(open(
-        'results/direction3/falcon_hos_probe_design22kt.json'))
+    src = 'results/direction3/falcon_hos_probe_design22kt_n12.json'
+    if not os.path.exists(src):
+        src = 'results/direction3/falcon_hos_probe_design22kt.json'
+    d = json.load(open(src))
     leads = np.array(d['leads'])
     U, Tp = d['U'], d['Tp']
     cp = G * Tp / (2 * np.pi)

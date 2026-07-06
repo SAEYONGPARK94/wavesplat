@@ -55,6 +55,10 @@ RECORDS = {
     'AA15a': dict(path='data/real_bergamasco/AA_2015/Surfaces_20150305_103500.nc',
                   depth=17.0, stride=1, r_fan=(8.0, 40.0), U=1.2,
                   lead_max=14.0, note='65x85 m — fan scaled ~0.4x'),
+    'AA14': dict(path='data/real_bergamasco/AA_2014/Surfaces_20140327_091000.nc',
+                 depth=17.0, stride=1, r_fan=(8.0, 40.0), U=1.2,
+                 lead_max=14.0,
+                 note='70x86 m, valid 0.43 (center clean) — 3rd gate record'),
 }
 
 

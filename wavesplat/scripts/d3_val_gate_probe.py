@@ -42,9 +42,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--n_win', type=int, default=12)
     ap.add_argument('--w_mems', type=float, nargs='+', default=[20.0])
+    ap.add_argument('--records', nargs='+', default=['YS17', 'AA15a'])
+    ap.add_argument('--out_tag', default='')
     a = ap.parse_args()
     cells = []
-    for name in ('YS17', 'AA15a'):
+    for name in a.records:
         cfg = RECORDS[name]
         rec = MRecord(cfg['path'], stride=cfg['stride'])
         depth, U = cfg['depth'], cfg['U']
@@ -142,11 +144,12 @@ def main():
         drift[k] = dict(spearman=float(r_), p=float(p_))
         print(f"  nonstationarity {k}: spearman vs realized "
               f"{r_:+.2f} (p={p_:.3f})")
+    out_p = OUT.replace('.json', a.out_tag + '.json')
     json.dump(dict(cells=cells, spearman=float(rho), p=float(p),
                    confident=float(re[vr <= med].mean()),
                    risky=float(re[vr > med].mean()), drift=drift),
-              open(OUT, 'w'), indent=1)
-    print(f"saved {OUT}")
+              open(out_p, 'w'), indent=1)
+    print(f"saved {out_p}")
 
 
 if __name__ == '__main__':

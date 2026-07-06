@@ -74,9 +74,10 @@ real-time system reach that boundary, detect when it fails, and state
 what capability lies beyond it?** That single question threads this
 paper.
 
-Radar DSWP sea trials report encounter correlations of ≈0.76 [OE
-2020]; CN-RLS [RS 2024] applies recursive least squares to coherent
-radar reconstruction; predictable-zone theory [Naaijen et al.] bounds
+Radar DSWP studies report encounter/reconstruction correlations in the
+0.7–0.9 range [OE 2020; RS 2024 — VERIFY exact per-paper values against
+full texts before submission]; CN-RLS [RS 2024] applies recursive least
+squares to coherent radar reconstruction; predictable-zone theory [Naaijen et al.] bounds
 phase-resolved forecasting by group-velocity geometry. Against this
 literature our gaps are concrete: (a) no published *quantified design
 verdict* for a given sensor×vehicle pair; (b) no *measured* real-time
@@ -175,13 +176,17 @@ cited).
 
 4.1 Spec-faithful simulation (episodes; native bench: 2–4 s forecast ≡
 nowcast). 4.2 HOS M=3 (0.94–0.96 at U=3; design point Fig. horizon;
-nonlinearity costs nothing at BF2–BF5 steepness). 4.3 Real seas: **five** stereo sites zero-shot (best 0-10 s band per
+nonlinearity costs nothing at BF2–BF5 steepness). 4.3 Real seas (config: m=12 returns/frame unless noted): **five**
+stereo sites zero-shot (best 0-10 s band per
 site): YS17 0.71, AA15a 0.71, LJ18g 0.62 (storm swell, λ≈300 m ≫ fan —
 narrowband temporal coherence compensates spatial under-resolution and
 gives the best long-lead skill, 0.44 at 10–20 s), AA15b 0.57, AA14
 0.43 (43 % valid pixels, GT-starved); development-pair pooled 0.70
-[0.59, 0.79]. Streaming beats the 600-obs batch protocol (0.76–0.78 at
-15 ms) because it has no window cap. Site heterogeneity is reported,
+[0.59, 0.79]. Streaming beats the
+600-obs batch protocol (0.76–0.78 encounter corr at 15 ms/frame,
+m=12 config; at the realistic m=48 density: 0.74–0.75 at 17.6 ms —
+all configurations labeled in the reproducibility appendix) because it
+has no window cap. Site heterogeneity is reported,
 not averaged away. 4.4 Robustness table (Fig. `fig_robust`): FF-band ≥0.90 under pose
 0.05–0.3° (white model; frame-correlated left as limitation), crest
 shadowing (3 m sensor height), headings 30–60°, BF2/BF5. 4.5 What the
@@ -224,7 +229,13 @@ corr is necessary, not sufficient; the FF benefit is (slope
 information) × (controller design). No sensor-side sampling lever for
 slope was found (the adjacency projection was retracted after the
 testbed audit); raising the slope tier requires range/noise-class
-changes, left as an open requirement.
+changes, left as an open requirement. One concrete sensor-side lever
+does exist in the shipped hardware and is untested here: the Falcon's
+configurable ROI mode (40°×4.8° at 0.09°×0.08° angular resolution,
+manual Table 2) concentrates the beam budget into the look-ahead
+corridor — a density, not adjacency, intervention; our budget sweep
+suggests modest slope gains (+0.04 per 4×), so expectations should be
+set accordingly.
 
 ## 7. Limitations and Requirements for the Next Tier
 
@@ -275,7 +286,11 @@ controller design, not of the estimator.
 - Bergamasco et al. 2017, WASS pipeline
 - AHGP (NeurIPS 2020) — amortized spectral priors
 - Companion: hydrofoil wave-preview feedforward paper (this project)
-- Seyond Falcon FK24 datasheet (sensor specification)
+- Seyond Falcon LiDAR User Manual (2024-05-28), Table 2 Specifications,
+  p.12 — all quoted sensor numbers verified against this source
+  (250 m @10 % reflectivity; 120°×25°; 0.18°×0.24°; 2 cm 1σ precision;
+  ±5 cm Lambertian accuracy [bias, unmodeled — limitation note];
+  10 FPS; ROI mode 40°×4.8° @0.09°×0.08°)
 
 ### Figure plan
 - Fig.1 concept: vessel + fan + encounter track (from stream demo GIF still)

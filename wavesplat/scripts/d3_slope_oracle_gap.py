@@ -80,6 +80,10 @@ def main():
     ap.add_argument('--tag', default='')
     ap.add_argument('--m_scan', type=int, default=M_SCAN)
     ap.add_argument('--n_comp', type=int, default=200)
+    ap.add_argument('--fov_half_deg', type=float, default=60.0,
+                    help='fan half-angle (ROI mode: 20)')
+    ap.add_argument('--z_bias', type=float, default=0.0,
+                    help='constant ranging bias [m] (Lambertian +-5cm)')
     a = ap.parse_args()
     kp = (2 * np.pi / TP) ** 2 / G
     acc = {m: {k: ([], []) for k in ('eta', 'slope', 'vel')}
@@ -110,7 +114,8 @@ def main():
             sp = ship_pos(t_s)
             if a.sampling == 'random':
                 rr = rng.uniform(20.0, 100.0, a.m_scan)
-                aa = rng.uniform(-np.pi / 3, np.pi / 3, a.m_scan)
+                hfov = np.radians(a.fov_half_deg)
+                aa = rng.uniform(-hfov, hfov, a.m_scan)
             else:
                 # Falcon-structured: M_SCAN/4 clusters of 4 = center,
                 # azimuth-neighbor (r * 0.18 deg lateral), elevation-
@@ -127,7 +132,8 @@ def main():
             ys = sp[1] + rr * np.sin(aa)
             Q = np.column_stack([xs, ys, np.full(len(rr), t_s)])
             Pl.append(Q)
-            zl.append(eta_st(Q) + rng.normal(0, NOISE, len(rr)))
+            zl.append(eta_st(Q) + rng.normal(0, NOISE, len(rr))
+                      + a.z_bias)
         P = np.vstack(Pl)
         z = np.concatenate(zl)
 

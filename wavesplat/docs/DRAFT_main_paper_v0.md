@@ -229,13 +229,13 @@ corr is necessary, not sufficient; the FF benefit is (slope
 information) × (controller design). No sensor-side sampling lever for
 slope was found (the adjacency projection was retracted after the
 testbed audit); raising the slope tier requires range/noise-class
-changes, left as an open requirement. One concrete sensor-side lever
-does exist in the shipped hardware and is untested here: the Falcon's
-configurable ROI mode (40°×4.8° at 0.09°×0.08° angular resolution,
-manual Table 2) concentrates the beam budget into the look-ahead
-corridor — a density, not adjacency, intervention; our budget sweep
-suggests modest slope gains (+0.04 per 4×), so expectations should be
-set accordingly.
+changes, left as an open requirement. One concrete sensor-side lever exists in
+the shipped hardware — the Falcon's configurable ROI mode (40°×4.8° at
+0.09°×0.08°, manual Table 2), which concentrates the beam budget into
+the look-ahead corridor. We tested the corresponding geometry
+(returns concentrated in a ±20° corridor at the same budget): the
+achieved slope gain is negligible (+0.01), consistent with the budget
+sweep; ROI is therefore not a slope remedy either.
 
 ## 7. Limitations and Requirements for the Next Tier
 
@@ -289,7 +289,9 @@ controller design, not of the estimator.
 - Seyond Falcon LiDAR User Manual (2024-05-28), Table 2 Specifications,
   p.12 — all quoted sensor numbers verified against this source
   (250 m @10 % reflectivity; 120°×25°; 0.18°×0.24°; 2 cm 1σ precision;
-  ±5 cm Lambertian accuracy [bias, unmodeled — limitation note];
+  ±5 cm Lambertian accuracy [bias — TESTED: zero effect on skill, the
+  DC-free bank plus validation-selected regularization absorb a
+  constant offset; the fixed-noise oracle, by contrast, degrades];
   10 FPS; ROI mode 40°×4.8° @0.09°×0.08°)
 
 ### Figure plan

@@ -10,6 +10,7 @@ Usage: python3 scripts/d3_stream_demo_gif.py
 """
 import os
 import sys
+import argparse
 
 import numpy as np
 import matplotlib
@@ -25,8 +26,8 @@ from wavesim.hos_simulator import HOSSimulator, HOSConfig
 from d3_stream_seqmmse import make_bank, gamma_beamform, StreamMMSE
 
 G = 9.81
-OUT = 'results/gifs/falcon_stream_demo_22kt.gif'
-U, Hs, Tp, DEPTH = 11.3, 1.2, 7.0, 50.0
+OUT = 'results/gifs/falcon_stream_demo_{}.gif'
+U, DEPTH = 11.3, 50.0
 DT, M = 0.1, 12
 LEAD = 2.0
 T_DEMO = 12.0                       # seconds of streaming shown
@@ -34,12 +35,19 @@ FRAME_EVERY = 3                     # GIF frame every 0.3 s
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--Hs', type=float, default=1.2)
+    ap.add_argument('--Tp', type=float, default=7.0)
+    ap.add_argument('--seed', type=int, default=0)
+    ap.add_argument('--tag', default='22kt')
+    a = ap.parse_args()
+    Hs, Tp = a.Hs, a.Tp
     kp = (2 * np.pi / Tp) ** 2 / G
     cfg = HOSConfig(Lx=800.0, Ly=400.0, Nx=160, Ny=128, depth=DEPTH, M=3)
     sim = HOSSimulator(cfg)
     sim.initialize_jonswap(Hs=Hs, Tp=Tp, direction_deg=0.0,
-                           direction_spread_deg=25.0, seed=9100)
-    rng = np.random.default_rng(500)
+                           direction_spread_deg=25.0, seed=9100 + a.seed)
+    rng = np.random.default_rng(500 + a.seed)
     t0 = 20.0
 
     def ship_pos(t):
@@ -173,17 +181,18 @@ def main():
         lp.set_data(tt, tp)
         lg.set_data(tt, tg)
         mc = float(np.corrcoef(d['est'].ravel(), d['truth'].ravel())[0, 1])
-        sup.set_text(f'Real-time streaming @ 22 kt (HOS M=3, BF4) — '
-                     f't = {d["t"]:.1f} s | ~47 ms/frame | '
-                     f'map corr {mc:+.2f}')
+        sup.set_text(f'Real-time streaming @ 22 kt (HOS M=3, '
+                     f'Hs={Hs:g} m Tp={Tp:g} s) — t = {d["t"]:.1f} s | '
+                     f'~18 ms/frame | map corr {mc:+.2f}')
         return [imL, imR, lp, lg, sup]
 
     ani = animation.FuncAnimation(fig, update, frames=len(frames_data))
     os.makedirs('results/gifs', exist_ok=True)
-    ani.save(OUT, writer=animation.PillowWriter(fps=3))
+    out = OUT.format(a.tag)
+    ani.save(out, writer=animation.PillowWriter(fps=3))
     tt, tp, tg = frames_data[-1]['trace']
     cc = np.corrcoef(tp, tg)[0, 1]
-    print(f"saved {OUT} ({os.path.getsize(OUT) / 1e6:.1f} MB, "
+    print(f"saved {out} ({os.path.getsize(out) / 1e6:.1f} MB, "
           f"verified 2s-lead corr {cc:+.2f}, {len(frames_data)} frames)")
 
 

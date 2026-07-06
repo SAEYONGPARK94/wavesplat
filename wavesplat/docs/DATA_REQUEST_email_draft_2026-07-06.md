@@ -3,8 +3,8 @@
 (2026-07-06. 발송 대상 2건 + 예비 1건.)
 
 ## 대상 1 — Scripps Institution of Oceanography, Air-Sea Interaction Lab
-수신: Dr. Luc Lenain (PI), Dr. Laurent Grare
-(instrumented platforms/wave measurement 캠페인 다수 보유)
+수신: Dr. Luc Lenain (PI) <llenain@ucsd.edu>, Dr. Laurent Grare
+<lgrare@ucsd.edu>  (논문 기재 주소로 확인됨)
 
 Subject: Request for a sample of LiDAR sea-surface returns
 
@@ -27,20 +27,21 @@ return-statistics analysis back with your group.
 Thank you for considering this request.
 
 Best regards,
-[사용자 성함]
+Saeyong Park
 Ph.D. student, Seoul National University
-[이메일 서명]
 
 ## 대상 2 — Hohai Univ. 그룹 (OE 2023 LiDAR 파랑 계측)
-수신: Prof. Jian Shi / Prof. Jinhai Zheng (교신 확인 후), 공저:
-Lipeng Zhang, Chi Zhang, Zhe Zhang
-논문: "An experimental study on monitoring wave profiles with LiDAR",
-Ocean Engineering (2023)
+수신: Prof. Jinhai Zheng <jhzheng@hhu.edu.cn> (교수 페이지 확인;
+부총장급 시니어 저자) — Jian Shi 직접 주소는 미확인이라 Zheng 교수
+앞으로 보내며 본문에서 Shi 교수 공동 수신 요청. 공저: Lipeng Zhang,
+Chi Zhang, Zhe Zhang. 논문: "An experimental study on monitoring wave
+profiles with LiDAR", Ocean Engineering (2023) — 발송 전 논문 각주의
+교신저자 표기를 한 번 더 확인 권장.
 
 Subject: Data request regarding your 2023 Ocean Engineering LiDAR
 wave-profile study
 
-Dear Prof. Shi,
+Dear Prof. Zheng (and Prof. Shi),
 
 I am a Ph.D. student at Seoul National University working on wave
 measurement from marine LiDAR. I read your 2023 Ocean Engineering
@@ -54,8 +55,11 @@ exist. I would follow any terms you specify, cite the data
 appropriately, and share the derived analysis back with you.
 
 Best regards,
-[사용자 성함]
+Saeyong Park
 Ph.D. student, Seoul National University
+
+## (참고) 인용 논문 교신저자 — 데이터 요청 대상 아님
+Al-Ani (DSWP 시trial): m.t.a.al-ani@exeter.ac.uk (원문 1면 기재)
 
 ## 예비 대상 3 — OE 2025 "Wave characteristics analysis by LiDAR point
 cloud" 저자 (저자명 미확인 — 발송 전 논문 페이지에서 확인 필요)

@@ -21,8 +21,12 @@ Your group's field campaigns are, to my knowledge, the most relevant
 measurements of this kind. Would you be willing to share a short
 sample (even a few minutes) of raw or lightly processed sea-surface
 returns with timestamps and beam geometry? I would follow any terms
-you specify, cite the data appropriately, and gladly share the derived
-return-statistics analysis back with your group.
+you specify, cite the data appropriately, and share the resulting
+characterization back with your group — return density and dropout
+rates as functions of range and incidence angle, and the spatial
+clustering statistics of surviving returns, which may be a useful
+by-product of your campaign that the wave-profile analyses would not
+normally extract.
 
 Thank you for considering this request.
 
@@ -52,7 +56,9 @@ dropout, and spatial adjacency of returns), a short sample of the raw
 point clouds from your experiments — even a few minutes — would be
 extremely valuable, as no public dataset of this kind appears to
 exist. I would follow any terms you specify, cite the data
-appropriately, and share the derived analysis back with you.
+appropriately, and share the resulting characterization back with you
+(return density and dropout versus range and incidence angle, and the
+spatial statistics of surviving returns).
 
 Best regards,
 Saeyong Park

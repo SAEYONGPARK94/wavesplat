@@ -45,15 +45,23 @@ def load_all(stem):
 
 
 def task_loss_one(net_out, P, z, Q, gt_q, kp_e, sigma0, log_smult, mask_t,
-                  kxn, kyn):
-    """Differentiable MMSE through Woodbury; returns normalized field MSE."""
+                  kxn, kyn, bound_wave=False, bw_scale=0.15):
+    """Differentiable MMSE through Woodbury; returns normalized field MSE.
+    bound_wave: pair the learned free-wave prior with (2k,2omega) off-shell
+    bound-wave candidates (#2+#1 retrain, 2026-07-08), prior tied to the parent
+    free-wave energy and downscaled — matches inference net_gamma_mmse."""
     g = torch.pow(10.0, net_out[mask_t])
-    g = g / g.sum()
-    gam = torch.cat([g, g]) * torch.var(z)
     kxb = kxn * kp_e
     kyb = kyn * kp_e
     k = torch.sqrt(kxb ** 2 + kyb ** 2 + 1e-12)
     om = torch.sqrt(G * k * torch.tanh(k * DEPTH) + 1e-12)
+    if bound_wave:
+        kxb = torch.cat([kxb, 2.0 * kxb])
+        kyb = torch.cat([kyb, 2.0 * kyb])
+        om = torch.cat([om, 2.0 * om])
+        g = torch.cat([g, bw_scale * g])
+    g = g / g.sum()
+    gam = torch.cat([g, g]) * torch.var(z)
 
     def design(Qp):
         psi = kxb[None] * Qp[:, 0:1] + kyb[None] * Qp[:, 1:2] \
@@ -77,6 +85,9 @@ def main():
     ap.add_argument('--data', default='tmp/prior_train/task0')
     ap.add_argument('--init', default='results/direction3/prior_net_v2.pt')
     ap.add_argument('--ckpt', default='results/direction3/prior_net_v3.pt')
+    ap.add_argument('--bound_wave', action='store_true',
+                    help='train the prior WITH the (2k,2omega) bound-wave bank '
+                         '(#2+#1 retrain, 2026-07-08)')
     a = ap.parse_args()
 
     D = load_all(a.data)
@@ -104,7 +115,8 @@ def main():
         kp_e, Hs, _, _, nfrac = D['meta'][i]
         sig0 = float(nfrac * Hs)
         return task_loss_one(out, P, z, Q, gt, float(kp_e), sig0,
-                             log_smult, mask_t, kxn, kyn) / (Hs / 4) ** 2
+                             log_smult, mask_t, kxn, kyn,
+                             bound_wave=a.bound_wave) / (Hs / 4) ** 2
 
     rng = np.random.default_rng(0)
     vi = np.arange(n_val)

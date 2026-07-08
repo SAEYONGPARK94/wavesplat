@@ -42,7 +42,7 @@ NGRID = 51                       # normalized bank grid (spacing 0.1 kp)
 KREL = 2.5
 
 
-def gen_sample(rng, fan_frac=0.0, bimodal_frac=0.0):
+def gen_sample(rng, fan_frac=0.0, bimodal_frac=0.0, bw_inject=0.0):
     Tp = rng.uniform(5.0, 11.0)
     Hs = rng.uniform(1.0, 3.0)
     gam_j = rng.uniform(1.5, 6.0)
@@ -75,6 +75,20 @@ def gen_sample(rng, fan_frac=0.0, bimodal_frac=0.0):
     uc_ang = rng.uniform(0, 2 * np.pi)
     om = om + kxm * uc_mag * np.cos(uc_ang) + kym * uc_mag * np.sin(uc_ang)
 
+    # 2nd-order self-super-harmonic bound waves (2026-07-08, learn-boundwave):
+    # inject Stokes bound-wave energy at (2k, 2*omega) OFF the free-wave shell
+    # for the top-K components, so the net learns a prior that anticipates the
+    # bound-wave coupling the (2k,2omega) estimator bank represents. eta2 =
+    # sum_i gain*(1/2)*k_i*A_i^2 * cos(2*psi_i). Default 0 = unchanged.
+    bw = None
+    bw_lvl = rng.uniform(0.0, bw_inject) if bw_inject > 0 else 0.0
+    if bw_lvl > 1e-4 and len(Am) > 0:
+        K = min(12, len(Am))
+        top = np.argsort(Am)[-K:]
+        bw = dict(kx=2.0 * kxm[top], ky=2.0 * kym[top], om=2.0 * om[top],
+                  ph=2.0 * phm[top],
+                  A=bw_inject * 0.5 * np.hypot(kxm[top], kym[top]) * Am[top] ** 2)
+
     lam = dispersion_lam(Tp, DEPTH)
     cp = lam / Tp
     T = 10 * Tp
@@ -103,6 +117,17 @@ def gen_sample(rng, fan_frac=0.0, bimodal_frac=0.0):
            - om[None] * P[:, 2:3] + phm[None])
     nfrac = rng.uniform(0.02, 0.10)
     z = (Am[None] * np.cos(psi)).sum(1) + rng.normal(0, nfrac * Hs, N_OBS)
+    if bw is not None:                    # add bound-wave energy to observations
+        psib = (bw['kx'][None] * P[:, 0:1] + bw['ky'][None] * P[:, 1:2]
+                - bw['om'][None] * P[:, 2:3] + bw['ph'][None])
+        zb = (bw['A'][None] * np.cos(psib)).sum(1)
+        # rescale so bw_inject is the off-shell energy FRACTION (std ratio):
+        # per-wavelet Stokes coeffs are tiny once Hs is split over 200 modes,
+        # so we target std(bound) = sqrt(bw_inject) * (Hs/4). Store the factor
+        # to apply the SAME bound field consistently to the query targets.
+        cur = np.std(zb)
+        bw['sc'] = (np.sqrt(bw_lvl) * (Hs / 4.0)) / max(cur, 1e-9)
+        z = z + bw['sc'] * zb
 
     # kp estimate exactly as at inference time (two-stage beamform zoom)
     bx, by = beamform_top(P.astype(np.float32), z.astype(np.float32),
@@ -156,6 +181,10 @@ def gen_sample(rng, fan_frac=0.0, bimodal_frac=0.0):
     psi_q = (kxm[None] * qx[:, None] + kym[None] * qy[:, None]
              - om[None] * tq[:, None] + phm[None])
     gt_q = (Am[None] * np.cos(psi_q)).sum(1)
+    if bw is not None and 'sc' in bw:    # same bound field in the true targets
+        psib_q = (bw['kx'][None] * qx[:, None] + bw['ky'][None] * qy[:, None]
+                  - bw['om'][None] * tq[:, None] + bw['ph'][None])
+        gt_q = gt_q + bw['sc'] * (bw['A'][None] * np.cos(psib_q)).sum(1)
     Q = np.column_stack([qx, qy, tq]).astype(np.float32)
 
     return dict(X=X, Y=Y, P=P.astype(np.float32), z=z.astype(np.float32),
@@ -172,6 +201,8 @@ def main():
     ap.add_argument('--shard', type=int, default=500)
     ap.add_argument('--fan_frac', type=float, default=0.0)
     ap.add_argument('--bimodal_frac', type=float, default=0.0)
+    ap.add_argument('--bw_inject', type=float, default=0.0,
+                    help='2nd-order bound-wave injection gain (0=off)')
     a = ap.parse_args()
     os.makedirs(os.path.dirname(a.out) or '.', exist_ok=True)
     rng = np.random.default_rng(a.seed)
@@ -179,7 +210,7 @@ def main():
     si = 0
     t0 = time.time()
     for i in range(a.n):
-        buf.append(gen_sample(rng, a.fan_frac, a.bimodal_frac))
+        buf.append(gen_sample(rng, a.fan_frac, a.bimodal_frac, a.bw_inject))
         if len(buf) == a.shard or i == a.n - 1:
             path = f"{a.out}_s{si:03d}.npz"
             np.savez_compressed(

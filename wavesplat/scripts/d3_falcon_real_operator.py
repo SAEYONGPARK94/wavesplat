@@ -150,6 +150,12 @@ def main():
                     help='bank annulus in units of kp (detection-free richer '
                          'broadband model test; e.g. 0.2 3.5 widens to cover '
                          'a second in-band peak).')
+    ap.add_argument('--bound_wave', action='store_true',
+                    help='A1/#2 (2026-07-08): extend the bank with 2nd-order '
+                         'super-harmonic bound-wave candidates (2k, 2omega) '
+                         'off the free-wave shell — the model-class extension '
+                         'that targets the K3/P5 bimodal ceiling. Test with '
+                         'hand prior first (no training).')
     ap.add_argument('--net', type=str, default=None,
                     help='A1 (2026-07-08): learned prior net checkpoint '
                          '(e.g. results/direction3/prior_net_v3.pt) — use the '
@@ -177,6 +183,8 @@ def main():
         tag += '_dualband'
     if tuple(a.band) != (0.35, 2.5):
         tag += '_wideband'
+    if a.bound_wave:
+        tag += '_bw'
     if a.net:
         tag += '_net' + os.path.splitext(os.path.basename(a.net))[0].replace(
             'prior_net_', '')
@@ -302,7 +310,8 @@ def main():
                 fq = mmse_bank_estimate(P, z, depth, Pq, sigma0=0.05 * Hs,
                                         kp_hint=kp, seed=int(i0), diag_out=gate,
                                         dual_band=a.dual_band,
-                                        band=tuple(a.band))
+                                        band=tuple(a.band),
+                                        bound_wave=a.bound_wave)
             f_enc, f_map = fq[:len(tq)], fq[len(tq):]
             c_map = corr(f_map, gt_map)
             row['by_W'][str(W)] = dict(

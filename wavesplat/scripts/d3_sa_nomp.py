@@ -499,7 +499,7 @@ def bank_irls_estimate(P, z, depth, n_sel=48, dk_c=0.015, val_frac=0.25,
 def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
                        val_frac=0.25, seed=0, max_em=6, return_var=False,
                        Uc=None, diag_out=None, dual_band=False,
-                       gamma_tilt=0.0, band=(0.35, 2.5)):
+                       gamma_tilt=0.0, band=(0.35, 2.5), bound_wave=False):
     """Spectrum-weighted linear MMSE over the fine continuous bank — the
     2026-07-05 winner (10-sea harness: 0.272/0.239/0.241 vs RELAX
     0.199/0.222/0.183). NO identification: prior variance per candidate
@@ -566,8 +566,22 @@ def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
                     & ~((kk2 > 0.35 * kp) & (kk2 < 2.5 * kp)))
             kxb = np.concatenate([kxb, KX2[sel2].astype(float)])
             kyb = np.concatenate([kyb, KY2[sel2].astype(float)])
-    B = len(kxb)
     om = omega(np.hypot(kxb, kyb) + 1e-12, depth)
+    n_free = len(kxb)
+    if bound_wave:
+        # MODEL-CLASS EXTENSION (2026-07-08, A1/#2): 2nd-order super-harmonic
+        # bound-wave candidates at (2k, 2*omega) — OFF the free-wave dispersion
+        # shell (a free wave at 2k would sit at omega(2k) != 2*omega(k)). This
+        # lets the linear MMSE represent the bound-wave energy that a pure
+        # free-wave bank cannot (the K3/P5 model-class ceiling on bimodal seas).
+        # The beamform-power prior auto-detects them (correlates z with the
+        # candidate's own 2*omega phase); they are additionally prior-downscaled
+        # (bound waves are O(steepness) smaller) to suppress spurious pickup on
+        # clean unimodal records where no real bound-wave energy exists.
+        kxb = np.concatenate([kxb, 2.0 * kxb])
+        kyb = np.concatenate([kyb, 2.0 * kyb])
+        om = np.concatenate([om, 2.0 * om])
+    B = len(kxb)
     if Uc is not None:                    # current Doppler (earth frame)
         om = om + kxb * Uc[0] + kyb * Uc[1]
 
@@ -588,6 +602,8 @@ def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
         pw[i:i + CH] = (z[None] * np.cos(psi)).sum(1) ** 2 \
             + (z[None] * np.sin(psi)).sum(1) ** 2
     pw = pw / max(pw.max(), 1e-12)
+    if bound_wave and n_free < B:      # physical downscale of bound-wave prior
+        pw[n_free:] *= 0.15            # bound waves ~ O(steepness) of free waves
     if gamma_tilt:                # high-k prior lift (slope-aware FF use)
         pw = pw * (np.hypot(kxb, kyb) / kp) ** gamma_tilt
         pw = pw / max(pw.max(), 1e-12)

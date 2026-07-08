@@ -499,7 +499,8 @@ def bank_irls_estimate(P, z, depth, n_sel=48, dk_c=0.015, val_frac=0.25,
 def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
                        val_frac=0.25, seed=0, max_em=6, return_var=False,
                        Uc=None, diag_out=None, dual_band=False,
-                       gamma_tilt=0.0, band=(0.35, 2.5), bound_wave=False):
+                       gamma_tilt=0.0, band=(0.35, 2.5), bound_wave=False,
+                       bw_cross=False):
     """Spectrum-weighted linear MMSE over the fine continuous bank — the
     2026-07-05 winner (10-sea harness: 0.272/0.239/0.241 vs RELAX
     0.199/0.222/0.183). NO identification: prior variance per candidate
@@ -581,6 +582,31 @@ def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
         kxb = np.concatenate([kxb, 2.0 * kxb])
         kyb = np.concatenate([kyb, 2.0 * kyb])
         om = np.concatenate([om, 2.0 * om])
+        if bw_cross:
+            # B1 (2026-07-08): CROSS-interaction bound waves at (k_i+k_j,
+            # omega_i+omega_j) for the top-K free-wave power peaks — the
+            # dominant bound-wave family for CROSS-Tp bimodal seas (K3), which
+            # the self-super-harmonic (2k,2omega) alone does not reach. Detect
+            # peaks by a quick beamform power over the free-wave bank.
+            kxf, kyf, omf = kxb[:n_free], kyb[:n_free], om[:n_free]
+            pwq = np.empty(n_free)
+            for i in range(0, n_free, 512):
+                psiq = (kxf[i:i + 512, None] * P[None, :, 0]
+                        + kyf[i:i + 512, None] * P[None, :, 1]
+                        - omf[i:i + 512, None] * P[None, :, 2])
+                pwq[i:i + 512] = (z[None] * np.cos(psiq)).sum(1) ** 2 \
+                    + (z[None] * np.sin(psiq)).sum(1) ** 2
+            top = np.argsort(pwq)[-8:]        # top-8 spectral peaks
+            cx, cy, co = [], [], []
+            for a in range(len(top)):
+                for b in range(a + 1, len(top)):
+                    i, j = top[a], top[b]
+                    cx += [kxf[i] + kxf[j], kxf[i] - kxf[j]]
+                    cy += [kyf[i] + kyf[j], kyf[i] - kyf[j]]
+                    co += [omf[i] + omf[j], omf[i] - omf[j]]
+            kxb = np.concatenate([kxb, np.array(cx)])
+            kyb = np.concatenate([kyb, np.array(cy)])
+            om = np.concatenate([om, np.array(co)])
     B = len(kxb)
     if Uc is not None:                    # current Doppler (earth frame)
         om = om + kxb * Uc[0] + kyb * Uc[1]

@@ -158,6 +158,11 @@ def main():
                          'off the free-wave shell — the model-class extension '
                          'that targets the K3/P5 bimodal ceiling. Test with '
                          'hand prior first (no training).')
+    ap.add_argument('--bw_cross', action='store_true',
+                    help='B1 (2026-07-08): also add CROSS-interaction bound '
+                         'waves (k_i+k_j, omega_i+omega_j) for top-K peaks — '
+                         'the dominant cross-Tp bound-wave family. Requires '
+                         '--bound_wave.')
     ap.add_argument('--net', type=str, default=None,
                     help='A1 (2026-07-08): learned prior net checkpoint '
                          '(e.g. results/direction3/prior_net_v3.pt) — use the '
@@ -186,7 +191,7 @@ def main():
     if tuple(a.band) != (0.35, 2.5):
         tag += '_wideband'
     if a.bound_wave:
-        tag += '_bw'
+        tag += '_bwx' if a.bw_cross else '_bw'
     if a.net:
         tag += '_net' + os.path.splitext(os.path.basename(a.net))[0].replace(
             'prior_net_', '')
@@ -314,7 +319,8 @@ def main():
                                         kp_hint=kp, seed=int(i0), diag_out=gate,
                                         dual_band=a.dual_band,
                                         band=tuple(a.band),
-                                        bound_wave=a.bound_wave)
+                                        bound_wave=a.bound_wave,
+                                        bw_cross=a.bw_cross)
             f_enc, f_map = fq[:len(tq)], fq[len(tq):]
             c_map = corr(f_map, gt_map)
             row['by_W'][str(W)] = dict(

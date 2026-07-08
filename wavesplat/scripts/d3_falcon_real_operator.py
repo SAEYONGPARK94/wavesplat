@@ -48,15 +48,17 @@ from d3_sa_achievability_gap import corr
 _NET = None
 
 
-def _net_estimate(ckpt, P, z, depth, Pq, sigma0, kp_hint, seed):
+def _net_estimate(ckpt, P, z, depth, Pq, sigma0, kp_hint, seed,
+                  bound_wave=False):
     """A1 (2026-07-08): learned prior gamma through the same physics MMSE,
-    plugged into the encounter-forecast protocol (previously hand-only)."""
+    plugged into the encounter-forecast protocol (previously hand-only).
+    bound_wave: also pair with the #2 bound-wave bank extension."""
     global _NET
     from d3_prior_net_eval import get_net, net_gamma_mmse
     if _NET is None:
         _NET = get_net(ckpt)
     return net_gamma_mmse(_NET, P, z, depth, Pq, sigma0, seed=seed,
-                          use_em=True, kp_hint=kp_hint)
+                          use_em=True, kp_hint=kp_hint, bound_wave=bound_wave)
 
 G = 9.81
 OUT = 'results/direction3/falcon_real_operator_{}.json'   # per record
@@ -305,7 +307,8 @@ def main():
             gate = {}
             if a.net:
                 fq = _net_estimate(a.net, P, z, depth, Pq, sigma0=0.05 * Hs,
-                                   kp_hint=kp, seed=int(i0))
+                                   kp_hint=kp, seed=int(i0),
+                                   bound_wave=a.bound_wave)
             else:
                 fq = mmse_bank_estimate(P, z, depth, Pq, sigma0=0.05 * Hs,
                                         kp_hint=kp, seed=int(i0), diag_out=gate,

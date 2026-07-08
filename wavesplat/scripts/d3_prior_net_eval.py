@@ -55,7 +55,7 @@ def get_net(ckpt='results/direction3/prior_net_v3.pt'):
 
 def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
                    use_em=False, max_em=6, kp_hint=None, return_var=False,
-                   diag_out=None):
+                   diag_out=None, bound_wave=False, bw_scale=0.15):
     """MMSE with the net-predicted prior on the normalized 51x51 bank.
     kp_hint: externally known peak wavenumber (real records:
     characterize()) — the internal beamform-argmax kp is the estimator's
@@ -94,9 +94,20 @@ def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
     kk = np.hypot(KX, KY)
     sel = (kk > 0.35 * kp) & (kk < KREL * kp)
     kxb, kyb = KX[sel].astype(float), KY[sel].astype(float)
-    B = len(kxb)
     om = omega(np.hypot(kxb, kyb) + 1e-12, depth)
     g = np.maximum(10.0 ** Ylog[sel], 1e-8)
+    if bound_wave:
+        # #2+#1 (2026-07-08): pair the learned free-wave prior with 2nd-order
+        # super-harmonic bound-wave candidates (2k, 2*omega, off-shell). Their
+        # prior is tied to the parent free-wave energy and downscaled (bound
+        # waves ride on the free waves at O(steepness)), so the net decides
+        # WHERE bound-wave energy can sit and this only fires where the learned
+        # free prior already placed energy — no spurious pickup on clean seas.
+        kxb = np.concatenate([kxb, 2.0 * kxb])
+        kyb = np.concatenate([kyb, 2.0 * kyb])
+        om = np.concatenate([om, 2.0 * om])
+        g = np.concatenate([g, bw_scale * g])
+    B = len(kxb)
     g = g / g.sum()
     gam = np.concatenate([g, g]) * np.var(z)
 

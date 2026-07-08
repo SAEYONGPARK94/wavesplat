@@ -77,10 +77,25 @@ def main():
                     help='secondary system mean direction [deg]')
     ap.add_argument('--bimodal_tp', type=float, default=0.0,
                     help='secondary system Tp [s] (0 = same as --Tp)')
+    ap.add_argument('--dual_band', action='store_true',
+                    help='P3 (2026-07-08): pass dual_band=True to the '
+                         'estimator (negative control for cross-Tp: '
+                         'kp2/kp1~2 already sits inside the primary '
+                         'annulus, so no secondary band is expected)')
+    ap.add_argument('--kp_hint_mode', default='primary',
+                    choices=['primary', 'geomean'],
+                    help='band-clipping test (2026-07-08): geomean sets '
+                         'kp_hint = sqrt(kp1*kp2) so the 0.35-2.5*kp '
+                         'annulus covers BOTH systems of a cross-Tp '
+                         'bimodal sea (primary-kp clips the secondary '
+                         'windsea tail above 1.22*kp2)')
     a = ap.parse_args()
     global LEADS
     LEADS = np.arange(0.0, a.lead_max + 1e-9, a.lead_step)
     kp = (2 * np.pi / a.Tp) ** 2 / G          # deep-ish water peak k
+    if a.kp_hint_mode == 'geomean' and a.bimodal_frac > 0 and a.bimodal_tp:
+        kp2 = (2 * np.pi / a.bimodal_tp) ** 2 / G
+        kp = float(np.sqrt(kp * kp2))
     ws = list(a.w_mems)
     res = {W: [] for W in ws}
     for si in range(a.n_seas):
@@ -167,7 +182,8 @@ def main():
         for W in ws:
             m = Pall[:, 2] >= t0 - W
             fq = mmse_bank_estimate(Pall[m], zall[m], DEPTH, Pq,
-                                    sigma0=0.05 * a.Hs, kp_hint=kp, seed=si)
+                                    sigma0=0.05 * a.Hs, kp_hint=kp, seed=si,
+                                    dual_band=a.dual_band)
             res[W].append((fq.tolist(), gt_q.tolist()))
         print(f"sea {si} done (Hs_run={4 * np.std(sim.get_eta()):.2f} m, "
               f"n_obs last-W: {int(m.sum())}, kept "

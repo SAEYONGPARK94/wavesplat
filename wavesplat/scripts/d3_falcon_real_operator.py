@@ -118,10 +118,20 @@ def main():
     ap.add_argument('--m_cap', type=int, default=600)
     ap.add_argument('--noise', type=float, default=0.02,
                     help='Falcon range noise 1-sigma [m]')
+    ap.add_argument('--damp_h', type=float, default=0.0,
+                    help='P1 (2026-07-08): causal hold-back [s] for '
+                         'lead-dependent decoherence damping (0 = off). '
+                         'Fits on the first W-h seconds, measures corr '
+                         'decay on the held-back fan obs, fits a Gaussian '
+                         'coherence envelope T_c, then damps encounter '
+                         'predictions beyond the 2 s requirement band: '
+                         'alpha(tau) = min(1, exp(-(tau^2-4)/2T_c^2)).')
     a = ap.parse_args()
     cfg = RECORDS[a.record]
     U = a.U if a.U is not None else cfg['U']
     tag = a.record if a.U is None else f"{a.record}_U{U:g}"
+    if a.damp_h > 0:
+        tag += '_damp'
     rec = MRecord(cfg['path'], stride=cfg['stride'])
     depth = cfg['depth']
     leads = np.arange(0.0, cfg['lead_max'] + 1e-9, 1.0)
@@ -221,6 +231,40 @@ def main():
             c_map = corr(f_map, gt_map)
             row['by_W'][str(W)] = dict(n_obs=int(len(z)), pred=f_enc.tolist(),
                                        map_corr=c_map)
+            if a.damp_h > 0:
+                h_bk = min(a.damp_h, W / 2.0)
+                mf = P[:, 2] <= t0 - h_bk                 # fit split
+                mh = ~mf                                  # held-back obs
+                T_c = np.inf
+                if mf.sum() > 50 and mh.sum() > 50:
+                    fh = mmse_bank_estimate(P[mf], z[mf], depth, P[mh],
+                                            sigma0=0.05 * Hs, kp_hint=kp,
+                                            seed=int(i0))
+                    tau_h = P[mh, 2] - (t0 - h_bk)        # pseudo-lead [s]
+                    taus, rhos = [], []
+                    for b0 in np.arange(0.0, h_bk, 1.0):
+                        mb = (tau_h >= b0) & (tau_h < b0 + 1.0)
+                        if mb.sum() > 20:
+                            taus.append(b0 + 0.5)
+                            rhos.append(corr(fh[mb], z[mh][mb]))
+                    taus, rhos = np.array(taus), np.array(rhos)
+                    ok = np.isfinite(rhos) & (rhos > 0.1)
+                    if ok.sum() >= 3 and rhos[ok][0] > rhos[ok][-1]:
+                        # ln rho = ln rho0 - tau^2/(2 T_c^2)
+                        A = np.column_stack([np.ones(ok.sum()),
+                                             -0.5 * taus[ok] ** 2])
+                        coef, *_ = np.linalg.lstsq(A, np.log(rhos[ok]),
+                                                   rcond=None)
+                        if coef[1] > 1e-6:
+                            T_c = float(np.clip(1 / np.sqrt(coef[1]),
+                                                2.0, 60.0))
+                alpha = np.minimum(1.0, np.exp(
+                    -(np.maximum(leads ** 2 - 4.0, 0.0))
+                    / (2 * T_c ** 2))) if np.isfinite(T_c) \
+                    else np.ones_like(leads)
+                row['by_W'][str(W)]['pred_damp'] = (alpha * f_enc).tolist()
+                row['by_W'][str(W)]['T_c'] = (float(T_c)
+                                              if np.isfinite(T_c) else None)
             v = np.isfinite(gt_q)
             cc = corr(f_enc[v], gt_q[v]) if v.sum() > 3 else np.nan
             print(f"    W={W:4.0f}s n={len(z):4d} enc_corr={cc:+.2f} "

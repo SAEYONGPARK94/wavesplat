@@ -70,6 +70,13 @@ def main():
     ap.add_argument('--shadow_h', type=float, default=0.0,
                     help='sensor height above SWL [m]; >0 enables '
                          'geometric crest shadowing (occlusion raydrop)')
+    ap.add_argument('--bimodal_frac', type=float, default=0.0,
+                    help='energy fraction of a secondary wave system '
+                         '(0 = unimodal); K3 bad-window probe 2026-07-08')
+    ap.add_argument('--bimodal_dir', type=float, default=90.0,
+                    help='secondary system mean direction [deg]')
+    ap.add_argument('--bimodal_tp', type=float, default=0.0,
+                    help='secondary system Tp [s] (0 = same as --Tp)')
     a = ap.parse_args()
     global LEADS
     LEADS = np.arange(0.0, a.lead_max + 1e-9, a.lead_step)
@@ -80,8 +87,27 @@ def main():
         cfg = HOSConfig(Lx=a.Lx, Ly=400.0, Nx=a.Nx, Ny=128,
                         depth=DEPTH, M=a.M)
         sim = HOSSimulator(cfg)
-        sim.initialize_jonswap(Hs=a.Hs, Tp=a.Tp, direction_deg=0.0,
-                               direction_spread_deg=25.0, seed=9000 + si)
+        if a.bimodal_frac > 0:
+            # superpose two linear JONSWAP systems (valid HOS IC); each
+            # initialize call normalizes to its own Hs, variances add
+            f = a.bimodal_frac
+            sim.initialize_jonswap(Hs=a.Hs * np.sqrt(1 - f), Tp=a.Tp,
+                                   direction_deg=0.0,
+                                   direction_spread_deg=25.0,
+                                   seed=9000 + si)
+            eta_a = sim.eta_hat.copy()
+            phi_a = sim.phi_s_hat.copy()
+            sim.initialize_jonswap(Hs=a.Hs * np.sqrt(f),
+                                   Tp=(a.bimodal_tp or a.Tp),
+                                   direction_deg=a.bimodal_dir,
+                                   direction_spread_deg=25.0,
+                                   seed=19000 + si)
+            sim.eta_hat = eta_a + sim.eta_hat
+            sim.phi_s_hat = phi_a + sim.phi_s_hat
+            sim.t = 0.0
+        else:
+            sim.initialize_jonswap(Hs=a.Hs, Tp=a.Tp, direction_deg=0.0,
+                                   direction_spread_deg=25.0, seed=9000 + si)
         rng = np.random.default_rng(400 + si)
         t0 = SPINUP + max(ws)                  # 'now'
         cx, cy = 250.0, 200.0                  # domain center (periodic)

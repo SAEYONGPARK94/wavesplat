@@ -45,6 +45,19 @@ from d3_sa_multirecord import MRecord
 from d3_sa_nomp import mmse_bank_estimate
 from d3_sa_achievability_gap import corr
 
+_NET = None
+
+
+def _net_estimate(ckpt, P, z, depth, Pq, sigma0, kp_hint, seed):
+    """A1 (2026-07-08): learned prior gamma through the same physics MMSE,
+    plugged into the encounter-forecast protocol (previously hand-only)."""
+    global _NET
+    from d3_prior_net_eval import get_net, net_gamma_mmse
+    if _NET is None:
+        _NET = get_net(ckpt)
+    return net_gamma_mmse(_NET, P, z, depth, Pq, sigma0, seed=seed,
+                          use_em=True, kp_hint=kp_hint)
+
 G = 9.81
 OUT = 'results/direction3/falcon_real_operator_{}.json'   # per record
 
@@ -137,6 +150,12 @@ def main():
                     help='bank annulus in units of kp (detection-free richer '
                          'broadband model test; e.g. 0.2 3.5 widens to cover '
                          'a second in-band peak).')
+    ap.add_argument('--net', type=str, default=None,
+                    help='A1 (2026-07-08): learned prior net checkpoint '
+                         '(e.g. results/direction3/prior_net_v3.pt) — use the '
+                         'amortized gamma prior instead of hand power-prior. '
+                         'Tests whether learning improves REAL encounter '
+                         'forecast (est.-first directive).')
     ap.add_argument('--dense_oracle', action='store_true',
                     help='P5 (2026-07-08): also predict encounters from '
                          'DENSE full-grid valid obs (fan cone dropped) — '
@@ -158,6 +177,9 @@ def main():
         tag += '_dualband'
     if tuple(a.band) != (0.35, 2.5):
         tag += '_wideband'
+    if a.net:
+        tag += '_net' + os.path.splitext(os.path.basename(a.net))[0].replace(
+            'prior_net_', '')
     rec = MRecord(cfg['path'], stride=cfg['stride'])
     depth = cfg['depth']
     leads = np.arange(0.0, cfg['lead_max'] + 1e-9, 1.0)
@@ -273,9 +295,14 @@ def main():
                                                      replace=False)
                 P, z = P[ii], z[ii]
             gate = {}
-            fq = mmse_bank_estimate(P, z, depth, Pq, sigma0=0.05 * Hs,
-                                    kp_hint=kp, seed=int(i0), diag_out=gate,
-                                    dual_band=a.dual_band, band=tuple(a.band))
+            if a.net:
+                fq = _net_estimate(a.net, P, z, depth, Pq, sigma0=0.05 * Hs,
+                                   kp_hint=kp, seed=int(i0))
+            else:
+                fq = mmse_bank_estimate(P, z, depth, Pq, sigma0=0.05 * Hs,
+                                        kp_hint=kp, seed=int(i0), diag_out=gate,
+                                        dual_band=a.dual_band,
+                                        band=tuple(a.band))
             f_enc, f_map = fq[:len(tq)], fq[len(tq):]
             c_map = corr(f_map, gt_map)
             row['by_W'][str(W)] = dict(

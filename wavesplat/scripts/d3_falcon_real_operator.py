@@ -33,6 +33,7 @@ import argparse
 
 import numpy as np
 from scipy.ndimage import shift as ndshift
+from scipy.ndimage import uniform_filter1d
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 os.chdir(os.path.join(os.path.dirname(__file__), '..'))
@@ -126,12 +127,23 @@ def main():
                          'coherence envelope T_c, then damps encounter '
                          'predictions beyond the 2 s requirement band: '
                          'alpha(tau) = min(1, exp(-(tau^2-4)/2T_c^2)).')
+    ap.add_argument('--dense_oracle', action='store_true',
+                    help='P5 (2026-07-08): also predict encounters from '
+                         'DENSE full-grid valid obs (fan cone dropped) — '
+                         'GT/model-class floor vs sparse-fan sampling '
+                         'penalty. Not sensor-realizable (oracle).')
+    ap.add_argument('--m_dense_frame', type=int, default=60,
+                    help='dense-oracle valid pixels sampled per frame')
+    ap.add_argument('--m_cap_dense', type=int, default=3000,
+                    help='dense-oracle spatiotemporal obs cap (~5x fan)')
     a = ap.parse_args()
     cfg = RECORDS[a.record]
     U = a.U if a.U is not None else cfg['U']
     tag = a.record if a.U is None else f"{a.record}_U{U:g}"
     if a.damp_h > 0:
         tag += '_damp'
+    if a.dense_oracle:
+        tag += '_dense'
     rec = MRecord(cfg['path'], stride=cfg['stride'])
     depth = cfg['depth']
     leads = np.arange(0.0, cfg['lead_max'] + 1e-9, 1.0)
@@ -192,6 +204,27 @@ def main():
         P_all = np.vstack(P_all)
         z_all = np.concatenate(z_all)
 
+        # ---- P5 dense-oracle obs: ALL valid grid pixels over the memory
+        # frames (drop the fan cone) — an upper bound on what the estimator
+        # class can achieve against the stereo GT, isolating the GT/model
+        # floor from the sparse-fan sampling penalty. Not sensor-realizable.
+        Pd_all, zd_all = None, None
+        if a.dense_oracle:
+            Pd_l, zd_l = [], []
+            for j in range(nfw):
+                t_j = float(rec.t[i0 - nfw + 1 + j])
+                idx = np.flatnonzero(np.isfinite(Zmem[j]))
+                if len(idx) == 0:
+                    continue
+                pick = rng.choice(idx, min(a.m_dense_frame, len(idx)),
+                                  replace=False)
+                iy, ix = np.unravel_index(pick, Zmem[j].shape)
+                Pd_l.append(np.column_stack([
+                    rec.gx[ix], rec.gy[iy], np.full(len(pick), t_j)]))
+                zd_l.append(Zmem[j][iy, ix]
+                            + rng.normal(0, a.noise, len(pick)))
+            Pd_all, zd_all = np.vstack(Pd_l), np.concatenate(zd_l)
+
         # ---- encounter targets (ship future positions) + stereo GT
         tq = t0 + leads
         Pq_enc = np.array([[*ship_pos(t), t] for t in tq])
@@ -225,12 +258,26 @@ def main():
                 ii = np.random.default_rng(0).choice(len(z), a.m_cap,
                                                      replace=False)
                 P, z = P[ii], z[ii]
+            gate = {}
             fq = mmse_bank_estimate(P, z, depth, Pq, sigma0=0.05 * Hs,
-                                    kp_hint=kp, seed=int(i0))
+                                    kp_hint=kp, seed=int(i0), diag_out=gate)
             f_enc, f_map = fq[:len(tq)], fq[len(tq):]
             c_map = corr(f_map, gt_map)
-            row['by_W'][str(W)] = dict(n_obs=int(len(z)), pred=f_enc.tolist(),
-                                       map_corr=c_map)
+            row['by_W'][str(W)] = dict(
+                n_obs=int(len(z)), pred=f_enc.tolist(), map_corr=c_map,
+                vr_rel=gate.get('vr_rel'))     # K5 causal onboard gate signal
+            if a.dense_oracle:
+                md = Pd_all[:, 2] >= t0 - W
+                Pd, zd = Pd_all[md], zd_all[md]
+                if len(zd) > a.m_cap_dense:
+                    ii = np.random.default_rng(1).choice(
+                        len(zd), a.m_cap_dense, replace=False)
+                    Pd, zd = Pd[ii], zd[ii]
+                fqd = mmse_bank_estimate(Pd, zd, depth, Pq_enc,
+                                         sigma0=0.05 * Hs, kp_hint=kp,
+                                         seed=int(i0))
+                row['by_W'][str(W)]['pred_dense'] = fqd.tolist()
+                row['by_W'][str(W)]['n_dense'] = int(len(zd))
             if a.damp_h > 0:
                 h_bk = min(a.damp_h, W / 2.0)
                 mf = P[:, 2] <= t0 - h_bk                 # fit split
@@ -258,13 +305,33 @@ def main():
                         if coef[1] > 1e-6:
                             T_c = float(np.clip(1 / np.sqrt(coef[1]),
                                                 2.0, 60.0))
-                alpha = np.minimum(1.0, np.exp(
+                alpha_emp = np.minimum(1.0, np.exp(
                     -(np.maximum(leads ** 2 - 4.0, 0.0))
                     / (2 * T_c ** 2))) if np.isfinite(T_c) \
                     else np.ones_like(leads)
+                # amplitude-envelope limiter (fires even when the empirical
+                # fit does not, e.g. long-memory W40): the MMSE mean must not
+                # carry MORE energy than the observed sea. The runaway is a
+                # deterministic infinite-coherence propagation that inflates
+                # |eta_pred| past the in-window envelope (amp 1.2-2.7x); a
+                # healthy shrinking forecast (amp<1) is untouched. Cap the
+                # smoothed predicted elevation at beta*sigma_obs. Causal
+                # (sigma from in-window obs); never touches the <=2 s band.
+                # Preferred over a hard tau_h=r_max/(U+c_g) horizon cap, which
+                # over-damps slow-ship/long-memory records (AA15a W40 forecasts
+                # BEYOND the single-packet horizon — the group-velocity horizon
+                # is a lower bound, not a ceiling, when memory is rich).
+                sig_obs = float(np.std(z))
+                env = uniform_filter1d(np.abs(f_enc), size=3, mode='nearest')
+                beta = 1.3
+                alpha_amp = np.minimum(
+                    1.0, beta * sig_obs / np.maximum(env, 1e-9))
+                alpha_amp[leads <= 2.0] = 1.0     # requirement band inviolate
+                alpha = alpha_emp * alpha_amp
                 row['by_W'][str(W)]['pred_damp'] = (alpha * f_enc).tolist()
                 row['by_W'][str(W)]['T_c'] = (float(T_c)
                                               if np.isfinite(T_c) else None)
+                row['by_W'][str(W)]['sig_obs'] = sig_obs
             v = np.isfinite(gt_q)
             cc = corr(f_enc[v], gt_q[v]) if v.sum() > 3 else np.nan
             print(f"    W={W:4.0f}s n={len(z):4d} enc_corr={cc:+.2f} "

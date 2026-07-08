@@ -127,6 +127,16 @@ def main():
                          'coherence envelope T_c, then damps encounter '
                          'predictions beyond the 2 s requirement band: '
                          'alpha(tau) = min(1, exp(-(tau^2-4)/2T_c^2)).')
+    ap.add_argument('--dual_band', action='store_true',
+                    help='richer non-learned model class test (2026-07-08): '
+                         'pass dual_band=True so the estimator can add a '
+                         'second radial spectral band — tests whether a '
+                         'richer model (cf. WaveSplat adaptive-N) breaks the '
+                         '~0.5 real ceiling on bimodal seas.')
+    ap.add_argument('--band', type=float, nargs=2, default=[0.35, 2.5],
+                    help='bank annulus in units of kp (detection-free richer '
+                         'broadband model test; e.g. 0.2 3.5 widens to cover '
+                         'a second in-band peak).')
     ap.add_argument('--dense_oracle', action='store_true',
                     help='P5 (2026-07-08): also predict encounters from '
                          'DENSE full-grid valid obs (fan cone dropped) — '
@@ -144,6 +154,10 @@ def main():
         tag += '_damp'
     if a.dense_oracle:
         tag += '_dense'
+    if a.dual_band:
+        tag += '_dualband'
+    if tuple(a.band) != (0.35, 2.5):
+        tag += '_wideband'
     rec = MRecord(cfg['path'], stride=cfg['stride'])
     depth = cfg['depth']
     leads = np.arange(0.0, cfg['lead_max'] + 1e-9, 1.0)
@@ -260,7 +274,8 @@ def main():
                 P, z = P[ii], z[ii]
             gate = {}
             fq = mmse_bank_estimate(P, z, depth, Pq, sigma0=0.05 * Hs,
-                                    kp_hint=kp, seed=int(i0), diag_out=gate)
+                                    kp_hint=kp, seed=int(i0), diag_out=gate,
+                                    dual_band=a.dual_band, band=tuple(a.band))
             f_enc, f_map = fq[:len(tq)], fq[len(tq):]
             c_map = corr(f_map, gt_map)
             row['by_W'][str(W)] = dict(

@@ -499,7 +499,7 @@ def bank_irls_estimate(P, z, depth, n_sel=48, dk_c=0.015, val_frac=0.25,
 def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
                        val_frac=0.25, seed=0, max_em=6, return_var=False,
                        Uc=None, diag_out=None, dual_band=False,
-                       gamma_tilt=0.0):
+                       gamma_tilt=0.0, band=(0.35, 2.5)):
     """Spectrum-weighted linear MMSE over the fine continuous bank — the
     2026-07-05 winner (10-sea harness: 0.272/0.239/0.241 vs RELAX
     0.199/0.222/0.183). NO identification: prior variance per candidate
@@ -531,10 +531,12 @@ def mmse_bank_estimate(P, z, depth, Pq, sigma0, kp_hint=None, dk_c=None,
         kp = float(kp_hint)
     if dk_c is None:
         dk_c = kp / 10.0
-    ax = np.arange(-2.5 * kp, 2.5 * kp + dk_c / 2, dk_c)
+    b_lo, b_hi = band                 # bank annulus in units of kp (widen =
+    #                                   richer broadband single-model class)
+    ax = np.arange(-b_hi * kp, b_hi * kp + dk_c / 2, dk_c)
     KX, KY = np.meshgrid(ax, ax)
     kk = np.hypot(KX, KY)
-    sel = (kk > 0.35 * kp) & (kk < 2.5 * kp)
+    sel = (kk > b_lo * kp) & (kk < b_hi * kp)
     kxb, kyb = KX[sel].astype(float), KY[sel].astype(float)
     if dual_band:
         # wide radial scan for a secondary spectral band (crossing seas:

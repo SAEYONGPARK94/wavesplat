@@ -185,6 +185,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--seas', type=int, default=2000)
     ap.add_argument('--held', type=int, default=400)
+    ap.add_argument('--train_seas', type=int, default=0,
+                    help='cap the number of DISTINCT training seas (0 = all). '
+                         'The held-out set is unchanged, so runs differ only '
+                         'in sea diversity -- the axis W7 could not move.')
+    ap.add_argument('--tag', type=str, default='')
     ap.add_argument('--steps', type=int, default=100000)
     ap.add_argument('--bs', type=int, default=64)
     ap.add_argument('--dim', type=int, default=256)
@@ -204,11 +209,12 @@ def main():
         print("[!] dkurt spread is degenerate; the task is not measurable.")
         return 1
 
-    n_tr = len(K) - a.held
+    n_pool = len(K) - a.held
+    n_tr = n_pool if a.train_seas <= 0 else min(a.train_seas, n_pool)
     Ztr = torch.tensor(standardize(X[:n_tr]).reshape(-1, PATCH, PATCH))
-    Zte = torch.tensor(standardize(X[n_tr:]).reshape(-1, PATCH, PATCH))
+    Zte = torch.tensor(standardize(X[n_pool:]).reshape(-1, PATCH, PATCH))
     ytr = np.repeat(K[:n_tr], N_IN)
-    yte = np.repeat(K[n_tr:], N_IN)
+    yte = np.repeat(K[n_pool:], N_IN)
     print(f"train {n_tr} seas / {len(Ztr)} frames    "
           f"held-out {a.held} seas / {len(Zte)} frames", flush=True)
 
@@ -266,10 +272,13 @@ def main():
               "the kurtosis\n  of its own observations and skip the encoder "
               "entirely.")
 
-    torch.save({'model': model.state_dict(), 'dim': a.dim}, CKPT)
+    suff = a.tag or ''
+    torch.save({'model': model.state_dict(), 'dim': a.dim},
+               CKPT.replace('.pt', f'{suff}.pt'))
     os.makedirs('results/direction3', exist_ok=True)
-    with open(OUT, 'w') as f:
-        json.dump({'seas': len(K), 'held': a.held, 'steps': a.steps,
+    with open(OUT.replace('.json', f'{suff}.json'), 'w') as f:
+        json.dump({'seas': len(K), 'train_seas': n_tr, 'dim': a.dim,
+                   'held': a.held, 'steps': a.steps,
                    'kurt_range': [float(K.min()), float(K.max())],
                    'r2_plugin': r2_plug, 'r2_random': r2_rand,
                    'r2_ssl': r2_ssl, 'passed': passed, 'history': hist}, f,

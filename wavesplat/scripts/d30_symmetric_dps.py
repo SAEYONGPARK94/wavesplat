@@ -51,15 +51,18 @@ def main():
     ap.add_argument('--frames', type=int, default=N_FRAMES)
     ap.add_argument('--nsamp', type=int, default=8)
     ap.add_argument('--mcap', type=int, default=200)
+    ap.add_argument('--ckpt', default=CKPT, help='set-diffusion prior checkpoint')
+    ap.add_argument('--guid', type=float, default=GUID, help='DPS likelihood guidance')
     ap.add_argument('--out', default='results/direction3/symmetric_dps.json')
     a = ap.parse_args()
 
-    ck = torch.load(CKPT, map_location=DP.DEVICE)
+    ck = torch.load(a.ckpt, map_location=DP.DEVICE)
     stats = ck['stats']
     model = SetDenoiser(**ck.get('arch', {})).to(DP.DEVICE)
     model.load_state_dict(ck['model']); model.eval()
     abar = ck['abar'].to(DP.DEVICE); betas = ck['betas'].to(DP.DEVICE)
-    print(f"device={DP.DEVICE}  mcap={a.mcap}  nsamp={a.nsamp}  frames={a.frames}")
+    print(f"device={DP.DEVICE}  ckpt={a.ckpt}  guid={a.guid}  "
+          f"arch={ck.get('arch', {})}  mcap={a.mcap}  nsamp={a.nsamp}  frames={a.frames}")
 
     gp = json.load(open('results/spacetime_gp_30ep.json'))['per_episode']
     relax_full = json.load(open('results/direction3/main_results.json'))      # RELAX 1p @ MCAP=3000
@@ -78,7 +81,7 @@ def main():
         if i1 - i0 < 4:
             i0 = max(n_back + 1, nfr - 60)
         frames = np.linspace(i0, i1, a.frames).astype(int)
-        dps_p, rel1_p, rel3_p = [], [], []
+        dps_p, rel1_p, rel3_p, dps_uq = [], [], [], []
         for i_star in frames:
             fstar = L[int(i_star)]
             target = {'gx': gx, 'gy': gy, 't': float(fstar.t), 'gt': fstar.gt_field.numpy(), 'Hs': Hs}
@@ -87,7 +90,7 @@ def main():
             Ps, zs = subsample(P, z, a.mcap, seed=0)
             # --- learned DPS posterior-mean field ---
             Xd = DP.dps_sample(model, stats, abar, betas, Ps, zs, depth,
-                               guidance=GUID, n=a.nsamp, seed=0)
+                               guidance=a.guid, n=a.nsamp, seed=0)
             flds = []
             for b in range(a.nsamp):
                 f, _ = DP.atoms_to_field(Xd[b], stats, Ps, zs, depth, target)
@@ -95,6 +98,14 @@ def main():
                     flds.append(f)
             bma = np.mean(flds, axis=0) if flds else np.zeros_like(target['gt'])
             dps_p.append(panel(bma, target['gt'], Hs))
+            # generative UQ: is per-pixel posterior spread calibrated to actual error?
+            if len(flds) >= 2:
+                arr = np.stack(flds)                          # (nsamp, H, W)
+                stdmap = arr.std(0); errmap = np.abs(bma - target['gt'])
+                s, e = stdmap.ravel(), errmap.ravel()
+                pc = float(np.corrcoef(s, e)[0, 1]) if s.std() > 1e-9 else 0.0
+                dps_uq.append(dict(spread=float(stdmap.mean()), pix_corr=pc,
+                                   nrmse=float(np.sqrt(np.mean((bma-target['gt'])**2))/max(Hs, 1e-6))))
             # --- non-learned RELAX on the SAME (Ps, zs) ---
             kx, ky = relax_step(np.zeros(0), np.zeros(0), Ps, zs, depth)
             _, _, fld1 = refine_params(kx, ky, Ps, zs, depth, target)
@@ -110,15 +121,16 @@ def main():
             relax1_full=relax_full[tag]['deployable']['nrmse'][0],
             relax3_full=relax_iter[tag]['deployable']['nrmse'][0],
             stdfgp=gp[tag]['fused']['nRMSE'],
-            oracle=relax_full[tag]['oracle']['nrmse'][0])
+            oracle=relax_full[tag]['oracle']['nrmse'][0],
+            uq=dict(spread=float(np.mean([u['spread'] for u in dps_uq])) if dps_uq else 0.0,
+                    spread_hs=float(np.mean([u['spread'] for u in dps_uq]) / max(Hs, 1e-6)) if dps_uq else 0.0,
+                    pix_corr=float(np.mean([u['pix_corr'] for u in dps_uq])) if dps_uq else 0.0))
         d = out[tag]
         print(f"[{ti+1:2d}/{len(tags)}] {tag:12s} Tobs={Tobs:4.0f}s  "
               f"DPS {d['dps']['nrmse'][0]:.3f}(P{d['dps']['P'][0]:.2f}) | "
               f"RELAX1 {d['relax1_shared']['nrmse'][0]:.3f} RELAX3 {d['relax3_shared']['nrmse'][0]:.3f} "
               f"(shared m≤{a.mcap}) | RELAX3_full {d['relax3_full']:.3f} | "
               f"GP {d['stdfgp']:.3f} | ora {d['oracle']:.3f}  ({time.time()-t0:.0f}s)", flush=True)
-
-    json.dump(out, open(a.out, 'w'), indent=2)
 
     # aggregate per sea-state
     seas = {}
@@ -139,6 +151,14 @@ def main():
     mm = lambda k: np.mean(A[k])
     print(f"\nOVERALL  DPS {mm('dps'):.3f} | RELAX1 {mm('r1'):.3f} | RELAX3 {mm('r3'):.3f} (shared) "
           f"|| RELAX3_full {mm('r3f'):.3f} | ST-DF-GP {mm('gp'):.3f} | oracle {mm('ora'):.3f}")
+    # generative-UQ calibration: (1) per-pixel |err|~std corr; (2) does episode spread rank nRMSE?
+    pix = [r['uq']['pix_corr'] for r in out.values() if r['uq']['spread'] > 0]
+    spr = [r['uq']['spread_hs'] for r in out.values() if r['uq']['spread'] > 0]  # Hs-normalized (fair)
+    nrm = [r['dps']['nrmse'][0] for r in out.values() if r['uq']['spread'] > 0]
+    ep_corr = float(np.corrcoef(spr, nrm)[0, 1]) if len(spr) > 2 and np.std(spr) > 1e-12 else float('nan')
+    print(f"UQ calibration  mean per-pixel corr(|err|,std)={np.mean(pix):.3f}  "
+          f"| across-episode corr(Hs-norm spread,nRMSE)={ep_corr:.3f}  (n={len(spr)})")
+    json.dump(out, open(a.out, 'w'), indent=2)
     print(f"saved {a.out}")
 
 

@@ -66,13 +66,16 @@ def beamform_top(P, r, depth, klim=0.6, n=80):
     j = int(torch.argmax(pw)); return float(kx[j]), float(ky[j])
 
 
-def relax_step(kx0, ky0, P, z, depth, max_comp=32, prune_frac=0.05):
-    """Grow/refine/prune components on the window; warm-start from (kx0,ky0)."""
+def relax_step(kx0, ky0, P, z, depth, max_comp=32, prune_frac=0.05, klim=0.6):
+    """Grow/refine/prune components on the window; warm-start from (kx0,ky0).
+
+    klim: beamform wavenumber search half-range [rad/m]. Default 0.6 (swell/BF4-5);
+    raise to ~3-4x kp for short wind-sea (else high-k components are never seeded)."""
     if len(z) > MCAP:
         ii = np.random.default_rng(0).choice(len(z), MCAP, replace=False); P, z = P[ii], z[ii]
     kx = list(kx0); ky = list(ky0)
     if len(kx) == 0:
-        bx, by = beamform_top(P, z, depth); kx, ky = [bx], [by]
+        bx, by = beamform_top(P, z, depth, klim=klim); kx, ky = [bx], [by]
     prev_rms = 1e9
     for _ in range(max_comp):
         _, resid, _ = ls_fit(np.array(kx), np.array(ky), P, z, depth)
@@ -80,7 +83,7 @@ def relax_step(kx0, ky0, P, z, depth, max_comp=32, prune_frac=0.05):
         if rms > 0.985 * prev_rms or len(kx) >= max_comp:   # diminishing returns
             break
         prev_rms = rms
-        bx, by = beamform_top(P, resid, depth); kx.append(bx); ky.append(by)
+        bx, by = beamform_top(P, resid, depth, klim=klim); kx.append(bx); ky.append(by)
     kx, ky = np.array(kx), np.array(ky)
     # prune by amplitude
     _, _, amp = ls_fit(kx, ky, P, z, depth)

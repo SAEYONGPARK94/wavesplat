@@ -41,25 +41,38 @@ def gather_window(L, ti):
     return P, z, frames
 
 
-def loglik_atoms(kx, ky, a, P, z, depth, eye):
-    """Differentiable grid-free GP marginal log-likelihood. kx,ky,a: (M,)."""
+def loglik_atoms(kx, ky, a, P, z, depth, eye=None):
+    """Differentiable grid-free GP marginal log-likelihood in EXACT rank-2M form.
+    K_ij = Σ_m a_m cos(φ_i^m − φ_j^m) = Φ Φᵀ with Φ ∈ R^{m×2M} and
+    φ_i^m = k_m·r_i − ω_m t_i, so (K+σ²I) is low-rank-plus-diagonal and the marginal
+    likelihood costs O(m·M²) via Woodbury / matrix-determinant lemma instead of the
+    O(m³) dense Cholesky. Mathematically identical to the dense form (same σ²=jit).
+    kx,ky,a: (M,); P: (m,3) [x,y,t]; z: (m,). `eye` kept for signature compat."""
     k = torch.sqrt(kx**2 + ky**2 + 1e-12)
     om = torch.sqrt(G * k * torch.tanh(k * depth) + 1e-12)
-    dx = P[:, 0:1] - P[None, :, 0]
-    dy = P[:, 1:2] - P[None, :, 1]
-    dt = P[:, 2:3] - P[None, :, 2]
-    phase = (kx[:, None, None]*dx[None] + ky[:, None, None]*dy[None]
-             - om[:, None, None]*dt[None])                       # (M, Mp, Mp)
-    K = torch.einsum('m,mij->ij', a, torch.cos(phase))
-    jit = SIGMA**2 + 1e-4
-    for _ in range(4):                                # escalate jitter if needed
+    phi = (kx[:, None] * P[None, :, 0] + ky[:, None] * P[None, :, 1]
+           - om[:, None] * P[None, :, 2])                        # (M, m)
+    sa = torch.sqrt(torch.clamp(a, min=0.0) + 1e-12)             # (M,)
+    Phi = torch.cat([sa[:, None] * torch.cos(phi),
+                     sa[:, None] * torch.sin(phi)], 0).transpose(0, 1)   # (m, 2M)
+    s2 = SIGMA**2 + 1e-4                                         # noise + diagonal jitter
+    r = Phi.shape[1]
+    # Inner 2M×2M solve in float64: I+ΦᵀΦ/s2 is theoretically SPD but the 1/s2≈2e3
+    # scaling can push a float32 Cholesky pivot negative for high-energy atom sets.
+    Phid = Phi.double(); eyed = torch.eye(r, device=Phi.device, dtype=torch.float64)
+    G_in = eyed + (Phid.transpose(0, 1) @ Phid) / s2
+    Ptz = Phid.transpose(0, 1) @ z.double()                     # (2M,)
+    jit = 0.0
+    for _ in range(6):                                          # jitter escalation (rare)
         try:
-            Lc = torch.linalg.cholesky(K + jit * eye)
-            break
+            Lc = torch.linalg.cholesky(G_in + jit * eyed); break
         except Exception:
-            jit *= 10
-    alpha = torch.cholesky_solve(z[:, None], Lc)[:, 0]
-    return -0.5 * (z @ alpha) - torch.log(torch.diag(Lc)).sum()
+            jit = 1e-9 if jit == 0 else jit * 10
+    v = torch.cholesky_solve(Ptz[:, None], Lc)[:, 0]           # G_in⁻¹ Ptz
+    zd = z.double()
+    quad = (zd @ zd) / s2 - (Ptz @ v) / s2**2                  # zᵀ(K+σ²I)⁻¹z
+    logdet = z.shape[0] * math.log(s2) + 2.0 * torch.log(torch.diag(Lc)).sum()  # log|K+σ²I|
+    return (-0.5 * quad - 0.5 * logdet).float()
 
 
 def dps_sample(model, stats, abar, betas, P, z, depth, guidance=0.3, n=1, seed=0):

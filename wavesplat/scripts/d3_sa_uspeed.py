@@ -322,7 +322,8 @@ def run_window(rec, i0, args, ratios, lfracs, rng_seed):
                     from d3_prior_net_eval import get_net, net_gamma_mmse
                     fld = net_gamma_mmse(get_net(), P, z, args.depth, Pq,
                                          0.05 * Hs_w, seed=seed,
-                                         use_em=False).reshape(Xq.shape)
+                                         use_em=False,
+                                         kp_hint=kp).reshape(Xq.shape)
                 N, klim = 0, 0.0
             else:
                 fld, N, klim = iterative_relax_cv(P.copy(), z.copy(),

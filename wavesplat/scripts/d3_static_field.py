@@ -166,7 +166,11 @@ def scene_real(record='YS17', win=3):
 
     rng = np.random.default_rng(700 + win)
     Zmem = rec.window(i0 - nfw + 1, nfw)
-    Zfut = rec.window(i0, n_lead + 1)
+    # GT lookup spans memory AND future: callers that resample observations
+    # (d3_static_limit) query times before t0, and a future-only window
+    # silently returns NaN for every one of them.
+    Zall = rec.window(i0 - nfw + 1, nfw + n_lead + 1)
+    K_T0 = nfw - 1                       # index of t0 inside Zall
     t0 = float(rec.t[i0])
     Hs = 4.0 * float(np.nanstd(Zmem))
     _, _, pdir_ax, kp = directional_spread(np.nan_to_num(Zmem[-1]),
@@ -206,10 +210,10 @@ def scene_real(record='YS17', win=3):
             t = np.broadcast_to(np.atleast_1d(t), x.shape)
             out = []
             for xx, yy, tt in zip(x, y, t):
-                k = int(round((tt - t0) / rec.dt))
-                if k < 0 or k >= Zfut.shape[0]:
+                k = int(round((tt - t0) / rec.dt)) + K_T0
+                if k < 0 or k >= Zall.shape[0]:
                     out.append(np.nan); continue
-                out.append(bilinear(Zfut[k], rec.gx, rec.gy, xx, yy))
+                out.append(bilinear(Zall[k], rec.gx, rec.gy, xx, yy))
             return np.array(out)
         return eta
 

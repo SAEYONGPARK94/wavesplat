@@ -55,9 +55,22 @@ SPINUP = 10.0
 DT_HOS = 0.1
 
 LEADS = np.round(np.arange(0.0, 1.001, 0.1), 3)     # required-horizon grid
-REF_LEADS = np.round(np.arange(0.0, 10.001, 0.5), 3)  # normalizer only
-H_X = 2.0            # m, slope stencil along heading
-H_T = 0.1            # s, vertical-velocity stencil (matches real dt)
+REF_TIMES = np.round(np.arange(0.0, 20.001, 0.5), 3)  # normalizer only
+
+# Stencils. GT slope and w are finite differences of a MEASURED surface, so
+# they amplify its reconstruction noise as sigma/(sqrt(2) h). tmp/probe_gt_*
+# fitted var = sigma^2/(2h^2) + var_true on the stereo records and found
+# sigma ~ 0.03-0.08 m (YS17) and ~0.5 m (LJ18g), R^2 up to 0.98 — i.e. the
+# white-noise law, not unresolved short waves. At the h_x=2 m / h_t=0.1 s we
+# used first, the storm GT derivatives had SNR 0.63 (slope) and 0.39 (w):
+# we were scoring estimators against noise. These wider stencils restore
+# SNR ~1.3-2.5 (storm) and ~2.6-7 (YS17) at a central-difference bias of
+# sinc(k h) ~ 5% (YS17) / 1% (LJ18g). GT and prediction get the SAME
+# operator, so the comparison stays consistent; what changes is that the
+# target is now a band-limited slope — the honest limit of what stereo GT
+# supports.
+H_X = 4.0            # m, slope stencil along heading
+H_T = 0.4            # s, vertical-velocity stencil
 
 REQ_BANDS = [(0.1, 0.3, 'optimum 0.1-0.3s'), (0.0, 0.5, 'operational 0-0.5s'),
              (0.0, 1.0, 'margin 0-1.0s')]
@@ -76,16 +89,24 @@ def stencil(px, py, t, hvec):
 
 
 def derive(vals, U):
-    """(eta, slope, w, alpha_wave) from a 5-point stencil block."""
+    """(eta, slope, w, alpha_wave) from a 5-point stencil block.
+
+    alpha_wave is undefined at rest: the foil's wave-induced angle of attack
+    is atan(w/U), which the controller linearizes to w/U, and that diverges
+    as U -> 0. Physically the foil is not foilborne below takeoff speed, so
+    there is no feed-forward requirement there at all. We return NaN rather
+    than a large number, so a stationary case reports eta/slope/w only.
+    """
     c, xp, xm, tp, tm = vals
     slope = (xp - xm) / (2 * H_X)
     w = (tp - tm) / (2 * H_T)
-    return c, slope, w, -slope - w / U
+    alpha = np.nan if U <= 1e-9 else -slope - w / U
+    return c, slope, w, alpha
 
 
 # ----------------------------------------------------------------- scenes
-def build_sim(kind, seed):
-    U, Hs, Tp, W = 3.0, 2.0, 8.0, 20.0
+def build_sim(kind, seed, U=3.0, W=20.0):
+    Hs, Tp = 2.0, 8.0
     kp = (2 * np.pi / Tp) ** 2 / G
     rng = np.random.default_rng(400 + seed)
 
@@ -152,20 +173,32 @@ def build_sim(kind, seed):
         z_all.append(zz + rng.normal(0, NOISE, M_PER_SCAN))
     P, z = np.vstack(P_all), np.concatenate(z_all)
     return dict(P=P, z=z, t0=t0, U=U, Hs=Hs, kp=kp, depth=DEPTH,
-                ship_pos=ship_pos, hvec=hvec, fresh_eta=fresh_eta, seed=seed)
+                ship_pos=ship_pos, hvec=hvec, fresh_eta=fresh_eta, seed=seed,
+                center=(cx, cy))
 
 
-def build_real(record, win):
+def build_real(record, win, U=None, W_track=40.0, W_obs=20.0, lead_span=None):
+    """U and the window lengths are properties of the SYNTHETIC ship track we
+    lay over the stereo patch, not of the record. The patch is finite, so a
+    design-speed track only fits once the track span shrinks with the
+    (much shorter) required horizon.
+    """
     from realdata_analysis import directional_spread
     from d3_falcon_real_operator import RECORDS, bilinear, resolve_direction
     from d3_sa_multirecord import MRecord
 
     cfg = RECORDS[record]
-    U, depth = cfg['U'], cfg['depth']
+    depth = cfg['depth']
+    U = cfg['U'] if U is None else float(U)
     rec = MRecord(cfg['path'], stride=cfg['stride'])
-    W_max, lead_max = 40.0, cfg['lead_max']
+    W_max = float(W_track)
+    # Track geometry span (how far the synthetic ship runs) is independent of
+    # how many future frames we need to hold: the normalizer samples 20 s at a
+    # fixed point regardless of where the ship goes.
+    lead_span_s = cfg['lead_max'] if lead_span is None else float(lead_span)
+    frame_span_s = max(cfg['lead_max'], float(REF_TIMES[-1]) + 1.0)
     nfw = int(round(W_max / rec.dt))
-    n_lead = int(round(lead_max / rec.dt))
+    n_lead = int(round(frame_span_s / rec.dt))
     cx = 0.5 * (rec.gx.min() + rec.gx.max())
     cy = 0.5 * (rec.gy.min() + rec.gy.max())
     Xg, Yg = np.meshgrid(rec.gx, rec.gy)
@@ -176,8 +209,11 @@ def build_real(record, win):
     Zmem = rec.window(i0 - nfw + 1, nfw)
     # one frame BEFORE i0: the w stencil queries t0 - 0.1 s, which would
     # otherwise clamp to frame 0 and silently corrupt the vertical velocity.
-    Zfut = rec.window(i0 - 1, n_lead + 2)
-    K0 = 1                                  # index of t0 inside Zfut
+    # Pad backwards by the w stencil: t0 - H_T must exist as a frame, or the
+    # vertical velocity at lead 0 silently clamps to the first frame.
+    pad = int(np.ceil(H_T / rec.dt)) + 1
+    Zfut = rec.window(i0 - pad, n_lead + pad + 1)
+    K0 = pad                                # index of t0 inside Zfut
     t0 = float(rec.t[i0])
     Hs = 4.0 * float(np.nanstd(Zmem))
     _, _, pdir_ax, kp = directional_spread(np.nan_to_num(Zmem[-1]),
@@ -186,7 +222,14 @@ def build_real(record, win):
     pdir, _ = resolve_direction(Zmem, rec, kp, pdir_ax, om_p / kp)
     wv = np.array([np.cos(np.radians(pdir)), np.sin(np.radians(pdir))])
     hvec = -wv
-    T_tr = W_max + lead_max
+    T_tr = W_max + lead_span_s
+    # Does the synthetic track (plus the forward fan) still fit in the patch?
+    need = U * T_tr + cfg['r_fan'][1]
+    have = min(rec.gx.max() - rec.gx.min(), rec.gy.max() - rec.gy.min())
+    if need > have:
+        print(f"    [warn] {record}: track {U*T_tr:.0f} m + fan "
+              f"{cfg['r_fan'][1]:.0f} m = {need:.0f} m > patch {have:.0f} m "
+              f"— scans will fall off the patch", flush=True)
 
     def ship_pos(t):
         return np.array([cx, cy]) + U * (t - (t0 - W_max) - T_tr / 2) * hvec
@@ -209,7 +252,7 @@ def build_real(record, win):
                                       np.full(len(pick), t_j)]))
         z_all.append(Zmem[j][iy, ix] + rng.normal(0, 0.02, len(pick)))
     P_all, z_all = np.vstack(P_all), np.concatenate(z_all)
-    m = P_all[:, 2] >= t0 - 20.0
+    m = P_all[:, 2] >= t0 - float(W_obs)
     P, z = P_all[m], z_all[m]
     if len(z) > 600:
         ii = np.random.default_rng(0).choice(len(z), 600, replace=False)
@@ -232,7 +275,8 @@ def build_real(record, win):
         return eta
 
     return dict(P=P, z=z, t0=t0, U=U, Hs=Hs, kp=kp, depth=depth,
-                ship_pos=ship_pos, hvec=hvec, fresh_eta=fresh_eta, seed=i0)
+                ship_pos=ship_pos, hvec=hvec, fresh_eta=fresh_eta, seed=i0,
+                center=(cx, cy))
 
 
 # ----------------------------------------------------------------- scoring
@@ -241,26 +285,34 @@ def track_queries(sc, leads):
                               sc['t0'] + l_, sc['hvec']) for l_ in leads])
 
 
-def gt_series(sc, lead_sets):
-    """GT (eta, slope, w, alpha) per lead, for several lead grids at once.
+def fixed_queries(sc, times):
+    """Stencils at a FIXED point (the patch centre) over a long time span.
 
-    All queries go through ONE fresh evaluator in ascending time order, so a
-    stateful (HOS) surface is marched forward exactly once and never asked to
-    step backwards.
+    The nRMSE normalizer must not move with the ship speed, or a speed sweep
+    changes the denominator along with the numerator and the curve means
+    nothing. Sampling the field at one point gives a per-scene scale that
+    depends on the sea (and, through w/U, on U) but not on the track.
     """
-    blocks = [track_queries(sc, lds) for lds in lead_sets]
+    cx, cy = sc['center']
+    return np.vstack([stencil(cx, cy, sc['t0'] + t, sc['hvec'])
+                      for t in times])
+
+
+def eval_gt(sc, blocks):
+    """Evaluate GT on several query blocks with ONE fresh evaluator, in
+    ascending time order — a stateful (HOS) surface is marched forward once
+    and never asked to step backwards."""
     Q = np.vstack(blocks)
     eta = sc['fresh_eta']()
     vals = np.empty(len(Q))
     for i in np.argsort(Q[:, 2], kind='stable'):
         vals[i] = eta(Q[i, 0:1], Q[i, 1:2], Q[i, 2])[0]
-
     out, off = [], 0
-    for lds in lead_sets:
-        v = vals[off:off + 5 * len(lds)]
+    for b in blocks:
+        v = vals[off:off + len(b)]
         out.append(np.array([derive(v[5 * i:5 * i + 5], sc['U'])
-                             for i in range(len(lds))]))
-        off += 5 * len(lds)
+                             for i in range(len(b) // 5)]))
+        off += len(b)
     return out
 
 
@@ -291,15 +343,20 @@ def score(gt, pred, norm, leads):
     return out
 
 
-def run_case(case, reps, record='YS17'):
+def run_case(case, reps, record='YS17', U=None, W_track=40.0, W_obs=20.0,
+             lead_span=None):
     net = get_net(NET_CKPT)
     rows = []
     for r in range(reps):
-        sc = build_sim(case, r) if case in ('linear', 'hos') \
-            else build_real(record, r)
-        # One ascending GT pass: the short required-horizon grid, and the long
-        # reference series that sets the nRMSE normalizer.
-        gt, ref = gt_series(sc, [LEADS, REF_LEADS])
+        if case in ('linear', 'hos'):
+            sc = build_sim(case, r, U=(3.0 if U is None else U), W=W_obs)
+        else:
+            sc = build_real(record, r, U=U, W_track=W_track, W_obs=W_obs,
+                            lead_span=lead_span)
+        # One ascending GT pass: the required-horizon track, and the
+        # fixed-point reference series that sets the nRMSE normalizer.
+        gt, ref = eval_gt(sc, [track_queries(sc, LEADS),
+                               fixed_queries(sc, REF_TIMES)])
         norm = np.nanstd(ref, axis=0)
 
         Pq = track_queries(sc, LEADS)
@@ -314,12 +371,18 @@ def run_case(case, reps, record='YS17'):
                'WavePrior': score(gt, pred_series(fq_wp, LEADS, sc['U']),
                                   norm, LEADS)}
         rows.append(row)
-        a = row['WaveSplat']['operational 0-0.5s']['alpha_wave']['nrmse']
-        b = row['WavePrior']['operational 0-0.5s']['alpha_wave']['nrmse']
-        print(f"  [{case} rep {r}] alpha_wave 0-0.5s nRMSE: "
+        band = row['WaveSplat']['operational 0-0.5s']
+        hq = 'alpha_wave' if 'alpha_wave' in band else 'slope'
+        a = row['WaveSplat']['operational 0-0.5s'][hq]['nrmse']
+        b = row['WavePrior']['operational 0-0.5s'][hq]['nrmse']
+        print(f"  [{case} rep {r}] {hq} 0-0.5s nRMSE: "
               f"WS {a:.3f} / WP {b:.3f}", flush=True)
 
-    agg = {'case': case, 'reps': reps, 'leads': LEADS.tolist()}
+    agg = {'case': case, 'reps': reps, 'leads': LEADS.tolist(),
+           'U': (3.0 if U is None else U) if case in ('linear', 'hos') else U,
+           'W_obs': W_obs, 'W_track': W_track,
+           'stencil': {'h_x_m': H_X, 'h_t_s': H_T},
+           'normalizer': 'GT std at fixed patch centre over 0-20 s'}
     for name in ('WaveSplat', 'WavePrior'):
         agg[name] = {}
         for _, _, lbl in REQ_BANDS:
@@ -333,15 +396,19 @@ def run_case(case, reps, record='YS17'):
                         agg[name][lbl][f'{qn}_{sub}'] = {
                             'mean': float(np.mean(v)),
                             'std': float(np.std(v))}
-    # paired per-rep difference on the control-relevant headline
-    d = [r['WaveSplat']['operational 0-0.5s']['alpha_wave']['nrmse']
-         - r['WavePrior']['operational 0-0.5s']['alpha_wave']['nrmse']
-         for r in rows]
-    agg['paired_delta_alpha_0-0.5s'] = {
-        'mean': float(np.mean(d)), 'std': float(np.std(d)),
-        'per_rep': [float(x) for x in d],
-        'wp_wins': int(sum(1 for x in d if x > 0)),
-        'note': 'positive = WavePrior better'}
+    # paired per-rep differences, every quantity (alpha absent when U = 0)
+    agg['paired_delta_0-0.5s'] = {'note': 'positive = WavePrior better'}
+    for qn in QNAMES:
+        d = [r['WaveSplat']['operational 0-0.5s'][qn]['nrmse']
+             - r['WavePrior']['operational 0-0.5s'][qn]['nrmse']
+             for r in rows if qn in r['WaveSplat']['operational 0-0.5s']]
+        if not d:
+            continue
+        agg['paired_delta_0-0.5s'][qn] = {
+            'mean': float(np.mean(d)), 'std': float(np.std(d)),
+            'per_rep': [float(x) for x in d],
+            'wp_wins': int(sum(1 for x in d if x > 0)),
+            'n': len(d)}
     return agg
 
 
@@ -351,15 +418,30 @@ def main():
                     choices=['linear', 'hos', 'real', 'all'])
     ap.add_argument('--reps', type=int, default=5)
     ap.add_argument('--record', default='YS17')
+    ap.add_argument('--U', type=float, nargs='+', default=[None],
+                    help='ship speed(s) m/s; several = speed sweep. '
+                         'Design point is 11.3 (22 kt).')
+    ap.add_argument('--W_obs', type=float, default=20.0,
+                    help='observation memory [s]')
+    ap.add_argument('--W_track', type=float, default=40.0,
+                    help='real: synthetic track span before t0 [s]')
+    ap.add_argument('--lead_span', type=float, default=None,
+                    help='real: track span after t0 [s] (default record max)')
+    ap.add_argument('--tag', default='', help='suffix for the result key')
     a = ap.parse_args()
     cases = ['linear', 'hos', 'real'] if a.case == 'all' else [a.case]
 
     allm = json.load(open(OUT_JSON)) if os.path.exists(OUT_JSON) else {}
     for case in cases:
         reps = a.reps if case != 'hos' else min(a.reps, 3)
-        key = case if case != 'real' else f'real_{a.record}'
-        print(f"[{key}] reps={reps}", flush=True)
-        allm[key] = run_case(case, reps, a.record)
+        for U in a.U:
+            key = case if case != 'real' else f'real_{a.record}'
+            if U is not None:
+                key += f'_U{U:g}'
+            key += a.tag
+            print(f"[{key}] reps={reps} U={U} W_obs={a.W_obs}", flush=True)
+            allm[key] = run_case(case, reps, a.record, U=U, W_obs=a.W_obs,
+                                 W_track=a.W_track, lead_span=a.lead_span)
     with open(OUT_JSON, 'w') as f:
         json.dump(allm, f, indent=1)
     print(f"\n-> {OUT_JSON}")

@@ -56,8 +56,8 @@ def main():
     speeds = sorted({float(k.split('_U')[1]) for k in d if '_U' in k})
     print(f"speeds: {speeds}\n")
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.6), dpi=110)
-    ax, ax2 = axes
+    fig, axes = plt.subplots(1, 3, figsize=(16.5, 4.6), dpi=110)
+    ax, ax2, ax3 = axes
 
     for key, label, col in CASES:
         xs, ys, es, qs = [], [], [], []
@@ -97,8 +97,19 @@ def main():
         ax2.plot([100 * enc_fraction(KP[key], U) for U in xs], ys,
                  color=col, marker='o', ms=5, lw=1.7, label=label)
 
+        # eta is the estimation-native quantity: defined at every speed and
+        # not reweighted by U the way alpha_wave = -slope - w/U is.
+        ey, ee = [], []
+        for U in xs:
+            p = d[f'{key}_U{U:g}']['paired_delta_0-0.5s']['eta']
+            ey.append(p['mean'])
+            ee.append(p['std'] / np.sqrt(p['n']))
+        ax3.errorbar(xs, ey, yerr=ee, color=col, marker='s', ms=4.5, lw=1.7,
+                     capsize=3, label=label)
+
     for a, xl in ((ax, 'ship speed U [m/s]'),
-                  (ax2, '0.5 s preview as % of encounter period')):
+                  (ax2, '0.5 s preview as % of encounter period'),
+                  (ax3, 'ship speed U [m/s]')):
         a.axhline(0, color='0.4', lw=1, ls='--')
         a.set_xlabel(xl, fontsize=9)
         a.set_ylabel(r'paired $\Delta$ nRMSE   (+ = WavePrior better)',
@@ -111,7 +122,10 @@ def main():
     ax.set_title('Learned-prior gain vs speed (open marker: U=0, slope only)',
                  fontsize=10)
     ax2.set_title('Same, against the physical driver', fontsize=10)
+    ax3.set_title(r'$\Delta$ on $\eta$ (estimation-native quantity)',
+                  fontsize=10)
     ax.legend(fontsize=7.5, loc='best')
+    ax3.legend(fontsize=7.5, loc='best')
     fig.tight_layout()
     fig.savefig(PNG)
     print(f"-> {PNG}")

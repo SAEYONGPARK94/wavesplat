@@ -72,8 +72,9 @@ DEPTH, W_OBS, SCAN_DT, M_PER_SCAN, NOISE, M_CAP = 50.0, 20.0, 0.5, 15, 0.02, 600
 KLIM = 0.42
 NK = 33
 NG = 32            # output field grid
-N_CACHE = 12000    # ridge needs n >> 2*NK*NK = 2178 features
-CACHE = 'tmp/cbf_cache_abs.npz'
+N_CACHE = 40000    # ridge needs n >> 2*NK*NK = 2178 features; the CNN
+                   # overfitted 11k scenes badly (train 0.34 / val 0.73)
+CACHE = 'tmp/cbf_cache_40k.npz'
 
 
 def scene(rng):
@@ -183,11 +184,39 @@ class CNN(nn.Module):
         self.enc = nn.Sequential(blk(2, 32), blk(32, 64, 2), blk(64, 64),
                                  blk(64, 128, 2), blk(128, 128),
                                  blk(128, 256, 2))
-        self.head = nn.Sequential(nn.Flatten(), nn.Linear(256 * 5 * 5, 1024),
-                                  nn.SiLU(), nn.Linear(1024, NG * NG))
+        self.head = nn.Sequential(nn.Flatten(), nn.Dropout(0.2),
+                                  nn.Linear(256 * 5 * 5, 1024),
+                                  nn.SiLU(), nn.Dropout(0.1),
+                                  nn.Linear(1024, NG * NG))
 
     def forward(self, x):
         return self.head(self.enc(x)).view(-1, NG, NG)
+
+
+class ResidNet(nn.Module):
+    """Frozen ridge-optimal linear map + a learned residual, zero-initialised.
+
+    The plain CNN had to rediscover the linear Fourier synthesis before it
+    could add anything, and spent its capacity overfitting instead. Here the
+    linear part is handed over exactly and frozen, and the last layer of the
+    residual starts at zero — so training BEGINS at the ridge optimum. Any
+    validation loss below the ridge's is then, by construction, structure the
+    linear map cannot express. If the residual stays at zero, there is none.
+    """
+
+    def __init__(self, W):
+        super().__init__()
+        self.lin = LinearMap()
+        with torch.no_grad():
+            self.lin.fc.weight.copy_(W)
+        for p_ in self.lin.parameters():
+            p_.requires_grad = False
+        self.res = CNN()
+        nn.init.zeros_(self.res.head[-1].weight)
+        nn.init.zeros_(self.res.head[-1].bias)
+
+    def forward(self, x):
+        return self.lin(x) + self.res(x)
 
 
 def make_batch(rng, bs):
@@ -269,11 +298,19 @@ def fit_linear_ridge(X, F, n_val=1000):
     gives that optimum exactly; training a linear layer by SGD would only
     approximate it (and did: amp ratio 0.15 after 200 steps).
     """
-    Xf = X.reshape(len(X), -1).astype(np.float64)
-    Ff = F.reshape(len(F), -1).astype(np.float64)
-    Xtr, Ftr, Xva, Fva = Xf[n_val:], Ff[n_val:], Xf[:n_val], Ff[:n_val]
-    A = Xtr.T @ Xtr
-    B = Xtr.T @ Ftr
+    Xf = X.reshape(len(X), -1)
+    Ff = F.reshape(len(F), -1)
+    Xtr, Ftr = Xf[n_val:], Ff[n_val:]
+    Xva = Xf[:n_val].astype(np.float64)
+    Fva = Ff[:n_val].astype(np.float64)
+    # accumulate the Gram in float64 chunk-wise: a 40k x 2178 float64 copy
+    # would be 700 MB before the products
+    p_ = Xtr.shape[1]
+    A = np.zeros((p_, p_)); B = np.zeros((p_, Ftr.shape[1]))
+    for i in range(0, len(Xtr), 4000):
+        xb = Xtr[i:i + 4000].astype(np.float64)
+        A += xb.T @ xb
+        B += xb.T @ Ftr[i:i + 4000].astype(np.float64)
     best = (np.inf, None, None)
     for lam in [1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1]:
         W = np.linalg.solve(A + lam * np.trace(A) / len(A) * np.eye(len(A)), B)
@@ -290,11 +327,16 @@ def fit_linear_ridge(X, F, n_val=1000):
     return net, best[0]
 
 
-def train(model, steps, bs=16, lr=3e-4, seed=0):
-    net = (LinearMap() if model == 'linear' else CNN()).to(DEV)
+def train(model, steps, bs=64, lr=3e-4, seed=0, wd=1e-2):
+    if model == 'resid':
+        W = torch.load(CKPT.format('linear'), map_location=DEV)['model']
+        net = ResidNet(W['fc.weight']).to(DEV)
+    else:
+        net = (LinearMap() if model == 'linear' else CNN()).to(DEV)
     n_par = sum(p.numel() for p in net.parameters())
     print(f"[{model}] {n_par/1e6:.2f} M params, device {DEV}", flush=True)
-    opt = torch.optim.AdamW(net.parameters(), lr=lr, weight_decay=1e-4)
+    opt = torch.optim.AdamW([p_ for p_ in net.parameters()
+                             if p_.requires_grad], lr=lr, weight_decay=wd)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, steps)
     rng = np.random.default_rng(seed)
     Xc, Fc = build_cache(N_CACHE, 4242, CACHE)
@@ -308,7 +350,12 @@ def train(model, steps, bs=16, lr=3e-4, seed=0):
     for step in range(1, steps + 1):
         net.train()
         ii = torch.tensor(rng.choice(len(Xt), bs, replace=False), device=DEV)
-        loss = ((net(Xt[ii]) - Ft[ii]) ** 2).mean()
+        xb, fb = Xt[ii], Ft[ii]
+        if rng.random() < 0.5:
+            # exact symmetry: mirroring the sea in y flips ky and the field's
+            # rows, and the fan (centred on +x) maps onto itself
+            xb, fb = torch.flip(xb, [2]), torch.flip(fb, [1])
+        loss = ((net(xb) - fb) ** 2).mean()
         opt.zero_grad(); loss.backward()
         nn.utils.clip_grad_norm_(net.parameters(), 1.0)
         opt.step(); sched.step()
@@ -334,7 +381,8 @@ def train(model, steps, bs=16, lr=3e-4, seed=0):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--model', default='cnn', choices=['linear', 'cnn'])
+    ap.add_argument('--model', default='cnn',
+                    choices=['linear', 'cnn', 'resid'])
     ap.add_argument('--steps', type=int, default=6000)
     ap.add_argument('--eval_only', action='store_true')
     a = ap.parse_args()
@@ -356,10 +404,14 @@ def main():
             json.dump(res, f, indent=1)
 
     nets = {}
-    for m in ('linear', 'cnn'):
+    for m in ('linear', 'cnn', 'resid'):
         p = CKPT.format(m)
         if os.path.exists(p):
-            net = (LinearMap() if m == 'linear' else CNN()).to(DEV)
+            if m == 'resid':
+                Wl = torch.load(CKPT.format('linear'), map_location=DEV)['model']
+                net = ResidNet(Wl['fc.weight']).to(DEV)
+            else:
+                net = (LinearMap() if m == 'linear' else CNN()).to(DEV)
             net.load_state_dict(torch.load(p, map_location=DEV)['model'])
             net.eval()
             nets[m] = net

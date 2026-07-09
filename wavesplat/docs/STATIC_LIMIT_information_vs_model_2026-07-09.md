@@ -1,5 +1,15 @@
 # C1′ — 사거리 밖의 벽은 정보인가 모델인가 (2026-07-09)
 
+> ⚠️ **정정 (RED_TEAM_2026-07-09)**
+> ① 본문의 "관측을 늘리면 사거리 밖이 **악화**된다(1.006 → 1.874)"는 **철회**한다.
+> σ₀(가정 노이즈=정규화)를 고정한 채 데이터만 4배로 늘린 탓이다. σ₀를 밀도에
+> 맞춰 ×2 하면 사거리 밖이 **1.003으로 돌아오고** 부채꼴 안 이득은 유지된다
+> (0.348 → 0.357). 바다의 성질이 아니라 우리 하이퍼파라미터의 성질이었다.
+> ② "nRMSE 1.0 = zero-predictor"도 **부정확**하다. 영역별 기준선은
+> 1.02(wind)~1.20(storm)이다. 살아남는 진술은 **"사거리 밖에는 skill이 없다"**
+> 이지 "침묵보다 나쁘다"가 아니다.
+> ③ 폭풍의 model-class 판정은 이미 `STORM_WALL_AND_UQ_GATE`에서 철회됐다.
+
 재현: `python3 scripts/d3_static_limit.py --case {linear,real_YS17,real_LJ18g}`
 → `results/direction3/static_limit.json`, `static_limit_<case>.png`
 

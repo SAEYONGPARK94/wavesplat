@@ -88,7 +88,7 @@ def beamform_prior(P, z, kxb, kyb, om, chunk=8192):
 def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
              dk_c=None, val_frac=0.25, max_em=6, return_var=False,
              q_chunk=512, dtype=torch.float32, sigma_scale=None,
-             prior_gain=None, return_bank=False):
+             prior_gain=None, return_bank=False, return_model=False):
     """torch port of d3_sa_nomp.mmse_bank_estimate (free-wave bank, no
     dual_band / bound_wave / current). Differentiable in z and in the bank.
 
@@ -181,6 +181,11 @@ def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
         if return_var:
             Bq = A @ Phi_all.T
             var[i:i + q_chunk] = (A * Phi_q).sum(1) - ((Bq @ Ki) * Bq).sum(1)
+    if return_model:
+        # Everything a caller needs to form the hat matrix H = Phi Gam Phi^T K^-1
+        # and score the fit with a criterion that charges for degrees of
+        # freedom, which the held-out residual does not.
+        return out, dict(gam=gam, s2=s2, K=K, Phi=Phi_all)
     if return_var:
         return out, var.clamp_min(0.0)
     return out

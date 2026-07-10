@@ -185,10 +185,29 @@ def main():
             amp = norm_amp(raw)
             v = float(nrmse(P, Pq, kx, ky, om, amp, ph, gen))
             ib = in_band(amp, k)
-        with torch.no_grad():
             gtsd = float(eta(Pq, kx, ky, om, amp, ph).std())
+            # Does the posterior know it is wrong? z-std = err / predictive sd;
+            # a calibrated posterior gives ~1. Hand-built out-of-band seas
+            # reach nRMSE 1.6 at most, so whatever the optimiser found is not
+            # band placement alone -- record the spectrum so it can be read.
+            z = eta(P, kx, ky, om, amp, ph)
+            z = z + NOISE * torch.randn(len(z), device=DEV, generator=gen)
+            gt = eta(Pq, kx, ky, om, amp, ph)
+            pr, var = mmse_gpu(P, z, DEPTH, Pq, sigma0=0.05 * 4 * SIGMA,
+                               kp_hint=KP, band=BAND, return_var=True)
+            sd = torch.sqrt(var.clamp_min(1e-12))
+            zstd = float(((pr - gt) / sd).std())
+            psd = float(sd.mean())
+            e = (amp ** 2).detach()
+            kk = k.detach()
+            lo = float((e[kk < BAND[0] * KP].sum() / e.sum()))
+            hi = float((e[kk > BAND[1] * KP].sum() / e.sum()))
         best.append({'restart': r, 'nrmse': v, 'in_band': ib,
-                     'gt_std_in_fan': gtsd, 'hist': hist})
+                     'gt_std_in_fan': gtsd, 'z_std': zstd, 'pred_sd': psd,
+                     'energy_below_band': lo, 'energy_above_band': hi,
+                     'hist': hist})
+        print(f"    z-std {zstd:.2f}  pred sd {psd:.3f} m   "
+              f"energy below band {lo:.3f}  above band {hi:.3f}", flush=True)
         print(f"restart {r}:  nRMSE {v:.3f}  (null p99 {q99:.3f})  "
               f"in-band {ib:.3f}  (null {nb.mean():.3f})  "
               f"gt std in fan {gtsd:.3f} m  (sea std {SIGMA:.2f})", flush=True)

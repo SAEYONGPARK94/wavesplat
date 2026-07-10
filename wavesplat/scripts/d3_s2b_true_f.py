@@ -89,10 +89,18 @@ def calibrate(r, rate):
     return np.sqrt(lo * hi)
 
 
-def contraction(P_amp, G, w, gam, kxb):
+def contraction(P_amp, G, w, gam, kxb, amp_scale=1.0):
+    """amp_scale: each modelled amplitude point stands for this many real ones.
+
+    A returned ray does not give a mask BIT -- it gives a full range
+    measurement. The return rate therefore sets the amplitude count and the
+    mask informativeness TOGETHER. Holding the amplitudes fixed while raising
+    the rate (as the first version of this script did) inflates the mask's
+    apparent value; see the --coherent sweep.
+    """
     B = len(kxb)
     Phi = design(P_amp, kxb, kyb_g, om_g)
-    A = Phi.T @ Phi / (SIG0 ** 2) + torch.diag(1.0 / gam)
+    A = amp_scale * (Phi.T @ Phi) / (SIG0 ** 2) + torch.diag(1.0 / gam)
     if w is not None:
         A = A + (G * w[:, None]).T @ G
     c = 1.0 - torch.diagonal(torch.linalg.inv(A)) / gam

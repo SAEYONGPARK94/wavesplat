@@ -113,6 +113,10 @@ def scene_tensors(seed, rng, mcar=False):
         sites_r / R_MAX, sitesP[:, 2] / 20.0, is_ret.astype(float),
         np.log(np.maximum(sT, 1e-12)) / 10.0, dens / 10.0,
         np.arctan(H_SENS / sites_r), np.full(len(sitesP), sig_z)])
+    # MCAR scenes carry T = nan (no threshold exists); a single nan feature
+    # column poisoned every weight by step 4k -- the SECOND NaN source after
+    # the tau parameterization (#50). Sanitize unconditionally.
+    feats = np.nan_to_num(feats, nan=0.0, posinf=0.0, neginf=0.0)
 
     return dict(S=S, kp=kp, gam=gam, s2=s2, kxb=kxb, kyb=kyb, om=om,
                 Phi=design(torch.tensor(P, device=DEV, dtype=DT), kxb, kyb, om),
@@ -190,6 +194,25 @@ def nrmse_inf(sc, a):
     return float(torch.sqrt((e ** 2).mean()) / max(sc['sig'], 1e-9))
 
 
+def prep_targets(sc):
+    """teacher targets in a LEARNABLE parameterization.
+
+    Raw tau* spans 14 orders of magnitude (a tight EP constraint drives the
+    site variance to the 1e-14 clamp, so tau* -> 1e14); regressing that
+    directly made the loss NaN by step 4k (#50). Train instead on
+        tt = log1p(tau*)            (~0..32, smooth)
+        mu = nu*/tau*               (the site MEAN: physical slope scale)
+    with mu supervised only where the site is active. Reconstruction
+    tau = expm1(tt), nu = tau*mu is exact."""
+    tau, nu = sc['tau*'], sc['nu*']
+    sc['tt*'] = torch.log1p(tau)
+    act = tau > 1e-6
+    mu = torch.zeros_like(nu)
+    mu[act] = nu[act] / tau[act]
+    sc['mu*'] = mu.clamp(-5.0, 5.0)
+    sc['act*'] = act
+
+
 class SiteHead(nn.Module):
     def __init__(self, d=7, h=96):
         super().__init__()
@@ -201,7 +224,13 @@ class SiteHead(nn.Module):
 
     def forward(self, x):
         o = self.f(x)
-        return nn.functional.softplus(o[:, 0]), o[:, 1] * 0.1
+        tt = nn.functional.softplus(o[:, 0])        # log1p(tau) >= 0; bias -6 -> ~0
+        return tt, o[:, 1]                           # (tt, site mean mu)
+
+    def sites(self, x):
+        tt, mu = self(x)
+        tau = torch.expm1(tt.double().clamp(max=34.0))
+        return tau, tau * mu.double()
 
 
 def main():
@@ -216,12 +245,14 @@ def main():
     for i in range(N_TRAIN + N_VAL):
         sc = scene_tensors(100 + i, rng)
         sc['G'], sc['tau*'], sc['nu*'] = teacher_sites(sc)
+        prep_targets(sc)
         scenes.append(sc)
         print(f"  scene {i:2d} mean tau* {float(sc['tau*'].mean()):.3e} "
               f"active {(sc['tau*'] > 1e-8).float().mean():.2f}", flush=True)
     for i in range(N_MCAR):
         sc = scene_tensors(300 + i, rng, mcar=True)
         sc['G'], sc['tau*'], sc['nu*'] = teacher_sites(sc)
+        prep_targets(sc)
         scenes.append(sc)
     train, val = scenes[:N_TRAIN], scenes[N_TRAIN:N_TRAIN + N_VAL]
     mcar = scenes[N_TRAIN + N_VAL:]
@@ -235,9 +266,11 @@ def main():
         t0 = time.time()
         for step in range(STEPS):
             sc = tr_all[int(torch.randint(len(tr_all), (1,)))]
-            tau_h, nu_h = net(sc['feats'])
-            lt = nn.functional.huber_loss(tau_h.double(), sc['tau*'])
-            ln = nn.functional.huber_loss(nu_h.double(), sc['nu*'])
+            tt_h, mu_h = net(sc['feats'])
+            lt = nn.functional.huber_loss(tt_h.double(), sc['tt*'])
+            a = sc['act*']
+            ln = nn.functional.huber_loss(mu_h.double()[a], sc['mu*'][a]) \
+                if a.any() else lt * 0
             loss = lt + ln
             opt.zero_grad(); loss.backward(); opt.step()
             if step % 4000 == 0:
@@ -248,10 +281,10 @@ def main():
         rows = []
         for sc in val:
             with torch.no_grad():
-                tau_h, nu_h = net(sc['feats'])
+                tau_h, nu_h = net.sites(sc['feats'])
             a_n = solve_with(sc, sc['G'], None, None)
             a_t = solve_with(sc, sc['G'], sc['tau*'], sc['nu*'])
-            a_h = solve_with(sc, sc['G'], tau_h.double(), nu_h.double())
+            a_h = solve_with(sc, sc['G'], tau_h, nu_h)
             n0, nt, nh = (nrmse_inf(sc, a) for a in (a_n, a_t, a_h))
             rows.append({'naive': n0, 'ep': nt, 'net': nh,
                          'gain_ep': n0 - nt, 'gain_net': n0 - nh})
@@ -264,11 +297,11 @@ def main():
         scm = scene_tensors(400 + seed, rng, mcar=True)
         scm['G'], _, _ = teacher_sites(scm)
         with torch.no_grad():
-            tau_m, nu_m = net(scm['feats'])
-        mn = float(tau_m.mean())
+            tau_m, nu_m = net.sites(scm['feats'])
+        mn = float(torch.log1p(tau_m).mean())
         mnar = float(np.mean([net(sc['feats'])[0].mean().item() for sc in val]))
         a_n = solve_with(scm, scm['G'], None, None)
-        a_m = solve_with(scm, scm['G'], tau_m.double(), nu_m.double())
+        a_m = solve_with(scm, scm['G'], tau_m, nu_m)
         g_m = nrmse_inf(scm, a_n) - nrmse_inf(scm, a_m)
 
         # R1 + latency
@@ -278,8 +311,8 @@ def main():
         t1 = time.time()
         for _ in range(10):
             with torch.no_grad():
-                th_, nh_ = net(val[0]['feats'])
-            solve_with(val[0], val[0]['G'], th_.double(), nh_.double())
+                th_, nh_ = net.sites(val[0]['feats'])
+            solve_with(val[0], val[0]['G'], th_, nh_)
         torch.cuda.synchronize()
         lat_net = (time.time() - t1) / 10 * 1000
         t1 = time.time()

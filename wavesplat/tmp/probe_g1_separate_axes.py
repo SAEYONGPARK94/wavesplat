@@ -37,7 +37,12 @@ from d3_g1_synth_ssl import (build, standardize, features, probe, N_IN, PATCH,
                              DEV)
 
 HELD = 400
-CKPTS = {1600: 'results/direction3/g1_synth_ssl.pt',
+# MATCHED STEPS. The first version paired the 100k-step main run (enc=1600)
+# against a 20k-step sweep run (enc=13) and "found" that 13 seas gives better
+# features. It does not: G1 showed the probe R2 DECAYS with pretraining steps,
+# so that 2x2 was measuring steps, not seas. Both checkpoints below are 20k.
+CKPTS = {1600: 'results/direction3/g1_synth_ssl_ns1600.pt',
+         100: 'results/direction3/g1_synth_ssl_ns100.pt',
          13: 'results/direction3/g1_synth_ssl_ns13.pt'}
 PROBE_SEAS = [13, 25, 50, 100, 400, 1600]
 

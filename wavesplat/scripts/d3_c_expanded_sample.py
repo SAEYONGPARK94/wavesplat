@@ -49,6 +49,7 @@ DEV = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 SEEDS = (11, 12, 13)
 WINDOWS = (0, 1, 2, 3, 4, 5)
 DETREND = False
+TIMESPLIT = False
 
 
 def inject_records():
@@ -114,8 +115,22 @@ def cell(sc, gen, t):
 
         with torch.no_grad():
             n = len(zt)
-            idx = torch.randperm(n, device=DEV, generator=gen)
-            tr, he = idx[:int((1 - HELD) * n)], idx[int((1 - HELD) * n):]
+            if TIMESPLIT:
+                # E3: a range-dependent sensor bias is STATIC; waves propagate.
+                # A fit that absorbs the bias into long-wave atoms gives them
+                # the wrong omega, so it cannot predict the NEXT scan. Random
+                # held-out points never ask it to. On synthetic bias seas this
+                # cut the residual rule's regret from 0.0766 to 0.0266.
+                tt = Pt[:, 2]
+                cut = torch.quantile(tt, 1 - HELD)
+                tr = torch.nonzero(tt <= cut).squeeze(1)
+                he = torch.nonzero(tt > cut).squeeze(1)
+                if len(he) < 20 or len(tr) < 50:
+                    idx = torch.randperm(n, device=DEV, generator=gen)
+                    tr, he = idx[:int((1 - HELD) * n)], idx[int((1 - HELD) * n):]
+            else:
+                idx = torch.randperm(n, device=DEV, generator=gen)
+                tr, he = idx[:int((1 - HELD) * n)], idx[int((1 - HELD) * n):]
             best, bb = None, CANDS[0]
             for b in CANDS:
                 pv = mmse_gpu(Pt[tr], zt[tr], sc['depth'], Pt[he], sigma0=sig0,
@@ -136,9 +151,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--recs', nargs='*', default=None)
     ap.add_argument('--detrend', action='store_true')
+    ap.add_argument('--timesplit', action='store_true')
     a_ = ap.parse_args()
-    global DETREND
+    global DETREND, TIMESPLIT
     DETREND = a_.detrend
+    TIMESPLIT = a_.timesplit
+    print(f"time-forward held-out split: {TIMESPLIT}")
     print(f"range detrend {{1, r, r^2}}: {DETREND}")
     added = inject_records()
     recs = a_.recs or sorted(FOP.RECORDS.keys())

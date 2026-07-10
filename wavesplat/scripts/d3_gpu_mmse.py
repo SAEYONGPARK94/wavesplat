@@ -88,7 +88,8 @@ def beamform_prior(P, z, kxb, kyb, om, chunk=8192):
 def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
              dk_c=None, val_frac=0.25, max_em=6, return_var=False,
              q_chunk=512, dtype=torch.float32, sigma_scale=None,
-             prior_gain=None, return_bank=False, return_model=False):
+             prior_gain=None, return_bank=False, return_model=False,
+             pexp=None, smult=None, no_em=False):
     """torch port of d3_sa_nomp.mmse_bank_estimate (free-wave bank, no
     dual_band / bound_wave / current). Differentiable in z and in the bank.
 
@@ -132,8 +133,16 @@ def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
     if prior_gain is not None:
         pw = pw * prior_gain
 
-    best = None
-    for pexp in (0.5, 1.0, 2.0):
+    if pexp is not None and smult is not None:
+        gm = pw ** float(pexp)
+        gm = gm / gm.sum()
+        gam = torch.cat([gm, gm]) * varz
+        s2 = (float(smult) * sigma0) ** 2
+        vr_best = float('nan')
+        best = (vr_best, float(pexp), float(smult), gam)
+    else:
+      best = None
+      for pexp in (0.5, 1.0, 2.0):
         gm = pw ** pexp
         gm = gm / gm.sum()
         gam = torch.cat([gm, gm]) * varz
@@ -148,7 +157,7 @@ def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
     s2 = (smult * sigma0) ** 2
 
     best_em = (vr_best, gam.clone())
-    for _ in range(max_em):
+    for _ in range(0 if no_em else max_em):
         K = (Phi_tr * gam[None]) @ Phi_tr.T + s2 * I
         Ki_Phi = torch.linalg.solve(K, Phi_tr)
         mu = gam * (Phi_tr.T @ torch.linalg.solve(K, ztr))

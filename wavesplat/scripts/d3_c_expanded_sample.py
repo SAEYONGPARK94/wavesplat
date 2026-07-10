@@ -38,6 +38,7 @@ os.chdir(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, 'scripts')
 
 from d3_gpu_mmse import mmse_gpu
+from d3_o1_defect_ablation import detrend_range
 from d3_a2_real_revalidation import draw, CANDS, HELD
 import d3_falcon_real_operator as FOP
 from d3_sa_multirecord import RECORDS as ALL_RECORDS
@@ -47,6 +48,7 @@ OUT = 'results/direction3/c_expanded_sample.json'
 DEV = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 SEEDS = (11, 12, 13)
 WINDOWS = (0, 1, 2, 3, 4, 5)
+DETREND = False
 
 
 def inject_records():
@@ -60,6 +62,7 @@ def inject_records():
 
 
 def cell(sc, gen, t):
+    import torch as _t  # noqa
     Xq, Yq = np.meshgrid(sc['gx'], sc['gy'])
     eta = sc['make_eta']()
     g_all = eta(Xq.ravel(), Yq.ravel(), sc['t0'])
@@ -87,6 +90,19 @@ def cell(sc, gen, t):
         if len(Z) < 200:
             continue
         Pt, zt = t(P), t(Z)
+        if DETREND:
+            # O1 named the mechanism: a smooth range-dependent sensor bias is
+            # representable by the bank's longest atoms, so a wide band absorbs
+            # it -- lowering the held-out residual while planting a spurious
+            # long wave. Removing {1, r, r^2} first restored the criterion in
+            # synthesis (regret 0.1217 -> 0.0136) with no learning. LJ18g's
+            # reconstruction bows by 7.6 m at range. Does it hold here?
+            # sc['center'] holds numpy float64s, which promote the whole
+            # tensor to double and make lstsq disagree with z's float32.
+            ctr = torch.tensor([float(sc['center'][0]),
+                                float(sc['center'][1]), 0.0],
+                               device=DEV, dtype=torch.float32)
+            zt = detrend_range(Pt - ctr, zt)
 
         def sol(band):
             pr = mmse_gpu(Pt, zt, sc['depth'], Pq, sigma0=sig0,
@@ -119,7 +135,11 @@ def cell(sc, gen, t):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--recs', nargs='*', default=None)
+    ap.add_argument('--detrend', action='store_true')
     a_ = ap.parse_args()
+    global DETREND
+    DETREND = a_.detrend
+    print(f"range detrend {{1, r, r^2}}: {DETREND}")
     added = inject_records()
     recs = a_.recs or sorted(FOP.RECORDS.keys())
     print(f"injected into scene_real: {added}")

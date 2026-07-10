@@ -346,10 +346,13 @@ def loso_gain(rows, name):
         r = rows[i][name]
         e, u = np.asarray(r['e']), np.asarray(r['u'])
         rn = np.asarray(r['rn'])
+        # The r-trend is not the claim, so it is removed from BOTH sides. The
+        # first version built e0 and then scored e -- a dead variable that let
+        # the range-trend leakage into every LOSO number (#42).
         X = np.column_stack([np.ones(len(e)), rn, rn ** 2])
-        e0 = e - X @ np.linalg.lstsq(X, e, rcond=None)[0]   # r-trend is not the claim
-        before = np.sqrt((e ** 2).mean()) / r['sig']
-        after = np.sqrt(((e - b * u) ** 2).mean()) / r['sig']
+        e0 = e - X @ np.linalg.lstsq(X, e, rcond=None)[0]
+        before = np.sqrt((e0 ** 2).mean()) / r['sig']
+        after = np.sqrt(((e0 - b * u) ** 2).mean()) / r['sig']
         gains.append(before - after)
     return clustered(gains)
 

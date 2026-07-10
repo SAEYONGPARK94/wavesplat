@@ -87,9 +87,18 @@ def beamform_prior(P, z, kxb, kyb, om, chunk=8192):
 
 def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
              dk_c=None, val_frac=0.25, max_em=6, return_var=False,
-             q_chunk=512, dtype=torch.float32, sigma_scale=None):
+             q_chunk=512, dtype=torch.float32, sigma_scale=None,
+             prior_gain=None, return_bank=False):
     """torch port of d3_sa_nomp.mmse_bank_estimate (free-wave bank, no
     dual_band / bound_wave / current). Differentiable in z and in the bank.
+
+    prior_gain: optional (B,) multiplier on the beamform prior, before the
+    (pexp, smult) selection. This is the ONE place theory allows learning to
+    help -- gamma(k) is a modelling choice, not a posterior the physics fixes.
+    Passing all-ones reproduces the analytic estimator exactly.
+
+    return_bank: also return (kxb, kyb) so a caller can build prior_gain from
+    the bank's own wavenumbers.
 
     sigma_scale: multiply sigma0 by this before the smult grid. Passing
     sqrt(n_ref / n) implements yesterday's I1 fix (regularization must track
@@ -119,6 +128,9 @@ def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
     m = len(ztr)
     I = torch.eye(m, device=dev, dtype=dtype)
     varz = z.var(unbiased=False)      # np.var default is ddof=0
+
+    if prior_gain is not None:
+        pw = pw * prior_gain
 
     best = None
     for pexp in (0.5, 1.0, 2.0):

@@ -89,7 +89,7 @@ def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
              dk_c=None, val_frac=0.25, max_em=6, return_var=False,
              q_chunk=512, dtype=torch.float32, sigma_scale=None,
              prior_gain=None, return_bank=False, return_model=False,
-             pexp=None, smult=None, no_em=False):
+             pexp=None, smult=None, no_em=False, obs_weight=None):
     """torch port of d3_sa_nomp.mmse_bank_estimate (free-wave bank, no
     dual_band / bound_wave / current). Differentiable in z and in the bank.
 
@@ -125,6 +125,10 @@ def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
 
     Phi_tr = design(Ptr, kxb, kyb, om)
     Phi_v = design(Pv, kxb, kyb, om)
+    if obs_weight is None:
+        Rtr = None
+    else:
+        Rtr = (1.0 / obs_weight[~vmask] ** 2)
     pw = beamform_prior(P, z, kxb, kyb, om)
     m = len(ztr)
     I = torch.eye(m, device=dev, dtype=dtype)
@@ -148,7 +152,8 @@ def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
         gam = torch.cat([gm, gm]) * varz
         for smult in (1.0, 3.0, 10.0):
             s2 = (smult * sigma0) ** 2
-            K = (Phi_tr * gam[None]) @ Phi_tr.T + s2 * I
+            K = (Phi_tr * gam[None]) @ Phi_tr.T + s2 * (
+                I if Rtr is None else torch.diag(Rtr))
             fv = (Phi_v * gam[None]) @ (Phi_tr.T @ torch.linalg.solve(K, ztr))
             vr = torch.sqrt(((fv - zv) ** 2).mean())
             if best is None or float(vr) < best[0]:
@@ -175,8 +180,9 @@ def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
     gam = best_em[1]
 
     Phi_all = design(P, kxb, kyb, om)
-    K = (Phi_all * gam[None]) @ Phi_all.T + s2 * torch.eye(
-        n, device=dev, dtype=dtype)
+    Rall = torch.eye(n, device=dev, dtype=dtype) if obs_weight is None \
+        else torch.diag(1.0 / obs_weight ** 2)
+    K = (Phi_all * gam[None]) @ Phi_all.T + s2 * Rall
     alpha = torch.linalg.solve(K, z)
     w_pred = Phi_all.T @ alpha
     Ki = torch.linalg.inv(K) if return_var else None

@@ -50,6 +50,25 @@ SEEDS = (11, 12, 13)
 WINDOWS = (0, 1, 2, 3, 4, 5)
 DETREND = False
 TIMESPLIT = False
+DETREND_BOTH = False
+
+
+def spatial_detrend(XY, v):
+    """Regress {1, x, y, r, r^2} out of v. XY is (n,2) relative to the sensor.
+
+    The audit's prediction: observations are drawn from the stereo GT itself,
+    only a SCALAR demean is applied, and LJ18g's reconstruction bows 7.64 m with
+    corr(|bias|, range) = +0.951. That spatial trend survives a scalar demean,
+    is representable by the bank's longest atoms, and lives in BOTH obs and GT --
+    so fitting it is rewarded. The wide band and the learned prior both like low
+    k. If the audit is right, removing the trend from obs AND gt cuts the
+    AA15a/LJ18g gains by more than half.
+    """
+    r = torch.hypot(XY[:, 0], XY[:, 1]) / 200.0
+    A = torch.stack([torch.ones_like(r), XY[:, 0] / 200.0, XY[:, 1] / 200.0,
+                     r, r ** 2], 1)
+    c = torch.linalg.lstsq(A, v.unsqueeze(1)).solution.squeeze(1)
+    return v - A @ c
 
 
 def inject_records():
@@ -78,6 +97,8 @@ def cell(sc, gen, t):
     Pq = t(np.column_stack([Xq.ravel()[m], Yq.ravel()[m],
                             np.full(m.sum(), sc['t0'])]))
     gtq = t(g_all[m])
+    if DETREND_BOTH:
+        gtq = spatial_detrend(Pq[:, :2] - t([cx, cy]), gtq)
     gtq = gtq - gtq.mean()
     zero = float(gtq.std())
     if not np.isfinite(zero) or zero < 1e-6:
@@ -91,6 +112,8 @@ def cell(sc, gen, t):
         if len(Z) < 200:
             continue
         Pt, zt = t(P), t(Z)
+        if DETREND_BOTH:
+            zt = spatial_detrend(Pt[:, :2] - t([cx, cy]), zt)
         if DETREND:
             # O1 named the mechanism: a smooth range-dependent sensor bias is
             # representable by the bank's longest atoms, so a wide band absorbs
@@ -152,11 +175,17 @@ def main():
     ap.add_argument('--recs', nargs='*', default=None)
     ap.add_argument('--detrend', action='store_true')
     ap.add_argument('--timesplit', action='store_true')
+    ap.add_argument('--detrend-both', action='store_true',
+                    help='remove {1,x,y,r,r^2} from BOTH obs and GT')
+    ap.add_argument('--out', default=None)
     a_ = ap.parse_args()
-    global DETREND, TIMESPLIT
+    global DETREND, TIMESPLIT, DETREND_BOTH
     DETREND = a_.detrend
     TIMESPLIT = a_.timesplit
-    print(f"time-forward held-out split: {TIMESPLIT}")
+    DETREND_BOTH = a_.detrend_both
+    out_path = a_.out or OUT  # the audit caught every flag variant overwriting
+    print(f"time-forward split {TIMESPLIT}   detrend(obs) {DETREND}   "
+          f"detrend(obs+GT) {DETREND_BOTH}   -> {out_path}")
     print(f"range detrend {{1, r, r^2}}: {DETREND}")
     added = inject_records()
     recs = a_.recs or sorted(FOP.RECORDS.keys())
@@ -221,7 +250,7 @@ def main():
               f"{np.mean([d_['win_sd'] for d_ in res.values()]):.3f}")
 
     os.makedirs('results/direction3', exist_ok=True)
-    with open(OUT, 'w') as f:
+    with open(out_path, 'w') as f:
         json.dump({'per_record': {k: {kk: float(vv) for kk, vv in v.items()}
                                   for k, v in res.items()},
                    'cells': [[c[0], int(c[1])] + [float(x) for x in c[2:]]

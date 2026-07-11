@@ -200,7 +200,8 @@ def mmse_gpu(P, z, depth, Pq, sigma0, kp_hint, seed=0, band=(0.35, 2.5),
         # Everything a caller needs to form the hat matrix H = Phi Gam Phi^T K^-1
         # and score the fit with a criterion that charges for degrees of
         # freedom, which the held-out residual does not.
-        return out, dict(gam=gam, s2=s2, K=K, Phi=Phi_all)
+        return out, dict(gam=gam, s2=s2, K=K, Phi=Phi_all,
+                         pexp=pexp, smult=smult, val_resid=vr_best)
     if return_var:
         return out, var.clamp_min(0.0)
     return out

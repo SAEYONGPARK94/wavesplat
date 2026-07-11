@@ -76,3 +76,42 @@ def apply_dropout(hit_mask: np.ndarray,
     top = np.argpartition(power, -k)[-k:]        # T = k-th largest A*X
     return_mask[hit_idx[top]] = True
     return return_mask
+
+
+# Manual link-budget calibration for the FIXED threshold (H3-OD 2026-07-11).
+# "Detection range (10% reflectivity) 250 m" (p.13): the stated target's
+# received power in THIS normalisation is A_m = 0.10 / (250/d_ref)^2 = 0.025;
+# 50% detection under exponential speckle means T = A_m ln 2. This is a
+# RELATIVE calibration on top of the water-Fresnel radiometry, not an
+# absolute link budget (docs/H3OD_FIXEDT_OPERATING_DOMAIN_2026-07-11.md §4).
+T_MANUAL_50 = 0.10 / (250.0 / 125.0) ** 2 * np.log(2.0)
+
+
+def apply_dropout_fixed_T(hit_mask: np.ndarray,
+                          hit_dist: np.ndarray,
+                          incidence_angles: np.ndarray,
+                          rng: np.random.Generator,
+                          T: float = T_MANUAL_50,
+                          m_looks: int = 1,
+                          d_ref: float = 125.0,
+                          cap: int = 0) -> np.ndarray:
+    """FIXED-threshold detection — the sensor's actual law (F2 verdict).
+
+    Unlike apply_dropout there is no per-frame count budget: return iff
+    A*X > T, so the count is a measurement (~95% of hits at T_MANUAL_50).
+    cap > 0 subsamples the returns uniformly (random-within-selection keeps
+    the spatial distribution; storage/compute control only — record the raw
+    count from the caller if it matters).
+    """
+    return_mask = np.zeros(len(hit_mask), dtype=bool)
+    hit_idx = np.where(hit_mask)[0]
+    if len(hit_idx) == 0:
+        return return_mask
+
+    A = received_power(incidence_angles[hit_idx], hit_dist[hit_idx], d_ref)
+    X = rng.gamma(shape=m_looks, scale=1.0 / m_looks, size=len(hit_idx))
+    sel = np.where(A * X > T)[0]
+    if cap and len(sel) > cap:
+        sel = rng.choice(sel, cap, replace=False)
+    return_mask[hit_idx[sel]] = True
+    return return_mask

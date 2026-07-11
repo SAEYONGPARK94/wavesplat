@@ -22,6 +22,8 @@ from wavesim.lidar_simulator import (
 )
 from wavesim.raydrop_uniform import apply_dropout as apply_uniform
 from wavesim.raydrop_slope import apply_dropout as apply_slope
+from wavesim.raydrop_threshold import (apply_dropout_fixed_T as apply_fixed_T,
+                                       T_MANUAL_50)
 from wavesim.gt_generator import make_grid, evaluate_field, compute_spectrum_1d
 from wavesim.noise_model import add_noise, compute_confidence
 from wavesim.data_writer import save_episode
@@ -168,6 +170,14 @@ def run_episode(sea_state: str = 'BF4',
                 hit_pts[hit_idx], hit_dist[hit_idx],
                 incidence, n_pts, rng
             )
+        elif raydrop_model == 'fixedT':
+            # the sensor's actual detection law (F2 verdict; H3-OD 2026-07-11):
+            # fixed manual-calibrated threshold, count is a measurement.
+            # n_pts is reused as the storage cap per frame (0 = uncapped).
+            return_mask_rel = apply_fixed_T(
+                np.ones(len(hit_idx), dtype=bool),
+                hit_dist[hit_idx], incidence, rng, cap=n_pts
+            )
         else:
             return_mask_rel = apply_slope(
                 np.ones(len(hit_idx), dtype=bool),
@@ -216,7 +226,8 @@ def run_episode(sea_state: str = 'BF4',
         filepath, components, lidar_cfg, frames_data,
         gt_x, gt_y,
         raydrop_model_type=raydrop_model,
-        raydrop_params={'n_pts': n_pts},
+        raydrop_params=({'T': T_MANUAL_50, 'cap': n_pts}
+                        if raydrop_model == 'fixedT' else {'n_pts': n_pts}),
         sea_state=sea_state, Hs=Hs, Tp=Tp, gamma=3.3,
         depth=depth, spectrum_1d=spectrum
     )
@@ -242,7 +253,7 @@ def main():
     parser.add_argument('--n_pts', type=int, default=None)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--raydrop', default='uniform',
-                        choices=['uniform', 'slope'])
+                        choices=['uniform', 'slope', 'fixedT'])
     parser.add_argument('--duration', type=float, default=None)
     parser.add_argument('--dt', type=float, default=None)
     parser.add_argument('--output_dir', default=None)

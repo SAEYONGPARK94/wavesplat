@@ -52,12 +52,18 @@ def episode_window(path, rng):
             zv.append(p[:, 2])
         P, zv = np.vstack(P), np.concatenate(zv)
         kp = float(np.hypot(comp[:, 2], comp[:, 3])[np.argmax(comp[:, 0])])
-        # forecast queries: downwave (+x) fan, leads 1..8 s -- causal for dir0
-        nq = 160
-        tq = t_end + rng.uniform(1.0, 8.0, nq)
-        rq = rng.uniform(20.0, 120.0, nq)
-        aq = rng.uniform(-np.pi / 3, np.pi / 3, nq)
-        Q = np.column_stack([rq * np.cos(aq), rq * np.sin(aq), tq])
+        if '_dir180' in path:
+            # head seas: the ENCOUNTER TRACK at the sensor -- the deployment
+            # task label (leads 0.5..8 s at the origin)
+            tq = t_end + np.linspace(0.5, 8.0, 76)
+            Q = np.column_stack([np.zeros(76), np.zeros(76), tq])
+        else:
+            # dir0: downwave (+x) fan, leads 1..8 s -- causal for dir0
+            nq = 160
+            tq = t_end + rng.uniform(1.0, 8.0, nq)
+            rq = rng.uniform(20.0, 120.0, nq)
+            aq = rng.uniform(-np.pi / 3, np.pi / 3, nq)
+            Q = np.column_stack([rq * np.cos(aq), rq * np.sin(aq), tq])
         A, om, kx, ky, ph = (comp[:, 0], comp[:, 1], comp[:, 2],
                              comp[:, 3], comp[:, 4])
         psi = (kx[None] * Q[:, 0:1] + ky[None] * Q[:, 1:2]
@@ -77,10 +83,16 @@ def episode_window(path, rng):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--glob', default='data/episode_*_fixedT.h5')
+    ap.add_argument('--out', default=OUT)
+    a_ = ap.parse_args()
+    globals()['OUT'] = a_.out
     net = get_net('results/direction3/prior_net_l1s2bw.pt')
     rng = np.random.default_rng(2027)
     rows = []
-    files = sorted(glob.glob('data/episode_*_fixedT.h5'))
+    files = sorted(glob.glob(a_.glob))
     print(f"episodes: {len(files)}, candidates: "
           f"{len(BANDS)*len(SMULTS)*2}")
     for fi, path in enumerate(files):

@@ -55,7 +55,8 @@ def get_net(ckpt='results/direction3/prior_net_v3.pt'):
 
 def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
                    use_em=False, max_em=6, kp_hint=None, return_var=False,
-                   diag_out=None, bound_wave=False, bw_scale=0.15):
+                   diag_out=None, bound_wave=False, bw_scale=0.15,
+                   smult_head=None):
     """MMSE with the net-predicted prior on the normalized 51x51 bank.
     kp_hint: externally known peak wavenumber (real records:
     characterize()) — the internal beamform-argmax kp is the estimator's
@@ -118,15 +119,23 @@ def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
 
     Phi_tr, Phi_v = design(Ptr), design(Pv)
     m = len(ztr)
-    best = None
-    for smult in (1.0, 3.0, 10.0):
-        s2 = (smult * sigma0) ** 2
-        K = (Phi_tr * gam[None]) @ Phi_tr.T + s2 * np.eye(m)
-        fv = (Phi_v * gam[None]) @ (Phi_tr.T @ np.linalg.solve(K, ztr))
-        vr = float(np.sqrt(np.mean((fv - zv) ** 2)))
-        if best is None or vr < best[0]:
-            best = (vr, smult)
-    vr0, smult = best
+    if smult_head is not None:
+        # L1-s2 (2026-07-11): the learned scene-adaptive noise floor replaces
+        # the val-selected multiplier. smult_head is the trained SmultHead.
+        with torch.no_grad():
+            ls = smult_head(torch.tensor(X[None], device=DEVICE))
+        smult = float(torch.exp(ls[0]))
+        vr0 = float('nan')
+    else:
+        best = None
+        for smult in (1.0, 3.0, 10.0):
+            s2 = (smult * sigma0) ** 2
+            K = (Phi_tr * gam[None]) @ Phi_tr.T + s2 * np.eye(m)
+            fv = (Phi_v * gam[None]) @ (Phi_tr.T @ np.linalg.solve(K, ztr))
+            vr = float(np.sqrt(np.mean((fv - zv) ** 2)))
+            if best is None or vr < best[0]:
+                best = (vr, smult)
+        vr0, smult = best
     s2 = (smult * sigma0) ** 2
     if use_em:
         best_em = (vr0, gam.copy())

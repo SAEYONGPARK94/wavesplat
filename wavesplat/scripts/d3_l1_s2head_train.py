@@ -60,7 +60,9 @@ def main():
     ap.add_argument('--data', default='tmp/prior_train/fan0')
     ap.add_argument('--init', default='results/direction3/prior_net_v7fan.pt')
     ap.add_argument('--ckpt', default='results/direction3/prior_net_l1s2.pt')
+    ap.add_argument('--seed', type=int, default=0)
     a = ap.parse_args()
+    torch.manual_seed(a.seed)
 
     D = load_all(a.data)
     n_all = len(D['X'])
@@ -88,7 +90,7 @@ def main():
         return task_loss_one(out, P, z, Q, gt, float(kp_e), sig0,
                              ls, mask_t, kxn, kyn) / (Hs / 4) ** 2
 
-    rng = np.random.default_rng(0)
+    rng = np.random.default_rng(a.seed)
     vi = np.arange(n_val)
     ti = np.arange(n_val, n_all)
     best = (np.inf, 0)

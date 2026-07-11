@@ -45,6 +45,19 @@ inference provably leaves on the table: the accuracy chapter's positive.
 HL1 fails with HL3 healthy -> the gap is NOT inference loss at this
 operating point; the last accuracy cell closes at the measured ceiling, and
 the number itself goes in the map. Both endings publishable; frozen now.
+
+RUN-2 DISCLOSURE (written while run 1 was still training, before its final
+step). Run 1 flatlined by step 1500: val gain -0.010..-0.012 (worse than
+naive), mcar/mnar tau ratio frozen at ~0.31 -- neither value nor do-no-harm.
+Signature: training loss moves, val worsens = scene memorization. The
+sig_z feature is CONSTANT PER SCENE (a scene fingerprint; harmless under
+③'s teacher distillation, but under task loss it is a scene ID -- the C3
+mechanism realized, cf. W7's record-fingerprint lookup). Run 2 therefore:
+  --drop-sigz (per-site features only), 24 MNAR train scenes (was 12),
+  6 MCAR (was 4), weight decay 1e-4, h=48 (was 96), mcar penalty 1e-2.
+Run 1's val (seeds 200-207) was CONSUMED by checkpoint monitoring; run 2 is
+judged on FRESH val seeds 400-407 against the unchanged HL gates. Run 1 is
+reported alongside whatever run 2 says.
 =============================================================================
 """
 import argparse
@@ -69,9 +82,6 @@ from d3_h1_mask_destination import sea_dir, eta_xt
 from d3_n5_site_head import scene_tensors, teacher_sites, solve_with, SiteHead
 
 OUT = 'results/direction3/h2_taskloss_sites'
-TRAIN_SEEDS = list(range(100, 112))
-MCAR_SEEDS = list(range(300, 304))
-VAL_SEEDS = list(range(200, 208))
 N_QINF = 400
 
 
@@ -104,9 +114,19 @@ def main():
     ap.add_argument('--lr', type=float, default=3e-4)
     ap.add_argument('--seed', type=int, default=0)
     ap.add_argument('--tag', default=None)
+    ap.add_argument('--train-n', type=int, default=12)
+    ap.add_argument('--mcar-n', type=int, default=4)
+    ap.add_argument('--val-base', type=int, default=200)
+    ap.add_argument('--drop-sigz', action='store_true')
+    ap.add_argument('--wd', type=float, default=0.0)
+    ap.add_argument('--hdim', type=int, default=96)
+    ap.add_argument('--mcar-w', type=float, default=1e-3)
     a_ = ap.parse_args()
     tag = a_.tag or f's{a_.seed}'
     torch.manual_seed(a_.seed)
+    TRAIN_SEEDS = list(range(100, 100 + a_.train_n))
+    MCAR_SEEDS = list(range(300, 300 + a_.mcar_n))
+    VAL_SEEDS = list(range(a_.val_base, a_.val_base + 8))
 
     g0b.sea = sea_dir(180.0)                     # H1 main scene family
     rng = np.random.default_rng(77 + a_.seed)
@@ -129,6 +149,8 @@ def main():
 
     # #50 checklist: feature/target dynamic-range and NaN audit BEFORE training
     for sc in scenes + val:
+        if a_.drop_sigz:
+            sc['feats'] = sc['feats'][:, :6]     # sig_z is a scene fingerprint
         assert torch.isfinite(sc['feats']).all(), 'NaN feature leaked'
         sc['G'] = grad_design(sc['sitesP'], sc['kxb'], sc['kyb'], sc['om'])
         assert torch.isfinite(sc['G']).all()
@@ -146,8 +168,8 @@ def main():
           f"EP gain {(b[:,0]-b[:,1]).mean():+.4f}+-"
           f"{(b[:,0]-b[:,1]).std(ddof=1)/np.sqrt(len(b)):.4f}")
 
-    head = SiteHead().to(DEV)
-    opt = torch.optim.Adam(head.parameters(), lr=a_.lr)
+    head = SiteHead(d=6 if a_.drop_sigz else 7, h=a_.hdim).to(DEV)
+    opt = torch.optim.Adam(head.parameters(), lr=a_.lr, weight_decay=a_.wd)
 
     # HL-R1: zero-start reduction
     with torch.no_grad():
@@ -168,7 +190,7 @@ def main():
         loss = ann_nrmse(sc, a) ** 2
         if sc['mcar']:
             tt, _ = head(sc['feats'])
-            loss = loss + 1e-3 * tt.double().mean()   # L3: explicit do-no-harm
+            loss = loss + a_.mcar_w * tt.double().mean()  # L3: do-no-harm
         opt.zero_grad()
         loss.backward()
         opt.step()

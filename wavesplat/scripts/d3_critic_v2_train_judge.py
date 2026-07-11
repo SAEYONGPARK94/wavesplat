@@ -72,7 +72,10 @@ def train_fold(data, hold, steps=4000, seed=0):
     for r, d in data.items():
         if r == hold:
             continue
-        Xs.append(d['X'][d['winid']])        # per-row window map
+        # winid is the (gappy) extraction counter; X rows are stored in
+        # order of appearance -> remap to consecutive positions
+        _, inv = np.unique(d['winid'], return_inverse=True)
+        Xs.append(d['X'][inv])               # per-row window map
         Fs.append(d['feat'])
         Ys.append(d['label'])
     X = torch.tensor(np.concatenate(Xs), device=DEVICE)

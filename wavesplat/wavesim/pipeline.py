@@ -48,7 +48,8 @@ def run_episode(sea_state: str = 'BF4',
                 depth: float = 50.0,
                 output_dir: str = 'data',
                 verbose: bool = True,
-                cfg: WaveSimConfig = None) -> str:
+                cfg: WaveSimConfig = None,
+                direction_deg: float = 0.0) -> str:
     """
     Run one WaveSim episode and save to HDF5.
 
@@ -68,7 +69,8 @@ def run_episode(sea_state: str = 'BF4',
     # ── 1. Generate wave components ──────────────────────────────────────────
     use_hos = cfg.hos.enabled
     components = jonswap_components(Hs=Hs, Tp=Tp, n_components=n_components,
-                                     depth=depth, seed=seed)
+                                     depth=depth, seed=seed,
+                                     direction_deg=direction_deg)
     satisfied, q_val = check_q_constraint(components)
     assert satisfied, f"Q constraint violated: {q_val:.3f}"
 
@@ -219,7 +221,9 @@ def run_episode(sea_state: str = 'BF4',
     gt_y = Y_gt[:, 0]
 
     os.makedirs(output_dir, exist_ok=True)
-    fname = f"episode_{sea_state}_{n_components}comp_seed{seed}_{raydrop_model}.h5"
+    dtag = '' if abs(direction_deg) < 1e-9 else f"_dir{int(direction_deg)}"
+    fname = (f"episode_{sea_state}_{n_components}comp_seed{seed}"
+             f"_{raydrop_model}{dtag}.h5")
     filepath = os.path.join(output_dir, fname)
 
     save_episode(
@@ -254,6 +258,9 @@ def main():
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--raydrop', default='uniform',
                         choices=['uniform', 'slope', 'fixedT'])
+    parser.add_argument('--direction', type=float, default=0.0,
+                        help='mean wave direction [deg from +x]; 180 = head '
+                             'seas (waves toward the sensor, causal encounter)')
     parser.add_argument('--duration', type=float, default=None)
     parser.add_argument('--dt', type=float, default=None)
     parser.add_argument('--output_dir', default=None)
@@ -279,6 +286,7 @@ def main():
         output_dir=output_dir,
         verbose=True,
         cfg=cfg,
+        direction_deg=args.direction,
     )
 
 

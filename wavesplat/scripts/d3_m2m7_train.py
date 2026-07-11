@@ -89,16 +89,33 @@ def metrics(out, gt):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--mode', choices=['loro', 'within'], default='loro',
+                    help="within = v2: per-record time split (train first "
+                         "60%% of windows by t0, judge last 40%%) -- the "
+                         "onboard-adaptation scenario; removes cross-record "
+                         "transfer entirely")
+    a_ = ap.parse_args()
     torch.manual_seed(0)
     data = load_all()
     recs = sorted(data)
     folds = []
     for hold in recs:
-        tr_p = np.concatenate([data[r]['pred'] for r in recs if r != hold])
-        tr_g = np.concatenate([data[r]['gt'] for r in recs if r != hold])
-        tr_k = np.concatenate([data[r]['kp'] for r in recs if r != hold])
-        tr_h = np.concatenate([data[r]['Hs'] for r in recs if r != hold])
-        te = data[hold]
+        if a_.mode == 'loro':
+            tr_p = np.concatenate([data[r]['pred'] for r in recs
+                                   if r != hold])
+            tr_g = np.concatenate([data[r]['gt'] for r in recs if r != hold])
+            tr_k = np.concatenate([data[r]['kp'] for r in recs if r != hold])
+            tr_h = np.concatenate([data[r]['Hs'] for r in recs if r != hold])
+            te = data[hold]
+        else:
+            d = data[hold]
+            n = len(d['pred'])
+            cut = int(0.6 * n)
+            tr_p, tr_g = d['pred'][:cut], d['gt'][:cut]
+            tr_k, tr_h = d['kp'][:cut], d['Hs'][:cut]
+            te = {k: v[cut:] for k, v in d.items()}
         fold = {'hold': hold, 'n_tr': len(tr_p), 'n_te': len(te['pred'])}
         ic, isa = metrics(te['pred'], te['gt'])
         fold['inc'] = {'corr': ic, 'sacc': isa}
@@ -133,7 +150,8 @@ def main():
               f"dec {fold['dec']['corr']:+.3f}/{fold['dec']['sacc']:.3f}",
               flush=True)
 
-    json.dump(folds, open(OUT, 'w'), indent=1)
+    json.dump(folds, open(OUT.replace('.json', f'_{a_.mode}.json'), 'w'),
+              indent=1)
     for k in ('inc', 'mse', 'dec'):
         c = np.mean([f[k]['corr'] for f in folds])
         s = np.mean([f[k]['sacc'] for f in folds])

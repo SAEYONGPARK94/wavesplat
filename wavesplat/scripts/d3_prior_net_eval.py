@@ -56,7 +56,7 @@ def get_net(ckpt='results/direction3/prior_net_v3.pt'):
 def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
                    use_em=False, max_em=6, kp_hint=None, return_var=False,
                    diag_out=None, bound_wave=False, bw_scale=0.15,
-                   smult_head=None):
+                   smult_head=None, smult_fixed=None):
     """MMSE with the net-predicted prior on the normalized 51x51 bank.
     kp_hint: externally known peak wavenumber (real records:
     characterize()) — the internal beamform-argmax kp is the estimator's
@@ -126,6 +126,9 @@ def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
             ls = smult_head(torch.tensor(X[None], device=DEVICE))
         smult = float(torch.exp(ls[0]))
         vr0 = float('nan')
+    elif smult_fixed is not None:
+        smult = float(smult_fixed)
+        vr0 = float('nan')
     else:
         best = None
         for smult in (1.0, 3.0, 10.0):
@@ -158,6 +161,8 @@ def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
     if diag_out is not None:
         diag_out['vr'] = float(vr0)
         diag_out['vr_rel'] = float(vr0 / (np.std(zv) + 1e-12))
+        diag_out['X'] = X
+        diag_out['smult'] = float(smult)
     Phi_all = design(P)
     K = (Phi_all * gam[None]) @ Phi_all.T + s2 * np.eye(n)
     w_pred = Phi_all.T @ np.linalg.solve(K, z)

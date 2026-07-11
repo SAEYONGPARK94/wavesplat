@@ -110,3 +110,26 @@ WEC 상류-프로브 LSTM 레인(차별점: 전방-fan LiDAR 2D + 선속 11.3 + 
   CRITIC_SELECTOR_DESIGN + METHODOLOGY_REVIEW(+addendum) + PAPER outline.
   한계 원장 = `LIMITATIONS_ledger_2026-07-10.md` (B9가 비평가의 근거).
 - 메모리(에이전트 전용): `~/.claude/projects/-home-vexit-wavesplat/memory/`.
+
+---
+
+## 7. 최종 갱신 (2026-07-12 종료 시점 — 이 절이 최신 상태)
+
+**결판 완료**: 학습 캠페인 전 셀 판정 종료. 이 절만 읽으면 이어갈 수 있다.
+
+- **확정 승리(검수 완료)**: ①γ-prior — nowcast 승자 (창-수준 +0.143, t 4.42,
+  39/47; 공정성 감사 PASS) ②잡음바닥 — forecast 승자 (단독 +0.073, t 2.89;
+  실패 창 +0.159; RTM 대칭감사 PASS) ③속도 111×. **두 학습은 가법**(상호작용
+  0; 그림 `results/direction3/fig_attribution_2026-07-12.png`,
+  `fig_why_learning_won_2026-07-12.png`).
+- **판정 완료 FAIL(전부 수치화)**: 비평가 v1(t1.80)·v2(t2.30, 무해화 PASS,
+  선택상금 +0.14 미회수 확정), 폭풍 확장(동률), M8(합성 무방), M2×M7
+  v1(LORO 음전이)·v2(레코드-내 무득 = 정보 한계).
+- **중심 문장(논문)**: "학습은 물리가 모르는 것을 채울 때만 이긴다 — 과제별로
+  다른 학습이, 창-수준 유의성으로, 가법적으로." 프레임 = small, certified
+  learning. 초안 = `docs/PAPER_CH_C_draft_2026-07-12.md` (C.0 검수 반영판).
+- **다음 작업 후보(우선순위)**: ①초안 Ch.A/B 수치 표 채우기(집필 전환 —
+  권고) ②M3 표현 팔(기대-보정됨) ③L4 순수형. 행동 이력 =
+  `docs/RUNLOG_2026-07-12.md` (자기수정 #59까지).
+- **읽기 순서(콜드스타트)**: 이 문서 §0-6 → §7(이 절) → RUNLOG → 메모리
+  MEMORY.md → 개별 아크 문서.

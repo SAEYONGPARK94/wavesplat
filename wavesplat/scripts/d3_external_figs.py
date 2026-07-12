@@ -67,11 +67,12 @@ def json_row(name, wi):
 class Window:
     """Rebuild one frozen protocol window + both arms on arbitrary queries."""
 
-    def __init__(self, name, wi):
+    def __init__(self, name, wi, rec=None, net=None, head=None):
         self.name, self.wi = name, wi
         cfg = RECORDS[name]
         self.cfg = cfg
-        self.rec = MRecord(cfg['path'], stride=cfg['stride'])
+        self.rec = rec if rec is not None else MRecord(cfg['path'],
+                                                       stride=cfg['stride'])
         nfw = int(round(40.0 / self.rec.dt))
         n_lead = int(round(cfg['lead_max'] / self.rec.dt))
         i0s = np.linspace(nfw + 1, self.rec.T_all - n_lead - 2, 12).astype(int)
@@ -81,12 +82,15 @@ class Window:
         self.Zfut = self.rec.window(self.i0, n_lead + 1)
         self.t0 = float(self.rec.t[self.i0])
         self.sig0 = 0.05 * self.Hs
-        self.net = get_net('results/direction3/prior_net_l1s2bw.pt')
-        self.head = SmultHead().to(DEVICE)
-        self.head.load_state_dict(torch.load(
-            'results/direction3/prior_net_l1s2bw.pt',
-            map_location=DEVICE)['head'])
-        self.head.eval()
+        if net is not None and head is not None:
+            self.net, self.head = net, head
+        else:
+            self.net = get_net('results/direction3/prior_net_l1s2bw.pt')
+            self.head = SmultHead().to(DEVICE)
+            self.head.load_state_dict(torch.load(
+                'results/direction3/prior_net_l1s2bw.pt',
+                map_location=DEVICE)['head'])
+            self.head.eval()
 
     def predict(self, Q):
         with torch.no_grad():

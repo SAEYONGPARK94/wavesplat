@@ -81,9 +81,14 @@ class PointPrior(nn.Module):
         q = q + h
         h, _ = self.ca2(self.ln_q2(q), tok, tok)
         q = q + h + self.ff(q)
-        ylog = self.out(q).squeeze(-1).view(-1, NGRID, NGRID)
+        # bounded outputs: unbounded Ylog/log_smult diverged at cold start
+        # (step-500 smult 1e7, one-hot gamma + s->0 => singular K).
+        # Ylog in +-4 decades (gamma is sum-normalized, only relative
+        # matters); smult in ~[0.4, 22] (covers the hand sweep 1..10).
+        ylog = 4.0 * torch.tanh(
+            self.out(q).squeeze(-1).view(-1, NGRID, NGRID) / 4.0)
         pool = torch.cat([tok.mean(1), tok.std(1)], -1)
-        log_smult = self.sm_b + self.sm(pool).squeeze(-1)
+        log_smult = self.sm_b + 2.0 * torch.tanh(self.sm(pool).squeeze(-1))
         return ylog, log_smult
 
 
@@ -91,7 +96,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--steps', type=int, default=12000)
     ap.add_argument('--bs', type=int, default=8)
-    ap.add_argument('--lr', type=float, default=3e-4)
+    ap.add_argument('--lr', type=float, default=1e-4)
     ap.add_argument('--data', default='tmp/prior_train/bwtask')
     ap.add_argument('--ckpt', default='results/direction3/m3_point_v1.pt')
     ap.add_argument('--seed', type=int, default=0)

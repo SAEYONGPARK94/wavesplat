@@ -286,12 +286,15 @@ def fig2(name='AA14', wi=10):
                   loc='left', color=C_INK)
     style_ax(axb)
     fig.suptitle(
-        f'"Looks better" is not "is better" — {name} window {wi}\n'
-        f'hand does look better now (field corr {cl_h[0]:+.2f} vs '
-        f'{cl_n[0]:+.2f}, amplitude {sd_h/sd_t:.2f}x vs {sd_n/sd_t:.2f}x)\n'
+        f'"Looks better" is not "is better" — {name} window {wi} '
+        f'(failure-window case study)\n'
+        f'in THIS window hand looks better now (field corr {cl_h[0]:+.2f} '
+        f'vs {cl_n[0]:+.2f}, amplitude {sd_h/sd_t:.2f}x vs '
+        f'{sd_n/sd_t:.2f}x)\n'
         f'— but at the ship encounter point: hand $\\rho$ {ch:+.2f}, '
-        f'learned $\\rho$ {cn:+.2f}',
-        fontsize=11, color=C_INK)
+        f'learned $\\rho$ {cn:+.2f}   '
+        f'(60-window mean: learned leads at every lead)',
+        fontsize=10.5, color=C_INK)
     fig.tight_layout(rect=(0, 0, 1, 0.885))
     p = f'{OUT}/fig_ext2_field_vs_track_{DATE}.png'
     fig.savefig(p)

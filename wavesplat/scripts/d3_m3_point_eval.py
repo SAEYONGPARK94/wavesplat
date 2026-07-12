@@ -25,7 +25,7 @@ from d3_sa_multirecord import MRecord
 from d3_gate_promotion_eval import window_data
 from d3_prior_net_train import band_mask, NGRID, KREL
 from d3_m3_pointprior_train import PointPrior
-from d3_gpu_mmse import omega
+from d18_relax_estimator import omega
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 G = 9.81

@@ -11,6 +11,7 @@ Descriptive audit (frozen questions, no promotion gate):
   Q2 per-lead crossing structure (does the AA14-w10 pattern generalize?)
   Q3 amplitude ratio per arm (texture/shrinkage account).
 """
+import argparse
 import json
 import os
 import sys
@@ -35,10 +36,13 @@ LEADS = [0.0, 2.0, 5.0, 8.0]
 
 
 def main():
-    net = get_net('results/direction3/prior_net_l1s2bw.pt')
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--ckpt', default='results/direction3/prior_net_l1s2bw.pt')
+    ap.add_argument('--out', default=OUT)
+    a = ap.parse_args()
+    net = get_net(a.ckpt)
     head = SmultHead().to(DEVICE)
-    head.load_state_dict(torch.load(
-        'results/direction3/prior_net_l1s2bw.pt', map_location=DEVICE)['head'])
+    head.load_state_dict(torch.load(a.ckpt, map_location=DEVICE)['head'])
     head.eval()
 
     rows = []
@@ -76,7 +80,7 @@ def main():
                   f"l {row['field_learned']:+.2f} | lead0 h {per_h[0]:+.2f} "
                   f"l {per_n[0]:+.2f} [{time.time()-t0:.0f}s]", flush=True)
 
-    json.dump(rows, open(OUT, 'w'), indent=1)
+    json.dump(rows, open(a.out, 'w'), indent=1)
     fh_ = np.array([r['field_hand'] for r in rows])
     fn_ = np.array([r['field_learned'] for r in rows])
     d = fn_ - fh_
@@ -98,7 +102,7 @@ def main():
     ah = np.mean([r['amp_hand'] for r in rows])
     al = np.mean([r['amp_learned'] for r in rows])
     print(f"Q3 amplitude: hand {ah:.2f}x  learned {al:.2f}x of truth")
-    print(f"wrote {OUT}")
+    print(f"wrote {a.out}")
     return 0
 
 

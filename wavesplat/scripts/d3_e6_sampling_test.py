@@ -66,7 +66,9 @@ def load(path, rng, n_obs):
         P, zv = np.vstack(P), np.concatenate(zv)
         rr = np.hypot(P[:, 0], P[:, 1])
 
-        per_bin = max(int(n_obs / 12), 1)
+        # ceil, so n_obs=2000 gives the frozen recipe's 167/bin exactly.
+        # int() gave 166 and quietly made this a different recipe.
+        per_bin = max(-(-n_obs // 12), 1)
         edges = np.linspace(rr.min(), rr.max() + 1e-6, 13)
         b = np.clip(np.digitize(rr, edges) - 1, 0, 11)
         take = []

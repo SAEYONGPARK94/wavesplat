@@ -74,12 +74,19 @@ def check(components: List, cfg, hos_order: Optional[int] = None) -> dict:
     var = A ** 2
     keep = var >= VAR_TAIL * var.sum() if var.sum() > 0 else np.ones_like(var, bool)
 
-    lam_min = float(lam[keep].min())
-    lam_peak = float(lam[int(np.argmax(A))])
-    if hos_order and hos_order > 1:
-        lam_min /= float(hos_order)      # shortest bound harmonic
+    # An HOS sea of order M carries bound harmonics at lambda/2 ... lambda/M, so
+    # a component counts as rendered only if its SHORTEST harmonic is rendered.
+    # Shrinking the wavelengths (rather than only lam_min) keeps the verdict and
+    # the variance band on the same footing -- before 2026-07-13 the harmonics
+    # shortened lam_min but were invisible to var_under, so a nonlinear episode
+    # could be called adequate on content the mesh cannot represent.
+    m_ord = float(hos_order) if (hos_order and hos_order > 1) else 1.0
+    lam_eff = lam / m_ord
 
-    under = float(var[lam < PTS_PER_LAMBDA_OK * d].sum() / var.sum()) \
+    lam_min = float(lam_eff[keep].min())
+    lam_peak = float(lam_eff[int(np.argmax(A))])
+
+    under = float(var[lam_eff < PTS_PER_LAMBDA_OK * d].sum() / var.sum()) \
         if var.sum() else 0.0
     pts_peak = lam_peak / d
     pts_min = lam_min / d

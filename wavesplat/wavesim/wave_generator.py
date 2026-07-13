@@ -174,10 +174,14 @@ def jonswap_components(Hs: float, Tp: float,
         # every stored 1-component episode was built, so the correct placement
         # is opt-in rather than a silent change of the dataset
         # (docs/E10_PATTERN_prereg_2026-07-13.md §5, user directive 2026-07-13).
-        omega_centers = np.full(n_components, omega_p) if n_components == 1 \
-            else omega_centers
-        d_omega = np.array([omega_max - omega_min]) if n_components == 1 \
-            else d_omega
+        if n_components != 1:
+            raise ValueError(
+                'peak_locked only means anything for a single component; with '
+                f'n_components={n_components} the bins already tile the band '
+                'and one of them holds the peak. Silently ignoring it would '
+                'have produced a dataset that looks corrected and is not.')
+        omega_centers = np.full(1, omega_p)
+        d_omega = np.array([omega_max - omega_min])
     elif n_components == 1:
         print(f"[wave][WARNING] n_components=1 places the single component at "
               f"1.75*omega_p (T={2 * np.pi / omega_centers[0]:.2f} s), not at "

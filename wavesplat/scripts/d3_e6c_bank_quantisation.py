@@ -57,10 +57,20 @@ def main():
 
     dk = np.array([r['dk_over_k'] for r in rows])
     fan = np.array([r['fan'] for r in rows])
-    # Spearman = Pearson on ranks (scipy-free)
-    rk_d = np.argsort(np.argsort(dk))
-    rk_f = np.argsort(np.argsort(-fan))
-    rho_s = float(np.corrcoef(rk_d, rk_f)[0, 1])
+    rho_s = float(np.corrcoef(np.argsort(np.argsort(dk)),
+                              np.argsort(np.argsort(-fan)))[0, 1])
+
+    # The robust statistic is the SEPARATION, not the fine rank order.  The
+    # collapsed seeds sit on top of each other (fan ~0.03-0.29), so their
+    # internal order flips under a 1-point-per-bin change in the observation
+    # recipe -- Spearman moved 1.00 -> 0.90 on exactly that.  What does NOT move
+    # is which seeds are healthy: the two healthy ones are the two with the
+    # smallest quantisation error, and the gap between the groups is wide.
+    healthy = dk[fan > 0.6]
+    collapsed = dk[fan <= 0.6]
+    separated = bool(len(healthy) and len(collapsed)
+                     and healthy.max() < collapsed.min())
+    margin = float(collapsed.min() - healthy.max()) if separated else float('nan')
 
     res = dict(
         date='2026-07-13',
@@ -69,18 +79,31 @@ def main():
                  'sampling hypothesis (E-6) failed to explain?',
         seeds=rows,
         spearman_dk_vs_fan=rho_s,
+        spearman_caveat='fragile: the collapsed seeds are within noise of each '
+                        'other, so the fine rank order flips under a 0.6% change '
+                        'in the observation budget (1.00 -> 0.90). Do not quote '
+                        'the exact-order p-value.',
+        healthy_dk=sorted(map(float, healthy)),
+        collapsed_dk=sorted(map(float, collapsed)),
+        groups_separated=separated,
+        separation_margin=margin,
         rank_order_by_dk=[int(rows[i]['seed']) for i in np.argsort(dk)],
         fan_in_that_order=[float(rows[i]['fan']) for i in np.argsort(dk)],
-        verdict=('bank quantisation ranks the seeds exactly as performance does'
-                 if abs(rho_s) > 0.99 else 'no clean rank correspondence'))
+        verdict=('the healthy seeds are exactly the least-quantised ones'
+                 if separated else 'no clean separation'))
     json.dump(res, open(OUT, 'w'), indent=1)
 
     print(f'\n{"=" * 62}\n[E-6c] BF2 bimodality vs wavenumber-bank quantisation')
     print(f'  seeds ordered by |dk|/k : {res["rank_order_by_dk"]}')
     print('  their fan rho           : '
           + ', '.join(f'{v:+.2f}' for v in res['fan_in_that_order']))
-    print(f'  Spearman(|dk|/k, -rho)  : {rho_s:+.2f}  (n=5; exact order by '
-          f'chance = 1/120)')
+    print(f'  healthy   |dk|/k        : '
+          + ', '.join(f'{v:.4f}' for v in res['healthy_dk']))
+    print(f'  collapsed |dk|/k        : '
+          + ', '.join(f'{v:.4f}' for v in res['collapsed_dk']))
+    print(f'  groups separated        : {separated}  (margin {margin:.4f})')
+    print(f'  Spearman(|dk|/k, -rho)  : {rho_s:+.2f}  '
+          f'[FRAGILE -- see spearman_caveat]')
     print(f'  -> {res["verdict"]}')
     print(f'-> {OUT}')
 

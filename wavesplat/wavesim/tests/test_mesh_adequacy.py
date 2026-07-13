@@ -5,6 +5,7 @@ Regression guard for the bug that made the BF2 1-component "information limit"
 8.2 m wave at 1.2 points per wavelength, below Nyquist, so the LiDAR returned
 facet error instead of waves.
 """
+import numpy as np
 import pytest
 
 from wavesim import mesh_adequacy
@@ -72,3 +73,35 @@ def test_hos_order_accounts_for_bound_harmonics():
     linear = mesh_adequacy.check(comps, _cfg(40, 30))
     third = mesh_adequacy.check(comps, _cfg(40, 30), hos_order=3)
     assert third['lambda_min'] == pytest.approx(linear['lambda_min'] / 3)
+    assert third['lambda_peak'] == pytest.approx(linear['lambda_peak'] / 3)
+
+
+def test_hos_harmonics_also_count_against_the_variance_budget():
+    """The harmonics must not be able to hide from the verdict.
+
+    They used to: hos_order shrank lambda_min but the variance band was computed
+    on the fundamentals, so a nonlinear sea could be declared adequate on content
+    the mesh cannot represent.
+    """
+    comps = jonswap_components(Hs=1.2, Tp=8.0, n_components=60, depth=50.0,
+                               seed=0)
+    linear = mesh_adequacy.check(comps, _cfg(60, 50))
+    third = mesh_adequacy.check(comps, _cfg(60, 50), hos_order=3)
+    assert third['var_under_resolved'] > linear['var_under_resolved']
+
+
+def test_peak_locked_refuses_to_be_a_silent_no_op():
+    """peak_locked with many components used to do nothing, quietly."""
+    with pytest.raises(ValueError, match='single component'):
+        jonswap_components(Hs=1.2, Tp=7.0, n_components=15, depth=50.0, seed=0,
+                           peak_locked=True)
+
+
+def test_peak_locked_puts_the_lone_component_at_the_peak():
+    flank = jonswap_components(Hs=0.3, Tp=4.0, n_components=1, depth=50.0,
+                               seed=0)[0]
+    peak = jonswap_components(Hs=0.3, Tp=4.0, n_components=1, depth=50.0,
+                              seed=0, peak_locked=True)[0]
+    assert 2 * np.pi / flank.omega == pytest.approx(4.0 / 1.75, rel=1e-3)
+    assert 2 * np.pi / peak.omega == pytest.approx(4.0, rel=1e-6)
+    assert peak.A == pytest.approx(flank.A, rel=1e-9)   # Hs still matches

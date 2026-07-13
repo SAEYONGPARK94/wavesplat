@@ -103,6 +103,13 @@ def save_episode(filepath: str,
         frm.create_dataset('lidar_valid_mask', data=valid_arr, compression='gzip')
         frm.create_dataset('lidar_incidence_angles', data=incidence_arr, compression='gzip')
         frm.create_dataset('lidar_confidence', data=conf_arr, compression='gzip')
+        # The sensor's yield before the storage cap.  The cap saturates in every
+        # frame, so the stored point count is a storage policy, not a
+        # measurement -- this is the measurement (E-6b).
+        frm.create_dataset(
+            'n_returns_raw',
+            data=np.array([fd.get('n_returns_raw', fd['lidar_points'].shape[0])
+                           for fd in frames_data], dtype=np.int64))
         frm.create_dataset('gt_wave_field', data=gt_arr, compression='gzip')
         frm.create_dataset('gt_grid_x', data=gt_grid_x)
         frm.create_dataset('gt_grid_y', data=gt_grid_y)

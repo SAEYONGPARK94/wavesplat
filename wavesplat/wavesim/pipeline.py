@@ -178,6 +178,7 @@ def run_episode(sea_state: str = 'BF4',
         )
 
         # Raydrop model
+        n_raw = None            # returns before the storage cap (fixedT only)
         if raydrop_model == 'uniform':
             return_mask_rel = apply_uniform(
                 np.ones(len(hit_idx), dtype=bool),
@@ -188,7 +189,7 @@ def run_episode(sea_state: str = 'BF4',
             # the sensor's actual detection law (F2 verdict; H3-OD 2026-07-11):
             # fixed manual-calibrated threshold, count is a measurement.
             # n_pts is reused as the storage cap per frame (0 = uncapped).
-            return_mask_rel = apply_fixed_T(
+            return_mask_rel, n_raw = apply_fixed_T(
                 np.ones(len(hit_idx), dtype=bool),
                 hit_dist[hit_idx], incidence, rng, cap=n_pts
             )
@@ -218,6 +219,9 @@ def run_episode(sea_state: str = 'BF4',
             'lidar_incidence_angles': incidence[return_mask_rel],
             'lidar_confidence': conf,
             'gt_wave_field': Z_gt,
+            # What the sensor actually returned, before the storage cap took a
+            # uniform 13% of it.  Without this the file claims 8000 (E-6b).
+            'n_returns_raw': (len(final_idx) if n_raw is None else int(n_raw)),
         })
 
         if verbose:

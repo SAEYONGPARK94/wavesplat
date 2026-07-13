@@ -100,8 +100,12 @@ def apply_dropout_fixed_T(hit_mask: np.ndarray,
     Unlike apply_dropout there is no per-frame count budget: return iff
     A*X > T, so the count is a measurement (~95% of hits at T_MANUAL_50).
     cap > 0 subsamples the returns uniformly (random-within-selection keeps
-    the spatial distribution; storage/compute control only — record the raw
-    count from the caller if it matters).
+    the spatial distribution; storage/compute control only).
+
+    Returns (mask, n_raw).  n_raw is the count BEFORE the cap -- the sensor's
+    actual yield, ~60k/frame at the shipped ray budget.  The cap saturates in
+    every frame of the stored benchmark, so without n_raw the files silently
+    claim the sensor returns 8000 points when it returns 60,033 (E-6b).
     """
     return_mask = np.zeros(len(hit_mask), dtype=bool)
     hit_idx = np.where(hit_mask)[0]
@@ -111,7 +115,8 @@ def apply_dropout_fixed_T(hit_mask: np.ndarray,
     A = received_power(incidence_angles[hit_idx], hit_dist[hit_idx], d_ref)
     X = rng.gamma(shape=m_looks, scale=1.0 / m_looks, size=len(hit_idx))
     sel = np.where(A * X > T)[0]
+    n_raw = len(sel)                       # the sensor's actual yield
     if cap and len(sel) > cap:
         sel = rng.choice(sel, cap, replace=False)
     return_mask[hit_idx[sel]] = True
-    return return_mask
+    return return_mask, n_raw

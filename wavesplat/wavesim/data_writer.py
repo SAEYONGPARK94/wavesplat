@@ -29,7 +29,8 @@ def save_episode(filepath: str,
                  Hs: float, Tp: float,
                  gamma: float,
                  depth: float,
-                 spectrum_1d: np.ndarray):
+                 spectrum_1d: np.ndarray,
+                 mesh_info: dict = None):
     """
     Save a full episode to HDF5.
 
@@ -67,6 +68,10 @@ def save_episode(filepath: str,
         cfg.attrs['gamma'] = gamma
         cfg.attrs['n_components'] = len(components)
         cfg.attrs['depth'] = depth
+        # Raycast-mesh adequacy, so an episode carries its own provenance and
+        # an audit needs only to read the file (see wavesim/mesh_adequacy.py).
+        for key, val in (mesh_info or {}).items():
+            cfg.attrs[key] = val
         cfg.create_dataset('wave_components', data=comp_array)
 
         lidar_grp = cfg.create_group('lidar_config')

@@ -165,6 +165,17 @@ def jonswap_components(Hs: float, Tp: float,
     omega_centers = 0.5 * (omegas[:-1] + omegas[1:])
     d_omega = np.diff(omegas)
 
+    if n_components == 1:
+        # The lone bin spans the whole band, so its centre lands at 1.75*omega_p
+        # -- NOT the peak.  A "1-component BF2" is a T = 0.57*Tp wave carrying
+        # the full Hs, with a wavelength ~3x shorter than the peak's.  Changing
+        # this would break reproducibility of every stored episode, so it stands
+        # as documented behaviour (docs/E2_MESH_AUDIT_prereg_2026-07-13.md).
+        print(f"[wave][WARNING] n_components=1 places the single component at "
+              f"1.75*omega_p (T={2 * np.pi / omega_centers[0]:.2f} s), not at "
+              f"the peak (Tp={Tp:.1f} s). This is a spectral-flank wave, not a "
+              f"monochromatic peak wave.", flush=True)
+
     # JONSWAP spectrum S(ω)
     def jonswap_spectrum(omega):
         sigma = np.where(omega <= omega_p, 0.07, 0.09)

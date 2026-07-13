@@ -13,6 +13,7 @@ import numpy as np
 import argparse
 import os
 
+from wavesim import mesh_adequacy
 from wavesim.config import WaveSimConfig, load_config
 from wavesim.wave_generator import jonswap_components, check_q_constraint
 from wavesim.hos_simulator import HOSSimulator, HOSConfig
@@ -49,7 +50,8 @@ def run_episode(sea_state: str = 'BF4',
                 output_dir: str = 'data',
                 verbose: bool = True,
                 cfg: WaveSimConfig = None,
-                direction_deg: float = 0.0) -> str:
+                direction_deg: float = 0.0,
+                strict_mesh: bool = False) -> str:
     """
     Run one WaveSim episode and save to HDF5.
 
@@ -73,6 +75,10 @@ def run_episode(sea_state: str = 'BF4',
                                      direction_deg=direction_deg)
     satisfied, q_val = check_q_constraint(components)
     assert satisfied, f"Q constraint violated: {q_val:.3f}"
+
+    mesh_info = mesh_adequacy.check(
+        components, cfg, hos_order=cfg.hos.M if cfg.hos.enabled else None)
+    mesh_adequacy.enforce(mesh_info, strict=strict_mesh, verbose=verbose)
 
     hos_sim = None
     if use_hos:
@@ -233,7 +239,7 @@ def run_episode(sea_state: str = 'BF4',
         raydrop_params=({'T': T_MANUAL_50, 'cap': n_pts}
                         if raydrop_model == 'fixedT' else {'n_pts': n_pts}),
         sea_state=sea_state, Hs=Hs, Tp=Tp, gamma=3.3,
-        depth=depth, spectrum_1d=spectrum
+        depth=depth, spectrum_1d=spectrum, mesh_info=mesh_info
     )
 
     if verbose:
@@ -264,6 +270,9 @@ def main():
     parser.add_argument('--duration', type=float, default=None)
     parser.add_argument('--dt', type=float, default=None)
     parser.add_argument('--output_dir', default=None)
+    parser.add_argument('--strict_mesh', action='store_true',
+                        help='fail instead of warn when the raycast mesh '
+                             'cannot represent the sea (sub-Nyquist)')
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -287,6 +296,7 @@ def main():
         verbose=True,
         cfg=cfg,
         direction_deg=args.direction,
+        strict_mesh=args.strict_mesh,
     )
 
 

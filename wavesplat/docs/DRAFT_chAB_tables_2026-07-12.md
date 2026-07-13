@@ -254,21 +254,50 @@ in-window fit improves but temporal extrapolation blows up. A fixed floor
 
 ## Table B4 — 벤치마크 v2 (55 dir0 fixedT 에피소드) BF별 채점
 
-**캡션 초안 (국문).** 표 B4. 고정-T 에피소드 55개(dir0, BF2–BF5, 성분 수
-1–30)에 배포 레시피를 적용한 채점. 부채꼴(fan) rho는 전체 평균 0.84(48/55 ≥
-0.7), 조우(enc) rho는 0.72(39/55 ≥ 0.7). BF2 1-성분(장파·단일 성분)이 하한
-(fan 0.19, enc 0.17)이고 BF3–BF5에서 부채꼴 0.85–0.93로 포화한다. 고성분
-경우(BF4 15/30comp)에서 조우 rho가 떨어지는 것은 성분 수-대-개구 한계다.
+> ### ⚠ 2026-07-13 정정 (E-2/E-3b) — BF2 행은 바다가 아니라 시뮬레이터를 쟀다
+>
+> 구 캡션은 BF2 1-성분을 "**장파**·단일 성분"이라 부르며 하한으로 제시했다.
+> **두 군데가 틀렸다.** (1) BF2 1comp는 장파가 아니라 **λ = 8.2 m 단파**다
+> (`jonswap_components`의 n=1 빈-중심이 1.75·ωp에 놓임 → T = 0.57·Tp; E-2b).
+> (2) 그 8.2 m 파를 레이캐스트 메시(dx 6.2 m)가 **파장당 1.2점 = Nyquist
+> 미만**으로 렌더해, LiDAR 반환에 파 신호가 아예 없었다 (E-1/E-2).
+>
+> 적합한 메시(180×150, dx 1.34 m)로 같은 5개 바다를 재렌더해 **동일 레시피로
+> 짝지어 재채점**한 결과 (`e3b_bf2_rescore.json`):
+>
+> | BF2 1comp (5시드) | ann | fan | enc |
+> |---|---|---|---|
+> | 조악 메시 (구 발표값) | 0.180 | 0.184 | 0.348 |
+> | **미세 메시 (정정)** | **0.739** | **0.329** | **0.868** |
+>
+> 즉 **BF2는 하한이 아니었다.** 근접장·조우 예보는 회복된다(ann +0.56,
+> enc +0.52). 남은 fan 약세(0.33)는 아티팩트가 아니라 **진짜 물리 한계**로
+> 보인다 — 8.2 m 파를 200 m 밖에서 보면 LiDAR **샘플링**이 파장당 몇 점을
+>못 준다(메시가 아닌 관측 밀도의 문제). 이 구분을 캡션에 유지할 것.
+>
+> 표의 **전체(55) 행도 BF2 5개를 포함하므로 재채점 대상**이다(미착수 —
+> BF3–BF5는 피크가 적합 범위이나 BF3 5comp는 분산의 77 %가 미해상 대역:
+> E-2 표 참조). 아래 수치는 **정정 전 원본**으로 감사 이력을 위해 보존한다.
 
-**Caption (EN).** Table B4. Scoring the deployment recipe on 55 fixed-T
-episodes (dir0, BF2–BF5, 1–30 components). Fan rho averages 0.84 (48/55 ≥ 0.7);
-encounter rho 0.72 (39/55 ≥ 0.7). BF2 single-component (long-wave, one
-component) is the lower bound (fan 0.19, enc 0.17); fan saturates at 0.85–0.93
-for BF3–BF5.
+**캡션 초안 (국문, 정정 반영).** 표 B4. 고정-T 에피소드 55개(dir0, BF2–BF5,
+성분 수 1–30)에 배포 레시피를 적용한 채점. 부채꼴(fan) rho는 전체 평균
+0.84(48/55 ≥ 0.7), 조우(enc) rho는 0.72(39/55 ≥ 0.7). BF3–BF5에서 부채꼴이
+0.85–0.93로 포화한다. **BF2 1-성분 행(구 "하한 0.19")은 철회한다** — 그
+작동점은 레이캐스트 메시가 파장(8.2 m)을 표현하지 못하는 구간이었고, 적합한
+메시에서 ann 0.74 / enc 0.87로 회복된다(E-3b). 고성분(BF4 15/30comp)에서
+조우 rho가 떨어지는 것은 성분 수-대-개구 한계다.
+
+**Caption (EN, corrected).** Table B4. Scoring the deployment recipe on 55
+fixed-T episodes (dir0, BF2–BF5, 1–30 components). Fan rho averages 0.84
+(48/55 ≥ 0.7); encounter rho 0.72 (39/55 ≥ 0.7); fan saturates at 0.85–0.93 for
+BF3–BF5. **The BF2 single-component row (formerly "the 0.19 lower bound") is
+withdrawn**: at that operating point the raycast mesh could not represent the
+sea's 8.2 m wavelength (1.2 points per wavelength, below Nyquist), and on an
+adequate mesh the same seas recover to ann 0.74 / enc 0.87.
 
 | BF | n_ep | fan rho (≥0.7) | ann rho | enc rho (≥0.7) |
 |---|---|---|---|---|
-| BF2 | 5 | 0.194 (0/5) | 0.223 | 0.168 (1/5) |
+| ~~BF2~~ (철회, 위 정정 참조) | 5 | ~~0.194 (0/5)~~ | ~~0.223~~ | ~~0.168 (1/5)~~ |
 | BF3 | 15 | 0.845 (13/15) | 0.870 | 0.770 (12/15) |
 | BF4 | 25 | 0.934 (25/25) | 0.930 | 0.766 (18/25) |
 | BF5 | 10 | 0.923 (10/10) | 0.875 | 0.823 (8/10) |

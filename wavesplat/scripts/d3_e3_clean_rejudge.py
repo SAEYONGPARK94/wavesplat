@@ -40,7 +40,8 @@ def operator_error(path):
     The E-1 statistic, per episode: how much of what the sensor reports is not
     the wave.  Truth is evaluated from the stored components, never from a grid.
     """
-    from wavesim.wave_generator import WaveComponent, evaluate_field
+    from wavesim.gt_generator import evaluate_field
+    from wavesim.wave_generator import WaveComponent
     with h5py.File(path, 'r') as h:
         c = h['config/wave_components'][:]
         pts = h['frames/lidar_points'][:]

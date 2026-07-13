@@ -17,6 +17,7 @@ from wavesim import mesh_adequacy
 from wavesim.config import WaveSimConfig, load_config
 from wavesim.wave_generator import jonswap_components, check_q_constraint
 from wavesim.hos_simulator import HOSSimulator, HOSConfig
+from wavesim.lidar_gpu import raycast_surface_gpu
 from wavesim.lidar_simulator import (
     LidarConfig, build_mesh, generate_rays, raycast_surface,
     compute_incidence_angles, interpolate_normals
@@ -51,7 +52,8 @@ def run_episode(sea_state: str = 'BF4',
                 verbose: bool = True,
                 cfg: WaveSimConfig = None,
                 direction_deg: float = 0.0,
-                strict_mesh: bool = False) -> str:
+                strict_mesh: bool = False,
+                use_gpu_raycast: bool = False) -> str:
     """
     Run one WaveSim episode and save to HDF5.
 
@@ -146,14 +148,18 @@ def run_episode(sea_state: str = 'BF4',
             Z_mesh, _, _, _ = evaluate_field(components, X_mesh, Y_mesh, t)
         verts, tris = build_mesh(X_mesh, Y_mesh, Z_mesh)
 
-        # Raycast
-        hit_mask, hit_pts, hit_dist = raycast_surface(
+        # Raycast (the GPU path is arithmetic-only; identical candidate sets,
+        # verified hit-for-hit against the CPU path -- see wavesim/lidar_gpu.py)
+        _cast = raycast_surface_gpu if use_gpu_raycast else raycast_surface
+        _kw = ({} if use_gpu_raycast
+               else {'batch_size': cfg.raycast.batch_size})
+        hit_mask, hit_pts, hit_dist = _cast(
             origins, ray_dirs, verts, tris,
             range_min=lidar_cfg.range_min,
             range_max=lidar_cfg.range_max,
-            batch_size=cfg.raycast.batch_size,
             spatial_grid_nx=cfg.raycast.spatial_grid_nx,
             spatial_grid_ny=cfg.raycast.spatial_grid_ny,
+            **_kw,
         )
 
         if not np.any(hit_mask):
@@ -270,6 +276,8 @@ def main():
     parser.add_argument('--duration', type=float, default=None)
     parser.add_argument('--dt', type=float, default=None)
     parser.add_argument('--output_dir', default=None)
+    parser.add_argument('--gpu_raycast', action='store_true',
+                        help='run the intersection test on the GPU (identical results, ~12x on fine meshes)')
     parser.add_argument('--strict_mesh', action='store_true',
                         help='fail instead of warn when the raycast mesh '
                              'cannot represent the sea (sub-Nyquist)')
@@ -297,6 +305,7 @@ def main():
         cfg=cfg,
         direction_deg=args.direction,
         strict_mesh=args.strict_mesh,
+        use_gpu_raycast=args.gpu_raycast,
     )
 
 

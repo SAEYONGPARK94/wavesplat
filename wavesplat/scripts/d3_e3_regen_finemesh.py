@@ -20,8 +20,13 @@ from wavesim.pipeline import run_episode        # noqa: E402
 
 CFG = 'tmp/finemesh_bf2.yaml'      # identical to default.yaml except mesh 180x150
 OUT = 'tmp/finemesh_clean'
-LIST = 'tmp/clean_stage_episodes.txt'
-WORKERS = 12
+LIST = 'tmp/regen_episodes.txt'
+WORKERS = 3          # GPU-bound; more workers just exhaust VRAM
+
+# The stored fixedT episodes cap at 8000 returns/frame, not the config's 50.
+# Regenerating at the config default would have changed the observation count
+# as well as the mesh -- two interventions, one experiment.
+N_PTS = 8000
 
 PAT = re.compile(r'episode_(BF\d)_(\d+)comp_seed(\d+)_(\w+?)(_dir180)?\.h5$')
 
@@ -39,8 +44,8 @@ def one(spec):
     cfg = load_config(CFG)
     return run_episode(output_dir=OUT, verbose=False, cfg=cfg,
                        duration=cfg.episode.duration, dt=cfg.episode.dt,
-                       depth=cfg.episode.depth, n_pts=cfg.episode.n_pts,
-                       **spec)
+                       depth=cfg.episode.depth, n_pts=N_PTS,
+                       use_gpu_raycast=True, **spec)
 
 
 def main():

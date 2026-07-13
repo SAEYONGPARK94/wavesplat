@@ -44,16 +44,15 @@ def style(ax):
 
 def stage_deltas():
     """per-unit d(learned-hand), whole-field corr, three stages."""
-    # clean linear synthetic: appendix sheet (5 non-BF2) + dir180 (30)
-    clean = []
-    s = json.load(open(f'{OUT}/appendix_synth_eval.json'))
-    for e in s['episodes']:
-        if 'BF2' in e['episode']:
-            continue
-        clean.append(np.mean(e['corr_learned']) - np.mean(e['corr_hand']))
-    a2 = json.load(open(f'{OUT}/a2_dir180_eval.json'))
-    for e in a2['episodes']:
-        clean.append(np.mean(e['corr_learned']) - np.mean(e['corr_hand']))
+    # Clean linear synthetic: the same 35 seas, but re-rendered on a mesh that
+    # can actually represent them.  The stored episodes were raycast at 6.2 m
+    # node spacing, which leaves 14-77% of their variance below the mesh's
+    # resolving power, so the published -0.041 was measured through simulator
+    # clutter (E-2/E-3, 2026-07-13).  On an adequate mesh the stage is -0.032:
+    # the anchor holds -- learned still loses where nothing is misspecified --
+    # but a third of the old gap was the renderer, not the estimator.
+    e3 = json.load(open(f'{OUT}/e3_clean_rejudge.json'))
+    clean = [e['delta'] for e in e3['episodes']['fine']]
     hos = [r['learned'] - r['hand'] for r in
            json.load(open(f'{OUT}/a1_field_hos.json'))]
     real = [r['field_learned'] - r['field_hand'] for r in
@@ -63,7 +62,7 @@ def stage_deltas():
 
 def fig_gradient():
     data = stage_deltas()
-    labels = ['clean linear\nsynthetic\n(35 episodes)',
+    labels = ['clean linear\nsynthetic\n(35 episodes,\nadequate mesh)',
               'HOS M=3\nnonlinear\n(8 cells)',
               'real stereo\nseas\n(60 windows)']
     sub = ['no misspecification', 'bound waves,\nnonlinear evolution',

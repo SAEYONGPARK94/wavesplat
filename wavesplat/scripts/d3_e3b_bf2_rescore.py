@@ -98,7 +98,11 @@ def score(path, rng):
 
 def main():
     res = {}
-    for tag, root in (('coarse', 'data'), ('fine', 'tmp/finemesh')):
+    # tmp/finemesh (E-1b) capped returns at 50/frame while the stored episodes
+    # cap at 8000 -- that pair differed in observation count as well as mesh.
+    # tmp/finemesh_clean regenerates BF2 at the stored cap, so the mesh is the
+    # only thing that moves.
+    for tag, root in (('coarse', 'data'), ('fine', 'tmp/finemesh_clean')):
         recs = []
         for s in SEEDS:
             path = os.path.join(root, NAME.format(s))

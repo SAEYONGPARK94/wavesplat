@@ -5,8 +5,9 @@ Two things the reader has to be able to check at a glance:
   - fixing the renderer moved BF2 and almost nothing else, so the benchmark
     headline was never in danger (only its worst row was);
   - the sparse budget (600 obs/window = 50 returns/frame, the original
-    assumption) costs a little fan and *buys* encounter -- which is the
-    headline metric.
+    assumption) costs field accuracy (ann -0.051, fan -0.029, both t > 5) but
+    leaves the encounter forecast -- the metric control actually consumes --
+    statistically unchanged (+0.030 +- 0.029, t 1.0, 23/55 episodes improved).
 """
 import json
 import os
@@ -86,7 +87,8 @@ def main():
     ax.axhline(0.7, color=C_INK2, ls='--', lw=0.9)
     ax.set_ylim(0, 1.02)
     ax.set_ylabel('ρ', fontsize=10)
-    ax.set_title('all 55 episodes\nsparse costs fan, buys encounter',
+    ax.set_title('all 55 episodes\nsparse costs the field, leaves the '
+                 'encounter forecast intact',
                  fontsize=10.5, color=C_INK, fontweight='bold', loc='left')
     ax.grid(axis='y', color=C_GRID, lw=0.6)
     ax.set_axisbelow(True)
@@ -94,8 +96,8 @@ def main():
 
     fig.suptitle('Benchmark v2, re-scored on a mesh that can render it — and '
                  're-quoted at the sparsity the thesis assumes\n'
-                 'the renderer only ever endangered BF2; the sparse budget '
-                 '(50 returns/frame) leaves the headline intact',
+                 'the renderer only ever endangered BF2; at 50 returns/frame '
+                 'the field degrades but the encounter forecast does not',
                  fontsize=12.5, color=C_INK, fontweight='bold', y=0.99)
     p = f'{OUT}/fig_bench55_2026-07-13.png'
     fig.savefig(p, bbox_inches='tight')

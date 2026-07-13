@@ -89,9 +89,14 @@ def bilinear_frame(field, gx, gy, xq, yq):
             + (f01 * (1 - tx) + f11 * tx) * ty)
 
 
-def load_episode(path, rng):
-    """range-stratified ~2000 obs (12-frame / ~20 s window ending t=22 s) plus
-    the full gt field stack (for field-corr and track-corr truth)."""
+def load_episode(path, rng, n_obs=2000):
+    """range-stratified obs (12-frame / ~20 s window ending t=22 s) plus
+    the full gt field stack (for field-corr and track-corr truth).
+
+    n_obs defaults to 2000 -- the frozen deployment recipe, unchanged.  Pass 600
+    for the sparse regime the thesis assumes (50 returns/frame, configs
+    `n_pts: 50`): the PI's rule is that learning may use as much data as it
+    likes but validation runs at the originally assumed sparsity."""
     with h5py.File(path, 'r') as f:
         comp = f['config/wave_components'][:]        # [A, om, kx, ky, phi, Q]
         Hs = float(f['config'].attrs['Hs'])
@@ -121,7 +126,7 @@ def load_episode(path, rng):
         take = []
         for j in range(12):
             idx = np.where(b == j)[0]
-            k = min(len(idx), 167)
+            k = min(len(idx), max(-(-n_obs // 12), 1))
             if k:
                 take.append(rng.choice(idx, k, replace=False))
         sel = np.concatenate(take)

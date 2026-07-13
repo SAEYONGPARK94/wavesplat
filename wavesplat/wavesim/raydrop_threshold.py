@@ -102,20 +102,29 @@ def apply_dropout_fixed_T(hit_mask: np.ndarray,
     cap > 0 subsamples the returns uniformly (random-within-selection keeps
     the spatial distribution; storage/compute control only).
 
-    Returns (mask, n_raw).  n_raw is the count BEFORE the cap -- the sensor's
-    actual yield, ~60k/frame at the shipped ray budget.  The cap saturates in
-    every frame of the stored benchmark, so without n_raw the files silently
-    claim the sensor returns 8000 points when it returns 60,033 (E-6b).
+    Returns (mask, n_raw).  n_raw is the count BEFORE the cap.  The cap
+    saturates in every frame of the stored benchmark, so without n_raw the files
+    silently present a storage policy (8000) as if it were the yield (E-6b).
+
+    n_raw is a MODEL yield, not a measurement.  `received_power` uses the
+    specular Fresnel coefficient as if it were a diffuse albedo, which at the
+    grazing incidence of this geometry (theta -> 88 deg) sends the reflected
+    energy away from a monostatic receiver rather than back into it.  The
+    sibling model in raydrop_slope.py, applied to the same geometry, predicts
+    essentially zero returns.  The two disagree by orders of magnitude and the
+    absolute scale has never been checked against a real sensor over water.
+    Treat n_raw as "yield under an uncalibrated relative radiometry" and do not
+    quote it as the sensor's actual return count.
     """
     return_mask = np.zeros(len(hit_mask), dtype=bool)
     hit_idx = np.where(hit_mask)[0]
     if len(hit_idx) == 0:
-        return return_mask
+        return return_mask, 0
 
     A = received_power(incidence_angles[hit_idx], hit_dist[hit_idx], d_ref)
     X = rng.gamma(shape=m_looks, scale=1.0 / m_looks, size=len(hit_idx))
     sel = np.where(A * X > T)[0]
-    n_raw = len(sel)                       # the sensor's actual yield
+    n_raw = len(sel)                       # model yield, before the storage cap
     if cap and len(sel) > cap:
         sel = rng.choice(sel, cap, replace=False)
     return_mask[hit_idx[sel]] = True

@@ -224,7 +224,7 @@ def fig_performance():
     ax.axhline(0, color=C_AXIS, lw=1)
     ax.set_xlabel('mesh points per peak wavelength (coarse render)', fontsize=9)
     ax.set_ylabel('Δ moved by fixing the mesh', fontsize=9)
-    ax.set_title('(b) dose–response: the artifact was causal\n'
+    ax.set_title('(b) the shift scales with the damage (3 points, corroborating)\n'
                  'well-rendered BF5 barely moved; starved BF3 moved most',
                  fontsize=10, color=C_INK, fontweight='bold', loc='left')
     ax.grid(color=C_GRID, lw=0.6)
@@ -261,32 +261,36 @@ def fig_performance():
     ax.set_axisbelow(True)
     ax.spines[['top', 'right']].set_visible(False)
 
-    # (d) what is left is the sensor, not the renderer
+    # (d) the sampling story does not survive its own seeds
     ax = fig.add_subplot(gs[1, 1])
     bins = e6['P1']['BF2']['bins']
     ctr = [0.5 * (b[0] + b[1]) for b in bins]
-    ax.plot(ctr, e6['P1']['BF2']['rho'], 'o-', color=C_BAD, lw=2,
-            label=f"BF2  (λ {e6['P1']['BF2']['lam']:.0f} m)")
-    ax.plot(ctr, e6['P1']['BF4']['rho'], 'o-', color=C_HAND, lw=2,
-            label=f"BF4  (λ {e6['P1']['BF4']['lam']:.0f} m)")
-    ax.set_ylim(0, 1.05)
+    for r in e6['P1']['BF4']['seeds']:
+        ax.plot(ctr, r['rho'], '-', color=C_HAND, lw=1, alpha=0.5)
+    for r in e6['P1']['BF2']['seeds']:
+        flat = min(r['rho']) > 0.6
+        ax.plot(ctr, r['rho'], '-o', ms=3, lw=1.4,
+                color=(C_NET if flat else C_BAD), alpha=0.85)
+        if flat:
+            ax.annotate(f"seed{r['seed']}", (ctr[-1], r['rho'][-1]),
+                        textcoords='offset points', xytext=(4, -2),
+                        fontsize=7, color=C_NET)
+    ax.plot(ctr, e6['P1']['BF2']['rho'], 'o-', color=C_INK, lw=2.4,
+            label='BF2 mean (λ 8 m)', zorder=5)
+    ax.plot(ctr, e6['P1']['BF4']['rho'], '-', color=C_HAND, lw=2.4,
+            label='BF4 control, 5 seeds (λ 65 m)', zorder=4)
+    ax.set_ylim(-0.3, 1.05)
+    ax.axhline(0, color=C_AXIS, lw=0.8)
     ax.set_xlabel('range from sensor [m]', fontsize=9)
-    ax.set_ylabel('ρ  (fine mesh)', fontsize=9)
-    ax.legend(frameon=False, fontsize=8, loc='lower left')
-    ax2 = ax.twinx()
-    ax2.plot(ctr, e6['P1']['BF2']['pts_lam'], '--', color=C_BAD, lw=1, alpha=0.5)
-    ax2.plot(ctr, e6['P1']['BF4']['pts_lam'], '--', color=C_HAND, lw=1, alpha=0.5)
-    ax2.set_yscale('log')
-    ax2.set_ylabel('LiDAR returns per wavelength (dashed)', fontsize=8,
-                   color=C_MUT)
-    ax2.grid(False)
-    ax.set_title("(d) what the mesh fix did NOT explain\n"
-                 'BF2 decays with range, BF4 (same rays, same mesh) does not '
-                 '— mechanism unsettled',
+    ax.set_ylabel('ρ  (fine mesh, 2000 obs)', fontsize=9)
+    ax.legend(frameon=False, fontsize=7.5, loc='lower left')
+    ax.set_title('(d) the sampling explanation FAILS its own seeds\n'
+                 'only 1/5 BF2 seeds decays; two (green) stay flat at the same '
+                 'λ — so it is identification, not sampling',
                  fontsize=10, color=C_INK, fontweight='bold', loc='left')
     ax.grid(color=C_GRID, lw=0.6)
     ax.set_axisbelow(True)
-    ax.spines[['top']].set_visible(False)
+    ax.spines[['top', 'right']].set_visible(False)
 
     fig.suptitle('The mesh artifact: what it broke, how much it moved, '
                  'and what it did not explain',

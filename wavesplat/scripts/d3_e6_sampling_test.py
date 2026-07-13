@@ -39,9 +39,11 @@ from d3_gpu_mmse import build_bank, design, mmse_gpu  # noqa: E402
 
 FINE = 'tmp/finemesh_clean'
 OUT = 'results/direction3/e6_sampling_test.json'
-SEEDS = [0, 1, 2, 3, 4]
+SEEDS = [0, 1, 2, 3, 4]      # BF4 control needs all five, not one
 RANGE_BINS = [(15, 50), (50, 85), (85, 120), (120, 160), (160, 200)]
-N_OBS = [500, 2000, 8000]          # P2 sweep; 2000 = the deployment recipe
+# P2 sweep. 600 = the sparse regime the thesis assumes (50 returns/frame x
+# 12 frames); 2000 = the deployment recipe; the rest exhaust the window.
+N_OBS = [500, 600, 2000, 8000, 24000, 60000]
 
 
 def load(path, rng, n_obs):
@@ -140,11 +142,15 @@ def main():
                 pts_lam=[obs_pts_per_lambda(ep, lo, hi) for lo, hi in RANGE_BINS]))
         if not rows:
             continue
+        mono = int(sum(all(r['rho'][j] >= r['rho'][j + 1] - 1e-9
+                           for j in range(len(RANGE_BINS) - 1)) for r in rows))
         res['P1'][sea] = dict(
             lam=float(np.mean([r['lam'] for r in rows])),
             bins=[list(b) for b in RANGE_BINS],
             rho=np.nanmean([r['rho'] for r in rows], axis=0).tolist(),
             pts_lam=np.nanmean([r['pts_lam'] for r in rows], axis=0).tolist(),
+            n_seeds=len(rows),
+            monotone_seeds=mono,          # G-E6-1 is a per-seed gate, not a mean
             seeds=rows)
         r = res['P1'][sea]
         print(f"[P1] {sea} (lam {r['lam']:.1f} m)")

@@ -28,7 +28,10 @@ NAME = 'episode_BF2_1comp_seed{}_fixedT.h5'
 OUT = 'results/direction3/e3b_bf2_rescore.json'
 
 
-def score(path, rng):
+def score(path, rng, n_obs=2000):
+    """n_obs: window observation budget. 2000 = the deployment recipe;
+    600 = the sparse regime the thesis actually assumes (50 returns/frame over
+    the 12-frame window, per configs/default.yaml `n_pts: 50`)."""
     with h5py.File(path, 'r') as f:
         comp = f['config/wave_components'][:]
         ts = f['frames/timestamps'][:]
@@ -52,7 +55,7 @@ def score(path, rng):
         take = []
         for j in range(12):
             idx = np.where(b == j)[0]
-            k = min(len(idx), 167)
+            k = min(len(idx), max(-(-n_obs // 12), 1))
             if k:
                 take.append(rng.choice(idx, k, replace=False))
         sel = np.concatenate(take)

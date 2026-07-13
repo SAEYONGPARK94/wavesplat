@@ -44,13 +44,15 @@ def style(ax):
 
 def stage_deltas():
     """per-unit d(learned-hand), whole-field corr, three stages."""
-    # Clean linear synthetic: the same 35 seas, but re-rendered on a mesh that
-    # can actually represent them.  The stored episodes were raycast at 6.2 m
-    # node spacing, which leaves 14-77% of their variance below the mesh's
-    # resolving power, so the published -0.041 was measured through simulator
-    # clutter (E-2/E-3, 2026-07-13).  On an adequate mesh the stage is -0.032:
-    # the anchor holds -- learned still loses where nothing is misspecified --
-    # but a third of the old gap was the renderer, not the estimator.
+    # Clean linear synthetic: the same 35 seas re-rendered at 1.34 m node
+    # spacing instead of 6.2 m.  The stored episodes left 14-77% of their
+    # variance below the mesh's resolving power, so the published -0.041 was
+    # measured through simulator clutter (E-2/E-3, 2026-07-13).  On the fine
+    # mesh the stage is -0.032: the anchor holds -- learned still loses where
+    # nothing is misspecified -- but a third of the old gap was the renderer.
+    # Not "adequate" for all 35: BF3_5comp (6 eps) still sits at 4.7 points per
+    # wavelength on its shortest significant component.  Dropping those 6 gives
+    # -0.030 (t -6.1), so the verdict does not rest on them.
     e3 = json.load(open(f'{OUT}/e3_clean_rejudge.json'))
     clean = [e['delta'] for e in e3['episodes']['fine']]
     hos = [r['learned'] - r['hand'] for r in
@@ -62,7 +64,7 @@ def stage_deltas():
 
 def fig_gradient():
     data = stage_deltas()
-    labels = ['clean linear\nsynthetic\n(35 episodes,\nadequate mesh)',
+    labels = ['clean linear\nsynthetic\n(35 episodes,\nfine mesh 1.34 m)',
               'HOS M=3\nnonlinear\n(8 cells)',
               'real stereo\nseas\n(60 windows)']
     sub = ['no misspecification', 'bound waves,\nnonlinear evolution',

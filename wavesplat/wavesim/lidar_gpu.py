@@ -1,4 +1,7 @@
-"""GPU Möller-Trumbore, bit-for-bit compatible with lidar_simulator.raycast_surface.
+"""GPU Möller-Trumbore, hit-for-hit identical to lidar_simulator.raycast_surface.
+
+("hit-for-hit", not "bit-for-bit": the same rays hit the same triangles, but
+float64 reassociation on the GPU moves the intersection coordinates by ~1e-13 m.)
 
 Rendering an adequate mesh (180x150 = 53k triangles) costs 13.9 s/frame on the
 CPU -- 70 minutes per episode, 40 hours for the 35-episode E-3 stage.  That is

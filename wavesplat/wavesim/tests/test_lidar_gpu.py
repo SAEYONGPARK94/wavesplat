@@ -40,7 +40,11 @@ def _scene(mesh_nx, mesh_ny):
     return cfg, lc, O, D, V, T
 
 
-@pytest.mark.parametrize('mesh', [(40, 30), (90, 75)])
+@pytest.mark.parametrize('mesh', [
+    (40, 30),                                     # the shipped default
+    (90, 75),
+    pytest.param((180, 150), marks=pytest.mark.slow),  # the mesh E-3 regenerated on
+])
 def test_gpu_raycast_matches_cpu_hit_for_hit(mesh):
     cfg, lc, O, D, V, T = _scene(*mesh)
     kw = dict(range_min=lc.range_min, range_max=lc.range_max,

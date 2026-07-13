@@ -59,13 +59,20 @@ def main():
         vu = float(np.mean([r['var_under_resolved'] for r in v]))
         pk = float(np.mean([r['pts_per_lambda_peak'] for r in v]))
         pm = float(np.mean([r['pts_per_lambda'] for r in v]))
-        vd = v[0]['mesh_verdict']
+        # Take the WORST episode's verdict, not the first one's.  Wavelengths are
+        # seed-invariant today so every group is homogeneous, but reading v[0]
+        # would silently hide a bad episode the day that stops being true.
+        order = {mesh_adequacy.ADEQUATE: 0, mesh_adequacy.DEGRADED: 1,
+                 mesh_adequacy.INADEQUATE: 2}
+        vd = max((r['mesh_verdict'] for r in v), key=lambda x: order[x])
+        mixed = len({r['mesh_verdict'] for r in v}) > 1
         rows.append(dict(sea=sea, n_components=ncomp, n_episodes=len(v),
                          lambda_peak=lp, pts_per_lambda_peak=pk,
                          pts_per_lambda_min=pm, var_under_resolved=vu,
-                         verdict=vd))
+                         verdict=vd, mixed_within_group=mixed))
         print(f'{sea + "_" + str(ncomp) + "comp":<14} {len(v):3d} {lp:8.1f}m '
-              f'{pk:10.1f} {pm:11.1f} {100 * vu:7.0f}%  {vd}')
+              f'{pk:10.1f} {pm:11.1f} {100 * vu:7.0f}%  {vd}'
+              f'{"  [MIXED]" if mixed else ""}')
 
     res = dict(date='2026-07-13',
                prereg='docs/E2_MESH_AUDIT_prereg_2026-07-13.md',

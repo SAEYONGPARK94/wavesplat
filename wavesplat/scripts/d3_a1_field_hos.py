@@ -25,13 +25,19 @@ sys.path.insert(0, 'scripts')
 
 from d3_h7_hos_arena import (surface_snap, z_at, scan_hits, SCAN_REL,
                              SPINUP, NOISE)
-from d3_f1_hos_door1 import hos_run, sea_components, DT, FOV_H
-from d3_door1b_field_bias import R_MIN
+from d3_f1_hos_door1 import hos_run, sea_components, DT
+from d3_door1b_field_bias import R_MIN, FOV_H
 from d3_gpu_mmse import mmse_gpu
 from d3_prior_net_eval import get_net, net_gamma_mmse, DEVICE
 from d3_l1_s2head_train import SmultHead
 
 OUT = 'results/direction3/a1_field_hos.json'
+# E-9 (PI directive, 2026-07-13): the gradient's three stages must be compared at
+# ONE observation budget.  The real stage already runs at m_cap = 600/window and
+# the clean-linear stage is now quoted at 600, so HOS -- the only stage that holds
+# the observation operator fixed while the physics changes -- must be re-quoted
+# there too, or the gradient compares budgets rather than seas.
+N_OBS = int(os.environ.get('A1_N_OBS', 2000))
 SEEDS = [0, 1, 2, 3]
 HS_LIST = [1.2, 3.0]
 LEADS = [0.0, 2.0, 5.0, 8.0]
@@ -61,7 +67,7 @@ def run_cell(seed, Hs, net, head, rng):
     take = []
     for j in range(12):
         idx = np.where(b == j)[0]
-        k = min(len(idx), 167)
+        k = min(len(idx), max(-(-N_OBS // 12), 1))
         if k:
             take.append(rng.choice(idx, k, replace=False))
     sel = np.concatenate(take)

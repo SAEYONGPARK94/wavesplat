@@ -53,10 +53,15 @@ def stage_deltas():
     # Not "adequate" for all 35: BF3_5comp (6 eps) still sits at 4.7 points per
     # wavelength on its shortest significant component.  Dropping those 6 gives
     # -0.030 (t -6.1), so the verdict does not rest on them.
+    # E-9 (PI directive, 2026-07-13): all three stages are quoted at ONE
+    # observation budget -- the sparse one the thesis actually assumes (600 obs
+    # per window = 50 returns/frame).  The real stage was already there
+    # (m_cap = 600); the other two are now re-quoted to match.  Comparing stages
+    # at different budgets would compare budgets, not seas.
     e3 = json.load(open(f'{OUT}/e3_clean_rejudge.json'))
-    clean = [e['delta'] for e in e3['episodes']['fine']]
+    clean = [e['delta'] for e in e3['episodes']['fine_sparse']]
     hos = [r['learned'] - r['hand'] for r in
-           json.load(open(f'{OUT}/a1_field_hos.json'))]
+           json.load(open(f'{OUT}/a1_field_hos_sparse600.json'))]
     real = [r['field_learned'] - r['field_hand'] for r in
             json.load(open(f'{OUT}/field_wide_eval.json'))]
     return [np.array(clean), np.array(hos), np.array(real)]
@@ -96,9 +101,10 @@ def fig_gradient():
                     ha='center', fontsize=8, color=C_MUT)
     ax.set_ylabel('whole-field corr:  learned $-$ physics prior')
     ax.set_title('Learning wins exactly where physics is misspecified\n'
-                 '(same estimator pair, three validation stages; '
-                 'dots = units, bars = 95% CI)',
-                 fontsize=11, color=C_INK, loc='left')
+                 'same estimator pair, same observation budget '
+                 '(600 obs/window = 50 returns/frame); '
+                 'dots = units, bars = 95% CI',
+                 fontsize=10.5, color=C_INK, loc='left')
     style(ax)
     fig.tight_layout()
     p = f'{OUT}/fig_gradient_2026-07-12.png'

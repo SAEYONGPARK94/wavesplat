@@ -254,8 +254,8 @@ ADVISOR_MEMO §4). 구분은 네 축의 **결합·보장·도메인**에 있다.
 | **잡음바닥+prior (조우, 60창)** | head−hand 전창 **+0.088** / 실패창 **+0.227** | $t_{\text{win}}$ 3.14/4.75·$t_{\text{rec}}$ 4.59/5.01·5/5레코드·CI [+0.052,+0.117]/[+0.142,+0.297] | `cluster_bootstrap_2026-07-12.json` (B) |
 | 바닥 단독 기여 (분해) | fix3−hand 전창 +0.083 / 실패창 +0.211; 학습 head 수렴 $s\!\approx\!3.2$ ($\approx\!3\sigma_0$) | 2×2 가법 분해, 상호작용 ~0 | `cluster_bootstrap...json` (C)·`head_anatomy.json` (smult_head 3.18–3.23) |
 | **시드 재현** | 훈련 시드 $\{0,1,2\}$ 전이 유지 (bw_s0/s1/s2) | A-5, 부호·크기 일관 | `gate_promotion_eval.json` (bw_s0/s1/s2 열) |
-| **HOS 재현 (전장)** | 비선형 HOS M=3에서 pooled **+0.070**, 7/8셀 | 부호 일관 (Hs1.2 +0.075 / Hs3.0 +0.064) | `a1_field_hos.json` |
-| 오지정 기울기 (3무대) | clean 선형 −0.015 / HOS +0.070 / 실측 +0.033 | 훈련-표적(오지정) 정합 = task-loss가 물리가 모르는 것만 채움 | `a1_field_hos.json`·`sa_multirecord_mmse(_net).json`·RUNLOG |
+| **HOS 재현 (전장)** | 비선형 HOS M=3에서 pooled **+0.091**, **8/8셀** (희소 600점, E-9 규약) | 2,000점 기준 구 값 +0.070(7/8) — 예산 통일 후 강해짐 | `a1_field_hos_sparse600.json` |
+| 오지정 기울기 (3무대) | **clean −0.046 / HOS +0.091 / 실측 +0.033** (전 무대 600점, E-9 예산 통일) | 훈련-표적(오지정) 정합 = task-loss가 물리가 모르는 것만 채움. 구 값(−0.015 / −0.041 / +0.070)은 각각 5-에피소드 시트·조악 메시·2,000점 기준 — 인용 금지 | `e3_clean_rejudge.json`·`a1_field_hos_sparse600.json`·`field_wide_eval.json` |
 | **제어 전달 (D-20)** | 실측 리플레이 폐루프, learned-FF 잔여 < hand-FF **−0.086** | $t$ **−4.02**·$n{=}72$·3/3레코드 (LJ18g 실패창 −0.195 주역) | `d20_replay_eval.json` |
 | 속도 | amortizer 111× (정확도 손실 없음); GPU 재추정 5 ms p50 | — | RUNLOG·D-20 (동등성 1.0000) |
 

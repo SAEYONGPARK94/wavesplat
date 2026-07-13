@@ -53,7 +53,8 @@ def run_episode(sea_state: str = 'BF4',
                 cfg: WaveSimConfig = None,
                 direction_deg: float = 0.0,
                 strict_mesh: bool = False,
-                use_gpu_raycast: bool = False) -> str:
+                use_gpu_raycast: bool = False,
+                peak_locked: bool = False) -> str:
     """
     Run one WaveSim episode and save to HDF5.
 
@@ -74,7 +75,8 @@ def run_episode(sea_state: str = 'BF4',
     use_hos = cfg.hos.enabled
     components = jonswap_components(Hs=Hs, Tp=Tp, n_components=n_components,
                                      depth=depth, seed=seed,
-                                     direction_deg=direction_deg)
+                                     direction_deg=direction_deg,
+                                     peak_locked=peak_locked)
     satisfied, q_val = check_q_constraint(components)
     assert satisfied, f"Q constraint violated: {q_val:.3f}"
 
@@ -238,8 +240,9 @@ def run_episode(sea_state: str = 'BF4',
 
     os.makedirs(output_dir, exist_ok=True)
     dtag = '' if abs(direction_deg) < 1e-9 else f"_dir{int(direction_deg)}"
+    ptag = '_pk' if peak_locked else ''      # component at the spectral peak
     fname = (f"episode_{sea_state}_{n_components}comp_seed{seed}"
-             f"_{raydrop_model}{dtag}.h5")
+             f"_{raydrop_model}{dtag}{ptag}.h5")
     filepath = os.path.join(output_dir, fname)
 
     save_episode(
@@ -280,6 +283,9 @@ def main():
     parser.add_argument('--duration', type=float, default=None)
     parser.add_argument('--dt', type=float, default=None)
     parser.add_argument('--output_dir', default=None)
+    parser.add_argument('--peak_locked', action='store_true',
+                        help='place a 1-component sea at the spectral peak '
+                             '(the bin-centre default puts it at 1.75*omega_p)')
     parser.add_argument('--gpu_raycast', action='store_true',
                         help='run the intersection test on the GPU (identical results, ~12x on fine meshes)')
     parser.add_argument('--strict_mesh', action='store_true',
@@ -310,6 +316,7 @@ def main():
         direction_deg=args.direction,
         strict_mesh=args.strict_mesh,
         use_gpu_raycast=args.gpu_raycast,
+        peak_locked=args.peak_locked,
     )
 
 

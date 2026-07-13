@@ -136,7 +136,8 @@ def jonswap_components(Hs: float, Tp: float,
                         direction_deg: float = 0.0,
                         direction_spread_deg: float = 30.0,
                         seed: Optional[int] = None,
-                        Q_max: float = 0.8) -> List[WaveComponent]:
+                        Q_max: float = 0.8,
+                        peak_locked: bool = False) -> List[WaveComponent]:
     """
     Generate wave components from JONSWAP spectrum (Hasselmann et al. 1973).
 
@@ -165,16 +166,24 @@ def jonswap_components(Hs: float, Tp: float,
     omega_centers = 0.5 * (omegas[:-1] + omegas[1:])
     d_omega = np.diff(omegas)
 
-    if n_components == 1:
-        # The lone bin spans the whole band, so its centre lands at 1.75*omega_p
-        # -- NOT the peak.  A "1-component BF2" is a T = 0.57*Tp wave carrying
-        # the full Hs, with a wavelength ~3x shorter than the peak's.  Changing
-        # this would break reproducibility of every stored episode, so it stands
-        # as documented behaviour (docs/E2_MESH_AUDIT_prereg_2026-07-13.md).
+    if peak_locked:
+        # What a "1-component sea" is supposed to mean: the component sits at
+        # the spectral peak.  Bin-centring does not do that -- with one bin
+        # spanning [0.5, 3]*omega_p the centre lands at 1.75*omega_p, i.e.
+        # T = 0.57*Tp and a wavelength 3x shorter than the peak's.  That is how
+        # every stored 1-component episode was built, so the correct placement
+        # is opt-in rather than a silent change of the dataset
+        # (docs/E10_PATTERN_prereg_2026-07-13.md §5, user directive 2026-07-13).
+        omega_centers = np.full(n_components, omega_p) if n_components == 1 \
+            else omega_centers
+        d_omega = np.array([omega_max - omega_min]) if n_components == 1 \
+            else d_omega
+    elif n_components == 1:
         print(f"[wave][WARNING] n_components=1 places the single component at "
               f"1.75*omega_p (T={2 * np.pi / omega_centers[0]:.2f} s), not at "
               f"the peak (Tp={Tp:.1f} s). This is a spectral-flank wave, not a "
-              f"monochromatic peak wave.", flush=True)
+              f"monochromatic peak wave. Pass peak_locked=True for the peak.",
+              flush=True)
 
     # JONSWAP spectrum S(ω)
     def jonswap_spectrum(omega):

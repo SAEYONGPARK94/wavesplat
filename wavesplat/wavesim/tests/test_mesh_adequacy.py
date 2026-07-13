@@ -49,6 +49,23 @@ def test_fine_mesh_resolves_bf2_1comp():
     mesh_adequacy.enforce(info, strict=True, verbose=False)   # must not raise
 
 
+def test_verdict_is_driven_by_unresolvable_variance_not_the_peak():
+    """A mesh can render the peak beautifully and still drop a fifth of the sea.
+
+    This is the BF4 benchmark case: 9.5 points per peak wavelength looks fine,
+    but ~20% of the variance sits below the mesh's resolving power, and the
+    measured operator error was 2.4x the nominal noise.  The verdict must see
+    that, which is why it keys on variance rather than on the peak.
+    """
+    comps = jonswap_components(Hs=1.2, Tp=7.0, n_components=15, depth=50.0,
+                               seed=0)
+    info = mesh_adequacy.check(comps, _cfg(40, 30))
+    assert info['pts_per_lambda_peak'] > mesh_adequacy.PTS_PER_LAMBDA_OK
+    assert info['var_under_resolved'] > mesh_adequacy.VAR_UNDER_OK
+    assert info['mesh_verdict'] == mesh_adequacy.DEGRADED
+    assert not info['mesh_adequate']
+
+
 def test_hos_order_accounts_for_bound_harmonics():
     comps = jonswap_components(Hs=1.2, Tp=8.0, n_components=60, depth=50.0,
                                seed=0)

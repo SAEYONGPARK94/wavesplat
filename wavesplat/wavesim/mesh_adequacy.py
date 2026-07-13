@@ -11,18 +11,37 @@ dx 6.15 m, dy 6.90 m) renders the BF2 1-component sea (lambda 8.2 m) at
 episodes measured the simulator, not the sea (docs/E2_MESH_AUDIT_prereg_
 2026-07-13.md).
 
-Rule used here:
-    >= 6 points per wavelength  -> adequate
-    >= 2 points per wavelength  -> representable but degraded (Nyquist floor)
-    <  2 points per wavelength  -> the wave does not exist on the mesh
+ONE criterion, used by both the guard and the audit (reconciled 2026-07-13 after
+review found them disagreeing -- the audit judged on the peak wavelength, the
+guard on the shortest significant one, so the same episode could be called both
+adequate and inadequate).
+
+The physically meaningful quantity is not a wavelength but an energy: **how much
+of the sea's variance lives below the mesh's resolving power**.  A mesh that
+renders the peak beautifully while dropping a fifth of the variance still feeds
+the estimator clutter -- exactly what the BF4 benchmark episodes did (operator
+error 0.051 m = 2.4x the nominal noise, despite 9.5 points per peak wavelength).
+
+    var_under = fraction of sum(A^2) held by components with lambda < 6*dx
+
+    var_under <= 5%   and peak above Nyquist  -> ADEQUATE
+    var_under <= 25%  and peak above Nyquist  -> DEGRADED (usable, disclose it)
+    otherwise, or peak below Nyquist          -> INADEQUATE
+
+Points-per-wavelength (at the peak and at the shortest significant component)
+are kept as diagnostics, since they are what you tune the mesh with.
 """
 from typing import List, Optional
 
 import numpy as np
 
-PTS_PER_LAMBDA_OK = 6.0       # adequacy target
-PTS_PER_LAMBDA_NYQUIST = 2.0  # hard floor
-VAR_TAIL = 0.01               # ignore components below 1% of total variance
+PTS_PER_LAMBDA_OK = 6.0       # a wavelength is resolved at >= 6 mesh points
+PTS_PER_LAMBDA_NYQUIST = 2.0  # below this a wave does not exist on the mesh
+VAR_TAIL = 0.01               # "significant" component: >= 1% of total variance
+VAR_UNDER_OK = 0.05           # adequate: <= 5% of variance unresolvable
+VAR_UNDER_DEGRADED = 0.25     # degraded but usable: <= 25%
+
+ADEQUATE, DEGRADED, INADEQUATE = 'ADEQUATE', 'DEGRADED', 'INADEQUATE'
 
 
 def mesh_spacing(cfg) -> tuple:
@@ -60,15 +79,27 @@ def check(components: List, cfg, hos_order: Optional[int] = None) -> dict:
     if hos_order and hos_order > 1:
         lam_min /= float(hos_order)      # shortest bound harmonic
 
-    pts = lam_min / d
-    under = float(var[lam < PTS_PER_LAMBDA_OK * d].sum() / var.sum()) if var.sum() else 0.0
+    under = float(var[lam < PTS_PER_LAMBDA_OK * d].sum() / var.sum()) \
+        if var.sum() else 0.0
+    pts_peak = lam_peak / d
+    pts_min = lam_min / d
+    peak_ok = pts_peak >= PTS_PER_LAMBDA_NYQUIST
+
+    if not peak_ok or under > VAR_UNDER_DEGRADED:
+        verdict = INADEQUATE
+    elif under > VAR_UNDER_OK:
+        verdict = DEGRADED
+    else:
+        verdict = ADEQUATE
 
     return dict(mesh_dx=float(dx), mesh_dy=float(dy),
                 lambda_peak=lam_peak, lambda_min=lam_min,
-                pts_per_lambda=float(pts),
+                pts_per_lambda_peak=float(pts_peak),
+                pts_per_lambda=float(pts_min),      # at the shortest sig. comp
                 var_under_resolved=under,
-                mesh_adequate=bool(pts >= PTS_PER_LAMBDA_OK),
-                mesh_above_nyquist=bool(pts >= PTS_PER_LAMBDA_NYQUIST))
+                mesh_verdict=verdict,
+                mesh_adequate=bool(verdict == ADEQUATE),
+                mesh_above_nyquist=bool(peak_ok))
 
 
 def enforce(info: dict, strict: bool = False, verbose: bool = True) -> None:

@@ -298,17 +298,21 @@ in-window fit improves but temporal extrapolation blows up. A fixed floor
 성분 수 1–30)에 배포 레시피를 적용한 채점. 부채꼴(fan) rho는 전체 평균
 0.84(48/55 ≥ 0.7), 조우(enc) rho는 0.72(39/55 ≥ 0.7). BF3–BF5에서 부채꼴이
 0.85–0.93로 포화한다. **BF2 1-성분 행(구 "하한 0.19")은 철회한다** — 그
-작동점은 레이캐스트 메시가 파장(8.2 m)을 표현하지 못하는 구간이었고, 적합한
-메시에서 ann 0.74 / enc 0.87로 회복된다(E-3b). 고성분(BF4 15/30comp)에서
-조우 rho가 떨어지는 것은 성분 수-대-개구 한계다.
+작동점은 레이캐스트 메시가 파장(8.2 m)을 표현하지 못하는 구간이었다(파장당
+1.2점, Nyquist 미만). 미세 메시에서 **근접장은 회복된다(ann 0.18 → 0.64,
+t 3.1)**; 부채꼴·조우의 상승(fan 0.36, enc 0.50)은 **n = 5에서 유의하지 않아
+회복을 단언하지 않는다**. 고성분(BF4 15/30comp)에서 조우 rho가 떨어지는 것은
+성분 수-대-개구 한계다.
 
 **Caption (EN, corrected).** Table B4. Scoring the deployment recipe on 55
 fixed-T episodes (dir0, BF2–BF5, 1–30 components). Fan rho averages 0.84
 (48/55 ≥ 0.7); encounter rho 0.72 (39/55 ≥ 0.7); fan saturates at 0.85–0.93 for
 BF3–BF5. **The BF2 single-component row (formerly "the 0.19 lower bound") is
 withdrawn**: at that operating point the raycast mesh could not represent the
-sea's 8.2 m wavelength (1.2 points per wavelength, below Nyquist), and on an
-adequate mesh the same seas recover to ann 0.74 / enc 0.87.
+sea's 8.2 m wavelength (1.2 points per wavelength, below Nyquist). On a fine
+mesh the near field recovers (ann 0.18 → 0.64, t = 3.1); the fan and encounter
+gains (0.36, 0.50) are **not significant at n = 5** and are reported with their
+spread rather than claimed as recoveries.
 
 | BF | n_ep | fan rho (≥0.7) | ann rho | enc rho (≥0.7) |
 |---|---|---|---|---|

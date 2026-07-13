@@ -58,8 +58,13 @@ def main():
         ax.set_xticks(x)
         ax.set_xticklabels([f"{s}\n(n={d['by_sea'][s]['coarse']['n']})"
                             for s in seas], fontsize=8.5)
-        ax.axhline(0.7, color=C_INK2, ls='--', lw=0.9)
-        ax.text(-0.45, 0.72, 'operability 0.7', fontsize=7, color=C_INK2)
+        if met == 'fan':
+            ax.axhline(0.7, color=C_INK2, ls='--', lw=0.9)
+            ax.text(-0.45, 0.72, 'operability 0.7', fontsize=7, color=C_INK2)
+        else:
+            ax.text(-0.45, 0.05, 'dir0 = anti-causal for encounter:\n'
+                    'machinery check, not operational skill', fontsize=6.5,
+                    color=C_INK2)
         ax.set_ylim(0, 1.02)
         ax.set_ylabel('ρ', fontsize=10)
         ax.set_title(title, fontsize=10.5, color=C_INK, fontweight='bold',
@@ -87,8 +92,8 @@ def main():
     ax.axhline(0.7, color=C_INK2, ls='--', lw=0.9)
     ax.set_ylim(0, 1.02)
     ax.set_ylabel('ρ', fontsize=10)
-    ax.set_title('all 55 episodes\nsparse costs the field, leaves the '
-                 'encounter forecast intact',
+    ax.set_title('all 55 episodes\nsparse costs the field (t>5); enc change '
+                 'not detectable (t 1.0)',
                  fontsize=10.5, color=C_INK, fontweight='bold', loc='left')
     ax.grid(axis='y', color=C_GRID, lw=0.6)
     ax.set_axisbelow(True)
@@ -96,8 +101,9 @@ def main():
 
     fig.suptitle('Benchmark v2, re-scored on a mesh that can render it — and '
                  're-quoted at the sparsity the thesis assumes\n'
-                 'the renderer only ever endangered BF2; at 50 returns/frame '
-                 'the field degrades but the encounter forecast does not',
+                 'BF2 is the only row whose verdict changed; at 50 returns/frame '
+                 'the field degrades and the encounter channel shows no '
+                 'detectable change',
                  fontsize=12.5, color=C_INK, fontweight='bold', y=0.99)
     p = f'{OUT}/fig_bench55_2026-07-13.png'
     fig.savefig(p, bbox_inches='tight')

@@ -61,12 +61,12 @@ def operator_error(path):
     return float(e.std())
 
 
-def judge(tag, root, names, net, head):
+def judge(tag, root, names, net, head, n_obs=2000):
     recs = []
     for i, n in enumerate(names):
         path = os.path.join(root, n)
         rng = np.random.default_rng(11 + i)       # paired: same stream per sea
-        ep = load_episode(path, rng)
+        ep = load_episode(path, rng, n_obs=n_obs)
         s = score_episode(ep, net, head)
         d = float(np.mean(s['corr_learned']) - np.mean(s['corr_hand']))
         recs.append(dict(episode=n, sea=ep['sea'], n_comp=ep['ncomp'],
@@ -109,8 +109,12 @@ def main():
     print(f'[E-3] judging {len(names)} episodes, coarse vs fine mesh', flush=True)
     fine = judge('fine', FINE, names, net, head)
     coarse = judge('coarse', COARSE, names, net, head)
+    # E-9 (PI directive): validation is quoted at the originally assumed sparse
+    # budget -- 50 returns/frame x 12 frames = 600 obs/window.  The 2000-obs arm
+    # is the optimistic-radiometry case.
+    sparse = judge('fine_sparse', FINE, names, net, head, n_obs=600)
 
-    sf, sc = summarize(fine), summarize(coarse)
+    sf, sc, ss = summarize(fine), summarize(coarse), summarize(sparse)
     paired = np.array([f['delta'] for f in fine]) - \
              np.array([c['delta'] for c in coarse])
 
@@ -118,7 +122,7 @@ def main():
         date='2026-07-13', prereg='docs/E2_MESH_AUDIT_prereg_2026-07-13.md',
         leads=LEADS, n_episodes=len(names),
         published_coarse_delta=-0.041,
-        coarse=sc, fine=sf,
+        coarse=sc, fine=sf, fine_sparse=ss,
         shift=dict(mean=float(paired.mean()),
                    se=float(paired.std(ddof=1) / np.sqrt(len(paired)))),
         gates=dict(
@@ -126,7 +130,7 @@ def main():
             G_E3_2_number_stable=bool(
                 abs(sf['delta_mean'] - sc['delta_mean']) <= 0.03),
             G_E3_3_intervention=bool(sf['op_err_mean'] < sc['op_err_mean'])),
-        episodes=dict(coarse=coarse, fine=fine))
+        episodes=dict(coarse=coarse, fine=fine, fine_sparse=sparse))
     json.dump(res, open(OUT, 'w'), indent=1)
 
     print(f'\n{"=" * 62}\n[E-3] {len(names)} episodes, {time.time() - t0:.0f}s')
@@ -137,6 +141,9 @@ def main():
           f'(hand {sf["hand_mean"]:.3f} / learned {sf["learned_mean"]:.3f}) '
           f'op_err {sf["op_err_mean"]:.4f} m')
     print(f'  paired shift: {paired.mean():+.4f} +- {res["shift"]["se"]:.4f}')
+    print(f'  ★fine, 600 obs (SPARSE, the regime the thesis assumes):'
+          f' d = {ss["delta_mean"]:+.4f} +- {ss["delta_se"]:.4f}'
+          f'  (learned wins {ss["learned_wins"]}/{ss["n"]})')
     for g, v in res['gates'].items():
         print(f'  {"PASS" if v else "FAIL"}  {g}')
     print(f'-> {OUT}')

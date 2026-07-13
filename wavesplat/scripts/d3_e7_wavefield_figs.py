@@ -285,8 +285,8 @@ def fig_performance():
     ax.set_ylabel('ρ  (fine mesh, 2000 obs)', fontsize=9)
     ax.legend(frameon=False, fontsize=7.5, loc='lower left')
     ax.set_title('(d) the sampling explanation FAILS its own seeds\n'
-                 'only 1/5 BF2 seeds decays; two (green) stay flat at the same '
-                 'λ — so it is identification, not sampling',
+                 'only 1/5 BF2 seeds decays; the two flat ones (green) are '
+                 'exactly the two with the smallest bank-quantisation error',
                  fontsize=10, color=C_INK, fontweight='bold', loc='left')
     ax.grid(color=C_GRID, lw=0.6)
     ax.set_axisbelow(True)

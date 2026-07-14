@@ -4,6 +4,7 @@ import json
 import os
 
 import numpy as np
+from scipy import stats
 
 os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import matplotlib
@@ -34,17 +35,24 @@ fig, axs = plt.subplots(2, 3, figsize=(13.2, 7.6), dpi=200)
 # --- A: misspecification gradient (established) ---
 import sys
 sys.path.insert(0, 'scripts')
-from d3_gradient_d20_figs import stage_deltas
+from d3_gradient_d20_figs import stage_deltas, stage_clusters
+from d3_cluster_se import cluster_se
 ax = axs[0, 0]
 data = stage_deltas()
+STAGE_CLUSTERS, _hos_sea = stage_clusters()
 labels = ['clean\nlinear', 'HOS M=3\nnonlinear', 'real\nstereo']
 rng = np.random.default_rng(0)
 for i, d in enumerate(data):
     ax.scatter(i + rng.uniform(-0.12, 0.12, len(d)), d, s=14,
                color=C_NET if d.mean() > 0 else C_HAND, alpha=0.5,
                edgecolors='none')
-    m, se = d.mean(), d.std(ddof=1) / np.sqrt(len(d))
-    ax.errorbar(i, m, yerr=1.96 * se, fmt='o', ms=7, lw=2, capsize=5,
+    # E-12e (2026-07-14): was an iid SE x 1.96 on clustered data. Cluster-robust
+    # SE + t(G-1). HOS is clustered on the seed (G=4): on the SEA STATE it is
+    # G=2 and inference is degenerate -- the HOS leg rests on two seas.
+    m = d.mean()
+    se, n_clu = cluster_se(d, STAGE_CLUSTERS[i])
+    tcrit = float(stats.t.ppf(0.975, n_clu - 1)) if n_clu > 1 else np.nan
+    ax.errorbar(i, m, yerr=tcrit * se, fmt='o', ms=7, lw=2, capsize=5,
                 color=C_INK)
     ax.text(i + 0.18, m, f'{m:+.3f}', fontsize=9, fontweight='bold',
             color=C_INK, va='center')

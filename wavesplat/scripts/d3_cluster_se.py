@@ -19,6 +19,7 @@ import os
 import sys
 
 import numpy as np
+from scipy import stats
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 os.chdir(os.path.join(os.path.dirname(__file__), '..'))
@@ -48,19 +49,33 @@ def report(name, d, g, naive_note=''):
     se_iid = float(d.std(ddof=1) / np.sqrt(len(d)))
     se_cl, G = cluster_se(d, g)
     infl = se_cl / se_iid if se_iid > 0 else float('nan')
+    # E-12e (2026-07-14): the reference distribution for a cluster-robust mean
+    # is t(G-1), NOT the normal. With G=5 the 95% critical value is 2.776, not
+    # 1.96 -- using 1.96 understated every published CI by ~40%. This is the
+    # same small-cluster defect that made E-10 fail.
+    tcrit = float(stats.t.ppf(0.975, G - 1)) if G > 1 else float('inf')
+    t_cl = mu / se_cl if se_cl > 0 else float('inf')
+    p_cl = float(2 * stats.t.sf(abs(t_cl), G - 1)) if G > 1 else float('nan')
+    lo, hi = mu - tcrit * se_cl, mu + tcrit * se_cl
     print(f'{name}')
     print(f'   n={len(d)}  clusters={G}   mean {mu:+.4f}')
     print(f'   SE  iid {se_iid:.4f}  ->  cluster-robust {se_cl:.4f}  '
           f'(x{infl:.2f})')
-    print(f'   t   iid {mu / se_iid:+.2f}   ->  cluster-robust '
-          f'{mu / se_cl:+.2f}')
-    print(f'   95% CI (cluster): [{mu - 1.96 * se_cl:+.4f}, '
-          f'{mu + 1.96 * se_cl:+.4f}]   {naive_note}')
+    print(f'   t   iid {mu / se_iid:+.2f}   ->  cluster-robust {t_cl:+.2f}'
+          f'   [ref: t({G - 1}), crit {tcrit:.3f}]')
+    print(f'   95% CI (cluster): [{lo:+.4f}, {hi:+.4f}]   p={p_cl:.4f}   '
+          f'{"EXCLUDES 0" if lo > 0 or hi < 0 else "*** INCLUDES 0 ***"}'
+          f'   {naive_note}')
+    print(f'   (the old 1.96 CI would have been [{mu - 1.96 * se_cl:+.4f}, '
+          f'{mu + 1.96 * se_cl:+.4f}] — too narrow)')
     print()
     return dict(n=len(d), n_clusters=G, mean=mu, se_iid=se_iid,
                 se_cluster=se_cl, inflation=infl,
-                t_iid=mu / se_iid, t_cluster=mu / se_cl,
-                ci_lo=mu - 1.96 * se_cl, ci_hi=mu + 1.96 * se_cl)
+                t_iid=mu / se_iid, t_cluster=t_cl,
+                t_crit=tcrit, p_cluster=p_cl,
+                ci_lo=lo, ci_hi=hi,
+                ci_lo_normal_WRONG=mu - 1.96 * se_cl,
+                ci_hi_normal_WRONG=mu + 1.96 * se_cl)
 
 
 def main():

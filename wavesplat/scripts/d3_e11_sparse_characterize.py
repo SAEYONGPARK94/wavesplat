@@ -34,12 +34,14 @@ import sys
 import time
 
 import numpy as np
+from scipy import stats
 import torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 os.chdir(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, 'scripts')
 
+from d3_cluster_se import cluster_se
 from d3_e10_pattern_real import window_data                          # noqa: E402
 from d3_falcon_real_operator import RECORDS                          # noqa: E402
 from d3_gate_promotion_eval import RECS                              # noqa: E402
@@ -142,13 +144,25 @@ def main():
                   f'(skill {row["sparse_hint"]["hand"]:+.2f})  '
                   f'[{time.time() - t0:.0f}s]', flush=True)
 
+    # E-12e (2026-07-14): this used se = std/sqrt(n) over 60 WINDOWS and a 1.96
+    # critical value. The windows are clustered in 5 records (they share the sea,
+    # the reconstruction and the ship track), so the iid SE is not valid, and on
+    # G clusters the reference distribution is t(G-1), not the normal.
+    # Re-judged: sparse_hint delta +0.0958, CR-SE 0.0135, t 7.10, p 0.0021 --
+    # E-11 SURVIVES (the cluster SE is *smaller* than the iid one here).
+    g = [r['record'] for r in rows]
     summ = {}
     for tag in ('dense_hint', 'sparse_hint'):
         d = np.array([r[tag]['delta'] for r in rows])
-        se = float(d.std(ddof=1) / np.sqrt(len(d)))
+        se_iid = float(d.std(ddof=1) / np.sqrt(len(d)))
+        se, n_clu = cluster_se(d, g)
+        tcrit = float(stats.t.ppf(0.975, n_clu - 1))
         summ[tag] = dict(
-            n=len(d), delta=float(d.mean()), se=se, t=float(d.mean() / se),
-            ci_lo=float(d.mean() - 1.96 * se),
+            n=len(d), n_clusters=n_clu, delta=float(d.mean()),
+            se=se, se_iid=se_iid, t=float(d.mean() / se),
+            p=float(2 * stats.t.sf(abs(d.mean() / se), n_clu - 1)),
+            ci_lo=float(d.mean() - tcrit * se),
+            ci_hi=float(d.mean() + tcrit * se),
             hand=float(np.mean([r[tag]['hand'] for r in rows])),
             learned=float(np.mean([r[tag]['learned'] for r in rows])))
     kpe = np.array([abs(r['kp_sparse'] - r['kp_dense']) / r['kp_dense']

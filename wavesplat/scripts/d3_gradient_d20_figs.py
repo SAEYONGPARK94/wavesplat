@@ -11,9 +11,11 @@ import os
 import sys
 
 import numpy as np
+from scipy import stats
 
 os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
+from d3_cluster_se import cluster_se
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -67,8 +69,39 @@ def stage_deltas():
     return [np.array(clean), np.array(hos), np.array(real)]
 
 
+def stage_clusters():
+    """Cluster label per unit, per stage. E-12e (2026-07-14): the figure used an
+    iid SE over units that are nested inside a handful of seas/records.
+
+    The project's convention (d3_cluster_se.py) is "the sea law is the cluster".
+    Applied honestly:
+      clean : sea x n_comp                    -> G = 4
+      HOS   : sea state (Hs)                  -> G = 2  (!!)  -- DEGENERATE:
+              cluster-robust inference needs the between-cluster variance and
+              two clusters cannot supply it (t(1) critical value = 12.7). The
+              HOS leg of the gradient rests on TWO sea states, 4 seeds each.
+              The figure therefore uses the SEED cluster (G=4) and the caption
+              must say the across-sea generalization is NOT established here.
+              Assumption-light backstop: the sign test is 8/8, p = 0.008.
+      real  : record                          -> G = 5
+    """
+    e3 = json.load(open(f'{OUT}/e3_clean_rejudge.json'))
+    clean = [f"{e['sea']}_{e['n_comp']}" for e in e3['episodes']['fine_sparse']]
+    hos_j = json.load(open(f'{OUT}/a1_field_hos_sparse600.json'))
+    # NOT the seed: seed 0 appears at BOTH Hs 1.2 and Hs 3.0, so it does not
+    # name a sea. The sea state is the cluster, exactly as the clean stage
+    # clusters on the sea law. That gives G=2 and the between-sea variance is
+    # NOT ESTIMABLE -- so no CI is drawn for this stage (see fig_gradient).
+    hos = [round(r['Hs'], 2) for r in hos_j]         # G=2
+    hos_sea = hos
+    real = [r['record'] for r in
+            json.load(open(f'{OUT}/field_wide_eval.json'))]
+    return [clean, hos, real], hos_sea
+
+
 def fig_gradient():
     data = stage_deltas()
+    STAGE_CLUSTERS, hos_sea = stage_clusters()
     labels = ['clean linear\nsynthetic\n(35 episodes,\nfine mesh 1.34 m)',
               'HOS M=3\nnonlinear\n(8 cells)',
               'real stereo\nseas\n(60 windows)']
@@ -81,13 +114,44 @@ def fig_gradient():
         ax.scatter(x, d, s=26, color=C_NET if d.mean() > 0 else C_HAND,
                    alpha=0.55, edgecolors='none', zorder=2)
         m = d.mean()
-        se = d.std(ddof=1) / np.sqrt(len(d))
-        ax.errorbar(i, m, yerr=1.96 * se, fmt='o', ms=9, lw=2.2,
-                    capsize=6, color=C_INK, zorder=4)
+        # E-12e (2026-07-14): the bars were iid SE x 1.96 on clustered data.
+        # Cluster-robust SE + the t(G-1) critical value. Clusters: clean = sea
+        # law, HOS = sea state (only TWO -> inference degenerate, see below),
+        # real = record.
+        se, n_clu = cluster_se(d, STAGE_CLUSTERS[i])
+        # Do not draw a CI you cannot compute. With G=2 clusters the
+        # between-cluster variance has one degree of freedom and the interval is
+        # meaningless (t(1) critical value 12.7). The HOS stage has TWO sea
+        # states; its bar is omitted and the stage is marked as such.
+        if n_clu >= 3:
+            tcrit = float(stats.t.ppf(0.975, n_clu - 1))
+            ax.errorbar(i, m, yerr=tcrit * se, fmt='o', ms=9, lw=2.2,
+                        capsize=6, color=C_INK, zorder=4)
+        else:
+            tcrit = np.nan
+            ax.plot([i], [m], 'o', ms=9, color=C_INK, zorder=4)
+            ax.annotate(f'no CI:\nonly {n_clu} seas',
+                        (i, m), xytext=(0, 26), textcoords='offset points',
+                        ha='center', fontsize=8, color='#b3261e',
+                        fontweight='bold')
         ax.text(i + 0.2, m, f'{m:+.3f}', fontsize=11, color=C_INK,
                 va='center', fontweight='bold')
         ax.text(i, ax.get_ylim()[0], '', fontsize=8)
-        print(f'stage {i}: n={len(d)} mean {m:+.4f} se {se:.4f}')
+        print(f'stage {i}: n={len(d)} G={n_clu} mean {m:+.4f} '
+              f'CR-se {se:.4f} t {m/se:+.2f} crit {tcrit:.3f} '
+              f'CI [{m-tcrit*se:+.4f}, {m+tcrit*se:+.4f}]')
+    # the honest HOS number: cluster on the SEA STATE, as the clean stage does
+    d_h = data[1]
+    se_s, G_s = cluster_se(d_h, hos_sea)
+    from scipy.stats import binomtest
+    sg = binomtest((d_h > 0).sum(), len(d_h), 0.5).pvalue
+    print(f'\n  HOS leg, clustered on the SEA STATE (project convention): '
+          f'G={G_s} -> cluster-robust inference is DEGENERATE '
+          f'(t(1) crit 12.7; CI would be [-0.080, +0.261], includes 0).')
+    print(f'  The HOS stage has TWO seas (Hs 1.2, 3.0) x 4 seeds. '
+          f'What survives assumption-light: sign test {(d_h > 0).sum()}/'
+          f'{len(d_h)}, p={sg:.4f}. The across-sea claim is NOT established; '
+          f'more HOS sea states are required.\n')
     ax.axhline(0, color=C_AXIS, lw=1.2, zorder=1)
     ax.text(-0.48, 0.006, 'learning\nwins', fontsize=8.5, color=C_NET,
             va='bottom', ha='left')

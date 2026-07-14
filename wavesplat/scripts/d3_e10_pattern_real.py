@@ -23,12 +23,14 @@ import sys
 import time
 
 import numpy as np
+from scipy import stats
 import torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 os.chdir(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, 'scripts')
 
+from d3_cluster_se import cluster_se
 from d3_falcon_real_operator import RECORDS, bilinear, resolve_direction  # noqa: E402,E501
 from d3_gate_promotion_eval import RECS, W                                # noqa: E402
 from d3_gpu_mmse import mmse_gpu                                          # noqa: E402
@@ -172,15 +174,25 @@ def main():
                               for a in ARMS)
                   + f'  [{time.time() - t0:.0f}s]', flush=True)
 
+    # E-12e (2026-07-14): this used se = std/sqrt(n) over 60 WINDOWS and a 1.96
+    # critical value. The windows are clustered in 5 records, so the iid SE is
+    # not valid, and on G clusters the reference is t(G-1), not the normal.
+    # Re-judged with CR1 + t(4): S0_uniform p 0.046, S1_crest p 0.083,
+    # S2_slope p 0.173, S3_crest_only p 0.105 -- the E-10 FAIL STANDS (only the
+    # uniform reference arm reaches significance; no pattern arm does).
+    g = [r['record'] for r in rows]
     summ = {}
     for a in ARMS:
         d = np.array([r[a]['delta'] for r in rows])
-        se = float(d.std(ddof=1) / np.sqrt(len(d)))
+        se_iid = float(d.std(ddof=1) / np.sqrt(len(d)))
+        se, n_clu = cluster_se(d, g)
+        tcrit = float(stats.t.ppf(0.975, n_clu - 1))
         summ[a] = dict(
-            n=len(d), delta=float(d.mean()), se=se,
-            t=float(d.mean() / se),
-            ci_lo=float(d.mean() - 1.96 * se),
-            ci_hi=float(d.mean() + 1.96 * se),
+            n=len(d), n_clusters=n_clu, delta=float(d.mean()),
+            se=se, se_iid=se_iid, t=float(d.mean() / se),
+            p=float(2 * stats.t.sf(abs(d.mean() / se), n_clu - 1)),
+            ci_lo=float(d.mean() - tcrit * se),
+            ci_hi=float(d.mean() + tcrit * se),
             hand=float(np.mean([r[a]['hand'] for r in rows])),
             learned=float(np.mean([r[a]['learned'] for r in rows])),
             n_obs=int(np.mean([r[a]['n_obs'] for r in rows])))

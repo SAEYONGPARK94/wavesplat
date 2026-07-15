@@ -1,0 +1,156 @@
+{
+ "design": "re-analysis (Stage A): e12g d_sensor x record_wavelength aperture_ratio; no new compute",
+ "per_record": [
+  {
+   "record": "LJ18g",
+   "aperture_true": 0.45536806115983114,
+   "lam_true": 219.60257762764058,
+   "depth": 45.0,
+   "Hs": 12.46982192993164,
+   "Tp": 12.799999999999272,
+   "kd": 1.2875228600572377,
+   "n_win": 12,
+   "d_mean": 0.11746746751391439,
+   "d_median": 0.10700514480031784,
+   "d_se": 0.03647055276341907
+  },
+  {
+   "record": "AA15a",
+   "aperture_true": 0.6358302472789574,
+   "lam_true": 62.90987283348102,
+   "depth": 17.0,
+   "Hs": 1.7716584205627441,
+   "Tp": 6.56410256410331,
+   "kd": 1.697891688714491,
+   "n_win": 12,
+   "d_mean": 0.043125245864024914,
+   "d_median": 0.03742224769163066,
+   "d_se": 0.024213256896380805
+  },
+  {
+   "record": "AA15b",
+   "aperture_true": 0.812540762301522,
+   "lam_true": 49.228299496876915,
+   "depth": 17.0,
+   "Hs": 1.3353253602981567,
+   "Tp": 5.688888888888808,
+   "kd": 2.169771276150405,
+   "n_win": 12,
+   "d_mean": 0.023507681757822405,
+   "d_median": 0.01030707217975868,
+   "d_se": 0.017065960815309745
+  },
+  {
+   "record": "AA14",
+   "aperture_true": 1.2729447970263992,
+   "lam_true": 31.423200828064232,
+   "depth": 17.0,
+   "Hs": 1.3328907489776611,
+   "Tp": 4.491228070174418,
+   "kd": 3.399212919348963,
+   "n_win": 12,
+   "d_mean": 0.06573104448270724,
+   "d_median": 0.04192113983777601,
+   "d_se": 0.028375482506062463
+  },
+  {
+   "record": "YS17",
+   "aperture_true": 1.7653142420101986,
+   "lam_true": 56.64713829427219,
+   "depth": 50.0,
+   "Hs": 1.9440302848815918,
+   "Tp": 6.023529411764791,
+   "kd": 5.545898253976675,
+   "n_win": 12,
+   "d_mean": 0.05850640186084874,
+   "d_median": 0.057221898151085,
+   "d_se": 0.00894845998992897
+  }
+ ],
+ "between_record": {
+  "axis": "aperture_true = r_fan / lam_temporal (true time-spectrum)",
+  "rho_mean": -0.19999999999999998,
+  "p_two_mean": 0.7833333333333333,
+  "p_dir_mean": 0.39166666666666666,
+  "rho_median": -0.09999999999999999,
+  "p_two_median": 0.95,
+  "p_dir_median": 0.475,
+  "loro": [
+   {
+    "drop": "YS17",
+    "rho": -0.39999999999999997,
+    "flips": false
+   },
+   {
+    "drop": "AA15a",
+    "rho": -0.39999999999999997,
+    "flips": false
+   },
+   {
+    "drop": "AA14",
+    "rho": -0.39999999999999997,
+    "flips": false
+   },
+   {
+    "drop": "AA15b",
+    "rho": -0.39999999999999997,
+    "flips": false
+   },
+   {
+    "drop": "LJ18g",
+    "rho": 0.6000000000000001,
+    "flips": true
+   }
+  ],
+  "flip_records": [
+   "LJ18g"
+  ]
+ },
+ "pooled_window": {
+  "n": 60,
+  "sensor_axis": {
+   "rho": -0.06677318529484674,
+   "ci95": [
+    -0.26225040973868846,
+    0.19348736686095197
+   ],
+   "p_neg_boot": 0.7596
+  },
+  "oracle_axis": {
+   "rho": -0.02656055227817709,
+   "ci95": [
+    -0.19671638961427385,
+    0.34923660093552306
+   ],
+   "p_neg_boot": 0.5876
+  },
+  "note": "sensor axis = kp from 600 sparse obs (realizable, noisy); oracle axis = kp from dense GT FFT (clean, not realizable)"
+ },
+ "within_record": {
+  "per": [
+   {
+    "record": "YS17",
+    "rho": 0.007017587058225038
+   },
+   {
+    "record": "AA15a",
+    "rho": -0.02097902097902098
+   },
+   {
+    "record": "AA14",
+    "rho": -0.18881118881118883
+   },
+   {
+    "record": "AA15b",
+    "rho": -0.24168163157672945
+   },
+   {
+    "record": "LJ18g",
+    "rho": -0.0770579115172181
+   }
+  ],
+  "n_neg_of_5": 4
+ },
+ "kp_sensor_contaminated_frac": 0.11666666666666667,
+ "verdict": "DEMOTED - sign consistent with sim but FRAGILE (pooled_rho<0; leverage record(s) ['LJ18g'])"
+}

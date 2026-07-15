@@ -1108,3 +1108,42 @@ F1(3무대 기울기)은 **개구(크기) + 물리(짧은-λ 승리의 원천)�
 - 종합: 방법론 novelty = **"CRB가 학습이득을 informativeness로부터 독립 예측"** 진단 도구 하나.
   배포-방법 novelty는 미확보. 박사 골격은 여전히 **정보한계 진단**(§16.6), 방법론 novelty로
   E-24를 보강 인용 가능(단 modest·보편임계 미달 병기).
+
+---
+
+# 18. E-26/E-27 — 실측·2nd-baseline leg (2026-07-15 밤, 멀티에이전트) + ★전체 아크 종합
+
+## 18.1 E-26 실측 개구법칙 leg — DEMOTED
+`tmp/e26_realdata_aperture.py` (재분석, 무-compute). 실측 5레코드 Δ(net−hand, sparse-kp,
+E-12g 오라클 0개) vs 참λ 개구비: **Spearman −0.20(부호 맞음) but 폭풍 LJ18g 하나에 전적
+의존**(빼면 +0.60, 비-폭풍 4개 반대 방향). n=5 permutation·record-cluster bootstrap. →
+**실측은 시뮬 부호 재현하나 확립 못 함**(k=5·교란). 심사관 "시뮬-only" **미해소**.
+
+## 18.2 E-27 GPR 2nd well-specified 고전 — FAIL (구조적 사실 확정)
+`tmp/e27_gpr_baseline.py`. GPR(RELAX 성분+분산커널 GP)을 arena 이식.
+- **W1 FAIL**: 짧은λ GPR +0.52 vs hand +0.81 (gap 0.30 ≫ 0.05) → **GPR은 well-specified 아님**
+  (RELAX 성분이 짧은λ서 under-recover). net이 GPR을 어디서나 이김(P1 ρ −0.09 p0.87, 부호반전
+  없음). 참조 net−hand ρ −0.943 p0.005.
+- ⟹ **★구조적 사실: well-specified 선형 MMSE(hand)는 사실상 유일.** 진짜 다른 고전(RELAX·
+  ridge·GPR-RELAX)은 다 약해 net이 전면 승; 최대-well-specified GPR은 hand-MMSE로 수렴.
+  → **"고전 baseline 완전 일반화"는 근본적으로 불가**(잘-지정 고전이 hand 하나뿐).
+
+## 18.3 ★★전체 아크 종합 (E-16 ~ E-27) — 정직한 최종 상태
+**견고·확립**:
+- **개구/정보한계가 학습이득 크기를 지배**(net vs well-specified MMSE): E-16/18 sea-level
+  ρ−0.918, **학습 prior 넘어 일반화**(E-23 net1·net2).
+- **잘-결정 극한 물리 dose**: E-21 급준도→Δm3 t3.55 p0.0025, 부호반전 19/20·파장5개.
+- **CRB가 개구 넘어 informativeness의 독립 예측자**: E-24 밀도 축 12/12 p<1e-4.
+
+**정직한 벽 (오늘 확정 — 현 자산·시뮬로 안 닫힘)**:
+- **고전 baseline 일반화 불가**: well-specified 고전은 hand-MMSE로 유일(E-22/25/27) →
+  주장은 "학습 vs 정확-지정 MMSE"로 한정.
+- **배포 게이트 실패**: net이 실제 비선형(M3)서 전면 승 → 게이트 여지 없음(E-25).
+- **실측 미확립**: k=5 실측이 시뮬 부호 재현하나 폭풍 1레코드 의존(E-26).
+- **CRB 보편임계 없음·개구 대체 아님**(E-24 게이트 B).
+- **실물 라이다 미관측**(전 아크): 방사모델 범주오류 미해결.
+
+**⇒ 박사 판정 재확인**: **방법 박사 死**(선점+실물 없음). **정보한계 진단 박사 = 조건부 pass**
+(§16.6 골격 + E-24 방법 보강). 오늘 밤이 **심사관 "명확 pass 최소선" 중 실측·baseline-완전
+일반화가 근본 벽**임을 실증 — solid→strong pass엔 **실물 센서 레그**가 유일 열쇠(현재 불가).
+정직한 자산 = 견고한 진단 3개 + 그 한계의 정확한 정량 + 예외적 자기감사 규율.

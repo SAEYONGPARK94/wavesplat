@@ -216,7 +216,8 @@ def run_record(key, cfg, args):
         T=cfg['T'], nobs=args.nobs, fp_diam=cfg['fp'], margin=0.6 * cfg['fp'],
         depth=cfg['depth'], n_outer=args.n_outer, n_rep=args.n_rep,
         heading=False, ratio_best=0.85, hs_lo=cfg['hs'][0], hs_hi=cfg['hs'][1],
-        track_fn=track_fn, estimator=getattr(args, 'estimator', 'relax'))
+        track_fn=track_fn, estimator=getattr(args, 'estimator', 'relax'),
+        sparse_kp=getattr(args, 'sparse_kp', False))
     nf = int(round(rc.T / rec.dt))
     n_win = args.n_windows or (2 if args.smoke else cfg['nw'])
     starts = np.linspace(200, rec.T_all - nf - 10, n_win).astype(int)
@@ -283,6 +284,10 @@ def main():
                          "continuous bank (2026-07-05 synthetic winner); "
                          "mmse_net: amortized prior net v3 gamma (G3 "
                          "transfer gate)")
+    ap.add_argument('--sparse_kp', action='store_true',
+                    help="audit E-12d/g fix: MMSE arms get kp & Hs from the "
+                         "sparse obs only (kp_hint=None, Hs=4*std(z)), not from "
+                         "the dense stereo GT — the fair 'MMSE > RELAX' re-run")
     ap.add_argument('--out', default=None)
     args = ap.parse_args()
     args.n_rep = args.n_rep or (2 if args.smoke else 3)

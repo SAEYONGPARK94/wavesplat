@@ -312,18 +312,28 @@ def run_window(rec, i0, args, ratios, lfracs, rng_seed):
                 Xq, Yq = np.meshgrid(rec.gx, rec.gy)
                 Pq = np.column_stack([Xq.ravel(), Yq.ravel(),
                                       np.full(Xq.size, t_star)])
+                # --sparse_kp (audit E-12d/g §6.1): the MMSE arms alone received
+                # kp and Hs from characterize() on the DENSE stereo GT — side
+                # info RELAX never gets, so old "MMSE > RELAX" was confounded.
+                # Under sparse_kp feed them only what the 600 sparse obs give:
+                # kp_hint=None -> internal two-stage beamform zoom (== the net's
+                # training recipe) and Hs = 4*std(z). Default False keeps the
+                # frozen dense-kp behaviour for every other caller.
+                sparse = getattr(args, 'sparse_kp', False)
+                kph = None if sparse else kp
+                sig = 0.05 * (4.0 * float(np.nanstd(z)) if sparse else Hs_w)
                 if est_name == 'mmse':
                     from d3_sa_nomp import mmse_bank_estimate
                     fld = mmse_bank_estimate(P, z, args.depth, Pq,
-                                             sigma0=0.05 * Hs_w,
-                                             kp_hint=kp,
+                                             sigma0=sig,
+                                             kp_hint=kph,
                                              seed=seed).reshape(Xq.shape)
                 else:
                     from d3_prior_net_eval import get_net, net_gamma_mmse
                     fld = net_gamma_mmse(get_net(), P, z, args.depth, Pq,
-                                         0.05 * Hs_w, seed=seed,
+                                         sig, seed=seed,
                                          use_em=False,
-                                         kp_hint=kp).reshape(Xq.shape)
+                                         kp_hint=kph).reshape(Xq.shape)
                 N, klim = 0, 0.0
             else:
                 fld, N, klim = iterative_relax_cv(P.copy(), z.copy(),

@@ -74,7 +74,12 @@ from d18_relax_estimator import omega as omega_disp
 
 G = 9.81
 OUT = 'results/direction3/d20_replay_eval.json'
-RECS = ['YS17', 'AA15b', 'LJ18g']
+# audit §10.3: k=3 records cannot establish significance (min sign-test p=0.125,
+# and the pooled-window iid t treats 72 windows in 3 records as independent).
+# Expand to the 5 fan records (add AA15a, AA14 — full encounter params in
+# d3_falcon_real_operator.RECORDS). Cluster-robust record-level inference is
+# recomputed post-hoc from the saved rows (tmp/d20_inference.py).
+RECS = ['YS17', 'AA15a', 'AA14', 'AA15b', 'LJ18g']
 TAUS = (0.5, 1.0)
 W_MAX = 40.0          # memory span used to place the frozen track [s]
 W_OBS = 20.0          # trailing observation window for each re-estimate [s]
@@ -392,7 +397,8 @@ def main():
                 for arm in ('persist', 'hand', 'learned', 'oracle')}
             per[name][str(tau)]['n_win'] = len(s)
 
-    # ---- G-D20-1: hand-FF < persistence, 2/3 records, both tau
+    # ---- G-D20-1: hand-FF < persistence, majority of records, both tau
+    MAJ = len(RECS) // 2 + 1                 # 2 of 3, 3 of 5, ...
     g1_detail = {}
     g1_ok = True
     for tau in TAUS:
@@ -404,8 +410,8 @@ def main():
         n_pass = sum(recs_pass)
         g1_detail[str(tau)] = dict(
             records={RECS[i]: bool(recs_pass[i]) for i in range(len(RECS))},
-            n_pass=int(n_pass), pass_tau=bool(n_pass >= 2))
-        g1_ok = g1_ok and n_pass >= 2
+            n_pass=int(n_pass), pass_tau=bool(n_pass >= MAJ))
+        g1_ok = g1_ok and n_pass >= MAJ
     gate1 = dict(name='G-D20-1 forecast value reproduced (hand < persistence)',
                  by_tau=g1_detail, PASS=bool(g1_ok))
 
@@ -432,9 +438,9 @@ def main():
                  pooled_paired_mean=pooled_mean, pooled_mean_pass=bool(
                      pooled_mean <= 0),
                  record_signs=rec_signs, n_records_better=int(n_rec_better),
-                 record_pass=bool(n_rec_better >= 2),
+                 record_pass=bool(n_rec_better >= MAJ),
                  win_paired_dist=win_dist,
-                 PASS=bool(pooled_mean <= 0 and n_rec_better >= 2))
+                 PASS=bool(pooled_mean <= 0 and n_rec_better >= MAJ))
 
     # ---- G-D20-3: learned re-estimation GPU path <= 100 ms/call
     eq_corr = float(np.mean([e['corr'] for e in equiv])) if equiv else float('nan')

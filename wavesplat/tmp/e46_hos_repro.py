@@ -326,21 +326,6 @@ def build_sea_hos(si, unimodal=False):
     return dict(SH=SH, SL=SL, Pq_e=Pq_e, gtH_e=gtH_e, gtL_e=gtL_e, diag=diag)
 
 
-# BUG-GUARD note: eta_lin_at with per-point times — the vector call above
-# passes a SCALAR t only; obs times differ per point, so compute zL properly:
-def eta_lin_obs(tw, P, spinup):
-    """Linear twin at obs points, each with its own time (vectorized)."""
-    out = np.zeros(len(P))
-    B = 2048
-    t = P[:, 2] + spinup
-    for i in range(0, len(tw['kx']), B):
-        ph = (np.outer(tw['kx'][i:i + B], P[:, 0])
-              + np.outer(tw['ky'][i:i + B], P[:, 1])
-              - np.outer(tw['om'][i:i + B], t))
-        out += np.real(tw['a'][i:i + B][:, None] * np.exp(1j * ph)).sum(0)
-    return out
-
-
 # ==========================================================================
 #  arm scoring (one world)
 # ==========================================================================

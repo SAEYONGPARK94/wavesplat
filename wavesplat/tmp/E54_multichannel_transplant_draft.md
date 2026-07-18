@@ -106,3 +106,40 @@ Q4. current-achievability 양성 실마리(radar/ADCP)가 thesis의 배포 사�
 - **킬 기준(사전명기)**: `value_marginal(4~7 cm/s) < 0.03` → "current = value-사망 채널"로 기입 **(프로토콜 성공
   계상)**. `value_marginal ≥ 0.03 + achievability 통과` → "배포가능 외부-공급 채널"(regime이 못 한 것).
 - **규율**: 발견≠발표(복제블록만), 새통계 격리(FIM-Uc 기존거동 확인), 대칭감사, MEASURED/ARGUED 태그.
+
+## ★E-55 결과 (n=48) + 독립 검증 — VALUE-사망 확인(프로토콜 성공), 스코프 4중 한정
+스크립트 `tmp/e55_current_channel.py`, 원자료 `results/direction3/e55_current_channel.json`.
+```
+value_marginal|kp_hint (kp 고정 후 외부 Uc 잔여 가치, base=oracle 파티션):
+  4cm +0.0011[−0.0004,+0.0025] SE.0007 | 7cm +0.0023[−0.0004,+0.0049] SE.0013 | 15cm +0.0060[+.0001,+.0119]* SE.0029
+  kp_value +0.006~+0.013 >> value_marginal (주 레버=kp지 Uc 아님, 07-05 재현). grade0 value_marginal≡0 (sanity✓)
+```
+**사전등록 판정 = VALUE-사망 채널(프로토콜 성공)**: radar급(4~7cm/s) 외부 Uc의 kp-고정 후 잔여가치 CI상한
+< 0.005 = **+0.03 바의 1/6 이하.** ⟹ 배포지침 "radar 말고 kp 고쳐라". **★프레임워크가 두 채널서 다른 요인
+판별: regime=achievability 사망 / current=VALUE 사망.**
+
+**독립 검증(opus) — 코드 무결·재도출 일치·인공물 아님:**
+- build_sea_uc = build_sea_crosstp 정확복제+Uc만(rng/seed/geometry/noise 동일, GT 수동렌더=render_modes 동형,
+  om_true=omega+k·Uc가 z·GT 일관). solve_uc = solve_with_grid+om shift만(SMULT=3 정확, bound 2ω+2k·Uc 물리정확·
+  선형아레나라 비활성). **버그 없음.**
+- 재도출 48×4 완전일치, grade0 sanity 전48행 정확0, 검정력 SE≤.003(규율1), upper CI<.03 6~12배 아래, prereg
+  골대이동 없음(양측성). **ceiling 아님**(naive corr 0.47 headroom 방대, dose-response log-log 기울기 1.28).
+- **07-05 정합**: value_marginal(+0.001~0.006) = 07-05 "kp_known이면 해류손실 −0.002~−0.04"의 부호반전, 심지어
+  더 작음(radar급이 작은 current). kp_value>>value_marginal = "주 레버 kp" 재현.
+
+**★대칭 감사 (양방향 캐비엇 — 인용시 필수):**
+- **과대 방지(일반화 금지)**: **radar급·deep-swell 한정.** λ=76m·cp=10.9m/s라 radar급 k·Uc = ω_p의 0.37~1.37%뿐.
+  외삽(기울기 1.28): value_marginal이 **Uc≈0.5~1.0 m/s(하구·연안 제트)서 0.03 돌파.** 15cm 상한은 실연안류
+  0.5~2 m/s의 1/10~1/3; 15cm 결과(+0.0060*)가 채널이 **지불 시작함을 자증.** ⟹ "무가치"는 4중 한정.
+- **과소 방지(비관 과잉교정, 한 방향 리스크)**: **oracle-partition base가 값 흡수** — Uc 무시 시 위상오차 실은
+  13°(4cm)/23°(7cm)/49°(15cm)인데 oracle prior가 대부분 흡수. **net/flat base면 Uc 더 지불 개연 — net-base
+  미측정=진짜 한계.** **nowcast 한정**(query=창끝 T, Doppler 레버 짧음); forecast면 lead 누적→current 더 가치.
+- **스코프 4중**: {radar급 Uc≤15cm/s} × {deep-swell λ=76m} × {oracle-base} × {nowcast}. 무조건 일반화 과대.
+
+## ★E-54/E-55 종합 — 학위관건 갱신: PARTIAL → **"2채널 판정완료"**(스코프 한정)
+- regime: 5요소 완전계측, achievability 사망. current: value_marginal 검정력 판정완료, **VALUE 사망**(4중 스코프).
+  ⟹ **프레임워크가 2채널을 다른 죽음-요인으로 판별** = 다채널 일반성의 실증(정직 스코프 병기).
+- **남은 정직 홈(과소 방향)**: current net-base·forecast·소류(0.5~2m/s)·실측 anchor 미측정. 이식 **완성**
+  주장엔 net-base current 1회 더 권장(비관 갭 닫기). aperture는 채널 아님(CRB 백본).
+- **인용 가능**: "프레임워크가 regime(achievability)·current(value) 두 채널 다른 요인 판별"(스코프 4중 병기).
+- **⛔인용 금지**: "current 채널 무가치"(무조건), forecast/조류 확장, net-base 결론(미측정).

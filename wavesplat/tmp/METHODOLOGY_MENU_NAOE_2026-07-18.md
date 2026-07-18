@@ -29,9 +29,24 @@ E 상 · B 중상(제어전달 t−4.02로 seakeeping 접지) · A 중(vehicle) 
   같은 결과수치 전부 재사용, headline만 진단→방법 flip.
 - **차선(보험)**: 방법 delta 붕괴 시 ADVISOR_MEMO 선택지 A(system+science) — 단 교수 명시 수용 선결(v1 지적 재현).
 
-## ⚠ 커밋 前 관문 (규율: 검증 전 확정 금지)
-**Applied Energy 2025 · JMSE 2025 원문 정독**으로 1위 delta 확정 (fable은 초록만 확인). 이동센서+CRB앵커까지
-했다면 delta 붕괴 → B-2 유일 방법축(골격 얇음 → 교수 합의). **이 관문 통과 전 "envelope 방법" 확정 인용 금지.**
+## ✅ 커밋 관문 결과 (2026-07-18, 원문/전문 확인) — **PASS: delta 생존**
+근접선행 전문/원문 확인:
+- **Applied Energy 2022 (Zhang & Zhao, Warwick+Plymouth, 전문 확인 via Warwick WRAP PDF)**: sensor = **고정
+  wave probe/gauge**(wave tank; moving/ship/buoy/radar/lidar 키워드 0회, probe 4회). UQ = **variational
+  Bayesian NN 경험적 분산**. **★"Cramér-Rao" 0회·"Fisher information" 0회.** 정보이론 앵커 전무.
+- **Applied Energy 2025 (Dai/Zhang/Zhao)**: 비선형 "universal predictable zone" 확장이나 여전히 ML 경험 UQ(초록+
+  동일그룹 계승; 전문 유료). **JMST 2021**: 기하-해석적 zone(moving **buoy** point-series, 희소 점군 아님).
+  **JMSE 2025**: sparsity+경험 UQ. ⟹ **아무도 predictable zone을 CRB/Fisher에 앵커 안 함.**
+
+**⟹ ★1위 delta 생존 확정**: "센서-사양 인지 + CRB(정보이론) 앵커 운용성 envelope"은 미청구. 단 정련:
+1. **차별점 = CRB-앵커 그 자체** (이동·희소만으론 부족 — JMST moving buoy·JMSE sparsity 선점). 정보이론 앵커가 열쇠.
+2. **최강 경쟁자 = Zhao 그룹(Warwick)** — ML-UQ predictable-zone 영토주인. difference-first 포지셔닝 필수
+   ("경험 NN 분산 UQ vs 센서-사양 인지 정보이론 하한·무학습").
+3. **⚠IP**: "predictive sea state mapping for ship motion control" **USPTO 특허 2건**(10259544·10538299) — 제어응용
+   프레임시 선행기술 고려.
+- **★핵심**: 사용자 우려(정보벽=NAOE 부적합) + litcheck(CRB-앵커=유일 novelty)가 합쳐짐 → 정보이론 내용을
+  **유지하되 "정보벽"→"CRB-앵커 운용성 envelope"으로 재프레임**(같은 수학·NAOE 포장·경쟁자 대비 차별).
+- 캐비엇: 2025 전문 미확인(유료), 2022 전문 확인. delta는 정보이론 앵커에 한정(이동/희소는 공유).
 
 ## 남은 실험 (1위 채택 시)
 envelope 예측 vs 실제 skill 사전등록 검증(regime·HOS 포함)·보정 피복 재확인·스테레오 실측 anchor 1건·

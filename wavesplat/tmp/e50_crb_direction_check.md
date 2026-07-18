@@ -94,3 +94,50 @@ FIM cond median 31 (well-conditioned = θ 국소식별 = E-43c 정합; near-sing
      로 예측 achievable corr을 E-49와 대조**가 다음 필수 단계.
 - **⟹ keystone ③ 상태**: θ-CRB **계산·검증 완료**(2차 파티션 w 정보-제약 확립). 그러나 **정보-급 폐쇄 확정
   인용엔 (a) GUARD2 achievability (b) random-phase CRB 두 조각 미납.** E-51은 필요조건이지 충분조건 아님.
+
+---
+
+# E-52 GUARD2 achievability (n=64) + 독립 검증 — ★keystone③ STRONG form 기각, 판별=결과 B
+
+스크립트 `tmp/e52_crb_achievability.py`, 원자료 `results/direction3/e52_crb_achievability.json`.
+θ̂~N(θ_true,CRB) 몬테카를로(M=32)로 field 만들어 corr = "CRB-efficient plug-in 추정기의 field". arena X si=700-763.
+
+## 결과 (재도출 정확 일치)
+```
+oracle_reg − cur         +0.0856* CI[+0.060,+0.111]  med +0.071
+crb_limited − cur        +0.0455* CI[+0.024,+0.068]  med +0.033  win 40/64  ← CRB 천장이 net 위
+oracle_reg − crb_limited +0.0401* CI[+0.030,+0.051]  med +0.030  win 59/64  ← 진짜 정보한계 잔여
+사전등록 판정 = NOT CONFIRMED.
+```
+
+## ★독립 검증 (opus) — crb_limited는 천장(ceiling)이지 achievable 아님
+- **crb_limited는 correct-family·unbiased·efficient plug-in의 상한(ceiling)으로 유효**하나, verdict 문자열
+  "beats the net"은 **realizable 추정기가 이긴다로 읽혀 과대.** 낙관편향 3중(전부 천장 올림): ①correct 2-lobe
+  shape 부여(net엔 없음) ②unbiased 부여(실제론 w 미식별 1.68×prior → prior로 shrink → corr↓) ③Gaussian-근사.
+- **★E-49와 결정적 대비**: 실제 blind(FULL) = net **+0.012 (CI∋0)**, oracle −0.057. 가상 crb_limited = net
+  **+0.046**, oracle −0.040. ⟹ **실제 blind는 CRB 천장에 도달 못 함(~+0.034 아래)** = +0.046은 **efficiency-gap/
+  ceiling이지 회수된 headroom 아님.** (오목성 인공팽창은 배제 — oracle−crb=+0.040>0로 천장이 oracle 아래.)
+
+## ★정직 종합 (E-51+E-52) — keystone③ 재판정
+파티션 field 회수 = **두 벽**:
+- **(i) 진짜 θ-정보벽 = oracle − crb_limited = +0.040** (2차 파티션 w 미식별, **모델-클래스**).
+- **(ii) crb_limited − net = +0.046 = 정보 아니라 efficiency-gap/천장** — 실제 blind(E-49 FULL≈net)가 도달 못 함.
+
+⟹ **keystone③ STRONG form("정보가 net에서 캡한다 = 음성을 정보-급으로 승격") = 기각.** 정보벽은 net이
+아니라 **oracle−0.040(=crb_limited)**에 앉음 = 관측은 net/blind가 뽑는 것보다 +0.046 더 informative.
+⟹ **방향점검의 판별 = 결과 B(decision/estimator-limit)** 쪽. E-43c(우도가 θ 짚음)·검사(prosecution)의
+"정보 아닌 결정 문제" 우려가 **CRB로 확증됨.**
+
+**단 음성 척추는 생존**: E-49의 blind≈net(realizable 추정기 사실)은 E-52가 **뒤집지 못함**(실제 blind가
+천장 미도달). 바뀌는 건 **"정보-급 승격 야망"뿐** — thesis는 **추정기-급 폐쇄(E-49)로 유지**되고, 정직한
+프레임 = *"모델-클래스 CRB가 oracle−0.040서 캡(2차 파티션 w), net→천장 +0.046은 추정기 비효율(실제 blind도
+회수 실패)"*.
+
+**캐비엇**: Gaussian-근사 CRB라 이 천장(crb_limited)도 낙관적 → random-phase CRB 후속 필요(천장 더 낮을 수).
+
+## keystone③ 최종 상태
+- ❌ **STRONG form(정보-급 폐쇄, 음성을 net에서 정보-급 승격) = 기각** (CRB 천장이 net 위).
+- ✅ **음성 척추(blind≈net, 추정기-급, E-49) = 생존**(E-52 미반증).
+- ✅ **작은 진짜 정보 잔여 +0.040**(2차 파티션 w, 모델-클래스) = 정직히 인용가능.
+- ⟹ 논문 프레임: "정보의 벽"이 아니라 **"추정기-급 폐쇄 + 작은 모델-클래스 정보 잔여"**. 학위 승격 장치로서의
+  CRB(음성→정보-급)는 **실패**; 대신 CRB가 **판별해준 것(결과 B)**이 정직한 기여.

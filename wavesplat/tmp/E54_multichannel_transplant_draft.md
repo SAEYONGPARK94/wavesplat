@@ -142,4 +142,20 @@ value_marginal|kp_hint (kp 고정 후 외부 Uc 잔여 가치, base=oracle 파�
 - **남은 정직 홈(과소 방향)**: current net-base·forecast·소류(0.5~2m/s)·실측 anchor 미측정. 이식 **완성**
   주장엔 net-base current 1회 더 권장(비관 갭 닫기). aperture는 채널 아님(CRB 백본).
 - **인용 가능**: "프레임워크가 regime(achievability)·current(value) 두 채널 다른 요인 판별"(스코프 4중 병기).
-- **⛔인용 금지**: "current 채널 무가치"(무조건), forecast/조류 확장, net-base 결론(미측정).
+- **⛔인용 금지**: "current 채널 무가치"(무조건), forecast/조류 확장, ~~net-base 결론(미측정)~~ → **E-56이 닫음.**
+
+## ★E-56 비관 갭 닫기 (net-base) — VALUE-사망 base-robust 확인
+`tmp/e56_current_netbase.py`, `results/direction3/e56_current_netbase.json`. E-55 audit의 ★일차 비관리스크
+(oracle-base가 Uc 값 흡수)를 검증: base=참-파티션 oracle 대신 **인컴번트 net gamma(true kp)**로 재측정.
+```
+value_marginal|kp_hint:   oracle base        NET base       net_base_corr
+  4cm    +0.0011[..,+.0025]  +0.0000[..,+.0014]      0.413
+  7cm    +0.0023[..,+.0049]  +0.0006[..,+.0030]      0.412
+ 15cm    +0.0060[..,+.0119]* +0.0044[..,+.0099]      0.396
+oracle-base 컬럼이 E-55 정확 재현(교차검증✓); grade0 both≡0(sanity✓)
+```
+**판정 = GAP CLOSED**: net-base value_marginal이 오히려 **더 작음**(net base가 corr 0.41로 더 diffuse해
+Doppler 보정이 덜 도움) ⟹ "oracle-base가 값 흡수" 우려 **반증**, VALUE-사망은 **base 선택에 robust**.
+- **검증**: 감사된 E-55 machinery(build_sea_uc·solve_uc) 재사용 + oracle-base 컬럼이 E-55 정확 재현 = 강한
+  교차검증(추가 감사 불요). 새 조각 net_grid = net_gamma_map(kp override) thin wrapper.
+- **남은 비관(E-56 밖)**: nowcast-only, tidal/forecast — 여전히 스코프 캐비엇(E-55 §대칭감사). base-absorption만 닫음.

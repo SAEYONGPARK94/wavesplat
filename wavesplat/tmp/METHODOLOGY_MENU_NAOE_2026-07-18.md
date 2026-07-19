@@ -16,7 +16,10 @@
 | E predictable/운용성 envelope | **틈 有(좁아지는 중)** | 개념=NAOE 정통(Naaijen/Desmars); **근접선행 2건**(Applied Energy 2022 VB-UQ·2025 universal zone·JMSE2025) — 전부 **고정프로브·경험적 NN-UQ**. 살아남는 틈=**센서-인지+이동궤적+희소점군+CRB-앵커** envelope |
 
 ## NAOE 적합도
-E 상 · B 중상(제어전달 t−4.02로 seakeeping 접지) · A 중(vehicle) · C 상이나 결격 · D 중 · 회계단독 하.
+E 상 · B 중상(제어전달로 seakeeping 접지) · A 중(vehicle) · C 상이나 결격 · D 중 · 회계단독 하.
+**⚠2026-07-19 E-60 정정**: "t−4.02" ⛔인용 금지(iid t). 5레코드 군집급 = 5/5 방향·p 0.073/wild 0.027·
+`headline_pass:false` = **경계선**. B의 seakeeping 접지는 **약화됐으나 소멸 아님**(k≈10이면 도달권).
+권위 `tmp/E60_B2_staleness_audit_2026-07-19.md`.
 
 ## ★권고 골격 (1+2 혼합)
 1. **[헤드라인] 센서-인지 예측가능/운용성 envelope 방법** (E, A=vehicle): 주어진 센서 사양·궤적·해상에서

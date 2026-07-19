@@ -33,7 +33,7 @@ os.chdir(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, 'scripts')
 
 from d3_prior_net_train import PriorNet, band_mask, NGRID, KREL
-from d3_prior_net_taskft import load_all, task_loss_one
+from d3_prior_net_taskft import load_all, task_loss_one, nll_loss_one
 from d3_l1_s2head_train import SmultHead
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -41,7 +41,8 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--objective', choices=['task', 'resid'], required=True)
+    ap.add_argument('--objective', choices=['task', 'resid', 'nll'],
+                    required=True)
     ap.add_argument('--steps', type=int, default=12000)
     ap.add_argument('--bs', type=int, default=8)
     ap.add_argument('--lr', type=float, default=3e-5)
@@ -88,6 +89,14 @@ def main():
         z = torch.tensor(D['z'][i], device=DEVICE)
         kp_e, Hs, _, _, nfrac = D['meta'][i]
         sig0 = float(nfrac * Hs)
+        if a.objective == 'nll':
+            # arm NLL (E-B2K): true ML-II on ALL observations. No (Hs/4)^2
+            # rescale -- the model is scale-equivariant (z->cz sends gam->c^2gam,
+            # sigma0->c sigma0), so a sea-state rescale only shifts NLL/n by
+            # log c, a constant in the learned parameters with zero gradient.
+            # Rescaling would instead break it from being a likelihood.
+            return nll_loss_one(out, P, z, float(kp_e), sig0, ls,
+                                mask_t, kxn, kyn)
         if a.objective == 'task':
             Q = torch.tensor(D['Q'][i], device=DEVICE)
             gt = torch.tensor(D['gt_q'][i], device=DEVICE)

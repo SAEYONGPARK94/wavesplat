@@ -44,12 +44,14 @@ def load_all(stem):
     return {k: np.concatenate(v) for k, v in acc.items()}
 
 
-def task_loss_one(net_out, P, z, Q, gt_q, kp_e, sigma0, log_smult, mask_t,
-                  kxn, kyn, bound_wave=False, bw_scale=0.15):
-    """Differentiable MMSE through Woodbury; returns normalized field MSE.
-    bound_wave: pair the learned free-wave prior with (2k,2omega) off-shell
-    bound-wave candidates (#2+#1 retrain, 2026-07-08), prior tied to the parent
-    free-wave energy and downscaled — matches inference net_gamma_mmse."""
+def _build_bank(net_out, z, kp_e, mask_t, kxn, kyn, bound_wave, bw_scale):
+    """Shared dispersion-constrained bank + variance-constrained prior.
+
+    Factored out of task_loss_one (2026-07-19, E-B2K) so that the task arm and
+    the NLL arm are guaranteed to train through bit-identical bank machinery --
+    the loss is then the ONLY thing that differs between arms, which is what the
+    loss-swap claim requires. Verified bit-identical to the pre-factor path by
+    tmp/e60k_verify_refactor.py."""
     g = torch.pow(10.0, net_out[mask_t])
     kxb = kxn * kp_e
     kyb = kyn * kp_e
@@ -68,6 +70,17 @@ def task_loss_one(net_out, P, z, Q, gt_q, kp_e, sigma0, log_smult, mask_t,
             - om[None] * Qp[:, 2:3]
         return torch.cat([torch.cos(psi), torch.sin(psi)], dim=1)
 
+    return gam, design
+
+
+def task_loss_one(net_out, P, z, Q, gt_q, kp_e, sigma0, log_smult, mask_t,
+                  kxn, kyn, bound_wave=False, bw_scale=0.15):
+    """Differentiable MMSE through Woodbury; returns normalized field MSE.
+    bound_wave: pair the learned free-wave prior with (2k,2omega) off-shell
+    bound-wave candidates (#2+#1 retrain, 2026-07-08), prior tied to the parent
+    free-wave energy and downscaled — matches inference net_gamma_mmse."""
+    gam, design = _build_bank(net_out, z, kp_e, mask_t, kxn, kyn,
+                              bound_wave, bw_scale)
     Phi = design(P)
     s2 = (torch.exp(log_smult) * sigma0) ** 2
     n = len(z)
@@ -75,6 +88,41 @@ def task_loss_one(net_out, P, z, Q, gt_q, kp_e, sigma0, log_smult, mask_t,
     alpha = torch.linalg.solve(K, z)
     pred = (design(Q) * gam[None]) @ (Phi.T @ alpha)
     return ((pred - gt_q) ** 2).mean()
+
+
+def nll_loss_one(net_out, P, z, kp_e, sigma0, log_smult, mask_t, kxn, kyn,
+                 bound_wave=False, bw_scale=0.15):
+    """Arm NLL (E-B2K, 2026-07-19): TRUE marginal likelihood (ML-II).
+
+    Under the same model that task_loss_one inverts -- z = Phi a + eps,
+    a ~ N(0, Gamma), eps ~ N(0, sigma^2 I) -- the marginal is z ~ N(0, K) with
+    K = Phi Gamma Phi^T + sigma^2 I, so
+
+        -log p(z) = 0.5 * [ z^T K^-1 z + logdet K + n log 2pi ].
+
+    Returned PER OBSERVATION (divided by n) so the loss magnitude is O(1) and
+    comparable to the other arms under the shared learning rate -- the arms must
+    differ in objective, not in effective step size.
+
+    Why this arm exists: the shipped arm L is a held-out z-residual, i.e. a
+    CROSS-VALIDATION estimator, not ML-II. Bachoc (CSDA 2013) established at
+    theorem level that ML mis-selects under misspecification while CV is robust,
+    so an L-only comparison cannot license the word "likelihood" in the method
+    claim. This arm closes that measurement gap and doubles as the audit against
+    arm L being a straw man (it uses ALL observations, L discards 20%).
+    """
+    gam, design = _build_bank(net_out, z, kp_e, mask_t, kxn, kyn,
+                              bound_wave, bw_scale)
+    Phi = design(P)
+    s2 = (torch.exp(log_smult) * sigma0) ** 2
+    n = len(z)
+    K = (Phi * gam[None]) @ Phi.T + s2 * torch.eye(n, device=DEVICE)
+    # Cholesky: stable logdet on the same K the other arms invert.
+    Lc = torch.linalg.cholesky(K)
+    alpha = torch.cholesky_solve(z[:, None], Lc)[:, 0]
+    quad = (z * alpha).sum()
+    logdet = 2.0 * torch.log(torch.diagonal(Lc)).sum()
+    return 0.5 * (quad + logdet + n * float(np.log(2 * np.pi))) / n
 
 
 def main():

@@ -15,7 +15,7 @@ Observations: An Information-Theoretic (Cramér–Rao) Approach"
 계산·보정·검증하는 방법**을 제시. envelope의 내부 엔진 = 보조-정보 채널을 5요소(가치·회수성·공급·달성성·
 정보한계)로 회계하고 CRB로 "회수 실패가 정보벽인가 추정기 효율인가"를 판별하는 프로토콜. 두 채널(레짐
 파티션·표면 해류)에 적용해 **채널마다 다른 사망요인 판별**을 실증. 보완 = 우도-실패 판정 동기의 비-우도
-task-loss로 추정기를 제어가치에 정렬(제어전달 t=−4.02). 모든 판정 = 사전등록·군집보정·HOS 재현·대칭감사로
+task-loss로 추정기를 제어가치에 정렬(제어전달 5/5 레코드 방향 일관, 군집급 경계선 — §7 참조). 모든 판정 = 사전등록·군집보정·HOS 재현·대칭감사로
 봉인. 스코프 = 모사 센서 연산자(스테레오 실측 anchor 병기).
 
 ## 절 구조 + MEASURED/PENDING 태그
@@ -41,7 +41,13 @@ envelope→skill 예측 검증 = 조건①**).
 판별 실증**(MEASURED: E-42~E-56 3중검증 / PENDING: 조건② 개구 채널 추가 = 3채널 판정표).
 
 **§7 B-2 task-loss 학습 (효율갭 닫기)** — 우도-실패 동기 비-우도 task-loss, 미분가능 물리-사후 관통, 제어정렬.
-차별=물리 추정기 유지(vs end-to-end PoF2023)+검증사슬(MEASURED: 제어전달 t−4.02·군집·시드·HOS·zero-shot).
+차별=물리 추정기 유지(vs end-to-end PoF2023)+검증사슬.
+**⚠2026-07-19 E-60 정정**: 구 "제어전달 t−4.02"는 **iid t(레코드 3개 안 창 72개)** = ⛔인용 금지.
+현재 = 5레코드 확장(`d20_replay_eval_clusterrobust.json`) **5/5 부호 일관·효과 −0.123·cluster-t p 0.073·
+Webb wild p 0.027·`headline_pass: false`** ⟹ **MEASURED = 방향 일관 / ARGUED = 통계적 확립(경계선, k≈10 필요)**.
+동일 정정: T−L 정면대결은 동결 게이트 PASS이나 **군집급 미확립**(p 0.19, 3/5); HOS 재현 **~null**
+(pooled +0.010, 5/8, 게다가 "바다 2개" 아레나); s²-head는 **고정 smult 3.25 대비 이득 없음**(T_fix 0.618 ≥ T_own 0.615).
+권위 = `tmp/E60_B2_staleness_audit_2026-07-19.md` + `tmp/E60_B2_headline_fable_review_2026-07-19.md`.
 
 **§8 ★Validation (KEYSTONE — 조건①=MEASURED, 조건③=PENDING)** — envelope 예측 신뢰영역 vs 실제
 phase-resolved skill(에피소드별 Spearman(σ_CRB, σ_actual), n=36; 사전등록 E-58 + 독립감사 E-58b, 권위

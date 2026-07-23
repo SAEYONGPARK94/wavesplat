@@ -63,3 +63,37 @@ phrasing needs the caveat.
 n = 5 seeds × 3 episodes, synthetic linear, one configuration. Crowded result is borderline
 on t (−2.06) and rests on 5/5 direction consistency. No HOS. The adaptive-radius repair is
 proposed, not tested.
+
+---
+
+# Re-measured on the regenerated (Nyquist-adequate) dataset → **CONFIRMED, and sharper**
+
+`tmp/min_dk_sweep_finemesh.py`. The census (`tmp/REVALIDATION_CENSUS_2026-07-23.md`) flagged
+this result as needing re-measurement, because the original ran on episodes whose affected
+components were transmitted at only 7–42 % amplitude. Same sweep, same 5 seeds, same
+pre-registered rule, now on `data_finemesh_2026-07-23/`.
+
+| episode | 0.15 (median) | 0.05 | paired Δ | SE | t | direction |
+|---|---|---|---|---|---|---|
+| **BF4 15comp** (crowded) | 0.2912 | **0.2722** | **−0.0150** | 0.0048 | **−3.14** | **5/5 improved** |
+| BF3 5comp (medium) | 0.1699 | 0.2209 | **+0.0293** | 0.0115 | **+2.55** | **0/5 improved** |
+| BF3 2comp (control) | 0.0844 | 0.0876 | +0.0178 | 0.0246 | +0.72 | 1/5 (noise) |
+
+**Every conclusion survives, and both sides of the trade-off are now individually
+significant** (they were borderline before):
+
+- Crowded gain: t went **−2.06 → −3.14**, magnitude essentially unchanged
+  (−0.0156 → −0.0150). As a fraction of crowded-regime error that is
+  **0.0150 / 0.2912 = 5.2 %** — the "~5 % algorithmic" bound **holds on faithful data**.
+- Medium-regime penalty: t went **+1.65 → +2.55**. Loosening the radius is now *measurably*
+  harmful there, strengthening the "do not simply lower it" conclusion.
+- Control still inert (t = +0.72), so the reading remains valid.
+
+⟹ **The licensed statement is unchanged**: `min_dk` costs a few percent in the crowded
+regime, is beneficial in the medium regime, and does **not** explain the crowded-regime wall.
+The repair remains an aperture-scaled adaptive radius, still untested.
+
+**Side observation (unexplained):** run-to-run spread is *larger* on the adequate data —
+BF3 2comp sd 0.0491 → 0.0676, BF3 5comp sd 0.0109 → 0.0246. More renderable content appears
+to give the non-convex fit more ways to diverge. This makes the median-of-k reporting
+requirement **more** pressing on the regenerated dataset, not less.

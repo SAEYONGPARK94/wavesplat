@@ -163,3 +163,55 @@ and ~0.25–0.28.
 **0.08 % of total energy** — three orders of magnitude below even the strictest
 `prune_threshold` tested (0.005). No energy threshold could ever have retained it, which is
 exactly why the 20× sweep moved nothing.
+
+---
+
+# H5 — scale-invariant stage-advance (the trace's "root cause") → **DOES NOT FIX IT**
+
+`tmp/scale_invariant_advance.py`. `should_advance` now divides the training loss by the
+observation variance, so the *same* thresholds `[0.1, 0.05]` mean "fraction of signal
+variance still unexplained" — no new tuning constant. Flag `SCALE_INVARIANT_ADVANCE` defaults
+to False (shipped behaviour unchanged; control arm reproduces 0.0524 exactly). Random phase
+left **on**, so this isolates the threshold change.
+
+| episode | raw-loss threshold (current) | **scale-invariant** | paired Δ | SE | t |
+|---|---|---|---|---|---|
+| BF3 2comp | mean 0.0930, CV 53.0 % | mean 0.0859, **CV 58.4 %** | −0.0070 | 0.0219 | −0.32 |
+| BF4 15comp | mean 0.2895, CV 2.8 % | mean 0.2955, CV 3.6 % | +0.0060 | 0.0048 | +1.24 |
+
+**Pre-registered outcome 3 fired: CV unchanged ⟹ the threshold is not sufficient on its own.**
+Nothing significant in either direction.
+
+**The revealing detail:** the bimodality does not weaken, it **re-deals**. Under the
+scale-invariant criterion the *bad* seeds are now 42 and 1 (0.1671, 0.1673) — precisely the
+seeds that were good and canonical-bad before. Changing the advance timing does not remove
+the lottery; it reshuffles who wins it.
+
+## Consequence — the "root cause" framing must be qualified
+
+fable's trace correctly located **where seeds 42 and 1 diverged in that specific pair**, and
+the scale-dependence it found is real (1 gradient step vs 4). But that divergence point is
+**not the general cause**: repairing it leaves the bimodality intact. The advance threshold
+is one of several arbitrary details that decide which basin a run falls into — a *sampling
+point of the lottery*, not the lottery itself.
+
+⟹ **H4 (removing both random-phase draws) remains the only intervention that actually
+removes the variance** (CV 53.0 % → 0.0 %). Determinism here is obtainable only by deleting
+the randomness, not by fixing the timing that samples it.
+
+## What the whole hunt actually established
+
+Combining H1–H5 with fable's trace, the honest picture is **not** "there is a bug in the
+prune / the padding / the threshold". It is:
+
+> For this configuration the fit is **effectively ill-posed**. The weak true component
+> (A = 0.037, **0.08 % of total energy**) is not recovered by *any* run. What separates a
+> "good" run from a "bad" one is whether it happens to retain a **redundant copy of the
+> strong wave** whose spare degree of freedom absorbs the un-modelled weak wave's
+> interference. Which outcome you get is decided by arbitrary details — initial phase,
+> advance timing — none of which carry information about the right answer.
+
+That is a property of the problem at that operating point, not a defect with a clean fix.
+It reinforces, rather than replaces, the reporting prescription: **median-of-k with spread**.
+The one intervention worth keeping on the table is H4's determinism (plus its measured
+accuracy gain on crowded episodes, t = −5.28), offered as *reproducibility*, not as accuracy.

@@ -17,6 +17,15 @@ from typing import List, Tuple
 # True preserves shipped behaviour.
 GROW_RANDOM_PHI = True
 
+# `should_advance` historically compares the RAW training loss against absolute thresholds
+# ([0.1, 0.05, None]). Those constants are scale-dependent: on a low-Hs sea the raw loss can
+# already sit below 0.05, so the stage advances after a single gradient step and the residual
+# beamforming that follows runs on an essentially untrained residual. Measured in
+# tmp/VARIANCE_TRACE_fable_2026-07-23.md (seed 1 advanced after 1 iteration, seed 42 after 4)
+# as the ROOT cause of the run-to-run bimodality. When True, the loss is normalised by the
+# observation variance so the thresholds mean "fraction of signal variance still unexplained".
+SCALE_INVARIANT_ADVANCE = False
+
 from wavesplat.model.spectral_gaussian import SpectralGaussianModel
 from wavesplat.optimizer.initializer import (
     bin_observations_to_grid, fft_peak_extraction,
@@ -78,7 +87,11 @@ class CoarseToFineSchedule:
         threshold = self.loss_thresholds[self.current_stage]
         max_iter = self.max_iters[self.current_stage]
 
-        if threshold is not None and loss < threshold:
+        rel_loss = loss
+        if SCALE_INVARIANT_ADVANCE and getattr(self, 'loss_scale', None):
+            rel_loss = loss / self.loss_scale
+
+        if threshold is not None and rel_loss < threshold:
             return True
         if n_iters >= max_iter:
             return True

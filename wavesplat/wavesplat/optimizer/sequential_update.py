@@ -256,6 +256,15 @@ class SequentialUpdater:
             depth=self.depth,
         )
 
+        # Observation-variance scale for the (optional) scale-invariant stage-advance test.
+        # Set unconditionally; it is only consulted when
+        # coarse_to_fine.SCALE_INVARIANT_ADVANCE is True.
+        try:
+            _z = np.concatenate([f.z_obs.detach().cpu().numpy().ravel() for f in frames])
+            schedule.loss_scale = float(np.mean(_z ** 2)) if _z.size else None
+        except Exception:
+            schedule.loss_scale = None
+
         # Initialize first stage
         n_init = schedule.current_n()
         init_kx, init_ky, init_w, init_phi = initialize_from_frames(

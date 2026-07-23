@@ -19,6 +19,14 @@ from typing import List, Tuple
 
 from wavesplat.model.dispersion import wavenumber_from_omega, dispersion_omega
 
+# Minimum separation enforced between beamform peaks [rad/m]. Hardcoded identically at three
+# sites historically; hoisted here so it can be varied. fable's census
+# (tmp/SCALE_AUDIT_fable_2026-07-23.md) found 126/195 shipped episodes -- and 100% of the
+# 15/20/30-component ones -- contain true component pairs closer than this, i.e. the value
+# imposes a resolution floor on exactly the crowded regime the information-wall argument
+# relies on.
+MIN_DK = 0.15
+
 # Amplitude given to padding (random-k, random-phase) components in
 # initialize_from_frames_v2. Module-level so experiments can vary it without touching call
 # sites. Default 0.01 preserves historical behaviour.
@@ -392,7 +400,7 @@ def initialize_from_frames_v2(frames, n_gaussians: int, depth: float,
     # Step 2: Greedy extraction — suppress + refine + subtract from residual
     z_residual = z.copy()
     kx_list, ky_list, w_list, phi_list = [], [], [], []
-    min_dk = 0.15  # minimum separation between peaks
+    min_dk = MIN_DK  # minimum separation between peaks
 
     for comp_idx in range(n_gaussians):
         # Find peak in power map

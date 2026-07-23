@@ -512,7 +512,8 @@ class SequentialUpdater:
 
             kx_list, ky_list, amp_list = [], [], []
             dkx = kx_axis[1] - kx_axis[0]
-            min_dk = 0.15
+            from wavesplat.optimizer.initializer import MIN_DK
+            min_dk = MIN_DK
 
             for _ in range(n_add):
                 flat_idx = np.argmax(power.ravel())

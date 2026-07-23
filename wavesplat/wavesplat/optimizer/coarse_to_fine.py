@@ -187,7 +187,8 @@ class CoarseToFineSchedule:
         power[max(0, cy - 1):cy + 2, max(0, cx - 1):cx + 2] = 0.0
 
         kx_list, ky_list, amp_list = [], [], []
-        min_dk = 0.15
+        from wavesplat.optimizer.initializer import MIN_DK
+        min_dk = MIN_DK
 
         for _ in range(n_new):
             flat_idx = np.argmax(power.ravel())

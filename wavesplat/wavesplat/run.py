@@ -290,6 +290,44 @@ def run_estimation(h5_path: str, config: dict = None,
     return summary
 
 
+def run_estimation_multi(episode_path, config=None, seeds=(42, 1, 2, 3, 4), verbose=False):
+    """Run `run_estimation` once per seed and report median + spread.
+
+    WHY THIS EXISTS. A fixed episode with a fixed config still gives a **bimodal** spread of
+    outcomes, with coefficient of variation up to 53% (measured; see
+    tmp/ESTIMATOR_VARIANCE_RESULT_2026-07-23.md), because component phases are initialised at
+    random in two places. The spread is *larger* on the Nyquist-adequate regenerated dataset,
+    not smaller (tmp/MIN_DK_RESULT_2026-07-23.md). A single-seed number is therefore one draw
+    from a wide, two-cluster distribution -- not an estimate of the method's performance.
+
+    Selecting the *best* run is not an option: a pre-registered test of GT-free selection on
+    the observation-fit loss FAILED (tmp/RESTART_SELECTION_RESULT_2026-07-23.md), and picking
+    on ground truth is not deployable. So the honest summary is the **median with spread**.
+
+    Returns the per-seed results plus median/mean/sd/min/max of avg_nRMSE. Report the median
+    and the spread together; a median quoted without its spread is not citable.
+    """
+    import numpy as _np
+    runs = []
+    for s in seeds:
+        cfg = dict(config or {})
+        cfg['seed'] = s
+        r = run_estimation(episode_path, cfg, verbose=verbose)
+        runs.append({'seed': s, 'avg_nRMSE': float(r['avg_nRMSE']),
+                     'avg_obs_loss': float(r.get('avg_obs_loss', float('nan')))})
+    a = _np.array([r['avg_nRMSE'] for r in runs], float)
+    return {
+        'runs': runs,
+        'n_seeds': len(runs),
+        'nRMSE_median': float(_np.median(a)),
+        'nRMSE_mean': float(a.mean()),
+        'nRMSE_sd': float(a.std(ddof=1)) if len(a) > 1 else 0.0,
+        'nRMSE_min': float(a.min()),
+        'nRMSE_max': float(a.max()),
+        'nRMSE_cv_pct': float(100 * a.std(ddof=1) / a.mean()) if len(a) > 1 and a.mean() else 0.0,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description='WaveSplat inference')
     parser.add_argument('--episode', type=str, required=True,
@@ -311,6 +349,11 @@ def main():
                         help='Init method: v1/v2/v2_konly/relax/relax_konly')
     parser.add_argument('--seed', type=int, default=None,
                         help='Random seed for reproducibility (default: 42)')
+    parser.add_argument('--n_seeds', type=int, default=None,
+                        help='Run this many seeds and report median+spread instead of a '
+                             'single run. Required for citable per-episode numbers: '
+                             'run-to-run CV reaches 53%% (see '
+                             'tmp/ESTIMATOR_VARIANCE_RESULT_2026-07-23.md).')
     parser.add_argument('--adaptive_n', type=str, default=None,
                         choices=['true', 'false'],
                         help='Enable adaptive N (prune weak, grow if needed)')
@@ -357,7 +400,18 @@ def main():
     if args.neural_corrector is not None:
         config['neural_corrector_path'] = args.neural_corrector
 
-    result = run_estimation(args.episode, config, verbose=args.verbose)
+    if args.n_seeds:
+        seeds = [42, 1, 2, 3, 4, 5, 6, 7][:args.n_seeds] if args.n_seeds <= 8 \
+            else [42] + list(range(1, args.n_seeds))
+        result = run_estimation_multi(args.episode, config, seeds=seeds,
+                                      verbose=args.verbose)
+        print(f"\n=== median-of-{result['n_seeds']} ===")
+        print(f"  nRMSE median {result['nRMSE_median']:.4f}  "
+              f"(sd {result['nRMSE_sd']:.4f}, CV {result['nRMSE_cv_pct']:.1f}%, "
+              f"range {result['nRMSE_min']:.4f}-{result['nRMSE_max']:.4f})")
+        print("  report the median WITH the spread; a median alone is not citable.")
+    else:
+        result = run_estimation(args.episode, config, verbose=args.verbose)
 
     if args.output:
         # Convert numpy arrays for JSON serialization

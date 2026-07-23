@@ -1,3 +1,16 @@
+> 🛑🛑 **2026-07-23 정정 배너 — §2의 기제 서사는 무효입니다 (승패 순위는 유효).**
+> 이 문서는 WavePrior의 HOS 우세를 **"속박파·비선형 상호작용이 단봉 자유파 가정을 깨뜨리는 만큼
+> 학습 prior가 벌충한다"**로 설명합니다. 그 설명은 프로젝트 자체 후속 연구에 반박됩니다:
+> ① 이 비교에서 **두 팔 모두 속박파를 모델링하지 않습니다** (`scripts/d3_compare_gifs.py:233-238`,
+>    둘 다 `bound_wave=False`)
+> ② `prior_net_v3`는 **선형 JONSWAP으로만** 학습됐습니다 (`scripts/d3_ssl_pretrain.py:4-5`)
+> ③ **`docs/BOUNDWAVE_LEARNABILITY_2026-07-09.md`가 이 문서보다 8시간 뒤 같은 날 커밋되어,
+>    Isserlis 정리로 이 관측 클래스에서 속박파가 학습 불가능함을 형식 증명했습니다.**
+>    `docs/LIMITATIONS_ledger_2026-07-10.md` §B4가 그 결론을 기록했으나 이 문서는 개정된 적이 없습니다.
+> ⟹ **표의 승패(선형 1/5, HOS 3/3, 실측 4/6)는 그대로 유효하나, "왜 이기는가"는 현재 미설명입니다.**
+> ⛔ **"학습의 가치 = prior 미스매치의 크기"를 *기제*로 인용 금지** — 순위 기술로만 쓰십시오.
+> 근거: `wavesplat/tmp/METHODS_REREVIEW_fable_2026-07-23.md`
+
 # WaveSplat (해석) vs WavePrior (학습) — 3종 데이터 비교 (2026-07-09)
 
 재현: `python3 scripts/d3_compare_gifs.py --case all`

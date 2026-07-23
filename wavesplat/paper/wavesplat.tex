@@ -1550,6 +1550,25 @@ users of WaveSplat for directional-sensitive downstream applications
 (e.g., heading-dependent ride control) should be aware of this
 limitation.
 
+% ============================================================================
+% !!! CORRECTION REQUIRED (2026-07-23) -- DO NOT PUBLISH THIS SUBSECTION AS WRITTEN
+% The stated cause below ("signal-to-noise ratio is inherently low") is FALSE.
+% BF2 1-component is lambda = 8.2 m rendered on a 6.90 m raycast mesh = 1.2 points per
+% wavelength, BELOW NYQUIST. wavesim/mesh_adequacy.py cites THIS EPISODE in its own module
+% docstring as the canonical violation example. Independent re-derivation: 1.18 pts/lambda.
+% Re-measured with the production estimator on the paired Nyquist-adequate regeneration
+% (2 data seeds x 3-5 estimator seeds): nRMSE 0.31 -> 0.16, field correlation 0.02 -> 0.66,
+% every fine-mesh run beating every old-mesh run.
+% => The failure is a RENDERING ARTIFACT, not physical SNR. The proposed remedy
+% ("minimum-SNR threshold or regularization schedule tuned to Hs") addresses a problem that
+% does not exist.
+% An internal audit on 2026-07-12/13 already flagged the corresponding Table B4 row as
+% "WRONG STATEMENT"; that correction was never carried into this text.
+% Evidence: wavesplat/tmp/GROUNDUP_fable_C_premises_2026-07-23.md,
+%           wavesplat/tmp/REOPENED_BY_DATA_fable_2026-07-23.md,
+%           wavesplat/tmp/SHORTLAMBDA_REVALIDATION_2026-07-23.md
+% Action: rewrite once the 100-episode re-run on data_finemesh_2026-07-23/ lands.
+% ============================================================================
 \subsection{Failure case: BF2 1-component}
 
 WaveSplat's worst case (nRMSE=0.315) occurs on the simplest
@@ -1929,6 +1948,23 @@ all methods equally and does not bias the comparison.
 $<0.5\%$ for the BF2--5 range tested ($\epsilon\approx 0.05$--$0.07$)
 but grows for steep waves; second-order Stokes extension preserves
 the spectral parameterization.
+% ============================================================================
+% !!! CORRECTION REQUIRED (2026-07-23) -- the "|k| >~ 0.4 rad/m falls below the beamforming
+% detection threshold" claim below is FALSE as an algorithm property.
+% A mesh-independent synthetic test (bypassing the raycast mesh entirely, using real LiDAR
+% sample geometry) shows the beamformer has NO such threshold: it recovers isolated
+% components from |k| = 0.15 to 1.00 and down to amplitude 0.01 m.
+% 0.4 rad/m is lambda ~ 15.7 m -- which is almost exactly where the OLD SHIPPED MESH's
+% amplitude transmission collapses (measured 0.04-0.30 below lambda ~ 15 m by an oracle-k
+% least-squares probe). The number is the SIMULATOR MESH's cutoff, mislabelled as a property
+% of the beamformer.
+% This is the same error class as the "Failure case: BF2 1-component" subsection above --
+% a rendering artifact attributed to physics/algorithm. Two confirmed instances = a pattern;
+% sweep the rest of the prose before submission.
+% Evidence: wavesplat/tmp/METHODS_REREVIEW_fable_2026-07-23.md,
+%           wavesplat/tmp/REVALIDATION_CENSUS_2026-07-23.md
+% Action: rewrite once the 100-episode re-run on data_finemesh_2026-07-23/ lands.
+% ============================================================================
 \emph{Tracking phase dependence on initialization}: the \texttt{w\_phi}
 tracking mode freezes wavenumbers and updates only amplitudes and phases,
 so components missed during beamforming initialization cannot be recovered

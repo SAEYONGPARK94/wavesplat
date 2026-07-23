@@ -19,6 +19,16 @@ from typing import List, Tuple
 
 from wavesplat.model.dispersion import wavenumber_from_omega, dispersion_omega
 
+# Amplitude given to padding (random-k, random-phase) components in
+# initialize_from_frames_v2. Module-level so experiments can vary it without touching call
+# sites. Default 0.01 preserves historical behaviour.
+PAD_W = 0.01
+
+# 'v2_konly' historically discards the (w, phi) that v2 fits by linear projection and
+# re-draws phi uniformly at random. True preserves that behaviour; False keeps the fitted
+# values, which removes the only stochastic input to the estimator.
+KONLY_RANDOM_WPHI = True
+
 
 def bin_observations_to_grid(x: np.ndarray, y: np.ndarray, z: np.ndarray,
                               x_range: Tuple[float, float],
@@ -423,13 +433,19 @@ def initialize_from_frames_v2(frames, n_gaussians: int, depth: float,
         x_hi = min(power.shape[1], ix_peak + suppress_kx + 1)
         power[y_lo:y_hi, x_lo:x_hi] = 0.0
 
-    # Pad if fewer peaks found
+    # Pad if fewer peaks found.
+    # PAD_W is module-level so it can be varied without touching call sites: padding
+    # components carry RANDOM (kx, ky, phi), so a non-zero PAD_W injects active spurious
+    # components whose survival is then decided by the energy prune -- a candidate cause of
+    # the bimodal run-to-run variance measured in
+    # tmp/ESTIMATOR_VARIANCE_RESULT_2026-07-23.md. PAD_W = 0 makes them inert at init while
+    # still leaving them free to grow if the residual demands it (zero-init warm start).
     n_found = len(kx_list)
     if n_found < n_gaussians:
         extra = n_gaussians - n_found
         kx_list.extend(rng.randn(extra).tolist())
         ky_list.extend(rng.randn(extra).tolist())
-        w_list.extend([0.01] * extra)
+        w_list.extend([PAD_W] * extra)
         phi_list.extend(rng.uniform(0, 2 * math.pi, extra).tolist())
 
     init_kx = torch.tensor(kx_list[:n_gaussians], dtype=torch.float32)
@@ -482,8 +498,15 @@ def initialize_from_frames(frames, n_gaussians: int, depth: float,
             frames, n_gaussians, depth, x_range, y_range,
             seed=seed
         )
-        # Keep beamforming kx/ky but randomize w/phi
-        # so optimizer explores the amplitude/phase landscape freely
-        init_w = torch.ones(n_gaussians) * 0.01
-        init_phi = torch.rand(n_gaussians) * 2 * math.pi
-        return kx, ky, init_w, init_phi
+        if KONLY_RANDOM_WPHI:
+            # Keep beamforming kx/ky but randomize w/phi
+            # so optimizer explores the amplitude/phase landscape freely.
+            # NOTE: this random phase draw is the measured source of the bimodal
+            # run-to-run variance (CV up to 53% on a fixed episode) documented in
+            # tmp/ESTIMATOR_VARIANCE_RESULT_2026-07-23.md -- v2 already computed a
+            # data-derived (w, phi) by linear projection, and this discards it.
+            init_w = torch.ones(n_gaussians) * 0.01
+            init_phi = torch.rand(n_gaussians) * 2 * math.pi
+            return kx, ky, init_w, init_phi
+        # Deterministic alternative: keep the least-squares (w, phi) v2 already fitted.
+        return kx, ky, w, phi

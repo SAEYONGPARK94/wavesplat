@@ -127,3 +127,39 @@ The variance finding now has a **named, localised, removable cause** rather than
 improvement: the estimator can be made deterministic *and* slightly more accurate by not
 throwing away information it has already computed. The reporting prescription
 (median-of-k with spread) still applies to any result produced with the current default.
+
+---
+
+# Forensic trace (independent, fable) — what the phase draw actually *does*
+
+`tmp/VARIANCE_TRACE_fable_2026-07-23.md`. Traces seeds 42 (good, 0.0524) and 1 (bad, 0.1682)
+on `BF3_2comp_seed0_uniform` and locates the divergence exactly. It **corrects the story in
+three places**, all in the direction of a deeper root cause.
+
+**1. The divergence is a single discrete event, and it is upstream of the phase draw's
+effect.** It occurs at **iteration 1 vs iteration 4 of the N=8 coarse-to-fine stage**, inside
+`coarse_to_fine.py`'s `advance()` (the N=8→15 growth). The stage-advance **loss thresholds are
+miscalibrated and scale-non-invariant**: on this low-Hs episode the raw training loss crosses
+the 0.05 threshold almost immediately — after **1** gradient step for seed 1, **4** for seed
+42. Which residual snapshot the N=8→15 residual-beamforming search then runs against decides
+everything: seed 42 places a component 0.14 from the weak true wave, seed 1 finds nothing
+closer than 2.36.
+
+⟹ **Determinism ≠ correctness.** My H4 fix removes the randomness that selects *which*
+arbitrary path is taken, but the underlying defect — a scale-dependent advance threshold that
+fires after one step on low-Hs seas — remains. **A scale-invariant (e.g. variance-normalised)
+stage-advance criterion is now the more fundamental fix**, and is untested.
+
+**2. Neither run recovers the weak component — my "good basin recovers both" framing was
+wrong.** MEASURED on 2 good seeds plus a medium seed: seeds 42 and 1 fit the *strong* wave
+identically (~93 % amplitude, phase within 0.003 rad). The only difference is that seed 42
+keeps **two redundant copies of the strong wave** (final n = 2) where seed 1 keeps one. That
+spare degree of freedom is what absorbs the ever-present interference from the un-modelled
+weak wave. The downstream signature is not a jump but a **periodic oscillation** in tracking
+nRMSE (mean peak spacing 2.63 s vs the missing wave's period 2.32 s), swinging between ~0.045
+and ~0.25–0.28.
+
+**3. It independently explains H1.** The best candidate match to the weak wave carries
+**0.08 % of total energy** — three orders of magnitude below even the strictest
+`prune_threshold` tested (0.005). No energy threshold could ever have retained it, which is
+exactly why the 20× sweep moved nothing.

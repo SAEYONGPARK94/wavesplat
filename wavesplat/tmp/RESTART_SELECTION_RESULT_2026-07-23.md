@@ -74,3 +74,24 @@ plain nondeterminism and both this document and the variance document need refra
 4 synthetic linear episodes, 8 seeds, one estimator configuration. No HOS. `obs_loss` is the
 mean per-frame training loss, which includes whatever regularization the updater applies —
 a purer held-out observation residual might correlate better and has not been tried.
+
+---
+
+## ⚠ Correction (2026-07-23, from `tmp/VARIANCE_TRACE_fable_2026-07-23.md`)
+
+This document explained the selection failure as *"the bad basin fits the observations
+better"* — a signal inversion. **A forensic trace shows that is not the general mechanism.**
+
+- For the canonical good/bad pair (seeds 42 vs 1) there is **no inversion at all**:
+  `obs_loss` tracks nRMSE tightly (within-run correlation **+0.95**) and is correctly worse
+  for the bad seed throughout.
+- The inversion cited above belongs to **seed 3 specifically**, and is a **third, distinct
+  failure mode**: the prune's 30 % safety check rolls back entirely, leaving all 15
+  components free to **locally overfit each 3-frame tracking window**. That is a
+  **generalisation gap**, not a corrupted quality signal.
+
+**This reopens the selection idea.** `avg_obs_loss` is the *training* misfit on the very
+frames being fitted, so an overfitting run is rewarded. Selecting on a **held-out
+observation residual** (points or frames withheld from the fit) should not have that
+weakness — and it was already flagged as untried in the Limits section above. That is now
+the highest-value follow-up on this line, and it could convert this FAIL into a PASS.

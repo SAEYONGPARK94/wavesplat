@@ -8,20 +8,43 @@ atomic-norm* reformulation ≈ the existing beamforming pipeline, the question w
 
 **Metric:** field nRMSE = RMSE(prediction − truth over the output grid) ÷ Hs, averaged over
 3 frames (nfr/4, nfr/2, 3nfr/4). All arms use the same 2600-point observation subsample,
-same seed, same frames.
+same seed, same frames — **with one documented exception**: inside
+`blasso_feasibility.greedy()`, the per-atom `refine_single`/`fit_amp` steps use the **full
+~15 000-point episode**, not the subsample (only the coarse peak search is
+subsample-restricted). A fair variant restricting every step to the subsample was built and
+run by the red-team (`tmp/r4_fulldata_advantage_probe.py`): the difference is **≤ 0.4 %
+relative** and slightly *favours* the fair variant (BF4 near-band 0.0601 vs 0.0603), because
+`joint_refine`'s final L-BFGS pass — correctly subsample-restricted in both — washes out the
+initialization difference. Empirically inert, but the unqualified "same inputs" phrasing was
+inaccurate and is corrected here.
 
 ---
 
 ## TL;DR
 
-**Gate verdict: NEGATIVE — no novelty lever — but the first reading was an artifact and the
-right reason is PARITY, not defeat.** Where both families are informed (grid points within
-~20 m of an observation) they are **equivalent** (bank even edges beamforming on one
-episode: 0.0716 vs 0.0743). The entire apparent 3–4× "bank loses" gap is an **extrapolation
-gap**: the wide grid is ~50 % points >100 m from any return, where the shrinkage bank
-correctly falls back to ≈ zero while the parametric plane-wave model extrapolates. Swapping
-estimator family changes nothing about the binding constraint — consistent with, and
-supporting, the CRB/information spine.
+> 🛑 **2026-07-23 정정 배너 — fable 적대감사 결과 반영.** 이 문서의 초판 TL;DR은
+> "informed 밴드에서 두 계열이 **동등**(BANK 0.0716 < BEAM 0.0743)"이라고 했고, 그것은
+> **9-프레임 복제로 반증되었다.** 권위 = `tmp/R4_REDTEAM_fable_2026-07-23.md`.
+> ⛔ **인용 금지: "0.0716 vs 0.0743 = 동등/bank 근소승", "광역 격차는 *전부* 외삽 아티팩트".**
+> 아래 본문은 정정판이며, 초판 수치는 §Run 4에 그대로 보존하되 대표성 없음으로 표시한다.
+
+**Gate verdict: NEGATIVE — no novelty lever.** The bank/covariance family never beats the
+beamforming component family anywhere tested. The wide-grid 3–4× gap decomposes into two
+unequal parts:
+
+- **Dominant part = extrapolation** (UPHELD, 18 frame-level replicates). ~49 % of grid
+  points are >100 m from any return; there the shrinkage bank correctly falls back to ≈ zero
+  while the parametric plane-wave model extrapolates for free — a **model-class gift** of a
+  testbed whose truth *is* a finite plane-wave sum.
+- **Smaller but real part = a genuine near-band estimation-efficiency gap** favouring the
+  matched parametric family. 9-frame replication: BF3 5comp Δ(BANK−BEAM) = **+0.0117**,
+  SE 0.0048, t = 2.46; BF4 15comp Δ = **+0.0227**, SE 0.0022, t = 10.36 (BEAM ahead on
+  **every** frame). The single frame originally reported (nfr/2 = 150) was, for BF3, the
+  **most BANK-favourable of 9** — the "parity" reading came from that outlier.
+
+So: the gap is **predominantly, not entirely,** extrapolation. The gate conclusion is
+unchanged and if anything cleaner — swapping estimator family buys nothing — but it rests on
+"the bank never wins", not on "the families are equivalent".
 
 ---
 
@@ -81,8 +104,23 @@ grid**. Which raised the real question → Run 4.
 
 ## Run 4 — near/far decomposition → **the gap is extrapolation, not estimation**
 
-`tmp/altmethods_nearfar.py`. Grid points binned by distance to the nearest same-frame
-observation. Pre-registered read stated in the script header **before** the numbers.
+`tmp/altmethods_nearfar.py`. Grid points binned by distance to the nearest observation.
+Pre-registered read stated in the script header **before** the numbers. **Only 2 of the 3
+episodes were run here** (BF3 5comp s1 dropped for runtime, without comment in the first
+draft — noted now).
+
+⚠ **Window-labelling bug (found by red-team, reproduced):** the script's primary in-frame
+threshold selects only 18 of 2600 points, so the `< 50` fallback branch **silently fires**
+every time; the printed `n_obs_in_frame = 41 / 51` are counts within a **~7-frame / 0.6 s
+swath** (≈ 6.8 m of ship travel at the 11.3 m/s design speed), *not* a single ping. The
+distance bands are therefore "distance to a short along-track swath", not "to one return".
+This does not change which data fits which estimator (both arms always see the full 2600
+subsample) and the same definition was used consistently across all replicate frames, so it
+does not drive the correction below — but the physical reading of "within 20 m" must be
+stated with the swath in mind.
+
+⛔ **The single-frame table below is retained for the record but is NOT representative** —
+see the 9-frame replication that follows it.
 
 **BF3 5comp s0** (frame 150, 41 returns in-frame, 4800 grid points)
 
@@ -102,11 +140,34 @@ observation. Pre-registered read stated in the script header **before** the numb
 | 50–100 | 1223 | 0.2431 | 0.0870 | 0.2053 |
 | >100 | 2100 | 0.2588 | 0.1515 | 0.2282 |
 
-Reads:
-1. **In the informed band (0–20 m) the families are equivalent** — bank *wins* on 5comp s0
-   (0.0716 vs 0.0743) and is behind by 0.024 on 15comp. No family advantage to harvest.
-2. **The wide-grid verdict is dominated by empty space**: ~49 % of grid points are >100 m
-   from any return, and there the bank shrinks toward zero (→ ≈ zero-pred) by design.
+## Run 5 (red-team replication) — 9 frames per episode → **near-band "parity" REFUTED**
+
+`tmp/r4_nearfar_power_probe.py` (fable red-team). Same fitted BEAM and BANK, same subsample
+and seed, queried at 9 frames (30, 60, … 270) instead of one. Frame 150 reproduces the
+published numbers exactly, confirming probe fidelity.
+
+| episode | BEAM near (mean±sd) | BANK near (mean±sd) | Δ(BANK−BEAM) | SE | t | n |
+|---|---|---|---|---|---|---|
+| BF3 5comp s0 | 0.0742 ± 0.0005 | 0.0859 ± 0.0142 | **+0.0117** | 0.0048 | 2.46 | 9 |
+| BF4 15comp s0 | 0.0608 ± 0.0130 | 0.0835 ± 0.0177 | **+0.0227** | 0.0022 | 10.36 | 9 |
+
+For BF3, frame 150's Δ = −0.0027 was the **best of 9 frames for BANK**; 6/9 frames show BANK
+behind by +0.006 to +0.036. For BF4, BANK is behind on **all 9**. Far-band behaviour
+replicates cleanly across all 18 frame-level replicates (BF3 BEAM_far flat 0.0763–0.0774 vs
+BANK_far 0.271–0.296; BF4 BEAM_far 0.108–0.178 vs BANK_far 0.205–0.251), so the
+extrapolation mechanism is **UPHELD**.
+
+**Power labels:** BF4 near-band gap = MEASURED, well powered (SE ≪ effect). BF3 near-band
+gap = MEASURED but borderline (t = 2.46) — enough to reject the specific published headline
+as representative, not enough for a strong standalone directional claim on that episode.
+Cross-episode generalization ("a near-band gap is real") = ARGUED, n = 2.
+
+Reads (corrected):
+1. **In the informed band the bank family is consistently behind, not equivalent** — the
+   published "bank edges beamforming" was a single-frame outlier. There is a real, smaller
+   near-band estimation-efficiency gap in favour of the matched parametric model.
+2. **The wide-grid verdict is still dominated by empty space**: ~49 % of grid points are
+   >100 m from any return, and there the bank shrinks toward zero (→ ≈ zero-pred) by design.
 3. **Independent corroboration inside the repo**: `tmp/probe_rho_squared_law.py:86` already
    carries the comment *"score only inside the fan … outside, eta_hat is a shrunken
    near-zero field"* — the project's own convention is to score the bank inside the sensor
@@ -121,15 +182,22 @@ Reads:
 ## What this does and does not license
 
 - **MEASURED:** flat-bank run invalid (below zero-predictor, underdetermined, in-sample
-  overfit). Tuned-bank vs beamforming on wide grid = 2–3× apart. Near-band (≤20 m) parity,
-  n = 2 episodes, single frame each.
-- **MEASURED:** the gap decomposes monotonically with distance-to-data in both episodes.
-- **ARGUED:** therefore the estimator *family* is not a novelty lever — what separates
-  outcomes is where the information is, not which linear/greedy machine consumes it.
-- **NOT licensed:** any claim that one family "beats" the other; any use of the far-field
-  numbers as a quality ranking; any extension to real/HOS seas (this ran on synthetic linear
-  episodes only, n = 3, single frames — UNDERPOWERED for a directional claim). Nonlinear
-  (HOS) replication is **not** done; per standing discipline this gate is synthetic-only.
+  overfit). Tuned-bank vs beamforming on wide grid = 2–3× apart.
+- **MEASURED (18 replicates):** the gap decomposes monotonically with distance-to-data, and
+  the far-band component is by far the larger one.
+- **MEASURED (9 frames/episode):** a smaller **near-band gap in favour of BEAM** also
+  exists — BF4 well powered (t = 10.36), BF3 borderline (t = 2.46).
+- **MEASURED:** the oracle atom count `n_true + 1` does **not** confound the comparison
+  (sweep: BF3 flat over 3–20 atoms; BF4 only *under*-counting hurts, over-provisioning is
+  free). The deployed pipeline uses `adaptive_n`, no oracle count.
+- **ARGUED:** the estimator *family* is not a novelty lever — the bank never wins anywhere
+  tested, and the bulk of its deficit is the testbed's plane-wave model-class gift rather
+  than an estimation difference.
+- **NOT licensed:** "the families are equivalent"/"bank edges beamforming" (**refuted**);
+  "the wide-grid gap is *entirely* extrapolation" (revise to *predominantly*); any use of
+  the far-field numbers as a quality ranking; any extension to real/HOS seas (synthetic
+  linear episodes only, n = 2–3). Nonlinear (HOS) replication is **not** done; per standing
+  discipline this gate is synthetic-only.
 
 ## Scope caveat for the companion paper
 
@@ -141,5 +209,14 @@ here contradicts that paper. See `tmp/INTEGRITY_FIXES_2026-07-23.md` item 2.
 ## Bottom line
 
 Round 3 said the ANM reformulation ≈ the current pipeline. Round 4 (this gate) says the
-**bank/covariance family ≈ the current pipeline too, wherever both are informed.** Eleventh
-lens, same destination: the binding constraint is information/aperture, not the estimator.
+**bank/covariance family never beats the current pipeline**, and that most of its apparent
+deficit is an artifact of demanding extrapolation into empty space. Eleventh lens, same
+destination: no estimator-family swap is a novelty lever.
+
+**Two self-corrections logged** (both in the same session, opposite directions — the reason
+the standing symmetric-audit discipline exists):
+1. Run 1's "bank loses 4×" was **pessimistic** over-claim (invalid configuration below the
+   zero predictor). Caught in-house before reporting.
+2. Run 4's "near-band parity" was **optimistic** over-claim (n = 1 frame, and that frame the
+   most favourable of 9). Caught by the fable red-team, not in-house — the single-frame
+   design was mine and the pre-registered alternative reading was the correct one.

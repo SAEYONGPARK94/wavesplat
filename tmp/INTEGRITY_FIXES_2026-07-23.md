@@ -13,8 +13,15 @@ arXiv 2511.21856, which is actually *"A Comprehensive Review of Phase-Averaged a
 Phase-Resolving Wave **Models** for Coastal Modeling"* (SWAN / WW3 / FUNWAVE numerics),
 not a UQ-calibration-gap review.
 
+> ✅ **Both items independently re-verified by fable red-team, 2026-07-23** —
+> `wavesplat/tmp/R4_REDTEAM_fable_2026-07-23.md`: **Item 1 UPHELD** (one count correction,
+> below), **Item 2 UPHELD** (one caveat, below).
+
 **Verification (repo-wide grep over `*.md`, `*.tex`, `*.py`):** the string `2511.21856`
-appears in exactly **two** files — `tmp/NOVELTY_REREVIEW_ROUND2_2026-07-23.md` (the flag
+appears in exactly **two** files ⚠ *(red-team correction: **four**, not two — also
+`tmp/NOVELTY_ROUND3_execution_…` and `tmp/NOVELTY_AGENT_G_crb_calibrated_uq_…`; the fourth
+is itself another correction record instructing "do not cite for the UQ gap", not a live
+re-use. Disposition unchanged: **no hits in any `.tex`, `.bib`, or `paper/` file**.)* — `tmp/NOVELTY_REREVIEW_ROUND2_2026-07-23.md` (the flag
 itself) and `tmp/NOVELTY_ROUND3_execution_2026-07-23.md` (which references the flag).
 It appears in **no** paper, no live skeleton (`PAPER_SKELETON_operability_envelope`),
 no thesis framing doc, and no results file.
@@ -56,6 +63,16 @@ different estimator than the one deployed, and a reviewer could catch it.
    `encounter_forecast.tex` **and** `DRAFT_main_paper_v0.md` returns **zero hits**.
    `SequentialUpdater` (torch Adam) belongs to the *main* WaveSplat paper's pipeline and
    is never invoked by the companion's claims or its 18 ms latency numbers.
+
+**Red-team addendum (independently confirmed via a third route):**
+`wavesplat/tests/test_stream_seqmmse.py` imports `StreamMMSE`, `batch_mmse`, `make_bank`,
+`design` from `d3_stream_seqmmse.py` — **not** from `sequential_update.py` — and its four
+tests (`test_rls_equals_batch`, `test_rebuild_equals_batch`, `test_P_stays_symmetric`,
+`test_nis_calibrated`) verify exactly the claims the paper text makes. ⚠ **Caveat:**
+`encounter_forecast.tex` is a **121-line skeleton** (headers + a pointer comment, no prose),
+so the grep of *that* file was **vacuously** zero-hit rather than meaningful; the load-bearing
+check is the markdown draft, which was read directly. Flag for whoever transcribes the
+markdown into LaTeX — the `.tex` currently offers no protection against the conflation.
 
 **Disposition:** no reconciliation needed; the two estimators are intentionally distinct
 and each paper cites its own. **Round 2's Agent C over-called this one.** The only

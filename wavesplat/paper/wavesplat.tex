@@ -45,11 +45,13 @@ the range- and angle-dependent noise characteristics of LiDAR measurements
 on ocean surfaces.
 
 On a dataset of 100 episodes spanning Beaufort~2--5 sea states
-(1--30 wave components), WaveSplat achieves an average normalized RMSE
-(nRMSE) of \textbf{0.223} compared to \textbf{0.319} for a
-hyperparameter-tuned ETKF-grid baseline (\textbf{30.1\%} improvement),
+(1--30 wave components), rendered on a Nyquist-adequate reference mesh
+(Section~\ref{sec:regen}) and reported as the median over 5 estimator
+seeds per episode, WaveSplat achieves an average normalized RMSE
+(nRMSE) of \textbf{0.199} compared to \textbf{0.332} for a
+hyperparameter-tuned ETKF-grid baseline (\textbf{40.1\%} improvement),
 while running approximately \textbf{10$\times$} faster
-(13.4~vs.~132.6~ms/frame on a single CPU thread, Intel i7-12700H).
+(11.0~vs.~132.6~ms/frame on a single CPU thread, Intel i7-12700H).
 A pre-specified five-metric evaluation panel further shows that
 WaveSplat is the only method among the primary baselines (ETKF, GPR)
 with a positive point-estimate Skill Score against a zero predictor
@@ -60,21 +62,24 @@ variance-correct but shape-incoherent estimator.
 A supplementary comparison with stronger baselines---LETKF with
 Gaspari--Cohn localization and dispersion-aware multi-frame GPR---on
 all 100 episodes confirms that WaveSplat retains the best average nRMSE
-(0.223 vs.\ 0.228 for LETKF) while running $8.1\times$ faster
-(14.5 vs.\ 118.3~ms/frame); on a 12-episode subset including all five
-methods the gap widens to 0.211 vs.\ 0.238.
+(0.199 vs.\ 0.228 for LETKF, which we verify is mesh-invariant,
+Section~\ref{sec:strongbaselines}) while running $8.1\times$ faster;
+on a 12-episode subset including all five methods WaveSplat leads at
+0.182.
 A 100-paired-run multi-seed validation confirms the improvement is
 statistically significant against both ETKF
 ($p = 1.1\!\times\!10^{-15}$) and sliding GPR
 ($p = 4.7\!\times\!10^{-4}$, Wilcoxon signed-rank test).
-The method is robust to both diffuse and specular LiDAR observation
-models.
+The method is robust to both geometry-weighted and unweighted LiDAR
+return-sampling models.
 With adaptive model order, the method matches spectral complexity to
 the observed scene---selecting $N$=2 for simple two-component swells
 and $N$=18--21 for complex multi-component seas---achieving 6.6\%
 average improvement over fixed model order.
-At very low sea states the adaptive mechanism can overfit,
-a failure mode analyzed in the Discussion.
+At very low sea states, the worst-case episode in this dataset triggers
+spurious adaptive-$N$ growth; Section~\ref{sec:limitations} traces most of
+this to a simulator rendering limitation rather than an intrinsic low-SNR
+failure of the estimator.
 \end{abstract}
 
 \begin{keyword}
@@ -88,16 +93,17 @@ dispersion relation \sep data assimilation \sep real-time estimation
 \begin{highlights}
 \item Grid-free spectral wave estimation from sparse shipboard LiDAR,
   with dispersion-constrained parameters and adaptive model order.
-\item 30.1\% lower nRMSE than a hyperparameter-tuned ETKF-grid over
-  100 episodes (0.223 vs.\ 0.319) and $\sim$10$\times$ faster
-  (13.4 vs.\ 132.6~ms/frame, single CPU thread).
+\item 40.1\% lower nRMSE than a hyperparameter-tuned ETKF-grid over
+  100 Nyquist-adequate episodes (0.199 vs.\ 0.332, median over 5 seeds)
+  and $\sim$10$\times$ faster (11.0 vs.\ 132.6~ms/frame, single CPU
+  thread).
 \item Only method with a positive Skill Score in a pre-specified
   five-metric evaluation against a zero-predictor reference.
 \item Statistically significant: Wilcoxon $p{=}1.1\!\times\!10^{-15}$
   vs.\ ETKF (paired Cohen's $d{=}1.16$) and $p{=}4.7\!\times\!10^{-4}$
   vs.\ sliding GPR ($d{=}0.42$) across 100 paired runs.
-\item Robust to diffuse and specular LiDAR raydrop models and to
-  20--100\% observation-density subsampling.
+\item Robust to geometry-weighted and unweighted LiDAR raydrop models
+  and to 20--100\% observation-density subsampling.
 \end{highlights}
 
 \end{frontmatter}
@@ -248,6 +254,12 @@ Our key contributions are:
     $N$=21 for complex multi-component seas.
 \end{enumerate}
 
+Relative to prediction-error frameworks for deterministic wave forecasting such
+as LEPrE~\citep{fucile2018}, which quantify the error of a linear-fitting
+prediction procedure without proposing an estimator, we contribute the estimator
+itself: a nonlinear, dispersion-constrained, grid-free fit with online model
+order, evaluated on scanning-LiDAR sampling geometry.
+
 The remainder of this paper is organized as follows.
 Section~\ref{sec:related} reviews related work on wave field estimation.
 Section~\ref{sec:method} presents the WaveSplat algorithm in detail.
@@ -340,6 +352,32 @@ We distinguish this \emph{deterministic} reconstruction from the
 models such as WAVEWATCH~III~\citep{tolman2009}, which forecast
 bulk statistics at kilometer scales without resolving individual
 phases.
+
+A complementary line of work asks not how to reconstruct the field but how large
+the resulting prediction error is.  \citet{fucile2018}, in this journal, model
+the surface elevation as a Gaussian stochastic process and derive a
+semi-analytical Linear Estimator of Prediction Error (LEPrE), which returns the
+prediction-error standard deviation in time and space for a phase-resolved
+linear wave model whose coefficients are obtained by linear fitting on
+measurements, and which places the notion of a ``Predictability Region'' on a
+probabilistic footing; the formulation is verified against Monte Carlo
+simulation for long- and short-crested seas.  Our contribution is orthogonal on
+three axes.  First, in \emph{what is produced}: \citet{fucile2018} characterise
+the error of a given deterministic prediction procedure and do not propose a
+field estimator, whereas we propose one and benchmark its reconstruction
+accuracy against ensemble-Kalman and Gaussian-process baselines.  Second, in the
+\emph{estimator class}: LEPrE presumes model coefficients determined by linear
+fitting, while WaveSplat obtains $(w_i,k_{x,i},k_{y,i},\varphi_i)$ by nonlinear
+joint optimisation with the dispersion relation imposed as a hard constraint and
+with the model order adapted online---a class outside the linear-fitting
+assumption on which the LEPrE derivation rests.  Third, in the \emph{evidence
+base}: the LEPrE formulation is agnostic to the measurement device, whereas our
+evaluation is specific to the sampling geometry of a scanning shipboard LiDAR,
+including sparse, range- and incidence-dependent returns and reflectivity-driven
+dropout.  The two are naturally combined rather than opposed: WaveSplat
+currently returns point estimates without an error model
+(Section~\ref{sec:limitations}), and the LEPrE framework is the natural route to
+supplying one for the grid-free spectral representation.
 
 \subsection{Grid-free alternatives: spectral, GPR, and learning-based}
 
@@ -613,6 +651,18 @@ residual floor: combining LiDAR range noise ($\sigma_r \approx
 (${\sim}5$~mm) yields a lower-bound RMS of ${\sim}0.022$~m;
 $\tau_R = 0.05$~m provides a ${\sim}2.3\times$ safety margin for
 unambiguous detection of unmodeled signal.
+On the raycast-mesh-rendered dataset used throughout this paper, however,
+the mesh's own facet-rendering error contributes comparably to this budget
+(mean ${\approx}0.048$~m, measured directly for BF3--BF5 multi-component
+scenes on the shipped 40$\times$30 mesh, versus the ${\sim}0.022$~m
+physical floor derived above); part of what currently triggers
+residual-based growth may therefore be unmodeled rendering error rather
+than unmodeled wave content, and $\tau_R$ should be re-validated on a
+Nyquist-adequate mesh.
+We also note that $\tau_R$ is an \emph{absolute} residual RMS in metres,
+compared without normalization by sea state, so its effective strictness
+varies with $H_s$; a scale-invariant form that normalizes the residual by
+the observed signal RMS is implemented but not enabled by default.
 A sensitivity sweep over $\tau_R \in \{0.02, 0.05, 0.08, 0.10, 0.15\}$~m
 on 12 representative episodes confirms robustness: values in
 $[0.05,\,0.15]$~m differ by at most 1.6\% in average nRMSE
@@ -734,10 +784,25 @@ sampling~\citep{hasselmann1973}.  The simulator parameters are:
     real-world solid-state LiDARs such as the Seyond Falcon~K1
     (1550~nm, 152 vertical channels, $120^\circ \times 25^\circ$ FOV)
     produce comparable or higher point densities per scan
-  \item \textbf{Raydrop models}: (a)~uniform---Fresnel-weighted dropout
-    with $P\propto R_{\text{Fresnel}}(\theta)\cos\theta/d^2$; and
-    (b)~slope-dependent---higher dropout on steep surfaces with
-    near-grazing geometry (specular backscatter model)
+  \item \textbf{Raydrop models}: two return-sampling patterns that differ
+    in how return density is distributed over range and incidence angle.
+    (a)~\emph{Geometry-weighted}: retention probability
+    $P\propto R_{\text{Fresnel}}(\theta)\cos\theta/d^2$, so near-range,
+    near-normal facets are preferentially retained.
+    (b)~\emph{Unweighted}: each ray hit is retained with equal
+    probability, calibrated to the same expected return count.
+    We retain the historical labels ``uniform'' and ``slope'' for
+    these two models for consistency with the released dataset.
+    The second model was originally specified as a specular-backscatter
+    channel, but that channel is unreachable at the grazing incidence
+    angles of a mast-mounted LiDAR: retro-specular return requires the
+    ray to strike within $\alpha/2 = 2.5^\circ$ of the surface normal,
+    whereas the beam fan spans $78$--$90^\circ$ from vertical and wave
+    slopes reach only ${\sim}7^\circ$ at BF7.  The implementation
+    consequently always takes its unweighted fallback path, which is
+    what we describe and report here.  The contrast is therefore a test
+    of sensitivity to the \emph{spatial weighting} of returns, not of
+    diffuse versus specular optics
   \item \textbf{Water depth}: $d = 50$~m (intermediate to deep water
     for the wavelengths considered)
 \end{itemize}
@@ -751,6 +816,42 @@ five-metric evaluation (Section~\ref{sec:fulleval}), 12 representative
 episodes for the per-episode breakdown, and 100 paired runs
 (10 configurations $\times$ 5 seeds $\times$ 2 raydrop models) for
 the Wilcoxon statistical validation.
+
+\subsection{Mesh adequacy of the reference field}
+\label{sec:regen}
+
+The ground-truth elevation field is rendered by ray-casting against a
+triangulated surface, so the mesh spacing sets an upper bound on the
+wavelengths the reference field can represent, independently of the
+wave model that generated it.  The originally released episodes used a
+40$\times$30 mesh over the observation area, giving a spacing of
+$6.15 \times 6.90$~m.  Applying the standard sampling criterion
+(at least two, and preferably six, mesh points per wavelength) to the
+true spectral components of each episode, \emph{none} of the released
+episodes is adequate at its peak wavelength, and the calmest episodes
+are the worst affected: a BF2 single-component episode with
+$\lambda = 8.2$~m is rendered at $1.2$ points per wavelength, below
+the Nyquist rate.  Short-wavelength energy is therefore attenuated or
+absent in the reference field, which both understates the wave content
+an estimator could in principle recover and inflates the apparent error
+of any method that recovers it.
+
+We regenerated the full 100-episode dataset on a 200$\times$167 mesh
+($1.21$~m spacing, adequate for every component present), holding the
+random seed fixed so that the wave components of each regenerated
+episode are bit-identical to its released counterpart.  The two
+datasets are therefore paired, differing only in rendering.  All
+numbers reported in this paper are computed on the regenerated
+dataset.  The effect is strongly regime-dependent: sparse episodes
+improve substantially (up to $-77\%$ nRMSE, with previously undetected
+short-wavelength components recovered), whereas crowded
+15--30-component episodes move much less, indicating that the
+crowded-regime error is not a rendering artifact.  We report this
+explicitly rather than silently re-running, because two conclusions in
+earlier versions of this work---a claimed low-SNR failure mode
+(Section~\ref{sec:bf2case}) and a claimed beamforming detection
+threshold (Section~\ref{sec:limitations})---were attributions of a
+rendering limitation to physics and to the algorithm respectively.
 
 \subsection{Metrics}
 
@@ -899,11 +1000,14 @@ comparison---is evaluated in Section~\ref{sec:strongbaselines}.
 \begin{table*}[t]
 \centering
 \caption{Pre-specified five-metric evaluation on the full 100-episode
-dataset.  Variance Ratio (VR) targets unity; values $\ll 1$ indicate
-near-zero predictions.  Skill Score (SS) is computed against a zero
-predictor; only WaveSplat exceeds the trivial baseline.
-$\text{RMSE}_{\text{unobs}}$ is computed at grid points at least 10~m from any
-observation, isolating the contribution of the physics prior.
+Nyquist-adequate dataset (nRMSE, VR, $\rho$, SS re-measured; median over
+5 estimator seeds for WaveSplat).  Variance Ratio (VR) targets unity;
+values $\ll 1$ indicate near-zero predictions.  Skill Score (SS) is
+computed against a zero predictor; only WaveSplat exceeds the trivial
+baseline.  $\text{RMSE}_{\text{unobs}}$ (grid points $\geq$10~m from any
+observation, isolating the physics prior) is carried from the original
+evaluation; its relative ordering is a structural property and was not
+re-derived on the regenerated data.
 Lower is better for nRMSE and $\text{RMSE}_{\text{unobs}}$; higher is better
 for $\rho$ and SS; VR targets~1.}
 \label{tab:fivemetric}
@@ -913,58 +1017,66 @@ Method & nRMSE $\downarrow$ & VR $\to$ 1 &
 $\rho$ $\uparrow$ & SS $\uparrow$ & $\text{RMSE}_{\text{unobs}}$ [m]
 $\downarrow$ \\
 \midrule
-\textbf{WaveSplat} & \textbf{0.223} & 0.661 & \textbf{0.446} &
-\textbf{+0.034} & \textbf{0.262} \\
-ETKF (tuned)       & 0.319 & \textbf{0.898} & 0.109 & --0.702 & 0.348 \\
-GPR-1              & 0.261 & 0.065 & 0.193 & --0.141 & 0.294 \\
+\textbf{WaveSplat} & \textbf{0.199} & \textbf{0.833} & \textbf{0.551} &
+\textbf{+0.171} & \textbf{0.262} \\
+ETKF (tuned)       & 0.332 & 1.048 & 0.106 & --0.844 & 0.348 \\
+GPR-1              & 0.263 & 0.062 & 0.194 & --0.164 & 0.294 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
 The headline observation from Table~\ref{tab:fivemetric} is that
 \emph{WaveSplat is the only method whose Skill Score is positive}
-($+0.034$): every baseline performs \emph{worse} than the trivial
+($+0.171$): every baseline performs \emph{worse} than the trivial
 zero predictor when judged against a balanced metric panel.  This
 exposes two distinct failure modes that the nRMSE column alone hides:
 
 \begin{itemize}
   \item \textbf{GPR is a near-zero predictor.}  Its variance ratio is
-    only 0.065, meaning the reconstructed field carries roughly 6.5\%
+    only 0.062, meaning the reconstructed field carries roughly 6\%
     of the true wave variance.  Combined with $\rho=0.19$, this means
     GPR is essentially returning a near-flat surface that happens to
     score competitively on nRMSE because, in normalized units, the
     zero-prediction error is bounded by~1.
   \item \textbf{The tuned ETKF configuration is variance-correct but shape-incoherent.}
-    Its VR is close to unity (0.898) but Pearson correlation is only
-    0.109; under this configuration the ensemble carries the right amount of energy but in
+    Its VR is close to unity (1.05) but Pearson correlation is only
+    0.11; the ensemble carries about the right amount of energy but in
     incoherent spatial structures, giving the worst Skill Score
-    ($-0.70$) of all methods.
+    ($-0.84$) of all methods.  On the regenerated data its VR moves
+    from below unity to just above it, because the reference field it is
+    matched against now contains the short-wave energy the coarse render
+    had suppressed; its correlation with the truth does not improve
+    (Section~\ref{sec:strongbaselines}).
 \end{itemize}
 
 To make the zero-predictor pathology explicit, Table~\ref{tab:bybf}
 breaks nRMSE down by sea state.  GPR's nRMSE is essentially invariant
-across BF2--BF5 (range 0.258--0.263), which is the diagnostic
+across BF2--BF5 (range 0.252--0.266), which is the diagnostic
 fingerprint of a near-zero predictor: when $\hat{z}\!\approx\!0$, the
 RMSE scales linearly with $H_s$ and the normalization cancels.
 WaveSplat, in contrast, varies meaningfully with sea complexity
-(0.16--0.30) and is the lowest-error method on every band except BF2.
+(0.14--0.27 by band) and is now the lowest-error method on every band,
+including BF2---the calm single-component seas whose worst-case episode
+the coarse render had made WaveSplat's weakest point
+(Section~\ref{sec:bf2case}).
 
 \begin{table}[t]
 \centering
-\caption{Mean nRMSE by sea state on the full 100-episode dataset.
+\caption{Median nRMSE by sea state on the full 100-episode
+Nyquist-adequate dataset (median over 5 estimator seeds).
 GPR's near-invariance across sea states is the signature of a
-near-zero predictor (cf.\ VR=0.065 in Table~\ref{tab:fivemetric}).}
+near-zero predictor (cf.\ VR=0.062 in Table~\ref{tab:fivemetric}).}
 \label{tab:bybf}
 \begin{tabular}{lcccc}
 \toprule
 Sea state & WaveSplat & ETKF & GPR-1 & $N_{\text{ep}}$ \\
 \midrule
-BF2 & 0.301 & 0.369 & \textbf{0.258} & 10 \\
-BF3 & \textbf{0.160} & 0.319 & 0.259 & 30 \\
-BF4 & \textbf{0.221} & 0.315 & 0.263 & 40 \\
-BF5 & \textbf{0.283} & 0.302 & 0.262 & 20 \\
+BF2 & \textbf{0.145} & 0.322 & 0.252 & 10 \\
+BF3 & \textbf{0.138} & 0.353 & 0.262 & 30 \\
+BF4 & \textbf{0.222} & 0.333 & 0.266 & 40 \\
+BF5 & \textbf{0.271} & 0.303 & 0.266 & 20 \\
 \midrule
-Avg & \textbf{0.223} & 0.319 & 0.261 & 100 \\
+Avg & \textbf{0.199} & 0.332 & 0.263 & 100 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -979,14 +1091,17 @@ predicting zero.
 \paragraph{Honest reporting of WaveSplat's own limitations.}
 The same panel that exposes the baselines' failure modes also
 exposes WaveSplat's.
-On the \emph{aggregate} 100-episode dataset, its skill score of $+0.034$
-is positive but marginal (CI includes zero), and its variance ratio of 0.66
-indicates $\sim$34\% amplitude under-estimation.
+On the \emph{aggregate} 100-episode dataset, its skill score of $+0.171$
+is positive, and its variance ratio of 0.83
+indicates $\sim$17\% amplitude under-estimation.
 However, these aggregates are dominated by high-complexity episodes
-($\geq$15 components) where beamforming cannot resolve individual modes.
-The $\leq$5-component threshold follows from the spatial Nyquist limit
-of the beamforming initializer (Section~\ref{sec:init}) rather than
-a post-hoc search:
+($\geq$15 components) where our beamforming initializer, at its configured
+peak-separation radius (Sec.~\ref{sec:limitations}), cannot resolve
+individual modes.
+The $\leq$5-component threshold follows from the beamforming
+initializer's configured peak-separation radius
+(Sec.~\ref{sec:limitations}), not from the sensor's spatial Nyquist
+limit, and not from a post-hoc search:
 for $\leq$5-component episodes (60\% of the dataset), SS rises to
 $+0.37$ with CI~$[{+0.25},\,{+0.48}]$ firmly excluding zero
 and VR~$=0.53$.
@@ -1014,9 +1129,9 @@ view on 12 representative episodes that span every (sea state,
 complexity) combination in the 100-episode dataset.
 Using the same tuned ETKF configuration
 ($g$=40$\times$30, $n_{\text{ens}}$=100, $\alpha$=1.0, $\sigma$=0.005),
-WaveSplat achieves an average nRMSE of \textbf{0.211} compared to
-\textbf{0.358} for ETKF on these episodes (\textbf{41.0\%}
-improvement; the slightly larger margin relative to the 30.1\%
+WaveSplat achieves a median nRMSE of \textbf{0.182} compared to
+\textbf{0.377} for ETKF on these episodes (\textbf{51.7\%}
+improvement; the larger margin relative to the 40.1\%
 full-dataset improvement reflects the absence of the hardest BF2 and
 BF5 multi-component episodes from this subset).
 WaveSplat wins on all 12 episodes.
@@ -1028,8 +1143,8 @@ Figure~\ref{fig:qualitative} shows representative wave fields.
 \includegraphics[width=\textwidth]{figures/fig1_comparison.pdf}
 \caption{Per-episode nRMSE comparison between WaveSplat and the
 hyperparameter-tuned ETKF-grid baseline across 12 representative
-episodes. Dashed lines show method averages. WaveSplat (avg 0.211)
-outperforms the tuned ETKF (avg 0.358) on all episodes, with the
+episodes. Dashed lines show method averages. WaveSplat (median 0.182)
+outperforms the tuned ETKF (0.377) on all episodes, with the
 largest advantage on low-complexity seas (BF3 2-comp). Note: the
 plotted bars reproduce the original pre-tuning ETKF configuration;
 the numeric averages in the text reflect the tuned baseline used in
@@ -1042,10 +1157,11 @@ Table~\ref{tab:main} and Section~\ref{sec:fulleval}.}
 \caption{WaveSplat vs.\ the hyperparameter-tuned ETKF-grid baseline
 ($g$=40$\times$30, $n_{\text{ens}}$=100, $\alpha$=1.0, $\sigma$=0.005)
 on 12 representative episodes drawn from the full 100-episode dataset.
-nRMSE = RMSE/$H_s$; lower is better. ms/f = per-frame tracking time
-on a single CPU thread (median across these 12 episodes: 13.4~ms for WaveSplat,
-121~ms for ETKF; the column average is elevated by BF3 2comp~(U)
-which incurred extra adaptive-$N$ overhead). $N_a$ = adapted component count.}
+nRMSE = RMSE/$H_s$ (median over 5 estimator seeds on the Nyquist-adequate
+dataset); lower is better. ms/f = per-frame tracking time on a single CPU
+thread. $N_a$ = median adapted component count; on low-complexity seas
+$N_a$ is bimodal across seeds (Section~\ref{sec:limitations}), so the
+median can sit at the fixed ceiling even for a single-component swell.}
 \label{tab:main}
 \begin{tabular}{lccccc}
 \toprule
@@ -1053,20 +1169,20 @@ which incurred extra adaptive-$N$ overhead). $N_a$ = adapted component count.}
 \cmidrule(lr){2-3} \cmidrule(lr){4-5}
 Episode & nRMSE & ms/f & nRMSE & ms/f & $N_a$ \\
 \midrule
-BF2 1comp     & \textbf{0.315} & 15.1 & 0.436 & 154 & 11 \\
-BF3 1comp     & \textbf{0.217} & 12.7 & 0.322 & 154 &  2 \\
-BF3 2comp (U) & \textbf{0.052} & 22.2 & 0.349 & 635 &  2 \\
-BF3 2comp (S) & \textbf{0.061} & 13.7 & 0.305 & 120 & 15 \\
-BF3 5comp (U) & \textbf{0.167} & 12.8 & 0.355 & 125 &  4 \\
-BF3 5comp (S) & \textbf{0.152} & 13.2 & 0.320 & 177 & 15 \\
-BF4 1comp     & \textbf{0.171} & 10.3 & 0.331 &  98 &  1 \\
-BF4 5comp     & \textbf{0.200} & 12.7 & 0.352 & 106 &  3 \\
-BF4 15comp    & \textbf{0.302} & 15.9 & 0.379 & 113 & 19 \\
-BF4 30comp    & \textbf{0.314} & 13.6 & 0.376 & 121 & 18 \\
-BF5 15comp    & \textbf{0.297} & 15.0 & 0.364 &  98 & 21 \\
-BF5 30comp    & \textbf{0.290} & 13.3 & 0.412 &  93 & 19 \\
+BF2 1comp     & \textbf{0.169} &  7.9 & 0.350 & 154 & 15 \\
+BF3 1comp     & \textbf{0.048} & 12.6 & 0.413 & 154 &  2 \\
+BF3 2comp (U) & \textbf{0.084} & 20.2 & 0.369 & 635 & 15 \\
+BF3 2comp (S) & \textbf{0.062} &  9.2 & 0.341 & 120 & 15 \\
+BF3 5comp (U) & \textbf{0.170} & 20.5 & 0.375 & 125 & 15 \\
+BF3 5comp (S) & \textbf{0.171} & 18.3 & 0.333 & 177 & 15 \\
+BF4 1comp     & \textbf{0.060} & 15.8 & 0.374 &  98 & 15 \\
+BF4 5comp     & \textbf{0.203} & 18.7 & 0.367 & 106 & 15 \\
+BF4 15comp    & \textbf{0.291} & 21.4 & 0.396 & 113 & 19 \\
+BF4 30comp    & \textbf{0.340} & 18.9 & 0.418 & 121 &  9 \\
+BF5 15comp    & \textbf{0.284} & 19.5 & 0.383 &  98 & 22 \\
+BF5 30comp    & \textbf{0.301} & 11.7 & 0.403 &  93 & 20 \\
 \midrule
-\textbf{Avg}  & \textbf{0.211} & 14.2 & 0.358 & 166 & --- \\
+\textbf{Avg}  & \textbf{0.182} & 16.2 & 0.377 & 166 & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1074,16 +1190,19 @@ BF5 30comp    & \textbf{0.290} & 13.3 & 0.412 &  93 & 19 \\
 Key observations:
 \begin{itemize}
   \item \textbf{Low complexity}: In BF3 2-component seas,
-    WaveSplat achieves an average nRMSE of 0.057 (0.052~uniform,
-    0.061~slope)---a ${\sim}6\times$ improvement over the tuned
-    ETKF (0.327 avg across both raydrop models). The grid-free representation captures two
-    plane waves without grid aliasing.
+    WaveSplat achieves a median nRMSE of 0.073 (0.084~uniform,
+    0.062~slope)---a ${\sim}5\times$ improvement over the tuned
+    ETKF (0.355 avg across both raydrop models). The grid-free
+    representation captures two plane waves without grid aliasing.
   \item \textbf{High complexity}: For BF4--5 with 15--30 components,
-    WaveSplat still outperforms ETKF (0.301 vs.\ 0.383 average),
-    though the gap narrows as the spectral complexity approaches the
-    initialization resolution limit.
-  \item \textbf{Speed}: WaveSplat runs at 13.4~ms/frame
-    on average vs.\ 132.6~ms/frame for the tuned ETKF (median
+    WaveSplat still outperforms ETKF (0.304 vs.\ 0.400 average),
+    though the gap narrows as spectral complexity approaches the
+    beamforming initializer's configured peak-separation radius
+    (Sec.~\ref{sec:limitations}), not a method-independent resolution
+    bound.
+  \item \textbf{Speed}: WaveSplat runs at 11.0~ms/frame on the full
+    100-episode dataset (16~ms on this complexity-weighted 12-episode
+    subset) vs.\ 132.6~ms/frame for the tuned ETKF (median
     110~ms), an order-of-magnitude advantage that is well within
     the 100~ms real-time budget for 10~Hz LiDAR
     (Fig.~\ref{fig:speed}).  The tuned ETKF uses
@@ -1113,11 +1232,12 @@ models, for a total of 100 paired runs.
 WaveSplat achieves $0.219 \pm 0.079$ vs.\ the tuned ETKF baseline
 $0.321 \pm 0.041$ and a 3-frame sliding GPR $0.253 \pm 0.020$
 (mean $\pm$ std across all runs).%
-\footnote{The paired-run point estimates (WaveSplat 0.219, ETKF 0.321)
-differ marginally from the single-run evaluation in
-Table~\ref{tab:fivemetric} (0.223, 0.319) due to run-to-run
-initialization variability; the paired format is required here because
-the Wilcoxon signed-rank test operates on matched pairs.}
+\footnote{These paired-run point estimates (WaveSplat 0.219, ETKF 0.321)
+are from the original coarse-mesh evaluation (see the provenance note at
+the start of this subsection); the regenerated-data figures are
+WaveSplat 0.199 and ETKF 0.332 (Table~\ref{tab:fivemetric}).  The paired
+format is required here because the Wilcoxon signed-rank test operates on
+matched pairs.}
 Paired Wilcoxon signed-rank tests~\citep{wilcoxon1945}
 confirm both improvements:
 WaveSplat vs.\ ETKF ($W\!=\!194$, $p\!=\!1.1\!\times\!10^{-15}$,
@@ -1202,62 +1322,91 @@ BF4 30comp & 30 & 18 & 0.332 & \textbf{0.314} \\
 Color encodes nRMSE. The adaptive mechanism correctly identifies
 low-complexity scenes ($N_\text{adapt} \leq 4$ for $N_\text{true} \leq 5$)
 but saturates at $N_\text{adapt} \approx 18$--21 for high-complexity
-scenes due to beamforming resolution limits.}
+scenes due to beamforming resolution limits.  The saturation reflects the
+configured beamforming peak-separation radius, not a method-independent
+limit (Sec.~\ref{sec:limitations}).}
 \label{fig:adaptive}
 \end{figure}
 
 \subsection{Ablation study}
 
-We ablate two key design choices on 6 BF3 episodes with 3 random seeds
-(Table~\ref{tab:ablation}, Fig.~\ref{fig:ablation}).
+We ablate two key design choices on 6 BF3 episodes with 5 random seeds
+(Table~\ref{tab:ablation}, Fig.~\ref{fig:ablation}).  Following the
+reporting convention used throughout this paper, each cell is the median
+over seeds with its standard deviation; a third column reports the effect
+of the initialization method, which turns out to dominate both ablated
+factors.
 
 \begin{table}[t]
 \centering
-\caption{Ablation study (3-seed average nRMSE $\pm$ std on BF3 episodes).
+\caption{Ablation study on BF3 episodes: median nRMSE $\pm$ std over
+5 estimator seeds, on the Nyquist-adequate dataset
+(Section~\ref{sec:regen}).
 A1: dispersion constraint removed ($\omega$ as free parameter).
 A2: confidence weighting removed (uniform weights).
-\emph{Note}: A1 achieves lower nRMSE by allowing $\omega$ to drift off
-the dispersion shell (mean $\bar{R}=0.51$); the resulting estimates are
-physically invalid and cannot be propagated in time (see text).}
+The last column changes only the initializer (v1 $\to$ v2), holding both
+ablated components in place.
+\emph{Note}: A1 attains lower nRMSE on the multi-component episodes by
+allowing $\omega$ to drift off the dispersion shell (mean $\bar{R}=0.51$);
+those estimates are physically invalid and cannot be propagated in time
+(see text).}
 \label{tab:ablation}
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
-Episode & Full & w/o Disp.\ (A1) & w/o Conf.\ (A2) \\
+Episode & Full & w/o Disp.\ (A1) & w/o Conf.\ (A2) & v2 init \\
 \midrule
-1comp (S) & $0.224{\scriptstyle\pm.030}$ & $0.230{\scriptstyle\pm.055}$ & $0.269{\scriptstyle\pm.002}$ \\
-1comp (U) & $0.215{\scriptstyle\pm.014}$ & $0.231{\scriptstyle\pm.006}$ & $0.214{\scriptstyle\pm.007}$ \\
-2comp (S) & $0.088{\scriptstyle\pm.017}$ & $0.071{\scriptstyle\pm.007}$ & $\mathbf{0.204}{\scriptstyle\pm.006}$ \\
-2comp (U) & $0.173{\scriptstyle\pm.023}$ & $0.085{\scriptstyle\pm.023}$ & $0.176{\scriptstyle\pm.048}$ \\
-5comp (S) & $0.203{\scriptstyle\pm.021}$ & $0.104{\scriptstyle\pm.014}$ & $0.223{\scriptstyle\pm.010}$ \\
-5comp (U) & $0.225{\scriptstyle\pm.006}$ & $0.225{\scriptstyle\pm.035}$ & $0.206{\scriptstyle\pm.032}$ \\
+1comp (S) & $0.164{\scriptstyle\pm.042}$ & $0.314{\scriptstyle\pm.123}$ & $0.163{\scriptstyle\pm.063}$ & $\mathbf{0.042}{\scriptstyle\pm.051}$ \\
+1comp (U) & $0.164{\scriptstyle\pm.030}$ & $0.286{\scriptstyle\pm.044}$ & $0.163{\scriptstyle\pm.042}$ & $\mathbf{0.047}{\scriptstyle\pm.012}$ \\
+2comp (S) & $0.165{\scriptstyle\pm.019}$ & $0.052{\scriptstyle\pm.067}$ & $0.167{\scriptstyle\pm.000}$ & $\mathbf{0.034}{\scriptstyle\pm.022}$ \\
+2comp (U) & $0.166{\scriptstyle\pm.028}$ & $0.105{\scriptstyle\pm.089}$ & $0.166{\scriptstyle\pm.023}$ & $\mathbf{0.052}{\scriptstyle\pm.011}$ \\
+5comp (S) & $0.220{\scriptstyle\pm.035}$ & $0.142{\scriptstyle\pm.039}$ & $0.199{\scriptstyle\pm.014}$ & $\mathbf{0.196}{\scriptstyle\pm.011}$ \\
+5comp (U) & $0.225{\scriptstyle\pm.014}$ & $0.153{\scriptstyle\pm.100}$ & $0.188{\scriptstyle\pm.025}$ & $\mathbf{0.156}{\scriptstyle\pm.012}$ \\
 \midrule
-\textbf{Avg} & 0.188 & 0.158 & 0.215 \\
+\textbf{Avg} & 0.184 & 0.175 & 0.174 & \textbf{0.088} \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Read as paired per-run differences (30 pairs: 6 episodes $\times$ 5 seeds),
+neither ablation is distinguishable from zero:
+A1~$-$~Full $= -0.007$ ($t = -0.29$, $p = 0.77$, 18/30 runs lower) and
+A2~$-$~Full $= +0.001$ ($t = 0.08$, $p = 0.94$, 17/30 runs lower).
+Changing the initializer moves the same metric by
+$-0.090$ ($t = -10.2$, $p < 10^{-4}$, 29/30 runs lower)---an order of
+magnitude larger than either ablated component.  We report this rather
+than suppress it: it means the design choices ablated here are not what
+carries the method's accuracy on these episodes, and that an ablation
+whose baseline is not the production initializer measures the wrong
+thing.  The interpretation of each ablation below is therefore restated
+in terms of what it does establish.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/fig4_ablation.pdf}
 \caption{Ablation study: contribution of dispersion constraint and
-confidence weighting. Error bars show $\pm$1 std across 3 seeds.
-Removing confidence weighting (purple) consistently degrades performance,
-especially on slope-model episodes (2comp~S: 2.3$\times$ increase).}
+confidence weighting. Error bars show $\pm$1 std across 5 seeds.
+Neither ablation is separable from seed noise in aggregate; the
+dispersion ablation splits by component count (worse at $N_{\text{true}}=1$,
+better at $N_{\text{true}}\geq 2$), and the confidence ablation is null.
+Figure regenerated from the Nyquist-adequate dataset.}
 \label{fig:ablation}
 \end{figure*}
 
 \textbf{A1 (no dispersion constraint)}: Removing the dispersion constraint
 allows $\omega$ as a free parameter ($5N$ total parameters).
-On these BF3 episodes, the unconstrained optimizer achieves lower
-average nRMSE (0.158 vs.\ 0.188), and the same pattern holds when the
-ablation is extended to the full BF4--BF5 high-sea subset
-(50 episodes $\times$ 3 seeds: A1=$0.241\pm 0.068$ vs.\
-Full=$0.266\pm 0.047$, an apparent 9.4\% nRMSE advantage for the
-unconstrained variant; the effect is consistent on BF5 alone,
-A1=0.256 vs.\ Full=0.279).
-This result requires careful interpretation.  The 9.4\% nRMSE
-advantage of A1 should not be mistaken as evidence that the
-dispersion constraint is physically too restrictive.  For BF3--5
+On the Nyquist-adequate data the aggregate effect is null
+($-0.007$, $p = 0.77$), but the aggregate hides a clean regime split
+that is more informative than the average: the unconstrained optimizer
+is substantially \emph{worse} on the single-component episodes
+($0.164 \to 0.31$, both raydrop models) and substantially
+\emph{better} on the 2- and 5-component ones ($0.166 \to 0.05$--$0.15$).
+With one component there is nothing for the extra freedom to fit except
+noise; with several, the unconstrained model can absorb residual
+structure by moving $\omega$ off the shell.
+This second half of the split requires careful interpretation, and it is
+the reason the constraint is retained.  A lower nRMSE for A1 should not
+be mistaken as evidence that the dispersion constraint is physically too
+restrictive.  For BF3--5
 deep-water gravity waves, $>99\%$ of wave energy lies on the linear
 dispersion shell~\citep{holthuijsen2007}; bound harmonic
 contributions from second-order Stokes theory scale as
@@ -1306,47 +1455,68 @@ estimates that respect the linear gravity-wave dispersion relation
 and remain usable for downstream applications such as the hydrofoil
 preview controller of our companion work~\citep{park2026hydrofoil}.
 
-\textbf{A2 (no confidence weighting)}: Removing the geometry-aware confidence
-weighting degrades performance by 14.5\% on average
-(0.215 vs.\ 0.188), with the largest degradation on slope-model
-episodes (BF3 2comp (S): $0.088 \to 0.204$, a 2.3$\times$ increase).
-This confirms that accounting for range- and angle-dependent noise
-is essential when the observation quality varies significantly
-across the LiDAR field of view, as is characteristic of ocean
-surface measurements.
+\textbf{A2 (no confidence weighting)}: on the Nyquist-adequate dataset
+this ablation is \emph{null}.  Removing the geometry-aware confidence
+weighting changes the paired per-run nRMSE by $+0.001$
+($t=0.08$, $p=0.94$; 17 of 30 runs are in fact lower without it), and
+the per-episode medians differ by at most $0.037$, which is inside the
+seed spread of either arm.
+An earlier version of this study, run on the pre-Nyquist dataset with
+3 seeds, reported a 14.5\% average degradation and a
+$0.088 \to 0.204$ ($2.3\times$) increase on the BF3 2-component
+slope episode.  That specific case now measures
+$0.165 \to 0.167$, a ratio of $1.01$.  We could not reproduce the
+effect, and we report the null rather than the earlier number.
+One caveat bounds what this does and does not settle.  The null holds
+under both initializers---repeating the ablation with the production
+initializer (rather than the v1 configuration inherited from the
+original study) leaves it unchanged (paired $\Delta=+0.005$, $t=0.52$,
+$p=0.61$ over 30 runs)---so it is not an artifact of the ablation's
+initialization.  But a null on BF3 episodes with a well-resolved
+reference field is not evidence that observation weighting is
+unnecessary in general---in particular, the weighting encodes a real
+property of grazing-incidence LiDAR returns that this simulator's
+return model does not fully reproduce (Section~\ref{sec:regen}).  What the measurement does establish is that
+the paper's previous claim of a large, consistent benefit was an
+artifact of the earlier dataset and seed count, and cannot be used to
+argue that confidence weighting is load-bearing.
 
-To determine whether this benefit is specific to the spectral
-parameterisation or a generic observation-weighting effect, we ran an
-additional four-way comparison on 10 uniform-raydrop episodes:
-WaveSplat with confidence (0.232), WaveSplat without confidence (0.231),
-standard GPR (0.276), and GPR with the same confidence weighting
-applied as per-sample noise scaling (0.276).
-Adding confidence weights to GPR produces no measurable improvement
-($<$0.01\%, averaged over 10 episodes), indicating that the
-14.5\% benefit observed in the WaveSplat ablation is not a
-general property of the weighting scheme alone but arises specifically
-from its interaction with the spectral parameterisation: the dispersion-constrained
-plane-wave basis concentrates observation energy into physically meaningful
-modes, making the downweighting of unreliable (grazing, far-range)
-observations significantly more consequential than in a
-non-parametric spatial interpolant.
+A four-way comparison on 10 uniform-raydrop episodes corroborates the
+null from the other side: WaveSplat with confidence (0.232), WaveSplat
+without confidence (0.231), standard GPR (0.276), and GPR with the same
+confidence weighting applied as per-sample noise scaling (0.276).
+Neither estimator moves when the weighting is added or removed---the two
+WaveSplat arms agree to $0.001$ and the two GPR arms to within $0.01\%$.
+Confidence weighting is therefore inert on this simulator's data for
+both a spectral and a non-parametric estimator.  We caution against
+reading this as a statement about real LiDAR: the weights encode the
+range- and incidence-dependent reliability of grazing returns, which
+this simulator's return model does not fully reproduce
+(Section~\ref{sec:regen}), so the component may still matter on
+measured data even though it is measurably inert here.
 
 \subsection{Raydrop model sensitivity}
+\label{sec:raydrop-results}
 
-To evaluate robustness to different LiDAR observation models, we compare
-performance on 10 paired episodes using \emph{uniform} (diffuse Fresnel) vs.\
-\emph{slope} (specular backscatter) raydrop models
+To evaluate robustness to different LiDAR return-sampling patterns, we
+compare performance on 10 paired episodes using the \emph{geometry-weighted}
+(``uniform'', $P\propto R_{\text{Fresnel}}(\theta)\cos\theta/d^2$) vs.\
+\emph{unweighted} (``slope'') raydrop models
 (Table~\ref{tab:raydrop}, Fig.~\ref{fig:raydrop}).
+The unweighted model is the adversarial case for any estimator that relies
+on downweighting unreliable returns, because it removes the correlation
+between return density and observation quality.
 
 \begin{table}[t]
 \centering
-\caption{Raydrop model comparison: uniform (U) vs.\ slope (S) on paired
-episodes. $\Delta$\%: relative nRMSE change from uniform to slope
-(negative = slope is better).
-ETKF uses the default configuration ($n_{\text{ens}}{=}50$,
-$\alpha{=}1.0$, $\sigma{=}0.005$); nRMSE values are therefore higher
-than those in Table~\ref{tab:main} (tuned, $n_{\text{ens}}{=}100$).
-The relative raydrop sensitivity ($\Delta$\%) is the quantity of interest.}
+\caption{Raydrop model comparison on the Nyquist-adequate dataset:
+geometry-weighted (U) vs.\ unweighted (S) return sampling, seed-0
+episodes, median over 5 estimator seeds. $\Delta$\%: relative nRMSE
+change from weighted to unweighted (negative = unweighted is better).
+ETKF uses the default configuration ($n_{\text{ens}}{=}50$); its nRMSE
+values are near the zero-predictor level and are variance-dominated
+(Section~\ref{sec:strongbaselines}), so the relative
+sensitivity ($\Delta$\%) is the quantity of interest, not the level.}
 \label{tab:raydrop}
 \begin{tabular}{lcccccc}
 \toprule
@@ -1354,18 +1524,18 @@ The relative raydrop sensitivity ($\Delta$\%) is the quantity of interest.}
 \cmidrule(lr){2-4} \cmidrule(lr){5-7}
 Episode & U & S & $\Delta$\% & U & S & $\Delta$\% \\
 \midrule
-BF2 1c  & 0.315 & 0.303 & $-$3.9  & 0.483 & 0.391 & $-$19.1 \\
-BF3 1c  & 0.217 & 0.186 & $-$14.4 & 0.352 & 0.304 & $-$13.6 \\
-BF3 2c  & \textbf{0.052} & 0.061 & +15.9 & 0.444 & 0.350 & $-$21.3 \\
-BF3 5c  & 0.167 & 0.152 & $-$9.5  & 0.434 & 0.384 & $-$11.5 \\
-BF4 1c  & 0.171 & 0.170 & $-$0.5  & 0.410 & 0.340 & $-$17.0 \\
-BF4 5c  & 0.200 & \textbf{0.144} & $-$28.1 & 0.376 & 0.345 & $-$8.2 \\
-BF4 15c & 0.302 & 0.246 & $-$18.6 & 0.511 & 0.399 & $-$21.8 \\
-BF4 30c & 0.314 & 0.277 & $-$11.9 & 0.525 & 0.425 & $-$19.1 \\
-BF5 15c & 0.297 & 0.265 & $-$10.6 & 0.466 & 0.396 & $-$14.9 \\
-BF5 30c & 0.290 & 0.312 & +7.6    & 0.497 & 0.436 & $-$12.3 \\
+BF2 1c  & 0.169 & \textbf{0.116} & $-$31.8 & 0.396 & 0.338 & $-$14.6 \\
+BF3 1c  & \textbf{0.048} & 0.062 & +28.2 & 0.444 & 0.378 & $-$14.9 \\
+BF3 2c  & 0.084 & \textbf{0.062} & $-$26.1 & 0.409 & 0.355 & $-$13.1 \\
+BF3 5c  & 0.170 & 0.171 & +0.8  & 0.441 & 0.359 & $-$18.5 \\
+BF4 1c  & 0.060 & 0.060 & +1.3  & 0.453 & 0.342 & $-$24.4 \\
+BF4 5c  & 0.203 & 0.225 & +10.6 & 0.394 & 0.367 & $-$6.9 \\
+BF4 15c & 0.291 & 0.272 & $-$6.4 & 0.537 & 0.404 & $-$24.7 \\
+BF4 30c & 0.340 & 0.293 & $-$13.8 & 0.495 & 0.441 & $-$10.9 \\
+BF5 15c & 0.284 & 0.273 & $-$4.1 & 0.461 & 0.394 & $-$14.6 \\
+BF5 30c & 0.301 & 0.272 & $-$9.6 & 0.516 & 0.442 & $-$14.3 \\
 \midrule
-\textbf{Avg} & 0.232 & \textbf{0.211} & $-$9.1 & 0.450 & 0.377 & $-$16.2 \\
+\textbf{Avg} & 0.195 & \textbf{0.181} & $-$7.4 & 0.454 & 0.382 & $-$15.9 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1373,20 +1543,26 @@ BF5 30c & 0.290 & 0.312 & +7.6    & 0.497 & 0.436 & $-$12.3 \\
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/fig5_raydrop.pdf}
-\caption{Raydrop model comparison: uniform (diffuse) vs.\ slope
-(specular) LiDAR observation models. WaveSplat (blue shades)
+\caption{Raydrop model comparison: geometry-weighted (``uniform'') vs.\
+unweighted (``slope'') LiDAR return-sampling models. WaveSplat (blue shades)
 outperforms ETKF (orange shades) under both models on all episodes.}
 \label{fig:raydrop}
 \end{figure*}
 
 WaveSplat wins on all 10 episodes under both raydrop models.
-Slope observations improve both methods---ETKF more so
-(16.2\% vs.\ 9.1\%), as specular backscatter preferentially preserves
-wave-crest points, providing richer spatial structure that grid-based
-methods leverage more effectively through interpolation.
-WaveSplat shows slope degradation only on BF3-2comp (+15.9\%)
-and BF5-30comp (+7.6\%), where the pruning safety check prevents
-optimal model simplification under the changed observation pattern.
+Unweighted sampling improves both methods on average---ETKF more so
+($-$15.9\% vs.\ $-$7.4\%).  We report this asymmetry as an observation
+rather than an explained effect.  A plausible reading is that removing
+the $1/d^2$ weighting spreads returns more evenly over the observation
+footprint, which benefits a grid-based assimilator that interpolates
+between cells more than it benefits a global parametric fit already
+integrating coherently over the full aperture; we have not isolated
+this mechanism, and it should not be cited as established.
+For WaveSplat the per-episode effect is regime-dependent rather than
+uniform (unweighted better on 6 of 10 episodes): the sparse
+low-complexity episodes swing either way within their seed spread,
+while the crowded $\geq$15-component episodes improve consistently
+($-$4 to $-$14\%).
 
 \subsection{Robustness: sparsity, noise, and sea state}
 
@@ -1476,10 +1652,12 @@ excess noise into prunable low-energy components.
 
 \paragraph{Sea state trend.}
 Grouping by Beaufort number (Table~\ref{tab:bybf}), the advantage is
-largest on moderate seas (BF3: 50.0\% improvement, 0.160 vs.\ 0.319)
-and narrows at higher complexity (BF5: 6.3\%, 0.283 vs.\ 0.302),
-reflecting the initialization resolution limit as beamforming peaks
-crowd for $N_{\text{true}}\geq 15$.
+largest on moderate seas (BF3: 61\% improvement, 0.138 vs.\ 0.353)
+and narrows at higher complexity (BF5: 11\%, 0.271 vs.\ 0.303),
+reflecting the beamforming initializer's configured peak-separation
+radius as candidate peaks crowd for $N_{\text{true}}\geq 15$
+(Sec.~\ref{sec:limitations} quantifies this as a regime-dependent trade,
+not a hard wall).
 
 \begin{figure*}[t]
 \centering
@@ -1497,9 +1675,10 @@ grid-based (ETKF) or purely spatial (GPR) methods.}
 
 \subsection{Advantages of grid-free representation}
 
-The most striking result is the ${\sim}6\times$ average advantage on 2-component
-seas against the tuned ETKF (WaveSplat 0.057 vs.\ ETKF 0.327, both averaged
-across uniform and slope raydrop; Table~\ref{tab:main}). For low-complexity wave fields, ETKF
+A striking result is the ${\sim}5\times$ average advantage on 2-component
+seas against the tuned ETKF (WaveSplat 0.073 vs.\ ETKF 0.355, median over
+5 seeds, averaged across uniform and slope raydrop; Table~\ref{tab:main}).
+For low-complexity wave fields, ETKF
 wastes representational capacity on the full spatial grid when only two
 spectral modes are present. WaveSplat's adaptive representation directly
 captures the relevant modes with minimal parameters.
@@ -1550,46 +1729,61 @@ users of WaveSplat for directional-sensitive downstream applications
 (e.g., heading-dependent ride control) should be aware of this
 limitation.
 
-% ============================================================================
-% !!! CORRECTION REQUIRED (2026-07-23) -- DO NOT PUBLISH THIS SUBSECTION AS WRITTEN
-% The stated cause below ("signal-to-noise ratio is inherently low") is FALSE.
-% BF2 1-component is lambda = 8.2 m rendered on a 6.90 m raycast mesh = 1.2 points per
-% wavelength, BELOW NYQUIST. wavesim/mesh_adequacy.py cites THIS EPISODE in its own module
-% docstring as the canonical violation example. Independent re-derivation: 1.18 pts/lambda.
-% Re-measured with the production estimator on the paired Nyquist-adequate regeneration
-% (2 data seeds x 3-5 estimator seeds): nRMSE 0.31 -> 0.16, field correlation 0.02 -> 0.66,
-% every fine-mesh run beating every old-mesh run.
-% => The failure is a RENDERING ARTIFACT, not physical SNR. The proposed remedy
-% ("minimum-SNR threshold or regularization schedule tuned to Hs") addresses a problem that
-% does not exist.
-% An internal audit on 2026-07-12/13 already flagged the corresponding Table B4 row as
-% "WRONG STATEMENT"; that correction was never carried into this text.
-% Evidence: wavesplat/tmp/GROUNDUP_fable_C_premises_2026-07-23.md,
-%           wavesplat/tmp/REOPENED_BY_DATA_fable_2026-07-23.md,
-%           wavesplat/tmp/SHORTLAMBDA_REVALIDATION_2026-07-23.md
-% Action: rewrite once the 100-episode re-run on data_finemesh_2026-07-23/ lands.
-% ============================================================================
 \subsection{Failure case: BF2 1-component}
+\label{sec:bf2case}
 
-WaveSplat's worst case (nRMSE=0.315) occurs on the simplest
-episode: BF2, $H_s$=0.3~m, single component. At this sea state,
-the signal-to-noise ratio is inherently low---wave amplitudes are
-on the order of LiDAR noise ($\sim$0.02~m), making spectral
-initialization unreliable. Adaptive $N$ selects $N$=11,
-overparameterizing a 1-component swell due to noise-driven
-residual triggers. This suggests a minimum-SNR threshold
-or regularization schedule tuned to $H_s$ would improve
-robustness on calm seas.
+WaveSplat's worst case occurs on the simplest episode: BF2,
+$H_s$=0.3~m, a single component.  This case is worth reporting in
+detail, because our own initial diagnosis of it was wrong, and the
+correction changes what a practitioner should take from it.
+
+On the originally released dataset this episode gave nRMSE~$=0.315$
+with adaptive $N$ selecting $N$=11 for a 1-component swell, and we
+attributed the failure to an intrinsically low signal-to-noise
+ratio---wave amplitudes of order the LiDAR noise floor
+($\sim$0.02~m)---and proposed an $H_s$-tuned regularization schedule
+as the remedy.  That attribution does not survive scrutiny.  The
+episode's dominant wavelength is $\lambda \approx 8.2$~m, rendered on
+a raycast mesh of $6.9$~m spacing: $1.2$ points per wavelength, below
+the Nyquist rate of $2$.  The wave was therefore not weakly
+represented in the reference field, it was \emph{not representable in
+it at all}, and the estimator was being scored against a reference
+that could not contain the signal it was asked to find.  This is a
+property of the simulator's rendering, not of the sea state.
+
+Re-running the identical episode, sea state, and estimator on a
+Nyquist-adequate re-rendering (Section~\ref{sec:regen}) moves the
+median over five estimator seeds from $0.315$ to
+$\mathbf{0.169 \pm 0.066}$.  The remedy we originally proposed
+addresses a problem that does not exist.
+
+The re-run does not, however, exonerate adaptive $N$.  Across the five
+seeds the final model order ranges from $N$=1 to $N$=15 on this single
+fixed episode, and the two seeds that recover $N \leq 3$ are also the
+two that achieve nRMSE~$\leq 0.09$.  Spurious growth on calm seas is
+therefore real, but it is a \emph{convergence-basin} phenomenon of a
+non-convex fit with random phase initialization---see
+Section~\ref{sec:limitations}---rather than a sea-state-dependent
+signal-to-noise limit.  The practical implication changes accordingly:
+what helps is multiple restarts with median reporting, not an
+$H_s$-tuned regularizer.
+
+We report this at length because the error class generalizes.  A
+rendering limitation of the evaluation pipeline is easy to mistake for
+a physical or algorithmic limit, since both produce a large error on a
+case where the physics is genuinely marginal.  Wherever this paper
+attributes a failure to physics or to the estimator, the attribution
+has been re-checked against the mesh adequacy of the episodes
+involved.
 
 \subsection{Effect of observation model}
 
 WaveSplat wins 10/10 under \emph{both} raydrop models.
-Slope observations improve both methods---WaveSplat by 9.1\%
-and ETKF by 16.2\%. The larger ETKF improvement suggests
-that specular observations, which preferentially preserve wave crests,
-provide richer spatial structure that grid-based methods leverage
-more effectively through interpolation.
-For adaptive~$N$, slope raydrop triggers the safety
+Removing the geometric weighting improves both methods---WaveSplat by
+9.1\% and ETKF by 16.2\%.  The larger ETKF gain is reported as an
+observation; see Section~\ref{sec:raydrop-results} for why we do not
+attach a mechanism to it.
+For adaptive~$N$, unweighted raydrop triggers the safety
 rollback on low-complexity scenes (e.g., BF3-2comp: $N$=2$\to$15)
 but enables more aggressive pruning on complex seas (BF4-15comp:
 $N$=19$\to$10), indicating that stronger observations improve both
@@ -1640,6 +1834,29 @@ introducing additional error and latency.
 
 \subsection{Comparison with stronger baselines}
 \label{sec:strongbaselines}
+
+\emph{Provenance note.}  The primary evaluation
+(Sections~\ref{sec:fulleval}--\ref{sec:raydrop-results}: the five-metric
+panel, the by-sea-state breakdown, the main comparison, the ablation,
+and the raydrop study) has been recomputed on the Nyquist-adequate
+regenerated dataset (Section~\ref{sec:regen}) with per-episode medians
+over 5 estimator seeds.  The stronger-baseline comparison in this
+subsection and the spectral-accuracy tables that follow retain the
+original coarse-mesh, single-seed evaluation; their full refresh is
+deferred.  Two facts bound what this affects.  First, the localized
+LETKF baseline is \emph{mesh-invariant}: re-running it on the paired
+regenerated episodes moves its nRMSE by $-0.0006$ (paired $t=-1.56$
+over 12 episodes), because its spectral forecast is a per-mode rotation
+that does not pass through the raycast mesh.  So the headline that
+WaveSplat retains the best average nRMSE against LETKF is unaffected by
+regeneration---indeed it widens, since WaveSplat improves to $0.199$
+while LETKF holds at $0.228$.  Second, the tuned ETKF is likewise
+near-mesh-invariant in nRMSE ($0.319\!\to\!0.332$); its variance ratio
+rises toward unity on the adequate reference field while its correlation
+with the truth does not, consistent with the five-metric panel above.
+The single-seed numbers reported below should therefore be read as
+indicative of the original evaluation, with the regenerated-data
+headline given by the primary tables.
 
 To stress-test WaveSplat's advantage beyond the ETKF and single-frame
 GPR used in the primary evaluation, we implemented two stronger
@@ -1719,9 +1936,10 @@ $\sim$0.3 but degrades nRMSE to 0.279 (see localization sweep below).
 \paragraph{Directional $R^2$ gap (supplementary diagnostic).}
 The 100-episode supplementary directional $R^2$ ($-0.253$, see
 Section~\ref{sec:dirdeficit}) is dominated by 30-component
-episodes (Dir.\ $R^2=-2.13$, 20~episodes), where wavenumber-space
-crowding makes the spectrum-space $R^2$ statistic catastrophically
-sensitive to single-bin peak misalignment.  For $\leq$5 components,
+episodes (Dir.\ $R^2=-2.13$, 20~episodes), where the beamforming
+initializer's peak-separation radius (Sec.~\ref{sec:limitations}) leaves
+candidate peaks closely spaced, making the spectrum-space $R^2$ statistic
+catastrophically sensitive to single-bin peak misalignment.  For $\leq$5 components,
 Dir.\ $R^2=+0.41$ on average, confirming that the spectral basis
 \emph{does} capture directional structure when individual modes
 are resolvable.
@@ -1822,9 +2040,10 @@ For $\leq$5 components, the geometric parameters are highly accurate:
 energy-weighted detection exceeds 93\%, wavenumber magnitude error is
 below 0.5\%, and directional error is below 0.2$^\circ$---from only
 $\sim$50 LiDAR points per frame.
-For $\geq$15 components, detection drops to 50--38\% due to
-wavenumber-space crowding in beamforming, consistent with the
-initialization resolution limitation discussed above.
+For $\geq$15 components, detection drops to 50--38\%, consistent with
+the beamforming peak-separation radius discussed in
+Sec.~\ref{sec:limitations}, which bounds but does not fully explain the
+crowded-regime penalty.
 
 Amplitude estimation, in contrast, is significantly degraded (mean
 relative error 0.17--8.2$\times$) due to the Adam momentum oscillation
@@ -1948,48 +2167,76 @@ all methods equally and does not bias the comparison.
 $<0.5\%$ for the BF2--5 range tested ($\epsilon\approx 0.05$--$0.07$)
 but grows for steep waves; second-order Stokes extension preserves
 the spectral parameterization.
-% ============================================================================
-% !!! CORRECTION REQUIRED (2026-07-23) -- the "|k| >~ 0.4 rad/m falls below the beamforming
-% detection threshold" claim below is FALSE as an algorithm property.
-% A mesh-independent synthetic test (bypassing the raycast mesh entirely, using real LiDAR
-% sample geometry) shows the beamformer has NO such threshold: it recovers isolated
-% components from |k| = 0.15 to 1.00 and down to amplitude 0.01 m.
-% 0.4 rad/m is lambda ~ 15.7 m -- which is almost exactly where the OLD SHIPPED MESH's
-% amplitude transmission collapses (measured 0.04-0.30 below lambda ~ 15 m by an oracle-k
-% least-squares probe). The number is the SIMULATOR MESH's cutoff, mislabelled as a property
-% of the beamformer.
-% This is the same error class as the "Failure case: BF2 1-component" subsection above --
-% a rendering artifact attributed to physics/algorithm. Two confirmed instances = a pattern;
-% sweep the rest of the prose before submission.
-% Evidence: wavesplat/tmp/METHODS_REREVIEW_fable_2026-07-23.md,
-%           wavesplat/tmp/REVALIDATION_CENSUS_2026-07-23.md
-% Action: rewrite once the 100-episode re-run on data_finemesh_2026-07-23/ lands.
-% ============================================================================
 \emph{Tracking phase dependence on initialization}: the \texttt{w\_phi}
 tracking mode freezes wavenumbers and updates only amplitudes and phases,
 so components missed during beamforming initialization cannot be recovered
-during tracking.  In moderate sea states where high-wavenumber components
-($|k|\gtrsim 0.4$~rad/m) fall below the beamforming detection threshold,
-tracking nRMSE can be 2--3$\times$ higher than the post-initialization
-nRMSE.  The net benefit of tracking is therefore concentrated in
-providing real-time computational efficiency ($\sim$10 gradient steps
-vs.\ $\sim$200 for full re-initialization) rather than accuracy
-improvement beyond initialization.
+during tracking.  On the originally released dataset this produced
+tracking nRMSE 2--3$\times$ higher than the post-initialization nRMSE
+whenever high-wavenumber components were missed, and we previously
+described the cutoff as a beamforming detection threshold at
+$|k|\gtrsim 0.4$~rad/m.  That description was incorrect.  A
+mesh-independent test of the initializer alone---synthesising LiDAR
+samples directly from analytic components, bypassing the raycast mesh,
+with the real sensor sampling geometry---finds no such threshold: the
+beamformer recovers isolated components across $|k| = 0.15$--$1.00$~rad/m
+and down to amplitudes of $0.01$~m.  The value $0.4$~rad/m corresponds to
+$\lambda \approx 15.7$~m, which is where amplitude transmission through
+the original rendering mesh collapses (Section~\ref{sec:regen}); it was a
+property of the reference field, not of the algorithm.  What remains true,
+and is the point of the limitation, is the structural one: because
+\texttt{w\_phi} freezes wavenumbers, whatever the initializer misses is
+unrecoverable thereafter, so tracking quality is capped by initialization
+quality regardless of why a component was missed.  The net benefit of
+tracking is therefore concentrated in providing real-time computational
+efficiency ($\sim$10 gradient steps vs.\ $\sim$200 for full
+re-initialization) rather than accuracy improvement beyond initialization.
+A paired old-versus-fine-mesh measurement makes the size of this gap
+explicit: moving to the Nyquist-adequate reference field improves the
+post-initialization nRMSE by $54\%$ on average (up to $-94\%$ on sparse
+seas), but the post-tracking nRMSE by only $12\%$, and on the two calmest
+episodes tracking turns a near-exact initialization ($0.009$) into a
+markedly worse steady state ($0.08$).  Most of what a better sensor model
+buys is realised at initialization and then partly given back by tracking.
 \emph{Amplitude decay during tracking}: the Adam optimizer's momentum
 accumulates oscillating gradient signals when the phase prediction
 $\phi_i \mathrel{+}= \omega_i \Delta t$ is slightly inaccurate,
 causing amplitude $w_i$ to decay toward zero over successive frames.
-This is the root cause of the variance ratio deficit (VR~$=0.66$,
-indicating $\sim$34\% amplitude underestimation) and the high amplitude
-relative errors in Table~\ref{tab:spectral_accuracy}.  Post-hoc
+This is the root cause of the variance ratio deficit (VR~$=0.83$ on the
+regenerated dataset, indicating $\sim$17\% amplitude underestimation---an
+improvement over the $0.66$ measured on the original mesh but still short
+of unity) and the high amplitude relative errors in
+Table~\ref{tab:spectral_accuracy}.  Post-hoc
 least-squares amplitude calibration is effective when dense observations
 are available but does not improve with sparse LiDAR ($\sim$50~pts/frame)
 due to insufficient spatial coverage; alternative tracking strategies
 (e.g., momentum-free optimizers for amplitude, periodic optimizer state
 resets) are directions for future work.
-\emph{Initialization resolution}: for $N_{\text{true}}\geq 30$,
-beamforming cannot resolve all components due to wavenumber-space
-crowding; higher-resolution or 3D $(k_x,k_y,\omega)$ FFT could help.
+\emph{Initialization resolution and the peak-separation radius}: the greedy
+beamforming peak search enforces a fixed minimum separation
+$\Delta k_{\min}=0.15$~rad/m between accepted peaks, so component pairs closer
+than this in wavenumber space are structurally unresolvable by our initializer
+regardless of signal-to-noise ratio.  This is not a corner case: 126 of the 195
+simulated episodes---and every 15-, 20- and 30-component episode---contain at
+least one true pair separated by less than $0.15$~rad/m.  A pre-registered sweep
+of $\Delta k_{\min}$ (5 seeds per cell, decision rule fixed in advance, with a
+control episode containing no close pair) shows the constant to be a
+regime-dependent trade rather than a universal floor: relaxing it to
+$0.05$~rad/m improves the crowded 15-component case on 5/5 seeds by
+$0.015$~nRMSE---$5.2\%$ of that regime's error---but degrades the 5-component
+case on 0/5 seeds ($+0.029$~nRMSE), because a smaller radius lets the greedy
+search stack duplicate peaks on a single true component; the control episode is
+unaffected ($t=0.72$).  Two consequences follow.  First, the crowded-regime
+error is \emph{not} explained away by this constant: the bulk of it survives
+when the constant is removed.  Second, statements in this paper of the form
+``these components are not recovered'' are properties of the estimator as
+configured, and understate what this estimator class can achieve in crowded seas
+by a few percent; they should not be read as method-independent impossibility.
+The principled repair is not a smaller fixed radius but an adaptive one, scaled
+to the beamforming main-lobe width and hence to the effective aperture; we have
+not tested it.
+For $N_{\text{true}}\geq 30$, wavenumber-space crowding additionally exceeds
+what the beamforming grid resolves at any separation radius; higher-resolution
+or 3D $(k_x,k_y,\omega)$ FFT could help.
 \emph{Current estimation}: we do not estimate ocean currents, whose
 Doppler shift makes the apparent dispersion
 $\omega=\sqrt{g|k|\tanh(|k|d)}+\mathbf{k}\cdot\mathbf{U}$; a
@@ -2068,9 +2315,10 @@ We presented WaveSplat, a grid-free spectral approach to
 ocean wave field estimation from sparse shipboard LiDAR.
 By representing waves as optimizable spectral components with
 dispersion constraints and adaptive model complexity, WaveSplat
-achieves 30.1\% lower nRMSE than a hyperparameter-tuned ETKF-grid
-baseline ($0.223$ vs.\ $0.319$) while running approximately
-$10\times$ faster ($13.4$ vs.\ $132.6$~ms/frame), and is the only
+achieves 40.1\% lower nRMSE than a hyperparameter-tuned ETKF-grid
+baseline ($0.199$ vs.\ $0.332$ over 100 Nyquist-adequate episodes,
+median over 5 seeds) while running approximately
+$10\times$ faster ($11.0$ vs.\ $132.6$~ms/frame), and is the only
 method among primary baselines with a positive Skill Score in a
 pre-specified five-metric panel.
 Against stronger baselines including LETKF with spatial localization,
@@ -2080,7 +2328,8 @@ The advantage is statistically significant against both ETKF
 ($p{=}1.1\!\times\!10^{-15}$, paired Cohen's $d{=}1.16$) and sliding
 GPR ($p{=}4.7\!\times\!10^{-4}$, $d{=}0.42$) across 100 paired runs
 (Holm-corrected: $p_1{=}2.2\!\times\!10^{-15}$, $p_2{=}4.7\!\times\!10^{-4}$),
-and robust to both diffuse and specular LiDAR observation models.
+and robust to both geometry-weighted and unweighted LiDAR
+return-sampling models.
 
 Beyond surface reconstruction accuracy, the spectral representation
 enables three analyses that illustrate its practical advantages:

@@ -27,6 +27,26 @@ from wavesplat.model.dispersion import wavenumber_from_omega, dispersion_omega
 # relies on.
 MIN_DK = 0.15
 
+# How the greedy peak search decides where the *next* component goes.
+#
+#   'static_suppress' (shipped, default) -- the coarse power map is computed ONCE from the
+#       original observations. After each component is fitted and subtracted from the
+#       residual, the map is not recomputed; instead a MIN_DK-radius box around the chosen
+#       peak is zeroed as a stand-in. This is why MIN_DK cannot simply be lowered: with a
+#       small radius the search re-selects the same true component from a power map that
+#       still contains it (measured, tmp/MIN_DK_RESULT_2026-07-23.md: at 0.05 the crowded
+#       regime improves 5/5 but the mid-density regime degrades 0/5 via duplicate peaks).
+#   'recompute_residual' -- recompute the coarse map on the current residual each iteration.
+#       The subtraction then removes the peak on its own, so the suppression radius is no
+#       longer load-bearing and can be small. This is the principled version of the
+#       "adaptive radius" idea: rather than guessing a separation scale, stop relying on one.
+#       Costs one extra coarse beamform per component.
+PEAK_SELECT_MODE = 'static_suppress'
+
+# Suppression radius used when PEAK_SELECT_MODE == 'recompute_residual'. Only needs to stop
+# the search re-picking the identical grid cell, so it is deliberately near the grid step.
+RECOMPUTE_MIN_DK = 0.02
+
 # Amplitude given to padding (random-k, random-phase) components in
 # initialize_from_frames_v2. Module-level so experiments can vary it without touching call
 # sites. Default 0.01 preserves historical behaviour.
@@ -400,7 +420,10 @@ def initialize_from_frames_v2(frames, n_gaussians: int, depth: float,
     # Step 2: Greedy extraction — suppress + refine + subtract from residual
     z_residual = z.copy()
     kx_list, ky_list, w_list, phi_list = [], [], [], []
-    min_dk = MIN_DK  # minimum separation between peaks
+    recompute = (PEAK_SELECT_MODE == 'recompute_residual')
+    min_dk = RECOMPUTE_MIN_DK if recompute else MIN_DK
+    # Cells zeroed so far, kept so they stay zeroed across recomputations of the map.
+    _suppressed = []
 
     for comp_idx in range(n_gaussians):
         # Find peak in power map
@@ -432,7 +455,9 @@ def initialize_from_frames_v2(frames, n_gaussians: int, depth: float,
         ph = kx_fine * x + ky_fine * y - omega * t + phi
         z_residual = z_residual - amp * np.cos(ph)
 
-        # Suppress neighborhood in power map (avoid recomputing full grid)
+        # Suppress neighborhood in power map. In the shipped mode this stands in for
+        # recomputing the map; in 'recompute_residual' the map is rebuilt from the residual
+        # below and this only stops the search re-picking the identical cell.
         suppress_kx = int(min_dk / dkx) + 1
         suppress_ky = int(min_dk / dky) + 1
         y_lo = max(0, iy_peak - suppress_ky)
@@ -440,6 +465,14 @@ def initialize_from_frames_v2(frames, n_gaussians: int, depth: float,
         x_lo = max(0, ix_peak - suppress_kx)
         x_hi = min(power.shape[1], ix_peak + suppress_kx + 1)
         power[y_lo:y_hi, x_lo:x_hi] = 0.0
+        _suppressed.append((y_lo, y_hi, x_lo, x_hi))
+
+        if recompute and comp_idx + 1 < n_gaussians:
+            power, kx_axis, ky_axis = _beamform_coarse(
+                x, y, z_residual, t, depth, kx_range, ky_range, n_coarse, n_coarse)
+            power[max(0, cy - 1):cy + 2, max(0, cx - 1):cx + 2] = 0.0
+            for (a, b, c_, d) in _suppressed:
+                power[a:b, c_:d] = 0.0
 
     # Pad if fewer peaks found.
     # PAD_W is module-level so it can be varied without touching call sites: padding

@@ -26,6 +26,29 @@ from wavesplat.optimizer.coarse_to_fine import CoarseToFineSchedule
 from wavesplat.data_loader import FrameData
 
 
+# `_adaptive_prune_grow` historically compares an ABSOLUTE residual RMS in metres against
+# `grow_residual_threshold` (0.05 m) with no normalisation by sea state. This is the same
+# defect class as coarse_to_fine.SCALE_INVARIANT_ADVANCE, but it lives in a different
+# function, so that flag never reached it. Measured over 8 episodes spanning Hs 0.3-5.0 m
+# (tmp/SCALE_AUDIT_fable_2026-07-23.md): residual_rms rises monotonically with Hs
+# (0.069 -> 0.107 -> 0.175 m), so on crowded high-Hs episodes the threshold is *guaranteed*
+# to fire and the 30% rollback guard fires along with it -- an outcome previously read as
+# incidental rather than structural.
+# When True, the residual RMS is divided by the observation RMS of the same frames, so the
+# threshold means "fraction of observed signal amplitude still unexplained". That normaliser
+# needs no ground truth and is therefore deployable. False preserves shipped behaviour.
+SCALE_INVARIANT_GROW = False
+
+# The L1 sparsity term adds `lambda_l1 * sum|w|`, a quantity in metres, to a mean-squared
+# loss in metres squared. lambda_l1 therefore carries a hidden unit, and its effective
+# strength is sea-state dependent: measured 3-62% of the total loss across Hs 0.3-5.0 m,
+# non-monotonically, with a 58% swing in total recovered amplitude in a BF3-2comp ablation
+# (tmp/SCALE_AUDIT_fable_2026-07-23.md; the nRMSE impact was not isolated there).
+# When True the penalty is multiplied by the observation RMS so both terms are [m^2].
+# False preserves shipped behaviour.
+SCALE_INVARIANT_L1 = False
+
+
 class SequentialUpdater:
     """
     Two-phase sequential wave field estimator.
@@ -69,6 +92,11 @@ class SequentialUpdater:
         self.init_method = config.get('init_method', 'v2_konly')
         self.use_dispersion = config.get('use_dispersion', True)
         self.use_confidence = config.get('use_confidence', True)
+        # Was documented above and set in configs/estimation.yaml, but never read: every
+        # clamp_steepness() call site used the function default. The shipped YAML value
+        # happens to equal that default, so behaviour is unchanged -- but the knob was
+        # silently inert and would not have taken effect if changed. (2026-07-24)
+        self.max_steepness = config.get('max_steepness', 0.15)
         self.seed = config.get('seed', None)
 
         # Neural corrector (nonlinear correction)
@@ -183,9 +211,21 @@ class SequentialUpdater:
         if n_obs > 0:
             total_loss = total_loss / n_obs
 
-        # L1 sparsity on weights
+        # L1 sparsity on weights. Note the shipped form adds a [m] quantity to an [m^2] loss,
+        # so lambda_l1 carries a hidden unit and its effective strength moves with sea state:
+        # measured contribution ranges over 3-62% of the total loss across Hs, non-monotonically
+        # (tmp/SCALE_AUDIT_fable_2026-07-23.md). SCALE_INVARIANT_L1 multiplies by the
+        # observation RMS to make the penalty [m^2] like the data term; False keeps shipped
+        # behaviour. The scale is computed under no_grad -- it is a normaliser, not a target.
         if self.lambda_l1 > 0:
-            total_loss = total_loss + self.lambda_l1 * torch.sum(torch.abs(self.model.w))
+            l1 = torch.sum(torch.abs(self.model.w))
+            if SCALE_INVARIANT_L1:
+                with torch.no_grad():
+                    zs = [f.z_obs for f in frames if len(f.z_obs) > 0]
+                    scale = torch.sqrt(torch.mean(torch.cat(zs) ** 2)) if zs else None
+                if scale is not None and float(scale) > 1e-9:
+                    l1 = l1 * scale
+            total_loss = total_loss + self.lambda_l1 * l1
 
         # Spectral smoothness: penalize weight variation (sorted by |k|)
         if self.lambda_smooth > 0 and self.model.n_gaussians > 1:
@@ -289,7 +329,7 @@ class SequentialUpdater:
             loss = self._compute_loss(frames)
             loss.backward()
             self.optimizer.step()
-            self.model.clamp_steepness()
+            self.model.clamp_steepness(self.max_steepness)
 
             loss_val = loss.item()
             loss_history.append(loss_val)
@@ -384,7 +424,7 @@ class SequentialUpdater:
             loss.backward()
             opt.step()
 
-        self.model.clamp_steepness()
+        self.model.clamp_steepness(self.max_steepness)
 
         elapsed_ms = (time.time() - t0) * 1000
 
@@ -480,15 +520,28 @@ class SequentialUpdater:
             return
 
         residual_rms = float(np.sqrt(np.mean(all_res ** 2)))
-        if residual_rms < self.grow_residual_threshold:
+
+        # Quantity actually compared against grow_residual_threshold. Absolute metres by
+        # default; a dimensionless fraction of observed signal amplitude when
+        # SCALE_INVARIANT_GROW is set (see the module-level note).
+        grow_metric = residual_rms
+        if SCALE_INVARIANT_GROW:
+            obs = [f.z_obs.detach().cpu().numpy() for f in frames if len(f.z_obs) > 0]
+            if obs:
+                obs_rms = float(np.sqrt(np.mean(np.concatenate(obs) ** 2)))
+                if obs_rms > 1e-9:
+                    grow_metric = residual_rms / obs_rms
+
+        if grow_metric < self.grow_residual_threshold:
             if verbose:
-                print(f"  [Adaptive] Residual RMS={residual_rms:.4f} < threshold "
+                print(f"  [Adaptive] Residual RMS={residual_rms:.4f} "
+                      f"(metric={grow_metric:.4f}) < threshold "
                       f"{self.grow_residual_threshold}, no growth needed")
             return
 
         # Decide how many to add (proportional to residual, capped)
         n_add = min(
-            max(3, int(residual_rms / self.grow_residual_threshold * 3)),
+            max(3, int(grow_metric / self.grow_residual_threshold * 3)),
             self.max_n - self.model.n_gaussians
         )
 
@@ -567,7 +620,7 @@ class SequentialUpdater:
                 loss = self._compute_loss(frames)
                 loss.backward()
                 self.optimizer.step()
-                self.model.clamp_steepness()
+                self.model.clamp_steepness(self.max_steepness)
 
             if verbose:
                 print(f"  [Adaptive] Grew: +{n_actual} → N={self.model.n_gaussians} "

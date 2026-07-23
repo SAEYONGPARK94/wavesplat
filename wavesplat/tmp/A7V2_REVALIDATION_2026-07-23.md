@@ -63,6 +63,31 @@ all five), so **the working ingredient is the fine-atom splice around the refine
 sidelobe rejection.** Any revival must re-state the mechanism — this is precisely the
 "asserted mechanism" error class that bit this project five times today.
 
+### The discriminating test (2026-07-24, specified but not yet run)
+
+The paragraph above is currently an *inference* from `dk/k = 0.000`, not a measurement. It is
+one arm away from being either. `scripts/d3_a7v2_refine.py` composes two separable
+ingredients — (a) refine-**select**: `top_m_peaks` → `_refine_single` per candidate →
+holdout selection, and (b) the fine-atom **splice** at `dk = kp/40` around whichever k won.
+Since `dk/k = 0.000` says (a) always returns the plain beamform argmax on these episodes,
+the following three arms are decisive and cost one run each per seed:
+
+| arm | (a) refine-select | (b) fine-atom splice | expected under the stated mechanism |
+|---|---|---|---|
+| A1 | on | on | 1.00 (the measured hybrid) |
+| **A2** | **off — use `argmax_k` directly** | **on** | **≈1.00 if the splice is the working part** |
+| A3 | on | off | ≈ hand (erratic, −0.00…+0.90) |
+
+`argmax_k` is already computed and returned by `refine_select` for exactly this diagnostic,
+so A2 is a two-line change. **If A2 ≈ A1, the method should be renamed and re-described: it
+is a fine-atom bank refinement, and "refine-select" is dead weight that costs M continuous
+optimisations per frame.** If A2 collapses to A3, the current narrative is wrong in the other
+direction and refine-select matters after all through some path the `dk/k` diagnostic does
+not capture. Either outcome is publishable-grade clarity; the present state is not.
+
+Do not revive A-7 in any write-up before this runs — with the pre-registered read-out above,
+fixed prior to seeing the numbers.
+
 ## Scope — deliberately stated narrowly
 
 - **One synthetic corner case.** The detector is designed to fire only on quasi-monochromatic

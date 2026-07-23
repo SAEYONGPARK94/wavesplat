@@ -83,3 +83,47 @@ yet produced a fix.
   historical behaviour exactly (verified: control arms reproduce the original numbers to the
   last digit).
 - `run.py` (earlier): `obs_loss` / `avg_obs_loss` exposed — pure addition.
+
+---
+
+# H4 — BOTH random-phase sites removed together → **CAUSE FOUND**
+
+`tmp/grow_phase_fix.py`. Sets the initializer to keep v2's least-squares `(w, φ)` **and**
+makes the adaptive-N growth path (`coarse_to_fine.py`) start new components at phase 0
+instead of `torch.rand(n_new)·2π`. Both flags default to the historical behaviour, so the
+shipped estimator is unchanged; the control arms reproduce the original numbers exactly.
+
+| episode | random phase (current) | **both sites deterministic** | paired Δ | SE | t |
+|---|---|---|---|---|---|
+| BF3 2comp | mean 0.0930, **CV 53.0 %**, range 0.0524–0.1682 | **0.0716 on all 8 seeds — CV 0.0 %** | −0.0213 | 0.0174 | −1.23 |
+| BF4 15comp | mean 0.2895, CV 2.8 % | mean 0.2738, **CV 0.9 %** | **−0.0157** | 0.0030 | **−5.28** |
+
+## Reads
+
+1. ✅ **The bimodal pathology is fully explained and removable.** On the CV = 53 % episode all
+   eight seeds now return **exactly 0.0716** — the estimator is deterministic and the bad
+   basin is gone. Random phase initialisation, at **two sites**, was the entire cause.
+   This is why every earlier hypothesis failed: the prune, the padding and the initializer
+   site alone are each only part of the path, and removing any one leaves the other live.
+2. ⚠ **Strictly PARTIAL on the crowded episode**: CV falls 2.8 % → 0.9 % but not to zero, so a
+   third (minor) stochastic input remains there — most likely the residual-beamform peak
+   search inside the growth path. Named, not fixed.
+3. ✅ **It is not a determinism-for-accuracy trade.** The crowded episode also gets
+   **significantly more accurate**: −0.0157 nRMSE, **t = −5.28**. The 2-comp episode improves
+   on the mean too (0.0930 → 0.0716) though not significantly (t = −1.23).
+4. ⚠ **But it does not hand you the good basin.** 0.0716 sits *between* the good cluster
+   (~0.055) and the bad one (~0.167). Since the currently-reported `seed=42` value for that
+   episode is 0.0524 — a lucky draw — adopting this fix would make that episode's published
+   number **worse** (0.0524 → 0.0716) while making the crowded episode better
+   (0.2999 → 0.2727). Both directions must be reported.
+5. **Scope: n = 2 episodes.** Generalisation is ARGUED. The default is deliberately left
+   unchanged pending a sweep over the full episode set — which should run on the regenerated
+   dataset, not the old one.
+
+## What it means for the programme
+
+The variance finding now has a **named, localised, removable cause** rather than a vague
+"non-convexity". That converts an embarrassing instability into a concrete methods
+improvement: the estimator can be made deterministic *and* slightly more accurate by not
+throwing away information it has already computed. The reporting prescription
+(median-of-k with spread) still applies to any result produced with the current default.

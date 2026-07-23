@@ -12,6 +12,11 @@ import torch
 import numpy as np
 from typing import List, Tuple
 
+# Newly grown components historically get a UNIFORM RANDOM initial phase. This is the
+# second site of the same defect investigated in tmp/VARIANCE_MECHANISM_HUNT_2026-07-23.md.
+# True preserves shipped behaviour.
+GROW_RANDOM_PHI = True
+
 from wavesplat.model.spectral_gaussian import SpectralGaussianModel
 from wavesplat.optimizer.initializer import (
     bin_observations_to_grid, fft_peak_extraction,
@@ -149,7 +154,9 @@ class CoarseToFineSchedule:
                                  device=model.w.device),
             init_w=torch.tensor(amp_new[:n_new], dtype=torch.float32,
                                 device=model.w.device),
-            init_phi=torch.rand(n_new, device=model.w.device) * 2 * np.pi,
+            init_phi=(torch.rand(n_new, device=model.w.device) * 2 * np.pi
+                      if GROW_RANDOM_PHI else
+                      torch.zeros(n_new, device=model.w.device)),
         )
 
     def _beamform_residuals(self, x, y, z_res, t, n_new):

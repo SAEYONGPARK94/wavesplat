@@ -193,6 +193,9 @@ def run_estimation(h5_path: str, config: dict = None,
 
         frame_metrics['elapsed_ms'] = update_result['elapsed_ms']
         frame_metrics['n_pts'] = update_result['n_pts']
+        # observation-fit loss: the only quality signal available WITHOUT ground truth,
+        # so it is what a deployed multi-restart policy would have to select on.
+        frame_metrics['obs_loss'] = update_result['loss']
         frame_metrics['t'] = frame.t
         frame_results.append(frame_metrics)
 
@@ -264,6 +267,11 @@ def run_estimation(h5_path: str, config: dict = None,
         'avg_nRMSE': avg_nrmse,
         'avg_Hs_error': avg_hs_err,
         'avg_inference_ms': avg_ms,
+        # GT-free run-quality signal, for multi-restart selection (see
+        # tmp/ESTIMATOR_VARIANCE_RESULT_2026-07-23.md): mean observation-fit loss.
+        'avg_obs_loss': float(np.mean([r['obs_loss'] for r in frame_results
+                                       if np.isfinite(r.get('obs_loss', np.nan))]))
+        if frame_results else float('nan'),
         'T_converge': t_converge,
         'frame_results': frame_results,
         'spectrum_params': updater.model.get_spectrum_params(),

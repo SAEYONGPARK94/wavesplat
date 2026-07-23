@@ -62,10 +62,18 @@ KREL, ANGDEG, FINE_DIV = 0.25, 15.0, 40    # fine-bank geometry (v1 spec)
 NMS_SUPP = 0.40         # non-max suppression radius (fraction of kp)
 DEDUP = 0.08            # merge refined candidates within this |dk| (abs rad/m)
 
-CAL_POS = ['data/episode_BF3_1comp_seed%d_fixedT.h5',
-           'data/episode_BF4_1comp_seed%d_fixedT.h5']
-CAL_NEG = ['data/episode_BF3_5comp_seed%d_fixedT.h5',
-           'data/episode_BF4_5comp_seed%d_fixedT.h5']
+# Data root, overridable with --data_dir. Default 'data' preserves historical behaviour.
+# The 2026-07-23 retry runs against data_finemesh_fixedT_2026-07-23/, which regenerates the
+# gate set AND the calibration sets at the Nyquist-adequate mesh with the SAME 8000
+# obs/frame cap -- the observation-count confound that invalidated the July retry
+# (docs/E2_MESH_AUDIT_prereg_2026-07-13.md:94-101) is thereby controlled, verified by
+# comparing per-frame return counts (8000 in both, cap binds).
+DATA_DIR = 'data'
+
+CAL_POS = ['{d}/episode_BF3_1comp_seed%d_fixedT.h5',
+           '{d}/episode_BF4_1comp_seed%d_fixedT.h5']
+CAL_NEG = ['{d}/episode_BF3_5comp_seed%d_fixedT.h5',
+           '{d}/episode_BF4_5comp_seed%d_fixedT.h5']
 
 
 # ===================================================== continuous-k refine-select
@@ -263,10 +271,10 @@ def calibrate_detect():
     pe, pr, ne, nr = [], [], [], []
     for tmpl in CAL_POS:
         for s in range(5):
-            e, r = _score_of(tmpl % s); pe.append(e); pr.append(r)
+            e, r = _score_of((tmpl % s).format(d=DATA_DIR)); pe.append(e); pr.append(r)
     for tmpl in CAL_NEG:
         for s in range(5):
-            e, r = _score_of(tmpl % s); ne.append(e); nr.append(r)
+            e, r = _score_of((tmpl % s).format(d=DATA_DIR)); ne.append(e); nr.append(r)
     pe, pr, ne, nr = map(np.array, (pe, pr, ne, nr))
     j_ev, th_ev, tpr_ev, fpr_ev = _youden(pe, ne)
     j_ra, th_ra, tpr_ra, fpr_ra = _youden(pr, nr)
@@ -284,7 +292,7 @@ def calibrate_detect():
 def gate1(theta, stat):
     rows = []
     for seed in range(5):
-        path = 'data/episode_BF2_1comp_seed%d_fixedT.h5' % seed
+        path = DATA_DIR + '/episode_BF2_1comp_seed%d_fixedT.h5' % seed
         rng = np.random.default_rng(11)
         ep = load_synth(path, rng)
         tk = ep['kp'] * ep['khat']                          # true k vector
@@ -339,7 +347,7 @@ def gate2_synth(theta, stat):
     rows = []
     for fname in APP_EPISODES:
         rng = np.random.default_rng(11)
-        ep = load_synth('data/' + fname, rng)
+        ep = load_synth(DATA_DIR + '/' + fname, rng)
         Qf, Qt, npix, truth_tr = build_queries(ep)
         Q = np.vstack([Qf, Qt]); nf = len(Qf)
         sig0 = 0.05 * ep['Hs']
@@ -415,12 +423,15 @@ def verify_solve(ep):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--smoke', action='store_true')
+    ap.add_argument('--data_dir', default='data')
     a = ap.parse_args()
+    global DATA_DIR
+    DATA_DIR = a.data_dir
     t0 = time.time()
     print(f"device {DEV}", flush=True)
 
     rng = np.random.default_rng(11)
-    ep0 = load_synth('data/episode_BF2_1comp_seed0_fixedT.h5', rng)
+    ep0 = load_synth(DATA_DIR + '/episode_BF2_1comp_seed0_fixedT.h5', rng)
     vdiff = verify_solve(ep0)
     print(f"verify solve_mmse_bank == mmse_gpu (coarse): max|diff| {vdiff:.2e} "
           f"({'OK' if vdiff < 1e-3 else 'MISMATCH'})", flush=True)

@@ -204,6 +204,74 @@ def merge_atoms(kx, ky, energy, merge_frac):
     return mkx[order], mky[order], men[order]
 
 
+def _beamform_peak_locations(frames, depth, sig_frac=0.1, n_extract=30):
+    """Significant beamform-peak (kx,ky) locations + dominant kp, v2 convention. GT-free.
+
+    Runs the v2 coarse dispersion beamformer (identical convention to
+    ``initializer.beamform_peak_ratio``) on the collected init-window observations, zeroes the
+    DC block, greedily extracts MIN_DK-suppressed peaks, and returns those with power
+    >= ``sig_frac`` * P1 as (kx, ky) pairs, plus kp = |k| of the dominant peak. Peak LOCATIONS
+    are used ONLY as anchors to keep/discard net atoms (never installed as components).
+    """
+    from wavesplat.optimizer.initializer import (
+        _collect_observations, _beamform_coarse, MIN_DK)
+    x, y, z, t = _collect_observations(frames)
+    if x is None or len(x) < 10:
+        return np.empty((0, 2)), 0.0
+    power, kx_axis, ky_axis = _beamform_coarse(
+        x, y, z, t, depth, (-4.0, 4.0), (-4.0, 4.0), 81, 81)
+    dkx = kx_axis[1] - kx_axis[0]; dky = ky_axis[1] - ky_axis[0]
+    cx = int(np.argmin(np.abs(kx_axis))); cy = int(np.argmin(np.abs(ky_axis)))
+    power[max(0, cy - 1):cy + 2, max(0, cx - 1):cx + 2] = 0.0
+    supx = int(MIN_DK / dkx) + 1; supy = int(MIN_DK / dky) + 1
+    peaks = []; P = power.copy()
+    for _ in range(n_extract):
+        idx = int(np.argmax(P.ravel())); iy, ix = np.unravel_index(idx, P.shape)
+        pk = float(P[iy, ix])
+        if pk < 1e-12:
+            break
+        peaks.append((float(kx_axis[ix]), float(ky_axis[iy]), pk))
+        yl, yh = max(0, iy - supy), min(P.shape[0], iy + supy + 1)
+        xl, xh = max(0, ix - supx), min(P.shape[1], ix + supx + 1)
+        P[yl:yh, xl:xh] = 0.0
+    if not peaks:
+        return np.empty((0, 2)), 0.0
+    p1 = peaks[0][2]
+    locs = np.array([[kx, ky] for (kx, ky, pw) in peaks if pw >= sig_frac * p1], float)
+    kp = float(np.hypot(peaks[0][0], peaks[0][1]))
+    return locs, kp
+
+
+def peak_anchor_filter(kx, ky, energy, frames, depth, anchor_frac, sig_frac=0.1):
+    """Keep proposal atoms near a SIGNIFICANT beamform peak (WavePrior learned-only sparse-parity,
+    additive). Input-conditioning WITHIN the learned pipeline: the beamform power map (already the
+    net's conditioning input) is used to filter net atoms; atom LOCATIONS still come from the net.
+
+    Keep each pool_and_select'd atom iff its (kx,ky) distance to the nearest significant beamform
+    peak (power >= sig_frac*P1) is <= anchor_frac * kp, where kp = |dominant beamform peak|. On a
+    single-peak map this collapses scattered over-proposals onto the swell neighborhood; on a
+    multi-peak (crowded) map every true peak has nearby atoms so it is a near-no-op. If NOTHING
+    survives (no net atom near any peak) the ORIGINAL atoms are returned UNCHANGED (no-op; never
+    injects a beamform-located atom -> guaranteed no-harm vs the shipped learned path). GT-free.
+    ``anchor_frac`` None/<=0 returns the input unchanged (bit-identical).
+    """
+    kx = np.asarray(kx, float); ky = np.asarray(ky, float); en = np.asarray(energy, float)
+    if anchor_frac is None or anchor_frac <= 0 or len(kx) == 0:
+        return kx, ky, en
+    locs, kp = _beamform_peak_locations(frames, depth, sig_frac=sig_frac)
+    if len(locs) == 0 or kp <= 0:
+        return kx, ky, en
+    r = anchor_frac * kp
+    dmin = np.min(np.hypot(kx[:, None] - locs[None, :, 0],
+                           ky[:, None] - locs[None, :, 1]), axis=1)
+    keep = dmin <= r
+    if not np.any(keep):
+        return kx, ky, en                # no-op: never substitute the beamform peak
+    fk, fy, fe = kx[keep], ky[keep], en[keep]
+    order = np.argsort(-fe)
+    return fk[order], fy[order], fe[order]
+
+
 def ls_fit_wphi(kx, ky, frames, depth):
     """LS-fit amplitude+phase for the selected (kx,ky) on the init obs (absolute t).
 
@@ -254,6 +322,14 @@ def learned_init_params(frames, depth, config=None, seed=None):
 
     kx, ky, en = pool_and_select(rkx, rky, ren, energy_thresh=e_th,
                                  dedup_dk=ddk, max_n=max_n)
+    # WavePrior learned-only sparse-parity (additive): optional peak-anchored filtering of the
+    # over-proposed atoms against the v2 beamform peaks. Default (learned_peak_anchor False) is a
+    # no-op -> bit-identical to the shipped learned path.
+    if config.get('learned_peak_anchor', False):
+        kx, ky, en = peak_anchor_filter(
+            kx, ky, en, frames, depth,
+            anchor_frac=config.get('learned_anchor_frac'),
+            sig_frac=float(config.get('learned_anchor_sigfrac', 0.1)))
     # WavePrior UNIFIED sparse-parity (additive): optional kp-scaled agglomerative merge of the
     # over-proposed atoms. Default (learned_merge_frac None) is a no-op -> bit-identical.
     merge_frac = config.get('learned_merge_frac')

@@ -287,6 +287,47 @@ def _beamform_coarse(x, y, z, t, depth,
     return power, kx_axis, ky_axis
 
 
+def beamform_peak_ratio(frames, depth, kx_range=(-4.0, 4.0), ky_range=(-4.0, 4.0),
+                        n_coarse=81, n_extract=30):
+    """GT-free 'dominant-peak structure' scalar for the WavePrior UNIFIED routing guard.
+
+    Runs the v2 coarse dispersion beamformer on the collected init-window observations, zeroes
+    the DC block, and greedily extracts up to ``n_extract`` peaks with the same MIN_DK box
+    suppression the v2 initializer uses. Returns ``power[2nd peak] / power[1st peak]`` (0.0 if
+    fewer than two peaks are found). A single clean swell -> one dominant beamform peak -> ratio
+    near zero; a crowded sea -> comparable secondary peaks -> larger ratio. Computed directly
+    from observations, so it is independent of (and robust to) the diffusion proposal's
+    over-proposal on OOD single-swell seas. ADDITIVE: only called by ``_auto_select_init``.
+    """
+    x, y, z, t = _collect_observations(frames)
+    if x is None or len(x) < 10:
+        return 0.0
+    power, kx_axis, ky_axis = _beamform_coarse(
+        x, y, z, t, depth, kx_range, ky_range, n_coarse, n_coarse)
+    dkx = kx_axis[1] - kx_axis[0]
+    dky = ky_axis[1] - ky_axis[0]
+    cx = np.argmin(np.abs(kx_axis))
+    cy = np.argmin(np.abs(ky_axis))
+    power[max(0, cy - 1):cy + 2, max(0, cx - 1):cx + 2] = 0.0
+    supx = int(MIN_DK / dkx) + 1
+    supy = int(MIN_DK / dky) + 1
+    peaks = []
+    P = power.copy()
+    for _ in range(n_extract):
+        idx = int(np.argmax(P.ravel()))
+        iy, ix = np.unravel_index(idx, P.shape)
+        pk = float(P[iy, ix])
+        if pk < 1e-12:
+            break
+        peaks.append(pk)
+        yl, yh = max(0, iy - supy), min(P.shape[0], iy + supy + 1)
+        xl, xh = max(0, ix - supx), min(P.shape[1], ix + supx + 1)
+        P[yl:yh, xl:xh] = 0.0
+    if len(peaks) < 2 or peaks[0] <= 0:
+        return 0.0
+    return float(peaks[1] / peaks[0])
+
+
 def _beamform_refine(x, y, z, t, depth,
                      kx_center, ky_center,
                      delta=0.2, n_fine=41):

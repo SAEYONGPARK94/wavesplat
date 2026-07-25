@@ -111,6 +111,11 @@ class SequentialUpdater:
         # Default (v2_konly) leaves these None -> no behavioural effect.
         self._auto_selected = None
         self._auto_n_selected = None
+        # WavePrior UNIFIED-GUARD (init_method='auto'): GT-free disagreement guard that
+        # vetoes a learned route on a single-clean-swell over-proposal (see
+        # _auto_select_init). Populated only on the 'auto' path; None otherwise.
+        self._auto_guard_fired = None
+        self._auto_bf_peak_ratio = None
         self.use_dispersion = config.get('use_dispersion', True)
         self.use_confidence = config.get('use_confidence', True)
         # Was documented above and set in configs/estimation.yaml, but never read: every
@@ -520,9 +525,34 @@ class SequentialUpdater:
         n_sel = int(len(sk))
         chosen = 'learned' if n_sel >= thresh else 'v2_konly'
         self._auto_n_selected = n_sel
+
+        # WavePrior UNIFIED-GUARD (additive): the proposal over-proposes ~30 near-degenerate
+        # atoms on a single clean swell (the characterized BF2_1comp misroute), so n_selected
+        # says 'crowded' when the sea is not. The learned atoms cannot self-diagnose this (the
+        # slope over-proposals are atom-level indistinguishable from a crowded spectrum). The
+        # v2 beamform power map, computed from the observations alone, does: a single swell
+        # yields one dominant peak (bf_peak_ratio ~ 0). When the base decision is 'learned' and
+        # the beamform is that single-dominant, veto -> v2_konly. GT-free; never promotes
+        # v2->learned. Off by setting auto_guard=False (then this block is inert).
+        # Threshold 0.05 sits below the crowded-sea beamform-ratio floor measured on the
+        # design set (tmp/unified_guard_2026-07-26/), so no crowded route is flipped there.
+        guard = bool(cfg.get('auto_guard', True))
+        guard_ratio = float(cfg.get('auto_guard_ratio', 0.05))
+        fired = False
+        bfr = None
+        if guard and chosen == 'learned':
+            from wavesplat.optimizer.initializer import beamform_peak_ratio
+            bfr = float(beamform_peak_ratio(frames, self.depth))
+            if bfr < guard_ratio:
+                chosen = 'v2_konly'
+                fired = True
+        self._auto_guard_fired = fired
+        self._auto_bf_peak_ratio = bfr
         self._auto_selected = chosen
         if verbose:
-            print(f"  [Init/auto] n_selected={n_sel} (thresh={thresh}) -> {chosen}")
+            gtag = (f" guard(bf_ratio={bfr:.3f}<{guard_ratio})->veto" if fired
+                    else (f" guard(bf_ratio={bfr:.3f})ok" if bfr is not None else ""))
+            print(f"  [Init/auto] n_selected={n_sel} (thresh={thresh}) -> {chosen}{gtag}")
         return chosen
 
     def update(self, frame: FrameData) -> Dict:

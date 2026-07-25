@@ -156,6 +156,54 @@ def pool_and_select(kx, ky, energy, energy_thresh=0.03, dedup_dk=0.03, max_n=30)
     return np.array(sk), np.array(sy), np.array(se)
 
 
+def merge_atoms(kx, ky, energy, merge_frac):
+    """Calibrate proposal cardinality: agglomerate near-duplicate SELECTED atoms (WavePrior
+    UNIFIED sparse-parity, additive).
+
+    The diffusion proposal over-proposes near-degenerate atoms on simple seas, inflating the
+    component count fed to the tracker. This single-linkage-agglomerates the (already
+    pool_and_select'd) atoms within an adaptive Euclidean radius ``r = merge_frac * kp`` in
+    (kx,ky), where ``kp`` = |k| of the highest-energy atom. The kp-scaled radius is the repo's
+    component-separation convention done adaptively (the absolute MIN_DK floor chains across a
+    crowded spectrum; measured in tmp/unified_guard_2026-07-26/explore_signals.py). Each cluster
+    collapses to its ENERGY-WEIGHTED centroid with summed energy; result re-sorted strongest
+    first. GT-free. ``merge_frac`` None/<=0 returns the input unchanged (bit-identical).
+    """
+    kx = np.asarray(kx, float); ky = np.asarray(ky, float); en = np.asarray(energy, float)
+    n = len(kx)
+    if merge_frac is None or merge_frac <= 0 or n <= 1:
+        return kx, ky, en
+    kp = float(np.sqrt(kx[int(np.argmax(en))] ** 2 + ky[int(np.argmax(en))] ** 2))
+    r = merge_frac * kp
+    if r <= 0:
+        return kx, ky, en
+    r2 = r * r
+    parent = list(range(n))
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]; a = parent[a]
+        return a
+    for i in range(n):
+        for j in range(i + 1, n):
+            if (kx[i] - kx[j]) ** 2 + (ky[i] - ky[j]) ** 2 < r2:
+                ri, rj = find(i), find(j)
+                if ri != rj:
+                    parent[ri] = rj
+    groups = {}
+    for i in range(n):
+        groups.setdefault(find(i), []).append(i)
+    mkx, mky, men = [], [], []
+    for idxs in groups.values():
+        w = en[idxs]
+        wn = w / w.sum() if w.sum() > 0 else np.ones(len(idxs)) / len(idxs)
+        mkx.append(float(np.sum(wn * kx[idxs])))
+        mky.append(float(np.sum(wn * ky[idxs])))
+        men.append(float(en[idxs].sum()))
+    mkx, mky, men = np.array(mkx), np.array(mky), np.array(men)
+    order = np.argsort(-men)
+    return mkx[order], mky[order], men[order]
+
+
 def ls_fit_wphi(kx, ky, frames, depth):
     """LS-fit amplitude+phase for the selected (kx,ky) on the init obs (absolute t).
 
@@ -206,6 +254,11 @@ def learned_init_params(frames, depth, config=None, seed=None):
 
     kx, ky, en = pool_and_select(rkx, rky, ren, energy_thresh=e_th,
                                  dedup_dk=ddk, max_n=max_n)
+    # WavePrior UNIFIED sparse-parity (additive): optional kp-scaled agglomerative merge of the
+    # over-proposed atoms. Default (learned_merge_frac None) is a no-op -> bit-identical.
+    merge_frac = config.get('learned_merge_frac')
+    if merge_frac:
+        kx, ky, en = merge_atoms(kx, ky, en, float(merge_frac))
     n = len(kx)
     if n == 0:
         # Degenerate fallback: a few random low-amplitude components (never expected

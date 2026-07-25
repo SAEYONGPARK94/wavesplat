@@ -1,5 +1,23 @@
 # 논문 골격 초안 — 센서-인지 CRB-앵커 운용성 Envelope (NAOE) 2026-07-18
 
+> 🛑🛑 **2026-07-22 정정 배너 (인용 전 필독, 권위 = `tmp/SESSION_MASTER_2026-07-22.md`·`tmp/HOS_LADDER_RESULT`·
+> `tmp/PERSONA_DEBATE_novelty_phd_2026-07-22`)**:
+> 1. **"estimator-independent"**: C8이 **한정형 SUPPORT**(under-det서 다른 추정기 클래스 예측, 이중검증)이나 synthetic
+>    sandbox → **C8 HOS 재검 아직 남음**. **★§8 envelope HOS 재검 = 완료·PARTIAL·생존**(CRB↔actual HOS +0.30, 거리
+>    넘어 partial +0.28) + **★CRB envelope이 경험UQ를 HOS서 이김(0.30 vs 0.21, 8바다 전부) = 핵심 delta HOS-검증**
+>    (synthetic선 동률이었음). = spine A 핵심 자산이 HOS 살아남음. "예측 우위" 헤드라인 금지(PARTIAL). 권위 `tmp/HOS_S8_RESULT_2026-07-22.md`.
+> 2. **§4(envelope-CRB, d1_crb 공유) ↔ §5(파티션 θ-CRB, e51 별개구현) = 다른 엔진** — "하나의 엔진" 통합서술 금지(F-2).
+> 3. **B-2 "+0.139" 인용 금지 → "+0.022"(beamform-eval)**: oracle 참-피크 의존 판명(M-3/M-3G), F1 "훈련=oracle kp"
+>    거짓(훈련=beamform). B = **별도 챕터·헤드라인 아님.**
+> 4. **다채널 조건② = 이미 CLOSED**(F-3, E-55/56). THESIS_FRAMING_v2 §9/10만 stale.
+> 5. **§8 = level-calibration을 1차 훅으로**(F-5, MEASURED). **⛔①under-det "학습 realizable forward-path"=철회**
+>    (inverse crime, HOS서 −0.27 확인). **better-net=FAIL/parity.**
+> 6. **★HOS-검증 positive(살아남음)**: 현 학습 net-MMSE가 **실제 HOS서 classical 이김**(0.79 vs 0.60) = spine A
+>    "학습이 이기는 곳" 실물근거(단 "큰 갭 닫기" 아님·Ehlers OE2023 선점).
+> 7. **박사 판정 = CONDITIONAL PASS(lower-mid)**: "방법 SOTA" 아니라 **"CRB-앵커 운용성 envelope+판별+정직음성"**
+>    으로 재프레임. 스코프: ⛔"LiDAR"·"정보벽"·"학습 압도"·"이동/희소가 novelty".
+
+
 > fable 박사심사 = **CONDITIONAL PASS**(조건 7개, 관건=envelope skill 검증 실험 미실행). 사용자 "괜찮으면
 > 추천대로 작업" → 골격 초안. **규율 적용**([[feedback_direction_flip_discipline]]): 각 절 내용을 **MEASURED**
 > (검증됨) / **PENDING**(조건 실험) 태그. 헤드라인은 검증 전까지 **설계(keystone-to-be-sealed)**로 표기.

@@ -56,7 +56,7 @@ def get_net(ckpt='results/direction3/prior_net_v3.pt'):
 def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
                    use_em=False, max_em=6, kp_hint=None, return_var=False,
                    diag_out=None, bound_wave=False, bw_scale=0.15,
-                   smult_head=None, smult_fixed=None):
+                   smult_head=None, smult_fixed=None, oracle_components=None):
     """MMSE with the net-predicted prior on the normalized 51x51 bank.
     kp_hint: externally known peak wavenumber (real records:
     characterize()) — the internal beamform-argmax kp is the estimator's
@@ -87,8 +87,9 @@ def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
     X = np.stack([p1, p2, pm,
                   np.log10(p1 + 1e-6) / 6 + 1, np.log10(p2 + 1e-6) / 6 + 1,
                   np.log10(pm + 1e-6) / 6 + 1]).astype(np.float32)
-    with torch.no_grad():
-        Ylog = net(torch.tensor(X[None], device=DEVICE))[0].cpu().numpy()
+    if oracle_components is None:
+        with torch.no_grad():
+            Ylog = net(torch.tensor(X[None], device=DEVICE))[0].cpu().numpy()
     # bank = annulus cells of the same normalized grid
     ax = np.linspace(-KREL * kp, KREL * kp, NGRID)
     KX, KY = np.meshgrid(ax, ax)
@@ -96,7 +97,18 @@ def net_gamma_mmse(net, P, z, depth, Pq, sigma0, seed=0, val_frac=0.25,
     sel = (kk > 0.35 * kp) & (kk < KREL * kp)
     kxb, kyb = KX[sel].astype(float), KY[sel].astype(float)
     om = omega(np.hypot(kxb, kyb) + 1e-12, depth)
-    g = np.maximum(10.0 ** Ylog[sel], 1e-8)
+    if oracle_components is not None:
+        # ORACLE prior: true free-wave energy A^2 splatted onto the bank cells
+        # (same bank, same downstream normalization as the net path — fair swap).
+        oc = np.asarray(oracle_components, float)  # (K,>=3) = kx, ky, A
+        gg = np.zeros(kxb.shape[0])
+        sig = 0.05 * kp
+        for kxo, kyo, Ao in oc[:, :3]:
+            gg += (Ao ** 2) * np.exp(-((kxb - kxo) ** 2 + (kyb - kyo) ** 2)
+                                     / (2 * sig ** 2))
+        g = np.maximum(gg, 1e-8)
+    else:
+        g = np.maximum(10.0 ** Ylog[sel], 1e-8)
     if bound_wave:
         # #2+#1 (2026-07-08): pair the learned free-wave prior with 2nd-order
         # super-harmonic bound-wave candidates (2k, 2*omega, off-shell). Their

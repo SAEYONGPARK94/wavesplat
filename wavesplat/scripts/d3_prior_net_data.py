@@ -42,7 +42,7 @@ NGRID = 51                       # normalized bank grid (spacing 0.1 kp)
 KREL = 2.5
 
 
-def gen_sample(rng, fan_frac=0.0, bimodal_frac=0.0, bw_inject=0.0):
+def gen_sample(rng, fan_frac=0.0, bimodal_frac=0.0, bw_inject=0.0, nc=200):
     Tp = rng.uniform(5.0, 11.0)
     Hs = rng.uniform(1.0, 3.0)
     gam_j = rng.uniform(1.5, 6.0)
@@ -53,13 +53,13 @@ def gen_sample(rng, fan_frac=0.0, bimodal_frac=0.0, bw_inject=0.0):
     if rng.uniform() < bimodal_frac:      # crossing-sea augmentation
         r2 = rng.uniform(0.15, 0.5)
     c = jonswap_components(Hs=Hs * np.sqrt(1 - r2), Tp=Tp,
-                           n_components=200, depth=DEPTH,
+                           n_components=nc, depth=DEPTH,
                            gamma=gam_j, direction_deg=mdir,
                            direction_spread_deg=spread, seed=seed)
     if r2 > 0:
         tp2 = float(np.clip(Tp * rng.uniform(0.6, 1.6), 4.0, 12.0))
         c = list(c) + list(jonswap_components(
-            Hs=Hs * np.sqrt(r2), Tp=tp2, n_components=100, depth=DEPTH,
+            Hs=Hs * np.sqrt(r2), Tp=tp2, n_components=max(10, nc // 2), depth=DEPTH,
             gamma=gam_j, direction_deg=mdir + rng.uniform(40, 140),
             direction_spread_deg=spread, seed=seed + 7))
     kxm = np.array([x.kx for x in c])
@@ -203,14 +203,18 @@ def main():
     ap.add_argument('--bimodal_frac', type=float, default=0.0)
     ap.add_argument('--bw_inject', type=float, default=0.0,
                     help='2nd-order bound-wave injection gain (0=off)')
+    ap.add_argument('--nc_diverse', type=int, default=0,
+                    help='1=sample n_components per sample (sparse-swell..broadband)')
     a = ap.parse_args()
     os.makedirs(os.path.dirname(a.out) or '.', exist_ok=True)
     rng = np.random.default_rng(a.seed)
+    NC_SET = [12, 20, 35, 60, 100, 160, 200]   # spectral sampling density ladder
     buf = []
     si = 0
     t0 = time.time()
     for i in range(a.n):
-        buf.append(gen_sample(rng, a.fan_frac, a.bimodal_frac, a.bw_inject))
+        nc = int(rng.choice(NC_SET)) if a.nc_diverse else 200
+        buf.append(gen_sample(rng, a.fan_frac, a.bimodal_frac, a.bw_inject, nc=nc))
         if len(buf) == a.shard or i == a.n - 1:
             path = f"{a.out}_s{si:03d}.npz"
             np.savez_compressed(

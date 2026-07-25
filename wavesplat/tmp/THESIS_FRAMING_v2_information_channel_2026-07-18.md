@@ -1,5 +1,10 @@
 # 논문 프레이밍 v2 — 정보-채널 회계 + CRB 판별 (2026-07-18, E-42~E-52 통합)
 
+> ⚠ **2026-07-22 — 이 문서 부분 STALE. 현 권위 = `tmp/PAPER_SKELETON_operability_envelope_2026-07-18.md`(정정배너)
+> + `tmp/SESSION_MASTER_2026-07-22.md`.** 갱신: §9/10 "다채널 재료완비"는 조건②가 이미 CLOSED(F-3, E-55/56)로
+> 대체 — "채널 3→2, 개구는 §4 CRB 엔진"; 헤드라인은 "정보-채널 회계"보다 **"CRB-앵커 운용성 envelope"**(NAOE 재배치,
+> E-57); C8이 "estimator-독립"을 한정형 봉인(단 HOS 재검 관문); ①under-det/better-net 아크 철회(inverse crime).
+
 > E-48 killer-① (스코프 정직화) + 재프레임(④⑤)의 실체. regime 아크(E-42~E-52)의 검증된 발견을 하나의
 > 정직한 thesis 프레임으로 통합한다. **모든 인용값은 이 세션서 3중(또는 독립) 검증됨.** 이 문서가 다음
 > 논문 재작성의 골격.

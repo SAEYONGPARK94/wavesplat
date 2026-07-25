@@ -277,10 +277,10 @@ class SequentialUpdater:
             x = np.concatenate(all_x)
             y = np.concatenate(all_y)
             r = np.concatenate(all_res)
-            if self.init_method in ('v2', 'v2_konly'):
+            if self.init_method in ('v2', 'v2_konly', 'learned'):
                 return x, y, r, np.concatenate(all_t)
             return x, y, r
-        if self.init_method in ('v2', 'v2_konly'):
+        if self.init_method in ('v2', 'v2_konly', 'learned'):
             return np.array([]), np.array([]), np.array([]), np.array([])
         return np.array([]), np.array([]), np.array([])
 
@@ -298,6 +298,12 @@ class SequentialUpdater:
         Returns:
             dict with 'loss_history', 'n_iters', 'elapsed_s'
         """
+        # WavePrior Stage-1: learned set-proposal supplies the component set, then the
+        # SAME joint fit / adaptive-N / tracker run on top. Additive; the shipped
+        # default (v2_konly) never enters this branch.
+        if self.init_method == 'learned':
+            return self._initialize_learned(frames, x_range, y_range, verbose)
+
         t0 = time.time()
         loss_history = []
 
@@ -392,6 +398,66 @@ class SequentialUpdater:
         return {
             'loss_history': loss_history,
             'n_iters': total_iters,
+            'elapsed_s': elapsed,
+            'final_n': self.model.n_gaussians,
+        }
+
+    def _initialize_learned(self, frames: List[FrameData],
+                            x_range=(10.0, 250.0), y_range=(-100.0, 100.0),
+                            verbose: bool = False) -> Dict:
+        """Phase 1 for init_method='learned' (WavePrior Stage-1).
+
+        The learned set-proposal supplies the FULL component set at once (kx, ky and,
+        unless learned_konly, LS-fit w/phi), so the coarse-to-fine N-staging is
+        bypassed -- there is nothing to grow into. Everything after the install is the
+        shipped pipeline: the same joint-fit optimizer / loss, the same adaptive
+        prune+grow, the same tracking optimizer. Only the kx/ky *source* changes.
+        """
+        from wavesplat.optimizer.learned_init import learned_init_params
+
+        t0 = time.time()
+        init_kx, init_ky, init_w, init_phi, n = learned_init_params(
+            frames, self.depth, self.config, seed=self.seed)
+
+        self.model = self._build_model(n)
+        with torch.no_grad():
+            self.model.kx.copy_(init_kx.to(self.device))
+            self.model.ky.copy_(init_ky.to(self.device))
+            self.model.w.copy_(init_w.to(self.device))
+            self.model.phi.copy_(init_phi.to(self.device))
+        self._build_optimizer()
+
+        # Joint fit at full N (analog of the shipped final-stage polish budget).
+        max_iters = int(self.config.get('learned_init_iters', 500))
+        loss_history = []
+        for iteration in range(max_iters):
+            self.optimizer.zero_grad()
+            loss = self._compute_loss(frames)
+            loss.backward()
+            self.optimizer.step()
+            self.model.clamp_steepness(self.max_steepness)
+            loss_history.append(loss.item())
+            if verbose and iteration % 100 == 0:
+                print(f"  [Init/learned] iter={iteration}, N={self.model.n_gaussians}, "
+                      f"loss={loss.item():.6f}")
+
+        if frames:
+            self._last_t = frames[-1].t
+
+        if self.adaptive_n:
+            self._adaptive_prune_grow(frames, x_range, y_range, verbose)
+
+        self._build_tracking_optimizer()
+
+        elapsed = time.time() - t0
+        if verbose:
+            print(f"  [Init/learned complete] {max_iters} iters, "
+                  f"N={self.model.n_gaussians}, "
+                  f"loss={loss_history[-1] if loss_history else float('nan'):.6f}, "
+                  f"{elapsed:.1f}s")
+        return {
+            'loss_history': loss_history,
+            'n_iters': max_iters,
             'elapsed_s': elapsed,
             'final_n': self.model.n_gaussians,
         }
@@ -529,7 +595,7 @@ class SequentialUpdater:
 
         # Compute residual energy
         result = self._compute_residuals(self.model, frames)
-        if self.init_method in ('v2', 'v2_konly') and len(result) == 4:
+        if self.init_method in ('v2', 'v2_konly', 'learned') and len(result) == 4:
             all_x, all_y, all_res, all_t = result
         else:
             all_x, all_y, all_res = result[:3]
@@ -568,7 +634,7 @@ class SequentialUpdater:
             return
 
         # Use beamforming on residuals to find new peaks
-        if self.init_method in ('v2', 'v2_konly') and all_t is not None:
+        if self.init_method in ('v2', 'v2_konly', 'learned') and all_t is not None:
             from wavesplat.optimizer.initializer import (
                 _beamform_coarse, _beamform_refine, _linear_projection,
             )

@@ -345,8 +345,10 @@ def main():
     parser.add_argument('--tracking_lr', type=float, default=None,
                         help='Learning rate for tracking phase')
     parser.add_argument('--init_method', type=str, default=None,
-                        choices=['v1', 'v2', 'v2_konly', 'relax', 'relax_konly'],
-                        help='Init method: v1/v2/v2_konly/relax/relax_konly')
+                        choices=['v1', 'v2', 'v2_konly', 'relax', 'relax_konly',
+                                 'learned'],
+                        help='Init method: v1/v2/v2_konly/relax/relax_konly/learned '
+                             '(learned = cond-diffusion set-proposal, WavePrior Stage-1)')
     parser.add_argument('--seed', type=int, default=None,
                         help='Random seed for reproducibility (default: 42)')
     parser.add_argument('--n_seeds', type=int, default=None,

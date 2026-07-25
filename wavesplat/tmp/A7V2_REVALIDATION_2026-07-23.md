@@ -88,6 +88,35 @@ not capture. Either outcome is publishable-grade clarity; the present state is n
 Do not revive A-7 in any write-up before this runs — with the pre-registered read-out above,
 fixed prior to seeing the numbers.
 
+#### RESULT (2026-07-25) — **A2 ≈ A1 : refine-select is dead weight, the splice is the mechanism**
+
+Ran, force-firing (detector orthogonal, fires 100 % on BF2), same data / 8000-obs cap. Full
+report `tmp/A7_DISCRIM_2026-07-25.md`; logs `tmp/a7_discrim_{A1,A2,A3}.log`; JSON
+`results/direction3/a7v2_discrim_{A1,A2,A3}.json`. Script gained default-preserving flags
+`--discrim --select_mode {refine,argmax} --splice {on,off}` (defaults reproduce frozen v2).
+
+| seed | hand | A1 refine+splice | A2 argmax+splice | A3 refine, splice-off |
+|---|---|---|---|---|
+| 0 | +0.25/+0.57 | **+1.000/+0.947** | **+0.999/+0.947** | +0.246/+0.572 |
+| 1 | +0.54/+0.68 | **+1.000/+0.964** | **+0.998/+0.964** | +0.537/+0.682 |
+| 2 | +0.00/+0.05 | **+1.000/+0.956** | **+0.996/+0.956** | +0.001/+0.046 |
+| 3 | −0.00/−0.04 | **+1.000/+0.905** | **+0.995/+0.905** | −0.003/−0.037 |
+| 4 | +0.90/+0.91 | **+1.000/+0.951** | **+0.999/+0.951** | +0.898/+0.906 |
+| mean (recover) | 0.336 (2/5) | **1.000 (5/5)** | **0.997 (5/5)** | 0.336 (2/5) |
+
+- **A1 reproduces the frozen G-A7v2-1 hybrid numbers exactly** (control PASS).
+- **A2 ≈ A1**: max |Δfield0| = 0.005, rho identical to 3 decimals, 5/5 recover. **Not** A3.
+- A3 (splice off) = the hand path to 3 decimals — refine-select's winner-k is never used.
+
+**Verdict (strictly per the frozen read-out): A2 ≈ A1.** The working ingredient is the
+**dk = kp/40 fine-atom splice**, not refine-select. The continuous-k refine/holdout-select
+stage costs M = 8 Nelder-Mead fits per frame for a ≤0.005 field-corr change and should be
+dropped; the method is a **fine-atom bank refinement around the beamform argmax**, and must be
+renamed/re-described before any revival. Mechanism narrative corrected (MEASURED vs ARGUED) in
+`tmp/A7_DISCRIM_2026-07-25.md`. This resolves the "asserted mechanism" flag: the July-23 note
+inferred the splice was the working part from `dk/k = 0.000`; that inference is now **measured**.
+No deviation from the pre-registered spec.
+
 ## Scope — deliberately stated narrowly
 
 - **One synthetic corner case.** The detector is designed to fire only on quasi-monochromatic

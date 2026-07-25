@@ -224,8 +224,20 @@ def augment_finebank_v2(Pt, zt, depth, kp, k0x, k0y):
     return kxb2, kyb2, om2, pw2, dict(n_fine=int(keep.sum()), k0abs=k0)
 
 
-def a7v2_predict(P, z, depth, Q, sigma0, kp, theta, stat='ev1', force=False):
-    """v2 arm: refine-select -> detect -> (fire) fine-bank solve / (else) hand."""
+def a7v2_predict(P, z, depth, Q, sigma0, kp, theta, stat='ev1', force=False,
+                 select_mode='refine', splice='on'):
+    """v2 arm: refine-select -> detect -> (fire) fine-bank solve / (else) hand.
+
+    Discriminating-test knobs (defaults reproduce the frozen v2 behaviour
+    exactly; see tmp/A7V2_REVALIDATION_2026-07-23.md "The discriminating test"):
+      select_mode : 'refine' -> splice around the refined-select winner k
+                                 (ingredient (a) ON, production default);
+                    'argmax' -> splice around the plain beamform argmax k
+                                 (ingredient (a) OFF; uses argmax_k already
+                                 returned by refine_select for this diagnostic).
+      splice      : 'on'  -> add the dk=kp/40 fine-atom bank (ingredient (b) ON);
+                    'off' -> no fine atoms; coarse-bank solve == hand path.
+    """
     sel = refine_select(P, z, depth, kp)
     score = sel['score_ev1'] if stat == 'ev1' else sel['score_ratio']
     fired = force or (score >= theta)
@@ -235,7 +247,16 @@ def a7v2_predict(P, z, depth, Q, sigma0, kp, theta, stat='ev1', force=False):
     if not fired:
         pred = mmse_gpu(Pt, zt, depth, Qt, sigma0, kp_hint=kp).cpu().numpy()
         return pred, sel, False, dict(n_fine=0)
-    k0x, k0y = sel['winner']
+    if splice == 'off':
+        # ingredient (b) removed: no fine atoms spliced -> coarse-bank solve,
+        # which equals the hand/production path (delta=0 vs hand). refine-select
+        # may still have run, but its winner-k is never used by the solver.
+        pred = mmse_gpu(Pt, zt, depth, Qt, sigma0, kp_hint=kp).cpu().numpy()
+        return pred, sel, True, dict(n_fine=0, spliced=False)
+    if select_mode == 'argmax':
+        k0x, k0y = sel['argmax_k']   # ingredient (a) OFF: plain beamform argmax
+    else:
+        k0x, k0y = sel['winner']     # ingredient (a) ON: refined-select winner
     kxb2, kyb2, om2, pw2, info = augment_finebank_v2(Pt, zt, depth, kp, k0x, k0y)
     pred = solve_mmse_bank(Pt, zt, depth, Qt, sigma0, kxb2, kyb2, om2,
                            pw2).cpu().numpy()
@@ -419,14 +440,84 @@ def verify_solve(ep):
     return float(np.max(np.abs(a - b)))
 
 
+# ============================================ discriminating test (A1/A2/A3 arms)
+def discrim_run(select_mode, splice):
+    """Pre-registered A-7 v2 discriminating test (tmp/A7V2_REVALIDATION_2026-07-23.md).
+    Runs BF2 1comp x5 for ONE arm (select_mode, splice), force-firing so the
+    result isolates the estimator ingredient from the detector (which fires 100%
+    on BF2). Reports per-seed hand vs arm field-corr(lead0) and encounter rho.
+    A1 = (refine, on) must reproduce the frozen G-A7v2-1 hybrid numbers.
+    """
+    arm = {('refine', 'on'): 'A1', ('argmax', 'on'): 'A2',
+           ('refine', 'off'): 'A3'}.get((select_mode, splice), 'custom')
+    print(f"=== A-7 v2 discriminating test :: arm {arm} "
+          f"(select_mode={select_mode}, splice={splice}) ===", flush=True)
+    print(f"data_dir {DATA_DIR}  device {DEV}", flush=True)
+    rows = []
+    for seed in range(5):
+        path = DATA_DIR + '/episode_BF2_1comp_seed%d_fixedT.h5' % seed
+        rng = np.random.default_rng(11)
+        ep = load_synth(path, rng)
+        tk = ep['kp'] * ep['khat']                          # true k vector
+        Qf, Qt, npix, truth_tr = build_queries(ep)
+        Q = np.vstack([Qf, Qt]); nf = len(Qf)
+        sig0 = 0.05 * ep['Hs']
+        ph = hand_predict(ep['P'], ep['z'], ep['depth'], Q, sig0, ep['kp'])
+        # force fire: detector is orthogonal to this test and fires 100% on BF2
+        pa, sel, fired, info = a7v2_predict(
+            ep['P'], ep['z'], ep['depth'], Q, sig0, ep['kp'], theta=0.0,
+            stat='ev1', force=True, select_mode=select_mode, splice=splice)
+        ch, rh, _ = field_track_corr(ph, ep, npix, truth_tr, nf)
+        ca, ra, _ = field_track_corr(pa, ep, npix, truth_tr, nf)
+        wx, wy = sel['winner']
+        ax, ay = sel['argmax_k']
+        k0x, k0y = (ax, ay) if select_mode == 'argmax' else (wx, wy)
+        center_rel = float(math.hypot(k0x - tk[0], k0y - tk[1]) / ep['kp'])
+        rows.append(dict(
+            seed=seed, arm=arm, select_mode=select_mode, splice=splice,
+            kp=float(ep['kp']),
+            argmax_kabs=sel['argmax_kabs'], winner_kabs=sel['winner_kabs'],
+            center_rel_err=center_rel, n_fine=info.get('n_fine'),
+            hand_field0=ch[0], hand_rho=rh, arm_field0=ca[0], arm_rho=ra,
+            hand_field=ch, arm_field=ca))
+        print(f"[{arm} BF2 s{seed}] argmax|k| {sel['argmax_kabs']:.3f}  "
+              f"win|k| {sel['winner_kabs']:.3f}  (true {ep['kp']:.3f})  "
+              f"center|k-true|/kp {center_rel:.4f}  n_fine {info.get('n_fine')}  "
+              f"hand {ch[0]:+.2f}/{rh:+.2f}  {arm} {ca[0]:+.2f}/{ra:+.2f}",
+              flush=True)
+    a0 = np.array([r['arm_field0'] for r in rows])
+    ar = np.array([r['arm_rho'] for r in rows])
+    n_pass = int(((a0 >= 0.5) & (ar >= 0.5)).sum())
+    print(f"--- arm {arm}: {n_pass}/5 recover (field0>=0.5 AND rho>=0.5); "
+          f"mean field0 {a0.mean():+.3f}, mean rho {ar.mean():+.3f}", flush=True)
+    out = 'results/direction3/a7v2_discrim_%s.json' % arm
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    json.dump(dict(arm=arm, select_mode=select_mode, splice=splice,
+                   data_dir=DATA_DIR, n_pass=n_pass, rows=rows),
+              open(out, 'w'), indent=1)
+    print(f"wrote {out}", flush=True)
+    return rows
+
+
 # ============================================================================ main
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--smoke', action='store_true')
     ap.add_argument('--data_dir', default='data')
+    ap.add_argument('--discrim', action='store_true',
+                    help='run only the A-7 v2 discriminating test (BF2 x5, one arm)')
+    ap.add_argument('--select_mode', choices=['refine', 'argmax'],
+                    default='refine',
+                    help='discrim: k-centre source (refine=winner default, '
+                         'argmax=plain beamform argmax)')
+    ap.add_argument('--splice', choices=['on', 'off'], default='on',
+                    help='discrim: fine-atom bank splice on/off')
     a = ap.parse_args()
     global DATA_DIR
     DATA_DIR = a.data_dir
+    if a.discrim:
+        discrim_run(a.select_mode, a.splice)
+        return 0
     t0 = time.time()
     print(f"device {DEV}", flush=True)
 

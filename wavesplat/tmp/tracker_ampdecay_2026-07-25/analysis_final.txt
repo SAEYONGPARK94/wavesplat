@@ -1,0 +1,40 @@
+loaded 60 paired runs
+
+episode                OFF med(sd)     ON med(sd)      delta     dir  init
+BF2_1comp_uniform      0.1665(0.023)   0.0285(0.006)   -0.1380  IMPR  0.0359
+BF3_1comp_uniform      0.1633(0.058)   0.0087(0.002)   -0.1546  IMPR  0.0090
+BF3_2comp_uniform      0.1319(0.087)   0.0129(0.002)   -0.1190  IMPR  0.0099
+BF3_5comp_uniform      0.2054(0.036)   0.0242(0.009)   -0.1812  IMPR  0.0140
+BF4_1comp_uniform      0.1032(0.060)   0.0044(0.004)   -0.0988  IMPR  0.0041
+BF4_5comp_uniform      0.2031(0.008)   0.0187(0.006)   -0.1843  IMPR  0.0070
+BF4_15comp_uniform     0.3004(0.007)   0.2795(0.005)   -0.0209  IMPR  0.2995
+BF4_30comp_uniform     0.2974(0.028)   0.2817(0.029)   -0.0157  IMPR  0.2928
+BF5_15comp_uniform     0.2770(0.020)   0.2336(0.014)   -0.0434  IMPR  0.2223
+BF5_30comp_uniform     0.2910(0.014)   0.2536(0.029)   -0.0373  IMPR  0.2310
+BF3_2comp_slope        0.0765(0.095)   0.0118(0.003)   -0.0647  IMPR  0.0090
+BF3_5comp_slope        0.1993(0.033)   0.0164(0.002)   -0.1830  IMPR  0.0145
+
+=== 12-episode aggregate (12/12) ===
+mean delta = -0.1034   (improve 12/12)
+OFF mean-of-medians 0.2013 | ON 0.0978
+OFF median-of-medians 0.2012 | ON 0.0215
+
+--- R1 (6-regime >=4/6) ---
+   BF3_2comp_uniform    -0.1190 IMPR
+   BF3_5comp_uniform    -0.1812 IMPR
+   BF4_5comp_uniform    -0.1843 IMPR
+   BF4_15comp_uniform   -0.0209 IMPR
+   BF4_30comp_uniform   -0.0157 IMPR
+   BF5_15comp_uniform   -0.0434 IMPR
+   improve 6/6  -> R1 PASS
+
+--- R2 (mean delta < -0.031) ---
+   mean delta -0.1034  -> R2 PASS
+
+--- R3 (calm gap shrink >50%) ---
+   BF3_1comp_uniform init 0.0090 | OFF gap +0.1543 ON gap -0.0003 | shrink 100%  PASS
+   BF4_1comp_uniform init 0.0041 | OFF gap +0.0990 ON gap +0.0002 | shrink 100%  PASS
+
+===== VERDICT =====
+R1(>=4/6)=True  R2(mean<-0.031)=True  R3(calm>50%)=True
+ADOPT = True

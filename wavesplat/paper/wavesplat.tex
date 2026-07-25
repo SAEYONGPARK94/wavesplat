@@ -54,9 +54,10 @@ while running approximately \textbf{10$\times$} faster
 (11.0~vs.~132.6~ms/frame on a single CPU thread, Intel i7-12700H).
 A pre-specified five-metric evaluation panel further shows that
 WaveSplat is the only method among the primary baselines (ETKF, GPR)
-with a positive point-estimate Skill Score against a zero predictor
-(the 95\% bootstrap CI includes zero on the aggregate dataset but
-excludes it for $\leq$5-component seas), exposing
+with a positive Skill Score against a zero predictor
+(95\% bootstrap CI $[{+0.06},\,{+0.28}]$ on the aggregate regenerated
+dataset, tightening to $[{+0.50},\,{+0.65}]$ for $\leq$5-component seas),
+exposing
 3-frame spatial-only sliding-kernel GPR as a near-zero predictor and the tuned ETKF as a
 variance-correct but shape-incoherent estimator.
 A supplementary comparison with stronger baselines---LETKF with
@@ -68,8 +69,8 @@ on a 12-episode subset including all five methods WaveSplat leads at
 0.182.
 A 100-paired-run multi-seed validation confirms the improvement is
 statistically significant against both ETKF
-($p = 1.1\!\times\!10^{-15}$) and sliding GPR
-($p = 4.7\!\times\!10^{-4}$, Wilcoxon signed-rank test).
+($p = 2.5\!\times\!10^{-16}$) and sliding GPR
+($p = 1.6\!\times\!10^{-7}$, Wilcoxon signed-rank test).
 The method is robust to both geometry-weighted and unweighted LiDAR
 return-sampling models.
 With adaptive model order, the method matches spectral complexity to
@@ -99,9 +100,9 @@ dispersion relation \sep data assimilation \sep real-time estimation
   thread).
 \item Only method with a positive Skill Score in a pre-specified
   five-metric evaluation against a zero-predictor reference.
-\item Statistically significant: Wilcoxon $p{=}1.1\!\times\!10^{-15}$
-  vs.\ ETKF (paired Cohen's $d{=}1.16$) and $p{=}4.7\!\times\!10^{-4}$
-  vs.\ sliding GPR ($d{=}0.42$) across 100 paired runs.
+\item Statistically significant: Wilcoxon $p{=}2.5\!\times\!10^{-16}$
+  vs.\ ETKF (paired Cohen's $d{=}1.30$) and $p{=}1.6\!\times\!10^{-7}$
+  vs.\ sliding GPR ($d{=}0.65$) across 100 paired runs.
 \item Robust to geometry-weighted and unweighted LiDAR raydrop models
   and to 20--100\% observation-density subsampling.
 \end{highlights}
@@ -1000,14 +1001,15 @@ comparison---is evaluated in Section~\ref{sec:strongbaselines}.
 \begin{table*}[t]
 \centering
 \caption{Pre-specified five-metric evaluation on the full 100-episode
-Nyquist-adequate dataset (nRMSE, VR, $\rho$, SS re-measured; median over
+Nyquist-adequate dataset (all columns re-measured; median over
 5 estimator seeds for WaveSplat).  Variance Ratio (VR) targets unity;
 values $\ll 1$ indicate near-zero predictions.  Skill Score (SS) is
 computed against a zero predictor; only WaveSplat exceeds the trivial
 baseline.  $\text{RMSE}_{\text{unobs}}$ (grid points $\geq$10~m from any
-observation, isolating the physics prior) is carried from the original
-evaluation; its relative ordering is a structural property and was not
-re-derived on the regenerated data.
+observation, isolating the physics prior) is re-measured on the
+regenerated data with the same observation-mask definition; WaveSplat
+retains the lowest value, confirming that its physics prior fills the
+unobserved interior better than either baseline.
 Lower is better for nRMSE and $\text{RMSE}_{\text{unobs}}$; higher is better
 for $\rho$ and SS; VR targets~1.}
 \label{tab:fivemetric}
@@ -1018,9 +1020,9 @@ $\rho$ $\uparrow$ & SS $\uparrow$ & $\text{RMSE}_{\text{unobs}}$ [m]
 $\downarrow$ \\
 \midrule
 \textbf{WaveSplat} & \textbf{0.199} & \textbf{0.833} & \textbf{0.551} &
-\textbf{+0.171} & \textbf{0.262} \\
-ETKF (tuned)       & 0.332 & 1.048 & 0.106 & --0.844 & 0.348 \\
-GPR-1              & 0.263 & 0.062 & 0.194 & --0.164 & 0.294 \\
+\textbf{+0.171} & \textbf{0.250} \\
+ETKF (tuned)       & 0.332 & 1.048 & 0.106 & --0.844 & 0.362 \\
+GPR-1              & 0.263 & 0.062 & 0.194 & --0.164 & 0.297 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -1103,8 +1105,8 @@ initializer's configured peak-separation radius
 (Sec.~\ref{sec:limitations}), not from the sensor's spatial Nyquist
 limit, and not from a post-hoc search:
 for $\leq$5-component episodes (60\% of the dataset), SS rises to
-$+0.37$ with CI~$[{+0.25},\,{+0.48}]$ firmly excluding zero
-and VR~$=0.53$.
+$+0.58$ with CI~$[{+0.50},\,{+0.65}]$ firmly excluding zero
+and VR~$=0.78$.
 The regime where WaveSplat underperforms---spectrally crowded seas---is
 precisely where grid-based methods like LETKF have a structural
 advantage (see Section~\ref{sec:strongbaselines}).
@@ -1229,30 +1231,30 @@ To confirm the full-dataset result is not seed-dependent, we repeat
 the comparison across 10 (sea state, complexity) configurations with
 5 random seeds per configuration and both uniform and slope ray-drop
 models, for a total of 100 paired runs.
-WaveSplat achieves $0.219 \pm 0.079$ vs.\ the tuned ETKF baseline
-$0.321 \pm 0.041$ and a 3-frame sliding GPR $0.253 \pm 0.020$
-(mean $\pm$ std across all runs).%
-\footnote{These paired-run point estimates (WaveSplat 0.219, ETKF 0.321)
-are from the original coarse-mesh evaluation (see the provenance note at
-the start of this subsection); the regenerated-data figures are
-WaveSplat 0.199 and ETKF 0.332 (Table~\ref{tab:fivemetric}).  The paired
+WaveSplat achieves $0.199 \pm 0.085$ vs.\ the tuned ETKF baseline
+$0.332 \pm 0.038$ and a 3-frame sliding GPR $0.255 \pm 0.020$
+(mean $\pm$ std across all runs on the Nyquist-adequate regenerated
+dataset; the WaveSplat arm is the per-episode median over 5 estimator
+seeds).%
+\footnote{Recomputed on the regenerated dataset; the original coarse-mesh
+point estimates were WaveSplat 0.219 and ETKF 0.321.  The paired
 format is required here because the Wilcoxon signed-rank test operates on
 matched pairs.}
 Paired Wilcoxon signed-rank tests~\citep{wilcoxon1945}
 confirm both improvements:
-WaveSplat vs.\ ETKF ($W\!=\!194$, $p\!=\!1.1\!\times\!10^{-15}$,
-paired Cohen's $d\!=\!\bar{\Delta}/s_{\Delta}\!=\!1.16$~\citep{cohen1988},
+WaveSplat vs.\ ETKF ($W\!=\!141$, $p\!=\!2.5\!\times\!10^{-16}$,
+paired Cohen's $d\!=\!\bar{\Delta}/s_{\Delta}\!=\!1.30$~\citep{cohen1988},
 95\% CI on mean difference
-$[0.085, 0.119]$, bootstrap percentile, 10\,000 resamples)
-and WaveSplat vs.\ sliding GPR ($W\!=\!1508$,
-$p\!=\!4.7\!\times\!10^{-4}$, paired Cohen's $d\!=\!0.42$,
-95\% CI $[0.018, 0.050]$).
+$[0.114, 0.154]$, bootstrap percentile, 10\,000 resamples)
+and WaveSplat vs.\ sliding GPR ($W\!=\!1002$,
+$p\!=\!1.6\!\times\!10^{-7}$, paired Cohen's $d\!=\!0.65$,
+95\% CI $[0.040, 0.073]$).
 After Holm--Bonferroni correction for the two primary comparisons,
-both remain significant ($p_1{=}2.2\!\times\!10^{-15}$,
-$p_2{=}4.7\!\times\!10^{-4}$).
+both remain significant ($p_1{=}4.9\!\times\!10^{-16}$,
+$p_2{=}1.6\!\times\!10^{-7}$).
 Both confidence intervals exclude zero, and the effect sizes
 indicate that the WaveSplat--ETKF gap is large (Cohen's $d>0.8$)
-whereas the WaveSplat--sliding-GPR gap is small-to-medium but still
+and the WaveSplat--sliding-GPR gap is medium and
 robust across the 100 paired runs (Fig.~\ref{fig:multiseed}).
 We note that runs sharing the same (sea state, complexity)
 configuration but differing only in random seed are not fully
@@ -1260,10 +1262,12 @@ independent---they share the underlying JONSWAP spectral shape,
 though individual component phases, directions, and amplitudes are
 drawn independently.  A conservative check using 20
 configuration-level means (averaging over seeds) retains Wilcoxon
-significance ($p < 0.001$), confirming that the result is not
+significance for the primary WaveSplat--ETKF comparison
+($p < 10^{-5}$) and at $p=0.011$ for WaveSplat--sliding-GPR,
+confirming that the result is not
 inflated by within-configuration correlation.
 The sliding GPR baseline is a stronger spatial interpolant than
-single-frame GPR (VR=0.11 vs.\ 0.06) but still operates as a
+single-frame GPR (VR=0.10 vs.\ 0.06) but still operates as a
 near-zero predictor relative to WaveSplat, consistent with the
 five-metric panel in Table~\ref{tab:fivemetric}.
 We acknowledge a structural asymmetry: the 3-frame sliding GPR
@@ -1273,7 +1277,7 @@ as a hard constraint and propagates phase through the tracking stage.
 The dispersion-aware GPR in Section~\ref{sec:strongbaselines}---which
 applies physics-based phase correction before regression---provides a
 more equitable temporal comparison; on the 12-episode subset,
-WaveSplat (0.211) still outperforms GPR-disp (0.267) by 21\%
+WaveSplat (0.182) still outperforms GPR-disp (0.268) by 32\%
 (Table~\ref{tab:strong_baseline}).
 
 \begin{figure*}[t]
@@ -1516,7 +1520,9 @@ change from weighted to unweighted (negative = unweighted is better).
 ETKF uses the default configuration ($n_{\text{ens}}{=}50$); its nRMSE
 values are near the zero-predictor level and are variance-dominated
 (Section~\ref{sec:strongbaselines}), so the relative
-sensitivity ($\Delta$\%) is the quantity of interest, not the level.}
+sensitivity ($\Delta$\%) is the quantity of interest, not the level---and
+that sensitivity is itself configuration-dependent, shrinking under an
+honestly re-tuned baseline (Section~\ref{sec:raydrop-results}).}
 \label{tab:raydrop}
 \begin{tabular}{lcccccc}
 \toprule
@@ -1550,14 +1556,25 @@ outperforms ETKF (orange shades) under both models on all episodes.}
 \end{figure*}
 
 WaveSplat wins on all 10 episodes under both raydrop models.
-Unweighted sampling improves both methods on average---ETKF more so
-($-$15.9\% vs.\ $-$7.4\%).  We report this asymmetry as an observation
-rather than an explained effect.  A plausible reading is that removing
-the $1/d^2$ weighting spreads returns more evenly over the observation
-footprint, which benefits a grid-based assimilator that interpolates
-between cells more than it benefits a global parametric fit already
-integrating coherently over the full aperture; we have not isolated
-this mechanism, and it should not be cited as established.
+Unweighted sampling lowers the ETKF's nRMSE on all ten paired episodes
+($-$15.9\% at the default configuration, paired $t(9){=}-7.6$), against
+$-$7.4\% for WaveSplat, which would read as the ETKF benefiting more.
+That reading does not survive an honest re-tuning of the baseline and is
+\emph{not} an established effect: the ETKF's raydrop sensitivity is a
+variance-amplification artifact, not a reconstruction gain.  Re-measuring
+the same ten pairs under the tuned ETKF of
+Section~\ref{sec:strongbaselines} ($n_{\text{ens}}{=}100$) already
+shrinks it to $-$11.7\%, and under an nRMSE-honest hold-out re-tuning
+(analysis grid $160\times120$, additive inflation off, larger observation
+error) the ETKF collapses to a near-zero predictor in \emph{both} arms
+($0.263$ vs.\ $0.260$, $\rho\approx0.015$) and the sensitivity falls to
+$-$0.9\%---now \emph{below} WaveSplat's $-$7.4\%.  For the ETKF the
+direction (unweighted $\geq$ weighted) is consistent across all three
+configurations (10/10 episodes each), but its magnitude tracks how much variance the
+grid filter injects into the now-unattenuated observations, not any gain
+in reconstruction skill ($\rho$ never exceeds $0.11$).  We therefore
+report the sensitivity as an artifact of the un-tuned baseline rather
+than as evidence that the observation model favors one method.
 For WaveSplat the per-episode effect is regime-dependent rather than
 uniform (unweighted better on 6 of 10 episodes): the sparse
 low-complexity episodes swing either way within their seed spread,
@@ -1702,9 +1719,12 @@ This metric is sensitive to wavenumber-bin alignment and can yield
 strongly negative values when sparse spectral peaks are misaligned by
 even a single bin, so we report it as a diagnostic rather than as
 a primary panel item.  Across the full 100-episode dataset, WaveSplat
-attains $-0.25$ versus $+0.07$ for ETKF, indicating that direction
-information \emph{averaged across the dataset} is captured less
-accurately than amplitude or shape.
+attains $-0.03$ versus $+0.06$ for ETKF; on the Nyquist-adequate
+regenerated data this aggregate is near zero and is dominated by the most
+crowded (30-component) episodes, where single-bin peak misalignment drives
+the statistic strongly negative, so direction information \emph{averaged
+across the dataset} is captured slightly less accurately than amplitude or
+shape.
 A physical explanation is that forward-looking shipboard LiDAR
 illuminates a narrow angular sector ahead of the vessel: the
 observation swath spans $\sim$250~m in range but only
@@ -1779,10 +1799,14 @@ involved.
 \subsection{Effect of observation model}
 
 WaveSplat wins 10/10 under \emph{both} raydrop models.
-Removing the geometric weighting improves both methods---WaveSplat by
-9.1\% and ETKF by 16.2\%.  The larger ETKF gain is reported as an
-observation; see Section~\ref{sec:raydrop-results} for why we do not
-attach a mechanism to it.
+Removing the geometric weighting lowers WaveSplat's average nRMSE by
+7.4\% (unweighted better on 6 of 10 episodes---regime-dependent, not a
+uniform gain) and lowers the default ETKF's by 15.9\%.  The larger ETKF
+figure is a variance-amplification artifact of the un-tuned grid
+baseline rather than a reconstruction gain: it shrinks to 11.7\% under
+the tuned ETKF and to 0.9\% under an nRMSE-honest re-tuning, so it is
+not attributed to the observation model
+(Section~\ref{sec:raydrop-results}).
 For adaptive~$N$, unweighted raydrop triggers the safety
 rollback on low-complexity scenes (e.g., BF3-2comp: $N$=2$\to$15)
 but enables more aggressive pruning on complex seas (BF4-15comp:
@@ -1835,28 +1859,25 @@ introducing additional error and latency.
 \subsection{Comparison with stronger baselines}
 \label{sec:strongbaselines}
 
-\emph{Provenance note.}  The primary evaluation
-(Sections~\ref{sec:fulleval}--\ref{sec:raydrop-results}: the five-metric
-panel, the by-sea-state breakdown, the main comparison, the ablation,
-and the raydrop study) has been recomputed on the Nyquist-adequate
-regenerated dataset (Section~\ref{sec:regen}) with per-episode medians
-over 5 estimator seeds.  The stronger-baseline comparison in this
-subsection and the spectral-accuracy tables that follow retain the
-original coarse-mesh, single-seed evaluation; their full refresh is
-deferred.  Two facts bound what this affects.  First, the localized
-LETKF baseline is \emph{mesh-invariant}: re-running it on the paired
-regenerated episodes moves its nRMSE by $-0.0006$ (paired $t=-1.56$
-over 12 episodes), because its spectral forecast is a per-mode rotation
-that does not pass through the raycast mesh.  So the headline that
-WaveSplat retains the best average nRMSE against LETKF is unaffected by
-regeneration---indeed it widens, since WaveSplat improves to $0.199$
-while LETKF holds at $0.228$.  Second, the tuned ETKF is likewise
-near-mesh-invariant in nRMSE ($0.319\!\to\!0.332$); its variance ratio
-rises toward unity on the adequate reference field while its correlation
-with the truth does not, consistent with the five-metric panel above.
-The single-seed numbers reported below should therefore be read as
-indicative of the original evaluation, with the regenerated-data
-headline given by the primary tables.
+\emph{Provenance note.}  All quantitative tables in this subsection---the
+stronger-baseline comparison (Table~\ref{tab:strong_baseline}), the
+paired-run Wilcoxon test (Section~\ref{subsec:stats}), and the
+spectral-accuracy table (Table~\ref{tab:spectral_accuracy})---have been
+recomputed on the Nyquist-adequate regenerated dataset
+(Section~\ref{sec:regen}); the WaveSplat arm is the per-episode median
+over 5 estimator seeds and the grid and GPR baselines follow their
+original single-filter-seed protocol.  Regeneration \emph{widens} the
+headline: the localized LETKF baseline is \emph{mesh-invariant}
+(its nRMSE moves by $-0.0006$, paired $t=-1.56$ over 12 episodes,
+because its spectral forecast is a per-mode rotation that does not pass
+through the raycast mesh), so WaveSplat's improvement to $0.199$ against
+LETKF's steady $0.228$ is a genuine gain; the tuned ETKF is likewise
+near-mesh-invariant in nRMSE ($0.319\!\to\!0.332$), its variance ratio
+rising toward unity on the adequate reference field while its correlation
+with truth does not.  Two supplementary probes below---the
+localization-radius sensitivity sweep and the Beaufort~6--7 scalability
+check---retain the original single-seed evaluation and, being LETKF-based
+and mesh-invariant, are unaffected.
 
 To stress-test WaveSplat's advantage beyond the ETKF and single-frame
 GPR used in the primary evaluation, we implemented two stronger
@@ -1879,10 +1900,14 @@ vs.\ LETKF head-to-head on the complete dataset, alongside the
 \centering
 \caption{WaveSplat vs.\ LETKF on the full 100-episode dataset (top)
 and all five methods on 12 representative episodes (bottom).
+Accuracy metrics (nRMSE, VR, $\rho$, SS, Dir.\ $R^2$, $H_s$ err) are
+re-measured on the Nyquist-adequate regenerated dataset, WaveSplat as
+the median over 5 estimator seeds; per-frame times (ms) are carried from
+the original measurement (timing is independent of the reference mesh).
 LETKF uses Gaspari--Cohn localization ($r_{\text{loc}}=50$~m,
 $N_e=100$).  Bold indicates best per column.
-Bootstrap 95\% CI for SS (100~ep): WaveSplat $[{-0.08},\,{+0.15}]$,
-LETKF $[{+0.12},\,{+0.16}]$.}
+Bootstrap 95\% CI for SS (100~ep): WaveSplat $[{+0.06},\,{+0.28}]$,
+LETKF $[{+0.13},\,{+0.16}]$.}
 \label{tab:strong_baseline}
 \begin{tabular}{lccccccr}
 \toprule
@@ -1891,18 +1916,18 @@ SS $\uparrow$ & Dir.\ $R^2$ $\uparrow$ & $H_s$ err $\downarrow$ &
 ms $\downarrow$ \\
 \midrule
 \multicolumn{8}{l}{\emph{Full 100-episode comparison}} \\
-\textbf{WaveSplat} & \textbf{0.223} & \textbf{0.661} & \textbf{0.446} &
-+0.034 & $-$0.253 & \textbf{0.277} & \textbf{14.5} \\
-LETKF (loc50)      & 0.228 & 0.111 & 0.359 & \textbf{+0.142} &
-\textbf{+0.087} & 0.692 & 118.3 \\
+\textbf{WaveSplat} & \textbf{0.199} & \textbf{0.833} & \textbf{0.551} &
+\textbf{+0.171} & $-$0.025 & \textbf{0.186} & \textbf{14.5} \\
+LETKF (loc50)      & 0.228 & 0.127 & 0.357 & +0.144 &
+\textbf{+0.094} & 0.667 & 118.3 \\
 \midrule
 \multicolumn{8}{l}{\emph{12-episode subset (incl.\ ETKF, GPR)}} \\
-\textbf{WaveSplat} & \textbf{0.211} & \textbf{0.574} & \textbf{0.460} &
-\textbf{+0.162} & \textbf{0.431} & 0.282 & \textbf{13.2} \\
-LETKF (loc50)      & 0.238 & 0.114 & 0.346 & +0.128 & 0.074 & 0.668 & 115.7 \\
-ETKF (tuned)       & 0.358 & 1.214 & 0.097 & $-$1.020 & 0.045 & \textbf{0.242} & 103.9 \\
-GPR-1              & 0.273 & 0.049 & 0.163 & $-$0.159 & 0.013 & 0.798 & 208.8 \\
-GPR-disp (3f)      & 0.267 & 0.077 & 0.215 & $-$0.106 & 0.026 & 0.741 & 473.6 \\
+\textbf{WaveSplat} & \textbf{0.182} & \textbf{0.773} & \textbf{0.580} &
+\textbf{+0.310} & \textbf{+0.458} & \textbf{0.185} & \textbf{13.2} \\
+LETKF (loc50)      & 0.237 & 0.129 & 0.345 & +0.131 & 0.080 & 0.646 & 115.7 \\
+ETKF (tuned)       & 0.377 & 1.431 & 0.091 & $-$1.227 & 0.029 & 0.284 & 103.9 \\
+GPR-1              & 0.274 & 0.046 & 0.170 & $-$0.175 & 0.013 & 0.801 & 208.8 \\
+GPR-disp (3f)      & 0.268 & 0.073 & 0.224 & $-$0.119 & 0.028 & 0.746 & 473.6 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -1910,37 +1935,37 @@ GPR-disp (3f)      & 0.267 & 0.077 & 0.215 & $-$0.106 & 0.026 & 0.741 & 473.6 \\
 Three findings merit attention.
 
 \paragraph{Regime-dependent advantage.}
-On the full 100-episode dataset, WaveSplat wins 51/100 episodes on
-nRMSE and 49/100 on Skill Score---essentially a draw on aggregate.
-However, this masks a strong regime dependence: for $\leq$5 spectral
-components (60~episodes), WaveSplat achieves mean SS~$=+0.37$ vs.\
+On the full 100-episode dataset, WaveSplat wins 58/100 episodes on
+nRMSE and 58/100 on Skill Score---a majority on both.
+This aggregate masks a strong regime dependence: for $\leq$5 spectral
+components (60~episodes), WaveSplat achieves mean SS~$=+0.58$ vs.\
 LETKF's $+0.11$; for $\geq$15 components (40~episodes), the pattern
-reverses (WS~$-0.46$ vs.\ LETKF~$+0.20$).  WaveSplat excels when the
+reverses (WS~$-0.44$ vs.\ LETKF~$+0.20$).  WaveSplat excels when the
 spectral basis can resolve individual components, while LETKF's
 grid-based formulation provides consistent but modest skill regardless
 of spectral complexity.
 
 \paragraph{LETKF variance deficit.}
-LETKF's 100-episode VR of 0.111 is notably lower than the unlocalized
-ETKF's 0.898, despite localization improving nRMSE and SS.
+LETKF's 100-episode VR of 0.127 is notably lower than the unlocalized
+ETKF's 1.048, despite localization improving nRMSE and SS.
 Gaspari--Cohn tapering at $r_{\text{loc}}=50$~m suppresses long-range
 covariance, which reduces spurious spatial correlations but also
 aggressively dampens ensemble spread in regions far from observations.
-The resulting field has accurate spatial structure ($\rho=0.359$,
-SS~$=+0.142$) but under-estimated amplitude---a mirror image of
+The resulting field has accurate spatial structure ($\rho=0.357$,
+SS~$=+0.144$) but under-estimated amplitude---a mirror image of
 ETKF's failure mode (correct amplitude, wrong structure).
 This trade-off is inherent to localization radius selection and not
 a tuning error: increasing $r_{\text{loc}}$ to 200~m raises VR to
 $\sim$0.3 but degrades nRMSE to 0.279 (see localization sweep below).
 
 \paragraph{Directional $R^2$ gap (supplementary diagnostic).}
-The 100-episode supplementary directional $R^2$ ($-0.253$, see
+The 100-episode supplementary directional $R^2$ ($-0.025$, see
 Section~\ref{sec:dirdeficit}) is dominated by 30-component
-episodes (Dir.\ $R^2=-2.13$, 20~episodes), where the beamforming
+episodes (Dir.\ $R^2=-1.66$, 20~episodes), where the beamforming
 initializer's peak-separation radius (Sec.~\ref{sec:limitations}) leaves
 candidate peaks closely spaced, making the spectrum-space $R^2$ statistic
 catastrophically sensitive to single-bin peak misalignment.  For $\leq$5 components,
-Dir.\ $R^2=+0.41$ on average, confirming that the spectral basis
+Dir.\ $R^2=+0.68$ on average, confirming that the spectral basis
 \emph{does} capture directional structure when individual modes
 are resolvable.
 
@@ -1949,14 +1974,17 @@ All Skill Score confidence intervals below are bootstrap 95\% CIs
 (10\,000 resamples, percentile method; bias-corrected accelerated
 (BCa) intervals yield nearly identical bounds, differing by $<$0.01
 on all reported CIs).
-On the full 100-episode dataset, LETKF's SS~CI excludes zero
-($[{+0.12},\,{+0.16}]$), whereas WaveSplat's aggregate CI includes
-zero ($[{-0.08},\,{+0.15}]$).  However, this aggregate masks the
-regime dependence described above: restricting to $\leq$5-component
-episodes (60/100), WaveSplat's SS~CI is $[{+0.25},\,{+0.48}]$, firmly
+On the full 100-episode dataset, both LETKF's SS~CI
+($[{+0.13},\,{+0.16}]$) and WaveSplat's aggregate CI
+($[{+0.06},\,{+0.28}]$) exclude zero: on the Nyquist-adequate
+regenerated dataset WaveSplat's aggregate skill score is marginally but
+significantly positive, whereas on the original coarse-mesh evaluation its
+aggregate CI had included zero ($[{-0.08},\,{+0.15}]$).  The regime
+dependence remains: restricting to $\leq$5-component
+episodes (60/100), WaveSplat's SS~CI is $[{+0.50},\,{+0.65}]$, firmly
 excluding zero and substantially exceeding LETKF's corresponding
-$[{+0.08},\,{+0.13}]$.  For $\geq$15-component episodes the pattern
-reverses (WS CI $[{-0.57},\,{-0.36}]$ vs.\ LETKF $[{+0.18},\,{+0.22}]$).
+$[{+0.09},\,{+0.13}]$.  For $\geq$15-component episodes the pattern
+reverses (WS CI $[{-0.52},\,{-0.35}]$ vs.\ LETKF $[{+0.18},\,{+0.22}]$).
 This complementarity suggests that an operational system could benefit
 from complexity-aware method selection: WaveSplat for resolved seas
 ($\leq$5 components) and LETKF as a fallback for complex multi-modal
@@ -2015,7 +2043,9 @@ cost metric, with a matching threshold of 0.5.
 
 \begin{table}[t]
 \centering
-\caption{Spectral parameter estimation accuracy by complexity.
+\caption{Spectral parameter estimation accuracy by complexity, on the
+Nyquist-adequate regenerated dataset (per-episode median over 5 estimator
+seeds).
 Detection rate: fraction of GT components matched.
 Energy detection: fraction of total GT energy ($\sum A_i^2$) captured
 by matched components.
@@ -2025,28 +2055,35 @@ $|k|$ error and direction error are averaged over matched pairs.}
 \toprule
 $N_{\text{comp}}$ & Det.\ rate & Energy det. & $|k|$ rel.\ err. & Dir.\ err.\ [$^\circ$] \\
 \midrule
-1  & 100\% & 100\%  & 0.005 & 0.1 \\
-2  &  50\% & \textbf{96.9\%} & 0.001 & 0.2 \\
-5  &  60\% & \textbf{93.7\%} & 0.001 & 0.1 \\
-15 &  50\% &  66.7\%         & 0.595 & 26.2 \\
-30 &  38\% &  49.1\%         & 0.714 & 26.1 \\
+1  & 100\% & 100\%  & 0.000 & 0.0 \\
+2  & 100\% & 100\%  & 0.001 & 0.0 \\
+5  & 100\% & 100\%  & 0.001 & 0.1 \\
+15 &  60\% &  74.7\%         & 0.553 & 30.7 \\
+30 &  33\% &  42.1\%         & 0.102 & 11.4 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:spectral_accuracy} reveals a clear separation between
-\emph{geometric} and \emph{energetic} accuracy.
-For $\leq$5 components, the geometric parameters are highly accurate:
-energy-weighted detection exceeds 93\%, wavenumber magnitude error is
-below 0.5\%, and directional error is below 0.2$^\circ$---from only
-$\sim$50 LiDAR points per frame.
-For $\geq$15 components, detection drops to 50--38\%, consistent with
+Table~\ref{tab:spectral_accuracy} reveals a clear separation by
+spectral complexity.
+For $\leq$5 components, every ground-truth component is recovered
+(detection and energy-weighted detection both reach 100\%), with
+wavenumber magnitude error below 0.1\% and directional error at or
+below 0.1$^\circ$---from only $\sim$50 LiDAR points per frame.  On the
+original coarse-mesh render this detection rate had sat at 50--60\%
+because the shorter components fell below the reference mesh's spatial
+Nyquist limit and were therefore unmatchable; the Nyquist-adequate
+dataset recovers them, so the earlier ``high energy-detection despite
+low raw-detection'' reading for $\leq$5-component seas was itself a
+rendering artifact.
+For $\geq$15 components, detection drops to 60--33\%, consistent with
 the beamforming peak-separation radius discussed in
 Sec.~\ref{sec:limitations}, which bounds but does not fully explain the
 crowded-regime penalty.
 
 Amplitude estimation, in contrast, is significantly degraded (mean
-relative error 0.17--8.2$\times$) due to the Adam momentum oscillation
+relative error 0.24--0.75, median over 5 estimator seeds) due to the
+Adam momentum oscillation
 mechanism described in Section~\ref{sec:limitations}.  This decoupling
 is expected: wavenumber $(k_x, k_y)$ is determined during initialization
 and frozen during tracking, while amplitude $w$ is updated every frame
@@ -2325,9 +2362,9 @@ Against stronger baselines including LETKF with spatial localization,
 WaveSplat retains the best average nRMSE on 12 pre-specified
 representative episodes.
 The advantage is statistically significant against both ETKF
-($p{=}1.1\!\times\!10^{-15}$, paired Cohen's $d{=}1.16$) and sliding
-GPR ($p{=}4.7\!\times\!10^{-4}$, $d{=}0.42$) across 100 paired runs
-(Holm-corrected: $p_1{=}2.2\!\times\!10^{-15}$, $p_2{=}4.7\!\times\!10^{-4}$),
+($p{=}2.5\!\times\!10^{-16}$, paired Cohen's $d{=}1.30$) and sliding
+GPR ($p{=}1.6\!\times\!10^{-7}$, $d{=}0.65$) across 100 paired runs
+(Holm-corrected: $p_1{=}4.9\!\times\!10^{-16}$, $p_2{=}1.6\!\times\!10^{-7}$),
 and robust to both geometry-weighted and unweighted LiDAR
 return-sampling models.
 

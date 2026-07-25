@@ -48,6 +48,22 @@ SCALE_INVARIANT_GROW = False
 # False preserves shipped behaviour.
 SCALE_INVARIANT_L1 = False
 
+# The tracking warm-start historically advances every component's phase by omega*dt before the
+# per-frame gradient update (`self.model.phi.add_(omega * dt)` in `update`). This DOUBLE-counts
+# time: the forward model already evolves the wave through its own -omega*t term
+# (spectral_gaussian.forward), so evaluating forward(t) with the init-time phase already gives
+# the correctly-propagated field. Adding omega*dt on top cancels the -omega*t evolution and
+# FREEZES the field at the initialization instant; the 10 Adam steps/frame then have to re-slew
+# the phase back every frame, and under Adam momentum + L1 that per-frame tug-of-war bleeds
+# amplitude toward zero. Measured (tmp/TRACKER_AMPDECAY_2026-07-25.md): starting from a
+# parameter-exact init (field nRMSE 0.000), shipped tracking decorrelates to nRMSE ~0.31 with no
+# gradient (pure frozen-wave propagation) and to ~0.16 with gradient while sum|w| decays -32%;
+# setting lambda_l1=0 does NOT stop the decay (0.1631 vs 0.1633), so L1 is not the cause.
+# When False, the redundant advance is skipped and forward(t) tracks the true time evolution
+# directly, leaving only the genuine slow drift from any wavenumber error for the gradient to
+# correct. True preserves shipped behaviour bit-for-bit.
+TRACK_PHASE_PREDICT = True
+
 
 class SequentialUpdater:
     """
@@ -399,9 +415,12 @@ class SequentialUpdater:
         if self.model is None:
             raise RuntimeError("Must call initialize() before update()")
 
-        # Phase prediction: advance phases by ω·Δt
+        # Phase prediction: advance phases by ω·Δt.
+        # NOTE: this is redundant with the forward model's own -ω·t term and, when enabled,
+        # double-counts time (see TRACK_PHASE_PREDICT note above). Gated so shipped behaviour
+        # (advance ON) is the default; TRACK_PHASE_PREDICT=False skips it.
         dt = frame.t - getattr(self, '_last_t', frame.t)
-        if abs(dt) > 1e-6:
+        if TRACK_PHASE_PREDICT and abs(dt) > 1e-6:
             with torch.no_grad():
                 omega = self.model._omega()
                 self.model.phi.add_(omega * dt)

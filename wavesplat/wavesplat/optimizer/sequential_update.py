@@ -106,6 +106,11 @@ class SequentialUpdater:
         self.tracking_mode = config.get('tracking_mode', 'w_phi')
         self.tracking_lr = config.get('tracking_lr', 0.005)
         self.init_method = config.get('init_method', 'v2_konly')
+        # WavePrior UNIFIED (init_method='auto'): diagnostics of the GT-free regime
+        # router, populated only when init_method=='auto' (see _auto_select_init).
+        # Default (v2_konly) leaves these None -> no behavioural effect.
+        self._auto_selected = None
+        self._auto_n_selected = None
         self.use_dispersion = config.get('use_dispersion', True)
         self.use_confidence = config.get('use_confidence', True)
         # Was documented above and set in configs/estimation.yaml, but never read: every
@@ -298,6 +303,15 @@ class SequentialUpdater:
         Returns:
             dict with 'loss_history', 'n_iters', 'elapsed_s'
         """
+        # WavePrior UNIFIED: init_method='auto' routes learned vs v2_konly from a
+        # GT-free signal (the learned proposal's n_selected) computed on the same init
+        # window both arms see, so one config value handles every regime. Additive; only
+        # entered when init_method=='auto'. It mutates self.init_method to the chosen arm
+        # and then falls through to the normal dispatch below. The shipped default
+        # (v2_konly) never enters this branch.
+        if self.init_method == 'auto':
+            self.init_method = self._auto_select_init(frames, verbose)
+
         # WavePrior Stage-1: learned set-proposal supplies the component set, then the
         # SAME joint fit / adaptive-N / tracker run on top. Additive; the shipped
         # default (v2_konly) never enters this branch.
@@ -461,6 +475,55 @@ class SequentialUpdater:
             'elapsed_s': elapsed,
             'final_n': self.model.n_gaussians,
         }
+
+    def _auto_select_init(self, frames: List[FrameData], verbose: bool = False) -> str:
+        """WavePrior UNIFIED: GT-free regime router for init_method='auto'.
+
+        Computes the learned set-proposal's selected-component count (n_selected) on the
+        same init window both arms see, and returns 'learned' when
+        n_selected >= auto_switch_thresh (default 8 -- the Stage-1 crowding signal, frozen
+        from the design regimes, not tuned on nRMSE), else 'v2_konly'. The raw proposal
+        atoms are cached into config['learned_atoms'] so a 'learned' route reuses them
+        without re-running the (GPU) diffusion proposal. Purely additive; only called when
+        init_method=='auto'. No GT is used -- the decision is made from observations alone.
+
+        Config knobs (all optional): auto_switch_thresh (int, default 8),
+        learned_atoms (precomputed raw atoms dict, skips the GPU proposal),
+        learned_ckpt / learned_nsamp / learned_diffusion_seed (proposal),
+        learned_energy_thresh / learned_dedup_dk / max_n (pooling, must match the
+        learned arm's so the signal and the installed set agree).
+        """
+        from wavesplat.optimizer.learned_init import (
+            propose_atoms, pool_and_select, DEFAULT_CKPT)
+        cfg = self.config
+        thresh = int(cfg.get('auto_switch_thresh', 8))
+        cache = cfg.get('learned_atoms')
+        if cache is not None:
+            rkx = np.asarray(cache['kx'], float)
+            rky = np.asarray(cache['ky'], float)
+            ren = np.asarray(cache['energy'], float)
+        else:
+            dseed = int(cfg.get('learned_diffusion_seed',
+                                0 if self.seed is None else self.seed))
+            rkx, rky, ren = propose_atoms(
+                frames, self.depth,
+                ckpt=cfg.get('learned_ckpt', DEFAULT_CKPT),
+                nsamp=int(cfg.get('learned_nsamp', 4)),
+                diffusion_seed=dseed)
+            # Cache so a 'learned' route reuses these exact atoms (no double proposal).
+            cfg['learned_atoms'] = dict(kx=rkx, ky=rky, energy=ren)
+        sk, _, _ = pool_and_select(
+            rkx, rky, ren,
+            energy_thresh=float(cfg.get('learned_energy_thresh', 0.03)),
+            dedup_dk=float(cfg.get('learned_dedup_dk', 0.03)),
+            max_n=int(cfg.get('max_n', 30)))
+        n_sel = int(len(sk))
+        chosen = 'learned' if n_sel >= thresh else 'v2_konly'
+        self._auto_n_selected = n_sel
+        self._auto_selected = chosen
+        if verbose:
+            print(f"  [Init/auto] n_selected={n_sel} (thresh={thresh}) -> {chosen}")
+        return chosen
 
     def update(self, frame: FrameData) -> Dict:
         """

@@ -258,6 +258,10 @@ def run_estimation(h5_path: str, config: dict = None,
         'Hs_true': loader.Hs_true,
         'Tp_true': loader.Tp_true,
         'n_gaussians': updater.model.n_gaussians,
+        # WavePrior UNIFIED: which arm the init_method='auto' router chose, and the
+        # GT-free signal it used. None for every other init_method (no behaviour change).
+        'auto_selected': getattr(updater, '_auto_selected', None),
+        'auto_n_selected': getattr(updater, '_auto_n_selected', None),
         'init_iters': init_result['n_iters'],
         'init_time_s': init_result['elapsed_s'],
         'init_rmse': init_rmse,
@@ -346,9 +350,11 @@ def main():
                         help='Learning rate for tracking phase')
     parser.add_argument('--init_method', type=str, default=None,
                         choices=['v1', 'v2', 'v2_konly', 'relax', 'relax_konly',
-                                 'learned'],
-                        help='Init method: v1/v2/v2_konly/relax/relax_konly/learned '
-                             '(learned = cond-diffusion set-proposal, WavePrior Stage-1)')
+                                 'learned', 'auto'],
+                        help='Init method: v1/v2/v2_konly/relax/relax_konly/learned/auto '
+                             '(learned = cond-diffusion set-proposal, WavePrior Stage-1; '
+                             'auto = GT-free regime router that picks learned vs v2_konly '
+                             'from the proposal n_selected, WavePrior UNIFIED)')
     parser.add_argument('--seed', type=int, default=None,
                         help='Random seed for reproducibility (default: 42)')
     parser.add_argument('--n_seeds', type=int, default=None,

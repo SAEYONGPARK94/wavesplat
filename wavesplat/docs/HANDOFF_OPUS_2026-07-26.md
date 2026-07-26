@@ -235,13 +235,18 @@ Pre-guard misroutes were concentrated in `BF2_1comp*_slope` episodes (proposal O
 
 ## 7. Open decisions (user, not agent)
 
-1. ~~Default flip~~ **DONE 2026-07-26** (`aa8e4c3`): `TRACK_PHASE_PREDICT=False` +
-   `init_method='auto'` are now the shipped defaults.
-2. **OE-paper propagation** (0.199→0.115, vs ETKF 40%→65%, rewrite of the
-   tracking-limitation narrative) — still open, now the top integrity item.
-3. 집필 착수(경계 서사 골격) + 지도교수 difference-first 자료.
-4. Persona-debate follow-ups (see `docs/PERSONA_DEBATE_novelty_phd_value_2026-07-26.md`
-   once written): blind auto-on-real run, held-out episodes/records, FNO baseline.
+1. ~~Default flip~~ DONE (`aa8e4c3`). ~~Debate follow-ups~~ ALL RUN 07-26/27 (held-out
+   40, blind auto, escape controls, W9+aperture, encounter rescore, mixed retrain).
+2. **Checkpoint decision (2026-07-27 morning)**: deploy `mixed_v1` (best overall mean
+   0.0805 exploratory, fails only the cardinality bar) vs `mixed_v3` (only full gate
+   pass, max OOD fix, but crowded erosion +0.006 and paired-median worse p=0.029).
+3. **Router re-tune or retire**: with the retrained net the sparse routing signal is
+   degenerate (0/16 route learned) while learned now BEATS pure v2 on sparse —
+   exploratory v1-learned-everywhere (0.0805) beats every fresh-40 arm; needs one
+   held-out validation run (all caches exist).
+4. **OE-paper propagation** — still open, still the top integrity item.
+5. Ch.5 re-architecture around the encounter/range-wall result (the user's target).
+6. 집필 + 지도교수 difference-first 자료.
 
 ## 8. Reproduction quick-start
 

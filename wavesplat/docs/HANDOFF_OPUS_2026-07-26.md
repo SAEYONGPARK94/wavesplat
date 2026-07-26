@@ -78,6 +78,15 @@ Pre-guard misroutes were concentrated in `BF2_1comp*_slope` episodes (proposal O
 - Real-data deployment arm (separate from synthetic router): hand estimator everywhere
   + **collapse fallback**: fire iff `amp_ratio_grid > 1.5` (frozen prereg) → use
   learned for that window. `tmp/unified_2026-07-26/analyze_fallback.py`.
+- 🛑 **MEASURED 2026-07-26 (held-out detector test, `tmp/heldout_real_2026-07-26/`,
+  prereg-first)**: on the 8 untouched Bergamasco records (48 windows): specificity
+  **PASS 0/33 false fires** (record-unit CI [0, 0.369]) but the margin narrows 89%
+  (+1.206→+0.130) and **sensitivity is LOW: 3/15 new collapse events detected (20%)**.
+  All 12 misses are amplitude-SUPPRESSED failures (amp ≤ 1.02) — τ=1.5 is one-sided
+  and structurally blind to that mode. Wording narrows: the interlock "detects the
+  amplitude-RUNAWAY mode", NOT "detects analytic collapse". Collapse is common
+  out-of-sample (15/48 = 31%). Also: record-blocked re-analysis of the real primary
+  → **quote p = 0.0625 (n=5 floor, direction unanimous 5/5), never p = 0.005**.
 - 🛑 **MEASURED 2026-07-26 (post-debate, pre-registered cell C)**: the synthetic
   router's guard is **uninformative on real seas** — bf_peak_ratio on all 30 real
   windows reads 0.27–1.00 (normal min 0.27), far above the 0.05 veto threshold, while

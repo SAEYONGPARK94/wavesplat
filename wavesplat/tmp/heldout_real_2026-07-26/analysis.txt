@@ -1,0 +1,102 @@
+=== R1 held-out specificity (tau=1.5) ===
+  n_windows                  48
+  n_normal                   33
+  n_false_fire               0
+  false_fired                []
+  per_record_false_fires     {'BS11a': 0, 'BS11b': 0, 'BS11c': 0, 'BS11d': 0, 'BS13a': 0, 'BS13b': 0, 'BS13c': 0, 'LJ18n': 0}
+  n_records_with_ff          0
+  cluster_robust_ci_records  [0.0, 0.36941664755281917]
+  window_level_ci            [0.0, 0.10576281007457929]
+  verdict                    PASS
+  -- adequacy subset (npx>=25): n_normal=12 ff=0 verdict=PASS
+
+=== R2 margin ===
+  pooled(design+heldout)           nC=18 fired=5 minAmpFired=1.5790941943792416 maxAmpNormal=1.4495346498199415 margin=0.12955954455930008 broken=False []
+  design(in-sample)                nC=3 fired=2 minAmpFired=2.40248826442765 maxAmpNormal=1.1962276911562655 margin=1.2062605732713845 broken=False []
+  heldout                          nC=15 fired=3 minAmpFired=1.5790941943792416 maxAmpNormal=1.4495346498199415 margin=0.12955954455930008 broken=False []
+  heldout_adequacy(npx>=25)        nC=12 fired=3 minAmpFired=1.5790941943792416 maxAmpNormal=1.082108106296625 margin=0.4969860880826167 broken=False []
+
+=== R3 collapse harvest ===
+  new collapse events (held-out): 15 / 48 windows (rate 31.2%)
+  detected by frozen detector   : 3/15 CI [0.04331200510583661, 0.480891133806853]
+  pooled (design+heldout)       : 5/18 = 0.28
+  UNDERPOWERED (<3 new)         : False
+    LJ18n_w0     hand=  7.611 amp= 5.346 fires=True  npx=121
+    LJ18n_w4     hand=  4.252 amp= 4.705 fires=True  npx=121
+    LJ18n_w5     hand=  1.914 amp= 0.547 fires=False npx=121
+    LJ18n_w1     hand=  1.610 amp= 1.579 fires=True  npx=121
+    BS13c_w3     hand=  1.503 amp= 0.690 fires=False npx=25
+    LJ18n_w3     hand=  1.368 amp= 0.856 fires=False npx=121
+    BS11b_w4     hand=  1.285 amp= 0.267 fires=False npx=16
+    BS11c_w3     hand=  1.175 amp= 0.391 fires=False npx=16
+    BS13a_w4     hand=  1.172 amp= 0.483 fires=False npx=25
+    BS13a_w5     hand=  1.155 amp= 0.584 fires=False npx=25
+    BS13a_w1     hand=  1.148 amp= 0.662 fires=False npx=25
+    BS13a_w0     hand=  1.069 amp= 0.710 fires=False npx=25
+    BS11c_w4     hand=  1.050 amp= 1.022 fires=False npx=16
+    BS13a_w2     hand=  1.041 amp= 0.607 fires=False npx=25
+    BS13c_w2     hand=  1.029 amp= 0.541 fires=False npx=25
+  (a) Delta>=0.5 : PENDING-GPU (learned arm not run)
+  (b) learned<1.0: PENDING-GPU (learned arm not run)
+
+=== W6 record-blocked re-analysis of the 27-window primary ===
+  [normal27] window-level mean -0.0611 p_wilcoxon(window)=0.004613
+    record means: AA14=-0.0261(n=5)  AA15a=-0.0488(n=5)  AA15b=-0.0694(n=6)  LJ18g=-0.0132(n=5)  YS17=-0.1319(n=6)
+    all same sign=True  learned-worse in 5/5 records
+    record-blocked permutation p=0.0625 (attainable floor 0.0625); wilcoxon(record) p=0.0625; t(record) p=0.0500
+  [all30] window-level mean +0.0627 p_wilcoxon(window)=0.146
+    record means: AA14=+0.1846(n=6)  AA15a=+0.0141(n=6)  AA15b=-0.0694(n=6)  LJ18g=+0.3163(n=6)  YS17=-0.1319(n=6)
+    all same sign=False  learned-worse in 2/5 records
+    record-blocked permutation p=0.5625 (attainable floor 0.0625); wilcoxon(record) p=0.625; t(record) p=0.4904
+  VERDICT: PASS-in-direction
+
+=== held-out windows sorted by amp_ratio_grid ===
+  window          hand    amp  ampobs  coll  fire  npx     Hs  lam_p
+  LJ18n_w0       7.611  5.346   0.885  True  True  121  11.06   40.1
+  LJ18n_w4       4.252  4.705   0.896  True  True  121   7.00   40.2
+  LJ18n_w1       1.610  1.579   0.827  True  True  121   8.96   40.2
+  BS11d_w1       0.555  1.450   0.912 False False   20   0.76   18.9
+  BS13c_w0       0.599  1.082   0.907 False False   25   0.57   19.0
+  BS11c_w4       1.050  1.022   0.925  True False   16   0.58   13.6
+  BS13b_w5       0.910  1.022   0.897 False False   25   0.74   17.1
+  BS11d_w2       0.744  1.015   0.909 False False   20   0.80   18.9
+  BS13b_w2       0.599  0.964   0.890 False False   25   0.79   17.1
+  BS13b_w3       0.642  0.952   0.900 False False   25   0.82   17.1
+  BS13b_w4       0.516  0.900   0.823 False False   25   0.61   17.1
+  LJ18n_w3       1.368  0.856   0.686  True False  121  10.05   28.4
+  BS13a_w3       0.772  0.808   0.699 False False   25   0.59   13.5
+  BS13b_w1       0.679  0.761   0.821 False False   25   0.74    8.5
+  BS11d_w4       0.854  0.755   0.858 False False   20   0.55   18.9
+  BS13b_w0       0.513  0.745   0.893 False False   25   0.68   17.1
+  BS13a_w0       1.069  0.710   0.845  True False   25   0.79   19.1
+  BS11a_w1       0.711  0.708   0.828 False False   16   0.31    7.0
+  BS13c_w3       1.503  0.690   0.870  True False   25   0.52   13.5
+  BS11a_w4       0.964  0.680   0.796 False False   16   0.37   14.0
+  BS13c_w1       0.709  0.680   0.767 False False   25   0.43   19.0
+  BS11b_w2       0.880  0.670   0.816 False False   16   0.41    6.7
+  BS11c_w1       0.670  0.667   0.870 False False   16   0.44   13.6
+  BS11d_w3       0.970  0.667   0.910 False False   20   0.79   18.9
+  BS13a_w1       1.148  0.662   0.717  True False   25   0.66   19.1
+  BS11a_w5       0.789  0.642   0.832 False False   16   0.35   14.0
+  BS13a_w2       1.041  0.607   0.765  True False   25   0.60   19.1
+  BS11d_w5       0.708  0.604   0.831 False False   20   0.66   18.9
+  BS11b_w0       0.816  0.587   0.744 False False   16   0.34   13.0
+  BS13a_w5       1.155  0.584   0.715  True False   25   0.57   19.0
+  BS11c_w0       0.675  0.566   0.851 False False   16   0.41    9.6
+  BS11a_w2       0.809  0.565   0.831 False False   16   0.36   14.0
+  BS11c_w5       0.844  0.550   0.904 False False   16   0.53   13.6
+  LJ18n_w5       1.914  0.547   0.820  True False  121   7.22   40.2
+  BS13c_w2       1.029  0.541   0.810  True False   25   0.49    8.5
+  BS11a_w3       0.945  0.522   0.826 False False   16   0.37   14.0
+  BS13c_w4       0.940  0.499   0.545 False False   25   0.43   19.0
+  BS13a_w4       1.172  0.483   0.761  True False   25   0.67   19.1
+  BS13c_w5       0.911  0.473   0.809 False False   25   0.45   13.5
+  LJ18n_w2       0.686  0.448   0.618 False False  121   8.41   40.1
+  BS11c_w2       0.902  0.416   0.828 False False   16   0.44   13.6
+  BS11a_w0       0.599  0.393   0.600 False False   16   0.30   14.0
+  BS11c_w3       1.175  0.391   0.926  True False   16   0.57   13.6
+  BS11b_w1       0.933  0.294   0.515 False False   16   0.30   13.5
+  BS11d_w0       0.948  0.284   0.841 False False   20   0.53   11.5
+  BS11b_w3       0.978  0.275   0.463 False False   16   0.95    6.0
+  BS11b_w4       1.285  0.267   0.602  True False   16   0.94   13.5
+  BS11b_w5       0.955  0.255   0.423 False False   16   0.98    4.3

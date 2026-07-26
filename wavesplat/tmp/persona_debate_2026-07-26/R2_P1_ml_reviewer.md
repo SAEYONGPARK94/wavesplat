@@ -1,0 +1,21 @@
+# R2 — P1 (harsh ML reviewer)
+## Concessions
+1. Objection 4 substantially SOFTENED: P3 verified no threshold shopping (reported the pre-registered WORSE value 0.05→0.08747 over 0.04→0.08725; router 6/8/10 flat). Charge narrows from "tuned" to "never tested out-of-sample."
+2. Objection 3 coda dead (defaults flipped aa8e4c3); remaining paper mismatch = writing/integrity task.
+3. CRUX 3 was a prediction dressed as a finding — WITHDRAWN as finding, retained as experiment. Read the code: guard clause (bf_peak_ratio, single-swell→veto) may well veto most real windows → shipped policy might degrade to hand-everywhere BY DESIGN. Nobody knows yet.
+4. Over-valued the real arena (P2: virtual fan over WASS surface, common-mode cancelling).
+5. P3's 2/3→1/3 strengthens objection 5 beyond where I put it.
+## Crux rulings
+A: do NOT co-sign "algebraic consequence" (if n_selected were a relabel, router would BE the oracle; it isn't — 0.0979 vs 0.0818, misroutes concentrated at BF2_1comp). Keep stronger formulation: COMPOSITION-IN-SAMPLE — the composition is scored on the lanes it was assembled from, two free parameters set by looking. Only new claim = "cheap observable correlates with which side you're on," never evaluated on unseen data. P3's counter resolves as BOTH (guard proves non-trivial AND patched in-sample).
+B: P5's three-clause policy not post-hoc at semantics level (code comment states clause 2 as general principle, written before debate). But currently FREE — legitimate iff run unchanged on both arenas with route distribution predicted in writing BEFOREHAND. Disqualifying: any constant change after seeing real routes.
+NEW POINT: two GT-free observables (n_selected=crowding, bf_peak_ratio=peak structure) co-vary on synthetic grid but MEASURED TO DECOUPLE on real (dense proposals + swell-dominated seas). The guard exists because that quadrant exists; in the design set that quadrant = 5 episodes (BF2_1comp slope). Deployed policy's entire real-world behavior governed by a region represented by 5 synthetic episodes. Also answers F: observable recast makes the diagram 2-D and reveals real seas live in its emptiest cell.
+C ranking (decisiveness/day): 1. arm-swap (~2d, both substitutes in-repo: tmp/blasso_feasibility.py, scripts/d3_beamform_detr.py) 2. third estimator (1d, narrower — mechanism not boundary) 3. FNO (weeks; answers "is your estimator good," not "is your boundary real"; would reject an ML submission without it, would NOT fail a thesis for lacking it if abstract never claims neural-camp superiority).
+G: pre/post-solve does NOT rescue router at ML venue (known axis within populated taxonomy: selective prediction, learning-to-defer, algorithm selection). One real property: COST (Katende must run the solver; router doesn't; 504ms vs 279ms) — systems argument. Also: P4's best-unpreempted asset and P3's forensics AIM AT THE SAME OBJECT AND CANCEL — interlock adopted, paragraph not pillar.
+## Updated verdicts
+Q1: REJECT as ML contribution (hardened); MAJOR REVISION as OE/measurement contribution. Q2: CONDITIONAL PASS, confidence UP (the reported-the-worse-prereg-value fact is better trust evidence than any p-value in the packet).
+## Accepted closes w/ thresholds (committed now)
+- Blind policy on 30 real windows (REQUIRED): route distribution predicted in writing first; PASS = policy median ≤ hand + 0.010; learned-routed loss ≥20/27 & medΔ<−0.03 → reportable, abstract says synthetic-scoped.
+- 40 fresh episodes frozen one-shot (REQUIRED): auto+guard ≤0.095 AND ≤ both pures with PAIRED TEST (naked point comparison stays ARGUED); sparse ≤ pure-v2+0.006; crowded ≤ pure-learned+0.006. Between the pures → headline dies, two-specialist map remains, passable, no capstone.
+- Detector specificity on 8 unused records (REQUIRED): frozen τ, ≥40 normal windows, 0/40 → ~7.5% bound; report margin, delete significance language.
+- Arm-swap (REQUIRED — P5 didn't propose it): crossover must reproduce within one complexity step at ≥ half the crowded effect (≥−22% @15comp); erased/reversed → Ch.4-5 re-scope to "greedy beamform init has a crowding failure mode a learned proposal repairs."
+- FNO: NOT required for the degree; required for any neural-camp superiority claim (thesis should not make one).

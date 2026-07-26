@@ -11,10 +11,18 @@
 One estimator, one config (`init_method='auto'`, guard on) now measures
 **0.0875 mean nRMSE on the 100-episode finemesh benchmark**, beating both pure arms
 (analytic 0.1145, learned 0.1011), with oracle switching at 0.0818. On real stereo data
-the learned arm's role is **collapse insurance, not accuracy** (repairs analytic collapse
-windows; deployed amp-guard fallback 0.881→0.775, false alarms 0/27). Three retraining
-axes failed honestly and are sealed (fan-geometry, e2e fine-tune, learned-only sparse
-parity). This is the boundary-narrative skeleton for the dissertation.
+the learned arm's role is **failure-mode insurance, not accuracy**: it reduces error on
+all 3 analytic collapse windows (2.31→1.07, 1.12→0.79, 2.93→0.96) with 0 own collapses —
+but under the FROZEN criterion (fixed = nRMSE<1.0) that is **2/3**, and the deployed
+detector∘fallback chain brings only **1/3** below the line (it misses the mild window
+that had the most useful repair). Deployed fallback: 30-window MEAN 0.881→0.775 —
+driven entirely by 2 windows; the MEDIAN is unchanged (0.809→0.809), so do not quote
+the mean delta as a general win (own do-not-cite rule §5). False alarms 0/27 (in-sample
+τ). Three retraining axes failed honestly and are sealed (fan-geometry, e2e fine-tune,
+learned-only sparse parity). This is the boundary-narrative skeleton for the dissertation.
+> 🛑 CORRECTION 2026-07-26 (same day, found by P3 in the persona debate): the first
+> version of this document said "repairs 3/3" and quoted 0.881→0.775 without the
+> median caveat — exactly the criterion-relaxation drift it warns about in §5.
 
 ## 1. The estimator ladder (all: 100 ep × 5 seeds, median-of-5 per episode, then mean; `data_finemesh_2026-07-23/`; tracker flag `TRACK_PHASE_PREDICT=False` at run time)
 
@@ -31,18 +39,30 @@ Per-regime (pure v2 / pure learned / auto+guard): sparse(1–2comp, 40ep)
 0.020 / 0.053 / **0.025**; moderate(5comp, 20ep) 0.027 / 0.037 / **0.028**;
 crowded(15–30comp, 40ep) 0.252 / 0.181 / **0.180**.
 Pre-guard misroutes were concentrated in `BF2_1comp*_slope` episodes (proposal OOD,
-§4); the guard closes ~2/3 of the oracle gap with **zero crowded flips**.
+§4); the guard takes the aggregate 0.0979→0.0875 with **zero crowded flips**.
+> 🛑 E3 (found in the 07-26 persona debate, judge-confirmed): do NOT say "closes X% of
+> the oracle gap" — the oracle (per-episode min-of-medians) and the deployed number
+> (per-lane-then-median) are aggregation-inconsistent (crowded slice 0.17982 sits BELOW
+> its "oracle" 0.18053). Unquotable until one script computes both the same way.
+> What IS measured: the residual gap is concentrated — 46% in one episode
+> (BF2_1comp_seed3_slope, bf_peak_ratio 0.19 → guard cannot see it), 91% in eight.
+> 🛑 E4: the shipped router default is `auto_switch_thresh = 8`
+> (`sequential_update.py`); the 0.0979 rung above was assembled at threshold 6
+> (flat grid: 8 gives 0.09786, Δ4e-5). Freeze **8** in writing before any held-out run.
 
 ## 2. Code state (what is default vs what is opt-in) — READ THIS BEFORE CITING
 
-- `wavesplat/optimizer/sequential_update.py:65` — **`TRACK_PHASE_PREDICT = True` is
-  STILL the shipped default** (the bug). Every 07-25/26 arm sets it to `False`
-  explicitly. **Flipping the default + propagating 0.199→0.1145 into the OE paper is an
-  OPEN USER DECISION** (rewrites tracking-limitation narrative, VR/SS attributions).
-- `wavesplat/run.py` `DEFAULT_CONFIG['init_method'] = 'v2_konly'` — **`auto` is NOT the
-  default**; it is selected via config/CLI (`--init_method auto`).
+- **UPDATE 2026-07-26 (commit `aa8e4c3`, user decision via Discord): both defaults are
+  now FLIPPED** — `TRACK_PHASE_PREDICT = False` and `DEFAULT_CONFIG['init_method'] =
+  'auto'` (with graceful fallback to v2_konly if the diffusion checkpoint is missing).
+  158 tests pass; live sanity: sparse BF2_1comp → guard veto → v2 (0.026), crowded
+  BF4_15comp → learned (0.1945 single diff-seed draw). **The OE paper still carries the
+  bug-era numbers (0.199/0.223 and the tracking-limitation narrative L2183–2213) —
+  paper propagation is the remaining open item, and citing the paper's numbers is a
+  live integrity exposure until resolved.**
 - `auto` path (`sequential_update.py` ~L536-554): router = learned proposal
-  `n_selected >= 6` → learned, else `v2_konly`; then **guard** (`auto_guard=True`,
+  `n_selected >= auto_switch_thresh` (shipped default **8**; see 🛑E4 in §1) → learned,
+  else `v2_konly`; then **guard** (`auto_guard=True`,
   `auto_guard_ratio=0.05` by default *inside the auto path*): if routed learned but
   beamform dominant-peak scalar (`initializer.py:292`) `< 0.05` → veto to v2.
   Live single-entry-point path validated bit-identical to the pre-registered lanes:
@@ -63,8 +83,8 @@ Pre-guard misroutes were concentrated in `BF2_1comp*_slope` episodes (proposal O
 | integrated: crowded tracked 0.252→0.181 (36/40, p=5e-11); mechanism = learned kx/ky placement (ablation) | `tmp/wp_integration_2026-07-25/PREREG.md` | `.../results.json` | `d4ec99c` |
 | unified auto: 0.0979 beats both pures; threshold-insensitive | `tmp/unified_2026-07-26/PREREG.md` | `.../switch_results.json`, narrative `.../UNIFIED_SYSTEM_2026-07-26.md` | `40b635d` |
 | guard PASS: 0.0979→0.0875, sparse restored to 0.0249 (within 0.005 of pure v2), 0 crowded flips | `tmp/unified_guard_2026-07-26/PREREG.md` | `.../task1_results.json` | `049696c` |
-| real data: accuracy LOSS (6/27, p=0.005, expected cell) but learned repairs analytic collapse windows 3/3, own collapses 0 | `tmp/wp_real_2026-07-25/PREREG.md` | `.../wp_real.json`, `.../WP_REAL_2026-07-25.md` | `a611be0` |
-| deployed real fallback: 30-window mean 0.881→0.775, detector catches 2/3 collapses (misses only the mild 1.12 one), false alarms 0/27 | `tmp/unified_2026-07-26/PREREG.md` (Part-C frozen) | `.../fallback_results.json` | `40b635d` |
+| real data: accuracy LOSS (6/27, p=0.005, expected cell); learned reduces error on 3/3 analytic collapse windows but **frozen fixed-criterion (<1.0) = 2/3** (scorer: "AA14 w0 [not fixed]"), own collapses 0 | `tmp/wp_real_2026-07-25/PREREG.md` | `.../wp_real.json`, `.../analysis.txt`, `.../WP_REAL_2026-07-25.md` | `a611be0` |
+| deployed real fallback: detector catches the 2 severe collapses (misses the mild 1.12 one — which had the most useful repair), **end-to-end only 1/3 ends below the collapse line**; 30-window mean 0.881→0.775 but median unchanged 0.809 (2 windows drive the mean); false alarms 0/27, in-sample τ | `tmp/unified_2026-07-26/PREREG.md` (Part-C frozen) | `.../fallback_results.json` | `40b635d` |
 
 ## 4. Sealed honest negatives (do not reopen without new evidence)
 
@@ -106,11 +126,13 @@ Pre-guard misroutes were concentrated in `BF2_1comp*_slope` episodes (proposal O
 
 ## 7. Open decisions (user, not agent)
 
-1. **Default flip** `TRACK_PHASE_PREDICT` → False + OE-paper propagation (0.199→0.115,
-   vs ETKF 40%→65%). Currently NOT flipped.
-2. Whether `init_method='auto'` becomes the shipped default (currently `v2_konly`).
+1. ~~Default flip~~ **DONE 2026-07-26** (`aa8e4c3`): `TRACK_PHASE_PREDICT=False` +
+   `init_method='auto'` are now the shipped defaults.
+2. **OE-paper propagation** (0.199→0.115, vs ETKF 40%→65%, rewrite of the
+   tracking-limitation narrative) — still open, now the top integrity item.
 3. 집필 착수(경계 서사 골격) + 지도교수 difference-first 자료.
-4. [보류] OE 논문에 트래커 수정 반영 여부/방식.
+4. Persona-debate follow-ups (see `docs/PERSONA_DEBATE_novelty_phd_value_2026-07-26.md`
+   once written): blind auto-on-real run, held-out episodes/records, FNO baseline.
 
 ## 8. Reproduction quick-start
 

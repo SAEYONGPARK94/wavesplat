@@ -33,6 +33,7 @@ from wavesim.wave_generator import (WaveComponent, check_q_constraint,
 
 OUT_ROOT = 'tmp/discreteness_2026-07-26/data'
 SEEDS = [10, 11, 12, 13, 14]
+SEEDS_APERTURE = [20, 21, 22, 23, 24]
 RAYDROPS = ['uniform', 'slope']
 SEA_STATE, NPARENT, DEPTH = 'BF4', 15, 50.0
 MESH_NX, MESH_NY = 200, 167
@@ -43,7 +44,21 @@ CELLS = {
     'a': dict(idx=0, M=1,  sigma_sub=0.0,  omega_jitter=False),
     'b': dict(idx=1, M=31, sigma_sub=10.0, omega_jitter=False),
     'c': dict(idx=2, M=31, sigma_sub=28.0, omega_jitter=True),
+    # aperture arm (PREREG_APERTURE_ADDENDUM.md): identical recipes to a/c, fresh seeds,
+    # dt=0.4 / duration=120 so the SAME frame+observation count spans a 4x longer baseline.
+    'abig': dict(idx=3, M=1,  sigma_sub=0.0,  omega_jitter=False),
+    'cbig': dict(idx=4, M=31, sigma_sub=28.0, omega_jitter=True),
 }
+APERTURE_CELLS = ('abig', 'cbig')
+
+
+def seeds_of(cell):
+    return SEEDS_APERTURE if cell in APERTURE_CELLS else SEEDS
+
+
+def timebase_of(cell):
+    """(duration, dt) -- aperture cells stretch the same 301 frames over 4x the time."""
+    return (120.0, 0.4) if cell in APERTURE_CELLS else (30.0, 0.1)
 
 
 def parent_spread(sigma_sub):
@@ -117,11 +132,11 @@ def make_patch(cell, seed):
 
 
 # ── verification gates (PREREG §2) ───────────────────────────────────────────
-def gate_identity(verbose=True):
-    """G-identity: cell A's expansion must be a bit-identical passthrough of the library."""
+def gate_identity(cell='a', verbose=True):
+    """G-identity: the M=1 cells must be a bit-identical passthrough of the library."""
     ok = True
-    for s in SEEDS:
-        pat = make_patch('a', s)
+    for s in seeds_of(cell):
+        pat = make_patch(cell, s)
         got = pat(Hs=1.2, Tp=7.0, n_components=NPARENT, depth=DEPTH, seed=s)
         ref = _real_jonswap(Hs=1.2, Tp=7.0, n_components=NPARENT, depth=DEPTH, seed=s)
         a = np.array([[c.A, c.omega, c.kx, c.ky, c.phi, c.Q] for c in got])
@@ -164,7 +179,7 @@ def reindex(cell):
     man_path = os.path.join(out_dir, '_manifest.json')
     man = json.load(open(man_path)) if os.path.exists(man_path) else {}
     n = 0
-    for seed in SEEDS:
+    for seed in seeds_of(cell):
         for raydrop in RAYDROPS:
             fname = f"episode_{SEA_STATE}_{NPARENT}comp_seed{seed}_{raydrop}.h5"
             fp = os.path.join(out_dir, fname)
@@ -208,10 +223,10 @@ def main():
 
     print(f"=== cell {a.cell}: {CELLS[a.cell]}  parent_sigma="
           f"{parent_spread(CELLS[a.cell]['sigma_sub']):.4f} deg ===", flush=True)
-    if a.cell == 'a':
-        print("G-identity check (cell A passthrough vs library):")
-        assert gate_identity(), "G-identity FAILED -- generation is not a passthrough"
-    for s in SEEDS[:2]:
+    if CELLS[a.cell]['M'] == 1:
+        print(f"G-identity check (cell {a.cell} passthrough vs library):")
+        assert gate_identity(a.cell), "G-identity FAILED -- generation is not a passthrough"
+    for s in seeds_of(a.cell)[:2]:
         print("  stats:", json.dumps(cell_stats(a.cell, s)), flush=True)
     if a.verify_only:
         return
@@ -223,8 +238,10 @@ def main():
 
     cfg = WaveSimConfig()
     cfg.mesh.nx, cfg.mesh.ny = MESH_NX, MESH_NY
+    DUR, DT = timebase_of(a.cell)
+    print(f'  timebase: duration={DUR}s dt={DT}s -> {int(round(DUR/DT))+1} frames', flush=True)
 
-    jobs = [(s, r) for s in SEEDS for r in RAYDROPS]
+    jobs = [(s, r) for s in seeds_of(a.cell) for r in RAYDROPS]
     t_start = time.time()
     for i, (seed, raydrop) in enumerate(jobs):
         fname = f"episode_{SEA_STATE}_{NPARENT}comp_seed{seed}_{raydrop}.h5"
@@ -239,7 +256,7 @@ def main():
             pipeline.jonswap_components = make_patch(a.cell, seed)
             path = pipeline.run_episode(
                 sea_state=SEA_STATE, n_components=NPARENT, n_pts=50, seed=seed,
-                raydrop_model=raydrop, duration=30.0, dt=0.1, depth=DEPTH,
+                raydrop_model=raydrop, duration=DUR, dt=DT, depth=DEPTH,
                 output_dir=out_dir, verbose=False, cfg=cfg, use_gpu_raycast=True)
             with h5py.File(path, 'r') as f:
                 at = dict(f['config'].attrs)

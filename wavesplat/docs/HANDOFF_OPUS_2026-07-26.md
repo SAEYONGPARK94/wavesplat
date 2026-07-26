@@ -42,6 +42,21 @@ learned-only sparse parity). This is the boundary-narrative skeleton for the dis
 > Also measured: the router input n_selected is seed-unstable on real windows (7–30
 > span on AA15b_w3).
 
+> 🛑🛑🛑 **HELD-OUT VERDICT (2026-07-26 night, `tmp/heldout40_2026-07-26/RESULT.md`,
+> commit `de0cbed`) — THE UNIFIED HEADLINE IS CUT.** On 40 fresh pre-registered
+> episodes: S1 FAIL (aggregate win vs pure_v2 not established, CI [−0.025, +0.017]),
+> S2 FAIL (sparse 0.0319 vs pure_v2 0.0135 — the guard did NOT generalize; it fired on
+> the two fresh BF2_1comp episodes where learned was right and stayed silent on the one
+> that exploded, bfr 0.065 > 0.05; **guard is worse than no-guard out of sample**),
+> S7 FAIL (moderate 1W/3L). PASSED: S3 crowded (learned wins −23%), S4 oracle proximity
+> (+0.0102), S5 zero crowded flips, S6 ≤2 damaging misroutes, both bit-identity
+> integrity checks (0.0). All regime slices UNDERPOWERED on discordant sets (<8) — no
+> per-regime direction claims. **Pre-committed wording in force: the Ch.5 unified
+> headline is cut; the result ships as a failure map. The fallback "matches the better
+> specialist per regime" is NOT available (S2 failed) — only the crowded half survives.**
+> Every number in the ladder below is therefore historical/in-sample context, not a
+> current claim.
+
 ## 1. The estimator ladder (all: 100 ep × 5 seeds, median-of-5 per episode, then mean; `data_finemesh_2026-07-23/`; tracker flag `TRACK_PHASE_PREDICT=False` at run time)
 
 | step | mean nRMSE | source of number |

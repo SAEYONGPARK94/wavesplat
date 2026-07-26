@@ -14,7 +14,9 @@ optimizer:
   tracking_steps: 10          # gradient steps per tracking frame
   tracking_mode: w_phi         # 'phi_only', 'w_phi', or 'all'
   tracking_lr: 0.005          # learning rate for tracking phase
-  init_method: v2_konly        # 'v1' (FFT), 'v2' (beamform+proj), 'v2_konly' (beamform kx/ky)
+  init_method: auto            # 'auto' (GT-free router: learned proposal + beamform guard,
+                               #  default since 2026-07-26), 'v1' (FFT), 'v2' (beamform+proj),
+                               #  'v2_konly' (beamform kx/ky), 'learned' (cond-diffusion)
   max_steepness: 0.15         # wave steepness clamp ε = |k|·|w|
 
 # ── Physics Constraints ────────────────────────────────────────────────────

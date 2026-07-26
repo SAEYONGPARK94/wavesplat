@@ -61,8 +61,12 @@ SCALE_INVARIANT_L1 = False
 # setting lambda_l1=0 does NOT stop the decay (0.1631 vs 0.1633), so L1 is not the cause.
 # When False, the redundant advance is skipped and forward(t) tracks the true time evolution
 # directly, leaving only the genuine slow drift from any wavenumber error for the gradient to
-# correct. True preserves shipped behaviour bit-for-bit.
-TRACK_PHASE_PREDICT = True
+# correct. True restores the pre-2026-07-26 legacy behaviour bit-for-bit.
+# DEFAULT FLIPPED to False on 2026-07-26 (user decision) after the 100-episode gate:
+# 0.1990 -> 0.1145 mean nRMSE, improves 100/100 episodes, Wilcoxon p=3.9e-18
+# (tmp/rerun_2026-07-25/PHASEFIX_100EP_2026-07-25.md). Every headline number published
+# before that date was measured with the legacy True behaviour unless stated otherwise.
+TRACK_PHASE_PREDICT = False
 
 
 class SequentialUpdater:
@@ -510,11 +514,22 @@ class SequentialUpdater:
         else:
             dseed = int(cfg.get('learned_diffusion_seed',
                                 0 if self.seed is None else self.seed))
-            rkx, rky, ren = propose_atoms(
-                frames, self.depth,
-                ckpt=cfg.get('learned_ckpt', DEFAULT_CKPT),
-                nsamp=int(cfg.get('learned_nsamp', 4)),
-                diffusion_seed=dseed)
+            try:
+                rkx, rky, ren = propose_atoms(
+                    frames, self.depth,
+                    ckpt=cfg.get('learned_ckpt', DEFAULT_CKPT),
+                    nsamp=int(cfg.get('learned_nsamp', 4)),
+                    diffusion_seed=dseed)
+            except (FileNotFoundError, OSError, ImportError) as e:
+                # 'auto' is the shipped default: a missing/unreadable diffusion checkpoint
+                # must degrade to the analytic path, not crash the estimator.
+                import warnings
+                warnings.warn(f"init_method='auto': learned proposal unavailable "
+                              f"({e}); falling back to v2_konly.")
+                self._auto_n_selected = None
+                self._auto_guard_fired = None
+                self._auto_selected = 'v2_konly'
+                return 'v2_konly'
             # Cache so a 'learned' route reuses these exact atoms (no double proposal).
             cfg['learned_atoms'] = dict(kx=rkx, ky=rky, energy=ren)
         sk, _, _ = pool_and_select(

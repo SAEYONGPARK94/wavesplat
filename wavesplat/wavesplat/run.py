@@ -28,7 +28,11 @@ DEFAULT_CONFIG = {
     'tracking_steps': 10,
     'tracking_mode': 'w_phi',
     'tracking_lr': 0.005,
-    'init_method': 'v2_konly',
+    # 'auto' since 2026-07-26 (user decision): GT-free regime router (learned proposal
+    # n_selected + beamform guard) -> 'learned' or 'v2_konly'. 100ep gate: auto+guard
+    # 0.0875 vs pure v2 0.1145 / pure learned 0.1011 (tmp/unified_guard_2026-07-26/).
+    # Falls back to 'v2_konly' if the diffusion checkpoint is unavailable.
+    'init_method': 'auto',
     'use_dispersion': True,
     'use_confidence': True,
     'adaptive_n': True,

@@ -107,8 +107,19 @@ Pre-guard misroutes were concentrated in `BF2_1comp*_slope` episodes (proposal O
   "continuum seas are unsolvable at this aperture", and the latter matches the real
   record (median 0.81 ≈ near no-skill). Also: **bf_peak_ratio does NOT measure
   discreteness** (non-monotone 0.128/0.269/0.140 vs real 0.879 — migration prediction
-  failed). Decisive follow-up before any retraining commitment: rerun cell C at a
-  larger effective aperture so continuum seas remain solvable.
+  failed).
+  **APERTURE FOLLOW-UP RAN (same day, `RESULT_APERTURE.md`): verdict APERTURE-LIMITED.**
+  At 1.94× D_eff (245→475 m via dt 0.1→0.4 s, obs count held) continuum analytic skill
+  is still 0.061 < 0.15 gate; the aperture dividend is 5:1 asymmetric (discrete +0.237
+  vs continuum +0.046). Extrapolated need ≈1700 m — impossible by dwell; **at design
+  speed 11.3 m/s the same 56 s window gives D_eff ≈ 1100 m ⟹ the viable lever is
+  PLATFORM MOTION, not dwell or retraining.** Frozen consequence in force: the mixed
+  retrain (user-directed curriculum, `feedback_mixed_training_directive`) is ON HOLD —
+  ≤0.09 skill exists to chase on continuum at this aperture. ⚠ FLAGGED, NOT CLAIMED:
+  A-big shows the learned crowded advantage INVERTING (+43.8%, analytic 9/10) — spread
+  confound (20.9° vs 28.7°); **seed-matched A/A-big rerun queued; if it holds, the −45%
+  crowded headline needs an "at sub-wavelength aperture" qualifier in the thesis.**
+  Also: n_selected saturates at max_n=30 on continuum (hidden parameter).
 - 🛑 **MEASURED 2026-07-26 (escape controls, `tmp/collapse_controls_2026-07-26/`,
   prereg-first, bit-identity PASS)**: on the 18 real collapse windows, the cheap
   analytic escape **kp_hint×2 repairs better than the learned arm on ALL 3 design

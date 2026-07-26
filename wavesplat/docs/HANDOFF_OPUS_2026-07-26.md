@@ -78,6 +78,19 @@ Pre-guard misroutes were concentrated in `BF2_1comp*_slope` episodes (proposal O
 - Real-data deployment arm (separate from synthetic router): hand estimator everywhere
   + **collapse fallback**: fire iff `amp_ratio_grid > 1.5` (frozen prereg) → use
   learned for that window. `tmp/unified_2026-07-26/analyze_fallback.py`.
+- 🛑 **MEASURED 2026-07-26 (discreteness experiment W9, `tmp/discreteness_2026-07-26/`,
+  prereg-first, verdict CONFIRM)**: the learned crowded advantage collapses
+  monotonically as the spectrum is continuum-ized (−29.0% → −9.6% → −5.7%, p
+  0.019/0.001/0.080; 3×10 fresh episodes, all gates clean) and the proposal tiles the
+  continuum exactly as on real data (n_selected 13.0→17.5→22.5, real n_eff≈24; 20% at
+  the max_n=30 cap). **CAVEAT that blocks the strong reading**: at strong spreading
+  BOTH arms hit the no-skill floor (skill 0.055/0.015; 5/10 analytic episodes ≤
+  zero-predictor) — this run cannot separate "learning exploits discreteness" from
+  "continuum seas are unsolvable at this aperture", and the latter matches the real
+  record (median 0.81 ≈ near no-skill). Also: **bf_peak_ratio does NOT measure
+  discreteness** (non-monotone 0.128/0.269/0.140 vs real 0.879 — migration prediction
+  failed). Decisive follow-up before any retraining commitment: rerun cell C at a
+  larger effective aperture so continuum seas remain solvable.
 - 🛑 **MEASURED 2026-07-26 (escape controls, `tmp/collapse_controls_2026-07-26/`,
   prereg-first, bit-identity PASS)**: on the 18 real collapse windows, the cheap
   analytic escape **kp_hint×2 repairs better than the learned arm on ALL 3 design

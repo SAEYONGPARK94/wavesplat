@@ -78,6 +78,18 @@ Pre-guard misroutes were concentrated in `BF2_1comp*_slope` episodes (proposal O
 - Real-data deployment arm (separate from synthetic router): hand estimator everywhere
   + **collapse fallback**: fire iff `amp_ratio_grid > 1.5` (frozen prereg) → use
   learned for that window. `tmp/unified_2026-07-26/analyze_fallback.py`.
+- 🛑 **MEASURED 2026-07-26 (escape controls, `tmp/collapse_controls_2026-07-26/`,
+  prereg-first, bit-identity PASS)**: on the 18 real collapse windows, the cheap
+  analytic escape **kp_hint×2 repairs better than the learned arm on ALL 3 design
+  collapses individually** (0.825/0.696/0.726 vs learned 1.071/0.791/0.961) and goes
+  **5/5 on the windows the frozen detector actually fires on**. P1's multi-restart
+  mechanism is refuted (E1 2/18 — the arm is linear bank-MMSE, no greedy basin); the
+  real failure is **kp-scale (spectral-support) misidentification**. kp×2 is NOT a
+  better default (worsens 42/60 normals, net collapses 18→18) — the triggered-fallback
+  architecture survives, but the fallback may not need to be learned. Learned-arm
+  readings on the 15 held-out collapses = PENDING-GPU; P2's bar for the learned arm is
+  now ≥9/18 (Δ≥0.5) and ≥17/18 (<1.0). Two-sided detector idea CLOSED by measurement
+  (suppressed-mode amps fully inside the normal range, P=0.456 — no signal; τ=1.5 stays).
 - 🛑 **MEASURED 2026-07-26 (held-out detector test, `tmp/heldout_real_2026-07-26/`,
   prereg-first)**: on the 8 untouched Bergamasco records (48 windows): specificity
   **PASS 0/33 false fires** (record-unit CI [0, 0.369]) but the margin narrows 89%

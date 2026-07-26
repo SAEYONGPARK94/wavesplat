@@ -359,3 +359,27 @@ It is the load-bearing sentence because it reorganized everything downstream: it
 ---
 
 *Judge's closing note on procedure: this document is an adjudication, not evidence. Its factual base is the persona transcripts and the packet; the two source-verified additions (E4, the router-threshold discrepancy; and the confirmation that `bf_peak_ratio` occurs in no real-data file) are marked as such and were checked against `wavesplat/optimizer/sequential_update.py` and a repository-wide grep. Nothing here may be cited as a result. The results are in §6, and they do not exist yet.*
+
+---
+
+## POST-DEBATE ADDENDUM (same day, 2026-07-26) — crux B pre-check RESULT
+
+The one-hour pre-check (P3's decisive computation, run under
+`tmp/figs_opus_real_2026-07-26/PREREG_bf_ratio_real.md` with predictions written first):
+
+**Pre-registered cell C. P2's falsifiable prediction is REFUTED; P1's objection 2 is
+CONFIRMED by measurement.** bf_peak_ratio on all 30 real windows: 0.27–1.00
+(normal-window min 0.27, median ≈ 0.90) — every window sits far above the 0.05 veto
+threshold. Real broadband seas produce many comparable beamform peaks even when
+swell-dominated; the guard, calibrated on synthetic discrete spectra (crowded floor
+0.055), carries no information on real seas. Combined with n_eff ≈ 24 ≥ 8, blind
+`init_method='auto'` would route the measured losing arm on essentially every real
+window. Consequences, per the frozen interpretation cell:
+1. The thesis reports **"two policies"** in those words; the unified-estimator claim is
+   scoped to synthetic in the abstract.
+2. Both GT-free observables (n_selected, bf_peak_ratio) read "crowded" on real seas
+   where the accuracy winner is analytic — **strengthening P2's discreteness hypothesis**
+   (the missing coordinate is not crowding but spectral discreteness) and raising the
+   priority of the discreteness experiment (worklist W9).
+3. Sprint item W5 (blind auto-on-real) remains required for the record; its routing
+   outcome is now predicted by measurement, and any deviation is itself reportable.

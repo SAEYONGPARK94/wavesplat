@@ -73,6 +73,14 @@ Pre-guard misroutes were concentrated in `BF2_1comp*_slope` episodes (proposal O
 - Real-data deployment arm (separate from synthetic router): hand estimator everywhere
   + **collapse fallback**: fire iff `amp_ratio_grid > 1.5` (frozen prereg) → use
   learned for that window. `tmp/unified_2026-07-26/analyze_fallback.py`.
+- 🛑 **MEASURED 2026-07-26 (post-debate, pre-registered cell C)**: the synthetic
+  router's guard is **uninformative on real seas** — bf_peak_ratio on all 30 real
+  windows reads 0.27–1.00 (normal min 0.27), far above the 0.05 veto threshold, while
+  n_eff≈24 ≥ 8 says "learned" everywhere ⟹ blind `auto` would route the MEASURED
+  LOSING arm on essentially every real window. "One estimator, one config" is
+  synthetic-only as of today; real deployment = hand + amp-fallback (two policies —
+  report in those words). Do NOT run `wavesplat.run` defaults on real records.
+  Prereg + data: `tmp/figs_opus_real_2026-07-26/PREREG_bf_ratio_real.md`, `bf_ratio_real.json`.
 
 ## 3. Evidence map (claim → prereg → result → commit)
 

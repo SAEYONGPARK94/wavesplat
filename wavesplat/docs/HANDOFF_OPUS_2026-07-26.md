@@ -40,12 +40,17 @@ Per-regime (pure v2 / pure learned / auto+guard): sparse(1–2comp, 40ep)
 crowded(15–30comp, 40ep) 0.252 / 0.181 / **0.180**.
 Pre-guard misroutes were concentrated in `BF2_1comp*_slope` episodes (proposal OOD,
 §4); the guard takes the aggregate 0.0979→0.0875 with **zero crowded flips**.
-> 🛑 E3 (found in the 07-26 persona debate, judge-confirmed): do NOT say "closes X% of
-> the oracle gap" — the oracle (per-episode min-of-medians) and the deployed number
-> (per-lane-then-median) are aggregation-inconsistent (crowded slice 0.17982 sits BELOW
-> its "oracle" 0.18053). Unquotable until one script computes both the same way.
-> What IS measured: the residual gap is concentrated — 46% in one episode
-> (BF2_1comp_seed3_slope, bf_peak_ratio 0.19 → guard cannot see it), 91% in eight.
+> 🛑 E3 — RESOLVED same day (`tmp/obsaxis_2026-07-26/oracle_consistent.json`): with
+> lane-consistent aggregation the oracle is **0.08061** (not 0.08177), the guard closes
+> **60.2%** of the gap (not "2/3"), and the crowded paradox disappears (per-episode
+> violations 6→0). Qualifiers bind: no CI, in-sample (0.05 fitted on the same scoring
+> data). Residual gap concentrated: 38% one episode (BF2_1comp_seed3_slope,
+> bf_peak_ratio 0.19 → guard cannot see it), 77% in eight.
+> 🛑 CRUX-A VERDICT (pre-stated, `tmp/obsaxis_2026-07-26/PRESTATE.md` +
+> `results/gifs/diag_observable_axis.png`): the boundary is much sharper on the
+> simulator knob (|ρ|=0.514, n_components) than on any GT-free observable
+> (bf_peak_ratio 0.257, n_selected 0.372) — **the phase diagram is drawn on a
+> coordinate the runtime cannot read; Ch.5 must say so in those words** (P3 right).
 > 🛑 E4: the shipped router default is `auto_switch_thresh = 8`
 > (`sequential_update.py`); the 0.0979 rung above was assembled at threshold 6
 > (flat grid: 8 gives 0.09786, Δ4e-5). Freeze **8** in writing before any held-out run.

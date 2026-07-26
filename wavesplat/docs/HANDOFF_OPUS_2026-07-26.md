@@ -23,6 +23,24 @@ learned-only sparse parity). This is the boundary-narrative skeleton for the dis
 > 🛑 CORRECTION 2026-07-26 (same day, found by P3 in the persona debate): the first
 > version of this document said "repairs 3/3" and quoted 0.881→0.775 without the
 > median caveat — exactly the criterion-relaxation drift it warns about in §5.
+> 🛑🛑 FINAL STATE 2026-07-26 late (GPU readings, `tmp/collapse_controls_2026-07-26/
+> RESULT_GPU.md` + `tmp/blind_auto_real_2026-07-26/RESULT.md`): **on real data the
+> learned arm now has NO measured contribution on either axis.** (i) Collapse repair:
+> P2-bar FAIL — learned 6/18 (Δ≥0.5) and 6/18 (<1.0) vs required 9/18 & 17/18; the
+> cheap analytic escape kp_hint×2 beats it 4/5 head-to-head on detector-fired windows
+> and is numerically better on 17/18; **learned WORSENS 7/15 held-out collapse windows**
+> (up to 1.04→1.96) — "3/3 repairs, 0 own collapses" was a design-set property that
+> does not generalize. (ii) Blind auto (W5 official): routes learned 30/30, guard 0/30
+> (real bf_peak_ratio 0.108–1.00; the earlier "min 0.27" was wrong — min is 0.1082,
+> verdict unaffected), median 0.836 vs hand 0.809, worse on 21/30 windows and 5/5
+> records → bars B1 FAIL, B2+B3 fire ⟹ **"two policies" wording is mandatory; the
+> unified claim is scoped to synthetic.** What survives on real data: the ARCHITECTURE
+> (GT-free runaway detector → triggered fallback) with the fallback's identity
+> currently ANALYTIC (kp×2), plus the sealed honest negatives. The learned arm's only
+> live path back to real-data value = targeted retraining (continuous spectra +
+> LiDAR-sweep obs), gated first by the aperture follow-up (see W9 caveat above).
+> Also measured: the router input n_selected is seed-unstable on real windows (7–30
+> span on AA15b_w3).
 
 ## 1. The estimator ladder (all: 100 ep × 5 seeds, median-of-5 per episode, then mean; `data_finemesh_2026-07-23/`; tracker flag `TRACK_PHASE_PREDICT=False` at run time)
 

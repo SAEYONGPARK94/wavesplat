@@ -1,0 +1,52 @@
+== 1. VALIDITY CONTROL: design-3 learned must reproduce wp_real.json to 1e-9 ==
+  AA14_w0   live 1.070895584754853  stored 1.070895584754853  |d| 0.000e+00  seeds |d| 0.000e+00
+  AA15a_w3   live 0.791312057969709  stored 0.791312057969709  |d| 0.000e+00  seeds |d| 0.000e+00
+  LJ18g_w3   live 0.961485926604453  stored 0.961485926604453  |d| 0.000e+00  seeds |d| 0.000e+00
+  -> max |delta| = 0.000e+00  ==> PASS
+
+== 2. PER-WINDOW: baseline hand | learned (median-of-5) | E2-double ==
+window      arena       base  learned     sd   E2dbl  d_learn   d_E2d  npx
+BS11b_w4    heldout   1.2855   1.2202  0.149  1.1895  +0.0652 +0.0959   16
+BS11c_w3    heldout   1.1753   1.7344  0.309  1.2815  -0.5591 -0.1062   16
+BS11c_w4    heldout   1.0496   1.7676  0.456  0.8885  -0.7180 +0.1611   16
+BS13a_w0    heldout   1.0687   0.7389  0.092  0.7308  +0.3299 +0.3379   25
+BS13a_w1    heldout   1.1481   1.4958  0.168  1.2291  -0.3477 -0.0810   25
+BS13a_w2    heldout   1.0415   1.9609  0.148  1.0857  -0.9194 -0.0442   25
+BS13a_w4    heldout   1.1722   1.7072  0.246  0.8956  -0.5350 +0.2766   25
+BS13a_w5    heldout   1.1551   1.3245  0.274  0.8275  -0.1694 +0.3276   25
+BS13c_w2    heldout   1.0288   1.5261  0.218  1.0442  -0.4973 -0.0154   25
+BS13c_w3    heldout   1.5034   1.4873  0.489  1.0154  +0.0161 +0.4880   25
+LJ18n_w0    heldout   7.6111   1.1989  0.437  0.9540  +6.4123 +6.6571  121
+LJ18n_w1    heldout   1.6102   0.6306  0.086  0.6786  +0.9796 +0.9316  121
+LJ18n_w3    heldout   1.3685   0.6366  0.135  0.5854  +0.7319 +0.7830  121
+LJ18n_w4    heldout   4.2517   0.7140  0.181  0.5478  +3.5376 +3.7039  121
+LJ18n_w5    heldout   1.9137   1.6055  0.161  1.4773  +0.3083 +0.4364  121
+AA14_w0     design    2.3091   1.0709  0.149  0.8253  +1.2382 +1.4839  162
+AA15a_w3    design    1.1200   0.7913  0.041  0.6960  +0.3287 +0.4240  230
+LJ18g_w3    design    2.9254   0.9615  0.034  0.7256  +1.9639 +2.1998 3182
+
+== 3. FROZEN COUNTS, never merged.  (a) base-esc >= 0.5   (b) esc < 1.0 ==
+  learned    (a) 6/18   (b) 6/18
+  E2-double  (a) 6/18   (b) 11/18   [matches stored C_best {'a': 6, 'b': 11}]
+    heldout  n=15  learned (a) 4/15 (b) 4/15   |  E2-double (a) 4/15 (b) 8/15
+    design   n= 3  learned (a) 2/3 (b) 2/3   |  E2-double (a) 2/3 (b) 3/3
+
+== 4. P2 BAR: learned_count >= 1.5 * C_best, per criterion, never merged ==
+  (a)  C_best 6/18  -> need >= 9/18  |  learned 6/18  ==> FAIL
+  (b)  C_best 11/18  -> need >= 17/18  |  learned 6/18  ==> FAIL
+  ==> pre-committed consequence, BOTH criteria: Ch.7's interlock is "a paragraph about initialization robustness".
+
+== 5. OPERATIONAL SUBSET (post-hoc, defined by deployment): the 5 windows tau=1.5 fires on ==
+window         base  learned   E2dbl    winner
+AA14_w0      2.3091   1.0709  0.8253 E2-double
+LJ18g_w3     2.9254   0.9615  0.7256 E2-double
+LJ18n_w0     7.6111   1.1989  0.9540 E2-double
+LJ18n_w1     1.6102   0.6306  0.6786   learned
+LJ18n_w4     4.2517   0.7140  0.5478 E2-double
+  learned   (a) 5/5  (b) 3/5   |  E2-double (a) 5/5  (b) 5/5
+  head-to-head wins: E2-double 4/5, learned 1/5
+
+== 6. DIAGNOSTIC (not a bar): paired learned vs E2-double over all 18 ==
+  median reduction: learned +0.1867   E2-double +0.3810
+  E2-double numerically better on 17/18 windows
+  learned worse than baseline on 7/18

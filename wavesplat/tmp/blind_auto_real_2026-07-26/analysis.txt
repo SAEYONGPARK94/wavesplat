@@ -1,0 +1,76 @@
+== B4  one-policy lint (one callable, shipped constants, no arena branch) ==
+  auto_switch_thresh               True
+  auto_guard                       True
+  auto_guard_ratio                 True
+  DEFAULT_CONFIG_init_method       auto
+  DEFAULT_CONFIG_seed              42
+  primary_diffusion_seed           42
+  seed_matches_default             True
+  shipped constants used: {'init_method': 'auto', 'auto_switch_thresh': 8, 'auto_guard': True, 'auto_guard_ratio': 0.05, 'learned_energy_thresh': 0.03, 'learned_dedup_dk': 0.03, 'max_n': 30, 'learned_nsamp': 4}
+  ==> B4 PASS
+
+== ROUTE DISTRIBUTION (primary diffusion seed 42 = shipped DEFAULT_CONFIG seed) ==
+  learned 30/30   v2_konly 0/30   guard fired 0/30
+  on the 27 NORMAL windows: learned 27/27
+  n_selected: min 11 median 30 max 30  (thresh 8)
+  bf_peak_ratio: min 0.1082 median 0.8789 max 0.9982  (veto <0.05)
+  6-seed route agreement: 29/30 windows unanimous
+
+== PER-WINDOW ==
+window     route     nsel     bfr    hand  learned  policy  d=hand-pol
+YS17_w0    learned     30  0.9515  0.7407   0.8429  0.8429     -0.1022
+YS17_w1    learned     30  0.9863  0.7328   0.8361  0.8361     -0.1033
+YS17_w2    learned     30  0.9109  0.9422   1.0829  1.0829     -0.1407
+YS17_w3    learned     30  0.9982  0.8382   1.0049  1.0049     -0.1667
+YS17_w4    learned     30  0.8843  0.8066   1.0425  1.0425     -0.2359
+YS17_w5    learned     14  0.8729  0.9522   0.9947  0.9947     -0.0425
+AA15a_w0   learned     30  0.1082  0.6301   0.9419  0.9419     -0.3118
+AA15a_w1   learned     30  0.9081  0.8117   0.8362  0.8362     -0.0245
+AA15a_w2   learned     16  0.4125  0.6333   0.5329  0.5329     +0.1004
+AA15a_w3   learned     19  0.9885  1.1200   0.7913  0.7913     +0.3287  [collapse]
+AA15a_w4   learned     23  0.9523  0.6645   0.7057  0.7057     -0.0412
+AA15a_w5   learned     26  0.4384  0.4610   0.4281  0.4281     +0.0329
+AA14_w0    learned     30  0.2650  2.3091   1.0709  1.0709     +1.2382  [collapse]
+AA14_w1    learned     30  0.5482  0.8487   0.8203  0.8203     +0.0284
+AA14_w2    learned     26  0.2468  0.5528   0.6644  0.6644     -0.1116
+AA14_w3    learned     30  0.2231  0.8269   0.8450  0.8450     -0.0181
+AA14_w4    learned     28  0.4459  0.6625   0.5440  0.5440     +0.1185
+AA14_w5    learned     30  0.9893  0.8133   0.9612  0.9612     -0.1479
+AA15b_w0   learned     30  0.6762  0.6667   0.7443  0.7443     -0.0776
+AA15b_w1   learned     30  0.4901  0.4757   0.6224  0.6224     -0.1467
+AA15b_w2   learned     11  0.6498  0.6875   0.7759  0.7759     -0.0884
+AA15b_w3   learned     30  0.7452  0.6489   0.7060  0.7060     -0.0571
+AA15b_w4   learned     30  0.8734  0.6532   0.6944  0.6944     -0.0412
+AA15b_w5   learned     24  0.7183  0.6197   0.6254  0.6254     -0.0057
+LJ18g_w0   learned     30  0.9423  0.9814   0.9324  0.9324     +0.0491
+LJ18g_w1   learned     30  0.9588  0.8529   0.8935  0.8935     -0.0406
+LJ18g_w2   learned     30  0.9028  0.9471   0.8132  0.8132     +0.1339
+LJ18g_w3   learned     30  0.9502  2.9254   0.9615  0.9615     +1.9639  [collapse]
+LJ18g_w4   learned     30  0.9952  0.8225   0.9263  0.9263     -0.1037
+LJ18g_w5   learned     30  0.9880  0.8168   0.9215  0.9215     -0.1047
+
+== B1  PRIMARY: median(policy) <= median(hand) + 0.010, all 30 windows ==
+  all30      n=30  median hand 0.8091  median learned 0.8361  median policy 0.8361   policy-hand +0.0270   median paired d -0.0418
+  normals27  n=27  median hand 0.7407  median learned 0.8361  median policy 0.8361   policy-hand +0.0954   median paired d -0.0571
+  ==> B1 FAIL  (policy-hand +0.0270 vs allowance +0.0100)
+
+== B2  P1 scoping clause: routed-learned on >=20/27 normals AND median paired d < -0.03 ==
+  routed-learned normals 27/27 (>=20? True);  median paired d on them -0.0571 (< -0.03? True)
+  ==> B2 FIRES
+  pre-committed consequence: the loss is REPORTABLE and the thesis abstract must scope the unified ("one estimator") claim to SYNTHETIC data.
+
+== B3  P3 pre-committed wording: median(policy) - median(hand) > +0.02 (all 30) ==
+  median(policy)-median(hand) = +0.0270  ==> FIRES
+  pre-committed wording, verbatim: the thesis must report "two policies".
+
+== DECLARED SECONDARY (never a verdict): record-unit medians, n=5 ==
+  YS17   hand 0.8224  learned 0.9998  policy 0.9998
+  AA15a  hand 0.6489  learned 0.7485  policy 0.7485
+  AA14   hand 0.8201  learned 0.8327  policy 0.8327
+  AA15b  hand 0.6511  learned 0.7002  policy 0.7002
+  LJ18g  hand 0.9000  learned 0.9239  policy 0.9239
+  record-median-of-medians: hand 0.8201  policy 0.8327  (+0.0126);  policy worse on 5/5 records
+
+== DIAGNOSTIC (not a bar) ==
+  policy worse than hand on 21/30 windows (21/27 normals)
+  windows where policy nRMSE >= 1.0 (unusable): 4/30 vs hand 3/30

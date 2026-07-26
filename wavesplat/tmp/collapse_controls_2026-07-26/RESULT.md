@@ -150,6 +150,12 @@ learned component in it at all.
 
 ## 5. PENDING-GPU comparison stub (frozen protocol, executable as soon as the learned arm runs)
 
+> **RESOLVED same day** — the learned arm has since been run on all 18 windows under
+> `PREREG_GPU_ADDENDUM.md`; see **`RESULT_GPU.md`**. Outcome: learned **(a) 6/18,
+> (b) 6/18** ⟹ **both bars FAIL** (needed ≥ 9/18 and ≥ 17/18), and the pre-committed
+> consequence below is in force on both criteria. The stub text is left unedited below as
+> the frozen protocol it was.
+
 The learned arm's readings on the 15 held-out collapse windows do not exist. When they do:
 
 - **Deployable comparator** `C_best` = max count over the six GT-free readings

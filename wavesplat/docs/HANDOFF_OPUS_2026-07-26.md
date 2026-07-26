@@ -56,6 +56,17 @@ learned-only sparse parity). This is the boundary-narrative skeleton for the dis
 > specialist per regime" is NOT available (S2 failed) — only the crowded half survives.**
 > Every number in the ladder below is therefore historical/in-sample context, not a
 > current claim.
+> ✅ **THE NIGHT'S ONE POSITIVE (2026-07-27, `tmp/encounter_rescore_2026-07-26/`,
+> prereg LOCAL-SKILL-EXISTS)**: the wall is a RANGE wall, not a horizon wall. At the
+> control-relevant 22 m ahead, frozen-init/no-tracking forecasting holds skill
+> 0.56–0.65 across leads 0–5 s on continuum seas (the "0.06 global skill" was the dead
+> far field averaging down the skilful near field; x∈[10,250] m scoring). And **the
+> learned arm beats analytic locally on continuum in 96/96 cells (+0.31 p=0.005 /
+> +0.24 p=0.001 at 22 m)** — the first measured place learning helps on real-like
+> seas. Qualifiers: R*(0.5)=22 m lands exactly AT the user's bar, learned arm only,
+> C-big does not replicate (R* 0 m); near-field skill is partly reconstruction (edge
+> of footprint). Thesis-relevant: the deployable target (encounter forecast, frozen
+> 2026-07-05) lives exactly where the skill is.
 
 ## 1. The estimator ladder (all: 100 ep × 5 seeds, median-of-5 per episode, then mean; `data_finemesh_2026-07-23/`; tracker flag `TRACK_PHASE_PREDICT=False` at run time)
 
@@ -128,13 +139,20 @@ Pre-guard misroutes were concentrated in `BF2_1comp*_slope` episodes (proposal O
   is still 0.061 < 0.15 gate; the aperture dividend is 5:1 asymmetric (discrete +0.237
   vs continuum +0.046). Extrapolated need ≈1700 m — impossible by dwell; **at design
   speed 11.3 m/s the same 56 s window gives D_eff ≈ 1100 m ⟹ the viable lever is
-  PLATFORM MOTION, not dwell or retraining.** Frozen consequence in force: the mixed
-  retrain (user-directed curriculum, `feedback_mixed_training_directive`) is ON HOLD —
-  ≤0.09 skill exists to chase on continuum at this aperture. ⚠ FLAGGED, NOT CLAIMED:
-  A-big shows the learned crowded advantage INVERTING (+43.8%, analytic 9/10) — spread
-  confound (20.9° vs 28.7°); **seed-matched A/A-big rerun queued; if it holds, the −45%
-  crowded headline needs an "at sub-wavelength aperture" qualifier in the thesis.**
-  Also: n_selected saturates at max_n=30 on continuum (hidden parameter).
+  PLATFORM MOTION, not dwell or retraining.**
+  > 🛑 CORRIGENDUM 2026-07-27 (found by the encounter-rescore agent, triple-verified):
+  > **the W9/aperture "analytic" arms were CONTAMINATED** — run_ws*.py inherited the
+  > shipped default, which `aa8e4c3` had flipped to 'auto' hours earlier, and auto
+  > routed to learned on these cells. True analytic on continuum is BELOW the
+  > zero-predictor (the 0.06–0.09 "analytic" skill was the learned arm). Consequences:
+  > (i) APERTURE-LIMITED verdict stands a fortiori for the analytic arm; (ii) the
+  > mysterious control-cell caveat resolves — with true analytic, cell A gives −63.9%,
+  > matching the −64.6% wp_crowded reference; (iii) **the A-big "advantage inversion"
+  > flag and its "sub-wavelength aperture" qualifier are RETRACTED as unsupported**
+  > until W9 re-runs with init_method pinned; (iv) on continuum, learned > analytic
+  > even globally (positive vs negative skill) — the continuum regime may be
+  > learned-owned at low absolute skill. Lesson: after the default flip, EVERY arm
+  > must pin init_method explicitly; audit any script relying on defaults.
 - 🛑 **MEASURED 2026-07-26 (escape controls, `tmp/collapse_controls_2026-07-26/`,
   prereg-first, bit-identity PASS)**: on the 18 real collapse windows, the cheap
   analytic escape **kp_hint×2 repairs better than the learned arm on ALL 3 design

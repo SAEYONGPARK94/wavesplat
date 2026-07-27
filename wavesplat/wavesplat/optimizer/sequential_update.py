@@ -68,6 +68,30 @@ SCALE_INVARIANT_L1 = False
 # before that date was measured with the legacy True behaviour unless stated otherwise.
 TRACK_PHASE_PREDICT = False
 
+# Deployed size of the analytic median-of-k field ensemble (see MedianEnsembleUpdater).
+# k=3 is the pre-registered, confirmed value; it applies ONLY to the analytic fallback of
+# the `auto` router. k=1 disables the ensemble.
+DEFAULT_ANALYTIC_ENSEMBLE_K = 3
+
+
+def _frames_have_gt(frames) -> bool:
+    """True if ANY frame carries a non-degenerate ground-truth field.
+
+    Real-data front-ends (wavesplat/real_data.py, the scene_real harnesses) build
+    FrameData with gt_field=None; EpisodeDataLoader always attaches a non-zero field.
+    Mirrors the `has_gt` test in run.py, widened from the last init frame to the window.
+    """
+    for f in frames:
+        g = getattr(f, 'gt_field', None)
+        if g is None:
+            continue
+        try:
+            if float(torch.abs(g).max()) > 1e-10:
+                return True
+        except (RuntimeError, ValueError, TypeError):
+            continue
+    return False
+
 
 class SequentialUpdater:
     """
@@ -117,9 +141,13 @@ class SequentialUpdater:
         self._auto_n_selected = None
         # WavePrior UNIFIED-GUARD (init_method='auto'): GT-free disagreement guard that
         # vetoes a learned route on a single-clean-swell over-proposal (see
-        # _auto_select_init). Populated only on the 'auto' path; None otherwise.
+        # _auto_select_init). RETIRED 2026-07-27 (default auto_guard=False), kept for
+        # reproducibility. Populated only on the 'auto' path; None otherwise.
         self._auto_guard_fired = None
         self._auto_bf_peak_ratio = None
+        # REAL-DOMAIN GATE (init_method='auto'): True when the router was bypassed because
+        # the input carries no ground-truth field, i.e. real measured data (see initialize).
+        self._auto_real_gate = None
         self.use_dispersion = config.get('use_dispersion', True)
         self.use_confidence = config.get('use_confidence', True)
         # Was documented above and set in configs/estimation.yaml, but never read: every
@@ -319,7 +347,41 @@ class SequentialUpdater:
         # and then falls through to the normal dispatch below. The shipped default
         # (v2_konly) never enters this branch.
         if self.init_method == 'auto':
-            self.init_method = self._auto_select_init(frames, verbose)
+            # REAL-DOMAIN GATE (2026-07-27). The deployment authorisation covers SYNTHETIC
+            # inputs only: "실측 경로 별도 게이트 -- 실측 입력에서 auto는 여전히 비활성이어야 함"
+            # (tmp/confirm2_2026-07-27/RESULT_CONFIRM2.md §4, residual condition, unreleased).
+            # WHY IT IS NOT OPTIONAL: on all 30 real windows the proposal's n_selected is
+            # >= 8 (the sparse observation geometry makes it over-propose), so the th=8
+            # router would route 30/30 to the learned arm -- the arm measured to be no
+            # better and sometimes worse on real seas -- and the retired guard fired 0/30
+            # (docs/HANDOFF_OPUS_2026-07-26.md §"Blind auto (W5 official)"). Without this
+            # gate the shipped default silently applies an unauthorised policy to real data.
+            # SIGNAL: absence of a ground-truth field. It is the one property that separates
+            # every real path (wavesplat/real_data.py builds FrameData with gt_field=None,
+            # as do the scene_real harnesses) from every synthetic path (EpisodeDataLoader
+            # always attaches a non-zero gt_field). It needs no filename convention, no
+            # loader flag and no metadata key, so it cannot be bypassed by a new real
+            # front-end. Same test run.py uses for `has_gt`, applied to the init window.
+            # Escape hatch for deliberate research use: real_domain_gate=False.
+            if frames and self.config.get('real_domain_gate', True) \
+                    and not _frames_have_gt(frames):
+                import sys as _sys
+                import warnings
+                msg = ("init_method='auto' is NOT authorised on real (ground-truth-free) "
+                       "input: the learned arm's n_selected is >= 8 on every measured "
+                       "window, so the th=8 router would route 100% to an arm with no "
+                       "demonstrated real-sea benefit. Forcing init_method='v2_konly' "
+                       "(single run, no median-of-k ensemble). Set real_domain_gate=False "
+                       "to override deliberately.")
+                warnings.warn(msg, RuntimeWarning, stacklevel=2)
+                print(f"  [Init/auto] REAL-DOMAIN GATE -> v2_konly (single). {msg}",
+                      file=_sys.stderr, flush=True)
+                self._auto_real_gate = True
+                self._auto_selected = 'v2_konly'
+                self.init_method = 'v2_konly'
+            else:
+                self._auto_real_gate = False
+                self.init_method = self._auto_select_init(frames, verbose)
 
         # WavePrior Stage-1: learned set-proposal supplies the component set, then the
         # SAME joint fit / adaptive-N / tracker run on top. Additive; the shipped
@@ -551,7 +613,18 @@ class SequentialUpdater:
         # v2->learned. Off by setting auto_guard=False (then this block is inert).
         # Threshold 0.05 sits below the crowded-sea beamform-ratio floor measured on the
         # design set (tmp/unified_guard_2026-07-26/), so no crowded route is flipped there.
-        guard = bool(cfg.get('auto_guard', True))
+        #
+        # ── RETIRED 2026-07-27: default flipped True -> False ────────────────────────
+        # The guard was tuned on the design set and did NOT survive the fresh held-out 40
+        # (docs/HANDOFF_OPUS_2026-07-26.md S2 FAIL): out of sample it fired on episodes it
+        # should not have and stayed silent on the one that exploded (bfr 0.065 > 0.05),
+        # i.e. it was WORSE than no-guard. It is also uninformative on real seas
+        # (bf_peak_ratio on all 30 real windows carries no signal, ibid.). The confirmation
+        # round that authorised deployment specifies "router th=8 + guard retired"
+        # (tmp/confirm2_2026-07-27/RESULT_CONFIRM2.md §4, PREREG_CONFIRM2.md L41).
+        # The code is kept, not deleted, so the historical configuration is reproducible by
+        # passing auto_guard=True; nothing in the shipped path sets it.
+        guard = bool(cfg.get('auto_guard', False))
         guard_ratio = float(cfg.get('auto_guard_ratio', 0.05))
         fired = False
         bfr = None
@@ -993,3 +1066,195 @@ class SequentialUpdater:
             result = self.model.predict_grid(grid_x, grid_y, t)
             self.model.use_neural_corrector = had_nn
             return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Median-of-k analytic field ensemble  (deployed 2026-07-27)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _rng_snapshot():
+    return (torch.get_rng_state(), np.random.get_state())
+
+
+def _rng_restore(state):
+    torch.set_rng_state(state[0])
+    np.random.set_state(state[1])
+
+
+def _seed_globals(seed: int):
+    """Same global seeding run.set_seed does; inlined to avoid a circular import."""
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+
+class MedianEnsembleUpdater:
+    """`auto` router + median-of-k ensemble on the ANALYTIC fallback.
+
+    WHY. The analytic arm initialises component phases at random in two places, so a
+    fixed (episode, config) still gives a *bimodal* run-to-run spread, CV up to 53%
+    (tmp/ESTIMATOR_VARIANCE_RESULT_2026-07-23.md). A few percent of sparse lanes land in
+    the bad mode and blow up 5-10x. The documented prescription is median-of-k, and the
+    confirmation round applied it at the level of the predicted FIELD (not of the scalar
+    score), which makes it deployable: no ground truth is used to combine members. On the
+    fresh reserve-seed 40 it removed every sparse-lane violation (>0.10: 0/80, q95 0.0552)
+    while harming no slice (max deviation +0.0025), and it demonstrably fired -- 28 lanes
+    with member disagreement >0.05, 8 genuine repairs
+    (tmp/confirm2_2026-07-27/RESULT_CONFIRM2.md §2).
+
+    SCOPE -- deliberately narrow, three exclusions:
+      1. Only the ANALYTIC fallback of `init_method='auto'`. An explicit
+         `init_method='v2_konly'` (what the paper scripts pass) never reaches this class
+         and stays bit-identical -- reproducibility of published numbers is protected.
+      2. If the router picks `learned`, the ensemble is NOT built (one member): the
+         authorised configuration ensembles the analytic arm only.
+      3. If the real-domain gate fires, the ensemble is NOT built (spec: the real path is
+         outside the authorisation).
+
+    Members are the standard estimator run with est seeds {s, s+1000, s+2000}; the output
+    of `predict_field` is the pointwise median across members. For odd k the median IS one
+    of the member values, so k=1 is bit-identical to a single SequentialUpdater run.
+    Latency is additive and was measured: 6.5 ms/frame per member -> 19.7 ms for k=3,
+    inside the 100 ms budget (ibid.); initialisation is 3x and parallelisable.
+
+    Each member owns its RNG state (snapshot/restore around every call), so interleaving
+    the members frame-by-frame is equivalent to running them one after another.
+
+    The public surface mirrors SequentialUpdater (`initialize`, `update`, `predict_field`,
+    `amplitude_refit`, `.model`); unknown attributes are forwarded to member 0.
+    """
+
+    MEMBER_OFFSETS = (0, 1000, 2000, 3000, 4000)   # frozen arm = first 3
+
+    def __init__(self, config: dict):
+        self.config = config
+        k = int(config.get('analytic_ensemble_k', DEFAULT_ANALYTIC_ENSEMBLE_K))
+        if k < 1 or k > len(self.MEMBER_OFFSETS):
+            raise ValueError(f'analytic_ensemble_k must be 1..{len(self.MEMBER_OFFSETS)}')
+        self.k_requested = k
+        self._primary = SequentialUpdater(config)
+        self._members = [self._primary]
+        self._rng = [None]
+        self.member_seeds = [config.get('seed')]
+        # populated by initialize(): how many members were actually built
+        self.ensemble_k = 1
+
+    # ── attribute forwarding ────────────────────────────────────────────────
+    def __getattr__(self, name):
+        # Only reached for attributes NOT found on the instance/class.
+        if name.startswith('__'):
+            raise AttributeError(name)
+        try:
+            primary = self.__dict__['_primary']
+        except KeyError:
+            raise AttributeError(name)
+        return getattr(primary, name)
+
+    @property
+    def model(self):
+        return self._primary.model
+
+    @property
+    def members(self):
+        return list(self._members)
+
+    # ── phase 1 ─────────────────────────────────────────────────────────────
+    def initialize(self, frames: List[FrameData],
+                   x_range=(10.0, 250.0), y_range=(-100.0, 100.0),
+                   verbose: bool = False) -> Dict:
+        # Member 0 runs first and unchanged: it carries the router decision and the
+        # ambient RNG stream, so a single-member outcome is bit-identical to the
+        # non-ensemble path.
+        result = self._primary.initialize(frames, x_range, y_range, verbose)
+        self._rng[0] = _rng_snapshot()
+
+        route = self._primary.init_method
+        real_gate = bool(getattr(self._primary, '_auto_real_gate', False))
+        if self.k_requested <= 1 or route != 'v2_konly' or real_gate:
+            self.ensemble_k = 1
+            result['ensemble_k'] = 1
+            result['member_n'] = [int(self._primary.model.n_gaussians)]
+            result['member_elapsed_s'] = [float(result['elapsed_s'])]
+            return result
+
+        base = self.config.get('seed')
+        base = 0 if base is None else int(base)
+        elapsed = [float(result['elapsed_s'])]
+        for off in self.MEMBER_OFFSETS[1:self.k_requested]:
+            s = base + off
+            cfg = dict(self.config)
+            cfg['init_method'] = 'v2_konly'      # explicit: no second router call
+            cfg['seed'] = s
+            _seed_globals(s)
+            m = SequentialUpdater(cfg)
+            r = m.initialize(frames, x_range, y_range, verbose=False)
+            self._members.append(m)
+            self._rng.append(_rng_snapshot())
+            self.member_seeds.append(s)
+            elapsed.append(float(r['elapsed_s']))
+
+        self.ensemble_k = len(self._members)
+        result['ensemble_k'] = self.ensemble_k
+        result['member_n'] = [int(m.model.n_gaussians) for m in self._members]
+        result['member_elapsed_s'] = elapsed
+        result['elapsed_s'] = float(sum(elapsed))   # honest total initialisation cost
+        if verbose:
+            print(f"  [Init/ensemble] median-of-{self.ensemble_k} analytic members, "
+                  f"seeds={self.member_seeds}, N={result['member_n']}, "
+                  f"{result['elapsed_s']:.1f}s total")
+        return result
+
+    # ── phase 2 ─────────────────────────────────────────────────────────────
+    def update(self, frame: FrameData) -> Dict:
+        if len(self._members) == 1:
+            return self._primary.update(frame)
+
+        outs = []
+        for i, m in enumerate(self._members):
+            _rng_restore(self._rng[i])
+            outs.append(m.update(frame))
+            self._rng[i] = _rng_snapshot()
+
+        losses = [o['loss'] for o in outs]
+        finite = [v for v in losses if np.isfinite(v)]
+        return {
+            # median of the member observation-fit losses: the ensemble's GT-free quality
+            # signal (see RESULT_CONFIRM2 §3 R7 -- selecting on it is a separate, not-yet
+            # pre-registered idea; reporting it is not).
+            'loss': float(np.median(finite)) if finite else float('nan'),
+            'n_pts': outs[0]['n_pts'],
+            # additive by construction: members run sequentially in one deployment thread
+            'elapsed_ms': float(sum(o['elapsed_ms'] for o in outs)),
+            'member_loss': losses,
+            'member_elapsed_ms': [o['elapsed_ms'] for o in outs],
+        }
+
+    def amplitude_refit(self, frames: List[FrameData], verbose: bool = False):
+        out = self._primary.amplitude_refit(frames, verbose=verbose)
+        for i, m in enumerate(self._members[1:], start=1):
+            _rng_restore(self._rng[i])
+            m.amplitude_refit(frames, verbose=False)
+            self._rng[i] = _rng_snapshot()
+        return out
+
+    # ── prediction ──────────────────────────────────────────────────────────
+    def predict_field(self, grid_x: torch.Tensor, grid_y: torch.Tensor,
+                      t: float) -> torch.Tensor:
+        if len(self._members) == 1:
+            return self._primary.predict_field(grid_x, grid_y, t)
+        preds = [m.predict_field(grid_x, grid_y, t) for m in self._members]
+        # Pointwise (element-wise) median. k is odd, so the result is one of the member
+        # values at every point -- no interpolation, no dtype change.
+        return torch.median(torch.stack(preds, dim=0), dim=0).values
+
+
+def make_updater(config: dict):
+    """Build the estimator the deployed policy calls for.
+
+    `init_method='auto'` (the shipped default) gets the median-of-k analytic ensemble
+    wrapper; every explicit init_method -- in particular the `v2_konly` the paper scripts
+    pass -- gets the plain SequentialUpdater and is therefore bit-identical to before.
+    """
+    if config.get('init_method') == 'auto' and \
+            int(config.get('analytic_ensemble_k', DEFAULT_ANALYTIC_ENSEMBLE_K)) > 1:
+        return MedianEnsembleUpdater(config)
+    return SequentialUpdater(config)

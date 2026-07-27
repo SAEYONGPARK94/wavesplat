@@ -14,9 +14,14 @@ optimizer:
   tracking_steps: 10          # gradient steps per tracking frame
   tracking_mode: w_phi         # 'phi_only', 'w_phi', or 'all'
   tracking_lr: 0.005          # learning rate for tracking phase
-  init_method: auto            # 'auto' (GT-free router: learned proposal + beamform guard,
-                               #  default since 2026-07-26), 'v1' (FFT), 'v2' (beamform+proj),
-                               #  'v2_konly' (beamform kx/ky), 'learned' (cond-diffusion)
+  init_method: auto            # 'auto' (GT-free router on the learned proposal's n_selected,
+                               #  threshold 8; beamform guard RETIRED 2026-07-27; forced to
+                               #  single v2_konly on real GT-free input), 'v1' (FFT),
+                               #  'v2' (beamform+proj), 'v2_konly' (beamform kx/ky),
+                               #  'learned' (cond-diffusion set-proposal)
+  analytic_ensemble_k: 3      # median-of-k field ensemble on the ANALYTIC fallback of the
+                               #  'auto' router only (1 = off). Explicit init_method: v2_konly
+                               #  is never ensembled, so published numbers are unaffected.
   max_steepness: 0.15         # wave steepness clamp ε = |k|·|w|
 
 # ── Physics Constraints ────────────────────────────────────────────────────

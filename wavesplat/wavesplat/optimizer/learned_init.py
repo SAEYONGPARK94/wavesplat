@@ -34,9 +34,44 @@ import sys
 import math
 import numpy as np
 
-DEFAULT_CKPT = 'results/direction3/beamform_cond_diffusion.pt'
+def _repo_root():
+    """Absolute repo root (…/wavesplat), independent of the caller's cwd."""
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+# ── DEPLOYED CHECKPOINT (2026-07-27) ─────────────────────────────────────────
+# The mixed-curriculum retrain `_mixed_v1` replaced the original
+# `beamform_cond_diffusion.pt` after the SECOND confirmation round on the fresh
+# reserve-seed 40 set authorised the `auto_v1_m3` configuration
+# (tmp/confirm2_2026-07-27/RESULT_CONFIRM2.md §1 and §4).
+#   * BOTH candidates (v1, v3) passed every pre-registered bar (P0, P1c, P2-P5).
+#   * v1 was picked by the FROZEN tie-break (crowded paired 11/16). That is a
+#     DECISION RULE, not evidence that v1 beats v3 -- 11/16 occurs with p=0.105
+#     under H0, so "v1 is superior to v3" must not be written anywhere.
+# Provenance (`sha256sum`), recorded so a swapped/corrupted file is detectable:
+#   beamform_cond_diffusion_mixed_v1.pt : 636c72a797ee6d0b725449293d5cd230dbd64c8eb03e345da4561b0c265239d9
+#   beamform_cond_diffusion.pt (previous): d28c25dee309361f8c95ec0134cdb3e28dd7bdf02417bdac2ae11567e32968fe
+# The path is anchored at the repo root rather than left relative: the estimator is
+# imported from harnesses with arbitrary cwd, and a relative default silently
+# degraded to the analytic arm (FileNotFoundError -> v2_konly fallback) whenever the
+# cwd was not the repo root.
+DEFAULT_CKPT_REL = 'results/direction3/beamform_cond_diffusion_mixed_v1.pt'
+DEFAULT_CKPT_SHA256 = '636c72a797ee6d0b725449293d5cd230dbd64c8eb03e345da4561b0c265239d9'
+DEFAULT_CKPT = os.path.join(_repo_root(), DEFAULT_CKPT_REL)
+
 M_OBS_CAP = 400          # matches d3_beamform_net.M_OBS / the head-to-head cond arm
 _CACHE = {}
+
+
+def ckpt_sha256(path=None):
+    """sha256 of a checkpoint file (default: the deployed one). Provenance check."""
+    import hashlib
+    p = path or DEFAULT_CKPT
+    h = hashlib.sha256()
+    with open(p, 'rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 # ── observation gathering ────────────────────────────────────────────────────
@@ -55,10 +90,6 @@ def _gather_init_obs(frames):
         return None
     return (np.concatenate(xs), np.concatenate(ys),
             np.concatenate(zs), np.concatenate(ts))
-
-
-def _repo_root():
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def _load_cond(ckpt, device):
@@ -295,7 +326,8 @@ def learned_init_params(frames, depth, config=None, seed=None):
 
     config keys (all optional):
       learned_atoms   : dict{'kx','ky','energy'} of RAW pooled atoms (skips diffusion)
-      learned_ckpt    : checkpoint path (default results/direction3/beamform_cond_diffusion.pt)
+      learned_ckpt    : checkpoint path (default DEFAULT_CKPT =
+                        <repo>/results/direction3/beamform_cond_diffusion_mixed_v1.pt)
       learned_nsamp   : diffusion samples (default 4)
       learned_diffusion_seed : ancestral sampling seed (default: seed, else 0)
       learned_konly   : if True, use v2_konly-style w=0.01 / random phi instead of LS fit

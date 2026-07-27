@@ -15,7 +15,7 @@ import numpy as np
 import torch
 
 from wavesplat.data_loader import EpisodeDataLoader
-from wavesplat.optimizer.sequential_update import SequentialUpdater
+from wavesplat.optimizer.sequential_update import SequentialUpdater, make_updater
 from wavesplat.evaluation.metrics import compute_all_metrics, rmse, nrmse
 
 
@@ -29,10 +29,18 @@ DEFAULT_CONFIG = {
     'tracking_mode': 'w_phi',
     'tracking_lr': 0.005,
     # 'auto' since 2026-07-26 (user decision): GT-free regime router (learned proposal
-    # n_selected + beamform guard) -> 'learned' or 'v2_konly'. 100ep gate: auto+guard
-    # 0.0875 vs pure v2 0.1145 / pure learned 0.1011 (tmp/unified_guard_2026-07-26/).
-    # Falls back to 'v2_konly' if the diffusion checkpoint is unavailable.
+    # n_selected, threshold 8) -> 'learned' or 'v2_konly'.
+    # Falls back to 'v2_konly' if the diffusion checkpoint is unavailable, and is FORCED
+    # to single-run 'v2_konly' on real (GT-free) input by the real-domain gate.
+    # Deployed configuration `auto_v1_m3`, authorised on the fresh reserve-seed 40
+    # (tmp/confirm2_2026-07-27/RESULT_CONFIRM2.md §4): mixed_v1 checkpoint + router th=8
+    # + guard RETIRED + median-of-3 analytic fallback. Slice means on that set:
+    # all 0.0877 / sparse 0.0175 / 5comp 0.0315 / crowded 0.1860 / 2comp 0.0160.
     'init_method': 'auto',
+    # Median-of-k field ensemble on the ANALYTIC fallback of the router only (see
+    # sequential_update.MedianEnsembleUpdater). 3 = the pre-registered, confirmed value;
+    # 1 disables it. Explicit init_method='v2_konly' is unaffected either way.
+    'analytic_ensemble_k': 3,
     'use_dispersion': True,
     'use_confidence': True,
     'adaptive_n': True,
@@ -71,6 +79,8 @@ def load_yaml_config(yaml_path: str) -> dict:
         cfg['tracking_mode'] = raw['optimizer'].get('tracking_mode', 'w_phi')
         cfg['tracking_lr'] = raw['optimizer'].get('tracking_lr', 0.005)
         cfg['init_method'] = raw['optimizer'].get('init_method', 'v2')
+        if 'analytic_ensemble_k' in raw['optimizer']:
+            cfg['analytic_ensemble_k'] = int(raw['optimizer']['analytic_ensemble_k'])
     if 'physics' in raw:
         cfg['use_dispersion'] = raw['physics'].get('use_dispersion', True)
         cfg['use_confidence'] = raw['physics'].get('use_confidence', True)
@@ -131,7 +141,9 @@ def run_estimation(h5_path: str, config: dict = None,
         print(f"\n[Phase 1] Initialization: {len(init_frames)} frames "
               f"({init_frames[-1].t:.1f}s)")
 
-    updater = SequentialUpdater(cfg)
+    # `auto` (shipped default) -> median-of-k analytic-fallback ensemble wrapper; every
+    # explicit init_method -> the plain SequentialUpdater, bit-identical to before.
+    updater = make_updater(cfg)
     init_result = updater.initialize(
         init_frames,
         x_range=(float(loader.gt_grid_x[0]), float(loader.gt_grid_x[-1])),
@@ -266,6 +278,15 @@ def run_estimation(h5_path: str, config: dict = None,
         # GT-free signal it used. None for every other init_method (no behaviour change).
         'auto_selected': getattr(updater, '_auto_selected', None),
         'auto_n_selected': getattr(updater, '_auto_n_selected', None),
+        # True when the real-domain gate bypassed the router (GT-free input); None on
+        # every non-'auto' path. See sequential_update.SequentialUpdater.initialize.
+        'auto_real_gate': getattr(updater, '_auto_real_gate', None),
+        # Members actually run by the median-of-k analytic ensemble (1 = no ensemble).
+        # NOTE: 'n_gaussians' and 'spectrum_params' above describe MEMBER 0 only -- the
+        # ensemble has no single component set, its output is defined pointwise in the
+        # field. Per-member counts are reported here instead of a meaningless aggregate.
+        'ensemble_k': getattr(updater, 'ensemble_k', 1),
+        'ensemble_member_n': init_result.get('member_n'),
         'init_iters': init_result['n_iters'],
         'init_time_s': init_result['elapsed_s'],
         'init_rmse': init_rmse,

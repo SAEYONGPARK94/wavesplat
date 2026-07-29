@@ -41,6 +41,15 @@ DEFAULT_CONFIG = {
     # sequential_update.MedianEnsembleUpdater). 3 = the pre-registered, confirmed value;
     # 1 disables it. Explicit init_method='v2_konly' is unaffected either way.
     'analytic_ensemble_k': 3,
+    # What the REAL-DOMAIN gate routes to (2026-07-29 port): 'bank_mmse' = the research
+    # estimator behind every published real-sea number, under observation-only
+    # parameters, measured ~2x better than the old single-v2_konly fallback on the
+    # frozen real windows (sequential_update.SequentialUpdater._initialize_bank);
+    # 'v2_konly' = the pre-port behaviour.
+    'real_estimator': 'bank_mmse',
+    # Members of the real-domain bank-MMSE pointwise-median field ensemble (seeds
+    # {s, s+1000, s+2000}); 1 disables it.
+    'real_bank_ensemble_k': 3,
     'use_dispersion': True,
     'use_confidence': True,
     'adaptive_n': True,
@@ -81,6 +90,10 @@ def load_yaml_config(yaml_path: str) -> dict:
         cfg['init_method'] = raw['optimizer'].get('init_method', 'v2')
         if 'analytic_ensemble_k' in raw['optimizer']:
             cfg['analytic_ensemble_k'] = int(raw['optimizer']['analytic_ensemble_k'])
+        if 'real_estimator' in raw['optimizer']:
+            cfg['real_estimator'] = str(raw['optimizer']['real_estimator'])
+        if 'real_bank_ensemble_k' in raw['optimizer']:
+            cfg['real_bank_ensemble_k'] = int(raw['optimizer']['real_bank_ensemble_k'])
     if 'physics' in raw:
         cfg['use_dispersion'] = raw['physics'].get('use_dispersion', True)
         cfg['use_confidence'] = raw['physics'].get('use_confidence', True)
@@ -273,7 +286,10 @@ def run_estimation(h5_path: str, config: dict = None,
         'sea_state': loader.sea_state,
         'Hs_true': loader.Hs_true,
         'Tp_true': loader.Tp_true,
-        'n_gaussians': updater.model.n_gaussians,
+        # None on the real-domain bank-MMSE route, which has no Gaussian components
+        # (see 'bank_*' keys in init_result / 'bank_members' below).
+        'n_gaussians': (updater.model.n_gaussians
+                        if updater.model is not None else None),
         # WavePrior UNIFIED: which arm the init_method='auto' router chose, and the
         # GT-free signal it used. None for every other init_method (no behaviour change).
         'auto_selected': getattr(updater, '_auto_selected', None),
@@ -287,6 +303,10 @@ def run_estimation(h5_path: str, config: dict = None,
         # field. Per-member counts are reported here instead of a meaningless aggregate.
         'ensemble_k': getattr(updater, 'ensemble_k', 1),
         'ensemble_member_n': init_result.get('member_n'),
+        # Real-domain bank-MMSE route only (None otherwise): member count of the
+        # internal pointwise-median field ensemble and per-member GT-free val misfit.
+        'bank_members': init_result.get('bank_members'),
+        'bank_val_misfit': init_result.get('bank_val_misfit'),
         'init_iters': init_result['n_iters'],
         'init_time_s': init_result['elapsed_s'],
         'init_rmse': init_rmse,
@@ -303,7 +323,8 @@ def run_estimation(h5_path: str, config: dict = None,
         if frame_results else float('nan'),
         'T_converge': t_converge,
         'frame_results': frame_results,
-        'spectrum_params': updater.model.get_spectrum_params(),
+        'spectrum_params': (updater.model.get_spectrum_params()
+                            if updater.model is not None else None),
         'refit': refit_result,
     }
 

@@ -73,6 +73,14 @@ TRACK_PHASE_PREDICT = False
 # the `auto` router. k=1 disables the ensemble.
 DEFAULT_ANALYTIC_ENSEMBLE_K = 3
 
+# Deployed member count of the real-domain bank-MMSE field ensemble (see
+# SequentialUpdater._initialize_bank): pointwise-median FIELD across fits whose only
+# difference is the val-split seed {s, s+1000, s+2000}. Measured 2026-07-29 on the three
+# frozen GIF-ledger windows: never worse than the median single seed, and it repairs the
+# one bad-seed lead blow-up observed (AA15a w5 lead-mean 0.824 -> 0.621,
+# tmp/bankmmse_port_2026-07-29/m3_field.json). 1 disables the ensemble.
+DEFAULT_REAL_BANK_ENSEMBLE_K = 3
+
 
 def _frames_have_gt(frames) -> bool:
     """True if ANY frame carries a non-degenerate ground-truth field.
@@ -148,6 +156,12 @@ class SequentialUpdater:
         # REAL-DOMAIN GATE (init_method='auto'): True when the router was bypassed because
         # the input carries no ground-truth field, i.e. real measured data (see initialize).
         self._auto_real_gate = None
+        # REAL-DOMAIN ESTIMATOR (2026-07-29): what runs behind the gate. 'bank_mmse'
+        # (deployed default) = the ported research estimator, ~2x better on the frozen
+        # real windows (see _initialize_bank); 'v2_konly' = the pre-port 2026-07-27
+        # behaviour, kept as an escape hatch for reproducing the older real-data runs.
+        self.real_estimator = str(config.get('real_estimator', 'bank_mmse'))
+        self._bank = None   # list[BankMMSEFit] once _initialize_bank has run
         self.use_dispersion = config.get('use_dispersion', True)
         self.use_confidence = config.get('use_confidence', True)
         # Was documented above and set in configs/estimation.yaml, but never read: every
@@ -367,6 +381,32 @@ class SequentialUpdater:
                     and not _frames_have_gt(frames):
                 import sys as _sys
                 import warnings
+                if self.real_estimator not in ('bank_mmse', 'v2_konly'):
+                    raise ValueError(
+                        f"real_estimator must be 'bank_mmse' or 'v2_konly', "
+                        f"got {self.real_estimator!r}")
+                self._auto_real_gate = True
+                if self.real_estimator == 'bank_mmse':
+                    # BANK-MMSE PORT (2026-07-29, user-directed deployment). The router
+                    # stays bypassed on real input (the learned arm's n_selected is >= 8
+                    # on every measured window and it has no demonstrated real-sea
+                    # benefit); what changed is the fallback: the single v2_konly run was
+                    # measured ~2x worse than the research bank-MMSE on the frozen real
+                    # windows (nowcast nRMSE 0.858/0.927/1.048 vs 0.498/0.666/0.718,
+                    # tmp/bankmmse_port_2026-07-29/m3_field.json), so the gate now routes
+                    # to the ported estimator under an observation-only parametrization.
+                    msg = ("real (ground-truth-free) input detected: the learned/router "
+                           "path is not authorised here; routing to the ported bank-MMSE "
+                           "estimator (observation-only parameters, median-of-k field). "
+                           "Set real_estimator='v2_konly' for the pre-2026-07-29 "
+                           "fallback, or real_domain_gate=False to reach the router "
+                           "deliberately.")
+                    warnings.warn(msg, RuntimeWarning, stacklevel=2)
+                    print(f"  [Init/auto] REAL-DOMAIN GATE -> bank_mmse. {msg}",
+                          file=_sys.stderr, flush=True)
+                    self._auto_selected = 'bank_mmse'
+                    self.init_method = 'bank_mmse'
+                    return self._initialize_bank(frames, verbose)
                 msg = ("init_method='auto' is NOT authorised on real (ground-truth-free) "
                        "input: the learned arm's n_selected is >= 8 on every measured "
                        "window, so the th=8 router would route 100% to an arm with no "
@@ -376,7 +416,6 @@ class SequentialUpdater:
                 warnings.warn(msg, RuntimeWarning, stacklevel=2)
                 print(f"  [Init/auto] REAL-DOMAIN GATE -> v2_konly (single). {msg}",
                       file=_sys.stderr, flush=True)
-                self._auto_real_gate = True
                 self._auto_selected = 'v2_konly'
                 self.init_method = 'v2_konly'
             else:
@@ -643,6 +682,144 @@ class SequentialUpdater:
             print(f"  [Init/auto] n_selected={n_sel} (thresh={thresh}) -> {chosen}{gtag}")
         return chosen
 
+    @staticmethod
+    def _bank_obs_from_frames(frames: List[FrameData]):
+        """(n,3) obs points P=(x,y,t) and elevations z from FrameData, time-major."""
+        P_list, z_list = [], []
+        for f in frames:
+            if len(f.x_obs) == 0:
+                continue
+            x = f.x_obs.detach().cpu().numpy().ravel()
+            y = f.y_obs.detach().cpu().numpy().ravel()
+            zz = f.z_obs.detach().cpu().numpy().ravel()
+            P_list.append(np.column_stack([x, y, np.full(len(x), float(f.t))]))
+            z_list.append(zz)
+        if not P_list:
+            return np.zeros((0, 3)), np.zeros(0)
+        return np.vstack(P_list).astype(float), np.concatenate(z_list).astype(float)
+
+    def _initialize_bank(self, frames: List[FrameData],
+                         verbose: bool = False) -> Dict:
+        """Phase 1 for the real-domain route: median-of-k bank-MMSE field ensemble.
+
+        The estimator is the ported research bank-MMSE (optimizer/bank_mmse.py --
+        the call behind every published real-sea field number), fitted on the init
+        window's observations with OBSERVATION-ONLY parameters: sigma0 = 0.05*Hs_obs
+        (Hs_obs = 4*std(z)) and kp from the estimator's own two-stage beamform zoom.
+        Members differ only in the val-split seed {s, s+1000, s+2000, ...} (the
+        MedianEnsembleUpdater offsets); prediction is the pointwise-median field.
+        Measured 2026-07-29 on the frozen GIF-ledger windows against the previous
+        single-v2_konly route (nowcast nRMSE): 0.858 -> 0.498 (AA15a w5),
+        0.927 -> 0.666 (AA15b w3), 1.048 -> 0.718 (YS17 w0)
+        (tmp/bankmmse_port_2026-07-29/{blind_vs_frozen,m3_field}.json).
+
+        No gradient tracking on this route: the fit is closed-form linear in z.
+        update() maintains a rolling observation window and, only if
+        bank_refit_every_s is set, refits from it; the default (None) keeps the fit
+        frozen, which is exactly the protocol the real-sea numbers were measured
+        under (pure forecast after the init window).
+        """
+        t0 = time.time()
+        P, z = self._bank_obs_from_frames(frames)
+        if len(z) < 32:
+            raise ValueError(f"bank-MMSE route needs >= 32 observations in the "
+                             f"init window, got {len(z)}")
+        k = int(self.config.get('real_bank_ensemble_k',
+                                DEFAULT_REAL_BANK_ENSEMBLE_K))
+        if not 1 <= k <= 5:
+            raise ValueError('real_bank_ensemble_k must be 1..5')
+        base = 0 if self.seed is None else int(self.seed)
+        self._bank_seeds = [base + off for off in (0, 1000, 2000, 3000, 4000)[:k]]
+        self._bank_fit_window(P, z)
+        self._bank_obs = (P, z)
+        self._bank_memory_s = float(self.config.get('bank_memory_s', 40.0))
+        self._bank_refit_every_s = self.config.get('bank_refit_every_s', None)
+        self._bank_last_fit_t = float(np.max(P[:, 2]))
+        self._last_t = frames[-1].t
+        elapsed = time.time() - t0
+        if verbose:
+            print(f"  [Init/bank] median-of-{k} bank-MMSE, seeds={self._bank_seeds}, "
+                  f"kp={[round(f.kp, 4) for f in self._bank]}, "
+                  f"B={[f.n_candidates for f in self._bank]}, "
+                  f"val_misfit={[round(f.vr, 4) for f in self._bank]}, "
+                  f"{elapsed:.1f}s")
+        return {
+            # per-member held-out predictive misfit: the GT-free fit-quality signal
+            'loss_history': [f.vr for f in self._bank],
+            'n_iters': 0,
+            'elapsed_s': elapsed,
+            'final_n': 0,               # no Gaussian components on this route
+            'bank_members': k,
+            'bank_seeds': list(self._bank_seeds),
+            'bank_kp': [f.kp for f in self._bank],
+            'bank_n_candidates': [f.n_candidates for f in self._bank],
+            'bank_val_misfit': [f.vr for f in self._bank],
+            'Hs_obs': self._bank_Hs_obs,
+        }
+
+    def _bank_fit_window(self, P, z):
+        """Fit the k-member ensemble from one observation window (GT-free).
+
+        The window is capped at bank_max_obs points with the SAME deterministic
+        subsample the frozen research harness used (scene_real m_cap=600,
+        default_rng(0)): every published real-sea bank number was measured on
+        600-obs windows, and the cap also bounds the O(n^2 B) fit cost."""
+        from wavesplat.optimizer.bank_mmse import fit_bank_mmse
+
+        cap = int(self.config.get('bank_max_obs', 600))
+        if len(z) > cap:
+            ii = np.random.default_rng(0).choice(len(z), cap, replace=False)
+            P, z = P[ii], z[ii]
+        self._bank_Hs_obs = 4.0 * float(np.std(z))
+        sigma0 = 0.05 * self._bank_Hs_obs
+        self._bank = [fit_bank_mmse(P, z, self.depth, sigma0, kp_hint=None,
+                                    seed=s) for s in self._bank_seeds]
+
+    def _bank_update(self, frame: FrameData) -> Dict:
+        """Phase 2 on the bank-MMSE route: rolling window + optional refit.
+
+        Each frame's observations join the rolling memory window (bank_memory_s,
+        default 40 s = the frozen protocol's window). If bank_refit_every_s is set,
+        the ensemble refits from that window once enough time has accumulated (a
+        full fit -- seconds, schedule accordingly); the default None keeps the init
+        fit frozen, matching the validated pure-forecast protocol. 'loss' is the
+        GT-free observation misfit of the current median field at this frame's
+        points (the analogue of the gradient path's obs-fit loss).
+        """
+        t0 = time.time()
+        self._last_t = frame.t
+        if len(frame.x_obs) == 0:
+            return {'loss': float('nan'), 'n_pts': 0, 'elapsed_ms': 0.0}
+        Pf, zf = self._bank_obs_from_frames([frame])
+        P, z = self._bank_obs
+        P = np.vstack([P, Pf])
+        z = np.concatenate([z, zf])
+        keep = P[:, 2] >= float(frame.t) - self._bank_memory_s
+        self._bank_obs = (P[keep], z[keep])
+        if self._bank_refit_every_s is not None and \
+                float(frame.t) - self._bank_last_fit_t \
+                >= float(self._bank_refit_every_s):
+            self._bank_fit_window(*self._bank_obs)
+            self._bank_last_fit_t = float(frame.t)
+        preds = np.stack([f.render(Pf) for f in self._bank], axis=0)
+        med = np.median(preds, axis=0)
+        return {'loss': float(np.mean((med - zf) ** 2)),
+                'n_pts': int(len(zf)),
+                'elapsed_ms': (time.time() - t0) * 1000.0}
+
+    def _bank_predict_grid(self, grid_x, grid_y, t: float) -> torch.Tensor:
+        """(Ny, Nx) pointwise-median field of the bank ensemble at time t --
+        same grid convention as SpectralGaussianModel.predict_grid."""
+        gx = np.asarray(grid_x.detach().cpu().numpy() if torch.is_tensor(grid_x)
+                        else grid_x, dtype=float).ravel()
+        gy = np.asarray(grid_y.detach().cpu().numpy() if torch.is_tensor(grid_y)
+                        else grid_y, dtype=float).ravel()
+        Xg, Yg = np.meshgrid(gx, gy)
+        Q = np.column_stack([Xg.ravel(), Yg.ravel(), np.full(Xg.size, float(t))])
+        preds = np.stack([f.render(Q) for f in self._bank], axis=0)
+        med = np.median(preds, axis=0).reshape(len(gy), len(gx))
+        return torch.as_tensor(med, dtype=torch.float32)
+
     def update(self, frame: FrameData) -> Dict:
         """
         Phase 2: Single-frame tracking update.
@@ -657,6 +834,9 @@ class SequentialUpdater:
         Returns:
             dict with 'loss', 'n_pts', 'elapsed_ms'
         """
+        if self._bank is not None:
+            return self._bank_update(frame)
+
         t0 = time.time()
 
         if self.model is None:
@@ -957,6 +1137,10 @@ class SequentialUpdater:
         Returns:
             dict with 'w_before', 'w_after', 'residual_before', 'residual_after'
         """
+        if self._bank is not None:
+            # bank-MMSE route: the fit is already the exact closed-form linear
+            # solution on its window -- there are no drifting amplitudes to refit
+            return {}
         if self.model is None:
             raise RuntimeError("Model not initialized")
 
@@ -1056,6 +1240,8 @@ class SequentialUpdater:
 
         Temporarily enables neural corrector (if loaded) for prediction only.
         """
+        if self._bank is not None:
+            return self._bank_predict_grid(grid_x, grid_y, t)
         if self.model is None:
             raise RuntimeError("Model not initialized")
         with torch.no_grad():
@@ -1172,7 +1358,10 @@ class MedianEnsembleUpdater:
         if self.k_requested <= 1 or route != 'v2_konly' or real_gate:
             self.ensemble_k = 1
             result['ensemble_k'] = 1
-            result['member_n'] = [int(self._primary.model.n_gaussians)]
+            # model is None when the real-domain gate routed to bank-MMSE (which has
+            # no Gaussian components and runs its own internal field ensemble)
+            result['member_n'] = [int(self._primary.model.n_gaussians)
+                                  if self._primary.model is not None else 0]
             result['member_elapsed_s'] = [float(result['elapsed_s'])]
             return result
 

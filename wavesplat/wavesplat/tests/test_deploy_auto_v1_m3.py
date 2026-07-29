@@ -204,15 +204,38 @@ def test_frames_have_gt_discriminates_real_from_synthetic():
     assert _frames_have_gt(_strip_gt(frames)) is False
 
 
-def test_real_domain_gate_forces_single_v2_konly():
+def test_real_domain_gate_routes_to_bank_mmse():
+    """Deployed default since 2026-07-29: the gate routes real input to the ported
+    bank-MMSE estimator (see test_bank_mmse_port.py for the route's own behaviour)."""
     from wavesplat.optimizer.sequential_update import SequentialUpdater
 
     loader, frames = _init_frames(8)
     real = _strip_gt(frames)
     cfg = {'n_gaussians': [3], 'depth': loader.depth, 'lr': 0.02,
            'tracking_steps': 3, 'seed': 42, 'init_method': 'auto',
+           'real_bank_ensemble_k': 1,
            # deliberately routes 'learned' if the gate fails to fire
            'learned_atoms': _atoms(20)}
+    upd = SequentialUpdater(cfg)
+    with pytest.warns(RuntimeWarning, match='bank-MMSE'):
+        upd.initialize(real)
+
+    assert upd._auto_real_gate is True
+    assert upd._auto_selected == 'bank_mmse'
+    assert upd.init_method == 'bank_mmse'
+    assert upd._auto_n_selected is None, "router must not have run at all"
+    assert upd._bank is not None and upd.model is None
+
+
+def test_real_domain_gate_legacy_v2_konly_escape_hatch():
+    """real_estimator='v2_konly' reproduces the pre-port 2026-07-27 behaviour."""
+    from wavesplat.optimizer.sequential_update import SequentialUpdater
+
+    loader, frames = _init_frames(8)
+    real = _strip_gt(frames)
+    cfg = {'n_gaussians': [3], 'depth': loader.depth, 'lr': 0.02,
+           'tracking_steps': 3, 'seed': 42, 'init_method': 'auto',
+           'real_estimator': 'v2_konly', 'learned_atoms': _atoms(20)}
     upd = SequentialUpdater(cfg)
     with pytest.warns(RuntimeWarning, match='NOT authorised on real'):
         upd.initialize(real)
@@ -221,16 +244,19 @@ def test_real_domain_gate_forces_single_v2_konly():
     assert upd._auto_selected == 'v2_konly'
     assert upd.init_method == 'v2_konly'
     assert upd._auto_n_selected is None, "router must not have run at all"
+    assert upd._bank is None and upd.model is not None
 
 
 def test_real_domain_gate_suppresses_the_ensemble():
-    """Spec: the real path stays a SINGLE v2_konly run, outside the m3 authorisation."""
+    """Spec: the real path never builds the ANALYTIC m3 wrapper ensemble (the bank
+    route runs its own internal field ensemble instead, outside this wrapper)."""
     from wavesplat.optimizer.sequential_update import MedianEnsembleUpdater
 
     loader, frames = _init_frames(8)
     cfg = {'n_gaussians': [3], 'depth': loader.depth, 'lr': 0.02,
            'tracking_steps': 3, 'seed': 42, 'init_method': 'auto',
-           'analytic_ensemble_k': 3, 'learned_atoms': _atoms(20)}
+           'analytic_ensemble_k': 3, 'real_bank_ensemble_k': 1,
+           'learned_atoms': _atoms(20)}
     ens = MedianEnsembleUpdater(cfg)
     with pytest.warns(RuntimeWarning):
         res = ens.initialize(_strip_gt(frames))

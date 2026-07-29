@@ -15,13 +15,19 @@ optimizer:
   tracking_mode: w_phi         # 'phi_only', 'w_phi', or 'all'
   tracking_lr: 0.005          # learning rate for tracking phase
   init_method: auto            # 'auto' (GT-free router on the learned proposal's n_selected,
-                               #  threshold 8; beamform guard RETIRED 2026-07-27; forced to
-                               #  single v2_konly on real GT-free input), 'v1' (FFT),
+                               #  threshold 8; beamform guard RETIRED 2026-07-27; routed to
+                               #  real_estimator on real GT-free input), 'v1' (FFT),
                                #  'v2' (beamform+proj), 'v2_konly' (beamform kx/ky),
                                #  'learned' (cond-diffusion set-proposal)
   analytic_ensemble_k: 3      # median-of-k field ensemble on the ANALYTIC fallback of the
                                #  'auto' router only (1 = off). Explicit init_method: v2_konly
                                #  is never ensembled, so published numbers are unaffected.
+  real_estimator: bank_mmse   # what the REAL-DOMAIN gate routes to (2026-07-29 port):
+                               #  'bank_mmse' = ported research estimator, observation-only
+                               #  parameters, ~2x better on the frozen real windows;
+                               #  'v2_konly' = pre-port single-run fallback (escape hatch).
+  real_bank_ensemble_k: 3     # members of the bank-MMSE pointwise-median field ensemble
+                               #  (fit seeds {s, s+1000, s+2000}); 1 = off.
   max_steepness: 0.15         # wave steepness clamp ε = |k|·|w|
 
 # ── Physics Constraints ────────────────────────────────────────────────────

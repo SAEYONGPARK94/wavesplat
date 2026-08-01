@@ -48,8 +48,8 @@ On a dataset of 100 episodes spanning Beaufort~2--5 sea states
 (1--30 wave components), rendered on a Nyquist-adequate reference mesh
 (Section~\ref{sec:regen}) and reported as the median over 5 estimator
 seeds per episode, WaveSplat achieves an average normalized RMSE
-(nRMSE) of \textbf{0.199} compared to \textbf{0.332} for a
-hyperparameter-tuned ETKF-grid baseline (\textbf{40.1\%} improvement),
+(nRMSE) of \textbf{0.115} compared to \textbf{0.332} for a
+hyperparameter-tuned ETKF-grid baseline (\textbf{65.5\%} improvement),
 while running approximately \textbf{10$\times$} faster
 (11.0~vs.~132.6~ms/frame on a single CPU thread, Intel i7-12700H).
 A pre-specified five-metric evaluation panel further shows that
@@ -63,7 +63,7 @@ variance-correct but shape-incoherent estimator.
 A supplementary comparison with stronger baselines---LETKF with
 Gaspari--Cohn localization and dispersion-aware multi-frame GPR---on
 all 100 episodes confirms that WaveSplat retains the best average nRMSE
-(0.199 vs.\ 0.228 for LETKF, which we verify is mesh-invariant,
+(0.115 vs.\ 0.228 for LETKF, which we verify is mesh-invariant,
 Section~\ref{sec:strongbaselines}) while running $8.1\times$ faster;
 on a 12-episode subset including all five methods WaveSplat leads at
 0.182.
@@ -94,8 +94,8 @@ dispersion relation \sep data assimilation \sep real-time estimation
 \begin{highlights}
 \item Grid-free spectral wave estimation from sparse shipboard LiDAR,
   with dispersion-constrained parameters and adaptive model order.
-\item 40.1\% lower nRMSE than a hyperparameter-tuned ETKF-grid over
-  100 Nyquist-adequate episodes (0.199 vs.\ 0.332, median over 5 seeds)
+\item 65.5\% lower nRMSE than a hyperparameter-tuned ETKF-grid over
+  100 Nyquist-adequate episodes (0.115 vs.\ 0.332, median over 5 seeds)
   and $\sim$10$\times$ faster (11.0 vs.\ 132.6~ms/frame, single CPU
   thread).
 \item Only method with a positive Skill Score in a pre-specified
@@ -1019,8 +1019,8 @@ Method & nRMSE $\downarrow$ & VR $\to$ 1 &
 $\rho$ $\uparrow$ & SS $\uparrow$ & $\text{RMSE}_{\text{unobs}}$ [m]
 $\downarrow$ \\
 \midrule
-\textbf{WaveSplat} & \textbf{0.199} & \textbf{0.833} & \textbf{0.551} &
-\textbf{+0.171} & \textbf{0.250} \\
+\textbf{WaveSplat} & \textbf{0.115} & \textbf{0.916} & \textbf{0.764} &
+\textbf{+0.538} & \textbf{0.173} \\
 ETKF (tuned)       & 0.332 & 1.048 & 0.106 & --0.844 & 0.362 \\
 GPR-1              & 0.263 & 0.062 & 0.194 & --0.164 & 0.297 \\
 \bottomrule
@@ -1073,12 +1073,12 @@ near-zero predictor (cf.\ VR=0.062 in Table~\ref{tab:fivemetric}).}
 \toprule
 Sea state & WaveSplat & ETKF & GPR-1 & $N_{\text{ep}}$ \\
 \midrule
-BF2 & \textbf{0.145} & 0.322 & 0.252 & 10 \\
-BF3 & \textbf{0.138} & 0.353 & 0.262 & 30 \\
-BF4 & \textbf{0.222} & 0.333 & 0.266 & 40 \\
-BF5 & \textbf{0.271} & 0.303 & 0.266 & 20 \\
+BF2 & \textbf{0.029} & 0.322 & 0.252 & 10 \\
+BF3 & \textbf{0.016} & 0.353 & 0.262 & 30 \\
+BF4 & \textbf{0.150} & 0.333 & 0.266 & 40 \\
+BF5 & \textbf{0.238} & 0.303 & 0.266 & 20 \\
 \midrule
-Avg & \textbf{0.199} & 0.332 & 0.263 & 100 \\
+Avg & \textbf{0.115} & 0.332 & 0.263 & 100 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1133,9 +1133,13 @@ Using the same tuned ETKF configuration
 ($g$=40$\times$30, $n_{\text{ens}}$=100, $\alpha$=1.0, $\sigma$=0.005),
 WaveSplat achieves a median nRMSE of \textbf{0.182} compared to
 \textbf{0.377} for ETKF on these episodes (\textbf{51.7\%}
-improvement; the larger margin relative to the 40.1\%
-full-dataset improvement reflects the absence of the hardest BF2 and
-BF5 multi-component episodes from this subset).
+improvement).%
+\footnote{\textbf{Provenance.} This 12-episode subset and every table
+downstream of it (ablations, adaptive-$N$ sweep, ray-drop comparison)
+were produced before the tracker phase-advance correction of
+Section~\ref{sec:strongbaselines} and are pending re-run; they are
+therefore not directly comparable with the corrected full-dataset
+figures above.  See \texttt{docs/PAPER\_NUMBER\_PROPAGATION\_AUDIT\_2026-08-01.md}.}
 WaveSplat wins on all 12 episodes.
 Figure~\ref{fig:comparison} visualizes the per-episode comparison, and
 Figure~\ref{fig:qualitative} shows representative wave fields.
@@ -1231,7 +1235,7 @@ To confirm the full-dataset result is not seed-dependent, we repeat
 the comparison across 10 (sea state, complexity) configurations with
 5 random seeds per configuration and both uniform and slope ray-drop
 models, for a total of 100 paired runs.
-WaveSplat achieves $0.199 \pm 0.085$ vs.\ the tuned ETKF baseline
+WaveSplat achieves $0.115 \pm 0.116$ vs.\ the tuned ETKF baseline
 $0.332 \pm 0.038$ and a 3-frame sliding GPR $0.255 \pm 0.020$
 (mean $\pm$ std across all runs on the Nyquist-adequate regenerated
 dataset; the WaveSplat arm is the per-episode median over 5 estimator
@@ -1353,7 +1357,11 @@ ablated components in place.
 \emph{Note}: A1 attains lower nRMSE on the multi-component episodes by
 allowing $\omega$ to drift off the dispersion shell (mean $\bar{R}=0.51$);
 those estimates are physically invalid and cannot be propagated in time
-(see text).}
+(see text).
+\emph{Provenance}: produced before the tracker phase-advance correction;
+pending re-run and not directly comparable with the corrected
+full-dataset figures of Tables~\ref{tab:fivemetric}
+and~\ref{tab:strong_baseline}.}
 \label{tab:ablation}
 \begin{tabular}{lcccc}
 \toprule
@@ -1590,7 +1598,11 @@ points to 20--100\% of the original count on 5 representative episodes
 \begin{table}[t]
 \centering
 \caption{Sparsity robustness: nRMSE at varying observation fractions.
-Average points $\approx$ 50 at 100\%.}
+Average points $\approx$ 50 at 100\%.
+\emph{Provenance}: produced before the tracker phase-advance correction;
+pending re-run and not directly comparable with the corrected
+full-dataset figures of Tables~\ref{tab:fivemetric}
+and~\ref{tab:strong_baseline}.}
 \label{tab:sparsity}
 \begin{tabular}{lccccc}
 \toprule
@@ -1870,7 +1882,7 @@ original single-filter-seed protocol.  Regeneration \emph{widens} the
 headline: the localized LETKF baseline is \emph{mesh-invariant}
 (its nRMSE moves by $-0.0006$, paired $t=-1.56$ over 12 episodes,
 because its spectral forecast is a per-mode rotation that does not pass
-through the raycast mesh), so WaveSplat's improvement to $0.199$ against
+through the raycast mesh), so WaveSplat's improvement to $0.115$ against
 LETKF's steady $0.228$ is a genuine gain; the tuned ETKF is likewise
 near-mesh-invariant in nRMSE ($0.319\!\to\!0.332$), its variance ratio
 rising toward unity on the adequate reference field while its correlation
@@ -1906,7 +1918,7 @@ the median over 5 estimator seeds; per-frame times (ms) are carried from
 the original measurement (timing is independent of the reference mesh).
 LETKF uses Gaspari--Cohn localization ($r_{\text{loc}}=50$~m,
 $N_e=100$).  Bold indicates best per column.
-Bootstrap 95\% CI for SS (100~ep): WaveSplat $[{+0.06},\,{+0.28}]$,
+Bootstrap 95\% CI for SS (100~ep): WaveSplat $[{+0.42},\,{+0.65}]$,
 LETKF $[{+0.13},\,{+0.16}]$.}
 \label{tab:strong_baseline}
 \begin{tabular}{lccccccr}
@@ -1916,10 +1928,10 @@ SS $\uparrow$ & Dir.\ $R^2$ $\uparrow$ & $H_s$ err $\downarrow$ &
 ms $\downarrow$ \\
 \midrule
 \multicolumn{8}{l}{\emph{Full 100-episode comparison}} \\
-\textbf{WaveSplat} & \textbf{0.199} & \textbf{0.833} & \textbf{0.551} &
-\textbf{+0.171} & $-$0.025 & \textbf{0.186} & \textbf{14.5} \\
+\textbf{WaveSplat} & \textbf{0.115} & \textbf{0.916} & \textbf{0.764} &
+\textbf{+0.538} & \textbf{+0.381} & \textbf{0.102} & \textbf{14.5} \\
 LETKF (loc50)      & 0.228 & 0.127 & 0.357 & +0.144 &
-\textbf{+0.094} & 0.667 & 118.3 \\
++0.094 & 0.667 & 118.3 \\
 \midrule
 \multicolumn{8}{l}{\emph{12-episode subset (incl.\ ETKF, GPR)}} \\
 \textbf{WaveSplat} & \textbf{0.182} & \textbf{0.773} & \textbf{0.580} &
@@ -2352,8 +2364,8 @@ We presented WaveSplat, a grid-free spectral approach to
 ocean wave field estimation from sparse shipboard LiDAR.
 By representing waves as optimizable spectral components with
 dispersion constraints and adaptive model complexity, WaveSplat
-achieves 40.1\% lower nRMSE than a hyperparameter-tuned ETKF-grid
-baseline ($0.199$ vs.\ $0.332$ over 100 Nyquist-adequate episodes,
+achieves 65.5\% lower nRMSE than a hyperparameter-tuned ETKF-grid
+baseline ($0.115$ vs.\ $0.332$ over 100 Nyquist-adequate episodes,
 median over 5 seeds) while running approximately
 $10\times$ faster ($11.0$ vs.\ $132.6$~ms/frame), and is the only
 method among primary baselines with a positive Skill Score in a

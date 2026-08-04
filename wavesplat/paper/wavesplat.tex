@@ -33,9 +33,8 @@ sparse observations onto regular grids, WaveSplat represents the wave field
 as a superposition of spectral components---plane waves parameterized
 by wavenumber, amplitude, and phase---with angular frequency constrained by
 the linear dispersion relation.
-This continuous spectral representation avoids interpolation artifacts,
-scales to arbitrary spatial resolution, and enables adaptive model
-complexity matched to the true wave scene.
+This continuous spectral representation avoids interpolation artifacts
+and scales to arbitrary spatial resolution.
 
 We propose a two-phase estimation pipeline: (1)~initialization via
 dispersion-aware beamforming with coarse-to-fine refinement,
@@ -55,8 +54,9 @@ while running approximately \textbf{10$\times$} faster
 A pre-specified five-metric evaluation panel further shows that
 WaveSplat is the only method among the primary baselines (ETKF, GPR)
 with a positive Skill Score against a zero predictor
-(95\% bootstrap CI $[{+0.06},\,{+0.28}]$ on the aggregate regenerated
-dataset, tightening to $[{+0.50},\,{+0.65}]$ for $\leq$5-component seas),
+(95\% bootstrap CI $[{+0.42},\,{+0.65}]$ on the aggregate regenerated
+dataset, $[{+0.98},\,{+0.99}]$ for $\leq$5-component seas but
+$[{-0.24},\,{-0.04}]$---i.e.\ negative---for $\geq$15-component seas),
 exposing
 3-frame spatial-only sliding-kernel GPR as a near-zero predictor and the tuned ETKF as a
 variance-correct but shape-incoherent estimator.
@@ -73,14 +73,19 @@ statistically significant against both ETKF
 ($p = 1.6\!\times\!10^{-7}$, Wilcoxon signed-rank test).
 The method is robust to both geometry-weighted and unweighted LiDAR
 return-sampling models.
-With adaptive model order, the method matches spectral complexity to
-the observed scene---selecting $N$=2 for simple two-component swells
-and $N$=18--21 for complex multi-component seas---achieving 6.6\%
-average improvement over fixed model order.
-At very low sea states, the worst-case episode in this dataset triggers
-spurious adaptive-$N$ growth; Section~\ref{sec:limitations} traces most of
-this to a simulator rendering limitation rather than an intrinsic low-SNR
-failure of the estimator.
+We additionally report two negative results that bound what the above
+establishes.  First, the online model-order mechanism does select scene-matched
+component counts ($N$=2 on single-component swells, $N$=20--21 at BF5), but
+under the corrected tracker and a median-of-3 seed protocol its \emph{accuracy}
+contribution is null ($+0.0003$~nRMSE, 8/12 episodes, Wilcoxon $p=0.68$,
+against a median per-episode seed spread of $0.010$); we therefore present it
+as a mechanism and a compute-efficiency measure, not as an accuracy
+contribution.  Second, stratifying the same 100 episodes by directional spread
+against 25,426 buoy-measured sea states shows the aggregate advantage is
+concentrated in a spread band that the buoy record never contains: on the
+subset overlapping the measured central 90\% of spreads, LETKF is more often
+the better estimator (WaveSplat better on 5 of 24 episodes, sign-test
+$p=0.007$).
 \end{abstract}
 
 \begin{keyword}
@@ -93,7 +98,7 @@ dispersion relation \sep data assimilation \sep real-time estimation
 % ============================================================================
 \begin{highlights}
 \item Grid-free spectral wave estimation from sparse shipboard LiDAR,
-  with dispersion-constrained parameters and adaptive model order.
+  with dispersion-constrained parameters and online model-order selection.
 \item 65.5\% lower nRMSE than a hyperparameter-tuned ETKF-grid over
   100 Nyquist-adequate episodes (0.115 vs.\ 0.332, median over 5 seeds)
   and $\sim$10$\times$ faster (11.0 vs.\ 132.6~ms/frame, single CPU
@@ -105,6 +110,9 @@ dispersion relation \sep data assimilation \sep real-time estimation
   vs.\ sliding GPR ($d{=}0.65$) across 100 paired runs.
 \item Robust to geometry-weighted and unweighted LiDAR raydrop models
   and to 20--100\% observation-density subsampling.
+\item Reported limits: the online model-order mechanism contributes no
+  measurable accuracy ($p{=}0.68$), and the advantage over LETKF does not
+  survive stratification against 25,426 buoy-measured directional spreads.
 \end{highlights}
 
 \end{frontmatter}
@@ -166,9 +174,17 @@ Among sensor modalities, wave buoys~\citep{datawell2009} lack
 spatial resolution, X-band marine radar~\citep{nieto2004, young1985}
 images large areas but measures backscatter rather than elevation,
 and satellite altimetry~\citep{queffeulou2004} is too coarse for
-vessel-scale real-time use.  Shipboard scanning LiDAR, by contrast,
+vessel-scale real-time use.  Scanning LiDAR, by contrast,
 provides \emph{direct} elevation measurements over a wide area at
-$\sim$10~Hz~\citep{hwang2000, belmont2008}.
+$\sim$10~Hz~\citep{belmont2008}.
+That capability is not hypothetical: airborne scanning lidar has resolved
+open-ocean wave fields and their directional wavenumber spectra since the
+1990s~\citep{hwang2000}, from aircraft rather than from ships and at a
+correspondingly larger footprint.  We note this explicitly because the
+absence of real-data validation in the present work
+(Section~\ref{sec:limitations}) reflects the absence of a \emph{publicly
+archived} phase-resolved lidar sea-surface dataset, not the absence of
+such measurements.
 Current automotive-grade solid-state LiDAR systems operating at eye-safe wavelengths
 (1550~nm) offer $>$100 channels, wide fields of view
 ($\sim$$120^\circ \times 25^\circ$), and ranges up to 250~m with
@@ -249,11 +265,16 @@ Our key contributions are:
     angle and range account for the heteroscedastic noise structure of
     LiDAR measurements on ocean surfaces, where specular reflection
     probability and signal-to-noise ratio vary with incidence geometry.
-  \item \textbf{Adaptive model complexity}: Energy-based pruning and
-    residual-triggered growth automatically match the number of spectral
-    components to scene complexity, from $N$=1 for simple swells to
-    $N$=21 for complex multi-component seas.
 \end{enumerate}
+
+The pipeline also includes an online model-order mechanism (energy-based
+pruning and residual-triggered growth, Section~\ref{sec:adaptive}) that
+matches the number of spectral components to scene complexity, from $N$=2 for
+simple swells to $N$=21 for complex multi-component seas.  We deliberately do
+\emph{not} list it as a contribution: measured under the corrected tracker with
+a median-of-3 seed protocol, its accuracy benefit is null
+(Section~\ref{sec:adaptive}), and we discuss it as a mechanism and a
+compute-efficiency device in Section~\ref{sec:limitations} instead.
 
 Relative to prediction-error frameworks for deterministic wave forecasting such
 as LEPrE~\citep{fucile2018}, which quantify the error of a linear-fitting
@@ -667,7 +688,10 @@ the observed signal RMS is implemented but not enabled by default.
 A sensitivity sweep over $\tau_R \in \{0.02, 0.05, 0.08, 0.10, 0.15\}$~m
 on 12 representative episodes confirms robustness: values in
 $[0.05,\,0.15]$~m differ by at most 1.6\% in average nRMSE
-(0.2114 at $\tau_R{=}0.05$ vs.\ 0.2148 at $\tau_R{=}0.15$),
+(0.2114 at $\tau_R{=}0.05$ vs.\ 0.2148 at $\tau_R{=}0.15$; measured before
+the tracker phase-advance correction, so the levels are those of the
+earlier run while the flatness across $\tau_R$---the point of the
+sweep---is a within-sweep property),
 while $\tau_R = 0.02$~m causes over-growth in multi-component seas
 ($+$3.3\% average; up to 75\% increase on BF3~2-component
 slope-distributed observations), validating the chosen value
@@ -854,6 +878,31 @@ earlier versions of this work---a claimed low-SNR failure mode
 threshold (Section~\ref{sec:limitations})---were attributions of a
 rendering limitation to physics and to the algorithm respectively.
 
+\paragraph{Tracker phase-advance correction.}
+A second defect, in the estimator rather than the reference field, was
+found and fixed in the same review, and several tables in this paper carry
+a provenance note referring to it.  The tracking loop advanced each
+component's phase by $\varphi_i \mathrel{+}= \omega_i \Delta t$ at the
+start of a frame, while the forward model of Eq.~\eqref{eq:forward}
+already carries the $-\omega_i t$ term with absolute episode time.  The
+advance was therefore applied twice, so the represented field drifted out
+of step with the truth at a rate proportional to $\omega_i$ even when
+every parameter was correct.  Removing the explicit advance
+(the current default) lowers the full-dataset nRMSE from $0.199$ to
+$0.115$, raises Skill Score from $+0.171$ to $+0.538$ and variance ratio
+from $0.833$ to $0.916$, and reverses the sign of the supplementary
+directional $R^2$ ($-0.025 \to +0.381$).  Because the defect scaled with
+$\omega_i \Delta t$ it penalised short components hardest, i.e.\ in the
+same direction as the mesh inadequacy above---which is why several
+conclusions in earlier drafts had two independent reasons to be wrong.
+Tables produced before this correction are individually marked; where a
+re-run has since been performed we report the re-run and say so, and
+where it has not we mark the table rather than mix eras silently.
+We note explicitly that the correction, the mesh replacement, and a move
+from single-seed to median-of-3 reporting all landed within the same
+revision, so differences between a pre-correction and a post-correction
+table cannot be attributed to any one of the three.
+
 \subsection{Metrics}
 
 We report:
@@ -1029,7 +1078,7 @@ GPR-1              & 0.263 & 0.062 & 0.194 & --0.164 & 0.297 \\
 
 The headline observation from Table~\ref{tab:fivemetric} is that
 \emph{WaveSplat is the only method whose Skill Score is positive}
-($+0.171$): every baseline performs \emph{worse} than the trivial
+($+0.538$): every baseline performs \emph{worse} than the trivial
 zero predictor when judged against a balanced metric panel.  This
 exposes two distinct failure modes that the nRMSE column alone hides:
 
@@ -1059,8 +1108,8 @@ RMSE scales linearly with $H_s$ and the normalization cancels.
 WaveSplat, in contrast, varies meaningfully with sea complexity
 (0.14--0.27 by band) and is now the lowest-error method on every band,
 including BF2---the calm single-component seas whose worst-case episode
-the coarse render had made WaveSplat's weakest point
-(Section~\ref{sec:bf2case}).
+the coarse render had made WaveSplat's weakest point, and which is now
+mid-pack (Section~\ref{sec:bf2case}).
 
 \begin{table}[t]
 \centering
@@ -1092,35 +1141,142 @@ predicting zero.
 
 \paragraph{Honest reporting of WaveSplat's own limitations.}
 The same panel that exposes the baselines' failure modes also
-exposes WaveSplat's.
-On the \emph{aggregate} 100-episode dataset, its skill score of $+0.171$
-is positive, and its variance ratio of 0.83
-indicates $\sim$17\% amplitude under-estimation.
-However, these aggregates are dominated by high-complexity episodes
-($\geq$15 components) where our beamforming initializer, at its configured
-peak-separation radius (Sec.~\ref{sec:limitations}), cannot resolve
-individual modes.
-The $\leq$5-component threshold follows from the beamforming
-initializer's configured peak-separation radius
-(Sec.~\ref{sec:limitations}), not from the sensor's spatial Nyquist
-limit, and not from a post-hoc search:
-for $\leq$5-component episodes (60\% of the dataset), SS rises to
-$+0.58$ with CI~$[{+0.50},\,{+0.65}]$ firmly excluding zero
-and VR~$=0.78$.
+exposes WaveSplat's.  The aggregate Skill Score of $+0.538$ is not a
+uniform property of the method: it is an average over two regimes that
+behave qualitatively differently, and in one of them WaveSplat is worse
+than predicting zero.
+Splitting the same 100 episodes at the $\leq$5-component
+boundary---which follows from the beamforming initializer's configured
+peak-separation radius (Sec.~\ref{sec:limitations}), not from the sensor's
+spatial Nyquist limit, and not from a post-hoc search---gives
+SS~$=+0.987$, CI~$[{+0.98},\,{+0.99}]$ for the $\leq$5-component episodes
+(60\% of the dataset) but SS~$=-0.136$, CI~$[{-0.24},\,{-0.04}]$ for the
+$\geq$15-component ones, the interval excluding zero on the
+\emph{negative} side.  Pearson $\rho$ falls from $0.995$ to $0.418$ and
+directional $R^2$ from $+0.98$ to $-0.52$ across the same split.
+In the crowded regime, then, the aggregate figure is carried entirely by
+the sparse half of the dataset, and the honest statement is that our
+initializer does not resolve individual modes there.
+Variance preservation, by contrast, is regime-independent
+(VR~$=0.910$ vs.\ $0.925$), so the crowded-regime deficit is one of
+spatial phase and placement, not of energy.
 The regime where WaveSplat underperforms---spectrally crowded seas---is
 precisely where grid-based methods like LETKF have a structural
-advantage (see Section~\ref{sec:strongbaselines}).
+advantage (see Sections~\ref{sec:strongbaselines}
+and~\ref{sec:extvalidity}).
 Section~\ref{sec:dirdeficit} discusses an additional supplementary
 finding---a sensor-geometry-induced directional ambiguity---that does
 not appear in the five-metric panel but has practical implications for
 heading-dependent downstream control.
-
-Amplitude under-estimation is traced to Adam optimizer momentum
-accumulating oscillating gradient signals from imperfect phase prediction
-(see Section~\ref{sec:limitations}).  We report these shortcomings
-explicitly here rather than relegating them to
-Section~\ref{sec:discussion} because they qualify---not negate---the
+We report these shortcomings explicitly here rather than relegating them
+to Section~\ref{sec:discussion} because they qualify---not negate---the
 primary finding.
+
+\subsection{External validity: stratification against measured directional spread}
+\label{sec:extvalidity}
+
+Tables~\ref{tab:fivemetric} and~\ref{tab:bybf} score the methods inside our own
+synthetic distribution.  That is the standard practice in this literature, and
+it leaves one question unanswered: does the sea state where the advantage is
+largest occur in the ocean?  We answer it with an external instrument rather
+than an argument.
+
+We drew directional-spread statistics from the Coastal Data Information Program
+(CDIP) archive~\citep{cdip, oreilly2016}: 24 stations sampled on a pre-fixed rule (every
+eighth station of the sorted archive, last deployment per station, time-strided
+to $\leq$1000 records, quality flag \texttt{good} only), giving
+\textbf{25,426 measured sea states}.  To keep the two arms identical we do not
+use the archive's distributed \texttt{waveSpread} product but re-derive spread
+from the raw first-order directional moments, and apply the \emph{same}
+estimator to our synthetic episodes' component sets:
+\begin{equation}
+  \sigma_1 = \sqrt{2\left(1 - \sqrt{a_1^2 + b_1^2}\right)},
+  \label{eq:spread}
+\end{equation}
+with $(a_1, b_1)$ energy-weighted over 0.04--0.50~Hz---from
+\texttt{waveA1}/\texttt{waveB1} for the buoys, and from
+$E_i = w_i^2/2$, $\theta_i = \operatorname{atan2}(k_{y,i}, k_{x,i})$ for our
+episodes.  Eq.~\eqref{eq:spread} returns radians; all spreads below are
+reported in degrees.  Two thresholds follow from the measured distribution and are fixed
+before stratifying: its \emph{minimum} ($12.18^\circ$) and its 5th percentile
+($21.11^\circ$).
+
+Our synthetic universe sits in the lower tail of the measured one.  The median
+synthetic spread is $16.1^\circ$, at the \textbf{0.3rd percentile} of the buoy
+distribution (median $35.3^\circ$); \textbf{40 of our 100 episodes are narrower
+than the narrowest of the 25,426 measured records}; and even our most crowded
+30-component episodes ($24.2^\circ$ median) sit at the measured 11.5th
+percentile.  This is not a sea-state confound: restricting the buoy records to
+our own $H_s$ and $T_p$ box (0.3--2.0~m, 4--9~s, $n=7122$) leaves the median
+spread unchanged ($35.3^\circ \to 35.7^\circ$).  Significant wave height is
+well covered (79.7\% of measured records fall in our range); spread and peak
+period are not (our $T_p$ ceiling of 9~s lies below the measured median of
+9.88~s, i.e.\ our generator contains no swell).
+
+Table~\ref{tab:extvalidity} re-weights the \emph{existing} 100-episode results
+by these thresholds.  No new runs were performed and no episode was
+re-estimated; all four methods are stratified identically, with the same
+per-episode median-over-seeds protocol as Table~\ref{tab:fivemetric}.
+
+\begin{table*}[t]
+\centering
+\caption{The same 100-episode results of Table~\ref{tab:fivemetric},
+stratified by the directional spread of Eq.~\eqref{eq:spread} against
+25,426 CDIP-measured sea states.  Mean nRMSE (lower better) with WaveSplat's
+Skill Score; ``$\Delta$ vs.'' is WaveSplat's relative nRMSE improvement.
+Thresholds are the measured minimum ($12.18^\circ$) and 5th percentile
+($21.11^\circ$), fixed in advance.  This is a re-weighting of existing
+measurements, not a new experiment.}
+\label{tab:extvalidity}
+\begin{tabular}{lcccccccc}
+\toprule
+Spread band & $N_{\text{ep}}$ & WaveSplat & ETKF & LETKF & GPR-1 &
+$\Delta$ vs.\ ETKF & $\Delta$ vs.\ LETKF & WS SS \\
+\midrule
+All episodes (as reported)        & 100 & \textbf{0.114} & 0.332 & 0.228 & 0.263 & $+$65.5\% & $+$49.7\% & $+0.538$ \\
+Never measured ($<12.18^\circ$)   &  40 & \textbf{0.020} & 0.346 & 0.240 & 0.258 & $+$94.1\% & $+$91.5\% & $+0.988$ \\
+Measured at all ($\geq12.18^\circ$) &  60 & \textbf{0.177} & 0.323 & 0.220 & 0.267 & $+$45.1\% & $+$19.3\% & $+0.237$ \\
+\textbf{Measured central 90\% ($\geq21.11^\circ$)} & 24 & 0.228 & 0.314 & \textbf{0.216} & 0.262 & $+$27.5\% & $-$5.7\% & $-0.076$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The result qualifies our headline in a specific and quantifiable way.
+The 40 episodes on which WaveSplat is strongest (nRMSE $0.020$, SS $+0.988$)
+occupy a spread band in which \emph{none} of the 25,426 measured records
+falls.  On the 24 episodes that overlap the measured central 90\% of spreads,
+LETKF attains the lower mean nRMSE ($0.216$ vs.\ $0.228$) and WaveSplat is the
+better estimator on only 5 of the 24 (sign test $p=0.0066$); our Skill Score
+crosses into negative territory ($-0.076$) while LETKF's stays positive
+($+0.189$) on the same episodes.  That asymmetry is the reason the table is
+informative: it is not a common degradation of every method under a harder
+subset, and the stratification is applied identically to all four arms.
+
+Three limits on how far this may be read, stated explicitly because the
+stratification invites over-reading in both directions.
+\emph{First}, this is not a measurement on real waves. What was
+stratified is our synthetic dataset; the correct statement is that
+\emph{on the subset of our synthetic episodes whose directional spread
+overlaps the measured distribution, LETKF is more often the better
+estimator}---not that WaveSplat loses at sea, which these data cannot
+establish.
+\emph{Second}, the ranking sign is significant but its magnitude is not: the
+paired signs give $p=0.0066$ while the paired magnitudes do not separate
+(Wilcoxon $p=0.107$), so ``more often worse'' is supported and ``worse by
+$5.7\%$'' is not.
+\emph{Third}, the spread partition coincides exactly with the
+component-count partition ($\geq12.18^\circ \Leftrightarrow N_{\text{true}}
+\geq 5$ on this dataset).  The performance structure is therefore \emph{not}
+a new finding---the crowded-regime wall is already visible in
+Table~\ref{tab:bybf} and Section~\ref{sec:strongbaselines}.  What is new is
+which side of that wall the ocean occupies, and the answer is the side we do
+worse on.
+The buoy sample carries its own caveats: 24 of 194 stations, one deployment
+each, predominantly US coastal intermediate-depth sites against our 50~m
+simulated depth, and buoy moments are measured (instrument response and noise
+included) where ours are analytic.  That asymmetry can only inflate the
+measured spreads relative to ours, so the \emph{direction} of the gap is
+robust while its magnitude should be read as an upper bound.
 
 \subsection{Per-episode breakdown on 12 representative episodes}
 \label{subsec:per_episode}
@@ -1134,12 +1290,16 @@ Using the same tuned ETKF configuration
 WaveSplat achieves a median nRMSE of \textbf{0.182} compared to
 \textbf{0.377} for ETKF on these episodes (\textbf{51.7\%}
 improvement).%
-\footnote{\textbf{Provenance.} This 12-episode subset and every table
-downstream of it (ablations, adaptive-$N$ sweep, ray-drop comparison)
-were produced before the tracker phase-advance correction of
-Section~\ref{sec:strongbaselines} and are pending re-run; they are
-therefore not directly comparable with the corrected full-dataset
-figures above.  See \texttt{docs/PAPER\_NUMBER\_PROPAGATION\_AUDIT\_2026-08-01.md}.}
+\footnote{\textbf{Provenance.} This 12-episode subset was produced before
+the tracker phase-advance correction of Section~\ref{sec:regen} and has
+not been re-run, so it is not directly comparable with the corrected
+full-dataset figures above.  The tables that were downstream of it have
+since been re-measured under the correction and report post-correction
+values (ablation, Table~\ref{tab:ablation}; model order,
+Table~\ref{tab:adaptive}; ray-drop, Table~\ref{tab:raydrop}); the
+observation-density sweep (Table~\ref{tab:sparsity}) and the forecast
+horizons (Table~\ref{tab:forecast}) have not, and are marked
+individually.}
 WaveSplat wins on all 12 episodes.
 Figure~\ref{fig:comparison} visualizes the per-episode comparison, and
 Figure~\ref{fig:qualitative} shows representative wave fields.
@@ -1293,132 +1453,178 @@ episodes and seeds, with non-overlapping error bars in most cases.}
 \label{fig:multiseed}
 \end{figure*}
 
-\subsection{Adaptive model order}
+\subsection{Online model order: mechanism works, accuracy contribution is null}
+\label{sec:adaptive}
 
-Table~\ref{tab:adaptive} and Fig.~\ref{fig:adaptive} show that
-adaptive $N$ consistently improves over fixed $N$=15, with an average
-6.6\% reduction in nRMSE.
-The model correctly identifies scene complexity:
-$N$=1 for single-component swells, $N$=2--4 for moderate seas, and
-$N$=18--21 for complex multi-component fields.
+An earlier version of this study reported that adaptive $N$ improves on a
+fixed $N$=15 by 6.6\% in average nRMSE.  That measurement was made with the
+uncorrected tracker (Section~\ref{sec:regen}), on the coarse reference mesh,
+and from a single estimator seed.  Re-measured under the current defaults---%
+corrected phase advance, Nyquist-adequate mesh, and the median-of-3 seed
+protocol used elsewhere in this paper---%
+\emph{the accuracy benefit disappears} (Table~\ref{tab:adaptive}).
 
 \begin{table}[t]
 \centering
-\caption{Adaptive model order vs.\ fixed $N$=15 (baseline).
-$N_{\text{true}}$: ground-truth number of wave components.}
+\caption{Online model order (WS-P1: adaptive $N$, 3-frame tracking window)
+vs.\ fixed $N$=15 (WS-P0, single-frame window), on the 12 pre-specified
+representative episodes.  Each cell is the median nRMSE over 3 estimator
+seeds (42/123/456) on the Nyquist-adequate dataset; $N_a$ is the median
+final component count.  $\Delta$ is P0$-$P1, so positive favours adaptive
+$N$.  Re-measured 2026-08-03; supersedes the pre-correction table.}
 \label{tab:adaptive}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccccc}
 \toprule
-Episode & $N_{\text{true}}$ & $N_{\text{adapt}}$ & Fixed & Adaptive \\
+Episode & $N_{\text{true}}$ & $N_a$ & Fixed & Adaptive & $\Delta$ \\
 \midrule
-BF4 1comp  &  1 &  1 & 0.208 & \textbf{0.171} \\
-BF3 2comp  &  2 &  2 & 0.059 & \textbf{0.052} \\
-BF3 5comp  &  5 &  4 & 0.185 & \textbf{0.167} \\
-BF4 15comp & 15 & 19 & 0.306 & \textbf{0.302} \\
-BF5 15comp & 15 & 21 & 0.331 & \textbf{0.297} \\
-BF4 30comp & 30 & 18 & 0.332 & \textbf{0.314} \\
+BF2 1comp  &  1 &  2 & \textbf{0.062} & 0.063 & $-$0.001 \\
+BF3 1comp  &  1 &  2 & 0.014 & \textbf{0.009} & $+$0.005 \\
+BF3 2comp (U) &  2 & 15 & 0.009 & \textbf{0.007} & $+$0.002 \\
+BF3 2comp (S) &  2 & 15 & 0.011 & \textbf{0.009} & $+$0.002 \\
+BF3 5comp (U) &  5 & 15 & 0.027 & \textbf{0.024} & $+$0.003 \\
+BF3 5comp (S) &  5 & 15 & 0.022 & \textbf{0.019} & $+$0.003 \\
+BF4 1comp  &  1 &  2 & 0.010 & \textbf{0.004} & $+$0.006 \\
+BF4 5comp  &  5 & 15 & 0.021 & \textbf{0.017} & $+$0.003 \\
+BF4 15comp & 15 & 10 & \textbf{0.267} & 0.272 & $-$0.005 \\
+BF4 30comp & 30 &  9 & \textbf{0.322} & 0.333 & $-$0.011 \\
+BF5 15comp & 15 & 21 & 0.220 & \textbf{0.216} & $+$0.004 \\
+BF5 30comp & 30 & 20 & \textbf{0.240} & 0.246 & $-$0.007 \\
 \midrule
-\textbf{Avg (12 ep.)} & & & 0.226 & \textbf{0.211} \\
+\textbf{Mean (12 ep.)} & & & 0.1018 & 0.1015 & $+$0.0003 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/fig2_adaptive_n.pdf}
-\caption{Adaptive model order vs.\ ground-truth complexity.
-Color encodes nRMSE. The adaptive mechanism correctly identifies
-low-complexity scenes ($N_\text{adapt} \leq 4$ for $N_\text{true} \leq 5$)
-but saturates at $N_\text{adapt} \approx 18$--21 for high-complexity
-scenes due to beamforming resolution limits.  The saturation reflects the
-configured beamforming peak-separation radius, not a method-independent
-limit (Sec.~\ref{sec:limitations}).}
-\label{fig:adaptive}
-\end{figure}
+The mean gain is $+0.0003$~nRMSE with the adaptive arm better on 8 of 12
+episodes---neither the paired ranks nor the signs separate the arms
+(Wilcoxon $p=0.68$; sign test $p=0.39$).  Two features make this a
+\emph{measured null} rather than merely an inconclusive test.  First, the
+median per-episode spread across seeds is $0.010$~nRMSE in the adaptive arm,
+roughly $30\times$ the mean effect: the quantity being contested is more than
+an order of magnitude below this experiment's own noise floor, so the correct
+reading is not ``we failed to detect a benefit'' but ``there is no benefit of
+a size worth measuring here''.  Second, the sign of the effect is
+regime-dependent in a way the aggregate hides: adaptive $N$ is better on all
+eight sparse episodes ($N_{\text{true}}\leq5$) and \emph{worse} on three of
+the four crowded ones (BF4~15comp $-0.005$, BF4~30comp $-0.011$,
+BF5~30comp $-0.007$).
+
+Table~\ref{tab:adaptive} also shows the mechanism itself is not inert---it is
+merely not helping.  The fixed arm holds $N_a=15$ on all 12 episodes by
+construction, while the adaptive arm prunes to $N_a=2$ on every
+single-component episode and grows to $N_a=20$--21 at BF5, so scene-matched
+model orders are in fact selected.  The failure is specifically on the crowded
+episodes, where it prunes \emph{down} to $N_a=9$--10 against
+$N_{\text{true}}=15$--30 and pays for it in accuracy: the 90\%-energy
+criterion discards components that the coarse-to-fine stage had already placed
+correctly.
+Two constraints on how far this may be read.  It is a 12-episode comparison,
+so it bounds the effect but does not resolve its regime structure; and because
+the tracker correction, the mesh replacement, and the seed protocol all changed
+between the two measurements, the difference from the earlier $+6.6\%$
+\emph{cannot} be attributed to any one of the three.  What is established is
+the value under the configuration this paper actually reports.
+
+Accordingly, we do not claim online model-order selection as an accuracy
+contribution (Section~\ref{sec:limitations}).  Its defensible value is
+operational: on the sparse episodes it reaches the same accuracy while carrying
+$N_a=2$ rather than 15 components, which is a $7.5\times$ reduction in the
+per-frame tracking state and hence in per-frame cost.
 
 \subsection{Ablation study}
 
-We ablate two key design choices on 6 BF3 episodes with 5 random seeds
+We ablate two key design choices on 6 BF3 episodes
 (Table~\ref{tab:ablation}, Fig.~\ref{fig:ablation}).  Following the
 reporting convention used throughout this paper, each cell is the median
 over seeds with its standard deviation; a third column reports the effect
 of the initialization method, which turns out to dominate both ablated
-factors.
+factors.  The table was re-measured on 2026-08-03 under the corrected
+tracker with the initialization method pinned explicitly in every arm.
 
 \begin{table}[t]
 \centering
 \caption{Ablation study on BF3 episodes: median nRMSE $\pm$ std over
-5 estimator seeds, on the Nyquist-adequate dataset
-(Section~\ref{sec:regen}).
+3 estimator seeds (42/123/456), on the Nyquist-adequate dataset
+(Section~\ref{sec:regen}), corrected tracker.
 A1: dispersion constraint removed ($\omega$ as free parameter).
 A2: confidence weighting removed (uniform weights).
-The last column changes only the initializer (v1 $\to$ v2), holding both
-ablated components in place.
-\emph{Note}: A1 attains lower nRMSE on the multi-component episodes by
-allowing $\omega$ to drift off the dispersion shell (mean $\bar{R}=0.51$);
-those estimates are physically invalid and cannot be propagated in time
-(see text).
-\emph{Provenance}: produced before the tracker phase-advance correction;
-pending re-run and not directly comparable with the corrected
-full-dataset figures of Tables~\ref{tab:fivemetric}
-and~\ref{tab:strong_baseline}.}
+Full, A1 and A2 all use the v1 initializer; the last column changes
+\emph{only} the initializer (v1 $\to$ v2), holding both ablated
+components in place.
+\emph{Note}: neither ablation reaches significance at $n=6$---%
+the two-sided sign-test floor for 6 episodes is $p=0.031$, attainable
+only at 6/6 (see text).}
 \label{tab:ablation}
 \begin{tabular}{lcccc}
 \toprule
 Episode & Full & w/o Disp.\ (A1) & w/o Conf.\ (A2) & v2 init \\
 \midrule
-1comp (S) & $0.164{\scriptstyle\pm.042}$ & $0.314{\scriptstyle\pm.123}$ & $0.163{\scriptstyle\pm.063}$ & $\mathbf{0.042}{\scriptstyle\pm.051}$ \\
-1comp (U) & $0.164{\scriptstyle\pm.030}$ & $0.286{\scriptstyle\pm.044}$ & $0.163{\scriptstyle\pm.042}$ & $\mathbf{0.047}{\scriptstyle\pm.012}$ \\
-2comp (S) & $0.165{\scriptstyle\pm.019}$ & $0.052{\scriptstyle\pm.067}$ & $0.167{\scriptstyle\pm.000}$ & $\mathbf{0.034}{\scriptstyle\pm.022}$ \\
-2comp (U) & $0.166{\scriptstyle\pm.028}$ & $0.105{\scriptstyle\pm.089}$ & $0.166{\scriptstyle\pm.023}$ & $\mathbf{0.052}{\scriptstyle\pm.011}$ \\
-5comp (S) & $0.220{\scriptstyle\pm.035}$ & $0.142{\scriptstyle\pm.039}$ & $0.199{\scriptstyle\pm.014}$ & $\mathbf{0.196}{\scriptstyle\pm.011}$ \\
-5comp (U) & $0.225{\scriptstyle\pm.014}$ & $0.153{\scriptstyle\pm.100}$ & $0.188{\scriptstyle\pm.025}$ & $\mathbf{0.156}{\scriptstyle\pm.012}$ \\
+1comp (S) & $0.009{\scriptstyle\pm.001}$ & $0.139{\scriptstyle\pm.135}$ & $\mathbf{0.007}{\scriptstyle\pm.135}$ & $0.008{\scriptstyle\pm.003}$ \\
+1comp (U) & $0.015{\scriptstyle\pm.003}$ & $0.115{\scriptstyle\pm.095}$ & $0.012{\scriptstyle\pm.006}$ & $\mathbf{0.011}{\scriptstyle\pm.003}$ \\
+2comp (S) & $0.047{\scriptstyle\pm.019}$ & $0.046{\scriptstyle\pm.000}$ & $0.045{\scriptstyle\pm.000}$ & $\mathbf{0.008}{\scriptstyle\pm.010}$ \\
+2comp (U) & $0.050{\scriptstyle\pm.003}$ & $0.048{\scriptstyle\pm.028}$ & $0.050{\scriptstyle\pm.004}$ & $\mathbf{0.012}{\scriptstyle\pm.003}$ \\
+5comp (S) & $0.041{\scriptstyle\pm.051}$ & $0.145{\scriptstyle\pm.041}$ & $0.126{\scriptstyle\pm.071}$ & $\mathbf{0.015}{\scriptstyle\pm.000}$ \\
+5comp (U) & $0.047{\scriptstyle\pm.061}$ & $0.129{\scriptstyle\pm.046}$ & $0.041{\scriptstyle\pm.001}$ & $\mathbf{0.019}{\scriptstyle\pm.003}$ \\
 \midrule
-\textbf{Avg} & 0.184 & 0.175 & 0.174 & \textbf{0.088} \\
+\textbf{Median} & 0.044 & 0.122 & 0.043 & \textbf{0.012} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Read as paired per-run differences (30 pairs: 6 episodes $\times$ 5 seeds),
-neither ablation is distinguishable from zero:
-A1~$-$~Full $= -0.007$ ($t = -0.29$, $p = 0.77$, 18/30 runs lower) and
-A2~$-$~Full $= +0.001$ ($t = 0.08$, $p = 0.94$, 17/30 runs lower).
-Changing the initializer moves the same metric by
-$-0.090$ ($t = -10.2$, $p < 10^{-4}$, 29/30 runs lower)---an order of
-magnitude larger than either ablated component.  We report this rather
-than suppress it: it means the design choices ablated here are not what
-carries the method's accuracy on these episodes, and that an ablation
-whose baseline is not the production initializer measures the wrong
-thing.  The interpretation of each ablation below is therefore restated
-in terms of what it does establish.
+Read as paired per-episode differences against Full ($n=6$):
+removing the dispersion constraint costs $+0.091$~nRMSE on the median
+episode and is worse on 4 of 6, but at $n=6$ that is $p=0.69$;
+removing confidence weighting changes it by $-0.002$---marginally
+\emph{lower} without---and is worse on only 1 of 6 ($p=0.22$).  Changing the initializer moves the same metric by
+$-0.027$ and is better on \textbf{6 of 6} ($p=0.031$)---the only
+comparison in this re-measurement that reaches $\alpha=0.05$, and it does
+so exactly at the sign-test floor, so no stronger claim is available from
+it either.  We report this rather than suppress it: on these episodes the
+initializer, not the ablated components, is what carries accuracy, and an
+ablation whose baseline is not the production initializer measures the
+wrong thing.  Note also that this design was underpowered by
+construction: with 6 paired episodes no effect, however large, could have
+been resolved below $p=0.031$.  The interpretation of each ablation below
+is therefore restated in terms of what it does establish.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/fig4_ablation.pdf}
 \caption{Ablation study: contribution of dispersion constraint and
-confidence weighting. Error bars show $\pm$1 std across 5 seeds.
-Neither ablation is separable from seed noise in aggregate; the
-dispersion ablation splits by component count (worse at $N_{\text{true}}=1$,
-better at $N_{\text{true}}\geq 2$), and the confidence ablation is null.
-Figure regenerated from the Nyquist-adequate dataset.}
+confidence weighting.  Error bars show $\pm$1 std across seeds.
+The confidence ablation is null; the dispersion ablation shows a large
+effect that does not reach significance at $n=6$ episodes.
+\emph{Provenance}: drawn from the earlier pre-correction run and retained
+for the qualitative pattern only---the per-episode levels are superseded
+by Table~\ref{tab:ablation}, and the earlier run's regime split
+(A1 better at $N_{\text{true}}\geq 2$) does not reproduce.}
 \label{fig:ablation}
 \end{figure*}
 
 \textbf{A1 (no dispersion constraint)}: Removing the dispersion constraint
 allows $\omega$ as a free parameter ($5N$ total parameters).
-On the Nyquist-adequate data the aggregate effect is null
-($-0.007$, $p = 0.77$), but the aggregate hides a clean regime split
-that is more informative than the average: the unconstrained optimizer
-is substantially \emph{worse} on the single-component episodes
-($0.164 \to 0.31$, both raydrop models) and substantially
-\emph{better} on the 2- and 5-component ones ($0.166 \to 0.05$--$0.15$).
-With one component there is nothing for the extra freedom to fit except
-noise; with several, the unconstrained model can absorb residual
-structure by moving $\omega$ off the shell.
-This second half of the split requires careful interpretation, and it is
-the reason the constraint is retained.  A lower nRMSE for A1 should not
-be mistaken as evidence that the dispersion constraint is physically too
-restrictive.  For BF3--5
+Under the corrected tracker the unconstrained optimizer is
+\emph{worse} on 4 of the 6 episodes and by a large margin where it differs
+at all: $0.009 \to 0.139$ and $0.015 \to 0.115$ on the single-component
+pair, $0.041 \to 0.145$ and $0.047 \to 0.129$ on the 5-component pair,
+against a near-tie on the 2-component pair ($-0.001$ and $-0.002$, both
+inside the seed spread).  The median cost of removing the constraint is
+$+0.091$~nRMSE, roughly twice the Full arm's own median error.
+Two cautions attach to this.  First, an effect this large still does not
+reach significance here: 4/6 is $p=0.69$, and the design could not have
+produced better than $p=0.031$ (see above).  The defensible statement is
+\emph{large effect size, insufficient power}---not that the constraint is
+demonstrated to contribute.
+Second, this reverses the direction reported in the earlier
+pre-correction run, which found A1 \emph{better} on the 2- and
+5-component episodes; that regime split does not reproduce, and since
+tracker, mesh and seed protocol all changed between the runs, the reversal
+cannot be attributed to any single one of them.
+The physical argument for retaining the constraint is independent of
+either measurement, and we give it because a lower nRMSE for A1---%
+observed in the earlier run, and still present on the 2-component
+pair---should not be mistaken as evidence that the dispersion constraint
+is physically too restrictive.  For BF3--5
 deep-water gravity waves, $>99\%$ of wave energy lies on the linear
 dispersion shell~\citep{holthuijsen2007}; bound harmonic
 contributions from second-order Stokes theory scale as
@@ -1460,24 +1666,35 @@ temporal tracking without re-estimating all $5N$ parameters per frame
 Without this constraint, the tracking phase would require joint
 optimization of $(w_i, k_{x,i}, k_{y,i}, \omega_i, \varphi_i)$ at each
 frame---an ill-conditioned problem with sparse single-frame
-observations.  The ablation therefore measures the cost of physical
-validity, not the value of the constraint as a regularizer: WaveSplat
-deliberately accepts a modest nRMSE penalty in exchange for spectral
-estimates that respect the linear gravity-wave dispersion relation
-and remain usable for downstream applications such as the hydrofoil
-preview controller of our companion work~\citep{park2026hydrofoil}.
+observations.  Under the earlier measurement this ablation appeared to
+price physical validity---an nRMSE penalty accepted in exchange for
+spectral estimates that respect the linear gravity-wave dispersion
+relation and remain usable downstream, e.g.\ by the hydrofoil preview
+controller of our companion work~\citep{park2026hydrofoil}.  Under the
+corrected measurement no such trade is visible: the constrained arm is
+both physically valid and equal or better in nRMSE on 4 of 6 episodes.
+We state the weaker of the two readings, which is the one common to both
+runs: the dispersion constraint is justified by the downstream
+requirement independently of its nRMSE effect, and the nRMSE effect on
+these six episodes is a large-looking difference this design lacked the
+power to certify.
 
-\textbf{A2 (no confidence weighting)}: on the Nyquist-adequate dataset
-this ablation is \emph{null}.  Removing the geometry-aware confidence
-weighting changes the paired per-run nRMSE by $+0.001$
-($t=0.08$, $p=0.94$; 17 of 30 runs are in fact lower without it), and
-the per-episode medians differ by at most $0.037$, which is inside the
-seed spread of either arm.
+\textbf{A2 (no confidence weighting)}: this ablation is \emph{null}, and
+the null now has two independent measurements behind it.  Under the
+corrected tracker, removing the geometry-aware confidence weighting moves
+the median episode by $-0.002$~nRMSE---marginally in favour of removing
+it---and is worse on only 1 of 6 episodes ($p=0.22$); on four of the six
+the two arms agree to within $0.003$.  An independent re-measurement one
+month earlier, on the same dataset with a different seed set and the
+pre-correction tracker, returned the same verdict (paired $+0.001$,
+$t=0.08$, $p=0.94$, 17 of 30 runs lower without it).  A null that
+survives a change of tracker, seed protocol and analyst pass is the one
+result in this ablation table we regard as settled.
 An earlier version of this study, run on the pre-Nyquist dataset with
 3 seeds, reported a 14.5\% average degradation and a
 $0.088 \to 0.204$ ($2.3\times$) increase on the BF3 2-component
 slope episode.  That specific case now measures
-$0.165 \to 0.167$, a ratio of $1.01$.  We could not reproduce the
+$0.047 \to 0.045$, a ratio of $0.96$.  We could not reproduce the
 effect, and we report the null rather than the earlier number.
 One caveat bounds what this does and does not settle.  The null holds
 under both initializers---repeating the ablation with the production
@@ -1523,9 +1740,13 @@ between return density and observation quality.
 \centering
 \caption{Raydrop model comparison on the Nyquist-adequate dataset:
 geometry-weighted (U) vs.\ unweighted (S) return sampling, seed-0
-episodes, median over 5 estimator seeds. $\Delta$\%: relative nRMSE
-change from weighted to unweighted (negative = unweighted is better).
-ETKF uses the default configuration ($n_{\text{ens}}{=}50$); its nRMSE
+episodes. $\Delta$\%: relative nRMSE change from weighted to unweighted
+(negative = unweighted is better).
+WaveSplat columns are the median over 3 estimator seeds (42/123/456) under
+the corrected tracker, re-measured 2026-08-03.
+ETKF uses the default configuration ($n_{\text{ens}}{=}50$) and is carried
+over from the earlier pass on the same dataset (the tracker correction
+affects only the WaveSplat arm); its nRMSE
 values are near the zero-predictor level and are variance-dominated
 (Section~\ref{sec:strongbaselines}), so the relative
 sensitivity ($\Delta$\%) is the quantity of interest, not the level---and
@@ -1538,18 +1759,18 @@ honestly re-tuned baseline (Section~\ref{sec:raydrop-results}).}
 \cmidrule(lr){2-4} \cmidrule(lr){5-7}
 Episode & U & S & $\Delta$\% & U & S & $\Delta$\% \\
 \midrule
-BF2 1c  & 0.169 & \textbf{0.116} & $-$31.8 & 0.396 & 0.338 & $-$14.6 \\
-BF3 1c  & \textbf{0.048} & 0.062 & +28.2 & 0.444 & 0.378 & $-$14.9 \\
-BF3 2c  & 0.084 & \textbf{0.062} & $-$26.1 & 0.409 & 0.355 & $-$13.1 \\
-BF3 5c  & 0.170 & 0.171 & +0.8  & 0.441 & 0.359 & $-$18.5 \\
-BF4 1c  & 0.060 & 0.060 & +1.3  & 0.453 & 0.342 & $-$24.4 \\
-BF4 5c  & 0.203 & 0.225 & +10.6 & 0.394 & 0.367 & $-$6.9 \\
-BF4 15c & 0.291 & 0.272 & $-$6.4 & 0.537 & 0.404 & $-$24.7 \\
-BF4 30c & 0.340 & 0.293 & $-$13.8 & 0.495 & 0.441 & $-$10.9 \\
-BF5 15c & 0.284 & 0.273 & $-$4.1 & 0.461 & 0.394 & $-$14.6 \\
-BF5 30c & 0.301 & 0.272 & $-$9.6 & 0.516 & 0.442 & $-$14.3 \\
+BF2 1c  & 0.063 & \textbf{0.025} & $-$60.3 & 0.396 & 0.338 & $-$14.6 \\
+BF3 1c  & 0.009 & \textbf{0.008} & $-$4.4  & 0.444 & 0.378 & $-$14.9 \\
+BF3 2c  & \textbf{0.007} & 0.009 & +19.5 & 0.409 & 0.355 & $-$13.1 \\
+BF3 5c  & 0.024 & \textbf{0.019} & $-$21.9 & 0.441 & 0.359 & $-$18.5 \\
+BF4 1c  & 0.004 & \textbf{0.003} & $-$17.1 & 0.453 & 0.342 & $-$24.4 \\
+BF4 5c  & 0.017 & \textbf{0.012} & $-$32.7 & 0.394 & 0.367 & $-$6.9 \\
+BF4 15c & 0.272 & \textbf{0.198} & $-$27.2 & 0.537 & 0.404 & $-$24.7 \\
+BF4 30c & 0.333 & \textbf{0.269} & $-$19.2 & 0.495 & 0.441 & $-$10.9 \\
+BF5 15c & \textbf{0.216} & 0.247 & +14.6 & 0.461 & 0.394 & $-$14.6 \\
+BF5 30c & 0.246 & \textbf{0.220} & $-$10.6 & 0.516 & 0.442 & $-$14.3 \\
 \midrule
-\textbf{Avg} & 0.195 & \textbf{0.181} & $-$7.4 & 0.454 & 0.382 & $-$15.9 \\
+\textbf{Avg} & 0.119 & \textbf{0.101} & $-$15.2 & 0.454 & 0.382 & $-$15.9 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1566,7 +1787,8 @@ outperforms ETKF (orange shades) under both models on all episodes.}
 WaveSplat wins on all 10 episodes under both raydrop models.
 Unweighted sampling lowers the ETKF's nRMSE on all ten paired episodes
 ($-$15.9\% at the default configuration, paired $t(9){=}-7.6$), against
-$-$7.4\% for WaveSplat, which would read as the ETKF benefiting more.
+$-$15.2\% for WaveSplat, which at the default configuration would read as
+the two methods benefiting about equally.
 That reading does not survive an honest re-tuning of the baseline and is
 \emph{not} an established effect: the ETKF's raydrop sensitivity is a
 variance-amplification artifact, not a reconstruction gain.  Re-measuring
@@ -1576,18 +1798,25 @@ shrinks it to $-$11.7\%, and under an nRMSE-honest hold-out re-tuning
 (analysis grid $160\times120$, additive inflation off, larger observation
 error) the ETKF collapses to a near-zero predictor in \emph{both} arms
 ($0.263$ vs.\ $0.260$, $\rho\approx0.015$) and the sensitivity falls to
-$-$0.9\%---now \emph{below} WaveSplat's $-$7.4\%.  For the ETKF the
+$-$0.9\%---now \emph{below} WaveSplat's $-$15.2\%.  For the ETKF the
 direction (unweighted $\geq$ weighted) is consistent across all three
 configurations (10/10 episodes each), but its magnitude tracks how much variance the
 grid filter injects into the now-unattenuated observations, not any gain
 in reconstruction skill ($\rho$ never exceeds $0.11$).  We therefore
 report the sensitivity as an artifact of the un-tuned baseline rather
 than as evidence that the observation model favors one method.
-For WaveSplat the per-episode effect is regime-dependent rather than
-uniform (unweighted better on 6 of 10 episodes): the sparse
-low-complexity episodes swing either way within their seed spread,
-while the crowded $\geq$15-component episodes improve consistently
-($-$4 to $-$14\%).
+For WaveSplat the direction is stable but not significant: unweighted
+sampling is better on 8 of 10 episodes, the same 8/10 the earlier
+pre-correction pass reported, but at $n=10$ that is a sign-test
+$p=0.109$ (Wilcoxon $p=0.084$)---below $\alpha=0.05$ in neither test.
+The defensible statement is that the direction reproduces across two
+measurement regimes while the effect remains uncertified; we do not claim
+that unweighted return sampling helps WaveSplat.
+The two exceptions are not confined to the sparse episodes
+(BF3~2comp $+19.5\%$ and BF5~15comp $+14.6\%$), so the earlier reading
+that the crowded $\geq$15-component episodes improve consistently does
+not hold either: three of those four improve ($-$11 to $-$27\%) and one
+degrades.
 
 \subsection{Robustness: sparsity, noise, and sea state}
 
@@ -1712,13 +1941,25 @@ wastes representational capacity on the full spatial grid when only two
 spectral modes are present. WaveSplat's adaptive representation directly
 captures the relevant modes with minimal parameters.
 
-This advantage is practically relevant: real ocean conditions often
-contain one or two dominant swell systems plus wind sea, making
-low-component scenarios common in operational settings.
+An earlier version of this discussion argued that this advantage is
+practically relevant because real seas often contain one or two dominant
+swell systems plus wind sea, making low-component scenarios common
+operationally.  Our own measurement contradicts that argument and we
+withdraw it: the 1- and 2-component episodes on which the advantage is
+largest have directional spreads of $0$--$5^\circ$, a band containing
+\emph{none} of 25,426 measured CDIP records
+(Section~\ref{sec:extvalidity}).  A sea may well be dominated by one or
+two swell systems and still be far more directionally spread than a
+1-component synthetic episode; the two notions of ``low complexity'' are
+not the same, and conflating them is what produced the earlier claim.  The
+$5\times$ result stands as measured---what does not stand is the inference
+that the regime it was measured in is the operationally common one.
 For complex seas (15--30 components), the advantage narrows
 substantially: across 100 episodes the mean nRMSE improvement
 drops to ${\sim}5\%$ (WaveSplat wins 24/40 episodes), consistent
-with the regime-dependent pattern in Section~\ref{sec:strongbaselines}.
+with the regime-dependent pattern in Section~\ref{sec:strongbaselines},
+and it is this narrow-advantage regime that overlaps the measured
+distribution.
 
 \subsection{Directional estimation deficit (supplementary analysis)}
 \label{sec:dirdeficit}
@@ -1730,13 +1971,16 @@ evaluation grid for all methods)---to assess directional structure.
 This metric is sensitive to wavenumber-bin alignment and can yield
 strongly negative values when sparse spectral peaks are misaligned by
 even a single bin, so we report it as a diagnostic rather than as
-a primary panel item.  Across the full 100-episode dataset, WaveSplat
-attains $-0.03$ versus $+0.06$ for ETKF; on the Nyquist-adequate
-regenerated data this aggregate is near zero and is dominated by the most
-crowded (30-component) episodes, where single-bin peak misalignment drives
-the statistic strongly negative, so direction information \emph{averaged
-across the dataset} is captured slightly less accurately than amplitude or
-shape.
+a primary panel item.  Under the corrected tracker WaveSplat attains
+$+0.381$ across the full 100-episode dataset versus $+0.059$ for ETKF---%
+a sign reversal from the $-0.03$ reported before the correction, and now
+the best value among the methods compared.
+The aggregate remains regime-split rather than uniform: $+0.983$ for
+$\leq$5-component episodes against $-0.522$ for $\geq$15-component ones,
+where single-bin peak misalignment drives the statistic strongly negative.
+Direction information is therefore captured accurately in the sparse
+regime and lost in the crowded one, rather than being uniformly weaker
+than amplitude or shape as the earlier aggregate suggested.
 A physical explanation is that forward-looking shipboard LiDAR
 illuminates a narrow angular sector ahead of the vessel: the
 observation swath spans $\sim$250~m in range but only
@@ -1764,10 +2008,13 @@ limitation.
 \subsection{Failure case: BF2 1-component}
 \label{sec:bf2case}
 
-WaveSplat's worst case occurs on the simplest episode: BF2,
-$H_s$=0.3~m, a single component.  This case is worth reporting in
-detail, because our own initial diagnosis of it was wrong, and the
-correction changes what a practitioner should take from it.
+On the originally released dataset WaveSplat's worst case occurred on the
+simplest episode: BF2, $H_s$=0.3~m, a single component.  It is no longer
+the worst case---under the Nyquist-adequate render and the corrected
+tracker it ranks 45th of the 100 episodes, and the worst cases are now the
+30-component seas as one would expect.  We nevertheless report it at
+length, because our own initial diagnosis of it was wrong twice over, and
+each correction changes what a practitioner should take from it.
 
 On the originally released dataset this episode gave nRMSE~$=0.315$
 with adaptive $N$ selecting $N$=11 for a 1-component swell, and we
@@ -1784,21 +2031,31 @@ that could not contain the signal it was asked to find.  This is a
 property of the simulator's rendering, not of the sea state.
 
 Re-running the identical episode, sea state, and estimator on a
-Nyquist-adequate re-rendering (Section~\ref{sec:regen}) moves the
-median over five estimator seeds from $0.315$ to
-$\mathbf{0.169 \pm 0.066}$.  The remedy we originally proposed
-addresses a problem that does not exist.
+Nyquist-adequate re-rendering (Section~\ref{sec:regen}) moved the
+median over five estimator seeds from $0.315$ to $0.169$, and the
+subsequent tracker phase-advance correction moved it to
+$\mathbf{0.047}$---a factor of $6.7$ in total, entirely from the
+evaluation and tracking pipeline rather than from any change to the
+estimator's design.  The $H_s$-tuned regularization schedule we
+originally proposed addresses a problem that does not exist.
 
-The re-run does not, however, exonerate adaptive $N$.  Across the five
-seeds the final model order ranges from $N$=1 to $N$=15 on this single
-fixed episode, and the two seeds that recover $N \leq 3$ are also the
-two that achieve nRMSE~$\leq 0.09$.  Spurious growth on calm seas is
-therefore real, but it is a \emph{convergence-basin} phenomenon of a
+The re-run does not, however, exonerate the model-order mechanism, and on
+this episode the corrected data make the coupling unusually legible.
+Across the five seeds the final model order ranges from $N$=1 to $N$=15 on
+this single fixed episode, and nRMSE increases monotonically with it:
+$N{=}1 \to 0.023$, $N{=}3 \to 0.030$, and the three $N{=}15$ seeds giving
+$0.047$, $0.061$, $0.071$.  Variance ratio falls along the same ordering
+($0.84 \to 0.84 \to 0.68$--$0.77$), i.e.\ the over-ordered fits split one
+swell's energy across spurious components.  Spurious growth on calm seas
+is therefore real, and it is a \emph{convergence-basin} phenomenon of a
 non-convex fit with random phase initialization---see
 Section~\ref{sec:limitations}---rather than a sea-state-dependent
 signal-to-noise limit.  The practical implication changes accordingly:
 what helps is multiple restarts with median reporting, not an
-$H_s$-tuned regularizer.
+$H_s$-tuned regularizer.  This is also the clearest single-episode view of
+why the model-order mechanism carries no aggregate accuracy benefit
+(Section~\ref{sec:adaptive}): its seed-to-seed variance on a
+1-component sea is larger than its mean effect over 12 episodes.
 
 We report this at length because the error class generalizes.  A
 rendering limitation of the evaluation pipeline is easy to mistake for
@@ -1812,18 +2069,21 @@ involved.
 
 WaveSplat wins 10/10 under \emph{both} raydrop models.
 Removing the geometric weighting lowers WaveSplat's average nRMSE by
-7.4\% (unweighted better on 6 of 10 episodes---regime-dependent, not a
-uniform gain) and lowers the default ETKF's by 15.9\%.  The larger ETKF
+15.2\% (unweighted better on 8 of 10 episodes, sign-test $p=0.109$---%
+a stable direction, not a certified effect) and lowers the default
+ETKF's by 15.9\%.  The ETKF
 figure is a variance-amplification artifact of the un-tuned grid
 baseline rather than a reconstruction gain: it shrinks to 11.7\% under
 the tuned ETKF and to 0.9\% under an nRMSE-honest re-tuning, so it is
 not attributed to the observation model
 (Section~\ref{sec:raydrop-results}).
-For adaptive~$N$, unweighted raydrop triggers the safety
-rollback on low-complexity scenes (e.g., BF3-2comp: $N$=2$\to$15)
-but enables more aggressive pruning on complex seas (BF4-15comp:
-$N$=19$\to$10), indicating that stronger observations improve both
-estimation and model selection.
+The online model order responds to the observation model as well:
+unweighted raydrop triggers the safety rollback on low-complexity scenes
+(e.g., BF3-2comp: $N$=2$\to$15) but prunes more aggressively on complex
+seas (BF4-15comp: $N$=19$\to$10).  Since the mechanism carries no
+measured accuracy benefit (Section~\ref{sec:adaptive}), we record this as
+a behavioural observation and not as evidence that stronger observations
+improve model selection.
 
 \subsection{Hyperparameter sensitivity}
 \label{sec:hyper}
@@ -1970,16 +2230,20 @@ This trade-off is inherent to localization radius selection and not
 a tuning error: increasing $r_{\text{loc}}$ to 200~m raises VR to
 $\sim$0.3 but degrades nRMSE to 0.279 (see localization sweep below).
 
-\paragraph{Directional $R^2$ gap (supplementary diagnostic).}
-The 100-episode supplementary directional $R^2$ ($-0.025$, see
-Section~\ref{sec:dirdeficit}) is dominated by 30-component
-episodes (Dir.\ $R^2=-1.66$, 20~episodes), where the beamforming
-initializer's peak-separation radius (Sec.~\ref{sec:limitations}) leaves
-candidate peaks closely spaced, making the spectrum-space $R^2$ statistic
-catastrophically sensitive to single-bin peak misalignment.  For $\leq$5 components,
-Dir.\ $R^2=+0.68$ on average, confirming that the spectral basis
-\emph{does} capture directional structure when individual modes
-are resolvable.
+\paragraph{Directional $R^2$ (supplementary diagnostic).}
+Under the corrected tracker the 100-episode supplementary directional
+$R^2$ is $+0.381$ (see Section~\ref{sec:dirdeficit}), the best among the
+methods compared, but the aggregate is a mixture: $+0.983$ for
+$\leq$5-component episodes against $-0.957$ for the 30-component ones,
+where the beamforming initializer's peak-separation radius
+(Sec.~\ref{sec:limitations}) leaves candidate peaks closely spaced and the
+spectrum-space $R^2$ statistic becomes catastrophically sensitive to
+single-bin peak misalignment.  The earlier draft reported this aggregate as
+$-0.025$ with $-1.66$ on the 30-component subset; both figures predate the
+tracker correction and are superseded.  The qualitative conclusion is
+unchanged and now better supported: the spectral basis \emph{does} capture
+directional structure when individual modes are resolvable, and loses it
+when they are not.
 
 \paragraph{Statistical significance.}
 All Skill Score confidence intervals below are bootstrap 95\% CIs
@@ -2094,12 +2358,16 @@ Sec.~\ref{sec:limitations}, which bounds but does not fully explain the
 crowded-regime penalty.
 
 Amplitude estimation, in contrast, is significantly degraded (mean
-relative error 0.24--0.75, median over 5 estimator seeds) due to the
-Adam momentum oscillation
-mechanism described in Section~\ref{sec:limitations}.  This decoupling
-is expected: wavenumber $(k_x, k_y)$ is determined during initialization
-and frozen during tracking, while amplitude $w$ is updated every frame
-and subject to the momentum-induced decay.  For downstream applications
+relative error 0.24--0.75, median over 5 estimator seeds; measured before
+the tracker phase-advance correction and not re-measured, so read as an
+upper bound---the aggregate variance ratio improved from $0.83$ to
+$0.916$ under the correction).  The structural asymmetry behind it is
+independent of that correction: wavenumber $(k_x, k_y)$ is determined
+during initialization and frozen during tracking, while amplitude $w$ is
+re-estimated every frame from sparse observations, so per-component
+amplitude is the parameter with the least support.  We no longer
+attribute the residual gap to a specific optimizer mechanism
+(Section~\ref{sec:limitations}).  For downstream applications
 such as wave-preview feedforward control, accurate wavenumber and
 frequency estimation is arguably more important than amplitude, since
 the controller primarily needs the correct \emph{timing and direction}
@@ -2162,7 +2430,12 @@ remaining 10\,s (Table~\ref{tab:forecast}).
 \centering
 \caption{Deterministic forecast accuracy: average metrics over 5 episodes
 (BF3~1c/2c, BF4~1c/5c/15c) at increasing forecast horizons $\Delta t$.
-Estimation uses $t \in [0, 20]$\,s; forecast into $t \in [20, 30]$\,s.}
+Estimation uses $t \in [0, 20]$\,s; forecast into $t \in [20, 30]$\,s.
+\emph{Provenance}: measured before the tracker phase-advance correction
+and not re-measured.  Since that correction improved the nowcast nRMSE
+from $0.199$ to $0.115$ on the full dataset, the levels here should be
+read as conservative; the horizon-invariance, which is the point of the
+table, is a within-row property and is unaffected.}
 \label{tab:forecast}
 \begin{tabular}{rcccc}
 \toprule
@@ -2185,8 +2458,11 @@ $\Delta t = 10$\,s.  The constant forecast error reflects that the
 spectral representation captures the deterministic wave physics:
 once the correct $(k_x, k_y, \omega, \phi)$ are known, the forward
 model provides a physically exact prediction for linear waves.
-The slight degradation at long horizons is attributable to amplitude
-decay during tracking (Section~\ref{sec:limitations}).
+The Skill Score does decline slightly with horizon
+($+0.141 \to +0.128$); we do not attribute this to a specific mechanism,
+having withdrawn the amplitude-decay attribution
+(Section~\ref{sec:limitations}), and note that the decline is small
+relative to the seed spread this table does not report.
 
 This forecast capability is directly relevant for wave-preview
 feedforward control~\citep{park2026hydrofoil}, where 5--10\,s advance
@@ -2196,6 +2472,34 @@ wave prediction is needed to compute proactive control commands.
 \label{sec:limitations}
 
 Several limitations should be acknowledged.
+\emph{Online model order does not contribute accuracy}: the
+pruning-and-growth mechanism of Section~\ref{sec:adaptive} does select
+scene-matched component counts, but under the corrected tracker its
+accuracy contribution is null ($+0.0003$~nRMSE over 12 episodes, 8/12,
+Wilcoxon $p=0.68$) against a seed noise floor roughly $30\times$ the
+effect, and it is actively harmful on three of the four crowded episodes,
+where the 90\%-energy criterion prunes to $N_a=9$--10 against
+$N_{\text{true}}=15$--30.  We accordingly present it as a mechanism and a
+compute-efficiency device rather than as a contribution.  A model-order
+criterion that is aware of crowding---for instance, energy retention
+conditioned on the beamforming main-lobe width rather than a fixed 90\%
+quantile---is the natural repair and is untested.
+\emph{Directional spread of the synthetic distribution}: measured against
+25,426 CDIP records, our generator occupies the lower tail of the observed
+directional-spread distribution---median $16.1^\circ$ against a measured
+median of $35.3^\circ$ (the measured $0.3$rd percentile), with 40 of our
+100 episodes narrower than the narrowest measured record and our most
+crowded episodes at the measured 11.5th percentile
+(Section~\ref{sec:extvalidity}).  Our peak-period ceiling of 9~s also
+sits below the measured median of $9.88$~s, meaning the synthetic universe
+contains no swell; significant wave height, by contrast, is well covered
+(79.7\%).  The consequence is bounded and specific: the regime in which
+this method's advantage is largest is one the buoy record does not
+contain, and on the overlapping subset LETKF is more often better.  The
+repair belongs to the generator, not the estimator---directional spreading
+functions targeting a $\sim$35$^\circ$ median and a $T_p$ range extending
+into swell---and we deliberately did not change it mid-study so that all
+results in this paper remain from one frozen dataset.
 \emph{Simulation-only validation}: all results use WaveSim; real LiDAR
 may contain systematic biases (multi-path, spray) not in our noise
 model, and wave tank and sea-trial validation is planned next.
@@ -2239,27 +2543,37 @@ quality regardless of why a component was missed.  The net benefit of
 tracking is therefore concentrated in providing real-time computational
 efficiency ($\sim$10 gradient steps vs.\ $\sim$200 for full
 re-initialization) rather than accuracy improvement beyond initialization.
-A paired old-versus-fine-mesh measurement makes the size of this gap
-explicit: moving to the Nyquist-adequate reference field improves the
-post-initialization nRMSE by $54\%$ on average (up to $-94\%$ on sparse
-seas), but the post-tracking nRMSE by only $12\%$, and on the two calmest
-episodes tracking turns a near-exact initialization ($0.009$) into a
-markedly worse steady state ($0.08$).  Most of what a better sensor model
-buys is realised at initialization and then partly given back by tracking.
-\emph{Amplitude decay during tracking}: the Adam optimizer's momentum
-accumulates oscillating gradient signals when the phase prediction
-$\phi_i \mathrel{+}= \omega_i \Delta t$ is slightly inaccurate,
-causing amplitude $w_i$ to decay toward zero over successive frames.
-This is the root cause of the variance ratio deficit (VR~$=0.83$ on the
-regenerated dataset, indicating $\sim$17\% amplitude underestimation---an
-improvement over the $0.66$ measured on the original mesh but still short
-of unity) and the high amplitude relative errors in
-Table~\ref{tab:spectral_accuracy}.  Post-hoc
+The corrected tracker sharpens this into a quantitative statement.
+Comparing per-episode post-initialization against post-tracking nRMSE
+across the 24 arm--episode pairs of the re-measured ablation and
+model-order experiments, tracking ends \emph{above} its own
+initialization on 20 of 24, but by a small and bounded margin
+($+0.001$ to $+0.022$~nRMSE; median $+0.003$).  So the honest
+characterisation of Phase~2 on this dataset is not that it degrades the
+estimate---the earlier 2--3$\times$ inflation and the
+$0.009 \to 0.08$ collapse on the calmest episodes were properties of the
+uncorrected tracker and do not reproduce---but that it holds the
+initialization roughly in place at a fraction of the per-frame cost.
+Tracking is a compute mechanism, not an accuracy mechanism.
+\emph{Residual amplitude under-estimation}: the aggregate variance ratio is
+$0.916$, i.e.\ ${\sim}8\%$ amplitude under-estimation, and it is
+regime-independent (VR~$=0.910$ for $\leq$5-component and $0.925$ for
+$\geq$15-component episodes) even though nRMSE and $\rho$ differ sharply
+across the same split.  We previously attributed this deficit to Adam
+momentum accumulating oscillating gradients from an inaccurate phase
+prediction $\phi_i \mathrel{+}= \omega_i \Delta t$.  That attribution is
+withdrawn: the specific inaccuracy it named was a double application of
+the phase advance, which has since been corrected, and the deficit
+narrowed from $0.66$ on the original mesh through $0.83$ to the present
+$0.916$ without the momentum path being touched.  The remaining $8\%$ is
+therefore \emph{unattributed}---we can bound it but not currently explain
+it, and we prefer to say so rather than carry forward a mechanism whose
+named cause no longer exists.  Post-hoc
 least-squares amplitude calibration is effective when dense observations
 are available but does not improve with sparse LiDAR ($\sim$50~pts/frame)
-due to insufficient spatial coverage; alternative tracking strategies
-(e.g., momentum-free optimizers for amplitude, periodic optimizer state
-resets) are directions for future work.
+due to insufficient spatial coverage; isolating the residual mechanism
+(momentum-free optimizers for amplitude, periodic optimizer state resets,
+or a per-frame amplitude least-squares solve) is future work.
 \emph{Initialization resolution and the peak-separation radius}: the greedy
 beamforming peak search enforces a fixed minimum separation
 $\Delta k_{\min}=0.15$~rad/m between accepted peaks, so component pairs closer
@@ -2363,7 +2677,7 @@ components with the flexibility of neural representations.
 We presented WaveSplat, a grid-free spectral approach to
 ocean wave field estimation from sparse shipboard LiDAR.
 By representing waves as optimizable spectral components with
-dispersion constraints and adaptive model complexity, WaveSplat
+hard dispersion constraints, WaveSplat
 achieves 65.5\% lower nRMSE than a hyperparameter-tuned ETKF-grid
 baseline ($0.115$ vs.\ $0.332$ over 100 Nyquist-adequate episodes,
 median over 5 seeds) while running approximately
@@ -2391,8 +2705,25 @@ with only 10 observation points, outperforming LETKF at all densities
 for $\leq$5-component seas;
 and (3)~\emph{temporal extrapolation}---the estimated spectral
 parameters remain valid at unseen future times, with
-Skill Score~$>0$ out to 10\,s and essentially constant nRMSE
-(0.218--0.219), confirming the physical fidelity of the representation.
+Skill Score~$>0$ out to 10\,s and nRMSE essentially independent of
+horizon, confirming the physical fidelity of the representation.
+
+Two results bound the above, and we regard reporting them as part of the
+contribution rather than a caveat to it.  The online model-order
+mechanism, which earlier drafts listed as a contribution, carries no
+measurable accuracy benefit once the tracker phase advance is corrected
+and seeds are pooled ($+0.0003$~nRMSE, Wilcoxon $p=0.68$); it survives as
+a compute-efficiency device.  And stratifying the same 100 episodes
+against 25,426 CDIP-measured sea states shows the advantage is
+concentrated where the ocean is not: 40 of our episodes are narrower in
+directional spread than any measured record, and on the subset overlapping
+the measured central 90\% of spreads LETKF is the better estimator more
+often than we are (5 of 24, $p=0.007$).  We therefore report this method
+as validated \emph{within a synthetic distribution whose directional
+spread we have measured to be narrower than the observed ocean}, and
+regard widening that distribution---directional spreading toward a
+$\sim$35$^\circ$ median, and a peak-period range extending into
+swell---as the precondition for any operational claim.
 
 The grid-free spectral representation offers a particularly compelling
 advantage for downstream applications: because the estimated wave
@@ -2428,6 +2759,30 @@ The complete 100-episode dataset can be regenerated from the released
 simulator with the provided configuration files and fixed random
 seeds, ensuring end-to-end reproducibility of all tables and figures
 reported in this paper.
+
+The buoy directional-spread statistics used for the external-validity
+stratification of Section~\ref{sec:extvalidity} are third-party
+observations from the Coastal Data Information Program~\citep{cdip},
+retrieved over OPeNDAP on 2026-08-03.  We release the station list, the
+pre-fixed sampling rule, the retrieval and estimator scripts, and the
+derived per-record spread values, so that the stratification is
+reproducible without redistributing CDIP data.
+
+We were unable to validate on measured data because we could not locate a
+public, phase-resolved, two-dimensional lidar sea-surface dataset, and we
+state the scope of that search rather than assert non-existence.  We
+enumerated the collections of the USACE Field Research Facility THREDDS
+server to collection level---its \texttt{frf/} and \texttt{projects/}
+trees and the nine collections at the server root---and found one
+candidate, a 30-file, three-day scanning-lidar wave-shape deployment;
+that campaign's lidar coverage is three days of a sixteen-day campaign,
+which is a property of the deployment rather than of our search.  We also
+confirmed that no public download path exists for the processed
+free-ocean wave dataset (FOWD) product.  Airborne scanning-lidar
+measurements of open-ocean waves do exist in the
+literature~\citep{hwang2000}; what we could not find is a public archive
+of the underlying point data.  This is a statement about the reach of our
+search, and a dataset outside it would not surprise us.
 
 \section*{Acknowledgments}
 

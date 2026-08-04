@@ -74,6 +74,14 @@ class ScenarioCfg:
     sea_state: str = 'BF4'
     n_components: int = 30
     ship_speed_kts: float = 0.0
+    # Directional spreading [deg, std dev of the per-component direction draw].
+    # 30.0 reproduces every episode generated before 2026-08-05, when this
+    # knob existed in wave_generator but was not reachable from any config
+    # (see tmp/blank_slate_2026-08-04/). Exposing it makes spread an
+    # independent factor from n_components, which the deconfounding analysis
+    # showed is the only variable explaining the WS-vs-LETKF gap once
+    # component count is controlled (partial rho +0.460, p=0.0028).
+    direction_spread_deg: float = 30.0
 
 
 @dataclass

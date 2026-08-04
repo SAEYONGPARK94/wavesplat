@@ -52,6 +52,7 @@ def run_episode(sea_state: str = 'BF4',
                 verbose: bool = True,
                 cfg: WaveSimConfig = None,
                 direction_deg: float = 0.0,
+                direction_spread_deg: float = 30.0,
                 strict_mesh: bool = False,
                 use_gpu_raycast: bool = False,
                 peak_locked: bool = False) -> str:
@@ -76,6 +77,7 @@ def run_episode(sea_state: str = 'BF4',
     components = jonswap_components(Hs=Hs, Tp=Tp, n_components=n_components,
                                      depth=depth, seed=seed,
                                      direction_deg=direction_deg,
+                                     direction_spread_deg=direction_spread_deg,
                                      peak_locked=peak_locked)
     satisfied, q_val = check_q_constraint(components)
     assert satisfied, f"Q constraint violated: {q_val:.3f}"

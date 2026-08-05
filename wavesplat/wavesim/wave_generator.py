@@ -137,7 +137,8 @@ def jonswap_components(Hs: float, Tp: float,
                         direction_spread_deg: float = 30.0,
                         seed: Optional[int] = None,
                         Q_max: float = 0.8,
-                        peak_locked: bool = False) -> List[WaveComponent]:
+                        peak_locked: bool = False,
+                        dirs_per_freq: int = 1) -> List[WaveComponent]:
     """
     Generate wave components from JONSWAP spectrum (Hasselmann et al. 1973).
 
@@ -151,6 +152,25 @@ def jonswap_components(Hs: float, Tp: float,
         direction_spread_deg: directional spreading [degrees, std dev]
         seed:       random seed for reproducibility
         Q_max:      maximum Q parameter value (< 1/(ω·A) for each component)
+        dirs_per_freq: directions placed at each frequency bin (default 1).
+
+            With the default of 1 this generator puts exactly one direction on
+            each frequency, so the WITHIN-frequency directional spread is
+            identically zero at every n_components and every
+            direction_spread_deg -- an algebraic identity, not a tuning
+            artefact.  Measured against 6,263 QC-good CDIP directional-moment
+            records, that quantity is positive in 100% of them (median 29.5
+            deg), so a faithful discretisation of a measured directional
+            spectrum is unreachable on this path: total spread is bounded by
+            the across-frequency term alone, median 21.8 deg (18.4 deg over
+            this generator's own [0.5, 3]*omega_p band) against a measured
+            36.8 deg, and that bound already saturates by N=120.
+            See tmp/depth3_ceiling_2026-08-05/FINDING.md.
+
+            dirs_per_freq > 1 splits each bin's energy across that many
+            directions (A_i = A_bin / sqrt(M), so sum A_i^2 is preserved),
+            which is the only way to make the within-frequency term non-zero.
+            dirs_per_freq=1 is bit-identical to the previous behaviour.
 
     Returns:
         List of WaveComponent
@@ -162,7 +182,24 @@ def jonswap_components(Hs: float, Tp: float,
     # Frequency range: 0.5·ωp ~ 3·ωp
     omega_min = 0.5 * omega_p
     omega_max = 3.0 * omega_p
-    omegas = np.linspace(omega_min, omega_max, n_components + 1)
+    if dirs_per_freq < 1:
+        raise ValueError(f'dirs_per_freq must be >= 1, got {dirs_per_freq}')
+    if dirs_per_freq > 1:
+        if peak_locked:
+            raise ValueError('peak_locked and dirs_per_freq>1 are not combined '
+                             '(out of scope; see tmp/s4_within_spread_2026-08-05/PREREG.md)')
+        if dirs_per_freq > n_components:
+            raise ValueError(f'dirs_per_freq={dirs_per_freq} exceeds '
+                             f'n_components={n_components}')
+    # Frequency-bin count.  At dirs_per_freq=1 this is n_components and every
+    # array below is bit-identical to the previous code path.
+    n_freq = n_components // dirs_per_freq
+    # Remainder directions are folded into the last bin (declared in the prereg
+    # before implementation, so the rule is not chosen after seeing results).
+    per_bin = np.full(n_freq, dirs_per_freq, dtype=int)
+    per_bin[-1] += n_components - int(per_bin.sum())
+
+    omegas = np.linspace(omega_min, omega_max, n_freq + 1)
     omega_centers = 0.5 * (omegas[:-1] + omegas[1:])
     d_omega = np.diff(omegas)
 
@@ -212,6 +249,13 @@ def jonswap_components(Hs: float, Tp: float,
 
     # Wavenumbers from full dispersion
     ks = np.array([wavenumber_from_omega(w, depth) for w in omega_centers])
+
+    if dirs_per_freq > 1:
+        # Split each bin's energy across per_bin[i] directions.  A_i =
+        # A_bin/sqrt(m) keeps sum(A_i^2) -- and therefore Hs -- unchanged.
+        amplitudes = np.repeat(amplitudes / np.sqrt(per_bin), per_bin)
+        omega_centers = np.repeat(omega_centers, per_bin)
+        ks = np.repeat(ks, per_bin)
 
     # Random phases
     phases = rng.uniform(0, 2 * np.pi, n_components)

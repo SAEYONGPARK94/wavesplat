@@ -1,0 +1,38 @@
+================================================================================================
+MDE-1 — the design can never reach alpha=0.05
+================================================================================================
+  n= 4 episodes, two-sided sign test, best case k=n/n -> floor p = 0.1250   (alpha=0.05 UNREACHABLE)
+  n= 6 episodes, two-sided sign test, best case k=n/n -> floor p = 0.0312   
+  n= 8 episodes, two-sided sign test, best case k=n/n -> floor p = 0.0078   
+  n=12 episodes, two-sided sign test, best case k=n/n -> floor p = 0.0005   
+
+================================================================================================
+MDE-2 — seed-induced noise on the PAIRED delta (arms share a bit-identical init)
+================================================================================================
+
+  S2-T1f - X-T1f-notrack:
+    BF4_15comp_seed0_uni   per-seed deltas=[0.1162, 0.0848, 0.1279]  sd=0.0223
+    BF4_30comp_seed0_uni   per-seed deltas=[0.0579, 0.0938, 0.0784]  sd=0.0180
+    BF5_15comp_seed0_uni   per-seed deltas=[0.1253, 0.112, 0.0954]  sd=0.0150
+    BF5_30comp_seed0_uni   per-seed deltas=[0.0588, 0.1052, 0.0985]  sd=0.0251
+    mean within-episode sd of the delta = 0.0201;  sd(median-of-3) ~ 0.0135
+    => for a 4/4 sign result the true per-episode effect must exceed ~0.0269 (2 sigma) on EVERY episode
+    MDE (4/4 at p=0.125, ~80% power) ~ 0.0269
+
+  S1-A0 - X-A0-notrack:
+    BF4_15comp_seed0_uni   per-seed deltas=[-0.0301, -0.0118, -0.0068]  sd=0.0123
+    BF4_30comp_seed0_uni   per-seed deltas=[0.0086, 0.0066, 0.0062]  sd=0.0013
+    BF5_15comp_seed0_uni   per-seed deltas=[-0.0284, 0.0115, 0.0133]  sd=0.0236
+    BF5_30comp_seed0_uni   per-seed deltas=[0.0186, 0.0057, 0.0093]  sd=0.0067
+    mean within-episode sd of the delta = 0.0110;  sd(median-of-3) ~ 0.0073
+    => for a 4/4 sign result the true per-episode effect must exceed ~0.0147 (2 sigma) on EVERY episode
+    MDE (4/4 at p=0.125, ~80% power) ~ 0.0147
+
+================================================================================================
+MDE-3 — what the K1-K5 knobs must beat to be readable at all
+================================================================================================
+  total tracker-attributable error at oracle = 0.1027
+  MDE of the design                          = 0.0269
+  => a knob must remove >= 26% of the tracker term to be distinguishable from seed noise at 4/4.
+  A NULL on this design therefore only excludes knobs worth more than 0.0269 nRMSE;
+  it does NOT license "regularisation was not causal".

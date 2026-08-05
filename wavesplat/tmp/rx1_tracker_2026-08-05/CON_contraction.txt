@@ -1,0 +1,55 @@
+================================================================================================
+B1 — contraction fit  tracked = a + b*init   (tracker-ON cells only)
+================================================================================================
+  n cells = 36 (9 tracker-ON arms x 4 crowded episodes, median-of-3)
+  tracked = +0.1230 +0.5639 * init      r = +0.9340   R^2 = 0.872
+  contraction factor b = 0.5639  (<1 => the tracker pulls every init toward a fixed point)
+  fixed point init* = a/(1-b) = 0.2821
+
+  harm(init) = tracked(init) - init = a - (1-b)*init   [notrack ~= init, verified below]
+    init=0.0629  ORACLE (S2-T1f)                        predicted tracker harm = +0.0956
+    init=0.2612  deployed shipped (S1-A0)               predicted tracker harm = +0.0091
+    init=0.2438  best deployable init measured (S1-A3)  predicted tracker harm = +0.0167
+    init=0.2090  hypothetical -20% init                 predicted tracker harm = +0.0319
+    init=0.1567  hypothetical -40% init                 predicted tracker harm = +0.0547
+    init=0.1045  hypothetical -60% init                 predicted tracker harm = +0.0775
+  break-even init (harm = 0) = 0.2821
+
+================================================================================================
+B2 — is notrack really == init?  (the denominator of the 61%)
+================================================================================================
+  X-T1f-notrack    episode_BF4_15comp_seed0_u   notrack_nRMSE=0.0262 init_nrmse=0.0279 delta=-0.0017
+  X-T1f-notrack    episode_BF4_30comp_seed0_u   notrack_nRMSE=0.0904 init_nrmse=0.0918 delta=-0.0014
+  X-T1f-notrack    episode_BF5_15comp_seed0_u   notrack_nRMSE=0.0338 init_nrmse=0.0290 delta=+0.0048
+  X-T1f-notrack    episode_BF5_30comp_seed0_u   notrack_nRMSE=0.1068 init_nrmse=0.1029 delta=+0.0039
+  X-A0-notrack     episode_BF4_15comp_seed0_u   notrack_nRMSE=0.2926 init_nrmse=0.2788 delta=+0.0139
+  X-A0-notrack     episode_BF4_30comp_seed0_u   notrack_nRMSE=0.3266 init_nrmse=0.3106 delta=+0.0161
+  X-A0-notrack     episode_BF5_15comp_seed0_u   notrack_nRMSE=0.2401 init_nrmse=0.2266 delta=+0.0135
+  X-A0-notrack     episode_BF5_30comp_seed0_u   notrack_nRMSE=0.2371 init_nrmse=0.2291 delta=+0.0080
+
+================================================================================================
+B3 — HOW FAR IS ORACLE PLACEMENT FROM ANY DEPLOYABLE CONFIGURATION?
+================================================================================================
+  best DEPLOYABLE init_nrmse over all measured arms: 0.2438  (S1-A3)
+  ORACLE init_nrmse                                : 0.0629
+  gap = 0.1809  = oracle is 3.88x better than the best deployable init
+
+  E1 grid cells (placement interventions), same 4 crowded episodes:
+    cell A                          init=0.2612  tracked=0.2667  closes   -9.6% of the gap to oracle
+    cell B                          init=0.1941  tracked=0.2311  closes  +27.5% of the gap to oracle
+    cell C                          init=0.2632  tracked=0.2669  closes  -10.7% of the gap to oracle
+    cell D                          init=0.1862  tracked=0.2225  closes  +31.8% of the gap to oracle
+    cell E                          init=0.2487  tracked=0.2584  closes   -2.7% of the gap to oracle
+
+================================================================================================
+B4 — SHRINKAGE vs DECORRELATION: what an amplitude fix can possibly buy
+================================================================================================
+  nRMSE^2 = 1 - 2*rho*sqrt(v) + v  with v = VR.  Optimal rescale alpha* = rho*sqrt(v)/v
+  -> best achievable nRMSE with amplitude ALONE fixed = sqrt(1-rho^2)
+  S2-T1f           rho=0.7620 VR=0.3902 nRMSE=0.1671 | perfect-rescale floor sqrt(1-rho^2)=0.6475 (in Hs units x std_gt/Hs)
+  X-T1f-notrack    rho=0.9624 VR=0.8482 nRMSE=0.0643 | perfect-rescale floor sqrt(1-rho^2)=0.2718 (in Hs units x std_gt/Hs)
+  S1-A0            rho=0.3228 VR=0.5638 nRMSE=0.2667 | perfect-rescale floor sqrt(1-rho^2)=0.9465 (in Hs units x std_gt/Hs)
+  X-A0-notrack     rho=0.4507 VR=1.0636 nRMSE=0.2741 | perfect-rescale floor sqrt(1-rho^2)=0.8927 (in Hs units x std_gt/Hs)
+
+  ratio of decorrelation floors (oracle):  0.6475 (ON) vs 0.2718 (OFF)
+  => the tracker moves rho, not only scale. An amplitude-only knob cannot cross the ON floor.

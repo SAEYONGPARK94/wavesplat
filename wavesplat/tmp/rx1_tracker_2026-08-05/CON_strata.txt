@@ -1,0 +1,59 @@
+================================================================================================================
+C1 — PER-EPISODE tracker effect at BOTH placements, against the per-cell seed spread
+================================================================================================================
+episode                n_gt |                   DEPLOYED (S1-A0) |                    ORACLE (S2-T1f)
+                            |    init      ON     OFF    harm   noise |    init      ON     OFF    harm   noise
+BF4_15comp_seed0_unifo   15 |  0.2788  0.2720  0.2926 -0.0207  0.0407 |  0.0279  0.1425  0.0262 +0.1162  0.0532
+BF4_30comp_seed0_unifo   30 |  0.3106  0.3328  0.3266 +0.0062  0.0359 |  0.0918  0.1700  0.0904 +0.0796  0.0377
+BF5_15comp_seed0_unifo   15 |  0.2266  0.2157  0.2401 -0.0244  0.0419 |  0.0290  0.1504  0.0338 +0.1166  0.0376
+BF5_30comp_seed0_unifo   30 |  0.2291  0.2464  0.2371 +0.0093  0.0947 |  0.1029  0.2053  0.1068 +0.0985  0.0552
+  harm = tracked_ON - tracked_OFF  (positive = tracker hurts); noise = within-cell seed range
+
+  |harm| / seed-noise ratio:
+   BF4_15comp_seed0_unifo   deployed  0.51x   oracle  2.18x
+   BF4_30comp_seed0_unifo   deployed  0.17x   oracle  2.11x
+   BF5_15comp_seed0_unifo   deployed  0.58x   oracle  3.10x
+   BF5_30comp_seed0_unifo   deployed  0.10x   oracle  1.78x
+
+================================================================================================================
+C2 — the "tracker eats 52% of the placement gain" 2x2 IS the contraction factor
+================================================================================================================
+  placement gain, tracker ON  = 0.0997
+  placement gain, tracker OFF = 0.2098   (init gain = 0.1983, i.e. the OFF row IS init)
+  surviving fraction = 0.4751   vs fitted contraction b = 0.5639
+  => "the tracker eats 52%" and "b = 0.56" are the same number, not two findings.
+
+================================================================================================================
+C3 — PAIRING AUDIT (attack line 4)
+================================================================================================================
+  S1-A0   /X-A0-notrack   BF4_15comp_seed0_u   seeds_match=True N_match=True init_bit_identical=True
+  S1-A0   /X-A0-notrack   BF4_30comp_seed0_u   seeds_match=True N_match=True init_bit_identical=True
+  S1-A0   /X-A0-notrack   BF5_15comp_seed0_u   seeds_match=True N_match=True init_bit_identical=True
+  S1-A0   /X-A0-notrack   BF5_30comp_seed0_u   seeds_match=True N_match=True init_bit_identical=True
+  S2-T1f  /X-T1f-notrack  BF4_15comp_seed0_u   seeds_match=True N_match=True init_bit_identical=True
+  S2-T1f  /X-T1f-notrack  BF4_30comp_seed0_u   seeds_match=True N_match=True init_bit_identical=True
+  S2-T1f  /X-T1f-notrack  BF5_15comp_seed0_u   seeds_match=True N_match=True init_bit_identical=True
+  S2-T1f  /X-T1f-notrack  BF5_30comp_seed0_u   seeds_match=True N_match=True init_bit_identical=True
+  ==> ON/OFF pairs share seed, N and a BIT-IDENTICAL initialisation: True
+      (the tracker contrast itself is clean; the confound is BETWEEN placements, next)
+
+  BETWEEN-placement confound: the "placement" factor of the 2x2 also changes model order
+   BF4_15comp_seed0_u   N(A0)= 10.0  N(T1f)= 15.0  ratio=1.50x   oracle harm=+0.1162
+   BF4_30comp_seed0_u   N(A0)=  9.0  N(T1f)= 30.0  ratio=3.33x   oracle harm=+0.0796
+   BF5_15comp_seed0_u   N(A0)= 21.0  N(T1f)= 15.0  ratio=0.71x   oracle harm=+0.1166
+   BF5_30comp_seed0_u   N(A0)= 20.0  N(T1f)= 30.0  ratio=1.50x   oracle harm=+0.0985
+   r(N, oracle harm) over the 4 episodes = -0.899  (n=4; harm is NOT increasing in N -> model order does not explain the harm)
+
+================================================================================================================
+C4 — what a PERFECT amplitude fix can buy (nRMSE = s*sqrt(1-2r*sqrt(v)+v), s=std_gt/Hs)
+================================================================================================================
+arm             ep                         rho      VR    nRMSE  opt-rescale  recovery
+S2-T1f          BF4_15comp_seed0_uni    0.8435  0.4381   0.1425       0.1350      5.3%
+S2-T1f          BF4_30comp_seed0_uni    0.7941  0.4366   0.1700       0.1661      2.3%
+S2-T1f          BF5_15comp_seed0_uni    0.7642  0.4594   0.1504       0.1491      0.9%
+S2-T1f          BF5_30comp_seed0_uni    0.6464  0.2268   0.2053       0.2004      2.4%
+S1-A0           BF4_15comp_seed0_uni    0.2500  0.5191   0.2720       0.2446     10.1%
+S1-A0           BF4_30comp_seed0_uni    0.1120  0.5936   0.3328       0.2774     16.6%
+S1-A0           BF5_15comp_seed0_uni    0.4938  0.7662   0.2157       0.1976      8.4%
+S1-A0           BF5_30comp_seed0_uni    0.4354  0.3762   0.2464       0.2417      1.9%
+  recovery = fraction of the arm's own nRMSE that PERFECT amplitude rescaling removes.

@@ -1,0 +1,319 @@
+##################### redo_c1_crowded #####################
+raw lines: cond=265 ws=260
+cond errs: 5  ws errs: 0
+ws flags true: 0
+
+k per episode: cond [5] ws [5]
+
+--- ws_best (PRIMARY) ---
+ n=40  median pairedD=-0.105165  mean=-0.100675  wins=39/40  Wilcoxon one-sided p=1.819e-12
+ AGGREGATION VARIANTS for the "%%" figure:
+   (a) medianD / mean(ref)             = -46.7%
+   (b) medianD / median(ref)           = -46.1%
+   (c) median of per-ep ratios (c/ref-1)= -46.4%
+   (d) mean(c)/mean(ref) - 1           = -44.7%
+   (e) median(c)/median(ref) - 1       = -45.5%
+   rank-biserial r = 1-2W-/(W+ + W-) = -0.9976  (report sign convention!)
+
+--- ws_tracked (secondary) ---
+ n=40  median pairedD=-0.137640  mean=-0.127922  wins=40/40  Wilcoxon one-sided p=9.095e-13
+ AGGREGATION VARIANTS for the "%%" figure:
+   (a) medianD / mean(ref)             = -54.5%
+   (b) medianD / median(ref)           = -55.1%
+   (c) median of per-ep ratios (c/ref-1)= -52.3%
+   (d) mean(c)/mean(ref) - 1           = -50.7%
+   (e) median(c)/median(ref) - 1       = -50.3%
+   rank-biserial r = 1-2W-/(W+ + W-) = -1.0000  (report sign convention!)
+
+--- ws_init ---
+ n=40  median pairedD=-0.109348  mean=-0.103271  wins=39/40  Wilcoxon one-sided p=1.819e-12
+ AGGREGATION VARIANTS for the "%%" figure:
+   (a) medianD / mean(ref)             = -48.0%
+   (b) medianD / median(ref)           = -47.2%
+   (c) median of per-ep ratios (c/ref-1)= -47.2%
+   (d) mean(c)/mean(ref) - 1           = -45.3%
+   (e) median(c)/median(ref) - 1       = -46.4%
+   rank-biserial r = 1-2W-/(W+ + W-) = -0.9976  (report sign convention!)
+
+--- split by n_comp (STRATIFYING VARIABLE CHECK) ---
+ 15comp n=20 medD=-0.1297 wins=20 p=9.54e-07  cond_med=0.0846 ws_best_med=0.2090
+ 30comp n=20 medD=-0.0789 wins=19 p=1.91e-06  cond_med=0.1464 ws_best_med=0.2374
+
+--- SPARSE control n=12 ---
+ cond worse (WS wins) on 12/12 ; median D=+0.0320 ; two-sided p=0.0004883
+ per-ep: BF2_1comp_seed0_uniform c=0.270 best=0.038, BF2_1comp_seed0_slope c=0.320 best=0.026, BF3_1comp_seed0_uniform c=0.020 best=0.009, BF3_2comp_seed0_uniform c=0.040 best=0.009, BF3_2comp_seed0_slope c=0.031 best=0.009, BF3_5comp_seed0_uniform c=0.072 best=0.014, BF3_5comp_seed1_uniform c=0.046 best=0.013, BF3_5comp_seed0_slope c=0.051 best=0.012, BF4_1comp_seed0_uniform c=0.029 best=0.006, BF4_5comp_seed0_uniform c=0.046 best=0.011, BF4_5comp_seed0_slope c=0.039 best=0.009, BF4_5comp_seed1_uniform c=0.040 best=0.008
+
+ primary non-wins: [('episode_BF5_30comp_seed2_uniform.h5', 0.1786, 0.165)]
+##################### redo_c2_integration #####################
+rows 780 errs 0 flags 0
+primary episodes present: 40
+seeds per (arm,ep): [('learned', 5), ('learned_konly', 5), ('v2_konly', 5)]
+
+--- learned vs v2_konly (PRIMARY, both tracked) ---
+ n=40 medD=-0.061621 meanD=-0.071539 wins(<0)=36 ties(==0)=0 p1=5.002e-11
+ arm means: learned=0.1809  v2_konly=0.2525   (mean-of-arms diff=-0.0715)
+ near-ties |d|<0.005: 3  |d|<0.01: 3
+
+--- learned_konly vs v2_konly ---
+ n=40 medD=-0.063996 meanD=-0.066388 wins(<0)=39 ties(==0)=0 p1=3.001e-11
+ arm means: learned_konly=0.1861  v2_konly=0.2525   (mean-of-arms diff=-0.0664)
+ near-ties |d|<0.005: 1  |d|<0.01: 1
+
+--- learned_konly vs learned ---
+ n=40 medD=0.004684 meanD=0.005151 wins(<0)=15 ties(==0)=0 p1=0.9359
+ arm means: learned_konly=0.1861  learned=0.1809   (mean-of-arms diff=0.0052)
+ near-ties |d|<0.005: 11  |d|<0.01: 19
+
+--- learned(tracked) vs v2 ws_best=min(init,tracked) ---
+ n=40 medD=-0.054355 wins=28 p1=6.105e-06
+
+ retention = medD(learned vs v2_konly tracked) / 0.1052 = 0.586
+
+--- decomposition (means over 40 eps of per-ep medians) ---
+  learned raw_init     0.1848
+  learned post_init    0.1567
+  learned tracked      0.1809
+  v2 init              0.2278
+  v2 tracked           0.2525
+  learned final_n median 16.5  v2 final_n median 15.0
+
+ TRACKER GIVE-BACK: median init gain -0.0768 -> median tracked gain -0.0616  (retained 80%)
+
+ non-primary episodes in file (12):
+ sparse-ish n=12 medD=+0.0209 learned worse on 8/12
+##################### redo_c3_heldout40 #####################
+errs L/V/A: 0 0 0
+learned flag=True: 0
+lanes [(1, 1), (2, 2), (3, 3), (4, 4), (42, 0)]
+episodes 40 {'sparse': 16, 'moderate': 8, 'crowded': 16}
+
+ slice means (median-of-5 per ep, then mean over eps):
+ slice          n   pure_v2  pure_lrn auto_live    oracle
+ all           40   0.09743   0.09074   0.08577   0.07553
+ sparse        16   0.01348   0.03547   0.03190   0.01070
+ moderate       8   0.02328   0.04518   0.02462   0.02025
+ crowded       16   0.21845   0.16878   0.17022   0.16800
+
+ CROWDED (n=16) learned vs v2:
+  mean-of-arms: 0.16878 vs 0.21845  -> ratio-of-means -22.7%
+  median paired D = -0.04435 ; median of per-ep ratios = -21.7% ; wins 15/16 ; p1(less)=3.052e-05
+  median-of-medians: learned 0.15956 v2 0.22473 -> -29.0%
+
+ per-slice paired (learned - v2) with normal-approx MDE @80%% power:
+  sparse    n=16 medD=-0.00157 meanD=+0.02199 sd=0.07494 p2=0.6322  MDE(paired t,1-sided)=0.04658  signtest floor p=3.052e-05
+  moderate  n= 8 medD=+0.02163 meanD=+0.02190 sd=0.01886 p2=0.02344  MDE(paired t,1-sided)=0.01658  signtest floor p=0.007812
+  crowded   n=16 medD=-0.04435 meanD=-0.04967 sd=0.03675 p2=6.104e-05  MDE(paired t,1-sided)=0.02284  signtest floor p=3.052e-05
+  all       n=40 medD=-0.00319 meanD=-0.00669 sd=0.06329 p2=0.1058  MDE(paired t,1-sided)=0.02488  signtest floor p=1.819e-12
+##################### redo_c5_real #####################
+n windows 30 collapse flagged 3
+
+--- normal-27 (PREREG decision set) ---
+  hand mean 0.7441  learned mean 0.8051
+  hand median 0.7407 learned median 0.8361
+  mean D(hand-learned) -0.0611   median D -0.0571   [SIGN AGREE? yes]
+  learned-better wins 6/27   Wilcoxon W=74.0 p=0.004613
+  rank-biserial -0.608
+  sd=0.1018  MDE(2-sided,80%)=0.0549  = 7% of hand mean
+
+--- all-30 ---
+  hand mean 0.8815  learned mean 0.8188
+  hand median 0.8091 learned median 0.8361
+  mean D(hand-learned) +0.0627   median D -0.0418   [SIGN AGREE? **NO**]
+  learned-better wins 9/30   Wilcoxon W=161.0 p=0.146
+  rank-biserial -0.308
+  sd=0.4453  MDE(2-sided,80%)=0.2278  = 26% of hand mean
+
+--- per-record (clustered unit = record, n=5) ---
+  AA14   n=5  medD=-0.0181  learned wins 2/5  n_eff mean 23.7
+  AA15a  n=5  medD=-0.0245  learned wins 2/5  n_eff mean 21.8
+  AA15b  n=6  medD=-0.0673  learned wins 0/6  n_eff mean 21.7
+  LJ18g  n=5  medD=-0.0406  learned wins 2/5  n_eff mean 26.4
+  YS17   n=6  medD=-0.1220  learned wins 0/6  n_eff mean 26.3
+  record-level sign test: learned better on 0/5 -> two-sided floor p=0.0625 (n=5 CANNOT reach 0.05)
+
+--- MECHANISM CHECK: n_eff vs delta ---
+  n_eff range 18.4-27.6 mean 23.9 median 23.9
+  Pearson r(n_eff, D)=-0.129 p=0.496 | Spearman rho=-0.400 p=0.028
+  normal-27: Pearson r=-0.297 p=0.132 | Spearman rho=-0.402 p=0.038
+  learned_now vs n_eff: Spearman rho=0.652 p=0.000
+
+--- collapse windows (secondary, "robustness" claim) ---
+  AA15a  w3  hand 1.120 -> learned 0.791  (FIXED (<1.0))
+  AA14   w0  hand 2.309 -> learned 1.071  (not fixed)
+  LJ18g  w3  hand 2.925 -> learned 0.961  (FIXED (<1.0))
+##################### redo_c7_learnedonly #####################
+sparse episodes 40
+
+pure-v2 sparse MEAN 0.02037   pure-learned sparse MEAN 0.05345  (bar = v2+0.005 = 0.02537)
+pure-v2 sparse MEDIAN 0.01456  pure-learned sparse MEDIAN 0.01655
+paired: medianD -0.00096  meanD +0.03308  learned-better 24/40  Wilcoxon2 p=0.6753  sign p=0.2682
+  >>> SIGN CONFLICT: mean says learned WORSE by +0.0331 ; median-of-pairs says learned BETTER by -0.0010
+
+catastrophic learned episodes (learned>0.10): 5
+   BF2_1comp_seed0_slope                      learned 0.3257  v2 0.0262
+   BF2_1comp_seed1_slope                      learned 0.3087  v2 0.0199
+   BF2_1comp_seed1_uniform                    learned 0.2497  v2 0.0342
+   BF2_1comp_seed3_slope                      learned 0.2951  v2 0.0333
+   BF2_1comp_seed4_slope                      learned 0.2825  v2 0.0259
+
+NON-catastrophic 35/40: learned mean 0.01933  v2 mean 0.01930  (diff +0.00003)
+   paired medianD -0.00150  learned-better 24/35  Wilcoxon2 p=0.3101
+   are all catastrophes BF2_1comp? -> True
+
+MDE for the mean-bar test on n=40 sparse (paired, 2-sided 80%): 0.04057  (sd=0.09158)
+MDE excluding the 5 catastrophes (n=35): 0.01058  (sd=0.02233)
+
+--- peak-anchor variants ---
+  frac=0.375  mean 0.05352 (bar 0.02537 -> FAIL) | paired medianD vs v2 -0.00103  wins 24/40  p=0.510
+         non-catastrophic n=35: mean 0.01940 vs v2 0.01930 -> PASS
+  frac=0.6    mean 0.05336 (bar 0.02537 -> FAIL) | paired medianD vs v2 -0.00087  wins 25/40  p=0.510
+         non-catastrophic n=35: mean 0.01979 vs v2 0.01930 -> PASS
+
+--- kp-merge variants ---
+  frac=0.25   mean 0.05485 (bar 0.02537 -> FAIL) | paired medianD vs v2 -0.00102  wins 26/40  p=0.715
+         non-catastrophic n=35: mean 0.01833 vs v2 0.01930 -> PASS
+  frac=0.375  mean 0.05459 (bar 0.02537 -> FAIL) | paired medianD vs v2 -0.00117  wins 26/40  p=0.715
+         non-catastrophic n=35: mean 0.01851 vs v2 0.01930 -> PASS
+##################### redo_strat_and_mde #####################
+N_eff(n_comp) from today:  {1: 1.0, 2: 1.063, 5: 2.557, 15: 4.555, 30: 7.82}   (6->1.97, 7->1.62, 8->1.87 = NON-MONOTONE just above 5)
+
+=== C1 head-to-head: does the gain grow with crowding? ===
+  15comp (N_eff 4.55) n=20 medD -0.1297  rel -64.6%  wins 20
+  30comp (N_eff 7.82) n=20 medD -0.0789  rel -34.7%  wins 19
+  >>> gain SHRINKS from 15comp to 30comp (both absolute and relative).
+
+=== C2 integration: 15 vs 30 ===
+  15comp n=20 medD -0.0857 wins 18/20 p1=4.77e-06  MDE=0.0270
+  30comp n=20 medD -0.0362 wins 18/20 p1=4.77e-06  MDE=0.0329
+
+=== "sparse" label (n_comp in {1,2}) is NOT homogeneous ===
+  1comp (N_eff 1.000) n=30  learned mean 0.0574 v2 mean 0.0219 | medD -0.00179  learned-better 23/30  #blowups(>0.1) 5
+  2comp (N_eff 1.063) n=10  learned mean 0.0415 v2 mean 0.0157 | medD +0.03008  learned-better 1/10  #blowups(>0.1) 0
+
+=== MDE TABLE (paired, 80% power, alpha .05) ===
+ conclusion / test                             n    obs eff         sd        MDE verdict
+ C1 cond vs ws_best (crowded 40)              40   -0.10516    0.04169    0.01639 PASS
+ C2 learned vs v2_konly (crowded 40)          40   -0.06162    0.05447    0.02142 PASS
+ C3 heldout crowded learned vs v2             16   -0.04435    0.03675    0.02574 
+ C3 heldout sparse learned vs v2              16   -0.00157    0.07494    0.05249 
+ C3 heldout moderate learned vs v2             8    0.02163    0.01886    0.01868 
+ C3 heldout S1: auto+live vs pure_v2 (all)    40    0.00000    0.06058    0.02683 
+ C4 e2e finetune vs current (crowded 40)      40   -0.00069    0.00776    0.00305 FAIL
+ C5 real normal-27 learned vs hand            27    0.05706    0.10184    0.05491 LOSS-sig
+ C6 G1 fan PRIMARY fanTF vs hand (n=30)       30   -0.02100    0.13098    0.05946 FAIL
+ C7 pure-learned vs v2 (sparse 40)            40   -0.00096    0.09158    0.04057 FAIL(mean bar)
+##################### redo_oracle_vs_waveprior #####################
+NOTE: s1s2 = median-of-3 seeds {42,123,456}; wp = median-of-5 lanes. Same 4 episodes,
+      same data_finemesh_2026-07-23, same nRMSE/Hs metric family. NOT a re-run: read-across.
+
+episode                       WS A0  v2_konly  WP learn  WP cond   S2-T1f
+BF4_15comp_seed0_uniform     0.2720    0.2741    0.2242   0.0898   0.1425   0.2282
+BF4_30comp_seed0_uniform     0.3328    0.3123    0.2860   0.2299   0.1700   0.2347
+BF5_15comp_seed0_uniform     0.2157    0.2143    0.2164   0.1114   0.1504   0.2298
+BF5_30comp_seed0_uniform     0.2464    0.2733    0.2575   0.1671   0.2053   0.2651
+MEAN4                        0.2667    0.2685    0.2460   0.1496   0.1671   0.2394
+
+--- placement-gain accounting on these 4 episodes (baseline = v2_konly tracked) ---
+  WP learned (tracked)               0.2460  gain 0.0225  =  22.2% of the oracle-k gain
+  WP learned_konly (k only)          0.2400  gain 0.0285  =  28.1% of the oracle-k gain
+  WP cond (proposal-level nowcast)   0.1496  gain 0.1189  = 117.2% of the oracle-k gain
+  oracle k, frozen (S2-T1f)          0.1671  gain 0.1015  = 100.0% of the oracle-k gain
+  oracle k, learnable (S2-T1)        0.2112  gain 0.0573  =  56.5% of the oracle-k gain
+  S1-A0 (current shipped init)       0.2667  gain 0.0018
+
+  oracle-k gain (v2_konly -> S2-T1f) = 0.1015 ; WP learned captures 22.2% of it
+  residual left on the table after WP = 0.0790 nRMSE/Hs (351% of the WP gain again)
+##################### audit_followups #####################
+====================================================================================================
+(a) FOUR POINTS ON THE SAME AXIS  -- overlap = 4 episodes, ALL crowded, ALL seed0_uniform
+====================================================================================================
+
+--- AXIS 1: TRACKED (sequential filter, avg over tracking frames) ---
+ arm                                   BF4_15c  BF4_30c  BF5_15c  BF5_30c |    MEAN4
+ beamform init  (v2_konly, 07-25)       0.2741   0.3123   0.2143   0.2733 |   0.2685
+ beamform init  (S1-A0,   08-05)        0.2720   0.3328   0.2157   0.2464 |   0.2667
+ learned-init   (WP learned)            0.2242   0.2860   0.2164   0.2575 |   0.2460
+ learned-init   (WP learned_konly)      0.2107   0.2569   0.2401   0.2522 |   0.2400
+ LETKF                                  0.2282   0.2347   0.2298   0.2651 |   0.2394
+ ORACLE (kx,ky) frozen  S2-T1f          0.1425   0.1700   0.1504   0.2053 |   0.1671
+
+ headroom (beamform->oracle) = 0.1015
+   WP learned           recovers  22.2% of oracle headroom
+   WP learned_konly     recovers  28.1% of oracle headroom
+   LETKF                recovers  28.6% of oracle headroom
+
+--- AXIS 2: UNTRACKED / batch nowcast (no sequential filter) ---
+ beamform, no tracker  X-A0-notrack     0.2926   0.3266   0.2401   0.2371 |   0.2741
+ learned proposal+polish (WP cond)      0.0898   0.2299   0.1114   0.1671 |   0.1496
+ ORACLE (kx,ky) no tracker X-T1f-nt     0.0262   0.0904   0.0338   0.1068 |   0.0643
+
+ headroom (beamform->oracle, untracked) = 0.2098
+   WP cond              recovers  59.4% of oracle headroom
+
+ *** AXIS MISMATCH: handoff script compared WP cond (UNTRACKED) to S2-T1f (TRACKED)
+     -> reported 117.2% ("beats the oracle"). On the matched untracked axis it is 59.4%.
+
+--- TRACKER COST, conditional on k quality (same 4 eps) ---
+   with beamform k : notrack 0.2741 -> tracked 0.2667  (-2.7%)
+   with ORACLE   k : notrack 0.0643 -> tracked 0.1671  (+159.7%)
+
+====================================================================================================
+(b) C5 MECHANISM: is "proposal fails when sparse (n_eff)" a controlled claim?
+====================================================================================================
+ n_eff vs hand_now   Spearman rho=+0.547 p=0.0032   <- baseline DIFFICULTY also tracks n_eff
+ n_eff vs learned_now Spearman rho=+0.652 p=0.0002
+ n_eff vs D(hand-lrn) Spearman rho=-0.402 p=0.0379   (D>0 = learned better)
+ n_eff vs LOG-RATIO log(lrn/hand) rho=+0.357 p=0.0673  <- scale-free version
+
+ WITHIN-RECORD control (record absorbs site/sea-state):
+   AA14   n=5  rho(n_eff,D)=-0.300 p=0.624   n_eff range 21.9-26.2
+   AA15a  n=5  rho(n_eff,D)=-0.100 p=0.873   n_eff range 18.6-24.6
+   AA15b  n=6  rho(n_eff,D)=-0.886 p=0.019   n_eff range 18.4-25.1
+   LJ18g  n=5  rho(n_eff,D)=-0.200 p=0.747   n_eff range 25.8-26.7
+   YS17   n=6  rho(n_eff,D)=-0.143 p=0.787   n_eff range 24.8-27.6
+   mean within-record rho = -0.326  (pooled rho was -0.402)
+
+ *** n_eff spans only 18.4-27.6 across ALL 27 windows; the synthetic "sparse" regime that
+     the proposal was said to fail on is n_comp 1-2. No real window is anywhere near it.
+
+====================================================================================================
+(c) C3 held-out: what actually drives the S1/S2 FAILs?
+====================================================================================================
+ sparse n=16 ; auto/guard blowups(>0.10): 1 -> ['BF2_1comp_seed888_slope']
+ all blowups are BF2_1comp? True
+ S2 bar = pure_v2_mean + 0.005
+   WITH blowups   : guard 0.03190 vs bar 0.01848 -> FAIL
+   WITHOUT blowups: guard 0.01211 vs bar 0.01737 -> PASS
+   paired on sparse: medianD +0.00000  guard-better 1/16  Wilcoxon2 p=0.655
+
+ S1 (guard vs pure_v2, all 40): meanD -0.01166 -> bootstrap CI [-0.0250, 0.0169] straddles 0 => FAIL
+   SAME DATA, median/rank: Wilcoxon p(less)=0.00225 ; on the 22 episodes the router acted, 17 win / 5 loss
+   *** S1 FAIL is a mean-vs-median disagreement, not an absence of effect.
+
+====================================================================================================
+(d) AGGREGATION CONVENTION: median-of-differences vs difference-of-medians vs means
+====================================================================================================
+ conclusion                         med(pair d) mean(pair d) med(A)-med(B) mean(A)-mean(B)  FLIP?
+ C1 cond vs ws_best (crowded40)        -0.10516    -0.10067    -0.10376    -0.10067      -
+ C2 learned vs v2 (crowded40)          -0.06162    -0.07154    -0.06426    -0.07154      -
+ C3 heldout learned vs v2 (crowd16)    -0.04435    -0.04967    -0.06517    -0.04967      -
+ C4 e2e-ft vs current (crowded40)      -0.00069    -0.00016    -0.00369    -0.00016      -
+ C5 real learned vs hand (norm27)      +0.05706    +0.06107    +0.09538    +0.06107      -
+ C5 real learned vs hand (ALL 30)      +0.04185    -0.06274    +0.02704    -0.06274    YES
+ C6 G1 fanTF vs hand (n=30)            -0.02100    -0.01590    +0.03450    -0.01590    YES
+ C7 pure-learned vs v2 (sparse40)      -0.00096    +0.03308    +0.00199    +0.03308    YES
+
+====================================================================================================
+(e) STRATIFICATION: every conclusion below is defined by an n_comp cut
+====================================================================================================
+ N_eff source keys: ['paired_within_vs_across', 'allocation_table', 'analytic_bias_law', 'N_eff_vs_gamma', 'N_eff_slope_gamma3.3', 'N_eff_nonmonotonic_small_N', 'min_N_our_exact_rule']
+
+ within-"crowded": 15comp vs 30comp
+   15comp  C1 medD -0.1297   C2 medD -0.0857
+   30comp  C1 medD -0.0789   C2 medD -0.0362
+
+ within-"sparse": 1comp vs 2comp
+   1comp n=30  learned-better 23/30  medD -0.00179  meanD +0.03551  blowups 5
+   2comp n=10  learned-better  1/10  medD +0.03008  meanD +0.02579  blowups 0
+
+wrote audit_followups.json

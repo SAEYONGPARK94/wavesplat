@@ -31,12 +31,22 @@ OUT = os.path.join(HERE, 'results.jsonl')
 # tmp/s1s2_2026-08-05/results.jsonl arm S1-A0 value-for-value.
 SEEDS = [int(s) for s in os.environ.get('RX2_SEEDS', '1518,1519,1520').split(',')]
 
-EPISODES = [
+CROWDED4 = [
     'episode_BF4_15comp_seed0_uniform.h5',
     'episode_BF4_30comp_seed0_uniform.h5',
     'episode_BF5_15comp_seed0_uniform.h5',
     'episode_BF5_30comp_seed0_uniform.h5',
 ]
+# PREREG AMENDMENT 1 item 6 ("widen the observation unit beyond n=4"): RX2_EPISODES=p1
+# swaps in the full 12-episode P1 set (scripts/run_p1_comparison.py::EPISODES verbatim).
+# Crowded-4 stays the default so nothing already run is affected.
+P1_12 = [
+    'episode_BF2_1comp_seed0_uniform.h5', 'episode_BF3_1comp_seed0_uniform.h5',
+    'episode_BF3_2comp_seed0_uniform.h5', 'episode_BF3_2comp_seed0_slope.h5',
+    'episode_BF3_5comp_seed0_uniform.h5', 'episode_BF3_5comp_seed0_slope.h5',
+    'episode_BF4_1comp_seed0_uniform.h5', 'episode_BF4_5comp_seed0_uniform.h5',
+] + CROWDED4
+EPISODES = P1_12 if os.environ.get('RX2_EPISODES') == 'p1' else CROWDED4
 PANEL = ['nRMSE', 'Variance_Ratio', 'Pearson_rho', 'Skill_Score',
          'Directional_R2', 'Hs_error']
 N_GT = {'episode_BF4_15comp_seed0_uniform.h5': 15,
@@ -146,15 +156,23 @@ def apply_cell(cell):
     return undo
 
 
+def _n_gt(episode):
+    if episode in N_GT:
+        return N_GT[episode]
+    import h5py                       # only reached on the 12-episode extension
+    with h5py.File(os.path.join(DATA, episode), 'r') as f:
+        return int(np.asarray(f['config/wave_components']).shape[0])
+
+
 def cell_config(cell, episode):
     cfg = dict(BASE_CFG)
     spec = CELLS[cell].get('cfg')
     if spec == '__oracle__':
-        cfg.update(init_method='oracle', n_gaussians=[N_GT[episode]],
+        cfg.update(init_method='oracle', n_gaussians=[_n_gt(episode)],
                    loss_thresholds=[None], max_iters_per_stage=[900],
                    init_k_lr_scale=0.0)
     elif spec == '__oracle_k__':
-        cfg.update(init_method='oracle', n_gaussians=[N_GT[episode]],
+        cfg.update(init_method='oracle', n_gaussians=[_n_gt(episode)],
                    loss_thresholds=[None], max_iters_per_stage=[900])
     elif spec:
         cfg.update(spec)

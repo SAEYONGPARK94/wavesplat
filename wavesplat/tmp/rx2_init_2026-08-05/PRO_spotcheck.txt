@@ -1,0 +1,13 @@
+Independent from-scratch re-derivation of the headline numbers (different code path from
+analyze_rx2.py; median-of-3 seeds then median over the 4 crowded episodes).
+
+cell      nRMSE per-episode                       med      dmed  k/4  closure  <LETKF  <flat-null
+X-BASE    [0.2802, 0.3198, 0.2339, 0.2896]     0.2849   +0.0000  0/4     0.0%     0/4        1/4
+G1        [0.1841, 0.2645, 0.1948, 0.2594]     0.2271   -0.0472  4/4   +63.7%     3/4        4/4
+G1P1      [0.1828, 0.2308, 0.1828, 0.2534]     0.2068   -0.0701  4/4   +73.6%     4/4        4/4
+AUTO      [0.1771, 0.2746, 0.1991, 0.2436]     0.2214   -0.0456  4/4   +70.6%     3/4        3/4
+ORACLE-K  [0.1567, 0.2412, 0.1546, 0.2366]     0.1967   -0.0789  4/4   +100.0%    3/4        4/4
+
+G1P1 bundle interaction on nRMSE: -0.0117  (super-additive)
+W3 nRMSE paired median: -0.0337, improved 4/4
+total runs 216, errors 0

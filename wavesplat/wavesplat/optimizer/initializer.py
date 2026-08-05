@@ -57,6 +57,21 @@ PAD_W = 0.01
 # values, which removes the only stochastic input to the estimator.
 KONLY_RANDOM_WPHI = True
 
+# ---------------------------------------------------------------------------
+# RESEARCH-ONLY (2026-08-05, experiment S2). NOT a deployable init_method.
+# ---------------------------------------------------------------------------
+# `init_method='oracle'` seeds (kx, ky) from the episode's TRUE wave components and leaves
+# (w, phi) handled exactly as in 'v2_konly' (w = 0.01 uniform, phi ~ U(0, 2pi)), so that
+# oracle-vs-v2_konly is a single-factor comparison of *where the atoms are placed*.
+# The components are handed in through this module-level slot because
+# `initialize_from_frames` has no access to the episode file. The research driver sets it
+# immediately before each run and clears it afterwards. When it is None (always, in every
+# shipped code path) the 'oracle' branch raises rather than silently degrading.
+#
+# Expected value: an (N_gt, >=4) array with column order [A, omega, kx, ky, ...], i.e. the
+# episode's `config/wave_components` dataset verbatim.
+ORACLE_COMPONENTS = None
+
 
 def bin_observations_to_grid(x: np.ndarray, y: np.ndarray, z: np.ndarray,
                               x_range: Tuple[float, float],
@@ -538,6 +553,55 @@ def initialize_from_frames_v2(frames, n_gaussians: int, depth: float,
     return init_kx, init_ky, init_w, init_phi
 
 
+def initialize_oracle(frames, n_gaussians: int, depth: float, seed: int = None):
+    """RESEARCH-ONLY: seed (kx, ky) from the TRUE components (module global
+    ORACLE_COMPONENTS); (w, phi) exactly as 'v2_konly' does.
+
+    Selection rule when n_gaussians != N_gt, FIXED IN ADVANCE
+    (tmp/s1s2_2026-08-05/PREREG.md, section S2):
+      * n_gaussians <  N_gt : the n_gaussians components with the LARGEST amplitude A
+                              (equivalently largest energy A^2), i.e. the same top-N rule
+                              wavesplat/baselines/oracle_baseline.py already uses.
+      * n_gaussians >  N_gt : all N_gt true components, then padded with random (kx, ky)
+                              drawn from the SAME RandomState(seed) and the same
+                              `rng.randn()` call that pads initialize_from_frames_v2, so the
+                              padding is identical in law to the control arm's padding.
+      * n_gaussians == N_gt : all true components, order as stored.
+
+    (w, phi) are NOT taken from ground truth: w = 0.01 uniform and phi ~ U(0, 2pi) via the
+    global torch RNG, byte-for-byte the same two lines the 'v2_konly' branch runs. Only the
+    wavenumber placement differs, which is the single factor S2 manipulates.
+    """
+    if ORACLE_COMPONENTS is None:
+        raise RuntimeError(
+            "init_method='oracle' requires initializer.ORACLE_COMPONENTS to be set to the "
+            "episode's true wave_components array. This is a research-only path.")
+    comp = np.asarray(ORACLE_COMPONENTS, dtype=np.float64)
+    A = comp[:, 0]
+    kx_true = comp[:, 2]
+    ky_true = comp[:, 3]
+    n_gt = len(A)
+
+    rng = np.random.RandomState(seed) if seed is not None else np.random
+
+    if n_gaussians <= n_gt:
+        order = np.argsort(A)[::-1][:n_gaussians]
+        kx_list = kx_true[order].tolist()
+        ky_list = ky_true[order].tolist()
+    else:
+        kx_list = kx_true.tolist()
+        ky_list = ky_true.tolist()
+        extra = n_gaussians - n_gt
+        kx_list.extend(rng.randn(extra).tolist())
+        ky_list.extend(rng.randn(extra).tolist())
+
+    init_kx = torch.tensor(kx_list[:n_gaussians], dtype=torch.float32)
+    init_ky = torch.tensor(ky_list[:n_gaussians], dtype=torch.float32)
+    init_w = torch.ones(n_gaussians) * 0.01
+    init_phi = torch.rand(n_gaussians) * 2 * math.pi
+    return init_kx, init_ky, init_w, init_phi
+
+
 def initialize_from_frames(frames, n_gaussians: int, depth: float,
                            x_range: Tuple[float, float] = (10.0, 250.0),
                            y_range: Tuple[float, float] = (-100.0, 100.0),
@@ -566,6 +630,9 @@ def initialize_from_frames(frames, n_gaussians: int, depth: float,
             frames, n_gaussians, depth, x_range, y_range,
             seed=seed
         )
+    elif init_method == 'oracle':
+        # RESEARCH-ONLY (experiment S2). See initialize_oracle.
+        return initialize_oracle(frames, n_gaussians, depth, seed=seed)
     elif init_method == 'relax':
         from wavesplat.optimizer.relax_estimator import initialize_relax
         return initialize_relax(frames, n_gaussians, depth, seed=seed)

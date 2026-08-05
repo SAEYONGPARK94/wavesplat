@@ -1,0 +1,88 @@
+dataset:
+  output_dir: data
+  raydrop_models:
+  - uniform
+  - slope
+  scenarios:
+  - n_components: 1
+    name: S01
+    sea_state: BF2
+  - n_components: 1
+    name: S02
+    sea_state: BF3
+  - n_components: 2
+    name: S03
+    sea_state: BF3
+  - n_components: 5
+    name: S04
+    sea_state: BF3
+  - n_components: 1
+    name: S05
+    sea_state: BF4
+  - n_components: 5
+    name: S06
+    sea_state: BF4
+  - n_components: 15
+    name: S07
+    sea_state: BF4
+  - n_components: 30
+    name: S08
+    sea_state: BF4
+  - n_components: 15
+    name: S09
+    sea_state: BF5
+  - n_components: 30
+    name: S10
+    sea_state: BF5
+  seeds:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+episode:
+  depth: 50.0
+  dt: 0.1
+  duration: 30.0
+  n_freq: 64
+  n_pts: 50
+gt_grid:
+  nx: 80
+  ny: 60
+  x_range:
+  - 10.0
+  - 250.0
+  y_range:
+  - -100.0
+  - 100.0
+lidar:
+  channels: 152
+  fov_h_deg: 120.0
+  fov_v_max_deg: 0.0
+  fov_v_min_deg: -25.0
+  height: 5.0
+  n_h_beams: 500
+  range_max: 250.0
+  range_min: 1.5
+  scan_rate: 10.0
+  wavelength_nm: 1550
+mesh:
+  nx: 180
+  ny: 150
+raycast:
+  batch_size: 4000
+  spatial_grid_nx: 20
+  spatial_grid_ny: 15
+sea_states:
+  BF2:
+    Hs: 0.3
+    Tp: 4.0
+  BF3:
+    Hs: 0.6
+    Tp: 5.5
+  BF4:
+    Hs: 1.2
+    Tp: 7.0
+  BF5:
+    Hs: 2.0
+    Tp: 9.0

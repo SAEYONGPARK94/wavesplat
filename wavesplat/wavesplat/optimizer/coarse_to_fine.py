@@ -122,7 +122,10 @@ class CoarseToFineSchedule:
         # Compute residuals
         result = residual_fn(model, frames)
 
-        use_beamform = self.init_method in ('v2', 'v2_konly', 'relax', 'relax_konly')
+        # 'oracle' = RESEARCH-ONLY S2 arm (2026-08-05): true (kx, ky) at init, everything
+        # downstream identical to 'v2_konly', so residual refinement must beamform too.
+        use_beamform = self.init_method in ('v2', 'v2_konly', 'relax', 'relax_konly',
+                                            'oracle')
 
         if use_beamform and len(result) == 4:
             # v2: beamforming on residuals with timestamps

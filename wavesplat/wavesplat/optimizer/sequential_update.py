@@ -212,10 +212,19 @@ class SequentialUpdater:
         return model
 
     def _build_optimizer(self):
-        """Build optimizer for initialization phase (all params unfrozen)."""
+        """Build optimizer for initialization phase (all params unfrozen).
+
+        RESEARCH-ONLY knob `init_k_lr_scale` (default 1.0 = shipped behaviour, bit-identical):
+        multiplies the (kx, ky) group learning rate during the INITIALISATION phase only.
+        0.0 freezes the wavenumbers at whatever the initializer placed them, which is what
+        experiment S2 (2026-08-05) needs to ask "given TRUE (kx, ky), can amplitude+phase
+        alone reconstruct the crowded field?". Tracking already freezes kx/ky under the
+        shipped tracking_mode='w_phi'; this extends that freeze backwards over init.
+        """
+        k_lr = self.lr * 0.5 * float(self.config.get('init_k_lr_scale', 1.0))
         param_groups = [
             {'params': [self.model.w, self.model.phi], 'lr': self.lr},
-            {'params': [self.model.kx, self.model.ky], 'lr': self.lr * 0.5},
+            {'params': [self.model.kx, self.model.ky], 'lr': k_lr},
         ]
         if not self.use_dispersion:
             param_groups.append(
@@ -329,14 +338,18 @@ class SequentialUpdater:
                 all_res.append(res)
                 all_t.append(np.full(n, frame.t))
 
+        # 'oracle' is the RESEARCH-ONLY S2 arm (2026-08-05). It differs from 'v2_konly'
+        # only in where the initial (kx, ky) come from, so every downstream stage --
+        # residual form, prune, grow -- must behave identically to 'v2_konly'; hence it
+        # joins the beamform family here. Additive: no shipped init_method changes.
         if all_x:
             x = np.concatenate(all_x)
             y = np.concatenate(all_y)
             r = np.concatenate(all_res)
-            if self.init_method in ('v2', 'v2_konly', 'learned'):
+            if self.init_method in ('v2', 'v2_konly', 'learned', 'oracle'):
                 return x, y, r, np.concatenate(all_t)
             return x, y, r
-        if self.init_method in ('v2', 'v2_konly', 'learned'):
+        if self.init_method in ('v2', 'v2_konly', 'learned', 'oracle'):
             return np.array([]), np.array([]), np.array([]), np.array([])
         return np.array([]), np.array([]), np.array([])
 
@@ -956,7 +969,7 @@ class SequentialUpdater:
 
         # Compute residual energy
         result = self._compute_residuals(self.model, frames)
-        if self.init_method in ('v2', 'v2_konly', 'learned') and len(result) == 4:
+        if self.init_method in ('v2', 'v2_konly', 'learned', 'oracle') and len(result) == 4:
             all_x, all_y, all_res, all_t = result
         else:
             all_x, all_y, all_res = result[:3]
@@ -995,7 +1008,7 @@ class SequentialUpdater:
             return
 
         # Use beamforming on residuals to find new peaks
-        if self.init_method in ('v2', 'v2_konly', 'learned') and all_t is not None:
+        if self.init_method in ('v2', 'v2_konly', 'learned', 'oracle') and all_t is not None:
             from wavesplat.optimizer.initializer import (
                 _beamform_coarse, _beamform_refine, _linear_projection,
             )

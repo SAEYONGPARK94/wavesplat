@@ -1,0 +1,677 @@
+{
+ "config": {
+  "seas": {
+   "BF4": {
+    "Hs": 1.88,
+    "Tp": 7.5
+   }
+  },
+  "seeds": 1,
+  "taus": [
+   0.5,
+   1.0,
+   2.0,
+   3.0
+  ],
+  "alphas": [
+   0.05,
+   0.2,
+   1.0
+  ],
+  "best_lp": 0.05,
+  "reest_period": 1.0,
+  "U": 11.3,
+  "depth": 50.0,
+  "obs_noise": 0.02,
+  "K_ff": 0.8,
+  "warmup_window": 20.0,
+  "coverage": "BF3,BF4,BF5",
+  "learned_arm": "SKIPPED (CPU ~2.4s/call; 30 re-est x cells prohibitive) -- hand only",
+  "metric": "residual heave RMS over t>5s; z primary",
+  "tau_model": "actuator INFORMATION delay: command active at t was issued at t-tau, cancels the current disturbance at (x_cg(t)+x_foil, t)",
+  "arms": "GT=exact current-cancel (tau-flat ceiling); persistence=GT wave at (x_cg-U*tau+x_foil, t-tau); hand_frozen=1 warmup estimate; hand_stream=re-est every reest_period, issue=t-tau",
+  "stageA": "shipped default-provider preview_dt=tau sweep, lp optimum only"
+ },
+ "stageA": [
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 0.05,
+   "tau": 0.5,
+   "gt_z_red_pct": 10.36944887302006
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 0.05,
+   "tau": 1.0,
+   "gt_z_red_pct": 0.3693416292600227
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 0.05,
+   "tau": 2.0,
+   "gt_z_red_pct": -12.356214955091428
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 0.05,
+   "tau": 3.0,
+   "gt_z_red_pct": -10.01520417777806
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 0.2,
+   "tau": 0.5,
+   "gt_z_red_pct": 9.38196071969707
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 0.2,
+   "tau": 1.0,
+   "gt_z_red_pct": -9.083460688229671
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 0.2,
+   "tau": 2.0,
+   "gt_z_red_pct": -17.476417102618825
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 0.2,
+   "tau": 3.0,
+   "gt_z_red_pct": -11.144405882565156
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 1.0,
+   "tau": 0.5,
+   "gt_z_red_pct": 7.933148907828203
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 1.0,
+   "tau": 1.0,
+   "gt_z_red_pct": -11.524426625553685
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 1.0,
+   "tau": 2.0,
+   "gt_z_red_pct": -17.50771484748679
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "lp_alpha": 1.0,
+   "tau": 3.0,
+   "gt_z_red_pct": -10.744194382594285
+  }
+ ],
+ "stageA_lp_mean": {
+  "0.05": -2.9081571576473513,
+  "0.2": -7.080580738429146,
+  "1.0": -7.9607967369516395
+ },
+ "rows": [
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "tau": 0.5,
+   "lp_alpha": 0.05,
+   "kp": 0.0715431738214655,
+   "z_rms": {
+    "noFF": 0.20855681821895297,
+    "persistence": 0.22061742355087355,
+    "hand_frozen": 0.20954234784548695,
+    "hand_stream": 0.1960281527873108,
+    "GT": 0.19775601302917903
+   },
+   "accel_rms": {
+    "noFF": 2.2056531229533234,
+    "persistence": 2.2135483853744273,
+    "hand_frozen": 2.077654439275226,
+    "hand_stream": 2.0464933320099736,
+    "GT": 1.9690081748531525
+   },
+   "z_red_pct": {
+    "noFF": 0.0,
+    "persistence": -5.782887097586409,
+    "hand_frozen": -0.472547306269,
+    "hand_stream": 6.007315195271612,
+    "GT": 5.178831016895713
+   },
+   "recovery_z": {
+    "hand_frozen": 0.48444411139360005,
+    "hand_stream": 1.075579774057622,
+    "GT": 1.0
+   },
+   "skill_frozen": [
+    {
+     "t_lo": 0,
+     "t_hi": 5,
+     "corr": 0.8102622961234444
+    },
+    {
+     "t_lo": 5,
+     "t_hi": 10,
+     "corr": 0.5783518813391245
+    },
+    {
+     "t_lo": 10,
+     "t_hi": 20,
+     "corr": 0.45650826931143745
+    },
+    {
+     "t_lo": 20,
+     "t_hi": 30,
+     "corr": 0.19494769374234613
+    }
+   ],
+   "skill_stream": [
+    {
+     "t_lo": 0,
+     "t_hi": 5,
+     "corr": 0.8416679531994729
+    },
+    {
+     "t_lo": 5,
+     "t_hi": 10,
+     "corr": 0.7811624061132282
+    },
+    {
+     "t_lo": 10,
+     "t_hi": 20,
+     "corr": 0.6900156255578939
+    },
+    {
+     "t_lo": 20,
+     "t_hi": 30,
+     "corr": 0.7300247495208996
+    }
+   ]
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "tau": 1.0,
+   "lp_alpha": 0.05,
+   "kp": 0.0715431738214655,
+   "z_rms": {
+    "noFF": 0.20855681821895297,
+    "persistence": 0.2325592306346292,
+    "hand_frozen": 0.20954234784548695,
+    "hand_stream": 0.19660296045162712,
+    "GT": 0.19775601302917903
+   },
+   "accel_rms": {
+    "noFF": 2.2056531229533234,
+    "persistence": 2.4901962442856056,
+    "hand_frozen": 2.077654439275226,
+    "hand_stream": 2.0504247038982113,
+    "GT": 1.9690081748531525
+   },
+   "z_red_pct": {
+    "noFF": 0.0,
+    "persistence": -11.50881214081303,
+    "hand_frozen": -0.472547306269,
+    "hand_stream": 5.731703172981916,
+    "GT": 5.178831016895713
+   },
+   "recovery_z": {
+    "hand_frozen": 0.6613435300745817,
+    "hand_stream": 1.0331306315014777,
+    "GT": 1.0
+   },
+   "skill_frozen": [
+    {
+     "t_lo": 0,
+     "t_hi": 5,
+     "corr": 0.8102622961234444
+    },
+    {
+     "t_lo": 5,
+     "t_hi": 10,
+     "corr": 0.5783518813391245
+    },
+    {
+     "t_lo": 10,
+     "t_hi": 20,
+     "corr": 0.45650826931143745
+    },
+    {
+     "t_lo": 20,
+     "t_hi": 30,
+     "corr": 0.19494769374234613
+    }
+   ],
+   "skill_stream": [
+    {
+     "t_lo": 0,
+     "t_hi": 5,
+     "corr": 0.8316927208129636
+    },
+    {
+     "t_lo": 5,
+     "t_hi": 10,
+     "corr": 0.7793126995839634
+    },
+    {
+     "t_lo": 10,
+     "t_hi": 20,
+     "corr": 0.6912641295386099
+    },
+    {
+     "t_lo": 20,
+     "t_hi": 30,
+     "corr": 0.7348389923004699
+    }
+   ]
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "tau": 2.0,
+   "lp_alpha": 0.05,
+   "kp": 0.0715431738214655,
+   "z_rms": {
+    "noFF": 0.20855681821895297,
+    "persistence": 0.21958928790427648,
+    "hand_frozen": 0.20954234784548695,
+    "hand_stream": 0.20007101116976,
+    "GT": 0.19775601302917903
+   },
+   "accel_rms": {
+    "noFF": 2.2056531229533234,
+    "persistence": 2.3705359508373434,
+    "hand_frozen": 2.077654439275226,
+    "hand_stream": 2.0609060235706798,
+    "GT": 1.9690081748531525
+   },
+   "z_red_pct": {
+    "noFF": 0.0,
+    "persistence": -5.289910816409327,
+    "hand_frozen": -0.472547306269,
+    "hand_stream": 4.068822645867254,
+    "GT": 5.178831016895713
+   },
+   "recovery_z": {
+    "hand_frozen": 0.46016642561711385,
+    "hand_stream": 0.893969266918294,
+    "GT": 1.0
+   },
+   "skill_frozen": [
+    {
+     "t_lo": 0,
+     "t_hi": 5,
+     "corr": 0.8102622961234444
+    },
+    {
+     "t_lo": 5,
+     "t_hi": 10,
+     "corr": 0.5783518813391245
+    },
+    {
+     "t_lo": 10,
+     "t_hi": 20,
+     "corr": 0.45650826931143745
+    },
+    {
+     "t_lo": 20,
+     "t_hi": 30,
+     "corr": 0.19494769374234613
+    }
+   ],
+   "skill_stream": [
+    {
+     "t_lo": 0,
+     "t_hi": 5,
+     "corr": 0.8258858398691213
+    },
+    {
+     "t_lo": 5,
+     "t_hi": 10,
+     "corr": 0.7512372124432132
+    },
+    {
+     "t_lo": 10,
+     "t_hi": 20,
+     "corr": 0.6527698106702128
+    },
+    {
+     "t_lo": 20,
+     "t_hi": 30,
+     "corr": 0.6739806499144396
+    }
+   ]
+  },
+  {
+   "sea": "BF4",
+   "seed": 0,
+   "tau": 3.0,
+   "lp_alpha": 0.05,
+   "kp": 0.0715431738214655,
+   "z_rms": {
+    "noFF": 0.20855681821895297,
+    "persistence": 0.21021694521806714,
+    "hand_frozen": 0.20954234784548695,
+    "hand_stream": 0.2012586532779905,
+    "GT": 0.19775601302917903
+   },
+   "accel_rms": {
+    "noFF": 2.2056531229533234,
+    "persistence": 2.164937826405727,
+    "hand_frozen": 2.077654439275226,
+    "hand_stream": 2.0626849911045997,
+    "GT": 1.9690081748531525
+   },
+   "z_red_pct": {
+    "noFF": 0.0,
+    "persistence": -0.7960070609493552,
+    "hand_frozen": -0.472547306269,
+    "hand_stream": 3.499365306436786,
+    "GT": 5.178831016895713
+   },
+   "recovery_z": {
+    "hand_frozen": 0.05413699090520309,
+    "hand_stream": 0.7189102552106886,
+    "GT": 1.0
+   },
+   "skill_frozen": [
+    {
+     "t_lo": 0,
+     "t_hi": 5,
+     "corr": 0.8102622961234444
+    },
+    {
+     "t_lo": 5,
+     "t_hi": 10,
+     "corr": 0.5783518813391245
+    },
+    {
+     "t_lo": 10,
+     "t_hi": 20,
+     "corr": 0.45650826931143745
+    },
+    {
+     "t_lo": 20,
+     "t_hi": 30,
+     "corr": 0.19494769374234613
+    }
+   ],
+   "skill_stream": [
+    {
+     "t_lo": 0,
+     "t_hi": 5,
+     "corr": 0.8043401610454523
+    },
+    {
+     "t_lo": 5,
+     "t_hi": 10,
+     "corr": 0.7508128520962276
+    },
+    {
+     "t_lo": 10,
+     "t_hi": 20,
+     "corr": 0.6125534474140053
+    },
+    {
+     "t_lo": 20,
+     "t_hi": 30,
+     "corr": 0.6136750636134369
+    }
+   ]
+  }
+ ],
+ "per_tau": {
+  "0.5": {
+   "noFF": {
+    "z_rms": 0.20855681821895297,
+    "z_red_pct": 0.0
+   },
+   "persistence": {
+    "z_rms": 0.22061742355087355,
+    "z_red_pct": -5.782887097586409
+   },
+   "hand_frozen": {
+    "z_rms": 0.20954234784548695,
+    "z_red_pct": -0.472547306269,
+    "recovery_z": 0.48444411139360005
+   },
+   "hand_stream": {
+    "z_rms": 0.1960281527873108,
+    "z_red_pct": 6.007315195271612,
+    "recovery_z": 1.075579774057622
+   },
+   "GT": {
+    "z_rms": 0.19775601302917903,
+    "z_red_pct": 5.178831016895713,
+    "recovery_z": 1.0
+   },
+   "stream_beats_persist": {
+    "stream_mean": 0.1960281527873108,
+    "persist_mean": 0.22061742355087355,
+    "mean_pass": true,
+    "all_seed_pass": true,
+    "PASS": true
+   }
+  },
+  "1.0": {
+   "noFF": {
+    "z_rms": 0.20855681821895297,
+    "z_red_pct": 0.0
+   },
+   "persistence": {
+    "z_rms": 0.2325592306346292,
+    "z_red_pct": -11.50881214081303
+   },
+   "hand_frozen": {
+    "z_rms": 0.20954234784548695,
+    "z_red_pct": -0.472547306269,
+    "recovery_z": 0.6613435300745817
+   },
+   "hand_stream": {
+    "z_rms": 0.19660296045162712,
+    "z_red_pct": 5.731703172981916,
+    "recovery_z": 1.0331306315014777
+   },
+   "GT": {
+    "z_rms": 0.19775601302917903,
+    "z_red_pct": 5.178831016895713,
+    "recovery_z": 1.0
+   },
+   "stream_beats_persist": {
+    "stream_mean": 0.19660296045162712,
+    "persist_mean": 0.2325592306346292,
+    "mean_pass": true,
+    "all_seed_pass": true,
+    "PASS": true
+   }
+  },
+  "2.0": {
+   "noFF": {
+    "z_rms": 0.20855681821895297,
+    "z_red_pct": 0.0
+   },
+   "persistence": {
+    "z_rms": 0.21958928790427648,
+    "z_red_pct": -5.289910816409327
+   },
+   "hand_frozen": {
+    "z_rms": 0.20954234784548695,
+    "z_red_pct": -0.472547306269,
+    "recovery_z": 0.46016642561711385
+   },
+   "hand_stream": {
+    "z_rms": 0.20007101116976,
+    "z_red_pct": 4.068822645867254,
+    "recovery_z": 0.893969266918294
+   },
+   "GT": {
+    "z_rms": 0.19775601302917903,
+    "z_red_pct": 5.178831016895713,
+    "recovery_z": 1.0
+   },
+   "stream_beats_persist": {
+    "stream_mean": 0.20007101116976,
+    "persist_mean": 0.21958928790427648,
+    "mean_pass": true,
+    "all_seed_pass": true,
+    "PASS": true
+   }
+  },
+  "3.0": {
+   "noFF": {
+    "z_rms": 0.20855681821895297,
+    "z_red_pct": 0.0
+   },
+   "persistence": {
+    "z_rms": 0.21021694521806714,
+    "z_red_pct": -0.7960070609493552
+   },
+   "hand_frozen": {
+    "z_rms": 0.20954234784548695,
+    "z_red_pct": -0.472547306269,
+    "recovery_z": 0.05413699090520309
+   },
+   "hand_stream": {
+    "z_rms": 0.2012586532779905,
+    "z_red_pct": 3.499365306436786,
+    "recovery_z": 0.7189102552106886
+   },
+   "GT": {
+    "z_rms": 0.19775601302917903,
+    "z_red_pct": 5.178831016895713,
+    "recovery_z": 1.0
+   },
+   "stream_beats_persist": {
+    "stream_mean": 0.2012586532779905,
+    "persist_mean": 0.21021694521806714,
+    "mean_pass": true,
+    "all_seed_pass": true,
+    "PASS": true
+   }
+  }
+ },
+ "skill_vs_range": {
+  "frozen": [
+   {
+    "t_lo": 0,
+    "t_hi": 5,
+    "corr": 0.8102622961234444
+   },
+   {
+    "t_lo": 5,
+    "t_hi": 10,
+    "corr": 0.5783518813391245
+   },
+   {
+    "t_lo": 10,
+    "t_hi": 20,
+    "corr": 0.45650826931143745
+   },
+   {
+    "t_lo": 20,
+    "t_hi": 30,
+    "corr": 0.19494769374234613
+   }
+  ],
+  "streaming": [
+   {
+    "t_lo": 0,
+    "t_hi": 5,
+    "corr": 0.8258966687317526
+   },
+   {
+    "t_lo": 5,
+    "t_hi": 10,
+    "corr": 0.7656312925591581
+   },
+   {
+    "t_lo": 10,
+    "t_hi": 20,
+    "corr": 0.6616507532951805
+   },
+   {
+    "t_lo": 20,
+    "t_hi": 30,
+    "corr": 0.6881298638373115
+   }
+  ]
+ },
+ "gate": {
+  "name": "G-D18-1 streaming preview-FF beats persistence",
+  "metric": "z (heave displacement) RMS, mean + all-seed",
+  "per_tau": {
+   "0.5": {
+    "stream_mean": 0.1960281527873108,
+    "persist_mean": 0.22061742355087355,
+    "mean_pass": true,
+    "all_seed_pass": true,
+    "PASS": true
+   },
+   "1.0": {
+    "stream_mean": 0.19660296045162712,
+    "persist_mean": 0.2325592306346292,
+    "mean_pass": true,
+    "all_seed_pass": true,
+    "PASS": true
+   },
+   "2.0": {
+    "stream_mean": 0.20007101116976,
+    "persist_mean": 0.21958928790427648,
+    "mean_pass": true,
+    "all_seed_pass": true,
+    "PASS": true
+   },
+   "3.0": {
+    "stream_mean": 0.2012586532779905,
+    "persist_mean": 0.21021694521806714,
+    "mean_pass": true,
+    "all_seed_pass": true,
+    "PASS": true
+   }
+  },
+  "passing_taus": [
+   0.5,
+   1.0,
+   2.0,
+   3.0
+  ],
+  "tau_star": 0.5,
+  "PASS": true,
+  "verdict": "PASS: preview-forecast FF has control value for actuator lead tau >= 0.5s"
+ },
+ "uq_gating": {
+  "applied": true,
+  "tau": 0.5,
+  "rows": [
+   {
+    "sea": "BF4",
+    "seed": 0,
+    "sig_thresh": 0.09959321469068527,
+    "z_stream": 0.1960281527873108,
+    "z_stream_gated": 0.19602360082914494
+   }
+  ],
+  "z_stream_mean": 0.1960281527873108,
+  "z_gated_mean": 0.19602360082914494,
+  "helps": true
+ },
+ "wall_time_s": 32.44929647445679,
+ "stream_latency_ms": {
+  "mean": 31.676708123622795,
+  "max": 96.74906730651855,
+  "n": 117
+ }
+}

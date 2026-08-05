@@ -1,0 +1,66 @@
+{
+  "episode": "episode_BF4_5comp_seed0_uniform.h5",
+  "n_frames_per_child": 60,
+  "method": "ETKF n_ensemble=100, perf_counter, identical code and episode across cells",
+  "baseline_1t1p_ms": 10.11,
+  "debate_A2_claim": "attributed 115.88 ms to BLAS thread count alone (~370%)",
+  "finding": "thread count alone = 1.26x. The large effect requires OVERSUBSCRIPTION: threads_per_proc * n_procs >> logical cores.",
+  "planned_cell_not_completed": "16 threads x 8 procs: terminated, runtime excessive and redundant given the 16x4 result",
+  "cells": [
+    {
+      "threads_per_proc": 1,
+      "n_procs": 1,
+      "total_threads_requested": 1,
+      "logical_cpus": 16,
+      "median_ms": 10.11,
+      "worst_proc_median_ms": 10.11,
+      "p95_ms": 10.72,
+      "wall_s": 3.3,
+      "ratio_vs_1t1p": 1.0
+    },
+    {
+      "threads_per_proc": 16,
+      "n_procs": 1,
+      "total_threads_requested": 16,
+      "logical_cpus": 16,
+      "median_ms": 12.73,
+      "worst_proc_median_ms": 12.73,
+      "p95_ms": 13.14,
+      "wall_s": 3.9,
+      "ratio_vs_1t1p": 1.2591493570722059
+    },
+    {
+      "threads_per_proc": 1,
+      "n_procs": 4,
+      "total_threads_requested": 4,
+      "logical_cpus": 16,
+      "median_ms": 10.34,
+      "worst_proc_median_ms": 10.36,
+      "p95_ms": 15.36,
+      "wall_s": 3.7,
+      "ratio_vs_1t1p": 1.022749752720079
+    },
+    {
+      "threads_per_proc": 4,
+      "n_procs": 4,
+      "total_threads_requested": 16,
+      "logical_cpus": 16,
+      "median_ms": 12.92,
+      "worst_proc_median_ms": 12.98,
+      "p95_ms": 14.28,
+      "wall_s": 4.1,
+      "ratio_vs_1t1p": 1.2779426310583581
+    },
+    {
+      "threads_per_proc": 16,
+      "n_procs": 4,
+      "total_threads_requested": 64,
+      "logical_cpus": 16,
+      "median_ms": 1983.84,
+      "worst_proc_median_ms": 2051.81,
+      "p95_ms": 2214.28,
+      "wall_s": 397.0,
+      "ratio_vs_1t1p": 196.22551928783383
+    }
+  ]
+}

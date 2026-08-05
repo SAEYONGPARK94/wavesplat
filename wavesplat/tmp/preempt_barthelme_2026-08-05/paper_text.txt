@@ -1,0 +1,1818 @@
+===== PAGE 1 =====
+1
+A Machine Learning Approach to DoA Estimation
+and Model Order Selection for Antenna Arrays with
+Subarray Sampling
+Andreas Barthelme, Wolfgang Utschick
+Professur f¨ur Methoden der Signalverarbeitung, Technical University Munich, 80290 Munich, Germany
+Email: {a.barthelme, utschick}@tum.de
+©2021 IEEE. Personal use of this material is permitted. Permission from IEEE must be obtained for all other uses, in any current or future media, including
+reprinting/republishing this material for advertising or promotional purposes, creating new collective works, for resale or redistribution to servers or lists, or
+reuse of any copyrighted component of this work in other works. DOI: 10.1109/TSP.2021.3081047
+Abstract—In this paper, we study the problem of direction
+of arrival estimation and model order selection for systems
+employing subarray sampling. Thereby, we focus on scenarios,
+where the number of resolvable active sources is not smaller than
+the number of simultaneously sampled antenna elements, i.e., we
+operate above the conventional limit for most estimators. For this
+purpose, we propose new schemes based on neural networks and
+estimators that combine neural networks with gradient steps on
+the likelihood function. These methods are able to outperform
+existing estimators in terms of mean squared error and model
+selection accuracy, especially in the low snapshot domain, at a
+drastically lower computational complexity.
+I. INTRODUCTION
+In the last decade, data-driven approaches have become in-
+creasingly popular in the signal processing community. Driven
+by astonishing results from image and speech processing, deep
+neural networks have become a tool that ﬁnds its way to
+many different signal processing applications. Wherever there
+are model imperfections or the existing solutions are very
+complex to compute, data-based approaches may improve the
+performance considerably.
+Traditionally, direction of arrival (DoA) estimation is a ﬁeld
+where appropriate stochastic models and potent algorithms are
+available. However, there are still some areas where exist-
+ing solutions lead to a rather limited performance. Subarray
+sampling is one of these applications for which classical
+methods do not provide fully satisfying results. The idea
+behind subarray sampling is to reduce costs by sequentially
+sampling subarrays instead of sampling the whole antenna
+array simultaneously, which means that fewer radio frequency
+(RF) chains than antennas are needed. Speciﬁcally, in the
+domain where the number of sources is not smaller than the
+number of sampled antenna elements per time step [1], [2],
+the performance of existing DoA estimation algorithms is—as
+we will show—only acceptable for a prohibitively high num-
+ber of snapshots. Therefore, we investigate the suitability of
+machine learning–based approaches for systems with subarray
+sampling. In particular, we discuss neural networks (NNs) for
+the tasks of DoA estimation and model order selection.
+Subarray sampling can be seen as a special form of time-
+varying arrays. Computable methods for DoA estimation for
+time-varying arrays fall into two categories depending on
+the ratio of transmitting sources to simultaneously sampled
+antenna elements. For fewer sources than sampled antennas
+per time step, previous work goes back to [3], where the
+single source case is studied. In [4], the same authors extend
+their analysis of time-varying arrays to multiple sources and
+propose eigenstructure methods based on array interpolation
+and focusing matrices. A more direct approach to employing
+MVDR and MUSIC for these systems is studied in [5], [6].
+The more demanding scenario, where the number of sources is
+equal or greater than the number of simultaneously sampled
+antennas, is discussed in [1]. There, the authors propose to
+use a cost function that matches the subarray covariance
+matrices to the observed sample covariance matrices in a
+general least squares (GLS) sense. In [2], the covariance matrix
+of the full antenna array is estimated by a special subarray
+sampling scheme. Afterwards, the DoAs are estimated from
+the reconstructed, full covariance matrix with MUSIC [7].
+Lastly, the recent work in [8] on non-coherent processing of
+partly calibrated arrays yields an estimator that utilizes a sparse
+signal representation of the system model and is applicable to
+subarray sampling.
+Utilizing data-based machine learning techniques for DoA
+estimation goes back to the ’80s to Rastogi et al. [9]. A
+review of the work from the last century in this ﬁeld can
+be found in [10]. More recently, with the increase in comput-
+ing resources, the methods have shifted towards larger fully
+connected and convolutional multilayer NNs. The proposed
+NN approaches can be assigned to three different groups. One
+group poses the DoA estimation problem as a classiﬁcation
+problem by a discretization of the angular domain in several
+sectors (e.g., [11]–[14]). The DoA estimation problem then
+reduces to determining if a source is present in a speciﬁc
+angular sector. For the next group, the idea is to estimate a
+discretized spectrum (MUSIC [15] or transmit power [16]) as
+a proxy by means of a regression network, and derive the
+DoA estimates by determining the maxima of the respective
+spectrum. In [17], such a NN-based estimation of a pseudo-
+spectrum has been shown to perform better than directly
+estimating the frequencies with a NN in a multisinusoidal
+signal. A disadvantage of the aforementioned methods is that
+a minimal angular spread between two sources has to be
+assumed, such that each grid point or sector is only associated
+with one possible source. The third group, which our proposed
+method belongs to, does not suffer from this. There, the NN
+should directly produce the DoA estimates at its output. These
+models are trained directly on the cost function of interest,
+arXiv:2009.12858v2  [eess.SP]  13 Jun 2021
+
+===== PAGE 2 =====
+2
+e.g., mean squared error (MSE). In [18], the authors propose
+to use a signal-to-noise-ratio (SNR) classiﬁcation network to
+choose between two different DoA regression networks with
+the goal to resolve two narrowly spaced sources. A more
+general approach is presented in [19]. There, a NN is discussed
+that is able to simultaneously estimate the number of sources
+and their DoAs. The authors show that this network is able to
+achieve the same performance as a maximum likelihood (ML)
+estimator in a scenario with two sources and a single snapshot.
+For model order selection, NNs have been ﬁrst proposed in
+[20]. Recently, the model order selection problem has been
+revisited for state of the art fully connected, feedforward
+network architectures with different input data formats [19],
+[21], [22]. In the context of subarray sampling, previous
+work on model order selection is limited to [23], where
+the applicability of information criteria to the time-varying
+preprocessing case is discussed.
+In this paper, we discuss several DoA estimation methods
+for systems with subarray sampling in Section III. There,
+our contributions lie in the proposal of a NN-based DoA
+estimator and the modiﬁcation of the GLS estimator for a
+small number of snapshots. Moreover, we provide a thorough
+comparison of the newly proposed and existing schemes for
+the critical case of as many sources as simultaneously sampled
+antennas by means of Monte Carlo simulations. These simula-
+tions show that the proposed NN-based estimation scheme is
+able to outperform the state-of-the-art estimators in terms of
+estimation accuracy and computational complexity. In Section
+IV, the model order selection problem for subarray sampling
+is discussed. We present a new estimation scheme for the
+model order based on a NN and are—to the best of our
+knowledge—the ﬁrst to provide simulation results for the
+achievable selection accuracy for these systems. Again, the
+proposed NN-based approach is able to provide a signiﬁcantly
+better performance compared to existing methods based on
+information criteria, as it provides a higher selection accuracy
+at a fraction of the computational cost.
+II. SYSTEM MODEL
+Let us consider antenna arrays consisting of M antennas.
+Throughout this work, we investigate systems which only use
+W < M RF chains and a switching network to sample the
+received signals, i.e., only a subset of the antenna elements
+is sampled simultaneously. In the following, we assume that
+at any given time each RF chain is connected to exactly
+one antenna element and that there are K different states of
+the switching network, i.e., we have K different subarrays
+consisting of W antennas. For each subarray, we collect N
+snapshots for a joint processing. Then, the n-th sample of the
+received signal for the k-th subarray can be written as
+y(k)(n) = G(k) 
+A(θ)s(k)(n) + η(k)(n)
+
+,
+(1)
+where the steering matrix A(θ)
+∈
+CM×L captures the
+response of the whole array on the DoAs θ of L far-ﬁeld
+sources, s(k) denotes the narrow-band transmit signals, and
+η(k) ∼CN(0, σ2
+ηIM) is some additive white Gaussian noise.
+The matrix G(k) ∈{0, 1}W ×M represents the connections
+between the RF chains and the antenna elements that form
+the k-th subarray.
+III. DOA ESTIMATION
+In this section, we brieﬂy discuss existing DoA estimation
+approaches that are derived from the underlying stochastic
+model, before we present a new data-driven NN approach.
+Afterwards, we compare these methods by means of Monte
+Carlo simulations.
+A. Model-Based DoA Estimation
+Traditionally, DoA estimation methods have been derived
+from the underlying stochastic model. In the scope of DoA
+estimation, two different stochastic models are commonly
+associated with the received signals y given in (1). These
+models differ in the assumed distribution of s [24]. On the
+one hand, we may treat s as an unknown parameter of the
+stochastic model. On the other hand, we may assume that s
+itself follows some probability distribution, which leads to a
+stochastic model for y that no longer depends on the individual
+realizations of s, but on the parameters of its distribution.
+1) Maximum Likelihood Estimator: As the most prominent
+model-based estimation method, we start by discussing the ML
+estimator. The ML estimator ﬁnds its estimates by maximizing
+the probability density function at the observed received
+signals y with respect to the model parameters. Deriving the
+ML estimator under the aforementioned stochastic models, we
+obtain the deterministic ML (DML) for the former model
+and the stochastic ML (SML) for the latter model. In the
+case of L < W, i.e., fewer sources than RF chains, the
+computation of the DML estimates is straightforward. As it
+is well summarized in [25], we can ﬁnd closed form estimates
+of the signal and noise parameters for ﬁxed angles θ. Plugging
+these estimates into the likelihood function gives a non-convex
+function in θ. To ﬁnd the global maximum of this concentrated
+likelihood, a multi-dimensional grid search over θ followed by
+any kind of gradient ascent technique can be employed.
+More challenging is the case with an equal to or greater
+number of sources than RF chains L ≥W, which we will
+focus on throughout this section. For the DML case, we have
+¯y(n) =
+
+
+y(1)(n)
+...
+y(K)(n)
+
+∼CN
+  ¯
+A¯s(n), IKW
+
+,
+(2)
+with
+¯
+A(θ) = blockdiag
+n
+G(1)A(θ), . . . , G(K)A(θ)
+o
+,
+(3)
+¯s(n) =
+h
+s(1),H(n), . . . , s(K),H(n)
+iH
+.
+(4)
+Since in general
+¯
+A(θ) does not have full column rank for
+L ≥W, there is a manifold of solutions for θ and ¯s(n) that
+give the same distribution for ¯y(n), i.e., θ cannot be uniquely
+estimated with the DML model [26].
+In contrast, the optimization problem corresponding to the
+SML estimator, where s(t) ∼CN(0, Rs), cannot be reduced
+
+===== PAGE 3 =====
+3
+to an optimization which only depends on θ for L > 1 [4].
+Instead, the SML likelihood estimates are the solution to
+max
+θ,Rs≻0,σ2η≥0 −
+K
+X
+k=1
+h
+ln
+
+det(R(k)
+y )
+
++ tr(R(k),−1
+y
+ˆR(k)
+y )
+i
+,
+(5)
+with the covariance matrices
+R(k)
+y
+= G(k)A(θ)RsAH(θ)G(k),T + σ2
+ηIW ,
+(6)
+and the sample covariance matrices
+ˆR(k)
+y
+= 1
+N
+N
+X
+n=1
+y(k)(n)y(k),H(n).
+(7)
+This optimization problem has almost surely a unique max-
+imizer if Rs is diagonal and L ≤⌊ρ
+2⌋[8], where ρ is the
+Kruskal rank of the co-array manifold
+˘V (θ) =
+
+
+ G(1)A∗(θ)
+
+◦
+ G(1)A(θ)
+
+...
+ G(K)A∗(θ)
+
+◦
+ G(K)A(θ)
+
+
+,
+(8)
+that uses the Khatri-Rao product, denoted by ◦. For the
+correlated source case with a dense covariance matrix Rs,
+the extension of the identiﬁability proof in [8] is non-trivial,
+and, as of yet, remains an open problem.
+Unfortunately, for the optimization of (5), we cannot ﬁnd
+closed form solutions for Rs and σ2
+η for ﬁxed θ. Therefore, the
+optimization of this non-convex function is over L2 + L + 1
+variables, which is computationally very expensive for any
+L ≥2. To overcome this problem, different methods that
+replace the likelihood objective with a covariance-matching
+criterion have been proposed to estimate θ speciﬁcally for
+L ≥W [1], [2], [8]. As the method introduced in [2] only
+works for a special sampling scheme, in which every lag in
+the covariance matrix needs to be sampled by at least one of
+the subarrays. Instead, we focus on the GLS [1] and sparse
+signal repesentation (SSR) [8] methods that do not suffer from
+this restriction.
+2) GLS Estimator: The GLS estimator has been shown to
+be an asymptotically consistent and efﬁcient estimator. The
+idea is to obtain the estimates by a covariance ﬁtting criterion.
+The GLS approach solves the following optimization problem
+min
+θ,Rs⪰0,σ2
+η≥0
+K
+X
+k=1
+∥T (k) 
+ˆR(k)
+y
+−R(k)
+y
+
+T (k),H∥2
+F,
+(9)
+where T (k) is a whitening ﬁlter, for which the choice T (k) =
+ˆR(k),−1/2
+y
+can be motivated by asymptotic considerations [1].
+In the optimization above, the signal and noise estimates can
+be computed for ﬁxed θ. Hence, the non-convex optimization
+problem results in a search for the optimal θ, which can again
+be solved by a grid-search approach.
+Note that in contrast to the original paper [1], we include
+the positive-semideﬁniteness constraints on Rs and σ2
+η in
+the optimization problem (9). Otherwise, we obtain some
+infeasible results for the estimates of Rs and σ2
+η when working
+in the low snapshot domain. This, in turn, means that the
+effort for determining the noise and signal estimates for ﬁxed
+θ is not a simple least squares problem, but requires the
+solution of a semideﬁnite program in the general case and
+non-negative least squares problem (quadratic program) in the
+case of uncorrelated sources.
+3) SSR Estimator: The SSR estimator has been derived in
+[8] from the SPICE estimator [27] for DoA estimation in
+partly calibrated arrays. Due to its non-coherent processing,
+i.e., phase offsets between the subarrays are not estimated,
+it is directly applicable to the subsampling system model at
+hand. Similar to the GLS approach, the SSR method is based
+on a covariance-matching cost function given by
+K
+X
+k=1
+∥R(k),−1/2
+y
+
+ˆR(k)
+y
+−R(k)
+y
+
+ˆR(k),−1/2
+y
+∥2
+F.
+(10)
+Using a sparse representation of the covariance matrices R(k)
+y
+for uncorrelated signals, a second-order cone program (SOCP)
+can be derived from (10). Although the derivation of the SSR
+estimator is based on the assumption of uncorrelated signals,
+the authors argue that due to the robustness of sparse signal
+models the method can also be used for the correlated case.
+The resulting SOCP can be either solved by a general purpose
+solver or, as has been proposed for SPICE in [27], a cost-
+effective alternating optimization method can be used (for
+details see Appendix A).
+B. Purely Data-Based DoA Estimation
+In contrast to the previously discussed model-based meth-
+ods, in this subsection, we discuss a purely data-based DoA
+estimation approach. In particular, we present an end-to-end,
+feedforward NN that is trained on artiﬁcial training data
+sampled from the SML signal model. In the following, we
+refer to this NN as MCENet, named after the employed
+objective function. Our main focus lies on the uncorrelated
+case, i.e., Rs is diagonal, because of multiple reasons. This
+assumption provides sufﬁcient identiﬁability conditions, is at
+the core of the SSR estimator, and reduces the complexity of
+the GLS estimator. Note that an extension of the proposed
+scheme to the correlated case simply means sampling data
+from the respective stochastic model.
+1) Data and preprocessing: For our training set, we sample
+data from the system model in (1). Hereby, the entries of the
+DoA vector θ are drawn from a uniform distribution over the
+complete ﬁeld of view, i.e., θ ∼U(0, U). For now, let us
+assume that the entries in θ are sorted in ascending order,
+which will be discussed later. The noise and transmit signal
+realizations are drawn from uncorrelated Gaussian distribu-
+tions according to the SML model. Thereby, we ﬁx the power
+of the strongest source to σ2
+s,max = 1, and for each realization,
+we draw the power of each weaker source in decibel from
+a uniform distribution between 0 dB and σ2
+s,min. The noise
+power also follows a uniform distribution between σ2
+η,min and
+σ2
+η,max. Each data sample consists of KN i.i.d. received signal
+realizations y(k)(n), n = 1, . . . , N, k = 1, . . . , K. Since
+we use artiﬁcial data, we can feed new, previously unseen
+realizations to the NN in each step of the gradient descent
+of the learning algorithm. This makes the training inherently
+
+===== PAGE 4 =====
+4
+robust towards overﬁtting. Additionally, we know the true
+DoAs for each realization, therefore, we can use them as the
+label for each data sample in a supervised learning approach.
+We pass sample covariance matrix information to the input
+layer of the NN, which has been shown to be a good
+preprocessing step for the complex received signals in the DoA
+context [22], [28], [29]. To this end, we form the K subarray
+sample covariance matrices ˆR(k)
+y , k = 1, . . . , K, and stack
+their real parameters, i.e., their diagonal elements and the real
+and imaginary parts of their upper triangle, in one large vector
+per data sample. Note that the input size of the NN is KW 2,
+and thus does not depend on the number of snapshots N.
+2) Architecture and cost function: Due to its simplicity, we
+use a fully connected, feedforward NN with Nh hidden layers,
+each consisting of Nu neurons. For the non-linear activation
+function of the hidden layers, we employ the rectiﬁed linear
+unit (ReLU). The output layer produces L outputs, which are
+the estimates of the DoA ˆθ.
+The most common cost function for parameter estimation
+is the MSE. However, for DoA estimation the 2π-periodicity
+of the angles has to be taken into account. To that end, the
+mean squared periodic error (MSPE), given by
+MSPE(θ, ˆθ) = Eθ
+mod[−π,π)
+
+θ −ˆθ
+
+2
+,
+(11)
+has been proposed [30]. An alternative, which is differentiable
+at every point and is equivalent to the MSE in the small error
+region, is the mean cyclic error (MCE) [31]. The MCE can
+be calculated according to
+MCE(θ, ˆθ) = Eθ
+h
+2
+
+1 −cos
+
+θ −ˆθ
+i
+.
+(12)
+Although the non-differentiability of the MSPE is only at one
+point, and hence, can be simply replaced by its left derivative
+without any adverse impact on the learning procedure, we use
+the MCE with its continuous derivative for the cost function
+of the NN.
+For L > 1, the order of the elements in ˆθ should be
+irrelevant for the value of the cost function. Therefore, the
+minimum of the sum of the element-wise errors between the
+true DoA and all permutations of ˆθ is used for the cost function
+f(θ, ˆθ), i.e.,
+f(θ, ˆθ) = min
+Π
+L
+X
+ℓ=1
+f
+
+θℓ, πT
+ℓˆθ
+
+,
+(13)
+where Π = [π1, . . . , πL]T is a permutation matrix. However,
+in our studies we observed that if the network is fed with sorted
+labels, it converges to a point where the optimal permutation
+matrix Π is constant. This means that the minimizer of (13)
+for every input sample is the same, i.e., the output of the
+network follows a ﬁxed order. Further studies showed that
+we can even omit the minimization over all permutations and
+simply use the sum of the element-wise errors. The network
+will then converge to a point, where it produces the outputs
+in the correct order that minimizes the sum MCE.
+C. Hybrid DoA Estimation
+By hybrid DoA estimation we understand the combination
+of two different estimation approaches in a two-stage process.
+In our case, this combination uses one of the model-based
+methods GLS and SSR or the purely data-based NN method as
+an initialization step and a consecutive gradient ascent method
+on the SML likelihood. The t-th iteration of the SML gradient
+ascent is given by
+c[t+1] = Pc
+
+c[t] + α[t] ∂L(c)
+∂c
+
+c=c[t]
+
+,
+(14)
+where c[t] gathers the values of the parameters θ, Rs, and
+σ2
+η in the t-th step, L(c) is the log-likelihood function from
+(5), α[t] is some adaptable step size, and Pc(•) indicates a
+projection onto the feasible set of the parameters c. Thereby,
+the gradient of the log-likelihood L(c) reads according to the
+chain rule as
+∂L(c)
+∂ci
+=
+K
+X
+k=1
+tr
+
+
+ 
+∂L
+∂R(k)
+y
+!H
+∂R(k)
+y
+∂ci
+
+,
+(15)
+with
+∂L(c)
+∂R(k)
+y
+= −N
+
+R(k),−1
+y
+−R(k),−1
+y
+ˆR(k)
+y R(k),−1
+y
+
+,
+(16)
+and the derivatives of the covariance matrix with respect to
+the individual entries of the parameter vector c, which are
+obtained by
+∂R(k)
+y
+∂θℓ
+= G(k)A(θ)Rs
+∂
+∂θℓ
+AH(θ)G(k),T
++ G(k) ∂
+∂θℓ
+A(θ)RsAH(θ)G(k),T,
+(17)
+∂R(k)
+y
+∂[Rs]i,j
+= G(k)a(θi)aH(θj)G(k),T,
+(18)
+∂R(k)
+y
+∂σ2η
+= IW .
+(19)
+For the model-based approaches, the consecutive gradient
+steps alleviate the grid mismatch problem that is inherent
+to any grid-based approach [32]. The NN method, as posed
+above, does not suffer from this grid mismatch problem due to
+its formulation as a regression problem. However, by utilizing
+a purely data-based method in a scenario, where an appropriate
+stochastic model exists, we ignore a signiﬁcant amount of
+information about the problem at hand. Hence, we propose
+the combination of NN based initialization and model aware
+gradient steps on the SML likelihood function to improve the
+DoA estimate.
+To combine the NN initialization with the SML gradient
+steps, an additional intermediate step is necessary. The NN
+does not directly yield estimates for the noise variance and
+signal covariance matrix, which are needed to form the initial
+parameter estimate c[0] for the consecutive gradient approach.
+To that end, we propose to use the GLS estimates of these
+nuisance parameters Rs and σ2
+η for the ﬁxed angular estimates
+
+===== PAGE 5 =====
+5
+ˆθ, which requires the solution of a convex optimization
+problem as discussed in Section III-A2.
+For the gradient approach on the SML likelihood, we
+observed that the gradient of the log-likelihood function is
+often dominated by the derivative w.r.t. the noise variance
+σ2
+η at high SNR and for L < W.1 This, in turn, can lead
+to a slow progress in the parameters of interest, viz., the
+DoA estimates, during a simple gradient ascent approach.
+Instead, a block coordinate ascent method can be applied that
+alternates between updating the DoA estimates, the estimate of
+the signal covariance Rs, and an estimate of σ2
+η. For each these
+updates of the different subsets of parameters, we perform a
+single gradient step in the direction of the respective partial
+derivatives with its individual step size. This led to a much
+faster convergence in our simulations. The resulting structure
+of the hybrid estimators including the block coordinate ascent
+is summarized in Algorithm 1.
+Algorithm 1: Structure of Hybrid Estimator.
+/* Intial Estimate
+*/
+1 Obtain initial estimate ˆθ[0] by using the SSR, GLS,
+MCENet estimator
+2 if MCENet has been used then
+3
+Obtain estimates R[0]
+s
+and σ2,[0]
+η
+from solving (9)
+for θ = ˆθ[0]
+4 else
+5
+Initial estimates R[0]
+s
+and σ2,[0]
+η
+have already been
+found in step 1
+6 end
+/* Block Gradient Descent
+*/
+7 Compute inital log-likelihood value L(c[0])
+8 t = 0
+9 do
+10
+θ[t+1] = θ[t] + α[t]
+θ
+∂L(c)
+∂θ
+
+θ=θ[t],Rs=R[t]
+s ,σ2η=σ2,[t]
+η
+11
+R[t+1]
+s
+= R[t]
+s + α[t]
+s
+∂L(c)
+∂Rs
+
+θ=θ[t+1],Rs=R[t]
+s ,σ2η=σ2,[t]
+η
+12
+σ2,[t+1]
+η
+=
+σ2,[t]
+η
++ α[t]
+σ
+∂L(c)
+∂σ2η
+
+θ=θ[t+1],Rs=R[t+1]
+s
+,σ2η=σ2,[t]
+η
+13
+t = t + 1
+14
+Compute log-likelihood value L(c[t])
+15 while L(c[t]) > L(c[t−1])
+D. Simulations
+To assess the performance of the previously presented al-
+gorithms, we provide some simulation results. The considered
+system consists of M = 9 omnidirectional antennas that form
+1To explain this observation, we consider the sensitivity of the partial
+derivatives of the log-likelihood function in the form of its second derivatives.
+The expected value of the respective Hessian matrix forms the well known
+Fisher information matrix. For high SNR and L < W, the block of the Fisher
+information matrix that corresponds to the noise variance scales with O(σ−4
+η )
+in contrast to the block that corresponds to the parameters of interest θ which
+grows with O(σ−2
+η ) [33, Eq. (21)] (Note that there is a typo in [33, Eq. (21)].
+The lower left entry in the matrix given for the ﬁrst case should be O(σ−4
+η ),
+as for the singular case below).
+TABLE I
+SUBARRAY SAMPLING SCHEME
+k
+Antenna Elements
+1
+1, 2, 9
+2
+1, 3, 8
+3
+1, 4, 7
+4
+1, 5, 6
+TABLE II
+SIMULATION PARAMETERS DOA ESTIMATION
+Parameter
+Value
+σ2
+s,min
+−9 dB
+σ2
+η,min
+−10 dB
+σ2
+η,max
+30 dB
+Nh
+4
+Nu
+2048
+Weight Initialization
+Glorot[34]
+Batch Size
+256
+Optimizer
+Adam[35]
+Learning Rate
+10−4
+Samples per Training Set
+128 × 106
+Samples per Test Set
+103
+a uniform circular array (UCA). For simplicity, we assume
+that all of the L = 3 sources lie in the same horizontal plane
+as the antenna array, such that the steering vector of the UCA
+only depends on the azimuth. In our simulations, we ﬁx the
+ratio of the array radius R and wavelength λ to be equal to
+1. The switching network selects K = 4 subarrays consisting
+of W = 3 antennas according to the conﬁguration given in
+Table I, which uses a clockwise numbering of the antenna
+elements of the UCA.
+The parameters for the training of our algorithms, as well as
+the MCENet parameters, have been chosen according to Table
+II.2 For the test set data, we use received signal realizations
+stemming from equally powered signals. Note that the parame-
+ters for the signal and noise variances in the training set have
+been chosen such that the resulting parameter space covers
+a reasonably broad operating range for the DoA estimation
+task. The knowledge about this limited parameter space is
+not incorporated in the model-based algorithms. However, the
+MCENet is trained with data from this range, which might
+introduce a certain advantage. By choosing the range broad
+enough, we want to make sure that this advantage is not too
+signiﬁcant.
+We denote the SSR method, for which we use YALMIP
+[36] in combination with the MOSEK solver [37] to solve
+the internal SOCP, simply by “SSR”, whereas the alternating
+optimization variant (see Appendix A) is referred to by “SSR
+iter.”. The “SSR iter.” variant uses a ﬁxed number of update
+steps, which we set to 104. For the presented SSR variants,
+we chose an oversampling factor of 32, i.e., we use 32M
+equidistant grid points to cover the whole ﬁeld of view. In
+contrast, the oversampling factor for the GLS method is set to
+8, because otherwise the computational complexity for L = 3
+2The MCENet parameters have been determined by a small scale random
+search. For details see Appendix B.
+
+===== PAGE 6 =====
+6
+sources becomes prohibitively large. As a reference, we added
+the results for a Genie ML approach. This approach starts
+with an initialization of the parameter vector c with the true
+DoAs, noise power, and covariance matrix of the transmit
+signals. From there, we use a block coordinate ascent to ﬁnd
+the closest local maximum of the SML likelihood function,
+and use the DoAs corresponding to this maximum as the
+Genie ML estimates. Note that at high SNR the variance of
+the distance between the true DoAs and the local maximum
+of the likelihood function, i.e., the Genie ML estimates, is
+given by the Cram´er-Rao-Bound (CRB), as the ML estima-
+tor is asymptotically efﬁcient. However, the CRB is, as a
+stochastic bound on the error variance, not really applicable
+if only one noise and signal realization is paired with each
+DoA realization, unless an immense number of realizations
+is considered. Additionally, without enforcing any minimal
+distance between the DoAs, the calculation of the CRB suffers
+from numerical issues for closely spaced angles. Therefore,
+this Genie ML estimator gives a more reasonable performance
+bound than the CRB for our simulations. Furthermore, we
+show some results for the MVDR estimator [5], which is—
+in contrast to the MUSIC approach presented in the same
+paper—technically applicable to scenarios with L ≥W as
+well. However, note that the lack of a noise subspace in
+the subarray sample covariance matrices leads to the fact
+that ˆR(k),−1
+y
+has no large eigenvalues that lead to a large
+aHG(k),H(θ) ˆR(k),−1
+y
+G(k)a(θ) for the directions θ without a
+source (in contrast to L < W, where R(k),−1
+y
+converges to the
+projector onto the noise subspace [33]). Therefore, we expect
+that the MVDR spectrum cannot differentiate well between
+directions with and without sources in this scenario.
+1) Uncorrelated Sources: In Fig. 1, we depict the root
+MSPE (RMSPE) of the different DoA estimators over the
+SNR, deﬁned as 1/σ2
+η, for N = 10 snapshots. Thereby, the
+RMSPE under the assumption that the true and estimated
+DoAs are associated according to (13) is given by
+RMSPE =
+v
+u
+u
+t 1
+L
+L
+X
+ℓ=1
+Eθ
+mod[−π,π)
+
+θℓ−ˆθℓ
+
+2
+.
+(20)
+The plot shows the hybrid approaches consisting of an initial-
+ization step and block coordinate ascent on the SML likelihood
+as solid lines and the plain results of the discussed methods
+without subsequent gradient steps as dashed lines. We can
+see that none of the proposed methods comes close to the
+performance of the Genie ML. Nevertheless, we can identify
+a large advantage of the MCENet approach over the model-
+based approaches.
+To understand where this performance advantage of the
+MCENet stems from, we plot the RMSPE of the top 90%
+of realizations for each DoA estimator in Fig. 2. Now we
+can see that the hybrid MCENet approach almost achieves
+the performance of the Genie ML for an SNR of 10 dB
+and higher. Meanwhile, the model-based approaches are still
+falling behind. Interestingly, 104 update steps are not enough
+for the alternating optimization approach “SSR iter.” to achieve
+the same performance as the general purpose solver solution.
+In last place are the GLS approach that might perform better
+5
+10
+15
+20
+100
+101
+SNR [dB]
+RMSPE [◦]
+GLS + ML
+MVDR + ML
+MCENet
+SSR + ML
+GLS
+MVDR
+SSR iter. + ML
+SSR
+Genie ML
+MCENet + ML
+SSR iter.
+Fig. 1. RMSPE vs. SNR, N = 10.
+5
+10
+15
+20
+100
+101
+SNR [dB]
+RMSPE [◦]
+GLS + ML
+MVDR + ML
+MCENet
+SSR + ML
+GLS
+MVDR
+SSR iter. + ML
+SSR
+Genie ML
+MCENet + ML
+SSR iter.
+Fig. 2. RMSPE vs. SNR, Top 90% of Realizations, N = 10.
+for a denser grid, which, however, is computationally in-
+tractable, and the MVDR technique. This reduced gap between
+the GenieML performance and the performance of the other
+algorithms shows that the results in Fig. 1 are dominated
+by the suboptimal performance for some of the realizations,
+which we will refer to as outliers, whereas for the majority of
+the realizations the algorithms achieve an acceptable accuracy.
+The hybrid MCENet approach suffers from fewer outliers than
+the model-based approaches, which can be seen in Fig. 3 as
+well, where we plotted the empirical cumulative density of the
+RMSPE per DoA estimator at 20 dB SNR for the Genie ML,
+the SSR and the MCENet methods.
+Interestingly, the presented estimators differ in which real-
+izations lead to outliers, e.g., a realization that leads to an
+outlier for the MCENet NN does not necessarily result in
+an outlier for the SSR method or vice versa. Whereas our
+simulations showed that the GLS estimator struggles especially
+
+===== PAGE 7 =====
+7
+10−1
+100
+101
+0
+0.2
+0.4
+0.6
+0.8
+1
+RMSPE [◦]
+SSR + ML
+SSR
+Genie ML
+MCENet + ML
+MCENet
+Fig. 3.
+Empirical Cumulative Density Function, SNR= 20 dB, N = 10,
+M = 9.
+with closely spaced sources, which is related to the very coarse
+grid that it is based on, categorizing which kind of realizations
+lead to outliers for the MCENet and SSR methods turned out
+to be unsuccessful. For the MCENet NN, the realizations that
+lead to outliers depend on the training data, which makes
+a theoretical analysis of these critical case rather difﬁcult
+and shall be left to later investigations. Speciﬁc opportunities
+to compensate for these deﬁcits may arise through more
+sophisticated active learning strategies. Similarly, the SSR
+method is based on the solution of an optimization problem,
+which makes it difﬁcult to obtain an intuition about the nature
+of the outlier realizations.
+When we compare the hybrid MCENet results with the plain
+MCENet output, we see in both Fig. 2 and Fig. 3 that the
+combination of the data-based MCENet with the model-based
+gradient steps is crucial. The MCENet alone cannot provide
+estimates that can compete with a model-based approach for
+non-outlier realizations. This comes as a trade-off between
+high SNR accuracy and outlier robustness, which is also
+reﬂected in the cost function of the NN. By design, the NN
+tries to minimize the average MCE over all realizations. In
+that sense, minimizing the occurrence of outliers that lead to
+large errors weighs more than further improving the accuracy
+for realizations with a small error such that during training
+the emphasis lies ﬁrst and foremost on the robustness against
+outliers.
+The higher susceptibility to outliers of the model-based
+approaches vanishes for a higher number of snapshots N, as
+can be seen in Fig. 4. There, we compare the relevant cut-out
+of the empirical cumulative density of the hybrid approaches
+for N = 10 and N = 1000. For high N, we see not only a
+general shift of the CDF curves (the CRB scales linearly in
+N), but almost no outliers occur and the performance of SSR
+is on par with the MCENet. This result is not surprising, as
+the SSR method is based on a covariance-matching criterion.
+The sample covariance matrices are consistent estimates of the
+true subarray covariance matrices, which in turn justiﬁes the
+validity of the covariance-matching objective for high N. Note
+10−1
+100
+101
+0.6
+0.8
+RMSPE [◦]
+SSR + ML
+MCENet + ML
+Genie ML
+N = 10
+N = 1000
+Fig. 4.
+Empirical Cumulative Density Function, SNR= 20 dB, varying N,
+M = 9.
+10−1
+100
+101
+0.6
+0.8
+RMSPE [◦]
+SSR + ML
+MCENet + ML
+Genie ML
+M = 9
+M = 25
+Fig. 5.
+Empirical Cumulative Density Function, SNR= 20 dB, N = 10,
+varying M.
+that the GLS estimator, which is based on a similar objective as
+the SSR method, has been proven to be a consistent estimator
+(for a sufﬁciently dense grid) [1].
+An increase in the number of antennas M improves the
+average performance of all discussed methods, as is shown
+in Fig. 5. However, for M
+= 25 antennas, we still see
+a signiﬁcant amount of outliers for the MCENet and SSR
+approaches. Furthermore, increasing M not only comes with
+additional hardware expenditures, but the number of subarrays
+K, which have to be sampled, and therefore, the time to scan
+the whole array, grows as well.
+For an assessment of the case of strictly more sources than
+RF chains, the considered UCA with W = 3 RF chains is not
+well suited, because the estimation task for L = 4 sources and
+the considered system becomes so difﬁcult that the MCENet
+and SSR methods are not able to produce reasonable estimates
+for a majority of realizations. Instead, we were able to ﬁnd
+encouraging results for other array geometries, but due to the
+lack of space further details are beyond the scope of this work.
+Another important result to be stated is when referring to the
+generalization capabilities of the proposed data-based method,
+i.e., how well the MCENet NN generalizes to data outside the
+parameter ranges which the training data has been drawn from.
+Here it is important to understand that data-based approaches
+in general can only perform well in cases that have been
+sufﬁciently represented during the training phase. A similar
+observation can be made in the application at hand. In cases
+where the proposed method is applied to data which is outside
+
+===== PAGE 8 =====
+8
+the speciﬁed parameter ranges, the proposed estimator suffers
+from a severe degradation. However, a proper experimental
+design of the training phase can easily prevent from those
+cases. Which is obviously a disadvantage in comparison to
+model-based approaches turns out to be advantageous in cases
+where an appropriate stochastic model cannot be easily derived
+and model-based approaches suffer from an inevitable model
+mismatch.
+2) Correlated Sources: A prime example for the aforemen-
+tioned adaption of the NN-based estimator by augmenting the
+training data set arises when we take a look at correlated
+sources. To that end, we created correlated realizations with a
+transmit covariance matrix
+Rs =
+
+
+1
+ρ
+ρ2
+ρ
+1
+ρ
+ρ2
+ρ
+1,
+
+
+(21)
+with ρ ∈[0, 1], to compare the performance of the presented
+estimators. The results at an SNR of 20 dB can be found in
+Fig. 6 for ρ = 1 and in Fig. 7 for varying ρ. In addition to the
+MCENet NN that has been trained on data with uncorrelated
+sources, we also added the results for an MCENet NN that
+has been trained with correlated sources denoted by “MCENet
+(Corr)”. For the training of the MCNet (Corr), we not only
+sampled the transmit power differences between the sources
+from a uniform distribution between 0 dB and −9 dB, but also
+the correlation coefﬁcient ρ followed a uniform distribution
+between 0 and 1. This data generating model for the training
+set of the MCENet (Corr) comprises the realizations of the test
+set with correlated sources. Furthermore, we use the MCENet
+NN trained on uncorrelated sources as a starting point for
+our training procedure of the MCENet (Corr) NN. From this
+initialization, we used 16 million data samples stemming from
+the correlated data model to adapt the existing network to
+the new scenario. This adaptation method resembles an online
+training procedure as has been discussed in the context of
+model order selection in [22]. In contrast, the SSR method is
+inherently based on the uncorrelated data model and cannot
+be easily adapted to the correlated case.
+We see in Fig. 6 that in the fully correlated case, the SSR
+and MCENet method, which has been trained on uncorrelated
+data, fail to provide reasonable estimates. This is due to
+the fact that the SSR method is based on the uncorrelated
+source model and the MCENet NN operates on data that
+is very different from its training data. The MCENet (Corr)
+NN, however, shows a much better performance, although
+it is also not able to fully achieve the Genie ML bound.
+The increased generalization capabilities come at the price
+of slightly degraded performance for correlation coefﬁcients
+close to zero (cf. Fig. 7). The slight performance loss of
+MCENet (Corr) at low ρ is the result of a trade-off between
+a high accuracy at low and high correlation. This reﬂects the
+MCENet training objective, which penalizes large estimation
+errors in the training set, and therefore, promotes robustness
+towards critical cases at the cost of a reduced accuracy in
+easier scenarios.
+3) Fully Sampled Array: The MCENet NN can be trained
+not only for arrays with subarray sampling, but also for fully
+10−1
+100
+101
+0
+0.2
+0.4
+0.6
+0.8
+1
+RMSPE [◦]
+SSR + ML
+MCENet (Corr) + ML
+MCENet + ML
+Genie ML
+Fig. 6. Empirical Cumulative Density Function for Correlated Sources, SNR=
+20 dB, N = 10, M = 9, ρ = 1.
+0
+0.2
+0.4
+0.6
+0.8
+1
+100
+101
+Correlation Coefﬁcient ρ
+RMSPE [◦]
+SSR + ML
+Genie ML
+MCENet + ML
+MCENet (Corr) + ML
+Fig. 7.
+RMSPE vs. Correlation Coefﬁcient ρ, Top 90% of Realizations,
+N = 10.
+sampled arrays. In fact, the fully sampled scenario represents a
+special case of the systems with subarray sampling for K = 1
+and W = M. Again, the estimator outputs are not completely
+free of outliers. Hence, we again show the RMSPE of the
+top 90% of realizations for each estimator in Fig. 8. As a
+comparison, we added the results for the case with subarray
+sampling as dashed lines. Note that although we could choose
+the same realizations for the DoAs, the signal and noise
+realizations for both cases differ from each other because of
+the different dimensionality of both cases.
+Fig. 8 shows that for a fully sampled array, the performance
+gap between the MCENet approach and the SSR reference
+almost vanishes. The performance of both methods only differs
+for very low SNR, where the MCENet provides a little more
+robustness. Also for high SNR, the number of outliers experi-
+enced by the MVDR method decrease signiﬁcantly compared
+to the more complex case of subarray sampling. However,
+note that the estimators do not only differ in their achievable
+accuracy, but also in their computational complexity.
+
+===== PAGE 9 =====
+9
+5
+10
+15
+20
+10−1
+100
+101
+SNR [dB]
+RMSPE [◦]
+SSR + ML
+MVDR + ML
+MCENet + ML
+Genie ML
+Fully Sampled
+Subarray Sampling
+Fig. 8.
+RMSPE vs. SNR for the Fully Sampled Array, Top 90% of
+Realizations, N = 10.
+TABLE III
+COMPUTATION TIMES OF DOA ESTIMATORS
+MCENet
+SSR
+SSR iter.
+GLS
+MVDR
+non-hybrid
+5.4 s
+127.2 s
+1002.8 s
+1486.2 s
+6.5 s
+hybrid
+52.3 s
+174.7 s
+1045.3 s
+1541.8 s
+53.8 s
+4) Complexity: On a ﬁnal note, we want to brieﬂy discuss
+the complexity of the presented estimators. To this end, we
+show in Table III the computation times of the individual
+estimators with and without consecutive gradient steps for
+uncorrelated sources and the UCA with subarray sampling.
+The presented times are for 1000 realizations at 20 dB SNR
+in MATLAB on a simulation server equipped with two
+Intel Xeon Gold 6134 processors. Although we know that
+computation times do not achieve the same validity as a
+rigorous complexity analysis in Landau notation, due to their
+dependence on the used hardware and implementation, they
+still yield some qualitative insights. From our simulations, we
+see that the MCENet inference steps took about a tenth of
+the evaluation time of the “SSR” estimator, which itself is
+again about ten times faster than the “SSR iter.” with a ﬁxed
+iteration count of 104 iterations and the GLS estimator, whose
+complexity grows exponentially with the number of sources.
+Only the MVDR estimator, which has the worst accuracy,
+is able to compete with the MCENet approach in terms of
+computational complexity. Taking the consecutive gradient
+steps into account3, we see that these steps implemented by
+a block coordinate ascent take roughly the same time for all
+discussed methods.
+3Note that the required time for the gradient steps heavily depends on
+the target accuracy. A looser stopping criterion may signiﬁcantly reduce
+the required computation times. For the presented simulations, the stopping
+criterion for the gradient steps is very tight (< 10−6 absolute change in the
+log-likelihood), to achieve meaningful results for the MDL approach discussed
+in the next section.
+IV. MODEL ORDER SELECTION
+Knowledge about the number of sources in the transmission
+environment L is essential in any of the previously presented
+DoA estimation approaches. With an inaccurate estimate of the
+model order, we base our algorithms on the wrong stochastic
+model or choose the wrong NN, which has been trained on
+mismatched data. Hence, we discuss the problem of model
+order selection in this section. Again, we follow the structure
+of the previous section and discuss model-based approaches
+ﬁrst, namely information criteria (IC). Then we present a
+data-based approach, which uses a classiﬁcation NN, and a
+performance comparison based on Monte Carlo simulations.
+A. Information Criteria
+The most common model-based model order selection
+methods are based on ICs [38]. All variants of these IC follow
+a common structure of their underlying optimization problem.
+For the considered system model this optimization problem is
+given by
+ˆL =
+argmax
+ℓ∈{0,...,Lmax}
+ln
+
+pℓ
+
+Y ; ˆθ, ˆRs, ˆσ2
+η
+
++ c(ℓ),
+(22)
+where Y contains all observations yk(n), k = 1, . . . , K, n =
+1, . . . , N, the likelihood function of the received signals under
+the assumption that the model order is equal to L and
+parameterized by the ML estimates of the model parameters
+is denoted by pℓ(·), and c(ℓ) is a penalty term that combats
+overﬁtting of the model order.
+In the fully sampled case, the likelihood function can be
+reparameterized by the eigenvalues of the sample covariance
+matrix. This leads to a very convenient expression for the
+value of the likelihood function that depends only on these
+eigenvalues and no longer on the DoA estimates for each
+considered model order [39]. Therefore, the computational
+load is basically reduced to an eigenvalue decomposition in
+contrast to evaluating ML estimates for very high model orders
+up to Lmax. Unfortunately, this reparameterization is no longer
+available when we consider systems with subsampling. This is
+made visible by looking at eigendecompositions of the sample
+covariances
+ˆR(k)
+y , where the true model order L is larger
+than the number of RF chains W. Here, the eigenspace can
+no longer be decomposed into a signal and noise subspace.
+Additionally, as we see from the discussion in Section III-A,
+the ML estimates that are generally needed for the evaluation
+of the IC cannot be obtained directly for L ≥W.
+Instead, we can replace the ML estimates of the model
+parameters in (22) by the GLS estimates, as has been proposed
+in [23]. Applying the same rational, the SSR estimator or any
+hybrid version can be used to evaluate the IC.
+B. Purely Data-Based Model Order Selection
+As we have seen in Section III-D, the DoA estimates in the
+low SNR and low number of snapshots region are heavily
+affected by outliers. In [22], it is shown that in the fully
+sampled case a NN-based model order selection approach
+can outperform classical IC in exactly this region, while
+simultaneously performing equally for high SNR and many
+
+===== PAGE 10 =====
+10
+snapshots. Therefore, we follow the lines of [22] and discuss
+a similar NN, to which we refer to as CovNet, for model order
+selection for systems with subsampling.
+1) Data and preprocessing: For the NN, we use the same
+kind of preprocessing based on the sample covariance matrices
+as described in Section III-B1. Again, due to the artiﬁcial data
+we use, we can sample from the underlying stochastic model
+as described for MCENet. However, the network is now not
+only fed with data stemming from a stochastic model with
+ﬁxed model order L, but we have to provide data for varying
+model orders L = 0, . . . , Lmax. This model order is used in
+the form of a one-hot encoded vector as the label for each
+data sample. During training, each batch consists of an equal
+number of realizations from the varying model orders such
+that no bias towards one model order is introduced.
+2) Architecture and cost function: Again, we use a fully
+connected, feedforward NN with Nh hidden layers with Nu
+neurons each and ReLU activation. The output layer consists
+of Lmax + 1 neurons and applies a softmax operation to form
+the outputs z(ℓ), ℓ= 0, . . . , Lmax [40]. By training based on
+the cross-entropy loss, which for one-hot encoded labels is
+given by
+max
+w ln (z(ℓ∗|x; w)) ,
+(23)
+the output values z(ℓ) can be interpreted as estimates of
+the posterior probabilities for model order ℓ. The training
+procedure can be seen as a heuristic approach to the optimal
+maximum a posteriori (MAP) estimator, because the training
+adapts the weights w such that the estimate of the posterior
+probability z(L) of the true model order L of the input x is
+maximized [41].
+C. Simulations
+We conducted simulations for model order selection with
+the same data generating model as introduced in Section III-D.
+The maximal number of sources Lmax that we consider for our
+simulations is 3, i.e., we are operating in the range of Lmax ≥
+W. For CovNet, we use a smaller network than MCENet.
+CovNet has the same structure as its counterpart in [22] with
+Nh = 3 layers with Nu = 1024 neurons and has been trained
+on 106 batches with 64 samples in each batch, by using the
+Adam optimizer [35] with ﬁxed learning rate of 10−2. As
+a reference, we use the maximum description length (MDL)
+estimator, whose penalty term in (22) under the assumption of
+uncorrelated transmit signals is given as [23]
+c(ℓ) = 2ℓ+ 1
+2
+ln (KN) ,
+(24)
+and uses the hybrid SSR method, which is computationally
+tractable and achieves a better DoA estimation performance
+than the GLS approach (cf. Section III-D), to obtain the
+necessary parameter estimates.
+In Fig. 9, we show the model order selection accuracy of
+the discussed methods for varying SNR. To that end, we use
+a test set consisting of 4 · 103 data samples with a ﬁxed
+SNR and an equal number of data points from all model
+orders. Note that due to our SNR deﬁnition, ﬁxed SNR means
+that the power ratio of the strongest source to the noise is
+−5
+0
+5
+10
+15
+20
+25
+30
+25
+50
+75
+SNR [dB]
+Accuracy [%]
+CovNet
+MDL with SSR + ML
+Fig. 9. Model Order Selection Accuracy vs. SNR, N = 10
+constant, but the transmit powers of the weaker sources are
+still randomly drawn, i.e., the ratio of transmit power and
+noise power for these sources is smaller than the stated SNR.
+Similarly, we show the achieved accuracy of the different
+methods for a different number of snapshots N in Fig. 10,
+where the respective test sets consist of data samples with a
+ﬁxed number of snapshots N and randomly drawn SNR. In
+both cases, CovNet achieves a signiﬁcantly higher accuracy
+than the MDL estimator. As we are operating in a low snapshot
+region, the SSR estimators are prone to outliers, as discussed
+for L = 3 in Section III-D, which leads to the suboptimal
+performance of the MDL estimator compared to the NN-based
+approach.
+Note that, in Fig. 10, we show two different CovNet results.
+The solid red line shows the accuracy for a NN, where
+the number of snapshots in the training set and test set are
+matching, i.e., Ntrain = N, whereas the dashed orange line
+shows the performance of a CovNet model that has been
+trained on data with Ntrain = 10 snapshots, which means that
+for this model the data in the test and training sets are different.
+Interestingly, the CovNet model trained on 10 snapshots is
+able to generalize well to data with a different number of
+snapshots and achieves almost the same performance over all
+N as the NNs that have been trained on the same number of
+snapshots as in the test set N = Ntrain. This means that for
+the implementation in a direction ﬁnder, NNs for each possible
+number of snapshots do not have to be stored, but a certain
+realization can cover different N.
+Again, we end this section by a short comparison of the
+required computation times of each presented model order
+selection algorithm. For 1000 realizations with varying SNR
+evaluated on the same simulation server as discussed in
+Section III-D, the inference from the CovNet model takes 2.6
+seconds. However, the MDL estimator takes 505.2 seconds for
+the same task, since a DoA estimate for all possible model
+orders—including the computationally expensive high model
+orders—has to be performed for every realization. This is a
+difference by a factor of 200. Although the CovNet approach
+does not automatically yield a DoA estimate like the MDL
+approach, its execution time combined with the time for a
+consecutive DoA estimation for the estimated model order
+
+===== PAGE 11 =====
+11
+5
+10
+15
+20
+30
+50
+70
+90
+N
+Accuracy [%]
+CovNet Ntrain = N
+CovNet Ntrain = 10
+MDL with SSR + ML
+Fig. 10. Model Order Selection Accuracy vs. N
+(cf. Section III-D for L = 3) is still signiﬁcantly smaller.
+V. CONCLUSION
+From the simulation results in Section III-D and IV-C, we
+see that NN-based approaches to DoA estimation and model
+order selection are viable alternatives to existing model-based
+techniques for systems with subarray sampling. In terms of
+selection accuracy and DoA estimation error, the proposed NN
+schemes are able to outperform model-based techniques when
+the number of available snapshots is small. Hereby, a combina-
+tion of NN based initialization and model-based gradient steps
+was crucial to achieve competitive DoA estimates, although
+improvements on the architecture or training procedure may
+further improve the purely NN-based estimates (cf. results in
+[19]). Additionally, the computational complexity of a NN
+inference is considerably lower than the evaluation of model-
+based estimators, which enables completely NN-based DoA
+estimation chains for time-critical applications.
+However, there are still some open questions that need
+to be addressed: How do NN based approaches cope with
+array calibration? And, how robust are these methods when
+model imperfections come into play? One idea to tackle these
+problems is to use an online learning procedure to adapt a
+pretrained NN to the changed model as has already been
+proposed in [22].
+APPENDIX A
+ALTERNATING UPDATE FOR SSR ESTIMATOR
+The optimization problem for the SSR estimator, according
+to [8, Equation (46)], is given by
+min
+p,σ2η
+K
+X
+k=1
+tr
+
+ˇR(k),−1
+y
+ˆR(k)
+y
+
+s. t.: p ≥0, σ2
+η ≥0,
+G
+X
+g=1
+wgpg + ¯wσ2
+η = 1,
+(25)
+with the sparse representation of the covariance matrix
+ˇR(k)
+y
+= ˇ
+A(k) diag{p} ˇ
+A(k),H + σ2
+ηI,
+(26)
+where ˇ
+A(k) is a dictionary containing G subarray steering vec-
+tors G(k)A(ˇθg), g = 1, . . . , G, and p contains the respective
+power values.
+The weights in (25) are given as
+wg =
+1
+KW
+K
+X
+k=1
+aH(ˇθg)G(k),H ˆR(k),−1
+y
+G(k)a(ˇθg),
+(27)
+¯w =
+1
+KW
+K
+X
+k=1
+tr
+
+ˆR(k),−1
+y
+
+.
+(28)
+Note that we added a missing factor of 1/K compared to [8,
+Equation (46)], as (cf. [27, Equation (17)])
+K
+X
+k=1
+G
+X
+g=1
+pgaH(ˇθg)G(k),H ˆR(k),−1
+y
+G(k)a(ˇθg)
++
+K
+X
+k=1
+σ2
+η tr
+
+ˆR(k),−1
+y
+
+−−−−→
+N→∞KW.
+(29)
+Following the lines of [27, Section III], we obtain the
+alternating update rules in the i + 1-th iteration as
+p[i+1]
+g
+= p[i]
+g
+
+K
+P
+k=1
+aH(ˇθg)G(k),H ˇR(k),−1
+y
+ˆR(k),1/2
+y
+
+2
+w1/2
+g
+ξ[i]
+, (30)
+σ2,[i+1]
+η
+= σ2,[i]
+η
+ K
+P
+k=1
+tr
+
+ˇR(k),−1
+y
+ˆR(k)
+y
+ˇR(k),−1
+y
+1/2
+¯w1/2ξ[i]
+,
+(31)
+with
+ξ[i] =
+G
+X
+g=1
+w1/2
+g
+p[i]
+g
+
+K
+X
+k=1
+aH(ˇθg)G(k),H ˇR(k),−1
+y
+ˆR(k),1/2
+y
+
+2
++ ¯wσ2,[i]
+η
+K
+X
+k=1
+tr
+
+ˇR(k),−1
+y
+ˆR(k)
+y
+ˇR(k),−1
+y
+
+.
+(32)
+APPENDIX B
+JUSTIFICATION OF MCENET PARAMETERS
+Let us start by stating that the architecture and parameters
+of the MCENet NN have not been heavily optimized with
+regard to its performance shown in Section III-D. Clearly,
+a more sophisticated architecture (e.g., with convolutional
+layers) or an exhaustive search in the hyperparameters has
+the potential to improve the performance, as is the case for
+any NN-based approach. Nevertheless, we are conﬁdent that
+the hyperparameters, which we chose for the MCENet NN,
+lead to a fair assessment of the achievable performance of the
+presented estimator. The reason behind our evaluation lies in
+the results of a small scale random search [42], which we
+performed to select the hyperparameters of the network. To
+that end, we trained multiple MCENet NNs with randomly
+chosen hyperparameters from a certain range with data from
+the same training set and compared their achieved loss on a
+common cross-validation data set.4 In particular, we sampled
+4Since we effectively train the networks for a single epoch on a very large
+training set, we do not need additional measures to combat overﬁtting like
+early stopping.
+
+===== PAGE 12 =====
+12
+512
+1,024
+1,536
+2,048
+0.2
+0.3
+0.4
+Nu
+Validation Loss
+Nh = 1
+Nh = 3
+Nh = 2
+Nh = 4
+Fig. 11. Random Search Results - Validation Loss vs. Number of Neurons
+per Layer.
+the number of hidden layers Nh ∈{1, 2, 3, 4}, the number of
+neurons per hidden layer Nu ∈{128, 256, . . . , 1920, 2048},
+and the initial learning rate from the set {10−2, 10−3, 10−4}.
+Hereby, an initial learning rate of 10−4 showed the best
+convergence of the Adam optimizer out of the three choices.
+The results of the random search for a learning rate of
+10−4 can be found in Fig. 11. There, we show how the
+achieved validation loss depends on the number of neurons
+Nu. Note that some points in Fig. 11 are missing as the
+employed random search does train a NN only for a random
+subset of combinations of hyperparameters instead of each
+possible combination. For each choice of Nh, the validation
+loss generally decreases for growing Nu, especially for a
+low number of neurons. However, the rate at which the
+validation loss improves is getting smaller as well such that
+we see a saturation of the performance in the number of
+neurons. Moreover, we can see that the validation loss does not
+signiﬁcantly improve between choosing 3 or 4 hidden layers.
+Therefore, we come to the conclusion that a further increase
+in the number of hidden layers or neurons does not yield a
+signiﬁcant performance gain.
+REFERENCES
+[1] J. Sheinvald and M. Wax, “Direction ﬁnding with fewer receivers via
+time-varying preprocessing,” IEEE Trans. Signal Process., vol. 47, no. 1,
+pp. 2–9, Jan. 1999.
+[2] E. Fishler and H. Messer, “Multiple source direction ﬁnding with an
+array of M sensors using two receivers,” in Proc. Workshop on Statistical
+Signal and Array Process., Aug. 2000, pp. 86–89.
+[3] A. Zeira and B. Friedlander, “Direction ﬁnding with time-varying
+arrays,” IEEE Trans. Signal Process., vol. 43, no. 4, pp. 927–937, Apr.
+1995.
+[4] B. Friedlander and A. Zeira, “Eigenstructure-based algorithms for di-
+rection ﬁnding with time-varying arrays,” IEEE Trans. Aerosp. Electron.
+Syst., vol. 32, no. 2, pp. 689–701, Apr. 1996.
+[5] D. Rieken and D. Fuhrmann, “Generalizing MUSIC and MVDR for
+multiple noncoherent arrays,” IEEE Trans. Signal Process., vol. 52,
+no. 9, pp. 2396–2406, Sep. 2004.
+[6] J. Worms, “RF direction ﬁnding with a reduced number of receivers
+by sequential sampling,” in Proc. Int. Conf. on Phased Array Syst. and
+Technol., May 2000, pp. 165–168.
+[7] R. Schmidt, “Multiple emitter location and signal parameter estimation,”
+IEEE Trans. Antennas Propag., vol. 34, no. 3, pp. 276–280, Mar. 1986.
+[8] W. Suleiman, P. Parvazi, M. Pesavento, and A. M. Zoubir, “Non-
+coherent direction-of-arrival estimation using partly calibrated arrays,”
+IEEE Trans. Signal Process., vol. 66, no. 21, pp. 5776–5788, Nov. 2018.
+[9] R. Rastogi, P. Gupta, and R. Kumaresan, “Array signal processing with
+interconnected neuron-like elements,” in Proc. ICASSP, vol. 12, Apr.
+1987, pp. 2328–2331.
+[10] K. L. Du, A. K. Y. Lai, K. K. M. Cheng, and M. N. S. Swamy, “Neural
+methods for antenna array signal processing: A review,” Signal Process.,
+vol. 82, no. 4, pp. 547–561, Apr. 2002.
+[11] Z.-M. Liu, C. Zhang, and P. S. Yu, “Direction-of-arrival estimation based
+on deep neural networks with robustness to array imperfections,” IEEE
+Trans. Antennas Propag., vol. 66, no. 12, pp. 7315–7327, Dec. 2018.
+[12] S. Chakrabarty and E. A. P. Habets, “Multi-speaker DOA estimation
+using deep convolutional networks trained with noise signals,” IEEE J.
+Sel. Topics Signal Process., vol. 13, no. 1, pp. 8–21, Mar. 2019.
+[13] E. Ozanich, P. Gerstoft, and H. Niu, “A feedforward neural network for
+direction-of-arrival estimation,” J. Acoustical Soc. Amer., vol. 147, no. 3,
+pp. 2035–2048, Mar. 2020.
+[14] Y. Yao, H. Lei, and W. He, “A-CRNN-based method for coherent DOA
+estimation with unknown source number,” Sensors, vol. 20, no. 8, p.
+2296, Jan. 2020.
+[15] A. M. Elbir, “DeepMUSIC: Multiple signal classiﬁcation via deep
+learning,” IEEE Sensors Lett., vol. 4, no. 4, pp. 1–4, Apr. 2020.
+[16] L. Wu, Z.-M. Liu, and Z.-T. Huang, “Deep convolution network for
+direction of arrival estimation with sparse prior,” IEEE Signal Process.
+Lett., vol. 26, no. 11, pp. 1688–1692, Nov. 2019.
+[17] G. Izacard, B. Bernstein, and C. Fernandez-Granda, “A learning-based
+framework for line-spectra super-resolution,” in Proc. ICASSP, May
+2019, pp. 3632–3636, iSSN: 2379-190X.
+[18] Y. Guo, Z. Zhang, Y. Huang, and P. Zhang, “DOA estimation method
+based on cascaded neural network for two closely spaced sources,” IEEE
+Signal Process. Lett., vol. 27, pp. 570–574, Apr. 2020.
+[19] O. Bialer, N. Garnett, and T. Tirer, “Performance advantages of deep
+neural networks for angle of arrival estimation,” in Proc. ICASSP, May
+2019, pp. 3907–3911.
+[20] P. Costa-Hirschauer, J. Grouffaud, P. Larzabal, and H. Clergeot, “A
+neural network for model order selection in signal processing,” in Proc.
+ICNN, vol. 6, Nov. 1995, pp. 3057–3061.
+[21] Y. Yang, F. Gao, C. Qian, and G. Liao, “Model-aided deep neural
+network for source number detection,” IEEE Signal Process. Lett.,
+vol. 27, pp. 91–95, Jan. 2020.
+[22] A. Barthelme, R. Wiesmayr, and W. Utschick, “Model order selection
+in DoA scenarios via cross-entropy based machine learning techniques,”
+in Proc. ICASSP, May 2020, pp. 4622–4626.
+[23] J. Sheinvald and M. Wax, “Detection and localization of multiple signals
+using subarrays data,” in Advances in Spectr. Anal. and Array Process.
+(vol. III), S. Haykin, Ed.
+Prentice-Hall, Inc., 1995, pp. 324–351.
+[24] H. Krim and M. Viberg, “Two decades of array signal processing
+research: The parametric approach,” IEEE Signal Process. Mag., vol. 13,
+no. 4, pp. 67–94, Jul. 1996.
+[25] A. Zeira and B. Friedlander, “On the performance of direction ﬁnding
+with time-varying arrays,” Signal Process., vol. 43, no. 2, pp. 133–147,
+May 1995.
+[26] B. Hochwald and A. Nehorai, “Identiﬁability in array processing models
+with vector-sensor applications,” IEEE Trans. Signal Process., vol. 44,
+no. 1, pp. 83–95, Jan. 1996.
+[27] P. Stoica, P. Babu, and J. Li, “SPICE: A sparse covariance-based
+estimation method for array processing,” IEEE Trans. Signal Process.,
+vol. 59, no. 2, pp. 629–638, Feb. 2011.
+[28] P. Costa, J. Grouffaud, P. Larzabal, and H. Clergeot, “Estimation of the
+number of signals from features of the covariance matrix: A supervised
+approach,” IEEE Trans. Signal Process., vol. 47, no. 11, pp. 3108–3115,
+Nov. 1999.
+[29] H. Niu, P. Gerstoft, and E. Reeves, “Source localization in an ocean
+waveguide using supervised machine learning,” J. Acousti. Soc. Amer.,
+vol. 142, no. 3, pp. 1176–1188, Sep. 2017.
+[30] R. Reggiannini, “A fundamental lower bound to the performance of
+phase estimators over Rician-fading channels,” IEEE Trans. Commun.,
+vol. 45, no. 7, pp. 775–778, Jul. 1997.
+[31] T. Routtenberg and J. Tabrikian, “Non-Bayesian periodic Cram´er-Rao
+bound,” IEEE Trans. Signal Process., vol. 61, no. 4, pp. 1019–1032,
+Feb. 2013.
+[32] Z. Yang, J. Li, P. Stoica, and L. Xie, “Sparse methods for direction-
+of-arrival estimation,” in Academic Press Library in Signal Processing.
+Elsevier, 2018, vol. 7, pp. 509–581.
+
+===== PAGE 13 =====
+13
+[33] J. Sheinvald, M. Wax, and A. Weiss, “On the achievable localization
+accuracy of multiple sources at high SNR,” IEEE Trans. Signal Process.,
+vol. 45, no. 7, pp. 1795–1799, Jul. 1997.
+[34] X. Glorot and Y. Bengio, “Understanding the difﬁculty of training deep
+feedforward neural networks,” in Proc. Int. Conf. Artif. Intell. Statist.,
+vol. 9, May 2010, pp. 249–256.
+[35] D.
+P.
+Kingma
+and
+J.
+Ba,
+“Adam:
+A
+method
+for
+stochastic
+optimization,” arXiv:1412.6980 [cs.LG], Dec. 2014. [Online]. Available:
+https://arxiv.org/abs/1412.6980
+[36] J. Lofberg, “YALMIP : A toolbox for modeling and optimization in
+MATLAB,” in Proc. ICRA, Sep. 2004, pp. 284–289.
+[37] MOSEK ApS, The MOSEK optimization toolbox for MATLAB manual.
+Version 9.0., 2019. [Online]. Available: http://docs.mosek.com/9.0/
+toolbox/index.html
+[38] P. Stoica and Y. Selen, “Model-order selection: A review of information
+criterion rules,” IEEE Signal Process. Mag., vol. 21, no. 4, pp. 36–47,
+Jul. 2004.
+[39] M. Wax and T. Kailath, “Detection of signals by information theoretic
+criteria,” IEEE Trans. Acoust., Speech, Signal Process., vol. 33, no. 2,
+pp. 387–392, Apr. 1985.
+[40] J. S. Bridle, “Training stochastic model recognition algorithms as
+networks can lead to maximum mutual information estimation of param-
+eters,” in Advances Neural Inf. Process. Syst., Nov. 1989, pp. 211–217.
+[41] Y. Lecun, L. Bottou, Y. Bengio, and P. Haffner, “Gradient-based learning
+applied to document recognition,” Proc. IEEE, vol. 86, pp. 2278–2324,
+Nov. 1998.
+[42] J. Bergstra and Y. Bengio, “Random search for hyper-parameter op-
+timization,” J. Mach. Learn. Res., vol. 13, no. 10, pp. 281–305, Feb.
+2012.

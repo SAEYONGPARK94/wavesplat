@@ -1,0 +1,77 @@
+runs 111  ok 93  errors 18
+
+========================================================================================================
+BIT-IDENTITY vs tmp/s1s2_2026-08-05 (my harness must reproduce it exactly)
+========================================================================================================
+  matched 36  mismatched 0  max|diff| 0.000e+00
+
+========================================================================================================
+ATTACK 4 (lever OUTSIDE the search space) — freeze k at the BEAMFORM estimate
+========================================================================================================
+Q-DEPFRZ = shipped ladder [3,8,15] + init_k_lr_scale=0.0. Never run before.
+metric                  medD    k/n       p          95% CI(seed)
+init_nrmse           +0.0584   0/4   0.1250 [ +0.0385, +0.0919]   per-ep [0.04, 0.0201, 0.0768, 0.1701]
+nRMSE                +0.0326   1/4   0.6250 [ +0.0080, +0.0689]   per-ep [0.0106, -0.013, 0.0556, 0.0547]
+Pearson_rho          -0.1984   4/4   0.1250 [ -0.3008, -0.0991]   per-ep [-0.0687, -0.0862, -0.3107, -0.4003]
+Hs_error             +0.1148   0/4   0.1250 [ +0.0788, +0.1809]   per-ep [0.0201, 0.1118, 0.1178, 0.1669]
+
+cell          init_nrmse    nRMSE     rho   |VR-1|   Hs_err     N
+Q-DEP             0.2539   0.2592  0.3427   0.4436   0.2446  15.0
+Q-DEPFRZ          0.3247   0.2918  0.1082   0.5277   0.3139  15.5
+Q-ORC             0.1679   0.2180  0.5562   0.6201   0.3767  22.5
+Q-ORCFRZ          0.0604   0.1602  0.7791   0.5626   0.3454  22.5
+
+========================================================================================================
+ATTACK 2 (empirical) — can the OBSERVATIONS tell the placements apart?
+========================================================================================================
+obs residual RMS [m]. `heldout` = model evaluated on a frame BEFORE it is used.
+Hs of these episodes: BF4_15comp=1.20m, BF4_30comp=1.20m, BF5_15comp=2.00m, BF5_30comp=2.00m
+
+cell          init_obs_in  init_obs_out  trk_obs_in  trk_obs_out | init_nrmse    nRMSE
+Q-DEP             0.07817       0.10465     0.08016      0.08753 |     0.2539   0.2592
+Q-DEPFRZ          0.18095       0.24903     0.12251      0.13985 |     0.3247   0.2918
+Q-ORC             0.02411       0.03293     0.03357      0.03839 |     0.1679   0.2180
+Q-ORCFRZ          0.01820       0.02843     0.02372      0.02878 |     0.0604   0.1602
+
+  Q-DEP -> Q-ORCFRZ  init_obs_rms_insample      -0.06304  4/4  p=0.125  CI [-0.06872,-0.04353]
+  Q-DEP -> Q-ORCFRZ  init_obs_rms_heldout1      -0.06984  4/4  p=0.125  CI [-0.11489,-0.05553]
+  Q-DEP -> Q-ORCFRZ  track_obs_rms_heldout      -0.06038  4/4  p=0.125  CI [-0.07047,-0.04259]
+
+  ratio (oracle obs residual) / (deployed obs residual), and the same ratio in FIELD error:
+    obs in-sample        deployed 0.07817  oracle 0.01820  ratio   4.29x
+    obs held-out         deployed 0.10465  oracle 0.02843  ratio   3.68x
+    FIELD init_nrmse     deployed 0.25391  oracle 0.06039  ratio   4.20x
+
+========================================================================================================
+ATTACK 5 — the same contrast at n_comp = 1 and 5 (BF4 and BF5, sea state held)
+========================================================================================================
+episode                                  n_gt    R-DEP  R-DEPFRZ  R-ORCFRZ  gap DEP-ORC
+episode_BF2_1comp_seed0_uniform.h5          1   0.0631    0.0703    0.0216       0.0415
+episode_BF4_1comp_seed0_uniform.h5          1   0.0037    0.0503    0.0029       0.0008
+episode_BF3_2comp_seed0_uniform.h5          2   0.0073    0.0956    0.0052       0.0021
+episode_BF3_5comp_seed0_uniform.h5          5   0.0240    0.1726    0.0115       0.0125
+episode_BF4_5comp_seed0_uniform.h5          5   0.0173    0.1845    0.0104       0.0069
+
+episode                                   init R-DEP  init R-ORCFRZ  init gap   ratio
+episode_BF2_1comp_seed0_uniform.h5            0.0610         0.0219    0.0391    2.78x
+episode_BF4_1comp_seed0_uniform.h5            0.0046         0.0027    0.0018    1.68x
+episode_BF3_2comp_seed0_uniform.h5            0.0071         0.0047    0.0024    1.52x
+episode_BF3_5comp_seed0_uniform.h5            0.0202         0.0093    0.0109    2.17x
+episode_BF4_5comp_seed0_uniform.h5            0.0057         0.0040    0.0016    1.41x
+
+  sparse/moderate (n_comp 1 and 5): median oracle prize in nRMSE = +0.0069
+  crowded (n_comp 15 and 30)      : median oracle prize in nRMSE = +0.0974
+  ratio = 14.1x
+
+========================================================================================================
+OBS-SPACE vs FIELD-SPACE coupling across the 4 crowded cells
+========================================================================================================
+  log(field init_nrmse) = +0.651 * log(held-out obs residual) -0.069   r = +0.7683  n=16
+  Spearman rank agreement between the GT-free obs residual and the GT field error:
+    rho_s = +0.8265
+  (LiDAR elevation noise floor sigma = 0.02 m -- the oracle arm sits ON it, the
+   deployed arm sits 3.9-5.2x above it, i.e. the data still contain unexplained signal.)
+
+  and the k-freezing lever in the non-crowded regime:
+    R-DEP -> R-DEPFRZ  init_nrmse   +0.0871  0/5  p=0.062  CI [+0.0621,+0.1727]  per-ep [0.0083, 0.0421, 0.0871, 0.1713, 0.1727]
+    R-DEP -> R-DEPFRZ  nRMSE        +0.0883  0/5  p=0.062  CI [+0.0475,+0.1531]  per-ep [0.0072, 0.0467, 0.0883, 0.1486, 0.1673]

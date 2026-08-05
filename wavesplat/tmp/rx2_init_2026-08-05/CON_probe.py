@@ -48,11 +48,15 @@ CROWDED = [
     'episode_BF5_30comp_seed0_uniform.h5',
 ]
 # attack 5: same sea states, only n_comp varies
+# NOTE: data_finemesh_2026-07-23 has no BF5_1comp / BF5_5comp, so the sea state cannot be
+# held fixed across the whole ladder; the 1/2/5-comp points below are the paper panel's own
+# non-crowded episodes (identical to E2's EPISODES entries).
 REGIME = [
     'episode_BF4_1comp_seed0_uniform.h5',
     'episode_BF4_5comp_seed0_uniform.h5',
-    'episode_BF5_1comp_seed0_uniform.h5',
-    'episode_BF5_5comp_seed0_uniform.h5',
+    'episode_BF2_1comp_seed0_uniform.h5',
+    'episode_BF3_2comp_seed0_uniform.h5',
+    'episode_BF3_5comp_seed0_uniform.h5',
 ]
 
 PANEL = ['nRMSE', 'Variance_Ratio', 'Pearson_rho', 'Skill_Score',

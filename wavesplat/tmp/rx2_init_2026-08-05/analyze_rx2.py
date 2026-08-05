@@ -101,8 +101,34 @@ def build(rows):
     return by, cells, med
 
 
+def fired_check(rows):
+    """Did the treatment actually change anything? A cell whose atom coordinates are
+    bit-identical to X-BASE on every run did not fire, and its NULL says nothing about the
+    idea -- only about the wiring. Printed BEFORE any effect estimate."""
+    idx = {(r['cell'], r['episode'], r['seed']): r for r in rows}
+    cells = sorted({c for c, _, _ in idx})
+    print('== did the treatment fire? (atom coords vs X-BASE, per run) ==')
+    for c in cells:
+        if c == 'X-BASE':
+            continue
+        same = tot = 0
+        for (cc, e, s), r in idx.items():
+            if cc != c or ('X-BASE', e, s) not in idx:
+                continue
+            b = idx[('X-BASE', e, s)]
+            tot += 1
+            if (list(map(repr, r.get('kx', []))) == list(map(repr, b.get('kx', []))) and
+                    list(map(repr, r.get('ky', []))) == list(map(repr, b.get('ky', [])))):
+                same += 1
+        if tot:
+            tag = ('  <-- IDENTICAL TO CONTROL: did not fire' if same == tot else '')
+            print(f'  {c:<9} identical-to-X-BASE {same}/{tot} runs{tag}')
+    print()
+
+
 def main():
     rows = load()
+    fired_check(rows)
     by, cells, med = build(rows)
     have = [c for c in cells if all((c, e) in med for e in EPISODES)]
     print(f'# rows {len(rows)}   complete cells {have}\n')

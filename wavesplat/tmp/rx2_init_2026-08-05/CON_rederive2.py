@@ -10,6 +10,7 @@ from math import comb
 from scipy.stats import norm
 
 TMP = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+SNAPD = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasnap')
 OUT = []
 
 
@@ -92,10 +93,10 @@ def paired(rows, a, b, metric, eps=None):
     return [lv[(b, e)] - lv[(a, e)] for e in E], E
 
 
-s1s2 = load(os.path.join(TMP, 's1s2_2026-08-05', 'results.jsonl'), 'arm')
-rx1 = load(os.path.join(TMP, 'rx1_tracker_2026-08-05', 'results2.jsonl'), 'cell')
-e2 = load(os.path.join(TMP, 'e2_grid_sep_2026-08-05', 'results.jsonl'), 'cell')
-e1 = load(os.path.join(TMP, 'e1_grid_2026-08-05', 'results.jsonl'), 'cell')
+s1s2 = load(os.path.join(SNAPD, 's1s2_2026-08-05.results.jsonl'), 'arm')
+rx1 = load(os.path.join(SNAPD, 'rx1_tracker_2026-08-05.results2.jsonl'), 'cell')
+e2 = load(os.path.join(SNAPD, 'e2_grid_sep_2026-08-05.results.jsonl'), 'cell')
+e1 = load(os.path.join(SNAPD, 'e1_grid_2026-08-05.results.jsonl'), 'cell')
 
 CROWD = ['episode_BF4_15comp_seed0_uniform.h5', 'episode_BF4_30comp_seed0_uniform.h5',
          'episode_BF5_15comp_seed0_uniform.h5', 'episode_BF5_30comp_seed0_uniform.h5']

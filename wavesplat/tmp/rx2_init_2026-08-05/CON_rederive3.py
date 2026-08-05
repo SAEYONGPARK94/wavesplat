@@ -16,6 +16,7 @@ import numpy as np
 from math import comb
 
 TMP = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+SNAPD = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasnap')
 OUT = []
 
 
@@ -52,7 +53,7 @@ def raw(rows, metric):
     return d
 
 
-def contrast(rows, a, b, metric, eps, nboot=8000, seed=3):
+def contrast(rows, a, b, metric, eps, nboot=4000, seed=3):
     d = raw(rows, metric)
     E = [e for e in eps if (a, e) in d and (b, e) in d]
     if not E:
@@ -72,9 +73,9 @@ def contrast(rows, a, b, metric, eps, nboot=8000, seed=3):
 
 CROWD = ['episode_BF4_15comp_seed0_uniform.h5', 'episode_BF4_30comp_seed0_uniform.h5',
          'episode_BF5_15comp_seed0_uniform.h5', 'episode_BF5_30comp_seed0_uniform.h5']
-e2 = load(os.path.join(TMP, 'e2_grid_sep_2026-08-05', 'results.jsonl'), 'cell')
-e1 = load(os.path.join(TMP, 'e1_grid_2026-08-05', 'results.jsonl'), 'cell')
-s1s2 = load(os.path.join(TMP, 's1s2_2026-08-05', 'results.jsonl'), 'arm')
+e2 = load(os.path.join(SNAPD, 'e2_grid_sep_2026-08-05.results.jsonl'), 'cell')
+e1 = load(os.path.join(SNAPD, 'e1_grid_2026-08-05.results.jsonl'), 'cell')
+s1s2 = load(os.path.join(SNAPD, 's1s2_2026-08-05.results.jsonl'), 'arm')
 ALL12 = sorted({r['episode'] for r in e2})
 
 P('=' * 100)
@@ -89,7 +90,7 @@ P('')
 
 for tag, rows, base, cells in [
         ('E2 (grid / suppression radius / min-sep)', e2, 'A0',
-         ['U0', 'U1', 'U2', 'U1M2', 'U1M5']),
+         ['U0', 'U1', 'U2', 'U3', 'U1M2', 'U1M5']),
         ('E1 (placement / suppression)', e1, 'A', ['B', 'C', 'D', 'E'])]:
     P('=' * 100)
     P(f'{tag}: SAME cells, two panels')
@@ -123,7 +124,7 @@ P(f'  ...and this candidate is on the "already dead" list because on the 12-epis
 P(f'  it reads 6/12, p=1.000.')
 
 json.dump({'crowd_recheck': {f'{c}': contrast(e2, 'A0', c, 'nRMSE', CROWD)
-                             for c in ['U0', 'U1', 'U2', 'U1M2', 'U1M5']},
+                             for c in ['U0', 'U1', 'U2', 'U3', 'U1M2', 'U1M5']},
            'e1_crowd': {f'{c}': contrast(e1, 'A', c, 'nRMSE', CROWD)
                         for c in ['B', 'C', 'D', 'E']}},
           open(os.path.join(os.path.dirname(__file__), 'CON_rederive3.json'), 'w'),

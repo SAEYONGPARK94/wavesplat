@@ -1,0 +1,87 @@
+========================================================================================================
+THE LADDER — init_nrmse on the 4 crowded episodes (median-of-3), every arm ever run
+========================================================================================================
+arm                              class             BF4_15comp    BF4_30comp    BF5_15comp    BF5_30comp   MEDIAN     MEAN
+shipped ladder [3,8,15]          deployable            0.2788        0.3106        0.2266        0.2291   0.2539   0.2612
+budget 40 (S1-A3)                deployable            0.2681        0.2646        0.1968        0.2457   0.2552   0.2438
+N=N_gt, beamform (S2-C1)         deployable            0.3135        0.2983        0.2335        0.2957   0.2970   0.2852
+E1-B  narrow k-range             deployable            0.1625        0.2420        0.1307        0.2411   0.2018   0.1941
+E1-D  narrow + recompute         deployable            0.1625        0.2420        0.0993        0.2411   0.2018   0.1862
+E2-U0 grid  81, radius 0.200     deployable            0.2992        0.2786        0.2000        0.2572   0.2679   0.2587
+E2-U1 grid 401, radius 0.200     deployable            0.1650        0.2295        0.1327        0.2369   0.1972   0.1910
+E2-U3 grid  81, radius 0.100     deployable            0.1377        0.2254        0.1456        0.2447   0.1855   0.1884
+E2-U2 grid 401, radius 0.100     deployable            0.1930        0.2371        0.1078        0.2468   0.2151   0.1962
+E2-U1M2 U1 + min-sep 0.02        deployable            0.1930        0.2208        0.1532        0.2286   0.2069   0.1989
+ORACLE k, k trainable (T1)       ORACLE                0.1542        0.1817        0.0907        0.2047   0.1679   0.1578
+ORACLE k, k FROZEN (T1f)         ORACLE+freeze         0.0279        0.0918        0.0290        0.1029   0.0604   0.0629
+
+========================================================================================================
+DECOMPOSITION of the quoted "3.88x / 0.1809" init gap
+========================================================================================================
+  reference used by the claim : best deployable = S1-A3, median init 0.2552
+  target used by the claim    : S2-T1f (oracle placement AND k frozen) 0.0604
+  quoted gap                                                 0.1948
+
+  (i)  k-FREEZING, not placement    S2-T1 -> S2-T1f          0.1076  (55% of the gap)
+  (ii) ALREADY ACHIEVED by a shelved deployable arm
+       E2-U3 grid  81, radius 0.100           median init 0.1855
+       S1-A3 -> E2-U3 grid  81, radi                  0.0697  (36% of the gap)
+  (iii) WHAT IS ACTUALLY LEFT       E2-U3 grid  81, radi -> S2-T1   0.0176  (9% of the gap)
+
+  paired E2-U3 grid  81, radius 0 vs S2-T1 (oracle placement, same machinery):
+    per-episode d(init_nrmse) = [np.float64(-0.0165), np.float64(0.0437), np.float64(0.0548), np.float64(0.04)]   med +0.0418  1/4  p=0.6250
+
+  ratio, as quoted : 4.23x
+  ratio, best deployable vs oracle placement WITHOUT the freeze : 1.10x
+
+========================================================================================================
+E2 2x2 SEPARATION (coarse-grid step x absolute suppression radius), crowded 4
+========================================================================================================
+                   radius 0.200   radius 0.100
+grid  81                 0.2679         0.1855
+grid 401                 0.1972         0.2151
+  (anchor A0 = shipped: 81 grid, MIN_DK 0.15 in CELL units) 0.2539
+  -> both single-factor moves off A0 are available; the design is NOT additive
+     (U2 = both moves is worse than either alone).
+
+========================================================================================================
+SAME LADDER in final nRMSE
+========================================================================================================
+arm                                 BF4_15comp    BF4_30comp    BF5_15comp    BF5_30comp   MEDIAN
+shipped ladder [3,8,15]                 0.2720        0.3328        0.2157        0.2464   0.2592
+budget 40 (S1-A3)                       0.2548        0.3110        0.2204        0.2797   0.2672
+N=N_gt, beamform (S2-C1)                0.2763        0.3102        0.2403        0.3004   0.2884
+E1-B  narrow k-range                    0.1961        0.2720        0.1974        0.2590   0.2282
+E1-D  narrow + recompute                0.1961        0.2720        0.1630        0.2590   0.2276
+E2-U0 grid  81, radius 0.200            0.2809        0.2837        0.2136        0.2652   0.2730
+E2-U1 grid 401, radius 0.200            0.1955        0.2773        0.1796        0.2418   0.2186
+E2-U3 grid  81, radius 0.100            0.1800        0.2513        0.1847        0.2517   0.2180
+E2-U2 grid 401, radius 0.100            0.2053        0.2651        0.1669        0.2553   0.2303
+E2-U1M2 U1 + min-sep 0.02               0.1949        0.2460        0.1960        0.2471   0.2210
+ORACLE k, k trainable (T1)              0.2001        0.2487        0.1603        0.2359   0.2180
+ORACLE k, k FROZEN (T1f)                0.1425        0.1700        0.1504        0.2053   0.1602
+  (frozen LETKF reference, s1s2 RESULT.md mean4 = 0.2394)
+
+========================================================================================================
+HEADROOM AUDIT — why the 12-episode panel could not have detected these
+========================================================================================================
+episode                                     A0 nRMSE  max possible  U1 delta
+episode_BF2_1comp_seed0_uniform.h5            0.0631       -0.0631   -0.0091
+episode_BF3_1comp_seed0_uniform.h5            0.0087       -0.0087   +0.0045
+episode_BF3_2comp_seed0_slope.h5              0.0087       -0.0087   +0.0010
+episode_BF3_2comp_seed0_uniform.h5            0.0073       -0.0073   +0.0033
+episode_BF3_5comp_seed0_slope.h5              0.0187       -0.0187   +0.0005
+episode_BF3_5comp_seed0_uniform.h5            0.0240       -0.0240   -0.0032
+episode_BF4_15comp_seed0_uniform.h5           0.2720       -0.2720   -0.0765
+episode_BF4_1comp_seed0_uniform.h5            0.0037       -0.0037   +0.0089
+episode_BF4_30comp_seed0_uniform.h5           0.3328       -0.3328   -0.0555
+episode_BF4_5comp_seed0_uniform.h5            0.0173       -0.0173   +0.0093
+episode_BF5_15comp_seed0_uniform.h5           0.2157       -0.2157   -0.0362
+episode_BF5_30comp_seed0_uniform.h5           0.2464       -0.2464   -0.0046
+
+  On the 8 non-crowded episodes the shipped arm is already at median nRMSE 0.0130.
+  The largest delta ANY intervention could produce there is -0.0130, i.e. 13% of the prize.
+  A 12-episode sign test in which 8 episodes are capped at |delta| <= 0.013 is
+  decided by the sign of noise in those 8, not by the effect in the 4 that can move.
+  U1 deltas, non-crowded 8: [-0.0091, 0.0045, 0.001, 0.0033, 0.0005, -0.0032, 0.0089, 0.0093]
+  U1 deltas, crowded 4    : [-0.0765, -0.0555, -0.0362, -0.0046]

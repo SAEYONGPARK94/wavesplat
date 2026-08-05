@@ -9,6 +9,7 @@ import numpy as np
 from math import comb
 
 TMP = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+SNAPD = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasnap')
 OUT = []
 
 
@@ -96,10 +97,10 @@ def mde_sign(sd_delta, n, power=0.80):
 P('=' * 100)
 P('SECTION 0 — sources')
 P('=' * 100)
-S1S2 = os.path.join(TMP, 's1s2_2026-08-05', 'results.jsonl')
-RX1 = os.path.join(TMP, 'rx1_tracker_2026-08-05', 'results2.jsonl')
-E2 = os.path.join(TMP, 'e2_grid_sep_2026-08-05', 'results.jsonl')
-E1 = os.path.join(TMP, 'e1_grid_2026-08-05', 'results.jsonl')
+S1S2 = os.path.join(SNAPD, 's1s2_2026-08-05.results.jsonl')
+RX1 = os.path.join(SNAPD, 'rx1_tracker_2026-08-05.results2.jsonl')
+E2 = os.path.join(SNAPD, 'e2_grid_sep_2026-08-05.results.jsonl')
+E1 = os.path.join(SNAPD, 'e1_grid_2026-08-05.results.jsonl')
 s1s2 = load(S1S2, 'arm')
 rx1 = load(RX1, 'cell')
 e2 = load(E2, 'cell')

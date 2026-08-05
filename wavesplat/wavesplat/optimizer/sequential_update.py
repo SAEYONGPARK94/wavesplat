@@ -13,6 +13,7 @@ Phase 2 (Tracking): Per-frame warm-start update
     - Target: 50ms/frame
 """
 
+import os
 import torch
 import torch.nn as nn
 import numpy as np
@@ -80,6 +81,29 @@ DEFAULT_ANALYTIC_ENSEMBLE_K = 3
 # one bad-seed lead blow-up observed (AA15a w5 lead-mean 0.824 -> 0.621,
 # tmp/bankmmse_port_2026-07-29/m3_field.json). 1 disables the ensemble.
 DEFAULT_REAL_BANK_ENSEMBLE_K = 3
+
+
+def _rx1_gate(name: str) -> bool:
+    """Rx-1 (2026-08-05) RESEARCH gate. Unset or '0' == shipped behaviour, bit-for-bit.
+
+    The environment is read at CALL time, not import time, because the Rx-1 driver reuses
+    multiprocessing pool workers across cells; an import-time read would freeze whichever
+    cell the worker happened to run first.
+
+    RX1_CONF_NORM=1
+        Divide the confidence-weighted data term by sum(weights) instead of n_obs in
+        `_compute_loss`. The shipped form divides a WEIGHTED sum by an UNWEIGHTED count,
+        so the data term is scaled by mean(confidence) (~0.86 measured) while the L1 and
+        smoothness penalties are not -- i.e. the penalties are relatively amplified.
+    RX1_PHASE2_NOREG=1
+        Drop the L1 + smoothness penalties from the TRACKING objective only; Phase 1
+        (initialisation) keeps them. This isolates "the tracking loop calls the same
+        penalised objective as Phase 1" from "the penalties exist at all".
+
+    Neither gate is a deployment knob: both are off by default and are not read by any
+    shipped config path.
+    """
+    return os.environ.get(name, '0') == '1'
 
 
 def _frames_have_gt(frames) -> bool:
@@ -272,10 +296,17 @@ class SequentialUpdater:
 
         self.tracking_optimizer = torch.optim.Adam(params)
 
-    def _compute_loss(self, frames: List[FrameData]) -> torch.Tensor:
-        """Compute weighted MSE + regularization over multiple frames."""
+    def _compute_loss(self, frames: List[FrameData],
+                      reg: bool = True) -> torch.Tensor:
+        """Compute weighted MSE + regularization over multiple frames.
+
+        `reg=False` drops the L1 and smoothness penalties (Rx-1 K4, tracking-only).
+        Default True == shipped behaviour.
+        """
         total_loss = torch.tensor(0.0, device=self.device)
         n_obs = 0
+        w_sum = 0.0
+        conf_norm = _rx1_gate('RX1_CONF_NORM')     # Rx-1 K3; False == shipped
 
         for frame in frames:
             if len(frame.x_obs) == 0:
@@ -288,8 +319,12 @@ class SequentialUpdater:
             weighted_sq = weights * residual ** 2
             total_loss = total_loss + weighted_sq.sum()
             n_obs += len(frame.x_obs)
+            if conf_norm:
+                w_sum += float(weights.sum())
 
-        if n_obs > 0:
+        if conf_norm and w_sum > 1e-12:
+            total_loss = total_loss / w_sum
+        elif n_obs > 0:
             total_loss = total_loss / n_obs
 
         # L1 sparsity on weights. Note the shipped form adds a [m] quantity to an [m^2] loss,
@@ -298,7 +333,7 @@ class SequentialUpdater:
         # (tmp/SCALE_AUDIT_fable_2026-07-23.md). SCALE_INVARIANT_L1 multiplies by the
         # observation RMS to make the penalty [m^2] like the data term; False keeps shipped
         # behaviour. The scale is computed under no_grad -- it is a normaliser, not a target.
-        if self.lambda_l1 > 0:
+        if reg and self.lambda_l1 > 0:
             l1 = torch.sum(torch.abs(self.model.w))
             if SCALE_INVARIANT_L1:
                 with torch.no_grad():
@@ -309,7 +344,7 @@ class SequentialUpdater:
             total_loss = total_loss + self.lambda_l1 * l1
 
         # Spectral smoothness: penalize weight variation (sorted by |k|)
-        if self.lambda_smooth > 0 and self.model.n_gaussians > 1:
+        if reg and self.lambda_smooth > 0 and self.model.n_gaussians > 1:
             with torch.no_grad():
                 k_mag = torch.sqrt(self.model.kx ** 2 + self.model.ky ** 2)
                 sort_idx = torch.argsort(k_mag)
@@ -877,9 +912,12 @@ class SequentialUpdater:
         # Gradient update using tracking optimizer on window
         opt = self.tracking_optimizer if self.tracking_optimizer is not None \
             else self.optimizer
+        # Rx-1 K4: `reg=False` makes the TRACKING objective the data term alone while
+        # Phase 1 keeps its penalties. Default (gate unset) is reg=True == shipped.
+        track_reg = not _rx1_gate('RX1_PHASE2_NOREG')
         for step in range(self.tracking_steps):
             opt.zero_grad()
-            loss = self._compute_loss(self._frame_buffer)
+            loss = self._compute_loss(self._frame_buffer, reg=track_reg)
             loss.backward()
             opt.step()
 

@@ -46,7 +46,16 @@ N_GT = {
     'episode_BF5_30comp_seed0_uniform.h5': 30,
 }
 
-CELLS = ['X-BASE', 'K1', 'K2', 'K3', 'K4', 'K5', 'K12']
+CELLS = ['X-BASE', 'K1', 'K2', 'K3', 'K4', 'K5', 'K12',
+         # AMENDMENT 3: the displacement-budget lever, orthogonal to the 2x2
+         'K6', 'K7', 'K12-S1',
+         # AMENDMENT 3: second operating point = DEPLOYMENT placement (v2_konly ladder)
+         'D-BASE', 'D-K12', 'D-K6',
+         # tracker-frozen floors, so "% of harm removed" has a denominator at BOTH points
+         'X-NOTRACK', 'D-NOTRACK']
+
+# cells whose initialiser is the shipped beamform ladder, NOT oracle placement
+DEPLOY_CELLS = {'D-BASE', 'D-K12', 'D-K6', 'D-NOTRACK'}
 
 # env gates + module flags per cell; everything not listed stays at shipped default.
 CELL_ENV = {
@@ -80,6 +89,30 @@ def cell_config(cell, episode):
     elif cell == 'K12':
         cfg['lambda_l1'] = 0.0
         cfg['lambda_smooth'] = 0.0
+    # ---- AMENDMENT 3: displacement budget (penalties left at SHIPPED values) ----
+    elif cell == 'K6':                      # budget 0.1 via steps
+        cfg['tracking_steps'] = 1
+    elif cell == 'K7':                      # budget 0.1 via lr  (budget-matched to K6)
+        cfg['tracking_lr'] = 0.0005
+    elif cell == 'X-NOTRACK':               # budget 0: Adam lr 0 -> tracker is a no-op
+        cfg['tracking_lr'] = 0.0
+    elif cell == 'K12-S1':                  # EXPLORATORY CROSSING, not part of the 2x2:
+        cfg['lambda_l1'] = 0.0              # does zero-lambda buy anything ON TOP of a
+        cfg['lambda_smooth'] = 0.0          # short trajectory? (attributability test)
+        cfg['tracking_steps'] = 1
+    # ---- AMENDMENT 3: deployment operating point (shipped beamform ladder) ----
+    elif cell in DEPLOY_CELLS:
+        cfg.update(init_method='v2_konly', n_gaussians=[3, 8, 15],
+                   loss_thresholds=[0.1, 0.05, None],
+                   max_iters_per_stage=[200, 200, 500])
+        cfg.pop('init_k_lr_scale', None)    # shipped ladder trains k during init
+        if cell == 'D-K12':
+            cfg['lambda_l1'] = 0.0
+            cfg['lambda_smooth'] = 0.0
+        elif cell == 'D-K6':
+            cfg['tracking_steps'] = 1
+        elif cell == 'D-NOTRACK':
+            cfg['tracking_lr'] = 0.0
     else:
         raise ValueError(cell)
     return cfg
@@ -184,7 +217,9 @@ def run_one(job):
         assert 'init_method' in cfg, 'init_method must be explicit (W9 rule)'
 
         gt_comp = np.asarray(EpisodeDataLoader(path).wave_components)
-        _init.ORACLE_COMPONENTS = gt_comp   # every Rx-1 cell is oracle-placed
+        # oracle placement for the X-BASE family; the D-* cells are the deployment
+        # operating point and must NOT see ground truth (AMENDMENT 3 item 4).
+        _init.ORACLE_COMPONENTS = None if cell in DEPLOY_CELLS else gt_comp
         try:
             r = run_estimation(path, cfg)
         finally:
@@ -222,7 +257,7 @@ def run_one(job):
             spec = spectral_accuracy(r['spectrum_params'], gt_comp)
         except Exception as se:
             spec = {'spec_error': repr(se)}
-        return {**base, **avg, 'avg_RMSE_unobserved': avg_ru,
+        return {**base, **avg, **perframe, 'avg_RMSE_unobserved': avg_ru,
                 'elapsed_ms': float(np.mean([f['elapsed_ms'] for f in frames]))
                 if frames else float('nan'),
                 'N': r.get('n_gaussians', -1),

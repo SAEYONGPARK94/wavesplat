@@ -44,6 +44,7 @@ def _run_one(args):
             verbose=verbose,
             cfg=cfg,
             direction_spread_deg=getattr(scenario, 'direction_spread_deg', 30.0),
+            dirs_per_freq=getattr(scenario, 'dirs_per_freq', 1),
         )
         elapsed = time.time() - t0
         return (filepath, elapsed, None)

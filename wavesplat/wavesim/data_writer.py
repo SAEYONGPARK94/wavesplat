@@ -30,7 +30,9 @@ def save_episode(filepath: str,
                  gamma: float,
                  depth: float,
                  spectrum_1d: np.ndarray,
-                 mesh_info: dict = None):
+                 mesh_info: dict = None,
+                 direction_spread_deg: float = None,
+                 dirs_per_freq: int = None):
     """
     Save a full episode to HDF5.
 
@@ -47,6 +49,12 @@ def save_episode(filepath: str,
         sea_state: e.g. "BF4"
         Hs, Tp, gamma, depth: wave parameters
         spectrum_1d: (N_freq, 2) array [omega, S]
+        direction_spread_deg, dirs_per_freq: the two directional-structure
+            knobs of jonswap_components.  Written to /config attrs so an
+            episode carries its own directional provenance -- neither was
+            stored before 2026-08-05, which made post-hoc audit of a saved
+            episode's directional design impossible.  None means "caller did
+            not say", and the attr is then omitted rather than guessed.
     """
     os.makedirs(os.path.dirname(os.path.abspath(filepath)), exist_ok=True)
 
@@ -68,6 +76,10 @@ def save_episode(filepath: str,
         cfg.attrs['gamma'] = gamma
         cfg.attrs['n_components'] = len(components)
         cfg.attrs['depth'] = depth
+        if direction_spread_deg is not None:
+            cfg.attrs['direction_spread_deg'] = direction_spread_deg
+        if dirs_per_freq is not None:
+            cfg.attrs['dirs_per_freq'] = dirs_per_freq
         # Raycast-mesh adequacy, so an episode carries its own provenance and
         # an audit needs only to read the file (see wavesim/mesh_adequacy.py).
         for key, val in (mesh_info or {}).items():

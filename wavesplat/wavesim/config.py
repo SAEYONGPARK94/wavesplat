@@ -82,6 +82,13 @@ class ScenarioCfg:
     # showed is the only variable explaining the WS-vs-LETKF gap once
     # component count is controlled (partial rho +0.460, p=0.0028).
     direction_spread_deg: float = 30.0
+    # Directions placed on each frequency bin.  1 = every episode generated
+    # before 2026-08-05, where the within-frequency directional spread is
+    # identically zero (an algebraic identity of one-direction-per-bin, not a
+    # tuning artefact) while measured CDIP records put it above zero in
+    # 6,263/6,263 cases, median 29.5 deg.  M>1 is an additive research arm,
+    # never a replacement (tmp/s4_within_spread_2026-08-05/PREREG.md).
+    dirs_per_freq: int = 1
 
 
 @dataclass

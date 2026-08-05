@@ -1,0 +1,719 @@
+=== PAGE 1 ===
+Grid-free Harmonic Retrieval and Model Order Selection using
+Convolutional Neural Networks
+S. Schieler∗, S. Semper∗, R. Faramarzahangari∗, M. D¨obereiner†, C. Schneider∗†, R. Thom¨a∗
+∗Technische Universit¨at Ilmenau: FG EMS, Ilmenau, Germany, steffen.schieler@tu-ilmenau.de
+†Fraunhofer Institute of Integrated Circuits: Dep. EMS, Ilmenau, Germany
+Abstract—Harmonic retrieval techniques are the foundation of radio
+channel sounding, estimation and modeling. This paper introduces a Deep
+Learning approach for joint delay- and Doppler estimation from frequency
+and time samples of a radio channel transfer function.
+Our work estimates the two-dimensional parameters from a signal
+containing an unknown number of paths. Compared to existing deep
+learning-based methods, the signal parameters are not estimated via
+classification but in a quasi-grid-free manner. This alleviates the bias,
+spectral leakage, and ghost targets that grid-based approaches produce.
+The proposed architecture also reliably estimates the number of paths
+in the measurement. Hence, it jointly solves the model order selection
+and parameter estimation task. Additionally, we propose a multi-channel
+windowing of the data to increase the estimator’s robustness.
+We also compare the performance to other harmonic retrieval methods
+and integrate it into an existing maximum likelihood estimator for efficient
+initialization of a gradient-based iteration.
+Index Terms—Parameter Estimation, Convolutional Neural Networks,
+Delay-Doppler Estimation, Harmonic Retrieval.
+I. INTRODUCTION
+Harmonic Retrieval is a problem encountered in many signal
+processing tasks, e.g., channel estimation [1], radar localization, and
+direction finding. Available solutions for the task can be divided into
+four groups: subspace algorithms, like Multiple Signal Classification
+(MUSIC) [2] or Estimation of Signal Parameters via Rotational
+Invariance Techniques (ESPRIT) [3], iterative maximum likelihood
+(ML) [4], and Sparse Signal Recovery (SSR) [5] and finally most
+recently Deep Neural Network (DNN)-based algorithms [6]–[11]. Our
+work belongs to the latter category and presents a new approach
+to solve a Harmonic Retrieval task by using a deep Convolutional
+Neural Network (CNN). We note, the applications in the listed works,
+namely spectral- and Direction of Arrival (DoA)-estimation, share the
+algebraic structure of Harmonic Retrieval.
+In [6] a CNN is used to estimate frequencies components by
+predicting a super-resolution pseudo-spectrum from a superposition
+of up to ten components. A separate, subsequent network performs
+the model order estimation task. The results show a performance
+improvement when compared to MUSIC, especially in the low-Signal-
+to-Noise Ratio (SNR) domain. In [7] a CNN is trained to perform
+DoA estimation of up to three unknown sources by determining their
+location on a grid, i.e., solving a classification problem. Similarly, the
+authors of [8] address the problem of DoA estimation by combining
+a denoising autoencoder with another DNN for the estimation. As
+in [6], both approaches show performance improvements in the low-
+SNR domain compared to MUSIC. However, classification methods
+suffer from an inherent estimation bias due to grid-mismatch and poor
+scaling in terms of desired resolution. Since increasing the grid density
+increases classification complexity non-linearly. Naturally, estimates
+that do not rely on a grid, i.e., classification, are highly interesting,
+especially if we wish to achieve super-resolution. Comparably, the
+work in [11] combines a regression task solved by a DNN with
+gradient steps on the likelihood function of the data to perform
+DoA estimation. The grid-free estimates from the DNN are used as
+initial guesses for a second-order Newton method. This approach
+combines the best of two worlds: fast, robust, but approximate initial
+estimates combined with an iterative high-resolution method allowing
+quadratic convergence, but only after successful initialization provided
+by the DNN. The results highlight the decrease in computational
+complexity and improvements in performance from the use maximum-
+likelihood methods. However, the presented method only considers up
+to 3 stochastic sources estimated from multiple snapshots, which is
+insufficient in many practical scenarios, especially if parameters are
+modeled as deterministic. More significantly, the used antenna array
+geometries have a very small aperture, rendering the initialization
+of the Newton method very well conditioned since it tolerates high
+deviations of the initialization from the true solution.
+Compared to previous works, our proposed architecture can estimate
+up to 20 deterministic paths from a single snapshot in terms of their
+delay and Doppler-shift from frequency-time data. The number of
+paths is estimated together with their propagation parameters. We
+exploit the sparsity of the parameter space by dividing it up into a low
+number of auxiliary grid-cells. Then we employ a CNN to estimate
+the number of paths in each cell and their respective deviations from
+the cells’ centers to obtain grid-free estimates. In effect, we solve
+multiple joint regression and classification tasks to obtain the number
+of sources and their parameters. To render the training more robust,
+we apply a set of windowing functions both in frequency and time
+domain to the input data, effectively presenting the same data with
+different pulse-shapes. To verify the performance, we consider the
+mean squared error (MSE) of the raw DNN estimates and compare
+them to existing methods, i.e., Discrete Fourier Transform (DFT) and
+RIMAX [4], and the Cram´er-Rao Bound (CRB) as the theoretical
+lower bound. We also conduct an isolated analysis of the model
+order selection performance and compare our proposal to RIMAX and
+Efficient Detection Criterion (EDC). Motivated by the approach in [11],
+we also use the estimates directly to warm-start a second-order gradient
+iteration and show that the initial guesses allow convergence with high
+probability. The results indicate that the proposed methodology can
+reliably predict both model order and parameters sufficiently well and
+with comparably short computation time. When enhanced with a few
+steps of an iterative ML estimator, the performance can be improved
+substantially, resulting in a well-performing, robust 2D parameter
+estimator with moderate computational complexity.
+II. SIGNAL MODEL
+Our task is retrieving the spectral paths of deterministic paths from
+frequency and time samples of a radio channel, i.e., their propagation
+delays τ and Doppler-shifts α.
+We model the wireless channel transfer-function measurement
+of bandwidth B with Nf ∈N frequency samples and Nt ∈N
+snapshots and employ the narrowband assumption since B ≪fc. We
+denote the sampled observation in complex baseband (fc = 0) by S.
+arXiv:2211.04846v4  [eess.SP]  19 Dec 2023
+
+=== PAGE 2 ===
+Channel Upscaling
+Conv2D
+k: 3x3, s: 1x1,
+Cout: 2Cin
+Batch Norm.
+ReLU
+5x
+Downsampling
+Conv2D
+k: 3x3, s: 2x2,
+Cout: Cin
+Batch Norm.
+ReLU
+2x
+Channel Downscaling
+Conv2D
+k: 3x3, s: 1x1,
+Cout: 1
+2 Cin, 3C
+Batch Norm.
+ReLU
+2x
+Linear
+ReLU
+Linear
+ˆη
+Model Order
+Conv2D
+k: 3x3, s: 1x1,
+Cout: 4
+Batch Norm.
+ReLU
+Linear
+ReLU
+Linear
+ˆρ
+Fig. 1. The architecture of our CNN uses convolutional layers to perform upscaling, downsampling and downscaling. The encoded parameters in η and model
+order ρ (see Section III-B and Section III-C, respectively) are estimated from dense layers to the downscaled or downsampled result.
+The sampling process is characterized by the sampling intervals in
+frequency ∆f > 0 and time ∆t > 0 with S sampled Nf, Nt ∈N
+times at
+fk = f0 + k · ∆f, tl = t0 + l · ∆t
+(1)
+where k = 0, ..., Nf −1, l = 0, ..., Nt −1, f0 = −B/2, and t0 = 0.
+Therefore, the discrete signal model S ∈CNf ×Nt is formulated as
+Sk,l(γ, τ, α) =
+P
+X
+p=1
+γp exp (−2jπfkτp) exp (2jπtlαp),
+(2)
+where the index p = 1, ..., P denotes the path index and γ ∈CP ,
+τ ∈RP , α ∈RP contain the corresponding complex weights, delays,
+and Doppler-shifts, respectively. The noisy observation Y ∈CNf ×Nt
+is then formulated as
+Y = S(γ, τ, α) + N,
+(3)
+where N ∈CNf ×Nt is a complex, zero-mean Gaussian noise process
+with variance σ2.
+From (3), it follows that the task of estimating P, τ and α from
+Y constitutes a joint model order selection and harmonic retrieval
+problem.
+III. NEURAL NETWORK
+The goal of the presented approach is to use a deep convolutional
+neural network to estimate τ and α from the sampled observations in
+Y . This section introduces the preprocessing applied to the data Y ,
+the off-grid parameter encoding used for the labels in the supervised
+training, and the network architecture.
+A. Preprocessing
+Our preprocessing stage aims to provide the neural network with
+informative and diverse input values via a two-step approach.
+In the first step, multiple views of the data Y are created by filtering
+with NW windows and stacking the results into YW ∈CNW ×Nf ×Nt.
+The motivation for the multi-window approach is to obtain different
+data realizations of the same data samples, i.e., retrieve different
+information from the same samples. Rectangular windows achieve the
+maximum SNR and provide a narrow pulse shape but also result in
+high sidelobes after the DFT, potentially introducing ghost paths. Other
+1
+1
+0
+0
+τ
+α
+x0,1
+x0,0
+x1,0
+x1,1
+
+
+1
+∆τ0
+∆α0
+1
+∆τ1
+∆α1
+0
+0
+0
+
+
+η0,1 =
+Fig. 2. Example for the label encoding with C = 3. The path parameters ( )
+are encoded relative the closest cell-centroid ηi,j.
+filters, such as Hann-windows, reduce the sidelobes, i.e., the probability
+of ghost paths, but increase the mainlobe width and usually resulting in
+higher estimation variances. Hence, the choice for a window function
+is usually application specific and bears trade-offs. However, a CNN
+can process multiple views of the same data in parallel, similar to
+color channels of an image. With this approach, diverse views can
+be exploited for more robust estimates. We used NW = 8 different
+windowing functions, i.e., a Tukey, Taylor, Chebyshev, Blackman, Flat
+Top, Cosine, Hann, and the Rectangular window.
+The second step is to apply a 2D-DFT over the last two dimensions,
+transforming it to the target parameter domain in delay- and Doppler,
+denoted as Y1 ∈CNW ×Nf ×Nt. To obtain real-valued numbers for
+the training, we employ four mapping functions
+f1(Y1) = ℜ(Y1), f2(Y1) = ℑ(Y1),
+f3(Y1) = log10(|Y1|), f4(Y1) = ∠(Y1)
+to map the complex values in Y1 to the real-valued CNN input data
+Y2 ∈R4·NW ×Nf ×Nt. Here, ℜand ℑdenote the real and imaginary
+parts, respectively, and | · | and ∠denote the absolute value and
+phase of a complex number. Even though f1 and f2 contain the same
+information as f3 and f4, our experiments showed, the simultaneous
+usage adds useful diversity for the CNN.
+
+=== PAGE 3 ===
+B. Off-Grid Parameter Encoding
+The labels for the supervised learning task are provided by a grid-
+relative parameter encoding. To this end, we divide the delay-Doppler
+domain into a few grid-cells. In each grid-cell, we aim to estimate the
+number of paths in that cell and their respective deviations from the
+cell center. Hence, the parameter values are encoded relative to the
+grid cell centers. Our encoding is a task-specific modification of [12].
+It consists of three steps: parameter normalization, cell assignment,
+and relative parameter encoding.
+Let C be the maximum number of paths in a single cell. The
+normalization maps the parameters into a range between 0 and 1,
+such that τ and α are in the interval of τp ⊂[0, 1) and αp ⊂[0, 1).
+Next, we define a set of I · J cell centers x ∈(0, 1)I×J, which each
+define a non-overlapping rectangular covering of [0, 1) × [0, 1). Paths
+are mapped to the cells based on the shortest ℓ2-distance to the cell
+centroids xi,j. To encode the paths’ positions and number in each
+cell, we define vectors ηi,j ∈R3·Lmax as
+ηi,j =
+h
+µ[i,j]
+1
+, ∆τ [i,j]
+1
+, ∆α[i,j]
+1
+, . . . , µ[i,j]
+C
+, ∆τ [i,j]
+C
+, ∆α[i,j]
+C
+iT
+(4)
+∆τ [i,j]
+c
+= ∥τc −xi,j∥2 and ∆αc
+= ∥αc −xi,j∥2 denote the
+Euclidean distance between the cell centroid ηi,j and the respective
+parameters. In line with best practices for training, ∆τc and ∆αc
+are normalized by the cell width and shifted based on the cells’
+centers, such that ∆τc, ∆αc ⊂[0, 1). Note, that the model order P
+can be expressed as P = PI,J,C
+i,j,c µ[i,j]
+c
+and the maximum number of
+encodable paths is C · I · J.
+As the number of paths in each cell can vary, µ[i,j]
+c
+= {0, 1}
+indicates if the path with encoding ∆τ [i,j]
+c
+and ∆α[i,j]
+c
+is an estimate
+(µ[i,j]
+c
+= 1) or empty (µ[i,j]
+c
+= 0). This enables computing a coupled
+loss during training, as detailed in Section III-D, for arbitrary cell
+assignments. To enforce a predictable ordering of paths in each cell,
+the paths are sorted from c = 1...C with descending magnitude γp,
+and unassigned parameters are labeled as 0 (see Figure 2). The result
+of the encoding is a 3D array η ∈RI×J×3·C, which structures the
+desired prediction results of our CNN.
+C. Network Architecture
+Our network architecture is split into four stages represented in
+Figure 1. The first stage passes the input through 5 blocks of 2D
+convolutional layers. Each block consists of a 2D convolutional layer,
+followed by Batch-Normalization and a Rectified Linear Unit (ReLU)
+activation function. The convolutional layers are parameterized to
+preserve the data shape but double the number of channels after each
+block.
+The second stage performs downsampling via convolutional layers
+with a stride of 2, which reduces the data dimension by 2 with each
+block. In this stage, the number of channels is preserved.
+Stage three achieves the parameter predictions. First, the number of
+channels is reduced by two blocks of convolutional layers, followed
+by two fully-connected (FC) layers interleaved by a ReLU activation
+function. The relative parameter estimates η (from Section III-B) are
+encoded in the output of the final FC layer.
+The fourth stage is used to predict the number of paths P (model
+order) based on the results of the second stage. It uses a single
+convolutional block followed by two FC layers interleaved by a ReLU
+activation function. Its output is ˆρ, a one-hot encoded vector of the
+model order estimate ˆP.
+D. Loss Functions and Training
+Our approach uses multiple loss functions combined in a weighted
+sum. The first summand is the loss for the model order estimate ˆρ. It
+uses the well-known Binary Crossentropy (BCE) loss for the one-hot
+encoded values.
+L0 = ˆρ · log(ρ) + (1 −ˆρ) · log(1 −ρ)
+(5)
+The loss for the parameter estimates η utilizes a masked MSE loss
+function
+L1 =
+I,J
+X
+i,j=1
+C
+X
+c=1
+ 
+σ
+
+ˆµ[i,j]
+c
+
+·
+
+"
+∆ˆτ [i,j]
+c
+∆ˆα[i,j]
+c
+#
+−
+"
+∆τ [i,j]
+c
+∆α[i,j]
+c
+#
+1
+!2
+,
+(6)
+where σ(·) represents the sigmoid function, andˆ· marks the predictions.
+As mentioned earlier, µ[i,j]
+c
+is used to weight the parameter estimates
+∆τ [i,j]
+c
+and ∆α[i,j]
+c
+during loss calculation. Its effect becomes apparent
+by inspecting the limits of the σ(·) function, as
+1) limx→∞σ(x) = 1, causing the MSE of the corresponding
+predictions to contribute to L1.
+2) limx→−∞σ(x) = 0, causing the MSE of the corresponding
+predictions to not contribute to L1.
+Hence, predicting a negative value for µ[i,j]
+c
+causes σ(µ[i,j]
+c
+)∆ˆτc
+[i,j] ≈
+0 and σ(µ[i,j]
+c
+)∆ˆ
+αc
+[i,j] ≈0 and hence close to the corresponding 0
+in the labels.
+Finally, both loss components are combined in a weighted sum via
+Ltotal = L0 + β · L1.
+(7)
+For our experiments, we manually selected β = 4 to ensure both
+losses equally contribute to the learning. We note, that β is likely
+not optimal and choosing it constitutes a multi-objective optimization
+problem for further study.
+E. Training
+The three synthetic datasets, a training, validation, and test set, were
+created by sampling random values for the signal parameters. Table I
+contains a comprehensive summary of the respective settings for the
+dataset and training hyperparameters.
+Each sample in the dataset contains a random number of 1 to
+20 specular paths. The complex path amplitudes γ contain random
+phases, and their magnitudes are uniformly spread across the range
+of 0 dB to −30 dB. To prevent overfitting, the measurement noise
+N is generated randomly for every snapshot with a random noise
+variance σ, such that the SNR is in the range of 0 dB to 50 dB. We
+use a uniform distribution in the linear domain, such that 90 % of
+samples have a SNR <10 dB.
+TABLE I
+DATASET SUMMARY AND TRAINING HYPERPARAMETERS.
+Name
+Value
+Datasets
+Distribution τp, αp
+U[0,1]
+Min. separation τp, αp
+3.125 × 10−3
+Magnitudes
+U[0.001,1]
+Phases
+U[0,2π]
+SNR
+0 dB to 50 dB
+Number of Paths
+U[1,20]
+Trainingset Size
+400 × 103
+Validationset Size
+1000
+Testset Size
+4000
+Training
+Optimizer
+Adam [13], γ = 0.0003,
+β1 = 0.9, β2 = 0.999
+Mini-Batchsize
+32
+Epochs
+20
+Trainable Parameters
+25 × 106 for Nf = Nt = 64
+
+=== PAGE 4 ===
+0
+0.2
+0.4
+0.6
+0.8
+1
+τ/τmax
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+α/αmax
+(a) SNR −5 dB, ˆP = 13
+0
+0.2
+0.4
+0.6
+0.8
+1
+τ/τmax
+0
+1
+(b) SNR 0 dB, ˆP = 17
+0
+0.2
+0.4
+0.6
+0.8
+1
+τ/τmax
+0
+1
+(c) SNR 5 dB, ˆP = 17
+0
+0.2
+0.4
+0.6
+0.8
+1
+τ/τmax
+0
+1
+−60
+−40
+−20
+0
+|Y|2 [dB]
+(d) SNR 10 dB, ˆP = 18
+Fig. 3. Inference example. A snapshot Y with P = 18 paths from the Validationset passes the network at different SNRs (a-d). The figures show the
+groundtruth (
+) and parameter estimates (
+) with the data |Y1|2 (rectangular window) in the background. The displacement between the circles indicates the
+accuracy of the point estimates (center). We observe the quality of the results improves with increasing SNR. At 10 dB SNR (d), all paths are correctly
+detected, including the closely-spaced paths in the bottom left (see c) and d)).
+IV. ANALYSIS
+In order to get a complete estimate of the parameters in (3), we
+retrieved estimates ˆP, ˆτ and ˆα and based on these used the Best
+Linear Unbiased Estimator (BLUE), i.e., least-squares, to attain an
+estimate for the linear weights ˆγ.
+To illustrate the results obtained from our CNN, Figure 3 shows a
+single, hand-picked sample from the validationset passed through the
+network at different SNRs. Not only do we analyze the raw parameter
+estimates of the network, but we also use these estimates to warm-start
+a gradient iteration
+(γk+1, τ k+1, αk+1) = (γk, τ k, αk) −εkzk
+(8)
+with descent direction
+zk =
+
+F k−1
+· J k
+
+(γk, τ k, αk),
+which essentially defines a second-order Gauss-Newton scheme, since
+F is the Fisher-Information matrix and J is the Jacobian matrix of
+the negative log-likelihood function based on the assumption that N
+is a Gaussian random variable, which reads as
+λ(γ, τ, α) = 1
+σ2 ∥Y −S(γ, τ, α)∥2
+F .
+(9)
+To provide an assessment of the estimation performance of our
+approach, we compare it to a periodogram-based peak search, i.e., DFT,
+which is inherently grid-limited, and the high-resolution RIMAX [4]
+based on ML. The model order required for the peak search is obtained
+from the EDC [14]. We provide a comparison in terms of the MSE
+for the estimated parameters and the respective model order error.
+Figure 4 shows that our approach can overcome the grid limitation
+and outperforms the periodogram-based method. However, the raw
+estimates’ accuracy of our approach also saturates, albeit at a lower
+MSE. As expected, the high-resolution estimator’s results align with
+the predictions of the CRB with increasing SNR.1 When using the
+estimates provided by our approach to initialize (8), the estimation
+accuracy for higher SNRs improves significantly from only a 10
+iterations of (8). This is a highly promising feature of our architecture
+since the joint estimates are close enough to the global minimum
+of (9) such that (8) is very likely to converge to the true solution.
+This starkly contrasts algorithms like RIMAX, which only add single
+1The MSE is computed only for those estimated parameters with a match
+in the groundtruth within a 1/N distance. We confirmed, that RIMAX reaches
+the CRB for a single path scenario.
+sources one by one to the set of estimates and carry out iterative
+refinement between two newly added sources, known as successive
+interference cancellation. In our case, we can initialize the iteration
+much more efficiently with a single forward from the network but
+still accurate enough for the gradient iteration to converge.
+Apart from the accuracy, the computational complexity of the
+algorithms is also of interest. As an assessment of the computational
+complexity of the RIMAX estimator is not straightforward due to the
+use of iterative numerical methods, we assess the runtime per sample
+on an identical system. The periodogram approach ranks fastest with
+an average of 3 ms, followed by our approach with 19 ms. When
+combining our method with 10 iterations of (8) we average at 60 ms,
+while the ML algorithm RIMAX requires around 11.9 s on average.
+It highlights that our approach addresses applications requiring fast
+fixed-clock estimates, where the accuracy-runtime trade-off can be
+regulated by the number of gradient iterations.
+Regarding the model order estimation, we compare our approach
+to EDC and the model order extracted from the ML estimates. The
+results are illustrated in Figure 5 and reaffirm the findings of previous
+publications [6], [11], where it is shown that neural networks can
+reliably predict the number of sources in a signal. Our approach
+consistently achieves the best results across the studied SNR range.
+EDC and RIMAX achieves similar performance at SNRs >20 dB, but
+underestimates the model order for smaller SNR. Overall, this result
+highlights the model order estimation capabilities of our approach,
+particularly in the challenging low-SNR domain.
+V. CONCLUSION
+Our work introduces a new approach for combined, two-dimensional
+harmonic retrieval and model order estimation using a CNN. Compared
+to recent approaches in the field, it uses a cell-based representation
+of spectral parameters for the prediction and, therefore, can estimate
+parameters directly via regression instead of classification. Regard-
+ing estimation accuracy, it outperforms on-grid periodogram-based
+approaches. Most interestingly, the estimates of up to 20 paths can
+be used to warm-start a second-order gradient iteration of the highly
+non-convex likelihood function. With some further refinement, the
+architecture can initialize a well-performing ML, hence approximately
+delivering all the advantageous properties, like statistical consistency
+and efficiency. Especially compared to [11], this is an improvement
+in terms of parameter dimension, quantity, and data complexity.
+
+=== PAGE 5 ===
+−10
+0
+10
+20
+30
+SNR [dB]
+10−11
+10−9
+10−7
+10−5
+MSE
+Peak-Search
+Ours
+Ours with GN
+RIMAX (ML)
+CRB
+Fig. 4. Comparison of the MSE. Our method can outperform the periodogram
+method in terms of accuracy but is surpassed by the high accuracy of the
+RIMAX algorithm. With 10 additional gradient-steps on the likelihood function
+using the estimates from our approach as initialization, we can achieve similar
+performance to the ML method at significantly lower computation times.
+Additionally and in line with previous work, it demonstrates superior
+model order estimation, especially in the low-SNR regime. Our
+approach is well-suited for time-constraint harmonic retrieval tasks
+because of its relatively low runtime compared to high-resolution
+methods.
+Due to the CNN structure of our approach, it scales well to more
+than two dimensions. Ultimately, this should allow the CNN processing
+of multiple input multiple output (MIMO) measurements and hence
+full channel sounding data, including spatial measurements, similar to
+[4]. Then, the preprocessing must be extended with realistic antenna
+beampatterns by a suitable beamspace transformation such as the
+Effective Aperture Distribution Function (EADF), see [15]. Moreover,
+an ablation study should quantify the performance impacts of the
+individual architecture blocks. Similarly, processing real measurement
+data will help us understand to what degree the approach is affected
+by measurement system imperfections and model mismatch. Further
+opportunities are the applicability to wideband channel data, where the
+narrowband assumption is no longer satisfied, leading to dispersion in
+delay and Doppler domains and coupling of the two parameters.
+ACKNOWLEDGMENT
+The authors acknowledge the financial support by the Federal
+Ministry of Education and Research of Germany in the project
+“Open6GHub” (grant number: 16KISK015), “KOMSENS-6G” (grant
+number: 16KISK125), and DFG project HoPaDyn with Grant-No. TH
+494/30-1.
+REFERENCES
+[1]
+R. Thom¨a, M. Landmann, A. Richter, and U. Trautwein, “Multidi-
+mensional high-resolution channel sounding measurement,” English,
+in Smart Antennas State of the Arts, T. Kaiser, A. Bourdoux, H.
+Boche, J. Rodr´ıguez Fonollosa, J. Andersen Bach, and W. Utschick,
+Eds. Hindawi Publishing Corporation, 2005.
+[2]
+R. Schmidt, “Multiple emitter location and signal parameter
+estimation,” IEEE Trans. Antennas Propag., no. 3, 1986. DOI:
+10.1109/tap.1986.1143830.
+[3]
+R. Roy and T. Kailath, “ESPRIT-estimation of signal parameters
+via rotational invariance techniques,” IEEE Trans. Acoust. Speech
+Signal Process., no. 7, 1989. DOI: 10.1109/29.32276.
+−10
+0
+10
+20
+30
+SNR [dB]
+−12
+−8
+−4
+0
+Average Modelorder Error
+Ours
+RIMAX (ML)
+EDC
+Fig. 5.
+Average difference of the true and estimated model order for the
+simulations in Figure 4. Our method outperforms both EDC and the maximum-
+likelihood approach.
+[4]
+A. Richter, “Estimation of Radio Channel Parameters: Models and
+Algorithms,” en, Thesis, Technische Universit¨at Ilmenau, 2005.
+[5]
+D. Malioutov, M. Cetin, and A. Willsky, “A sparse signal reconstruc-
+tion perspective for source localization with sensor arrays,” IEEE
+Trans. Signal Process., no. 8, 2005. DOI: 10.1109/tsp.2005.850882.
+[6]
+G. Izacard, S. Mohan, and C. Fernandez-Granda, “Data-driven esti-
+mation of sinusoid frequencies,” in Advances in Neural Information
+Processing Systems, 2019.
+[7]
+G. K. Papageorgiou, M. Sellathurai, and Y. C. Eldar, “Deep networks
+for direction-of-arrival estimation in low snr,” IEEE Transactions
+on Signal Processing, 2021. DOI: 10.1109/TSP.2021.3089927.
+[8]
+D. Chen, S. Shi, X. Gu, and B. Shim, “Robust DoA Estimation
+Using Denoising Autoencoder and Deep Neural Networks,” IEEE
+Access, 2022, Conference Name: IEEE Access. DOI: 10.1109/
+ACCESS.2022.3164897.
+[9]
+M. Naseri, A. Shahid, G.-J. Gordebeke, S. Lemey, M. Boes, S. Van
+de Velde, and E. De Poorter, “Machine Learning-Based Angle of
+Arrival Estimation for Ultra-Wide Band Radios,” IEEE Communi-
+cations Letters, 2022, Conference Name: IEEE Communications
+Letters. DOI: 10.1109/LCOMM.2022.3167020.
+[10]
+W. Liu, “Super resolution DOA estimation based on deep neural
+network,” en, Scientific Reports, no. 1, 2020. DOI: 10.1038/s41598-
+020-76608-y.
+[11]
+A. Barthelme and W. Utschick, “A Machine Learning Approach to
+DoA Estimation and Model Order Selection for Antenna Arrays
+With Subarray Sampling,” IEEE Transactions on Signal Processing,
+2021. DOI: 10.1109/TSP.2021.3081047.
+[12]
+J. Redmon, S. Divvala, R. Girshick, and A. Farhadi, “You Only
+Look Once: Unified, Real-Time Object Detection,” in 2016 IEEE
+Conference on Computer Vision and Pattern Recognition (CVPR),
+IEEE, 2016. DOI: 10.1109/CVPR.2016.91.
+[13]
+D. P. Kingma and J. Ba, “Adam: A method for stochastic
+optimization,” CoRR, 2015.
+[14]
+L. Zhao, P. Krishnaiah, and Z. Bai, “On detection of the number
+of signals in presence of white noise,” en, Journal of Multivariate
+Analysis, no. 1, 1986. DOI: 10.1016/0047-259X(86)90017-5.
+[15]
+M. Landmann and G. D. Galdo, “Efficient antenna description
+for MIMO channel modelling and estimation,” in 7th European
+Conference on Wireless Technology, 2004., 2004.

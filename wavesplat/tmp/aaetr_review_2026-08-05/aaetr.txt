@@ -1,0 +1,632 @@
+=== PAGE 1 ===
+Angle of Arrival Estimation with Transformer:
+A Sparse and Gridless Method with Zero-Shot Capability
+Zhaoxuan Zhu, Chulong Chen and Bo Yang
+Motional, Inc.
+{zhaoxuan.zhu, chulong.chen, bo.yang}@motional.com
+Abstract
+Automotive Multiple-Input Multiple-Output (MIMO) radars
+have gained significant traction in Advanced Driver Assis-
+tance Systems (ADAS) and Autonomous Vehicles (AV) due
+to their cost-effectiveness, resilience to challenging operat-
+ing conditions, and extended detection range. To fully lever-
+age the advantages of MIMO radars, it is crucial to de-
+velop an Angle of Arrival (AoA) algorithm that delivers
+high performance with reasonable computational workload.
+This work introduces AAETR (Angle of Arrival Estimation
+with TRansformer) for high performance gridless AOA esti-
+mation. Comprehensive evaluations across various signal-to-
+noise ratios (SNRs) and multi-target scenarios demonstrate
+AAETR’s superior performance compared to super resolu-
+tion AOA algorithms such as Iterative Adaptive Approach
+(IAA) (Yardibi et al. 2010). The proposed architecture fea-
+tures efficient, scalable, sparse and gridless angle-finding ca-
+pability, overcoming the issues of high computational cost
+and straddling loss in SNR associated with grid-based IAA.
+AAETR requires fewer tunable hyper-parameters and is end-
+to-end trainable in a deep learning radar perception pipeline.
+When trained on large-scale simulated datasets then evalu-
+ated on real dataset, AAETR exhibits remarkable zero-shot
+sim-to-real transferability and emergent sidelobe suppression
+capability. This highlights the effectiveness of the proposed
+approach and its potential as a drop-in module in practical
+systems.
+Introduction
+As the automotive industry progresses towards commercial-
+ization of Advanced Driver Assistance Systems (ADAS) and
+Autonomous Vehicles (AV), there is an increasing adop-
+tion of Multiple-input Multiple-output (MIMO) radar tech-
+nology. Compared to lidar systems, radars offer significant
+advantages in terms of cost-effectiveness, resilience to ad-
+verse weather conditions, and extended detection range (Pa-
+tole et al. 2017; Engels et al. 2017). However, the con-
+ventional radar data representation, primarily point clouds
+extracted through Fast Fourier Transform (FFT) and Con-
+stant False Alarm Rate (CFAR) processing (Richards et al.
+2005), presents challenges. These point clouds often suf-
+fer from sparsity and a lack of semantic information, which
+ultimately hinders the performance of crucial downstream
+tasks such as object detection and segmentation. This limita-
+tion underscores the need for more sophisticated radar signal
+processing and data representation techniques to fully lever-
+age the potential of MIMO radar systems in autonomous
+driving applications.
+In contrast to point cloud representations, several low-
+level radar data formats are available at various stages of
+the radar signal processing chain. These include Analog-to-
+Digital Converter (ADC) data, Range-Doppler (RD) cubes,
+and Range-Angle-Doppler (RAD) cubes or radar images.
+While these low-level representations require more sophis-
+ticated processing algorithms and incur higher storage costs
+(Rebut et al. 2022), they ultimately yield superior perfor-
+mance in downstream perception tasks. This improved per-
+formance is evident whether radar is used as the sole sensing
+modality (Palffy et al. 2020; Yang et al. 2023) or in fusion
+with camera data (Liu et al. 2024; Hwang et al. 2022).
+Within the radar signal processing chain, the Range-
+Doppler (RD) cube undergoes Direction of Arrival (DOA),
+or interchangeably in this work Angle of Arrival (AOA), to
+generate the Range-Angle-Doppler (RAD) cube. The effi-
+cacy of the AOA algorithm directly influences the quality
+and resolution of the resulting RAD cube, which can sub-
+sequently be projected into a Bird’s-Eye-View (BEV) rep-
+resentation for downstream tasks (Major et al. 2019; Zheng
+et al. 2023b). While extensive research has been conducted
+on AOA estimation using conventional approaches, the prac-
+tical application of these methods is often constrained by ei-
+ther high computational demands (Yardibi et al. 2010; Liao
+and Fannjiang 2016) or the necessity for multiple temporal
+snapshots (Schmidt 1982). These limitations underscore the
+need for more efficient and adaptable AOA estimation tech-
+niques that can meet the real-time processing requirements
+of automotive radar systems while maintaining high accu-
+racy.
+In recent years, deep learning-based AOA algorithms
+have emerged in the literature (Papageorgiou, Sellathurai,
+and Eldar 2021; Zheng et al. 2023a), offering faster infer-
+ence speeds while achieving performance comparable to
+conventional approaches. However, existing studies have
+primarily focused on two distinct areas: enhancing end-to-
+end perception tasks such as 3D object detection and seg-
+mentation, or improving DOA estimation performance un-
+der limited and synthetic scenarios. The dichotomy in re-
+search focus has created a gap in evaluating deep learning-
+based AOA methods for automotive radar, particularly re-
+arXiv:2408.09362v1  [cs.CV]  18 Aug 2024
+
+=== PAGE 2 ===
+Figure 1: Zoom-in views of the BEV feature maps from AAETR, IAA and the radar detections by embedded DSP. AAETR
+demonstrates significantly lower FP detections and improved side-lobe suppression compared to the classic IAA method in
+the scene captured by the camera view in Figure 2. Both AAETR and IAA provide much richer semantic information for
+downstream perception tasks than the sparse point clouds from on-device radars. For instance, the radar images from AAETR
+and IAA accurately capture vehicle dimensions in the scene and clearly detect thin street poles (highlighted by red circles).
+These low-level representations preserve valuable semantic information such as size and shape for subsequent perception tasks.
+Figure 2: The camera view of the front left side of the ego
+vehicle in the scene in Figure 6.
+garding their real-world performance and robustness.
+In this work, we introduce AAETR (Angle of Arrival
+Estimation with TRansformer), a novel approach inspired
+by the seminal object detection framework DETR (Car-
+ion et al. 2020). Our model architecture comprises an en-
+coder that processes array signals and a decoder that pre-
+dicts targets using cross-attention mechanisms between en-
+coded messages and learnable queries. Leveraging the pow-
+erful capabilities of transformer-based models and training
+on an extensive, efficiently generated yet realistic simulated
+dataset, AAETR demonstrates substantial improvements in
+AOA performance across comprehensive evaluations. No-
+tably, AAETR exhibits excellent zero-shot generalization
+capabilities when applied to data collected from real-world
+driving scenarios, as illustrated in in Figure 1 and Figure 2.
+This remarkable transfer from simulated to real-world data
+underscores the robustness and adaptability of our proposed
+method in practical automotive radar applications.
+The key contributions of this work are threefold. (1) We
+introduce a fully differentiable, transformer-based AOA
+model that significantly outperforms well-established su-
+per-resolution methods. The model’s sparse detection ar-
+chitecture enables gridless estimation, offering a substan-
+tial computational advantage over traditional methods, es-
+pecially at high grid resolutions. (2) Our proposed model
+demonstrates remarkable zero-shot transferability from syn-
+thetic datasets to real-world radar data, highlighting its ro-
+bustness and adaptability to practical applications. (3) We
+present a novel evaluation methodology that correlates
+downstream object detection and segmentation task perfor-
+mance with spectrum estimation accuracy, providing a more
+comprehensive assessment of the model’s practical utility.
+Related Works
+Angle of Arrival Algorithms
+One of the pioneering AOA algorithms is MUltiple SIg-
+nal Classification (MUSIC) (Schmidt 1982). MUSIC is a
+grid-based method that requires multiple snapshots for accu-
+rate estimation, especially under low Signal-to-Noise Ratio
+(SNR) conditions. Root-MUltiple SIgnal Classification (R-
+MUSIC) (Barabell 1983) is a grid-less method that achieves
+improved accuracy. Single snapshot MUSIC is proposed in
+(Liao and Fannjiang 2016), which is more suitable for au-
+tomotive applications (Sun, Petropulu, and Poor 2020). The
+Iterative Adaptive Approach (IAA) (Yardibi et al. 2010) is
+another grid-based, iterative and non-parametric method that
+operates with a single snapshot. A sparsity-promoting ap-
+proach with hard and soft thresholding was later proposed
+in (Rowe, Li, and Stoica 2013). The main challenge asso-
+ciated with iterative approaches is their high computational
+complexity, which can hinder their application in real-time
+use cases.
+
+=== PAGE 3 ===
+Figure 3: The overall network architecture. The radar signal and the array positions are fed into the transformer encoder as
+input. The encoded messages are then attended by the learnable queries in the decoder. The decoded messages are then mapped
+into the regression parameters and detection logits with FFN.
+Recently, deep learning based approaches have also been
+explored. A grid-based method is developed with Convolu-
+tional Neural Network (CNN) in (Papageorgiou, Sellathurai,
+and Eldar 2021). Despite its robustness under low SNR, it re-
+quires multiple snapshots. Inspired by IAA, Unrolling IAA
+(UAA) with recurrent neural network is proposed for effi-
+cient inference (Zheng et al. 2023a). In (Wang et al. 2024),
+a 3D CNN based network is developed for ADC to RAD
+cube signal processing for human detection in their in-house
+through-wall dataset.
+Low Level Radar for Perception
+In the recent years, low level radar representations have been
+extensively studied to ADAS and AV perception systems ei-
+ther as the only modality or fused with other sensing tech-
+nologies. A graph convolution network is developed to lever-
+age the low level radar data for long range 3D object de-
+tection under complex scenarios (Meyer, Kuschk, and Tom-
+forde 2021). MVDNet (Qian et al. 2021) fuses imaging radar
+and lidar point clouds and demonstrates the superior 3D ob-
+ject detection performance in long range and foggy driving
+conditions compared to systems with single modality. Cram-
+Net (Hwang et al. 2022) uses cross attention to fuse the radar
+Range Azimuth image with camera images for 3D object de-
+tection.
+AAETR
+In this section, the spectral estimation problem is formu-
+lated as a detection problem. The input to the algorithm is
+the measured data vector y ∈CK×1, and the virtual array
+element positions x ∈RK×3 is also available, where K
+is the number of virtual array elements. The output of the
+algorithm are the predicted angle ˜θ ∈RM×1, magnitude
+˜α ∈RM×1 and confidence of ˜p ∈RM×1 of the detection
+targets, where M is the maximal number of detection targets
+as a hyperparameter to the algorithm.
+For the detection problem, a transformer model inspired
+by DETR (Carion et al. 2020) is proposed as illustrated in
+Figure 3. The real and imaginary parts of the input mea-
+sured data vector y ∈CK×1 and the virtual array ele-
+ment positions x ∈RK×3 are first projected to high di-
+mensional embedding space ¯y ∈RK×D and ¯x ∈RK×D
+and subsequently fed into 6 transformer encoder blocks as
+the input and the positional encoding, respectively. Each
+transformer encoder block consists of a layer normaliza-
+tion module (LN), a multi-head self-attention module and
+the feed-forward networks (FFNs). The encoded messages
+¯z ∈RK×D and the positional encoding ¯x are used as
+the keys and the values in the transformer decoder blocks.
+The queries ¯q ∈RM×1, along with the positional encod-
+ing for the queries, are learnable and initialized randomly.
+Each transformer decoder consists of a LN module, a multi-
+head cross-attention module and the FNNs. The last layer of
+the FNNs maps the learnable queries into the output space
+˜θ ∈RM×1 ˜α ∈RM×1 and ˜p ∈RM×1.
+A modified set prediction loss in (Carion et al. 2020)
+is used for training. Given the N ground truth targets, the
+ground truth angles θ ∈RM×1 and magnitudes α ∈RM×1
+
+=== PAGE 4 ===
+are padded with M −Ns no detection. We use ci = ⊘to
+indicate the ith ground truth is a padded detection. The bipar-
+tite matching between the ground truth and prediction sets is
+performed to find the optimal permutation of M elements
+σ ∈P as follows,
+σ∗= arg min
+σ∈P
+M
+X
+i
+Lmatch
+
+θ, α, ci, ˜θσ(i), ˜ασ(i), ˜pσ(i)
+
+, (1)
+where
+Lmatch
+
+θ, α, ci, ˜θσ(i), ˜ασ(i), ˜pσ(i)
+
+= −1{ci̸=⊘} log ˜pσ(i) + wθ · 1{ci̸=⊘}
+θi −˜θσ(i)
+
+1
++ wα · 1{ci̸=⊘}
+α −˜ασ(i)
+
+1 ,
+(2)
+and wα and wθ are the weights to the regression loss terms
+associated with magnitude and angle, respectively. With the
+bipartite matching results, the training objective is as fol-
+lows,
+Ltrain
+
+θ, α, ci, ˜θσ∗(i), ˜ασ∗(i), ˜pσ∗(i)
+
+= −1{ci̸=⊘} log ˜pσ∗(i) + wθ · 1{ci̸=⊘}
+θi −˜θσ∗(i)
+
+1
++ wα · 1{ci̸=⊘}
+α −˜ασ∗(i)
+
+1 .
+(3)
+Comprehensive Evaluation Method
+Precise multi-target detection and localization are crucial for
+perception tasks, as demonstrated by lidar-first perception
+systems. This section introduces a comprehensive evaluation
+framework for radar AOA estimation algorithms, designed
+to assess performance in core perception tasks like 3D object
+detection. The evaluation focuses on three key areas: detec-
+tion capability using precision-recall metrics, measurement
+accuracy in angle and magnitude, and algorithm robustness
+across varying SNRs and target counts. this framework pro-
+vides a rigorous methodology for assessing angle-finding
+algorithms under diverse operational conditions relevant to
+complex, real-world applications.
+Detection Capability: Precision-Recall Metrics
+At the
+core of many perception tasks is precision-recall analy-
+sis, which quantifies a system’s detection performance. We
+adopt this concept to evaluate AOA algorithms in a multi-
+target setup. Given M predicted targets
+
+˜θm, ˜αm, ˜pm
+
+for
+m = 1, 2, ...M, the predictions with low probability are first
+filtered out by confidence thresholds. For each scenario, true
+positives (TP) are detections within ±0.5 degrees of any
+ground truth target. False positives (FP) are detections not
+corresponding to any ground truth target within this thresh-
+old, while false negatives (FN) are undetected ground truth
+targets.
+Measurement Error
+We assess AOA estimation accuracy
+among true positive detections using average L1 errors in
+angle (degrees) and magnitude (dB) between predictions and
+ground truths.
+Dynamic Range and Ccenario Configuration
+The meth-
+ods are evaluated under a challenging 13 dB dynamic range,
+representing the spread from the weakest to the strongest
+target signal. We vary target counts across scenarios from 2
+to 10 per range-Doppler bin, introducing different complex-
+ity levels. Additionally, we perform evaluations across SNR
+levels ranging from 15 dB to 35 dB.
+Experiments
+Synthetic Dataset
+In this study, a real long range radar (LRR) equipped on our
+fleet vehicle is used for simulation, training, evaluation and
+visualization. The radar features a sparse MIMO array with
+6 transmitters and 8 receivers, resulting in a 48 virtual ele-
+ments. To train the transformer model in the supervised fash-
+ion, a large amount of high-quality data is required. Starting
+by using IAA as the model to provide ground truth, we en-
+countered two issues. First, the trained model has a perfor-
+mance upper bound set by IAA, and it inherits the undesir-
+able side lobe issue from IAA. Second, performing IAA on a
+large amount of real sensor data is computationally intensive
+and can slow down the model training extensively. To ad-
+dress these issues, we propose to use a physics-based high-
+fidelity simulation pipeline to generate ground truth data ef-
+ficiently in a large scale.
+For each training sample, the number of targets are first
+sampled uniformly as N ∼U {0, Nmax}, where Nmax is the
+maximum number of targets. We choose the maximum num-
+ber of targets in the generation that balance the design of the
+array and the complexity of the real-world driving scenario.
+To ensure generalization, the angle θ and magnitude α of
+each target are uniformly sampled as θ ∼U {θmin, θmax} and
+α ∼U {αmin, αmax}.
+Consider a radar sensor with K array elements. When
+multiple targets are present, the signal received by the k-th
+element at time t can be modeled as the sum of the contribu-
+tions from each target, represented by M targets:
+yk(t) =
+M
+X
+m=1
+αms(t −τk,m(θm)) + nk(t)
+(4)
+where yk(t) is the signal received at the k-th element; αm
+is the amplitude of the m-th target; τk,m(θm) is the delay of
+the signal from the m-th target at the k-th element; nk(t) is
+the noise and interference at the k-th element, s(t) the trans-
+mitted signal. The time delay at each element is represented
+as a steering vector for the m-th target, am(θm) given by
+am(θm) = αm
+
+
+e−jωτ1,m(θm)
+e−jωτ2,m(θm)
+. . .
+e−jωτK,m(θm)
+
+
+(5)
+where θm is the angle of arrival, and ω is the angular fre-
+quency of the signal. Notice we have adopted a far-field
+assumption in this signal model, it can be easily extended
+to include signal model with near-field effect for ultra-short
+
+=== PAGE 5 ===
+Figure 4: The comparison of PR curves from AAETR and
+IAA when SNR is set to 35 dB. The precision-recall curves
+reveal how well each algorithm maintains detection per-
+formance across varying numbers of targets and dynamic
+ranges. The AATER generally shows better precision and
+recall trade off across wide range of threshold values.
+range radars. Finally, The output of the element can be mod-
+eled as:
+y(t) =
+M
+X
+m=1
+Am(θm, αm)sm(t) + n(t)
+(6)
+where:
+• y(t) = [x1(t), x2(t), . . . , xK(t)]T
+• A(θ) is a matrix with columns as steering vectors for
+different angles.
+• s(t) represents the source signals at time t.
+• n(t) represents the noise and interference vector on the
+arrays.
+This approach generates ground truth and data in one shot.
+The efficient representation further allows to generate train-
+ing and evaluation data on the fly. The unlimited data supply
+in such a setting effectively eliminates the performance gap
+between training and validation set, and ultimately leads to
+excellent generalization performance on the data from real
+radar sensors. Empirically this is also critical for the zero-
+shot transfer of the model trained with synthetic data to real
+data.
+Training Details
+The model architecture comprises 6 encoder and 6 decoder
+blocks, each containing layer normalization, dropout, and
+attention modules. This design closely follows the archi-
+tecture proposed in DETR (Carion et al. 2020), with one
+key difference: we use learned parameters for both queries
+and query positions in the decoder, as opposed to zero-
+initialized queries and learnable query positions in the origi-
+nal DETR implementation. The embedding dimension is set
+Figure 5: The comparison of the max F1 score and the mean
+error in magnitude and angle between AAETR and IAA
+across the number of targets per RD bin. The maximum
+F1 highlights the scalability of the AATER algorithm. The
+AATER maintains a significantly higher F1 score across all
+target numbers and SNRs. AAETR also generates more ac-
+curate magnitude prediction compared to IAA. Both meth-
+ods are able to perform angle prediction with high accuracy.
+Overall, the robustness of the AAETR to varying levels of
+SNR is noticeably better than IAA.
+to 128, with 80 learnable queries. In total, the model con-
+tains 1.6M parameters. Training is conducted using a batch
+size of 32,768 across 16 Nvidia A10 GPUs, with 63M ran-
+domly generated samples used throughout the process.
+Results
+To evaluate performance, we compare AAETR against IAA
+under various SNR conditions with multiple target num-
+bers. A true positive detection is defined as having a pre-
+dicted probability higher than the confidence threshold and
+a predicted angle within 0.5 degrees of any ground truth tar-
+get. Each evaluation condition uses 4,000 samples from the
+synthetic dataset, applied consistently for both AAETR and
+IAA assessments.
+Figure 4 presents precision-recall curves for AAETR and
+IAA at 35 dB SNR with varying target numbers and a dy-
+namic range of 13 dB. The results demonstrate that AAETR
+
+=== PAGE 6 ===
+Figure 6: Sample bird’s-eye-view rendering of AAETR, IAA, the radar detections from embedded DSP lidar point clouds
+(bottom right). Here, the positive x and y directions corresponde to the front and the left of the ego vehicle, respectively.
+significantly outperforms IAA in detection performance,
+particularly as the number of targets increases. Figure 5
+compares the max F1 score and regression errors in de-
+tection magnitude and angle across various conditions. Al-
+though training was conducted at a constant 35 dB SNR, we
+evaluated the models using data generated at different SNR
+levels. Notably, the proposed AAETR method demonstrates
+robustness to mismatched training and evaluation noise lev-
+els. Moreover, the performance gap between AAETR and
+IAA widens as noise levels increase.
+Zero Shot on Real Data
+Beyond its superior metric performance on synthetic data
+compared to IAA, AAETR also demonstrates excellent
+zero-shot capability on real data collected by in-house
+surrounding-view radar systems in dynamic and complex
+driving scenarios. Figure 6 compares AAETR, IAA, and
+the radar detections from embedded Digital Signal Process-
+ing (DSP) module in an urban scene captured by our test-
+ing vehicle equipped with multiple radars for surrounding-
+view perception tasks in Pittsburgh, PA. The AAETR model,
+trained on a synthetic dataset generated with in-house radar
+arrays, is integrated into the radar signal processing chain for
+RD to RAD conversion. As AAETR is inherently gridless,
+summation splatting (Niklaus and Liu 2020) is employed to
+convert prediction targets to RAD data cubes. Each radar
+is processed independently, with the resulting RAD features
+resampled into Bird’s Eye View (BEV) space using bi-linear
+interpolation. For BEV grids covered by multiple radars,
+maximal magnitude values are used to create surrounding-
+view BEV features.
+Despite being trained solely on synthetic data, AAETR
+produces higher quality BEV features compared to IAA and
+the radar detections from embedded DSP. While quantita-
+tive evaluation is challenging due to the lack of ground truth
+
+=== PAGE 7 ===
+Figure 7: Zoom-in views of the BEV feature maps from AAETR, IAA and radar detections from embedded DSP on the rear
+left side of the ego vehicle. As indicated by Figure 8 and the lidar signal in Figure 6, the radar signal is supposed to be blocked
+by the buildings by the street, and any detection should be considered as FP. Therefore, AAETR clearly demonstrates much
+better precision performance compared to IAA and the radar point clouds.
+Figure 8: The camera view of the rear left side of the ego
+vehicle in the scene in Figure 6.
+in these scenarios, AAETR appears to capture a more com-
+prehensive range of dynamic objects (e.g., moving vehicles)
+and static features (e.g., street buildings and poles). More-
+over, thanks to effective side lobe suppression, AAETR’s
+BEV features exhibit higher precision, as corroborated by
+lidar point clouds shown in Figure 6’s bottom right plot.
+Two zoom-in views further illustrate AAETR’s superior
+performance. Figures 1 and 2 highlight the front left side of
+the ego vehicle. With ground truth vehicle bounding boxes
+overlaid on the zoomed-in BEV features, both AAETR and
+IAA provide more semantic information (e.g., width, length)
+for bounding box detection compared to radar detections
+from embedded DSP, which often detect only one or two
+points on distant vehicles. Notably, AAETR precisely de-
+tects a pole at (x, y) ≈(10, 20) with a strong signal, while
+IAA’s signals near the pole are nearly indistinguishable from
+false positives due to side lobe effects, and radar detections
+from embedded DSP are sparse in this area.
+Figures 7 and 8 focus on the rear left view of the scene. As
+shown in Figure 8, there should be no detections beyond the
+buildings at the rear left of the ego vehicle. While both IAA
+and on-device point clouds produce numerous false positive
+signals beyond the buildings, AAETR generates a clean fea-
+ture map in this area. In summary, AAETR’s clear separation
+between positive and negative signals makes it a superior
+candidate for downstream perception tasks.
+Conclusion
+In this paper, we presented AAETR (Angle of Arrival
+Estimation with TRansformer), a deep learning-based grid-
+less AOA algorithm for automotive MIMO radars. Leverag-
+ing a computationally efficient and high-fidelity radar sim-
+ulation pipeline, AAETR consistently outperforms the clas-
+sic Iterative Adaptive Approach (IAA) across various con-
+ditions, including different numbers of targets and signal-to-
+noise ratio (SNR) levels. AAETR’s architecture, powered by
+transformers and trained on an extensive simulated dataset,
+enables efficient and scalable sparse angle-finding capabili-
+ties. This approach overcomes the limitations of grid-based
+methods like IAA, such as high computational costs and
+straddling loss in SNR. Moreover, AAETR requires fewer
+tunable hyperparameters and is end-to-end trainable, mak-
+ing it well-suited for integration into deep learning radar
+perception pipelines. A key strength of AAETR is its re-
+markable zero-shot sim-to-real transferability, demonstrated
+by its strong performance on data collected from testing ve-
+hicles in realistic driving scenarios. In these real-world ap-
+plications, AAETR exhibits superior side lobe suppression
+compared to IAA while delivering similarly rich informa-
+tion. Additionally, AAETR provides more comprehensive
+semantic information than radar detections from embedded
+DSP while maintaining higher precision. These advantages
+position AAETR as a promising drop-in module for practi-
+cal automotive radar systems, potentially enhancing the per-
+ception capabilities of ADAS and AV.
+
+=== PAGE 8 ===
+References
+Barabell, A. 1983. Improving the resolution performance
+of eigenstructure-based direction-finding algorithms.
+In
+ICASSP’83. IEEE International Conference on Acoustics,
+Speech, and Signal Processing, volume 8, 336–339. IEEE.
+Carion, N.; Massa, F.; Synnaeve, G.; Usunier, N.; Kirillov,
+A.; and Zagoruyko, S. 2020. End-to-end object detection
+with transformers. In European conference on computer vi-
+sion, 213–229. Springer.
+Engels, F.; Heidenreich, P.; Zoubir, A. M.; Jondral, F. K.;
+and Wintermantel, M. 2017. Advances in automotive radar:
+A framework on computationally efficient high-resolution
+frequency estimation. IEEE Signal Processing Magazine,
+34(2): 36–46.
+Hwang, J.-J.; Kretzschmar, H.; Manela, J.; Rafferty, S.;
+Armstrong-Crews, N.; Chen, T.; and Anguelov, D. 2022.
+Cramnet: Camera-radar fusion with ray-constrained cross-
+attention for robust 3d object detection. In European con-
+ference on computer vision, 388–405. Springer.
+Liao, W.; and Fannjiang, A. 2016.
+MUSIC for single-
+snapshot spectral estimation: Stability and super-resolution.
+Applied and Computational Harmonic Analysis, 40(1): 33–
+67.
+Liu, Y.; Wang, F.; Wang, N.; and ZHANG, Z.-X. 2024.
+Echoes beyond points: Unleashing the power of raw radar
+data in multi-modality fusion. Advances in Neural Informa-
+tion Processing Systems, 36.
+Major, B.; Fontijne, D.; Ansari, A.; Teja Sukhavasi, R.;
+Gowaikar, R.; Hamilton, M.; Lee, S.; Grzechnik, S.; and
+Subramanian, S. 2019. Vehicle detection with automotive
+radar using deep learning on range-azimuth-doppler tensors.
+In Proceedings of the IEEE/CVF International Conference
+on Computer Vision Workshops, 0–0.
+Meyer, M.; Kuschk, G.; and Tomforde, S. 2021. Graph con-
+volutional networks for 3d object detection on radar data. In
+Proceedings of the IEEE/CVF International Conference on
+Computer Vision, 3060–3069.
+Niklaus, S.; and Liu, F. 2020. Softmax splatting for video
+frame interpolation. In Proceedings of the IEEE/CVF con-
+ference on computer vision and pattern recognition, 5437–
+5446.
+Palffy, A.; Dong, J.; Kooij, J. F.; and Gavrila, D. M. 2020.
+CNN based road user detection using the 3D radar cube.
+IEEE Robotics and Automation Letters, 5(2): 1263–1270.
+Papageorgiou, G. K.; Sellathurai, M.; and Eldar, Y. C. 2021.
+Deep networks for direction-of-arrival estimation in low
+SNR. IEEE Transactions on Signal Processing, 69: 3714–
+3729.
+Patole, S. M.; Torlak, M.; Wang, D.; and Ali, M. 2017. Au-
+tomotive radars: A review of signal processing techniques.
+IEEE Signal Processing Magazine, 34(2): 22–35.
+Qian, K.; Zhu, S.; Zhang, X.; and Li, L. E. 2021.
+Ro-
+bust multimodal vehicle detection in foggy weather using
+complementary lidar and radar signals. In Proceedings of
+the IEEE/CVF Conference on Computer Vision and Pattern
+Recognition, 444–453.
+Rebut, J.; Ouaknine, A.; Malik, W.; and P´erez, P. 2022. Raw
+high-definition radar for multi-task learning. In Proceedings
+of the IEEE/CVF Conference on Computer Vision and Pat-
+tern Recognition, 17021–17030.
+Richards, M. A.; et al. 2005. Fundamentals of radar signal
+processing, volume 1. Mcgraw-hill New York.
+Rowe, W.; Li, J.; and Stoica, P. 2013. Sparse iterative adap-
+tive approach with application to source localization.
+In
+2013 5th IEEE International Workshop on Computational
+Advances in Multi-Sensor Adaptive Processing (CAMSAP),
+196–199. IEEE.
+Schmidt, R. O. 1982. A signal subspace approach to multi-
+ple emitter location and spectral estimation. Stanford Uni-
+versity.
+Sun, S.; Petropulu, A. P.; and Poor, H. V. 2020. MIMO radar
+for advanced driver-assistance systems and autonomous
+driving: Advantages and challenges. IEEE Signal Process-
+ing Magazine, 37(4): 98–117.
+Wang, W.; Du, N.; Guo, Y.; Sun, C.; Liu, J.; Song, R.; and
+Ye, X. 2024. Human Detection in Realistic Through-the-
+Wall Environments using Raw Radar ADC Data and Para-
+metric Neural Networks. arXiv preprint arXiv:2403.15468.
+Yang, B.; Khatri, I.; Happold, M.; and Chen, C. 2023. Ad-
+cnet: End-to-end perception with raw radar adc data. arXiv
+preprint arXiv:2303.11420, 69.
+Yardibi, T.; Li, J.; Stoica, P.; Xue, M.; and Baggeroer, A. B.
+2010. Source localization and sensing: A nonparametric it-
+erative adaptive approach based on weighted least squares.
+IEEE Transactions on Aerospace and Electronic Systems,
+46(1): 425–443.
+Zheng, R.; Liu, H.; Sun, S.; and Li, J. 2023a. Deep learning
+based computationally efficient unrolling IAA for direction-
+of-arrival estimation. In 2023 31st European Signal Pro-
+cessing Conference (EUSIPCO), 730–734. IEEE.
+Zheng, R.; Sun, S.; Liu, H.; and Wu, T. 2023b.
+Time-
+sensitive and distance-tolerant deep learning-based vehicle
+detection using high-resolution radar bird’s-eye-view im-
+ages. In 2023 IEEE Radar Conference (RadarConf23), 1–6.
+IEEE.

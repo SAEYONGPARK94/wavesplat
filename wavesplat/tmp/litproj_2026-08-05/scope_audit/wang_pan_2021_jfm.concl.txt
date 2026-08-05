@@ -1,0 +1,79 @@
+
+
+<<<@52840 Conclusions>>>
+
+4. Conclusions
+In this paper, we develop the ensemble-based DA capability for phase-resolved wave
+forecast, resulting in a new EnKF–HOS method. A unique consideration in EnKF–HOS
+is the treatment of the interplay between predictable and measurement zones, which is
+successfully accounted for through a modiﬁed analysis equation. The performance of the
+EnKF–HOS method is extensively tested and compared with the (traditional) HOS-only
+method using both synthetic wave ﬁelds and real radar data. In all cases, signiﬁcant
+advantages are demonstrated by using the EnKF–HOS method, namely the dramatic
+reduction of forecast error and retaining the phase information for an arbitrarily long time
+with DA of radar data. In contrast, the phase information is lost within one peak period
+in the HOS-only method when considering the real ocean waves. The parameters involved
+in the EnKF–HOS method are carefully benchmarked, including the ensemble size, DA
+interval, number of DA locations and the inﬂation factor. The developed EnKF–HOS
+algorithm is intrinsically parallel and very suitable for implementation on a graphics
+processing unit (GPU), a compact device that can be conveniently installed in the offshore
+environment (our ongoing work). Finally, the accuracy of the EnKF–HOS method can be
+further improved given deeper knowledge about the radar measurement error, which we
+recommend as one of the next essential focuses for the remote sensing community.
+Acknowledgements. We would like to thank Dr D. Lyzenga, Dr O. Nwogu and Dr R. Beck in the Department
+of Naval Architecture and Marine Engineering at the University of Michigan, for providing and interpreting the
+radar data. We also thank Dr P. Hess from the Ofﬁce of Naval Research to grant us permission to use this data
+set for research.
+Funding. The research is funded by the Michigan Institute for Computational Discovery and Engineering
+(MICDE) through a 2019 Catalyst Grant. The computational resources are provided by NSF-XSEDE grant
+TG-CTS200016.
+Declaration of interests. The authors report no conﬂict of interest.
+Author ORCIDs.
+Yulin Pan https://orcid.org/0000-0002-7504-8645.
+Appendix A. Adaptive inﬂation
+We apply the adaptive inﬂation algorithm developed by Anderson (2007) to determine the
+values of λj in (2.15). The algorithm is applied at each t = tj (for j ≥1), and we shall drop
+the subscript j on other variables in the following description for simplicity.
+The key idea in adaptive inﬂation is to consider λ as an additional state variable and
+update its value through Bayes’ theorem given the measurements
+p (λ|ηm(x)) ∼p(λ)p(ηm(x)|λ),
+(A1)
+where p(λ) is the (given) prior distribution and p(ηm(x)|λ) is the likelihood function. In
+principle, our purpose is to ﬁnd the optimal λ which maximizes the posterior p(λ|ηm(x)) =
+p(λ|ηm(1), . . . , ηm(d)). Intuitively, the inﬂation (2.15) using such an optimal λ provides
+sufﬁcient variance of the forecast ensemble to cover the measurements, and thus avoid the
+overconﬁdence in the forecast when analysis is performed.
+By assuming independent measurement errors, it can be shown that the full
+Bayes’ problem (A1) is equivalent to the sequential problem (which saves signiﬁcant
+918 A19-23
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+computational cost, see Anderson (2007) for details)
+p (λ|ηm(1)) = p (ηm(1)|λ) p (λ) /Z1,
+(A2)
+p (λ|ηm(1), ηm(2), . . . , ηm(i)) = p (ηm(i)|λ) p (λ|ηm(1), ηm(2), . . . , ηm(i −1)) /Zi,
+(A3)
+where (A3) is applied sequentially for i = 2, . . . , d, and Zi are the normalization factors
+(which do not play a role in the computation).
+In computing (A2) and (A3), we use a Gaussian prior distribution,
+p(λ) = N (¯λ0, σ 2
+0 ),
+(A4)
+with mean ¯λ0 and variance σ 2
+0 (say ¯λ0 = 1 and σ 2
+0 = c¯λ2
+0/H2
+s at j = 1, with the situation
+of j > 1 discussed at the end of Appendix A). The key computations in (A2) and (A3) are
+the likelihood functions p(ηm(i)|λ) for i = 1, 2, . . . , d, which will be discussed below.
+Given a value of λ, a member in the forecast ensemble at measurement location i
+is denoted by [Gη(n),inf
+f
+](i) with η(n),inf
+f
+given by (2.15). This ensemble is assumed to
+have a Gaussian distribution consistent with the EnKF framework, with mean [G ¯ηf ](i)
+and variance σf (i)2 = λ[GQηGT](i, i) (note that only σf (i)2 is affected by the inﬂation).
+Let D = ηm(i) −[G ¯ηf ](i) be the distance between the mean forecast and measurement at
+location i, which is drawn from a zero-m

@@ -1,0 +1,70 @@
+ 
+1 
+ 
+Neural reconstruction of 3D ocean wave hydrodynamics from camera 
+sensing 
+Jiabin Liu#,*,1,2, Zihao Zhou#,1,2, Jialei Yan1,2, Anxin Guo1,2, Alvise Benetazzo*,3, Hui Li*,1,2 
+1 Key Lab of Smart Prevention and Mitigation of Civil Engineering Disasters of the Ministry of Industry and 
+Information Technology, Harbin Institute of Technology, Harbin, 150090, China 
+2 Key Lab of Structures Dynamic Behavior and Control of the Ministry of Education, Harbin Institute of 
+Technology, Harbin, 150090, China 
+3 Institute of Marine Sciences, National Research Council, Venice, Italy 
+Abstract 
+Precise three-dimensional (3D) reconstruction of wave free surfaces and associated 
+velocity fields is essential for developing a comprehensive understanding of ocean physics. To 
+address the high computational cost of dense visual reconstruction in long-term ocean wave 
+observation tasks and the challenges introduced by persistent visual occlusions, we propose an 
+wave free surface visual reconstruction neural network, which is designed as an attention-
+augmented pyramid architecture tailored to the multi-scale and temporally continuous 
+characteristics of wave motions. Using physics-based constraints, we perform time-resolved 
+reconstruction of nonlinear 3D velocity fields from the evolving free-surface boundary. 
+Experiments under real-sea conditions demonstrate millimetre-level wave elevation prediction 
+in the central region, dominant-frequency errors below 0.01 Hz, precise estimation of high-
+frequency spectral power laws, and high-fidelity 3D reconstruction of nonlinear velocity fields, 
+while enabling dense reconstruction of two million points in only 1.35 s. Built on a stereo-vision 
+dataset, the model outperforms conventional visual reconstruction approaches and maintains 
+strong generalization in occluded conditions, owing to its global multi-scale attention and its 
+learned encoding of wave propagation dynamics. 
+ 
+Keywords: wave free surface, 3D velocity field, visual reconstruction, neural network 
+1. Introduction 
+Wave dynamics serve as a primary driver in nearshore physical ocean systems, where their 
+complex spatiotemporal evolution governs energy fluxes1, coastal material transport2, and 
+boundary layer processes3. Amid increasingly frequent extreme marine events driven by global 
+climate change4, the accurate and effective measurement of wave hydrodynamic parameters has 
+emerged as a forefront challenge in advancing observational capabilities and predictive 
+ 
+# Jiabin Liu and Zihao Zhou contributed equally to this work 
+* Corresponding author. 
+E-mail address: liujiabin@hit.edu.cn, alvise.benetazzo@ve.ismar.cnr.it, lihui@hit.edu.cn 
+
+ 
+2 
+ 
+accuracy in ocean physics5, 6. Traditional measurement techniques predominantly depend on 
+contact-based sensors, such as wave staffs and moored wave buoys7, which are capable of 
+delivering stable and long-duration time series of surface elevation data8. However, the 
+inherently limited spatial resolution of these point-based instruments impedes the 
+comprehensive characterization of the continuous, evolution of wave fields9. This severely 
+constrains the ability to model and forecast complex hydrodynamic processes at regional 
+scales10. 
+With the deployment of large arrays of low-cost cameras, recent advances in vision-based 
+remote sensing methods offer promising alternatives11. In particular, computer vision 
+approaches enable non-intrusive, high-resolution capture of both spatial wave free surface 
+structures and temporal wave dynamics12. Among these, stereo vision (SV) has been widely 
+applied in both laboratory and field environments for wave reconstruction through stereo 
+matching and triangulation13, 14. Subsequent developments have optimized the reconstruction 
+algorithms using the OpenCV library, incorporating self-calibration based on the scale-invariant 
+feature transform (SIFT)15, 16 and employing the semi-global block matching (SGBM)17 
+algorithm to enhance reconstruction accuracy. A notable example is the wave acquisition stereo 
+system (WASS), which utilizes a fixed stereo camera configuration to enable large-scale, high-
+density wave free surface reconstruction18. Further integration of stereo vision with digital 
+image processing allows for frame-by-frame acquisition of wave imagery using synchronized 
+cameras, enabling the construction of a spatial-temporal volume for sequential wave free 
+surface reconstruction19. Experimental results confirm that the reconstructed wave free surfaces 
+exhibit strong agreement with classical wave theory in terms of spatial-temporal distribution 
+and dynamic characteristics, thereby validating the reliability and physical consistency of this 
+vision-based measurement approach20. 
+Vision-based techniques for dynamic surface reconstruction encounter significant 
+challenges. As the resolution and coverage of imaging systems increase, the number of pixels 
+and disparity hypotheses grows rapidly, imposing substantial demand

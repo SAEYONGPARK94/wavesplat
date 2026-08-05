@@ -1,0 +1,4325 @@
+Compressed Sensing Oﬀthe Grid
+Gongguo Tang†, Badri Narayan Bhaskar†, Parikshit Shah♯, and Benjamin Recht♯
+†Department of Electrical and Computer Engineering
+♯Department of Computer Sciences
+University of Wisconsin-Madison
+July 2012; Last Revised July 2013
+Abstract
+This work investigates the problem of estimating the frequency components of a mixture of s
+complex sinusoids from a random subset of n regularly spaced samples. Unlike previous work in
+compressed sensing, the frequencies are not assumed to lie on a grid, but can assume any values
+in the normalized frequency domain [0, 1]. An atomic norm minimization approach is proposed
+to exactly recover the unobserved samples and identify the unknown frequencies, which is then
+reformulated as an exact semideﬁnite program. Even with this continuous dictionary, it is shown
+that O(s log s log n) random samples are suﬃcient to guarantee exact frequency localization with
+high probability, provided the frequencies are well separated. Extensive numerical experiments
+are performed to illustrate the eﬀectiveness of the proposed method.
+Keywords: Atomic norm, basis mismatch, compressed sensing, continuous dictionary, line
+spectral estimation, nuclear norm relaxation, Prony’s method, sparsity.
+1
+Introduction
+Compressed sensing has demonstrated that data acquisition and compression can often be com-
+bined, dramatically reducing the time and space needed to acquire many signals of interest [3,
+11,12,21]. Despite the tremendous impact of compressed sensing on signal processing theory and
+practice, its development thus far has focused on signals with sparse representations in ﬁnite dis-
+crete dictionaries. However, signals encountered in applications such as radar, array processing,
+communication, seismology, and remote sensing are usually speciﬁed by parameters in a continu-
+ous domain [26, 43, 56]. In order to apply the theory of compressed sensing to such applications,
+researchers typically adopt a discretization procedure to reduce the continuous parameter space
+to a ﬁnite set of grid points [2, 4, 24, 27, 34, 41, 44, 52, 54]. While this simple strategy yields state-
+of-the-art performance for problems where the true parameters lie on the grid, discretization has
+several signiﬁcant drawbacks — (i) In cases where the true parameters do not fall onto the ﬁnite
+grid, the signal cannot often not be sparsely represented by the discrete dictionary [17,24,35]. (ii)
+It is diﬃcult to characterize the performance of discretization using standard compressed sensing
+analyses since the dictionary becomes very coherent as we increase the number of grid points. (iii).
+Although ﬁner grids may improve the reconstruction error in theory, very ﬁne grids often lead to
+numerical instability issues.
+1
+arXiv:1207.6053v3  [cs.IT]  10 Jul 2013
+
+We sidestep the issues arising from discretization by working directly on the continuous pa-
+rameter space for estimating the continuous frequencies and amplitudes of a mixture of complex
+sinusoids from partially observed time samples. In particular, the frequencies are not assumed to
+lie on a grid, and can instead take arbitrary values across the bandwidth of the signal. With a
+time-frequency exchange, our model is exactly the same as the one in Cand`es, Romberg, and Tao’s
+foundational work on compressed sensing [11], except that we do not assume the spikes to lie on
+an equispaced grid. This major diﬀerence presents a signiﬁcant technical challenge as the resulting
+dictionary is no longer an orthonormal Fourier basis, but is an inﬁnite dictionary with continuously
+many atoms and arbitrarily high correlation between candidate atoms. We demonstrate that a
+sparse sum of complex sinusoids can be reconstructed exactly from a small sampling of its time
+samples provided the frequencies are suﬃciently far apart from one another.
+Our computational method and theoretical analysis is based upon the atomic norm induced
+by samples of complex exponentials [16]. Chandrasekaran et al argue that the atomic norm is the
+best convex heuristic for underdetermined, structured linear inverse problems, and it generalizes
+the ℓ1 norm for sparse recovery and the nuclear norm for low-rank matrix completion. The norm
+is a convex function, and in the case of complex exponentials, can be computed via semideﬁnite
+programming. We show how the atomic norm for moment sequences can be derived either from
+the perspective of sparse approximation or rank minimization [46], illuminating new ties between
+these related areas of study. Much as was the case in other problems where the atomic norm has
+been studied, we prove that atomic norm minimization achieves nearly optimal recovery bounds
+for reconstructing sums of sinusoids from incomplete data.
+To be precise, we consider signals whose spectra consist of spike trains with unknown locations
+in the normalized interval [0, 1], where we identify 0 and 1. Rather than sampling the signal at all
+times t = 0, . . . , n−1 we sample the signal at a subset of times t1, . . . tm with each tj ∈{0, . . . , n −1}.
+Our main contribution is summarized by the following theorem.
+Theorem 1.1. Suppose we observe the signal
+x⋆
+j =
+s
+X
+k=1
+ckei2πfkj, j = 0, . . . , n −1
+(1.1)
+with unknown frequencies {f1, . . . , fs} ⊂[0, 1] on an index set T ⊂{0, . . . , n −1} of size m selected
+uniformly at random. Additionally, assume sign(ck) := ck/|ck| are drawn i.i.d. from the uniform
+distribution on the complex unit circle and
+∆f = min
+k̸=j |fk −fj|
+where the distance |fk −fj| is understood as the wrap-around distance on the unit circle. If ∆f ≥
+1
+⌊(n−1)/4⌋, then there exists a numerical constant C such that
+m ≥C max
+n
+log2 n
+δ , s log s
+δ log n
+δ
+o
+,
+is suﬃcient to guarantee that we can recover x⋆and localize the frequencies via a semideﬁnite
+program with probability at least 1 −δ.
+The frequencies may be identiﬁed directly using the dual solution of the atomic norm mini-
+mization problem we propose in this paper. Alternatively, once the missing entries are recovered
+2
+
+exactly, the frequencies can be identiﬁed by Prony’s method [19], a matrix pencil approach [37], or
+other linear prediction methods [51]. After identifying the frequencies, the coeﬃcients {ck}s
+k=1 can
+be obtained by solving a linear system.
+Remark 1.2. (Resolution) An interesting artifact of using convex optimization methods is the
+necessity of a particular resolution condition on the spectrum of the underlying signal. For the
+signal to be recoverable via our methods using O(s log s log n) random time samples from the set
+{0, 1, . . . , n −1}, the spikes in the spectrum need to be separated by roughly 4
+n. In contrast, if
+one chose to acquire O(s log s log n) consecutive samples from this set (equispaced sampling), the
+required minimum separation would be
+4
+s log s log n; this sampling regime was studied by Cand`es
+and Fernandez-Granda [8]. Therefore, in some sense, the resolution is determined by the region
+over which we take the samples, either in full or in a uniform random manner. We comment that
+numerical simulations of Section 5 suggest that the critical separation is actually
+1
+n.
+We leave
+tightening our bounds by the extra constant of 4 to future work.
+Remark 1.3. (Random Signs) The randomness of the signs of the coeﬃcients essentially assumes
+that the sinusoids have random phases.
+Such a model is practical in many spectrum sensing
+applications as argued in [56, Chapter 4.1]. Our proof will reveal that the phases can obey any
+symmetric distribution on the unit circle, not simply the uniform distribution.
+Remark 1.4. (Band-limited Signal Models) Note that any mixture of sinusoids with frequencies
+bandlimited to [−W, W], after appropriate normalization, can be assumed to have frequencies in
+[0, 1]. Consequently, a bandlimited signal of such a form leads to samples of the form (1.1). More
+precisely, suppose the frequencies {wk} lie in [−W, W], and x⋆(t) is a continuous signal of the form:
+x⋆(t) =
+s
+X
+k=1
+ckei2πwkt .
+By taking regularly spaced Nyquist samples at t ∈{0/2W, 1/2W, . . . , (n −1)/2W}, we observe
+x⋆
+j := x⋆(j/2W) =
+s
+X
+k=1
+ckei2π wk
+2W j
+=
+s
+X
+k=1
+ckei2πfkj with fk = wk
+2W ∈
+
+−1
+2, 1
+2
+
+,
+which is exactly the same as our model (1.1) after a trivial translation of the frequency domain. We
+emphasize that one does not need to actually acquire all of these Nyquist samples and then discard
+some of them to obtain the set T. In practice, one could pre-determine the set T and sample only
+at locations speciﬁed by T. This procedure allows one to achieve compression at the sensing stage,
+the central innovation behind the theory of compressed sensing.
+Remark 1.5. (Basis Mismatch) Finally, we note that our result completely obviates the basis
+mismatch conundrum [17,24,35] of discretization methods, where the frequencies might well fall oﬀ
+the grid. Since our continuous dictionary is globally coherent, Theorem 1.1 shows that the global
+coherence of the frame is not an obstacle to recovery. What matters more is the local coherence
+between the atoms composing the true signal, as characterized by the separation between the
+frequencies.
+3
+
+This paper is organized as follows. First, we specify our reconstruction algorithm as the solu-
+tion to an atomic norm minimization problem in Section 2. We show that this convex optimization
+problem can be exactly reformulated as a semideﬁnite program and that our methodology is thus
+computationally tractable. We outline connections to prior art and the foundations that we build
+upon in Section 3. We then proceed to develop the proofs in Section 4. Our proof requires the con-
+struction of an explicit certiﬁcate that satisﬁes certain interpolation conditions. The production of
+this certiﬁcate requires us to consider certain random polynomial kernels, and derive concentration
+inequalities for these kernels that may be of independent interest to the reader. In Section 5, we
+validate our theory by extensive numerical experiments, conﬁrming that random under-sampling
+as a means of compression coupled with atomic norm minimization as a means of recovery are a
+viable, superior alternative to discretization techniques.
+2
+The Atomic Norm and Semideﬁnite Characterizations
+Our signal model is a positive combination of complex sinusoids with arbitrary phases. As motivated
+in [16], a natural regularizer that encourages a sparse combination of such sinusoids is the atomic
+norm induced by these signals. Precisely, deﬁne atoms a(f, φ) ∈C|J|, f ∈[0, 1] and φ ∈[0, 2π) as
+[a (f, φ)]j = ei(2πfj+φ), j ∈J
+and rewrite the signal model (1.1) in matrix-vector form
+x⋆=
+s
+X
+k=1
+|ck|a(fk, φk)
+(2.1)
+where J is an index set with values being either {0, . . . , n−1} or {−2M, . . . , 2M} for some positive
+integer n and M, and φk is the phase of the complex number ck. In the rest of the paper, we use
+Ω= {f1, . . . , fs} ⊂[0, 1] to denote the unknown set of frequencies. In the representation (2.1), we
+could also choose to absorb the phase φk into the coeﬃcient |ck| as we did in (1.1). We will use
+both representations in the following and explicitly specify that the coeﬃcient ck is positive when
+the phase term φk is in the atom a(fk, φk).
+The set of atoms A = {a(f, φ) : f ∈[0, 1], φ ∈[0, 2π)} are building blocks of the signal x⋆, the
+same way that canonical basis vectors are building blocks for sparse signals, and unit-norm rank
+one matrices are building blocks for low-rank matrices. In sparsity recovery and matrix completion,
+the unit balls of the sparsity-enforcing norms, e.g., the ℓ1 norm and the nuclear norm, are exactly
+the convex hulls of their corresponding building blocks. In a similar spirit, we deﬁne an atomic
+norm ∥· ∥A by identifying its unit ball with the convex hull of A
+∥x∥A = inf {t > 0 : x ∈t conv (A)} =
+inf
+ck≥0, φk∈[0,2π)
+fk∈[0,1]
+n X
+k
+ck : x =
+X
+k
+cka(fk, φk)
+o
+.
+Roughly speaking, the atomic norm ∥· ∥A can enforce sparsity in A because low-dimensional faces
+of conv(A) correspond to signals involving only a few atoms. The idea of using atomic norms to
+enforce sparsity for a general set of atoms was ﬁrst proposed and analyzed in [16].
+When the phases φ are all 0, the set A0 = {a(f, 0) : f ∈[0, 1]} is called the moment curve which
+traces out a one-dimensional variety in R2|J|. It is well known that the convex hull of this curve is
+4
+
+characterizable in terms of Linear Matrix Inequalities, and membership in the convex hull can thus
+be computed in polynomial time (see [48] for a proof of this result and a discussion of many other
+algebraic varieties whose convex hulls are characterized by semideﬁnite programming). When the
+phases are allowed to range in [0, 2π), a similar semideﬁnite characterization holds.
+Proposition 2.1. For x ∈C|J| with J = {0, . . . , n −1} or {−2M, . . . , 2M},
+∥x∥A = inf
+
+1
+2|J| trace(Toep(u)) + 1
+2t :
+Toep(u)
+x
+x∗
+t
+
+⪰0
+
+.
+(2.2)
+In the proposition, we used the superscript ∗to denote conjugate transpose and Toep(u) to
+denote the Toeplitz matrix whose ﬁrst column is equal to u. The proof of this proposition relies
+on the following classical Vandermonde decomposition lemma for positive semideﬁnite Toeplitz
+matrices
+Lemma 2.2 (Caratheodory-Toeplitz, [13,14,57]). Any positive semideﬁnite Toeplitz matrix P can
+be represented as follows
+P = V DV ∗,
+where
+V = [a (f1, 0) · · · a (fr, 0)] ,
+D = diag ([d1 · · · dr]) ,
+dk are real positive numbers, and r = rank(P).
+The Vandermonde decomposition can be computed eﬃciently via root ﬁnding or by solving a
+generalized eigenvalue problem [37].
+Proof of Proposition 2.1. We prove the case J = {0, . . . , n −1}. The other case can be proved
+in a similar manner. Denote the value of the right hand side of (2.2) by SDP(x). Suppose x =
+P
+k cka(fk, φk) with ck > 0. Deﬁning u = P
+k cka(fk, 0) and t = P
+k ck, we note that
+Toep(u) =
+X
+k
+cka(fk, 0)a(fk, 0)∗=
+X
+k
+cka(fk, φk)a(fk, φk)∗.
+Therefore,
+Toep(u)
+x
+x∗
+t
+
+=
+X
+k
+ck
+a(fk, φk)
+1
+ a(fk, φk)
+1
+∗
+⪰0
+(2.3)
+Now,
+1
+n trace(Toep(u)) = t = P
+k ck so that SDP(x) ≤P
+k ck.
+Since this holds for any
+decomposition of x, we conclude that ∥x∥A ≥SDP(x).
+Conversely, suppose for some u and x,
+Toep(u)
+x
+x∗
+t
+
+⪰0 .
+(2.4)
+In particular, Toep(u) ⪰0. Form a Vandermonde decomposition
+Toep(u) = V DV ∗
+5
+
+as promised by Lemma 2.2. Since V DV ∗= P
+k dka(fk, 0)a(fk, 0)∗and ∥a(fk, 0)∥2 = √n, we have
+1
+n trace(Toep(u)) = trace(D).
+Using this Vandermonde decomposition and the matrix inequality (2.4), it follows that x is in
+the range of V , and hence
+x =
+X
+k
+wka(fk, 0) = V w
+for some complex coeﬃcient vector w = [· · · , wk, · · · ]T . Finally, by the Schur Complement Lemma,
+we have
+V DV ∗⪰t−1V ww∗V ∗
+Let q be any vector such that V ∗q = sign(w). Such a vector exists because V is full rank. Then
+trace(D) = q∗V DV ∗q ⪰t−1q∗V ww∗V ∗q = t−1
+ X
+k
+|wk|
+!2
+.
+implying that trace(D)t ≥(P
+k |wk|)2. By the arithmetic geometric mean inequality,
+1
+2n trace(Toep(u)) + 1
+2t = 1
+2 trace(D) + 1
+2t ≥
+p
+trace(D)t ≥
+X
+k
+|wk| ≥∥x∥A
+implying that SDP(x) ≥∥x∥A since the previous chain of inequalities hold for any choice of u, t
+that are feasible.
+There are several other approaches to proving the semideﬁnite programming characterization
+of the atomic norm. As we will see below, the dual norm of the atomic norm is related to the max-
+imum modulus of trigonometric polynomials (see equation (2.7)). Thus, proofs based on Bochner’s
+Theorem [42], the bounded real lemma [5, 25], or spectral factorization [47] would also provide a
+tight characterization. It is interesting that the SDP for the continuous case is not very diﬀerent
+from an SDP derived for basis pursuit denoising on a grid in [52–54]. The work [53] also provides
+a heuristic to deal with oﬀ-grid frequencies, though there is no theory to certify exact recovery.
+2.1
+Atomic Norm Minimization for Continuous Compressed Sensing
+Recall that we observe only a subset of entries T ⊂J. As prescribed in [16], a natural algorithm
+for estimating the missing samples of a sparse sum of complex exponentials is the atomic norm
+minimization problem
+minimizex
+∥x∥A
+subject to
+xj = x⋆
+j, j ∈T
+(2.5)
+or, equivalently, the semideﬁnite program
+minimize
+u, x, t
+1
+2|J| trace(Toep(u)) + 1
+2t
+subject to
+Toep(u)
+x
+x∗
+t
+
+⪰0
+(2.6)
+xj = x⋆
+j, j ∈T.
+6
+
+The main result of this paper is that this semideﬁnite program almost always recovers the miss-
+ing samples and identiﬁes the frequencies provided the number of measurements is large enough
+and the frequencies are reasonably well-separated.
+We formalize this statement for the case
+J = {−2M, . . . , 2M} in the following theorem.
+Theorem 2.3. Suppose we observe the time samples of
+x⋆
+j =
+s
+X
+k=1
+ckei2πfkj
+on the index set T ⊂J = {−2M, . . . , 2M} of size m selected uniformly at random. Additionally,
+assume sign(ck) are drawn i.i.d.
+from a symmetric distribution on the complex unit circle.
+If
+∆f ≥
+1
+M , then there exists a numerical constant C such that
+m ≥C max
+
+log2 M
+δ , s log s
+δ log M
+δ
+
+,
+is suﬃcient to guarantee that with probability at least 1 −δ, x⋆is the unique optimizer to (2.5).
+We prove this theorem in Section 4. Note that Theorem 1.1 is a corollary of Theorem 2.3 via a
+simple reformulation. We provide a proof of the equivalence in Appendix A.
+2.2
+Duality and Frequency Localization
+To every norm, there is an associated dual norm, and the dual of the atomic norm for complex
+sinusoids has useful structure for both analysis and implementations. In this section, we analyze
+the structure of the dual problem and show that the dual optimal solution can be used as a method
+to identify the frequencies {fk} that comprise the optimal x⋆.
+Deﬁne the inner product as ⟨q, x⟩= x∗q, and the real inner product as ⟨q, x⟩R = Re(⟨q, x⟩).
+Then the dual norm of ∥· ∥A is deﬁned as
+∥q∥∗
+A =
+sup
+∥x∥A≤1
+⟨q, x⟩R =
+sup
+φ∈[0,2π),f∈[0,1]
+⟨q, eiφa(f, 0)⟩R = sup
+f∈[0,1]
+|⟨q, a(f, 0)⟩|
+(2.7)
+that is, the dual atomic norm is equal to the maximum modulus of the polynomial Q(z) =
+P
+j∈J qjz−j on the unit circle. The dual problem of (2.5) is thus
+maximize
+q
+⟨qT , x⋆
+T ⟩R
+subject to
+∥q∥∗
+A ≤1
+(2.8)
+qT c = 0
+which follows from a standard Lagrangian analysis [16]. Note that the dual atomic norm problem
+is an optimization over polynomials with bounded modulus on the unit disk.
+Let (x, q) be primal-dual feasible to (2.5) and (2.8). We have that
+⟨q, x⟩R = ⟨qT , xT ⟩R , since qT c = 0.
+= ⟨qT , x⋆
+T ⟩R , since xT = x⋆
+T
+= ⟨q, x⋆⟩R .
+7
+
+Since the primal is only equality constrained, Slater’s condition naturally holds, implying strong
+duality [7, Section 5.2.3]. By weak duality, we always have have
+⟨q, x⟩R = ⟨q, x⋆⟩R ≤∥x∥A
+for any x primal feasible and any q dual feasible. Strong duality implies equality holds if and only
+if q is dual optimal and x is primal optimal. A straightforward consequence of strong duality is a
+certiﬁcate of the support of the solution to (2.5).
+Proposition 2.4. Suppose the atomic set A is composed of atoms deﬁned by [a(f, 0)]j = ei2πfj, j ∈
+J with J being either {−2M, · · · , 2M} or {0, · · · , n −1}. Then ˆx = x⋆is the unique optimizer to
+(2.5) if there exists a dual polynomial
+Q (f) = ⟨q, a(f, 0)⟩=
+X
+j∈J
+qje−i2πjf
+(2.9)
+satisfying
+Q (fk) = sign (ck) , ∀fk ∈Ω
+(2.10)
+|Q (f)| < 1, ∀f /∈Ω
+(2.11)
+qj = 0, ∀j /∈T.
+(2.12)
+The polynomial Q (f) works as a dual certiﬁcate to certify that x⋆is the primal optimizer. The
+conditions on Q (f) are imposed on the values of the dual polynomial (condition (2.10) and (2.11))
+and on the coeﬃcient vector q (condition (2.12)). To prove Theorem 2.3, we will construct a dual
+certiﬁcate satisfying the conditions of Proposition 2.4 in Section 4.
+Proof of Proposition 2.4. Any vector q that satisﬁes the conditions of Proposition 2.4 is dual fea-
+sible. We also have that
+⟨q, x⋆⟩R =
+D
+q,
+s
+X
+k=1
+cka (fk, 0)
+E
+R
+=
+s
+X
+k=1
+Re (c∗
+k ⟨q, a (fk, 0)⟩)
+=
+s
+X
+k=1
+Re (c∗
+k sign (ck))
+=
+s
+X
+k=1
+|ck|
+≥∥x⋆∥A ,
+where the last inequality is due to the deﬁnition of atomic norm. On the other hand, H¨older’s
+inequality states ⟨q, x⋆⟩R ≤∥q∥∗
+A∥x⋆∥A ≤∥x⋆∥A, implying ⟨q, x⋆⟩R = ∥x⋆∥A.
+Since (x⋆, q) is
+primal-dual feasible, we conclude that x⋆is a primal optimal solution and q is a dual optimal
+solution because of strong duality.
+8
+
+0
+0.2
+0.4
+0.6
+0.8
+1
+0
+0.5
+1
+1.5
+ 
+ 
+true poles
+dual polynomial
+Figure 1: Frequency localization from dual polynomial. Original frequencies in the signal (dashed
+blue) with their heights representing the coeﬃcient magnitudes and the dual polynomial modulus (solid red)
+obtained from a dual optimum. The recovered frequencies are obtained by identifying points where the dual
+polynomial has modulus one.
+For uniqueness, suppose ˆx = P
+k ˆcka( ˆfk, 0) with ∥ˆx∥A = P
+k |ˆck| is another optimal solution.
+We then have for the dual certiﬁcate q:
+⟨q, ˆx⟩R =
+D
+q,
+X
+k
+ˆcka( ˆfk, 0)
+E
+R
+=
+X
+fk∈Ω
+Re (ˆc∗
+k ⟨q, a (fk, 0)⟩) +
+X
+ˆfl /∈Ω
+Re
+
+ˆc∗
+l
+D
+q, a
+
+ˆfl, 0
+E
+<
+X
+fk∈Ω
+|ˆck| +
+X
+ˆfl /∈Ω
+|ˆcl|
+= ∥ˆx∥A
+due to condition (2.11)
+if ˆx is not solely supported on Ω, contradicting strong duality. So all
+optimal solutions are supported on Ω.
+Since for both J = {−2M, · · · , 2M} and {0, · · · , n −1},
+the set of atoms with frequencies in Ωare linearly independent, the optimal solution is unique.
+An interesting and useful consequence of this proposition is that the dual solution ˆq provides
+a way to determine the composing frequencies of x⋆. One could evaluate the dual trigonometric
+polynomial ˆQ(f) := ⟨ˆq, a(f, 0)⟩and localize the frequencies by identifying the locations where the
+polynomial ˆQ(f) achieves modulus 1. The evaluation of ˆQ(f) can be performed eﬃciently using
+Fast Fourier Transform. Once the frequencies are estimated, the coeﬃcients can be obtained by
+solving a linear system of equations. We illustrate frequency localization from dual polynomial in
+Figure 1.
+We would like to caution the reader that the dual optimal solutions are not unique in general.
+However, we can show that any dual optimal solution must contain the s frequencies in Ωwhenever
+the optimal primal solution is x⋆. To see this, let ˆΩ= {f : | ˆQ(f)| = 1} be the set of recovered
+9
+
+frequencies, and assume Ω/ˆΩ̸ = ∅, then we have
+⟨ˆq, x⋆⟩R = ⟨ˆq,
+X
+k
+cka(fk, 0)⟩R
+=
+X
+fk∈ˆΩT Ω
+Re
+
+c∗
+k ˆQ(fk)
+
++
+X
+fl∈Ω/ˆΩ
+Re
+
+c∗
+l ˆQ(fl)
+
+<
+X
+fk∈ˆΩT Ω
+|ck| +
+X
+fl∈Ω/ˆΩ
+|cl|
+= ∥x⋆∥A ,
+where get the strict inequality because | ˆQ(fl)| < 1 for fl ∈Ω/ˆΩ, contradicting strong duality.
+Therefore, we have Ω⊂ˆΩ.
+In general, the set ˆΩmight contain spurious frequencies. However, if we leverage the fact that
+the atomic norm is representable in terms of linear matrix inequalities, we can show that most
+semideﬁnite programming solvers will ﬁnd good dual certiﬁcates. To make this precise, let us study
+the dual semideﬁnite program of the atomic norm problem (2.6). This dual problem also has a
+semideﬁnite programming formulation:
+maximize
+q,H
+⟨qT , x⋆
+T ⟩R
+subject to
+ H
+−q
+−q∗
+1
+
+⪰0
+(2.13)
+|J|−j
+X
+k=1
+Hk,k+j =
+ 1,
+j = 0,
+0,
+j = 1, 2, . . . , |J| −1.
+(2.14)
+H is Hermitian
+(2.15)
+qT c = 0
+Here the three linear matrix inequalities (2.13), (2.14), and (2.15) are equivalent to the dual norm
+constraint ∥q∥∗
+A ≤1. We emphasize that most solvers can directly return a dual optimal solution
+for free when solving the primal problem. So it is not necessary to solve the dual semideﬁnite
+program to obtain a dual optimum.
+The following proposition addresses when ˆΩ= Ω. The proof is given in Appendix B.
+Proposition 2.5 (Exact Frequency Localization). For signal x = Ps
+k=1 cka(fk, 0), denote by D =
+{(q, H)} the set of optimal solutions of the dual semideﬁnite program. If there exists one (q, H) ∈D
+such that the dual polynomial Q(f) = ⟨q, a(f, 0)⟩satisﬁes
+Q(fk) = sign(ck), k = 1, . . . , s
+(2.16)
+|Q(f)| < 1, f̸ = fk, ∀k
+(2.17)
+then the following statements hold:
+1. all (q, H) in the relative interior of D form strictly complementary pairs with the (unique)
+primal optimal solution, i.e.,
+rank
+ H
+−q
+−q∗
+1
+
++ s = |J| + 1;
+(2.18)
+10
+
+2. all (q, H) in the relative interior of D satisfy (2.16) and (2.17);
+3. the dual central path converges to a point in the relative interior point of D.
+Statement 2) of the proposition implies that we could use any optimal solution in the relative
+interior of the dual optimal set to localize frequencies, while statement 3) says any primal-dual path
+following algorithm for solving semideﬁnite programs (e.g., SDPT3) will produce such an interior
+point in the dual optimal set.
+Under the conditions of Proposition 2.5, the relative interior of D excludes dual optimal solutions
+that contain spurious frequencies. A particular pathological case is when all coeﬃcients ck in (1.1)
+are positive and q = e1 (assume J = {0, . . . , n−1} and every index is observed), which is apparently
+a dual optimal solution. The dual polynomial corresponding to e1 is constant 1 and contains every
+frequency in [0, 1]. It is easy to show that the only H such that (H, e1) satisﬁes (2.13), (2.14),
+and (2.15) is H = e1e∗
+1. Hence, (H, e1) is not maximal complementary unless x⋆contains at least
+s = n frequencies, in which case the only n −1 degree trigonometric polynomial satisfying (2.16)
+is constant 1.
+However, this pathological case will not happen if we have a few well-separated frequencies and
+the phases are random1. Indeed, as we will see in Section 4, the way we prove Theorem 2.3 and
+Theorem 1.1 is to explicitly construct a dual polynomial satisfying (2.16) and (2.17). Therefore,
+combining these theorems and Proposition 2.5, we obtain the following corollary:
+Corollary 2.6. Under the conditions of Theorem 1.1 (or Theorem 2.3), with high probability, we
+could identify the frequencies in x⋆from a dual optimal solution in the relative interior of the set
+of all dual optimal solutions.
+2.3
+The Power of Rank Minimization
+The semideﬁnite programming characterization of the atomic norm also allows us to draw con-
+nections to the study of rank minimization [9, 31, 45, 46]. A direct way to exploit sparsity in the
+frequency domain is via minimization of the following “ℓ0-norm” type quantity
+∥x∥A,0 =
+min
+ck≥0, φk∈[0,2π)
+fk∈[0,1]
+n
+s : x =
+s
+X
+k=1
+cka(fk, φk)
+o
+.
+This penalty function chooses the sparsest representation of a vector in terms of complex expo-
+nentials. This combinatorial quantity is closely related to the rank of positive deﬁnite Toeplitz
+matrices as delineated by the following Proposition:
+Proposition 2.7. The quantity ∥x∥A,0 is equal to the optimal value of the following rank mini-
+mization problem:
+minimizeu,t
+rank(Toep(u))
+subject to
+Toep(u)
+x
+x∗
+t
+
+⪰0.
+(2.19)
+Proof. The case for x = 0 is trivial. For x̸ = 0, denote by r⋆the optimal value of (2.19). We ﬁrst
+show r⋆≤∥x∥A,0. Suppose ∥x∥A,0 = s < n. Assume the decomposition x = Ps
+k=1 cka(fk, φk) with
+1We believe the randomness requirement of phases are merely technical.
+11
+
+ck > 0 achieves ∥x∥A,0, and set u = P
+k cka(fk, 0) so that Toep(u) = P
+k cka(fk, φk)a(fk, φk)∗⪰
+0, t = P
+k ck > 0. Then, as we saw in (2.3),
+Toep(u)
+x
+x∗
+t
+
+=
+s
+X
+k=1
+ck
+a(fk, φk)
+1
+ a(fk, φk)
+1
+∗
+⪰0 .
+This implies that r⋆= rank(Toep(u)) ≤s.
+We next show ∥x∥A,0 ≤r⋆. The r⋆= n case is trivial as we could always expand x on a Fourier
+basis, implying ∥x∥A,0 ≤n. We focus on r⋆< n. Suppose u is an optimal solution of (2.19). Then
+if
+Toep(u) = V DV ∗
+is a Vandermonde decomposition, positive semideﬁniteness implies that x is in the range of V which
+means that x can be expressed as a combination of at most r⋆atoms, completing the proof.
+Hence, for this particular set of atoms, atomic norm minimization is a trace relaxation of a
+rank minimization problem. The trace relaxation has been proven to be a powerful relaxation
+for recovering low rank matrices subject to random linear equations [46], values at a speciﬁed set
+of entries [9], Euclidean distance constraints [38], and partial quantum expectation values [32].
+However, our sampling model is far more constrained and none of the existing theory applies to
+our problem.
+Indeed, typical results on trace-norm minimization demand that the number of
+measurements exceeds the rank of the matrix times the number of rows in the matrix. In our case,
+this would amount to O(sn) measurements for an s sparse signal. We prove in the sequel that only
+O(s polylog(n)) samples are required, dramatically reducing the dependence on n.
+We close this section by noting that a positive combination of complex sinusoids with zero
+phases observed at the ﬁrst 2s samples can be recovered via the trace relaxation with no limitation
+on the resolution [22, 28]. Why does the story change when we bring unknown phases into the
+picture? A partial answer is provided by Figure 2. Figure 2 (a) and (b) display the set of atoms
+with no phase (i.e., {a(f, 0)}) and phase either 0 or π respectively. That is, Figure 2 (a) plots the
+set
+A1 =
+
+cos(2πf)
+cos(4πf)
+cos(6πf)
+
+: f ∈[0, 1]
+	
+,
+while (b) displays the set
+A2 =
+
+cos(2πf + φ)
+cos(4πf + φ)
+cos(6πf + φ)
+
+: f ∈[0, 1], φ ∈{0, π}
+	
+.
+Note that A2 is simply A1 ∪−A1.
+Their convex hulls are displayed in Figure 2 (c) and (d)
+respectively. The convex hull of A1 is neighborly in the sense that every edge between every pair of
+atoms is an exposed face and every atom is an extreme point. On the other hand, the only secants
+between atoms in A2 that are faces of the convex hull of A2 are those between atoms with far apart
+phase angles and frequencies. Problems only worsen if we let the phase range in [0, 2π). Thus,
+our intuition from positive moment curves does not extend to the compressed sensing problem of
+sinusoids with complex phases. Nonetheless, we are able to demonstrate that under mild resolution
+assumptions, we can still recover sparse superpositions from very small sampling sets.
+12
+
+−1
+−0.8
+−0.6
+−0.4
+−0.2
+0
+0.2
+0.4
+0.6
+0.8
+1
+−1
+−0.5
+0
+0.5
+1
+−1
+−0.5
+0
+0.5
+1
+−1
+−0.8
+−0.6
+−0.4
+−0.2
+0
+0.2
+0.4
+0.6
+0.8
+1
+−1
+−0.5
+0
+0.5
+1
+−1
+−0.5
+0
+0.5
+1
+(a)
+(b)
+(c)
+(d)
+Figure 2: Moments and their convex hulls. (a) The real moment curve for the ﬁrst three moments.
+(b) The moment curve for the same frequencies, but adding in phase. (c) The convex hull of (a). (d) The
+convex hull of (b). Whereas all of the secants of (a) are extreme in their convex hull (c), many segments
+between atoms of (b) lie inside the convex hull (d).
+13
+
+3
+Prior Art and Inspirations
+Frequency estimation is extensively studied and techniques for estimating sinusoidal frequencies
+from time samples date back to the work of Prony [19]. Many linear prediction algorithms based
+on Prony’s method were proposed to estimate the frequencies from regularly spaced time samples.
+A survey of these methods can be found in [6] and an extensive list of references is given in [51].
+With equispaced samples, these root-ﬁnding based procedures deal with the problem directly on
+the continuous frequency domain, and can recover frequencies provided the number of samples is
+at least twice of the number of frequencies, regardless of how closely these frequencies are located
+[6,19,51,56].
+In recent work [8], Cand`es and Fernandez-Granda studied this problem from the point of view
+of convex relaxations and proposed a total-variation norm minimization formulation that provably
+recovers the spectrum exactly. However, the convex relaxation requires the frequencies to be well
+separated by the inverse of the number of samples. The proof techniques of this prior work form
+the foundation of analysis in the sequel, but many major modiﬁcations are required to extend their
+results to the compressed sensing regime.
+In [5], the authors proposed using atomic norm to denoise a line spectral signal corrupted with
+Gaussian noise, and reformulated the resulting atomic norm minimization problem as a semideﬁnite
+program using the bounded real lemma [25]. Denoising is important to frequency estimation since
+the frequencies in a line spectral signal corrupted with moderate noise can be identiﬁed by linear
+prediction algorithms.
+Since the atomic norm framework in [5] is essentially the same as the
+total-variation norm framework of [8], the same semideﬁnite program can also be applied to total-
+variation norm minimization.
+What is common to all aforementioned approaches, including linear prediction methods, is
+the reliance on observing uniform or equispaced time samples. In sharp contrast, we show that
+nonuniform sampling is not only a viable option, and that the original spectrum can be recovered
+exactly in the continuous domain, but in fact is a means of compressive or compressed sampling.
+Indeed non-uniform sampling allows us to eﬀectively sample the signal at a sub-Nyquist rate. We
+point out that we have only handled the case of undersampling uniform samples as opposed to
+arbitrarily nonuniform samples in this paper. However, this is still of practical importance. For
+array signal processing applications, this corresponds to a reduction in the number of sensors
+required for exact recovery, since each sensor obtains one spatial sample of the ﬁeld. An extensive
+justiﬁcation of the necessity of using randomly located sensor arrays can be found in [15].
+To
+the best of our knowledge, little is known about exact line-spectrum recovery with non-uniform
+sampling using parametric methods, except sporadic work using ℓ2-norm minimization to recover
+the missing samples [23], or based on nonlinear least square data ﬁtting [55].
+Nonparametric
+methods such as Periodogram and Correlogram for nonuniform sampling have gained popularity
+in recent years [50,61], but their resolutions are usually low.
+An interesting feature related to using convex optimization based methods for estimation such
+as [8] is a particular resolvability condition: the separation between frequencies is required to be
+greater than 4
+n where n is the number of measurements. Linear prediction methods do not have
+a resolvability limitation, but it is known that in practice the numerical stability of root ﬁnding
+limits how close the frequencies can be. Theorem 2.3 can be viewed as an extension of the theory
+to nonuniform samples. Note that our approach gives an exact semideﬁnite characterization and is
+hence computationally tractable. We believe our results have potential impact on two related areas:
+extending compressed sensing to continuous dictionaries, and extending line spectral estimation to
+14
+
+nonuniform sampling, thus providing new insight in sub-Nyquist sampling and super-resolution.
+4
+Proof of Theorem 2.3
+The key to show that the optimization (2.5) succeeds is to construct a dual variable satisfying the
+conditions (2.10), (2.10), and (2.12) in Proposition 2.4 to certify the optimality of x⋆. The rest of
+the paper’s proofs focus on the symmetric case J = {−2M, . . . , 2M}.
+As shown in Proposition 2.4, the dual certiﬁcate can be interpreted as a polynomial with
+bounded modulus on the unit circle. The polynomial is constrained to have most of its coeﬃcients
+equal to zero. In the case that all of the entries are observed, the polynomial constructed by Cand`es
+and Fernandez-Granda [8] suﬃces to guarantee optimality. Indeed they write the certiﬁcate poly-
+nomial via a kernel expansion and show that one can explicitly ﬁnd appropriate kernel coeﬃcients
+that certify optimality. We review this construction in Section 4.1. The requirements of the certiﬁ-
+cate polynomial in our case are far more stringent and require a non-trivial modiﬁcation of their
+construction using a random kernel. This random kernel has nonzero coeﬃcients only in the indices
+corresponding to observed locations (the randomness enters because the samples are observed at
+random). The expected value of our random kernel is a multiple of the kernel developed in [8].
+Using a matrix Bernstein inequality, we show that we can ﬁnd suitable coeﬃcients to satisfy
+most of the optimality conditions. We then write our solution in terms of the deterministic kernel
+plus a random perturbation. The remainder of the proof is dedicated to showing that this random
+perturbation is small everywhere. First, we show that the perturbation is small on a ﬁne grid of
+the circle in Section 4.5. To do so, we emulate the proof of Cand`es and Romberg for reconstruction
+from incoherent bases [10]. Finally, in Section 4.6, we complete the proof by estimating the Lip-
+schitz constant of the random polynomial, and, in turn, proving that the perturbations are small
+everywhere. Our proof is based on Bernstein’s polynomial inequality which was used to estimate
+the noise performance of atomic norm denoising by Bhaskar et al [5].
+4.1
+A Detour: When All Entries are Observed
+Before we consider the random observation model, we explain how to construct a dual polynomial
+when all entries in J = {−2M, . . . , 2M} are observed, i.e., T = J. The kernel-based construction
+method, which was ﬁrst proposed in [8], inspires our random kernel based construction in Section
+4.3. The results presented in this subsection are also necessary for our later proofs.
+When all entries are observed, the optimization problem (2.5) has a trivial solution, but we
+can still apply duality to certify the optimality of a particular decomposition.
+Indeed, a dual
+polynomial satisfying the conditions given in Proposition 2.4 with T c = ∅means that ∥x⋆∥A =
+P
+k |ck|, namely, the decomposition x⋆= P
+k cka (fk, 0) achieves the atomic norm. To construct
+such a dual polynomial, Cand`es and Fernandez-Granda suggested considering a polynomial ¯Q of
+the following form [8] :
+¯Q (f) =
+s
+X
+k=1
+αk ¯KM (f −fk) +
+s
+X
+k=1
+βk ¯K′
+M (f −fk) .
+(4.1)
+15
+
+Here ¯KM (f) is the squared Fej´er kernel
+¯KM(f) =
+ sin(πMf)
+M sin(πf)
+4
+= 1
+M
+2M
+X
+j=−2M
+gM (j) e−i2πfj
+(4.2)
+with gM (j) =
+1
+M
+Pmin(j+M,M)
+k=max(j−M,−M)
+ 1 −
+ k
+M
+ 
+1 −
+ j
+M −k
+M
+
+
+the discrete convolution of two tri-
+angular functions. The squared Fej´er kernel is a good candidate kernel because it attains the value
+of 1 at its peak, and rapidly decays to zero. Provided a separation condition is satisﬁed by the
+original signal, a suitable set of coeﬃcients α and β can always be found.
+We use ¯K′
+M, ¯K′′
+M, ¯K′′′
+M to denote the ﬁrst three derivatives of ¯KM. We list some useful facts
+about the kernel ¯KM(f):
+¯KM (0) = 1
+¯K′
+M (0) = ¯K′′′
+M (0) = 0
+¯K′′
+M (0) = −4π2  M2 −1
+
+3
+.
+For the weighting function gM (·), we have
+∥gM∥∞= sup
+j
+|gM (j)| ≤1.
+(4.3)
+We require that the dual polynomial (4.1) satisﬁes
+¯Q (fj) =
+s
+X
+k=1
+αk ¯KM (fj −fk) +
+s
+X
+k=1
+βk ¯K′
+M (fj −fk) = sign (cj) ,
+(4.4)
+¯Q′ (fj) =
+s
+X
+k=1
+αk ¯K′
+M (fj −fk) +
+s
+X
+k=1
+βk ¯K′′
+M (fj −fk) = 0,
+(4.5)
+for all fj ∈Ω.
+The constraint (4.4) guarantees that Q (f) satisﬁes the interpolation condition
+(2.10), and the constraint (4.5) is used to ensure that |Q (f) | achieves its maximum at frequencies
+in Ω. Note that the condition (2.12) is absent in this section’s setting since the set T c is empty.
+We rewrite these linear constraints in the matrix vector form:
+
+
+¯D0
+1
+q
+| ¯
+K′′
+M(0)|
+¯D1
+−
+1
+q
+| ¯
+K′′
+M(0)|
+¯D1
+−
+1
+| ¯
+K′′
+M(0)|
+¯D2
+
+
+"
+α
+q ¯K′′
+M (0)
+β
+#
+=
+ u
+0
+
+where
+ ¯D0
+
+jk = ¯KM (fj −fk),
+ ¯D1
+
+jk = ¯K′
+M (fj −fk),
+ ¯D2
+
+jk = ¯K′′
+M (fj −fk) and u ∈Cs is the
+vector with uj = sign (cj). We have rescaled the system of linear equations such that the system
+matrix is symmetric, positive semideﬁnite, and very close to identity. Positive deﬁniteness follows
+because the system matrix is a positive combination of outer products. To get an idea of why
+16
+
+the system matrix is near the identity, observe that ¯D0 is symmetric with diagonals one, ¯D1 is
+antisymmetric, and ¯D2 is symmetric with negative diagonals ¯K′′
+M (0). We deﬁne
+¯D =
+
+
+¯D0
+1
+q
+| ¯
+K′′
+M(0)|
+¯D1
+−
+1
+q
+| ¯
+K′′
+M(0)|
+¯D1
+−
+1
+| ¯
+K′′
+M(0)|
+¯D2
+
+=
+
+
+¯D0
+1
+q
+| ¯
+K′′
+M(0)|
+¯D1
+1
+q
+| ¯
+K′′
+M(0)|
+¯D∗
+1
+−
+1
+| ¯
+K′′
+M[0)|
+¯D2
+
+
+(4.6)
+and summarize properties of the system matrix ¯D and its submatrices in the following proposition,
+whose proof is given in Appendix C.
+Proposition 4.1. Suppose ∆f ≥∆min =
+1
+M . Then ¯D is invertible and
+∥I −¯D∥≤0.3623,
+(4.7)
+∥¯D∥≤1.3623,
+(4.8)
+∥¯D−1∥≤1.568.
+(4.9)
+Here ∥· ∥denotes the matrix operator norm.
+For notational simplicity, partition the inverse of ¯D as
+¯D−1 =
+ ¯L
+¯R
+
+where ¯L and ¯R are both 2s × s. Then, solving for α and
+q ¯K′′
+M (0)
+β yields
+"
+α
+q ¯K′′
+M (0)
+β
+#
+= ¯D−1
+ u
+0
+
+= ¯Lu.
+(4.10)
+Then the ℓth derivative of the dual polynomial (after normalization) is
+1
+q
+| ¯K′′
+M(0)|
+ℓ¯Q(ℓ) (f) =
+s
+X
+k=1
+αk
+1
+q
+| ¯K′′
+M(0)|
+ℓ¯K(ℓ)
+M (f −fk)
++
+s
+X
+k=1
+q ¯K′′
+M (0)
+βk
+1
+q ¯K′′
+M (0)
+
+ℓ+1 ¯K(ℓ+1)
+M
+(f −fk)
+= ¯vℓ(f)∗¯Lu =
+
+¯Lu, ¯vℓ(f)
+
+.
+(4.11)
+where we have deﬁned
+¯vℓ(f) =
+1
+q ¯K′′
+M (0)
+
+ℓ
+
+
+¯K(ℓ)
+M (f −f1)∗
+...
+¯K(ℓ)
+M (f −fs)∗
+1
+q
+| ¯
+K′′
+M(0)|
+¯K(ℓ+1)
+M
+(f −f1)∗
+...
+1
+q
+| ¯
+K′′
+M(0)|
+¯K(ℓ+1)
+M
+(f −fs)∗
+
+
+(4.12)
+17
+
+with ¯K(ℓ)
+M the ℓth derivative of ¯KM.
+To certify that the polynomial with the coeﬃcients (4.10) are bounded uniformly on the unit
+circle, Cand`es and Fernandez-Granda divide the domain [0, 1] into regions near to and far from the
+frequencies of x⋆. Deﬁne
+Ωnear =
+s[
+k=1
+[fk −fb,1, fk + fb,1]
+Ωfar = [0, 1] /Ωnear
+with fb,1 = 8.245×10−2 1
+M . On Ωfar, |Q(f)| was analyzed directly, while on Ωnear |Q(f)| is bounded
+by showing that its second order derivative is negative. The following results are derived in the
+proofs of Lemmas 2.3 and 2.4 in [8]:
+Proposition 4.2. Assume ∆f ≥∆min =
+1
+M . Then we have
+ ¯Q (f)
+ < 0.99992, for f ∈Ωfar
+(4.13)
+and for f ∈Ωnear
+¯QR (f) ≥0.9182
+(4.14)
+ ¯QI (f)
+ ≤3.61110−2
+(4.15)
+1
+ ¯K′′
+M (0)
+ ¯Q′′
+R (f) ≤−0.314
+(4.16)
+
+1
+ ¯K′′
+M (0)
+ ¯Q′′
+I (f)
+ ≤0.5755
+(4.17)
+
+1
+q ¯K′′
+M (0)
+
+¯Q′ (f)
+
+≤0.4346.
+(4.18)
+and as a consequence,
+1
+ ¯K′′
+M (0)
+
+
+¯QR (f) ¯Q′′
+R (f) +
+ ¯Q′ (f)
+2 +
+ ¯QI (f)
+  ¯Q′′
+I (f)
+
+
+≤−7.86510−2.
+4.2
+Bernoulli Observation Model
+The uniform sampling model is diﬃcult to analyze directly. However, the same argument used
+in [11] shows that the probability of recovery failure under the uniform model is at most twice of
+that under a Bernoulli model. Here by “recovery failure”, we refer to that (2.5) would not recover
+the original signal x⋆. Therefore, without loss of generality, we focus on the following Bernoulli
+observation model in our proof.
+We observe entries in J independently with probability p. Let δj = 1 or 0 indicate whether we
+observe the jth entry. Then {δj}j∈J are i.i.d. Bernoulli random variables such that
+P (δj = 1) = p.
+On average in this model, we will observe p|J| entries. For J = {−2M, . . . , 2M}, we use
+p = m
+M < 1.
+18
+
+4.3
+Random Polynomial Kernels
+We now turn to designing a dual certiﬁcate for the Bernoulli observation model. As for the case
+that all entries are observed, the challenge is to construct a dual polynomial satisfying
+Q (fk) = sign (ck) , ∀fk ∈Ω
+|Q (f)| < 1, ∀f /∈Ω,
+as well as an additional constraint
+qj = 0, ∀j ∈T c.
+(4.19)
+The main diﬀerence in our random setting is that the demands on the polynomial Q(f) are much
+stricter as manifested by (4.19), namely, we require that most of the coeﬃcients of the polynomial
+are equal to zero. Our approach mimics the construction in the deterministic case to write
+Q (f) =
+s
+X
+k=1
+αkKM (f −fk) +
+s
+X
+k=1
+βkK′
+M (f −fk) ,
+(4.20)
+but using a random kernel KM(·), which has nonzero coeﬃcients only on the random subset T and
+satisﬁes EKM = p ¯KM. We will then prove that KM concentrates tightly around p ¯KM.
+Our random kernel is simply the expansion (4.2), but with each term multiplied by a Bernoulli
+random variable corresponding to the observation of a component:
+KM (f) := 1
+M
+X
+j∈T
+gM (j) e−i2πfj
+= 1
+M
+2M
+X
+j=−2M
+δjgM (j) e−i2πfj.
+As before
+gM (j) = 1
+M
+min(j+M,M)
+X
+k=max(j−M,−M)
+
+1 −
+
+k
+M
+
+ 
+1 −
+
+j
+M −k
+M
+
+
+is the convolution of two discrete triangular functions. The ℓth derivative of KM(f) is
+K(ℓ)
+M (f) = 1
+M
+2M
+X
+j=−2M
+(−i2πj)ℓgM (j) δje−i2πfj.
+Both KM (f −fk) and K′
+M (f −fk) are random trigonometric polynomials of degree at most
+2M. More importantly, they contain monomial e−i2πfj only if δj = 1, or equivalently, j ∈T. Hence
+Q (f) in (4.20) is of the form (2.9) and satisﬁes qj = 0, j ∈T c. It is easy to calculate the expected
+values of KM(f) and its ℓth derivatives:
+EK(ℓ)
+M (f) = 1
+M
+2M
+X
+j=−2M
+(−i2πj)ℓgM (j) E{δj}e−i2πfj
+= p 1
+M
+2M
+X
+j=−2M
+(−i2πj)ℓgM (j) e−i2πfj
+= p ¯K(ℓ)
+M (f) .
+(4.21)
+19
+
+In Figure 3, we plot p−1|KM(f)| and p−1|K′
+M(f)| laid over | ¯KM(f)| and | ¯K′
+M(f)|, respectively.
+We see that far away from the peak, the random coeﬃcients induce bounded oscillations to the
+kernel. Near 0, however, the random kernel remains sharply peaked.
+−0.05
+0
+0.05
+0
+0.4
+0.8
+f
+ 
+ 
+p−1|KM(f)|
+| ¯KM(f)|
+(a) p−1|KM(f)| and | ¯KM(f)|
+−0.05
+0
+0.05
+0
+0.5
+1
+1.5
+2
+2.5
+f
+ 
+ 
+p−1|K (1)
+M (f)|/M
+| ¯K (1)
+M (f)|/M
+(b) p−1|K′
+M(f)|/M and | ¯K′
+M(f)|/M
+Figure 3: Plots of the random kernel
+In order to satisfy the conditions (2.10) and (2.11), we require that the polynomial Q (f) in
+(4.20) satisﬁes
+Q (fj) =
+s
+X
+k=1
+αkKM (fj −fk) +
+s
+X
+k=1
+βkK′
+M (fj −fk) = sign (cj) ,
+(4.22)
+Q′ (fj) =
+s
+X
+k=1
+αkK′
+M (fj −fk) +
+s
+X
+k=1
+βkK′′
+M (fj −fk) = 0
+(4.23)
+for all fj ∈Ω. As for ¯Q(f), the constraint (4.22) guarantees that Q (f) satisﬁes the interpolation
+condition (2.10), and the constraint (4.23) helps ensure that |Q (f) | achieves its maximum at
+frequencies in Ω.
+We now have 2s linear constraints (4.22), (4.23) on 2s unknown variables α, β. The remainder
+of the proof consists of three steps:
+1. Show that the linear system (4.22), (4.23) is invertible with high probability using matrix
+Bernstein inequality [59];
+2. Show
+Q(ℓ)(f) −¯Q(ℓ)(f)
+, the random perturbations introduced by the random observation
+process, are small on a set of discrete points with high probability, implying the random dual
+polynomial satisﬁes the constraints in Proposition 2.4 on the grid; This step is proved using
+a modiﬁcation of the idea in [10].
+3. Extend the result to [0, 1] using Bernstein’s polynomial inequality [49] and eventually show
+|Q(f)| < 1 for f /∈Ω.
+20
+
+4.4
+Invertibility
+In this section we show the linear system (4.22) and (4.23) is invertible. Rewrite the linear system
+of equations (4.22) and (4.23) into the following matrix-vector form:
+
+
+D0
+1
+q
+| ¯
+K′′
+M(0)|D1
+−
+1
+q
+| ¯
+K′′
+M(0)|D1
+−
+1
+| ¯
+K′′
+M(0)|D2
+
+
+"
+α
+q ¯K′′
+M (0)
+β
+#
+=
+ u
+0
+
+,
+(4.24)
+where [Dℓ]jk = K(ℓ)
+M (fj −fk), and u = sign(c). Note that we still rescale the derivatives using the
+deterministic quantity ¯K′′
+M (0) rather than the random variable K′′
+M (0).
+The expectation computation (4.21) implies that E [Dℓ]jk = EK(ℓ)
+M (fj −fk) = p
+ ¯Dℓ
+
+jk , where
+ ¯Dℓ
+
+jk = ¯K(ℓ)
+M (fj −fk). Deﬁne
+D =
+
+
+D0
+1
+q
+| ¯
+K′′
+M(0)|D1
+−
+1
+q
+| ¯
+K′′
+M(0)|D1
+−
+1
+| ¯
+K′′
+M(0)|D2
+
+
+=
+
+
+D0
+1
+q
+| ¯
+K′′
+M(0)|D1
+1
+q
+| ¯
+K′′
+M(0)|D∗
+1
+−
+1
+| ¯
+K′′
+M(0)|D2
+
+
+= 1
+M
+2M
+X
+j=−2M
+gM (j) δje (j) e (j)∗
+where
+e (j) =
+
+
+e−i2πf1j
+...
+e−i2πfsj
+i2πj
+q
+| ¯
+K′′
+M(0)|e−i2πf1j
+...
+i2πj
+q
+| ¯
+K′′
+M(0)|e−i2πfsj
+
+
+.
+(4.25)
+Then we have
+ED = 1
+M
+2M
+X
+j=−2M
+gM (j) E{δj}e (j) e (j)∗
+= p 1
+M
+2M
+X
+j=−2M
+gM (j) e (j) e (j)∗
+= p ¯D,
+21
+
+with ¯D deﬁned in (4.6). As a consequence, we have
+D −ED = D −p ¯D
+=
+2M
+X
+j=−2M
+1
+M gM (j) (δj −p) e (j) e (j)∗
+=
+2M
+X
+j=−2M
+Xj.
+with Xj =
+1
+M gM (j) (δj −p) e (j) e (j)∗a zero mean random self-adjoint matrix. We will apply the
+noncommutative Bernstein inequality to show that D concentrates about its mean p ¯D with high
+probability.
+Lemma 4.3 (Noncommutative Bernstein Inequality, [59, Theorem 1.4]). Let {Xj} be a ﬁnite
+sequence of independent, random self-adjoint matrices of dimension d. Suppose that
+EXj = 0
+∥Xj∥≤R, almost surely
+σ2 =
+
+X
+j
+E
+ X2
+j
+ .
+Then for all t ≥0,
+P
+n
+X
+j
+Xj
+ ≥t
+o
+≤d exp
+
+−t2/2
+σ2 + Rt/3
+
+.
+For τ > 0, deﬁne the event
+E1,τ =
+p−1D −¯D
+ ≤τ
+	
+.
+(4.26)
+The following lemma, proved in Appendix D, shows that E1,τ has a high probability if m is large
+enough.
+Lemma 4.4. If τ ∈(0, 0.6377), then we have P (E1,τ) ≥1 −δ provided
+m ≥50
+τ 2 s log 2s
+δ .
+Note that an immediate consequence of Lemma 4.4 is that D is invertible on E1,τ. Additionally,
+Lemma 4.4 allows us to control the norms of the submatrices of D−1. For that purpose, we partition
+D−1 as
+D−1 =
+
+L
+R
+
+with L and R both 2s × s and obtain:
+Corollary 4.5. On the event E1,τ with τ ∈
+ 0, 1
+4
+
+, we have
+L −p−1 ¯L
+ ≤2
+ ¯D−12 p−1τ
+∥L∥≤2
+ ¯D−1 p−1.
+22
+
+The proof of this corollary uses elementary matrix analysis and can be found in Appendix E.
+Since on the event E1,τ with τ < 1/4 the matrix D =
+ D0
+D1
+D1
+D2
+
+is invertible, we solve for α and
+q ¯K′′
+M (0)
+β from (4.24):
+"
+α
+q ¯K′′
+M (0)
+β
+#
+= D−1
+ u
+0
+
+= Lu.
+(4.27)
+In the next section, we will plug (4.27) back into (4.20), and analyze the eﬀect of random pertur-
+bations on the polynomial Q(f).
+4.5
+Random Perturbations
+In this section, we show that the dual polynomial Q (f) concentrates around ¯Q(f) on a discrete set
+Ωgrid.
+We introduce a random analog of ¯vℓ, deﬁned by (4.12), as
+vℓ(f) =
+1
+q ¯K′′
+M (0)
+
+ℓ
+
+
+K(ℓ)
+M (f −f1)∗
+...
+K(ℓ)
+M (f −fs)∗
+1
+q
+| ¯
+K′′
+M(0)|K(ℓ+1)
+M
+(f −f1)∗
+...
+1
+q
+| ¯
+K′′
+M(0)|K(ℓ+1)
+M
+(f −fs)∗
+
+
+= 1
+M
+2M
+X
+j=−2M
+ 
+i2πj
+q ¯K′′
+M (0)
+
+!ℓ
+gM (j) δjei2πfje(j).
+(4.28)
+with K(ℓ)
+M the ℓth derivative of KM, and e(j) deﬁned in (4.25). The expectation of vℓis equal to p
+times its deterministic counterpart deﬁned by (4.12):
+Evℓ(f) = p¯vℓ(f) , ∀f ∈[0, 1]
+Then, in a similar fashion to (4.11), we rewrite
+1
+q
+| ¯K′′
+M(0)|
+ℓQ(ℓ) (f) =
+s
+X
+k=1
+αk
+1
+q
+| ¯K′′
+M(0)|
+ℓK(ℓ)
+M (f −fk)
++
+s
+X
+k=1
+q ¯K′′
+M (0)
+βk
+1
+q
+| ¯K′′
+M(0)|
+ℓ+1 K(ℓ+1)
+M
+(f −fk)
+= vℓ(f)∗Lu = ⟨Lu, vℓ(f)⟩= ⟨u, L∗vℓ(f)⟩.
+23
+
+We decompose L∗vℓ(f) into three parts:
+L∗vℓ(f) = [(L −p−1 ¯L) + p−1 ¯L]∗[(vℓ(f) −p¯vℓ(f)) + p¯vℓ(f)]
+= ¯L∗¯vℓ(f) + L∗(vℓ(f) −p¯vℓ(f)) + (L −p−1 ¯L)∗p¯vℓ(f),
+which induces a decomposition on
+1
+√
+| ¯
+K′′
+M(0)|
+ℓQ(ℓ)(f)
+1
+q
+| ¯K′′
+M(0)|
+ℓQ(ℓ) (f) = ⟨u, L∗vℓ(f)⟩
+=
+
+u, ¯L∗¯vℓ(f)
+
++ ⟨u, L∗(vℓ(f) −p¯vℓ(f))⟩+
+
+u, (L −p−1 ¯L)∗p¯vℓ(f)
+
+=
+1
+q
+| ¯K′′
+M(0)|ℓ
+¯Q(ℓ) (f) + Iℓ
+1 (f) + Iℓ
+2 (f) .
+(4.29)
+Here
+1
+√
+| ¯
+K′′
+M(0)|ℓ¯Q(ℓ)(f) =
+
+u, ¯L∗¯vℓ(f)
+
+=
+
+¯Lu, ¯vℓ(f)
+
+as in (4.11) and we have deﬁned
+Iℓ
+1(f) = ⟨u, L∗(vℓ(f) −p¯vℓ(f))⟩
+and
+Iℓ
+2(f) =
+
+u, (L −p−1 ¯L)∗p¯vℓ(f)
+
+.
+The goal of the remainder of this section is to show, in Lemma 4.8 and 4.9, that Iℓ
+1 (f) and
+Iℓ
+2 (f) are small on a set of grid points Ωgrid with high probability.
+The proof of Lemma 4.8, which shows Iℓ
+1(f) is small on Ωgrid, essentially follows that of Cand`es
+and Romberg [10]. We include the proof details here for completeness, but very little changes in
+the argument. Since Iℓ
+1(f) = ⟨u, L∗(vℓ(f) −p¯vℓ(f))⟩is a weighted sum of independent random
+variables following a symmetric distribution on the complex unit circle, for ﬁxed f ∈[0, 1], we
+apply Hoeﬀding’s inequality to control its value. This in turn requires an estimate of ∥L∗(vℓ(f) −
+p¯vℓ(f))∥2. In Lemma 4.6, we ﬁrst use concentration of measure (Lemma F.1) to establish that
+∥vℓ(f) −p¯vℓ(f)∥2 is small with high probability. In Lemma 4.7, we then combine Lemma 4.6 and
+Lemma 4.4 to show ∥L∗(vℓ(f) −p¯vℓ(f))∥2 is small. The extension from a ﬁxed f to a ﬁnite set
+Ωgrid relies on the union bound.
+We start with bounding ∥vℓ(f)−p¯vℓ(f)∥2 in the following lemma. The proof given in Appendix
+F is based on an inequality of Talagrand.
+Lemma 4.6. Fix f ∈[0, 1]. Let
+¯σ2
+ℓ:= 24ℓ+1 m
+M2 max
+
+1, 24 s
+√m
+
+and ﬁx a positive number
+a ≤
+(√
+2m1/4
+if 24
+s
+√m ≥1,
+√
+2
+4
+p m
+s
+otherwise.
+24
+
+Then we have
+E ∥vℓ(f) −p¯vℓ(f)∥2 ≤22ℓ+3
+√ms
+M
+P
+
+∥vℓ(f) −p¯vℓ(f)∥2 > 22ℓ+3
+√ms
+M
++ a¯σℓ, ℓ= 0, 1, 2, 3
+
+≤64e−γa2
+for some γ > 0.
+The following lemma combines Lemma 4.6 and Corollary 4.5 to show ∥L∗(vℓ(f) −p¯vℓ(f)∥2 is
+small with high probability.
+Lemma 4.7. Let τ ∈(0, 1/4]. Consider a ﬁnite set Ωgrid = {fd}. With the same notation as last
+lemma, we have
+P
+"
+sup
+fd∈Ωgrid
+∥L∗(vℓ(fd) −p¯vℓ(fd))∥2 ≥4
+
+22ℓ+3
+r s
+m + M
+m a¯σℓ
+
+, ℓ= 0, 1, 2, 3
+#
+≤64 |Ωgrid| e−γa2 + P
+ Ec
+1,τ
+
+.
+Proof of Lemma 4.7. Conditioned on the event
+\
+ℓ,fd∈Ωgrid
+
+∥vℓ(fd) −p¯vℓ(fd)∥2 ≤22ℓ+3
+√ms
+M
++ a¯σℓ
+ \
+E1,τ
+we have
+∥L∗(vℓ(fd) −p¯vℓ(fd))∥2 ≤∥L∥
+
+22ℓ+3
+√ms
+M
++ a¯σℓ
+
+≤2
+ ¯D−1 p−1
+
+22ℓ+3
+√ms
+M
++ a¯σℓ
+
+≤4
+
+22ℓ+3
+r s
+m + M
+m a¯σℓ
+
+,
+where we have used Proposition 4.1 and Corollary 4.5, and plugged in p = m/M. The claim of the
+lemma then follows from the union bound.
+Lemma 4.7 together with Hoeﬀding’s inequality allow us to control the size of supfd∈Ωgrid Iℓ
+1 (fd):
+Lemma 4.8. There exists a numerical constant C such that if
+m ≥C max
+ 1
+ε2 max
+
+s log |Ωgrid|
+δ
+, log2 |Ωgrid|
+δ
+
+, s log s
+δ
+
+,
+then we have
+P
+n
+sup
+fd∈Ωgrid
+Iℓ
+1 (fd)
+ ≤ε, ℓ= 0, 1, 2, 3
+o
+≥1 −12δ
+25
+
+Next lemma controls Iℓ
+2(f). Its proof is similar to the proof of Lemma 4.8.
+Lemma 4.9. There exists a numerical constant C such that if
+m ≥C 1
+ε2 s log s
+δ log |Ωgrid|
+δ
+,
+then we have
+P
+
+sup
+fd∈Ωgrid
+Iℓ
+2 (fd)
+ < ε, ℓ= 0, 1, 2, 3
+
+≤1 −8δ
+Both Lemmas 4.8 and 4.9 are proven in the Appendix.
+Denote
+E2 =
+(
+sup
+fd∈Ωgrid
+
+1
+q
+| ¯K′′
+M(0)|ℓ
+Q(ℓ)(fd) −
+1
+q
+| ¯K′′
+M(0)|ℓ
+¯Q(ℓ)(fd)
+ ≤ε
+3, ℓ= 0, 1, 2, 3
+)
+.
+(4.30)
+Combining the decomposition (4.29), Lemma 4.8, and Lemma 4.9 with suitable redeﬁnition of ε
+and δ immediately yields the following proposition
+Proposition 4.10. Suppose Ωgrid ⊂[0, 1] is a ﬁnite set of points, ε > 0 controls the maximal
+deviation of the random polynomial and its derivatives from their expectations as in (4.30), and
+δ ∈(0, 1) is small constant to control probability. Then there exists constant C such that
+m ≥C 1
+ε2 max
+
+log2 |Ωgrid|
+δ
+, s log s
+δ log |Ωgrid|
+δ
+
+,
+(4.31)
+is suﬃcient to guarantee
+P(E2) ≥1 −δ.
+4.6
+Extension to Continuous Domain
+We have proved that
+1
+√
+| ¯
+K′′
+M(0)|ℓQ(ℓ)(f) and
+1
+√
+| ¯
+K′′
+M(0)|ℓ¯Q(ℓ)(f) are not far on a set of grid points.
+This section aims extending this statement to everywhere in [0, 1], and show |Q(f)| < 1 for f /∈Ω
+eventually. The key is the following Bernstein’s polynomial inequality:
+Lemma 4.11 (Bernstein’s polynomial inequality, [49]). Let pN be any polynomial of degree N with
+complex coeﬃcients. Then
+sup
+|z|≤1
+p′ (z)
+ ≤N sup
+|z|≤1
+|p (z)| .
+Our ﬁrst proposition veriﬁes that our random dual polynomial is close to the deterministic dual
+polynomial on all of [0, 1]
+Proposition 4.12. Suppose ∆f ≥∆min =
+1
+M and
+m ≥C max
+ 1
+ε2 log2 M
+δε , 1
+ε2 s log s
+δ log M
+δε
+
+.
+(4.32)
+26
+
+Then with probability 1 −δ, we have
+
+1
+q
+| ¯K′′
+M(0)|ℓ
+Q(ℓ)(f) −
+1
+q
+| ¯K′′
+M(0)|ℓ
+¯Q(ℓ)(f)
+
+≤ε, ∀f ∈[0, 1], ℓ= 0, 1, 2, 3.
+(4.33)
+Proof. It suﬃces to prove (4.33) on E1,1/4 and E2 and then modify the lower bound (4.31). We ﬁrst
+give a very rough estimate of supf
+1
+√
+| ¯
+K′′
+M(0)|
+ℓ
+Q(ℓ) (f)
+ on the set E1,1/4:
+1
+q
+| ¯K′′
+M(0)|
+ℓ
+Q(ℓ) (f)
+ = |⟨u, L∗vℓ(f)⟩|
+≤∥u∥2∥L∥∥vℓ(f)∥2
+≤Cp−1s
+≤CM2
+where we have used ∥u∥2 ≤√s and ∥vℓ(f)∥2 ≤C√s. To see the latter, we note
+∥vℓ(f)∥2 ≤
+2M
+X
+j=−2M
+
+1
+M
+ 
+i2πj
+q ¯K′′
+M (0)
+
+!ℓ
+gM (j) e(j)
+
+2
+≤(4M + 1) 1
+M 4ℓ+1s1/2,
+where we have used
+∥gM∥∞≤1,
+
+2πj
+q
+¯K′′
+M(0)
+ ≤4 when M ≥2,
+∥e(j)∥2
+2 ≤s
+ 
+1 + max
+|j|≤2M
+(2πj)2
+K′′
+M (0)
+
+!
+≤14s when M ≥4.
+Viewing
+1
+√
+| ¯
+K′′
+M(0)|Q(ℓ) (·) as a trigonometric polynomial in z = e−i2πf of degree 2M, according to
+Bernstein’s polynomial inequality, we get
+
+1
+q
+| ¯K′′
+M(0)|
+Q(ℓ) (fa) −
+1
+q
+| ¯K′′
+M(0)|
+Q(ℓ) (fb)
+
+≤
+e−i2πfa −e−i2πfb
+ sup
+z
+
+d
+1
+√
+| ¯
+K′′
+M(0)|Q(ℓ) (z)
+dz
+
+≤4π |fa −fb| 2M sup
+f
+
+1
+q
+| ¯K′′
+M(0)|
+Q(ℓ) (f)
+
+≤CM3 |fa −fb| .
+We select Ωgrid ⊂[0, 1] such that for any f ∈[0, 1], there exists a point fd ∈Ωgrid satisfying
+|f −fd| ≤
+ε
+3CM3 . The size of Ωgrid is less than 3CM3/ε.
+27
+
+With this choice of Ωgrid, on the set E1,1/4
+T E2 we have
+
+1
+q
+| ¯K′′
+M(0)|ℓ
+Q(ℓ)(f) −
+1
+q
+| ¯K′′
+M(0)|ℓ
+¯Q(ℓ)(f)
+
+≤
+
+1
+q
+| ¯K′′
+M(0)|ℓ
+Q(ℓ)(f) −
+1
+q
+| ¯K′′
+M(0)|ℓ
+Q(ℓ)(fd)
+
++
+
+1
+q
+| ¯K′′
+M(0)|ℓ
+Q(ℓ)(fd) −
+1
+q
+| ¯K′′
+M(0)|ℓ
+¯Q(ℓ)(fd)
+
++
+
+1
+q
+| ¯K′′
+M(0)|ℓ
+¯Q(ℓ)(fd) −
+1
+q
+| ¯K′′
+M(0)|ℓ
+¯Q(ℓ)(f)
+
+≤CM3|f −fd| + ε
+3 + CM3|f −fd|
+≤ε, ∀f ∈[0, 1].
+Finally, we modify the condition (4.31) according to our choice of Ωgrid:
+m ≥C max
+ 1
+ε2 log2 M
+δε , 1
+ε2 s log s
+δ log M
+δε
+
+An immediate consequence of Proposition 4.12 and the bound (4.13) of Proposition 4.2 is the
+following estimate on Q(f) for f ∈Ωfar = [0, 1]/ S
+k [fk −fb,1, fk + fb,1]:
+Lemma 4.13. Suppose ∆f ≥∆min =
+1
+M and
+m ≥C max
+
+log2 M
+δ , s log s
+δ log M
+δ
+
+.
+Then with probability 1 −δ, we have
+|Q(f)| < 1, ∀f ∈Ωfar.
+(4.34)
+Proof. It suﬃces to choose ε = 10−5. The rest follows from (4.33), triangle inequality, and modiﬁ-
+cation of the constant in (4.32).
+A similar statement holds for f ∈Ωnear = S
+k [fk −fb,1, fk + fb,1].
+Lemma 4.14. Suppose ∆f ≥∆min =
+1
+M and
+m ≥C max
+
+log2
+M
+δ
+
+, s log s
+δ log M
+δ
+
+.
+Then we have |Q (f)| < 1 for all f ∈Ωnear.
+28
+
+Proof. Deﬁne QR(f) = Re(Q(f)) and QI(f) = Im(Q(f)). Since |Q (fk)| = 1 and Q′ (fk) = 0 with
+the latter implying
+d|Q|
+df (f) = Q′
+R(f)QR(f) + Q′
+I(f)QI(f)
+|Q(f)|
+= 0
+we only need to show d2|Q(f)|
+df2
+< 0 on Ωnear. Take the second order derivative of |Q (f)|:
+d2 |Q|
+df2
+(f) = −(QR (f) Q′
+R (f) + QI (f) Q′
+I (f))2
+|Q (f)|3
++ |Q′ (f)|2 + QR (f) Q′′
+R (f) + QI (f) Q′′
+I (f)
+|Q (f)|
+.
+So it suﬃces to show that for f ∈Ωnear
+QR (f) Q′′
+R (f) +
+Q′ (f)
+2 + |QI (f)|
+Q′′
+I (f)
+ < 0.
+As a consequence of (4.33) in Proposition 4.12, triangle inequality, and (4.14)-(4.18) of Propo-
+sition 4.2, we have on the set E2 for any f ∈Ωnear
+QR (f) ≥¯QR (f) −ε ≥0.9182 −ε
+|QI (f)| ≤
+ ¯QI (f)
+ + ε ≤3.611 × 10−2 + ε
+1
+ ¯K′′
+M (0)
+Q′′
+R (f) ≤
+1
+ ¯K′′
+M (0)
+ ¯Q′′
+R (f) + ε ≤−0.314 + ε
+
+1
+ ¯K′′
+M (0)
+Q′′
+I (f)
+ ≤
+
+1
+ ¯K′′
+M (0)
+ ¯Q′′
+I (f)
+ + ε ≤0.5755 + ε
+
+1
+q ¯K′′
+M (0)
+
+Q′
+I (f)
+ ≤
+
+1
+q ¯K′′
+M (0)
+
+¯Q′
+I (f)
+ + ε ≤0.4346 + ε.
+implying
+1
+ ¯K′′
+M (0)
+
+
+QR (f) Q′′
+R (f) +
+Q′ (f)
+2 + |QI (f)|
+Q′′
+I (f)
+
+
+≤−7.86510−2 + 2.714ε + ε2 < 0
+when ε assumes a suﬃciently small numerical value. With this choice of ε, the condition of m
+becomes
+m ≥C max
+
+log2 M
+δ , s log s
+δ log M
+δ
+
+.
+Therefore, |Q(f)| < 1 on Ωnear except for f ∈Ω. We actually proved a stronger result that with
+probability at least 1 −δ
+|Q (f) | ≤1 −0.07
+ ¯K′′
+M (0)
+ (f −fk)2 ≤1, ∀f ∈[fk −fb,1, fk + fb,1] .
+(4.35)
+Proof of Theorem 2.3. Finally, if ∆min ≥
+1
+M and
+m ≥C max
+
+log2 M
+δ , s log s
+δ log M
+δ
+
+,
+combining Lemma 4.13 and 4.14, we have proved the claim of Theorem 2.3.
+29
+
+−0.5
+0
+0.5
+1
+−0.5
+0
+0.5
+0
+0.5
+1
+SDP
+−0.5
+0
+0.5
+1
+−0.5
+0
+0.5
+0
+0.5
+1
+BP:4x
+−0.5
+0
+0.5
+−0.5
+0
+0.5
+0
+0.5
+1
+BP:64x
+Figure 4: Frequency Estimation: Blue represents the true frequencies, while red represents the estimated
+ones.
+5
+Numerical Experiments
+We conducted a series of numerical experiments to test the performance of (2.5) under various
+parameter settings (see Table 1). We use J = {0, . . . , n −1} for all numerical experiments.
+We compared the performance of two algorithms: the semideﬁnite program (2.6) and the basis
+pursuit obtained through discretization:
+minimize
+c
+∥c∥1 subject to x⋆
+j = (Fc)j, j ∈T .
+(5.1)
+Here F is a DFT matrix of appropriate dimension depending on the grid size. Note that since the
+components of c are complex, this is a second-order cone problem. In the following, we use SDP
+and BP to label the semideﬁnite program algorithm and the basis pursuit algorithm, respectively.
+We solved the SDP with the SDPT3 solver [58] and the basis pursuit (5.1) with CVX [30] coupled
+with SDPT3. All parameters of the SDPT3 solver were set to default values and CVX precision
+was set to ‘high’. For the BP, we used three levels of discretization at 4, 16, and 64 times the signal
+dimension.
+To generate our instances of form (2.1), we sampled s = ρsn normalized frequencies from
+[0, 1], either randomly, or equispaced. Random frequencies are sampled randomly on [0, 1] with
+an additional constraint on the minimal separation ∆f. Given s = ρsn, s equispaced frequencies
+are generated with the same separation 1/s with an additional random shift. This random shift
+ensures that in most cases, basis mismatch occurs for discretization method. The signal coeﬃcient
+magnitudes |c1|, · · · , |cs| are either unit, i.e., equal to 1, or fading, i.e., equal to .5 + w2 with
+w a zero mean unit variance Gaussian random variable.
+The signs {eiφk, k = 1, · · · , s} follow
+either Bernoulli ±1 distribution, labeled as real, or uniform distribution on the complex unit circle,
+labeled as complex. A length n signal was then formed according to model (2.1). As a ﬁnal step,
+we uniformly sample m = ρmn entries of the resulting signal.
+We tested the algorithms on three sets of experiments. In the ﬁrst experiment, by running the
+algorithms on a randomly generated instance with n = 256, s = 6 and m = 40 samples selected
+uniformly at random, we compare SDP and BP’s ability of frequency localization and visually
+illustrate the eﬀect of discretization. We see from Figure 4 that SDP recovery followed by retrieving
+the frequencies according to Proposition 2.5 gives the most accurate result. We also observe that
+increasing the level of discretization can increase BP’s accuracy in locating the frequencies.
+In the second set of experiments, we compare the performance of SDP and BP with three levels
+30
+
+Table 1: Parameter conﬁgurations
+n
+64, 128, 256
+ρs
+1/16, 1/32, 1/64
+ρm/ρs
+5, 10, 20
+|ck|
+unit, fading
+frequency
+random, equispaced
+sign
+real, complex
+10
+0
+10
+5
+0
+0.2
+0.4
+0.6
+0.8
+1
+β
+P(β)
+Performance Profile − Solution Accuracy
+ 
+ 
+ SDP
+ BP 4
+ BP 16
+ BP 64
+(a) Solution accuracy
+10
+0
+10
+1
+10
+2
+0
+0.2
+0.4
+0.6
+0.8
+1
+β
+P(β)
+Performance Profile − Running Time
+ 
+ 
+ SDP
+ BP 4
+ BP 16
+ BP 64
+(b) Running times
+Figure 5: Performance proﬁles for solution accuracy and running times. Note the β-axes are in logarithm
+scale for both plots.
+of discretization in terms of solution accuracy and running time. The parameter conﬁgurations are
+summarized in Table 1. Each conﬁguration was repeated 10 times, resulting a total of 1920 valid
+experiments excluding those with ρm ≥1.
+We use the performance proﬁle as a convenient way to compare the performance of diﬀerent
+algorithms. The performance proﬁle proposed in [20] visually presents the performance of a set
+of algorithms under a variety of experimental conditions. More speciﬁcally, let P be the set of
+experiments and Ma(p) specify the performance of algorithm a on experiment p for some metric
+M (the smaller the better), e.g., running time and solution accuracy. Then the performance proﬁle
+Pa(β) is deﬁned as
+Pa(β) = #{p ∈P : Ma(p) ≤β mina Ma(p)
+#(P)
+, β ≥1.
+Roughly speaking, Pa(β) is the fraction of experiments such that the performance of algorithm a
+is within a factor β of that of the best performed one.
+We show the performance proﬁles for numerical accuracy and running times in Figure 5a and
+5b, respectively. We see that SDP signiﬁcantly outperforms BP for all tested discretization levels
+in terms of numerical accuracy. When the discretization levels are higher, e.g., 64x, the running
+times of BP exceed that of SDP.
+To give the reader a better idea of the numerical accuracy and the running times, in Table 2
+31
+
+Table 2: Medians and median absolute deviation (MAD) for solution accuracy and running time
+SDP
+BP: 4x
+BP: 16x
+BP: 64x
+Solution Accuracy
+Median
+1.39e-09
+1.23e-02
+7.67e-04
+4.65e-05
+MAD
+1.26e-09
+9.44e-03
+6.05e-04
+3.64e-05
+Running Time (s)
+Median
+34.03
+11.72
+20.39
+70.46
+MAD
+27.32
+4.83
+12.19
+55.37
+we present their medians and median absolute deviations for the four algorithms. As one would
+expect, the running time increases as the discretization level increases. We also observe that SDP
+is very accurate, with a median error at the order of 10−9. Increasing the level of discretization can
+increase the accuracy of BP. However, with discretization level N = 64n, we get a median accuracy
+at the order of 10−5, but the median running time already exceeds that of SDP.
+In the third set of experiments, we compiled two phase transition plots. To prepare Figure 6a, we
+pick n = 128 and vary ρs = 2
+n : 2
+n : 100
+n and ρm = 2
+n : 2
+n : 126
+n . For each ﬁxed (ρm, ρs), we randomly
+generate s = nρs frequencies while maintaining a frequency separation ∆f ≥1
+n. The coeﬃcients
+are generated with random magnitudes and random phases, and the entries are observed uniform
+randomly. We then run the SDPT3-SDP algorithm to recover the missing entries. The recovery
+is considered successful if the relative error ∥ˆx −x⋆∥2/∥x⋆∥2 ≤10−6. This process was repeated
+10 times and the rate of success was recorded. Figure 6a shows the phase transition results. The
+x-axis indicates the fraction of observed entries ρm, while the y-axis is ρs = s
+n. The color represents
+the rate of success with red corresponding to perfect recovery and blue corresponding to complete
+failure.
+We also plot the line ρs = ρm/2. Since a signal of s frequencies has 2s degrees of freedom,
+including s frequency locations and s magnitudes, this line serves as the boundary above which
+any algorithm should have a chance to fail. In particular, Prony’s method requires 2s consecutive
+samples in order to recover the frequencies and the magnitudes.
+From Figure 6a, we see that there is a transition from perfect recovery to complete failure.
+However, the transition boundary is not very sharp. In particular, we notice failures below the
+boundary of the transition where complete success should happen. Examination of the unsuccessful
+instances show that they correspond to instances with minimal frequency separations marginally
+exceeding 1
+n. We expect to get cleaner phase transitions if the frequency separation is increased.
+To prepare Figure 6b, we repeated the same process in preparing Figure 6a except that the
+frequency separation was increased from 1
+n to 1.5
+n . In addition, to respect the minimal separation,
+we reduced the range of possible sparsity levels to {2, 4, . . . , 70}. We now see a much sharper phase
+transition. The boundary is actually very close to the ρs = ρm/2 line. When ρm is close to 1, we
+even observe successful recovery above the line.
+6
+Conclusion and Future Work
+By leveraging the framework of atomic norm minimization, we were able to resolve the basis
+mismatch problem in compressed sensing of line spectra. For signals with well-separated frequencies,
+we show the number of samples needed is roughly proportional to the number of frequencies, up
+to polylogarithmic factors. This recovery is possible even though our continuous dictionary is not
+incoherent at all and does not satisfy any sort of restricted isometry conditions.
+32
+
+(a) Phase transition: ∆f ≥1
+n
+(b) Phase transition: ∆f ≥1.5
+n
+Figure 6: Phase transition: The phase transition plots were prepared with n = 128, and ρm = 2/n : 2/n :
+126/n. The frequencies were generated randomly with minimal separation ∆f. Both signs and magnitudes
+of the coeﬃcients are random. In Figure 6a, the separation ∆f ≥1/n and ρs = 2/n : 2/n : 100/n, while in
+Figure 6b, the separation ∆f ≥1.5/n and ρs = 2/n : 2/n : 70/n.
+There are several interesting future directions to be explored to further expand the scope of this
+work. First, it would be useful to understand what happens in the presence of noise. We cannot
+expect exact support recovery in this case, as our dictionary is continuous and any noise will make
+the exact frequencies un-identiﬁable. In a similar vein, techniques like those used in [8] that still rely
+on discretization are not applicable for our current setting. However, since our numerical method
+is rather stable, we are encouraged that a theoretical stability result is possible.
+We show a simple example which provides some evidence for conjecturing that our proposed
+technique is stable. The signal x⋆was generated with n = 40, s = 3, random frequencies, fading
+amplitudes, and random phases. A total number of 18 uniform samples indexed by T were taken.
+The noisy observations y was generated by adding complex noise w with bounded ℓ2 norm ε = 2
+to x⋆
+T . We denoised and recovered the signal by solving the following optimization:
+minimize
+x
+∥x∥A subject to ∥y −xT ∥2 ≤ε,
+(6.1)
+which can be solved by a semideﬁnite program. Figure 7 illustrates the approximate frequency
+recovery achieved by the optimization problem (6.1) in presence of noise. We leave the veriﬁcation
+of stability with numerical simulations and theoretical analysis of this phenomenon to future work.
+Second, we saw in our numerical experiments that modest discretization introduces substantial
+error in signal reconstruction and ﬁne discretization carries signiﬁcant computational burdens. In
+this regard, it would be of great interest to speed up our semideﬁnite programming solvers so that
+we can scale our algorithms beyond the synthetic experiments of this paper. Our rudimentary
+experimentation with ﬁrst-order methods developed in [5] did not suﬃce for this problem as they
+were unable to achieve the precision necessary for ﬁne frequency localization. So, instead, it would
+be of interest to explore second order alternatives such as active set methods or the like to speed
+up our computations.
+33
+
+0
+5
+10
+15
+20
+25
+30
+35
+40
+−4
+−3
+−2
+−1
+0
+1
+2
+3
+4
+ 
+ 
+True
+Noisy
+Recovered
+−0.5
+0
+0.5
+1
+−0.5
+0
+0.5
+0
+0.5
+1
+(a)
+(b)
+Figure 7: Noisy frequency recovery: (a) Real part of true, noisy, and recovered signals, (b)True frequencies
+(blue) and recovered frequencies (red).
+The (randomly generated) true signal has three frequencies at
+{0.5874, 0.7528, 0.8966} with coeﬃcients {−0.1756 −0.5306i, 0.1599 −0.4344i, −1.0966 + 0.4216i}. The (real
+parts of) noisy observations at m = 18 out of n = 40 indices are indicated by black circles. The noise
+components were generated according to i.i.d. complex Gaussian distribution and then scaled to have an ℓ2
+norm of 2. The observed signal has an ℓ2 norm 5.9453.
+Finally, we are interested in exploring the class of signals that are semideﬁnite characterizable
+in hopes of understanding which signals can be exactly recovered. Our continuous frequency model
+is an instance of applying compressed sensing to problems with continuous dictionaries. It would
+be of great interest to see how our techniques may be extended to other continuously parametrized
+dictionaries. Models involving image manifolds may fall into this category [60]. Fully exploring the
+space of signals that can be acquired with just a few specially coded samples provides a fruitful
+and exciting program of future work.
+Acknowledgements
+The authors would like to thank Robert Nowak for many helpful discussions about this work. BR
+is generously supported by ONR award N00014-11-1-0723, NSF award CCF-1148243, and a Sloan
+Research Fellowship. BB, BR, and PS are generously supported by NSF award CCF-1139953. GT
+is generously supported by DARPA Grant Number N66001-11-1-4090.
+References
+[1] F. Alizadeh, J. Haeberly, and M. Overton. Complementarity and nondegeneracy in semideﬁnite pro-
+gramming. Mathematical Programming, 77(1):111–128, 1997.
+[2] W. U. Bajwa, J. Haupt, A. M. Sayeed, and R. Nowak. Compressed channel sensing: A new approach
+to estimating sparse multipath channels. Proc. IEEE, 98(6):1058–1076, June 2010.
+[3] R. Baraniuk. Compressive sensing [lecture notes]. IEEE Signal Process. Mag., 24(4):118–121, July 2007.
+[4] R. Baraniuk and P. Steeghs.
+Compressive radar imaging.
+In IEEE Radar Conf., pages 128–133,
+Waltham, MA, Apr. 2007.
+[5] B. N. Bhaskar, G. Tang, and B. Recht.
+Atomic norm denoising with applications to line spectral
+estimation. arXiv.org, cs.IT, Apr. 2012.
+34
+
+[6] T. Blu, P.-L. Dragotti, M. Vetterli, P. Marziliano, and L. Coulot. Sparse sampling of signal innovations.
+IEEE Signal Process. Mag., 25(2):31–40, Mar. 2008.
+[7] S. P. Boyd and L. Vandenberghe. Convex Optimization. Cambridge Univ Pr, Mar. 2004.
+[8] E. J. Cand`es and C. Fernandez-Granda. Towards a mathematical theory of super-resolution. arXiv.org,
+cs.IT, Mar. 2012.
+[9] E. J. Cand`es and B. Recht. Exact matrix completion via convex optimization. Found. Comput. Math.,
+9(6):717–772, Dec. 2009.
+[10] E. J. Cand`es and J. Romberg. Sparsity and incoherence in compressive sampling. Inverse Problems,
+23(3):969–985, Apr. 2007.
+[11] E. J. Cand`es, J. Romberg, and T. Tao. Robust uncertainty principles: exact signal reconstruction from
+highly incomplete frequency information. IEEE Trans. Inf. Thy., 52(2):489–509, Feb. 2006.
+[12] E. J. Cand`es and M. Wakin. An introduction to compressive sampling. IEEE Signal Process. Mag.,
+25(2):21–30, Mar. 2008.
+[13] C. Carath´eodory. ¨Uber den variabilit¨atsbereich der fourierschen konstanten von positiven harmonischen
+funktionen. Rendiconti del Circolo Matematico di Palermo (1884-1940), 32(1):193–217, 1911.
+[14] C. Carath´eodory and L. Fej´er. ¨Uber den zusammenhang der extremen von harmonischen funktionen
+mit ihren koeﬃzienten und ¨uber den picard-landauschen satz. Rendiconti del Circolo Matematico di
+Palermo (1884-1940), 32(1):218–239, 1911.
+[15] L. Carin, D. Liu, and B. Guo.
+Coherence, compressive sensing, and random sensor arrays.
+IEEE
+Antennas Propag. Mag., 53(4):28–39, Aug. 2011.
+[16] V. Chandrasekaran, B. Recht, P. A. Parrilo, and A. S. Willsky. The convex geometry of linear inverse
+problems. arXiv.org, math.OC, Dec. 2010.
+[17] Y. Chi, L. Scharf, A. Pezeshki, and A. Calderbank. Sensitivity to basis mismatch in compressed sensing.
+IEEE Trans. Signal Process., 59(5):2182–2195, May 2011.
+[18] E. de Klerk, C. Roos, and T. Terlaky. Initialization in semideﬁnite programming via a self-dual skew-
+symmetric embedding. Operations Research Letters, 20(5):213 – 221, 1997.
+[19] B. G. R. de Prony. Essai ´experimental et analytique: sur les lois de la dilatabilit´e de ﬂuides ´elastique
+et sur celles de la force expansive de la vapeur de l’alkool, `a diﬀ´erentes temp´eratures. Journal de l’´ecole
+Polytechnique, 1(22):24–76, 1795.
+[20] E. D. Dolan and J. J. Mor´e. Benchmarking optimization software with performance proﬁles. Math.
+Prog., A, 91(2):201–203, Mar. 2002.
+[21] D. Donoho. Compressed sensing. IEEE Trans. Inf. Thy., 52(4):1289–1306, Apr. 2006.
+[22] D. L. Donoho and J. Tanner.
+Sparse nonnegative solution of underdetermined linear equations by
+linear programming. Proceedings of the National Academy of Sciences of the United States of America,
+102(27):9446–9451, 2005.
+[23] E. Dowski, C. Whitmore, and S. Avery. Estimation of randomly sampled sinusoids in additive noise.
+IEEE Trans. Acoust., Speech, Signal Process., 36(12):1906–1908, Dec. 1988.
+[24] M. Duarte and R. Baraniuk. Spectral compressive sensing. dsp.rice.edu, July 2011.
+[25] B. Dumitrescu. Positive Trigonometric Polynomials and Signal Processing Applications. Springer Ver-
+lag, Feb. 2007.
+[26] C. Ekanadham, D. Tranchina, and E. P. Simoncelli. Neural spike identiﬁcation with continuous basis
+pursuit. In Computational and Systems Neuroscience (CoSyNe), Salt Lake City, Utah, Feb. 2011.
+35
+
+[27] A. C. Fannjiang, T. Strohmer, and P. Yan. Compressed remote sensing of sparse objects. SIAM J.
+Imag. Sci., 3(3):595–618, Jan. 2010.
+[28] J.-J. Fuchs. Sparsity and uniqueness for some speciﬁc under-determined linear systems. In Acoustics,
+Speech, and Signal Processing, 2005. Proceedings.(ICASSP’05). IEEE International Conference on,
+volume 5, pages v–729. IEEE, 2005.
+[29] D. Goldfarb and K. Scheinberg. Interior point trajectories in semideﬁnite programming. SIAM Journal
+on Optimization, 8(4):871–886, 1998.
+[30] M. Grant and S. Boyd.
+CVX: Matlab software for disciplined convex programming, version 1.21.
+../../cvx, Apr. 2011.
+[31] D. Gross. Recovering low-rank matrices from few coeﬃcients in any basis. IEEE Trans. Inf. Thy.,
+57(3):1548–1566, Mar. 2009.
+[32] D. Gross, Y. Liu, S. Flammia, S. Becker, and J. Eisert. Quantum state tomography via compressed
+sensing. Phys. Rev. Lett., 105(15):150401, Oct. 2010.
+[33] M. Halick´a, E. de Klerk, and C. Roos. On the convergence of the central path in semideﬁnite optimiza-
+tion. SIAM Journal on Optimization, 12(4):1090–1099, 2002.
+[34] M. A. Herman and T. Strohmer. High-resolution radar via compressed sensing. IEEE Trans. Signal
+Process., 57(6):2275–2284, June 2009.
+[35] M. A. Herman and T. Strohmer. General deviants: An analysis of perturbations in compressed sensing.
+IEEE J. Sel. Topics Signal Process., 4(2):342–349, Apr. 2010.
+[36] R. A. Horn and C. R. Johnson. Matrix Analysis. Cambridge Univ Pr, Cambridge, UK, Feb. 1990.
+[37] Y. Hua and T. Sarkar.
+Matrix pencil method for estimating parameters of exponentially
+damped/undamped sinusoids in noise. IEEE Trans. Acoust., Speech, Signal Process., 38(5):814–824,
+May 1990.
+[38] A. Javanmard and A. Montanari. Localization from incomplete noisy distance measurements. In Proc.
+IEEE Inter. Symp. Inf. Thy., pages 1584–1588, Saint Petersburg, Russia, July 2011.
+[39] M. LeDoux. The Concentration of Measure Phenomenon. Amer Mathematical Society, 2001.
+[40] Z. Luo, J. Sturm, and S. Zhang. Superlinear convergence of a symmetric primal-dual path following
+algorithm for semideﬁnite programming. SIAM Journal on Optimization, 8(1):59–81, 1998.
+[41] D. Malioutov, M. Cetin, and A. S. Willsky.
+A sparse signal reconstruction perspective for source
+localization with sensor arrays. IEEE Trans. Signal Process., 53(8):3010–3022, Aug. 2005.
+[42] A. Megretski. Positivity of trigonometric polynomials. In Proc. 42nd IEEE Conf. Decision and Control,
+volume 4, pages 3814–3817, Maui, HI, Dec. 2003.
+[43] C. E. Parrish and R. D. Nowak. Improved approach to lidar airport obstruction surveying using full-
+waveform data. J. Surveying Eng., 135(2):72–82, May 2009.
+[44] H. Rauhut.
+Random sampling of sparse trigonometric polynomials.
+Applied and Comput. Hamon.
+Analy., 22(1):16–42, Jan. 2007.
+[45] B. Recht. A simpler approach to matrix completion. J. Machine Learn., 12:3413–3430, Jan. 2011.
+[46] B. Recht, M. Fazel, and P. A. Parrilo. Guaranteed minimum-rank solutions of linear matrix equations
+via nuclear norm minimization. SIAM Review, 52(3):471–501, Jan. 2010.
+[47] T. Roh and L. Vandenberghe.
+Discrete transforms, semideﬁnite programming, and sum-of-squares
+representations of nonnegative polynomials. SIAM J. Optim., 16(4):939–964, Jan. 2006.
+36
+
+[48] R. Sanyal, F. Sottile, and B. Sturmfels. Orbitopes. Mathematika, 57:275–314, 2011.
+[49] A. Schaeﬀer. Inequalities of A. Markoﬀand S. Bernstein for polynomials and related functions. Bull.
+Amer. Math. Soc., 47, Nov. 1941.
+[50] M. Shaghaghi and S. A. Vorobyov. Spectral estimation from undersampled data: Correlogram and
+model-based least squares. arXiv.org, math.ST, Feb. 2012.
+[51] P. Stoica. List of references on spectral line analysis. Signal Process., 31(3):329–340, Apr. 1993.
+[52] P. Stoica and P. Babu. Spice and likes: Two hyperparameter-free methods for sparse-parameter esti-
+mation. Signal Processing, 2011.
+[53] P. Stoica and P. Babu. Sparse estimation of spectral lines: grid selection problems and their solutions.
+Signal Processing, IEEE Transactions on, 60(2):962–967, 2012.
+[54] P. Stoica, P. Babu, and J. Li. New method of sparse parameter estimation in separable models and
+its use for spectral analysis of irregularly sampled data.
+Signal Processing, IEEE Transactions on,
+59(1):35–47, 2011.
+[55] P. Stoica, J. Li, and H. He. Spectral analysis of nonuniformly sampled data: A new approach versus
+the periodogram. IEEE Trans. Signal Process., 57(3):843–858, Mar. 2009.
+[56] P. Stoica and R. L. Moses. Spectral analysis of signals. Prentice Hall, Upper Saddle River, New Jersey,
+1 edition, 2005.
+[57] O. Toeplitz. Zur theorie der quadratischen und bilinearen formen von unendlichvielen ver¨anderlichen.
+Mathematische Annalen, 70(3):351–376, 1911.
+[58] K. C. Toh, M. Todd, and R. H. T¨ut¨unc¨u. SDPT3: A MATLAB software package for semideﬁnite-
+quadratic-linear programming. Available from http://www.math.nus.edu.sg/~mattohkc/sdpt3.html.
+[59] J. A. Tropp. User-friendly tail bounds for sums of random matrices. Found. Comput. Math., 12(4):389–
+434, Aug. 2011.
+[60] M. B. Wakin. A manifold lifting algorithm for multi-view compressive imaging. In 2009 Picture Coding
+Symp. (PCS), pages 1–4, Chicago, IL, May 2009.
+[61] Y. Wang, J. Li, and P. Stoica. Spectral Analysis of Signals: The Missing Data Case. Morgan & Claypool
+Publishers, San Rafael, CA, 1 edition, July 2005.
+A
+Proof of Theorem 1.1
+Proof. Assume n = 4M + n0 with M = ⌊(n −1)/4⌋and n0 = 1, 2, 3 or 4. Suppose the signal x⋆
+has decomposition
+x⋆=
+s
+X
+k=1
+ck
+
+
+1
+ei2πfk
+...
+ei2π(n−1)fk
+
+
+=
+s
+X
+k=1
+ckei2πfk(2M)
+|
+{z
+}
+˜ck
+
+
+ei2πfk(−2M)
+ei2πfk(−2M+1)
+...
+ei2πfk(2M)
+...
+ei2πfk(2M+n0−1)
+
+
+37
+
+The rest of the proof argues that the dual polynomial constructed for the symmetric case can
+be modiﬁed to certify the optimality of x⋆for the general case.
+If the coeﬃcients {ck, k = 1, . . . , s} have uniform random complex signs, for ﬁxed {fk}, {˜ck, k =
+1, . . . , s} also have uniform random complex signs. In addition, the Bernoulli observation model
+{δj}n−1
+j=0 on index set {0, · · · , n−1} naturally induces a Bernoulli observation model {˜δj = δj+2M}2M
+j=−2M
+on {−2M, · · · , 2M} with P(˜δj = 1) = m/n. Denote ˜T = {j : ˜δj = 1} ⊂{−2M, · · · , 2M}. There-
+fore, if ∆f ≥∆min = 1/M and
+m ≥C max
+
+log2 M
+δ , s log s
+δ log M
+δ
+
+,
+(A.1)
+according to the proof of Theorem 2.3, with probability great than 1−δ, we could construct a dual
+polynomial
+˜Q (f) =
+2M
+X
+j=−2M
+˜qje−i2πjf
+satisfying
+˜Q (fk) = sign (˜ck) , ∀fk ∈Ω
+ ˜Q (f)
+ < 1, ∀f /∈Ω
+˜qj = 0, ∀j /∈˜T.
+Now deﬁne
+qj =
+(
+˜qj−2M
+j = 0, · · · , 4M
+0
+otherwise.
+and
+Q(f) =
+n−1
+X
+j=0
+qje−i2πfj
+=
+n−1
+X
+j=0
+˜qj−2Me−i2πfj
+= e−i2πf(2M) ˜Q(f).
+Clearly, the polynomial Q(f) satisﬁes
+Q (fk) = e−i2πfk(2M) sign (˜ck) = sign(ck), ∀fk ∈Ω
+|Q (f)| = | ˜Q(f)| < 1, ∀f /∈Ω
+qj = 0, ∀j /∈T,
+where T = {j : δj = 1} ⊂{0, . . . , n −1}. The theorem then follows from rewriting (A.1) in terms
+of n and Proposition 2.4.
+38
+
+B
+Proof of Proposition 2.5
+We need the following lemma about maximal rank spectral factorization.
+Lemma B.1. Suppose R (z) = Pn−1
+j=−(n−1) rjzj with r−j = r∗
+j is a nonnegative trigonometric
+polynomial, which has s zeros on the unit circle. Then there exists a positive semideﬁnite matrix
+G with rank n −s such that
+R (z) = ψ
+ z−1T Gψ (z)
+where
+ψ (z) =
+
+
+1
+z
+...
+zn−1
+
+.
+Furthermore, this is the representation with maximal possible rank.
+Proof. According to the positive real lemma [25, Theorem 2.5], the nonnegativity of R (z)
+R
+
+ei2πf
+≥0, ∀f ∈[0, 1]
+is equivalent to
+∃Hermitian matrix G ∈Cn×n, G ⪰0, rj =
+n−j
+X
+l=1
+Gl,l+j, j = 0, . . . , n −1
+(B.1)
+In this case, we can write
+R (z)
+=
+ψ
+ z−1T Gψ (z) .
+Such a representation is called a Gram matrix representation. The set C of all Gram matrices
+satisfying (B.1) is a compact convex set. By the spectral factorization theorem [25, Theorem 1.1],
+all of the rank one elements of C are of the form G = gg∗such that:
+g∗ψ(z)
+=
+d
+s
+Y
+k=1
+
+z −ei2πfk
+
+n−1
+Y
+k=s+1
+(z −zk)
+with d the scalar factor determined by R (z) = ψ
+ z−1T gg∗ψ (z). Here
+
+ei2πfk, k = 1, . . . , s
+	
+are
+the s ≥0 zeros of R (z), as a function deﬁned on the complex plane, on the unit circle with
+multiplicity two. The rest (2 (n −1) −2s) zeros of R (z) are divided into n −1 −s conjugate pairs
+{ζk, 1/ζ∗
+k, k = s + 1, . . . , n −1}. Choosing zk as either ζk or 1/ζ∗
+k yields diﬀerent g. Therefore, there
+are 2n−1−s total such rank-one representations of R (z).
+Since R
+ ei2πf
+has s zeros on [0, 1], we have for any G ∈C, ψ
+ ei2πfk∗Gψ
+ ei2πfk
+= 0, implying
+Gψ
+ ei2πfk
+= 0, k = 1, . . . , s. Therefore, the null space of G has dimension at least s, and hence
+the rank of any Gram matrix G is at most n −s.
+39
+
+In the following we construct a maximal rank representation of R (z). For that purpose, deﬁne
+gl for l = s + 1, . . . , n via
+g∗
+l ψ(z)
+=
+dl
+" s
+Y
+k=1
+
+z −ei2πfk
+# 
+
+n−1
+Y
+k=s+1,k̸=l
+(z −ζk)
+
+(z −1/ζ∗
+l ) , l = s + 1, . . . , n −1
+g∗
+nψ(z)
+=
+dn
+" s
+Y
+k=1
+
+z −ei2πfk
+# " n−1
+Y
+k=s+1
+(z −ζk)
+#
+We ﬁrst claim that {gl, l = s + 1, . . . , n} are linearly independent. Suppose otherwise, there exist
+constants αj with at least one αj̸ = 0, such that
+n
+X
+j=s+1
+αjg∗
+j
+=
+0
+Post-multiplying both sides of the above equation by ψ (ζl) for each s + 1 ≤l ≤n −1,we get
+n
+X
+j=s+1
+αjg∗
+j ψ (ζl)
+=
+αldl
+" s
+Y
+k=1
+
+ζl −ei2πfk
+# 
+
+n−1
+Y
+k=s+1,k̸=l
+(ζl −ζk)
+
+(ζl −1/ζ∗
+l ) = 0
+implying αl = 0 for s + 1 ≤l ≤n −1. Since gn̸ = 0, αn must also be zero. Therefore, the set
+{gl, l = s + 1, . . . , n} is linearly independent. Now form the matrix
+G
+=
+n
+X
+j=s+1
+λjgjg∗
+j ⪰0
+where λj > 0, and P
+j λj = 1. Then the linear independence of {gl} implies that G is of rank n−s,
+and
+ψ
+ z−1T Gψ (z)
+=
+n
+X
+j=s+1
+λjψ
+ z−1T gjg∗
+j ψ (z)
+=
+n
+X
+j=s+1
+λjR (z)
+=
+R (z) .
+Proof of Proposition 2.5. We prove for the case J = {0, · · · , n −1}. Note that our semideﬁnite
+program (2.6) and its dual have interior feasible points, a common assumption underlying many
+results about semideﬁnite programs, including the ones cited in the following arguments.
+For
+example, to obtain an interior feasible point for (2.6), one could take x = x⋆on T and zero
+elsewhere, the Toeplitz matrix equal to (∥x∥2
+2 + 1)I, and t = 1.
+1) For the dual optimal solution q given in the proposition, deﬁne
+R (z)
+:=
+1 −ψ
+ z−1T qq∗ψ (z) .
+40
+
+The trigonometric polynomial R
+ ei2πf
+is positive with s zeros at f = fk since
+R
+
+ei2πf
+=
+1 −ψ
+
+ei2πf∗
+qq∗ψ
+
+ei2πf
+=
+1 −|Q (f)|2
+ = 0
+if f = fk
+> 0
+otherwise
+Now according to Lemma B.1, there exists G ⪰0 with rank (G) = n −s such that
+R (z)
+=
+1 −ψ
+ z−1T qq∗ψ (z) = ψ
+ z−1T Gψ (z)
+Deﬁne H = G + qq∗⪰qq∗which satisﬁes ψ
+ z−1T Hψ (z) ≡1. In other words, we have a pair
+(q, H) such that
+¯H :=
+ H
+−q
+−q∗
+1
+
+⪰
+0
+n−l
+X
+j=1
+Hj,j+l
+=
+0, l = 0, . . . , n −1
+qT c
+=
+0
+and rank
+  ¯H
+
+= n −s + 1. Therefore, (q, H) is a dual optimal solution.
+The unique primal optimal solution has the form (refer to Proposition 2.4 for a proof of the
+uniqueness):
+ˆx
+=
+x⋆=
+s
+X
+k=1
+|ck| eiφka (fk, 0)
+Teop (ˆu)
+=
+s
+X
+k=1
+|ck| a (fk, 0) a (fk, 0)∗
+ˆt
+=
+s
+X
+k=1
+|ck|
+where eiφk = sign (ck). Since the following decomposition holds
+¯T :=
+Toep (ˆu)
+ˆx
+ˆx∗
+ˆt
+
+=
+s
+X
+k=1
+|ck|
+a (fk, 0)
+eiφk
+ a (fk, 0)
+eiφk
+∗
+,
+the rank of ¯T is s, and hence
+  ¯H, ¯T
+
+is a strictly complementary pair (See for [1] for more information
+about strict complementarity).
+According to [29, Lemma 3.1], all matrices in the relative interior of the optimal solution set of
+a semideﬁnite program share the same range space. Therefore, for any other (˜q, ˜H) in the relative
+interior of D, the rank of
+ ˜H
+−˜q
+−˜q∗
+1
+
+is also n + 1 −s, implying that (˜q, ˜H) also form strictly
+complementary pairs with the primal optimal solution
+ ˆx, ˆu, ˆt
+
+.
+41
+
+2) Since for the (q, H) in part 1)
+a (fk, 0)
+eiφk
+∗ H
+−q
+−q∗
+1
+ a (fk, 0)
+eiφk
+
+=
+a (fk, 0)∗Ha (fk, 0) −a (fk, 0)∗qeiφk −e−iφkq∗a (fk, 0) + 1
+=
+0, k = 1, . . . , s,
+the null space of
+ H
+−q
+−q∗
+1
+
+is
+span
+a (fk, 0)
+eiφk
+
+: k = 1, . . . , s
+
+(B.2)
+Again using [29, Lemma 3.1], we conclude that the null space of any
+ ˜H
+−˜q
+−˜q∗
+1
+
+with (˜q, ˜H) in the
+relative interior of D is given by (B.2). Therefore, we have for each k
+a (fk, 0)
+eiφk
+∗ ˜H
+−˜q
+−˜q∗
+1
+ a (fk, 0)
+eiφk
+
+=
+a (fk, 0)∗˜Ha (fk, 0) −a (fk, 0)∗˜qe−iφk −eiφk ˜q∗a (fk, 0) + 1
+=
+2 −2 Re
+
+e−iφk ⟨˜q, a (fk, 0)⟩
+
+= 0
+(B.3)
+or equivalently
+⟨˜q, a (fk, 0)⟩= eiφk = sign (ck) , k = 1, . . . , s
+using |⟨˜q, a (fk, 0)⟩| ≤1.
+For any ˜f̸ = fk, k = 1, . . . , s, if |⟨˜q, a( ˜f, 0)⟩| = 1, then a calculation similar to (B.3) concludes
+that
+"
+a( ˜f, 0)
+ei˜φ
+#
+with ei˜φ = sign(⟨˜q, a( ˜f, 0)⟩) is in the null space of
+ ˜H
+−˜q
+−˜q∗
+1
+
+. Due to the linear
+independence of a( ˜f, 0) with {a (fk, 0) , k = 1, . . . , s}, the null space have dimension greater than s,
+contradicting with rank
+ ˜H
+−˜q
+−˜q∗
+1
+
+= n + 1 −s. Therefore, we have
+|⟨˜q, a (f, 0)⟩|
+<
+1, ∀f̸ = fk, k = 1, . . . , s.
+3) Due to the existence of strictly complementary primal-dual optimal solutions, the statement is
+a direct consequence of [40, Lemma 3.4] (See also [18,33]).
+C
+Proof of Proposition 4.1
+Proof. Under the assumption that ∆min ≥
+1
+M , we cite the results of [8, Proof of Lemma 2.2] as
+follows:
+I −¯D0
+
+∞≤6.253 × 10−3
+
+1
+q ¯K′′
+M (0)
+
+¯D1
+
+∞≤4.212 × 10−2
+I −
+
+−
+1
+ ¯K′′
+M (0)
+ ¯D2
+
+∞≤0.3201,
+42
+
+where ∥· ∥∞is the matrix inﬁnity norm, namely, the maximum absolute row sum. Since I −¯D is
+symmetric and has zero diagonals, the Gerˇshgorin circle theorem [36] implies that
+I −¯D
+ ≤
+I −¯D
+
+∞
+≤max
+n I −¯D0
+
+∞+
+
+1
+q ¯K′′
+M (0)
+
+¯D1
+
+∞,
+
+1
+q ¯K′′
+M (0)
+
+¯D1
+
+∞+
+I −
+
+−
+1
+ ¯K′′
+M (0)
+ ¯D2
+
+∞
+o
+= 0.3623.
+As a consequence, ¯D is invertible and
+∥¯D∥≤1 + ∥I −¯D∥≤1.3623,
+ ¯D−1 ≤
+1
+1 −
+I −¯D
+ ≤1.568.
+D
+Proof of Lemma 4.4
+Proof of Lemma 4.4. We start with computing the quantities necessary to apply Lemma 4.3:
+EXj = 0
+∥Xj∥=
+
+1
+M gM (j) (δj −p) e (j) e (j)∗
+
+≤1
+M ∥gM∥∞s
+ 
+1 + max
+|j|≤2M
+(2πj)2
+K′′
+M (0)
+
+!
+≤R := 14 s
+M for M ≥4.
+Here we have used
+∥gM∥∞≤1,
+∥e(j)∥2
+2 = s
+ 
+1 + max
+|j|≤2M
+(2πj)2
+K′′
+M (0)
+
+!
+≤14s, for M ≥4.
+We continue with σ2:
+σ2 =
+
+2M
+X
+j=−2M
+E
+ 1
+M2 g2
+M (j) (δj −p)2 ∥e(j)∥2
+2e (j) e∗(j)
+
+≤14p (1 −p)
+M
+s
+
+1
+M
+2M
+X
+j=−2M
+g2
+M (j) e (j) e∗(j)
+
+.
+43
+
+To further bound σ2, we note
+1
+M
+2M
+X
+j=−2M
+g2
+M (j) e (j) e∗(j)
+≼∥gM∥∞
+n 1
+M
+2M
+X
+j=−2M
+gM (j) e (j) e∗(j)
+o
+= ∥gM∥∞¯D,
+which leads to
+ 1
+M
+X
+j
+g2
+M (j) e (j) e∗
+j
+
+= λmax
+ 1
+M
+X
+j
+g2
+M (j) e (j) e∗(j)
+
+≤λmax
+ ∥gM∥∞¯D
+
+= ∥gM∥∞
+ ¯D
+
+≤1.3623 by (4.8) and (4.3).
+Therefore, we have
+σ2 ≤20 p
+M s.
+Invoking the non-commutative Bernstein’s inequality and setting t = pτ, we have
+P
+ p−1D −¯D
+ ≥τ
+
+≤2s exp
+
+−p2τ 2/2
+20 p
+M s + 14 s
+M pτ/3
+
+≤2s exp
+
+−1
+50τ 2 m
+s
+
+(used τ ≤1)
+≤δ.
+if
+m ≥50
+τ 2 s log 2s
+δ .
+Consequently, when τ < 1 −0.3623 ≤1 −
+I −¯D
+ according to (4.7), we have
+I −p−1D
+ ≤
+I −¯D
+ +
+p−1D −¯D
+ < 1, conﬁrming the invertibility of p−1D.
+E
+Proof of Corollary 4.5
+Assuming B is invertible and ∥A −B∥
+B−1 ≤1
+2, we have the following two inequalities:
+A−1 ≤
+B−1
+1 −∥A −B∥∥B−1∥≤2
+B−1
+A−1 −B−1 ≤
+∥A −B∥
+B−12
+1 −∥A −B∥∥B−1∥≤2
+B−12 ∥A −B∥,
+44
+
+which are rearrangements of
+A−1 −B−1 ≤
+A−1 ∥A −B∥
+B−1
+A−1 ≤
+A−1 −B−1 +
+B−1
+≤
+A−1 ∥A −B∥
+B−1 +
+B−1 .
+Therefore, we establish that when τ ≤1
+4 <
+1
+2∥¯D−1∥on the set E1,τ:
+D−1 −p−1 ¯D−1 ≤2
+p−1 ¯D−12 D −p ¯D
+ = 2
+ ¯D−12 p−1τ
+D−1 ≤2
+p−1 ¯D−1 = 2
+ ¯D−1 p−1.
+Since the operator norm of a matrix dominates that of all submatrices, this completes the proof.
+F
+Proof of Lemma 4.6
+The proof uses Talagrand’s concentration of measure inequality:
+Lemma F.1 ( [39, Corollary 7.8]). Let {Yj} be a ﬁnite sequence of independent random variables
+taking values in a Banach space and let V be deﬁned as
+V = sup
+h∈H
+X
+j
+h (Yj)
+for a countable family of real valued functions H. Assume that |h| ≤B and Eh (Yj) = 0 for all
+h ∈H and every j. Then for all t > 0,
+P (|V −EV | > t) ≤16 exp
+
+−t
+KB log
+
+1 +
+Bt
+σ2 + BE ¯V
+
+,
+where σ2 = suph∈H
+P
+j Eh2(Yj), ¯V = suph∈H
+
+P
+j h (Yj)
+, and K is a numerical constant.
+Proof of Lemma 4.6. Based on the deﬁnition of vℓ(f) in (4.28) and ¯vℓ(f) in (4.12), we explicitly
+write vℓ(f) −p¯vℓ(f) = vℓ(f) −Evℓ(f) as
+vℓ(f) −p¯vℓ(f) =
+2M
+X
+j=−2M
+1
+M
+ 
+i2πj
+q ¯K′′
+M (0)
+
+!ℓ
+gM (j) (δj −p) ei2πfje(j)
+=
+2M
+X
+j=−2M
+Y ℓ
+j ,
+where e(j) is deﬁned in (4.25) and we have deﬁned Y ℓ
+j as
+Y ℓ
+j = 1
+M
+ 
+i2πj
+q ¯K′′
+M (0)
+
+!ℓ
+gM (j) (δj −p) ei2πfje(j).
+45
+
+It is clear that {Y ℓ
+j }2M
+j=−2M are independent random vectors with zero mean.
+Deﬁne
+V ℓ:= ∥vℓ(f) −p¯vℓ(f)∥2 =
+sup
+h:∥h∥2=1
+⟨vℓ(f) −p¯vℓ(f) , h⟩R =
+sup
+h∈C2s:∥h∥2=1
+2M
+X
+j=−2M
+⟨Y ℓ
+j , h⟩R
+and
+˜h(Y ℓ
+j ) = ⟨Y ℓ
+j , h⟩R = Re
+ 2s
+X
+k=1
+h∗
+kY ℓ
+j,k
+
+.
+To compute the quantities necessary to apply Lemma F.1, we will extensively use the following
+elementary bounds:
+∥gM∥∞≤1,
+
+2πj
+q
+¯K′′
+M(0)
+ ≤4 when M ≥2,
+∥e(j)∥2
+2 ≤s
+ 
+1 + max
+|j|≤2M
+(2πj)2
+K′′
+M (0)
+
+!
+≤14s when M ≥4.
+First, we obtain an upper bound on |˜h|:
+|˜h(Y ℓ
+j )| =
+
+*
+1
+M
+ 
+i2πj
+q ¯K′′
+M (0)
+
+!ℓ
+gM (j) ei2πfje(j) (δj −p) , h
++
+R
+
+≤1
+M
+
+i2πj
+q ¯K′′
+M (0)
+
+
+ℓ
+∥gM∥∞∥e(j)∥2
+≤Bℓ:= 4ℓ+1
+√s
+M .
+The expected value of ∥vℓ(f) −p¯vℓ(f)∥2
+2 is upper bounded as follows:
+E ∥vℓ(f) −p¯vℓ(f)∥2
+2 =
+2M
+X
+j=−2M
+E
+D
+Y ℓ
+j , Y ℓ
+j
+E
+R +
+X
+j̸=k
+E
+D
+Y ℓ
+j , Y ℓ
+k
+E
+R
+=
+2M
+X
+j=−2M
+E
+D
+Y ℓ
+j , Y ℓ
+j
+E
+R
+≤
+2M
+X
+j=−2M
+1
+M2
+
+2πj
+q ¯K′′
+M (0)
+
+
+2ℓ
+g2
+M (j) p (1 −p) ∥e(j)∥2
+2
+≤42ℓ+3 ps
+M when M ≥4.
+(F.1)
+46
+
+Observe that ¯V ℓ= V ℓ= ∥vℓ(f) −p¯vℓ(f)∥2. We apply Jensen’s inequality and combine with (F.1)
+to get
+E ¯V ℓ= EV ℓ≤
+√
+EV ℓ2 ≤
+r
+42ℓ+3 ps
+M
+≤22ℓ+3
+√ms
+M .
+Next, we upper bound σ2:
+E˜h2(Y ℓ
+j ) = E⟨Y ℓ
+j , h⟩2
+R
+≤
+1
+M2 42ℓ∥gM∥∞E(δj −p)2 
+Dp
+gM(j)e(j), h
+E
+2
+implying
+X
+j
+E˜h2(Y ℓ
+j ) ≤
+1
+M2 42ℓp
+2M
+X
+j=−2M
+h∗p
+gM(j)e(j)
+
+2
+=
+1
+M2 42ℓp ∥h∗P∥2
+2
+≤42ℓp ∥P∥2
+M2
+where P is a matrix in C2s×(4M+1) whose jth column is
+p
+gM(j)e(j). Note that
+PP ∗
+M
+= 1
+M
+2M
+X
+j=−2M
+gM(j)e(j)e(j)∗= ¯D.
+Therefore, we have
+σ2
+ℓ=
+X
+j
+E˜h2 (Yj) ≤42ℓp
+M2 ∥P∥2
+≤42ℓ1
+M2 pM
+ ¯D
+
+≤24ℓ+1 m
+M2
+ used
+ ¯D
+ ≤2 from (4.8)
+
+In conclusion, Lemma F.1 shows that
+P (|∥vℓ(f) −p¯vℓ(f)∥2 −E ∥vℓ(f) −p¯vℓ(f)∥2| > t)
+≤16 exp
+
+−
+t
+KBℓ
+log
+
+1 +
+Bℓt
+σ2
+ℓ+ BℓE ¯V ℓ
+
+≤16 exp
+ 
+−
+t
+KBℓ
+log
+ 
+1 +
+Bℓt
+24ℓ+1 m
+M2 + Bℓ22ℓ+3
+√ms
+M
+!!
+Suppose Bℓ22ℓ+3
+√ms
+M
+≥24ℓ+1 m
+M2 . Then, deﬁne ¯σ2
+ℓ= Bℓ22ℓ+3
+√ms
+M
+and ﬁx t = a¯σℓ. Then it follows
+that
+P (|∥vℓ(f) −p¯vℓ(f)∥2 −E ∥vℓ(f) −p¯vℓ(f)∥2| > a¯σℓ) ≤16e−γa2,
+47
+
+for some γ > 0 provided Bℓt ≤¯σ2
+ℓ. The same is true if 24ℓ+1 m
+M2 ≥Bℓ22ℓ+3
+√ms
+M
+and Bℓt ≤24ℓ+1 m
+M2
+if we deﬁne ¯σ2
+ℓ= 24ℓ+1 m
+M2 . Therefore, let
+¯σ2
+ℓ= max
+
+24ℓ+1 m
+M2 , Bℓ22ℓ+3
+√ms
+M
+
+= 24ℓ+1 m
+M2 max
+
+1, 24 s
+√m
+
+,
+and ﬁx a > 0 obeying
+a ≤
+(√
+2m1/4
+if 24s/√m ≥1
+√
+2
+4
+p m
+s
+otherwise.
+Then we have
+P
+
+∥vℓ(f) −p¯vℓ(f)∥2 > 22ℓ+3
+√ms
+M
++ a¯σℓ
+
+≤16e−γa2
+for some γ > 0. Application of the union bound proves the lemma.
+G
+Proof of Lemma 4.8
+The proof of Lemma 4.8 is based on Hoeﬀding’s inequality presented below:
+Lemma G.1 (Hoeﬀding’s inequality). Let the components of u ∈Cn be sampled i.i.d. from a
+symmetric distribution on the complex unit circle, w ∈Cn, and t be a positive real number. Then
+P (|⟨u, w⟩| ≥t) ≤4e
+−
+t2
+4∥w∥2
+2 .
+Proof of Lemma 4.8. Consider the random inner product ⟨u, L∗(vℓ(f) −p¯vℓ(f))⟩where {uj} are
+i.i.d. symmetric random variables with values on the complex unit circle. Conditioned on a partic-
+ular realization
+ω ∈E :=
+n
+ω :
+sup
+fd∈Ωgrid
+∥L∗(vℓ(fd) −p¯vℓ(fd))∥2 < λℓ, ℓ= 0, 1, 2, 3
+o
+,
+Hoeﬀding’s inequality and the union bound then imply
+P
+
+sup
+fd∈Ωgrid
+|⟨u, L∗(vℓ(fd) −p¯vℓ(fd))⟩| > ε
+ω
+
+≤4 |Ωgrid| e
+−ε2
+4λ2
+ℓ.
+Elementary probability calculation shows
+P
+
+sup
+fd∈Ωgrid
+|⟨u, L∗(vℓ(fd) −p¯vℓ(fd))⟩| > ε
+
+= 4|Ωgrid|e
+−ε2
+4λ2
+ℓ+ P (Ec) .
+48
+
+Setting
+λℓ= 4
+
+22ℓ+3
+r s
+m + M
+m a¯σℓ
+
+in E and applying Lemma 4.7 yield,
+P
+
+sup
+fd∈Ωgrid
+|⟨u, L∗(vℓ(fd) −p¯vℓ(fd))⟩| > ε
+ω
+
+≤4 |Ωgrid| e
+−ε2
+4λ2
+ℓ+ 64 |Ωgrid| e−γa2 + P
+ Ec
+1,τ
+
+For the second term to be less than δ, we choose a such that
+a2 = γ−1 log 64 |Ωgrid|
+δ
+,
+and assume this value from now on. The ﬁrst term is less than δ if
+1
+λ2
+ℓ
+≥4
+ε2 log 4 |Ωgrid|
+δ
+.
+(G.1)
+First assume that 24s/√m ≥1. The condition in Lemma 4.6 is a ≤
+√
+2m1/4 or equivalently
+m ≥1
+4γ−2 log2 64 |Ωgrid|
+δ
+.
+(G.2)
+In this case, we have a¯σℓ≤22ℓ+3
+√ms
+M , leading to
+1
+λ2
+ℓ
+=
+1
+16
+ 22ℓ+3p s
+m + M
+m a¯σℓ
+2 ≥
+1
+42ℓ+5
+m
+s .
+Now suppose that 24s/√m ≤1. If 32s ≥a2, then a¯σℓ≤22ℓ+3
+√ms
+M
+which again gives the above
+lower bound on 1/λ2
+ℓ. On the other hand if 32s ≤a2, then λℓ≤22ℓ+3√
+2 a
+√m and
+1
+λ2
+ℓ
+≥
+1
+24ℓ+7
+m
+a2
+Therefore, to verify (G.1) it suﬃces to take m obeying (G.2) and
+m min
+
+1
+42ℓ+5
+1
+s,
+1
+24ℓ+7
+1
+a2
+
+≥4
+ε2 log 4 |Ωgrid|
+δ
+This analysis shows that the ﬁrst term is less than δ if
+m ≥max
+n 4
+ε2 42ℓ+5s log 4|Ωgrid|
+δ
+, 4
+ε2 24ℓ+7γ−1 log 64|Ωgrid|
+δ
+log 4|Ωgrid|
+δ
+,
+1
+4γ−2 log2 64 |Ωgrid|
+δ
+o
+.
+49
+
+According to Lemma 4.4, the last term is less than δ if
+m ≥50
+τ 2 s log 2s
+δ .
+Setting τ = 1/4, combining all lower bounds on m together, and absorbing all constants into one,
+we get
+m ≥C max
+ 1
+ε2 max
+
+s log |Ωgrid|
+δ
+, log2 |Ωgrid|
+δ
+
+, s log s
+δ
+
+,
+is suﬃcient to guarantee
+sup
+fd∈Ωgrid
+Iℓ
+1 (fd)
+ ≤ε
+with probability at least 1 −3δ. The union bound then proves the lemma.
+H
+Proof of Lemma 4.9
+Proof of Lemma 4.9. Recall that
+Iℓ
+2 (f) =
+
+u, (L −p−1 ¯L)∗p¯vℓ(f)
+
+On the set E1,τ deﬁned in (4.26), we established in Corollary 4.5 that
+L −p−1 ¯L
+ ≤2
+ ¯D−12 p−1τ.
+We use the ℓ1 norm to bound the ℓ2 norm of p¯vℓ(f):
+∥p¯vℓ(f)∥2 ≤∥p¯vℓ(f)∥1
+= p
+ 
+s
+X
+k=1
+1
+q ¯K′′
+M (0)
+
+ℓ
+ ¯K(ℓ)
+M (f −fk)
+ +
+s
+X
+k=1
+1
+q ¯K′′
+M (0)
+
+(ℓ+1)
+ ¯K(ℓ+1)
+M
+(f −fk)
+
+!
+.
+To get a uniform bound on Ps
+k=1
+1
+q
+| ¯
+K′′
+M(0)|
+ℓ
+ ¯K(ℓ)
+M (f −fk)
+, we need the following bound:
+1
+q ¯K′′
+M (0)
+
+ℓ
+ ¯K(ℓ)
+M (f)
+ ≤
+(
+C1
+∀f ∈[−1
+2, 1
+2],
+C2
+M4|f|4
+if
+1
+4M ≤|f| ≤1
+2.
+for suitably chosen numerical constant C1 and C2. The bound over the region [ 1
+4M , 1
+2] is a conse-
+quence of the more accurate bound established in [8, Lemma 2.6], while the uniform bound C1 can
+50
+
+be obtained by checking the expression of ¯K(ℓ)
+M (f). Consequently, we have
+s
+X
+k=1
+1
+q ¯K′′
+M (0)
+
+ℓ
+ ¯K(ℓ)
+M (f −fk)
+
+≤
+X
+k:|f−fk|< 2
+M
+C1 +
+X
+k: 2
+M ≤|f−fk|≤1
+2
+C2
+M4|f −fk|4
+≤4C1 + C2
+∞
+X
+k=1
+1
+M4(k∆min)4
+≤4C1 + C2
+∞
+X
+k=1
+1
+k4
+= C := 4C1 + π4
+90C2.
+We conclude that on the set E1,τ
+∥(L −p−1 ¯L)∗p¯vℓ(f) ∥2 ≤Cτ.
+Again, application of Hoeﬀding’s inequality and the union bound gives
+P
+ 
+sup
+fd∈Ωgrid
+Iℓ
+2 (fd)
+ > ε
+!
+≤4 |Ωgrid| exp
+
+−ε2
+4Cτ 2
+
++ P
+ Ec
+1,τ
+
+.
+To make the ﬁrst term less than δ, it suﬃces to take
+τ 2 =
+ε2
+4C log
+4|Ωgrid|
+δ
+.
+To have the second term less than δ, we require
+m ≥C
+τ 2 s log 2s
+δ
+=
+C
+ε2
+log
+4|Ωgrid|
+δ
+s log 2s
+δ
+= C 1
+ε2 s log 2s
+δ log 4 |Ωgrid|
+δ
+.
+Another application of the union bound with respect to ℓ= 0, 1, 2, 3 proves the lemma.
+51

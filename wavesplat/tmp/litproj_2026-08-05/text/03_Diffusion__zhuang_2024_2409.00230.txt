@@ -1,0 +1,1764 @@
+Spatially-Aware Diffusion Models with Cross-Attention for
+Global Field Reconstruction with Sparse Observations
+Yilin Zhuanga, Sibo Chengb, Karthik Duraisamya,∗
+aDepartment of Aerospace Engineering, University of Michigan, Ann
+Arbor, 48105, Michigan, United States
+bCEREA, École des Ponts and EDF R&D, Institut Polytechnique de Paris, Île-de-France, France
+Abstract
+Diffusion models have gained attention for their ability to represent complex distri-
+butions and incorporate uncertainty, making them ideal for robust predictions in
+the presence of noisy or incomplete data. In this study, we develop and enhance
+score-based diffusion models in field reconstruction tasks, where the goal is to estimate
+complete spatial fields from partial observations. We introduce a condition encoding
+approach to construct a tractable mapping between observed and unobserved regions
+using a learnable integration of sparse observations and interpolated fields as an
+inductive bias. With refined sensing representations and an unraveled temporal di-
+mension, our method can handle arbitrary moving sensors and effectively reconstruct
+fields. Furthermore, we conduct a comprehensive benchmark of our approach against
+a deterministic interpolation-based method across various static and time-dependent
+PDEs. Our study attempts to addresses the gap in strong baselines for evaluating
+performance across varying sampling hyperparameters, noise levels, and conditioning
+methods. Our results show that diffusion models with cross-attention and the proposed
+conditional encoding generally outperform other methods under noisy conditions,
+although the deterministic method excels with noiseless data. Additionally, both the
+diffusion models and the deterministic method surpass the numerical approach in
+accuracy and computational cost for the steady problem. We also demonstrate the
+ability of the model to capture possible reconstructions and improve the accuracy of
+fused results in covariance-based correction tasks using ensemble sampling.
+Keywords:
+Generative AI, Diffusion model, Global field reconstruction, Inverse
+problems
+∗Corresponding author.
+Email address: kdur@umich.edu (Karthik Duraisamy)
+Preprint submitted to Elsevier
+November 5, 2024
+arXiv:2409.00230v2  [cs.LG]  1 Nov 2024
+
+1. Introduction
+The global field reconstruction problem, which involves reconstructing a full field
+from partial observations, is underdetermined and has long been a challenge across
+various science and engineering domains [1, 2, 3]. Various numerical and deep-learning
+methods have been proposed to address this challenge, including Kriging [4], iterative
+Kalman filtering-based methods [5, 6], Voronoi-tessellation Convolutional Neural
+Networks (VCNNs) [1], and Physics-Informed Neural Networks [7].
+Among classical numerical methods for solving the field reconstruction tasks,
+Gaussian process [8] and its variants, such as the ensemble Kalman filter [9, 10, 11]
+and extended Kalman filter [12, 5], are commonly used statistical methods for
+approximating fields using Gaussian kernels. For optimization-based approaches, they
+are often combined with model reduction techniques to manage high-dimensional
+fields and perform field reconstruction [5, 13, 14, 15]. However, these methods remain
+computationally expensive, and the optimization formulation can become intractable
+for time-dependent PDEs.
+Various deep learning frameworks have been developed for field reconstruction
+tasks.
+The VCNN [1, 16] is a convolutional neural network that uses Voronoi
+tessellation to map interpolated fields to reconstructed fields. Voronoi tessellation
+describes a class of interpolation methods that maps point data to a field. Neural
+operators function by simultaneously learning differential operators and field solutions.
+Variants such as Physics-Informed Neural Operators (PINOs) [17] and Latent Neural
+Operators (LNOs) [18] are also capable of solving inverse problems. Another commonly
+used method is the Physics-Informed Neural Network (PINN) [7], which leverages
+automatic differentiation to solve PDEs. Several variants of PINNs and automatic
+differentiation-based methods have been proposed to address inverse problems [19, 20,
+21]. These methods are typically deterministic, and uncertainty quantification is often
+performed by injecting noise into the observations. For a fixed set of observations,
+fields reconstructed by deterministic methods are fixed and do not support uncertainty
+quantification.
+Generative models, derived from probabilistic learning and variational inference,
+have emerged as a powerful class of methods for generating new samples from data
+distribution. In the context of field reconstruction, generative models map an initial
+distribution, typically Gaussian, to the target data distribution [22], conditioned on
+the observed fields. Previous work has demonstrated that Generative Adversarial
+Networks (GANs) can reconstruct patches of turbulence data based on observations
+of the remaining fields [23]. However, it has also been shown that diffusion models
+2
+
+can outperform GANs in image synthesis and are easier to train [24, 25]. Additionally,
+diffusion models have demonstrated exceptional ability in learning complex data
+distributions across diverse domains [26, 27, 28], making them an ideal candidate for
+performing probabilistic generation.
+Several works have applied diffusion models to solve forward [29, 30] and inverse
+problems [29, 31, 30, 32], as well as the incorporation of physical residual to enhance
+the accuracy of generated fields [29, 33, 30]. Most of these works are based on full-field
+diffusion models, which are capable of directly backpropagating the physical loss
+and integrating seamlessly with partial observations when solving inverse problems.
+However, there has also been a growing interest in applying latent diffusion models
+to physics field generation tasks [34, 35].
+There are various ways to perform field reconstruction tasks with diffusion models
+that condition on observations. In the image processing domain, guided sampling
+or inpainting is frequently used because these techniques can be directly applied to
+trained diffusion models [36, 37, 33]. Guided sampling works by using the diffusion
+model to reconstruct unknown regions in the field. When applied in the physical
+domain, guided sampling is often combined with physical information to achieve physi-
+cally realistic results [29, 30, 38, 32]. Some studies have also adopted the classifier-free
+guidance (CFG) [39] method to incorporate sensing information [40, 41] or physical
+information [35, 29] as guiding information into diffusion models. This guiding infor-
+mation is typically integrated by augmenting the noise scale embedding and the latent
+representations of the fields. The cross-attention method is another frequently used
+approach for conditioning in the image processing domain [42, 43]. Cross-attention
+is a variant of self-attention [44] where the attention mechanism is applied between
+the image latent and the conditioning embedding. Compared to the augmentation
+performed in CFG, cross-attention has been shown to handle complex conditioning
+information [45], which could help capture variations in observation positions. Santos
+et al. [21] have investigated applying cross-attention-based deterministic method for
+field reconstruction tasks, and demonstrated promising results. However, to the best
+of our knowledge, cross-attention has not yet been explored in diffusion models for
+field reconstruction tasks.
+Despite the success of diffusion models in previous studies, comprehensive bench-
+marking of their performance in field reconstruction tasks remains limited, specifically
+in terms of comparisons against a strong baseline. Furthermore, previous research
+has not thoroughly explored the comparisons between different conditioning meth-
+ods when applying diffusion models to physical fields. In our earlier work [29], we
+enforced physical consistency in the generated fields during the reverse sampling
+process. However, reverse sampling trajectories could be disrupted if the scales of the
+3
+
+coefficients for the physical and sensing residuals are not properly managed. This
+issue is particularly problematic for time-dependent PDEs, where it is difficult to
+precisely evaluate the physical residual due to mismatches between the time intervals
+of saved snapshots and the actual time steps.
+In this study, we propose a conditional encoding approach that leverages inductive
+bias and observation positions to construct a tractable mapping between observed and
+unobserved regions in a full-field diffusion model for field reconstruction tasks. We
+conduct an extensive benchmark comparing the diffusion model with the interpolation-
+based deterministic model, VCNN [1]. Furthermore, we evaluate different conditioning
+methods, including guided sampling (or inpainting), CFG [39], and cross-attention [46],
+while analyzing the effects of sampling hyperparameters. Our results indicate that
+applying cross-attention in conjunction with our proposed condition encoding block
+results in superior performance compared to the other two conditioning methods.
+Field reconstruction from sparse sensor data is closely related to super-resolution
+tasks, where the goal is to recover high-resolution fields from limited observations,
+as commonly seen in fluid dynamics applications [47]. Recent studies have applied
+diffusion models to super-resolution problems, demonstrating their ability to handle
+complex nonlinear structures [35, 38]. Although our work focuses on field reconstruc-
+tion, the proposed cross-attention method can also be applied to super-resolution
+tasks, given the similarity in input data structure and the need for high-fidelity
+reconstruction from sparse observations.
+The implemented diffusion models are based on a U-Net [48] architecture, which
+includes additional connections between down-sampling and up-sampling blocks
+enhancing its capability compared to standard CNNs. To ensure a fair comparison,
+we adapt the VCNN to VT-UNet and perform self-attention in the middle block of
+the UNet. Our benchmark includes one static and three time-dependent PDEs: the
+Darcy flow, shallow water equation, diffusion-reaction equation, and compressible
+Navier-Stokes equations.
+The deep learning models are also compared with the numerical iterative Kalman
+filtering method on the Darcy flow problem.
+Additionally, we demonstrate the
+diffusion model’s capability to estimate ensemble mean and uncertainty, which can
+be incorporated into a numerical covariance inverse model [49]. This capability is
+demonstrated on the shallow water equations [50], where we show that the fused
+result can be improved using the uncertainty estimated by the diffusion model. The
+code for our models and experiments is publicly available in the Git repository:
+https://github.com/tonyzyl/DiffusionReconstruct.
+The rest of this paper is organized as follows.
+In Section 2, we review the
+problem formulation and the underlying architecture of the diffusion model with the
+4
+
+condition encoding block. The benchmark results of diffusion models with various
+hyperparameters are compared with the deterministic method in Section 3. Finally,
+we conclude with highlights and discuss potential future improvements in Section 4.
+2. Methods
+2.1. Problem formulation
+Consider a two dimensional squared domain Ω∈RNd×Nd, where Nd is the grid
+size. Let x ∈RNc×Nd×Nd denote the fields on Ω, where Nc is the number of fields.
+We denote M ∈RNc×Nd×Nd as the observation matrix with the one-hot encoding:
+Mi,j,k =
+(
+1
+if (j, k) ∈Observed points
+0
+otherwise
+(1)
+Here, we assume that the observed points across all fields have the same coordinates.
+We also define the unobserved matrix Mc such that x = (M ⊙x) ⊕(Mc ⊙x),
+where ⊙and ⊕denote the element-wise multiplication and addition, respectively.
+Let H: RNc×Nd×Nd →RNc×Nobs denote the observation operator, and we have the
+observed data as y = H(x).
+Let {sc,1, sc,2, . . . , sc,Nobs} ⊆Ωdenote the set of Voronoi-tessellated field for the
+variable xc ∈RNd×Nd. Each sub-region sc,i is defined as:
+sc,i = {x ∈Ω| ∥x −Pos(yc,i)∥≤∥x −Pos(yc,j)∥, ∀j̸ = i},
+with sc,i(x) = yc,i, ∀x ∈sc,i.
+(2)
+where Pos denotes the position of the observed point for field xc. Let q denote the
+reconstructed field, and the reconstructions using VT-UNet, unconditional diffusion
+and conditional diffusion models can be obtained as: q = FVT({sc,i}), q = FDiff(ϵ, y),
+and q = FCondDiff(ϵ, {sc,i}, M ⊙x), respectively. Here, we slightly abuse the notation
+for diffusion models because q is generated through iterative calls to the diffusion
+model, and ϵ denotes the randomized field initialization. The VT-UNet model is
+trained to minimize the mean squared error, Ex,y [∥q −x∥2
+2]
+2.2. Diffusion model with spatial feature cross attention
+The forward map of diffusion models is a tractable transformation where noise
+is gradually added, and the reverse map is approximated by neural networks to
+generate the reconstructed fields [51]. We denote the data distribution as π0 and the
+random noise as π1 ∼N(0, I). Let x0 be the initial data sample. Its intermediate
+5
+
+representations xt at timesteps t ∈[0, 1] can be obtained through the following
+transformation:
+xt = atx0 + btϵ,
+where ϵ ∼N(0, I),
+(3)
+where at and bt are the parameters of the transformation. Here, the timestep t
+is an artificial notation for describing the mapping between the data distribution
+and the Gaussian prior, rather than physical time. Various choices exist for these
+transformation parameters [52, 26, 53, 22]. The Elucidating Diffusion Model (EDM)
+framework [54] can be regarded as a special case of variance-exploding (VE) formula-
+tion [55] and it can be expressed as:
+x = x0 + σtϵ,
+(4)
+where σt denotes the noise level, sampled from a log-normal distribution during
+training. For simplicity, we will drop the subscript of xt and σt. One advantage
+of the VE formulation is its capability to handle unevenly distributed data, which
+is common in physical fields. Even after normalizing with the mean and standard
+deviation of the training dataset, physical fields can exhibit significant variability,
+with some regions being highly positive and others highly negative, despite having a
+mean close to zero. The variance-exploding formulation is well-suited to address this
+issue, as it can accommodate large noise scales.
+We also tested a diffusion model with noise prediction using the variance-preserving
+(VP) [53] formulation on the Darcy flow problem. We found the model trained with
+VP formulation struggled to generate the unevenly distributed fields. One possible
+reason is the sampled Gaussian noise typically has a smaller magnitude than the
+variability in the uneven regions. In this case, the noise level may not be large
+enough to capture the variability in the data distribution, leading to poor generation
+performance starting from the Gaussian prior.
+For the reverse sampling process, instead of solving the stochastic differential
+equation (SDE), Song et al. [53] proposed solving the following probability flow (PF)
+ordinary differential equation (ODE):
+dx =
+
+f(x, t) −1
+2g(t)2∇log pt(x; t)
+
+dt,
+(5)
+where f and g are the drift and diffusion functions, respectively. log pt(x; t) is the
+score function, which is the gradient of the log-likelihood of the data distribution at
+time t with respect to the data sample x [56]. For generating physical fields, the PF
+ODE is preferred over the SDE due to its deterministic nature, which ensures a more
+tractable generation process [29].
+6
+
+Let D(x; σ) denote the denoiser function that is optimized by the following training
+objective [54] to minimize the L2 denoising error:
+Ex0∼pdataEn∼N(0,σ2I)∥D(x0 + n; σ) −x0∥2
+2,
+with ∇x log pt(x; σ) = D(x; σ) −x
+σ2
+(6)
+where n denotes the added noise. Instead of approximating the denoiser function
+directly with neural network, it has been shown that scaling the output of denoising
+estimator with respect to the noise level, σ, improves overall performance. The
+following scaling scheme is utilized in the loss function [54]:
+Dθ(x; σ) = cskip(σ)x + cout(σ)Fθ(cin (σ)x; cnoise(σ))
+(7)
+Eσ,x0,n
+
+λ(σ)cout(σ)2∥Fθ (cin(σ) · (x0 + n); cnoise(σ)) −
+1
+cout(σ) (x0 −cskip(σ) · (x0 + n)) ∥2
+2
+
+(8)
+where λ(σ) is a positive weighting function, cout(σ), cnoise(σ), and cin(σ) are scaling
+factors. The function Fθ represents the neural network parameterized by θ. To
+generate the full-field solution, we solve the following deterministic ODE, derived by
+substituting σ(t) = t as the noise schedule in Equation (6)
+dx−= −t∇x log pt(x; σ)dt = x −Dθ(x; σ)
+t
+dt
+(9)
+We utilize the multi-step and predictor-corrector methods to solve the ODE.
+With access to partial measurements of the field, Song et al. [53] proved that the
+score function can be approximated as:
+∇z log pt(zt|y) ≈∇z log pt(zt|Mc ⊙ˆxt) = ∇z log pt ([zt ⊕(Mc ⊙ˆxt))
+(10)
+where zt = Mc⊙xt defines a new diffusion process of the unknown fields, and Mc⊙ˆx
+denotes a random sample from pt(Mc ⊙xt|y).
+Using partial observations as conditioning information, we tested three conditioning
+methods: guided sampling, classifier-free guidance, and cross-attention. A schematic
+of the latter two methods, along with the proposed condition encoding block, is shown
+in Figure 1. The guided sampling method is based on the inpainting approach, where
+the full fields are initially filled with noise, and an unconditional model is trained to
+denoise the fields. For the guided reverse sampling process, the unobserved field is
+updated by Equation (9), Mc ⊙dz−, and the observed field is updated by [57]:
+M ⊙xt−1 = M ⊙x0 + σt−1ϵ
+(11)
+7
+
+Figure 1: Schematic of the proposed condition encoding block with the UNet-based diffusion model,
+Fθ, and two ways of encoding sensor information: (A) cross-attention and (B) classifier-free guidance.
+For CFG [39], the pooled embedding of the conditioning information is combined
+with the noise scale embedding using the Feature-wise Linear Modulation (FiLM) [58]
+to generate the denoised fields. FiLM performs learnable modulations on the hidden
+state using the conditional information, offering an effective and flexible way of
+modulating the hidden state. In the cross-attention approach [46], cross-attention
+is applied between the embedding of the conditioning information and the hidden
+states, h, of the diffusion model. Let Eϕ denote the condition encoding block. The
+cross-attention has the same formulation as self-attention but with different matrix
+assignments:
+Attention(Q, K, V ) = softmax
+QKT
+√dk
+
+V,
+(12)
+where Q = Wqh, K = WkEϕ(x), and V = WvEϕ(x). Here, the query (Q) is derived
+from the hidden states of the diffusion model, while the key (K) and value (V )
+are derived from the condition encoding block Eϕ(x). Wq, Wk, and Wv are learned
+projection matrices, and dk is the dimensionality of the key.
+8
+
+Mathematically, conditioning via cross-attention can be regarded as a form of
+CFG, the new score function of the unobserved field can be expressed as:
+∇z log pt(zt|Eϕ(y)) =∇z log pt(zt|Eϕ(ynull))+
+γ · (∇z log pt(zt|Eϕ(y)) −∇z log pt(zt|Eϕ(ynull)))
+(13)
+where γ is the guidance scale, set to 1, and Eϕ(ynull) denotes the unconditional
+encoded state. Compared to Equation (10), we rely on the condition encoding block
+to capture the encoded representation and establish a tractable mapping between
+observed and unobserved regions. We set the CFG and cross-attention diffusion models
+to capture p(z(t)|Eϕ(y)), while retaining Equation (8) as the training objective for
+the encoder block to extract the observations. During the reverse sampling process,
+we update only the unobserved regions of the field.
+Figure 2: Schematic of the proposed condition encoding block. For CFG, mean-pooling is performed
+to reduce the dimensionality and to combine it with the noise scale embedding.
+The proposed condition encoding block processes information from the Voronoi-
+tessellated fields and sensing positions, integrating their patched embeddings using
+FiLM. The Voronoi-tessellated fields serve as an inductive bias and have previously
+been applied to diffusion model for super-resolution tasks [38]. The encoded states
+are further refined through a multilayer perceptron (MLP) and self-attention layers.
+A schematic of the proposed encoding block is shown in Figure 2. The adapted
+VT-UNet architecture, which mirrors that of the diffusion model, maps the Voronoi-
+tessellated fields to the reconstructed fields. For time-dependent PDEs, the temporal
+9
+
+dimension is unraveled during training, with no physical time provided as conditioning
+information. This unravelling approach aligns with the use of Voronoi tessellation for
+field inversion [1] and effectively handles field reconstruction from moving sensors.
+Each model is trained for 100,000 steps on 8 Nvidia H100 GPUs, with weights
+updated using an Exponential Moving Average (EMA). We do not include a validation
+step for saving the best weights. Additional details on the training and implementation
+are provided in Appendix
+A.1. A discussion of how the trained models can be
+finetuned to handle different resolutions is provided in Appendix C.4.
+2.3. Data assimilation as posterior fine-tuning
+The prediction of the physical field can be further enhanced using data assimilation
+(DA) algorithms based on Bayesian methods. Let xb,˜t denote the predicted control
+vector (also known as the background state) and y˜t denote the sparse observation at
+time ˜t [59]. In this section, ˜t denotes the physical time in simulations. Variational
+DA aims to find the optimal compromise between xb,˜t and y˜t by minimizing the cost
+function J˜t, defined as:
+J˜t(x) = 1
+2(x −xb,˜t)TB−1
+˜t (x −xb,˜t) + 1
+2(y˜t −H(x˜t)).TR−1
+˜t (y˜t −H(x˜t))
+(14)
+= 1
+2||x −xb,˜t||2
+B−1
+˜t
++ 1
+2||y˜t −H(x)||2
+R−1
+˜t
+where the operator (·)T in Equation (14) indicates the transpose. The error covariance
+matrices associated with xb,t and y˜t are denoted by B˜t and R˜t, respectively:
+B˜t = Cov(xb,˜t −xtrue,˜t, xb,˜t −xtrue,˜t),
+R˜t = Cov(H(xtrue,˜t) −y˜t, H(xtrue,˜t) −y˜t),
+(15)
+where xtrue,˜t represents the ground truth.
+Equation (14) represents the three-
+dimensional variational (3D-Var) approach. The analysis state xa,˜t corresponds
+to the point at which the cost function in Equation (14) reaches its minimum, that is,
+xa,˜t = argmin
+x
+
+J˜t(x)
+
+.
+(16)
+Typically, DA assumes that the background error (i.e., prior estimation error)
+and the observation error are uncorrelated. Since the diffusion model prediction is
+generated using the observation points, we adopt the DA framework here only as a
+posterior fine-tuning tool. In this context, the background error covariance B˜t can
+10
+
+be empirically estimated from the ensemble output of the diffusion model, a task
+that is challenging for deterministic machine learning approaches [60]. Therefore, the
+approach proposed in this paper also addresses the bottleneck of prior and posterior
+error estimation in inverse modeling [49]. To improve efficiency and effectively capture
+the spatial correlation of physical fields, DA is conducted within the reduced-order
+space of Principal Component Analysis (PCA). The details of this reduced order DA
+algorithm are provided in Appendix A.3.
+2.4. Benchmark Problems
+We benchmark the performance of the diffusion model with different conditioning
+methods against the adapted VT-UNet on three fluid-like systems and one static
+system. Below, we provide a brief overview of the benchmark problem setups, with
+more detailed information on the data sources and generation procedures available
+in Appendix B. A summary of the benchmark problems is provided in Table 1. The
+three time-dependent PDEs selected here cover advection and diffusion dynamics
+for fluid-like systems, as well as non-linear reaction dynamics. The static problem is
+chosen because it is a common benchmark for reconstructing fields from correlated
+observations.
+Table 1: Summary of datasets used for benchmarking the diffusion model with different conditioning
+methods.
+PDE
+Nd
+Nt
+Boundary
+Condition
+Number of
+Simulations
+Data
+Source
+Darcy flow
+128 × 128
+N/A
+Dirichlet
+10,000
+[5]
+Shallow water
+64 × 64
+50
+Periodic
+250
+[50]
+2D Diffusion reaction
+128 × 128
+101
+Neumann
+1,000
+[61]
+2D Compressible Navier Stokes
+128 × 128
+21
+Periodic
+10,000
+[61]
+2.4.1. Darcy Flow
+The Darcy flow equations describe the relationship between fluid pressure, p(x),
+and the permeability, α(x, θ), of a porous medium through which the fluid moves.
+The pressure and the permeability field are governed by the following relationships:
+−∇· (α(x, θ)∇p(x)) = fs(x),
+x ∈D,
+(17)
+p(x) = 0,
+x ∈∂D
+(18)
+11
+
+The permeability field is generated using a Karhunen-Loève Expansion (KLE)
+of a Gaussian random field. The dataset is generated with 128 modes, and the
+corresponding pressure field is computed. In this problem, only partial observations of
+the pressure field are available. The numerical iterative Kalman filtering method [5]
+optimizes the coefficients of 64 modes to minimize the observation error. We use
+the code provided in [5] to generate 10,000 samples, with observation points evenly
+spaced across the pressure field. The boundary conditions are set to Dirichlet.
+2.4.2. Shallow water
+The shallow water equations describe a non-linear wave propagation problem
+defined over a spatial domain with three variables: water height, h(x) (in mm),
+x-velocity, u, and y-velocity, v. The equations are given by:
+∂h
+∂t + ∇· (hu) = 0,
+(19)
+∂u
+∂t + ∂h
+∂x + bu = 0,
+(20)
+∂v
+∂t + ∂h
+∂y + bv = 0,
+(21)
+ut=0 = 0,
+(22)
+vt=0 = 0
+(23)
+The simulations represent a dam break scenario, where a column of water is released
+at a random location within the domain. The boundary conditions are periodic,
+and We use the data simulated in [50], with partial observations of all three fields
+available.
+2.4.3. 2D Diffusion-reaction
+The 2D diffusion-reaction system consists of two fields: the concentrations of an
+activator and an inhibitor. The equations for this system are given by:
+∂u
+∂t =Du
+∂2u
+∂x2 + Du
+∂2u
+∂y2 + Ru,
+(24)
+∂v
+∂t =Dv
+∂2v
+∂x2 + Dv
+∂2v
+∂y2 + Rv,
+(25)
+where u and v are the activator and inhibitor fields, respectively, with diffusion
+coefficients Du = 1 × 10−3 and Dv = 5 × 10−3. The reaction terms Ru and Rv are
+12
+
+defined by the FitzHugh-Nagumo equations:
+Ru(u, v) = u −u3 −k −v
+(26)
+Rv(u, v) = u −v
+(27)
+where k = 5 × 10−3. The initial concentration at each point in both fields follows a
+Gaussian distribution. We use the data simulated in [61], with partial observations of
+both fields available. The boundary conditions are set to Neumann.
+2.4.4. 2D Compressible Navier-Stokes (CFD)
+The compressible Navier-Stokes equations describe the motion of a compressible
+fluid. The equations for the 2D compressible Navier-Stokes system are given by:
+∂ρ
+∂t + ∇· (ρv) = 0,
+(28)
+ρ
+∂v
+∂t + v · ∇v
+
+= −∇p + η∆v +
+
+ζ + η
+3
+
+∇(∇· v),
+(29)
+∂
+∂t
+
+ϵ + ρv2
+2
+
++ ∇·
+
+ϵ + p + ρv2
+2
+
+v −v · σ′
+
+= 0,
+(30)
+where ρ is the density, v is the velocity, p is the pressure, σ′ is the viscous stress
+tensor, η and ζ are the shear and bulk viscosities, respectively, and ϵ is the internal
+energy. The initial conditions are constructed by a randomly initialized superposition
+of sinusoidal waves. We use the data simulated in [61], with partial observations of
+all four fields available. The selected dataset has η = ζ = M = 0.1. The boundary
+conditions are set to periodic.
+3. Numerical Results
+For performing the field reconstruction tasks, we select the ratio of observed data
+points to be 0.3% and 1.37% for the Darcy flow problem, corresponding to 49 and 225
+observed points on a 128 × 128 grid, respectively. To align with the original numerical
+approach, these observed points are evenly spaced across the domain, and the loss
+metrics are computed only on the permeability field, for which we do not have any
+direct information.
+For the remaining three time-dependent PDEs, we select the ratio of observed
+data points to be 0.3%, 1%, and 3%, with locations randomly sampled. The three
+loss metrics we use, selected from [61], are the root mean squared error (RMSE),
+13
+
+the normalized root mean squared error (nRMSE), and the RMSE of the conserved
+quantity (cRMSE). These metrics are computed in the unknown regions of the
+fields. Due to the size of the dataset, we select 1000 samples for each problem for
+benchmarking. We abbreviate the 2D compressible Navier-Stokes equations as CFD
+in the following sections.
+Figure 3: Comparison of the generated permeability fields for the Darcy flow problem with 1.37%
+observed data points. Reverse sampling process of the diffusion models is configured with 20 steps,
+using a predictor-corrector scheme and a single trajectory. The black crosses denote the observed
+data points.
+The reconstructed fields from noiseless observations using different methods are
+compared in Table 2. The results for the diffusion models are generated from an en-
+semble of 25 trajectories using the predictor-corrector scheme with 20 steps. We found
+that the predictor-corrector scheme generally provides more robust reconstructions
+14
+
+than the multistep solver [62]; reconstructions from the multistep solver are included
+in Appendix C.1. Among the different conditioning methods, cross-attention consis-
+tently shows the best performance in terms of RMSE, nRMSE, and cRMSE across
+all PDEs.
+With the same number of training steps, VT-UNet with noiseless observations
+achieves the best performance in nRMSE for 39 out of 43 cases. This could be caused
+by the diffusion model has an additional implicit dimension to learn, specifically, the
+noise level, which makes the optimization problem more challenging. Additionally,
+diffusion models tend to have higher cRMSE values than VT-UNet, even when the
+computed nRMSE is lower. This may be attributed to the architecture of the EDM
+formulation, where the model’s output is suppressed in the low-noise region (Equation
+(8)), and the log-normal noise schedule primarily focuses on the medium-noise region,
+leaving the model less capable of correcting fine details in the low-noise region.
+However, VT-UNet is more sensitive to observation noise levels, as shown in Figure
+4. The diffusion models demonstrate more stable performance across different noise
+levels. When noise levels increase to 5%, the cross-attention method outperforms
+VT-UNet in all cases except for the CFD problem. The cross-attention method
+generally outperforms other conditioning methods across all observation noise levels.
+In contrast, the guided sampling method shows the worst performance for all PDEs
+and observation noise levels, indicating that for complex physical systems with sparse
+observations, guided sampling is insufficient to steer the sampling trajectory toward
+the correct solution. A comparison of the diffusion-reaction problem under colored
+noise conditions is provided in Appendix C.5. If unconditional generation capability
+is also desired, one should consider using the ControlNet approach [29] or setting the
+guidance scale in Equation (13) to be less than one.
+We also investigate the effect of the number of reverse steps on the performance
+of the diffusion models. The results are shown in Figure 5. The performance of the
+diffusion models generally improves as the number of reverse steps increases, and we
+do not observe a turning point where the performance starts to degrade. However,
+this improvement is only significant in the CFD problem, suggesting that the learned
+mapping trajectories between the data distribution and the Gaussian prior for the
+other PDEs are less complex. This is because the reverse path solved by the PF ODE
+is only an approximation of the continuous reverse path. If comparable performance
+can be achieved with fewer reverse steps, it indicates that the flow path has a high
+degree of ’straightness’ [22]. Additionally, the improvement diminishes after a certain
+number of steps, with 20 steps providing a good trade-off between performance and
+computational cost.
+We compare the nRMSE of the deep learning methods to that of the numerical
+15
+
+Figure 4: Bar plot of nRMSE for the PDEs with 1% observed data points (1.37% for the Darcy
+flow) and various observation noise levels. The red dashed line denotes the error of reconstructing
+the field using the mean of the training data. The diffusion models are configured with 20 steps,
+with a predictor-corrector scheme and an ensemble of 25 trajectories.
+iterative Kalman filtering approach on the Darcy Flow problem, where sparse mea-
+surements of the pressure field are provided to reconstruct two fields. The evaluations
+on the reconstructed permeability fields are shown in Table 3. Computation time
+is calculated as the average time required to infer a batch of reconstructed fields.
+For the deep learning models, the time is measured on a Nvidia H100 GPU, while
+for the numerical approach, the time is measured on an Intel 13700K CPU. We set
+the number of KLE modes for the numerical method to 64, using the recommended
+regularization hyperparameter of 0.5 [5]. The diffusion models with cross-attention
+and the VT-UNet both outperform the numerical approach in terms of nRMSE and
+computational cost. For the other time-dependent PDEs, the numerical approach is
+not applicable due to its high computational cost.
+Field reconstruction tasks from sparse observations are underdetermined problems,
+16
+
+Figure 5: nRMSE of the PDEs with 1% observed data points (1.37% for the Darcy flow) for different
+numbers of reverse steps. The diffusion models are configured with a predictor-corrector scheme
+and an ensemble of 25 trajectories.
+meaning that multiple solutions can exist for the same set of measurements. This is
+best illustrated in the Diffusion-Reaction equations, where the concentration profiles
+of the activator and inhibitor fields evolve from high-frequency noise to smooth
+patterns, as shown in Figure 6.
+At the high-frequency stage, the VT-UNet fails to capture the possible details in
+the fields, although the mean representation has a lower MSE error. This outcome
+is expected since the training objective is formulated as an MSE loss. The diffusion
+models, on the other hand, are able to capture the high-frequency patterns in the
+fields and provide a possible realization of the observations. This approach offers a
+new perspective on understanding the possible underlying structures of the fields,
+though it typically results in a larger error compared to the deterministic mean
+representation. The capability of generating different outcomes was also reported
+in [40]. However, the mean derived from an ensemble of reverse-sampled trajectories
+with the same observation points also converges to a similar mean representation.
+This indicates that the fields reconstructed by the diffusion models are consistent
+with the results obtained from the deterministic method.
+In the low-frequency stage, both the VT-UNet and the diffusion models effectively
+capture the underlying structure of the fields, with the difference between a single
+trajectory and the ensemble mean of the reconstructed fields being less significant.
+It is also noted that when the fields are sampled using the multistep solver, the
+diffusion models lose the ability to capture possible realizations, as shown in Figure 7.
+A comparison between different conditioning methods using multistep sampling is
+provided in Appendix C.1. The errors associated with multistep [62] sampling are
+generally higher than those of the predictor-corrector method, although multistep
+17
+
+(a) Reconstructed fields that close to the start of the simulation (step: 11/101).
+(b) Reconstructed fields that close to the end of the simulation (step: 91/101).
+Figure 6: Comparison of the generated fields by VT-UNet, single trajectory and ensemble mean of
+cross-attention diffusion model for the Diffusion Reaction equations with 1% observed data points.
+The diffusion models are configured with 20 steps, with a predictor-corrector scheme and an ensemble
+of 25 trajectories. The black crosses denote the observed data points.
+18
+
+Figure 7: Comparison of the generated fields by VT-UNet, single trajectory and ensemble mean of
+cross-attention diffusion model for the Diffusion Reaction equations with 1% observed data points.
+The diffusion models are configured with 20 steps, with a multistep scheme and an ensemble of 25
+trajectories.
+sampling achieves better nRMSE for the fine-tuned model (see Appendix
+C.4).
+Therefore, if a mean representation is desired, using the multistep solver can reduce
+computational cost with only a slight increase in error.
+The results for the compressible Navier-Stokes equations are shown in Figure 8.
+The diffusion models with CFG and cross-attention provide better reconstructions of
+the velocity fields compared to VT-UNet. However, for the density field, all methods
+fail to accurately capture the interface, despite the small relative error. This may be
+attributed to the heavy-tailed distribution of the density field, as shown in Figure
+B.14, which is not effectively handled by the normalization during data preprocessing.
+Figure 9 displays the assimilated velocity field in the shallow water application
+following the diffusion model reconstruction.
+As mentioned in Section 2.3, the
+background error covariance in this case is empirically estimated from the ensemble
+generated using the diffusion model introduced in this paper. The ensemble size
+is fixed at 10 for all DA experiments.
+As can be clearly observed in Figure 9,
+the field reconstruction error is significantly reduced posterior to the DA process,
+particularly around the observable points. The estimated variance (i.e., the diagonal
+19
+
+Figure 8: Comparison of the generated fields by VT-UNet and the ensemble means of diffusion
+models for the compressible Navier-Stokes equations with 1% observed data points. The diffusion
+models are configured with 20 steps, using a predictor-corrector scheme and an ensemble of 25
+trajectories.
+of the covariance matrix estimated using the 10 realizations of the diffusion model)
+is also shown in Figure 9. An energy plot of the shallow water equation is provided
+in Appendix C.6, demonstrating that the models maintain consistent performance
+over time, even when each time step is treated as a separate instance.
+As a benchmark, we also conducted DA using an identity background error
+covariance, which is a common choice in practical DA when B˜t cannot be explicitly
+specified. Numerical experiments are repeated for all 25 simulations in the test datasets
+20
+
+Figure 9: Samples of prior (background) and posterior (analysis) error of data assimilation applied
+on the 2D shallow water test case at time steps 20 (first row) and 40 (second row). Red dots
+illustrate the observation positions.
+of the shallow water simulations. We calculate the relative error improvement Imt,
+defined as:
+Imt = ||xb,˜t −xtrue,˜t||2 −||xa,˜t −xtrue,˜t||2
+||xb,˜t −xtrue,˜t||2
+,
+(31)
+which represents the improvement in field reconstruction due to the DA process.The
+distribution of Imt in the test dataset, consisting of 50 simulations (each evaluated
+on 10 samples), is presented in Figure 10. Overall, both DA methods using either
+the diffusion ensemble covariance matrix or the identity covariance matrix, improve
+the average field reconstruction accuracy. However, the diffusion ensemble covariance
+matrix demonstrates superior performance in most of the corrections applied to the
+diffusion model output. It is important to note that the placement of observable
+points varies over time at different time steps. In some cases, DA may result in
+negative improvement due to the sparsity of observations and potential overfitting by
+the PCA algorithm. Overall, these results demonstrate that the proposed diffusion
+model can seamlessly incorporate a Bayesian fine-tuning method such as DA, to
+further enhance the accuracy of field reconstruction.
+21
+
+-100%
+-50%
+0%
+50%
+100%
+Relative Error improvement
+0
+1
+2
+3
+4
+5
+Density
+Diffusion Ensemble Cov
+Identity Cov
+Median Diffusion: 10.87%
+Median Identity: 6.52%
+Figure 10: Histogram of relative error improvement Imt distribution with different DA error
+covariances.
+4. Conclusion
+We enhance and evaluate diffusion models for field reconstruction tasks, with
+the goal of estimating complete spatio-temporal fields from sparse observations. By
+introducing a novel condition encoding block that integrates Voronoi-tessellated fields
+and sensing positions as an inductive bias, we constructed a tractable mapping
+between observed and unobserved regions. This approach leverages Feature-wise
+Linear Modulation (FiLM) and self-attention mechanisms to effectively capture the
+conditioning representation and support probabilistic reconstruction. We benchmark
+the effectiveness of conditioning using two commonly employed methods: hidden
+state augmentation, which we refer to as classifier-guidance free (CFG), and the
+cross-attention mechanism, against the adapted deterministic method, VT-UNet,
+with the same number of training steps. In addition, we include guided sampling
+in our comparison, a commonly used method that operates in the reverse sampling
+process without requiring explicit conditioning.
+The proposed conditional encoding is shown to enable the diffusion model to
+generate high-quality fields from sparse observations. It offers a flexible approach to
+handle time-dependent PDEs without the need for explicit physical time conditioning,
+making it particularly effective in scenarios involving moving sensors. Our benchmarks
+for model evaluations includes Darcy flow, shallow water equations, diffusion-reaction
+22
+
+equations, and compressible Navier-Stokes equations.
+Our numerical experiments show that in the steady state Darcy flow problem,
+the diffusion model outperforms traditional numerical iterative method in terms
+of accuracy and computational efficiency. Although the diffusion model does not
+surpass the interpolation-based deterministic model in noiseless settings with the
+same training effort due to the added complexity of learning across various noise levels,
+it proves to be more robust under noisy observations, which is critical for real-world
+applications. As the number of variables and the resolution of the domain increase,
+the difficulty of training the full-field diffusion model is expected to rise significantly,
+emphasizing the need for implementing latent diffusion models for high-dimensional
+problems.
+Among the tested conditioning methods, the cross-attention mechanism within
+the condition encoding block generally provides the best performance. Conversely,
+the guided sampling method fails to reconstruct the correct fields for all PDEs.
+Regarding the different PF ODE solvers for the reverse sampling process, we found
+that the predictor-corrector scheme is more robust than the multistep scheme on the
+EDM framework, as it able to capture possible realizations of the underdetermined
+reconstruction with sparse observations. Furthermore, we demonstrate that the mean
+of these realizations converges to the output obtained by the deterministic model,
+suggesting that the encoding block effectively extracts information from the inductive
+bias and sensing positions. While our tests focus on non-periodic dynamics, we expect
+the diffusion model to also perform well on periodic problems, similar to findings
+from previous work on VCNN [1].
+Additionally, our experiments indicate that data assimilation methods can be
+integrated with the proposed diffusion model to further improve accuracy. The
+stochastic nature of the diffusion model can also aid in uncertainty quantification in
+inverse modeling through an ensemble approach, as demonstrated in this study. In
+future work, we plan to further explore the integration of diffusion models within the
+ensemble data assimilation framework for high-dimensional dynamical systems.
+Data availability
+All the data used are publicly available or can be generated from publicly available
+code. The source code for the experiments is available on GitHub:
+https://github.com/tonyzyl/DiffusionReconstruct.
+23
+
+Acknowledgment
+This work was supported by Los Alamos National Laboratory under the project
+“Algorithm/Software/Hardware Co-design for High Energy Density applications” at
+the University of Michigan. Sibo Cheng acknowledges the support of the French
+Agence Nationale de la Recherche (ANR) under reference ANR-22-CPJ2-0143-01.
+References
+[1] K. Fukami, R. Maulik, N. Ramachandra, K. Fukagata, K. Taira, Global field
+reconstruction from sparse sensors with voronoi tessellation-assisted deep learning,
+Nat. Mach. Intell. 3 (11) (2021) 945–951.
+[2] H. Shen, X. Li, Q. Cheng, C. Zeng, G. Yang, H. Li, L. Zhang, Missing information
+reconstruction of remote sensing data: A technical review, IEEE Geosci. Remote
+Sens. Mag. 3 (3) (2015) 61–85.
+[3] P. Zhang, I. Nevat, G. W. Peters, F. Septier, M. A. Osborne, Spatial field recon-
+struction and sensor selection in heterogeneous sensor networks with stochas-
+tic energy harvesting, IEEE Trans. Signal Process. 66 (9) (2018) 2245–2257.
+doi:10.1109/TSP.2018.2802452.
+[4] J. P. Kleijnen, Kriging metamodeling in simulation: A review, European J. Oper.
+Res. 192 (3) (2009) 707–716.
+[5] D. Z. Huang, T. Schneider, A. M. Stuart, Iterated kalman methodology for
+inverse problems, J. Comput. Phys. 463 (2022) 111262.
+[6] M. Bocquet, P. Sakov, An iterative ensemble kalman smoother, Quart. J. Roy.
+Meteorol. Soc. 140 (682) (2014) 1521–1535.
+[7] M. Raissi, P. Perdikaris, G. E. Karniadakis, Physics-informed neural networks:
+A deep learning framework for solving forward and inverse problems involving
+nonlinear partial differential equations, J. Comput. Phys. 378 (2019) 686–707.
+[8] C. E. Rasmussen, Gaussian processes in machine learning, in: Summer school
+on machine learning, Springer, 2003, pp. 63–71.
+[9] G. Evensen, Sequential data assimilation with a nonlinear quasi-geostrophic
+model using monte carlo methods to forecast error statistics, J. Geophys. Res.
+Oceans 99 (C5) (1994) 10143–10162.
+24
+
+[10] M. Bocquet, Ensemble kalman filtering without the intrinsic need for inflation,
+Nonlinear Processes Geophys. 18 (5) (2011) 735–750.
+[11] M. A. Iglesias, K. J. Law, A. M. Stuart, Ensemble kalman methods for inverse
+problems, Inverse Prob. 29 (4) (2013) 045001.
+[12] A. H. Jazwinski, Stochastic processes and filtering theory, Courier Corporation,
+2007.
+[13] R. Angell, D. R. Sheldon, Inferring latent velocities from weather radar data
+using gaussian processes, Adv. Neural Inf. Process. Syst. 31 (2018).
+[14] Y. Gu, L. Wang, W. Chen, C. Zhang, X. He, Application of the meshless
+generalized finite difference method to inverse heat source problems, Int. J. Heat
+Mass Transfer 108 (2017) 721–729.
+[15] M. Gherlone, P. Cerracchio, M. Mattone, M. Di Sciuva, A. Tessler, Shape sensing
+of 3d frame structures using an inverse finite element method, Int. J. Solids
+Struct. 49 (22) (2012) 3100–3112.
+[16] Y. Zhang, Z. Gong, X. Zhao, W. Yao, Uncertainty guided ensemble self-training
+for semi-supervised global field reconstruction, Complex Intell. Syst. 10 (1) (2024)
+469–483.
+[17] Z. Li, H. Zheng, N. Kovachki, D. Jin, H. Chen, B. Liu, K. Azizzadenesheli,
+A. Anandkumar, Physics-informed neural operator for learning partial differential
+equations, ACM/JMS J. Data Sci. 1 (3) (2024) 1–27.
+[18] T. Wang, C. Wang, Latent neural operator for solving forward and inverse pde
+problems, arXiv preprint arXiv:2406.03923 (2024).
+[19] Y. Zhu, N. Zabaras, P.-S. Koutsourelakis, P. Perdikaris, Physics-constrained deep
+learning for high-dimensional surrogate modeling and uncertainty quantification
+without labeled data, J. Comput. Phys. 394 (2019) 56–81.
+[20] J. D. Smith, Z. E. Ross, K. Azizzadenesheli, J. B. Muir, Hyposvi: Hypocentre
+inversion with stein variational inference and physics informed neural networks,
+Geophys. J. Int. 228 (1) (2022) 698–710.
+[21] J. E. Santos, Z. R. Fox, A. Mohan, D. O’Malley, H. Viswanathan, N. Lub-
+bers, Development of the senseiver for efficient field reconstruction from sparse
+observations, Nat. Mach. Intell. 5 (11) (2023) 1317–1325.
+25
+
+[22] X. Liu, C. Gong, Q. Liu, Flow straight and fast: Learning to generate and
+transfer data with rectified flow, arXiv preprint arXiv:2209.03003 (2022).
+[23] M. Buzzicotti, F. Bonaccorso, P. C. Di Leoni, L. Biferale, Reconstruction of
+turbulent data with deep generative models for semantic inpainting from turb-rot
+database, Phys. Rev. Fluids 6 (5) (2021) 050503.
+[24] P. Dhariwal, A. Nichol, Diffusion models beat gans on image synthesis, Adv.
+Neural Inf. Process. Syst. 34 (2021) 8780–8794.
+[25] L. Yang, Z. Zhang, Y. Song, S. Hong, R. Xu, Y. Zhao, W. Zhang, B. Cui, M.-H.
+Yang, Diffusion models: A comprehensive survey of methods and applications,
+ACM Comput. Surv. 56 (4) (2023) 1–39.
+[26] J. Ho, A. Jain, P. Abbeel, Denoising diffusion probabilistic models, Adv. Neural
+Inf. Process. Syst. 33 (2020) 6840–6851.
+[27] Y. Liu, K. Zhang, Y. Li, Z. Yan, C. Gao, R. Chen, Z. Yuan, Y. Huang, H. Sun,
+J. Gao, et al., Sora: A review on background, technology, limitations, and
+opportunities of large vision models (2024).
+[28] X. Li, J. Thickstun, I. Gulrajani, P. S. Liang, T. B. Hashimoto, Diffusion-lm
+improves controllable text generation (2022).
+[29] C. Jacobsen, Y. Zhuang, K. Duraisamy, Cocogen: Physically-consistent and
+conditioned score-based generative models for forward and inverse problems
+(2023).
+[30] J. Huang, G. Yang, Z. Wang, J. J. Park, Diffusionpde: Generative pde-solving
+under partial observation, arXiv preprint arXiv:2406.17763 (2024).
+[31] J.-H. Bastek, W. Sun, D. M. Kochmann, Physics-informed diffusion models
+(2024).
+[32] A. Dasgupta, H. Ramaswamy, J. M. Esandi, K. Foo, R. Li, Q. Zhou, B. Kennedy,
+A. Oberai, Conditional score-based diffusion models for solving inverse problems
+in mechanics, arXiv preprint arXiv:2406.13154 (2024).
+[33] H. Chung, J. Kim, M. T. Mccann, M. L. Klasky, J. C. Ye, Diffusion posterior
+sampling for general noisy inverse problems, arXiv preprint arXiv:2209.14687
+(2022).
+26
+
+[34] H. Gao, S. Kaltenbach, P. Koumoutsakos, Generative learning of the solution
+of parametric partial differential equations using guided diffusion models and
+virtual observations, arXiv preprint arXiv:2408.00157 (2024).
+[35] P. Du, M. H. Parikh, X. Fan, X.-Y. Liu, J.-X. Wang, Confild: Conditional neural
+field latent diffusion model generating spatiotemporal turbulence (2024).
+[36] J. Song, A. Vahdat, M. Mardani, J. Kautz, Pseudoinverse-guided diffusion models
+for inverse problems, in: International Conference on Learning Representations,
+2023.
+[37] M. Mardani, J. Song, J. Kautz, A. Vahdat, A variational perspective on solving
+inverse problems with diffusion models, arXiv preprint arXiv:2305.04391 (2023).
+[38] D. Shu, Z. Li, A. B. Farimani, A physics-informed diffusion model for high-fidelity
+flow field reconstruction, J. Comput. Phys. 478 (2023) 111972.
+[39] J. Ho,
+T. Salimans,
+Classifier-free diffusion guidance,
+arXiv preprint
+arXiv:2207.12598 (2022).
+[40] K. Haitsiukevich, O. Poyraz, P. Marttinen, A. Ilin, Diffusion models as proba-
+bilistic neural operators for recovering unobserved states of dynamical systems,
+arXiv preprint arXiv:2405.07097 (2024).
+[41] L. Huang, L. Gianinazzi, Y. Yu, P. D. Dueben, T. Hoefler, Diffda: a diffusion
+model for weather-scale data assimilation, arXiv preprint arXiv:2401.05932
+(2024).
+[42] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal, G. Sastry,
+A. Askell, P. Mishkin, J. Clark, et al., Learning transferable visual models from
+natural language supervision, in: International conference on machine learning,
+PMLR, 2021, pp. 8748–8763.
+[43] L. Rout, Y. Chen, A. Kumar, C. Caramanis, S. Shakkottai, W.-S. Chu, Beyond
+first-order tweedie: Solving inverse problems using latent diffusion, in: Proceed-
+ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+2024, pp. 9472–9481.
+[44] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez,
+Ł. Kaiser, I. Polosukhin, Attention is all you need, Adv. Neural Inf. Process.
+Syst. 30 (2017).
+27
+
+[45] R. Po, W. Yifan, V. Golyanik, K. Aberman, J. T. Barron, A. Bermano, E. Chan,
+T. Dekel, A. Holynski, A. Kanazawa, et al., State of the art on diffusion models
+for visual computing, in: Computer Graphics Forum, Vol. 43, Wiley Online
+Library, 2024, p. e15063.
+[46] C.-F. R. Chen, Q. Fan, R. Panda, Crossvit: Cross-attention multi-scale vi-
+sion transformer for image classification, in: Proceedings of the IEEE/CVF
+international conference on computer vision, 2021, pp. 357–366.
+[47] K. Fukami, K. Fukagata, K. Taira, Super-resolution analysis via machine learning:
+a survey for fluid flows, Theor. Comput. Fluid Dyn. 37 (4) (2023) 421–444.
+[48] O. Ronneberger, P. Fischer, T. Brox, U-net: Convolutional networks for biomed-
+ical image segmentation, in: Medical image computing and computer-assisted
+intervention–MICCAI 2015: 18th international conference, Munich, Germany,
+October 5-9, 2015, proceedings, part III 18, Springer, 2015, pp. 234–241.
+[49] P. Tandeo, P. Ailliot, M. Bocquet, A. Carrassi, T. Miyoshi, M. Pulido, Y. Zhen,
+A review of innovation-based methods to jointly estimate model and observation
+error covariance matrices in ensemble data assimilation, Mon. Wea. Rev. 148 (10)
+(2020) 3973–3994.
+[50] S. Cheng, C. Liu, Y. Guo, R. Arcucci, Efficient deep data assimilation with sparse
+observations and time-varying sensors, J. Comput. Phys. 496 (2024) 112581.
+[51] P. Esser, S. Kulal, A. Blattmann, R. Entezari, J. Müller, H. Saini, Y. Levi,
+D. Lorenz, A. Sauer, F. Boesel, et al., Scaling rectified flow transformers for high-
+resolution image synthesis, in: Forty-first International Conference on Machine
+Learning, 2024.
+[52] J. Song, C. Meng, S. Ermon, Denoising diffusion implicit models, arXiv preprint
+arXiv:2010.02502 (2020).
+[53] Y. Song, J. Sohl-Dickstein, D. P. Kingma, A. Kumar, S. Ermon, B. Poole,
+Score-based generative modeling through stochastic differential equations, in:
+International Conference on Learning Representations, 2021.
+URL https://openreview.net/forum?id=PxTIG12RRHS
+[54] T. Karras, M. Aittala, T. Aila, S. Laine, Elucidating the design space of diffusion-
+based generative models, Adv. Neural Inf. Process. Syst. 35 (2022) 26565–26577.
+28
+
+[55] D. Kingma, R. Gao, Understanding diffusion objectives as the elbo with simple
+data augmentation, Adv. Neural Inf. Process. Syst. 36 (2024).
+[56] A. Hyvärinen, P. Dayan, Estimation of non-normalized statistical models by
+score matching., J. Mach. Learn. Res. 6 (4) (2005).
+[57] A. Lugmayr, M. Danelljan, A. Romero, F. Yu, R. Timofte, L. Van Gool, Repaint:
+Inpainting using denoising diffusion probabilistic models, in: Proceedings of the
+IEEE/CVF conference on computer vision and pattern recognition, 2022, pp.
+11461–11471.
+[58] E. Perez, F. Strub, H. de Vries, V. Dumoulin, A. Courville, Film: Visual reasoning
+with a general conditioning layer (2017). arXiv:1709.07871.
+[59] A. Carrassi, M. Bocquet, L. Bertino, G. Evensen, Data assimilation in the
+geosciences: An overview of methods, issues, and perspectives, Wiley Interdiscip.
+Rev.: Clim. Change 9 (5) (2018) e535.
+[60] S. Cheng, C. Quilodrán-Casas, S. Ouala, A. Farchi, C. Liu, P. Tandeo, R. Fablet,
+D. Lucor, B. Iooss, J. Brajard, et al., Machine learning with data assimilation
+and uncertainty quantification for dynamical systems: a review, IEEE/CAA J.
+Autom. Sin. 10 (6) (2023) 1361–1387.
+[61] M. Takamoto, T. Praditia, R. Leiteritz, D. MacKinlay, F. Alesiani, D. Pflüger,
+M. Niepert, Pdebench: An extensive benchmark for scientific machine learning,
+Adv. Neural Inf. Process. Syst. 35 (2022) 1596–1611.
+[62] C. Lu, Y. Zhou, F. Bao, J. Chen, C. Li, J. Zhu, Dpm-solver++:
+Fast
+solver for guided sampling of diffusion probabilistic models, arXiv preprint
+arXiv:2211.01095 (2022).
+[63] M. A. Islam, S. Jia, N. D. Bruce, How much position information do convolutional
+neural networks encode?, arXiv preprint arXiv:2001.08248 (2020).
+[64] M. Morimoto, K. Fukami, K. Zhang, A. G. Nair, K. Fukagata, Convolutional
+neural networks for fluid flow analysis: toward effective metamodeling and low
+dimensionalization, Theor. Comput. Fluid Dyn. 35 (5) (2021) 633–658.
+[65] T. Karras, M. Aittala, J. Lehtinen, J. Hellsten, T. Aila, S. Laine, Analyzing
+and improving the training dynamics of diffusion models, in: Proceedings of the
+IEEE/CVF Conference on Computer Vision and Pattern Recognition, 2024, pp.
+24174–24184.
+29
+
+[66] J.-P. Argaud, User documentation, in the SALOME 9.3 platform, of the ADAO
+module for ”Data Assimilation and Optimization”, Technical report 6125-1106-
+2019-01935-EN, EDF / R&D (2019).
+[67] X. Gu, C. Du, T. Pang, C. Li, M. Lin, Y. Wang, On memorization in diffusion
+models, arXiv preprint arXiv:2310.02664 (2023).
+[68] N. Carlini, J. Hayes, M. Nasr, M. Jagielski, V. Sehwag, F. Tramer, B. Balle,
+D. Ippolito, E. Wallace, Extracting training data from diffusion models, in: 32nd
+USENIX Security Symposium (USENIX Security 23), 2023, pp. 5253–5270.
+[69] K. Fukami, S. Goto, K. Taira, Data-driven nonlinear turbulent flow scaling with
+buckingham pi variables, J. Fluid Mech. 984 (2024) R4.
+[70] Y. Yasuda, R. Onishi, Rotationally equivariant super-resolution of velocity fields
+in two-dimensional flows using convolutional neural networks, APL Mach. Learn.
+1 (2) (2023).
+Appendix A. Additional Information
+Appendix A.1. Implementation and Training details
+The hyperparameters of the EDM framework are designed to handle normally
+distributed data with a standard deviation of 0.5. Therefore, we scale our data
+accordingly to achieve a similar distribution based on the mean and standard deviation
+of the training data.
+The U-Net architecture is utilized for the denoiser function, Dθ, following the same
+design as in [54]. The implementation is based on the PyTorch 2.3.1 and diffusers
+0.29.2 libraries. The network consists of Nblock down-sampling and up-sampling blocks,
+where Nblock is the number of blocks required to achieve a bottleneck size of 16 × 16,
+where Nblock is the number of blocks required to achieve a bottleneck size of 16 × 16,
+the last block in the down-sampling part and the first block in the up-sampling part
+do not have down-sampling and up-sampling layers, respectively. Specifically, Nblock
+equals 3 for the shallow water equations and 4 for the other problems. The first
+down-sampling block has 128 channels, while the remaining blocks have 256 channels.
+The up-sampling blocks are symmetric to the down-sampling blocks. The network
+uses a 3x3 convolutional layer with a stride of 2 for down-sampling and a nearest
+interpolation followed by a 3x3 convolutional layer for up-sampling. FiLM [58] is
+applied for both the noise level embedding and the classifier-free guidance (CFG).
+Zero padding in CNNs can leak positional information [63], and typically, special
+treatment is required for processing different types of periodic conditions [64]. In this
+30
+
+work, we do not implement these techniques; instead, we rely on skip connections
+and self-attention mechanisms to capture global information. However, we expect
+that periodic padding could improve the generalizability of the models and could be
+explored in future work.
+The network is trained using the AdamW optimizer with a learning rate of 10−4
+and a weight decay of 0.01 for 100,000 steps, with a batch size of 128 samples per
+step, on 8 Nvidia H100 GPUs. The loss is calculated using the MSE between the
+noiseless fields and the denoised fields, with weighting as proposed in [54]. The model
+weights are updated using an EMA with a decay rate of 0.999, inv_gamma = 1.0,
+and power = 0.75. The training data are selected from the first 80% segment of the
+dataset, and we do not save the best weights based on validation.
+Based on Equation (10), the observed region is randomly sampled from the field
+solution with a ratio drawn from a U(0, 0.1) distribution, and the observation is
+merged with random noise in the unobserved regions according to the noise schedule.
+For the time-dependent PDEs, snapshots from each simulation are unraveled during
+training, and physical time is not provided as conditioning information.
+Appendix A.2. Noise Schedule
+Various noise schedulers exist for diffusion models [51], with the log-normal noise
+scheduler first proposed in the EDM framework [54] using parameters Pmean = −1.2
+and Pstd = 1.2. It has been shown that the log-normal noise schedule needs to be
+tuned for optimal performance [65]. In our experiments, we found that the noise
+schedule used during training (Equation (3)) should provide sufficient coverage of
+high noise levels to account for the large variability in physical fields. This ensures
+that the model encounters enough examples where the added noise is large enough to
+cause the field values to approximate a Gaussian distribution. Without this coverage,
+the diffusion model may struggle to generate correct fields from the initial Gaussian
+prior, even if it can effectively denoise the fields when the noise level is low. In our
+testing, we found that setting Pmean = 1.2 and Pstd = 1.7 is robust for our tasks.
+Appendix A.3. Reduced order data assimilation
+Conducting DA in the complete physical space can be both computationally
+intensive and time-consuming due to the high dimensionality of the state space.
+Additionally, when the state and observation spaces overlap (e.g., both are sampled
+from the velocity field), performing DA in the full physical space without carefully
+tuning the error covariance matrices may result in only point-to-point correlations.
+In this section, we describe how the proposed method can be combined with a ROM
+using PCA to enhance efficiency further.
+31
+
+Given a set of nstate state snapshots obtained from one or more simulations or
+predictions, these snapshots are organized into a matrix X ∈R(Nd×Nd)×nstate. In this
+matrix, each column corresponds to a flattened state at a specific time step, expressed
+as:
+X =
+
+x0
+x1
+ . . .
+xnstate−1
+
+.
+(A.1)
+The empirical covariance matrix CX associated with X can be computed and
+expressed as:
+CX =
+1
+nstate −1XX T = LXDXLX
+T
+(A.2)
+Here, the columns of LX represent the principal components of X, and DX is a
+diagonal matrix containing the corresponding eigenvalues λX,i, i = 0, . . . , nstate −1
+arranged in descending order:
+DX =
+
+
+λX,0
+...
+λX,nstate−1
+
+.
+(A.3)
+To reduce the dimensionality of the state variables to a space of dimension
+q (q ∈N+ and q ≤nstate), we derive a projection operator LX,q by selecting the
+first q columns from LX. The matrix LX can be obtained through Singular Value
+Decomposition (SVD), eliminating the need to estimate the full covariance matrix
+CX.
+For a flattened state field x˜t, the reduced latent vector ˆx˜t is calculated as:
+ˆx˜t = LX,q
+Tx˜t,
+(A.4)
+which serves as an approximation to the complete vector x˜t.
+This latent vector ˆx˜t can then be expanded back to the full space vector xr
+˜t by:
+xr
+˜t = LX,q ˆx˜t = LX,q(LX,q)Tx˜t.
+(A.5)
+The assimilation process can be performed in the space of ˆx˜t rather than in x˜t,
+resulting in a new state-observation operator ˆH, which is defined as:
+ˆH = H ◦LX,q
+with
+y˜t = H(x˜t) = H ◦LX,q(ˆx˜t) = ˆH(ˆx˜t).
+(A.6)
+32
+
+Thus the background error covariance matrix ˆB˜t associated to (ˆx, ˆH) can be
+obtained by
+ˆB˜t = LX,q
+TB˜tLX,q
+(A.7)
+.
+As mentioned in section 2.3, the B˜t is estimated online using the generated
+diffusion ensemble. Since the observation operator H and ˆH are linear, the DA here
+(Equation (14)) is performed using the Best Linear Unbiased Estimator (BLUE) with
+the python-based ADAO [66] package.
+Appendix B. Datasets
+Appendix B.1. Darcy Flow
+We follow the formulations provided in [5], the source function is defined as:
+f(x1, x2) =
+
+
+
+
+
+1000
+if 0 ≤x2 ≤4
+6
+2000
+if 4
+6 < x2 ≤5
+6
+3000
+if 5
+6 < x2 ≤1
+(B.1)
+The generative parameter, θ, is feed to the following KLE of the Gaussian field:
+log α(x, θ) =
+X
+l∈Z0+×Z0+
+θ(l)
+p
+λlϕl(x),
+(B.2)
+with the eigenpairs formulated as:
+ψl(x) =
+
+
+
+
+
+√
+2 cos(πl1x1)
+l2 = 0
+√
+2 cos(πl2x2)
+l1 = 0
+2 cos(πl1x1) cos(πl2x2)
+otherwise
+,
+λl = (π2|l|2 + τ 2)−d.
+(B.3)
+We choose d = 1.2, τ = 1.0 to generate 10k simulations of the Darcy flow problem
+with a domain size of 128 × 128.A histogram of the cell values of the permeability
+and pressure fields is shown in Figure B.11.
+Appendix B.2. Shallow Water equations
+We follow the instruction provided in [50] to generate 250 simulations, each with
+50 snapshots, of the shallow water equations with a domain size of 64 × 64. The
+problem is evolved using the forward in time centered in space (FTCS) scheme. A
+histogram of the cell values of the velocity fields and the water height is shown in
+Figure B.12. The u and v components of the water column velocity are initialized at
+0.1 m/s, with a fixed height of 0.1 mm and a radius of 4 mm. The spatial domain
+has dimensions of 50 mm × 50 mm.
+33
+
+Figure B.11: Histogram of the cell values of the permeability fields and the pressure fields of the
+Darcy flow data.
+Figure B.12: Histogram of the cell values of the velocity fields and the water height of the shallow
+water equations data.
+Appendix B.3. Diffusion Reaction equations
+The data is downloaded from the publicly available PDEBench [61], The initial
+concentration profiles of the activator and inhibitor fields are sampled from N(0, 1).
+The simulation is performed on a 512×512 domain with 500 time steps for t ∈(0, 500].
+The results are downsampled to 128 × 128 with 101 timesteps, including the initial
+condition. A histogram of the cell values of the activator and inhibitor fields is shown
+in Figure B.13.
+Appendix B.4. Compressible Navier-Stokes equations
+The data is downloaded from the publicly available PDEBench [61]. The velocity
+fields are initialized as follows:
+v(x, t = 0) =
+n
+X
+i=1
+Ai sin(kix + ϕi),
+(B.4)
+where n = 4, |k|, and ki = 2πni
+L
+are the wave numbers, with ni uniformly sampled from
+[1, nmax]. Here, cs is the speed of sound, and M is the Mach number. The density
+34
+
+Figure B.13: Histogram of the cell values of the activator and inbibitor fields of the diffusion reaction
+equations data.
+and pressure are also initialized by adding a uniform background to the perturbation
+field (Equation (B.4)). The simulation is performed for 20 timesteps with t ∈(0, 2].
+A histogram of the cell values of the four fields is shown in Figure B.14.
+Figure B.14: Histogram of the cell values of the four fields of the compressible Navier-Stokes
+equations training data.
+Appendix C. Additional Results
+Appendix C.1. Diffusion model: Multistep sampling
+The results for the diffusion models with the multistep [62] sampling scheme are
+shown in Table C.4. These results are generated from an ensemble of 25 trajectories
+using the predictor-corrector scheme with 20 steps. In general, the cross-attention
+method demonstrates the best performance in terms of RMSE, nRMSE, and cRMSE
+across all PDEs.
+Appendix C.2. Diffusion model: Generating not Memorizing
+Diffusion models can be prone to memorizing training data. As demonstrated
+in [67], the extent of memorization in image-generation tasks is negatively correlated
+35
+
+with the size and diversity of the training data. Additionally, [68] showed that
+in conditional generation tasks, similarities in the conditioning information can
+exacerbate the problem of memorization in diffusion models. In our case, we design
+the condition encoding block to also incorporate the position information of the
+sensing array, which introduces additional variability during training.
+To demonstrate that the reconstructed fields are not present in the training data,
+we perform a t-SNE analysis. We reconstruct fields using 1% of the observed data
+points from the sensing information in the testing set of the 2D diffusion-reaction
+equation. These reconstructed fields are then projected using the PCA obtained from
+the training set, and a t-SNE plot is constructed.
+Figure C.15: t-SNE plot of the PCA space of the diffusion-reaction equation training set. The red
+dots represent the reconstructed fields from the sensing information, while the blue dots represent
+the training set.
+The t-SNE plot of the PCA space of the diffusion-reaction equation training set is
+shown in Figure C.15. We select the number of components in the PCA to be 1000,
+which captures 97% of the variance in the training set. The t-SNE plot reveals that
+the training dataset is clustered by simulation, with each line-like cluster representing
+fields from the same simulation.
+We measure the L2 distances of the t-SNE representations between the recon-
+structed fields and the rest of the training data. The ground truth, reconstructed
+fields, and the closest fields in the training set are shown in Figure C.16. These
+results indicate that the model does not simply draw from the training data when
+reconstructing fields but instead generates fields based on the sensing information.
+However, under the current problem setup, it is challenging to obtain the initial
+36
+
+Figure C.16: The ground truth, reconstructed fields from the sensing information, and the snapshot
+that is closest to the reconstructed field in the training set.
+concentration profiles of the reconstructed fields and verify whether they satisfy the
+standard Gaussian initialization.
+Appendix C.3. 0.3% observed points with noisy observations
+The extreme case of sparse observations, with 0.3% observed data and various
+observation noise levels, is shown in Figure C.17. Under these circumstances, the
+diffusion models with cross-attention typically perform slightly better than the VT-
+UNet. Additionally, the diffusion models with CFG can occasionally outperform
+the cross-attention method, possibly because the learned encoded condition is more
+generalized than that of the cross-attention method. However, all methods struggle
+to reconstruct the fields of the shallow water equations. This difficulty arises because
+the wavelet patterns in the fields leave a majority of the domain blank, and under
+such extreme sparsity, the uniformly sampled observations are less likely to fall on
+the wavelet patterns.
+Appendix C.4. Varying resolution
+CNN-based models have been shown to generalize well across different resolu-
+tions [69, 70], and the backbone of our diffusion model is UNet, which is an variant of
+CNN with skip connection at different hierarchical levels. However, in our investiga-
+tion with the higher resolution darcy flow problem, we found that both VT-UNet and
+the conditional diffusion model fails to generalize. This is likely due to the changes in
+37
+
+Figure C.17: Bar plot of nRMSE for the PDEs with 0.3% observed data points and various observation
+noise levels. The red dashed line denotes the error of reconstructing the field with the mean of the
+training data. The diffusion models are configured with 20 steps, with a predictor-corrector scheme
+and an ensemble of 25 trajectories.
+feature scale perceived by the convolutional kernels as the resolution increases. To
+address this issue, popular approaches include scaling input, training with multiple
+resolutions (data augmentation), and fine-tuning the model on the target resolution.
+The 256 × 256 resolution Darcy flow problem is generated with the same hyper-
+parameters and seeding as the 128 × 128 resolution. Both models are trained for
+20,000 steps with a learning rate of 1e −5. The smoothed step loss is shown in
+Figure C.18. The fine-tuning process demonstrates a faster convergence rate. We
+compare the performance of training from scratch and fine-tuning from the 128 × 128
+resolution in Table C.5. Interestingly, the model trained from scratch shows better
+performance with the predictor-corrector sampling method, which aligns with the
+findings in the main text. However, the trend reverses for the fine-tuned model, where
+the multistep method outperforms the predictor-corrector method. This indicates
+38
+
+Figure C.18: Step loss comparison between training from scratch and fine-tuning on the Darcy flow
+problem with resolution of 256 × 256. The fine-tuning process shows a faster convergence rate. Step
+loss is smoothed with a moving average of 10 steps.
+that the trained model can be adapted to different resolutions, and sampling methods
+should be revised accordingly.
+Appendix C.5. Colored noise
+Results of 1D diffusion-reaction problems with colored noise are shown in Fig-
+ure C.19. The performance of the diffusion model is evaluated with respect to noise
+levels, where the nRMSE is computed for 1k test data with an ensemble size of 25
+and 1% known values. In general, the same tendency is observed across different
+types of noise, where the performance of the diffusion model surpasses the VT-UNet
+baseline as the noise level increases.
+Appendix C.6. Shallow water energy plot
+In Figure C.20, we present the normalized energy plot for the shallow water
+equations on 10 test set trajectories, with 1% known values, 0% noise, and the cross-
+attention diffusion model employing an ensemble of 25 and 20 reverse sampling steps.
+This plot supports the findings in the main text, where nRMSE results show that the
+VT-UNet model performs better under noise-free conditions. The low RMSE observed
+in these noise-free scenarios aligns with this energy-based evaluation, highlighting the
+model’s effectiveness in capturing fine-scale features, even with sparse observations.
+39
+
+Figure C.19: Colored noise performance comparison for the diffusion reaction problem. Results of
+nRMSE are computed with 1k test data with an ensemble size of 25 and 1% known values.
+Figure C.20: Energy plot of shallow water equations on 10 test set trajectories, with 1% values
+known, the cross-attention diffusion model is utilized with an ensemble size of 25 and 20 reverse
+sampling steps.
+40
+
+Table 2: Results of 1000 unseen samples for different PDEs. The diffusion models have an ensemble
+size of 25 and solved for 20 steps with the predictor-corrector scheme.
+PDEs
+Obs%
+Metric
+Diffusion Model
+VT-UNET
+Guided
+Sampling
+CFG
+Cross
+Attention
+Shallow
+water
+0.3%
+RMSE
+8.01 × 10−3
+4.20 × 10−3
+3.76 × 10−3
+4.18 × 10−3
+nRMSE
+1.36 × 100
+8.52 × 10−1
+7.88 × 10−1
+8.26 × 10−1
+cRMSE
+7.06 × 10−4
+3.98 × 10−4
+3.75 × 10−4
+4.19 × 10−4
+1%
+RMSE
+7.89 × 10−3
+3.46 × 10−3
+3.01 × 10−3
+2.60 × 10−3
+nRMSE
+1.32 × 100
+4.15 × 10−1
+3.47 × 10−1
+3.49 × 10−1
+cRMSE
+6.96 × 10−4
+2.39 × 10−4
+2.30 × 10−4
+2.08 × 10−4
+3%
+RMSE
+7.56 × 10−3
+3.21 × 10−3
+2.66 × 10−3
+1.55 × 10−3
+nRMSE
+1.22 × 100
+3.11 × 10−1
+2.56 × 10−1
+1.81 × 10−1
+cRMSE
+6.46 × 10−4
+1.82 × 10−4
+1.70 × 10−4
+1.16 × 10−4
+Diffusion
+reaction
+0.3%
+RMSE
+7.94 × 10−2
+7.10 × 10−2
+6.19 × 10−2
+6.09 × 10−2
+nRMSE
+9.94 × 10−1
+8.68 × 10−1
+7.53 × 10−1
+7.41 × 10−1
+cRMSE
+1.80 × 10−2
+3.49 × 10−3
+3.07 × 10−3
+3.09 × 10−3
+1%
+RMSE
+7.81 × 10−2
+5.93 × 10−2
+3.47 × 10−2
+3.46 × 10−2
+nRMSE
+9.73 × 10−1
+7.09 × 10−1
+4.06 × 10−1
+4.04 × 10−1
+cRMSE
+1.75 × 10−2
+2.03 × 10−3
+1.43 × 10−3
+1.39 × 10−3
+3%
+RMSE
+7.50 × 10−2
+4.47 × 10−2
+1.83 × 10−2
+1.85 × 10−2
+nRMSE
+9.19 × 10−1
+5.01 × 10−1
+1.59 × 10−1
+1.62 × 10−1
+cRMSE
+1.65 × 10−2
+1.24 × 10−3
+7.95 × 10−4
+7.39 × 10−4
+CFD
+0.3%
+RMSE
+5.53 × 100
+2.48 × 10−1
+2.01 × 10−1
+1.70 × 100
+nRMSE
+2.46 × 100
+2.23 × 10−1
+1.28 × 10−1
+1.42 × 10−1
+cRMSE
+6.07 × 100
+1.28 × 10−1
+8.31 × 10−2
+4.92 × 10−2
+1%
+RMSE
+5.27 × 100
+1.79 × 10−1
+1.24 × 10−1
+8.38 × 10−2
+nRMSE
+2.36 × 100
+1.47 × 10−1
+7.89 × 10−2
+6.89 × 10−2
+cRMSE
+5.78 × 100
+9.35 × 10−2
+6.78 × 10−2
+1.86 × 10−2
+3%
+RMSE
+4.57 × 100
+1.33 × 10−1
+7.66 × 10−2
+4.27 × 10−2
+nRMSE
+2.08 × 100
+1.03 × 10−1
+5.77 × 10−2
+3.71 × 10−1
+cRMSE
+5.01 × 100
+7.11 × 10−2
+5.26 × 10−2
+1.02 × 10−2
+Darcy
+0.3%
+RMSE
+6.43 × 10−1
+3.91 × 10−1
+2.36 × 10−1
+2.34 × 10−1
+nRMSE
+4.76 × 10−1
+2.91 × 10−1
+1.78 × 10−1
+1.76 × 10−1
+cRMSE
+7.80 × 10−2
+3.54 × 10−2
+1.38 × 10−2
+9.91 × 10−3
+1.37%
+RMSE
+6.40 × 10−1
+3.48 × 10−1
+1.74 × 10−1
+1.25 × 10−1
+nRMSE
+4.74 × 10−1
+2.61 × 10−1
+1.29 × 10−1
+9.18 × 10−2
+cRMSE
+7.98 × 10−2
+2.91 × 10−2
+1.92 × 10−2
+7.31 × 10−3
+41
+
+Table 3: Comparison of nRMSE and Computation Cost per sample for the Darcy flow, the
+computation cost of diffusion models are computed from an ensemble of 25 trajectories with
+predictor-corrector and 20 steps.
+Guided
+sampling
+CFG
+Cross-
+Attention
+VT-UNet
+Numerical
+nRMSE (0.3%)
+0.476
+0.291
+0.178
+0.176
+0.202
+nRMSE (1.37%)
+0.474
+0.261
+0.129
+0.092
+0.180
+Computation cost (s)
+0.944
+0.931
+1.769
+0.00206
+62
+42
+
+Table C.4: Results of 1000 unseen samples for different PDEs. The diffusion models have an ensemble
+size of 25 and solved for 20 steps with the predictor-corrector scheme.
+PDEs
+Obs%
+Metric
+Diffusion Model
+Guided
+Sampling
+CFG
+Cross
+Attention
+Shallow
+water
+0.3%
+RMSE
+7.55 × 10−3
+4.81 × 10−3
+4.30 × 10−3
+nRMSE
+7.66 × 10−1
+1.62 × 100
+9.71 × 10−1
+cRMSE
+8.33 × 10−4
+5.07 × 10−4
+4.68 × 10−4
+1%
+RMSE
+7.46 × 10−3
+3.72 × 10−3
+3.32 × 10−3
+nRMSE
+7.45 × 10−1
+4.47 × 10−1
+3.76 × 10−1
+cRMSE
+8.42 × 10−4
+3.26 × 10−4
+2.99 × 10−4
+3%
+RMSE
+7.05 × 10−3
+3.32 × 10−3
+2.85 × 10−3
+nRMSE
+6.94 × 10−1
+3.35 × 10−1
+2.83 × 10−1
+cRMSE
+8.52 × 10−4
+2.50 × 10−4
+2.12 × 10−4
+Diffusion
+reaction
+0.3%
+RMSE
+7.92 × 10−2
+7.61 × 10−2
+6.26 × 10−2
+nRMSE
+9.67 × 10−1
+9.33 × 10−1
+7.63 × 10−1
+cRMSE
+2.18 × 10−2
+1.45 × 10−2
+6.07 × 10−3
+1%
+RMSE
+7.65 × 10−2
+7.40 × 10−2
+3.98 × 10−2
+nRMSE
+9.24 × 10−1
+9.00 × 10−1
+4.70 × 10−1
+cRMSE
+2.07 × 10−2
+1.07 × 10−2
+4.69 × 10−3
+3%
+RMSE
+7.12 × 10−2
+7.22 × 10−2
+2.56 × 10−2
+nRMSE
+8.34 × 10−1
+8.65 × 10−1
+2.59 × 10−1
+cRMSE
+1.86 × 10−2
+7.90 × 10−3
+4.15 × 10−3
+CFD
+0.3%
+RMSE
+2.02 × 101
+6.68 × 10−1
+3.55 × 10−1
+nRMSE
+9.10 × 100
+8.16 × 10−1
+2.43 × 10−1
+cRMSE
+2.07 × 101
+4.49 × 10−1
+1.56 × 10−1
+1%
+RMSE
+1.97 × 101
+6.06 × 10−1
+2.47 × 10−1
+nRMSE
+8.94 × 100
+7.48 × 10−1
+1.92 × 10−1
+cRMSE
+2.02 × 101
+3.95 × 10−1
+1.30 × 10−1
+3%
+RMSE
+1.83 × 101
+5.02 × 10−1
+1.47 × 10−1
+nRMSE
+8.47 × 100
+6.03 × 10−1
+1.44 × 10−1
+cRMSE
+1.87 × 101
+3.17 × 10−1
+9.26 × 10−2
+Darcy
+0.3%
+RMSE
+6.72 × 10−1
+3.91 × 10−1
+2.49 × 10−1
+nRMSE
+4.99 × 10−1
+2.91 × 10−1
+1.86 × 10−1
+cRMSE
+9.76 × 10−2
+3.54 × 10−2
+1.58 × 10−2
+1.37%
+RMSE
+6.58 × 10−1
+3.76 × 10−1
+2.01 × 10−1
+nRMSE
+4.88 × 10−1
+2.80 × 10−1
+1.49 × 10−1
+cRMSE
+1.04 × 10−1
+3.34 × 10−2
+1.64 × 10−2
+43
+
+Table C.5: Comparison of training from scratch and fine-tuning on the Darcy flow problem with
+resolution of 256 × 256 on the 1k test data with an ensemble size of 25. The number of sampled
+points is 256, which is equivalent to the 1.37% in 128 × 128 resolution.
+Model
+Sampling
+RMSE
+nRMSE
+cRMSE
+Scratch
+Predictor-Corrector
+0.177
+0.133
+0.018
+Scratch
+Multistep
+0.321
+0.234
+0.075
+Finetune
+Predictor-Corrector
+0.249
+0.187
+0.019
+Finetune
+Multistep
+0.166
+0.123
+0.016
+44

@@ -1,0 +1,1818 @@
+J. Fluid Mech. (2022), vol. 949, A31, doi:10.1017/jfm.2022.765
+Phase-resolved ocean wave forecast with
+simultaneous current estimation through
+data assimilation
+Guangyao Wang1, Jinfeng Zhang1, Yuxiang Ma2, Qinghe Zhang1, Zhilin Li1
+and Yulin Pan3,†
+1State Key Laboratory of Hydraulic Engineering Simulation and Safety, Tianjin University,
+Tianjin 300072, PR China
+2State Key Laboratory of Coastal and Offshore Engineering, Dalian University of Technology,
+Dalian 116023, PR China
+3Department of Naval Architecture and Marine Engineering, University of Michigan, Ann Arbor,
+MI 48109, USA
+(Received 2 April 2022; revised 1 September 2022; accepted 1 September 2022)
+In Wang & Pan (J. Fluid Mech., vol. 918, 2021, A19), the authors developed the ﬁrst
+ensemble-based data assimilation (DA) capability for the reconstruction and forecast of
+ocean surface waves, namely the EnKF-HOS method coupling an ensemble Kalman ﬁlter
+(EnKF) and the high-order spectral (HOS) method. In this work, we continue to enrich
+the method by allowing it to simultaneously estimate the ocean current ﬁeld, which is
+in general not known a priori and can (slowly) vary in both space and time. To achieve
+this goal, we incorporate the effect of ocean current (as unknown parameters) on waves
+to build the HOS-C method as the forward prediction model, and obtain a simultaneous
+estimation of (current) parameters and (wave) states via an iterative EnKF (IEnKF) method
+that is necessary to handle the complexity in this DA problem. The new algorithm,
+named the IEnKF-HOS-C method, is ﬁrst tested in synthetic problems with various forms
+(steady/unsteady, uniform/non-uniform) of current. It is shown that the IEnKF-HOS-C
+method is able to not only estimate the current ﬁeld accurately, but also boost the prediction
+accuracy of the wave ﬁeld (even) relative to the state-of-the-art EnKF-HOS method.
+Finally, using real data from a shipborne radar, we show that the IEnKF-HOS-C method
+successfully recovers the current speed that matches the in situ measurement by a ﬂoating
+buoy.
+Key words: surface gravity waves, computational methods
+† Email address for correspondence: yulinpan@umich.edu
+© The Author(s), 2022. Published by Cambridge University Press. This is an Open Access article,
+distributed under the terms of the Creative Commons Attribution licence (https://creativecommons.
+org/licenses/by/4.0/), which permits unrestricted re-use, distribution, and reproduction in any medium,
+provided the original work is properly cited.
+949 A31-1
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+1. Introduction
+In recent years, phase-resolved ocean wave models have received increasing attention
+due to their close relevancy to the safety and efﬁciency of marine operations. Unlike
+traditional phase-averaged models (e.g. Booij, Ris & Holthuijsen 1999; Tolman et al.
+2009), the phase-resolved models aim to predict individual waves, and therefore can
+capture detailed information of the wave ﬁeld (usually of O(1 km2)) as a guidance for
+marine operations (e.g. Ma et al. 2018; Xiao & Pan 2021). When nonlinear effects are
+considered, phase-resolved models have been constructed via the high-order spectral
+(HOS) method (Dommermuth & Yue 1987; West et al. 1987), including its later variants
+(e.g. Craig & Sulem 1993; Xu & Guyenne 2009), Zakharov equation (Stuhlmeier &
+Stiassnie 2021) and machine learning techniques (Mohaghegh, Murthy & Alam 2021).
+In spite of the prosperity of nonlinear wave models, their applications to wave forecast
+in realistic situations are limited due to the signiﬁcant uncertainties that grow with time
+in forecasting chaotic wave motion (e.g. Annenkov & Shrira 2001; Janssen 2008). The
+source of the uncertainties include (i) the noisy initial conditions of the sea surface, which
+are usually taken from radar or buoy measurements with certain error characteristics; and
+(ii) the physical effects, say, of wind and ocean current that are not known a priori and
+therefore not accurately accounted for in a nonlinear wave model.
+In addressing the issues of uncertainty growth, data assimilation (DA) methods have
+been developed (mostly in the ﬁeld of geoscience as discussed in Evensen (2003) and
+Carrassi et al. (2018)) which combine measurement data and model predictions to improve
+the analysis of the states. Among the available efforts of applying DA to phase-resolved
+wave forecast/analysis, most (if not all) focus mainly on addressing the aforementioned
+uncertainty (i) from initial conditions or measurements, i.e. assuming the prediction model
+is perfect. These include methods based on variational DA (Aragh & Nwogu 2008; Qi et al.
+2018; Fujimoto & Waseda 2020; Wu, Hao & Shen 2022) that construct an initial condition
+to minimize the difference between predictions and measurements in future times, as well
+as methods based on the Kalman ﬁlter (Yoon, Kim & Choi 2015) that solve for an optimal
+wave state at a particular time using prediction and data at the same time. Since the latter
+methods do not require future data for the analysis, they can be favourably applied in
+operational wave forecast (as a way to construct an optimal wave state, once data at the
+same time are available that can be used as initial conditions for the forecast). In this
+regard, the ﬁrst and last authors of this paper have developed the EnKF-HOS algorithm (as
+a substantial extension and improvement to Yoon et al. (2015)) which applies the ensemble
+Kalman ﬁlter (EnKF) coupled with ensemble HOS predictions for analysis and forecast of
+the ocean wave ﬁeld.
+While the EnKF-HOS method (as the ﬁrst ensemble-based DA method for
+phase-resolved ocean waves) has shown remarkable performances in extensive test cases,
+the uncertainty due to model parameters, i.e. the aforementioned uncertainty source (ii),
+is not considered except some very heuristic treatment through adaptive inﬂation (see
+Wang & Pan (2021) for details). This is a severe problem for ocean wave forecast as
+wave evolution can be signiﬁcantly affected by environmental parameters, e.g. the current
+and wind ﬁelds. One may think of determining these parameters from the global marine
+weather forecast, but it has to be realized that these global forecast results are usually only
+available at very coarse grid and sparse time instants. Therefore, a direct interpolation may
+result in signiﬁcant errors and will certainly miss the important spatial–temporal variation
+of these ﬁelds on the scales of the wave forecast domain and time horizon, e.g. rogue waves
+can be triggered as a wave train travels into an opposing current with an increasing current
+velocity (e.g. Onorato, Proment & Toffoli 2011; Ducrozet et al. 2021). Another approach
+949 A31-2
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+is to estimate the current ﬁeld by ﬁtting a current-modiﬁed dispersion relation resolved by
+the spatial–temporal spectrum of the wave ﬁeld (Lund et al. 2018). However, this method
+ignores the nonlinearity in the problem and it is also not straightforward to capture the
+spatial–temporal variation of the current ﬁeld (which relies on arbitrary placement of
+windows in time and space). In addition, it requires dense measurements in both space
+and time which is not practical when only buoy data are available.
+In this paper, we continue to develop the EnKF-HOS framework, enabling a
+simultaneous estimation of the wave states and model parameters. While the developed
+algorithm can in principle be applied to the estimation of different environmental
+parameters, we focus here on the ocean current ﬁeld which can generally vary (slowly)
+in both space and time. To achieve this goal, we incorporate the current effect on waves
+to build the HOS-C method, following Wang, Ma & Yan (2018) and Pan (2020), as the
+forward prediction model. When measurements of surface elevation are available, we
+then solve a DA problem that estimates both the (current) model parameters and (wave)
+states. We note that this is a non-trivial DA problem since the current parameters form
+a high-dimensional space (e.g. with the same dimensions as surface elevation in a most
+general setting) and can only be inferred from their correlation to the wave ﬁeld (i.e. no
+direct measurement is available). Upon many trials we adopt an iterative EnKF (IEnKF)
+(Iglesias, Law & Stuart 2013; Wang & Xiao 2016) which provides a satisfactory solution to
+this problem. The developed full method, named IEnKF-HOS-C, is ﬁrst tested in a series
+of synthetic problems with various forms (steady/unsteady, uniform/non-uniform) of the
+current ﬁelds. It is shown that the IEnKF-HOS-C method not only provides an accurate
+estimation of the current ﬁeld, but also boosts the wave analysis/forecast accuracy even
+compared to the state-of-the-art EnKF-HOS method. Finally, using real data of surface
+elevations from a shipborne radar, we show that the IEnKF-HOS-C method successfully
+recovers the current velocity that matches the in situ measurement by a ﬂoating buoy.
+The paper is organized as follows. The problem statement and detailed algorithm of
+the IEnKF-HOS-C method are introduced in § 2. The validation and benchmark of the
+method against synthetic cases and real marine radar data are presented in § 3. We give a
+conclusion of the work in § 4.
+2. Mathematical formulation and methodology
+2.1. Problem statement
+We consider the evolution of an ocean wave ﬁeld under the effect of a surface current
+U(x, t), which in general can (slowly) vary in both two-dimensional space x and time t.
+We have available a sequence of measurements of the ocean surface in spatial regions Mj,
+with j = 0, 1, 2, 3, . . . being the index of time t. In general, we allow Mj to be different
+for different j, reﬂecting a mobile system of measurement, e.g. a shipborne marine radar
+or moving probes. We denote the surface elevation and surface potential (for only waves),
+reconstructed from the measurements in Mj, as ηm,j(x) and ψm,j(x), and assume that the
+error statistics associated with ηm,j(x) and ψm,j(x) are known a priori from the inherent
+properties of the measurement equipment.
+In addition to the measurements, we have a yet-to-be-developed nonlinear wave model
+that is able to simulate the evolution of the surface waves (in particular surface elevation
+η(x, t) and wave-only velocity potential ψ(x, t)) under the effect of U(x, t) given initial
+conditions. Our purpose is to incorporate measurements ηm,j(x) and ψm,j(x) into the
+model prediction sequentially (i.e. immediately as data become available in time) to
+949 A31-3
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+simultaneously construct an optimized analysis of wave states (ηa,j(x), ψa,j(x)) and obtain
+an accurate inference/estimation of U(x, t).
+2.2. The general IEnKF-HOS-C framework
+Our new IEnKF-HOS-C method to solve the above problem is built upon the previous
+EnKF-HOS framework developed in Wang & Pan (2021). In order to resolve the
+additional complexities associated with the current ﬁeld U(x, t), the IEnKF-HOS-C
+method includes a number of new components (relative to the EnKF-HOS method): (i)
+a parameter-augmented state space (η(x, t), ψ(x, t), U(x, t)) which includes the current
+parameters; (ii) the HOS-C method which simulates the evolution of wave ﬁeld under
+the effect of U(x, t), as well as a persistence model (Notton & Voyant 2018; Wu, Wang
+& Shadden 2019) ∂U(x, t)/∂t = 0, used in the forecast step of the method; and (iii)
+an iterative procedure in EnKF to build the IEnKF method which successfully handles
+the high-dimensional state/parameter estimation problem. Figure 1 shows a schematic
+illustration of the new IEnKF-HOS-C framework. At initial time t = t0, measurements
+ηm,0(x) and ψm,0(x) are available together with an initial guess U0(x), based on which
+we generate ensembles of perturbed (augmented) states (η(n)
+m,0(x), ψ(n)
+m,0(x), U(n)
+0 (x)), n =
+1, 2, . . . , N, with N the ensemble size. A forecast step is then performed, in which
+an ensemble of N HOS-C and persistence-model simulations are conducted, taking
+(η(n)
+m,0(x), ψ(n)
+m,0(x), U(n)
+0 (x)) as initial conditions for each ensemble member n, until t = t1
+when the next measurements become available. We note that the persistence model
+simply states that the forecast U(n)
+f,1(x) = U(n)
+0 (x), but this is not in contradiction to
+the inference of an unsteady current (see details in § 2.4). At t = t1, an analysis step
+is performed through EnKF where the model forecasts (η(n)
+f,1(x), ψ(n)
+f,1(x), U(n)
+f,1(x)) are
+combined with new perturbed measurements (η(n)
+m,1(x), ψ(n)
+m,1(x)) to generate the analysis
+results (η(n)
+a,1(x), ψ(n)
+a,1(x), U(n)
+a,1(x)). Since U(n)
+a,1 is obtained only through its correlation
+to the wave ﬁeld (i.e. no direct measurement) and the forecast step has been possibly
+performed with an inaccurate current ﬁeld (i.e. U0(x) /= Utrue(x, t0)), it is necessary to
+conduct iterations between the forecast and analysis steps to facilitate the convergence of
+the analysed current ﬁeld to the true situation. In particular, we iterate the forecast and
+analysis steps every time using the new estimation U(n)
+a,1(x) in analysis to replace U(n)
+0 (x)
+in forecast until a desired tolerance is reached.
+With (η(n)
+a,1(x), ψ(n)
+a,1(x), U(n)
+a,1(x)) available after IEnKF, they are taken as initial
+conditions for a new ensemble of HOS-C and persistence-model simulations, and the
+procedures are repeated for t = t2, t3, . . . until the desired operation time tmax is reached.
+We next describe in detail the key components in the IEnKF-HOS-C method, including
+the generation of measurement ensembles and state augmentation (§ 2.3), the HOS-C
+method and persistence model (§ 2.4) and the IEnKF procedure (§ 2.5). For simplicity,
+in the following description we assume that gravitational acceleration and ﬂuid density
+are unity (so that they do not appear in equations) by choices of proper time and mass
+units.
+2.3. Generation of measurement ensembles and state augmentation
+As described in § 2.2, ensembles of perturbed measurements of the surface elevation
+{η(n)
+m,j(x)}N
+n=1 and velocity potential {ψ(n)
+m,j(x)}N
+n=1 are needed at both the initialization
+( j = 0) and analysis ( j = 1, 2, 3, . . .) steps. In addition, an ensemble of initial current
+949 A31-4
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+Initialization step
+Forecast step
+Analysis step
+Repeat the last forecast step
+Forward models
+(HOS & persistence models)
+Initialize the next forecast step
+No
+Yes
+Ensemble of intial states
+(ηm,0, ψm,0, U0
+(n))
+(n)
+(n)
+Ensemble of forecast states
+(ηf, j, ψf,j, Uf,j )
+(n)
+(n)
+(n)
+Ensemble of
+analysis states
+(ηa,j, ψa,j, Ua,j )
+(n)
+(n)
+(n)
+EnKF
+Convergence
+Ensemble of perturbed measurements
+(ηm,j, ψm,j)
+(n)
+(n)
+with Ua,j–1 = Ua,j
+(n)
+(n)
+Figure 1. Schematic illustration of the IEnKF-HOS-C coupled framework. The size of each ellipse represents
+the amount of uncertainty.
+velocity {U(n)
+0 (x)}N
+n=1 is needed (at t = t0) as a state augmentation to start the full
+IEnKF-HOS-C algorithm.
+To illustrate the generation of these ensembles, it is convenient to ﬁrst deﬁne a random
+ﬁeld w(x) as a zero-mean Gaussian process with spatial correlation function (Evensen
+2003, 2009):
+C(w(x1), w(x2)) =
+⎧
+⎨
+⎩
+cw exp
+
+−|x1 −x2|2
+a2w
+
+,
+for |x1 −x2| ≤
+√
+3aw,
+0,
+for |x1 −x2| >
+√
+3aw,
+(2.1)
+with cw the variance of w(x) and aw the decorrelation length scale.
+Following the method proposed by Wang & Pan (2021), we ﬁrst produce η(n)
+m,j by adding
+a random-ﬁeld perturbation w(x) (deﬁned by (2.1) and with different realizations for
+different n) to ηm,j, i.e.
+η(n)
+m,j(x) = ηm,j(x) + w(x),
+(2.2)
+949 A31-5
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+and construct the surface potential ψ(n)
+m,j by linear wave theory:
+ψ(n)
+m,j(x) ∼
+
+i
+√|k| ˜η(n)
+m,j(k)eik·x dk,
+(2.3)
+where ˜η(n)
+m,j(k) denotes the Fourier coefﬁcient of the nth member of the perturbed surface
+elevation at vector wavenumber k. We note that (2.3) is a direct result of the linear wave
+equation, and it is not modiﬁed by the presence of a uniform current (since physically the
+current does not affect the velocity ﬁeld of waves except for a Doppler shift).
+To generate the ensemble {U(n)
+0 (x)}N
+n=1 ≡{U(n)
+x,0(x), U(n)
+y,0(x)}N
+n=1, we start from an
+initial guess U0(x) ≡(Ux,0(x), Uy,0(x)) which is in general not the same as the truth
+Utrue(x, t0). In practice, U0(x) can be set as zero or taken from the results of large-scale
+marine weather forecast. We generate the ensemble of current ﬁeld by adding another
+random-ﬁeld perturbation u(x) to each component of U0(x), i.e.
+U(n)
+∗,0(x) = U∗,0(x) + u(x),
+(2.4)
+where the subscript ∗represents x or y and u(x) is a random ﬁeld deﬁned by (2.1) with u
+replacing w, i.e. with variance cu and decorrelation length scale au.
+2.4. The HOS-C method and persistence model
+Given the initial conditions (η(n)
+m,0(x), ψ(n)
+m,0(x), U(n)
+0 (x)) or (η(n)
+a,j (x), ψ(n)
+a,j (x), U(n)
+a,j (x))
+with j ≥1, for each ensemble member n, the evolution of the (wave and current)
+augmented state from tj to tj+1 is solved by integrating a nonlinear wave equation under
+the effect of the current:
+∂η(x, t)
+∂t
++ ∂ψ(x, t)
+∂x
+·∂η(x, t)
+∂x
+−
+
+1 + ∂η(x, t)
+∂x
+·∂η(x, t)
+∂x
+	
+φz(x, t)
++ ∂η(x, t)
+∂x
+·U(x, tj) + η(x, t) ∂
+∂x·U(x, tj) = 0,
+(2.5)
+∂ψ(x, t)
+∂t
++ 1
+2
+∂ψ(x, t)
+∂x
+·∂ψ(x, t)
+∂x
++ η(x, t)
+−1
+2
+
+1 + ∂η(x, t)
+∂x
+·∂η(x, t)
+∂x
+	
+φz(x, t)2 + ∂ψ(x, t)
+∂x
+·U(x, tj) = 0,
+(2.6)
+and a persistence model
+∂U(x, t)
+∂t
+= 0.
+(2.7)
+In (2.5) and (2.6), φz(x, t) ≡∂φ/∂z|z=η(x, t) is the surface vertical velocity with φ(x, z, t)
+being the velocity potential of the wave ﬁeld, and ψ(x, t) ≡φ(x, η, t). The variable
+U(x, tj) in the equations should be considered as the estimated quantity, taking either
+U(n)
+0 (x) at t = t0 or U(n)
+a,j (x) at t = tj. Equations (2.5) and (2.6) describe the evolution of
+a nonlinear wave ﬁeld under the effect of an irrotational current which slowly varies in
+space (Wang et al. 2018; Pan 2020). As discussed in Pan (2020), this set of equations
+form a Hamiltonian system conserving the total energy of the wave and current, and it is
+possible to relax the scale-separation assumption and irrotational assumption with more
+developments at certain situations.
+949 A31-6
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+The persistence model (2.7) simply states that the current ﬁeld remains steady in the
+forecast step, i.e. Uf,j+1 = Ua,j (see applications in other contexts, e.g. Santitissadeekorn
+& Jones (2015), Notton & Voyant (2018) and Wu et al. (2019)). We remark that this is not
+in contradiction to the estimation of an unsteady current ﬁeld which slowly varies in time
+but can be approximated as a constant in the forecast interval (from tj to tj+1). In fact, the
+time variation of the unsteady current is captured in the IEnKF procedure that is discussed
+in the next section.
+2.5. Data assimilation scheme by IEnKF
+Let us now assume that we have obtained the forecast ensemble {η(n)
+f,j }N
+n=1, {ψ(n)
+f,j }N
+n=1 and
+{U(n)
+f,j }N
+n=1 by integrating (2.5)–(2.7) from tj−1 to tj. To describe the analysis step, we ﬁrst
+introduce the notation of a covariance operator:
+ℭ(x, y) =
+1
+N −1
+N
+
+n=1
+(x(n) −¯x)( y(n) −¯y)T
+(2.8)
+which produces the covariance matrix between two vectors x and y through ensemble
+average, with the overbar in the equation denoting the ensemble mean.
+The analysis step combines (η(n)
+f,j ∈RL, ψ(n)
+f,j ∈RL, U(n)
+f,j ∈R2L) and (η(n)
+m,j ∈Rd, ψ(n)
+m,j ∈
+Rd), with L and d being the dimensions of model (forecast) space and measurement space,
+respectively. Through EnKF (no iteration yet), this step can be formulated as
+η(n)
+a,j = η(n)
+f,j + Qηη,jGT(GQηη,jGT + Rηη,j)−1(η(n)
+m,j −Gη(n)
+f,j ),
+(2.9)
+ψ(n)
+a,j = ψ(n)
+f,j + Qψψ,jGT(GQψψ,jGT + Rψψ,j)−1(ψ(n)
+m,j −Gψ(n)
+f,j ),
+(2.10)
+U(n)
+a,j = U(n)
+f,j + QUη,jGT(GQηη,jGT + Rηη,j)−1(η(n)
+m,j −Gη(n)
+f,j ),
+(2.11)
+where
+Qxy,j = ℭ(xf,j, yf,j),
+(2.12)
+Rxy,j = ℭ(xm,j, ym,j).
+(2.13)
+The operator (or matrix) G : RL →Rd is an observation operator mapping the
+L-dimensional model space to the d-dimensional measurement space, which is constructed
+by a linear interpolation in this study (e.g. for measurements on grid points, G is reduced
+to an operation to take the corresponding elements in the model vector). We note that (2.9)
+and (2.10) are equivalent to the analysis equation (2.13) in Wang & Pan (2021) written in
+a form of ensemble matrix. Equation (2.11) provides the update (thus estimation) of the
+current ﬁeld, which is achieved through its correlation to the surface elevation ﬁeld (i.e.
+the matrix QUη,j established through ensembles of HOS-C forecast). In addition, (2.9) and
+(2.11) combined are equivalent to a standard EnKF equation for an augmented state vector
+of (η, U). On the other hand, while it is also possible to estimate U through its correlation
+with ψ, this alternative approach is not more beneﬁcial to (2.11) from both ﬁrst-principle
+reasoning and our numerical tests.
+Let us next consider the situation that Uf,j(x) is different from the true ﬁeld Utrue(x, tj).
+While the analysis U(n)
+a,j (x) may provide an update that is closer to the truth, the previous
+forecast step from j −1 to j has been performed with an inaccurate current ﬁeld.
+949 A31-7
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+Algorithm 1 Algorithm for the IEnKF-HOS-C method.
+1: Input: ηm,0, ψm,0, U0, tmax, N, δ, hmax
+2: Begin
+3: initialize:
+4:
+t = t0, j = 0
+5:
+Generate η(n)
+m,0(x), ψ(n)
+m,0(x), and U(n)
+0 (x) with (2.1)–(2.4)
+6: time loop:
+7:
+while t ≤tmax do
+8:
+j = j + 1, h = 1
+9:
+read ηm,j
+10:
+Generate η(n)
+m,j(x) and ψ(n)
+m,j(x) with (2.1)–(2.3)
+11:
+while h ≤hmax do
+12:
+h = h + 1
+13:
+Solve (2.5)–(2.7) until t = tj to obtain η(n)
+f,j (x), ψ(n)
+f,j (x), and U(n)
+f,j (x)
+14:
+Calculate η(n)
+a,j (x), ψ(n)
+a,j (x), and U(n)
+a,j (x) with (2.9)–(2.11)
+15:
+if || ¯Uf,j(x) −¯Ua,j(x)||2 < δ then
+16:
+break
+17:
+else
+18:
+U(n)
+a,j−1(x) = U(n)
+a,j (x)
+19:
+endif
+20:
+end
+21:
+Output ¯ηa,j(x), ¯ψa,j(x), and ¯Ua,j(x)
+22:
+end
+23: end
+To remedy this situation, it is necessary to perform iterations between the forecast and
+analysis steps. In particular, for each iteration we replace U(n)
+a,j−1(x) by U(n)
+a,j (x) and repeat
+the forecast (with updated current ﬁeld) and analysis steps, until convergence is achieved
+with a criterion
+∥¯Uf,j(x) −¯Ua,j(x)∥2 < δ,
+(2.14)
+or if a preset maximum number of iterations hmax is reached. We have now completed the
+description of the IEnKF-HOS-C method, with a pseudo-code provided in Algorithm 1.
+In addition, in implementation of IEnKF-HOS-C other practical procedures are required,
+including the adaptive inﬂation and localization schemes, and the treatment of the
+mismatch between the predictable and measurement regions. These procedures are
+discussed in detail in Wang & Pan (2021) and are not re-presented in this paper.
+3. Results
+We validate the IEnKF-HOS-C method through a series of test cases with both synthetic
+and real ocean wave ﬁelds. For each case of the former, a reference HOS-C simulation is
+conducted with a prescribed current ﬁeld to produce the true wave solution, onto which
+random errors are superposed to generate synthetic noisy measurements. For the latter,
+we make use of the real wave data obtained from an onboard Doppler coherent marine
+radar (Nwogu & Lyzenga 2010; Lyzenga et al. 2015), with the reference current velocity
+949 A31-8
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+measured by a ﬂoating buoy. For both types of cases, we use N = 100 ensemble members
+in the IEnKF-HOS-C method.
+The performance of the IEnKF-HOS-C method can be evaluated by a natural metric
+of the estimated current ﬁeld, which should be compared with the reference solutions
+(prescribed true current ﬁelds in the synthetic cases and buoy measurement in the real
+case). In addition, for the synthetic cases, since the true wave solution is known, another
+metric can be deﬁned as the error of the analysed wave ﬁeld relative to the true solution:
+ϵ(t) =
+
+A |ηtrue(x, t) −ηsim(x, t)|2 dA
+2σ 2η A
+,
+(3.1)
+where A is the area of the simulation region, σ 2
+η is the variance of the reference
+surface elevation ﬁeld and ηtrue(x, t) and ηsim(x, t) represent, respectively, the true
+(reference) surface elevation ﬁeld and the simulation results (that will be obtained through
+IEnKF-HOS-C, HOS-C-only and our previous EnKF-HOS methods for comparison).
+3.1. Synthetic cases
+We consider synthetic cases of both two-dimensional (2-D; with one horizontal direction
+x) and three-dimensional (3-D; with two horizontal directions x = (x, y)) wave ﬁelds. The
+true wave solution ηtrue(x, t) for each case is generated by a reference HOS-C simulation
+with an exact initial condition and a prescribed current ﬁeld. For the 2-D case, we use a
+reference initial wave ﬁeld described by a JONSWAP spectrum with a peak wavenumber
+kp = 16k0 (with k0 the fundamental wavenumber), a global steepness kpHs/2 = 0.11 (with
+Hs the signiﬁcant wave height) and an enhancement factor γ = 3.3. For the 3-D case,
+the initial wave ﬁeld is taken from the same JONSWAP spectrum peaked at wavenumber
+kp = 6k0, together with a directional spreading function:
+D(θ) =
+⎧
+⎨
+⎩
+2
+β cos2
+π
+β θ
+
+,
+for −β
+2 < θ < β
+2 ,
+0,
+otherwise,
+(3.2)
+where β = π/6 is the spreading angle. Without loss of generality, we assume that the true
+current velocity is always along the x direction, expressed as
+Utrue(x) = (Utrue
+x
+(x), Utrue
+y
+(x)),
+(3.3)
+with Utrue
+y
+(x) = 0 which needs to be estimated together with the non-zero component
+Utrue
+x
+(x) in 3-D cases through IEnKF-HOS-C. We remark that in making Utrue
+y
+(x) = 0 it
+is assumed that the incompressibility of the current ﬁeld, if required, is satisﬁed through
+the balance of gradients between x-direction and vertical motions. This assumption
+brings conveniences in validating the estimated velocity ﬁeld, and does not considerably
+deteriorate the generality of the validation.
+To generate the noisy measurements of the wave ﬁeld, we ﬁrst superpose a random ﬁeld
+onto the reference solution of surface elevation:
+ηm(x) = ηtrue(x) + w(x),
+(3.4)
+where w(x) is sampled with cw = 0.0025σ 2
+η and aw = π/2 in (2.1). Then ψm(x) is
+generated based on the linear wave theory (similar to the generation of ψ(n)
+m (x) from
+949 A31-9
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+0
+20
+40
+60
+80
+100
+0
+20
+40
+60
+t/Tp
+80
+100
+10–3
+10–2
+ϵ(t)
+10–1
+100
+(a)
+(b)
+10–3
+10–2
+ϵ(t)
+10–1
+100
+Figure 2. Errors ϵ(t) from IEnKF-HOS-C (red dotted line) and HOS-C-only (black solid line) methods, for
+(a) 2-D and (b) 3-D cases with a steady and uniform current ﬁeld.
+η(n)
+m (x) shown in (2.3)):
+ψm(x) ∼
+
+i
+√|k| ˜ηm(k)eik·x dk,
+(3.5)
+where ˜ηm(k) denotes the measured surface elevation in Fourier space. Regarding the initial
+guess of current velocity U∗,0, we assume it to be uniform, and reasonable to some extent
+(with its deviation from Utrue
+∗
+not too large) due to the existence of marine weather forecast
+information or other approaches to roughly estimate a constant current ﬁeld from radar
+data (e.g. Lund et al. 2018) in practice. Cases with zero initial current velocity will also be
+tested.
+Finally, on the computation side, we use L = 256 grid points with a spatial domain
+A = [0, 2π) for 2-D simulations and L = 64 × 64 grid points with A = [0, 2π) × [0, 2π)
+for 3-D simulations. We next describe all synthetic cases classiﬁed by the form of the
+current ﬁelds that can be uniform/non-uniform and steady/unsteady.
+3.1.1. Results for uniform current ﬁelds
+We start from relatively simple cases with a uniform current ﬁeld that can be steady or
+unsteady. Under this situation, the current ﬁeld to be estimated at each time instant is
+reduced to a scalar for the 2-D cases or a vector with two components for the 3-D cases.
+In the analysis step, (2.11) can be modiﬁed accordingly in dimensions for the simpliﬁed
+scalar (vector) velocity ﬁelds.
+949 A31-10
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+–1.0
+–0.5
+η/Hs
+η/Hs
+η/Hs
+x/2π
+0
+0.5
+1.0
+(a)
+(b)
+(c)
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+–1.0
+–0.5
+0
+0.5
+1.0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+–1.0
+–0.5
+0
+0.5
+1.0
+Figure 3. Surface elevations ηtrue(x) (blue dash-dotted line), ηsim(x) with IEnKF-HOS-C (red dotted line) and
+HOS-C-only (black solid line) methods, at (a) t/Tp = 10, (b) t/Tp = 50 and (c) t/Tp = 90, for the 2-D wave
+ﬁeld.
+Steady cases
+We consider both 2-D and 3-D wave ﬁelds with the true current velocity given by
+Utrue
+x
+= 0.025vp(kp),
+(3.6)
+where vp(kp) represents the phase velocity of the peak wavenumber kp in the JONSWAP
+spectrum. The initial guess of the current velocity is predeﬁned as
+Ux,0 = 0.03vp(kp)
+(3.7)
+949 A31-11
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+–1.0
+–0.5
+0
+0.5
+1.0
+(a)
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+–1.0
+–0.5
+0
+0.5
+1.0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+–1.0
+–0.5
+0
+0.5
+1.0
+x/2π
+η/Hs
+η/Hs
+(b)
+(c)
+η/Hs
+Figure 4. Surface elevations ηtrue(x) (blue dash-dotted line), ηsim(x) with IEnKF-HOS-C (red dotted line) and
+HOS-C-only (black solid line) methods for the cross-section y/2π = 0.3 in the 3-D wave ﬁeld, at (a) t/Tp = 10,
+(b) t/Tp = 50 and (c) t/Tp = 90.
+for the 2-D case and
+U0 = (0.03vp(kp), 0.005vp(kp))
+(3.8)
+for the 3-D case. We note that a non-zero y component is used for U0 even though the
+truth is zero. The ensemble of the current velocity is generated by superposing zero-mean
+random errors, which are sampled from (2.1) with cu = 0.04(Utrue
+x
+)2 and au →∞, onto
+each component of the initial guess.
+949 A31-12
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+0.95
+1.00
+1.05
+1.10
+1.15
+1.20
+(a)
+(b)
+0
+20
+40
+60
+t/Tp
+80
+100
+0
+20
+40
+60
+80
+100
+0.8
+0.9
+Ux/|Utrue|
+Uy/|Utrue|
+Ux/Ux
+true
+1.0
+1.1
+1.2
+–0.2
+–0.1
+0
+0.1
+0.2
+Figure 5. Current velocity Ua estimated by the IEnKF-HOS-C method (Ux,a, red dotted line; Uy,a, blue
+dash-dotted line), in comparison with the true values (black solid line), for (a) 2-D and (b) 3-D cases with
+a steady and uniform current ﬁeld. In (b) the y component of the velocity is labelled on the right-hand vertical
+axis.
+For the IEnKF-HOS-C simulations, data from d = 12 locations (randomly selected with
+a uniform distribution) are assimilated with an interval τ = Tp/32, with Tp the wave period
+for the peak mode kp. The simulations start from the noisy measurements of the initial
+wave ﬁeld (which are generated by (3.4) and (3.5)) and the initial guess of the current
+velocity, and are conducted until t = 100Tp.
+The errors ϵ(t) obtained from IEnKF-HOS-C and HOS-C-only simulations (starting
+from the same wave ﬁeld and initial guess of current velocity) are shown in ﬁgure 2.
+For both 2-D and 3-D cases, as the simulation proceeds ϵ(t) obtained from the
+HOS-C-only method increases from the initial value ϵ(0) ≈0.05 and approaches O(1)
+at t/Tp ≈100; whereas with the IEnKF-HOS-C method, ϵ(t) keeps decreasing as the
+measurements are assimilated sequentially, and becomes two orders of magnitude smaller
+than its initial value at the end of the simulations. To further visualize the wave ﬁelds,
+ﬁgures 3 and 4 show snapshots of ηtrue(x) and ηsim(x) obtained from both IEnKF-HOS-C
+and HOS-C-only methods at three time instants of t/Tp = 10, 50 and 90 for the 2-D
+and 3-D cases, respectively. It can be found that, for both cases, ηsim(x) from the
+IEnKF-HOS-C method exhibits a much better agreement with ηtrue(x) than that from
+the HOS-C-only method. At t/Tp = 90, the IEnKF-HOS-C solution is already almost
+indistinguishable from ηtrue(x).
+Another important metric for evaluating the IEnKF-HOS-C performance is the
+estimated current velocity Ua, which is shown in ﬁgure 5 together with Utrue for both
+2-D and 3-D cases. It can be found that, as the measurements of the surface elevation are
+949 A31-13
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+10–3
+10–2
+ϵ(t)
+10–1
+(a)
+(b)
+10–3
+10–2
+ϵ(t)
+10–1
+0
+20
+40
+60
+t/Tp
+80
+100
+0
+20
+40
+60
+80
+100
+Figure 6. Errors ϵ(t) from IEnKF-HOS-C (with initial guess of current velocity given by (3.7) or (3.8): red
+dotted line; with zero initial guess of current velocity: blue dashed line) and EnKF-HOS (magenta solid line)
+methods, for (a) 2-D and (b) 3-D cases with a steady and uniform current ﬁeld.
+assimilated, Ua approaches Utrue (although experiencing some ﬂuctuations) with their
+difference practically negligible after t/Tp = 40. This indicates that the IEnKF-HOS-C
+algorithm is successful in the estimation of current velocity in these cases.
+We further test the performance of the IEnKF-HOS-C method when initial guess of
+zero-velocity current ﬁeld is used. Although in practice better initial guesses are usually
+available, this test provides a challenging case with large deviation of initial guess from the
+true current ﬁeld. The error ϵ(t) and estimated current velocity Ua are shown in ﬁgures 6
+and 7, respectively. From ﬁgure 7 we see that it takes O(60Tp) for the estimated velocity
+to converge to the true values, which is slower than the cases with initial guesses (3.7) and
+(3.8) shown in ﬁgure 5. This is also reﬂected in ﬁgure 6 where the error with zero initial
+guess drops slower than that with (3.7) and (3.8). However, it is also clear in ﬁgure 6 that
+the former drops with a rate that is comparable to or faster than the latter for t > O(60Tp)
+since the correct current velocity has been captured by the former. In addition, we also
+include in ﬁgure 6 the result of the previous EnKF-HOS method developed by Wang &
+Pan (2021), which characterizes the situation of a biased physical model coupled with DA
+(that can partially correct the solution). We observe that ϵ(t) from EnKF-HOS decreases
+in time with a much slower rate than the two results from IEnKF-HOS-C, with the error
+from IEnKF-HOS-C up to one order of magnitude smaller than that from EnKF-HOS at
+t = 100Tp.
+Finally, we test the robustness of the IEnKF-HOS-C method for opposing current, by
+reversing the signs in (3.6), (3.7) and (3.8), and keeping the initial wave states the same as
+949 A31-14
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+1.2
+(a)
+(b)
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+1.2
+–0.20
+–0.16
+–0.12
+–0.08
+–0.04
+0
+0.04
+20
+40
+60
+t/Tp
+80
+100
+20
+40
+60
+80
+100
+Ux/|Utrue|
+Uy/|Utrue|
+Ux/Ux
+true
+Figure 7. Current velocity Ua estimated by the IEnKF-HOS-C method (Ux,a, red dotted line; Uy,a, blue
+dash-dotted line), in comparison with the true values (black solid line), for (a) 2-D and (b) 3-D cases with
+a steady and uniform current ﬁeld. In (b) the y component of the velocity is labelled on the right-hand vertical
+axis.
+before. Results shown in ﬁgures 8 and 9 demonstrate the performance of IEnKF-HOS-C
+to effectively estimate the opposing current ﬁeld together with improved accuracy in
+wave-ﬁeld reconstruction. The current estimation now takes O(60Tp) to converge to
+the true values (seemingly longer than the following current case) mainly because the
+opposing current effect slows down the wave propagation, which makes the time to
+convergence longer when normalized by the intrinsic period Tp.
+Unsteady cases
+In this section, we test the performance of the IEnKF-HOS-C method for unsteady and
+uniform current ﬁelds. We focus on 3-D wave ﬁelds hereafter and for this section we
+consider both linear and sinusoidal time variations of the current ﬁelds, described by
+Utrue
+x
+(t) = (1 + α1t/Tp)Uc
+(3.9)
+and
+Utrue
+x
+(t) = (cos(α2t/Tp) + 1.12)Uc,
+(3.10)
+with α1 = 0.005, α2 = 0.04 and Uc = 0.025vp(kp). The initial guess of current velocity
+is also prescribed by (3.8), based on which the ensemble is then produced with
+cu = 0.04(Uc)2 and au →∞. Noisy measurements of the wave ﬁeld at 24 randomly
+sampled locations are assimilated with an interval τ = Tp/32.
+949 A31-15
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+0
+20
+40
+60
+t/Tp
+80
+100
+0
+20
+40
+60
+80
+100
+(b)
+10–3
+10–2
+ϵ(t)
+10–1
+100
+(a)
+10–3
+10–2
+ϵ(t)
+10–1
+100
+Figure 8. Errors ϵ(t) from IEnKF-HOS-C (red dotted line) and HOS-C-only (black solid line) methods, for
+(a) 2-D and (b) 3-D cases with opposing current ﬁelds.
+Figure 10 shows the errors ϵ(t) from the IEnKF-HOS-C and HOS-C-only methods,
+for the two current ﬁelds (3.9) and (3.10). For the HOS-C-only simulations, ϵ(t) grows
+quickly in time (somewhat faster than for the steady current cases at the early stage
+of simulations) and reaches O(1) at t/Tp ≈80. The IEnKF-HOS-C method is again
+successful in accurately estimating the wave ﬁelds with the error ϵ(t) reducing to O(10−3)
+at t/Tp ≈100.
+Figure 11 presents the estimated velocity by the IEnKF-HOS-C method, in terms of its
+evolution in time and comparison to the true current velocity Utrue(t). For both types of
+current ﬁelds (3.9) and (3.10), the IEnKF-HOS-C method is able to track the variation
+of the current ﬁeld, with Ua,j converging to the vicinity of the true time series after
+40Tp–60Tp. We remark that the capability to capture the unsteadiness of the current is
+achieved through the IEnKF procedure, in spite of the persistence model (2.7) in the
+forecast step.
+3.1.2. Results for non-uniform current ﬁelds
+We further demonstrate the effectiveness of the IEnKF-HOS-C method for the 3-D
+wave-ﬁeld evolution under the effect of non-uniform current ﬁelds. The results below are
+presented for steady and unsteady non-uniform current ﬁelds.
+949 A31-16
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+(a)
+(b)
+–1.25
+–1.20
+–1.15
+–1.10
+–1.05
+–1.00
+–0.95
+–1.20
+–1.15
+–1.10
+–1.05
+–1.00
+–0.95
+–0.25
+–0.20
+–0.15
+–0.10
+–0.05
+0
+0.05
+0
+20
+40
+60
+t/Tp
+80
+100
+0
+20
+40
+60
+80
+100
+Ux/|Utrue|
+Uy/|Utrue|
+Ux/Ux
+true
+Figure 9. Current velocity Ua estimated by the IEnKF-HOS-C method (Ux,a, red dotted line; Uy,a, blue
+dash-dotted line), in comparison with the true values (black solid line), for (a) 2-D and (b) 3-D cases with
+opposing current ﬁelds. In (b) the y component of the velocity is labelled on the right-hand vertical axis.
+Steady case
+We consider the wave-ﬁeld evolution under the effect of a steady and non-uniform
+(varying in x direction) current ﬁeld, which is described by
+Utrue
+x
+(x) =
+⎧
+⎪⎨
+⎪⎩
+U1 + eγ x−qU2
+eγ x−q + 1
+,
+for 0 ≤x ≤π,
+Utrue
+x
+(2π −x),
+for π < x ≤2π
+(3.11)
+and plotted in ﬁgure 12. The parameter values are chosen as U1 = 0.01vp(kp), U2 =
+0.025vp(kp), q = 15 and γ = 25/π such that the transitions between the locally uniform
+regions are smooth (i.e. slow variation of the current ﬁeld compared with the wave
+oscillation, and thus compatible with (2.5) and (2.6)).
+In this case, we set the initial guess of current velocity to be uniform as before (assuming
+no spatial distribution information is accessible a priori):
+Ux,0(x) = 0.15vp(kp),
+(3.12)
+Uy,0(x) = 0.02vp(kp),
+(3.13)
+with the initial ensemble for both velocity components generated by (2.4) with cu =
+0.04(U1)2 and au = π/2.
+With the IEnKF-HOS-C method, data of surface elevation at d = 64 randomly
+selected locations are assimilated into the numerical model with an interval τ = Tp/64.
+949 A31-17
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+0
+20
+40
+60
+t/Tp
+80
+100
+0
+20
+40
+60
+80
+100
+(b)
+10–3
+10–2
+ϵ(t)
+10–1
+100
+(a)
+10–3
+10–2
+ϵ(t)
+10–1
+100
+Figure 10. Errors ϵ(t) from IEnKF-HOS-C (red dotted line) and HOS-C-only (black solid line) methods for
+the cases with unsteady and uniform current ﬁelds: (a) (3.9) and (b) (3.10).
+Figure 13 plots the errors ϵ(t) obtained from the IEnKF-HOS-C and HOS-C-only methods
+for this case, showing again that IEnKF-HOS-C is successful in estimating the wave states,
+in contrast to the HOS-C-only simulation.
+The current ﬁelds captured by IEnKF-HOS-C, in terms of the snapshots of Ux,a(x)
+and Uy,a(x) at three cross-sections of constant y for t/Tp = 10, 50 and 90, are plotted in
+ﬁgure 14. We see that the estimated velocity starts from a constant value and converges to
+the true ﬁeld (with its variation in x captured at all cross-sections) as the time increases.
+This successful estimation of the current ﬁeld is the basis for the accurate prediction of the
+wave states seen in ﬁgure 13.
+Unsteady cases
+The climax of the synthetic cases is the application of the IEnKF-HOS-C method to
+the wave-ﬁeld evolution impacted by a current ﬁeld featuring both spatial and temporal
+variations. In particular, we assign a sinusoidal variation to the current ﬁeld (3.11) to
+produce the true current velocity ﬁeld:
+Utrue
+x
+(x, t) =
+⎧
+⎪⎨
+⎪⎩
+U1 + eγ x−qU2
+eγ x−q + 1
+cos(α3t/Tp),
+for 0 ≤x ≤π,
+Utrue
+x
+(2π −x),
+for π < x ≤2π,
+(3.14)
+where α3 = 0.01. For this case we use the same initial guess of current velocity as in the
+steady case, i.e. (3.12) and (3.13), as well as the same corresponding initial ensembles
+generated by (2.4) with cu = 0.04(U1)2 and au = π/2.
+949 A31-18
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+1.0
+1.1
+1.2
+1.3
+1.4
+1.5
+1.6
+(a)
+(b)
+–0.3
+–0.2
+Uy/Uc
+Uy/Uc
+Ux/Uc
+Ux/Uc
+–0.1
+0
+0.1
+0.2
+0.3
+20
+40
+60
+t/Tp
+80
+100
+0
+20
+40
+60
+80
+100
+0
+0.5
+1.0
+1.5
+2.0
+2.5
+–0.3
+–0.2
+–0.1
+0
+0.1
+0.2
+0.3
+Figure 11. Estimations Ua,j from the IEnKF-HOS-C method (Ux,a, red dotted line; Uy,a, blue dash-dotted
+line), in comparison with the true values (Utrue
+x
+(t), black solid line; Utrue
+y
+(t) = 0, line with squares), for the
+cases with unsteady and uniform current ﬁelds: (a) (3.9) and (b) (3.10).
+0.2
+0.4
+x/2π
+0.6
+0.8
+1.0
+0
+0.01
+Ux
+true/vp(kp)
+0.02
+0.03
+Figure 12. Plot of Utrue
+x
+(x) as the true steady and non-uniform current ﬁeld described by (3.11).
+The time series of ϵ(t) from the IEnKF-HOS-C and HOS-C-only methods are
+shown in ﬁgure 15, which demonstrates, similar to all above cases, the effectiveness
+of IEnKF-HOS-C in reproducing the wave states. The estimated current ﬁeld by
+IEnKF-HOS-C is further plotted in ﬁgure 16, in terms of the snapshots of Ux,a and Uy,a at
+the three cross-sections of constant y for three time instants t/Tp = 10, 50 and 90. Starting
+from an initial guess of a constant ﬁeld, Ux,a captures both the spatial and temporal
+949 A31-19
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+0
+20
+40
+60
+t/Tp
+80
+100
+10–3
+10–2
+ϵ(t)
+10–1
+100
+Figure 13. Errors ϵ(t) from the IEnKF-HOS-C (red dotted line) and HOS-C-only (black solid line) methods
+for the current ﬁeld described by (3.11).
+variation of Utrue
+x
+(x, t) and Uy,a approaches zero uniformly in time with sequential data
+assimilated to the algorithm.
+3.2. The case with real wave data
+In what follows, we test the IEnKF-HOS-C method using real measurements of the
+ocean wave ﬁeld presented in Lyzenga et al. (2015). The measurements are obtained
+from an onboard 25 kW X-band (9.4 GHz) Doppler coherent marine radar off the coast
+of southern California. A patch of the radar-scanned area, which is ﬁxed in the local
+radar coordinate system and covers a 480 m × 480 m region, is selected as the domain
+of interest. The numerical simulation starts from 23:18:32 UTC on 17 September 2013 and
+lasts for 40Tp with Tp = 11.28 s. The initial condition is taken from the measurements in
+the computational domain (ﬁgure 17) featuring a global wave steepness kpHs/2 = 0.02.
+In ﬁgure 17 it can be clearly observed that the dominant wavelength is λp ≈200 m that
+is consistent with the estimated value by the linear wave theory for Tp = 11.28 s. We
+use L = 64 × 64 grid points in the simulation, which matches the resolution in the radar
+dataset. The DA interval is set to be the same as the data acquisition interval of the radar,
+which ﬂuctuates around Tp/4 = 2.82 s, i.e. after each interval we assimilate radar data into
+the IEnKF-HOS-C simulation.
+The reference velocity of the current ﬁeld in this case is taken from the track of an in
+situ ﬂoating buoy from 23:10:10 to 23:25:02 UTC on 17 September 2013, which is shown
+in ﬁgure 18. While it is preferable to obtain the spatial and temporal variations of the
+current ﬁeld, the available information only allows us to compute the mean velocity of the
+ﬂoating buoy, as Ub = (0.2958, −0.3944) m s−1. On the other hand, due to the relatively
+small size of the simulation domain and short time interval, it can be justiﬁed to consider
+a uniform and steady current ﬁeld with velocity speciﬁed by Ub.
+To generate ensemble of measurements of the wave ﬁeld, we use (2.2) and
+(2.3) with cw = 0.0025σ 2
+η and aw = 120 m deﬁned in (2.1). Four different initial
+guesses of the current velocity are considered, namely U0 = (0.1958, −0.4944),
+U0 = (0.3958, −0.2944), U0 = (0.3958, −0.4944) and U0 = (0.1958, −0.2944), all
+representing a shift of 0.1 m s−1 in different directions of each component of Ub. The
+ensemble of the initial current velocity is generated by (2.4) with cu = 0.02 m2 s−2 and
+au = 120 m.
+949 A31-20
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+0.03
+(a)
+(b)
+(c)
+(d)
+(e)
+( f )
+0.02
+0.01
+0
+Ux/vp(kp)
+0.010
+0.005
+0
+–0.005
+–0.010
+Uy/vp(kp)
+0.03
+0.02
+0.01
+0
+Ux/vp(kp)
+0.010
+0.005
+0
+–0.005
+–0.010
+Uy/vp(kp)
+0.03
+0.02
+0.01
+0
+Ux/vp(kp)
+0.010
+0.005
+0
+–0.005
+–0.010
+Uy/vp(kp)
+0.2
+0.4
+x/2π
+0.6
+0.8
+1.0
+0.2
+0.4
+x/2π
+0.6
+0.8
+1.0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+Figure 14. Estimations Ux,a (a,c,e) and Uy,a (b,d, f) by IEnKF-HOS-C at (a,b) t/Tp = 10, (c,d) t/Tp = 50
+and (e, f) t/Tp = 90 in comparison with the true current ﬁeld (3.11) (black solid line), for three cross-sections:
+y/2π = 0.25 (red dotted line), y/2π = 0.50 (blue dash-dotted line) and y/2π = 0.75 (magenta dashed line).
+An issue that needs to be considered for such a realistic case with uncertain boundary
+conditions is the problem of predictable zone and its potential mismatch with the
+measurement region. This issue has been discussed in detail in Wang & Pan (2021), which
+involves the application of a modiﬁed analysis equation in EnKF (IEnKF in this case). For
+conciseness, we do not present the details again in this paper but refer the interested readers
+to our previous paper (Wang & Pan 2021). These previously developed techniques are also
+applied here, with the only additional complexity that the estimated current velocity Ua,j
+949 A31-21
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+0
+20
+40
+t/Tp
+60
+80
+100
+10–3
+10–2
+ϵ(t)
+10–1
+100
+Figure 15. Error ϵ(t) from the IEnKF-HOS-C (red dotted line) and HOS-C-only (black solid line) methods
+for the current ﬁeld described by (3.14).
+now needs to be added to the wave group velocity (accounting for the Doppler shift) to
+determine the boundaries of the predictable zones.
+Figure 19 presents the estimation Ux,a and Uy,a, in comparison with the reference
+velocity Ub, obtained with different initial guesses. For all the initial guesses, we see
+that the estimation Ua,j converges to the reference Ub at tj ≈40Tp. In order to assess
+the performance of IEnKF-HOS-C in terms of the wave-ﬁeld reconstruction, we use the
+following two metrics (since the true wave states are inaccessible and (3.1) is not deﬁned):
+ρ(ηm,j, ηsim) =
+
+A ηm,j(x)ηsim(x) dA
+σ 2η A
+,
+(3.15)
+D = tr (ℭ(ηa, ηa))
+L
+,
+(3.16)
+where tr(Λ) represents the trace of a matrix Λ. The correlation coefﬁcient ρ(ηm,j, ηsim)
+provides a measure of the difference between measurements and simulation results, which
+is also an indication of the magnitude of the correction (innovation) terms in (2.9)–(2.11).
+The quantity D provides the ensemble variance of the analysis ﬁeld ηa averaged over space
+(see (2.8) for the deﬁnition of operator ℭ, and L is the total number of grid points), which
+measures the uncertainty level after each analysis step in the simulation. For a simulation
+with better DA reconstruction of the wave ﬁeld, it is expected that ρ and D are respectively
+higher and lower. This is indeed the case as we observe in ﬁgures 20 and 21, which show
+the time series of ρ and D respectively obtained from the IEnKF-HOS-C and EnKF-HOS
+methods. It is clear that IEnKF-HOS-C provides better results in terms of measures by
+both quantities. In addition, we see that the reconstruction quality of IEnKF-HOS-C
+gradually increases with time after t/Tp = 15–20, which is mainly due to the improved
+estimation of current with time. The above results clearly demonstrate the effectiveness of
+IEnKF-HOS-C when applied to real radar data, although tests against more sophisticated
+cases are warranted for future studies (which require better and detailed measurements of
+the ocean current ﬁeld together with remote sensing of the surface waves).
+We ﬁnally test the robustness of the developed IEnKF-HOS-C algorithm by switching
+the simulation initialization time t0, with the simulation period remaining at 40Tp.
+Speciﬁcally, three additional choices of t0 between 23:10:10 and 23:25:02 UTC on 17
+September 2013 are tested, namely 23:12:03, 23:14:22 and 23:16:28, for the case with
+949 A31-22
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+0.03
+(a)
+(b)
+(c)
+(d)
+(e)
+( f )
+0.02
+0.01
+0
+Ux/vp(kp)
+0.010
+0.005
+0
+–0.005
+–0.010
+Uy/vp(kp)
+0.03
+0.02
+0.01
+0
+Ux/vp(kp)
+0.010
+0.005
+0
+–0.005
+–0.010
+Uy/vp(kp)
+0.03
+0.02
+0.01
+Ux/vp(kp)
+0.010
+0.005
+0
+–0.005
+–0.010
+Uy/vp(kp)
+x/2π
+0.2
+0.4
+x/2π
+0.6
+0.8
+1.0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+Figure 16. Estimations Ux,a (a,c,e) and Uy,a (b,d, f) by IEnKF-HOS-C at (a,b) t/Tp = 10, (c,d) t/Tp = 50 and
+(e, f) t/Tp = 90 in comparison with the true ﬁeld (3.14) (black solid line), for three cross-sections: y/2π = 0.25
+(red dotted line), y/2π = 0.50 (blue dash-dotted line) and y/2π = 0.75 (magenta dashed line).
+U0 = (0.3958, −0.4944) m s−1. Figure 22 presents the estimated current velocity Ua for
+four different choices of t0. It can be found that the estimated velocity at 40Tp indeed varies
+to some extent, but all within O(10 %) difference compared with the buoy measurement.
+This further demonstrates the robustness of the IEnKF-HOS-C algorithm, considering
+many factors that can cause the difference in estimated velocity in different windows, e.g.
+the (unknown) ﬂuctuation of the true velocity in time and space.
+949 A31-23
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+0
+120
+240
+360
+480
+1.0
+0.5
+–0.5
+–1.0
+0
+120
+240
+360
+x (m)
+y (m)
+480
+λp ≈ 200 m
+Figure 17. Initial surface elevation ηm,0(x)/Hs (with Hs = 1.50 m) measured by radar at t = t0, i.e. 23:18:32
+UTC on 17 September 2013.
+–119.475
+32.670
+32.675
+32.680
+32.685
+32.690
+Ship
+17 September 2013 23:10:10–23:25:02 UTC
+Buoy
+–119.470
+–119.465
+–119.460
+–119.455
+Longitude (deg E)
+Latitude (deg N)
+–119.450
+Figure 18. Ship and buoy tracks for the time interval from 23:10:10 to 23:25:02 UTC on 17 September 2013
+(Lyzenga et al. 2015). The initial simulation domain at t0 = 23:18:32 is marked as the grey square box.
+4. Conclusions
+In this paper, we present a new IEnKF-HOS-C method, which features the capability of
+simultaneous phase-resolved ocean wave forecast and current estimation. The performance
+of the IEnKF-HOS-C method is examined using both synthetic data and measurements
+in the real ocean environment. As indicated by the numerical results, the developed
+IEnKF-HOS-C method outperforms not only the HOS-C-only method but also the
+949 A31-24
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+0
+10
+20
+30
+40
+–0.5
+–0.4
+–0.3
+–0.2
+0.5
+0.4
+0.3
+0.2
+0.1
+t/Tp
+Ux (m s–1)
+Uy (m s–1)
+0
+10
+20
+30
+40
+–0.5
+–0.4
+–0.3
+–0.2
+0.5
+0.4
+0.3
+0.2
+0.1
+Ux (m s–1)
+Uy (m s–1)
+0
+10
+20
+30
+40
+–0.5
+–0.4
+–0.3
+–0.2
+0.5
+0.4
+0.3
+0.2
+0.1
+Ux (m s–1)
+Uy (m s–1)
+0
+10
+20
+30
+40
+–0.5
+–0.4
+–0.3
+–0.2
+0.5
+0.4
+0.3
+0.2
+0.1
+Ux (m s–1)
+Uy (m s–1)
+(b)
+(a)
+(c)
+(d )
+Figure 19. Estimations Ux,a (red dotted line, left-hand axis) and Uy,a (blue dash-dotted line, right-hand
+axis) by IEnKF-HOS-C, in comparison with the reference velocity Ub (black solid line), for four different
+initial guesses of the current velocity: (a) U0 = (0.1958, −0.4944) m s−1; (b) U0 = (0.3958, −0.2944) m s−1;
+(c) U0 = (0.3958, −0.4944) m s−1; and (d) U0 = (0.1958, −0.2944) m s−1.
+949 A31-25
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+0
+5
+10
+15
+20
+25
+30
+35
+40
+0.6
+0.7
+0.8
+0.9
+1.0
+t/Tp
+ρ(ηm, j, ηsim)
+Figure 20. Time series of ρ(ηm,j, ηsim) from IEnKF-HOS-C (with U0 = (0.1958, −0.4944), red dotted
+line; U0 = (0.3958, −0.2944), blue dash-dotted line; U0 = (0.3958, −0.4944), magenta dashed line; U0 =
+(0.1958, −0.2944), cyan line with circles) and EnKF-HOS (black solid line) methods.
+0
+5
+10
+15
+20
+25
+t/Tp
+D/σ2
+η
+30
+35
+40
+1.0
+1.4
+1.8
+2.2
+2.6
+(×10–3)
+Figure 21. Time series of D from IEnKF-HOS-C (with U0 = (0.1958, −0.4944), red dotted line;
+U0 = (0.3958, −0.2944), blue dash-dotted line; U0 = (0.3958, −0.4944):, magenta dashed line; U0 =
+(0.1958, −0.2944), cyan line with circles) and EnKF-HOS (black solid line) methods.
+state-of-the-art EnKF-HOS method, in terms of the wave forecast accuracy. In addition, the
+feasibility of inferring current velocity with this method is extensively demonstrated, by
+testing it for various forms of current ﬁelds, which are characterized by distinct temporal
+and spatial variations. The developed IEnKF-HOS-C method is intrinsically extensible
+and can be easily modiﬁed to account for other physical or empirical parameters. Finally,
+if implemented on a graphics processing unit, this method can be conveniently carried out
+in offshore environments, which may bring in favourable effects in marine operations.
+Acknowledgement. The authors would like to thank Dr D. Lyzenga in the Department of Naval Architecture
+and Marine Engineering at the University of Michigan for providing and interpreting the radar data.
+Funding. G.W., J.Z., Q.Z. and Z.L. acknowledge funding from the National Key Research and Development
+Program of China (2021YFB2601100). G.W., J.Z., Y.M. and Z.L. acknowledge funding from the Open Funds
+of State Key Laboratory of Coastal and Offshore Engineering of China (Project No. LP2101).
+Declaration of interests. The authors report no conﬂict of interest.
+949 A31-26
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with current estimation
+0.25
+0.30
+0.35
+Ux (m s–1)
+Uy (m s–1)
+0.40
+0.45
+0
+5
+10
+15
+20
+25
+30
+35
+40
+0
+5
+10
+15
+20
+25
+30
+35
+40
+–0.55
+–0.50
+–0.45
+–0.40
+–0.35
+t/Tp
+(b)
+(a)
+Figure 22. Estimations (a) Ux,a and (b) Uy,a by IEnKF-HOS-C for t0 = 23:12:03 (magenta dashed line),
+t0 = 23:14:22 (cyan line with circles), t0 = 23:16:28 (blue dash-dotted line) and t0 = 23:18:32 (red dotted
+line), in comparison with Ub (black solid line).
+Author ORCIDs.
+Yuxiang Ma https://orcid.org/0000-0003-4314-0428;
+Yulin Pan https://orcid.org/0000-0002-7504-8645.
+REFERENCES
+ANNENKOV, S.Y. & SHRIRA, V.I. 2001 On the predictability of evolution of surface gravity and
+gravity–capillary waves. Physica D 152, 665–675.
+ARAGH, S. & NWOGU, O. 2008 Variation assimilating of synthetic radar data into a pseudo-spectral wave
+model. J. Coast. Res. 52, 235–244.
+BOOIJ, N.R.R.C., RIS, R.C. & HOLTHUIJSEN, L.H. 1999 A third-generation wave model for coastal regions:
+1. Model description and validation. J. Geophys. Res. 104 (C4), 7649–7666.
+CARRASSI, A., BOCQUET, M., BERTINO, L. & EVENSEN, G. 2018 Data assimilation in the geosciences: an
+overview of methods, issues, and perspectives. Wiley Interdiscip. Rev. 9 (5), e535.
+CRAIG, W. & SULEM, C. 1993 Numerical simulation of gravity waves. J. Comput. Phys. 108 (1), 73–83.
+DOMMERMUTH, D.G. & YUE, D.K.P. 1987 A high-order spectral method for the study of nonlinear gravity
+waves. J. Fluid Mech. 184, 267–288.
+DUCROZET, G., ABDOLAHPOUR, M., NELLI, F. & TOFFOLI, A. 2021 Predicting the occurrence of rogue
+waves in the presence of opposing currents with a high-order spectral method. Phys. Rev. Fluids 6 (6),
+064803.
+EVENSEN, G. 2003 The ensemble Kalman ﬁlter: theoretical formulation and practical implementation. Ocean.
+Dyn. 53 (4), 343–367.
+EVENSEN, G. 2009 Data Assimilation: The Ensemble Kalman Filter. Springer Science & Business Media.
+FUJIMOTO, W. & WASEDA, T. 2020 Ensemble-based variational method for nonlinear inversion of surface
+gravity waves. J. Atmosv Ocean. Technol. 37 (1), 17–31.
+949 A31-27
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+IGLESIAS, M.A., LAW, K.J.H. & STUART, A.M. 2013 Ensemble Kalman methods for inverse problems.
+Inverse Probl. 29 (4), 045001.
+JANSSEN, P.A.E.M. 2008 Progress in ocean wave forecasting. J. Comput. Phys. 227 (7), 3572–3594.
+LUND, B., HAUS, B.K., HORSTMANN, J., GRABER, H.C., CARRASCO, R., LAXAGUE, N.J.M.,
+NOVELLI, G., GUIGAND, C.M. & ÖZGÖKMEN, T.M. 2018 Near-surface current mapping by shipboard
+marine x-band radar: a validation. J. Atmos. Ocean. Technol. 35 (5), 1077–1090.
+LYZENGA, D.R., NWOGU, O.G., BECK, R.F., O’BRIEN, A., JOHNSON, J., DE PAOLO, T. & TERRILL, E.
+2015 Real-time estimation of ocean wave ﬁelds from marine radar data. In 2015 IEEE International
+Geoscience and Remote Sensing Symposium (IGARSS), pp. 3622–3625. IEEE.
+MA, Y., SCLAVOUNOS, P.D., CROSS-WHITER, J. & ARORA, D. 2018 Wave forecast and its application to
+the optimal control of offshore ﬂoating wind turbine for load mitigation. Renew. Energy 128, 163–176.
+MOHAGHEGH, F., MURTHY, J. & ALAM, M.-R. 2021 Rapid phase-resolved prediction of nonlinear
+dispersive waves using machine learning. Appl. Ocean Res. 117, 102920.
+NOTTON, G. & VOYANT, C. 2018 Forecasting of intermittent solar energy resource. In Advances in Renewable
+Energies and Power Technologies (ed. I. Yahyaoui), pp. 77–114. Elsevier.
+NWOGU, O.G. & LYZENGA, D.R. 2010 Surface-waveﬁeld estimation from coherent marine radars. IEEE
+Geosci. Remote Sens. Lett. 7 (4), 631–635.
+ONORATO, M., PROMENT, D. & TOFFOLI, A. 2011 Triggering rogue waves in opposing currents. Phys. Rev.
+Lett. 107 (18), 184502.
+PAN, Y. 2020 On the model formulations for the interaction of nonlinear waves and current. Wave Motion
+96, 102587.
+QI, Y., WU, G., LIU, Y., KIM, M.-H. & YUE, D.K.P. 2018 Nonlinear phase-resolved reconstruction of
+irregular water waves. J. Fluid Mech. 838, 544–572.
+SANTITISSADEEKORN, N. & JONES, C. 2015 Two-stage ﬁltering for joint state-parameter estimation. Mon.
+Weath. Rev. 143 (6), 2028–2042.
+STUHLMEIER, R. & STIASSNIE, M. 2021 Deterministic wave forecasting with the zakharov equation. J. Fluid
+Mech. 913, A50.
+TOLMAN, H.L., et al. 2009 User manual and system documentation of wavewatch III TM version 3.14.
+Technical note, MMAB Contribution vol. 276, 220.
+WANG, J., MA, Q. & YAN, S. 2018 A fully nonlinear numerical method for modeling wave–current
+interactions. J. Comput. Phys. 369, 173–190.
+WANG, G. & PAN, Y. 2021 Phase-resolved ocean wave forecast with ensemble-based data assimilation.
+J. Fluid Mech. 918, A19.
+WANG, J.-X. & XIAO, H. 2016 Data-driven CFD modeling of turbulent ﬂows through complex structures. Intl
+J. Heat Fluid Flow 62, 138–149.
+WEST, B.J., BRUECKNER, K.A., JANDA, R.S., MILDER, D.M. & MILTON, R.L. 1987 A new numerical
+method for surface hydrodynamics. J. Geophys. Res. 92 (C11), 11803–11824.
+WU, J., HAO, X. & SHEN, L. 2022 An improved adjoint-based ocean wave reconstruction and prediction
+method. Flow 2, E2.
+WU, J., WANG, J.-X. & SHADDEN, S.C. 2019 Improving the convergence of the iterative ensemble kalman
+ﬁlter by resampling. arXiv:1910.04247.
+XIAO, Y.M.H. & PAN, Y. 2021 Time-optimal path planning in an evolving ocean wave ﬁeld based on
+reachability theory. In 2021 60th IEEE Conference on Decision and Control (CDC), pp. 5019–5026. IEEE.
+XU, L. & GUYENNE, P. 2009 Numerical simulation of three-dimensional nonlinear water waves. J. Comput.
+Phys. 228 (22), 8446–8466.
+YOON, S., KIM, J. & CHOI, W. 2015 An explicit data assimilation scheme for a nonlinear wave prediction
+model based on a pseudo-spectral method. IEEE J. Ocean. Engng 41 (1), 112–122.
+949 A31-28
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press

@@ -1,0 +1,1620 @@
+Graphical Abstract
+Sequential water wave reconstruction in VOF-based numerical wave tanks with the EnKF
+approach
+Liwen Yan, Linyuan Che, Jing Li
+arXiv:2510.14356v2  [physics.flu-dyn]  24 Feb 2026
+
+Highlights
+Sequential water wave reconstruction in VOF-based numerical wave tanks with the EnKF
+approach
+Liwen Yan, Linyuan Che, Jing Li
+• Developed a robust sequential data assimilation framework integrating the Ensemble Kalman Filter
+with a VOF-based Navier–Stokes solver for deterministic wave reconstruction.
+• Introduced a physics-constrained inflation strategy utilizing potential flow theory alongside POD-based
+order reduction to maintain physical consistency and computational efficiency.
+• Demonstrated the capability to capture complex, phase-resolved, non-linear phenomena—including
+irregular and plunging waves—that traditional potential flow-based methods fail to resolve.
+
+Sequential water wave reconstruction in VOF-based numerical wave tanks
+with the EnKF approach
+Liwen Yana, Linyuan Cheb, Jing Lia
+aMarine Numerical Experimental Center, State Key Laboratory of Ocean Engineering, School of Ocean and Civil
+Engineering, Shanghai Jiao Tong University, , Shanghai, 200240, PR China
+bState Key Laboratory of Maritime Technology and Safety, Shanghai Ship and Shipping Research Institute Co.,
+Ltd., Shanghai, 200131, PR China
+Abstract
+Existing phase-resolved wave reconstruction methods are mostly based on potential flow theory, which limits
+their ability to capture strongly nonlinear phenomena such as wave breaking dynamics. In such cases, the
+importance of multiphase incompressible Navier–Stokes solvers becomes particularly evident. These solvers
+form the foundation of the widely used numerical wave tanks in marine, ocean, and coastal engineering.
+However, the high dimensionality of the state variables in such systems often hinders the efficiency of data
+assimilation. The POD method is applied to reduce the order of the state vector in ensemble-based data
+assimilation, where instantaneous snapshots are naturally available. Given the unsteady nature and random
+phase combinations of irregular waves, the effectiveness of single data assimilation is limited. Sequential data
+assimilation is thus adopted to continuously update the wave profile as it evolves, ensuring that the wave field
+matches the real-world conditions. Therefore, inflation is needed to mitigate the ensemble collapse. Unlike
+single-phase flows without any interface, where the background error covariance can be inflated directly, to
+preserve physical constraints, when inflating for the phase field, the velocity field is simultaneously updated
+by incorporating potential flow formulas. Three representative cases—–regular waves, irregular waves, and
+plunging waves—–are used to validate the proposed method and assess its performance.
+The effect of
+assimilation parameters is also examined. The results demonstrate that the sequential data assimilation
+strategy achieves accurate free-surface reconstruction for a VOF-based numerical wave tank.
+Keywords:
+Wave Reconstruction, EnKF, Data assimilation
+1. Introduction
+Accurate simulation of water waves is underscored by the rapid growth of diverse industries, spanning
+from shipping and coastal engineering to offshore construction, aquaculture, and marine renewable energy.
+Numerical wave tanks hence become an important platform for the study of wave dynamics and wave-
+structure interactions [1, 2]. While numerical wave tanks based on potential flow theory are valued for
+their computational efficiency, particularly in applications like design optimization [3], high-fidelity viscous
+flow solvers remain indispensable in naval architecture and ocean engineering. This is due to their unique
+capability to simulate critical nonlinear phenomena, such as wave breaking, slamming, and green water [1].
+These high-fidelity simulations are typically grounded in computational fluid dynamics (CFD) [4], with the
+vast majority of solvers employing the Navier-Stokes equations or related formulations [1]. Algorithmically,
+these solvers are categorized into grid-based and particle-based methods [5]. Within the dominant grid-
+based approaches, the finite volume method (FVM) is the most prevalent.
+However, as FVM requires
+explicit interface capturing for multiphase flows, specific techniques are employed, among which the volume
+Email address: lijing_@sjtu.edu.cn (Jing Li)
+
+of fluid (VOF) method is the most common in mainstream solvers [6], although the level-set method is also
+used [7].
+The inherent discrepancies between computational models and physical reality necessitate rigorous val-
+idation against experimental benchmarks. However, the validation of structural responses and loads under
+complex environments like irregular waves is typically confined to statistical agreements, which overlooks
+information on the individual deterministic occurrences. This poses a significant challenge for reproducing
+critical but transient events, such as rogue waves, which can cause severe structural damage but are difficult
+to replicate deterministically in a numerical wave tank [8]. Even if the phases of wave components of the
+wavemaker are available, the actually generated wave spectrum often deviates from the target, given the
+limited wavemaker precision [9]. Despite the high degree of control in laboratory settings, the wave propa-
+gation is inevitably subject to various sources of error, such as boundary effects and tank reflections. These
+deviations are often difficult to measure directly or quantify accurately, resulting in a challenge to maintain
+consistency between experimental environments and numerical configurations. Furthermore, the numeri-
+cal replication of phase-resolved waves that match those in field tests presents an even greater challenge,
+which is crucial for achieving high fidelity of numerical wave tank simulations and enhancing their practical
+engineering value.
+Therefore, the phase-resolved wave reconstruction technique has garnered significant research interest.
+Currently, methods used to solve this inverse problem mainly include data assimilation and machine learning.
+Among the machine learning approaches, Duan et al. [10] proposed an artificial neural network-based wave
+prediction (ANN-WP) model for phase-resolved wave reconstruction and short-term forecasting. While their
+study included experimental validation, the model itself operates without embedding physical constraints.
+The recent development of physics-informed neural networks (PINNs) [11] provides a framework to incorpo-
+rate prior knowledge of water wave physics directly into the training of neural networks. For instance, Ehlers
+et al. [12] employed PINNs to parameterize potential flow theory, establishing a computationally efficient
+method for wave prediction using only surface elevation measurements. Machine learning, however, often
+relies on large amounts of training data, and the inherent lack of interpretability leads to weak generalization
+ability and fundamentally limits its practical application.
+Data assimilation is a method that does not require pre-training and has strong physical consistency.
+Having been widely applied in fields such as meteorology and oceanography [13], it also forms a major
+category in phase-resolved water wave reconstruction. For example, Zhu et al. [14] combined a shallow
+water finite element model (FEM) with variational methods to invert the initial state of the model. Besides,
+Wang and Pan [15] developed a coupled approach of the high-order spectral (HOS) method with the ensemble
+Kalman filter (EnKF), through which the elevation measurements can be incorporated into the simulation
+to improve the forecast performance. To mitigate the impact of wave field disturbances in strongly nonlinear
+waves, Wang et al. [16] proposed another model based on the pseudospectral Fourier-Legendre method with
+the EnKF, achieving enhanced predictive accuracy for surface elevation in cases of high wave steepness.
+Wang et al. [17] conducted a numerical test on tsunami evolution by projecting the Saint-Venant equations
+onto a reduced-order space and combining them with the EnKF, revealing superior stability compared to
+the full-order model with EnKF. This example achieves wave reconstruction through the retrieval of initial
+conditions without changing boundary conditions. These applications are still primarily based on potential
+flow theory or other simple wave models, having significant limitations when it comes to accurately capturing
+complex hydrodynamic behaviors.
+Although data assimilation has been successfully integrated with Navier-Stokes solvers for various flow
+problems, its application to water wave reconstruction in numerical wave tanks remains limited. He et al. [18]
+recently applied four-dimensional variational data assimilation to reconstruct the super-temporal-resolution
+turbulent jet, where synthetic measurements are used from a large-eddy simulation.
+Zhang et al. [19]
+incorporated Reynolds-averaged Navier–Stokes solver, EnKF, and neural networks altogether to learn a
+nonlinear eddy viscosity model. This strategy shows that one turbulence model learned from one flow can
+predict flows in similar configurations. Moreover, Mons et al. [20] explored the unsteady inflow reconstruction
+in a flow around a cylinder by using different assimilation schemes. Their group also discussed the optimal
+sensor placement for this unsteady flow problem [21]. Besides, there are some studies dealing with the
+free surface as a boundary condition for Navier–Stokes solvers when using FEM. For example, Gejadze
+2
+
+et al. [22] employed the free surface barotropic Navier-Stokes equations as the flow model, using velocity
+and elevation as observation data to determine boundary conditions.
+Fang et al. [23] incorporated an
+adaptive mesh method into the adjoint model to reconstruct the free surface boundary of two-dimensional
+waves using elevation as the observation. However, it should be noted that FEM requires complex mesh
+deformation and remeshing when the interface undergoes large deformations, so it is hard to utilize FEM to
+deal with wave-structure interactions. FVM thus is the mainstream for Navier-Stokes-based numerical wave
+tanks. In contrast to potential flow theory, where state variables are limited to wave surface elevation and
+velocity potential, the Navier-Stokes solver governs the entire flow field as the state. Furthermore, the use
+of multiphase schemes such as VOF introduces the fields with sharp gradients or even discontinuities near
+the interface, posing significant challenges for wave reconstruction.
+The motivation of the present article is to demonstrate the feasibility of data assimilation for phase-
+resolved wave reconstruction in VOF-based numerical wave tanks, an area that remains largely unexplored.
+To this end, we develop an integrated strategy to sequentially update the wave profile and simultaneously
+ensure the inflation is physically constrained. Crucially, the inlet boundary conditions for irregular waves
+are non-periodic and stochastic, generating a unique wave realization that varies continuously in time. This
+distinct feature imposes significant difficulty in simultaneously reconstructing the free surface and the under-
+lying flow field, as the numerical model must constantly adapt to the unpredictable incoming waves rather
+than converging to a repetitive pattern. This is why the sequential assimilation approach is implemented,
+enabling progressive correction of the wave profile as it propagates. Within this sequential framework, infla-
+tion is introduced to counteract ensemble collapse. In contrast to single-phase flows without interface that
+permit direct inflation of background error covariance, inflation of the phase field necessitates a correspond-
+ing update to the velocity field to satisfy physical constraints. Based on the extracted Fourier components of
+the wave profile, the velocity field is updated by imposing the corresponding solution from linear water wave
+theory. The EnKF [24] is thus employed for the data assimilation, as it is both sequential and non-intrusive
+in nature. POD is used to largely mitigate the computational cost associated with the gain matrix by reduc-
+ing the system dimensionality. Besides, the structural information of flow fields may benefit the stability of
+the data assimilation process [25]. Moreover, the ensemble-based assimilation framework naturally provides
+instantaneous snapshots, facilitating the construction of the POD basis. This configuration enables stable
+wave evolution, which realize a sequential framework that retrieves VOF field without adjusting boundary
+conditions.
+The paper is organized as follows. In Sec 2, we provide a detailed description of the data assimilation
+method, including the problem statement. The wave reconstruction results are tested against the synthetic
+data from simulations in Sec 3. Finally, we give the main conclusions of this work in Sec 4.
+2. Mathematical modeling and methodology
+2.1. Problem statement
+sponge layer
+ Top: open to atmosphere
+Bottom: no slip
+Inlet BC:
+wave generation
+Outlet BC
+wave gauges
+free surface
+L
+d
+Figure 1: Sketch of the numerical wave tank. The left boundary condition is the wave maker. Gauges are distributed without
+absorbing region.
+3
+
+We consider an experimental water tank analogous to the two-dimensional numerical wave tank shown
+in Fig 1.
+The x axis is the streamwise direction.
+The z axis is the vertical direction.
+The origin is
+located at the still water level on the left boundary. Measurements are collected at fixed locations along the
+tank. The sensors are distributed outside the absorbing region. These data are the free-surface elevation
+y(t) = (y1(t), y2(t), · · · , ypk(t))T , where, pk represents the total number of observations, e.g. the number
+of wave gauges. Besides, we assume that the observation error, from a statistical perspective, due to the
+precison of the measurement instruments is known.
+As for the nonlinear dynamic model, the numerical wave tank can be simulated by any multiphase
+incompressible Navier-Stokes solvers, and the VOF field α(x, z, t) and the velocity fields u(x, z, t) = (ux, uz)T
+are the primary outputs. The objective of this study is to retrieve the analysis of model states αa(x, z, t)
+given measurements y(t) in an optimal way, with the ultimate goal of reconstructing the water waves in a
+numerical wave tank and ensuring consistency with the actual wave propagation.
+Therefore, the governing equations are
+∇· u =0,
+(1)
+∂(ρu)
+∂t
++ ∇· (ρu ⊗u) = −∇p + ∇·
+
+µ
+ ∇u + (∇u)T 
++ ρg,
+∂α
+∂t + ∇· (αu) =0.
+(2)
+Here, ρ is the fluid density, p is the pressure, µ is the dynamic viscosity, and g = (1, −g)T with g the gravity.
+The two phases considered in this study are air and water, and the density and viscosity are thus computed
+as
+ρ = αρw + (1 −α)ρa,
+(3)
+µ = αµw + (1 −α)µa.
+(4)
+ρw and ρa denote the densities of water and air, respectively, while µw and µa represent their corresponding
+dynamic viscosities. α implicitly indicates the free surface, 1 for water, 0 for air, and the interface in between.
+In this paper, OpenFOAM is employed to solve the nonlinear dynamic model. It is important to note that
+this choice is not a requirement for our methodology. For details on the numerical schemes, please refer to
+the paper by Weller et al. [26].
+2.2. Wave reconstruction framework
+The EnKF is the data assimilation method to incorporate measurements and the model output in this
+study. Fig 2 shows the overall schematic procedure of the reconstruction framework. The process begins
+with initial conditions α(t0), ux(t0), and uz(t0), the discretized versions of α(x, z, t0), ux(x, z, t0), and
+uz(x, z, t0)) as the baseline case. Since the EnKF is a Monte Carlo method, an ensemble of simulations is
+required, the generation of which is detailed in Sec 2.3. Each ensemble member then evolves independently.
+The first cycle of data assimilation starts at tl0. POD is performed on the instantaneous snapshots of
+the ensemble members, specifically the fields α(n)(tl0) where n = 1, 2, · · · , N with N the ensemble size. By
+default, the number of snapshots equals the ensemble size, although this can be configured differently. This
+projects the fields into a reduced-order space, yielding the modal coefficients a(n),f(tl0). The analysis step
+then corrects a(n),f(tl0) by integrating the corresponding ensemble member of measurements y(n)(tl0). The
+updated state a(n),a(tl0) is projected back to the physical space and the analysis of each ensemble member
+α(n),a(tl0) is computed.
+The POD process and the EnKF method are detailed in Sec 2.5 and Sec 2.6
+respectively.
+To prevent ensemble collapse caused by underestimated uncertainty, inflation is applied after analysis. It
+maintains ensemble spread and helps the forecast covariance remain representative of the true variability. In
+this two phase flow problem, the core strategy is multiplicative inflation. Standard multiplicative inflation
+on the full state vector is not suitable in a VOF based wave tank. It can violate the boundedness and
+interface consistency of the volume fraction field. It can also produce nonphysical gas liquid distributions.
+4
+
+Test section
+0t
+Ensemble(snapshots) of simulations
+POD coefficients
+Phase fields
+Data assimilation cycle
+Test section
+Member 2
+Member N
+...
+...
+...
+propogate to
+     Generate wave 
+parameters ensemble
+ 
+Test section
+Member 1
+)
+(N
+a
+)
+(2
+a
+tl0
+)
+(1
+a
+)
+(N
+α
+)
+(2
+α
+)
+(1
+α
+POD
+reduced
+basis
+Observation
+ux
+Linear wave theory      ,
+Continue and repeat 
+the data assimilaiton cycle
+until tlmax
+EnKF
++
+Reconstruct
+Inflation
++
+FFT
+Test section
+New ensemble of simulations 
+Test section
+Member 2
+Member N
+Test section
+Member 1
+propogate to tl1
+propogate to
+End
+uz
+y
+max
+lt
+...
+...
+Figure 2: Flow chart of the wave reconstruction framework.
+For this reason, inflation is applied to the assimilated free surface. The implementation details are given in
+Sec 2.7.
+This sequential data assimilation strategy will continue until the last cycle is finished at tlmax. To obtain
+a deterministic wave field retrieved at any given time, one can simply average the POD coefficients across
+all ensemble members and then project them back to physical space using the reduced basis corresponding
+to that specific moment.
+2.3. Generation of the ensemble
+The EnKF is a class of ensemble-based data assimilation methods that requires the construction of an
+ensemble of simulations to statistically represent the uncertainty in the initial state. Typically, a baseline is
+perturbed under a Gaussian distribution to generate an ensemble [27]. This approach can be applied to the
+flow field u(x, z, t), as the solver can restore it to a divergence-free state within one time step. However, as
+mentioned above, perturbations cannot be directly added to the phase field, since the VOF function α(x, z, t)
+is strictly bounded between 0 and 1. Even if bounded perturbations are imposed, unphysical bubbles or
+droplets may emerge, which fails to preserve the physical constraints.
+Specifically, we prescribe perturbations to the core wave parameters—including wave height, period, and
+phase—for the inlet boundary condition at the beginning. The ensemble of wave parameters is generated as
+β(n) = βb + ϵ,
+where β represents one of the wave parameter. β(n) is the special wave parameter of the n-th member. βb
+is the corresponding parameter of the baseline wave, and ϵ ∼N(0, σ2) a normally distributed perturbation
+with a user-defined standard deviation σ to represent the uncertainty. According to Fig 2, by simulating
+each realization to time tl0, the initial statistical information of the flow fields used for data assimilation
+across the entire ensemble can be obtained.
+5
+
+2.4. Free surface representation
+The VOF scaler field α representing the phase of fluids is used to propagate the simulations. The fluid
+volume fraction in each computational cell can be written as α(l) at a certain moment, where the cell
+location is l = (x, z)T . A value of α = 0.5 approximates the location of the interface. The level-set function
+represents the interface as the zero contour of a signed distance function field ϕ, where ϕ > 0 in air, ϕ < 0
+in water, and ϕ = 0 at the interface. It offers a smooth and differentiable representation, which is more
+suitable for POD to extract effective modes compared with VOF function. We hence convert VOF data
+into level-set field using a signed distance function before entering into the POD and analysis step in one
+data assimilation cycle. For a given volume fraction α, the corresponding level-set function ϕ for each cell
+is obtained via
+ϕ(l) =
+
+
+
+
+
+
+
+min
+k∈Γ ||l −k||,
+α(l) < 0.5,
+−min
+k∈Γ ||l −k||,
+α(l) > 0.5,
+0,
+α(l) = 0.5.
+(5)
+Γ is the free surface, and k is the point at this interface.
+In practice, the level-set method is used for modal decomposition and reconstruction as a temporary
+intermediate field, due to its more continuous structure. The VOF field, although more accurate in terms of
+mass conservation, may introduce higher noise due to its strongly discontinuous nature near the interface,
+and consequently requires more modes for effective representation. Some discussion will be provided in
+Sec 3.
+2.5. Modal decomposition via POD
+The primary motivation for employing modal decomposition is to reduce the dimensionality of the flow
+field by projecting the high-dimensional data onto a modal space, thereby obtaining a compact set of modal
+coefficients that effectively represent the flow pattern. This dimensionality reduction significantly decreases
+the computational cost of the EnKF by operating in a reduced-order state space. Moreover, it mitigates
+the issues associated with directly assimilating high-dimensional state vectors, such as the introduction
+of non-smoothness, violation of physical constraints, and potential numerical instabilities or divergence.
+By capturing the dominant coherent structures of the flow, the modal representation ensures that the
+assimilation process remains as computational efficient and physics-constrained as possible.
+The singular value decomposition (SVD) is performed to extract dominant modes for the level-set field
+ϕ to resolve the free surface, as well as the velocity components ux and uz if necessary. For example, at tli
+there is an ensemble of the phase fields α(n),f which can be converted into ϕ(n),f. A matrix of snapshots is
+constructed as
+Sϕ = [ϕ(1),f, ϕ(2),f, . . . , ϕ(N),f],
+(6)
+where ϕ(n),f denotes the field of the n-th ensemble member at time tli.
+SVD is then applied to the matrix as
+Sϕ = UϕΣϕV T
+ϕ ,
+(7)
+where Uϕ contains the spatial modes of the ensemble of ϕ(n),f as its columns, Σϕ is a diagonal matrix of
+singular values representing the relative energy of each mode, and Vϕ is the right singular vectors of Sϕ.
+Then, a truncated modal matrix ˆUϕ ∈RM×rϕ is used to reduce the dimensionality containing the first rϕ
+leading modes, while M is the number of cells of the computational domain and M ≫rϕ.
+The level-set field of each ensemble member is then projected onto the truncated modal space to form
+the forecast state a(n),f
+a(n),f = ˆU T
+ϕ ϕ(n),f.
+(8)
+Each state a(n),f is then put into the analysis step, where it is updated using the EnKF based on
+available observations. After the assimilation, we get the analysis state a(n),a. The updated level-set field
+can accordingly obtained through
+ϕ(n),a = ˆUϕ a(n),a.
+(9)
+6
+
+An inverse operator of Eq(5) is implemented to convert ϕ(n),a into the reconstructed phase field α(n),a at
+tli.
+2.6. EnKF
+The EnKF is a Monte Carlo–based Bayesian filtering method, well-suited for high-dimensional and
+nonlinear systems. Its core idea is to approximate the covariance structure of the system state using a finite
+ensemble of samples, and to update these samples based on observations to obtain the analysis state.
+As mentioned above, each member of the forecast state ensemble is denoted as a(n),f. The ensemble
+mean is given by
+¯af = 1
+N
+N
+X
+n=1
+a(n),f.
+(10)
+The observation y is measured at pk positions. To simulate realistic measurement errors and satisfy
+EnKF assumptions, Gaussian noise is added to y to generate an ensemble of perturbed observations. Each
+member is y(n) = y + ϵo, and ϵo ∼N(0, R), with R being the observation error covariance matrix. In this
+paper, we simplify R = σ2
+oI, where σ2
+o is the constant variance of the observation noise and I is the identity
+matrix of appropriate dimensions.
+During the EnKF analysis step, each forecast sample is updated by incorporating the corresponding
+perturbed observation. The update formula for the n-th ensemble member is
+a(n),a = a(n),f + K
+
+y(n) −H(a(n),f)
+
+,
+(11)
+where a(n),a is the analysis state, K is the Kalman gain matrix, and H(·) denotes the observation operator
+that maps the modal coefficients to the observation space. The detailed derivation of the observation operator
+can be found in the Appendix A.
+The Kalman gain K is given by
+K = P fHT  HP fHT + R
+−1 ,
+(12)
+where P f is the forecast error covariance
+P f =
+1
+N −1
+N
+X
+n=1
+
+a(n),f −¯af 
+a(n),f −¯afT
+,
+(13)
+and
+P fHT
+=
+1
+N −1
+N
+X
+n=1
+
+a(n),f −¯af 
+H(a(n),f) −H(af)
+T
+,
+(14)
+HP fHT
+=
+1
+N −1
+N
+X
+n=1
+
+H(a(n),f) −H(af)
+ 
+H(a(n),f) −H(af)
+T
+.
+(15)
+The ensemble mean of the analysis states serves as the optimal estimate used for the deterministic wave
+field reconstruction
+¯aa = 1
+N
+N
+X
+n=1
+a(n),a.
+(16)
+2.7. Inflation and consistency
+Inflation is used to mitigate sampling errors and ensemble collapse in the EnKF. Its implementation is
+difficult in a VOF based numerical wave tank. The VOF function α(x, z, t) is bounded between 0 and 1. A
+direct inflation of α can violate boundedness and can smear the interface. Inflation must also preserve the
+7
+
+coupling between the free surface and the velocity field. If the free surface is inflated without a consistent
+velocity adjustment, the next forecast can contain strong spurious transients.
+At an assimilation instant tl0, the analysis ensemble α(n),a(tl0) is first converted to a surface elevation
+field η(n)(x, tl0). Inflation is not applied pointwise to η(n). We apply the fast Fourier transform (FFT) along
+x axis. Each component is represented by (Ai, ki, ωi, φi), where Ai is the amplitude, ki is the wavenumber,
+ωi is the angular frequency, φi is the phase. Inflation is applied to the amplitudes Ai.
+A(n)
+i
+= ¯Ai + ϱ
+
+A(n)
+i
+−¯Ai
+
+,
+(17)
+where ¯Ai is the average amplitude of the i-th component of the ensemble.
+The inflated surface elevation η(n)(x, tl0) is then reconstructed by the inverse transform. A new ensemble
+α(n)(tl0) is rebuilt from the inflated η(n)(x, tl0). This step enforces the boundedness of α and restores an
+interface consistent with the inflated free surface.
+The velocity fields corresponding to the inflated wave components are computed using potential wave
+theory. The velocity components in the x and z directions are calculated as follows
+uwx(x, z, tl0) =
+m
+X
+i
+Aigki
+ωi
+cosh(ki(z + d))
+cosh(kid)
+sin(kix + φi),
+(18)
+uwz(x, z, tl0) =
+m
+X
+i
+Aigki
+ωi
+sinh(ki(z + d))
+cosh(kid)
+sin(kix + φi),
+(19)
+where d is the water depth.
+The new ensemble of velocity fields is then reconstructed as
+u(n)
+x (tl0) = u(n)
+wx(x, z, tl0)α(n)(tl0),
+(20)
+u(n)
+z (tl0) = u(n)
+wz (x, z, tl0)α(n)(tl0).
+(21)
+These velocity fields are used to propagate the waves in the VOF-based numerical wave tank until the next
+assimilation cycle at time tl1.
+Although multiplicative inflation is commonly tuned with a coefficient in the interval [1.0, 1.2] [28], the
+standard tuning guidance cannot be transferred without verification. This is because the analysis spread
+that controls the filter update is modified through the reconstructed free surface, rather than through direct
+inflation of the state vector. A consistency analysis is therefore required. The present inflation changes the
+ensemble variability in the observation-related subspace by amplifying spectral amplitudes of the assimilated
+free surface. It also relies on an auxiliary velocity field after inflation. Both design alter the relationship
+between ensemble spread and the actual forecast error. Without a consistency check, the inflated ensemble
+can become under-dispersive or over-dispersive. Either case degrades the sequential EnKF performance and
+can bias the reconstruction.
+To evaluate the consistency of the assimilation process, we use the Normalized Estimation Error Squared
+(NEES) as a diagnostic tool[29, 30]. This study is based on a twin numerical experiment, where the true state
+is known. The NEES is computed at each assimilation time step to assess whether the analysis uncertainty
+is statistically consistent with the actual estimation error.
+At each assimilation time step tli, the analysis ensemble {a(n),a(tli)}N
+n=1 yields the analysis mean ¯aa(tli)
+and the analysis error covariance
+P a(tli) =
+1
+N −1
+N
+X
+n=1
+
+a(n),a(tli) −¯aa(tli)
+ 
+a(n),a(tli) −¯aa(tli)
+T
+.
+(22)
+The true coefficient vector is obtained by projecting the true level-set field onto the same truncated basis
+at(tli) = ˆU T
+ϕ ϕt(tli),
+(23)
+8
+
+where ϕt(tli) denotes the true level-set field. The NEES is then calculated as
+NEES(tli) =
+ at(tli) −¯aa(tli)
+T (P a(tli))−1  at(tli) −¯aa(tli)
+
+.
+(24)
+Under Gaussian assumptions, a consistent estimator yields NEES values that follow a chi-square distribution
+with rϕ degrees of freedom, where rϕ is the dimension of the modal coefficient vector a. The normalized
+NEES, defined as NEES(tli)/rϕ, is reported to facilitate comparison across different truncation settings.
+By monitoring the NEES values, the optimal inflation factor ϱ can be selected to ensure the best filter
+consistency.
+3. RESULTS AND DISCUSSION
+To evaluate the effectiveness and applicability of this method under various wave conditions, we consider
+three representative conditions in this study: regular waves, irregular waves, and plunging waves. These
+three wave conditions represent a progression in flow complexity. Concretely, fifth-order Stokes waves are
+used to represent regular waves. JONSWAP-spectrum waves represent irregular wave conditions. And in
+the plunging wave case, a cosine wave is made to climb a slope, leading to the formation of a plunging
+breaker.
+In the following sections, we present the reconstruction results for each wave case. This analysis provides
+insights into the performance and limitations of the framework under challenging conditions.
+3.1. Regular Wave Reconstruction
+This subsection examines the instantaneous assimilation performance for a regular fifth-order Stokes
+wave. This wave condition is characterized by a single dominant frequency and a stable phase relation.
+The free surface and the associated velocity field are smooth and repeatable. The reconstruction difficulty is
+therefore lower than that of irregular waves. The purpose of this test is to validate the ability of the proposed
+framework to correct a simple wave field at a given assimilation time, including both the free surface and
+the velocity components, before moving to more demanding non-periodic cases.
+The twin experiment is configured as follows. The true wave has a wave height Ht of 0.15 m. The
+baseline wave has a wave height Hb of 0.1 m. The wave period T is identical in the two cases and equals
+2 s. The water depth d is 0.60 m. Observations are free surface elevations measured at 10 locations that
+are uniformly distributed along the computational domain. The observation noise standard deviation ϵo is
+0.002 m.
+The assimilation process is triggered at tl0 = 20 s. At this moment, the wave train has stably propagated
+through the computational domain. We first evaluate the correction of the free surface elevation. Here, we
+adopt level-set to represent phase field. Fig 3 compares the free surface profiles of the truth, the baseline,
+and the DA mean. The vertical axis represents the elevation normalized by the true wave height Ht. The
+baseline simulation captures the wave phase accurately. This is expected as the wave period T is identical
+to the true state. However, a significant discrepancy exists in the wave amplitude. The data assimilation
+effectively corrects this amplitude error. The reconstructed surface profile, indicated by the red dash-dotted
+line, shows excellent agreement with the true state (black line). This result confirms that the EnKF properly
+updates the level-set field coefficients to match the measured elevations.
+In this test, the velocity components are included in the state vector and assimilated with the level-
+set state. Fig 4a and 4b present the contours of the horizontal velocity component ux and the vertical
+velocity component uz, respectively. The top panels display the true state, while the bottom panels display
+the assimilated state. The assimilated velocity fields exhibit the characteristic motion of Stokes waves. In
+Fig 4a, the horizontal velocity ux is positive under the wave crests and negative under the troughs. The
+spatial distribution in the DA result matches the true pattern. Similarly, Fig 4b shows the phase shift in
+the vertical velocity uz. The vertical velocity is upward on the wave front and downward on the wave back.
+It is worth noting that the true velocity fields in the air phase exhibit visible disturbances, particularly in
+the region above the interface. These fluctuations are attributed to the large density ratio between water and
+air in the VOF solver, where the lighter phase is highly sensitive to pressure gradients, leading to spurious
+9
+
+0
+5
+10
+15
+20
+x(m)
+0.4
+0.2
+0.0
+0.2
+0.4
+η/H t
+Truth
+Baseline
+DA mean
+Figure 3: Surface elevations ηa(x), ηb(x), and ηt(x) at given assimilation instant(tl0 = 20 s), cycles represent elevation
+observations.
+parasitic currents. Despite these disturbances in the air, the wave profile itself remains intact and physically
+consistent. In contrast, the DA reconstructed fields do not reproduce these non-physical fluctuations. The
+air phase in the assimilated results is remarkably smooth. This filtering effect is attributed to the modal
+truncation inherent in the POD representation.
+The parasitic currents manifest as high-frequency and
+low-energy noise. Such features generally correspond to higher-order modes that are excluded from the
+truncated basis, or the EnKF analysis step would not correct these delicate perturbations. Consequently,
+the reconstruction effectively filters out the numerical noise present in the raw CFD data while preserving
+the essential flow physics.
+0
+Truth
+DA mean
+(a) ux comparison
+0
+Truth
+DA mean
+(b) uz comparison
+Figure 4: Comparison of reconstructed and true velocity fields at the assimilation instant(tl0 = 20 s).
+The determination of the dimension of the truncated subspace r is a critical step in the POD-EnKF
+framework. A common criterion is to retain enough modes to capture a specific percentage of the total
+fluctuating energy, defined by the cumulative variance. In this study, a threshold of 99% is adopted to
+ensure that the dominant flow structures and the wave profile are accurately preserved while filtering out
+low-energy noise.
+Fig 5 presents the Pareto charts of the singular values for the level-set ϕ, the horizontal velocity ux,
+and the vertical velocity uz.
+The blue bars represent the individual variance of each mode, while the
+red line indicates the cumulative variance. Different characteristics are observed between the phase field
+and the velocity fields. As shown in Fig 5a, the energy of the level-set field is highly concentrated in the
+10
+
+0
+1
+2
+3
+Mode Index
+1
+3
+10
+30
+60
+80
+90
+95
+99
+Percentage (%)
+Cumulative Variance
+99% Threshold
+Individual Variance
+(a) ˆUϕ
+0
+5
+10
+15
+20
+25
+Mode Index
+1
+3
+10
+30
+60
+80
+90
+95
+99
+Percentage (%)
+Cumulative Variance
+99% Threshold
+Individual Variance
+(b) ˆUux
+0
+5
+10
+15
+20
+25
+30
+Mode Index
+1
+3
+10
+30
+60
+80
+90
+95
+99
+Percentage (%)
+Cumulative Variance
+99% Threshold
+Individual Variance
+(c) ˆUuz
+Figure 5: Energy distribution of truncated POD modes for the regular wave case. The blue bars denote individual variance,
+and the red line shows cumulative variance. The dashed line marks the truncation point for 99% energy.
+leading modes. The first mode (mode 0) alone accounts for over 90% of the total variance. The cumulative
+variance rapidly surpasses the 99% threshold at mode 3. Consequently, only the first 4 modes are needed
+to reconstruct the regular wave interface with high fidelity. This high compressibility is attributed to the
+smoothness of the signed distance function used to represent the interface. In contrast, the velocity fields
+ux and uz display a more slowly decaying energy spectrum, as illustrated in Fig 5b and 5c. The first mode
+contributes less than 40% and 50% to the total energy for ux and uz, respectively. The energy is distributed
+across a wider range of spatial modes. To reach the 99% energy criterion, significantly more modes are
+required—specifically, 29 modes for ux and 30 modes for uz. This implies that the velocity field involves
+more complex spatial features than the level-set field. Nevertheless, the truncated basis effectively reduces
+the degrees of freedom from the order of mesh size (M = 4.8 × 104) to approximately 30, greatly facilitating
+the ensemble-based assimilation.
+Following the determination of the truncated subspace, we check the update performance of the state
+vectors within this reduced-order space. Fig 6 compares the modal coefficients of the baseline, the truth,
+and the DA analysis mean for the level-set and velocity components. This spectral comparison reveals how
+the EnKF adjusts the weights of different flow structures to achieve reconstruction.
+For the level-set, shown in Fig 6a, the correction is straightforward. Consistent with the energy analysis,
+the zeroth mode dominates the magnitude. For the higher-order modes (modes 1-3), although their mag-
+nitudes are small, the DA still effectively captures the subtle variations present in the truth, ensuring the
+precise reconstruction of the interface shape.
+The velocity coefficients aux and auz, displayed in Fig 6b and 6c. In the low-frequency range (e.g.,
+mode indices 0-5), which contains the majority of the kinetic energy, the baseline deviates considerably from
+the truth. The assimilation roughly corrects these leading coefficients, restoring the correct wave orbital
+motions. However, a significant divergence appears in the higher-order modes. The true coefficients exhibit
+persistent fluctuations. Crucially, the DA analysis mean does not reproduce these fluctuations; instead, its
+coefficients decay smoothly to zero. This behavior is attributed to the statistical nature of the EnKF. The
+parasitic currents appearing in the ensemble members are typically random and incoherent. Consequently,
+they do not form a consistent correlation structure within the forecast error covariance matrix. The Kalman
+gain, therefore, filters out these uncorrelated non-physical features.
+The results presented above demonstrate that the proposed EnKF-based framework effectively recon-
+structs the regular wave field at a specific instant. By assimilating wave elevation data from sparse gauges,
+the method successfully corrects the amplitude discrepancy in the baseline simulation. The reconstructed
+free surface matches the truth with high accuracy. Furthermore, the velocity field is retrieved simultaneously
+through the covariance inherent in the ensemble. This validates the feasibility of using a truncated POD
+subspace for state estimation in VOF-based wave tanks.
+11
+
+0
+1
+2
+3
+Mode index
+0
+10
+20
+30
+40
+50
+60
+aφ
+Baseline
+Truth
+DA mean
+(a) aϕ
+0
+5
+10
+15
+20
+25 28
+Mode index
+-40
+-35
+-30
+-25
+-20
+-15
+-1
+0
+1
+10
+aux
+Baseline
+Truth
+DA mean
+(b) aux
+0
+5
+10
+15
+20
+25 28
+Mode index
+-15
+-10
+-1
+0
+15
+10
+15
+20
+auz
+Baseline
+Truth
+DA mean
+(c) auz
+Figure 6: Comparison of modal coefficients before and after assimilation. The baseline is represented as blue crosses, the DA
+mean is represented as red triangles, and the truth is represented as black circles.
+We now examine how the choice of representation for the free surface affects the reconstruction accuracy.
+Two representations are compared: the VOF field α and the level-set field ϕ. The reconstruction quality
+depends heavily on the compactness of the modal basis, which is determined by the smoothness of the
+field. Fig 7 shows the energy distribution of the POD modes for the VOF field. In contrast to the level-set
+field shown in Fig 5a, the VOF energy spectrum decays slowly. The first mode accounts for approximately
+80% of the energy, compared to over 90% for the level-set method. To reach the 99% cumulative energy
+threshold, the VOF representation requires 11 modes, whereas the level-set representation requires only
+4. This inefficiency arises from the binary nature of the VOF method (0 or 1). The discontinuity at the
+interface introduces high-frequency spectral components that are difficult to capture with a low-rank linear
+basis.
+To quantify the reconstruction performance, we compare the Root Mean Square (RMS) error of the free
+surface elevation across different representation methods. The elevation RMS is computed as
+eη(x) = η(x) −ηt(x),
+(25)
+ϵη
+RMS =
+s
+1
+L
+Z L
+0
+(eη(x))2 dx,
+(26)
+where η(x) denotes the reconstructed free-surface elevation, and ηt(x) is the corresponding true elevation.
+And eη is the absolute error of the elevation. With uniform spatial sampling ∆x and Q = L/∆x, the integral
+is approximated by
+ϵη
+RMS ≈
+v
+u
+u
+t 1
+Q
+Q
+X
+q=1
+(eη(xq))2.
+(27)
+Fig 8 presents the RMS error of the reconstructed evolution. In this comparison, a parametric curve
+representation is introduced as a baseline reference. This method discretizes the free surface using a set of
+nodes uniformly distributed along the wave propagation direction, with the profile reconstructed via inter-
+polation. Since the curve representation directly tracks the interface geometry with inherent smoothness,
+it serves as a high-precision benchmark for the regular wave case. The VOF method exhibits the largest
+error, significantly higher than the other two approaches when adopting 50 modes. In contrast, the level-set
+method demonstrates superior accuracy. Remarkably, it achieves the lowest error magnitude, matching and
+even slightly outperforming the curve-based benchmark. This result indicates that converting the VOF field
+to a level-set field effectively improves the accuracy of reconstruction.
+12
+
+Based on these findings, the level-set representation is selected as the optimal choice for the proposed
+framework. While the curve method performs well for this regular wave, it is strictly limited to single-
+valued surfaces. The level-set method offers a balanced solution: it attains the high reconstruction accuracy
+of the parametric curve while retaining the topological flexibility of the VOF method to describe complex,
+multi-valued interfaces.
+0
+2
+4
+6
+8
+10
+Mode Index
+1
+3
+10
+30
+60
+80
+90
+95
+99
+Percentage (%)
+Cumulative Variance
+99% Threshold
+Individual Variance
+Figure 7: Energy distribution of POD modes for the VOF field
+in fifth-order Stokes waves.
+5 10
+20
+50
+Number of modes/nodes
+1
+2
+3
+4
+5
+ϵη
+RMS(m)
+1e 3
+Level set
+VOF
+Curve
+Figure 8:
+Comparison of free surface reconstruction error
+among different interface representation methods.
+To assess the robustness of the proposed framework, we investigate the influence of the observation
+noise magnitude on the reconstruction accuracy. The observation noise standard deviation ϵo is varied from
+10−4 m to 10−1 m, covering a range from high-precision laboratory measurements to potentially noisy field
+data. The reconstruction quality is evaluated using RMS error. The accuracy of the velocity field is assessed
+globally across the entire computational domain. The RMS error for a velocity component u (representing
+either ux or uz) is defined as:
+ϵu
+RMS =
+v
+u
+u
+t 1
+M
+M
+X
+i=1
+(ui −ut
+i)2,
+(28)
+where M denotes the total number of cells in the domain, and ui and ut
+i correspond to the analyzed and
+true velocity values at the i-th grid, respectively.
+Fig 9 presents the variations of ϵRMS for the free surface elevation, the horizontal velocity, and the
+vertical velocity with respect to the observation noise level. The results indicate a clear correlation between
+the measurement precision and the reconstruction accuracy. In the regime of low observation noise (ϵo <
+10−3 m), the errors for all quantities remain relatively low and stable. In this range, the reconstruction
+performance is primarily limited by the modal truncation error and the ensemble spread rather than the
+measurement uncertainty. As ϵo increases beyond 10−3 m, a gradual increase in the reconstruction error is
+observed. Notably, the errors in the unobserved velocity components (ux and uz) follow the same trend as
+the observed free surface η. This synchronous behavior confirms that the ensemble-based covariance matrix
+effectively propagates the correction from the surface observations to the flow fields, even under varying
+noise conditions.
+3.2. Irregular Wave Reconstruction
+This subsection extends the validation to the more complex scenario of irregular waves. The primary
+objective is to verify the sequential assimilation capability of the proposed EnKF framework for the phase-
+resolved reconstruction of a stochastic wave train in a VOF-based numerical wave tank.
+A fundamental challenge in phase-resolved reconstruction lies in the stochastic nature of the boundary
+conditions. For irregular seas, the wave field is not deterministic. While the target spectrum describes
+13
+
+0.0001
+0.001
+0.01
+0.1
+ϵo(m)
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+3.0
+3.5
+ϵRMS
+1e 1
+η(m)
+ux(m/s)
+uz(m/s)
+Figure 9: Reconstruction RMS errors for free surface elevation, horizontal velocity, and vertical velocity for different observation
+noise standard deviations.
+the energy distribution, the specific realization of the wave train is governed by random phases. To test
+the framework under these completely random boundary conditions, the twin experiment is designed such
+that both the true and the baseline waves share the same target JONSWAP spectrum.
+However, they
+are generated using distinct sets of random phases. Consequently, although the two cases possess identical
+statistical characteristics, their instantaneous free surface elevations and velocity fields are uncorrelated.
+The target spectrum has a peak period Tp = 2.5 s and a significant wave height Hs = 0.075 m. The signal
+is synthesized from 500 random wave components.
+The ensemble contains 50 members.
+Each member
+is also composed of 500 components with randomized phases.
+Observations are free surface elevations
+sampled at 20 locations that are uniformly distributed in the streamwise direction along the computational
+domain(L = 22 m). The observation noise standard deviation σo is 0.002 m. The assimilation interval is 1
+s. The modal truncation criterion remains set at the 99% cumulative energy threshold.
+In sequential assimilation, the filter remains effective only if the background error covariance retains a
+realistic magnitude. In practice, frequent updates and a finite ensemble can lead to ensemble collapse. The
+spread decreases too rapidly. The background error covariance then becomes underestimated. This causes
+weak corrections and can trigger filter divergence. Inflation is therefore required in sequential reconstruction.
+It restores ensemble diversity and sustains the corrective capability of the EnKF through long assimilation
+windows.
+The effect of the surface inflation mentioned in Sec 2.7 is illustrated by the free surface profiles before
+and after inflation in Fig 10. The inflated ensemble is represented as the forecast ensemble(grey lines), and
+the DA ensemble is the elevations before inflation(red lines). The procedure increases ensemble spread in
+a controlled manner. It also preserves the spectral structure and avoids unphysical modifications of the
+gas-liquid topology.
+0
+5
+10
+15
+20
+22
+x(m)
+1.0
+0.5
+0.0
+0.5
+1.0
+η/Hs
+Forecast ensemble
+DA ensemble
+DA mean
+Figure 10: Wave ensemble profiles before and after inflation at the first assimilation time(tl0 = 8 s).
+Surface inflation alone is insufficient for the next forecast cycle.
+The velocity field is derived from
+14
+
+Table 1: Time-averaged NEES-based consistency results and waveform errors for different inflation coefficients. The averaging
+window is T = 4Tp.
+ϱ
+NEES/rϕ
+ϵη
+RMS
+1.0
+1.6052
+7.19 × 10−3
+1.5
+1.3692
+6.95 × 10−3
+2.0
+1.0990
+6.13 × 10−3
+2.5
+0.8360
+7.27 × 10−3
+a potential flow solution that is consistent with the inflated interface. It supplies a physically plausible
+kinematic field for the two-phase solver. It also reduces spurious transients at the restart of the forecast
+step. The resulting velocity field is shown in Fig 11.
+(a) ux component
+(b) uz component
+Figure 11: Inflated velocity components of a member based on the potential flow solution.
+The consistency is assessed by NEES. The best inflation coefficient is selected from this diagnostic. The
+NEES values and the corresponding waveform RMS are summarized in Table 1. Both NEES/rϕ and ϵη
+RMS
+are time-averaged over an evaluation window of four peak periods, i.e. T = 4Tp. Table 1 indicates that the
+inflation coefficient ϱ = 2.0 provides the best overall performance. It yields NEES/rϕ = 1.0990, which is
+closest to unity among the tested values, suggesting the most consistent uncertainty quantification. It also
+achieves the minimum time-averaged waveform error, with ϵη
+RMS = 6.13 × 10−3 over T = 4Tp. Therefore,
+ϱ = 2.0 is adopted in the subsequent reconstructions.
+To assess the sequential assimilation performance, we compare the reconstructed free surface with the
+truth and the baseline at representative instants that cover different stages of the assimilation window. The
+curves in Fig 12 include the DA mean, the truth, and the baseline.
+Fig 12 shows that the DA mean ηa(x) provides a substantial improvement over the baseline ηb(x) at
+all instants.
+The reconstructed profiles are, in a global sense, close to the truth ηt(x) across the full
+domain, which demonstrates that the framework supports long-time sequential assimilation for an irregular
+wave train. By contrast, the baseline remains inconsistent with the truth at all reported instants. This is
+expected because the inlet boundary condition is non-periodic and phase-resolved. The baseline and the
+truth share the same target spectrum but use different phase realizations. In this setting, the purpose of
+sequential assimilation is to continuously correct the phase-resolved wave field so that the reconstructed wave
+train matches the specific truth realization, rather than reproducing only the statistical wave properties.
+Despite the overall agreement, small local discrepancies can still be observed. It is also observed that the
+reconstruction near the inlet can exhibit noticeable discrepancies. This is mainly caused by the ensemble
+wave generation, which introduces additional band components that differ from the truth realization. These
+15
+
+components have not yet been sufficiently constrained by repeated assimilation cycles. As the wave train
+propagates downstream and successive analyses are performed, the sequential EnKF progressively filters
+out the spurious band content and aligns the phase-resolved wave field with ηt(x, t).
+The downstream
+reconstruction therefore becomes increasingly optimized as more observations are assimilated.
+0
+5
+10
+15
+20
+22
+x(m)
+0.75
+0.50
+0.25
+0.00
+0.25
+0.50
+η/Hs
+Truth
+Baseline
+DA mean
+(a) tl0/Tp = 0
+0
+5
+10
+15
+20
+22
+x(m)
+0.4
+0.2
+0.0
+0.2
+0.4
+0.6
+η/Hs
+Truth
+Baseline
+DA mean
+(b) tl5/Tp = 2
+0
+5
+10
+15
+20
+22
+x(m)
+0.4
+0.2
+0.0
+0.2
+0.4
+0.6
+0.8
+η/Hs
+Truth
+Baseline
+DA mean
+(c) tl10/Tp = 4
+0
+5
+10
+15
+20
+22
+x(m)
+0.4
+0.2
+0.0
+0.2
+0.4
+0.6
+η/Hs
+Truth
+Baseline
+DA mean
+(d) tl15/Tp = 6
+0
+5
+10
+15
+20
+22
+x(m)
+0.50
+0.25
+0.00
+0.25
+0.50
+η/Hs
+Truth
+Baseline
+DA mean
+(e) tl20/Tp = 8
+0
+5
+10
+15
+20
+22
+x(m)
+0.4
+0.2
+0.0
+0.2
+0.4
+0.6
+η/Hs
+Truth
+Baseline
+DA mean
+(f) tl25/Tp = 10
+Figure 12: Surface elevations ηa(x), ηb(x), and ηt(x) at different assimilation instants, cycles represent elevation observations.
+The reconstruction error is quantified using the nondimensional elevation error normalized by Hs. The
+thin solid line in Fig 13 reports the time history of this error at three gauge locations, together with the
+bias, RMS, and the 95% quantile of the absolute error, denoted as P95(|e|). The thick solid line shows a
+smoothed trend computed by a moving average. The averaging window spans half of the dominant wave
+period, i.e., 0.5Tp. The trend highlights the global error level while filtering out short-time oscillations. At
+the downstream gauges x = 11 m and x = 21 m, the error fluctuates around zero with a small positive bias
+of about 0.06. The corresponding RMS values are 0.0904 and 0.106, and P95(|e|) equals 0.163 and 0.208,
+respectively. In physical units, these RMS levels correspond to approximately 7–8 mm, indicating that the
+reconstructed free surface is accurate in the main propagation region.
+Fig 14 presents the one-sided power spectral density (PSD) estimates of the nondimensional surface
+elevation time series η/Hs at three gauges. The spectra are nondimensionalized as ˜S(fTp) = Sη/Hs(f)/Tp,
+such that the integral over the nondimensional frequency ξ = fTp satisfies
+R ∞
+0
+˜S(ξ) dξ = Var(η/Hs). The
+vertical line at ξ = 1 corresponds to the peak frequency fp = 1/Tp, which represents the dominant energy-
+containing scale of the irregular wave.
+At the gauges located in the main propagation region (x = 11 m and x = 21 m), the reconstructed
+spectra (DA) closely match the truth in the primary energy band. Both spectra exhibit a dominant peak
+centered around ξ ≈1, with only minor differences in peak magnitude and bandwidth. This agreement
+indicates that the reconstruction preserves the energy distribution near the spectral peak. In addition, a
+secondary energy bulge appears on the high-frequency side in the range ξ ≈1.6–2.3, which may be attributed
+to higher-frequency components of the irregular wave train. The DA spectrum reproduces this secondary
+feature well at x = 11 m, while at x = 21 m the overall trend remains consistent but the magnitude is
+slightly lower.
+In contrast, the gauge at x = 1 m shows noticeably reduced spectral agreement. Differences are evident
+16
+
+0.5
+0.0
+0.5
+eη/Hs
+x = 1m
+Bias = -0.00496,RMS = 0.228,P95(|e|) = 0.448
+0.0
+0.2
+eη/Hs
+x = 11m
+Bias = 0.0631,RMS = 0.0904,P95(|e|) = 0.163
+0
+2
+4
+6
+8
+10
+t/Tp
+0.0
+0.2
+eη/Hs
+x = 21m
+Bias = 0.0687,RMS = 0.106,P95(|e|) = 0.208
+Figure 13: Time histories of nondimensional surface elevation errors at three gauges, with bias, RMS, and P95(|e|).
+around the primary peak, and an additional pronounced energy peak appears near ξ ≈2.5 in the DA
+spectrum, while the true spectrum remains comparatively low in that band. Such an artificial amplification
+of high-frequency energy would manifest in the time domain as enhanced short-scale oscillations, consistent
+with the larger RMS errors previously observed at this gauge. Given the proximity of this location to the
+inlet region, the spurious high-frequency content in the DA spectrum is more plausibly attributed to a
+boundary-consistency issue. In the present setup, the inlet boundary condition is not included in the state
+vector and is therefore not corrected consistently with the internal field. As a result, the analysed wave
+field can be locally incompatible with the prescribed inflow wave. This mismatch introduces a non-smooth
+transition, which effectively acts as a high-frequency disturbance source in the DA spectrum.
+Overall, using spectral consistency as a reconstruction-quality criterion, the present framework performs
+robustly in the main propagation region, while further improvements are warranted near the inlet.
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+3.0
+fTp
+0.00
+0.05
+0.10
+0.15
+˜S(fTp) = Sη/Hs(f)/Tp
+Truth, x = 1 m
+DA, x = 1 m
+Truth, x = 11 m
+DA, x = 11 m
+Truth, x = 21 m
+DA, x = 21 m
+Figure 14: One-sided nondimensional power spectral density of surface elevation at gauges.
+17
+
+3.3. Plunging Wave Reconstruction
+The plunging wave case is selected to test the reconstruction framework in a regime where the downstream
+dynamics are strongly nonlinear. Wave shoaling on a mild slope leads to rapid steepening and eventual
+overturning. The resulting plunging wave is highly sensitive to small errors in amplitude and phase. It
+also involves strong viscous dissipation and complex two-phase interface motion. These characteristics make
+plunging waves a stringent benchmark for any reconstruction method, because modest mismatches before
+running up can shift the breaking onset time and the breaker location.
+It is important to note that data assimilation is not performed during the breaking process. The as-
+similation window is restricted to the upstream constant depth region, where the interface topology is
+well-behaved. This choice avoids direct updates of an overturning interface and corresponding velocity. The
+objective is instead to reconstruct a incident wave before shoaling. The reconstructed wave then propagates
+toward the slope under the VOF-based CFD model without further correction. This design improves the
+reliability of the predicted wave features and still demonstrates that the framework can handle strongly
+nonlinear conditions.
+The numerical setup follows a classical plunging wave experiment configuration, as shown in Fig 15.
+The toe of the slope is preceded by a constant depth region of length Lh = 10 m. The still-water depth
+is d = 0.4 m. The truth and baseline waves are cosine waves with the same period T = 5 s. The truth
+wave height is Ht = 0.12 m, while the baseline wave height is Hb = 0.09 m. The ensemble size is N = 50.
+The ensemble is generated by perturbing the wave height with Gaussian noise with standard deviation
+ϵ = 0.5Hb. Free surface elevation observations are collected at 4 wave gauges uniformly distributed on the
+constant depth region with spacing ∆x = 1 s. The observation noise standard deviation is σo = 0.002 m.
+The modal truncation criterion remains set at the 99% cumulative energy threshold.
+ Top: open to atmosphere
+Bottom: no slip
+Inlet BC:
+wave generation
+Outlet BC
+wave gauges
+free surface
+tan=1/35
+sponge layer
+h
+L
+L
+d
+Figure 15: Plunging wave numerical tank setup.
+The performance of the proposed framework is evaluated by examining the free surface evolution at three
+consecutive assimilation instants: tl0 = 6 s, tl1 = 7 s, and tl2 = 8 s. Fig 16 compares the wave profiles of
+the true state, the baseline simulation, and the DA analysis mean. The computational domain shown covers
+the constant depth region (x ≤10 m) and the beginning of the slope.
+It is important to note that despite identical settings for the wave period and the start time, a slight
+phase discrepancy exists between the baseline and the true state. This misalignment originates from the
+wave generation boundary condition, where a ramp time of 6 s is applied. While both simulations generate
+a fully developed wave within this duration, the specific phase evolution during this transient ramp-up
+period is not guaranteed to be identical. At tl0 = 6 s (Fig 16a), consistent with the experimental setup,
+the baseline simulation (blue line) significantly underpredicts the wave amplitude. Nevertheless, the DA
+update (red dash-dotted line) effectively corrects both deficiencies. By assimilating the sparse gauge data,
+the reconstructed wave height is adjusted to match the target Ht = 0.12 m, and the phase is perfectly
+aligned with the true state. This high-fidelity reconstruction is maintained as the wave propagates forward.
+At tl1 = 7 s (Fig 16b) and tl2 = 8 s (Fig 16c), the wave train advances towards the slope. Throughout this
+process, the DA analysis mean consistently tracks the ground truth.
+Beyond the free surface elevation, the accurate retrieval of the subsurface velocity field is crucial for the
+correct dynamic evolution of the subsequent shoaling process. Fig 17a and 17b present the comparison of
+18
+
+0
+5
+10
+12
+x (m)
+0.00
+0.05
+η (m)
+Truth
+Baseline
+DA mean
+(a) tl0 = 6s
+0
+5
+10
+12
+x (m)
+0.00
+0.05
+η (m)
+Truth
+Baseline
+DA mean
+(b) tl1 = 7s
+0
+5
+10
+12
+x (m)
+0.00
+0.05
+η (m)
+Truth
+Baseline
+DA mean
+(c) tl2 = 8s
+Figure 16: Surface elevations ηb(x), ηt(x) and ηa(x) at the assimilation instants, cycles represent elevation observations.
+the horizontal velocity ux and the vertical velocity uz between the true state and the DA analysis mean at
+t = 8 s. The plotted region corresponds to the constant depth zone (x ∈[4, 9] m) just before the slope.
+The true state exhibits the classical motion with positive velocities concentrated under the wave crest
+(around x ≈6 m) and negative velocities under the trough. The DA reconstructed field captures this spatial
+distribution with remarkable accuracy. Both the magnitude and the vertical gradient of ux in the analysis
+mean are visually indistinguishable from the truth. This indicates that the ensemble covariance successfully
+correlates the surface elevation innovation with the underlying horizontal velocity.
+Similar agreement is observed in the vertical velocity uz, shown in Fig 17b. The vertical velocity field is
+characterized by a phase shift relative to the wave elevation: upward flow is observed at the wave front and
+downward flow at the wave rear. The assimilation framework correctly reproduces this phase relationship.
+The successful reconstruction of the velocity field at t = 8 s confirms that the updated state vector con-
+tains a physically consistent set of flow variables. By accurately reconstructing the incident wave condition
+in the linear regime, the solver is able to correctly propagate the wave downstream into the shoaling region.
+This ensures that when the simulation continues beyond the assimilation window into the shoaling region,
+the wave possesses not only the correct shape but also the correct kinetic energy distribution to undergo
+realistic steepening and breaking.
+A key advantage of the proposed framework is its ability to predict downstream nonlinear behaviors by
+correctly initializing the upstream wave. To validate this, we examine the wave evolution on the slope long
+after the assimilation has ceased. Fig 18 displays the frame-by-frame comparison of the free surface elevation
+during the breaking process, from t = 15.1 s to t = 15.35 s. The region shown corresponds to the surf zone
+(x ∈[18, 21] m), where the water depth is shallow and the nonlinearity is strongest.
+The sequence captures the rapid topological changes characteristic of a plunging breaker. At t = 15.1 s
+(Fig 18a, the wave front becomes nearly vertical due to the shoaling effect. The baseline simulation (blue
+line), suffering from the initial amplitude and phase errors, fails to reach the critical steepness required for
+breaking at this location. In contrast, the DA analysis mean (red dash-dotted line) accurately reproduces
+the steep wave front of the true state (black line).
+As the wave propagates to t = 15.2 s (Fig 18b), the crest begins to overturn. The DA result captures
+19
+
+Truth
+DA mean
+(a) ux comparison
+Truth
+DA mean
+(b) uz comparison
+Figure 17: Comparison of reconstructed and true velocity fields at the last assimilation instant tl2 = 8 s.
+this overturning initiation overlapping well with the truth. The baseline, however, lags significantly behind
+and exhibits a different crest shape.
+Remarkably, even in this highly nonlinear stage involving complex interface deformation, the recon-
+structed wave remains consistent with the ground truth as shown in Fig 18c and 18d. This result confirms
+that by assimilating data in the linear regime upstream, the EnKF successfully infers the correct flow field,
+enabling the VOF solver to naturally and accurately evolve the wave into a breaking state without further
+corrections.
+18
+19
+20
+21
+x (m)
+0.00
+0.05
+0.10
+η (m)
+Truth
+Baseline
+DA mean
+(a) t = 15.1 s
+18
+19
+20
+21
+x (m)
+0.00
+0.05
+0.10
+η (m)
+Truth
+Baseline
+DA mean
+(b) t = 15.2 s
+18
+19
+20
+21
+x (m)
+0.00
+0.05
+0.10
+η (m)
+Truth
+Baseline
+DA mean
+(c) t = 15.3 s
+(d) t = 15.35 s
+Figure 18: Free surface elevations ηa(x), ηb(x), and ηt(x) during the downstream shoaling and plunging stages.
+4. Conclusion
+In this study, we have developed and validated a sequential data assimilation framework for wave recon-
+struction in VOF-based numerical wave tanks. By integrating the EnKF with a finite volume Navier-Stokes
+solver, the proposed framework addresses the challenge of reconstructing specific deterministic wave realiza-
+tions from limited surface elevation measurements. POD was employed to reduce the dimensionality of the
+high-fidelity state space, making the ensemble-based assimilation computationally feasible.
+Investigation into interface representation revealed that converting the discontinuous VOF fraction into a
+level-set field significantly improves the compactness of the modal basis. Furthermore, a physics-constrained
+inflation strategy was introduced. By inflating the spectral amplitudes of the free surface and updating
+the velocity field via potential flow theory, the framework successfully mitigated ensemble collapse and
+maintained filter consistency during long-term sequential updates.
+20
+
+The framework was tested against three distinct wave conditions, including regular waves, irregular
+waves, and plunging waves. A distinguishing feature of the proposed framework, compared to traditional
+potential flow-based methods, is its capability to capture strongly nonlinear flow phenomena through high-
+fidelity CFD modeling. This was demonstrated in the plunging wave case, where the assimilation of linear
+waves in the upstream region allowed for the accurate prediction of the downstream overturning and breaking
+process. The solver naturally evolved the reconstructed states into complex breaking topologies.
+In addition to handling nonlinear events, the framework exhibited robust performance in the phase-
+resolved reconstruction of irregular waves. It successfully adapted to the stochastic nature of random wave
+trains by sequentially assimilating measurement data.
+The method effectively corrected the phase and
+amplitude of the instantaneous wave field to match the specific realization of the truth. This confirms the
+framework’s ability to adapt to continuously changing wave conditions and eliminate errors arising from
+boundary mismatches or initial uncertainties.
+In summary, this work establishes a feasible pathway for constructing “digital twin” wave tanks capable
+of synchronizing with physical reality. Future efforts will focus on three key directions to further advance this
+framework. First, we aim to accelerate the computational efficiency of the framework to achieve real-time
+assimilation, which is a prerequisite for live digital twinning. Second, the methodology will be validated
+against physical wave tank experiments to bridge the gap between numerical simulations and laboratory
+environments. Finally, the framework will be extended to reconstruct three-dimensional wave fields, enabling
+the analysis of more complex wave-structure interactions in ocean engineering applications.
+Acknowledgments
+This work is supported by the Research Project of China COSCO Shipping Corporation Limited (2023-2-
+Z001-03), Open Project of the State Key Laboratory of Ocean Engineering, and the Fundamental Research
+Funds for the Central Universities.
+Appendix A. Observation Operator
+In this study, different representations of the free surface are employed, associated with different obser-
+vation operators.
+First, we derive the observation operators corresponding to the different free surface representations
+when adopting free surface elevations as observations. The mode eigenvalue of the phase field for ensemble
+member n is represented as a(n),f. The modal-to-physical reconstructions are
+ϕ(n),f = ˆUϕ a(n),f.
+(A.1)
+Note the observation operator acting on the state can be written as
+H(a(n),f) = S F
+
+ϕ(n),f
+,
+(A.2)
+where S belongs to Rpk×g is the interpolation operator that extracts elevation values at the observation
+locations; F : RM →Rg is an operator that converts the implicit phase field to a set of nodes representing
+the geometric free surface elevation in the entire region, where g is the number of nodes.
+In the mathematical formulation presented above, the level-set field ϕ is used as the representative state
+variable for the free surface. It is important to note that the same derivation and logic apply analogously
+to the VOF field α.
+References
+[1] N. Peng, K. Chow,
+A numerical wave tank with large eddy simulation for wave breaking,
+Ocean
+Engineering 266 (2022) 112555.
+21
+
+[2] J. Hu, C. Song, R. Ji, J. Deng, J. Zhangg, G. Xu, Hydrodynamic sheltering characteristic assessment
+for a ship using wave attenuation systems in numerical wave tanks, Physics of Fluids 37 (2025).
+[3] D. Martin, X. Li, C.-A. Chen, K. Thiagarajan, K. Ngo, R. Parker, L. Zuo, Numerical analysis and
+wave tank validation on the optimal design of a two-body wave energy converter, Renewable Energy
+145 (2020) 632–641.
+[4] J. Zhou, G. Liu, Q. Zhang, J. Zhang, Development and application of a numerical wave tank using the
+phase-field lattice boltzmann method, Physics of Fluids 37 (2025).
+[5] H.-G. Lyu, P.-N. Sun, P.-Z. Liu, X.-T. Huang, A. Colagrossi, Derivation of an improved smoothed
+particle hydrodynamics model for establishing a three-dimensional numerical wave tank overcoming
+excessive numerical dissipation, Physics of Fluids 35 (2023).
+[6] X.-z. Zhao, C.-h. Hu, Z.-c. Sun, Numerical simulation of extreme wave generation using vof method,
+Journal of hydrodynamics, ser. B 22 (2010) 466–477.
+[7] H. Bihs, A. Kamath, M. A. Chella, A. Aggarwal, Ø. A. Arntsen, A new level set numerical wave tank
+with improved density interpolation for complex wave hydrodynamics, Computers & Fluids 140 (2016)
+191–208.
+[8] I. Nikolkina, I. Didenkulova, Rogue waves in 2006–2010, Natural hazards and Earth system sciences
+11 (2011) 2913–2924.
+[9] G. Katell, B. Eric, Accuracy of solitary wave generation by a piston wave maker., Journal of hydraulic
+research 40 (2002) 321–331.
+[10] W. Duan, X. Ma, L. Huang, Y. Liu, S. Duan, Phase-resolved wave prediction model for long-crest
+waves based on machine learning,
+Computer Methods in Applied Mechanics and Engineering 372
+(2020) 113350.
+[11] X. Jin, S. Cai, H. Li, G. E. Karniadakis, Nsfnets (navier-stokes flow nets): Physics-informed neural
+networks for the incompressible navier-stokes equations, Journal of Computational Physics 426 (2021)
+109951.
+[12] S. Ehlers, N. Hoffmann, T. Tang, A. H. Callaghan, R. Cao, E. M. Padilla, Y. Fang, M. Stender, Physics-
+informed neural networks for phase-resolved data assimilation and prediction of nonlinear ocean waves,
+Physical Review Fluids 10 (2025) 094901.
+[13] S. K. Park, L. Xu, Data assimilation for atmospheric, oceanic and hydrologic applications (Vol. II),
+Springer, 2013.
+[14] K. Zhu, I. M. Navon, X. Zou, Variational data assimilation with a variable resolution finite-element
+shallow-water equations model, Monthly Weather Review 122 (1994) 946–965.
+[15] G. Wang, Y. Pan, Phase-resolved ocean wave forecast with ensemble-based data assimilation, Journal
+of Fluid Mechanics 918 (2021) A19.
+[16] S. Wang, L. Zhang, Z. Liu, J. Sun, X. Yang, G. Wang, Nonlinear phase-resolved ocean wave simulation
+with ensemble kalman filter, Physical Review Fluids 10 (2025) 114901.
+[17] Y. Wang, J. Li, W. Zhao, I. Navon, G. Lin, Accelerating inverse inference of ensemble kalman filter
+via reduced-order model trained using adaptive sparse observations, Journal of Computational Physics
+496 (2024) 112600.
+[18] C. He, X. Zeng, P. Wang, X. Wen, Y. Liu, Four-dimensional variational data assimilation of a turbulent
+jet for super-temporal-resolution reconstruction, Journal of Fluid Mechanics 978 (2024) A14.
+22
+
+[19] X.-L. Zhang, H. Xiao, X. Luo, G. He, Ensemble kalman method for learning turbulence models from
+indirect observation data, Journal of Fluid Mechanics 949 (2022) A26.
+[20] V. Mons, J.-C. Chassaing, T. Gomez, P. Sagaut, Reconstruction of unsteady viscous flows using data
+assimilation schemes, Journal of Computational Physics 316 (2016) 255–280.
+[21] V. Mons, J.-C. Chassaing, P. Sagaut, Optimal sensor placement for variational data assimilation of
+unsteady flows past a rotationally oscillating cylinder, Journal of Fluid Mechanics 823 (2017) 230–277.
+[22] I. Y. Gejadze, G. Copeland, I. Navon, Open boundary control problem for navier-stokes equations
+including a free surface: data assimilation, Computers & Mathematics with Applications 52 (2006)
+1269–1288.
+[23] F. Fang, C. Pain, M. Piggott, G. Gorman, A. Goddard, An adaptive mesh adjoint data assimilation
+method applied to free surface flows, International Journal for Numerical Methods in Fluids 47 (2005)
+995–1001.
+[24] G. Evensen, Sequential data assimilation with a nonlinear quasi-geostrophic model using monte carlo
+methods to forecast error statistics, Journal of Geophysical Research: Oceans 99 (1994) 10143–10162.
+[25] J. Li, T. Hu, Role of structural properties in reliable prediction of cgle via data assimilation, Physica
+D: Nonlinear Phenomena (2025) 134916.
+[26] H. G. Weller, G. Tabor, H. Jasak, C. Fureby,
+A tensorial approach to computational continuum
+mechanics using object-oriented techniques, Computers in physics 12 (1998) 620–631.
+[27] A. F. da Silva, T. Colonius, Ensemble-based state estimator for aerodynamic flows, AIAA Journal 56
+(2018) 2568–2578.
+[28] Y.
+Bai,
+X.
+Li,
+Evolutionary
+algorithm-based
+error
+parameterization
+meth-
+ods
+for
+data
+assimilation,
+Monthly
+Weather
+Review
+139
+(2011)
+2668
+–
+2685.
+URL:
+https://journals.ametsoc.org/view/journals/mwre/139/8/2011mwr3641.1.xml.
+doi:10.1175/2011MWR3641.1.
+[29] Y. Bar-Shalom, X. R. Li, T. Kirubarajan, Estimation with Applications to Tracking and Navigation:
+Theory, Algorithms and Software, John Wiley and Sons, 2001.
+[30] P. Ivanov, S. Ali-Löytty, R. Piché,
+Evaluating the consistency of estimation,
+in:
+International
+Conference on Localization and GNSS 2014 (ICL-GNSS 2014), 2014, pp. 1–5. doi:10.1109/ICL-
+GNSS.2014.6934171.
+23

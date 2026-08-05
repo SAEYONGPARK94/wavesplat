@@ -1,0 +1,1982 @@
+Published as a conference paper at ICLR 2020
+CONVOLUTIONAL CONDITIONAL NEURAL PROCESSES
+Jonathan Gordon∗
+University of Cambridge
+jg801@cam.ac.uk
+Wessel P. Bruinsma∗
+University of Cambridge
+Invenia Labs
+wpb23@cam.ac.uk
+Andrew Y. K. Foong
+University of Cambridge
+ykf21@cam.ac.uk
+James Requeima
+University of Cambridge
+Invenia Labs
+jrr41@cam.ac.uk
+Yann Dubois
+University of Cambridge
+yanndubois96@gmail.com
+Richard E. Turner
+University of Cambridge
+Microsoft Research
+ret26@cam.ac.uk
+ABSTRACT
+We introduce the Convolutional Conditional Neural Process (CONVCNP), a new
+member of the Neural Process family that models translation equivariance in the
+data. Translation equivariance is an important inductive bias for many learning
+problems including time series modelling, spatial data, and images. The model
+embeds data sets into an inﬁnite-dimensional function space as opposed to a ﬁnite-
+dimensional vector space. To formalize this notion, we extend the theory of neural
+representations of sets to include functional representations, and demonstrate that
+any translation-equivariant embedding can be represented using a convolutional
+deep set. We evaluate CONVCNPs in several settings, demonstrating that they
+achieve state-of-the-art performance compared to existing NPs. We demonstrate
+that building in translation equivariance enables zero-shot generalization to chal-
+lenging, out-of-domain tasks.
+1
+INTRODUCTION
+Neural Processes (NPs; Garnelo et al., 2018b;a) are a rich class of models that deﬁne a conditional
+distribution p(y|x, Z, θ) over output variables y given input variables x, parameters θ, and a set of
+observed data points in a context set Z = {xm, ym}M
+m=1. A key component of NPs is the embedding
+of context sets Z into a representation space through an encoder Z 7→E(Z), which is achieved using
+a DEEPSETS function approximator (Zaheer et al., 2017). This simple model speciﬁcation allows
+NPs to be used for (i) meta-learning (Thrun & Pratt, 2012; Schmidhuber, 1987), since predictions
+can be generated on the ﬂy from new context sets at test time; and (ii) multi-task or transfer learning
+(Requeima et al., 2019), since they provide a natural way of sharing information between data sets.
+Moreover, conditional NPs (CNPs; Garnelo et al., 2018a), a deterministic variant of NPs, can be
+trained in a particularly simple way with maximum likelihood learning of the parameters θ, which
+mimics how the system is used at test time, leading to strong performance (Gordon et al., 2019).
+Natural application areas of NPs include time series, spatial data, and images with missing values.
+Consequently, such domains have been used extensively to benchmark current NPs (Garnelo et al.,
+2018a;b; Kim et al., 2019). Often, ideal solutions to prediction problems in such domains should
+be translation equivariant: if the data are translated in time or space, then the predictions should be
+translated correspondingly (Kondor & Trivedi, 2018; Cohen & Welling, 2016). This relates to the
+notion of stationarity. As such, NPs would ideally have translation equivariance built directly into
+the modelling assumptions as an inductive bias. Unfortunately, current NP models must learn this
+structure from the data set instead, which is sample and parameter inefﬁcient as well as impacting the
+ability of the models to generalize.
+The goal of this paper is to build translation equivariance into NPs. Famously, convolutional neural
+networks (CNNs) added translation equivariance to standard multilayer perceptrons (LeCun et al.,
+1998; Cohen & Welling, 2016). However, it is not straightforward to generalize NPs in an analogous
+way: (i) CNNs require data to live “on the grid” (e.g. image pixels form a regularly spaced grid),
+while many of the above domains have data that live “off the grid” (e.g. time series data may be
+observed irregularly at any time t ∈R). (ii) NPs operate on partially observed context sets whereas
+∗Authors contributed equally. Complete description of author contributions in Appendix E
+1
+arXiv:1910.13556v5  [stat.ML]  25 Jun 2020
+
+Published as a conference paper at ICLR 2020
+CNNs typically do not. (iii) NPs rely on embedding sets into a ﬁnite-dimensional vector space for
+which the notion of equivariance with respect to input translations is not natural, as we detail in
+Section 3. In this work, we introduce the CONVCNP, a new member of the NP family that accounts
+for translation equivariance.1 This is achieved by extending the theory of learning on sets to include
+functional representations, which in turn can be used to express any translation-equivariant NP model.
+Our key contributions can be summarized as follows.
+(i) We provide a representation theorem for translation-equivariant functions on sets, extending
+a key result of Zaheer et al. (2017) to functional embeddings, including sets of varying size.
+(ii) We extend the NP family of models to include translation equivariance.
+(iii) We evaluate the CONVCNP and demonstrate that it exhibits excellent performance on
+several synthetic and real-world benchmarks.
+2
+BACKGROUND AND FORMAL PROBLEM STATEMENT
+In this section we introduce the notation and precisely deﬁne the problem this paper addresses.
+Notation. In the following, let X = Rd and Y ⊆Rd′ (with Y compact) be the spaces of inputs
+and outputs respectively. To ease notation, we often assume scalar outputs Y ⊆R. Deﬁne ZM =
+(X × Y)M as the collection of M input–output pairs, Z≤M = SM
+m=1 Zm as the collection of at
+most M pairs, and Z = S∞
+m=1 Zm as the collection of ﬁnitely many pairs. Since we will consider
+permutation-invariant functions on Z (deﬁned later in Property 1), we may refer to elements of Z as
+sets or data sets. Furthermore, we will use the notation [n] = {1, . . . , n}.
+Conditional Neural Processes (CNPs). CNPs model predictive distributions as p(y|x, Z) =
+p(y|Φ(x, Z), θ), where Φ is deﬁned as a composition ρ ◦E of an encoder E : Z →Re map-
+ping into the embedding space Re and a decoder ρ: Re →Cb(X, Y). Here E(Z) ∈Re is a vector
+representation of the set Z, and Cb(X, Y) is the space of continuous, bounded functions X →Y
+endowed with the supremum norm. While NPs (Garnelo et al., 2018b) employ latent variables to
+indirectly specify predictive distributions, in this work we focus on CNP models which do not.
+As noted by Lee et al. (2019); Bloem-Reddy & Teh (2019), since E is a function on sets, the form
+of Φ in CNPs tightly relates to the growing literature on learning and representing functions on sets
+(Zaheer et al., 2017; Qi et al., 2017a; Wagstaff et al., 2019). Central to this body of work is the notion
+that, because the elements of a set have no order, functions on sets are naturally permutation invariant.
+Hence, to view functions on Z as functions on sets, we require such functions to be permutation
+invariant. This notion is formalized in Property 1.
+Property 1 (Sn-invariant and S-invariant functions). Let Sn be the group of permutations of n
+symbols for n ∈N. A function Φ on Zn is called Sn-invariant if
+Φ(Zn) = Φ(πZn)
+for all π ∈Sn and Zn ∈Zn,
+where the application of π to Zn is deﬁned as πZn = ((xπ(1), yπ(1)), . . . , (xπ(n), yπ(n))). A
+function Φ on Z is called S-invariant if the restrictions Φ|Zn are Sn-invariant for all n.
+Zaheer et al. (2017) demonstrate that any continuous SM-invariant function f : ZM →R has a
+sum-decomposition (Wagstaff et al., 2019), i.e. a representation of the form f(Z) = ρ(P
+z∈Z φ(z))
+for appropriate ρ and φ (though this could only be shown for ﬁxed-sized sets). This is indeed the
+form employed by the NP family for the encoder that embeds sets into a latent representation.
+Translation equivariance. The focus of this work is on models that are translation equivariant: if
+the input locations of the data are translated by an amount τ, then the predictions should be translated
+correspondingly. Translation equivariance for functions operating on sets is formalized in Property 2.
+Property 2 (Translation equivariant mappings on sets). Let H be an appropriate space of functions
+on X, and deﬁne T and T ′ as follows:
+T : X × Z →Z,
+TτZ = ((x1 + τ, y1), . . . , (xm + τ, ym)),
+T ′ : X × H →H,
+T ′
+τh(x) = h(x −τ).
+1Source code available at https://github.com/cambridge-mlg/convcnp.
+2
+
+Published as a conference paper at ICLR 2020
+Then a mapping Φ: Z →H is called translation equivariant if Φ(TτZ) = T ′
+τΦ(Z) for all τ ∈X
+and Z ∈Z.
+Having formalized the problem, we now describe how to construct CNPs that translation equivariant.
+3
+CONVOLUTIONAL DEEP SETS
+We are interested in translation equivariance (Property 2) with respect to translations on X. The
+NP family encoder maps sets Z to an embedding in a vector space Rd, for which the notion of
+equivariance with respect to input translations in X is not well deﬁned. For example, a function f
+on X can be translated by τ ∈X: f( · −τ). However, for a vector x ∈Rd, which can be seen
+as a function [d] →R, x(i) = xi, the translation x( · −τ) is not well-deﬁned. To overcome this
+issue, we enrich the encoder E : Z →H to map into a function space H containing functions on X.
+Since functions in H map from X, our notion of translation equivariance (Property 2) is now also
+well deﬁned for E(Z). As we demonstrate below, every translation-equivariant function on sets has a
+representation in terms of a speciﬁc functional embedding.
+Deﬁnition 1 (Functional mappings on sets and functional representations of sets). Call a map
+E : Z →H a functional mapping on sets if it maps from sets Z to an appropriate space of functions
+H. Furthermore, call E(Z) the functional representation of the set Z.
+Considering functional representations of sets leads to the key result of this work, which can be
+summarized as follows. For Z′ ⊆Z appropriate, a continuous function Φ: Z′ →Cb(X, Y) satisﬁes
+Properties 1 and 2 if and only if it has a representation of the form
+Φ(Z) = ρ (E(Z)) ,
+E(Z) = P
+(x,y)∈Zφ(y)ψ( · −x) ∈H,
+(1)
+for some continuous and translation-equivariant ρ: H →Cb(X, Y), and appropriate φ and ψ. Note
+that ρ is a map between function spaces. We also remark that continuity of Φ is not in the usual sense;
+we return to this below.
+Equation (1) deﬁnes the encoder used by our proposed model, the CONVCNP. In Section 3.1, we
+present our theoretical results in more detail. In particular, Theorem 1 establishes equivalence between
+any function satisfying Properties 1 and 2 and the representational form in Equation (1). In doing so,
+we provide an extension of the key result of Zaheer et al. (2017) to functional representations on sets,
+and show that it can naturally be extended to handle varying-size sets. The practical implementation
+of CONVCNPs — the design of ρ, φ, and ψ — is informed by our results in Section 3.1 (as well as
+the proofs, provided in Appendix A), and is discussed for domains of interest in Section 4.
+3.1
+REPRESENTATIONS OF TRANSLATION EQUIVARIANT FUNCTIONS ON SETS
+In this section we establish the theoretical foundation of the CONVCNP. We begin by stating a
+deﬁnition that is used in our main result. We denote [m] = {1, . . . , m}.
+Deﬁnition 2 (Multiplicity). A collection Z′ ⊆Z is said to have multiplicity K if, for every set
+Z ∈Z′, every x occurs at most K times:
+mult Z′ := sup {sup {|{i ∈[m] : xi = ˆx}| : ˆx = x1, . . . , xm
+number of times every x occurs
+} : (xi, yi)m
+i=1 ∈Z′} = K.
+For example, in the case of real-world data like time series and images, we often observe only one
+(possibly multi-dimensional) observation per input location, which corresponds to multiplicity one.
+We are now ready to state our key theorem.
+Theorem 1. Consider an appropriate2 collection Z′
+≤M ⊆Z≤M with multiplicity K. Then a
+function Φ: Z′
+≤M →Cb(X, Y) is continuous3, permutation invariant (Property 1), and translation
+2 For every m ∈[M], Z′
+≤M ∩Zm must be topologically closed and closed under permutations and
+translations.
+3 For every m ∈[M], the restriction Φ|Z′
+≤M ∩Zm is continuous.
+3
+
+Published as a conference paper at ICLR 2020
+Context set Zc = (xn, yn)N
+n=1
+y
+x
+1
+Functional representation
+2
+h(0) = P ψ( · −xn) h(1) =
+P ynψ( · −xn)
+P ψ( · −xn)
+(density channel)
+x
+Evaluate at discretization (ti)T
+i=1
+x
+3
+Apply CNN and predict
+
+µ(x∗)
+σ(x∗)
+
+=
+T
+X
+i=1
+ fµ(ti)
+efσ(ti)
+
+ψρ(x∗−ti)
+x∗
+1 x∗
+2
+x∗
+3
+x∗
+4
+p(y∗
+3 | x∗
+3, Zc)
+(a)
+require: ρ = (CNN, ψρ), ψ, and density γ
+require: context (xn, yn)N
+n=1, target (x∗
+m)M
+m=1
+1 begin
+2
+lower, upper ←range
+ (xn)N
+n=1∪(x∗
+m)M
+m=1
+
+3
+(ti)T
+i=1 ←uniform_grid(lower, upper; γ)
+4
+hi ←PN
+n=1
+1
+yn
+⊤ψ(ti −xn)
+5
+h(1)
+i
+←h(1)
+i
+/h(0)
+i
+6
+(fµ(ti), fσ(ti))T
+i=1 ←CNN((ti, hi)T
+i=1)
+7
+µm ←PT
+i=1 fµ(ti)ψρ(x∗
+m −ti)
+8
+σm ←PT
+i=1 pos(fσ(ti))ψρ(x∗
+m −ti)
+9
+return (µm, σm)M
+m=1
+10 end
+(b)
+require: ρ = CNN and E = CONVθ
+require: image I, context Mc, and target mask Mt
+1 begin
+2
+// We discretize at the pixel locations.
+3
+Zc ←Mc ⊙I
+// Extract context set.
+4
+h ←CONVθ([Mc, Zc]⊤)
+5
+h(1:C) ←h(1:C)/h(0)
+6
+ft ←Mt ⊙CNN(h)
+7
+µ ←f (1:C)
+t
+8
+σ ←pos(f (C+1:2C)
+t
+)
+9
+return (µ, σ)
+10 end
+(c)
+Figure 1: (a) Illustration of the CONVCNP forward pass in the off-the-grid case and pseudo-code for
+(b) off-the-grid and (c) on-the-grid data. The function pos: R →(0, ∞) is used to enforce positivity.
+equivariant (Property 2) if and only if it has a representation of the form
+Φ(Z) = ρ (E(Z)) ,
+E((x1, y1), . . . , (xm, ym)) = Pm
+i=1 φ(yi)ψ( · −xi)
+for some continuous and translation-equivariant ρ: H →Cb(X, Y) and some continuous φ: Y →
+RK+1 and ψ: X →R, where H is an appropriate space of functions that includes the image of E.
+We call a function Φ of the above form CONVDEEPSET.
+The proof of Theorem 1 is provided in Appendix A. We here discuss several key points from the
+proof that have practical implications and provide insights for the design of CONVCNPs: (i) For
+the construction of ρ and E, ψ is set to a ﬂexible positive-deﬁnite kernel associated with a Repro-
+ducing Kernel Hilbert Space (RKHS; Aronszajn (1950)), which results in desirable properties for
+E. (ii) Using the work by Zaheer et al. (2017), we set φ(y) = (y0, y1, · · · , yK) to be the powers of
+y up to order K. (iii) Theorem 1 requires ρ to be a powerful function approximator of continuous,
+translation-equivariant maps between functions. In Section 4, we discuss how these theoretical results
+inform our implementations of CONVCNPs.
+Theorem 1 extends the result of Zaheer et al. (2017) discussed in Section 2 by embedding the set into
+an inﬁnite-dimensional space — the RKHS — instead of a ﬁnite-dimensional space. Beyond allowing
+the model to exhibit translation equivariance, the RKHS formalism allows us to naturally deal with
+ﬁnite sets of varying sizes, which turns out to be challenging with ﬁnite-dimensional embeddings.
+Furthermore, our formalism requires φ(y) = (y0, y1, y2, . . . , yK) to expand up to order no more
+than the multiplicity of the sets K; if K is bounded, then our results hold for sets up to any arbitrarily
+large ﬁnite size M, while ﬁxing φ to be only (K + 1)-dimensional.
+4
+CONVOLUTIONAL CONDITIONAL NEURAL PROCESSES
+In this section we discuss the architectures and implementation details for CONVCNPs. Similar to
+NPs, CONVCNPs model the conditional distribution as
+p(Y |X, Z) = QN
+n=1 p(yn|Φθ(Z)(xn)) = QN
+n=1 N(yn; µn, Σn) with (µn, Σn) = Φθ(Z)(xn),
+(2)
+where Z is the observed data and Φ a CONVDEEPSET. The key considerations are the design of ρ, φ,
+and ψ for Φ. We provide separate models for data that lie on-the-grid and data that lie off-the-grid.
+4
+
+Published as a conference paper at ICLR 2020
+Form of φ. The applications considered in this work have a single (potentially multi-dimensional)
+output per input location, so the multiplicity of Z is one (i.e., K = 1). It then sufﬁces to let φ
+be a power series of order one, which is equivalent to appending a constant to y in all data sets,
+i.e. φ(y) = [1 y]⊤. The ﬁrst output φ1 thus provides the model with information regarding where
+data has been observed, which is necessary to distinguish between no observed datapoint at x and
+a datapoint at x with y = 0. Denoting the functional representation as h, we can think of the ﬁrst
+channel h(0) as a “density channel”. We found it helpful to divide the remaining channels h(1:) by
+h(0) (Figure 1b, line 5), as this improved performance when there is large variation in the density of
+input locations. In the image processing literature, this is known as normalized convolution (Knutsson
+& Westin, 1993). The normalization operation can be reversed by ρ and is therefore not restrictive.
+CONVCNPs for off-the-grid data. Having speciﬁed φ, it remains to specify the form of ψ and ρ.
+Our proof of Theorem 1 suggests that ψ should be a stationary, non-negative, positive-deﬁnite kernel.
+The exponentiated-quadratic (EQ) kernel with a learnable length scale parameter is a natural choice.
+This kernel is multiplied by φ to form the functional representation E(Z) (Figure 1b, line 4; and
+Figure 1a, arrow 1).
+Next, Theorem 1 suggests that ρ should be a continuous, translation-equivariant map between function
+spaces. Kondor & Trivedi (2018) show that, in deep learning, any translation-equivariant model has a
+representation as a CNN. However, CNNs operate on discrete (on-the-grid) input spaces and produce
+discrete outputs. In order to approximate ρ with a CNN, we discretize the input of ρ, apply the CNN,
+and ﬁnally transform the CNN output back to a continuous function X →Y. To do this, for each
+context and test set, we space points (ti)n
+i=1 ⊆X on a uniform grid (at a pre-speciﬁed density)
+over a hyper-cube that covers both the context and target inputs. We then evaluate (E(Z)(ti))n
+i=1
+(Figure 1b, lines 2–3; Figure 1a, arrow 2). This discretized representation of E(Z) is then passed
+through a CNN (Figure 1b, line 6; Figure 1a, arrow 3).
+To map the output of the CNN back to a continuous function X →Y, we use the CNN outputs as
+weights for evenly-spaced basis functions (again employing the EQ kernel), which we denote by ψρ
+(Figure 1b, lines 7–8; Figure 1a, arrow 3). The resulting approximation to ρ is not perfectly translation
+equivariant, but will be approximately so for length scales larger than the spacing of (E(Z)(ti))n
+i=1.
+The resulting continuous functions are then used to generate the (Gaussian) predictive mean and
+variance at any input. This, in turn, can be used to evaluate the log-likelihood.
+CONVCNP for on-the-grid data. While CONVCNP is readily applicable to many settings where
+data live on a grid, in this work we focus on the image setting. As such, the following description
+uses the image completion task as an example, which is often used to benchmark NPs (Garnelo et al.,
+2018a; Kim et al., 2019). Compared to the off-the-grid case, the implementation becomes simpler as
+we can choose the discretization (ti)n
+i=1 to be the pixel locations.
+Let I ∈RH×W ×C be an image — H, W, C denote the height, width, and number of channels,
+respectively — and let Mc be the context mask, which is such that [Mc]i,j = 1 if pixel location (i, j)
+is in the context set, and 0 otherwise. To implement φ, we select all context points, Zc := Mc ⊙I,
+and prepend the context mask: φ = [Mc, Zc]⊤(Figure 1c, line 4).
+Next, we apply a convolution to the context mask to form the density channel: h(0) = CONVθ(Mc)
+(Figure 1c, line 4).
+To all other channels, we apply a normalized convolution: h(1:C) =
+CONVθ(y)/h(0) (Figure 1c, line 5), where the division is element-wise. The ﬁlter of the con-
+volution is analogous to ψ, which means that h is the functional representation, with the convolution
+performing the role of E (the summation in Figure 1b, line 4). Although the theory suggests using a
+non-negative, positive-deﬁnite kernel, we did not ﬁnd signiﬁcant empirical differences between an
+EQ kernel and using a fully trainable kernel restricted to positive values to enforce non-negativity
+(see Appendices D.4 and D.5 for details).
+Lastly, we describe the on-the-grid version of ρ(·), which consists of two stages. First, we apply a
+CNN to E(Z) (Figure 1c, line 6). Second, we apply a shared, pointwise MLP that maps the output of
+the CNN at each pixel location in the target set to R2C, where we absorb MLP into the CNN (MLP
+can be viewed as an 1×1 convolution). The ﬁrst C outputs are the means of a Gaussian predictive
+distribution and the second C the standard deviations, which then pass through a positivity-enforcing
+5
+
+Published as a conference paper at ICLR 2020
+function (Figure 1c, line 7–8). To summarise, the on-the-grid algorithm is given by
+(µ, pos−1(σ)) = CNN
+ρ
+(
+E(context set)
+[CONV(Mc)
+density channel
+; CONV(Mc ⊙I)/ CONV
+multiplies by ψ and sums
+(Mc)]⊤),
+(3)
+where (µ, σ) are the image mean and standard deviation, ρ is implemented with CNN, and E is
+implemented with the mask Mc and convolution CONV.
+Training. Denoting the data set D = {Zn}N
+n=1 ⊆Z and the parameters by θ, maximum-likelihood
+training involves (Garnelo et al., 2018a;b)
+θ∗= arg maxθ∈Θ
+PN
+n=1
+P
+(x,y)∈Zn,t log p(y | Φθ(Zn,c)(x)),
+(4)
+where we have split Zn into context (Zn,c) and target (Zn,t) sets. This is standard practice in the
+NP (Garnelo et al., 2018a;b) and meta-learning settings (Finn et al., 2017; Gordon et al., 2019) and
+relates to neural auto-regressive models (Requeima et al., 2019). Note that the context set and target
+set are disjoint (Zn,c ∩Zn,t = ∅), which differs from the protocol for the NP (Garnelo et al., 2018a).
+Practically, stochastic gradient descent methods (Bottou, 2010) can be used for optimization.
+5
+EXPERIMENTS AND RESULTS
+We evaluate the performance of CONVCNPs in both on-the-grid and off-the-grid settings focusing
+on two central questions: (i) Do translation-equivariant models improve performance in appropriate
+domains? (ii) Can translation equivariance enable CONVCNPs to generalize to settings outside
+of those encountered during training? We use several off-the-grid data-sets which are irregularly
+sampled time series (X = R), comparing to Gaussian processes (GPs; Williams & Rasmussen
+(2006)) and ATTNCNP(which is identical to the ANP (Kim et al., 2019), but without the latent
+path in the encoder), the best performing member of the CNP family. We then evaluate on several
+on-the-grid image data sets (X = Z2). In all settings we demonstrate substantial improvements
+over existing neural process models. For the CNN component of our model, we propose a small
+and large architecture for each experiment (in the experimental sections named CONVCNP and
+CONVCNPXL, respectively). We note that these architectures are different for off-the-grid and
+on-the-grid experiments, with full details regarding the architectures given in the appendices.
+5.1
+SYNTHETIC 1D EXPERIMENTS
+First we consider synthetic regression problems. At each iteration, a function is sampled, followed
+by context and target sets. Beyond EQ-kernel GPs (as proposed in Garnelo et al. (2018a); Kim et al.
+(2019)), we consider more complex data arising from Matern– 5
+2 and weakly-periodic kernels, as well
+as a challenging, non-Gaussian sawtooth process with random shift and frequency (see Figure 2, for
+example). CONVCNP is compared to CNP (Garnelo et al., 2018a) and ATTNCNP. Training and
+testing procedures are ﬁxed across all models. Full details on models, data generation, and training
+procedures are provided in Appendix C.
+Table 1: Log-likelihood from synthetic 1-dimensional experiments.
+Model
+Params
+EQ
+Weak Periodic
+Matern
+Sawtooth
+CNP
+66818
+-0.86 ± 3e-3
+-1.23 ± 2e-3
+-0.95 ± 1e-3
+-0.16 ± 1e-5
+ATTNCNP
+149250
+0.72 ± 4e-3
+-1.20 ± 2e-3
+0.10 ± 2e-3
+-0.16 ± 2e-3
+CONVCNP
+6537
+0.70 ± 5e-3
+-0.92 ± 2e-3
+0.32 ± 4e-3
+1.43 ± 4e-3
+CONVCNPXL
+50617
+1.06 ± 4e-3
+-0.65 ± 2e-3
+0.53 ± 4e-3
+1.94 ± 1e-3
+Table 1 reports the log-likelihood means and standard errors of the models over 1000 tasks. The
+context and target points for both training and testing lie within the interval [−2, 2] where training
+data was observed (marked “training data range” in Figure 2). Table 1 demonstrates that, even when
+extrapolation is not required, CONVCNP signiﬁcantly outperforms other models in all cases, despite
+having fewer parameters.
+Figure 2 demonstrates that CONVCNP generates excellent ﬁts, even for challenging functions
+such as from the Matern– 5
+2 kernel and sawtooth. Moreover, Figure 2 compares the performance
+6
+
+Published as a conference paper at ICLR 2020
+ATTNCNP
+CONVCNP
+Figure 2: Example functions learned by the ATTNCNP (top row), and CONVCNP (bottom row),
+when trained on a Matern– 5
+2 kernel with length scale 0.25 (ﬁrst and second column) and sawtooth
+function (third and fourth column). Columns one and three show the predictive posterior of the
+models when data is presented in same range as training, with predictive posteriors continuing beyond
+that range on either side. Columns two and four show model predictive posteriors when presented
+with data outside the training data range. Plots show means and two standard deviations.
+of CONVCNP and ATTNCNP when data is observed outside the range where the models were
+trained: translation equivariance enables CONVCNP to elegantly generalize to this setting, whereas
+ATTNCNP is unable to generate reasonable predictions.
+5.2
+PLASTICC EXPERIMENTS
+The PLAsTiCC data set (Allam Jr et al., 2018) is a simulation of transients observed by the LSST
+telescope under realistic observational conditions. The data set contains 3,500,734 “light curves”,
+where each measurement is of an object’s brightness as a function of time, taken by measuring the
+photon ﬂux in six different astronomical ﬁlters. The data can be treated as a six-dimensional time
+series. The data set was introduced in a Kaggle competition,4 where the task was to use these light
+curves to classify the variable sources. The winning entry (Avocado, Boone, 2019) modeled the
+light curves with GPs and used these models to generate features for a gradient boosted decision
+tree classiﬁer. We compare a multi-input–multi-output CONVCNP with the GP models used in
+Avocado.5 CONVCNP accepts six channels as inputs, one for each astronomical ﬁlter, and returns 12
+outputs — the means and standard deviations of six Gaussians. Full experimental details are given in
+Appendix C.3. The mean squared error of both approaches is similar, but the held-out log-likelihood
+from the CONVCNP is far higher (see Table 2).
+Table 2: Mean and standard errors of log-likelihood and root mean squared error over 1000 test
+objects from the PLastiCC dataset.
+Model
+Log-likelihood
+MSE
+Kaggle GP (Boone, 2019)
+-0.335 ± 0.09
+0.037 ± 4e-3
+ConvCP (ours)
+1.31 ± 0.30
+0.040 ± 5e-3
+5.3
+PREDATOR-PREY MODELS: SIM2REAL
+The CONVCNP model is well suited for applications where simulation data is plentiful, but real
+world training data is scarce (Sim2Real). The CONVCNP can be trained on a large amount of
+simulation data and then be deployed with real-world training data as the context set. We consider the
+Lotka–Volterra model (Wilkinson, 2011), which is used to describe the evolution of predator–prey
+populations. This model has been used in the Approximate Bayesian Computation literature where
+the task is to infer the parameters from samples drawn from the Lotka–Volterra process (Papamakarios
+& Murray, 2016). These methods do not simply extend to prediction problems such as interpolation
+or forecasting. In contrast, we train CONVCNP on synthetic data sampled from the Lotka–Volterra
+4https://www.kaggle.com/c/PLAsTiCC-2018
+5Full code for Avocado, including GP models, is available at https://github.com/kboone/avocado.
+7
+
+Published as a conference paper at ICLR 2020
+model and can then condition on real-world data from the Hudson’s Bay lynx–hare data set (Leigh,
+1968) to perform interpolation (see Figure 3; full experimental details are given in Appendix C.4).
+The CONVCNP performs accurate interpolation as shown in Figure 3. We were unable to successfully
+train the ATTNCNP for this task. We suspect this is because the simulation data are variable length-
+time series, which requires models to leverage translation equivariance at training time. As shown in
+Section 5.1, the ATTNCNP struggles to do this (see Appendix C.4 for complete details).
+Figure 3: Left and centre: two samples from the Lotka–Volterra process (sim). Right: CONVCNP
+trained on simulations and applied to the Hudson’s Bay lynx-hare dataset (real). Plots show means
+and two standard deviations.
+5.4
+2D IMAGE COMPLETION EXPERIMENTS
+To test CONVCNP beyond one-dimensional features, we evaluate our model on on-the-grid image
+completion tasks and compare it to ATTNCNP. Image completion can be cast as a prediction of pixel
+intensities y∗
+i (∈R3 for RGB, ∈R for greyscale) given a target 2D pixel location x∗
+i conditioned
+on an observed (context) set of pixel values Z = (xn, yn)N
+n=1. In the following experiments, the
+context set can vary but the target set contains all pixels from the image. Further experimental details
+are in Appendix D.1.
+Table 3: Log-likelihood from image experiments (6 runs).
+Model
+Params
+MNIST
+SVHN
+CelebA32
+CelebA64
+ZSMM
+ATTNCNP
+410k
+1.08 ±0.04
+3.94 ±0.02
+3.18 ±0.02
+-0.83 ±0.08
+CONVCNP
+113k
+1.21 ±0.00
+3.89 ±0.01
+3.22 ±0.02
+3.66 ±0.01
+1.18 ±0.04
+CONVCNPXL
+400k
+1.27 ±0.01
+3.97 ±0.02
+3.39 ±0.02
+3.73 ±0.01
+0.86 ±0.12
+Standard benchmarks. We ﬁrst evaluate the model on four common benchmarks: MNIST (LeCun
+et al., 1998), SVHN (Netzer et al., 2011), and 32 × 32 and 64 × 64 CelebA (Liu et al., 2018).
+Importantly, these data sets are biased towards images containing a single, well-centered object. As
+a result, perfect translation-equivariance might hinder the performance of the model when the test
+data are similarly structured. We therefore also evaluated a larger CONVCNP that can learn such
+non-stationarity, while still sharing parameters across the input space (CONVCNPXL).
+Table 3 shows that CONVCNP signiﬁcantly outperforms ATTNCNP when it has a large receptive
+ﬁeld size, while being at least as good with a small receptive ﬁeld size. Qualitative samples for
+various context sets can be seen in Figure 5. Further qualitative comparisons and ablation studies can
+be found in Appendix D.3 and Appendix D.4 respectively.
+Generalization to multiple, non-centered objects. The data sets from the previous paragraphs
+were centered and contained single objects. Here we test whether CONVCNPs trained on such data
+can generalize to images containing multiple, non-centered objects.
+The last column of Table 3 evaluates the models in a zero shot multi-MNIST (ZSMM) setting, where
+images contain multiple digits at test time (Appendix D.2). CONVCNP signiﬁcantly outperforms
+ATTNCNP on such tasks. Figure 4a shows a histogram of the image log-likelihoods for CONVCNP
+and ATTNCNP, as well as qualitative results at different percentiles of the CONVCNP distribution.
+CONVCNP is able to extrapolate to this out-of-distribution test set, while ATTNCNP appears to
+model the bias of the training data and predict a centered “mean” digit independently of the context.
+Interestingly, CONVCNPXL does not perform as well on this task. In particular, we ﬁnd that, as the
+receptive ﬁeld becomes very large, performance on this task decreases. We hypothesize that this has
+8
+
+Published as a conference paper at ICLR 2020
+to do with behavior of the model at the edges of the image. CNNs with larger receptive ﬁelds — the
+region of input pixels that affect a particular output pixel — are able to model non-stationary behavior
+by looking at the distance from any pixel to the image boundary. We expand on this discussion and
+provide further experimental evidence regarding the effects of receptive ﬁeld on the ZSMM task in
+Appendix D.6.
+Although ZSMM is a contrived task, note that our ﬁeld of view usually contains multiple independent
+objects, thereby requiring translation equivariance. As a more realistic example, we took a CONVCNP
+model trained on CelebA and tested it on a natural image of different shape which contains multiple
+people (Figure 4b). Even with 95% of the pixels removed, the CONVCNP was able to produce a
+qualitatively reasonable reconstruction. A comparison with ATTNCNP is given in Appendix D.3.
+Computational efﬁciency. Beyond the performance and generalization improvements, a key ad-
+vantage of the CONVCNP is its computational efﬁciency. The memory and time complexity of a
+single self-attention layer grows quadratically with the number of inputs M (the number of pixels for
+images) but only linearly for a convolutional layer.
+Empirically, with a batch size of 16 on 32 × 32 MNIST, CONVCNPXL requires 945MB of VRAM,
+while ATTNCNP requires 5839 MB. For the 56×56 ZSMM CONVCNPXL increases its requirements
+to 1443 MB, while ATTNCNP could not ﬁt onto a 32GB GPU. Ultimately, ATTNCNP had to be
+trained with a batch size of 6 (using 19139 MB) and we were not able to ﬁt it for CelebA64. Recently,
+restricted attention has been proposed to overcome this computational issue (Parmar et al., 2018), but
+we leave an investigation of this and its relationship to CONVCNPs to future work.
+6
+RELATED WORK AND DISCUSSION
+We have introduced CONVCNP, a new member of the CNP family that leverages embedding sets
+into function space to achieve translation equivariance. The relationship to (i) the NP family, and
+(ii) representing functions on sets, each imply extensions and avenues for future work.
+Deep sets. Two key issues in the existing theory on learning with sets (Zaheer et al., 2017; Qi et al.,
+2017a; Wagstaff et al., 2019) are (i) the restriction to ﬁxed-size sets, and (ii) that the dimensionality
+of the embedding space must be no less than the cardinality of the embedded sets. Our work implies
+that by considering appropriate embeddings into a function space, both issues are alleviated. In future
+work, we aim to further this analysis and formalize it in a more general context.
+Point-cloud models. Another line of related research focuses on 3D point-cloud modelling (Qi
+et al., 2017a;b). While original work focused on permutation invariance (Qi et al., 2017a; Zaheer
+et al., 2017), more recent work has considered translation equivariance as well (Wu et al., 2019),
+leading to a model closely resembling CONVDEEPSETS. The key differences with our work are
+the following: (i) Wu et al. (2019) implement ψ as an MLP with learned weights, resulting in a
+more ﬂexible parameterization of the convolutional weights. (ii) Wu et al. (2019) interpret the
+computations as Monte Carlo approximations to an underlying continuous convolution, whereas we
+consider the problem of function approximation directly on sets. (iii) Wu et al. (2019) only consider
+the point-cloud application, whereas our derivation and modelling work considers general sets.
+Correlated samples and consistency under marginalization. In the predictive distribution of CON-
+VCNP (Equation (2)), predicted ys are conditionally independent given the context set. Consequently,
+samples from the predictive distribution lack correlations and appear noisy. One solution is to instead
+deﬁne the predictive distribution in an autoregressive way, like e.g. PixelCNN++ (Salimans et al.,
+2017). Although samples are now correlated, the quality of the samples depends on the order in which
+the points are sampled. Moreover, the predicted ys are then not consistent under marginalization
+(Garnelo et al., 2018b; Kim et al., 2019). Consistency under marginalization is more generally
+an issue for neural autoregressive models (Salimans et al., 2017; Parmar et al., 2018), although
+consistent variants have been devised (Louizos et al., 2019). To overcome the consistency issue for
+CONVCNP, exchangeable neural process models (e.g. Korshunova et al., 2018; Louizos et al., 2019)
+may provide an interesting avenue. Another way to introduce dependencies between ys is to employ
+latent variables as is done in neural processes (Garnelo et al., 2018b). However, such an approach
+only achieves conditional consistency: given a context set, the predicted ys will be dependent and
+consistent under marginalization, but this does not lead to a consistent joint model that also includes
+the context set itself.
+9
+
+Published as a conference paper at ICLR 2020
+(a) Log-likelihood and qualitative results on ZSMM. The top
+row shows the log-likelihood distribution for both models.
+The images below correspond to the context points (top),
+CONVCNP target predictions (middle), and ATTNCNP target
+predictions (bottom). Each column corresponds to a given
+percentile of the CONVCNP distribution.
+(b) Qualitative evaluation of a CON-
+VCNPXL trained on the unscaled
+CelebA (218 × 178) and tested on
+Ellen’s Oscar unscaled (337 × 599)
+selﬁe (DeGeneres, 2014) with 5% of
+the pixels as context (top).
+Figure 4: Zero shot generalization to tasks that require translation equivariance.
+Figure 5: Qualitative evaluation of the CONVCNP(XL). For each dataset, an image is randomly
+sampled, the ﬁrst row shows the given context points while the second is the mean of the estimated
+conditional distribution. From left to right the ﬁrst seven columns correspond to a context set with 3,
+1%, 5%, 10%, 20%, 30%, 50%, 100% randomly sampled context points. In the last two columns, the
+context sets respectively contain all the pixels in the left and top half of the image. CONVCNPXL is
+shown for all datasets besides ZSMM, for which we show the fully translation equivariant CONVCNP.
+10
+
+Published as a conference paper at ICLR 2020
+ACKNOWLEDGEMENTS
+We would like to thank Mark Rowland for help with checking the proofs, and David R. Burt, Will
+Tebbutt, Robert Pinsler, and Cozmin Ududec for helpful comments on the manuscript. Andrew
+Y. K. Foong is supported by a Trinity Hall Research Studentship and the George and Lilian Schiff
+Foundation. Richard E. Turner is supported by Google, Amazon, ARM, Improbable and EPSRC
+grants EP/M0269571 and EP/L000776/1.
+REFERENCES
+Tarek Allam Jr, Anita Bahmanyar, Rahul Biswas, Mi Dai, Lluís Galbany, Renée Hložek, Emille EO
+Ishida, Saurabh W Jha, David O Jones, Richard Kessler, et al. The photometric lsst astronomical
+time-series classiﬁcation challenge (plasticc): Data set. arXiv preprint arXiv:1810.00001, 2018.
+Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical
+society, 68(3):337–404, 1950.
+Benjamin Bloem-Reddy and Yee Whye Teh. Probabilistic symmetry and invariant neural networks.
+arXiv preprint arXiv:1901.06082, 2019.
+Kyle Boone. Avocado: Photometric classiﬁcation of astronomical transients with gaussian process
+augmentation. arXiv preprint arXiv:1907.04690, 2019.
+Léon Bottou. Large-scale machine learning with stochastic gradient descent. In Proceedings of
+COMPSTAT’2010, pp. 177–186. Springer, 2010.
+François Chollet. Xception: Deep learning with depthwise separable convolutions. In Proceedings of
+the IEEE conference on computer vision and pattern recognition, pp. 1251–1258, 2017.
+Taco Cohen and Max Welling. Group equivariant convolutional networks. In Maria Florina Balcan
+and Kilian Q. Weinberger (eds.), Proceedings of The 33rd International Conference on Machine
+Learning, volume 48 of Proceedings of Machine Learning Research, pp. 2990–2999, New York,
+New York, USA, 20–22 Jun 2016. PMLR.
+Ellen
+DeGeneres.
+If
+only
+Bradley’s
+arm
+was
+longer.
+Best
+photo
+ever.
+Oscars
+pic.twitter.com/c9u5notgap, Mar 2014.
+James Dugundji et al. An extension of tietze’s theorem. Paciﬁc Journal of Mathematics, 1(3):
+353–367, 1951.
+Chelsea Finn, Pieter Abbeel, and Sergey Levine. Model-agnostic meta-learning for fast adaptation of
+deep networks. In Doina Precup and Yee Whye Teh (eds.), Proceedings of the 34th International
+Conference on Machine Learning, volume 70 of Proceedings of Machine Learning Research, pp.
+1126–1135, International Convention Centre, Sydney, Australia, 06–11 Aug 2017. PMLR. URL
+http://proceedings.mlr.press/v70/finn17a.html.
+Marta Garnelo, Dan Rosenbaum, Christopher Maddison, Tiago Ramalho, David Saxton, Mur-
+ray Shanahan, Yee Whye Teh, Danilo Rezende, and S. M. Ali Eslami.
+Conditional neu-
+ral processes.
+In Jennifer Dy and Andreas Krause (eds.), Proceedings of the 35th Interna-
+tional Conference on Machine Learning, volume 80 of Proceedings of Machine Learning Re-
+search, pp. 1704–1713, Stockholmsmässan, Stockholm Sweden, 10–15 Jul 2018a. PMLR. URL
+http://proceedings.mlr.press/v80/garnelo18a.html.
+Marta Garnelo, Jonathan Schwarz, Dan Rosenbaum, Fabio Viola, Danilo J Rezende, SM Eslami, and
+Yee Whye Teh. Neural processes. arXiv preprint arXiv:1807.01622, 2018b.
+Daniel T Gillespie. Exact stochastic simulation of coupled chemical reactions. The journal of physical
+chemistry, 81(25):2340–2361, 1977.
+Jonathan Gordon, John Bronskill, Matthias Bauer, Sebastian Nowozin, and Richard Turner. Meta-
+learning probabilistic inference for prediction. In International Conference on Learning Represen-
+tations, 2019. URL https://openreview.net/forum?id=HkxStoC5F7.
+11
+
+Published as a conference paper at ICLR 2020
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image
+recognition. In Proceedings of the IEEE conference on computer vision and pattern recognition,
+pp. 770–778, 2016.
+Hyunjik Kim, Andriy Mnih, Jonathan Schwarz, Marta Garnelo, Ali Eslami, Dan Rosenbaum, Oriol
+Vinyals, and Yee Whye Teh. Attentive neural processes. In International Conference on Learning
+Representations, 2019. URL https://openreview.net/forum?id=SkE6PjC9KX.
+Diederik P Kingma and Jimmy Ba. Adam: A method for stochastic optimization. In In International
+Conference on Learning Representations (ICLR), 2015.
+Hans Knutsson and C-F Westin. Normalized and differential convolution. In Proceedings of IEEE
+Conference on Computer Vision and Pattern Recognition, pp. 515–523. IEEE, 1993.
+Risi Kondor and Shubhendu Trivedi. On the generalization of equivariance and convolution in neural
+networks to the action of compact groups. In Jennifer Dy and Andreas Krause (eds.), Proceedings
+of the 35th International Conference on Machine Learning, volume 80 of Proceedings of Machine
+Learning Research, pp. 2747–2755, Stockholmsmässan, Stockholm Sweden, 10–15 Jul 2018.
+PMLR.
+Iryna Korshunova, Yarin Gal, Joni Dambre, and Arthur Gretton. Conditional bruno: A deep recurrent
+process for exchangeable labelled data. In Bayesian Deep Learning NeurIPS Workshop, 2018.
+Tuan Anh Le, Hyunjik Kim, Marta Garnelo, Dan Rosenbaum, Jonathan Schwarz, and Yee Whye
+Teh. Empirical evaluation of neural process objectives. In NeurIPS workshop on Bayesian Deep
+Learning, 2018.
+Yann LeCun, Léon Bottou, Yoshua Bengio, Patrick Haffner, et al. Gradient-based learning applied to
+document recognition. Proceedings of the IEEE, 86(11):2278–2324, 1998.
+Juho Lee, Yoonho Lee, Jungtaek Kim, Adam Kosiorek, Seungjin Choi, and Yee Whye Teh. Set
+transformer: A framework for attention-based permutation-invariant neural networks. In Kamalika
+Chaudhuri and Ruslan Salakhutdinov (eds.), Proceedings of the 36th International Conference
+on Machine Learning, volume 97 of Proceedings of Machine Learning Research, pp. 3744–3753,
+Long Beach, California, USA, 09–15 Jun 2019. PMLR.
+Egbert R Leigh. The ecological role of volterra’s equations. Some mathematical problems in biology,
+1968.
+Ziwei Liu, Ping Luo, Xiaogang Wang, and Xiaoou Tang. Large-scale celebfaces attributes (celeba)
+dataset. Retrieved August, 15:2018, 2018.
+Christos Louizos, Xiahan Shi, Klamer Schutte, and Max Welling. The functional neural process.
+2019. URL http://arxiv.org/abs/1906.08324.
+J.R. Munkres. Topology; a First Course. Prentice-Hall, 1974.
+Yuval Netzer, Tao Wang, Adam Coates, Alessandro Bissacco, Bo Wu, and Andrew Y Ng. Reading
+digits in natural images with unsupervised feature learning. 2011.
+George Papamakarios and Iain Murray. Fast ϵ-free inference of simulation models with bayesian
+conditional density estimation. In D. D. Lee, M. Sugiyama, U. V. Luxburg, I. Guyon, and R. Garnett
+(eds.), Advances in Neural Information Processing Systems 29, pp. 1028–1036. 2016.
+Niki Parmar, Ashish Vaswani, Jakob Uszkoreit, Lukasz Kaiser, Noam Shazeer, Alexander Ku, and
+Dustin Tran. Image transformer. In Jennifer Dy and Andreas Krause (eds.), Proceedings of the 35th
+International Conference on Machine Learning, volume 80 of Proceedings of Machine Learning
+Research, pp. 4055–4064, Stockholmsmässan, Stockholm Sweden, 10–15 Jul 2018. PMLR.
+Charles R Qi, Hao Su, Kaichun Mo, and Leonidas J Guibas. Pointnet: Deep learning on point sets
+for 3d classiﬁcation and segmentation. Proc. Computer Vision and Pattern Recognition (CVPR),
+IEEE, 1(2):4, 2017a.
+12
+
+Published as a conference paper at ICLR 2020
+Charles Ruizhongtai Qi, Li Yi, Hao Su, and Leonidas J Guibas. Pointnet++: Deep hierarchical
+feature learning on point sets in a metric space. In I. Guyon, U. V. Luxburg, S. Bengio, H. Wallach,
+R. Fergus, S. Vishwanathan, and R. Garnett (eds.), Advances in Neural Information Processing
+Systems 30, pp. 5099–5108. 2017b.
+James Requeima, Jonathan Gordon, John Bronskill, Sebastian Nowozin, and Richard E Turner. Fast
+and ﬂexible multi-task classiﬁcation using conditional neural adaptive processes. arXiv preprint
+arXiv:1906.07697, 2019.
+Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net: Convolutional networks for biomedical
+image segmentation. In International Conference on Medical image computing and computer-
+assisted intervention, pp. 234–241. Springer, 2015.
+Tim Salimans, Andrej Karpathy, Xi Chen, and Diederik P Kingma. Pixelcnn++: Improving the
+pixelcnn with discretized logistic mixture likelihood and other modiﬁcations. In In International
+Conference on Learning Representations (ICLR), 2017.
+Jürgen Schmidhuber. Evolutionary principles in self-referential learning. PhD thesis, Technische
+Universität München, 1987.
+Sebastian Thrun and Lorien Pratt. Learning to learn. Springer Science & Business Media, 2012.
+Edward Wagstaff, Fabian Fuchs, Martin Engelcke, Ingmar Posner, and Michael A. Osborne. On the
+limitations of representing functions on sets. In Kamalika Chaudhuri and Ruslan Salakhutdinov
+(eds.), Proceedings of the 36th International Conference on Machine Learning, volume 97 of
+Proceedings of Machine Learning Research, pp. 6487–6494, Long Beach, California, USA, 09–15
+Jun 2019. PMLR.
+Darren J Wilkinson. Stochastic modelling for systems biology. CRC press, 2011.
+Christopher KI Williams and Carl Edward Rasmussen. Gaussian processes for machine learning,
+volume 2. MIT press Cambridge, MA, 2006.
+Wenxuan Wu, Zhongang Qi, and Li Fuxin. PointConv: Deep convolutional networks on 3d point
+clouds. In The IEEE Conference on Computer Vision and Pattern Recognition (CVPR), June 2019.
+Manzil Zaheer, Satwik Kottur, Siamak Ravanbakhsh, Barnabas Poczos, Ruslan R Salakhutdinov, and
+Alexander J Smola. Deep sets. In I. Guyon, U. V. Luxburg, S. Bengio, H. Wallach, R. Fergus,
+S. Vishwanathan, and R. Garnett (eds.), Advances in Neural Information Processing Systems 30,
+pp. 3391–3401. 2017.
+13
+
+Published as a conference paper at ICLR 2020
+A
+THEORETICAL RESULTS AND PROOFS
+In this section, we provide the proof of Theorem 1. Our proof strategy is as follows. We ﬁrst deﬁne an
+appropriate topology for ﬁxed-sized sets (Appendix A.1). With this topology in place, we demonstrate
+that our proposed embedding into function space is homeomorphic (Lemmas 1 and 2). We then
+show that the embeddings of ﬁxed-sized sets can be extended to varying-sized sets by “pasting”
+the embeddings together while maintaining their homeomorphic properties (Lemma 3). Following
+this, we demonstrate that the resulting embedding may be composed with a continuous mapping to
+our desired target space, resulting in a continuous mapping between two metric spaces (Lemma 4).
+Finally, in Appendix A.3 we combine the above-mentioned results to prove Theorem 1.
+We begin with deﬁnitions that we will use throughout the section and then present our results. Let
+X = Rd and let Y ⊆R be compact. Let ψ be a symmetric, positive-deﬁnite kernel on X. By the
+Moore–Aronszajn Theorem, there is a unique Hilbert space (H, ⟨· , · ⟩H) of real-valued functions
+on X for which ψ is a reproducing kernel. This means that (i) ψ( · , x) ∈H for all x ∈X and
+(ii) ⟨f, ψ( · , x)⟩H = f(x) for all f ∈H and x ∈X (reproducing property). For ψ: X × X →R,
+X = (x1, . . . , xn) ∈X n, and X′ = (x′
+1, . . . , x′
+n) ∈X n, we denote
+ψ(X, X′) =
+
+
+ψ(x1, x′
+1)
+· · ·
+ψ(x1, x′
+n)
+...
+...
+...
+ψ(xn, x′
+1)
+· · ·
+ψ(xn, x′
+n)
+
+.
+Deﬁnition 3 (Interpolating RKHS). Call H interpolating if it interpolates any ﬁnite number of
+points: for every ((xi, yi))n
+i=1 ⊆X × Y with (xi)n
+i=1 all distinct, there is an f ∈H such that
+f(x1) = y1, . . . , f(xn) = yn.
+For example, the RKHS induced by any strictly positive-deﬁnite kernel, e.g. the exponentiated
+quadratic (EQ) kernel ψ(x, x′) = σ2 exp(−1
+2ℓ2 ∥x −x′∥2), is interpolating: Let c = ψ(X, X)−1y
+and consider f = Pn
+i=1 ciψ( · , xi) ∈H. Then f(X) = ψ(X, X)c = y.
+A.1
+THE QUOTIENT SPACE An/ Sn
+Let A be a Banach space. For x = (x1, . . . , xn) ∈An and y = (y1, . . . , yn) ∈An, let x ∼y if x
+is a permutation of y; that is, x ∼y if and only if x = πy for some π ∈Sn where
+πy = (yπ(1), . . . , yπ(n)).
+Let An/ Sn be the collection of equivalence classes of ∼. Denote the equivalence class of x by [x];
+for A ⊆An, denote [A] = {[a] : a ∈A}. Call the map x 7→[x]: An →An/ Sn the canonical
+map. The natural topology on An/ Sn is the quotient topology, in which a subset of An/ Sn is open
+if and only if its preimage under the canonical map is open in An. In what follows, we show that the
+quotient topology is metrizable.
+On An, since all norms on ﬁnite-dimensional vector spaces are equivalent, without loss of generality
+consider
+∥x∥2
+An = Pn
+i=1 ∥xi∥2
+A.
+Note that ∥· ∥An is permutation invariant: ∥π · ∥An = ∥· ∥An for all π ∈Sn. On An/ Sn, deﬁne
+d: An/ Sn × An/ Sn →[0, ∞),
+d([x], [y]) = minπ∈Sn ∥x −πy∥An.
+Call a set [A] ⊆An/ Sn bounded if {d([x], [0]) : [x] ∈[A]} is bounded.
+Proposition 1. The function d is a metric.
+Proof. We ﬁrst show that d is well deﬁned on An/ Sn. Assume x ∼x′ and y ∼y′. Then, x′ = πxx
+and y′ = πyy. Using the group properties of Sn and the permutation invariance of ∥· ∥An:
+d([x′], [y′]) = minπ∈Sn ∥πxx −ππyy∥An
+= minπ∈Sn ∥πxx −πy∥An
+= minπ∈Sn ∥x −π−1
+x πy∥An
+= minπ∈Sn ∥x −πy∥An
+= d([x], [y]).
+14
+
+Published as a conference paper at ICLR 2020
+It is clear that d([x], [y]) = d([y], [x]) and that d([x], [y]) = 0 if and only if [x] = [y]. To show the
+triangle inequality, note that
+∥x −π1π2y∥An ≤∥x −π1z∥An + ∥π1z −π1π2y∥An = ∥x −π1z∥An + ∥z −π2y∥An,
+using permutation invariance of ∥· ∥An. Hence, taking the minimum over π1,
+d([x], [y]) ≤d([x], [z]) + ∥z −π2y∥An,
+so taking the minimum over π2 gives the triangle inequality for d.
+Proposition 2. The canonical map An →An/ Sn is continuous under the metric topology induced
+by d.
+Proof. Follows directly from d([x], [y]) ≤∥x −y∥An.
+Proposition 3. Let A ⊆An be topologically closed and closed under permutations. Then [A] is
+topologically closed in An/ Sn under the metric topology.
+Proof. Recall that a subset [A] of a metric space is closed iff every limit point of [A] is also in
+[A]. Consider a sequence ([an])∞
+n=1 ⊆[A] converging to some [x] ∈An/ Sn. Then there are
+permutations (πn)∞
+n=1 ⊆Sn such that πnan →x. Here πnan ∈A, because A is closed under
+permutations. Thus x ∈A, as A is also topologically closed. We conclude that [x] ∈[A].
+Proposition 4. Let A ⊆An be open. Then [A] is open in An/ Sn under the metric topology. In
+other words, the canonical map is open under the metric topology.
+Proof. Let [x] ∈[A]. Because A is open, there is some ball Bε(y) with ε > 0 and y ∈A such
+that x ∈Bε(y) ⊆A. Then [x] ∈Bε([y]), since d([x], [y]) ≤∥x −y∥An < ε, and we claim that
+Bε([y]) ⊆[A]. Hence [x] ∈Bε([y]) ⊆[A], so [A] is open.
+To show the claim, let [z] ∈Bε([y]). Then d(πz, y) < ε for some π ∈Sn. Hence πz ∈Bε(y) ⊆A,
+so πz ∈A. Therefore, [z] = [πz] ∈[A].
+Proposition 5. The quotient topology on An/ Sn induced by the canonical map is metrizable with
+the metric d.
+Proof. Since the canonical map is surjective, there exists exactly one topology on An/ Sn relative to
+which the canonical map is a quotient map: the quotient topology (Munkres, 1974).
+Let p: An →An/ Sn denote the canonical map. It remains to show that p is a quotient map under
+the metric topology induced by d; that is, we show that U ⊂An/ Sn is open in An/ Sn under the
+metric topology if and only if p−1(U) is open in An.
+Let p−1(U) be open in An. We have that U = p(p−1(U)), so U is open in An/ Sn under the metric
+topology by Proposition 4. Conversely, if U is open in An/ Sn under the metric topology, then
+p−1(U) is open in An by continuity of the canonical map under the metric topology.
+A.2
+EMBEDDINGS OF SETS INTO AN RKHS
+Whereas A previously denoted an arbitrary Banach space, in this section we specialize to A = X ×Y.
+We denote an element in A by (x, y) and an element in ZM = AM by ((x1, y1), . . . , (xM, yM)).
+Alternatively, we denote ((x1, y1), . . . , (xM, yM)) by (X, y) where X = (x1, . . . , xM) ∈X M
+and y = (y1, . . . , yM) ∈YM. We clarify that an element in ZM = AM is permuted as follows: for
+π ∈SM,
+π(X, y) = π((x1, y1), . . . , (xM, yM)) = ((xπ(1), yπ(1)), . . . , (xπ(n), yπ(n))) = (πX, πy).
+15
+
+Published as a conference paper at ICLR 2020
+Note that permutation-invariant functions on ZM are in correspondence to functions on the quotient
+space induced by the equivalence class of permutations, ZM/ Sm The latter is a more natural
+representation.
+Lemma 3 states that it is possible to homeomorphically embed sets into an RKHS. This result is key
+to proving our main result. Before proving Lemma 3, we provide several useful results. We begin by
+demonstrating that an embedding of sets of a ﬁxed size into a RKHS is continuous and injective.
+Lemma 1. Consider a collection Z′
+M ⊆ZM that has multiplicity K. Set
+φ : Y →RK+1,
+φ(y) = (y0, y1, · · · , yK)
+and let ψ be an interpolating, continuous positive-deﬁnite kernel. Deﬁne
+HM =
+( M
+X
+i=1
+φ(yi)ψ( · , xi) : (xi, yi)M
+i=1 ⊆Z′
+M
+)
+⊆HK+1,
+(5)
+where HK+1 = H × · · · × H is the (K + 1)-dimensional-vector–valued–function Hilbert space
+constructed from the RKHS H for which ψ is a reproducing kernel and endowed with the inner
+product ⟨f, g⟩HK+1 = PK+1
+i=1 ⟨fi, gi⟩H. Then the embedding
+EM : [Z′
+M] →HM,
+EM([(x1, y1), . . . , (xM, yM)]) =
+M
+X
+i=1
+φ(yi)ψ( · , xi)
+is injective, hence invertible, and continuous.
+Proof. First, we show that EM is injective. Suppose that
+M
+X
+i=1
+φ(yi)ψ( · , xi) =
+M
+X
+i=1
+φ(y′
+i)ψ( · , x′
+i).
+Denote X = (x1, . . . , xM) and y = (y1, . . . , yM), and denote X′ and y′ similarly. Taking the
+inner product with any f ∈H on both sides and using the reproducing property of ψ, this implies that
+M
+X
+i=1
+φ(yi)f(xi) =
+M
+X
+i=1
+φ(y′
+i)f(x′
+i)
+for all f ∈H. In particular, since by construction φ1( · ) = 1,
+M
+X
+i=1
+f(xi) =
+M
+X
+i=1
+f(x′
+i)
+for all f ∈H. Using that H is interpolating, choose a particular ˆx ∈X ∪X′, and let f ∈H be such
+that f(ˆx) = 1 and f( · ) = 0 at all other xi and x′
+i. Then
+X
+i:xi=ˆx
+1 =
+X
+i:x′
+i=ˆx
+1,
+so the number of such ˆx in X and the number of such ˆx in X′ are the same. Since this holds for
+every ˆx, X is a permutation of X′: X = π(X′) for some permutation π ∈SM. Plugging in the
+permutation, we can write
+M
+X
+i=1
+φ(yi)f(xi) =
+M
+X
+i=1
+φ(y′
+i)f(x′
+i)
+(X′=π−1(X))
+=
+M
+X
+i=1
+φ(y′
+i)f(xπ−1(i))
+(i←π−1(i))
+=
+M
+X
+i=1
+φ(y′
+π(i))f(xi).
+Then, by a similar argument, for any particular ˆx,
+X
+i:xi=ˆx
+φ(yi) =
+X
+i:xi=ˆx
+φ(y′
+π(i)).
+16
+
+Published as a conference paper at ICLR 2020
+Let the number of terms in each sum equal S. Since Z′
+M has multiplicity K, S ≤K. By Lemma
+4 from Zaheer et al. (2017), the ‘sum-of-power mapping’ from {yi : xi = ˆx} to the ﬁrst S + 1
+elements of P
+i:xi=ˆx φ(yi), i.e.
+ P
+i:xi=ˆx y0
+i , . . . , P
+i:xi=ˆx yS
+i
+
+, is injective. Therefore,
+(yi)i:xi=ˆx
+is a permutation of
+(y′
+π(i))i:xi=ˆx.
+Note that xi = ˆx for all above yi. Furthermore, note that also x′
+π(i) = xi = ˆx for all above y′
+π(i). We
+may therefore adjust the permutation π such that yi = y′
+π(i) for all i such that xi = ˆx whilst retaining
+that x = π(x′). Performing this adjustment for all ˆx, we ﬁnd that y = π(y′) and x = π(x′).
+Second, we show that EM is continuous. Compute
+
+M
+X
+i=1
+φ(yi)ψ( · , xi) −
+M
+X
+j=1
+φ(y′
+j)ψ( · , x′
+j)
+
+2
+HK+1
+=
+K+1
+X
+i=1
+ φ⊤
+i (y)ψ(X, X)φi(y) −2φ⊤
+i (y)ψ(X, X′)φi(y′) + φ⊤
+i (y′)ψ(X′, X′)φi(y′)
+
+,
+which goes to zero if [X′, y′] →[X, y] by continuity of ψ.
+Having established the injection, we now show that this mapping is a homeomorphism, i.e. that the
+inverse is continuous. This is formalized in the following lemma.
+Lemma 2. Consider Lemma 1. Suppose that Z′
+M is also topologically closed in AM and closed
+under permutations, and that ψ also satisﬁes (i) ψ(x, x′) ≥0, (ii) ψ(x, x) = σ2 > 0, and
+(iii) ψ(x, x′) →0 as ∥x∥→∞. Then HM is closed in HK+1 and E−1
+M is continuous.
+Remark 1. To deﬁne Z′
+2 with multiplicity one, one might be tempted to deﬁne
+Z′
+2 = {((x1, y1), (x2, y2)) ∈Z2 : x1̸ = x2},
+which indeed has multiplicity one. Unfortunately, Z′
+2 is not closed: if [0, 1] ⊆X and [0, 2] ⊆Y,
+then ((0, 1), (1/n, 2))∞
+n=1 ⊆Z′
+2, but ((0, 1), (1/n, 2)) →((0, 1), (0, 2)) /∈Z′
+2, because 0 then has
+two observations 1 and 2. To get around this issue, one can require an arbitrarily small, but non-zero
+spacing ϵ > 0 between input locations:
+Z′
+2,ϵ = {((x1, y1), (x2, y2)) ∈Z2 : ∥x1 −x2∥≥ϵ}.
+This construction can be generalized to higher numbers of observations and multiplicities as follows:
+Z′
+M,K,ϵ = {(xπ(i), yπ(i))M
+i=1 ∈ZM : ∥xi −xj∥≥ϵ for i, j ∈[K], π ∈SM}.
+Remark 2. Before moving on to the proof of Lemma 2, we remark that Lemma 2 would directly
+follow if Z′
+M were bounded: then Z′
+M is compact, so EM is a continuous, invertible map between a
+compact space and a Hausdorff space, which means that E−1
+M must be continuous. The intuition that
+the result must hold for unbounded Z′
+M is as follows. Since φ1( · ) = 1, for every f ∈HM, f1 is a
+summation of M “bumps” (imagine the EQ kernel) of the form ψ( · , xi) placed throughout X. If
+one of these bumps goes off to inﬁnity, then the function cannot uniformly converge pointwise, which
+means that the function cannot converge in H (if ψ is sufﬁciently nice). Therefore, if the function
+does converge in H, (xi)M
+i=1 must be bounded, which brings us to the compact case. What makes
+this work is the density channel φ1( · ) = 1, which forces (xi)M
+i=1 to be well behaved. The above
+argument is formalized in the proof of Lemma 2.
+Proof. Deﬁne
+ZJ = ([−J, J]d × Y)M ∩Z′
+M,
+which is compact in AM as a closed subset of the compact set ([−J, J]d × Y)M. We aim to show
+that HM is closed in HK+1 and E−1 is continuous. To this end, consider a convergent sequence
+f (n) = PM
+i=1φ(y(n)
+i
+)ψ( · , x(n)
+i
+) →f ∈HK+1.
+17
+
+Published as a conference paper at ICLR 2020
+Denote X(n) = (x(n)
+1 , . . . , x(n)
+M ) and y(n) = (y(n)
+1
+, . . . , y(n)
+M ). Claim: (X(n))∞
+n=1 is a bounded
+sequence, so (X(n))∞
+n=1 ⊆[−J, J]dM for J large enough, which means that (X(n), y(n))∞
+n=1 ⊆ZJ
+where ZJ is compact. Note that [ZJ] is compact in AM/ SM by continuity of the canonical map.
+First, we demonstrate that, assuming the claim, HM is closed. Note that by boundedness of
+(X(n), y(n))∞
+n=1, (f (n))∞
+n=1 is in the image of EM|[ZJ] : [ZJ] →HM. By continuity of EM|[ZJ]
+and compactness of [ZJ], the image of EM|[ZJ] is compact and therefore closed, since every compact
+subset of a metric space is closed. Therefore, the image of EM|[ZJ] contains the limit f. Since the
+image of EM|[ZJ] is included in HM, we have that f ∈HM, which shows that HM is closed.
+Next, we prove that, assuming the claim, E−1
+M is continuous. Consider EM|[ZJ] : [ZJ] →EM([ZJ])
+restricted to its image. Then (EM|[ZJ])−1 is continuous, because a continuous bijection from a
+compact space to a metric space is a homeomorphism. Therefore
+E−1
+M (f (n)) = (X(n), y(n)) = (EM|[ZJ])−1(f (n)) →(EM|[ZJ])−1(f) = (X, y).
+By continuity and invertibility of EM, then f (n) →EM(X, y), so EM(X, y) = f by uniqueness
+of limits. We conclude that E−1
+M (f (n)) →E−1
+M (f), which means that E−1
+M is continuous.
+It remains to show the claim. Let f1 denote the ﬁrst element of f, i.e. the density channel. Using the
+reproducing property of ψ,
+|f (n)
+1
+(x) −f1(x)| = |⟨ψ(x, · ), f (n)
+1
+−f1⟩| ≤∥ψ(x, · )∥H∥f (n)
+1
+−f1∥H = σ∥f (n)
+1
+−f1∥H,
+so f (n)
+1
+→f1 in H means that it does so uniformly pointwise (over x). Hence, we can let N ∈N be
+such that n ≥N implies that |f (n)
+1
+(x) −f1(x)| < 1
+3σ2 for all x. Let R be such that |ψ(x, x(N)
+i
+)| <
+1
+3σ2/M for ∥x∥≥R and all i ∈[M]. Then, for ∥x∥≥R,
+|f (N)
+1
+(x)| ≤PM
+i=1|ψ(x, x(N)
+i
+)| < 1
+3σ2 =⇒|f1(x)| ≤|f (N)
+1
+(x)| + |f (N)
+1
+(x) −f1(x)| < 2
+3σ2.
+At the same time, by pointwise non-negativity of ψ, we have that
+f (n)
+1
+(x(n)
+i
+) = PM
+j=1ψ(x(n)
+j
+, x(n)
+i
+) ≥ψ(x(n)
+i
+, x(n)
+i
+) = σ2.
+Towards contradiction, suppose that (X(n))∞
+n=1 is unbounded. Then (x(n)
+i
+)∞
+n=1 is unbounded for
+some i ∈[M]. Therefore, ∥x(n)
+i
+∥≥R for some n ≥N, so
+2
+3σ2 > |f1(x(n)
+i
+)| ≥|f (n)
+1
+(x(n)
+i
+)| −|f (n)
+1
+(x(n)
+i
+) −f1(x(n)
+i
+)| ≥σ2 −1
+3σ2 = 2
+3σ2,
+which is a contradiction.
+The following lemma states that we may construct an encoding for sets containing no more than M
+elements into a function space, where the encoding is injective and every restriction to a ﬁxed set size
+is a homeomorphism.
+Lemma 3. For every m ∈[M], consider a collection Z′
+m ⊆Zm that (i) has multiplicity K, (ii) is
+topologically closed, and (iii) is closed under permutations. Set
+φ : Y →RK+1,
+φ(y) = (y0, y1, · · · , yK)
+and let ψ be an interpolating, continuous positive-deﬁnite kernel that satisﬁes (i) ψ(x, x′) ≥0,
+(ii) ψ(x, x) = σ2 > 0, and (iii) ψ(x, x′) →0 as ∥x∥→∞. Deﬁne
+Hm =
+( m
+X
+i=1
+φ(yi)ψ( · , xi) : (xi, yi)m
+i=1 ⊆Z′
+m
+)
+⊆HK+1,
+(6)
+where HK+1 = H × · · · × H is the (K + 1)-dimensional-vector–valued–function Hilbert space
+constructed from the RKHS H for which ψ is a reproducing kernel and endowed with the inner
+product ⟨f, g⟩HK+1 = PK+1
+i=1 ⟨fi, gi⟩H. Denote
+[Z′
+≤M] =
+M
+[
+m=1
+[Z′
+m]
+and
+H≤M =
+M
+[
+m=1
+Hm.
+18
+
+Published as a conference paper at ICLR 2020
+Then (Hm)M
+m=1 are pairwise disjoint. It follows that the embedding E
+E : [Z′
+≤M] →H≤M,
+E([Z]) = Em([Z])
+if
+[Z] ∈[Z′
+m]
+is injective, hence invertible. Denote this inverse by E−1, where E−1(f) = E−1
+m (f) if f ∈Hm.
+Proof. Recall that Em is injective for every m ∈[M]. Hence, to demonstrate that E is injective it
+remains to show that (Hm)M
+m=1 are pairwise disjoint. To this end, suppose that
+m
+X
+i=1
+φ(yi)ψ( · , xi) =
+m′
+X
+i=1
+φ(y′
+i)ψ( · , x′
+i)
+for m̸ = m′. Then, by arguments like in the proof of Lemma 1,
+m
+X
+i=1
+φ(yi) =
+m′
+X
+i=1
+φ(y′
+i).
+Since φ1( · ) = 1, this gives m = m′, which is a contradiction. Finally, by repeated application of
+Lemma 2, E−1
+m is continuous for every m ∈[M].
+Lemma 4. Let Φ: [Z′
+≤M] →Cb(X, Y) be a map from [Z′
+≤M] to Cb(X, Y), the space of continuous
+bounded functions from X to Y, such that every restriction Φ|[Z′m] is continuous, and let E be from
+Lemma 3. Then
+Φ ◦E−1 : H≤M →Cb(X, Y)
+is continuous.
+Proof. Recall that, due to Lemma 1, for every m ∈[M], E−1
+m is continuous and has image [Z′
+m]. By
+the continuity of Φ|[Z′m], then Φ|[Z′m] ◦E−1
+m is continuous for every m ∈[M]. Since Φ ◦E−1|Hm =
+Φ|[Z′m] ◦E−1
+m for all m ∈[M], we have that Φ ◦E−1|Hm is continuous for all m ∈[M]. Therefore,
+as Hm is closed in H≤M for every m ∈[M], the pasting lemma (Munkres, 1974) yields that Φ◦E−1
+is continuous.
+From here on, we let ψ be a stationary kernel, which means that it only depends on the difference of
+its arguments and can be seen as a function X →R.
+A.3
+PROOF OF THEOREM 1
+With the above results in place, we are ﬁnally ready to prove our central result, Theorem 1.
+Theorem 1. For every m ∈[M], consider a collection Z′
+m ⊆Zm that (i) has multiplicity K, (ii) is
+topologically closed, (iii) is closed under permutations, and (iv) is closed under translations. Set
+φ : Y →RK+1,
+φ(y) = (y0, y1, · · · , yK)
+and let ψ be an interpolating, continuous positive-deﬁnite kernel that satisﬁes (i) ψ(x, x′) ≥0,
+(ii) ψ(x, x) = σ2 > 0, and (iii) ψ(x, x′) →0 as ∥x∥→∞. Deﬁne
+Hm =
+( m
+X
+i=1
+φ(yi)ψ( · , xi) : (xi, yi)m
+i=1 ⊆Z′
+m
+)
+⊆HK+1,
+(7)
+where HK+1 = H × · · · × H is the (K + 1)-dimensional-vector–valued–function Hilbert space
+constructed from the RKHS H for which ψ is a reproducing kernel and endowed with the inner
+product ⟨f, g⟩HK+1 = PK+1
+i=1 ⟨fi, gi⟩H. Denote
+Z′
+≤M =
+M
+[
+m=1
+Z′
+m
+and
+H≤M =
+M
+[
+m=1
+Hm.
+19
+
+Published as a conference paper at ICLR 2020
+Then a function Φ: Z′
+≤M →Cb(X, Y) satisﬁes (i) continuity of the restriction Φ|Zm for every
+m ∈[M], (ii) permutation invariance (Property 1), and (iii) translation equivariance (Property 2) if
+and only if it has a representation of the form
+Φ(Z) = ρ (E(Z)) ,
+E((x1, y1), . . . , (xm, ym)) = Pm
+i=1 φ(yi)ψ( · −xi)
+where ρ: H≤M →Cb(X, Y) is continuous and translation equivariant.
+Proof of sufﬁciency. To begin with, note that permutation invariance (Property 1) and translation
+equivariance (Property 2) for Φ are well deﬁned, because Z′
+≤M is closed under permutations and
+translations by assumption. First, Φ is permutation invariant, because addition is commutative and
+associative. Second, that Φ is translation equivariant (Property 2) follows from a direct veriﬁcation
+and that ρ is also translation equivariant:
+Φ(TτZ) = ρ
+ M
+X
+i=1
+φ(yi)ψ( · −(xi + τ))
+!
+= ρ
+ M
+X
+i=1
+φ(yi)ψ(( · −τ) −xi)
+!
+= ρ
+ M
+X
+i=1
+φ(yi)ψ( · −xi)
+!
+(· −τ)
+= Φ(Z)(· −τ)
+= T ′
+τΦ(Z).
+Proof of necessity. Our proof follows the strategy used by Zaheer et al. (2017); Wagstaff et al. (2019).
+To begin with, since Φ is permutation invariant (Property 1), we may deﬁne
+Φ:
+M
+[
+m=1
+[Z′
+m] →Cb(X, Y),
+Φ(Z) = Φ([Z]),
+for which we verify that every restriction Φ|[Z′m] is continuous. By invertibility of E from Lemma 3,
+we have [Z] = E−1(E([Z])). Therefore,
+Φ(Z) = Φ([Z]) = Φ(E−1(E([Z]))) = (Φ ◦E−1)
+ M
+X
+i=1
+φ(yi)ψ( · −xi)
+!
+.
+Deﬁne ρ: H≤M →Cb(X, Y) by ρ = Φ ◦E−1. First, ρ is continuous by Lemma 4. Second, E−1
+is translation equivariant, because ψ is stationary. Also, by assumption Φ is translation equivariant
+(Property 2). Thus, their composition ρ is also translation equivariant.
+Remark 3. The function ρ: H≤M →Cb(X, Y) may be continuously extended to the entirety of
+HK+1 using a generalisation of the Tietze Extension Theorem by Dugundji et al. (1951). There are
+variants of Dugundji’s Theorem that also preserve translation equivariance.
+20
+
+Published as a conference paper at ICLR 2020
+B
+BASELINE NEURAL PROCESS MODELS
+In both our 1d and image experiments, our main comparison is to conditional neural process models.
+In particular, we compare to a vanilla CNP (1d only; Garnelo et al. (2018a)) and an ATTNCNP (Kim
+et al., 2019). Our architectures largely follow the details given in the relevant publications.
+CNP baseline. Our baseline CNP follows the implementation provided by the authors.6 The encoder
+is a 3-layer MLP with 128 hidden units in each layer, and RELU non-linearities. The encoder embeds
+every context point into a representation, and the representations are then averaged across each
+context set. Target inputs are then concatenated with the latent representations, and passed to the
+decoder. The decoder follows the same architecture, outputting mean and standard deviation channels
+for each input.
+Attentive CNP baseline. The ATTNCNP we use corresponds to the deterministic path of the model
+described by Kim et al. (2019) for image experiments. Namely, an encoder ﬁrst embeds each
+context point c to a latent representation (x(c), y(c)) 7→r(c)
+xy ∈R128. For the image experiments,
+this is achieved using a 2-hidden layer MLP of hidden dimensions 128. For the 1d experiments,
+we use the same encoder as the CNP above. Every context point then goes through two stacked
+self-attention layers. Each self-attention layer is implemented with an 8-headed attention, a skip
+connection, and two layer normalizations (as described in Parmar et al. (2018), modulo the dropout
+layer). To predict values at each target point t, we embed x(t) 7→r(t)
+x
+and x(c) 7→r(c)
+x
+using the
+same single hidden layer MLP of dimensions 128. A target representation r(t)
+xy is then estimated by
+applying cross-attention (using an 8-headed attention described above) with keys K := {r(c)
+x }C
+c=1,
+values V := {r(c)
+xy }C
+c=1, and query q := r(t)
+x . Given the estimated target representation ˆr(t)
+xy, the
+conditional predictive posterior is given by a Gaussian pdf with diagonal covariance parametrised by
+(µ(t), σ(t)
+pre) = decoder(r(t)
+xy) where µ(t), σ(t)
+pre ∈R3 and decoder is a 4 hidden layer MLP with 64
+hidden units per layer for the images, and the same decoder as the CNP for the 1d experiments.
+Following Le et al. (2018), we enforce we set a minimum standard deviation σ(t)
+min = [0.1; 0.1; 0.1] to
+avoid inﬁnite log-likelihoods by using the following post-processed standard deviation:
+σ(t)
+post = 0.1σ(t)
+min + (1 −0.1) log(1 + exp(σ(t)
+pre))
+(8)
+6https://github.com/deepmind/neural-processes
+21
+
+Published as a conference paper at ICLR 2020
+C
+1-DIMENSIONAL EXPERIMENTS
+In this section, we give details regarding our experiments for the 1d data. We begin by detailing model
+architectures, and then provide details for the data generating processes and training procedures. The
+density at which we evaluate the grid differs from experiment to experiment, and so the values are
+given in the relevant subsections. In all experiments, the weights are optimized using Adam (Kingma
+& Ba, 2015) and weight decay of 10−5 is applied to all model parameters. The learning rates are
+speciﬁed in the following subsections.
+C.1
+CNN ARCHITECTURES
+Throughout the experiments (Sections 5.1 to 5.3), we consider two models: CONVCNP (which
+utilizes a smaller architecture), and CONVCNPXL (with a larger architecture). For all architectures,
+the input kernel ψ was an EQ (exponentiated quadratic) kernel with a learnable length scale parameter,
+as detailed in Section 4, as was the kernel for the ﬁnal output layer ψρ. When dividing by the density
+channel, we add ε = 10−8 to avoid numerical issues. The length scales for the EQ kernels are
+initialized to twice the spacing 1/γ1/d between the discretization points (ti)T
+i=1, where γ is the
+density of these points and d is the dimensionality of the input space X.
+Moreover, we emphasize that the size of the receptive ﬁeld is a product of the width of the CNN
+ﬁlters and the spacing between the discretization points. Consequently, for a ﬁxed width kernel of
+the CNN, as the number of discretization points increases, the receptive ﬁeld size decreases. One
+potential improvement that was not employed in our experiments, is the use of depthwise-separable
+convolutions (Chollet, 2017). These dramatically reduce the number of parameters in a convolutional
+layer, and can be used to increase the CNN ﬁlter widths, thus allowing one to increase the number of
+discretization points without reducing the receptive ﬁeld.
+The architectures for CONVCNP and CONVCNPXL are described below.
+CONVCNP. For the 1d experiments, we use a simple, 4-layer convolutional architecture, with RELU
+nonlinearities. The kernel size of the convolutional layers was chosen to be 5, and all employed
+a stride of length 1 and zero padding of 2 units. The number of channels per layer was set to
+[16, 32, 16, 2], where the ﬁnal channels where then processed by the ﬁnal, EQ-based layer of ρ as
+mean and standard deviation channels. We employ a SOFTPLUS nonlinearity on the standard deviation
+channel to enforce positivity. This model has 6,537 parameters.
+CONVCNPXL. Our large architecture takes inspiration from UNet (Ronneberger et al., 2015). We
+employ a 12-layer architecture with skip connections. The number of channels is doubled every layer
+for the ﬁrst 6 layers, and halved every layer for the ﬁnal 6 layers. We use concatenation for the skip
+connections. The following describes which layers are concatenated, where Li ←[Lj, Lk] means
+that the input to layer i is the concatenation of the activations of layers j and k:
+• L8 ←[L5, L7],
+• L9 ←[L4, L8],
+• L10 ←[L3, L9],
+• L11 ←[L2, L10],
+• L12 ←[L1, L11].
+Like for the smaller architecture, we use RELU nonlinearities, kernels of size 5, stride 1, and zero
+padding for two units on all layers.
+C.2
+SYNTHETIC 1D EXPERIMENTAL DETAILS AND ADDITIONAL RESULTS
+The kernels used for the Gaussian Processes which generate the data in this experiment are deﬁned as
+follows:
+• EQ:
+k(x, x′) = e−1
+2 ( x−x′
+0.25 )2,
+22
+
+Published as a conference paper at ICLR 2020
+CONVCNP
+ATTNCNP
+CNP
+Figure 6: Example functions learned by the (top) CONVCNP, (center) ATTNCNP, and (bottom)
+CNP when trained on an EQ kernel (with length scale parameter 1). “True function” refers to the
+sample from the GP prior from which the context and target sets were sub-sampled. “Ground Truth
+GP” refers to the GP posterior distribution when using the exact kernel and performing posterior
+inference based on the context set. The left column shows the predictive posterior of the models
+when data is presented in same range as training. The centre column shows the model predicting
+outside the training data range when no data is observed there. The right-most column shows the
+model predictive posteriors when presented with data outside the training data range.
+• weakly periodic:
+k(x, x′) = e−1
+2 (f1(x)−f1(x′))2−1
+2 (f2(x)−f2(x′))2 · e−1
+8 (x−x′)2,
+with f1(x) = cos(8πx) and f2(x) = sin(8πx), and
+• Matern– 5
+2:
+k(x, x′) = (1 + 4
+√
+5d + 5
+3d2)e−
+√
+5d
+with d = 4|x −x′|.
+During the training procedure, the number of context points and target points for a training batch
+are each selected randomly from a uniform distribution over the integers between 3 and 50. This
+number of context and target points are randomly sampled from a function sampled from the process
+(a Gaussian process with one of the above kernels or the sawtooth process), where input locations
+are uniformly sampled from the interval [−2, 2]. All models in this experiment were trained for 200
+epochs using 256 batches per epoch of batch size 16. We discretize E(Z) by evaluating 64 points per
+unit in this setting. We use a learning rate of 3e−4 for all models, except for CONVCNPXL on the
+sawtooth data, where we use a learning rate of 1e−3 (this learning rate was too large for the other
+models).
+The random sawtooth samples are generated from the following function:
+ysawtooth(t) = A
+2 −A
+π
+∞
+X
+k=1
+(−1)k sin(2πkft)
+k
+,
+(9)
+where A is the amplitude, f is the frequency, and t is “time”. Throughout training, we ﬁx the
+amplitude to be one. We truncate the series at an integer K. At every iteration, we sample a frequency
+uniformly in [3, 5], K in [10, 20], and a random shift in [−5, 5]. As the task is much harder, we
+sample context and target set sizes over [3, 100]. Here the CNP and ATTNCNP employ learning rates
+of 10−3. All other hyperparameters remain unchanged.
+23
+
+Published as a conference paper at ICLR 2020
+CONVCNP
+ATTNCNP
+CNP
+Figure 7: Example functions learned by the (top) CONVCNP, (center) ATTNCNP, and (bottom) CNP
+when trained on a Matérn-5/2 kernel (with length scale parameter 0.25). “True function” refers to the
+sample from the GP prior from which the context and target sets were sub-sampled. “Ground Truth
+GP” refers to the GP posterior distribution when using the exact kernel and performing posterior
+inference based on the context set. The left column shows the predictive posterior of the models
+when data is presented in same range as training. The centre column shows the model predicting
+outside the training data range when no data is observed there. The right-most column shows the
+model predictive posteriors when presented with data outside the training data range.
+Variable
+m
+s
+time
+5.94 ×104
+8.74 ×102
+lsstu
+1.26
+1.63 ×102
+lsstg
+-0.13
+3.84 ×102
+lsstr
+3.73
+3.41 ×102
+lssti
+5.53
+2.85 ×102
+lsstz
+6.43
+2.69 ×102
+lssty
+6.27
+2.93 ×102
+Table 4: Values used to normalise the data in the PLAsTiCC experiments.
+We include additional ﬁgures showing the performance of CONVCNPs, ATTNCNPs and CNPs on
+GP and sawtooth function regression tasks in Figures 6 to 8.
+C.3
+PLASTICC EXPERIMENTAL DETAILS
+The CONVCNP was trained for 200 epochs using 1024 batches of batch size 4 per epoch. For
+training and testing, the number of context points for a batch are each selected randomly from a
+uniform distribution over the integers between 1 and the number of points available in the series
+(usually between 10–30 per bandwidth). The remaining points in the series are used as the target
+set. For testing, a batch size of 1 was used and statistics were computed over 1000 evaluations. We
+compare CONVCNP to the GP models used in (Boone, 2019) using the implementation in https://
+github.com/kboone/avocado. The data used for training and testing is normalized according
+to t(v) = (v −m)/s with the values in Table 4. These values are estimated from a batch sampled
+from the training data. To remove outliers in the GP results, log-likelihood values less than −10 are
+removed from the evaluation. These same datapoints were removed from the CONVCNP results as
+well.
+24
+
+Published as a conference paper at ICLR 2020
+CONVCNP
+ATTNCNP
+CNP
+Figure 8: Example functions learned by the (top) CONVCNP, (center) ATTNCNP, and (bottom)
+CNP when trained on a random sawtooth sample. The left column shows the predictive posterior of
+the models when data is presented in the same range as training. The centre column shows the model
+predicting outside the training data range when no data is observed there. The right-most column
+shows the model predictive posteriors when presented with data outside the training data range.
+For this dataset, we only used the CONVCNPXL, as we found the CONVCNP to underﬁt. The
+learning rate was set to 10−3, and we discretize E(Z) by evaluating 256 points per unit.
+C.4
+PREDATOR–PREY EXPERIMENTAL DETAILS
+We describe the way simulated training data for the experiment in Section 5.3 was generated from the
+Lotka–Volterra model. The description is borrowed from (Wilkinson, 2011).
+Let X be the number of predators and Y the number of prey at any point in our simulation. According
+to the model, one of the following four events can occur:
+A: A single predator is born according to rate θ1XY , increasing X by one.
+B: A single predator dies according to rate θ2X, decreasing X by one.
+C: A single prey is born according to rate θ3Y , increasing Y by one.
+D: A single prey dies (is eaten) according to rate θ4XY , decreasing Y by one.
+The parameter values θ1, θ2, θ3, and θ4, as well as the initial values of X and Y govern the behavior
+of the simulation. We choose θ1 = 0.01, θ2 = 0.5, θ3 = 1, and θ4 = 0.01, which are also used
+in (Papamakarios & Murray, 2016) and generate reasonable time series. Note that these are likely
+not the parameter values that would be estimated from the Hudson’s Bay lynx–hare data set (Leigh,
+1968), but they are used because they yield reasonably oscillating time series. Obtaining oscillating
+time series from the simulation is sensitive to the choice of parameters and many parametrizations
+result in populations that simply die out.
+Time series are simulated using Gillespie’s algorithm (Gillespie, 1977):
+1. Draw the time to the next event from an exponential distribution with rate equal to the total
+rate θ1XY + θ2X + θ3Y + θ4XY .
+2. Select one of the above events A, B, C, or D at random with probability proportional to its
+rate.
+3. Adjust the appropriate population according to the selected event, and go to 1.
+25
+
+Published as a conference paper at ICLR 2020
+The simulations using these parameter settings can yield a maximum population of approximately
+300 while the context set in the lynx–hare data set has an approximate maximum population of about
+80 so we scaled our simulation population by a factor of 2/7. We also remove time series which are
+longer than 100 units of time, which have more than 10000 events, or where one of the populations is
+entirely zero. The number of context points n for a training batch are each selected randomly from a
+uniform distribution between 3 and 80, and the number of target points is 150 −n. These target and
+context points are then sampled from the simulated series. The Hudson’s Bay lynx–hare data set has
+time values that range from 1845 to 1935. However, the values supplied to the model range from 0 to
+90 to remain consistent with the simulated data.
+For evaluation, an interval of 18 points is removed from the the Hudson’s Bay lynx–hare data set to
+act as a target set, while the remaining 72 points act as the context set. This construction highlights
+the model’s interpolation as well as its uncertainty in the presence of missing data.
+Models in this setting were trained for 200 epochs with 256 batches per epoch, each batch containing
+50 tasks. For this data set, we only used the CONVCNP, as we found the CONVCNPXL to overﬁt.
+The learning rate was set to 10−3, and we discretize E(Z) by evaluating 100 points per unit.
+We attempted to train an ATTNCNP for comparison, but due to the nature of the synthetic data
+generation, many of the training series end before 90 time units, the length of the Hudson’s Bay
+lynx-hare series. Effectively, this means that the ATTNCNP was asked to predict outside of its
+training interval, a task that it struggles with, as shown in Section 5.1. The plots in Figure 9 show that
+the ATTNCNP is able to learn the ﬁrst part of the time series but is unable to model data outside of
+the ﬁrst 20 or so time units. Perhaps with more capacity and training epochs the ATTNCNP training
+would be more successful. Note from Figure 3 that our model does better on the synthetic data than
+on the real data. This could be due to the parameters of the Lotka–Volterra model used being a poor
+estimate for the real data.
+Figure 9: ATTNCNP performance on two samples from the Lotka–Volterra process (sim).
+26
+
+Published as a conference paper at ICLR 2020
+D
+IMAGE EXPERIMENTAL DETAILS AND ADDITIONAL RESULTS
+D.1
+EXPERIMENTAL DETAILS
+Training details. In all experiments, we sample the number of context points uniformly from
+U( ntotal
+100 , ntotal
+2 ), and the number of target points is set to ntotal. The context and target points are
+sampled randomly from each of the 16 images per batch. The weights are optimised using Adam
+(Kingma & Ba, 2015) with learning rate 5 × 10−4. We use a maximum of 100 epochs, with early
+stopping of 15 epochs patience. All pixel values are divided by 255 to rescale them to the [0, 1] range.
+In the following discussion, we assume that images are RGB, but very similar models can be used for
+greyscale images or other gridded inputs (e.g. 1d time series sampled at uniform intervals).
+Proposed convolutional CNP. Unlike ATTNCNP and off-the-grid CONVCNP, on-the-grid CON-
+VCNP takes advantage of the gridded structure. Namely, the target and context points can be speciﬁed
+in terms of the image, a context mask Mc, and a target mask Mt instead of sets of input–value pairs.
+Although this is an equivalent formulation, it makes it more natural and simpler to implement in
+standard deep learning libraries. In the following, we dissect the architecture and algorithmic steps
+succinctly summarized in Section 4. Note that all the convolutional layers are actually depthwise
+separable (Chollet, 2017); this enables a large kernel size (i.e. receptive ﬁelds) while being parameter
+and computationally efﬁcient.
+1. Let I denote the image. Select all context points signal := Mc ⊙I and append a density
+channel density := Mc, which intuitively says that “there is a point at this position”:
+[signal, density]⊤. Each pixel value will now have 4 channels: 3 RGB channels and 1
+density channel Mc. Note that the mask will set the pixel value to 0 at a location where the
+density channel is 0, indicating there are no points at this position (a missing value).
+2. Apply a convolution to the density channel density′ = CONVθ(density) and a normalized
+convolution to the signal signal′ := CONVθ(signal)/density′. The normalized convolution
+makes sure that the output mostly depends on the scale of the signal rather than the number
+of observed points. The output channel size is 128 dimensional. The kernel size of CONVθ
+depends on the image shape and model used (Table 5). We also enforce element-wise
+positivity of the trainable ﬁlter by taking the absolute value of the kernel weights θ before
+applying the convolution. As discussed in Appendix D.4, the normalization and positivity
+constraints do not empirically lead to improvements for on-the-grid data. Note that in this
+setting, E(Z) is [signal′, density′]⊤.
+3. Now we describe the on-the-grid version of ρ(·), which we decompose into two stages. In
+the ﬁrst stage, we apply a CNN to [signal′, density′]⊤. This CNN is composed of residual
+blocks (He et al., 2016), each consisting of 1 or 2 (Table 5) convolutional layers with ReLU
+activations and no batch normalization. The number of output channels in each layer is 128.
+The kernel size is the same across the whole network, but depends on the image shape and
+model used (Table 5).
+4. In the second stage of ρ(·), we apply a shared pointwise MLP : R128 →R2C (we use the
+same architecture as used for the ATTNCNP decoder) to the output of the ﬁrst stage at each
+pixel location in the target set. Here C denotes the number of channels in the image. The
+ﬁrst C outputs of the MLP are treated as the means of a Gaussian predictive distribution,
+and the last C outputs are treated as the standard deviations. These then pass through the
+positivity-enforcing function shown in Equation (8).
+Table 5: CNN architecture for the image experiments.
+Model
+Input Shape
+CONVθ
+Kernel Size
+CNN
+Kernel Size
+CNN Num.
+Res. Blocks
+Conv. Layers
+per Block
+CONVCNP
+< 50 pixels
+9
+5
+4
+1
+> 50 pixels
+7
+3
+4
+1
+CONVCNP XL
+any
+9
+11
+6
+2
+27
+
+Published as a conference paper at ICLR 2020
+D.2
+ZERO SHOT MULTI MNIST (ZSMM) DATA
+(a) Train
+(b) Test
+Figure 10: Samples from our generated Zero Shot Multi MNIST (ZSMM) data set.
+In the real world, it is very common to have multiple objects in our ﬁeld of view which do not interact
+with each other. Yet, many image data sets in machine learning contain only a single, well-centered
+object. To evaluate the translation equivariance and generalization capabilities of our model, we
+introduce the zero-shot multi-MNIST setting.
+The training set contains all 60000 28 × 28 MNIST training digits centered on a black 56 × 56
+background. (Figure 10a). For the test set, we randomly sample with replacement 10000 pairs of
+digits from the MNIST test set, place them on a black 56 × 56 background, and translate the digits in
+such a way that the digits can be arbitrarily close but cannot overlap (Figure 10b). Importantly, the
+scale of the digits and the image size are the same during training and testing.
+D.3
+ATTNCNP AND CONVCNP QUALITATIVE COMPARISON
+Figure 11 shows the test log-likelihood distributions of an ATTNCNP and CONVCNP model as well
+as some qualitative comparisons between the two.
+Although most mean predictions of both models look relatively similar for SVHN and CelebA32,
+the real advantage of CONVCNP becomes apparent when testing the generalization capacity of
+both models. Figure 12 shows CONVCNP and ATTNCNP trained on CelebA32 and tested on a
+downscaled version of Ellen’s famous Oscar selﬁe. We see that CONVCNP generalizes better in this
+setting. 7
+D.4
+ABLATION STUDY: FIRST LAYER
+Table 6: Log-likelihood from image ablation experiments (6 runs).
+Model
+MNIST
+SVHN
+CelebA32
+CelebA64
+ZSMM
+CONVCNP
+1.19 ±0.01
+3.89 ±0.01
+3.19 ±0.02
+3.64 ±0.01
+1.21 ±0.00
+. . . no density
+1.15 ±0.01
+3.88 ±0.01
+3.15 ±0.02
+3.62 ±0.01
+1.13 ±0.08
+. . . no norm.
+1.19 ±0.01
+3.86 ±0.03
+3.16 ±0.03
+3.62 ±0.01
+1.20 ±0.01
+. . . no abs.
+1.15 ±0.02
+3.83 ±0.02
+3.08 ±0.03
+3.56 ±0.01
+1.15 ±0.01
+. . . no abs. norm.
+1.19 ±0.01
+3.86 ±0.03
+3.16 ±0.03
+3.62 ±0.01
+1.20 ±0.01
+. . . EQ
+1.18 ±0.00
+3.89 ±0.01
+3.18 ±0.02
+3.63 ±0.01
+1.21 ±0.00
+7The reconstruction looks worse than Figure 4b despite the larger context set, because the test image has been
+downscaled and the models are trained on a low resolution CelebA32. These constraints come from ATTNCNP’s
+large memory footprint.
+28
+
+Published as a conference paper at ICLR 2020
+(a) MNIST
+(b) SVHN
+(c) CelebA 32 × 32
+(d) CelebA 64 × 64
+Figure 11: Log-likelihood and qualitative comparisons between ATTNCNP and CONVCNP on four
+standard benchmarks. The top row shows the log-likelihood distribution for both models. The images
+below correspond to the context points (top), CONVCNP target predictions (middle), and ATTNCNP
+target predictions (bottom). Each column corresponds to a given percentile of the CONVCNP
+distribution. ATTNCNP could not be trained on CelebA64 due to its memory inefﬁciency.
+Figure 12: Qualitative evaluation of a CONVCNP (center) and ATTNCNP (right) trained on CelebA32
+and tested on a downscaled version (146 × 259) of Ellen’s Oscar selﬁe (DeGeneres, 2014) with 20%
+of the pixels as context (left).
+To understand the importance of the different components of the ﬁrst layer, we performed an ablation
+study by removing the density normalization (CONVCNP no norm.), removing the density channel
+(CONVCNP no dens.), removing the positivity constraints (CONVCNP no abs.), removing the
+positivity constraints and the normalization (CONVCNP no abs. norm.), and replacing the fully
+trainable ﬁrst layer by an EQ kernel similar to the continuous case (CONVCNP EQ).
+Table 6 shows the following: (i) Appending a density channel helps. (ii) Enforcing the positivity
+constraint is only important when using a normalized convolution. (iii) Using a less expressive EQ
+ﬁlter does not signiﬁcantly decrease performance, suggesting that the model might be learning similar
+ﬁlters (Appendix D.5).
+29
+
+Published as a conference paper at ICLR 2020
+D.5
+QUALITATIVE ANALYSIS OF THE FIRST FILTER
+Figure 13: First ﬁlter learned by CONVCNPXL, CONVCNP, and CONVCNP EQ for all our datasets.
+In the case of RGB images, the plotted ﬁlters are for the ﬁrst channel (red). Note that not all ﬁlters
+are of the same size.
+As discussed in Appendix D.4, using a less expressive EQ ﬁlter does not signiﬁcantly decrease per-
+formance. Figure 13 shows that this happens because the fully trainable kernel learns to approximate
+the EQ ﬁlter.
+D.6
+EFFECT OF RECEPTIVE FIELD ON TRANSLATION EQUIVARIANCE
+As seen in Table 3, a CONVCNPXL with large receptive ﬁeld performs signiﬁcantly worse on the
+ZSMM task than CONVCNP, which has a smaller receptive ﬁeld. Figure 14 shows a more detailed
+comparison of the models, and suggests that CONVCNPXL learns to model non-stationary behaviour,
+namely that digits in the training set are centred. We hypothesize that this issue stems from the the
+treatment of the image boundaries. Indeed, if the receptive ﬁeld is large enough and the padding
+values are signiﬁcantly different than the inputs to each convolutional layer, the model can learn
+position-dependent behaviour by “looking” at the distance from the padded boundaries.
+For ZSMM, Figure 15 suggests that “circular” padding, where the padding is implied by tiling the
+image, helps prevent the model from learning non-stationarities, even as the size of the receptive
+ﬁeld becomes larger. We hypothesize that this is due to the fact that “circularly” padded values are
+harder to distinguish from actual values than zeros. We have not tested the effect of padding on other
+datasets, and note that “circular” padding could result in other issues.
+30
+
+Published as a conference paper at ICLR 2020
+Figure 14: Log-likelihood and qualitative results on ZSMM. The top row shows the log-likelihood
+distribution for both models. The images below correspond to the context points (top), CONVCNP
+target predictions (middle), and CONVCNPXL target predictions (bottom). Each column corresponds
+to a given percentile of the CONVCNP distribution.
+Figure 15: Effect of the receptive ﬁeld size on ZSMM’s log-likelihood. The line plot shows the mean
+and standard deviation over 6 runs. The blue curve corresponds to a model with zero padding, while
+the orange one corresponds to “circular” padding.
+31
+
+Published as a conference paper at ICLR 2020
+E
+AUTHOR CONTRIBUTIONS
+Richard, Jonathan, and Wessel formulated the project. Richard and Jonathan helped coordinate the
+team and were closely involved with all aspects of the project. Andrew realised that a density channel
+was necessary in the model. Yann proposed using normalized convolutions and showed that they led
+to improvements. All authors contributed to the writing and editing of the paper. Wessel and Jonathan
+developed the theory. Andrew veriﬁed the proof and suggested improvements. James also suggested
+improvements. Wessel wrote the majority of Appendix A with assistance from Andrew and Jonathan.
+Andrew and Jonathan performed the initial experiments on simple time-series. Wessel, Jonathan,
+and James reﬁned these experiments and produced the ﬁnal versions for the paper. James wrote this
+section of the paper. James led the experiments on complex time-series and wrote this section of the
+paper. Andrew worked on the ﬁrst on-the-grid experiments. Yann redesigned and reimplemented the
+on-the-grid computational framework and performed all the image experiments shown in the paper.
+Yann wrote this section of the paper.
+32

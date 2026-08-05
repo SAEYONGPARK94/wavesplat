@@ -1,0 +1,67 @@
+Graphical Abstract
+Sequential water wave reconstruction in VOF-based numerical wave tanks with the EnKF
+approach
+Liwen Yan, Linyuan Che, Jing Li
+arXiv:2510.14356v2 [physics.flu-dyn] 24 Feb 2026
+
+Highlights
+Sequential water wave reconstruction in VOF-based numerical wave tanks with the EnKF
+approach
+Liwen Yan, Linyuan Che, Jing Li
+• Developed a robust sequential data assimilation framework integrating the Ensemble Kalman Filter
+with a VOF-based Navier–Stokes solver for deterministic wave reconstruction.
+• Introduced a physics-constrained inflation strategy utilizing potential flow theory alongside POD-based
+order reduction to maintain physical consistency and computational efficiency.
+• Demonstrated the capability to capture complex, phase-resolved, non-linear phenomena—including
+irregular and plunging waves—that traditional potential flow-based methods fail to resolve.
+
+Sequential water wave reconstruction in VOF-based numerical wave tanks
+with the EnKF approach
+Liwen Yana, Linyuan Cheb, Jing Lia
+aMarine Numerical Experimental Center, State Key Laboratory of Ocean Engineering, School of Ocean and Civil
+Engineering, Shanghai Jiao Tong University, , Shanghai, 200240, PR China
+bState Key Laboratory of Maritime Technology and Safety, Shanghai Ship and Shipping Research Institute Co.,
+Ltd., Shanghai, 200131, PR China
+Abstract
+Existing phase-resolved wave reconstruction methods are mostly based on potential flow theory, which limits
+their ability to capture strongly nonlinear phenomena such as wave breaking dynamics. In such cases, the
+importance of multiphase incompressible Navier–Stokes solvers becomes particularly evident. These solvers
+form the foundation of the widely used numerical wave tanks in marine, ocean, and coastal engineering.
+However, the high dimensionality of the state variables in such systems often hinders the efficiency of data
+assimilation. The POD method is applied to reduce the order of the state vector in ensemble-based data
+assimilation, where instantaneous snapshots are naturally available. Given the unsteady nature and random
+phase combinations of irregular waves, the effectiveness of single data assimilation is limited. Sequential data
+assimilation is thus adopted to continuously update the wave profile as it evolves, ensuring that the wave field
+matches the real-world conditions. Therefore, inflation is needed to mitigate the ensemble collapse. Unlike
+single-phase flows without any interface, where the background error covariance can be inflated directly, to
+preserve physical constraints, when inflating for the phase field, the velocity field is simultaneously updated
+by incorporating potential flow formulas. Three representative cases—–regular waves, irregular waves, and
+plunging waves—–are used to validate the proposed method and assess its performance.
+The effect of
+assimilation parameters is also examined. The results demonstrate that the sequential data assimilation
+strategy achieves accurate free-surface reconstruction for a VOF-based numerical wave tank.
+Keywords:
+Wave Reconstruction, EnKF, Data assimilation
+1. Introduction
+Accurate simulation of water waves is underscored by the rapid growth of diverse industries, spanning
+from shipping and coastal engineering to offshore construction, aquaculture, and marine renewable energy.
+Numerical wave tanks hence become an important platform for the study of wave dynamics and wave-
+structure interactions [1, 2]. While numerical wave tanks based on potential flow theory are valued for
+their computational efficiency, particularly in applications like design optimization [3], high-fidelity viscous
+flow solvers remain indispensable in naval architecture and ocean engineering. This is due to their unique
+capability to simulate critical nonlinear phenomena, such as wave breaking, slamming, and green water [1].
+These high-fidelity simulations are typically grounded in computational fluid dynamics (CFD) [4], with the
+vast majority of solvers employing the Navier-Stokes equations or related formulations [1]. Algorithmically,
+these solvers are categorized into grid-based and particle-based methods [5]. Within the dominant grid-
+based approaches, the finite volume method (FVM) is the most prevalent.
+However, as FVM requires
+explicit interface capturing for multiphase flows, specific techniques are employed, among which the volume
+Email address: lijing_@sjtu.edu.cn (Jing Li)
+
+of fluid (VOF) method is the most common in mainstream solvers [6], although the level-set method is also
+used [7].
+The inherent discrepancies between computational models and physical reality necessitate rigorous val-
+idation against experimental benchmarks. However, the validation of structural responses and loads under
+complex environments like irregular waves is typically confined to statistical agreements, which overlooks
+information on the individual deterministic occurrences. This poses a significant challenge for reproducing
+critical but transient events, such as rogue

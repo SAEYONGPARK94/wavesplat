@@ -1,0 +1,3154 @@
+J. Fluid Mech. (2023), vol. 975, A8, doi:10.1017/jfm.2023.841
+Nonlinear deterministic reconstruction and
+prediction of remotely measured ocean surface
+waves
+Nicolas Desmars1,2,†, Moritz Hartmann2,3, Jasper Behrendt4,
+Norbert Hoﬀmann1,5 and Marco Klein1,2
+1Dynamics Group, Hamburg University of Technology, 21073 Hamburg, Germany
+2Ship Performance Department, Institute of Maritime Energy Systems, German Aerospace Center (DLR),
+21502 Geesthacht, Germany
+3Institute for Ship Structural Design and Analysis, Hamburg University of Technology, 21073 Hamburg,
+Germany
+4BHS Hamburg, 21073 Hamburg, Germany
+5Mechanical Engineering, Imperial College London, SW7 2AZ London, UK
+(Received 6 February 2023; revised 27 September 2023; accepted 30 September 2023)
+Algorithms for reconstructing and predicting nonlinear ocean wave ﬁelds from
+remote measurements are presented. Three types of synthetic observations are used
+to quantify the inﬂuence of remote measurement modulation mechanisms on the
+algorithms’ performance. First, the observations correspond to randomly distributed
+surface elevations. Then, they are related to a marine radar model – the second type takes
+the wave shadowing modulation into account whereas the third one also includes the tilt
+modulation. The observations are numerically generated based on unidirectional waves
+of various steepness values. Linear and weakly nonlinear prediction algorithms based on
+analytical models are considered, as well as a highly nonlinear algorithm relying on the
+high-order spectral (HOS) method. Reconstructing surfaces from shadowed observations
+is found to have an impact limited to the non-visible regions, while tilt modulation affects
+the reconstruction more generally due to the indirect, more complex extraction of wave
+information. It is shown that the accuracy of the surface reconstruction mainly depends on
+the correct modelling of the wave shape nonlinearities. Modelling the nonlinear correction
+of the dispersion relation, in particular the frequency-dependent wave phase effects in
+the case of irregular waves, substantially improves the prediction. The suitability of the
+algorithms for severe wave conditions in ﬁnite depth and using non-perfect observations is
+assessed through wave tank experiments. It shows that only the third-order HOS solution
+predicts the right amplitude and phase of an emerging extreme wave, emphasizing the
+relevance of the corresponding physical modelling.
+† Email address for correspondence: nicolas.desmars@protonmail.com
+© The Author(s), 2023. Published by Cambridge University Press. This is an Open Access article,
+distributed under the terms of the Creative Commons Attribution licence (https://creativecommons.
+org/licenses/by/4.0/), which permits unrestricted re-use, distribution, and reproduction in any medium,
+provided the original work is properly cited.
+975 A8-1
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+Key words: surface gravity waves
+1. Introduction
+The deterministic (i.e. phase-resolved) prediction of the incoming wave loads on marine
+structures represents one of the main challenges towards more efﬁcient and safer offshore
+operations. The cost reduction of offshore wind through the extension of operational
+time windows for the installation/maintenance of offshore wind turbines, the gain in
+efﬁciency of marine energy devices through active control or the safety improvement of
+aircraft takeoffs/landings are only a few examples of domains that could beneﬁt from the
+advance knowledge of wave-induced structure motions. Such predictions are performed by
+means of the calculation of the ocean surface evolution from the analysis of surrounding
+wave measurements. More speciﬁcally, they consist of three steps: (i) measuring some
+wave-related quantities, (ii) reconstructing the underlying wave ﬁeld (i.e. extracting wave
+information from the measurements) and (iii) propagating the reconstructed wave ﬁeld to
+the area of interest.
+Regardless of their well-characterized properties and proven suitability for deterministic
+predictions, in situ wave measurements, such as made from wave buoys (e.g. Fisher,
+Thomson & Schwendeman 2021) or acoustic Doppler current proﬁlers (Huchet et al.
+2021), are not adaptable to predictions over a region in motion, such as around a ship with
+forward speed, due to the need to update the measured region according to the trajectory
+of the area of interest. In that case, measurements are typically performed from remote
+sensors mounted on a moving structure. Lidar cameras, for example, have recently been
+developed for the measurement of ocean surface displacements at a distance (Belmont
+et al. 2007; Kabel, Georgakis & Rod Zeeberg 2019), providing suitable data for wave
+prediction (Grilli, Guérin & Goldstein 2011; Nouguier, Grilli & Guérin 2014). Stereovideo
+systems are also able, through the mapping of the surface elevation, to give access
+to sufﬁcient information for short-term forecasts (Mérigaud & Tona 2022). However,
+the real-time accessibility of wave data from stereo imaging is still constrained by the
+‘signiﬁcant computational time required to extract the three-dimensional elevation maps
+from a pair of images’ (Guimarães et al. 2020), and subject to strong visibility limitations.
+Moreover, both lidar cameras and stereovideo systems are limited to measurement
+distances of ∼100 m, restraining the prediction horizon to a few characteristic wave
+periods. Even if such prediction horizons are already valuable for applications such as
+optimal control of marine energy harvesting systems (e.g. Li et al. 2012; Ma et al. 2018),
+using sensors of higher measurement range could beneﬁt a much larger variety of offshore
+operations.
+The most commonly used remote sensors for the analysis of the ocean surface
+surrounding an offshore structure are non-coherent X-band marine radars, which are
+capable of measuring ocean surfaces over a much larger spatial domain, that is within a
+radius of ∼3 km around the antenna. Surface wave identiﬁcation from non-coherent radar
+data relies on the interpretation of the backscattered intensity which depends, through
+Bragg resonance, on the slope modulations of short ripples (gravity–capillary waves) by
+longer gravity waves (e.g. Alpers & Hasselmann 1978; Alpers, Ross & Rufenach 1981).
+In addition, both the radars and the aforementioned remote sensing instruments located
+onboard a structure acquire data at grazing incidence. They are thus subject to wave
+shadowing that creates spatial gaps in the measured data sets. Two main approaches are
+used to retrieve the wave ﬁeld from radar measurements (see the extensive review of
+975 A8-2
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+Huang, Liu & Gill 2017). The traditional method employs a semi-empirical modulation
+transfer function that relates the modal amplitudes of radar intensity to those of surface
+elevation in the frequency–wavenumber space (Young, Rosenthal & Ziemer 1985; Nieto
+Borge et al. 2004). Because this method identiﬁes gravity wave components by choosing
+those which satisfy the linear dispersion relation, nonlinearities are disregarded. The
+alternative approach relies on the direct resolution of the modulation mechanisms of the
+radar backscattered intensity by assuming its proportionality to the surface slope. In that
+case, the linear wave theory is also assumed to facilitate data processing (Dankert &
+Rosenthal 2004; Naaijen et al. 2018; Simpson et al. 2020).
+Nevertheless, the linear wave assumptions have been shown to limit the prediction
+accuracy as the wave steepness and prediction horizon increase. To overcome this issue,
+second-order wave models that better represent the steep waves’ sharpness have been
+investigated (e.g. Hlophe et al. 2021), albeit with a limited impact on the prediction
+accuracy because they miss nonlinear phase effects. Including corrections of the dispersion
+relation, appearing at third order, was shown to signiﬁcantly help improve predictions (e.g.
+Blondel-Couprie, Bonnefoy & Ferrant 2013; Desmars et al. 2020; Meisner et al. 2023), as
+well as using higher-order models based on the modiﬁed nonlinear Schrödinger equation
+(e.g. Trulsen 2007; Simanesew et al. 2017). For large wave steepness, the high-order
+spectral (HOS) method theoretically outperforms the aforementioned wave models (Klein
+et al. 2020) by considering the evolution of the surface dynamics up to any arbitrary
+order of nonlinearity, with a relatively high computational efﬁciency. However, despite
+the rather large number of studies on HOS predictions, either based on sequential (Yoon,
+Kim & Choi 2016; Wang & Pan 2021; Wang et al. 2022) or variational (Aragh & Nwogu
+2008; Blondel, Bonnefoy & Ferrant 2010; Qi et al. 2018a; Fujimoto & Waseda 2020; Wu,
+Hao & Shen 2022) assimilation strategies, the compatibility of the developed algorithms
+with remote measurement techniques must be further evaluated. Indeed, previous works
+suppose that the measurements (i) provide direct access to the surface elevation and (ii)
+are uniformly sampled in space and time. These two assumptions are not veriﬁed by
+non-coherent X-band radars in realistic conditions, for which the measurements take the
+form of return intensities subject to (a priori unknown) wave shadowing. Moreover, rather
+than a generally assumed sequence of spatial snapshots, radar data describe a space/time
+helix (Al-Ani et al. 2019). The available data are thus indirectly related to surface elevation
+and distributed in space and time in a non-trivial manner. It is expected that both of these
+features have an inﬂuence on the capacity of the methods to access information about the
+surface dynamics and predict the wave ﬁeld.
+It is thus proposed in the present paper to assess the impact of the modulation
+mechanisms that non-coherent radar measurements are subject to on the performance
+of linear, weakly nonlinear and highly nonlinear prediction algorithms. With this aim,
+three types of measurements (also called observations) with different levels of modulation
+are considered as input for the prediction of unidirectional wave ﬁelds with various
+wave steepness values. First, the observations correspond to surface elevations randomly
+distributed in space and time. Then, they are related to a radar model – the second
+type takes the shadowing modulation into account whereas the third one also includes
+the tilt modulation that makes the observed quantity mainly dependent on the surface
+slope. Regarding the prediction algorithms, two approaches are employed. The ﬁrst
+one, based on the inversion of analytical wave models, extends the linear and weakly
+nonlinear approaches proposed by Desmars et al. (2020) to radar observations and
+to the assessment of the reconstructed/predicted surface potential. The second one
+relies on the HOS method and extends the numerical basis of Desmars et al. (2022)
+975 A8-3
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+to irregular waves and to radar observations. It follows a rather classical iterative
+optimization procedure that seeks the optimal variables (here, the HOS model parameters)
+by ﬁtting the observations during a predeﬁned time interval, such as done by variational
+assimilation, but presents some interesting numerical properties that are detailed later
+in the paper. By inter-comparison of the performance pertaining to each algorithm, the
+important hydrodynamic properties are highlighted for either the wave ﬁeld reconstruction
+or prediction, which are independently evaluated. The case of regular waves is ﬁrst
+considered to clearly identify the characteristics of each modelling method, then irregular
+waves are investigated. High-ﬁdelity synthetic wave data are ﬁrst used, before applying the
+methods to experimental wave tank data.
+The paper is structured as follows. The theoretical aspects of non-coherent radar
+measurements, followed by those of the algorithms used for the wave ﬁeld reconstructions,
+are presented in § 2. Section 3 details the numerical set-up that is used to evaluate
+the performance of the surface reconstructions and discusses the results. Likewise, § 4
+describes the chosen conﬁguration to study the methods’ prediction performance, before
+analysing the results. In § 5, the reconstruction/prediction methods are evaluated against
+wave tank experiments. Finally, § 6 presents the overall conclusions.
+2. Theoretical background
+Predicting surface waves deterministically implies going through three major steps. The
+ﬁrst one is the measurement of the quantities that contain relevant information about the
+wave ﬁeld for its prediction over a speciﬁc area of interest. The second step, referred to
+as surface reconstruction, is the extraction of wave information from the measurements
+to initialize the physical model that is used for the propagation of the wave ﬁeld. The
+last step is the propagation of the reconstructed surface, giving access to the prediction.
+Considering that the ocean surface has to be predicted around a potentially mobile
+structure (e.g. a ship with forward speed), measurements are assumed to be done at a
+distance by a sensor mounted onboard the structure. The particularities of such remote
+measurements are detailed in this section, emphasizing their spatial non-uniformity and
+indirect relationship with surface ﬁelds. Then the investigated linear, weakly nonlinear
+and highly nonlinear methods for surface reconstruction are presented. For the sake of
+completeness, the theoretical aspects of the methods detailed in this paper describe the
+general case of directional wave ﬁelds, although the applications presented later are
+restricted to unidirectional waves.
+2.1. Remote measurements
+The prediction of the wave ﬁeld around a mobile structure has to rely on measurements
+whose locations adapt to the structure’s trajectory. X-band marine radars are considered in
+the subsequent developments. In contrast to coherent radars that can provide an estimation
+of the waves’ orbital velocities through the measurement of the Doppler frequency of the
+backscattered signal (e.g. Lyzenga et al. 2015; Støle-Hentschel et al. 2018), the considered
+sensor in the following applications is the much more common non-coherent radar, i.e. it
+only gives access to the backscattered signal intensity.
+2.1.1. Marine radar model
+Raw marine radar data are given in a polar coordinate system (r, β, z). As depicted in
+ﬁgure 1, r denotes the range distance, i.e. the distance between the antenna and the
+975 A8-4
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+Shadowed regions
+(xa, ya)
+R
+Θ
+η (r, β)
+za
+β
+zˆ
+n
+u
+yˆ
+rˆ
+xˆ
+Figure 1. Geometrical parameters used for the representation of the shadowing and tilt modulations of
+marine radar beams.
+horizontal location of the ocean surface whose elevation is referred to as η, and β is the
+azimuth angle of the radar look direction.
+The r-axis is located at the mean surface level and points towards the radar look
+direction, while the z-axis is vertical and positive upward. The range resolution is constant
+and decided by the radar beam’s pulse period, and the azimuth resolution is determined
+by the antenna beamwidth. For convenience, the ocean surface dynamics is described in
+a Cartesian system (x, y, z) = (xa + r cos β, ya + r sin β, z), with (xa, ya) the horizontal
+coordinates of the radar antenna. Even though many studies consider radar data to be
+a sequence of instantaneous two-dimensional spatial snapshots (usually called ‘radar
+images’), the spatio-temporal distribution of the radar data actually describes a helix
+(Al-Ani et al. 2019). For unidirectional waves, however, the helix structure of the data does
+not apply, and they are modelled as a sequence of one-dimensional snapshots separated by
+a time step that corresponds to the antenna rotation period.
+Among the different modulation mechanisms of the backscattered signal by the ocean
+surface, the shadowing and tilt modulations are considered prominent (e.g. Naaijen &
+Wijaya 2014; Salcedo-Sanz et al. 2015) and their respective impact on wave prediction
+is studied in the present paper. The shadowing modulation describes the impact of
+obstructing waves in the region illuminated by the radar. Although the actual wave
+shadowing follows complex diffraction processes (Plant & Farquharson 2012), it can
+be conveniently approximated by a geometrical approach (see ﬁgure 1): a point on the
+ocean surface is shadowed if a continuous straight line between that point and the radar
+antenna cannot be drawn without crossing the ocean surface. Practically, the shadowing
+modulation produces gaps in the spatial distribution of the radar measurements, as shown
+in ﬁgure 2(a). Because shadowing is stronger for larger angles of incidence Θ (deﬁned
+in ﬁgure 1), the number and size of the gaps increase with the measurement distance and
+decrease with the sensor’s height za. The tilt modulation modiﬁes the intensity σ of the
+backscattered signal according to the local angle of incidence of the radar beam on the
+surface. A geometrical approach can also be used to express this intensity (Nieto Borge
+et al. 2004) and reads
+σ = c1
+u · n
+|u| |n| + c2,
+(2.1)
+where n and u are the surface-normal and radar-beam vectors (see ﬁgure 1), respectively,
+and |u| (|n|) denotes the Euclidean norm of u (n). Here, c1 is a scaling factor and c2
+an offset, which both depend on the calibration of the radar system and environmental
+conditions. The determination of these scaling coefﬁcients is an active ﬁeld of research. To
+name the most common methods, they can be found based on the signal-to-noise ratio of
+975 A8-5
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+t
+r
+r
+(a)
+(b)
+Figure 2. (a) Typical spatio-temporal distribution of observations from a marine radar scanning irregular
+unidirectional waves travelling from the left to the right. (b) Random spatio-temporal distribution using the
+same number of observations.
+Data type
+Observed quantity
+Distribution
+1
+η
+Random
+2
+η
+Radar like
+3
+σ
+Radar like
+Table 1. Deﬁnition of the three investigated types of observations.
+the backscattered signal (e.g. Lund et al. 2014), on the shadowing (e.g. Ludeno & Seraﬁno
+2019) or statistical (e.g. Gangeskar 2000) properties of radar images or on an external
+reference measurement (e.g. Naaijen et al. 2018). The determination of these coefﬁcients
+is outside of the scope of the present paper, hence they are here assumed to be known.
+To study the inﬂuence of the modulation mechanisms on the wave prediction
+accuracy, surface reconstructions are systematically performed using three types of wave
+measurements, referred to as data types. Data type 1 corresponds to a set of randomly
+distributed surface elevations. Data type 2 refers to surface elevations that are subject to
+shadowing modulation. Both distributions are depicted in ﬁgure 2 with the same number
+of points. Finally, data type 3 designates radar intensities calculated from (2.1). All data
+types are summarized in table 1. The inﬂuence of the shadowing modulation or of the tilt
+modulation is studied by comparing results obtained with data types 1 and 2 or 2 and 3,
+respectively.
+2.1.2. Linear tilt modulation
+The radar intensity model described by (2.1) is related to the surface elevation and
+slope in a nonlinear manner. Instead of inverting this nonlinear model during the surface
+reconstruction, a simpliﬁed linear model is used. Linearizing the intensity with respect to
+the surface slope and elevation (see details in Appendix A), (2.1) reduces to
+σ = c1
+
+cos Θ + ηr sin Θ −ηsin2 Θ
+R
+
++ c2,
+(2.2)
+where the index notation represents the corresponding derivative. Since the surface
+elevation in (2.2) is multiplied by the factor sin2 Θ/R ≪sin Θ, the dominant part of σ
+is proportional to the surface radial slope ηr. Because the slope contains less information
+than the surface elevation (i.e. loss of an integration constant), using σ as observations
+instead of η is expected to impact the performance of the reconstruction methods.
+It should be noted that the simpliﬁed approach leading to (2.1) and (2.2) does not
+consider the full complexity of non-coherent radar measurements, whose deterministic
+975 A8-6
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+relationship with the surface elevation has yet to be empirically identiﬁed. Using real
+radar data instead of data type 3 is thus expected to have a negative effect on the surface
+reconstruction accuracy. Nevertheless, algorithms based on this model have been shown
+to yield sound results using ﬁeld measurements (Dankert & Rosenthal 2004; Naaijen et al.
+2018).
+2.2. Highly nonlinear surface reconstruction
+The spatial and temporal scales of the problem allow us to use the potential ﬂow theory,
+which assumes that the ﬂow is irrotational and the ﬂuid inviscid and incompressible.
+The ﬂow is then described by the Laplace equation Δφ = 0 in the ﬂuid domain, with
+φ the velocity potential, and by a non-penetration condition φz = 0 on the seabed, i.e.
+at z = −h with h the water depth. On the free surface, and using the surface velocity
+potential φs (x, y, t) = φ (x, y, z = η, t), the dynamic and kinematic free surface boundary
+conditions (FSBCs) yield (Zakharov 1968)
+φs
+t = −gη −1
+2
+∇φs2 + 1
+2
+
+1 + |∇η|2
+W,
+ηt =
+
+1 + |∇η|2
+W −∇φs · ∇η,
+⎫
+⎪⎬
+⎪⎭
+(2.3)
+where W = φz|z=η is the vertical velocity on the free surface, ∇=
+
+∂x, ∂y
+T is the
+horizontal gradient, t is the time and g is the gravitational acceleration.
+2.2.1. The HOS method
+The HOS method is employed for both the generation of the reference ocean surface and
+its reconstruction. The core of the HOS method is the expression of the potential as a
+power series of η to a given arbitrary order M ≥1, allowing the formulation of W as a
+Taylor series involving η and φs (Dommermuth & Yue 1987; West et al. 1987). Following
+the order-consistent formulation from West et al. (1987), the HOS FSBCs, expressed on
+the free surface, read
+φs
+t + gη = −1
+2
+∇φs2 + 1
+2
+
+W2
+M + |∇η|2 
+W2
+M−2
+
+,
+ηt −φs
+z = Wnl
+M + |∇η|2 WM−2 −∇φs · ∇η,
+⎫
+⎪⎬
+⎪⎭
+(2.4)
+in which the linear terms have all been moved to the left-hand side, the subscript of
+the terms involving W denotes the order of expansion and Wnl
+M = WM −W1 = WM −φs
+z.
+The calculations are performed using a pseudo-spectral approach, in which the physical
+quantities are expressed by means of basis functions that satisfy the Laplace equation, the
+seabed condition and the horizontal boundary conditions of the computational domain.
+Here, the latter boundary conditions are assumed periodic so the velocity potential reads
+φ (x, z, t) = Re
+⎧
+⎨
+⎩
++∞
+
+i=−∞
++∞
+
+j=−∞
+Aφ
+ij (t) exp(ikij · x)cosh
+kij
+ (z + h)
+
+cosh
+kij
+ h
+
+⎫
+⎬
+⎭,
+(2.5)
+in which Aφ
+ij (t) are the complex spectral coordinates of φ, x = {x, y}T and kij =
+
+kxi, kyj
+T
+, where kxi = i2π/Lx and kyj = j2π/Ly with Lx and Ly the lengths of the
+975 A8-7
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+(x0, y0, t0)
+x
+y
+t
+t
+Lx
+Ta
+Ly
+xˆ
+yˆ
+Figure 3. Characteristics of the Cartesian computational domain used to perform the surface reconstruction
+with HOS–OCM.
+computational domain along the x- and y-directions, respectively. The surface elevation
+has a similar expression without the z-dependent term. In practice, the sums in (2.5)
+are truncated to ﬁnite numbers Nx and Ny. This approach allows the spatial-derivative
+operations to be performed efﬁciently due to the use of fast Fourier transforms (FFTs).
+2.2.2. The HOS–observation coupling method
+The highly nonlinear surface reconstruction is performed using the HOS–observation
+coupling method (HOS–OCM), which numerical basis follows that of Desmars et al.
+(2022). It consists of the inversion of a system that couples the equations describing the
+evolution of the ocean surface to a set of observation constraints having the form
+M
+
+φs, η
+
+= ζ,
+(2.6)
+in which ζ is the observed quantity (here, either the surface elevation or the radar
+intensity), and M is the observation-mapping function. This function both maps the
+physical quantities of interest (η and φs) to the observation space and interpolates them
+to the spatio-temporal location of the observations. The wave equations are solved on a
+computational domain that has spatial lengths Lx and Ly and a duration Ta (also called
+assimilation period). It is discretized with constant steps Δx and Δy in space and Δt in
+time (see ﬁgure 3). It contains Nx and Ny points along the spatial dimensions and Nt points
+along the temporal dimension, leading to Np = NxNyNt grid points in total. The reference
+point in space (x0, y0) corresponds to the beginning of the computational domain, and the
+reference point in time t0 corresponds to its ﬁrst time (see ﬁgure 3).
+The evolution equations (2.4) are coupled to (2.6) to form the inverse problem that is to
+be solved for the surface reconstruction. By recasting the resulting system in matrix form,
+it leads to
+A ·
+φs
+η
+
+= b ⇐⇒
+⎡
+⎣
+A∂t
+gI
+−A∂z
+A∂t
+AM
+⎤
+⎦·
+φs
+η
+
+=
+⎡
+⎣
+bd
+bk
+ζ
+⎤
+⎦,
+(2.7)
+where A∂t corresponds to the time-derivative operator matrix, A∂z to the vertical-derivative
+operator matrix and I to the identity matrix, all being Np-by-Np matrices. The No-by-2Np
+(with No the number of observations) matrix AM corresponds to the observation-mapping
+975 A8-8
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+function matrix. Vectors φs and η contain the Np unknown grid values of surface potential
+and elevation, respectively. The right-hand side terms bd and bk correspond to the
+nonlinear parts of the dynamic and kinematic HOS FSBCs, respectively, and yield
+bd = −1
+2
+
+A∂x · φs2
++
+
+A∂y · φs2
++ 1
+2
+
+W 2
+M +
+
+A∂x · η
+2
++
+
+A∂y · η
+2 
+W 2
+M−2
+
+,
+(2.8)
+bk = W nl
+M +
+
+A∂x · η
+2
++
+
+A∂y · η
+2
+W M−2
+−
+
+A∂x · η
+ 
+A∂x · φs
++
+
+A∂y · η
+ 
+A∂y · φs 
+,
+(2.9)
+where A∂x and A∂y are the horizontal-derivative operator matrices, and W M is a vector
+whose elements are the vertical velocities WM. Finally, the vector ζ contains the
+observations. When not speciﬁed by a distinctive mathematical symbol, operations on
+vectors are performed element-wise. The formulation of the matrices is detailed in
+Appendix B. The solution vectors φs and η are found by minimizing, with the loose
+generalized minimum residual (LGMRES) algorithm (Baker, Jessup & Manteuffel 2005),
+the norm of the residual function
+F = AT · A ·
+φs
+η
+
+−AT · b.
+(2.10)
+For M = 1, bd and bk are full of zeros. For M > 1, the solutions are obtained by
+inverting the system order by order, evaluating bd and bk from the lower-order solution. In
+the following, the ﬁrst- and third-order solutions, referred to as HOSM1 and HOSM3,
+respectively, are investigated. The tolerances and restart parameter of the LGMRES
+iterative process have been ﬁxed in such a way that they lead to converged results in terms
+of reconstruction accuracy.
+Note that the computational cost of HOS–OCM is not related to that of a large
+dense matrix inversion as one might initially assume. Indeed, the chosen iterative solver
+for the minimization of (2.10) allows matrix-free calculations: A is not assembled,
+only matrix–vector products involving its submatrices are performed. These submatrices
+exhibit a high level of sparsity that leads them to have a product cost O
+
+NpNs
+
+for
+derivation or O (NoNs) for interpolation with Ns ≪Np the number of stencils to perform
+the considered operation. Matrix–vector products involving the spatial-derivative operator
+matrices A∂x,y,z are accelerated with FFTs resulting in a cost O
+
+Np log Ns
+
+. The transpose
+operations require the exact same computational effort. In fact, there is no additional
+cost coming from the matrix formulation of the problem, and the resulting number of
+operations is of the same order of magnitude as that of other HOS-based prediction
+algorithms relying on variational assimilation.
+However, in contrast to variational approaches that control the HOS variables (namely
+the surface elevation and potential) at only one time step and propagate the solution
+over the assimilation period with a classical time-stepping procedure (typically using
+an explicit fourth-order Runge–Kutta scheme), HOS–OCM controls the variables at all
+time steps simultaneously. This formulation has two interesting numerical properties.
+First, no sequential time propagation of the solution is required, making possible the time
+parallelization of the model evaluation in the optimization process. This parallelization in
+975 A8-9
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+time offers a greater impact on the computational time reduction than the parallelization
+in space whose effect is limited by the relatively small domain used for such surface
+reconstructions. Second, the embedded time integration of the wave equations has the
+properties of implicit schemes at no additional cost. More speciﬁcally, it exhibits high
+numerical stability – no evidence of instability was observed even for very large time
+steps – without the need to perform the additional system inversion that is required when
+the solution is sequentially propagated with implicit schemes. This gives ﬂexibility in the
+choice of the time-step size, thus in the management of the computational time.
+2.3. Parameterization of analytical wave models
+The other investigated surface reconstruction method relies on the parameterization of
+analytical wave models. Besides a linear model that represents the water surface as
+the superposition of independent sine waves subject to the linear dispersion relation,
+two weakly nonlinear models are investigated. Based on a Lagrangian description of
+the surface motion, the improved choppy wave model catches nonlinear effects on both
+shape, i.e. sharper crests and ﬂatter troughs, and phase, i.e. higher wave velocity (Guérin
+et al. 2019). In contrast, the second weakly nonlinear model considered here includes the
+correction of the dispersion relation pertaining to the improved choppy wave model, but
+no shape correction.
+For these models, detailed below, the surface reconstruction is based on a least-squares
+algorithm that minimizes a quadratic cost function, similar to the approaches investigated
+by Desmars et al. (2020). The cost function that is minimized reads
+C = 1
+2
+Λ (p) −Λo2 ,
+(2.11)
+where the vector Λ contains the wave model estimates of the observations, p contains
+the parameters of the wave model and Λo contains either observed elevations (ηo) or
+radar intensities (σ o) depending on the chosen data type. The optimal wave model
+parameters are obtained by applying the Levenberg–Marquardt algorithm (Moré 1978)
+with explicit formulations of the Jacobian matrices that allow the procedure to be
+performed efﬁciently. The Jacobian matrices depend on the considered wave model and
+data type. Their expression for each conﬁguration is given in Appendix C. In the rest of
+the paper, and in contrast to HOS–OCM, this reconstruction algorithm is referred to as the
+analytical-model-based method (AMBM).
+2.3.1. Linear wave theory
+The linear wave theory (LWT) gives the surface velocity potential and corresponding
+elevation according to
+φs
+LWT (x, t) =
+N
+
+n=1
+ωn
+kn
+(an sin ψn −bn cos ψn) ,
+(2.12)
+ηLWT (x, t) =
+N
+
+n=1
+(an cos ψn + bn sin ψn) ,
+(2.13)
+in which ψn = kn · x −ωnt, with kn =
+
+kxn, kyn
+T, and an and bn are the model
+parameters related to the amplitude and phase of N individual wave components of
+predeﬁned wavenumbers kn = |kn| related to angular frequencies ωn through the linear
+dispersion relation ω2
+n = gkn tanh (knh).
+975 A8-10
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+2.3.2. Improved choppy wave model
+The improved choppy wave model (ICWM) was developed and characterized by Guérin
+et al. (2019). It relies on the Lagrangian description of the water surface which allows
+the derivation, in a relatively simple mathematical form, of terms appearing at higher
+orders of expansion in wave steepness in the Eulerian formalism. Compared with the
+second-order Lagrangian solution (e.g. Nouguier, Chapron & Guérin 2015), ICWM
+corrects the nonlinear effects affecting the waves’ velocity resulting in a more accurate
+description of the free surface kinematics. An Eulerian form of ICWM was used by
+Desmars et al. (2020) to predict unidirectional waves and writes
+φs
+ICWM (x, t) =
+N
+
+n=1
+˜ωs
+n
+kn
+(an sin Ψn −bn cos Ψn) ,
+(2.14)
+ηICWM (x, t) =
+N
+
+n=1
+(an cos Ψn + bn sin Ψn) + 1
+2
+N
+
+n=1
+
+a2
+n + b2
+n
+
+kn,
+(2.15)
+with
+Ψn = kn ·
+!
+x −
+N
+
+m=1
+km
+km
+
+−am sin ψnl
+m + bm cos ψnl
+m
+"
+−ωnl
+n t,
+ψnl
+n = kn · x −ωnl
+n t,
+ωnl
+n = ωn + 1
+2kn ·
+N
+
+m=1
+
+a2
+m + b2
+m
+
+ωmkm,
+˜ωs
+n = ωn −1
+2kn ·
+N
+
+m=1
+
+a2
+m + b2
+m
+
+ωmkm.
+⎫
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎬
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎭
+(2.16)
+Note that the formulation of the surface potential of ICWM, not given yet in the literature,
+is discussed in Appendix D.
+2.3.3. Linear wave theory with corrected dispersion relation
+To quantify the importance of the correction of the dispersion relation only, a linear wave
+model that includes the correction of the dispersion relation pertaining to ICWM is also
+used. This model is referred to as LWT with corrected dispersion relation (LWT–CDR)
+and reads
+φs
+LC (x, t) =
+N
+
+n=1
+˜ωs
+n
+kn
+
+an sin ψnl
+n −bn cos ψnl
+n
+
+,
+(2.17)
+ηLC (x, t) =
+N
+
+n=1
+
+an cos ψnl
+n + bn sin ψnl
+n
+
+.
+(2.18)
+2.4. Numerical differences between HOS–OCM and AMBM
+Throughout the paper, a systematic comparison of the reconstruction and prediction
+accuracy of each algorithm is performed. Leaving aside hydrodynamic considerations, this
+975 A8-11
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+section aims at highlighting the numerical differences between HOS–OCM and AMBM
+to support the discussion of the results.
+Even if both HOS–OCM and AMBM use least squares, through the minimization
+of |F| (2.10) for HOS–OCM and of C (2.11) for AMBM, a fundamental difference
+between the two methods is the nature of the control parameters of the minimization
+process. While they consist of the surface elevation and potential at the grid points for
+HOS–OCM, AMBM solves for the amplitude and phase of the wave components, and
+the surface ﬁelds are calculated from the model expressions after the minimization. This
+way, AMBM always gives a solution to the equations of the surface dynamics according
+to the considered wave model (i.e. LWT, LWT–CDR or ICWM). In contrast, the wave
+equations for HOS–OCM are seen as constraints that are not necessarily exactly veriﬁed
+by the solution. In addition, the wavenumbers of the wave components are not deﬁned the
+same way for each method: they are implicitly deﬁned by the grid size and resolution
+for HOS–OCM, and arbitrarily chosen for AMBM. To improve the comparability of
+the methods, the wave components of AMBM are chosen according to those implicitly
+deﬁned by the computational grid of HOS–OCM. Although this might not correspond
+to the optimal choice of parameters for AMBM, convergence studies on the number of
+wave components have shown that, for both the synthetic and experimental conﬁgurations
+depicted in this paper (§§ 3 and 4, respectively), this choice leads to results that fairly
+represent the accuracy of the AMBM solver. Because numerical instabilities are arising
+for AMBM when very long modes are solved for, wave components whose wavenumber k
+is lower than half the peak wavenumber kp of the observed wave ﬁeld (i.e. the wavenumber
+of maximal energy) are not considered in the LWT, LWT–CDR and ICWM solutions.
+2.5. Inﬂuence of the spatial periodicity assumption
+Both HOS–OCM and AMBM (with similar wavenumbers to those of HOS–OCM, see
+the previous section) assume that the solution of the surface reconstruction problem is
+Lx- and Ly-periodic, while the observations have no reason to exhibit spatial periodicity.
+Forcing the solution to match at the spatial boundaries of the reconstructed domain leads
+to discrepancies if no numerical treatment is employed. In the presented applications, the
+discrepancies induced by the periodicity assumption are restricted to a relatively small
+region on the domain boundaries. In consequence, no special treatment for the periodicity
+assumption was used a priori, the inﬂuence of these discrepancies on the results is reduced
+by evaluating the quality of the solution over a restricted domain that ends one peak
+wavelength (λp = 2π/kp) away from each boundary. The size of the regions to be removed
+from the analysis was chosen for this study based on the evaluation of the actual results of
+the investigated cases. Changing the conﬁguration, in particular the space and time extent
+of the observed domain, could modify the size of the impacted regions by the periodicity
+assumption.
+3. Reconstructions
+In this section, the numerical set-up to evaluate the accuracy of the reconstruction methods
+from synthetic surface observations is described before discussing the results.
+3.1. Numerical set-up
+Two unidirectional wave ﬁelds, made of regular and irregular waves that propagate
+along the positive x-direction, aim at being reconstructed. Throughout the paper, the
+975 A8-12
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+reconstruction and prediction conﬁgurations are set up with respect to the characteristics
+of the irregular wave ﬁeld, even in the case of regular waves that is seen as a ‘simpliﬁed’
+wave ﬁeld of similar scales to help interpret the results. The irregular wave ﬁeld is
+based on a JONSWAP energy distribution (Hasselmann et al. 1973) with a peak period
+Tp = 10 s and a peak-enhancement factor of 3.3. The wave height varies depending on
+the investigated wave steepness Hs/λp (differing by a factor of π from the alternative
+steepness deﬁnition 1
+2kpHs), with Hs the signiﬁcant wave height deﬁned as four times
+the standard deviation of the surface elevation. The regular wave ﬁeld is deﬁned from
+the peak wave characteristics of the irregular one, i.e. the period is T = Tp and different
+values of wave steepness H/λ (= kA/π) are investigated, with H = 2A the wave height
+deﬁned as the crest-to-trough height, and λ = 2π/k = λp the wavelength. These wave
+ﬁelds, called reference wave ﬁelds and indicated by the superscript ‘r’ (e.g. ηr), are
+generated using the HOS solver HOS-ocean (Ducrozet et al. 2016) with a nonlinear order
+M = 4, which provides converged results in terms of nonlinearity. The length of the
+domain is set to 32 peak wavelengths, deep water is assumed and a relaxation period
+Tr, such as described by Dommermuth (2000), is used to smoothly turn the linearly
+initialized wave ﬁeld into a fourth-order solution. A conservative simulation time of 2Tr
+is used before considering that the nonlinearities are fully developed and generating the
+synthetic observations. Regarding the spatial discretization, 32 points per peak wavelength
+are used, which ensures that the shortest wave sampled by the radar is properly resolved.
+This discretization, however, limits the steepness of the simulated irregular wave ﬁeld to
+Hs/λp ≲3.2 % according to application ranges of highly nonlinear potential ﬂow solvers
+(Ducrozet, Bonnefoy & Perignon 2017).
+To generate the radar observations, a virtual radar scans the surface and gives at
+every non-shadowed point one of the two observed quantities, that is either the surface
+elevation ηo = ηr
+j (with j = 1, . . . , No) or the intensity σ o = σ r
+j according to (2.1). In
+the case the observations consist of radar intensities, the distances Ro = Rj and angles
+of incidence Θo = Θj (see ﬁgure 1) are stored as well. In operating conditions, R is
+approximated based on the time of ﬂight of the radar beam, and Θ is calculated based on
+the geometric relation Θ = cos−1 (za/R). Moreover, to decouple the effects of the wave
+shadowing (i.e. larger gaps in the spatial distribution of observations) from those of the
+wave steepness (i.e. stronger impact of the nonlinear wave physics) on the reconstruction
+accuracy for larger wave heights, the height of the radar antenna is made proportional
+to the wave height according to za = 8H(s) in the case of (ir)regular waves. This way,
+the shadowing properties are kept similar for all the investigated wave heights, and the
+observed differences in reconstruction accuracy between various steepness values are only
+related to hydrodynamic nonlinearities. The inﬂuence of the wave shadowing is quantiﬁed
+by comparing the results with those obtained with randomly distributed observations (i.e.
+data type 1 vs data type 2). Since the number of observations in the case of data type 1 is
+set similar to that obtained with the radar sampling of the surface (which includes wave
+shadowing), the overall density of observations is independent of the data type. Despite
+the unrealistic nature of the dependence between za and the wave height, the factor of
+8 already depicts a situation of strong shadowing (see ﬁgure 2a). The radar horizontal
+location is chosen such that it is facing the incoming waves and that there is a gap of
+3λp ≈470 m between the radar and the reconstructed domain, i.e. xa = x0 + Lx + 3λp.
+The remaining radar characteristics are chosen according to Naaijen & Wijaya (2014),
+i.e. the range resolution is set to 7.5 m and the antenna rotation period, ﬁxing the
+temporal resolution, to 1.5 s. Only the observations that fall into the reconstructed domain
+[x0, x0 + Lx] × [t0, t0 + Ta] are used for the reconstruction.
+975 A8-13
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+Concerning the computational domain of HOS–OCM, its spatial extent is Lx = 12λp for
+a number of points Nx = 246, leading to a resolution of Δx ≈λp/20.4 ≈7.6 m. This is in
+agreement with the maximal spatial resolution of 7.5 m imposed by the observations in the
+case the ocean surface is sampled by the radar. The assimilation period is Ta = 3Tp, which
+is long enough to give a converged reconstruction accuracy for the chosen measurement
+length, and the number of time steps is Nt = 48Ta/Tp = 144 (i.e. Δt ≈0.21 s).
+3.2. Reconstruction accuracy quantiﬁcation
+For the quantiﬁcation of the error between the reconstructed surface and the reference,
+the surface similarity parameter (SSP) is used. This indicator was developed by Perlin &
+Bustamante (2016) and already used in the context of ocean wave prediction (e.g. Lünser
+et al. 2022). For the surface elevation, the SSP between the reconstructed ﬁeld η and the
+reference ηr is formulated as
+SSPη (t) =
+#$ Fη (k, t) −Fηr (k, t)
+2 dk
+%1/2
+#$ Fη (k, t)
+2 dk
+%1/2
++
+#$ Fηr (k, t)
+2 dk
+%1/2 ,
+(3.1)
+where Fη denotes the spatial FFT of η (x, t) over the points of the computational domain
+of HOS–OCM. A similar expression holds for the surface potential error SSPφs (t).
+As mentioned in § 2.5, a restricted region that begins (ends) one peak wavelength
+after (before) the left (right) spatial boundary is selected for the quantiﬁcation of the
+reconstruction accuracy to limit the inﬂuence of the periodicity assumption, i.e. x ∈
+
+x0 + λp, x0 + Lx −λp
+
+. The value of the SSP is bounded by 0 and 1, meaning a perfect
+agreement or disagreement between the compared signals, respectively. Because the
+motion response of marine structures is most likely inﬂuenced by a limited frequency
+range, i.e. similar to a low-pass ﬁlter, the presented SSP calculation focuses on
+wavenumbers whose expected impact is signiﬁcant. More speciﬁcally, this is done by
+retaining in (3.1) only the complex amplitudes F associated with wavenumbers lower
+than or equal to a cutoff value, here deﬁned as 5kp. This choice is supported by the
+fact that the wave ﬁeld evolution is mainly driven by wave components of wavenumber
+k < 5kp (Ducrozet et al. 2017). Moreover, to have an error indicator representing the global
+accuracy over the reconstructed domain, the time-averaged SSP between the two instants
+t0 and t0 + Ta is calculated. For the surface elevation, it reads
+SSPη = 1
+Ta
+$ t0+Ta
+t0
+SSPη (t) dt.
+(3.2)
+An expression similar to (3.2) is used to quantify SSPφs. In the case of irregular waves, the
+SSP values are averaged over 200 wave ﬁeld realizations with different sets of randomly
+chosen initial wave phases.
+3.3. Reconstruction results
+In this section, the ability of HOS–OCM and AMBM to accurately reconstruct the
+observed wave ﬁeld is studied. First, regular waves are considered, leading to a clear
+distinction between the characteristics of each modelling method. Then irregular waves are
+reconstructed, showing the performance of the methods in more realistic wave conditions.
+975 A8-14
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+3.3.1. Regular waves
+Reconstruction results for regular waves are presented in ﬁgure 4. They show that, for
+all data types, the reconstruction accuracy decreases for larger wave steepness when the
+wave model is not able to catch enough nonlinear features, consisting here of increasing
+the wave shape asymmetry and the wave velocity, the latter appearing from the third
+order. The HOSM1 and LWT are fully linear and miss the aforementioned nonlinear
+effects, penalizing the reconstruction accuracy when the steepness increases. The trend
+followed by LWT–CDR is almost similar to that of LWT (and of HOSM1), showing that
+modelling the nonlinear correction of the wave velocity is not enough to improve the
+reconstruction signiﬁcantly. However, the inﬂuence of the wave velocity having linear and
+quadratic dependencies on the simulation time and wave steepness, respectively, means
+that the nonlinear correction of LWT–CDR is expected to be more impactful for longer
+assimilation period Ta and larger steepness. In contrast, the accuracy is very high for
+HOSM3 and ICWM, and barely affected by the steepness variation. This is because both
+models include all the nonlinear effects associated with regular waves up to the third order.
+As seen from the slightly lower accuracy obtained with data type 2 compared with data
+type 1, the wave shadowing effect, which tends to concentrate the discrepancies at the
+non-visible parts of the waves (e.g. troughs), has a limited impact. Using observations of
+radar intensity (data type 3) instead of elevation (data type 2) has a small inﬂuence as
+well, which validates that both HOS–OCM and AMBM can extract correct information
+about the surface dynamics from elevation or slope samples. In the case of data type 3,
+the fact that the accuracy of HOS–OCM is generally a little lower than that of AMBM
+most likely comes from the numerical differences detailed in § 2.4 between the two
+methods. In particular, performing the reconstruction from radar intensities instead of
+elevations might affect the relative weight of the HOS equations (2.4) with respect to the
+observation-mapping function in the minimized residual (2.10) of HOS–OCM, resulting
+in a lower accuracy. A penalty approach (e.g. Nocedal & Wright 1999) could be employed
+to investigate the effect of the wave model enforcement (i.e. forcing the solution to strictly
+satisfy the HOS equations) on the reconstructed surface. Nevertheless, the SSP values
+remain below 0.05 in all conﬁgurations, and almost the same results are obtained for the
+surface potential.
+Reconstruction of regular waves of larger steepness (up to H/λ ∼10 %) have been
+performed and provide results that are in line with the physical properties of the wave
+models, i.e. similar accuracy between HOSM3 and ICWM and progressive distinction
+between LWT and LWT–CDR for increasing steepness. For the very steep cases, however,
+the reference data generation, surface reconstruction and surface prediction procedures
+had to be slightly adapted to prevent various numerical perturbations from appearing, and
+whose study is left out of this paper for the sake of brevity.
+3.3.2. Irregular waves
+Reconstruction results for irregular waves are presented in ﬁgure 5. As expected, and
+similar to the case of regular waves, the lower-order models are less accurate, and the SSP
+values increase for larger wave steepness. However, larger SSP values than those of the
+regular waves are found, which can be explained by the increased complexity resulting
+from the interaction phenomena between waves of different scales. This is especially
+clear when the reconstruction relies on slope information (i.e. data type 3) for which
+the accuracy strongly depends on the correct resolution of the modulation of short waves
+by long waves, making the whole range of wave scales important to resolve. In contrast,
+mainly the waves of high amplitude (localized around the peak of the energy spectrum)
+975 A8-15
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+0
+0.05
+0.10
+0.15
+1
+2
+3
+H/λ (%)
+H/λ (%)
+H/λ (%)
+0
+0.05
+0.10
+0.15
+0
+0.05
+0.10
+0.15
+0
+0.05
+0.10
+0.15
+0
+0.05
+0.10
+0.15
+0
+0.05
+0.10
+0.15
+(d)
+1
+2
+3
+(e)
+1
+2
+3
+1
+2
+3
+1
+2
+3
+1
+2
+3
+( f )
+(a)
+(b)
+(c)
+SSPη
+SSPφs
+Figure 4. Reconstruction accuracy for the regular wave ﬁeld as a function of the steepness H/λ for HOSM1
+(- -•- -), HOSM3 (—•—), LWT (- -△- -, red), LWT–CDR (· · · △· · · , red) and ICWM (– ·△– ·, red). Results
+using data type (a,d) 1, (b,e) 2 and (c, f) 3 are presented (see table 1 for deﬁnitions).
+inﬂuence the correct extraction of wave information from the observations when they
+consist of surface elevations (i.e. data types 1 and 2), simplifying the reconstruction.
+Radar intensities are also harder to use for surface reconstruction because they contain less
+information about the wave ﬁeld than surface elevations, as explained in § 2.1.2. Regarding
+the linear approaches, HOSM1 systematically leads to a higher accuracy than LWT for
+data types 1 and 2, and to a signiﬁcantly lower accuracy for data type 3. This could be
+explained, as for the regular waves, by the numerical differences between HOS–OCM
+and AMBM (see § 2.4). In combination with the numerical characteristics of HOS–OCM,
+the third-order modelling of HOSM3 gives the most accurate reconstructions for data
+types 1 and 2. As shown in ﬁgure 6(a) for data type 2, the improvement of HOSM3
+over HOSM1 is mainly visible for large surface deformation. Without providing clear
+hints for interpretation, the discrepancies implied by the use of data type 3 in nonlinear
+reconstructions of the same surface can be spotted in ﬁgure 6(b). In general, the SSP values
+for the surface potential are a bit larger than for the surface elevation, which could come
+from the fact that, for all data types, the observations are related to the surface elevation
+but not directly to the surface potential. The potential is calculated from the wave model
+only, leading its reconstruction error to be slightly higher than that of the elevation.
+4. Predictions
+After investigating the performance of the methods for surface reconstruction, this section
+focuses on quantifying the accuracy that can be obtained by propagating the reconstructed
+solutions in view of predictions.
+4.1. Deﬁnition of the prediction domain
+The prediction accuracy is quantiﬁed over the theoretically accessible prediction zone
+corresponding to the spatio-temporal domain within which pieces of information about the
+975 A8-16
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+0
+0.05
+0.10
+0.15
+1
+2
+3
+Hs/λp (%)
+Hs/λp (%)
+Hs/λp (%)
+0
+0.05
+0.10
+0.15
+0
+0.05
+0.10
+0.15
+0
+0.05
+0.10
+0.15
+0
+0.05
+0.10
+0.15
+0
+0.05
+0.10
+0.15
+(d)
+1
+2
+3
+(e)
+1
+2
+3
+1
+2
+3
+1
+2
+3
+1
+2
+3
+( f )
+(a)
+(b)
+(c)
+SSPη
+SSPφs
+Figure 5. Reconstruction accuracy for the irregular wave ﬁeld as a function of the steepness Hs/λp for HOSM1
+(- -•- -), HOSM3 (—•—), LWT (- -△- -, red), LWT–CDR (· · · △· · · , red) and ICWM (– ·△– ·, red). Results
+using data type (a,d) 1, (b,e) 2 and (c, f) 3 are presented (see table 1 for deﬁnitions). The shaded areas show
+the standard deviation for HOSM3 and ICWM for the 200 wave ﬁeld realizations.
+−0.5
+0
+0.5
+(a)
+(b)
+η/Hs
+η/Hs
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+(x − x0)/λp
+−0.5
+0
+0.5
+Figure 6. Reconstructed surface elevation of irregular waves of steepness Hs/λp ≈3.2 % at time t0 + Ta
+using observations subject to wave shadowing and that consist of (a) surface elevations (i.e. data type 2) and
+(b) radar intensities (i.e. data type 3). Comparison of the reference surface (——, green) with HOSM1 (- - - -,
+SSPη ≈0.078), HOSM3 (——, SSPη ≈0.024 (a) and 0.076 (b)) and ICWM (–·–·, red, SSPη ≈0.062).
+reconstructed wave components, travelling at the group velocity cg = ∂ω/∂k, overlap (e.g.
+Naaijen, Trulsen & Blondel-Couprie 2014; Qi et al. 2018b). In practice, the boundaries
+of the prediction zone are deﬁned by considering that the wave ﬁeld can be accurately
+described by a ﬁnite frequency bandwidth containing the most energetic wave components.
+Here, similar to Desmars et al. (2020) and Huchet et al. (2021), cutoff angular frequencies
+ωℓand ωh (with ωℓ< ωh) are selected such that E (ωℓ) = E (ωh) = 0.05E
+
+ωp
+
+, with
+E (ω) the wave energy spectrum of the irregular wave ﬁeld and ωp = 2π/Tp. These
+angular frequencies give the highest and lowest group velocities of the wave components
+of interest that deﬁne the prediction zone boundaries. Because it is supposed that the
+975 A8-17
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+t
+tℓ
+th
+1/cgℓ
+1/cgh
+x0
+x0 + Lx
+xa
+λp
+λp
+xˆ
+t0 + Ta
+Figure 7. Deﬁnition of the theoretically accessible prediction zone from information contained in the
+reconstructed solution at t = t0 + Ta.
+radar is mounted close to the location where the waves have to be anticipated, the target
+location for prediction is the radar location xa and the predicted surface is evaluated as
+a time series. Also, to maximize the prediction horizon, the last reconstructed solution
+(i.e. at t = t0 + Ta) is taken as the initial condition for the propagation. Finally, since
+the solution is considered valid over a restricted domain due to the spatial periodicity
+assumption (see § 2.5), the prediction zone is determined by neglecting information out of
+
+x0 −λp, x0 + Lx + λp
+
+. In consequence, a future time t is included in the prediction zone
+at xa if it is part of the interval [th, tℓ] with
+th = t0 + Ta + xa −
+
+x0 + Lx −λp
+
+cgh
+,
+(4.1)
+tℓ= t0 + Ta + xa −
+
+x0 + λp
+
+cgℓ
+,
+(4.2)
+and the group velocities are calculated using the linear dispersion relation, i.e.
+cg = 1
+2ω/k
+
+1 + 2kh/ sinh (2kh)
+
+, which already gives a good estimation of the extent of
+the prediction zone compared with a higher-order formulation of the dispersion relation
+(Qi et al. 2018a). Figure 7 shows the geometrical interpretation of the prediction zone
+deﬁnition. In the depicted conﬁguration, the obtained limits of the prediction horizon lead
+to th −(t0 + Ta) ≈14Tp and tℓ−th ≈6Tp.
+4.2. Numerical aspects of the prediction using HOS–OCM
+While the analytical models can be propagated in space and time without requiring any
+special numerical treatment, the HOS solutions from HOS–OCM need a ﬁxed, periodic
+spatial domain to be propagated over. Here, the propagation of the HOS solutions is done
+as follows. First, the spatial computational domain of HOS–OCM is extended to include
+the location of the prediction xa. This domain is set similarly to that used for the generation
+of the reference surface described in § 3.1, and it is used to express the reconstructed
+solution at t = t0 + Ta with zeros for x /∈[x0, x0 + Lx]. The prediction is thus based on the
+propagation of the reconstructed solution obtained at the end of the assimilation period.
+Second, to avoid discontinuities, the solution is made smoothly go to zero at both ends of
+975 A8-18
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+the reconstructed domain. More speciﬁcally, the surface ﬁelds η and φs are multiplied by
+the third-order polynomial
+fs (x) =
+⎧
+⎪⎪⎪⎪⎪⎪⎪⎪⎨
+⎪⎪⎪⎪⎪⎪⎪⎪⎩
+!
+x −
+
+x0 −λp
+
+λp
+"2 &
+3 −2
+!
+x −
+
+x0 −λp
+
+λp
+"'
+,
+if x ∈
+
+x0 −λp, x0
+
+,
+1,
+if x ∈[x0, x0 + Lx] ,
+1 −
+x −(x0 + Lx)
+λp
+2 
+3 −2
+x −(x0 + Lx)
+λp
+
+,
+if x ∈
+
+x0 + Lx, x0 + Lx + λp
+
+.
+(4.3)
+Finally, the HOS-ocean solver is used for the forward propagation of the solution with an
+order of nonlinearity M matching that used for the reconstruction, i.e. either 1 or 3.
+As described in § 4.1, even if the initial surface is perfectly known over a limited spatial
+domain, the dispersion of wave information during the surface propagation automatically
+prevents the prediction at a further point in space from perfectly matching the true solution.
+The accuracy of such a prediction depends on the amount of truncated energy by the
+cutoff frequencies deﬁning the extent of the prediction zone, and a perfect prediction
+remains out of reach even with a perfectly reconstructed surface. Consequently, the optimal
+prediction accuracy can be quantiﬁed by applying the propagation procedure described
+above (although with M = 4) to the reference solution and comparing the obtained
+prediction with the normally propagated reference solution. The determination of this error
+is done in the following for the case of irregular waves and indicates how far the accuracy
+obtained with the investigated prediction algorithms is from the best achievable one. This
+optimal prediction accuracy quantiﬁcation does not apply to regular wave ﬁelds because
+they are not subject to wave dispersion.
+Because propagating a solution which boundaries have been smoothed down to zero
+potentially introduces non-physical artefacts in the simulation, the spectra of the reference
+prediction and that of the optimal prediction have been compared. This comparison
+showed that no artefact appears in the solution subject to the described smoothing process.
+4.3. Prediction accuracy quantiﬁcation
+The SSP is used again to quantify the accuracy of the predicted surface elevation and
+potential. Because the comparison with the reference surface relies on time series, its
+formulation is different from (3.1) and follows
+(
+SSPη =
+#$ Fη ( f) −Fηr ( f)
+2 df
+%1/2
+#$ Fη ( f)
+2 df
+%1/2
++
+#$ Fηr ( f)
+2 df
+%1/2 ,
+(4.4)
+where Fη denotes the temporal FFT of η (xa, t) over the prediction period, i.e. t ∈[th, tℓ],
+and f is the frequency. A similar expression holds for the surface potential error (
+SSPφs.
+To only take into account the theoretically predictable wave components, the integral
+boundaries span the frequency range that is used to determine the extent of the prediction
+zone, i.e. the interval between fℓ= ωℓ/ (2π) and fh = ωh/ (2π).
+975 A8-19
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+0
+0.1
+0.2
+0.3
+0.4
+0
+0.1
+0.2
+0.3
+0.4
+0
+0.1
+0.2
+0.3
+0.4
+0
+0.1
+0.2
+0.3
+0.4
+0
+0.1
+0.2
+0.3
+0.4
+0
+0.1
+0.2
+0.3
+0.4
+1
+2
+3
+H/λ (%)
+H/λ (%)
+H/λ (%)
+(d)
+1
+2
+3
+(e)
+1
+2
+3
+1
+2
+3
+1
+2
+3
+1
+2
+3
+( f )
+(a)
+(b)
+(c)
+SSPη
+SSPφs
+Figure 8. Prediction accuracy for the regular wave ﬁeld as a function of the steepness H/λ for HOSM1 (- -•- -),
+HOSM3 (—•—), LWT (- -△- -, red), LWT–CDR (· · · △· · · , red) and ICWM (– ·△– ·, red). Results using data
+type (a,d) 1, (b,e) 2 and (c, f) 3 are presented (see table 1 for deﬁnitions).
+4.4. Prediction results
+Similar to the reconstruction, the ability of the different methods to predict the observed
+wave ﬁeld is investigated for both regular and irregular wave ﬁelds.
+4.4.1. Regular waves
+Prediction results for regular waves are presented in ﬁgure 8, and unambiguously show the
+advantage of models that take into account the nonlinear correction of the wave velocity.
+Indeed, the accuracy decreases signiﬁcantly with the wave steepness for both HOSM1
+and LWT, while it remains very high for all the other models. This is in agreement with
+previous studies that compare the prediction performance of linear and nonlinear models
+and ﬁnd that correct predictions of severe sea states can only be obtained with an accurate
+modelling of the wave velocity (e.g. Blondel-Couprie et al. 2013; Desmars et al. 2020;
+Meisner et al. 2023). The effect of the nonlinear phase shift on the predicted surfaces is
+depicted in ﬁgure 9. The inﬂuence of both measurement modulation mechanisms, i.e. the
+wave shadowing effect and the use of radar intensities, on the prediction accuracy is very
+limited.
+4.4.2. Irregular waves
+Prediction results for irregular waves are presented in ﬁgure 10. In this conﬁguration,
+the beneﬁt of HOSM3 is clear. Even if LWT–CDR and ICWM signiﬁcantly improve the
+prediction compared with HOSM1 and LWT, the additional modelling effects included
+in HOSM3 substantially increase the accuracy. For data types 1 and 2, the results
+obtained with HOSM3 are satisfactory (see surface proﬁles in ﬁgure 11a), although
+there remains room to reach the optimal accuracy deﬁned in § 4.2. Even for data
+type 3, for which HOSM3 leads to a relatively poor reconstruction compared with
+ICWM (see ﬁgure 5c, f), the propagation performance of HOSM3 leads to a prediction
+accuracy comparable to or even higher than that of ICWM for large wave steepness.
+975 A8-20
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+−0.5
+0
+0.5
+(a)
+(b)
+η/H
+η/H
+15
+16
+17
+18
+19
+20
+15
+16
+17
+18
+19
+20
+[t – (t0 + Ta)]/T
+−0.5
+0
+0.5
+Figure 9. Predicted surface elevation of regular waves of steepness H/λ ≈3.2 % at location xa from a
+reconstruction using observations subject to wave shadowing and that consist of radar intensities (i.e. data type
+3). (a) Comparison of the reference surface (——, green) with LWT (- - - -, red, (
+SSPη ≈0.287) and LWT–CDR
+(· · · · · · ··, red, (
+SSPη ≈0.049). (b) Comparison of the reference surface with HOSM3 (——, (
+SSPη ≈0.014)
+and ICWM (–·–·, red, (
+SSPη ≈0.023).
+Examples of nonlinear predictions using data type 3 are shown in ﬁgure 11(b) to illustrate
+the impact of the complete third-order modelling compared with ICWM. The nonlinear
+phase velocity correction of ICWM is independent of the properties of individual wave
+components, i.e. it acts as a global horizontal shift of the surface according to the sum of
+every wave component’s Stokes drift (Guérin et al. 2019). In consequence, ICWM only
+models an ‘average’ nonlinear phase shift that is mainly driven by the most energetic
+wave components, and misses the frequency-dependent phase correction modelled by
+HOSM3. More speciﬁcally, compared with the modiﬁcation of the dispersion relation
+due to third-order resonant effects (Longuet-Higgins & Phillips 1962), ICWM tends
+to overestimate (underestimate) the velocity correction of low-(high-)frequency wave
+components. It is also interesting to note that in the case of data type 3, ICWM gives
+better prediction results than LWT–CDR, while they are similar for data types 1 and 2.
+This emphasizes the need for accurate modelling of surface slopes when the observations
+are radar intensities.
+5. Application to experimental data
+In this section, the surface reconstruction/prediction algorithms are applied to real wave
+measurements from wave tank experiments. A description and characterization of the
+experimental data are provided by Clauss & Klein (2011) and brieﬂy recalled below.
+5.1. Experimental set-up
+The experimental campaign was carried out in the seakeeping wave tank of the Technical
+University of Berlin and aimed at studying the spatial development of an extreme wave. To
+this end, the New Year wave (also known as the Draupner wave) was reproduced at a scale
+1:70 in the wave tank of length 120 m, width 8 m and depth 1 m. By generating the same
+unidirectional wave ﬁeld multiple times and successively moving an array of wave gauges,
+a total number of 520 gauge measurements were performed with a spatial step of 0.1 m.
+In full scale (which will be used hereafter), the spatial extent of the measurements
+975 A8-21
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+0
+0.1
+0.2
+0.3
+0.4
+0
+0.1
+0.2
+0.3
+0.4
+0
+0.1
+0.2
+0.3
+0.4
+0
+0.1
+0.2
+0.3
+0.4
+0
+0.1
+0.2
+0.3
+0.4
+0
+0.1
+0.2
+0.3
+0.4
+1
+2
+3
+Hs/λp (%)
+Hs/λp (%)
+Hs/λp (%)
+(d)
+1
+2
+3
+(e)
+1
+2
+3
+1
+2
+3
+1
+2
+3
+1
+2
+3
+( f )
+(a)
+(b)
+(c)
+SSPη
+SSPφs
+Figure 10. Prediction accuracy for the irregular wave ﬁeld as a function of the steepness Hs/λp for HOSM1
+(- -•- -), HOSM3 (—•—), LWT (- -△- -, red), LWT–CDR (· · · △· · · , red) and ICWM (– ·△– ·, red). The optimal
+accuracy deﬁned in § 4.2 is also shown (— —). Results using data type (a,d) 1, (b,e) 2 and (c, f) 3 are presented
+(see table 1 for deﬁnitions). The shaded areas show the standard deviation for HOSM3 and ICWM for the 200
+wave ﬁeld realizations.
+−0.5
+0
+0.5
+(a)
+(b)
+η/Hs
+η/Hs
+15
+16
+17
+18
+19
+20
+15
+16
+17
+18
+19
+20
+[t – (t0 + Ta)]/Tp
+−0.5
+0
+0.5
+Figure 11. Predicted surface elevation of irregular waves of steepness Hs/λp ≈3.2 % at location xa from a
+reconstruction using observations subject to wave shadowing and that consist of (a) surface elevations (i.e.
+data type 2) and (b) radar intensities (i.e. data type 3). Comparison of the reference surface (——, green)
+with HOSM1 (- - - -, (
+SSPη ≈0.498), HOSM3 (——, (
+SSPη ≈0.036 (a) and 0.062 (b)) and ICWM (–·–·, red,
+(
+SSPη ≈0.193). The optimal prediction deﬁned in § 4.2 is also shown in (a) (— —, (
+SSPη ≈0.010).
+is 3633 m with a resolution of Δxe = 7 m, which is comparable to the spatial scale
+and resolution of radar measurements. The New Year wave appears at predeﬁned
+target location and time, and the energy distribution of the surrounding wave ﬁeld is
+assumed to be described by a JONSWAP spectrum with Tp = 16.7 s, Hs = 11.92 m and a
+peak-enhancement factor of 1. With a water depth of 70 m, it leads to a peak wavelength
+λp ≈364 m.
+975 A8-22
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+This experimental conﬁguration generalizes the applicability of the reconstruction/
+prediction algorithms in three ways. First, the dimensionless wavenumber kph ≈1.2
+makes the conﬁguration fall into the ﬁnite water depth regime. Second, even if no
+speciﬁc characterization of the signal perturbations was done, the data generation process,
+based on the (generally non-perfect) repeatability of model tests (e.g. calibration and
+measurement inaccuracies with respect to vertical surface displacement but also horizontal
+position of the wave gauge array and distance in between) contaminates the space series of
+surface elevation with spurious ﬂuctuations. Because the surface elevation was measured
+with an array of 13 wave gauges separated by an interval of 2Δxe, that was translated
+by Δxe between two successive wave generations, the main measurement repeatability
+errors take the form of localized ﬂuctuations of wavelength 2Δxe. The amplitude of these
+ﬂuctuations depends on the repeatability between the two successive measurements for
+which the array of wave gauges was translated by Δxe, it is thus not constant all over
+the covered spatial domain. For instance, such ﬂuctuations are clearly identiﬁable in
+ﬁgure 12 around x −x0 = 2800 m. To check that the presented approaches are applicable
+to non-perfect input data, the raw experimental measurements are used without any
+preprocessing procedure to attenuate these perturbations. Finally, the wave ﬁeld contains
+waves that are above the breaking limit, as reported by Clauss & Klein (2011), leading
+breaking events to be included in the reference data. None of the reconstruction methods
+take into account wave breaking and, as explained in the next section, only the third-order
+HOS solution (HOSM3) models wave breaking during the surface propagation phase (i.e.
+t > t0 + Ta). Hence, the following results also inspect the capability of the reconstruction
+approaches to handle wave breaking in the input data, although they do not model it.
+5.2. Adaptation of the algorithms
+Because (i) the observed waves are longer and steeper than in the numerical set-up and (ii)
+highly nonlinear potential ﬂow solvers are subject to limitations in terms of wave steepness
+and space/modal discretization (Ducrozet et al. 2017), the reconstruction algorithms are
+adapted as follows. First, the computational domain of HOS–OCM is extended and
+discretized according to its new dimension relative to λp. Considering the limited spatial
+extent of the surface measurements, a length Lx = 2485 m ≈6.8λp is chosen. By keeping
+the same number of points per peak wavelength, the grid is made of Nx = 140 points.
+This extension also affects the choice of the wavenumbers kn of the wave components
+of the analytical models (see § 2.4). Note that the resulting spatial step Δx ≈17.9 m is
+longer than the wavelength of the measurement perturbations of wavelength 2Δxe = 14 m
+described in the previous section. A similar assimilation period Ta = 3Tp (here ∼50 s) is
+used, and the number of time steps Nt is still ﬁxed to 48 per peak period. The location of the
+synthetic radar remains similar, i.e. approximately 470 m after the end of the computational
+domain. Then, due to the presence of breaking waves, the third-order HOS propagation of
+the reconstructed surface leads the surface elevation to be multi-valued if no energy is
+dissipated, making the simulation crash. In consequence, the propagation of the HOSM3
+solution is performed by an in-house HOS engine that includes a wave breaking model as
+described by Wu (2004, § 4.4). It has been ensured, by comparing predicted surfaces for
+the steepest case presented in § 4.4.2, that the two employed HOS solvers lead to consistent
+results. The other wave models, whose numerical frameworks handle the propagation
+of very steep surfaces without crashing, are propagated without modelling any energy
+dissipation.
+975 A8-23
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+0
+500
+1000
+1500
+2000
+2500
+3000
+x − x0 (m)
+−50
+−40
+−30
+−20
+−10
+0
+10
+20
+30
+40
+50
+60
+70
+80
+90
+100
+t − (t0 + Ta) (s)
+20 m
+Figure 12. Time evolution of the spatial surface proﬁles, from the reconstruction (t −(t0 + Ta) ∈[−50, 0] s)
+to the prediction (t −(t0 + Ta) > 0 s) using data type 1. The wave gauge measurements (——, green) are
+compared with the linear and nonlinear solutions of HOS–OCM, namely HOSM1 (- - - -) and HOSM3 (——).
+The solutions outside the theoretical prediction zone (· · · · · · · ·, grey) are coloured in grey. The extreme wave
+appears at t −(t0 + Ta) = 40 s.
+975 A8-24
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+5.3. Results
+The application of the algorithms to the experimental data is illustrated through one
+speciﬁc conﬁguration chosen such that the New Year wave appears in the middle
+of the prediction zone 40 s after the surface reconstruction. Similar to the numerical
+investigation, the three data types described in § 2.1.1 are used as surface observations.
+The calculation of the prediction zone is similar to that described in § 4.1 with the
+characteristics of the wave ﬁeld generated experimentally. Only the regions on the domain
+boundaries that are left out of the prediction zone due to the periodicity assumption
+(see § 2.5) are kept constant, i.e. approximately equal to 156 m. This choice follows
+the observation that the impact of the periodicity assumption on the accuracy of the
+reconstruction is very limited, and taking regions spanning one peak wavelength would
+be unnecessarily conservative.
+The time evolutions of the reference and reconstructed space series of HOSM1 and
+HOSM3 using data type 1 are presented in ﬁgure 12, together with the propagated
+surfaces up to 100 s of prediction. Both solutions match well the reference surface in the
+reconstructed domain, that is for t −(t0 + Ta) ∈[−50, 0] s. The distinction between the
+linear and nonlinear solutions becomes stronger as time increases during the prediction,
+the linear solution being subject to an increasing phase delay and shape mismatch. In
+contrast, HOSM3 is able to predict the main features of the surface even after 100 s
+of prediction. It can also be noted from ﬁgure 12 that the deﬁnition of the theoretical
+prediction zone is conservative as the predicted surfaces also correlate, to a certain extent,
+with the reference outside the boundaries denoted by the dotted lines. A reﬁned procedure
+for the determination of the actual prediction zone would be of practical interest to avoid
+underestimating the prediction horizon.
+The accuracy is quantiﬁed through the calculation of SSPη (see § 3.2 for deﬁnition)
+over the reconstructed or predicted domain. In the latter case, the integral terms of (3.1)
+are bounded by kℓand kh (calculated from ωℓand ωh, see § 4.1), the limiting wavenumbers
+of the waves included in the prediction zone. The results are presented in ﬁgure 13 for all
+wave models and data types. In agreement with the numerical results, HOSM3 and ICWM
+give the most accurate reconstructions/predictions for all data types, with a signiﬁcant
+advantage for HOSM3. The linear solutions HOSM1 and LWT follow approximately the
+same trend and become rapidly incorrect as time increases. The LWT–CDR is consistent
+with the numerical results in the case of data types 1 and 2, i.e. its reconstruction accuracy
+is close to that of LWT, but gets closer to that of ICWM during the prediction phase. For
+data type 3, however, LWT–CDR fails to correctly reconstruct the surface with SSPη > 0.3
+for all the investigated times. The observed much harder convergence (i.e. need for much
+more iterations) of the weakly nonlinear AMBM solutions in the case of the experimental
+set-up compared with the numerical one could explain the depicted inconsistency in the
+results of LWT–CDR. The determination of the parameter responsible for this lower
+convergence rate, e.g. the presence of wave breaking events or measurement perturbations,
+would necessitate further investigations that are outside of the scope of this paper. In
+contrast, the convergence rate of HOS–OCM is similar in both numerical and experimental
+conﬁgurations.
+Finally, ﬁgure 14 gives a closer view of the New Year wave prediction for all wave
+models and data types. While all the other wave models miss the description of the surface
+elevation, HOSM3 is able to predict the correct phase and amplitude of the New Year wave
+for all data types. In addition to conﬁrming that all the physics modelled at the third order
+is crucial for the correct description of steep wave ﬁelds (e.g. Lünser et al. 2022), this result
+975 A8-25
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+0.4
+(a)
+(b)
+(c)
+0.3
+0.2
+SSPη
+0.1
+0
+0.4
+0.3
+0.2
+0.1
+0
+0.4
+0.3
+0.2
+0.1
+0
+–30
+0
+30
+t – (t0 + Ta) (s)
+60
+90
+–30
+0
+30
+t – (t0 + Ta) (s)
+60
+90
+–30
+0
+30
+t – (t0 + Ta) (s)
+60
+90
+Figure 13. Evolution of the spatial SSP of the surface elevation in time during the reconstruction
+(t −(t0 + Ta) ≤0 s) and prediction (t −(t0 + Ta) > 0 s) periods for HOSM1 (- -•- -), HOSM3 (—•—),
+LWT (- -△- -, red), LWT–CDR (· · · △· · · , red) and ICWM (– ·△– ·, red). Results using data type (a) 1,
+(b) 2 and (c) 3 are presented (see table 1 for deﬁnitions).
+suggests that a prediction system based on such a third-order surface dynamics would be
+enough for severe wave conditions.
+6. Conclusions
+The reconstruction and prediction accuracy of surface waves was investigated using
+observations representing different modulation mechanisms pertaining to remote
+measurements. Using a selection of methods that model different physical properties of
+the ocean surface, the impact of the wave shadowing and tilt modulations on the capacity
+of the prediction algorithms were highlighted. Reconstructing surfaces from observations
+subject to shadowing was found to have an impact limited to the non-visible regions.
+However, using radar intensities (assumed proportional to the surface slopes) instead of
+surface elevations affected the reconstruction more generally due to the indirect, more
+complex extraction of wave information from the measurements. It also brought to light
+some numerical properties of the reconstruction methods, HOS–OCM and AMBM, that
+inﬂuence their respective performances signiﬁcantly. Still, both methods were able to
+predict waves in all conﬁgurations with an accuracy that depends on the limitations of the
+embedded physical model. It was shown that the accuracy of the surface reconstruction
+was mainly related to the correct modelling of the wave shape nonlinearities. In contrast,
+modelling the nonlinear correction of the dispersion relation had a marginal effect on the
+reconstruction accuracy but substantially helped improve the prediction. The third-order
+terms included in HOSM3 that model a frequency-dependent nonlinear wave phase
+correction (unlike ICWM) were shown to be crucial for the correct prediction of steep
+irregular waves. In addition, the application of the algorithms to data from wave tank
+experiments conﬁrmed their suitability for non-perfect measurements, wave breaking and
+ﬁnite water depth. It demonstrated as well the feasibility of extreme wave predictions with
+HOSM3.
+The encouraging results of HOS–OCM/HOSM3 call for further investigations on
+improving the compatibility of highly nonlinear wave models with reconstruction/
+prediction algorithms from real radar measurements and other types of remotely acquired
+wave data. Though the presented study is restricted to unidirectional wave ﬁelds, the
+formalism has been developed to be applicable to directional waves, which will be the
+object of future studies. Relying on the explicit resolution of the wave equations also
+allows extending of the reconstruction to additional environmental parameters. Ongoing
+975 A8-26
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+−10
+0
+10
+(a)
+−10
+0
+10
+(b)
+−10
+0
+10
+(c)
+−10
+0
+10
+(d)
+1000
+1200
+1400
+1600
+1800
+2000
+2200
+2400
+1000
+1200
+1400
+1600
+1800
+2000
+2200
+2400
+1000
+1200
+1400
+1600
+1800
+2000
+2200
+2400
+1000
+1200
+1400
+1600
+1800
+2000
+2200
+2400
+1000
+1200
+1400
+1600
+1800
+2000
+2200
+2400
+x − x0 (m)
+−10
+0
+10
+η (m)
+η (m)
+η (m)
+η (m)
+η (m)
+(e)
+Figure 14. Prediction of the New Year wave, 40 s after the reconstruction. The reference surface (——, green)
+is compared with the predicted solution obtained using data types 1 (——), 2 (- - - -) and 3 (· · · · · · · ·) for (a)
+HOSM1, (b) HOSM3, (c) LWT, (d) LWT–CDR and (e) ICWM.
+investigations are considering the inclusion of the current as an unknown of the surface
+reconstruction problem.
+Acknowledgements. The authors would like to thank all the reviewers for their constructive comments.
+Funding. This paper is published as a contribution to the joint research project EproBOSS. The authors
+wish to express their gratitude to the German Federal Ministry for Economic Affairs and Climate Action
+(BMWK) and Project Management Jülich (PtJ) for funding and supporting the project (M.K. and N.H., grant
+no. 03SX510A). Part of this work was funded by the Deutsche Forschungsgemeinschaft (DFG) (N.H., grant
+no. 277972093).
+Declaration of interests. The authors report no conﬂict of interest.
+975 A8-27
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+Author ORCIDs.
+Nicolas Desmars https://orcid.org/0000-0001-8248-2899;
+Moritz Hartmann https://orcid.org/0000-0001-7282-0399;
+Norbert Hoffmann https://orcid.org/0000-0003-2074-3170;
+Marco Klein https://orcid.org/0000-0003-2867-7534.
+Appendix A. Linearization of the radar intensity
+Under the assumption that the main property affecting the radar backscatter is the local
+incidence angle of the radar beam on the surface, it is possible to express the intensity of
+the backscattered signal by the ocean surface as (Nieto Borge et al. 2004)
+σ = c1
+u · n
+|u| |n| + c2,
+(A1)
+with c1 is a scaling factor and c2 an offset, and where n is the surface-normal vector and
+u the radar-beam vector, both depicted in § 2.1.1. These vectors are expressed as
+n =
+⎡
+⎣
+−ηx
+−ηy
+1
+⎤
+⎦=
+⎡
+⎣
+−ηr cos β + ηβ/r sin β
+−ηr sin β −ηβ/r cos β
+1
+⎤
+⎦,
+(A2a)
+and
+u =
+⎡
+⎣
+xa −x
+ya −y
+za −η
+⎤
+⎦=
+⎡
+⎣
+−r cos β
+−r sin β
+za −η
+⎤
+⎦,
+(A2b)
+from which is deduced
+u · n
+|u| |n| =
+rηr + za −η
+)
+r2 + (za −η)2)
+η2r + η2
+β/r2 + 1
+.
+(A3)
+This leads to a nonlinear relation between σ and the surface elevation. By referring as ϵ to
+either the surface slopes ηr and ηβ or elevation η, (A3) turns into
+u · n
+|u| |n| = rηr
+R + za
+R −r2
+R3 η + O
+
+ϵ2
+.
+(A4)
+As a function of the nominal angle of incidence Θ, it yields
+u · n
+|u| |n| = cos Θ + ηr sin Θ −ηsin2 Θ
+R
++ O
+
+ϵ2
+.
+(A5)
+The linearized solution of the backscattered radar intensity, assumed valid for the
+considered sea states, thus reads
+σ = c1
+
+cos Θ + ηr sin Θ −ηsin2 Θ
+R
+
++ c2.
+(A6)
+Appendix B. Formulation of the HOS–OCM matrices
+The formulation of the matrices used in HOS–OCM are described in this section.
+975 A8-28
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+B.1. In the HOS equations
+The matrix A∂t is deﬁned according to a ﬁnite difference scheme using seven stencils (i.e.
+of sixth order of accuracy). A central scheme is used, except on the time boundaries of
+the grid where either forward or backward schemes are used instead. Spatial-derivative
+matrices A∂x, A∂y and A∂ℓ
+z are derived from the spectral deﬁnition of the derivative
+operators, i.e. ∂x ≡ikx, ∂y ≡iky and ∂ℓ
+z ≡|k|ℓ(with a factor tanh (|k| h) for ℓodd),
+respectively. The notation A∂z in (2.7) refers to A∂1
+z . The vertical-velocity vector at order
+M follows:
+W M =
+M
+
+m=1
+W (m),
+(B1)
+and each order is evaluated as
+W (m) =
+m−1
+
+ℓ=0
+ηℓ
+ℓ!
+A∂ℓ+1
+z
+· φ(m−ℓ).
+(B2)
+The vector φ(m) contains the approximation of the velocity potential at z = 0 at order m
+and is derived iteratively as
+φ(1) = φs,
+(B3)
+φ(m) = −
+m−1
+
+ℓ=1
+ηℓ
+ℓ!
+A∂ℓ
+z · φ(m−ℓ),
+m = 2, . . . , M.
+(B4)
+To avoid spurious numerical results due to aliasing during the calculation of the products,
+a full dealiasing procedure is employed (e.g. Bonnefoy et al. 2010). Finally, in order to
+prevent potential numerical instabilities from appearing in case of high wave steepness,
+high-frequency modal coefﬁcients of the solution vectors φs and η that are used to
+construct the right-hand side terms bd and bk, and of the right-hand side terms themselves,
+are damped according to an exponential ﬁlter before performing the system inversion.
+B.2. Observation-mapping function
+The observation-mapping function relates the quantities at the HOS grid points to the
+observations. It performs two basic operations, an interpolation (from the grid point
+locations to the observation locations, in both space and time) and a mapping (from the
+wave-quantities space to the observation space). More speciﬁcally, the latter operation is
+based on a function that expresses the measured quantity from the surface elevation and/or
+potential at the grid points. In the presented applications, the observations are related to
+the surface elevation only, as it is the case for considered wave sensors that give either η
+or σ according to (2.2). The interpolation function takes the form of a No-by-Np matrix,
+denoted Ai, that uses Lagrange cubic polynomials. The mapping function depends on the
+considered observations, and its formulation is detailed below.
+B.2.1. Mapping surface elevations
+In the case the observations consist of surface elevations (i.e. data types 1 and 2), the
+constraint related to the observations is formulated as a simple interpolation following
+975 A8-29
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+ηo = Ai · η. To match the formalism of (2.7), this equality can be recast into
+AM ·
+φs
+η
+
+= ζ,
+(B5)
+with AM =
+
+O, Ai
+, ζ = ηo, and O an No-by-Np matrix that is full of zeros.
+B.2.2. Mapping radar intensities
+In the case the observations consist of radar intensities, the constraint related to the
+observations is formulated based on the linear radar model (2.2). Consequently, the
+constraint related to the radar observations reads
+σ o = c1
+&
+cos Θo +
+
+Ai · A∂x · η
+
+cos βo +
+
+Ai · A∂y · η
+
+sin βo 
+sin Θo
+−
+
+Ai · η
+ sin2 Θo
+Ro
+'
++ c2w,
+(B6)
+where vectors having the superscript o contain quantities related to observations, namely
+the radar intensity σ, the angle of incidence Θ, the azimuth β or the distance R and w is a
+vector of length No that is full of ones. The last equation is equivalent to
+σ o
+sin Θo = c1
+cos Θo
+sin Θo +
+
+Dc · Ai · A∂x + Ds · Ai · A∂y −De · Ai
+· η
+
++
+c2
+sin Θo , (B7)
+in which Dc, Ds and De are diagonal matrices built from vectors cos βo, sin βo and
+sin Θo/Ro, respectively. To match the formalism of (2.7), equation (B7) is recast into
+AM ·
+φs
+η
+
+= ζ,
+(B8)
+with
+AM =
+
+O, Dc · Ai · A∂x + Ds · Ai · A∂y −De · Ai
+,
+(B9)
+and
+ζ =
+#σ o
+c1
+−c2
+c1
+w −cos Θo
+%
+/ sin Θo.
+(B10)
+Appendix C. Expression of the analytical Jacobian matrices for the least-square
+problems of AMBM
+In this section, the explicit formulation of the Jacobian matrix is given for all
+conﬁgurations of AMBM. Each one is characterized by a wave model (namely LWT,
+ICWM or LWT–CDR) and an observed quantity (i.e. surface elevation or radar
+intensity). For the considered wave models, the model parameters are always of the
+same form, i.e. p = {a1, . . . , aN, b1, . . . , bN}T =
+
+vT
+a, vT
+b
+T, where va = an and vb = bn
+with n = 1, . . . , N and N the number of wave components. The matrix notation is used
+for conciseness and its similarity to the syntax of matrix-computation programming
+languages.
+975 A8-30
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+C.1. With elevation observations
+Using the surface elevation as observed quantity, the cost function described by (2.11)
+writes
+C = 1
+2
+ηm (p) −ηo2 ,
+(C1)
+with ηm the wave model evaluations of ηo. The corresponding No-by-N Jacobian matrix
+is formed by the partial derivatives of every component of ηm with respect to every model
+parameter in p. Explicit expressions are detailed below for LWT, ICWM and LWT–CDR.
+C.1.1. Linear wave theory
+The expression of the surface elevation according to LWT is given by (2.13), leading
+to the Jacobian matrix Jη,LWT =
+
+BT, CT
+where B = cos
+
+κx ⊗xo + κy ⊗yo −ω ⊗to
+and C = sin
+
+κx ⊗xo + κy ⊗yo −ω ⊗to
+with ⊗the outer product, κx = kxn, κy = kyn,
+ω = ωn, and xo, yo, to contain the x-, y-, t-coordinates of the observations, respectively.
+C.1.2. Improved choppy wave model
+The expression of the surface elevation according to ICWM is given by (2.15), leading to
+the Jacobian matrix Jη,ICWM =
+
+ET, FT
+with
+E = G −
+
+Da · H −Db · G
+
+⊙K + Dka · U,
+(C2)
+F = H −
+
+Da · H −Db · G
+
+⊙L + Dkb · U,
+(C3)
+where
+K = Dk ·
+
+Cnl −
+
+Dka · Bnl + Dkb · Cnl + U
+
+⊙(κωva) ⊗to 
+,
+(C4)
+L = Dk ·
+
+−Bnl −
+
+Dka · Bnl + Dkb · Cnl + U
+
+⊙(κωvb) ⊗to 
+,
+(C5)
+in which ⊙denotes the element-wise matrix multiplication. Here, Da, Db, Dk,
+Dka
+and
+Dkb
+are
+diagonal
+matrices
+built
+from
+vectors
+va,
+vb,
+κ,
+κva
+and
+κvb, respectively, where κ = kn. Bnl = cos
+
+κx ⊗xo + κy ⊗yo −ωnl ⊗to
+and Cnl =
+sin
+
+κx ⊗xo + κy ⊗yo −ωnl ⊗to
+are the nonlinear counterparts of B and C that include
+a correction of the dispersion relation, and ωnl = ωnl
+n . Further, U is an N-by-No matrix that
+is full of ones. Finally, G = cos Q and H = sin Q with Q a modiﬁed phase term deﬁned by
+Q = κx ⊗
+
+xo −
+
+−
+κxva
+κ
+T
+· Cnl +
+κxvb
+κ
+T
+· Bnl
+
++ κy ⊗
+
+yo −
+
+−
+κyva
+κ
+T
+· Cnl +
+κyvb
+κ
+T
+· Bnl
+
+−ωnl ⊗to.
+(C6)
+975 A8-31
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+C.1.3. Linear wave theory with corrected dispersion relation
+The expression of the surface elevation according to LWT–CDR is given by (2.18), leading
+to the Jacobian matrix Jη,LC =
+
+MT, NT
+with
+M = Bnl +
+
+Dka · Cnl −Dkb · Bnl
+⊙(κωva) ⊗to,
+(C7)
+N = Cnl +
+
+Dka · Cnl −Dkb · Bnl
+⊙(κωvb) ⊗to.
+(C8)
+C.2. With radar intensity observations
+Using the radar intensity as observed quantity, the cost function described by (2.11) writes
+C = 1
+2
+σ m (p) −σ o2 ,
+(C9)
+with σ m the wave model evaluations of σ o. The corresponding No-by-N Jacobian matrix
+is formed by the partial derivatives of every component of σ m with respect to every model
+parameter in p. Explicit expressions are detailed below for LWT, ICWM and LWT–CDR.
+C.2.1. Linear wave theory
+The formulation of the LWT radar intensity is obtained by inserting (2.13) into (2.2), which
+gives
+σLWT (x, t) = c1 sin Θ
+N
+
+n=1
+
+−an
+
+kxn cos β + kyn sin β
+
+sin ψn + sin Θ
+R
+cos ψn
+
++bn
+
+kxn cos β + kyn sin β
+
+cos ψn −sin Θ
+R
+sin ψn
+
++ c1 cos Θ + c2.
+(C10)
+The corresponding Jacobian matrix is Jσ,LWT =
+
+RT, ST
+with
+R = −
+
+T ⊙C + B · De
+· Dg,
+(C11)
+S =
+
+T ⊙B −C · De
+· Dg,
+(C12)
+in which T = κx ⊗cos βo + κy ⊗sin βo, the deﬁnitions of βo, Θo, w and De follow from
+§ B.2.2, and Dg is a diagonal matrix built from the vector c1 sin Θo.
+975 A8-32
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+C.2.2. Improved choppy wave model
+The formulation of the ICWM radar intensity is obtained by inserting (2.15) into (2.2),
+which gives
+σICWM (x, t)
+= c1 sin Θ
+N
+
+n=1
+
+−an
+#
+{[kxn(1 −l) −kynd] cos β + [kyn (1 −q) −kxnd] sin β} sin Ψn
++sin Θ
+R
+cos Ψn
+%
++ bn
+#
+{[kxn(1 −l) −kynd] cos β + [kyn (1 −q) −kxnd] sin β} cos Ψn
+−sin Θ
+R
+sin Ψn
+%
+−sin Θ
+2R
+
+a2
+n + b2
+n
+
+kn
+
++ c1 cos Θ + c2,
+(C13)
+with
+d =
+N
+
+n=1
+kxnkyn
+kn
+
+−an cos ψnl
+n −bn sin ψnl
+n
+
+,
+l =
+N
+
+n=1
+kx2
+n
+kn
+
+−an cos ψnl
+n −bn sin ψnl
+n
+
+,
+q =
+N
+
+n=1
+ky2
+n
+kn
+
+−an cos ψnl
+n −bn sin ψnl
+n
+
+.
+⎫
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎬
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎭
+(C14)
+The corresponding Jacobian matrix is Jσ,ICWM =
+
+V T, W T
+with
+V =
+
+X ⊙
+
+H +
+
+Da · G + Db · H
+
+⊙K
+ 
+−
+
+Dm · M · Dc + Dn · M · Ds
+⊙
+
+Da · H −Db · G
+
+−E · De
+· Dg,
+(C15)
+W =
+
+X ⊙
+
+−G +
+
+Da · G + Db · H
+
+⊙L
+ 
+−
+
+Dm · N · Dc + Dn · N · Ds
+⊙
+
+Da · H −Db · G
+
+−F · De
+· Dg,
+(C16)
+in
+which
+X = −T + κx ⊗l cos βo + κy ⊗d cos βo + κy ⊗q sin βo + κx ⊗d sin βo.
+Diagonal matrices Dm and Dn are built from vectors κxκ and κyκ, respectively, and
+d = −
+κxκyva
+κ
+T
+· Bnl −
+κxκyvb
+κ
+T
+· Cnl,
+(C17)
+l = −
+#κ2
+xva
+κ
+%T
+· Bnl −
+#κ2
+xvb
+κ
+%T
+· Cnl,
+(C18)
+q = −
+
+κ2
+yva
+κ
+T
+· Bnl −
+
+κ2
+yvb
+κ
+T
+· Cnl.
+(C19)
+975 A8-33
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+C.2.3. Linear wave theory with corrected dispersion relation
+The formulation of the LWT–CDR radar intensity is obtained by inserting (2.18) into (2.2),
+which gives
+σLC (x, t) = c1 sin Θ
+N
+
+n=1
+
+−an
+
+kxn cos β + kyn sin β
+
+sin ψnl
+n + sin Θ
+R
+cos ψnl
+n
+
++bn
+
+kxn cos β + kyn sin β
+
+cos ψnl
+n −sin Θ
+R
+sin ψnl
+n
+
++ c1 cos Θ + c2.
+(C20)
+The corresponding Jacobian matrix is Jσ,LC =
+
+Y T, ZT
+with
+Y =
+
+T ⊙
+
+−Cnl +
+
+Dka · Bnl + Dkb · Cnl
+⊙(κωva) ⊗to 
+−M · De
+· Dg,
+(C21)
+Z =
+
+T ⊙
+
+Bnl +
+
+Dka · Bnl + Dkb · Cnl
+⊙(κωvb) ⊗to 
+−N · De
+· Dg.
+(C22)
+Appendix D. Velocity potential of ICWM
+In this section, the velocity potential of ICWM in its original Lagrangian framework
+is derived under deep water assumption. Then, the corresponding surface potential is
+approximated in the Eulerian framework, leading to the expression that is used for
+comparison with the reference solution.
+D.1. Velocity potential in the Lagrangian framework
+A potential P of a Lagrangian ﬂow is deﬁned such that its derivatives according to a
+particle instantaneous location R = {x (¯x, ¯y, ¯z, t) , y (¯x, ¯y, ¯z, t) , z (¯x, ¯y, ¯z, t)}T (with ¯R =
+{¯x, ¯y, ¯z}T the reference particle location deﬁned by the surface at rest) give the particle
+velocity, i.e. ∇RP = Rt with ∇R =
+
+∂x, ∂y, ∂z
+T. Because the Lagrangian framework
+leads to the knowledge of Rt at the particle location R instead of at any arbitrary spatial
+point, the calculation of P by direct integration of Rt with respect to R is not trivial.
+Alternatively, demonstrating that a function P is a velocity potential of the Lagrangian
+ﬂow can be done as follows. By deﬁnition, a perfect differential dP can be written in the
+form
+dP = ∇¯RP · d ¯R = ∇RP · dR,
+(D1)
+with ∇¯R =
+
+∂¯x, ∂¯y, ∂¯z
+T. Then, using the following relation
+(J · Rt) · d ¯R = Rt · dR,
+(D2)
+with J the Jacobian matrix of R deﬁned by
+J =
+⎡
+⎣
+x¯x
+y¯x
+z¯x
+x¯y
+y¯y
+z¯y
+x¯z
+y¯z
+z¯z
+⎤
+⎦,
+(D3)
+it is possible to state that ﬁnding a function P such that dP = (J · Rt) · d ¯R is a perfect
+differential (equivalent to showing that ∇¯RP = J · Rt) implies that ∇RP = Rt, thus that
+P is a velocity potential.
+975 A8-34
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+The components of the free surface (i.e. at ¯z = 0) particle displacement according
+to ICWM is given by Guérin et al. (2019). Noticing that the only differences between
+the classical second-order Lagrangian solution, such as derived by Nouguier et al.
+(2015, (5.25)–(5.27)) and Pierson (1961, (8) and (27) with a second-order vertical mean
+correction), and ICWM are (i) the corrected horizontal particle shift and (ii) the neglected
+interaction terms between waves of different frequencies, the ICWM components R are
+extended here to any water depth ¯z to yield
+x (¯x, ¯z, t) = ¯x +
+N
+
+n=1
+kn
+kn
+
+−an sin ˜ψn + bn cos ˜ψn
+
+ekn¯z + Ust,
+(D4)
+z (¯x, ¯z, t) = ¯z +
+N
+
+n=1
+
+an cos ˜ψn + bn sin ˜ψn
+
+ekn¯z + 1
+2
+N
+
+n=1
+
+a2
+n + b2
+n
+
+kn e2kn¯z,
+(D5)
+where
+˜ψn = kn · ¯x −˜ωnt, ˜ωn = ωn −1
+2kn · Us, and Us = *N
+n=1
+
+a2
+n + b2
+n
+
+ωnkne2kn¯z,
+and their time derivatives Rt follow
+xt (¯x, ¯z, t) =
+N
+
+n=1
+kn
+kn
+˜ωn
+
+an cos ˜ψn + bn sin ˜ψn
+
+ekn¯z + Us,
+(D6)
+zt (¯x, ¯z, t) =
+N
+
+n=1
+˜ωn
+
+an sin ˜ψn −bn cos ˜ψn
+
+ekn¯z.
+(D7)
+The corresponding Jacobian matrix, written in the form J = {J1, J 2, J3}, reads
+J 1 =
+⎡
+⎣
+x¯x
+x¯y
+x¯z
+⎤
+⎦=
+⎡
+⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎣
+1 +
+N
+
+n=1
+kx2
+n
+kn
+
+−an cos ˜ψn −bn sin ˜ψn
+
+ekn¯z
+N
+
+n=1
+kxnkyn
+kn
+
+−an cos ˜ψn −bn sin ˜ψn
+
+ekn¯z
+⎛
+⎜⎜⎜⎜⎜⎝
+N
+
+n=1
+kxn
+
+−an sin ˜ψn + bn cos ˜ψn
+
+ekn¯z
++
+N
+
+n=1
+
+a2
+n + b2
+n
+
+2knωnkxne2kn¯zt + O
+
+ϵ3
+⎞
+⎟⎟⎟⎟⎟⎠
+⎤
+⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎦
+,
+(D8)
+975 A8-35
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+J 2 =
+⎡
+⎢⎣
+y¯x
+y¯y
+y¯z
+⎤
+⎥⎦=
+⎡
+⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎣
+N
+
+n=1
+kxnkyn
+kn
+
+−an cos ˜ψn −bn sin ˜ψn
+
+ekn¯z
+1 +
+N
+
+n=1
+ky2
+n
+kn
+
+−an cos ˜ψn −bn sin ˜ψn
+
+ekn¯z
+⎛
+⎜⎜⎜⎜⎜⎝
+N
+
+n=1
+kyn
+
+−an sin ˜ψn + bn cos ˜ψn
+
+ekn¯z
++
+N
+
+n=1
+
+a2
+n + b2
+n
+
+2knωnkyne2kn¯zt + O
+
+ϵ3
+⎞
+⎟⎟⎟⎟⎟⎠
+⎤
+⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎦
+,
+(D9)
+J3 =
+⎡
+⎢⎣
+z¯x
+z¯y
+z¯z
+⎤
+⎥⎦=
+⎡
+⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎣
+N
+
+n=1
+kxn
+
+−an sin ˜ψn + bn cos ˜ψn
+
+ekn¯z
+N
+
+n=1
+kyn
+
+−an sin ˜ψn + bn cos ˜ψn
+
+ekn¯z
+⎛
+⎜⎜⎜⎜⎜⎝
+1 +
+N
+
+n=1
+kn
+
+an cos ˜ψn + bn sin ˜ψn
+
+ekn¯z
++
+N
+
+n=1
+
+a2
+n + b2
+n
+
+k2
+ne2kn¯z + O
+
+ϵ3
+⎞
+⎟⎟⎟⎟⎟⎠
+⎤
+⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎦
+,
+(D10)
+in which ϵ ≡k
+√
+a2 + b2 characterizes the wave steepness. Then, retaining terms up to the
+second order in ϵ and ignoring interaction terms of waves having different frequencies,
+such as done for ICWM (Guérin et al. 2019), the components of J · Rt yield
+J1 · Rt =
+N
+
+n=1
+kxn
+kn
+˜ωn
+
+an cos ˜ψn + bn sin ˜ψn
+
+ekn¯z,
+(D11)
+J2 · Rt =
+N
+
+n=1
+kyn
+kn
+˜ωn
+
+an cos ˜ψn + bn sin ˜ψn
+
+ekn¯z,
+(D12)
+J3 · Rt =
+N
+
+n=1
+˜ωn
+
+an sin ˜ψn −bn cos ˜ψn
+
+ekn¯z.
+(D13)
+A function P that satisﬁes the ﬁrst-order Lagrangian expansion for an irregular
+unidirectional wave ﬁeld is given by Pierson (1961, (8)) and Nouguier et al. (2015,
+(3.10)). For the second order, Nouguier et al. (2015, (4.46)) give a continuous form of
+such a function for a directional irregular wave ﬁeld, while Pierson (1961, (27)) gives its
+discrete formulation for a bichromatic two-dimensional wave ﬁeld. This latter expression
+only involves interaction terms of wave components of different frequencies, which are
+neglected in the present formulation of ICWM. Hence, the ﬁrst-order potential function
+that includes the ICWM nonlinear phase correction appears to be a good candidate for the
+975 A8-36
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+velocity potential and reads
+P =
+N
+
+n=1
+˜ωn
+kn
+
+an sin ˜ψn −bn cos ˜ψn
+
+ekn¯z.
+(D14)
+Indeed, using the above function, the components of ∇¯RP correspond to those of J · Rt
+(D11) to (D13). Consequently, (J · Rt) · d ¯R is a perfect differential of P to the second
+order, meaning that ∇RP = Rt and P is a velocity potential of ICWM in the Lagrangian
+framework.
+D.2. Approximation of the surface potential in Eulerian form
+In order to compare the value of the potential with the reference solution at any spatial
+point, an Eulerian form of (D14) is required. Because the derivation of the complete
+explicit Eulerian formulation is not trivial and would lead to lose the mathematical
+simplicity of the Lagrangian formulation, only an approximation the Lagrangian solution
+is calculated. Similar to the procedure used by Desmars et al. (2020) to evaluate the
+Eulerian surface elevation of ICWM, the quantities are expressed on the free surface,
+i.e. at ¯z = 0, and a change of reference is performed to implicitly take into account the
+horizontal particle shift Us|¯z=0. This leads to the following expressions of the surface
+particle horizontal location and velocity potential
+x (¯x −Us|¯z=0t, 0, t) = X (¯x, t) = ¯x +
+N
+
+n=1
+kn
+kn
+
+−an sin ψnl
+n + bn cos ψnl
+n
+
+= ¯x + D (¯x, t) ,
+(D15)
+P (¯x −Us|¯z=0t, 0, t) = P (¯x, t) =
+N
+
+n=1
+˜ωn|¯z=0
+kn
+
+an sin ψnl
+n −bn cos ψnl
+n
+
+,
+(D16)
+where ψnl
+n = kn · x −ωnl
+n t and ωnl
+n = ωn + 1
+2kn · Us|¯z=0. Then, the surface potential of
+ICWM at any spatial point is evaluated by computing the particle horizontal displacement
+at its instantaneous rather than its reference location according to
+P (¯x) = P (X −D (¯x)) ≈P (X −D (X)) = φs
+ICWM (X ) .
+(D17)
+Finally, the expression of the surface potential of ICWM in the Eulerian framework is
+φs
+ICWM (x, t) =
+N
+
+n=1
+˜ωn|¯z=0
+kn
+(an sin Ψn −bn cos Ψn) ,
+(D18)
+where
+Ψn = kn ·
+!
+x −
+N
+
+m=1
+km
+km
+
+−am sin ψnl
+m + bm cos ψnl
+m
+"
+−ωnl
+n t.
+(D19)
+The surface potential of LWT–CDR follows directly by removing the effect of the
+nonlinear shape correction from (D18), i.e. replacing Ψn with ψnl
+n .
+975 A8-37
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+REFERENCES
+AL-ANI, M., CHRISTMAS, J., BELMONT, M.R., DUNCAN, J.M., DUNCAN, J. & FERRIER, B. 2019
+Deterministic sea waves prediction using mixed space–time wave radar data. J. Atmos. Ocean. Technol.
+36 (5), 833–842.
+ALPERS, W. & HASSELMANN, K. 1978 The two-frequency microwave technique for measuring ocean-wave
+spectra from an airplane or satellite. Boundary-Layer Meteorol. 13 (1–4), 215–230.
+ALPERS, W.R., ROSS, D.B. & RUFENACH, C.L. 1981 On the detectability of ocean surface waves by real
+and synthetic aperture radar. J. Geophys. Res. 86 (C7), 6481–6498.
+ARAGH, S. & NWOGU, O. 2008 Variation assimilating of synthetic radar data into a pseudo-spectral wave
+model. J. Coast. Res. 52, 235–244.
+BAKER, A.H., JESSUP, E.R. & MANTEUFFEL, T. 2005 A technique for accelerating the convergence of
+restarted gmres. SIAM J. Matrix Anal. Appl. 26 (4), 962–984.
+BELMONT, M.R., HORWOOD, J.M.K., THURLEY, R.W.F. & BAKER, J. 2007 Shallow angle wave proﬁling
+lidar. J. Atmos. Ocean. Technol. 24 (6), 1150–1156.
+BLONDEL, E., BONNEFOY, F. & FERRANT, P. 2010 Deterministic non-linear wave prediction using probe
+data. Ocean Engng 37 (10), 913–926.
+BLONDEL-COUPRIE, E., BONNEFOY, F. & FERRANT, P. 2013 Experimental validation of non-linear
+deterministic prediction schemes for long-crested waves. Ocean Engng 58, 284–292.
+BONNEFOY, F., DUCROZET, G., LE TOUZÉ, D. & FERRANT, P. 2010 Time-domain simulation of nonlinear
+water waves using spectral methods. In Advances in Numerical Simulation of Nonlinear Water Waves,
+pp. 129–164. World Scientiﬁc.
+CLAUSS, G.F. & KLEIN, M. 2011 The new year wave in a seakeeping basin: generation, propagation,
+kinematics and dynamics. Ocean Engng 38 (14), 1624–1639.
+DANKERT, H. & ROSENTHAL, W. 2004 Ocean surface determination from x-band radar-image sequences.
+J. Geophys. Res. 109 (C4).
+DESMARS, N., BONNEFOY, F., GRILLI, S.T., DUCROZET, G., PERIGNON, Y., GUÉRIN, C.-A. & FERRANT,
+P. 2020 Experimental and numerical assessment of deterministic nonlinear ocean waves prediction
+algorithms using non-uniformly sampled wave gauges. Ocean Engng 212, 107659.
+DESMARS, N., HARTMANN, M., BEHRENDT, J., KLEIN, M. & HOFFMANN, N. 2022 Nonlinear
+reconstruction and prediction of regular waves. In International Conference on Offshore Mechanics
+and Arctic Engineering, Ocean Engineering; Honoring Symposium for Professor Günther F. Clauss on
+Hydrodynamics and Ocean Engineering, vol. 5B. ASME.
+DOMMERMUTH, D. 2000 The initialization of nonlinear waves using an adjustment scheme. Wave Motion
+32 (4), 307–317.
+DOMMERMUTH, D.G. & YUE, D.K.P. 1987 A high-order spectral method for the study of nonlinear gravity
+waves. J. Fluid Mech. 184, 267–288.
+DUCROZET, G., BONNEFOY, F., LE TOUZÉ, D. & FERRANT, P. 2016 Hos-ocean: open-source solver for
+nonlinear waves in open ocean based on high-order spectral method. Comput. Phys. Commun. 203,
+245–254.
+DUCROZET, G., BONNEFOY, F. & PERIGNON, Y. 2017 Applicability and limitations of highly non-linear
+potential ﬂow solvers in the context of water waves. Ocean Engng 142, 233–244.
+FISHER, A., THOMSON, J. & SCHWENDEMAN, M. 2021 Rapid deterministic wave prediction using a sparse
+array of buoys. Ocean Engng 228, 108871.
+FUJIMOTO, W. & WASEDA, T. 2020 Ensemble-based variational method for nonlinear inversion of surface
+gravity waves. J. Atmos. Ocean. Technol. 37 (1), 17–31.
+GANGESKAR, R. 2000 Wave height derived by texture analysis of x-band radar sea surface images. In IGARSS
+2000. IEEE 2000 International Geoscience and Remote Sensing Symposium. Taking the Pulse of the Planet:
+The Role of Remote Sensing in Managing the Environment. Proceedings (Cat. No. 00CH37120), vol. 7,
+pp. 2952–2959.
+GRILLI, S.T., GUÉRIN, C. -A. & GOLDSTEIN, B. 2011 Ocean wave reconstruction algorithms based on
+spatio-temporal data acquired by a ﬂash lidar camera. In Proceedings of the Twenty-ﬁrst International
+Offshore and Polar Engineering Conference, pp. 275–282. International Society of Offshore and Polar
+Engineers.
+GUÉRIN, C.-A., DESMARS, N., GRILLI, S.T., DUCROZET, G., PERIGNON, Y. & FERRANT, P. 2019 An
+improved lagrangian model for the time evolution of nonlinear surface waves. J. Fluid Mech. 876, 527–552.
+GUIMARÃES, P.V., ARDHUIN, F., BERGAMASCO, F., LECKLER, F., FILIPOT, J.-F., SHIM, J.-S., DULOV,
+V. & BENETAZZO, A. 2020 A data set of sea surface stereo images to resolve space-time wave ﬁelds. Sci.
+Data 7 (1), 1–12.
+975 A8-38
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+Nonlinear prediction of remotely measured ocean waves
+HASSELMANN, K., et al. 1973 Measurements of wind-wave growth and swell decay during the joint north sea
+wave project (JONSWAP). Dtsch. Hydrogr. Z. A 8 (12).
+HLOPHE, T., WOLGAMOT, H., KURNIAWAN, A., TAYLOR, P.H., ORSZAGHOVA, J. & DRAPER, S. 2021 Fast
+wave-by-wave prediction of weakly nonlinear unidirectional wave ﬁelds. Appl. Ocean Res. 112, 102695.
+HUANG, W., LIU, X. & GILL, E. 2017 Ocean wind and wave measurements using x-band marine radar: a
+comprehensive review. Remote Sens. 9 (12), 1261.
+HUCHET, M., BABARIT, A., DUCROZET, G., GILLOTEAUX, J.-C. & FERRANT, P. 2021 Nonlinear
+deterministic sea wave prediction using instantaneous velocity proﬁles. Ocean Engng 220, 108492.
+KABEL, T., GEORGAKIS, C.T. & ROD ZEEBERG, A. 2019 Mapping ocean waves using new lidar equipment.
+In Proceedings of the Twenty-ninth (2019) International Ocean and Polar Engineering Conference,
+pp. 2558–2562. International Society of Offshore and Polar Engineers.
+KLEIN, M., DUDEK, M., CLAUSS, G.F., EHLERS, S., BEHRENDT, J., HOFFMANN, N. & ONORATO, M.
+2020 On the deterministic prediction of water waves. Fluids 5(1), 9.
+LI, G., WEISS, G., MUELLER, M., TOWNLEY, S. & BELMONT, M.R. 2012 Wave energy converter control
+by wave prediction and dynamic programming. Renew. Energy 48, 392–403.
+LONGUET-HIGGINS, M.S. & PHILLIPS, O.M. 1962 Phase velocity effects in tertiary wave interactions.
+J. Fluid Mech. 12 (3), 333–336.
+LUDENO, G. & SERAFINO, F. 2019 Estimation of the signiﬁcant wave height from marine radar images
+without external reference. J. Mar. Sci. Engng 7 (12), 432.
+LUND, B., COLLINS, C.O., GRABER, H.C., TERRILL, E. & HERBERS, T.H.C. 2014 Marine radar ocean
+wave retrieval’s dependency on range and azimuth. Ocean Dyn. 64 (7), 999–1018.
+LÜNSER, H., HARTMANN, M., DESMARS, N., BEHRENDT, J., HOFFMANN, N. & KLEIN, M. 2022 The
+inﬂuence of characteristic sea state parameters on the accuracy of irregular wave ﬁeld simulations of
+different complexity. Fluids 7 (7), 243.
+LYZENGA, D.R., NWOGU, O.G., BECK, R.F., O’BRIEN, A., JOHNSON, J., DE PAOLO, T. & TERRILL,
+E. 2015 Real-time estimation of ocean wave ﬁelds from marine radar data. In 2015 IEEE International
+Geoscience and Remote Sensing Symposium, pp. 3622–3625.
+MA, Y., SCLAVOUNOS, P.D., CROSS-WHITER, J. & ARORA, D. 2018 Wave forecast and its application to
+the optimal control of offshore ﬂoating wind turbine for load mitigation. Renew. Energy 128, 163–176.
+MEISNER, E., GALVAGNO, M., ANDRADE, D., LIBERZON, D. & STUHLMEIER, R. 2023 Wave-by-wave
+forecasts in directional seas using nonlinear dispersion corrections. Phys. Fluids 35 (6), 062104.
+MÉRIGAUD, A. & TONA, P. 2022 A stochastic approach to short-term ocean wave forecasting: preliminary
+results using data from a remote sensing imaging system. In International Conference on Offshore
+Mechanics and Arctic Engineering, Offshore Technology, vol. 1. ASME.
+MORÉ, J.J. 1978 The Levenberg-Marquardt algorithm: implementation and theory. In Numerical Analysis (ed.
+G.A. Watson), pp. 105–116. Springer.
+NAAIJEN, P., TRULSEN, K. & BLONDEL-COUPRIE, É. 2014 Limits to the extent of the spatio-temporal
+domain for deterministic wave prediction. Intl Shipbuild. Prog. 61 (3–4), 203–223.
+NAAIJEN, P., VAN OOSTEN, K., ROOZEN, K. & VAN’T VEER, R. 2018 Validation of a deterministic
+wave and ship motion prediction system. In International Conference on Offshore Mechanics and Arctic
+Engineering, Ocean Engineering, vol. 7B, pp. 1–8. ASME.
+NAAIJEN, P. & WIJAYA, A.P. 2014 Phase resolved wave prediction from synthetic radar images. In
+International Conference on Offshore Mechanics and Arctic Engineering, Ocean Engineering, vol. 8A.
+ASME.
+NIETO BORGE, J.C., RODRÍGUEZ, G.R., HESSNER, K. & GONZÁLEZ, P.I. 2004 Inversion of marine radar
+images for surface wave analysis. J. Atmos. Ocean. Technol. 21 (8), 1291–1300.
+NOCEDAL, J. & WRIGHT, S.J. 1999 Numerical Optimization. Springer.
+NOUGUIER, F., CHAPRON, B. & GUÉRIN, C.-A. 2015 Second-order Lagrangian description of
+tri-dimensional gravity wave interactions. J. Fluid Mech. 772, 165–195.
+NOUGUIER, F., GRILLI, S.T. & GUÉRIN, C.-A. 2014 Nonlinear ocean wave reconstruction algorithms
+based on spatiotemporal data acquired by a ﬂash lidar camera. IEEE Trans. Geosci. Remote Sens. 52 (3),
+1761–1771.
+PERLIN, M. & BUSTAMANTE, M.D. 2016 A robust quantitative comparison criterion of two signals based on
+the sobolev norm of their difference. J. Engng Maths 101 (1), 115–124.
+PIERSON, W.J. 1961 Models of random seas based on the Lagrangian equations of motion. Tech. Rep. New
+York University.
+PLANT, W.J. & FARQUHARSON, G. 2012 Wave shadowing and modulation of microwave backscatter from
+the ocean. J. Geophys. Res. 117 (C8).
+975 A8-39
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+QI, Y., WU, G., LIU, Y., KIM, M.-H. & YUE, D.K.P. 2018a Nonlinear phase-resolved reconstruction of
+irregular water waves. J. Fluid Mech. 838, 544–572.
+QI, Y., WU, G., LIU, Y. & YUE, D.K.P. 2018b Predictable zone for phase-resolved reconstruction and forecast
+of irregular waves. Wave Motion 77, 195–213.
+SALCEDO-SANZ, S., NIETO BORGE, J.C., CARRO-CALVO, L., CUADRA, L., HESSNER, K. &
+ALEXANDRE, E. 2015 Signiﬁcant wave height estimation using SVR algorithms and shadowing
+information from simulated and real measured x-band radar images of the sea surface. Ocean Engng 101,
+244–253.
+SIMANESEW, A., TRULSEN, K., KROGSTAD, H.E. & NIETO BORGE, J.C. 2017 Surface wave predictions in
+weakly nonlinear directional seas. Appl. Ocean Res. 65, 79–89.
+SIMPSON, A., HALLER, M., WALKER, D., LYNETT, P. & HONEGGER, D. 2020 Wave-by-wave forecasting
+via assimilation of marine radar data. J. Atmos. Ocean. Technol. 37 (7), 1269–1288.
+STØLE-HENTSCHEL, S., SEEMANN, J., NIETO BORGE, J.C. & TRULSEN, K. 2018 Consistency between sea
+surface reconstructions from nautical x-band radar doppler and amplitude measurements. J. Atmos. Ocean.
+Technol. 35 (6), 1201–1220.
+TRULSEN, K. 2007 Weakly nonlinear sea surface waves – freak waves and deterministic forecasting.
+In Geometric Modelling, Numerical Simulation, and Optimization: Applied Mathematics at SINTEF
+(ed. G. Hasle, K.-A. Lie & E. Quak), pp. 191–209. Springer.
+WANG, G. & PAN, Y. 2021 Phase-resolved ocean wave forecast with ensemble-based data assimilation.
+J. Fluid Mech. 918, A19.
+WANG, G., ZHANG, J., MA, Y., ZHANG, Q., LI, Z. & PAN, Y. 2022 Phase-resolved ocean wave forecast
+with simultaneous current estimation through data assimilation. J. Fluid Mech. 949, A31.
+WEST, B.J., BRUECKNER, K.A., JANDA, R.S., MILDER, D.M. & MILTON, R.L. 1987 A new numerical
+method for surface hydrodynamics. J. Geophys. Res. 92 (C11), 11803–11824.
+WU, G. 2004 Direct simulation and deterministic prediction of large-scale nonlinear ocean wave-ﬁeld. PhD
+Thesis, Massachusetts Institute of Technology.
+WU, J., HAO, X. & SHEN, L. 2022 An improved adjoint-based ocean wave reconstruction and prediction
+method. Flow 2, E2.
+YOON, S., KIM, J. & CHOI, W. 2016 An explicit data assimilation scheme for a nonlinear wave prediction
+model based on a pseudo-spectral method. IEEE J. Ocean. Engng 41 (1), 112–122.
+YOUNG, I.R., ROSENTHAL, W. & ZIEMER, F. 1985 A three-dimensional analysis of marine radar images for
+the determination of ocean wave directionality and surface currents. J. Geophys. Res. 90 (C1), 1049–1059.
+ZAKHAROV, V.E. 1968 Stability of periodic waves of ﬁnite amplitude on the surface of a deep ﬂuid. J. Appl.
+Mech. Tech. Phys. 9 (2), 190–194.
+975 A8-40
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press

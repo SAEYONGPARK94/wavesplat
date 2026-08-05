@@ -1,0 +1,1241 @@
+ 
+ 
+ 
+Sea Trial on Deterministic Sea Waves Prediction Using Wave-
+1 
+Profiling Radar 
+2 
+ 
+ 
+Mustafa Al-Ani*, Michael Belmont, and Jacqueline Christmas  
+3 
+College of Engineering, Mathematics and Physical Sciences, University of Exeter, Exeter, 
+4 
+UK. 
+5 
+ 
+* Corresponding author. E-mail address: m.t.a.al-ani@exeter.ac.uk 
+6 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+1 
+ 
+ABSTRACT 
+1 
+Short-term deterministic sea wave prediction (DSWP) can facilitate the safe implementation 
+2 
+of a number of maritime operations. Wave profile radars, based on the conventional X-band 
+3 
+radars, have recently been proven to provide a low-cost convenient source of two-dimensional 
+4 
+wave measurement for DSWP. The Golden Arrow sea trial in the North Atlantic was dedicated 
+5 
+to collecting wave and vessel motion data for DSWP purposes, particularly under the large sea 
+6 
+conditions that are of practical interest in marine operations. The field data were collected using 
+7 
+a wave profiling radar and other measurement technologies for validation. This paper reports 
+8 
+on the successful application of a recently developed technique by Al-Ani et al. in DSWP to 
+9 
+the dedicated sea trial. 
+10 
+Keywords - Deterministic sea wave prediction (DSWP); quiescent period prediction (QPP); 
+11 
+sea trial; wave profiling radar 
+12 
+1.  Introduction 
+13 
+Short-term deterministic sea wave prediction (DSWP) can potentially play a useful role in 
+14 
+extending the sea states under which many critical maritime operations can be safely 
+15 
+undertaken (Crossland et al., 2009; Giron-Sierra and Esteban, 2010; Ferrier et al., 2013). 
+16 
+DSWP as a branch of marine science had its roots in the early 1990’s and has recently evolved 
+17 
+into a rapidly growing discipline, an illustrative sample of the literature being Morris et al. 
+18 
+(1992), Pourzanjani et al. (1992), Blondel et al. (2008), Belmont et al. (2014), Hilmer and 
+19 
+Thrinhill (2014), and Connell et al. (2015). Unlike traditional statistical estimation of sea wave 
+20 
+properties (Tucker and Pitt, 2001), the discipline of DSWP aims to predict (few tens of seconds 
+21 
+in advance) the actual profile of the sea surface and its evolution. Typical prediction timescales 
+22 
+are in the range of 60-120 s ahead. Two common elements make DSWP an attractive tool in 
+23 
+safely operating many launch and recovery tasks including: the launch and recovery of fixed 
+24 
+
+2 
+ 
+and rotary wing aircraft; small, surface or submersible vehicles, such as RHIBs; and cargo, 
+1 
+fuel, and personnel transfer systems between vessels, and vessels onto offshore structures. 
+2 
+Firstly, while the overall execution of such tasks may take a significant amount of time, the 
+3 
+key wave-height-critical sub-tasks that actually limit the sea state under which they can be 
+4 
+carried out are short, typically less than one minute.  Secondly, a fundamental property of most 
+5 
+sea conditions encountered that are of relevance to ships is that sets of large waves alternate 
+6 
+with sets of smaller waves, the exception being highly multidirectional large wind-wave seas 
+7 
+encountered within very strong storm systems when the wind conditions themselves typically 
+8 
+prohibit most launch and recovery operations. The smaller waves present in otherwise large 
+9 
+seas are, by definition, of lower height than the standard sea statistics for the prevailing 
+10 
+conditions, and consequently the intervals in which these lower height waves occur are referred 
+11 
+to as quiescent periods.  Combining the above two elements, i.e. the relatively short duration 
+12 
+of the wave-height critical sub-tasks and the presence of quiescent periods, suggests that if the 
+13 
+smaller waves could be deterministically predicted then a range of maritime operations could 
+14 
+be safely undertaken under conditions whose overall sea state statistics would prohibit the 
+15 
+execution of the task.  Hence, there is an increasing interest in the capabilities, such as quiescent 
+16 
+period prediction (QPP), that are based upon DSWP (Pourzanjani et al., 1992; Ferrier et al., 
+17 
+2000; Crossland et al., 2009; Ferrier et al., 2013). 
+18 
+As discussed in Belmont et al. (2014), wave profiling radars are the only realistic sensing 
+19 
+technology for shipborne applications of DSWP.  Conventional vessel-mounted wave radar 
+20 
+returns statistical wave data (sea surface roughness).  In contrast, the OceanWaveS WaMoS II 
+21 
+wave profiling radar (Reichert et al., 1999) offers the prospect of measuring the actual sea 
+22 
+surface profile over an area of a few square kilometres around a vessel, based on the standard 
+23 
+X-band radar carried by ships for safe navigation purposes. In Hilmer and Thornhill (2014), 
+24 
+the accuracy of WaMoS II at rendering sea surface elevation was evaluated against a wave 
+25 
+
+3 
+ 
+buoy, where the majority of correlation coefficients exceeded 0.87. Due to the commercial 
+1 
+nature of the source, full details of all the processing algorithms employed in extracting wave 
+2 
+profiles from radar backscatter data are not available to users and their details are 
+3 
+understandably not fully disclosed in the company’s published material (Hilmer and Thornhill 
+4 
+2015).  
+5 
+Using experimental wave profiling radar, Belmont et al. (2014) explored two forms of 
+6 
+DSWP techniques. The first was so called “multiple fixed point” system based upon setting up 
+7 
+a system of equations that described a sea composed of a modest number of wave directions. 
+8 
+This approach had some success. Secondly a fully two-dimensional method in the form classic 
+9 
+discrete time Fourier transform was employed that was slightly less effective. The WaMoS II 
+10 
+system was deployed during a sea trial, designated as Golden Arrow, undertaken expressly to 
+11 
+gather data for DSWP purposes. A fundamental challenge inherent in the use of WaMoS II is 
+12 
+that it employs standard navigation radars whose antenna are typically mechanically rotated 
+13 
+with scan times of few seconds. This means that the radar backscatter data evolves in both time 
+14 
+and space and hence simple spatial Fourier techniques are only valid where the scan period is 
+15 
+very small compared to the shortest period of interest. In the Golden Arrow trial, the rotational 
+16 
+period of 2.52 s is considerable compared to the dominant wave periods of 11 s and 13 s for 
+17 
+the prevailing westerly and south-westerly wave systems.  
+18 
+In order to address the above problem, a new two-dimensional approach was developed in 
+19 
+Al-Ani et al. (2019). This technique can accept the mixed space-time data arising from the 
+20 
+rotating radar antenna and furthermore is not susceptible to the condition number problems that 
+21 
+usually arise with any form of inversion into prediction models (e.g., Alford et al. (2015), 
+22 
+Belmont et al. (2014) and Connell et al. (2015)). When applied to simulated wave data, the new 
+23 
+technique produces very promising results (Al-Ani et al., 2019). In the present report, the 
+24 
+
+4 
+ 
+authors focus on applying this approach to the field data of the Golden Arrow and report on 
+1 
+the wave prediction accuracy achieved.  
+2 
+The remainder of the paper is organised as follows. In Section 2, the authors summarise the 
+3 
+key elements of the new technique. The performance metrics that are used to assess the quality 
+4 
+of prediction are detailed in Section 3. In Section 4, we describe the sea trial data and illustrate 
+5 
+the accuracy of the wave profiles prediction. In Section 5, conclusions are drawn.     
+6 
+2. DSWP Technique 
+7 
+The prediction model is based on the standard linear oceanographic wave model of the sea 
+8 
+surface elevation ℎ(𝑥,𝑦,𝑡) at the spatial coordinate (𝑥, 𝑦), and temporal coordinate 𝑡 that is 
+9 
+given by  
+10 
+ℎ(𝑥,𝑦, 𝑡) = ∑∑[
+𝑁
+𝑛=1
+𝑎𝑛,𝑟cos(𝑘𝑛𝑥 cos(𝜃𝑟) + 𝑘𝑛𝑦 sin(𝜃𝑟) −𝜔𝑛𝑡)
+𝑅
+𝑟=1
+ 
+11 
++𝑏𝑛,𝑟sin(𝑘𝑛𝑥 cos(𝜃𝑟) + 𝑘𝑛𝑦 sin(𝜃𝑟) −𝜔𝑛𝑡)],                   (1) 
+12 
+where 𝑁 is the number of spectral components in the propagation direction 𝜃𝑟, 𝑅 is the number 
+13 
+of directions, (𝑎𝑛,𝑟, 𝑏𝑛,𝑟) is the spectral coefficient pair at the wavenumber 𝑘𝑛 and its angular 
+14 
+frequency 𝜔𝑛 in the direction 𝜃𝑟. With this technique, use is made of the standard 
+15 
+oceanographic assumption (Tucker et al., 1984) that in the Fourier transform of a particular set 
+16 
+of wave profile data the spectral coefficients are considered to be statistically independent. (It 
+17 
+is important to distinguish the spectrum of a particular set of sea data from spectral models, 
+18 
+such as Pierson Moskowitz or JONSWAP, which represent the average of a large number of 
+19 
+such individual spectra.)  
+20 
+For a more compact representation, let 
+21 
+𝛼𝑛,𝑟(𝑥, 𝑦, 𝑡) ≜cos(𝑘𝑛𝑥 cos(𝜃𝑟) + 𝑘𝑛𝑦 sin(𝜃𝑟) −𝜔𝑛𝑡) ,                          (2)  
+22 
+𝛽𝑛,𝑟(𝑥, 𝑦, 𝑡) ≜sin(𝑘𝑛𝑥 cos(𝜃𝑟) + 𝑘𝑛𝑦 sin(𝜃𝑟) −𝜔𝑛𝑡).                           (3) 
+23 
+
+5 
+ 
+Furthermore, we let  𝑧= (𝑥,𝑦) ∈ℝ2. The sea elevation discrete measurements from one radar 
+1 
+scan is denoted by {ℎ𝑠(z𝑚,𝑡𝑠,𝑚)}𝑚=1
+𝑀
+, z𝑚= (𝑥𝑚,𝑦𝑚), where 𝑀 is the size of the discrete data 
+2 
+per scan 𝑠 (or a subdomain of the scan used in building the prediction model). For a single 
+3 
+scan 𝑠, the sequence {𝑡𝑠,𝑚}𝑚=1
+𝑀
+  range over the period (𝜏s,𝜏s + ∆𝑡], where 𝜏s  is the start time 
+4 
+of the scan and ∆𝑡 is the rotation time of the radar antenna, and {(𝑥𝑚,𝑦𝑚)}𝑚=1
+𝑀
+ range over the 
+5 
+radar scan spatial area.  
+6 
+The coefficients 𝑎𝑛,𝑟 and 𝑏𝑛,𝑟  can be determined by solving the following minimization tasks  
+7 
+min
+𝑎𝑛,𝑟,𝑏𝑛,𝑟
+∑[𝑎𝑛,𝑟𝛼𝑛,𝑟(z𝑚,𝑡𝑠,𝑚) + 𝑏𝑛,𝑟𝛽𝑛,𝑟(z𝑚,𝑡𝑠,𝑚) −ℎ𝑠(z𝑚,𝑡𝑠,𝑚)]
+2
+𝑀
+𝑚=1
+.                  (4) 
+8 
+The solution is given by  
+9 
+[𝑎̂𝑛,𝑟
+𝑏̂𝑛,𝑟
+] = 𝐇−𝟏𝐟 ,                                                                          (5)                           
+10 
+where 
+11 
+𝐇= ∑[𝛼𝑛,𝑟(z𝑚,𝑡𝑠,𝑚)
+𝛽𝑛,𝑟(z𝑚,𝑡𝑠,𝑚)] [𝛼𝑛,𝑟(z𝑚,𝑡𝑠,𝑚)       𝛽𝑛,𝑟(z𝑚,𝑡𝑠,𝑚)]
+𝑀
+𝑚=1
+ ,                           (6) 
+12 
+𝐟= ∑[𝛼𝑛,𝑟(z𝑚,𝑡𝑠,𝑚)
+𝛽𝑛,𝑟(z𝑚,𝑡𝑠,𝑚)] ℎ𝑠(z𝑚,𝑡𝑠,𝑚)
+𝑀
+𝑚=1
+.                                                 (7) 
+13 
+We can see that 𝐟 is of size 2 × 1, 𝐇 is 2 × 2, and the solution in (5) is 2 × 1 which represents 
+14 
+a single pair of spectral coefficients at wavenumber 𝑘𝑛 in direction 𝜃𝑟. The solution (5) is 
+15 
+determined for each of the 𝑅𝑁 spectral pairs in a one-by-one manner. This technique is related 
+16 
+to the single-frequency least-squares estimation in nonuniform sampling theory, which is also 
+17 
+known under other names, such as the Lomb-periodogram, depending on the application 
+18 
+(Stoica et al., 2011). 
+19 
+
+6 
+ 
+The solution in (5) requires inverting 𝐇 - a matrix of size 2 × 2. This is more numerically stable 
+1 
+than inverting potentially large (𝑅× 𝑅) matrices involved in the Multiple Fixed Points method 
+2 
+(Belmont et al., 2014) and even larger (𝑅𝑁× 𝑅𝑁) matrices involved in the classical least-
+3 
+squares fitting of the data to all the spectral components simultaneously, which are equivalent 
+4 
+to solving Vandermonde systems that are well-known to be poorly conditioned with condition 
+5 
+numbers that rise with their ranks (Bagchi and Mitra, 1996; Bilinskis, 2007; Belmont et al., 
+6 
+2014). We can also observe that the technique accounts for the varied time instants of the 
+7 
+measurements across the scan (unlike the standard two-dimensional Fourier transform, used 
+8 
+for example in Wijaya et al. (2015), where a single time instant is associated with each scan).  
+9 
+We note that the spectral components along with their coefficients in the prediction model can 
+10 
+represent the sea surface elevation in the measurement and predictable zone at defined temporal 
+11 
+points. This means that the prediction model is not a general representation of the prevailing 
+12 
+sea and the coefficients derived from different scans are in fact independent.      
+13 
+3. Performance Metrics 
+14 
+The 𝑆 scans collected over the sea trial are denoted by 𝒽𝑠= {ℎ𝑠(z𝑚,𝑡𝑠,𝑚)}𝑚=1
+𝑀
+, 𝑠= 1, … , 𝑆 
+15 
+and used respectively to generate predictions of the sea surface over the prediction horizon  
+16 
+𝒯= (𝜏𝑠,𝜏𝑠+ 𝑇], where 𝑇 is the total prediction time (it is important to clarify that the term 
+17 
+‘prediction horizon’ here is used to indicate a time period as opposed to a single time instant). 
+18 
+The prediction of the sea surface based on 𝒽𝑠 at prediction time instant 𝑡𝑠+𝑝,𝑚∈
+19 
+(𝜏𝑠, 𝜏𝑠+ 𝑇], 𝑝= 1, .., 𝑃, where 𝑃= 𝑇/∆𝑡, is denoted by {ℎ̂𝑠(𝑧𝑚,𝑡𝑠+𝑝,𝑚)}𝑚=1
+𝑀̂
+, where 𝑀̂ is the 
+20 
+size of the spatial predictable zone. The relationship between the available prediction horizon, 
+21 
+predictable zone, and the properties of the measurements can be described by the so called 
+22 
+Space-Time diagrams (Edgar et al., 2000; Abusedra and Belmont, 2011; Qi et al., 2018) which 
+23 
+
+7 
+ 
+yield all the necessary information. In the multidimensional seas, the Space-Time diagrams are 
+1 
+applied in all propagation directions with the final results being the intersection of the diagrams 
+2 
+from all directions, see for example Qi et al. (2018) for an illustration. 
+3 
+The first metric for assessing the prediction accuracy is the (temporal) correlation between 
+4 
+the predicted and true wave profiles.  In maritime applications such as helicopter recovery at 
+5 
+sea, it is more valuable from a practical point of view to evaluate the correlation in the temporal 
+6 
+domain at a single spatial location (as opposed to the spatial correlation at a single time instant).  
+7 
+Therefore, formally speaking, we determine the normalised correlation between the predicted 
+8 
+wave profile for the prediction horizon  𝒯= (𝜏𝑠, 𝜏𝑠+ 𝑇], at a spatial location and the “future” 
+9 
+radar data available to us within the same time horizon and location.  Assuming that the 
+10 
+predicted and true wave profiles, {ℎ̂𝑠(𝑧𝑚,𝑡𝑠+𝑝,𝑚)}𝑝=1
+𝑃
+  and {ℎ𝑠+𝑝(𝑧𝑚,𝑡𝑠+𝑝,𝑚)}𝑝=1
+𝑃
+ respectively, 
+11 
+are zero-centred, their correlation coefficients based on 𝒽𝑠 are given by  
+12 
+Q𝑠(𝑧𝑚) =
+1
+𝑃∑
+ℎ̂𝑠(𝑧𝑚,𝑡𝑠+𝑝,𝑚)ℎ𝑠+𝑝(𝑧𝑚,𝑡𝑠+𝑝,𝑚)
+𝑃
+𝑝=1
+𝜎̂𝑠(𝑧𝑚)𝜎𝑠(𝑧𝑚)
+ ,    𝑠= 1, …,𝑆,    𝑚= 1, … , 𝑀̂      (8) 
+14 
+where 
+13 
+𝜎̂𝑠(𝑧𝑚) = [1
+𝑃∑
+|ℎ̂𝑠(𝑧𝑚,𝑡𝑠+𝑝,𝑚)|
+2
+𝑃
+𝑝=1
+]
+1/2
+,                                                   (9)                     
+15 
+𝜎𝑠(𝑧𝑚) = [1
+𝑃∑
+|ℎ𝑠+𝑝(𝑧𝑚,𝑡𝑠+𝑝,𝑚)|
+2
+𝑃
+𝑝=1
+]
+1/2
+.                                               (10)  
+16 
+For overall illustration of  the results of (8), we average the correlation coefficients at each 
+17 
+location 𝑧𝑚 across the scans, i.e. 𝐴(𝑧𝑚) =
+1
+𝑆 ∑
+Q𝑠(𝑧𝑚)
+𝑆
+𝑠=1
+. To further analyse the prediction 
+18 
+accuracy within the prediction horizon, we obtain a second form of temporal correlation where 
+19 
+we evaluate the inner product along the trial duration for a single time instant (𝑡𝑠+𝑝∈
+20 
+(𝜏𝑠, 𝜏𝑠+ 𝑇]) in the prediction horizon:  
+21 
+Q𝑝(𝑧𝑚) =
+1
+𝑆∑
+ℎ̂𝑠(𝑧𝑚,𝑡𝑠+𝑝,𝑚)ℎ𝑠+𝑝(𝑧𝑚,𝑡𝑠+𝑝,𝑚)
+𝑆
+𝑠=1
+𝜎̂𝑝(𝑧𝑚)𝜎𝑝(𝑧𝑚)
+ ,    𝑝= 1, …,𝑃,    𝑚= 1, … ,𝑀̂      (11) 
+22 
+
+8 
+ 
+where 
+1 
+𝜎̂𝑝(𝑧𝑚) = [1
+𝑆∑
+|ℎ̂𝑠(𝑧𝑚,𝑡𝑠+𝑝,𝑚)|
+2
+𝑆
+𝑠=1
+]
+1/2
+,                                                   (12)                     
+2 
+𝜎𝑝(𝑧𝑚) = [1
+𝑆∑
+|ℎ𝑠+𝑝(𝑧𝑚,𝑡𝑠+𝑝,𝑚)|
+2
+𝑆
+𝑠=1
+]
+1/2
+.                                                 (13)  
+3 
+Nonetheless, the correlation coefficient demonstrates the accuracy of predicting the shape of 
+4 
+the wave profile and not its amplitude (Taylor 2001). Therefore, as an additional performance 
+5 
+metric, we determine the relative RMS errors  
+6 
+E𝐬(𝑧𝑚) = [1
+𝑃∑
+|ε𝑠
+𝑝(𝑧𝑚)|
+2
+𝑃
+𝑝=1
+]
+1/2
+,            𝑠= 1, …,𝑆,    𝑚= 1, … , 𝑀̂                 (14) 
+7 
+where,       
+8 
+ε𝑠
+𝑝(𝑧𝑚) =
+ℎ̂𝑠(𝑧𝑚,𝑡𝑠+𝑝,𝑚) −ℎ𝑠+𝑝(𝑧𝑚,𝑡𝑠+𝑝,𝑚)
+𝐻𝑠(𝑧𝑚)
+                                       (15) 
+9 
+where 𝐻𝑠(𝑧𝑚) represents the maximum wave height at location 𝑧𝑚 in the specified prediction 
+10 
+horizon.   
+11 
+4. The Sea Trial and Results  
+12 
+The illustrative data presented here was obtained during an interval of long-period high sea 
+13 
+state during the Golden Arrow sea trial on the 24th November 2014 between 9:20 and 14:00 
+14 
+UTC off the western coast of Scotland, approximately 100 km west of the Isle of Mull. The 
+15 
+development of the wave system during this part of the trial as reflected by the vessel’s wave 
+16 
+driven heave motion is shown in Fig. 1, where the standard deviation of the ship heave is 
+17 
+calculated over a window of ten minutes.   
+18 
+Statistical directional wave spectra were determined from both: the WaMoS II wave radar 
+19 
+(operating in traditional statistical mode as opposed to wave profiling mode) and free floating 
+20 
+directional multi-axis wave buoys. Both data sources indicated that there were two significant 
+21 
+wave directions, one from the west and one from the south west. (Here the wave directions 
+22 
+represent the direction the waves are propagating from.) The dominant periods of these two 
+23 
+
+9 
+ 
+wave systems were up to 11 s and 13 s, respectively. These timescales were significant as the 
+1 
+3dB point of the vessel frequency response in heave corresponds to 9 s period waves. Thus, to 
+2 
+a zeroth-order approximation, the vessel acted as a wave follower in heave as will be discussed 
+3 
+later. Between 13:00 and 14:00 UTC the ship was manoeuvring slowly and the waves were at 
+4 
+their highest, and therefore the study is focused in this hour. The speed, course and heading of 
+5 
+the ship from 12:58 to 14:00 UTC is shown in Fig. 2.   
+6 
+4.1 Wave profiles predictions 
+7 
+A subdomain from each WaMoS II scan is chosen, where the measurements are most 
+8 
+reliable. The size and location of the reliable measurement zone, also known as the “sweet 
+9 
+spot” in the literature, depends on the sea waves properties, radar height and characteristics, 
+10 
+and the prediction requirements. It is usually located in the directions where waves are traveling 
+11 
+towards the radar, beyond the dead zone around the ship where the radar backscatter is 
+12 
+saturated, and therefore it usually follows the shape of a section of a ring (see, for example, Qi 
+13 
+et al. (2016) for a discussion). For easy illustration, we restrict the measurement zone here to a 
+14 
+trapezium, west of the ship. The dimensions and location of the measurement trapezium are 
+15 
+illustrated in Fig.3 a.  The axes in Fig. 3 are labelled according to the ship location that is set 
+16 
+at the spatial location (0,0) m.   
+17 
+The wavenumbers  {𝑘𝑛 }𝑛=1
+𝑁
+ in (1) are set to uniformly span over the longest and shortest 
+18 
+waves to represent. The angular directions {𝜃𝑟}𝑟=1
+𝑅
+ are evenly distributed over a half plane The 
+19 
+wavenumber resolution in (1) is defined by π/𝛾, where 𝛾 is the radius of the scan that is 3 km 
+20 
+here. The directional resolution depends on the choice of the maximum wavenumber 𝑘𝑁 and 
+21 
+is defined by 2π/𝛾𝑘𝑁. Given that the dominant wavenumbers for the two dominant storm 
+22 
+systems are 0.033 rad/m, and 0.024 rad/m, it was deemed reasonable to limit the maximum 
+23 
+wavenumber to 0.09 rad/m in (1). Thus, the number of directions  𝑅 and the number of spectral 
+24 
+components 𝑁 per direction are 135 and 85, respectively. To determine all the coefficients in 
+25 
+
+10 
+ 
+the prediction model (1), the presented technique requires 𝑂(𝑀𝑅𝑁) operations, where the 
+1 
+number of signal samples 𝑀 in the measurement zone is 150 × 103 per scan. The computations 
+2 
+are more demanding than an FFT, which typically requires 𝑂(𝑀log𝑀) operations.  However, 
+3 
+an interpolation into a Cartesian grid is prerequisite in order for an FFT to be deployed, unlike 
+4 
+the presented method that can handle data of any distribution with no extra computations. We 
+5 
+note that increasing the number of wave components in (1) does not improve the prediction 
+6 
+performance. Whereas, using the full resolution of the data inside the measurement zone offers 
+7 
+an improvement in the prediction quality as the effect of measurements noise and jitter reduces 
+8 
+with the number of data points used.   
+9 
+The data from the measurement zone of the s-th scan  is used to build the prediction model 
+10 
+which in turn is used to yield the sea surface motion over the corresponding predictable zone 
+11 
+for prediction horizons 𝒯1 = [𝜏𝑠 , 𝜏𝑠+ 30] s, 𝒯2 = [𝜏𝑠 , 𝜏𝑠+ 60] s, 𝒯3 = [𝜏𝑠 ,𝜏𝑠+ 90] s, 𝒯4 =
+12 
+[𝜏𝑠 ,𝜏𝑠+ 120] s, 𝒯5 = [𝜏𝑠 , 𝜏𝑠+ 150] s. It was adequate for illustration to simply identify the 
+13 
+predictable zones by a single boundary from the west which we set to 5 m/s. It is important to 
+14 
+note that in the correlation and prediction error calculations, we use the radar measurements 
+15 
+available to us as the “true and future” waves. Therefore, the errors in the latter contribute to 
+16 
+the performance results presented here. To minimise this effect, we illustrate the prediction 
+17 
+accuracy in the areas where the reliable measurement zone and the predictable zones overlap. 
+18 
+In Fig. 3. b – f, we show the mean correlation coefficients 𝐴(𝑧𝑚) in these overlapping areas.  
+19 
+We can see that 𝐴(𝑧𝑚) vary around 0.95 for 𝒯1, and mainly around 0.92 for  𝒯2, i.e. one minute 
+20 
+ahead. For 𝒯3, we can see 𝐴(𝑧𝑚)  to range between 0.85 and 0.95. The mean correlation 
+21 
+coefficients are around 0.85 for 𝒯4, i.e. two minutes ahead. Finally, the mean correlation 
+22 
+coefficients go mostly down around 0.8 for  𝒯5. We can observe that the correlation degrades 
+23 
+with increasing the time horizon even with the conservative predictable zones set here, which 
+24 
+is somehow expected. However, the high values of correlations are evident in the plots 
+25 
+
+11 
+ 
+especially for time horizons shorter than two minutes. To show the reliability of prediction 
+1 
+across the hour, we include Fig. 4 which represents box plots that illustrate the distributions of 
+2 
+the correlation coefficients. We can observe that the correlation degrades at 1– 3 min, 18 min, 
+3 
+25 – 37 min, and 47-50 min past 13:00 UTC. These times can, to an extent, be linked to times 
+4 
+when the ship had been changing its speed in Fig. 2. A possible explanation is that the change 
+5 
+in speed, heading and course can introduce measurements jitter (i.e., errors in georeferencing 
+6 
+the scans) which in turn reduces the accuracy of wave profiling and wave prediction. 
+7 
+Nonetheless, the complete reasons for the variation in the prediction accuracy in the field data 
+8 
+observed in Fig. 4 remain a question for future work. In Fig. 5 we show box plots of the relative 
+9 
+RMS error across the hour for time horizons 𝒯1, 𝒯2, 𝒯3, 𝒯4, and 𝒯5. Our first observation is that 
+10 
+the error is within reasonable limits, and it is only higher during the dropout periods in the 
+11 
+correlation observed in Fig. 4, i.e. there are no additional dropouts in the prediction quality.  
+12 
+Fig. 4 and 5 illustrate how the prediction accuracy deteriorates with increasing the prediction 
+13 
+horizon. To further investigate the behaviour of the error in the predictable zones within the 
+14 
+prediction horizons, we plot the second form of temporal correlation (11) in Fig. 6. The 
+15 
+correlation (11) is evaluated at single time instants in the prediction horizons: 30 s, 60 s, 90 s, 
+16 
+120 s, and 150 s, across the trial duration over the corresponding predictable zone. We also 
+17 
+plot the relative error ε𝑠
+𝑝(𝑧𝑚) in (15) versus the prediction time instants in Fig. 7.We can see in 
+18 
+Fig. 6 that the correlation is rather poor beyond 120 s, which is not clearly observed in the 
+19 
+correlation calculations shown in Fig. 4. It is clear from Fig. 6 and 7 that the prediction quality 
+20 
+within the predictable zone monotonically decreases with the prediction time instant. With such 
+21 
+simple relationship along with the Space-Time diagram, it will be a straightforward task for a 
+22 
+DSWP intelligent system to determine the maximum available prediction horizon for given 
+23 
+predictable zone and prediction reliability.   
+24 
+ 
+25 
+
+12 
+ 
+4.2 The vessel heave motion prediction 
+1 
+Most applications of DSWP will involve determining the predicted wave-induced motions 
+2 
+of some floating body. In linear ship theory, vessels are typically modelled by 6 weakly-
+3 
+coupled ordinary linear differential equations that are typically Fourier transformed to produce 
+4 
+a system of Frequency Response functions that are acted upon by the Fourier Transform of the 
+5 
+wave system. Alternatively (and equivalently), the response of a narrow strip of vessel to an 
+6 
+impulsive wave force input is integrated over the vessel hull profile (strip theory), giving rise 
+7 
+to the so called response amplitude operators (RAO) coefficients. In either case, below 
+8 
+resonance, the resulting heave Frequency Response function is crudely speaking a low pass 
+9 
+filter. Consequently, at low wave frequencies relative to the ship’s dynamics as prevail in the 
+10 
+present situation (the resonance is at approximately a 9 s period with dominant wave systems 
+11 
+centred on 11 s and 13 s), the heave transfer function is at least to a zeroth-order approximation 
+12 
+constant. Similarly, the phase shift between wave forcing functions and vessel motion is again 
+13 
+to a zeroth-order approximation zero. Hence, for heave motions, the vessel approximately 
+14 
+follows the wave profile and to a first-order approximation there is no requirement to 
+15 
+compensate for vessel motions. This is not the case in pitch where the response changes rapidly 
+16 
+with frequency below resonance which is why only heave is considered here. 
+17 
+A high precision vessel motion sensor was present on the vessel. However, this was mounted 
+18 
+14 m forward and 2 m above the vessels nominal dynamic centre (as supplied by the vessel 
+19 
+operators), with the vessel being 90 m in length.  The sensor’s location meant that other modes 
+20 
+of motion made some contributions to the measured heave. Unfortunately the vessel had been 
+21 
+“cut and extended” and in addition had considerable extraneous deck equipment all of which 
+22 
+meant that the exact location of the motion centre was not well defined. This made it difficult 
+23 
+to confidently decouple pure heave motion so the authors were forced to use the uncorrected 
+24 
+motion senor data as a “raw heave” motion estimate. Thus, Fig. 8 shows the correlations 
+25 
+
+13 
+ 
+between the wave predictions (taken to represent heave) and the raw measured vessel heave 
+1 
+motion that was available to us in the time span 13:21 – 13:43 UTC, for prediction horizons 
+2 
+[𝜏𝑠 ,𝜏𝑠+ 60] s and [𝜏𝑠 ,𝜏𝑠+ 120] s . Given the very crude nature of the heave assessment, the 
+3 
+results shown are surprisingly good.  
+4 
+The drops in the prediction quality seen in Fig. 8 appear to correlate to some extent with 
+5 
+changes in the vessel’s heading and speed. Fortunately, the onset and the return to good 
+6 
+prediction occur over a sufficiently long timescale for them to be recognised during operations. 
+7 
+These drops are not present in the simulation work in Al-Ani et al. (2019) and as with the wave 
+8 
+prediction estimates they would appear to be associated with the actual wave profile 
+9 
+measurements of real seas rather than being fundamental artefacts of the prediction technique. 
+10 
+5. Conclusions 
+11 
+The level of errors encountered in the prediction based on the data obtained in the Golden 
+12 
+Arrow sea trial indicates that in applications such as QPP (e.g., for operations such as launch 
+13 
+and recovery of small craft and air vehicles), DSWP has real potential as a practical maritime 
+14 
+tool. Drops occur in the prediction accuracy whose detailed cause remains a subject for further 
+15 
+work. The absence of these in simulation studies indicates they are associated with aspects of 
+16 
+the wave radar determination of actual sea profiles. However, from an application perspective, 
+17 
+the onset of these occurs sufficiently slowly for them to be easily identified and thus not 
+18 
+represent a barrier for future operations exploiting DSWP. 
+19 
+Acknowledgments 
+20 
+This work was supported by the EPSRC Research Grant EP/N009142/1. The authors wish 
+21 
+to express their thanks to the UK Ministry of Defence for their support in collecting the data 
+22 
+presented here. 
+23 
+
+14 
+ 
+References 
+1 
+Abusedra, L., and M. Belmont, 2011: Prediction diagrams for deterministic sea wave prediction 
+2 
+and the introduction of the data extension prediction method. Int. J. Shipbuild. Prog., 58, 
+3 
+59–81. 
+4 
+Al-Ani, M., J. Christmas, M.R. Belmont, J Duncan, and B Ferrier, 2019: Deterministic Sea 
+5 
+Waves Prediction Using Mixed Space-Time Wave Radar Data. J. of Atmos. Oceanic 
+6 
+Technol., in press.  
+7 
+Alford, L. K., R. F. Beck., J. T. Johnson, D. Lyzenga, O. Nwogu, and A. Zundel, 2015: A Real-
+8 
+Time System for Forecasting Extreme Waves and Vessel Motions. Proc. of the 33rd Int. 
+9 
+Conf. on Offshore Mechanics and Arctic Engineering (ASME). 
+10 
+Bagchi, S. and S. K. Mitra, 1996: The nonuniform discrete Fourier transform and its 
+11 
+applications in filter design. I. 1-D. IEEE Trans. on Circuits and Systems II: Analog and 
+12 
+Digital Signal Processing, 43 (6), pp. 422-433. 
+13 
+Belmont, M., J. Christmas, J. Dannenberg, T. Hilmer, J.M. Duncan, J. Duncan, and B. Ferrier, 
+14 
+2014: An examination of the feasibility of linear deterministic sea wave prediction in 
+15 
+multi-directional seas using wave profiling radar: theory, simulation and sea trials. J. of 
+16 
+Atmos. Oceanic Technol., 31 (7), 1601–1614. 
+17 
+——, J. Horwood, R. Thurley, and J. Baker, 2006: Filters for linear sea-wave prediction. Ocean 
+18 
+Eng., 33, 2332–2351. 
+19 
+Bilinskis, I, 2007.  Digital Alias-free Signal Processing. UK: John Wiley & Sons.  
+20 
+Blondel, E., G. Ducrozet, F. Bonnefoy, and P. Ferranti, 2008: Deterministic reconstruction and 
+21 
+prediction of non-linear wave systems. Proc. of the 23rd Int. Workshop Water Waves and 
+22 
+Floating Bodies (IWWWFB), Jeju, Korea, 13–16. 
+23 
+
+15 
+ 
+Connell, B. H., J. P. Rudzinsky, C. S. Brundick, W.M. Milewski, J.G. Kusters, and G. 
+1 
+Farquharson, 2015: Development of an Environmental and Ship Motion Forecasting 
+2 
+System. Proc. of the 34rd Int. Conf. on Offshore Mechanics and Arctic Engineering 
+3 
+(ASME), Newfoundland, Canada, 11. 
+4 
+Crossland, P., J.M. Duncan, and B. Ferrier, 2009: The feasibility of developing a quiescent 
+5 
+period prediction system in a simulation environment. Proc. of the Int. Conf. on Computer 
+6 
+Applications in Shipbuilding (ICCAS), Shanghai, China, 2. 751–762. 
+7 
+Edgar, D., J. Horwood, R. Thurley, and M. Belmont, 2000: The effects of parameters on the 
+8 
+maximum prediction time possible in short term forecasting of the sea surface shape. Int. 
+9 
+Shipbuild. Prog., 47, 287–301. 
+10 
+Ferrier, B., A. Baitis and A. Manning, 2000: Evolution of the landing period designator (LPD) 
+11 
+for shipboard air operations. Nav. Eng. J., 112 (4), 297–316. 
+12 
+——, J.M. Duncan, M. Belmont, A. Curnow and P. Crossland, 2013: Using simulation to 
+13 
+justify and develop quiescent period prediction systems for the Royal Navy. Proc. of the 
+14 
+Int. Conf. on Computer Applications in Shipbuilding (ICCAS), Busan, South Korea, 2, 99–
+15 
+107. 
+16 
+Giron-Sierra J. M. and S. Esteban S, 2010: The Problem of Quiescent Period prediction for 
+17 
+Ships: A Review. Proc. of the Int. Conf. on Control Applications in Marine Systems. 
+18 
+Rostock-Warnmünde, Germany, 307-311.  
+19 
+Hilmer, T., and E. Thornhill, 2014: Deterministic wave predictions from the WaMoS II, Proc. 
+20 
+of  OCEANS’14, Taipei, 1–8. 
+21 
+——, and ——, 2015: Observations of Predictive Skill for Real-Time Deterministic Sea Waves 
+22 
+from the WaMoS II. Proc. of  OCEANS’15, Washington, 1–7. 
+23 
+
+16 
+ 
+Kusters, J. G., K. L. Cockrell., B. H. Connell, J. P. Rudzinsky, and V. J. Vinciullo, 2016: 
+1 
+FutureWaves™: A real-time Ship Motion Forecasting system employing advanced wave-
+2 
+sensing radar. Proc. of  OCEANS’16, Monterey, 1-9. 
+3 
+Morris, E., H. Zienkiewicz, M. Pourzanjani, J. Flower, and M. Belmont, 1992: Techniques for 
+4 
+sea-state prediction. Proc. of the 2nd Int. Conf. on Manoeuvring and Control of Marine 
+5 
+Craft, Southampton, UK, 547–571. 
+6 
+Pourzanjani M., M. R. Belmont, H. Zienkiewicz, and M. Morris, 1992: Applications of a sea-
+7 
+surface estimator in predictive ship control. Proc. of the 2nd. Int. Conf. on Manoeuvring 
+8 
+and Control of Marine Craft, Southampton, UK, 581–591. 
+9 
+Qi, Y., W. Xiao, and D.K. Yue, 2016: Phase-Resolved Wave Field Simulation Calibration of 
+10 
+Sea Surface Reconstruction Using Noncoherent Marine Radar. J. Atmos. Oceanic 
+11 
+Technol., 33, 1135–1149, 
+12 
+——, ——, Liu, Y., and Yue, D.K.P. 2018. Predicitable zone for phase –resolved 
+13 
+reconstruction and forecast of irregular waves. Wave Motion, 77, 195-213. 
+14 
+Reichert K., J. C. Nieto Borge, and J. Dittmer, 1999: Wamos II: A radar based wave and current 
+15 
+monitoring system. Proc. of the Int. Conf. on Ocean and Polar Engineering, Brest, France, 
+16 
+3, pp. 139–143. 
+17 
+Stoica, P., P. Babu and J. Li, 2011: New Method of Sparse Parameter Estimation in Separable 
+18 
+Models and Its Use for Spectral Analysis of Irregularly Sampled Data. IEEE Trans. on 
+19 
+Signal Processing, 59 (1), 35-47. 
+20 
+Taylor, K. E., 2001: Summarizing multiple aspects of model performance in a single diagram. 
+21 
+J. Geophys. Res., 106 (D7), 7183–7192. 
+22 
+
+17 
+ 
+Tucker, M. J., P. G. Challenor, and D. J. T. Carter, 1984: Numerical simulation of a random 
+1 
+sea: A common error and its effect upon wave group statistics. Appl. Ocean Res., 6, 118–
+2 
+122. 
+3 
+Tucker, M. J., and E. Pitt, 2001: Waves in Ocean Engineering. Elsevier Ocean Engineering 
+4 
+Series, 5, Elsevier. 
+5 
+Wijaya, A. P., P. Naaijen, and W. van Groesen, 2015: Reconstruction and future prediction of 
+6 
+the sea surface from radar observations. Ocean engineering, 106, 261-270. 
+7 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+18 
+ 
+Figure Caption List 
+1 
+Fig. 1 The standard deviation of the ship’s heave over the trial period, as recorded by the 
+2 
+Differential GPS sensor.  
+3 
+Fig. 2. The ship’s heading, course and speed over the duration 12:58–14:00 UTC of the trial.  
+4 
+Fig. 3. The measurement zone in (a).  The mean correlation coefficients in the corresponding 
+5 
+predictable zone for prediction horizon 𝒯1 = [𝜏𝑠 ,𝜏𝑠+ 30] s in (b), 𝒯2 = [𝜏𝑠 ,𝜏𝑠+ 60] s in (c), 
+6 
+𝒯3 = [𝜏𝑠 ,𝜏𝑠+ 90] s in (d), 𝒯4 = [𝜏𝑠 ,𝜏𝑠+ 120] s in (e), and 𝒯5 = [𝜏𝑠 ,𝜏𝑠+ 150] s in (f). 
+7 
+Fig. 4. The correlation coefficients across the hour at the labelled time horizon in the 
+8 
+corresponding predictable zone. Each box marks the upper and lower quartiles, with the centre 
+9 
+being the median; the black dashed lines indicate the full range of values. 
+10 
+Fig. 5. The relative RMS prediction error across the hour at the labelled time horizon in the 
+11 
+corresponding predictable zone. Each box marks the upper and lower quartiles, with the centre 
+12 
+being the median; the black dashed lines indicate the full range of values. 
+13 
+Fig. 6. The correlation coefficients in the corresponding predictable zone for prediction time 
+14 
+instant 30 s in (a), 60 s  in (b), 90 s  in (c), 120 s in (d), and 150 s in (e). 
+15 
+Fig. 7. The relative prediction error in the predictable zone versus the prediction time instants. 
+16 
+Each box marks the upper and lower quartiles, with the centre being the median; the black 
+17 
+dashed lines indicate the full range of values. 
+18 
+Fig. 8. The correlation coefficients between the WaMoS II based prediction and the “raw” 
+19 
+vessel heave data. 
+20 
+ 
+ 
+ 
+
+19 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Fig. 1. The standard deviation of the ship’s heave over the trial period, as recorded by the Differential GPS 
+sensor.  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+20 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Fig. 2. The ship’s heading, course and speed over the duration 12:58–14:00 UTC of the trial.  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+21 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Fig. 3. The measurement zone in (a).  The mean correlation coefficients in the corresponding predictable zone 
+for prediction horizon 𝒯1 = [𝜏𝑠 ,𝜏𝑠+ 30] s in (b), 𝒯2 = [𝜏𝑠 ,𝜏𝑠+ 60] s in (c), 𝒯3 = [𝜏𝑠 ,𝜏𝑠+ 90] s in (d), 
+𝒯4 = [𝜏𝑠 ,𝜏𝑠+ 120] s in (e), and 𝒯5 = [𝜏𝑠 ,𝜏𝑠+ 150] s in (f). 
+(a) 
+(b) 
+(c) 
+𝒯1 = [𝜏𝑠 , 𝜏𝑠+ 30] s 
+𝒯2 = [𝜏𝑠 ,𝜏𝑠+ 60] s 
+𝒯3 = [𝜏𝑠 ,𝜏𝑠+ 90] s 
+𝒯4 = [𝜏𝑠 ,𝜏𝑠+ 120] s 
+𝒯5 = [𝜏𝑠 ,𝜏𝑠+ 150] s 
+(e) 
+(f) 
+(d) 
+
+22 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Fig. 4. The correlation coefficients at the labelled time horizon in the predictable zone. Each box marks the 
+upper and lower quartiles, with the centre being the median; the dashed lines indicate the full range of values. 
+ 
+𝒯1 = [𝜏𝑠 , 𝜏𝑠+ 30] s 
+𝒯2 = [𝜏𝑠 ,𝜏𝑠+ 60] s 
+𝒯3 = [𝜏𝑠 ,𝜏𝑠+ 90] s 
+𝒯4 = [𝜏𝑠 ,𝜏𝑠+ 120] s 
+𝒯5 = [𝜏𝑠 ,𝜏𝑠+ 150] s 
+
+23 
+ 
+ 
+ 
+ 
+ 
+ 
+Fig. 5. The relative RMS prediction error across the hour at the labelled time horizon in the corresponding 
+predictable zone. Each box marks the upper and lower quartiles, with the centre being the median; the black 
+dashed lines indicate the full range of values. 
+ 
+𝒯1 = [𝜏𝑠 , 𝜏𝑠+ 30] s 
+𝒯2 = [𝜏𝑠 ,𝜏𝑠+ 60] s 
+𝒯3 = [𝜏𝑠 ,𝜏𝑠+ 90] s 
+𝒯4 = [𝜏𝑠 ,𝜏𝑠+ 120] s 
+𝒯5 = [𝜏𝑠 ,𝜏𝑠+ 150] s 
+
+24 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Fig. 6. The correlation coefficients in the corresponding predictable zone for prediction time instant 
+1 
+30 s in (a), 60 s  in (b), 90 s  in (c), 120 s in (d), and 150 s in (e). 
+2 
+ 
+(a) 
+(b) 
+(c) 
+(d) 
+(e) 
+
+25 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Fig. 6. The relative prediction error in the predictable zone versus the prediction time instants. Each box marks 
+the upper and lower quartiles, with the centre being the median; the black dashed lines indicate the full range of 
+values. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+26 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+ 
+Fig. 7. The correlation coefficients between the WaMoS II based prediction and the “raw” vessel heave data. 
+ 
+ 
+ 
+ 
+ 

@@ -1,0 +1,85 @@
+### ehlers2023_fno.pdf  (chars=103783, wave_score=48)
+
+Furthermore, the accuracy of the linear approach decreases remarkably for larger temporal horizons of prediction and increasing wave steepness (L¨unser et al., 2022), necessitating a wave prediction using nonlinear wave models, especially for capturing safety-critical events such as rogue waves (Ducrozet et al., 2007;
+
+(1987) and Dommermuth and Yue (1987), provides the best prediction accuracy over a wide spatio-temporal domain as well as characteristic wave steepness (Klein et al., 2020;
+
+Prior studies have solely focused on reconstructing phase-averaged 2 statistical parameters of the prevailing sea state from radar data.
+
+(2015) improved the estimation of Hs by extracting scalar features from sequences of radar images ξ(x, t) in a preprocessing step, which in turn were employed to train MLPs and support vector regression models.
+
+(2021) extracted features from each of the consecutive radar images itself for improved Hs estimation at the current time instant.
+
+(2020b) and Chen and Huang (2022) used CNN-based methods to estimate Hs and Tp from radar images.
+
+As obtaining ground truth wave surface elevation data for large spatial domains in real ocean conditions is almost impractical, we first generate synthetic yet highly realistic onedimensional spatio-temporal wave surfaces η(x, t) using the HOS method for different sea states in Section 2.
+
+The HOS simulation is linearly initialized by spatial wave surface elevation snapshots η(x, ts = 0) sampled from the JONSWAP spectrum for finite water depth (Hasselmann et al., 1973;
+
+The relations ω = 2π/T and k = 2π/L allow for substituting the peak frequency with a peak period Tp, peak wavelength Lp, or peak wavenumber kp.
+
+Moreover, a dimensionless wave steepness parameter ϵ = kp · Hs/2 is defined based on the significant wave height Hs.
+
+A peak enhancement factor of γ = 3 is employed to emulate North Sea conditions.
+
+The water depth is d = 500 m and the sea state parameters peak wavelength Lp and steepness ϵ are varied systematically over Lp ∈{80, 90, .
+
+For each Lp-ϵ-combination, we generate four different initial surfaces η(x, ts = 0) by superimposing the wave components of the JONSWAP spectrum with random phase shifts.
+
+As depicted in Figure 4, the adapted U-Net architecture, has a depth of nd = 5 consecutive encoder blocks followed by the same number of consecutive decoder blocks with skip-connections between them.
+
+Despite the stratified data split ensuring an equal distribution of sea state parameter combinations (Lp, ϵ) in the training and test set, the errors are unevenly distributed across individual samples i, as exemplarily illustrated in Figure 6:
+
+The sample in Figure 6a corresponds to a peak wavelength Lp = 180 m and small amplitudes caused by a small steepness of ϵ = 0.01.
+
+Two samples from the test set described by the same wavelength Lp = 180 m, but different steepness ϵ, reconstructed by the U-Net-based architecture MU,1.
+
+Two samples from the test set described by same wavelength Lp = 180 m, but different wave steepness ϵ, reconstructed by the U-Net-based architecture trained with ns = 10 historical snapshots in the radar input MU,10.
+
+Two samples from the test set described by the same wavelength Lp = 180 m, but different wave steepness ϵ reconstructed by the FNO-based architecture MF,1.
+
+For the higher-steepness sample in Figure 11b, the increase of reconstruction uniformity given by nL2shadi nL2visi is less significant but still present.
+
+Comparative discussion The aforementioned visual observations described for Figures 6, 8, 9 and 11 have been limited to the examination of only two exemplary samples from the test set, both described by peak wavelength Lp = 180 m and either steepness ϵ = 0.01 or ϵ = 0.10.
+
+This can be achieved by plotting sample-specific error values such as nL2i against each sample’s describing combination of peak wavelength Lp and steepness ϵ for all Ntest = 624 test set samples reconstructed using the U-Net-based models MU,1 and MU,10 or the FNO-based models MF,1 and MF,9.
+
+Two samples from the test set described by the same wavelength Lp = 180 m, but different wave steepness ϵ, reconstructed by the FNO-based architecture trained with ns = 9 historical snapshots in the radar input MF,9.
+
+Moreover, the reconstruction quality on the entire r-domain is almost equivalent to the results of MU,10, but especially for the small steepness sample in (a) the error ratio between shadowed and visible areas is remarkably smaller using MF,9 which indicates the potential of a more uniform reconstruction.
+
+Although the pooling layers subsequently reduce the dimension of feature maps, resulting 15 100 150 200 wavelength Lp [m] 0.02 0.04 0.06 0.08 0.10 steepness ϵ [−] MU,1:
+
+(a) 100 150 200 wavelength Lp [m] 0.02 0.04 0.06 0.08 0.10 steepness ϵ [−] MF,1:
+
+(b) 100 150 200 wavelength Lp [m] 0.02 0.04 0.06 0.08 0.10 steepness ϵ [−] MU,10:
+
+(c) 100 150 200 wavelength Lp [m] 0.02 0.04 0.06 0.08 0.10 steepness ϵ [−] MF,9:
+
+0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10 steepness ϵ [−] 20 40 60 80 shadowed area in input [%] Lp = 80 m Lp = 140 m Lp = 200 m Figure 13:
+
+Graphs visualizing the average proportion of each input xi being affected by shadowing modulation in dependency of the samples wave steepness values ϵ = 0.01−0.10 for the shortest, one medium and the longest peak wavelength Lp occurring in the test set.
+
+Although errors in the FNO error surface still increase with higher steepness ϵ and consequently with an increase in the percentage of shadowing according to Figure 13, the increase is much less severe than that obtained by MU,1 shown in Figure 12a.
+
+We observe from that Figure, that the slightly higher mean error across the entire test set of MF,9 compared to MU,10, is primarily caused by the individual errors nL2i of samples with low steepness ϵ or short wavelengths Lp.
+
+The highest peak wavenumber of kp = 0.0785 m−1 in our data set is reached for samples with Lp = 80 m.
+
+The spectral density around kp has decayed almost completely at kfilt = nm · ∆k = 0.2264 m−1, such that no important wave components are filtered out, as is visualized in the Figure C.17.
+
+100 150 200 wavelength Lp [m] 0.02 0.04 0.06 0.08 0.10 steepness ϵ [−] MU,10:
+
+(a) 100 150 200 wavelength Lp [m] 0.02 0.04 0.06 0.08 0.10 steepness ϵ [−] MF,9:
+
+The data set of N = 3120 samples was divided into a fixed and independent test set comprising 20% or Ntest = 624 samples, with the remaining 2496 samples partitioned into four equal-sized parts based on the governing sea state parameters (Lp, ϵ) using a stratified data split technique to ensure equal representation of each wave characteristic in the resulting subsets.
+
+To address this concern, we visualized the JONSWAP spectra employed to initialize the HOS wave simulation for a specific steepness value ϵ (since different ϵ = 0.08 just scale the amplitude of spectral density) and all peak wavelengths Lp ∈{80, 90, .
+
+, 190, 200} m, each corresponding to a specific ωp and kp.
+
+0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0 2.2 ω h rad s i 0 2 4 6 8 10 spectral density SJ(ω)  m2 · s  JONSWAP spectra for ϵ = 0.08 using diﬀerent Lp Lp = 200 m, kp = 0.031 m−1 Lp = 190 m, kp = 0.033 m−1 Lp = 180 m, kp = 0.035 m−1 Lp = 170 m, kp = 0.037 m−1 Lp = 160 m, kp = 0.039 m−1 Lp = 150 m, kp = 0.042 m−1 Lp = 140 m, kp = 0.045 m−1 Lp = 130 m, kp = 0.048 m−1 Lp = 120 m, kp = 0.052 m−1 Lp = 110 m, kp = 0.057 m−1 Lp = 100 m, kp = 0.063 m−1 Lp = 90 m, kp = 0.07 m−1 Lp = 80 m, kp = 0.079 m−1 0.004 0.016 0.037 0.065 0.102 0.147 0.2 0.261 0.33 0.408 0.493 k [m−1] 1540.95 385.24 171.22 96.31 61.64 42.8 31.45 24.08 19.02 15.41 12.74 L [m] Figure C.17:
+
+JONSWAP spectra used in the data generation for one exemplary steepness value ϵ, but varying peak wavelengths Lp = 80 −200 m.
+
+The shortest peak wavelength of Lp = 80 m corresponds to the highest peak wavenumber of kp = 0.079 m−1.

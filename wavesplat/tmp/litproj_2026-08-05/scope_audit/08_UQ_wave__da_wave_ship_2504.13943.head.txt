@@ -1,0 +1,151 @@
+arXiv:2504.13943v1 [eess.SY] 16 Apr 2025
+Data Assimilation-based Simultaneous Phase-Resolved Ocean
+Wave and Ship Motion Forecast
+G. Wang and Y. Pan
+(Department of Naval Architecture and Marine Engineering, University of
+Michigan, Ann Arbor, MI USA)
+ABSTRACT
+This paper presents a data-assimilation (DA)-based
+approach to forecast the phase-resolved wave evolution
+process and ship motion, which is developed by coupling
+the high-order spectral method (HOS), ensemble Kalman
+ﬁlter (EnKF), and a Cummins-equation-based ship model
+(CMI). With the developed EnKF-HOS-CMI method,
+the observation data for wave, ship, or both can be
+incorporated into the model, therefore producing the
+optimal analysis results.
+The developed method is
+validated and tested based on a synthetic problem on
+the motions of an irregular wave ﬁeld and a box-shaped
+free-ﬂoating ship.
+We show that the EnKF-HOS-CMI
+method achieves much higher accuracy in the long-term
+simulation of nonlinear phase-resolved wave ﬁeld and
+ship motion in comparison with the HOS-CMI method.
+Also, the ship parameters are estimated accurately by
+using a parameter-augmented state space in EnKF.
+INTRODUCTION
+The prediction of wave-induced ship responses (e.g.,
+motions, strain, and surface pressure) are crucial for the
+overall safety and efﬁciency of maritime activities. They
+enable better health monitoring and decision-making. In
+the meanwhile, it is equally meaningful to reconstruct
+the encountered wave proﬁles based on the observed ship
+responses, which can serve as initial conditions to predict
+the future (even short-term) wave ﬁeld and ship motions.
+In this regard, two types of methods to estimate the in-situ
+wave information from the measured ship responses have
+been developed: one for wave spectra, and the other for
+the encountered incident wave sequences.
+The
+methods
+for
+estimation
+of
+wave
+spectra
+from
+structural
+responses
+have
+been
+well
+developed
+(Pascoal et al.,
+2005;
+Nielsen,
+2006;
+Tannuri et al., 2003; Nielsen and Dietz, 2020; Chen et al.,
+2020).
+Formulated in the frequency domain, these
+methods utilize frequency analyses (e.g., Fast Fourier
+Transform, FFT) and predetermined transfer functions to
+estimate the onsite one-dimensional or directional wave
+spectra. However, it should be noted that although the
+estimated wave spectrum parameters can aid the maritime
+operations to some extent, it is impossible to realize the
+deterministic prediction of the future ship-encountered
+wave ﬁeld and ship responses with this type of methods.
+For example, the potential ship capsize induced by
+extreme waves cannot be captured, which can however
+lead to the signiﬁcant loss of wealth and lives.
+In
+contrast,
+the
+methods
+to
+estimate
+the
+encountered
+incident
+wave
+sequences,
+which
+are
+formulated in the time domain, have the capability to
+realize the deterministic prediction for both wave ﬁeld
+and ship motions, and therefore are receiving more and
+more attentions recently. Koterayama et al. (2002) applied
+FFT analysis on the observed motions of a wave buoy to
+determine the phase information for each component of
+the incident wave ﬁeld. However, the accuracy of this
+method is sensitive to the time length of the observed buoy
+motion, and short-time series (e.g. < 10 min) may lead
+to signiﬁcant deviation from the reference. Takami et al.
+(2022, 2023) developed a prolate spheroidal wave
+functions (PSWF)-based approach, which can determine
+the incident wave proﬁles from short-time sequences of
+ship motion data (i.e. 2 −5min). However, it should be
+noted that these methods based on linear analysis ignores
+the nonlinear components of the problem, which may
+lead to deteriorated performance when the latter becomes
+important.
+In this work, we develop a data assimilation
+(DA)-based approach to
+realize the phase-resolved
+estimation of non-linearly evolving wave ﬁelds from
+the ship motions.
+This is realized by extending
+the author’s previous work on DA-based non-linear
+phase-resolved ocean wave reconstruction and forecast
+framework, namely the EnKF-HOS method by coupling
+an ensemble Kalman ﬁlter and the high-order spectral
+(HOS)
+method
+(Wang and Pan,
+2021;
+Wang et al.,
+2022).
+Through extensive test cases, it has been
+demonstrated that the EnKF-HOS method can realize the
+high-accuracy phase-resolved ocean wave reconstruction
+and
+forecast
+by
+sequentially
+assimilating
+observed
+wave
+data.
+Here
+we
+add
+to
+the
+EnKF-HOS
+method a Cummins-equation-based ship motion model
+(CMI) (Ogilvie, 1964).
+By doing this, we build the
+correlation between the ship motions and encountered
+wave ﬁeld, which provides the foundation for the wave
+ﬁeld reconstruction. More importantly, if the assimilation
+
+result is used as initial condition for forecast, the
+method has the capability to more accurately capture
+the future wave evolution and ship motion.
+Finally,
+in comparison with EnKF-HOS method, the newly
+developed EnKF-HOS-CMI can work with different
+types of data, i.e.
+ship motion data, wave data, or
+both, therefore it has f

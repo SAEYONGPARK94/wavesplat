@@ -1,0 +1,69 @@
+J. Fluid Mech. (2022), vol. 949, A31, doi:10.1017/jfm.2022.765
+Phase-resolved ocean wave forecast with
+simultaneous current estimation through
+data assimilation
+Guangyao Wang1, Jinfeng Zhang1, Yuxiang Ma2, Qinghe Zhang1, Zhilin Li1
+and Yulin Pan3,†
+1State Key Laboratory of Hydraulic Engineering Simulation and Safety, Tianjin University,
+Tianjin 300072, PR China
+2State Key Laboratory of Coastal and Offshore Engineering, Dalian University of Technology,
+Dalian 116023, PR China
+3Department of Naval Architecture and Marine Engineering, University of Michigan, Ann Arbor,
+MI 48109, USA
+(Received 2 April 2022; revised 1 September 2022; accepted 1 September 2022)
+In Wang & Pan (J. Fluid Mech., vol. 918, 2021, A19), the authors developed the ﬁrst
+ensemble-based data assimilation (DA) capability for the reconstruction and forecast of
+ocean surface waves, namely the EnKF-HOS method coupling an ensemble Kalman ﬁlter
+(EnKF) and the high-order spectral (HOS) method. In this work, we continue to enrich
+the method by allowing it to simultaneously estimate the ocean current ﬁeld, which is
+in general not known a priori and can (slowly) vary in both space and time. To achieve
+this goal, we incorporate the effect of ocean current (as unknown parameters) on waves
+to build the HOS-C method as the forward prediction model, and obtain a simultaneous
+estimation of (current) parameters and (wave) states via an iterative EnKF (IEnKF) method
+that is necessary to handle the complexity in this DA problem. The new algorithm,
+named the IEnKF-HOS-C method, is ﬁrst tested in synthetic problems with various forms
+(steady/unsteady, uniform/non-uniform) of current. It is shown that the IEnKF-HOS-C
+method is able to not only estimate the current ﬁeld accurately, but also boost the prediction
+accuracy of the wave ﬁeld (even) relative to the state-of-the-art EnKF-HOS method.
+Finally, using real data from a shipborne radar, we show that the IEnKF-HOS-C method
+successfully recovers the current speed that matches the in situ measurement by a ﬂoating
+buoy.
+Key words: surface gravity waves, computational methods
+† Email address for correspondence: yulinpan@umich.edu
+© The Author(s), 2022. Published by Cambridge University Press. This is an Open Access article,
+distributed under the terms of the Creative Commons Attribution licence (https://creativecommons.
+org/licenses/by/4.0/), which permits unrestricted re-use, distribution, and reproduction in any medium,
+provided the original work is properly cited.
+949 A31-1
+https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press
+
+G. Wang, J. Zhang, Y. Ma, Q. Zhang, Z. Li and Y. Pan
+1. Introduction
+In recent years, phase-resolved ocean wave models have received increasing attention
+due to their close relevancy to the safety and efﬁciency of marine operations. Unlike
+traditional phase-averaged models (e.g. Booij, Ris & Holthuijsen 1999; Tolman et al.
+2009), the phase-resolved models aim to predict individual waves, and therefore can
+capture detailed information of the wave ﬁeld (usually of O(1 km2)) as a guidance for
+marine operations (e.g. Ma et al. 2018; Xiao & Pan 2021). When nonlinear effects are
+considered, phase-resolved models have been constructed via the high-order spectral
+(HOS) method (Dommermuth & Yue 1987; West et al. 1987), including its later variants
+(e.g. Craig & Sulem 1993; Xu & Guyenne 2009), Zakharov equation (Stuhlmeier &
+Stiassnie 2021) and machine learning techniques (Mohaghegh, Murthy & Alam 2021).
+In spite of the prosperity of nonlinear wave models, their applications to wave forecast
+in realistic situations are limited due to the signiﬁcant uncertainties that grow with time
+in forecasting chaotic wave motion (e.g. Annenkov & Shrira 2001; Janssen 2008). The
+source of the uncertainties include (i) the noisy initial conditions of the sea surface, which
+are usually taken from radar or buoy measurements with certain error characteristics; and
+(ii) the physical effects, say, of wind and ocean current that are not known a priori and
+therefore not accurately accounted for in a nonlinear wave model.
+In addressing the issues of uncertainty growth, data assimilation (DA) methods have
+been developed (mostly in the ﬁeld of geoscience as discussed in Evensen (2003) and
+Carrassi et al. (2018)) which combine measurement data and model predictions to improve
+the analysis of the states. Among the available efforts of applying DA to phase-resolved
+wave forecast/analysis, most (if not all) focus mainly on addressing the aforementioned
+uncertainty (i) from initial conditions or measurements, i.e. assuming the prediction model
+is perfect. These include methods based on variational DA (Aragh & Nwogu 2008; Qi et al.
+2018; Fujimoto & Waseda 2020; Wu, Hao & Shen 2022) that construct an initial condition
+to minimize the difference between predictions and measurements in future times, as well
+as methods based on the Kalman ﬁlter (Yoon, Kim & Choi 2015) that solve for an optimal
+wave state

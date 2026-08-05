@@ -1,0 +1,2243 @@
+2nd-order Wave Kinematics Within HydroDyn
+Implimentation
+Eungsoo Kim, Andrew Platt, and Jason Jonkman
+Thursday 28th August, 2014
+
+Table of Contents
+1
+Overview . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1
+2
+Synthesis of Directional Waves . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2
+2.1
+Double Summation Method . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2
+2.2
+Single Summation Method . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3
+2.3
+Equal Energy Method . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4
+2.3.1
+Frequency Independent spreading function, D(θ)
+. . . . . . . . . . . . . . . . . . . . . . .
+4
+2.3.2
+Frequency dependent spreading function, D(ω,θ)
+. . . . . . . . . . . . . . . . . . . . . . .
+5
+3
+Second-order directional wave theory . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6
+3.1
+Boundary value problem formulations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6
+3.1.1
+Bottom Boundary Condition(BBC)
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6
+3.1.2
+Kinematics Free Surface Boundary Condition(KFSBC) . . . . . . . . . . . . . . . . . . . . .
+6
+3.1.3
+Dynamic Free Surface Boundary Conditions(DFSBC)
+. . . . . . . . . . . . . . . . . . . . .
+7
+3.1.4
+Combined Free Surface Boundary Condition(CFSBC) . . . . . . . . . . . . . . . . . . . . .
+7
+3.2
+Solution of the Boundary Value Problem . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7
+3.2.1
+First-Order Solution
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+8
+3.2.2
+Second-Order Solution . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+9
+3.3
+Validity of the Second-order Wave theory
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+10
+4
+Second-Order Wave Kinematics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+11
+4.1
+Wave Surface Elevation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+12
+4.2
+Wave Particle Velocity
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+12
+4.2.1
+First-Order . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+12
+4.2.2
+Second-Order . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+12
+4.3
+Wave Particle Acceleration . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+13
+4.3.1
+First-Order . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+13
+4.3.2
+Second-Order . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+13
+4.4
+Dynamic Pressure . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+14
+4.4.1
+First-Order . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+14
+4.4.2
+Second-Order (only second-order potential term) . . . . . . . . . . . . . . . . . . . . . . . .
+14
+4.5
+Properties of Quadratic Transfer Function . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+14
+4.5.1
+Symmetricity of QTF . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+14
+4.5.2
+Singularity of QTF . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+15
+5
+Numerical Simulation of Second-Order Wave Kinematics . . . . . . . . . . . . . . . . . . . . . . . . .
+20
+5.1
+Limitation of Second-Order Wave Theory . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+20
+5.2
+Sampling Theorem and additional requirement of cut-off frequency, ωcut . . . . . . . . . . . . . . . .
+22
+5.3
+Numerical Simulation using Inverse Fast Fourier Transform(IFFT) . . . . . . . . . . . . . . . . . . .
+22
+5.3.1
+Sum-Frequency Interaction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+24
+5.3.2
+Difference-Frequency Interaction
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+24
+Bibliography . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+25
+iii
+
+List of Figures
+Figure 1.
+Transfer function for η2± (ω > 0): unidirectional wave(θn = θm = 0) . . . . . . . . . . . . . . .
+14
+Figure 2.
+Transfer function for φ2± (ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0)
+. . . . .
+15
+Figure 3.
+Transfer function for u2±
+x
+(ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0) . . . . . .
+15
+Figure 4.
+Transfer function for u2±
+z
+(ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0) . . . . . .
+16
+Figure 5.
+Transfer function for a2±
+x (ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0) . . . . . .
+16
+Figure 6.
+Transfer function for a2±
+z
+(ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0) . . . . . .
+17
+Figure 7.
+Transfer function for p2± (ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0) . . . . . .
+17
+Figure 8.
+Transfer function K±
+nm including ω = 0 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+18
+Figure 9.
+Transfer function B±
+nm including ω = 0 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+18
+Figure 10.
+The sum and difference interaction of the wavenumber vectors . . . . . . . . . . . . . . . . . . .
+19
+Figure 11.
+Different criteria for ka as a function of kd . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+21
+Figure 12.
+Second-order wave frequency matrix: Sum-frequency interaction
+. . . . . . . . . . . . . . . . .
+23
+Figure 13.
+Second-order wave frequency matrix: difference-frequency interaction
+. . . . . . . . . . . . . .
+23
+iv
+
+List of Tables
+v
+
+1
+Overview
+In many engineering applications, especially in deep water, when hydrodynamic loads are to be considered on
+structures, waves are modeled as long-crested and generated as an irregular sea surface elevation process using
+linear Airy wave theory and associated kinematics. However, to generate realistic wave ﬁelds in shallow water, it is
+essential to account for both wave directionality and nonlinearity, which is achieved by employing the directional
+irregular second-order wave modeling approach of Sharma and Dean [1]. Using wave steepness as a perturbation
+parameter, Stokes [2] provided solutions for the analysis of regular waves. In Stokes study, only the sum frequencies
+of ﬁrst-order waves are considered. For irregular waves, both sum- and difference-frequency interactions up to
+second order are considered. The second-order wave solutions for inﬁnite water depth including the contribution of
+the difference frequencies were provided by Longuet-Higgins et al. [3]; Sharma and Dean [1] extended the theory for
+inﬁnite water depth to intermediate water depths.
+1
+
+2
+Synthesis of Directional Waves
+In irregular waves, this is usually described with a directional spectrum or spreading function, similar to a frequency
+spectrum. It is assumed that the total spectrum can be deﬁned as:
+S(ω,θ) = S(ω)D(ω,θ)
+(2.1)
+where (ω) is the frequency spectrum, independent of the direction of the waves, and D(ω,θ) is the directional
+spectrum, which is a function of frequency, ω as well as wave direction, θ.
+2.1
+Double Summation Method
+The most intuitive method for the generation of deterministic waves is to use the double summation method. The
+basic double summation model for directional waves is a discrete version of the standard double integral equation for
+the wave elevation of a random sea with continuous distribution of energy over frequency and angle of propagation.
+It is given by
+η(⃗x,t) = Re
+"
+N
+∑
+n=1
+M
+∑
+m=1
+Anmexp[i(ωnt −⃗knm ·⃗x)]
+#
+(2.2)
+where,⃗x = (x,y) is a point on the horizontal x-y plane; Anm = anm exp(iεnm); ωn is the angular frequency; θm is the
+wave direction; εnm is the wave phase, which is uniformly distributed between [0,2π] ;⃗knm = (|⃗knm|cosθm,|⃗knm|sinθm)
+is the wave number; N is the total number of frequencies considered; and M is the total number of wave directions.
+Also, anm are the component spectral amplitudes, which are calculated as follows:
+anm =
+p
+2S(ωn,θm)∆ω∆θ
+(2.3)
+The wave ﬁeld is thus a superposition of M two-dimensional wave trains propagating in M different directions with
+each individual wave train.
+Although this double summation model has been used quite extensively for directional wave simulation, several re-
+searchers (Forristall [4]; Lambrakos [5]; Pinkster [6]) have reported two basic problems, which are that the resultant
+wave ﬁeld is neither ergodic nor spatially homogeneous for ﬁnite values of N and M, regardless of the record length
+used. As pointed out by Jefferys [7], these effects are caused by artiﬁcial phase locking in any particular realization
+due to components traveling in different directions with identical frequencies. The wave energy in any one frequency
+band will therefore typically vary over space from approximately 0 to 4 times its average value regardless of how
+many directions are used.
+The problem can be illustrated by derivation of the cross spectrum between the wave elevations at two spatially
+separated points. Waves of different frequencies cannot interact linearly so it is safe to consider one frequency in
+isolation; dropping the subscript, the nth frequency of the Eq.2.2 contributes to the surface elevation according to
+Eq.2.4
+η(⃗x,t,ω) =
+M
+∑
+m=1
+amcos(ωt −⃗k·⃗x+ εm)
+(2.4)
+The cross spectrum between the wave elevations at points⃗xp = (xp,yp) and⃗xq = (xq,yq) is denoted by Spq(ω); it is
+the Fourier transform of the cross correlation Rpq(τ) between the two signals at the two points.
+Rpq(τ) = lim
+T→∞
+1
+T
+Z T
+0 η(⃗xp,t)η(⃗xq,t + τ)dt
+(2.5)
+Spq(ω) = 1
+2π
+Z ∞
+−∞Rpq(τ)exp(−iωτ)dτ
+(2.6)
+2
+
+Jefferys(1987) showed that the cross spectrum Spq(ω) can be evaluated by the following discrete double summation:
+Spq(ω) = 1
+2
+M
+∑
+n=1
+M
+∑
+m=1
+anam exp(i(⃗kn ·⃗xp −⃗km ·⃗xq + εn −εm))
+(2.7)
+The real part and imaginary part of Spq are called co-spectrum and quad-spectrum, respectively. This equation can be
+written in terms of 1) the target cross spectrum and 2) an unwanted interaction component introduced by the phase
+locked waves.
+Spq(ω) = 1
+2
+M
+∑
+m=1
+a2
+m exp(i(⃗km ·(⃗xp −⃗xq)))
+|
+{z
+}
+target
++ 1
+2
+M
+∑
+n=1
+M
+∑
+m=1
+m̸=n
+anam exp(i(⃗kn ·⃗xp −⃗km ·⃗xq + εn −εm))
+|
+{z
+}
+interaction
+(2.8)
+If⃗xp and⃗xq are the same point, this expression yields the auto spectrum Spp(ω) as following
+Spp(ω) = 1
+2
+M
+∑
+m=1
+a2
+m
+| {z }
+target
++ 1
+2
+M
+∑
+n=1
+M
+∑
+m=1
+m̸=n
+anam cos(⃗xp ·(⃗kn −⃗km)+ εn −εm)
+|
+{z
+}
+interaction
+(2.9)
+The interaction terms in Eqs.2.8 and 2.9 make the wave ﬁeld generated by the double summation method neither
+ergodic nor spatially homogeneous. Only way to effectively eliminate the interaction term is to increase the length of
+a realization by decreasing ∆ω or to be averaged over many realization.
+2.2
+Single Summation Method
+Alternatively, a single summation method with only one direction per each frequency component reproduces all de-
+sirable feature of the double summation method but avoids ergodicity problem. This synthesis method will produce a
+spatially homogeneous wave ﬁeld because all cross-product terms will average to zero regardless of the direction of
+propagation of each component. The single summation method is deﬁned by
+η(⃗x,t) = Re
+"
+NM
+∑
+n=1
+Anexp(iω
+′
+nt −i|⃗kn|(xcosθn + ysinθn))
+#
+(2.10)
+The complex amplitudes,An are given by
+An =
+q
+2S(ω
+′
+n,θn)∆ω∆θ
+
+exp(iεn)
+(2.11)
+For any speciﬁed time step ∆t and the length of simulation Tmax, the required frequency interval ∆ω can be obtained
+by
+∆ω = 2π
+Tmax
+= 2π
+N∆t
+(2.12)
+In each frequency band ∆ω, the directional spreading function is calculated for M wave directions. There are thus
+M sub-frequencies within each frequency band ∆ω, each corresponding to a different wave spreading angle. The
+sub-frequencies are given by
+ω
+′
+n = (n −1)∆ω
+M
+(2.13)
+There is no formal recommendation about how to distribute the M angles into the sub-frequencies. One approach is
+to chose the angle randomly for each frequency component, while another approach is to assign a wave angle into
+each frequency with an ascending order as followings
+θn = θmin + n
+′∆θ
+(2.14)
+3
+
+where, n
+′ = (n−1) mod M. The length of synthesized waves from this method is T
+′
+max = M ·Tmax, although only Tmax
+is requested for the time domain analysis.
+Although the frequency spacing is clearly artiﬁcial, the wave ﬁeld should become realistic for sufﬁciently large M
+and sufﬁciently small ∆ω. Based on the cross-spectrum analysis, Mile and Funke[8] found that minimum number of
+32 wave directions should be used to guarantee the reasonable accuracy.
+2.3
+Equal Energy Method
+This method to simulate directional waves assigns each frequency component of the wave to one of M discrete wave
+directions and a commercial code OrcaFlex uses this method to simulate a wave time history. Unlike the single sum-
+mation method, the equal energy method does not divide each frequency band ∆ω into M sub-frequencies. Each
+wave direction will have the same number of frequencies assigned to it. In order to preserve the energy distribution
+in the wave spreading function, the wave directions are assigned so that a greater number of directions are concen-
+trated near the central frequency. The wave elevation evaluated by the equal energy method is given by
+η(⃗x,t) = Re
+"
+N
+∑
+n=1
+Anexp(iωnt −i|⃗kn|(xcosθn + ysinθn))
+#
+(2.15)
+The complex amplitudes,An are given by
+An = [
+p
+2S(ωn)∆ω]
+|
+{z
+}
+an
+exp(iεn)
+(2.16)
+2.3.1
+Frequency Independent spreading function, D(θ)
+This method is only valid if the directional spreading function D(ω,θ) is independent in frequency component as
+follows:
+S(ω,θ) = S(ω)D(θ)
+(2.17)
+There are seferal way to deﬁne the directional spreading function. The most commonly used is COSINE −2s spread-
+ing function, which was proposed by Longuet-Higgins et al. [3] and given by
+D(θ) = C
+cos
+π (θ −¯θ)
+δθ
+
+2s
+,
+(2.18)
+where, S is the spreading parameter and the normalization constant, C, is given by
+C =
+√π Γ(s+ 1)
+δθ Γ(s+ 1/2),
+(2.19)
+and Γ is the gamma function. The cumulative energy distribution within the wave spreading function up to angle θ is
+given by
+P(θ) =
+θ
+Z
+¯θ−δθ/2
+D(θ ′)dθ ′.
+(2.20)
+where, ¯θ is a mean wave direction.
+The following method may be used to set the appropriate wave directions to satisfy the equal energy approach.
+• Step1: Discretize the wave direction range δθ by nd steps and calculate D(θ) spreading function. Set nd to
+a sufﬁciently large number such that the function is smooth enough for interpolation over M directions (set
+nd = 3M).
+4
+
+• Step2: While calculating D(θ), calculate the cumulative energy sum up to the current direction as P(θ).
+• Step3: Discretize P(θ) into M steps from 1/M ≤Pi ≤1 −1/M. Interpolate the function D(θ) found in step 1
+to ﬁnd the corresponding values of θi. The θi values are the wave directions used in the equal energy method.
+• Step4: Randomly assign each of the N frequencies (ignoring the end frequencies at which the wave amplitude
+is deﬁned as zero) to a θi direction such that each wave direction has N/M frequencies assigned to it.
+2.3.2
+Frequency dependent spreading function, D(ω,θ)
+In many cases, for simplicity, it is assumed that the directional spreading function is independent of frequency. How-
+ever, if someone need to simulate wave time series based on directional wave spectrum with frequency dependent
+spreading function such as a directional spectra measured by a buoy, the procedure presented in sec.2.3.1 is invalid.
+Especially, when both wave energy from swell system and local wind sea are signiﬁcant, the assumption that the
+directional spreading function is independent of frequency is unreasonable because the mean wave direction and the
+degree of directional spreading of two ocean systems may be signiﬁcantly different; generally, a spreading parameter
+s corresponding to swell sea is larger than a spreading parameter corresponding to wind sea.
+5
+
+3
+Second-order directional wave theory
+The second-order directional wave theory proposed by Sharma and Dean [1] is an extension of the theory developed
+by Longuet-Higgins [3] for water of inﬁnite depth to apply to water of arbitrary depth. The nonlinear boundary
+value problem is solved to the second order by a perturbation approach accounting for contributions from linear
+components from arbitrary frequencies and directions. The second-order wave system is one that is forced by the
+linear system and all information on second-order amplitudes and phases are related to the characteristics of the
+ﬁrst-order spectrum.
+3.1
+Boundary value problem formulations
+If the effects of viscosity and turbulence can be regarded as small, incompressible ﬂows can be described well by a
+velocity potential. In other words, the velocity components u, v, and w can be deﬁned in terms of the gradients of the
+velocity potential φ in the three Cartesian directions, x, y, and z.
+(u,v,w) =
+∂φ
+∂x , ∂φ
+∂y , ∂φ
+∂z
+
+(3.1)
+The mass conservation equation for an incompressible ﬂuid is
+∂u
+∂x + ∂v
+∂y + ∂w
+∂z = 0
+(3.2)
+which can be combined with Eq. 3.1 to yield
+∇2φ = ∂2φ
+∂x2 + ∂2φ
+∂y2 + ∂2φ
+∂z2 = 0
+(3.3)
+where, −h ≤z ≤η and −∞≤x,y ≤∞
+Sharma and Dean proposed a second-order velocity potential function which satisﬁes the appropriate boundary
+conditions for the problem.
+3.1.1
+Bottom Boundary Condition(BBC)
+At the bottom boundary, the velocity normal to the boundary is equal to zero. For this case of a horizontal boundary
+at depth h,
+∂φ
+∂z |z=−h = 0
+(3.4)
+3.1.2
+Kinematics Free Surface Boundary Condition(KFSBC)
+A water particle on the free surface remains on the free surface and the vertical velocity at the free surface is equal to
+the total rate of change of water elevation.
+∂η
+∂t + ∂φ
+∂x
+∂η
+∂x + ∂φ
+∂y
+∂η
+∂y = ∂φ
+∂z
+(3.5)
+where, z = η
+6
+
+3.1.3
+Dynamic Free Surface Boundary Conditions(DFSBC)
+The pressure p follows from Bernoulli’s equation and we can write as follows:
+p
+ρ + gz+ ∂φ
+∂t + 1
+2∇φ ·∇φ = −Q(t)
+(3.6)
+where, Q(t) is deﬁned as an arbitrary function of time. Here, instead of including the time dependence of Q in the
+velocity potential φ, let Q be a constant. At the free surface z = η, the pressure is equal to the atmospheric pressure,
+patm and if we choose Q = −patm/ρ in Eq.3.6 we can rewrite the equation as [9]
+⇒
+gη + ∂φ
+∂t + 1
+2∇φ ·∇φ = 0
+(3.7)
+3.1.4
+Combined Free Surface Boundary Condition(CFSBC)
+This is an alternative form of Eqs.3.5 and 3.7 above in which, by eliminating the unknown free surface elevation η,
+involves only φ and its derivatives.
+−∂2φ
+∂t2 −g∂φ
+∂z −( ∂
+∂t + 1
+2∇φ ·∇)|∇φ|2 = 0
+(3.8)
+where, z = η
+3.2
+Solution of the Boundary Value Problem
+The perturbation approach is adopted for solution of the boundary value problem formulated in the previous section.
+This approach assumes that all variables can be expanded as a convergent power series of a small parameter, such as
+wave steepness. Also, it is assumed that the combined free surface boundary condition(CFSBC) can be expanded in
+a convergent Maclaurin series about the mean water level z = 0 with a small parameter.
+The velocity potential φ and sea surface elevation η may be represented in the following manner with a perturbation
+parameter, wave steepness ε.
+φ(x,y,z,t) = φ(1)(x,y,z,t) + φ(2)(x,y,z,t) + ...
+(3.9)
+η(x,y,t) = η(1)(x,y,t)+ η(2)(x,y,t)+ ...
+(3.10)
+where, η(i) and φ(i) is proportional to εi or O(εi). By substituting the perturbation expansions for φ and η into
+Laplace equation Eq.3.3 and the bottom boundary condition Eq.3.4, we can ﬁnd two separated boundary conditions
+as follows:
+∇2φ(1) = 0;
+∇2φ(2) = 0
+(3.11)
+∂φ(1)
+∂z |z=−h = 0;
+∂φ(2)
+∂z |z=−h = 0
+(3.12)
+Substituting the perturbation expansions into the dynamic free surface boundary condition(DFSBC) in Eq.3.7 and the
+combined free surface boundary condition(CFSBC)in Eq.3.8, we can separate terms of same orders (O(ε), O(ε2),
+O(ε3), ...), just keep terms of O(ε) and O(ε2), and ignore terms of third or higher order (O(ε3), O(ε4), ...); for
+example, η(1)φ(2) and η(2)φ(1) are the term of O(ε3) and are ignored. From two boundary conditions, DFSBC and
+CFSBC, we obtain four additional equations as follows:
+7
+
+∂2φ(1)
+∂t2
++ g∂φ(1)
+∂z
+= 0
+(3.13)
+∂2φ(2)
+∂t2
++ g∂φ(2)
+∂z
+= −∂
+∂t
+∇φ(2)
+2
+−η(1) ∂
+∂t
+"
+∂2φ(1)
+∂t2
++ g∂φ(1)
+∂z
+#
+(3.14)
+η(1) = −1
+g
+∂φ(1)
+∂t
+(3.15)
+η(2) = −1
+g
+ 
+∂φ(2)
+∂t
++ 1
+2|∇φ(1)|2
+!
+−1
+gη(1) ∂2φ(1)
+∂z∂t
+(3.16)
+where, z = 0
+3.2.1
+First-Order Solution
+First, we can select a ﬁrst-order velocity potential, φ(1) of the following form
+φ(1)(⃗x,z,t) = (−1)·
+N
+∑
+n=1
+g
+ωn
+an
+cosh[|⃗kn|(h + z)]
+cosh(|⃗kn|h)
+sin(ωnt −⃗kn ·⃗x+ εn)
+(3.17)
+⇒φ(1)(⃗x,z,t) = Re
+"
+N
+∑
+n=1
+i g
+ωn
+An
+cosh[|⃗kn|(h + z)]
+cosh(|⃗kn|h)
+exp(iωnt −i⃗kn ·⃗x)
+#
+(3.18)
+which satisﬁes Eq.3.11, 3.12, and 3.13. By substituting Eq.3.17 into Eq.3.15, we obtain the ﬁrst-order components of
+the surface wave elevation, η(1)
+η(1)(⃗x,t) =
+N
+∑
+n=1
+ancos(ωnt −⃗kn ·⃗x+ εn)
+(3.19)
+⇒η(1)(⃗x,t) = Re
+"
+N
+∑
+n=1
+Anexp(iωnt −i⃗kn ·⃗x)
+#
+(3.20)
+where, An = an exp(iεn) ;⃗x = (x,y) is a point on the horizontal x-y plane; ωn is the angular frequency;⃗kn is the wave
+number which is related to the frequency, ωn, through the linear dispersion relation, ω2
+n = g|⃗kn|tanh(|⃗kn|h) (where h
+is the water depth); N is the total number of frequencies considered. Also, an are the component spectral amplitudes,
+which are calculated as follows:
+E
+a2
+n
+2
+
+= S(ωn)∆ω
+(3.21)
+where, E [•] is the expected value of •.
+8
+
+3.2.2
+Second-Order Solution
+Second-order waves are obtained as a result of the sum and difference interactions between pairs of frequencies and
+the phases of the second-order contributions are determined by the sum and difference interactions of the phases of
+the ﬁrst-order component phases, which are random. The second-order velocity potential which satisﬁes Eq.3.11,
+3.12, and 3.14 is given as follows:
+φ(2)(⃗x,z,t) = (−1)·
+N
+∑
+n=1
+N
+∑
+m=1
+anam ·B±
+nm ·sin
+
+(ωn ± ωm)t −(⃗kn ±⃗km)·⃗x+ (εn ± εm)
+
+(3.22)
+⇒φ(2)(⃗x,z,t) = Re
+"
+N
+∑
+n=1
+N
+∑
+m=1
+iAnAm ·B±
+nm ·exp
+
+i(ωn ± ωm)t −i(⃗kn ±⃗km)·⃗x
+#
+(3.23)
+By substituting for the ﬁrst-order potential φ(1), the ﬁrst-order surface elevation η(1), and the second-order potential
+φ(2) in Eq.3.16, we obtain the second-order correction to the linear sea surface elevation as follows:
+η(2)(⃗x,t) =
+N
+∑
+n=1
+N
+∑
+m=1
+anam ·L±
+nm ·cos
+
+(ωn ± ωm)t −(⃗kn ±⃗km)·⃗x+ (εn ± εm)
+
+(3.24)
+⇒η(2)(⃗x,t) = Re
+"
+N
+∑
+n=1
+N
+∑
+m=1
+AnAm ·L±
+nm ·exp
+
+i(ωn ± ωm)t −i(⃗kn ±⃗km)·⃗x
+#
+(3.25)
+The transfer function derived by Sharma and Dean, L±
+nm and B±
+nm are given by:
+L±
+nm(ωn,ωm,θn,θm) = 1
+4
+"
+D±
+nm −(|⃗kn||⃗km|cos(θn −θm)∓RnRm)
+√RnRm
++ (Rn + Rm)
+#
+(3.26)
+B±
+nm(z,ωn,ωm,θn,θm) =
+g2
+ωnωm
+· 1
+4
+cosh[k±
+nm(h + z)]
+cosh[k±nm(h)]
+D±
+nm
+ωn ± ωm
+(3.27)
+where,
+Rn = |⃗kn|tanh(|⃗kn|h)
+(3.28)
+D±
+nm = {(√Rn ± √Rm)[√Rm(kn2 −Rn2)± √Rn(km2 −Rm2)]}
+[(√Rn ± √Rm)2 −k±nmtanh(k±nmh)]
++ [2(√Rn ± √Rm)2][|⃗kn||⃗km|cos(θn −θm)∓RnRm]
+[(√Rn ± √Rm)2 −k±nmtanh(k±nmh)]
+(3.29)
+In the above, k+
+nm and k−
+nm are given as follows :
+k+
+nm =
+q
+kn2 + km2 + 2knkm cos(θn −θm)
+k−
+nm =
+q
+kn2 + km2 −2knkm cos(θn −θm)
+(3.30)
+For inﬁnite depth, the equations proposed by Sharma and Dean [1] reduces to the equations derived by Longuet-
+Higgins et al. [3] for deep water. Also, for⃗kn =⃗km and N = 1, the formulas for velocity potential and surface eleva-
+tion reduce to the familiar Stokes second-order equations [2].
+9
+
+3.3
+Validity of the Second-order Wave theory
+While the second-order irregular wave model is a more accurate representation of irregular seas in shallow waters
+compared to the linear irregular wave model, it obviously does not model the complete nonlinear character of waves,
+and is not valid for all cases. The physical parameter that determines the range of validity is the wave steepness.
+When the wave steepness exceeds a certain value, the second-order model is no longer valid, and a higher-order
+model is required. In fact, when waves become too steep, they can break and no model based on solution of Laplaces
+equation (in terms of velocity potential) is valid.
+10
+
+4
+Second-Order Wave Kinematics
+It is assumed that the considered ﬂuid is incompressible, inviscid, and irrotational. Specially, the velocity ﬁelds of
+irrotationl ﬂuid can be expressed as follows:⃗
+u = ∇φ
+(4.1)⃗
+u(1) = (u(1)
+x ,u(1)
+y ,u(1)
+z ) = ∇φ(1) =
+ 
+∂φ(1)
+∂x , ∂φ(1)
+∂y , ∂φ(1)
+∂z
+!
+(4.2)⃗
+u(2) = (u(2)
+x ,u(2)
+y ,u(2)
+z ) = ∇φ(2) =
+ 
+∂φ(2)
+∂x , ∂φ(2)
+∂y , ∂φ(2)
+∂z
+!
+(4.3)
+The acceleration of a water particle can be evaluated by the material or substantial derivative of velocity vector,⃗u.
+D
+Dt⃗u = ∂⃗u
+∂t
+|{z}
+Term1
++⃗u·∇⃗u
+| {z }
+Term2
+(4.4)
+where, Term1 and Term2 are called the local acceleration at a ﬁxed point and the convective acceleration, respec-
+tively. However, we are only interested in the acceleration a ﬁxed point, which is evaluated as follows:⃗
+a(1) = (a(1)
+x ,a(1)
+y ,a(1)
+z ) = ∂⃗u(1)
+∂t
+=
+ 
+∂u(1)
+x
+∂t , ∂u(1)
+y
+∂t , ∂u(1)
+z
+∂t
+!
+(4.5)⃗
+a(2) = (a(2)
+x ,a(2)
+y ,a(2)
+z ) = ∂⃗u(2)
+∂t
+=
+ 
+∂u(2)
+x
+∂t , ∂u(2)
+y
+∂t , ∂u(2)
+z
+∂t
+!
+(4.6)
+To obtain the ﬁrst- and second-order pressure, let substitute the perturbation expansions of velocity potential into the
+Bernoulli’s equation in Eq.3.6 and separate terms of same order.
+p
+ρ + gz+ ∂
+∂t (φ(1) + φ(2) + ...)+ 1
+2∇(φ(1) + φ(2) + ...)·∇(φ(1) + φ(2) + ...) = −Q
+(4.7)
+p
+ρ = −gz−Q+
+"
+∂φ(1)
+∂t
+#
+|
+{z
+}
+O(ε)
++
+"
+∂φ(2)
+∂t
++ 1
+2∇φ(1) ·∇φ(1)
+#
+|
+{z
+}
+O(ε2)
++O(ε3)+ ...
+(4.8)
+Therefore, the ﬁrst- and second-order dynamic pressure, p(1)
+d
+and p(2)
+d
+are obtained as follows [10] [11]:
+p(1)
+d
+= −ρ ∂φ(1)
+∂t
+(4.9)
+11
+
+p(2)
+d
+= −ρ
+"
+∂φ(2)
+∂t
++ 1
+2∇φ(1) ·∇φ(1)
+#
+= −ρ
+"
+∂φ(2)
+∂t
+#
+|
+{z
+}
+Term1
+−ρ
+1
+2⃗u(1) ·⃗u(1)
+
+|
+{z
+}
+Term2
+(4.10)
+where, Term1 and Term2 are called the second-order potential term and quadratic interaction term, respectively.
+4.1
+Wave Surface Elevation
+η(1)(⃗x,t) = Re
+"
+N
+∑
+n=1
+Anexp(−i⃗kn ·⃗x)exp(iωnt)
+#
+(4.11)
+η(2±)(⃗x,t) = Re
+"
+N
+∑
+n=1
+N
+∑
+m=1
+A±
+nm·K±
+nm ·exp(−i(⃗kn ±⃗km)·⃗x)exp(iω±
+nmt)
+#
+(4.12)
+where,
+ε±
+nm = εn ± εm and ω±
+nm = ωn ± ωm
+(4.13)
+K±
+nm = L±
+nm
+(4.14)
+A+
+nm = AnAm
+and
+A−
+nm = AnA∗
+m
+(4.15)
+4.2
+Wave Particle Velocity
+4.2.1
+First-Order
+u(1)
+x (⃗x,z,t) = Re
+"
+N
+∑
+n=1
+Anωn
+cosh[|⃗kn|(h + z)]
+sinh(|⃗kn|h)
+cosθnexp(−i⃗kn ·⃗x)exp(iωnt)
+#
+(4.16)
+u(1)
+y (⃗x,z,t) = Re
+"
+N
+∑
+n=1
+Anωn
+cosh[|⃗kn|(h + z)]
+sinh(|⃗kn|h)
+sinθnexp(−i⃗kn ·⃗x)exp(iωnt)
+#
+(4.17)
+u(1)
+z (⃗x,z,t) = Re
+"
+(ı)·
+N
+∑
+n=1
+Anωn
+sinh[|⃗kn|(h + z)]
+sinh(|⃗kn|h)
+exp(−i⃗kn ·⃗x)exp(iωnt)
+#
+(4.18)
+4.2.2
+Second-Order
+u(2±)
+x
+(⃗x,z,t) = Re
+"
+N
+∑
+n=1
+N
+∑
+m=1
+A±
+nm·x ˙U±
+nm ·exp(−i(⃗kn ±⃗km)·⃗x)·exp(iω±
+nmt)
+#
+(4.19)
+u(2±)
+y
+(⃗x,z,t) = Re
+"
+N
+∑
+n=1
+N
+∑
+m=1
+A±
+nm·y ˙U±
+nm ·exp(−i(⃗kn ±⃗km)·⃗x)·exp(iω±
+nmt)
+#
+(4.20)
+12
+
+u(2±)
+z
+(⃗x,z,t) = Re
+"
+N
+∑
+n=1
+N
+∑
+m=1
+A±
+nm·z ˙U±
+nm ·exp(−i(⃗kn ±⃗km)·⃗x)·exp(iω±
+nmt)
+#
+(4.21)
+where,
+xU±
+nm = B±
+nm ·(|⃗kn|cosθn ± |⃗km|cosθm)
+(4.22)
+yU±
+nm = B±
+nm ·(|⃗kn|sinθn ± |⃗km|sinθm)
+(4.23)
+zU±
+nm = (ı)·B±
+nm ·k±
+nm ·tanh[k±
+nm(h + z)]
+(4.24)
+4.3
+Wave Particle Acceleration
+4.3.1
+First-Order
+a(1)
+x (⃗x,z,t) = Re
+"
+(ı)·
+N
+∑
+n=1
+Anω2 cosh[|⃗kn|(h + z)]
+sinh(|⃗kn|h)
+cosθnexp(−i⃗kn ·⃗x)exp(iωnt)
+#
+(4.25)
+a(1)
+y (⃗x,z,t) = Re
+"
+(ı)·
+N
+∑
+n=1
+Anω2 cosh[|⃗kn|(h + z)]
+sinh(|⃗kn|h)
+sinθnexp(−i⃗kn ·⃗x)exp(iωnt)
+#
+(4.26)
+a(1)
+z (⃗x,z,t) = Re
+"
+N
+∑
+n=1
+An(−1)ω2 sinh[|⃗kn|(h + z)]
+sinh(|⃗kn|h)
+exp(−i⃗kn ·⃗x)exp(iωnt)
+#
+(4.27)
+4.3.2
+Second-Order
+a(2±)
+x
+(⃗x,z,t) = Re
+"
+N
+∑
+n=1
+N
+∑
+m=1
+A±
+nm·x ˙U±
+nm ·exp(−i(⃗kn ±⃗km)·⃗x)·exp(iω±
+nmt)
+#
+(4.28)
+a(2±)
+y
+(⃗x,z,t) = Re
+"
+N
+∑
+n=1
+N
+∑
+m=1
+A±
+nm·y ˙U±
+nm ·exp(−i(⃗kn ±⃗km)·⃗x)·exp(iω±
+nmt)
+#
+(4.29)
+a(2±)
+z
+(⃗x,z,t) = Re
+"
+N
+∑
+n=1
+N
+∑
+m=1
+A±
+nm·z ˙U±
+nm ·exp(−i(⃗kn ±⃗km)·⃗x)·exp(iω±
+nmt)
+#
+(4.30)
+where,
+x ˙U±
+nm = (ı)·xU±
+nm ·ω±
+nm
+(4.31)
+y ˙U±
+nm = (ı)·yU±
+nm ·ω±
+nm
+(4.32)
+z ˙U±
+nm = (ı)zU±
+nm ·ω±
+nm
+(4.33)
+13
+
+4.4
+Dynamic Pressure
+4.4.1
+First-Order
+p(1)(⃗x,z,t) = Re
+"
+N
+∑
+n=1
+Anρwgcosh[|⃗kn|(h + z)]
+cosh(|⃗kn|h)
+exp(−i⃗kn ·⃗x)exp(iωnt)
+#
+(4.34)
+4.4.2
+Second-Order (only second-order potential term)
+p(2±)(⃗x,z,t) = Re
+"
+N
+∑
+n=1
+N
+∑
+m=1
+A±
+nm·P±
+nm ·exp(−i(⃗kn ±⃗km)·⃗x)·exp(iω±
+nmt)
+#
+(4.35)
+P±
+nm = ρw ·B±
+nm ·ω±
+nm
+(4.36)
+4.5
+Properties of Quadratic Transfer Function
+4.5.1
+Symmetricity of QTF
+Similar expressions of the quadratic transfer function(QTF) arise in describing loads and responses of ﬂoating
+structure; in this case, the QTF are evaluated numerically from software tools for wave diffraction and radiation
+analysis such as WAMIT or AQWA. The QTFs (F2±
+mn ) used for evaluating second-order forces of a ﬂoating structure
+always have the following symmetry relations:
+F2+(ωn,ωm) = F2+(ωm,ωn)
+and
+F2−(ωn,ωm) = F2−(ωm,ωn)∗
+(4.37)
+Symmetry relations in Eq.4.37 are also applicable to QTFs for second-order kinematics and this symmetricity prop-
+erty signiﬁcantly reduce the computational effort by enabling to only take the lower- or upper-triangular part when
+someone numerically simulate wave kinematic.
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+ωn(rad/s)
+ωm(rad/s)
+(a) |K+
+nm|
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.2
+0.4
+0.6
+0.8
+1
+ωn(rad/s)
+ωm(rad/s)
+(b) |K−
+nm|
+Figure 1. Transfer function for η2± (ω > 0): unidirectional wave(θn = θm = 0)
+14
+
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+10
+20
+30
+40
+50
+ωn(rad/s)
+ωm(rad/s)
+(a) |B+nm|
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+10
+20
+30
+40
+50
+ωn(rad/s)
+ωm(rad/s)
+(b) |B−nm|
+Figure 2. Transfer function for φ2± (ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0)
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.2
+0.4
+0.6
+0.8
+1
+ωn(rad/s)
+ωm(rad/s)
+(a) |xU+
+nm|
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+ωn(rad/s)
+ωm(rad/s)
+(b) |xU−
+nm|
+Figure 3. Transfer function for u2±
+x
+(ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0)
+4.5.2
+Singularity of QTF
+Formulations for the ﬁrst- and second-order wave kinematics shown in previous sections are determined from the so-
+lution of a boundary value problem(see Eq.3.3 - 3.8). When we implement the formulations to numerically simulate
+wave kinematics, these formulations have several restrictions, which stem from physically correct or weakly-correct
+assumptions considered during solving the boundary value problem. One of the restriction is the singularity of the
+ﬁrst- and second-order wave kinematic transfer functions. The singularity problem is also shown in QTFs proposed
+by other researchers.(Longuet-Higgins [3]; Marthinsen and Winterstein [12]; Nwogu [13])
+QTF proposed by Longuet-Higgins [3]
+B±
+nm =
+g2
+ωnωm
+(ωn ± ωm)(⃗kn ·⃗km ∓|⃗kn||⃗km|)
+(ωn ± ωm)2 −g|⃗kn ±⃗km|
+(4.38)
+15
+
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.05
+0.1
+0.15
+0.2
+0.25
+ωn(rad/s)
+ωm(rad/s)
+(a) |zU+
+nm|
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.05
+0.1
+0.15
+0.2
+0.25
+ωn(rad/s)
+ωm(rad/s)
+(b) |zU−
+nm|
+Figure 4. Transfer function for u2±
+z
+(ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0)
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.1
+0.2
+0.3
+0.4
+ωn(rad/s)
+ωm(rad/s)
+(a) |x ˙U+
+nm|
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.1
+0.2
+0.3
+0.4
+ωn(rad/s)
+ωm(rad/s)
+(b) |x ˙U−
+nm|
+Figure 5. Transfer function for a2±
+x (ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0)
+QTF used by Marthinsen and Winterstein [12]
+B±
+nm = (1 −δ−i,j)
+g2
+ωnωm
+g2|⃗kn||⃗km|
+2ωnωm −1
+4(ω2
+n + ω2
+m ± ωnωm)+ g2
+4
+ωn|⃗km|2±ωm|⃗kn|2
+ωnωm(ωn±ωm)
+(ωn ± ωm)−g |⃗kn|±|⃗km|
+ωn±ωm tanh[(|⃗kn|± |⃗km|)h]
+(4.39)
+where, δ−i,j = 1 if n = m, zero otherwise and is introduced to avoid the singularity of B±
+nm.
+QTF proposed by Nwogu [13]
+K±
+nm = ωnωm(k±
+nmh)2 cos(θn −θm)[1 −(α + 1/3)(k±
+nmh)2]
+2λk
+′
+nk
+′
+mh3
++ ω±
+mn[1 −α(k±
+nmh)2][ωnk
+′
+mh(|⃗kn|h ± |⃗km|hcos(θn −θm))+ ωmk
+′
+nh(|⃗kn|hcos(θn −θm)± |⃗km|h)]
+2λk
+′
+nk
+′
+mh3
+(4.40)
+16
+
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.1
+0.2
+0.3
+0.4
+ωn(rad/s)
+ωm(rad/s)
+(a) |z ˙U+
+nm|
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.1
+0.2
+0.3
+0.4
+ωn(rad/s)
+ωm(rad/s)
+(b) |z ˙U−
+nm|
+Figure 6. Transfer function for a2±
+z
+(ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0)
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+5000
+10000
+15000
+ωn(rad/s)
+ωm(rad/s)
+(a) |P+
+nm|
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+2000
+4000
+6000
+ωn(rad/s)
+ωm(rad/s)
+(b) |P−
+nm|
+Figure 7. Transfer function for p2± (ω > 0) at MSL(h = 20m): unidirectional wave(θn = θm = 0)
+λ = (ω±
+nm)2[1 −α(k±
+nmh)2]−g(k±
+nm)2h[1 −(α + 1/3)(k±
+nmh)2]
+(4.41)
+k
+′
+n = |⃗kn|[1 −(α + 1/3)(|⃗kn|h)2
+(4.42)
+where, α = (zα/h)2/2 + (zα/h) and zα ≈−0.53h from shallow water depths up to the deep water depth limit.
+Singularity at ω = 0
+When ω in Eq.3.17 approaches zero, the denominator of the equation approaches zero. Although the numerator
+also approaches zero, we may get an unwanted non-numerical value (so-called NaN), and a special treatment may
+be required during numerical simulation of the kinematics depending on what software tools are used. To avoid
+discontinuity or singularity problem at zero frequency, someone can simply set the kinematics equal to zero.
+QTFs of the second-order wave elevation and velocity potential, L±
+nm and B±
+nm also have similar singularity issue at
+zero frequency. As shown in Eq.3.26, the denominator of the ﬁrst term in L±
+nm is √RnRm =
+q
+|⃗kn|tanh(|⃗kn|h)
+q
+|⃗km|tanh(|⃗km|h),
+which approaches zero when either ωn or ωm goes to zero.
+17
+
+One of the numerators of B±
+nm in Eq.3.27 is D±
+nm in Eq.3.29. The numerators of both ﬁrst and second terms ap-
+proaches zero when either ωn or ωm goes to zero. In this case, there is no need for any special treatment during a
+numerical simulation because the denominator of B±
+n m is not zero unless ωn = ωm = 0.
+Based on the existence of singularity in the ﬁrst- and second-order transfer functions, we presume that the formula-
+tions presented in sec.3.2 do not evaluate the ﬁrst- and second-order wave kinematic when ωn = 0 or ωm = 0. This
+presumption is physically understandable because we assume that the a zero frequency regular wave does not have
+any wave energy and the zero-energy wave component does not enable to interact with any other wave components.
+Please refer to Fig.8 and 9 to check the singularity issue at ω = 0.
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+ωn(rad/s)
+ωm(rad/s)
+(a) |K+
+nm|
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.2
+0.4
+0.6
+0.8
+1
+ωn(rad/s)
+ωm(rad/s)
+(b) |K−
+nm|
+Figure 8. Transfer function K±
+nm including ω
+= 0
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+10
+20
+30
+40
+50
+ωn(rad/s)
+ωm(rad/s)
+(a) |B+nm|
+0
+0.5
+1
+1.5
+2
+2.5
+0
+0.5
+1
+1.5
+2
+2.5
+0
+10
+20
+30
+40
+50
+ωn(rad/s)
+ωm(rad/s)
+(b) |B−nm|
+Figure 9. Transfer function B±nm including ω
+= 0
+Singularity at diagonal components of L−
+nm and B−
+nm
+Another singularity considered during numerical simulation is the discontinuity in diagonal component of L−
+nm and
+B−
+nm. When ωn = ωm, the denominator terms of D−
+nm equal to zero, which makes L−
+nm and B−
+nm singular along the
+diagonal components. Physically, the interaction between two wave components propagating to opposite direction
+with same magnitude results in total energy loss. It can be explained through Fig.10, which shows how to interact
+18
+
+two wave components. As shown in Fig.10, two free wave component⃗kn and⃗km generates new bounded wave
+components⃗kn +⃗km and⃗kn −⃗km by summation interaction and difference interaction, respectively.
+Therefore, unlike difference interaction QTFs for second order wave force, all diagonal components of L−
+nm and B−
+nm
+should be set to zero, which means total energy loss by the interaction between two wave components with same
+magnitude and difference propagation direction,⃗kn −⃗kn. This is apparent for the QTF of velocity potential, B−
+nm
+because the sign of upper triangular part in B−
+nm is opposite to the lower triangular part.
+(a) Sum interaction
+
+
+(b) Difference interaction
+Figure 10. The sum and difference interaction of the wavenumber vectors
+19
+
+5
+Numerical Simulation of Second-Order Wave Kinematics
+In this chapter, the equations and algorithms used to numerically evaluating the second order wave kinematics based
+on the linear or ﬁrst order wave properties. The forms of the equations presented here are what is used in the Wave2
+module within HydroDyn. Before presenting the equations, we ﬁrst discuss the validity issue of the second order
+wave theory brieﬂy introduced in sec.3.3.
+5.1
+Limitation of Second-Order Wave Theory
+As shown in sec.3.2, the solutions of the second-order boundary value problem are derived based on a perturbation
+approach, which uses a wave steepness, ε ≪1 as an expansion parameter. For a regular wave component, Dean
+and Dalrymple deﬁned ε = ka/2, where k and a are wavenumber and wave amplitude. According to Dean and
+Dalrymple, the second-order wave theory is valid if two criteria are fulﬁlled as follows:
+• Convergence: First, the ratio of the second-order term to the ﬁrst order term in Eq.3.9 must be much smaller
+than 1.
+ε2φ(2)
+εφ(1) = kaφ(2)
+2φ(1)
+≪1
+(5.1)
+⇒3
+8
+kacosh(2kh)
+cosh(kh)sinh3(kh) ≪1
+(5.2)
+• No bump in the trough: Second, the physical properties of the wave proﬁle require that there is no bump in
+the trough. This is indicated by a negative second derivative of the wave trough, which lead to the criterion
+ka <
+sinh3(kh)
+cosh(kh)[2 + cosh(2kh)]
+(5.3)
+In addition to the above two criteria, the breaking criterion for the wave steepness must be fulﬁlled. One of the
+breaking wave critera in arbitrary water depth is given by the Miche breaking criterion
+H
+L =
+2a
+2π/k < 0.142tanh(kh)
+(5.4)
+⇒ka < 0.142π tanh(kh)
+(5.5)
+Fig.11 illustrates the different criteria of ka as a function of kh. Except when kh →0, the convergence criteria is
+satisﬁed when the criterion for no bump in the trough and wave breaking criterion are satisﬁed. When kh > 0.62π,
+the maximum wave steepness is restricted by the breaking wave criterion.
+In a regular wave case, the validity of second-order wave theory can be simply controlled by limiting the consid-
+ered maximum wavenumber to satisfy the three criteria(see Eq.5.2, 5.3, and 5.5). However, because these criteria
+were derived for a regular wave case, it may or may not be physically correct to directly expand the criteria to the
+irregular wave case. The following three criteria can be used to evaluate the maximum wave frequency for the valid
+application of the second-order wave theory.
+• Hu and Zhao [14]: Based on results from numerical simulations, Hu and Zhao suggested that the second-
+order wave model presented here is valid as long as Hs/Lz is smaller than approximately 0.08, where, Hs is the
+signiﬁcant wave height and Lz is the wavelength corresponding to the zero-crossing frequency ωz =
+p
+γ2/γ0
+and γn is given by
+γn =
+Z
+ωnS(ω)dω
+(5.6)
+20
+
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+kh
+ka
+ 
+ 
+Convergence
+No bump
+Breaking wave
+
+
+	
+
+
+	
+Figure 11. Different criteria for ka as a function of kd
+• Stansberg [15]: Stansberg proposed a useful criterion to establish the highest frequency, for which the second-
+order wave theory may be considered valid, as follows:
+kcut =
+2
+E(amax)[1 + 1/2(kpE(amax))]
+(5.7)
+where kcut is related to the limiting (cut-off) frequency, ωcut, through the linear dispersion relation and kp is
+a wavenumber corresponding to the spectral peak period, Tp; E(amax) is the expected value of the extreme
+wave amplitude of a gaussian wave record, which follows Rayleigh distribution. The denominator in Eq.5.7 is
+the simpliﬁed second-order correction for a non-gaussian wave ﬁeld. According to the extreme value theory,
+E(amax) is given by
+E(amax) = Hs
+4 [
+p
+2ln(Nz)+
+γem
+p
+2ln(Nz)
+]
+(5.8)
+Nz = tmax
+Tz
+(5.9)
+where, γem = 0.577... is the Euler-Meschenori constant; Nz is the number of zero-upcrossing wave cycles and
+tmax is the length of simulation in sec.
+• DNV-RP-C205 [16]: DNV-RP-C205 guideline provides a simpler criterion for the application of second-order
+wave theory as follows:
+ωcut =
+r
+2g
+Hs
+(5.10)
+In irregular wave case, the validity of second order wave theory is signiﬁcantly affected by the spectral or statistical
+properties of the considered irregular wave such as the peak wave period(Tp), signiﬁcant wave height(Hs), and
+the length of simulation(tmax) depending on the considered criteria. During a numerical simulation of the second-
+order wave kinematic, therefore, the maximum wave frequency arbitrarily assigned without considering the spectral
+properties of the irregular wave may result in the generation of physically-incorrect second-order wave kinematics.
+21
+
+5.2
+Sampling Theorem and additional requirement of cut-off frequency, ωcut
+In digital simulation of wave surface elevation and kinematics, we replace continuous time t, by discrete time array,
+tp = p∆t, where ∆t = tmax/N, such that p = 1,2,...,N. By virtue of the periodicity of Fourier series, we have
+∆ω = 2π
+tmax
+(5.11)
+The Nyquist sampling theorem provides a prescription for the nominal sampling interval required to avoid aliasing.
+It may be stated simply as follows:
+• The sampling frequency, ωs = 2π/∆t should be at least twice the highest frequency contained in the signal.
+Or in mathematical term,
+ωs ≥2ωcut
+(5.12)
+If ωcut = M∆ω, then we must satisfy
+
+ωs = 2π
+∆t =
+2π
+tmax/N
+
+≥
+
+2ωcut = M∆ω = M 2π
+tmax
+
+(5.13)
+⇒N ≥2M
+(5.14)
+In the numerical simulation of second-order wave kinematics, the largest frequency of wave components gener-
+ated by the second-order wave-wave interaction is 2M∆ω, which is associated with the sum-frequency interaction.
+Therefore, to satisfy the sampling theorem for second-order wave simulation, we must ensure that
+N ≥4M
+(5.15)
+This simply means that a cut-off frequency, ωcut evaluated by a criterion presented in sec.5.1 must satisfy
+h
+N = tmax
+∆t
+i
+≥
+
+4M = 4ωcut
+∆ω = 4
+ωcut
+2π/tmax
+
+(5.16)
+⇒ωcut ≤π
+2∆t
+(5.17)
+5.3
+Numerical Simulation using Inverse Fast Fourier Transform(IFFT)
+As shown in Eq.4.11 - Eq.4.36, the second-order wave kinematics can be obtained using the double Fourier trans-
+form. Although computation efﬁciency is improved by using IFFT, the formulations of the second-order wave
+kinematics are still time consuming. When the wave spectrum is divided into N components, the integration should
+be repeated N2 times, if direct integration method is applied. Fortunately, by collecting same frequency terms ﬁrst,
+it is possible to reduce the calculation times to 2N −1 for sum frequency contributions, and N −1 for difference
+frequency terms.
+Figure 12 and 13 shows which second-order wave frequency is generated by sum and difference interaction between
+ωn and ωm. In the ﬁgure, ω1 = ∆ω, ω2 = 2∆ω, · · ·, ωN = N∆ω. If same frequency terms, i.e. the diagonal going
+from the lower left corner to the upper right corner in sum-frequency matrix and the diagonal going from upper left
+corner to the lower right corner in difference-frequency matrix, are collected, the double summation of N × N terms
+can be replaced with a single summation of 2N −1 terms for sum-frequency components(ωµ+ = µ+∆ω; µ+ =
+{2,3,...,2N}) and N −1 terms for difference-frequency components(ωµ−= µ−∆ω; µ−= {1,2,...,N −1})
+22
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+
+
+
+
+
+
+
+
+ 
+
+
+	
+
+
+	
+
+
+	
+
+
+	
+
+
+	
+
+
+
+
+	
+
+
+
+	
+
+
+
+
+
+	
+
+
+
+
+
+	
+
+
+	
+
+
+	
+
+
+
+
+	
+
+
+	
+
+
+	
+
+
+	
+
+
+	
+
+
+	
+
+
+
+
+
+
+Figure 12. Second-order wave frequency matrix: Sum-frequency interaction
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ !"
+#
+ 
+$
+"
+#
+%&
+"
+#
+!
+"
+#
+ 
+!
+"
+#
+'
+(
+)
+*
+"
+#
+&
+"
+#
+ 
+!"
+#
+!"
+#
+$
+"
+#
+'
+(
+)
++
+"
+#
+!"
+#
+ 
+!"
+#
+(
+'
+*
+"
+#
+(
+'
++
+"
+#
+$
+"
+#
+ 
+$
+"
+#
+!"
+#
+
+
+Figure 13. Second-order wave frequency matrix: difference-frequency interaction
+23
+
+5.3.1
+Sum-Frequency Interaction
+To simplify the computation of the sum-frequency wave kinematics, the matrix should be split into three regions:
+• Region1 - n = m: ωµ+ = {2,4,6,...,2N} × ∆ω
+• Region2 - n̸ = m and 3 ≤n + m ≤N + 1: ωµ+ = {3,4,5,...,N + 1} × ∆ω
+• Region3 - n̸ = m and N + 2 ≤n + m ≤2N −1: ωµ+ = {N + 2,4,5,...,2N −1} × ∆ω
+Using the symmetricity property of QTFs introduced in sec.4.5.1, we can obtain the following equation for Fourier
+coefﬁcient of sum-frequency interaction term, Hµ+:
+• Region1:
+Hµ+ = AkAkX+ (ωk,ωk) where µ+ = 2k ; k = {1,2,...,N}
+• Region2:
+Hµ+ = 2∑
+⌊(µ+−1)/2⌋
+l=1
+AlAµ+−lX+(ωl,ωµ+−l)
+• Region3:
+Hµ+ = 2∑
+⌊(µ+−1)/2⌋
+l=µ+−N
+AlAµ+−lX+(ωl,ωµ+−l)
+where ⌊•⌋represents the ﬂoor function and X+ in above equations is equivalent to the sum-frequency part of red text
+in Eq.4.19, 4.20, 4.21, 4.28, 4.29, 4.30, and 4.35). After evaluating Fourier coefﬁcient Hµ+, we can get a time series
+of the second-order wave kinematic, Y +(⃗x,z,t) by applying one-dimensional IFFT procedure .
+Y +(⃗x,z,t) = IFFT
+
+Hµ+
+
+(5.18)
+5.3.2
+Difference-Frequency Interaction
+Unlike the sum-frequency interaction case, Fourier coefﬁcient of difference-frequency interaction term, Hµ−can be
+evaluated a relatively simple equation without splitting the matrix as follows:
+Hµ−= 2
+N−µ−
+∑
+l=1
+Al+µ−A∗
+l X−(ωl+µ−,ωl)
+(5.19)
+where, µ−= {1,2,...,N −1}, and X−in Eq.5.19 is equivalent to the difference-frequency part of red text in Eq.4.19,
+4.20, 4.21, 4.28, 4.29, 4.30, and 4.35). By applying one-dimensional IFFT procedure, a time series of the second-
+order wave kinematic by difference wave-wave interaction is simply given
+Y −(⃗x,z,t) = IFFT
+
+Hµ−
+
+(5.20)
+24
+
+Bibliography
+[1] N. Sharma and R. Dean. Second-order directional seas and associated wave forces. Society of Petroleum
+Engineers Journal, 4:129–140, 1981.
+[2] G. G. Stokes. On the theory of oscillatory waves. Trans.Camb. Phil. Soc., 8:441–455, 1847.
+[3] M.S. Longuet-Higgins, D.E. Cartwright, and N.D. Smith. Observations of the directional spectrum of sea
+waves using the motions of a ﬂoating buoy. In Ocean Wave Spectra, Proceedings of the Royal Society of
+London. Series A, Mathematical and Physical Sciences, 1963.
+[4] G.Z. Forristall. Kinematics of directionally spread waves. In Proceeding on Directional Wave Spectra Applica-
+tions, American Society of Civil Engineers, 1981.
+[5] K.F. Lambrakos. Marine pipeline dynamic response to waves from directional wave spectra. Ocean Engineer-
+ing, 9:385–405, 1982.
+[6] J.A. Pinkster. Numerical modelling of directional seas. In Symposium on Description and Modelling of
+Directional Seas, Technical University of Denmark, Copenhagen, 1984.
+[7] E.R. Jeffreys. Directional seas should be ergodic. Journal of Applied Ocean Research, 9:186–191, 1987.
+[8] M.D. Miles and E.R. Funke. A comparison of methods for synthesis of directional seas. Journal of Offshore
+Mechanics and Arctic Engineering, 111:43–48, 1989.
+[9] O.M. Faltinsen. Sea Loads On Ships and Offshore Structures. Cambridge University Press, 1990.
+[10] P.D. Sclavounos. Ocean Wave Interaction with Ships and Offshore Energy Systems [lecture note]. Retrieved
+from http://bazzim.mit.edu/oeit/OcwWeb/Mechanical-Engineering/2-24Spring-2002/LectureNotes/index.htm/.
+Massachusetts Institute of Technology, 2002.
+[11] C.-H. Lee. Wamit theory manual. Technical Report MIT Report 95-2, Department of Ocean Engineering,
+Massachusetts Institute of Technology, Cambridge, MA, 1995.
+[12] T. Marthinsen and S.R. Winterstein. On the skewness of random surface wave. In Proceeding of the second
+international offshore and polar engineering conference, 1992.
+[13] O. Nwogu. Nonlinear evolution of directional wave spectra in shallow water. In Proceeding of Costal Engi-
+neering, 1994.
+[14] S-L.J. Hu and D. Zhao. Non-gaussian properties of second-order random waves. Journal of Engineering
+Mechanics, 119:44–364, 1993.
+[15] C.T. Stansberg. Non-gaussian extremes in numerically generated second-order random waves on deep water. In
+Proceeding of the Eighth international offshore and polar engineering conference, 1998.
+[16] Det Norske Veritas. Recommended practice - DNV-RP-C205 - Environmental conditions and environmental
+loads. DNV, 2010.
+25

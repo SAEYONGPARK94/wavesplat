@@ -1,0 +1,2289 @@
+Published as a conference paper at ICLR 2026
+KANO: KOLMOGOROV–ARNOLD NEURAL OPERATOR
+Jin Lee1∗
+Ziming Liu2
+Xinling Yu1
+Yixuan Wang3
+Haewon Jeong1
+Murphy Yuezhen Niu1
+Zheng Zhang1†
+1University of California, Santa Barbara
+2Massachusetts Institute of Technology
+3California Institute of Technology
+ABSTRACT
+We introduce Kolmogorov–Arnold Neural Operator (KANO), a dual-domain neural
+operator jointly parameterized by both spectral and spatial bases with intrinsic
+symbolic interpretability. We theoretically demonstrate that KANO overcomes
+the pure-spectral bottleneck of Fourier Neural Operator (FNO): KANO remains
+expressive over a generic position-dependent dynamics (variable coefficient PDEs)
+for any physical input, whereas FNO stays practical only to spectrally sparse oper-
+ators and strictly imposes fast-decaying input Fourier tail. We verify our claims
+empirically on position-dependent differential operators, for which KANO robustly
+generalizes but FNO fails to. In the quantum Hamiltonian learning benchmark,
+KANO reconstructs ground-truth Hamiltonians in closed-form symbolic represen-
+tations accurate to the fourth decimal place in coefficients and attains ≈6 × 10−6
+state infidelity from projective measurement data, substantially outperforming that
+of the FNO trained with ideal full wave function data, ≈1.5 × 10−2, by orders of
+magnitude.
+1
+INTRODUCTION
+Contemporary science and engineering increasingly operate in regimes where the effective dimen-
+sionality and complexity of phenomena and data overwhelm human-designed calibrations and
+approximations. This motivates data-centric modeling of governing dynamics from observations (Kar-
+niadakis et al., 2021; Wang et al., 2023; Carleo et al., 2019). For a learned model to be constituted as
+a scientific law, it should first generalize universally over a well-defined domain, and also should be
+interpretable so that the learned representations can be extracted and reused for verification, testing,
+and downstream simulation. Mathematically, physical dynamics are generalized as operators as
+they are often formalized through PDEs (Courant et al., 1963; Evans, 2022). A large and practically
+important subclass consists of variable coefficient PDEs, in which at least one term has a coefficient
+that varies by its variables (Gilbarg et al., 1977); we define physical dynamics governed by such
+PDEs as position-dependent dynamics, when one of the variables that varies the coefficient is position.
+Examples include fluid flow in media with spatially varying viscosity or conductivity (Kundu et al.,
+2024), and the Schr¨odinger equation with a potential that is a function of position operators (Sakurai
+& Napolitano, 2020). Scientific AI such as operator networks (Kovachki et al., 2023; Lu et al., 2021)
+that efficiently approximate a generic position-dependent dynamics with tractable interpretability are
+therefore valuable, which we recognize the absence and aim to fill the gap in this work.
+An operator network approximates an arbitrary mapping between infinite-dimensional function
+spaces by first encoding functions into finite latent vectors and then learning the latent-to-latent
+map that represents the target operator (Lanthaler et al., 2022). DeepONet of Lu et al. (2021;
+2019) implements the most general dense operator network where two neural networks learn both
+encoding and latent mapping directly from data, based on the theoretical foundation laid by Chen
+& Chen (1995). Fourier Neural Operator (FNO) of Li et al. (2020), on the other hand, hard-codes
+the encoding as pseudo-spectral projection with its spectrally diagonal kernels. FNO is provably
+and empirically superior when its hard-coded sparsity is optimal (Li et al., 2020; Kovachki et al.,
+∗hojin@ucsb.edu
+†zhengzhang@ece.ucsb.edu
+1
+arXiv:2509.16825v6  [cs.LG]  24 Feb 2026
+
+Published as a conference paper at ICLR 2026
+2021), but this spectral sparsity becomes maladaptive for position-dependent or otherwise spectrally
+dense dynamics (Koshizuka et al., 2024; Qin et al., 2024). In such cases, the model size required for
+a target accuracy can grow super-exponentially (Kovachki et al., 2021), and although the universal
+approximation guarantee still holds, realistic size FNO may only converge on an in-sample mapping
+that fails outside the training distribution. Numerous variants of FNO attempted to break this spectral
+bottleneck. Some have broadened spectral coverage by exploiting factorized (Tran et al., 2021) or
+multi-scale (You et al., 2024) spectral kernels, and others have injected local spatial kernels alongside
+the original spectral ones (Wen et al., 2022; Liu-Schiaffini et al., 2024; Liu et al., 2025). Yet all prior
+works still privilege the spectral basis and cannot achieve optimal sparsity in the spatial basis.
+In parallel, interpretability has recently pivoted around Kolmogorov–Arnold Network (KAN) (Liu
+et al., 2024b;a), whose edges are trainable univariate functions and thus amenable to human inspection.
+Several works demonstrate data-driven scientific modeling with KAN: Chiparova & Popov (2025);
+Gashi et al. (2025) use KAN for system identification, and Koenig et al. (2024) replace the MLPs
+in Neural ODEs (Chen et al., 2018) with KANs, each reporting symbolic recovery of benchmark
+equations and parameters. KANs have also been explored within operator networks: Abueidda
+et al. (2025) employed KANs instead of MLPs in DeepONet and Xiao et al. (2024); Wang et al.
+(2025) augmented FNO with KANs. Despite performance gains however, prior KAN-based operator
+networks have not reported symbolic recovery of the learned operator, leaving the avenue of an
+interpretable operator network largely unexplored.
+To address these research gaps, we introduce the Kolmogorov–Arnold Neural Operator (KANO),
+an interpretable operator network jointly parameterized in both spatial and spectral bases with KAN
+sub-networks embedded in a pseudo-differential operator framework (H¨ormander, 2007; Kohn &
+Nirenberg, 1965). The key insight is to represent each component of the operator in the basis where
+it is sparse: differential terms spectrally, localized terms spatially, to achieve the most compact and
+tractable representation. Our work offers three main contributions to the scientific AI community.
+• First, we demonstrate the pure-spectral bottleneck of FNO with an illustrative example and the-
+oretically analyze why FNO cannot converge closely as desired to a generic position-dependent
+dynamics (variable coefficient PDEs) with a practical parameter complexity.
+• Second, we propose a novel framework of KANO that is expressive over a generic position-
+dependent dynamics with intrinsic symbolic interpretability. We provide theoretical analysis on
+KANO’s dual-domain (spatial and spectral) expressivity along with the empirical evidences of
+KANO robustly generalizing on unseen input subspace when FNO fails to.
+• Finally we validate the performance of KANO on some synthetic operators and a quantum simula-
+tion benchmark. KANO successfully recovered the closed-form formula accurately to the fourth
+decimal place in coefficients. Compared to the FNO baseline, KANO used only 0.03% of the model
+parameters, but achieved an order lower relative loss ℓ2 in our synthetic operator benchmarks, and
+a four-order lower state infidelity in the quantum Hamiltonian learning benchmark.
+To the best of our knowledge, our work is the first to demonstrate and quantify the symbolic
+recovery via KAN in operator learning. We shift the paradigm from mere universal approximation
+in operator learning toward the universal generalization of an operator network. Different from
+DeepOKAN (Abueidda et al., 2025) which replaces MLPs with KANs in DeepONet, our work
+achieves generalization over disjoint out-of-distribution subspace via a novel architecture design.
+2
+BACKGROUND
+2.1
+OPERATOR LEARNING AND FOURIER NEURAL OPERATOR
+Operator learning approximates mapping between infinite-dimensional function spaces, G : A →U,1
+from function pairs {(ai ∈A, ui = G(ai) ∈U)}N
+i=1
+2(Kovachki et al., 2023; 2024b). An operator
+network Gθ first encodes input ai via encoder Em : A→Cm into a latent vector, then learns the latent
+map Tθ : Cm →Cm′ which the output is reconstructed to approximate the label ui via reconstructor
+Rm′ : Cm′ →U: i.e. Gθ = Rm′ ◦Tθ ◦Em (Lanthaler et al., 2022). For fixed (Em, Rm′), we can
+1A and U are Banach function spaces (e.g., Sobolev spaces) defined on a bounded domain D ⊂Rd.
+2In practice, each function is sampled on a discretized grid in D and stored as a vector.
+2
+
+Published as a conference paper at ICLR 2026
+define the projection Π of an operator G as
+Π(G) = Rm′ ◦bT ◦Em
+where
+bT ∈
+arg min
+T: Cm→Cm′
+G −Rm′ ◦T ◦Em
+.
+(1)
+DeepONet (Lu et al., 2021; 2019) learns Em, Rm′, and Tθ all with two sub-networks. FNO (Li
+et al., 2020), on the other hand, hard-codes Em to be the truncated Fourier transform and Rm to be
+its band-limited inverse.
+Fourier Neural Operator (FNO).
+Let the domain D ⊂Rd be periodic and write the Fourier
+transform F of function a(x) as ˆa(ξ):
+[Fa](ξ) = ba(ξ) =
+Z
+D
+a(x) e−i ω·x dx,
+ω = 2πξ ∈Zd.
+(2)
+For fixed set of retained modes ξi ∈Ξ = {ξ1, . . . , ξm} ⊂Zd, truncated Fourier transform Fm :
+A→Cm and its band-limited inverse F−1
+m : Cm →U can be defined as:
+Fm(a) = [ba(ξ1), . . . , ba(ξm)],
+F−1
+m (Fma)(x) =
+m
+X
+j=1
+ba(ξj) e2πi ξj·x,
+(3)
+with a slight abuse of notation. A single Fourier layer LFNO of FNO is written as:
+LFNO(a)(x) = σ
+
+F−1
+m
+
+Rθ1(ξ) · Fm(a)(ξ)
+
+(x) + Wθ2 · a(x)
+
+(4)
+with learnable spectral block-diagonal multiplier R(ξ), parametrized linear transformation W, and
+point-wise nonlinear activation σ. FNO is comprised of iterative LFNO between lift-up (P) and
+projection (Q) networks:
+GFNO
+θ
+(a) = Q ◦L(ℓ)
+FNO ◦· · · ◦L(1)
+FNO ◦P(a) .
+(5)
+In the perspective of the operator network formulation (1) (Lanthaler et al., 2022), FNO hard-codes
+its encoder Em as Fm and reconstructor Rm as F−1
+m , then learns the latent map T by its iterative
+layers of parametrized linear kernels interleaved by non-linear activations (Kovachki et al., 2021).
+2.2
+KOLMOGOROV–ARNOLD NETWORK
+KAN (Liu et al., 2024b;a) replaces fixed node activations of traditional MLP with simple sum
+operations and train the learnable univariate 1D functions ϕ on edges. With layer width nl →nl+1
+and input field x(l) →x(l+1), a KAN layer yields a function matrix Φ(l) at lth layer as
+x(l+1) = Φ(l)x(l)3,
+Φ(l) =
+
+ϕ(l)
+q,p( · )
+p=1,...,nl
+q=1,...,nl+1,
+x(l+1)
+q
+=
+nl
+X
+i=1
+ϕ(l)
+q,p(x(l)
+p ),
+(6)
+so each output channel is a sum of edgewise transforms of the inputs (Liu et al., 2024b;a). In the
+original KAN each edge function is a spline expansion
+ϕ(ℓ)
+q,p(t) = c(ℓ)
+q,p,0 b(t) +
+g
+X
+i=1
+c(ℓ)
+q,p,i Bi(t),
+(7)
+with learnable coefficients for a fixed base 1D function b(·) and 1D B–spline basis {Bi}. Because
+every ϕq,p is a 1D curve, KANs are directly inspectable and amenable to visualization followed by
+symbolic regression. On expressivity, Wang et al. (2024) theoretically prove that KANs match MLPs
+up to constant depth and width factors; empirically, with appropriate optimization recipes, KANs and
+MLPs exhibit comparable scaling on PDE and operator benchmarks (Shukla et al., 2024). Hence,
+swapping a latent MLP for a KAN preserves expressivity while enabling symbolic readout.
+3
+THEORETICAL ANALYSIS ON FNO’S PURE-SPECTRAL BOTTLENECK
+This section first illustrates the pure-spectral bottleneck of FNO. Then we provide a theoretical
+analysis and prove that FNO suffers the curse of dimensionality for position-dependent dynamics.
+FNO is proven to have the universal approximation guarantee over any arbitrary non-linear Lipschitz
+operator (Kovachki et al., 2021; Lanthaler et al., 2025). This section does not disprove the universal
+approximation ability of FNO; it illustrates the limitation on the generalization ability of FNO
+stemming from its pure-spectral bottleneck on spectrally dense operators.
+3Akin to matrix-vector multiplication but follows the third equation Eq. 6 instead of row-vector inner product.
+3
+
+Published as a conference paper at ICLR 2026
+3.1
+THE PURE-SPECTRAL BOTTLENECK OF FNO
+We consider the 1D quantum harmonic oscillator Hamiltonian as an example:
+Ha(x) = −∂xxa(x) + x2 · a(x).
+(8)
+Multiplication and differentiation have a dual relationship under the Fourier transform:
+F[(−∂xxa)](ξ) = ξ2 · ˆa(ξ),
+F[(x2 · a)](ξ) = −∂ξξˆa(ξ).
+(9)
+In spectral domain, the spatial differential ∂xx is a spectral multiplier ξ2, whereas the spatial multiplier
+x2 becomes a spectral differential ∂ξξ. Consider a truncated polynomial basis {1, x, x2, . . . , xn−1}
+and a truncated Fourier basis ek(θ) = eikθ, k = 0, . . . , n −1, on a periodic domain. In the spatial
+(polynomial) basis, the map a(x) 7→x2 · a(x) acts as a two-step up-shift sparse matrix
+S(2)
+n
+:=
+
+
+0
+0
+1
+0
+· · ·
+0
+0
+0
+0
+1
+· · ·
+0
+...
+...
+...
+...
+...
+1
+0
+0
+0
+· · ·
+0
+0
+0
+0
+0
+· · ·
+0
+0
+
+
+,
+(10)
+while in the spectral (Fourier) basis it is a dense Toeplitz matrix (Morrison, 1995)
+Tn[x2] :=
+
+
+c0
+c−1
+c−2
+· · ·
+c−n+1
+c1
+c0
+c−1
+· · ·
+c−n+2
+c2
+c1
+c0
+· · ·
+c−n+3
+...
+...
+...
+...
+...
+cn−1
+cn−2
+cn−3
+· · ·
+c0
+
+
+,
+cm = 1
+2π
+Z 2π
+0
+θ2e−imθ dθ.
+(11)
+Thus each term in H is sparse in one basis and dense in the other (Morrison, 1995).
+An FNO layer LFNO (4) can easily parametrize −∂xx by taking R(ξ) ≈ξ2. However, approximating
+the dense off-diagonals in Tn[x2] to parametrize x2 must rely on the non-linear activation σ(·) since
+R(ξ) and W are spectrally diagonal and hence incapable of mixing modes. Let z(u) denote the
+pre-activation for input u, then the Jacobian of LFNO at u gives the first-order approximation of the
+learned map and its Fourier transform reveals the spectral off-diagonals of itself as
+F[J(u)](ξ, ξ′) =
+
+F[σ′ z(u, ·)
+
+] [ ξ−ξ′ ]
+
+·
+
+W + Rθ(ξ′)
+
+.
+(12)
+Therefore, all off-diagonals arise from the spectrum of the u-dependent gate σ′(z(u, ·)): FNO’s
+nonlinearity can create off-diagonals, but they are tied to the input distribution of u. This is the pure-
+spectral bottleneck of FNO: spectral off-diagonals of a learned FNO are tied to the train subspace,
+hence FNO can converge only on the in-sample mapping that fails outside the train distribution4. See
+Appendix D for further detailed discussion expanding to the arbitrary higher order contribution and
+deep layered FNO.
+3.2
+FNO SUFFERS CURSE OF DIMENSIONALITY ON POSITION-DEPENDENT DYNAMICS
+As explained previously, position operator, a(x) 7→x · a(x), is a highly dense Toeplitz map in the
+spectral basis (Morrison, 1995). Based on the Remark 21 & 22 of Kovachki et al. (2021), we prove
+that any position-dependent dynamics induces super-exponential scaling in FNO size by the desired
+error bound: FNO cannot converge closely as desired on a generic position-dependent dynamics with
+practical model size, hence can only overfit on the in-sample mapping. We provide Lemma 1, that a
+single position operator already spreads the input spectra too much for FNO to stay practical, and
+Theorem 1, expanding Lemma 1 to an arbitrary composition of position operators.
+Following from the operator network formulation (1), the error estimate of an operator network Gθ
+approximating the ground-truth operator G in an operator norm is bounded as
+∥G −Gθ∥≤∥G −Rm′ ◦bT ◦Em∥
+|
+{z
+}
+projection error:ϵproj
++ ∥Rm′ ◦(bT −Tθ) ◦Em∥
+|
+{z
+}
+latent network error:ϵnet
+,
+(13)
+by the triangle inequility. Latent network error ϵnet follows the well-established scaling law of
+conventional neural networks (Hornik et al., 1989; Cybenko, 1989). Therefore, whether an operator
+network is efficient in model and sample size to achieve the desired accuracy hinges on the scalability
+of the projection error ϵproj (Lanthaler et al., 2022; Kovachki et al., 2021; 2024a).
+4This issue of out-of-distribution fragility from underspecification is well studied by D’Amour et al. (2022)
+4
+
+Published as a conference paper at ICLR 2026
+Figure 1: (a) LFNO architecture. (b) LKANO architecture.
+Reviewing Remark 21 & 22 of Kovachki et al. (2021)
+ϵproj of FNO is governed by the Fourier
+tail, the sum of Fourier coefficients outside the retained spectrum Ξ truncated by width m (Gottlieb
+& Orszag, 1977; Trefethen, 2000): to achieve the desired ϵproj with practical m, both input and output
+Fourier tails must decay algebraically or faster. However, even in the optimal case of the band-limited
+input, if the ground-truth operator is spectrally dense to spread out the input spectra and induce
+algebraic or slower decay in output Fourier tail, m must scale at least polynomially to suppress ϵproj:
+m ∼O
+ ϵ−1/s
+proj
+
+where s is a geometric constant. Meanwhile, as the latent mapping would be also
+dense, the size of the latent network, Nnet, follows the canonical polynomial neural scaling (Yarotsky,
+2017; De Ryck et al., 2021) by the desired ϵnet with its width md (d is the input domain dimension)
+as the exponent: Nnet ∼O
+ ϵ−md
+net
+
+. Consequently, this results as the super-exponential scaling in the
+latent network size Nnet ∼O
+ ϵ
+−ϵ−d/s
+proj
+net
+
+even with the optimal band-limited input: scaling width m to
+suppress ϵproj explodes Nnet to achieve the desired ϵnet for a generic dense operator.
+Lemma 1 (Position operator elongates Fourier tail). A single position operator, spatial multiplier
+by x, induces algebraic decay in output Fourier tail when the input is band-limited.
+Sketch of proof. Position operator is kernel bx(ξ)∝1/ξ in spectral basis. Hence, every mode outside
+the input spectrum picks up a coefficient of size ∼1/|ξ|, ending up as |ˆv(ξ)| ≳1/|ξ| in the output
+spectrum. See Appendix C.2 for restatement and full proof.
+Theorem 1 (Curse of dimensionality on position operators ). Any arbitrary composition of position
+operators requires FNO to scale super-exponentially on its model size by the desired accuracy.
+Sketch of proof. Iteratively apply Lemma 1, then any arbitrary composition of position operators
+induce algebraic or slower decay in output Fourier tail even for the optimal band-limited input.
+This results in super-exponential scaling of latent network size by the desired error as discussed
+above (Kovachki et al., 2021). See Appendix C.3 for restatement and full proof.
+Remark 1. What is missing from the upper bound analysis of FNO by Kovachki et al. (2021) is the
+effect of the wide lift-up and projection networks. For the generalization guarantee arguments of this
+work, the upper bound analysis is still sound, yet it should be clarified that the theoretical analysis
+on the role of the lift-up and projection networks is yet an open research question. Recent studies
+by Lanthaler et al. (2025); Lanthaler (2024) provide better view on it with lower bound analysis.
+4
+KOLMOGOROV–ARNOLD NEURAL OPERATOR
+Motivated by the pure-spectral bottleneck of FNO, we propose the Kolmogorov-Arnold Neural
+Operator (KANO), an operator network capable of converging closely as desired on a generic
+position-dependent dynamics with practical model size. We first introduce the KANO architecture,
+and provide theoretical analysis on its dual-domain expressivity in the following section.
+4.1
+KANO ARCHITECTURE
+KANO utilizes an iterative structure of KANO layers LKANO to learn the unknown operator, akin to
+FNO. However, KANO excludes the wide lift-up and projection networks to maximize tractability
+since it is known that wide KANs are fragile to symbolic recovery (Noorizadegan et al., 2025):
+GKANO
+θ
+= L(ℓ)
+KANO ◦· · · ◦L(1)
+KANO.
+(14)
+LKANO(a)(x) = Φθ1
+
+F−1
+m
+
+pθ2(x, ξ) ∗Fm(a)(ξ)
+
+(x) , a(x)
+
+,
+(15)
+5
+
+Published as a conference paper at ICLR 2026
+where Φ is a KAN sub-network for learnable non-linear activation; p(x, ξ) is another KAN sub-
+network, a pseudo-differential symbol jointly parametrized by both spatial x and spectral ξ bases5.
+Note the “∗” notation in LKANO (15) instead of the block-diagonal multiplication notation “·” in
+LFNO (4). The spatial basis x of the symbol p(x, ξ) is convolution (differential) in spectral domain
+by the dual relationship (9). Therefore, the pseudo-differential symbol calculus of p(x, ξ) needs
+to be done by quantizing on both spatial and spectral domain (H¨ormander, 2007), and we choose
+Kohn-Nirenberg quantization (Kohn & Nirenberg, 1965) to compute the symbol calculus in LKANO:
+F−1
+m
+
+p(x, ξ) ∗Fm(a)(ξ)
+
+(x) :=
+ h
+L
+d X
+ξ∈Ξ
+X
+y∈Y
+ei(x−y)·ξ p(x, ξ) a(y),
+(16)
+where for a periodic domain D = (−L
+2 , L
+2 )d, Y = {y1, . . . , ym} ⊂D is a uniform discretization
+with spacing h and x ∈D is an evaluation point. We denote Kohn-Nirenberg quantization (16) as an
+operator Opm
+ p
+
+:= F−1
+m
+
+p(x, ξ) ∗Fm
+
+defined by the symbol p(x, ξ). In the operator network
+formulation (1) introduced in Section 2.1, KANO’s projection ΠKANO is then defined as:
+ΠKANO(G) := Opm
+ pG
+
+,
+pG ∈arg min
+p
+G −Opm(p)
+.
+(17)
+Symbolic Interpretability of KANO.
+By using compact KANs each for the symbol p(x, ξ) and
+non-linear activation Φ in every KANO layer LKANO (15), KANO network GKANO
+θ
+(14) is fully
+inspectable by visualizing the learned edges of all its KANs, potentially allowing closed-form
+symbolic formula of the learned operator with the manual provided by Liu et al. (2024b;a). In
+addition, recent endeavors have greatly expanded KAN’s symbolic recovery capacity to non-smooth,
+discontinuous targets with high irregularities (Yu et al., 2024; Aghaei, 2024; Lei et al., 2025; Yang
+et al., 2025; Shiraishi et al., 2025). All of such advancements are easily and directly applicable in our
+KANO framework as well, when facing an operator with high irregularity coefficients.
+Remark 2 (Complexity analyses of KANO). As apparent in Eq. (16), KANO layer must perform
+double sum which can be computationally heavy. However, for the target operator class of variable-
+coefficient PDEs such as position-dependent dynamics, we show this can be compensated in principle
+by the parameter efficiency we prove in the following Section 4.2. See Appendix E.
+4.2
+KANO’S DUAL-DOMAIN EXPRESSIVITY
+In contrast to FNO, KANO exploits sparse representations in both the spatial and spectral domains,
+hence decoupling the scaling of ϵproj and ϵnet by never letting the latent map be a dense convolution. For
+instance, for the quantum harmonic oscillator in Eq. (8), a KANO layer LKANO (15) can parametrize
+H by taking p(x, ξ) ≈x2 + ξ2, both −∂xx and x2 terms are each represented where they are
+sparse, both leveraging the shift form S(2)
+n
+(10). By jointly parameterizing the operator in both
+spatial and frequency domains, KANO cherry-picks the sparse representation for every term in
+position-dependent dynamics, building the right inductive bias well-known to be essential for out-of-
+distribution generalization and model efficiency (Goyal & Bengio, 2022; Trask et al., 2018).
+This dual-domain expressivity of KANO first alleviates the input constraint; we first explain that
+ϵproj of KANO scales practically by its width m for any physical input. Then we provide Theorem 2:
+as long as the KANO projection (17) of an operator generates smooth symbols KAN can easily
+approximate, ϵnet scales practically by compact KAN sub-networks independent of ϵproj. In conclusion,
+KANO can converge closely as desired to a generic position-dependent dynamics with practical
+model size using any physical input, robustly generalizing outside the train subspace.
+KANO practically has no input constraint.
+According to the quadrature bound from Demanet &
+Ying (2011, Thm. 1&2), the error estimate of Kohn-Nirenberg quantization (16) obeys
+G −Opm(pG)
+ ≤C B m−s,
+(18)
+given norm-bound (finite-energy)6 input of AB = {u : ∥u∥≤B} where s, C are geometric
+constants. Hence KANO width m scales polynomially by the desired ϵproj given any physical data.
+5Shin et al. (2022) first employed pseudo-differential operator framework for neural operator. They presumed
+the symbol p(x, ξ) to be separable as p(x, ξ) = px(x) · pξ(ξ), and used MLP sub-networks while retaining
+the lift-up and projection networks of a generic neural operator architecture (Kovachki et al., 2023).
+6Norm here and Equation Eq. 18 is the Sobolev norm
+6
+
+Published as a conference paper at ICLR 2026
+Table 1: Relative ℓ2 losses (×10−4) and parameter counts.
+G1
+G2
+G3
+Model (params)
+A
+B
+B/A
+A
+B
+B/A
+A
+B
+B/A
+FNO (566k)
+6.36
+98.8
+15.53
+10.6
+87.0
+8.21
+11.4
+81.4
+7.14
+U-FNO (579k)
+2.79
+22.9
+8.21
+8.14
+339
+41.65
+92.4
+292
+3.16
+AM-FNO (548k)
+1.08
+20.9
+19.35
+1.20
+16.5
+13.75
+1.16
+29.8
+25.69
+PDNO (538k)
+1.41
+6.31
+4.5
+1.92
+12.1
+6.3
+4.03
+27.2
+6.7
+KANO (152)
+1.04
+1.44
+1.38
+0.629
+0.749
+1.19
+0.716
+0.737
+1.03
+KANO MLP (2k)
+3.37
+6.59
+1.96
+4.49
+8.07
+1.80
+3.59
+6.87
+1.91
+KANO SYMBOLIC
+0.512
+0.526
+1.03
+0.498
+0.500
+1.00
+0.520
+0.536
+1.03
+Figure 2: Loss test results. (a) G1 (b) G2 (c) G3. Note the logarithmic scale.
+Theorem 2 (KANO stays practical for smooth symbol). If the KANO projection of an operator
+G, ΠKANO(G) (17), generates a finite composition of smooth symbols pG(x, ξ) and finite-degree
+non-linearities, the model size of KANO scales polynomially by the desired accuracy ε.
+Sketch of proof. Choosing m∼(B/ε)1/s scales projection error down to ε/2 by Eq. (18). A fixed-
+width KAN then approximates the symbols to accuracy ε/2 with O(ε−d/(2sp)) parameters (Wang
+et al., 2024, Corol. 3.4) (sp is a geometric constant). The finite-degree non-linearities add only
+constant-size weights by the activation KAN, so the total parameter count is O(ε−d/(2sp)). See
+Appendix C.4 for restatement and full proof.
+Corollary 1 (KANO is practical for generic position-dependent dynamics). For a finite com-
+position of spatial and spectral multipliers of maximum r-differentiable symbols with finite-degree
+non-linearity, Theorem 2 yields |Θ| = O
+ ε−d/(2r)
+.
+Remark 3 (Scope of KANO). Recent studies demonstrate that wide lift-up and projection networks
+are essential for strong performance on high-dimensional benchmarks (Diab & Al Kobaisi, 2025;
+Eker, 2024; Liu et al., 2023). In contrast, KANO is designed to prioritize symbolic recovery with
+robust generalization, complementary to the scope of FNO. Because the core dual-domain expressivity
+is mathematically agnostic to dimensionality, extending KANO to conventional high-dimensional use
+cases is a natural and promising direction for future work.
+5
+EXPERIMENTAL RESULTS
+5.1
+SYNTHETIC-OPERATOR GENERALIZATION BENCHMARKS
+We benchmark FNO-based models and KANO on three position-dependent operators:
+G1f = x2 · f −∂xxf,
+G2f = x · ∂xf + ∂xxf,
+G3f = f 3 + x · ∂xf + ∂xxf.
+Our goal is to quantify and compare the generalization of each model. We train the models only with
+Group A dataset and evaluate them on the unseen Group B dataset.
+• Group A (Training families): Periodic, Chirped Cosine, Sine Beats.
+• Group B (Testing families): Sinc Pulse, Gaussian×Hermite, Wave Packet.
+For each operator, we generate 2000 train pairs from Group A and 400 test pairs from Group B to
+evaluate the generalization by comparing the ratio between the average relative ℓ2 loss over each
+group (Loss Test). We also interpolate the Group A and B function samples in 100 steps, apply
+ground-truth operators in each step to build the interpolated dataset, and evaluate the loss ratio to that
+of the Group A samples (Interpolation Test). We trained FNO models of 2 layers, 64 width with no
+7
+
+Published as a conference paper at ICLR 2026
+Figure 3: Interpolation test results. (a) G1 (b) G2 (c) G3.
+Figure 4: (a) p(x, ξ) of G1. The middle edge does not contribute to the output. (b) p(x, ξ) of G2. (c)
+p(x, ξ) of G3. (d) Φ of G3. Edge of the residual in (d) looks linear, so we compared two scenarios,
+linear and cubic, which the latter achieved lower loss and better generalization.
+mode truncation, and used one-layer KANs of grid 10 cubic B-splines edges for the KANO model.
+For other FNO variant baselines, we used 2-layer models of similar size to FNO. Lastly, we trained a
+KANO variant for an ablation study, which we replaced the KAN subnetworks with compact MLPs
+of 32 hidden width and 2 hidden layers (KANO MLP). See Appendix B.1 for experiment details. We
+used Adam optimizer and relative ℓ2 loss for training.
+Results.
+As shown in Table 1 and Figure 2, KANO shows consistent losses over Group A and
+Group B, validating its robust generalization ability for position-dependent operators. KANO MLP
+also shows comparable out-of-distribution performance, which suggests that the generalization ability
+of KANO stems from its dual-domain architecture apart from KAN. In contrast, FNO shows fragile
+out-of-distribution behavior on Group B dataset with the significant loss increases. U-FNO (Wen et al.,
+2022) and AM-FNO (Xiao et al., 2024) show even worse results. On the other hand, PDNO (Shin
+et al., 2022) shows the most stable generalization among FNO families, although not as robust as
+KANO and KANO MLP. Along with the ablation study, this confirms that the pseudo-differential
+operator framework is judicious for robust generalization on position-dependent operators, while
+primarily relying on only spectral kernels makes the model fragile out of train distribution even with
+localized enhancements. Interpolation test results in Figure 3 further empirically validate our theories.
+The FNO curves (red) of Figure 3 show slow increases on early and mid-interpolation, suggesting
+that the FNO’s learned in-sample mappings are yet close to the ground-truth operators. However, the
+FNO curves abruptly soar up in the latter ratio, suggesting that the interpolated functions are now far
+outside the train distribution. These results, together with KANO’s one-order–of–magnitude lower
+loss at just 0.03% of FNO’s size, are consistent with our claims in Theorem 1 and Theorem 2.
+After convergence, we visualized the embedded KANs (Figure 4). We then froze these learned
+symbols and continued training, referring to this variant as KANO symbolic. KANO symbolic
+recovered the exact symbolic coefficients of the ground-truth operator to within the fourth decimal
+place (Table 2). KANO’s loss matches KANO symbolic’s loss in Table 1, confirming that KANO
+converged close to the ground-truth operator.
+5.2
+LONG-HORIZON QUANTUM DYNAMICS BENCHMARK
+We provide this benchmark on two position-dependent quantum dynamics: the quartic double-well
+Hamiltonian (DW) and the nonlinear Schr¨odinger equation with cubic nonlinearity (NLSE):
+i∂tψ = −1
+2∂xxψ + w(x) · ψ (DW),
+i∂tψ = −1
+2∂xxψ + w(x) · ψ + |ψ|2 · ψ (NLSE),
+8
+
+Published as a conference paper at ICLR 2026
+Table 2: Ground-truth vs. learned operators (coefficients rounded to 4th decimal place).
+Ground-truth operator
+Learned KANO operator
+G1f = x2 · f −∂xxf
+˜G1f = (x2 + 0.0003) · f −∂xxf
+G2f = x · ∂xf + ∂xxf
+˜G2f = 0.9996 x · ∂xf + ∂xxf −0.0003 f
+G3f = f 3 + x · ∂xf + ∂xxf
+˜G3f = 1.0001 f 3 + 0.99997 x · ∂xf + 0.99997 ∂xxf
+−0.0002 f 2 −0.0003 f −0.0001
+Figure 5: State fidelity over 100 time steps. (a) DW (b) NLSE
+where w(x) = x4 −
+ x −1
+32
+2 + 0.295.
+We generate 200 initial states and yield the state trajectories by the Hamiltonians, sampling momen-
+tum/position probability mass functions (PMFs) every 0.1ms for 100 time steps. The first 10 time
+steps are used for training, and the rest are used to evaluate the long-horizon prediction.
+We modify KANO to capture the quantum state evolution: Q-KANO. Symbol pθ is parametrized
+as exp
+
+−i∆T ϕθ(x, ξ)
+
+, where ∆T = 0.1 ms. The adaptive activation is also defined as a complex
+exponential with learned phase ϑ = Φθ(|Opm(pθ)ψ|, ∠Opm(pθ)ψ) for input wave function ψ(x):
+GQ-KANO
+θ
+[ψ] = Opm(exp
+
+−i∆T ϕθ(x, ξ)
+
+)ψ · e−i∆T ϑ.
+(19)
+We investigate three supervision scenarios: Full-type training with full wave function, idealistic yet
+physically unattainable, Pos-type training with only position PMF, physically realistic yet the least
+informative, and pos&mom-type training with both position and momentum PMFs, which remains
+physically attainable while providing richer information although not full. We use Adam optimizer
+for all trainings. See Appendix B.2 for experiment details.
+Table 3: State infidelity after 90 additional time-evolution steps.
+Model & Train Type
+State Infidelity
+Double-Well
+NLSE
+FNO (full)
+1.5 × 10−2
+1.6 × 10−2
+Q-KANO (full)
+6.3 × 10−6
+6.8 × 10−6
+Q-KANO (pos & mom)
+6.3 × 10−6
+5.6 × 10−6
+Q-KANO (pos)
+4.7 × 10−3
+6.1 × 10−2
+Q-KANO MLP (pos & mom)
+7.7 × 10−6
+8.5 × 10−6
+Q-KANO SYMBOLIC (full)
+2.0 × 10−8
+2.0 × 10−8
+Q-KANO SYMBOLIC (pos & mom)
+2.0 × 10−8
+3.0 × 10−8
+Q-KANO SYMBOLIC (pos)
+5.3 × 10−2
+6.1 × 10−2
+Results.
+We evaluate
+state infidelity7 between
+ground-truth
+evolution
+and model prediction at
+each time step (Table 3,
+Figure 5).
+In case of
+KANO, the pos & mom-
+type training achieves
+indistinguishable
+infi-
+delity from the ideal
+full-type training base-
+line. The ablation study
+with MLP variant of
+Q-KANO
+achieved
+comparably
+low
+state
+infidelity by pos & mom-type training as well. Meanwhile, the pos-type training displays a clear
+increase in infidelity, especially on the NLSE.
+7For predicted state ˜φ and ground-truth state φ, the state fidelity F is defined as the inner product between
+them (F :=< ˜φ, φ >), and the state infidelity is defined as (1 −F), hence shows how distant two states are.
+9
+
+Published as a conference paper at ICLR 2026
+Table 4: Ground truth vs. learned symbols. Coefficients rounded to 4th decimal place.
+Hamiltonian
+Train Type
+Learned symbolic structure
+DW
+ground truth
+x4 −x2 + 0.0625 x + 0.295 + 0.5 ξ2
+full
+1.0004 x4 + 0.0001 x3 −1.0013 x2 + 0.0625 x + 0.2955 + 0.5 ξ2
+pos & mom
+1.0003 x4 + 0.0001 x3 −1.0008 x2 + 0.0623 x + 0.0001 + 0.5 ξ2
+NLSE
+ground truth
+x4 −x2 + 0.0625 x + 0.295 + 0.5 ξ2 + |ψ|2
+full
+1.0005 x4 −0.0001 x3 −1.0014 x2 + 0.0626 x + 0.2942 + 0.5 ξ2 +
+0.9815|ψ|2 + 0.0110|ψ|
+pos & mom
+0.9999 x4 −0.0003 x3 −1.0001 x2 + 0.0630 x + 0.1141 + 0.5 ξ2 +
+0.9514|ψ|2 −0.5504|ψ|
+Figure 6: pos&mom type training results. (a) Structure of the potential w(x) (b) p(x, ξ) of DW. (c)
+p(x, ξ) of NLSE. (d) φ(|·|, ∠·) of NLSE. Potential w(x) structure is clearly reconstructed.
+In contrast, even with full type training, FNO fails to maintain low state infidelity after the long-
+horizon propagation as expected. Iterative time evolution pushes the wave function far outside the
+train convex hull, and FNO’s learned in-sample mapping deviates from the ground-truth evolution
+rapidly, leading to four orders of infidelity increase compared to KANO.
+Table 4 juxtaposes the learned symbols with that of the ground-truth Hamiltonians and Figure 6
+shows the KAN visualizations from pos & mom-type training. With full-type training coefficients are
+recovered to the fourth decimal place, vindicating the ideal capacity of KANO when the information
+is fully provided. Under the realistic pos & mom-type training, the reconstruction remains accurate
+except for two terms: the constant (global phase) and the NLSE’s cubic coefficient. Both discrepancies
+are predicted by quantum observability: global phases cancel in all PMFs, and the Kerr coefficient
+enters only through higher-order correlations that become harder to estimate from finite-shot statistics.
+Q-KANO faithfully reveals what the data support and nothing more.
+6
+CONCLUSION
+We have presented the Kolmogorov–Arnold Neural Operator, an interpretable neural operator expres-
+sive on a generic position-dependent dynamics. KANO cherry-picks sparse representations of each
+term via jointly parametrizing on both spectral and spatial bases, and achieves robust generalization
+outside train distribution while exposing clear tractable representation via its KAN sub-networks. In
+all our benchmarks, KANO has successfully recovered the ground-truth operators accurately to the
+fourth decimal place in coefficients. In addition to the superior out-of-distribution generalization,
+KANO has also achieved orders of magnitude lower losses with less than 0.03% of the model
+size compared to the FNO baseline. KANO shifts operator learning from an opaque, surrogate-
+based paradigm towards interpretable data-driven scientific modeling, and provides robust empirical
+evidence supporting its enhanced dual-domain expressivity and interpretability.
+REPRODUCIBILITY STATEMENT
+All code, configurations, and dataset artifacts required to reproduce the experiments are provided
+in https://github.com/jinucsb/KANO, along with step-by-step instructions for rerunning
+training and evaluation. Details in the data generation and implementation are provided in Appendix B,
+10
+
+Published as a conference paper at ICLR 2026
+and the full proofs of Theorems and Lemma are provided in Appendix C along with their mathematical
+restatements.
+ETHICS STATEMENT
+All authors of this work sincerely adhered to the ICLR Code of Ethics. We do not expect any potential
+violation to the best of our knowledge.
+ACKNOWLEDGMENTS
+We thank Nina Miolane, Adele Myers, Louisa Cornelis for helpful early discussions and Anima
+Anandkumar for her feedback on our paper draft. Jin Lee and Zheng Zhang were supported by NSF
+ECCS-2328281. Murphy Yuezhen Niu was supported by the U.S. National Science Foundation
+grant CCF-2441912 (NSF CAREER), Air Force Office of Scientific Research under award number
+FA9550-25-1-0146, and the U.S. Department of Energy, Office of Advanced Scientific Computing
+Research under Award Number DE-SC0025430.
+REFERENCES
+Diab W Abueidda, Panos Pantidis, and Mostafa E Mobasher. Deepokan: Deep operator network
+based on kolmogorov arnold networks for mechanics problems. Computer Methods in Applied
+Mechanics and Engineering, 436:117699, 2025.
+Alireza Afzal Aghaei. rkan: Rational kolmogorov-arnold networks. arXiv preprint arXiv:2406.14495,
+2024.
+Giuseppe Carleo, Ignacio Cirac, Kyle Cranmer, Laurent Daudet, Maria Schuld, Naftali Tishby, Leslie
+Vogt-Maranto, and Lenka Zdeborov´a. Machine learning and the physical sciences. Reviews of
+Modern Physics, 91(4):045002, 2019.
+Ricky TQ Chen, Yulia Rubanova, Jesse Bettencourt, and David K Duvenaud. Neural ordinary
+differential equations. Advances in neural information processing systems, 31, 2018.
+Tianping Chen and Hong Chen. Universal approximation to nonlinear operators by neural networks
+with arbitrary activation functions and its application to dynamical systems. IEEE transactions on
+neural networks, 6(4):911–917, 1995.
+Lily Chiparova and Vasil Popov. Kolmogorov–arnold networks for system identification of first-and
+second-order dynamic systems. Engineering Proceedings, 100(1):100059, 2025.
+Richard Courant, David Hilbert, and Joseph David Harris. Methods of mathematical physics, volume
+ii: Partial differential equations. American Journal of Physics, 31(3):221–221, 1963.
+George Cybenko. Approximation by superpositions of a sigmoidal function. Mathematics of Control,
+Signals and Systems, 2(4):303–314, 1989.
+Alexander D’Amour, Katherine Heller, Dan Moldovan, Ben Adlam, Babak Alipanahi, Alex Beutel,
+Christina Chen, Jonathan Deaton, Jacob Eisenstein, Matthew D Hoffman, et al. Underspecification
+presents challenges for credibility in modern machine learning. Journal of Machine Learning
+Research, 23(226):1–61, 2022.
+Tim De Ryck, Samuel Lanthaler, and Siddhartha Mishra. On the approximation of functions by tanh
+neural networks. Neural Networks, 143:732–750, 2021.
+Laurent Demanet and Lexing Ying. Discrete symbol calculus. SIAM review, 53(1):71–104, 2011.
+Waleed Diab and Mohammed Al Kobaisi. Temporal neural operator for modeling time-dependent
+physical phenomena. Scientific Reports, 15(1):32791, 2025.
+Onur Eker. Scalable sampling of deep neural operators. 2024.
+11
+
+Published as a conference paper at ICLR 2026
+Lawrence C Evans. Partial differential equations, volume 19. American mathematical society, 2022.
+Francesco Faa di Bruno. Sullo sviluppo delle funzioni. Annali di scienze matematiche e fisiche, 6
+(1855):479–80, 1855.
+Maurice Fr´echet. Sur quelques points du calcul fonctionnel. 1906.
+Nart Gashi, Panagiotis Kakosimos, and George Papafotiou. System identification using kolmogorov-
+arnold networks: A case study on buck converters. In 2025 IEEE International Conference on
+Prognostics and Health Management (ICPHM), pp. 1–7. IEEE, 2025.
+David Gilbarg, Neil S Trudinger, David Gilbarg, and NS Trudinger. Elliptic partial differential
+equations of second order, volume 224. Springer, 1977.
+David Gottlieb and Steven A Orszag. Numerical analysis of spectral methods: theory and applications.
+SIAM, 1977.
+Anirudh Goyal and Yoshua Bengio. Inductive biases for deep learning of higher-level cognition.
+Proceedings of the Royal Society A, 478(2266):20210068, 2022.
+Lars H¨ormander. The analysis of linear partial differential operators III: Pseudo-differential operators.
+Springer Science & Business Media, 2007.
+Kurt Hornik, Maxwell Stinchcombe, and Halbert White. Multilayer feedforward networks are
+universal approximators. Neural Networks, 2(5):359–366, 1989.
+George Em Karniadakis, Ioannis G Kevrekidis, Lu Lu, Paris Perdikaris, Sifan Wang, and Liu Yang.
+Physics-informed machine learning. Nature Reviews Physics, 3(6):422–440, 2021.
+Benjamin C Koenig, Suyong Kim, and Sili Deng. Kan-odes: Kolmogorov–arnold network ordinary
+differential equations for learning dynamical systems and hidden physics. Computer Methods in
+Applied Mechanics and Engineering, 432:117397, 2024.
+Joseph J Kohn and Louis Nirenberg. An algebra of pseudo-differential operators. Communications
+on Pure and Applied Mathematics, 18(1-2):269–305, 1965.
+Takeshi Koshizuka, Masahiro Fujisawa, Yusuke Tanaka, and Issei Sato. Understanding the expres-
+sivity and trainability of fourier neural operator: A mean-field perspective. Advances in Neural
+Information Processing Systems, 37:11021–11060, 2024.
+Nikola Kovachki, Samuel Lanthaler, and Siddhartha Mishra. On universal approximation and error
+bounds for fourier neural operators. Journal of Machine Learning Research, 22(290):1–76, 2021.
+Nikola Kovachki, Zongyi Li, Burigede Liu, Kamyar Azizzadenesheli, Kaushik Bhattacharya, Andrew
+Stuart, and Anima Anandkumar. Neural operator: Learning maps between function spaces with
+applications to pdes. Journal of Machine Learning Research, 24(89):1–97, 2023.
+Nikola B Kovachki, Samuel Lanthaler, and Hrushikesh Mhaskar. Data complexity estimates for
+operator learning. arXiv preprint arXiv:2405.15992, 2024a.
+Nikola B Kovachki, Samuel Lanthaler, and Andrew M Stuart. Operator learning: Algorithms and
+analysis. arXiv preprint arXiv:2402.15715, 2024b.
+Pijush K Kundu, Ira M Cohen, David R Dowling, and Jesse Capecelatro. Fluid mechanics. Elsevier,
+2024.
+Samuel Lanthaler. Operator learning of lipschitz operators: An information-theoretic perspective.
+arXiv preprint arXiv:2406.18794, 2024.
+Samuel Lanthaler, Siddhartha Mishra, and George E Karniadakis. Error estimates for deeponets: A
+deep learning framework in infinite dimensions. Transactions of Mathematics and Its Applications,
+6(1):tnac001, 2022.
+Samuel Lanthaler, Zongyi Li, and Andrew M Stuart. Nonlocality and nonlinearity implies universality
+in operator learning. Constructive Approximation, pp. 1–43, 2025.
+12
+
+Published as a conference paper at ICLR 2026
+Guoqiang Lei, D Exposito, and Xuerui Mao. Discontinuity-aware kan-based physics-informed neural
+networks. arXiv preprint arXiv:2507.08338, 2025.
+Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik Bhattacharya, Andrew
+Stuart, and Anima Anandkumar. Fourier neural operator for parametric partial differential equations.
+arXiv preprint arXiv:2010.08895, 2020.
+Chaoyu Liu, Davide Murari, Chris Budd, Lihao Liu, and Carola-Bibiane Sch¨onlieb. Enhancing
+fourier neural operators with local spatial features. arXiv preprint arXiv:2503.17797, 2025.
+Ning Liu, Yiming Fan, Xianyi Zeng, Milan Kl¨ower, Lu Zhang, and Yue Yu. Harnessing the power of
+neural operators with automatically encoded conservation laws. arXiv preprint arXiv:2312.11176,
+2023.
+Ziming Liu, Pingchuan Ma, Yixuan Wang, Wojciech Matusik, and Max Tegmark.
+Kan 2.0:
+Kolmogorov-arnold networks meet science. arXiv preprint arXiv:2408.10205, 2024a.
+Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle, James Halverson, Marin Soljaˇci´c,
+Thomas Y Hou, and Max Tegmark.
+Kan: Kolmogorov-arnold networks.
+arXiv preprint
+arXiv:2404.19756, 2024b.
+Miguel Liu-Schiaffini, Julius Berner, Boris Bonev, Thorsten Kurth, Kamyar Azizzadenesheli, and
+Anima Anandkumar. Neural operators with localized integral and differential kernels. arXiv
+preprint arXiv:2402.16845, 2024.
+Lu Lu, Pengzhan Jin, and George Em Karniadakis. Deeponet: Learning nonlinear operators for
+identifying differential equations based on the universal approximation theorem of operators. arXiv
+preprint arXiv:1910.03193, 2019.
+Lu Lu, Pengzhan Jin, Guofei Pang, Zhongqiang Zhang, and George Em Karniadakis. Learning
+nonlinear operators via deeponet based on the universal approximation theorem of operators.
+Nature machine intelligence, 3(3):218–229, 2021.
+Kent E Morrison. Spectral approximation of multiplication operators. New York J. Math, 1(75):96,
+1995.
+Amir Noorizadegan, Sifan Wang, and Leevan Ling. A practitioner’s guide to kolmogorov-arnold
+networks. arXiv preprint arXiv:2510.25781, 2025.
+Shaoxiang Qin, Fuyuan Lyu, Wenhui Peng, Dingyang Geng, Ju Wang, Xing Tang, Sylvie Leroyer,
+Naiping Gao, Xue Liu, and Liangzhu Leon Wang. Toward a better understanding of fourier neural
+operators from a spectral perspective. arXiv preprint arXiv:2404.07200, 2024.
+Jun John Sakurai and Jim Napolitano. Modern quantum mechanics. Cambridge University Press,
+2020.
+Jin Young Shin, Jae Yong Lee, and Hyung Ju Hwang. Pseudo-differential neural operator: Generalized
+fourier neural operator for learning solution operators of partial differential equations. arXiv
+preprint arXiv:2201.11967, 2022.
+Hiroki Shiraishi, Hisao Ishibuchi, and Masaya Nakata. X-kan: Optimizing local kolmogorov-arnold
+networks via evolutionary rule-based machine learning. arXiv preprint arXiv:2505.14273, 2025.
+Khemraj Shukla, Juan Diego Toscano, Zhicheng Wang, Zongren Zou, and George Em Karniadakis. A
+comprehensive and fair comparison between mlp and kan representations for differential equations
+and operator networks. Computer Methods in Applied Mechanics and Engineering, 431:117290,
+2024.
+Alasdair Tran, Alexander Mathews, Lexing Xie, and Cheng Soon Ong. Factorized fourier neural
+operators. arXiv preprint arXiv:2111.13802, 2021.
+Andrew Trask, Felix Hill, Scott E Reed, Jack Rae, Chris Dyer, and Phil Blunsom. Neural arithmetic
+logic units. Advances in neural information processing systems, 31, 2018.
+13
+
+Published as a conference paper at ICLR 2026
+Lloyd N Trefethen. Spectral methods in MATLAB. SIAM, 2000.
+Feng Wang, Hong Qiu, Yingying Huang, Xiaozhe Gu, Renfang Wang, and Bo Yang. Efkan: A
+kan-integrated neural operator for efficient magnetotelluric forward modeling. arXiv preprint
+arXiv:2502.02195, 2025.
+Hanchen Wang, Tianfan Fu, Yuanqi Du, Wenhao Gao, Kexin Huang, Ziming Liu, Payal Chandak,
+Shengchao Liu, Peter Van Katwyk, Andreea Deac, et al. Scientific discovery in the age of artificial
+intelligence. Nature, 620(7972):47–60, 2023.
+Yixuan Wang, Jonathan W Siegel, Ziming Liu, and Thomas Y Hou. On the expressiveness and
+spectral bias of kans. arXiv preprint arXiv:2410.01803, 2024.
+Gege Wen, Zongyi Li, Kamyar Azizzadenesheli, Anima Anandkumar, and Sally M Benson. U-
+fno—an enhanced fourier neural operator-based deep-learning model for multiphase flow. Advances
+in Water Resources, 163:104180, 2022.
+Zipeng Xiao, Siqi Kou, Hao Zhongkai, Bokai Lin, and Zhijie Deng. Amortized fourier neural
+operators. Advances in Neural Information Processing Systems, 37:115001–115020, 2024.
+Siyao Yang, Kun Lin, and Annan Zhou. The kan-mha model: A novel physical knowledge based
+multi-source data-driven adaptive method for airfoil flow field prediction. Journal of Computational
+Physics, 528:113846, 2025.
+Dmitry Yarotsky. Error bounds for approximations with deep relu networks. Neural networks, 94:
+103–114, 2017.
+Zhilin You, Zhenli Xu, and Wei Cai. Mscalefno: Multi-scale fourier neural operator learning for
+oscillatory function spaces. arXiv preprint arXiv:2412.20183, 2024.
+Tianchi Yu, Jingwei Qiu, Jiang Yang, and Ivan Oseledets. Sinc kolmogorov-arnold network and its
+applications on physics-informed neural networks. arXiv preprint arXiv:2410.04096, 2024.
+14
+
+Published as a conference paper at ICLR 2026
+APPENDIX
+A
+TABLE OF NOTATION
+Table 5: Main symbols and notation used in the paper.
+Symbol
+Meaning / Definition
+Domains, spaces, and operators
+D := (−L/2, L/2)d
+Periodic d-dimensional spatial box of side length L
+G
+Ground-truth solution operator to be learned
+Spectral & spatial sampling
+Ξ = {ξ1, . . . , ξm}
+Retained Fourier modes (truncated spectrum); m = |Ξ|
+F
+Fourier transform
+Fm, F −1
+m
+Truncated Fourier transform by Ξ and its band-limited inverse
+Y = {y1, . . . , ym} ⊂D
+Uniform spatial grid
+h
+Grid spacing of Y
+Fourier Neural Operator (FNO)
+LFNO
+Single FNO layer
+GFNO
+θ
+FNO network
+Rθ(ξ)
+Learnable block-diagonal spectral multiplier
+Wθ
+Point-wise learnable linear map
+σ(·)
+Point-wise non-linear activation
+KANO layer, symbol calculus, and projection
+LKANO
+Single KANO layer
+p(x, ξ)
+Learnable pseudo-differential symbol
+Opm(p)
+Kohn-Nirenberg quantization of width m defined by p
+ΠKANO(G)
+KANO projection of G
+GKANO
+θ
+KANO network
+Φθ
+Learnable activation
+Kolmogorov–Arnold Network (KAN) primitives
+ϕ(ℓ)
+q,p(·)
+1D edge function on layer ℓ, connecting pth node of layer ℓto qth node
+of layer (ℓ+ 1)
+b(t), {Bi(t)}
+Base function and B-spline basis used to parametrize ϕ(ℓ)
+q,p(t)
+Q-KANO (quantum dynamics) notation
+ψ(x)
+Input wave function
+w(x)
+Quartic double-well potential
+∆T
+Time step of propagation
+ϕθ(x, ξ)
+Parametrized phase for symbol p(x, ξ) of Q-KANO
+ϑθ(|·|, ∠·)
+Parametrized phase for non-linear activation of Q-KANO
+GQ-KANO
+θ
+Q-KANO network
+Function spaces
+L2(D)
+Square-integrable function space on domain D
+Hs(D)
+Sobolev function space of order s ≥0 on domain D
+B
+EXPERIMENT DETAILS
+B.1
+SYNTHETIC OPERATOR BENCHMARK
+All experiments are carried out on periodic functions f : T →R with T = (−π, π] and a uniform
+trigonometric grid
+xj = xmin + j ∆x,
+∆x = 2π
+N ,
+j = 0, . . . , N −1,
+15
+
+Published as a conference paper at ICLR 2026
+with N = 128. Unless noted otherwise every random quantity is drawn independently for every
+sample.
+Outer envelope.
+To avoid the Gibbs phenomenon all basis functions are multiplied by a smooth
+taper that decays to zero in a π/6-wide buffer near the periodic boundary:
+A(x) =
+
+
+
+
+
+
+
+
+
+1,
+|x| ≤5π/6,
+cos4h|x| −5π/6
+π/6
+π
+2
+i
+,
+5π/6 < |x| < π,
+0,
+|x| ≥π.
+The full “base” function is always fbase(x) = A(x) g(x).
+Spectral derivatives and ground-truth operator.
+Derivatives are computed with an exact Fourier
+stencil:
+f ′(x) = F−1
+iξ bf(ξ)
+
+,
+f ′′(x) = F−1
+−ξ2 bf(ξ)
+
+.
+U[a, b] denotes random digit drawn from range [a, b].
+Training families (Group A)
+A1. sine beats:
+g(x) = sin(ω1x + ϕ1) sin(ω2x + ϕ2),
+ωi = 8 U[0.5, 3], ϕi = U[0, 2π].
+A2. chirped cosine:
+g(x) = cos
+ αx2
+,
+α = 12 U[0.5, 2].
+A3. periodic (random harmonic series):
+g(x) = sin(ωx + ϕ1) + cos(ωx + ϕ2),
+ω = 8 U[0.5, 3], ϕ1,2 = U[0, 2π].
+Unseen families (Group B)
+B1. wave packet:
+g(x) = exp
+h
+−(x−µ)2
+2σ2
+i
+sin
+ ωx+ϕ
+
+, µ = U[−2, 2], σ =
+1
+12 U[0.5, 2], ω = 12 U[2, 6], ϕ = U[0, 2π].
+B2. sinc pulse:
+g(x) =
+
+
+
+sin(αx)
+αx
+,
+|x| > 10−12,
+1,
+|x| ≤10−12,
+α = 12 U[0.5, 3].
+B3. gaussian hermite:
+g(x) = Hn
+x −µ
+σ
+
+exp
+h
+−(x−µ)2
+2σ2
+i
+, n ∈{1, 2, 3} uniform, µ = U[−2, 2], σ = 1
+8 U[0.5, 2],
+where Hn is the degree-n Hermite polynomial.
+NORMALIZATION
+Each realization is divided by its maximum absolute value, ∥f∥∞, to obtain ∥f∥∞= 1. The envelope
+guarantees periodicity and keeps the numerical spectrum sharply band-limited.
+Sample counts.
+#train = 2000 samples from the three Group A families for train data and
+#test = 400 samples each from the Group A and Group B families for generalization tests.
+16
+
+Published as a conference paper at ICLR 2026
+B.2
+QUANTUM DYNAMICS BENCHMARK
+We model a quantum apparatus with 200 state-preparation protocols each with perfect reproducibility,
+capable of generating an identical initial state whose wave function is drawn from one of the three
+families: Periodic, Gaussian wave-packet, and Gaussian×Hermite. The prepared initial states evolve
+under one of two unknown, time-independent Hamiltonians, and two arrays of 128 detectors measure
+position and momentum on uniform grids, yielding probability mass functions (PMFs) every 0.1ms
+for 100 time steps. PMFs collected from the first 10 time steps are used for training the models, and
+the rest of the PMFs collected from the remaining 90 time steps are used to evaluate the long-horizon
+fidelity drop beyond the train steps.
+B.2.1
+QUANTUM APPARATUS ASSUMPTIONS
+1. State preparation. A collection of calibrated protocols can each prepare a designated initial
+wave-function each of one of three real-valued families Periodic, Gaussian wave-packet, or
+Gaussian–Hermite: ψ(m)
+0
+(x)∈L2(T)8, m = 1, . . . , 200. Repeated shots under the same protocol
+start from exactly the same ψ(m)
+0
+, enabling trajectory-level reproducibility for every member of
+the ensemble.
+2. Hamiltonian stability. The (unknown) Hamiltonian is time–independent, so trajectories are
+perfectly repeatable once ψ0 is fixed.
+3. Dual-basis detection. Two 128-grid projective detectors measure the position basis {|xi⟩} and the
+momentum basis {|ξj⟩}, yielding empirical probability mass functions (PMFs) ˆpx(i) = |ψ(xi)|2
+and ˆpξ(j) = | bψ(ξj)|2 on a common torus grid TL, L = 4.
+B.2.2
+DATA GENERATION DETAILS
+For each of 200 distinct sample trajectories we
+1. draw the initial wave function and propagate on the Hamiltonian with a high-resolution Strang split:
+δt = 1 µs for 10 000 micro-steps, producing coarse snapshots every 100 steps (∆T = 0.1 ms,
+T = 1, . . . , 100);
+2. store (ψT , pT
+x , pT
+ξ ) where pT
+x (i) = |ψT (xi)|2 and pT
+ξ (j) = | bψT (ξj)|2.
+Only the first 10 coarse steps are used for training; the remaining 90 steps test fidelity drop on
+long-horizon. All simulations employ an n = 128-point FFT grid to match the detectors.
+Spatial discretization.
+We place the problem on a periodic box of length L = 4 with N = 128
+grid points xj = xmin + j∆x, ∆x = L/N. Periods suppress wrap–around artifacts because every
+initial state is tapered by the smooth envelope A(x) defined in Appendix B.1. Spatial derivatives are
+taken spectrally: let ξm = 2πm/L for m = −N/2, . . . , N/2 −1. Writing bψm = F[ψ](ξm),
+∂xψ = F−1
+i ξm bψm
+
+,
+∂xxψ = F−1
+−ξ2
+m bψm
+
+.
+Strang–splitting time integrator.
+Let K := −1
+2∂xx (kinetic), V : ψ 7→w(x) · ψ (potential) and
+N : ψ 7→|ψ|2 · ψ (cubic nonlinearity). With time step ∆t the second–order Strang factorization
+reads
+e(K+V+N )∆t = e
+∆t
+2 (K+V) e∆tN e
+∆t
+2 (K+V) + O(∆t3).
+Because K is diagonal in Fourier space and V in real space we implement each half step explicitly:
+ψ
+V/2
+←−−−−e−i
+2 ∆t w(x)ψ,
+bψ
+K/2
+←−−−−F[ψ],
+bψm ←e−i
+4 ∆t ξ2
+m bψm,
+ψ
+N
+←−−−−F−1[ bψ],
+ψ ←e−i∆t|ψ|2ψ,
+repeat K/2 and V/2.
+8Square-integrable function space.
+17
+
+Published as a conference paper at ICLR 2026
+The L2 norm is renormalized after every macro step to compensate numerical drift. For DW
+Hamiltonian, non-linearity time evolution is omitted.
+Integrator parameters.
+We use an inner step δt = 10−6. A macro step of ∆T = 100 δt = 10−4
+is recorded and the sequence is propagated for Tmax = 100 ∆T = 10−2.
+Initial–state families (real wave-functions).
+Each sample draws a real profile f(x) from
+{A1, A2, A3} below, multiplies it by the envelope A and normalizes it in L2:
+ψ0(x) = A(x) f(x)
+∥Af∥2
+.
+A1. random harmonic series
+f(x) =
+5
+X
+m=0
+1
+2 ξ(c)
+m cos(2πmξ) + 1
+2 ξ(s)
+m sin(2πmξ),
+ξ = x + 2
+4
+, ξ(·)
+m ∼N(0, 1).
+A2. Gaussian wave packet f(x) = exp[−(x −x0)2/(2σ2)] with x0 ∼U[−0.4π, 0.4π] and
+σ∼U[0.1, 0.3].
+A3. Gaussian–Hermite mode f(x) = Hn
+  x−x0
+σ
+
+exp[−(x −x0)2/(2σ2)] with n ∈{0, 1, 2}
+uniform, x0, σ as above, and Hn the Hermite polynomial.
+Stored quantities.
+For every sample index s and every snapshot T ∈{0, 1, . . . , 100} we save
+ x, ψ(x, T), |ψ(x, T)|2, | b
+ψ(ξ, T)|2
+−→
+wavefunc, pos pdf, mom pdf.
+All arrays are written in float32 except the complex wave-function, stored as complex64. Alto-
+gether one call to generate dataset(num samples=200) produces 200×101×4 = 80,800
+labeled records.
+B.2.3
+TRAIN TYPE DETAILS
+Let ψ(T )
+Θ
+be the T-step prediction of Q-KANO given ψ0.
+Train Type
+Train Dataset
+Loss function
+full
+complex ψ(T )
+Lfull = ∥ψ(T )
+Θ
+−ψ(T )∥2
+∥ψ(T )∥2
+pos
+p(T )
+x
+Lpos = DKL
+ p(T )
+x
+∥|ψ(T )
+Θ |2
+pos & mom
+p(T )
+x
+, p(T )
+ξ
+Lpos&mom = DKL
+ p(T )
+x
+∥|ψ(T )
+Θ |2
++ DKL
+ p(T )
+ξ
+∥| b
+ψ(T )
+Θ |2
+C
+PROOFS
+C.1
+NOTATION AND PRELIMINARIES
+Throughout, Td := [−π, π]d denotes the flat d–torus and Zd the lattice of Fourier indices. For ξ ∈Zd
+let eξ(x):=eiξ·x. The Fourier coefficient of a square integrable function f is
+bf(ξ) := (2π)−d
+Z
+Td f(x) e−iξ·x dx.
+In a Sobolev space Hs with an order of smoothness s ∈R, the Sobolev norm of function f is
+∥f∥2
+Hs := (2π)d
+2
+X
+ξ∈Zd
+(1 + |ξ|2s) |bf(ξ)|2.
+Asymptotics.
+Write A ≲B if A ≤C B for a constant C depending only on fixed parameters
+(dimension, regularity exponents, etc.).
+18
+
+Published as a conference paper at ICLR 2026
+Vector Notation
+Fix a spatial dimension d ≥1 and an index j ∈{1, . . . , d}.
+For ξ =
+(ξ1, . . . , ξd) ∈Zd we write
+ξ−j := (ξ1, . . . , ξj−1, ξj+1, . . . , ξd) ∈Zd−1
+for the vector obtained by removing the j-th coordinate of ξ. Conversely, for α = (α1, . . . , αd−1) ∈
+Zd−1 and n ∈Z we define the insertion map
+(α, n)j := (α1, . . . , αj−1, n, αj, . . . , αd−1) ∈Zd.
+We use | · |∞for the max–norm on Zd, i.e. |ξ|∞= max1≤i≤d |ξi|. When we write bu(α, r), this is
+shorthand for the d–dimensional coefficient bu
+ (α, r)j
+
+.
+C.2
+PROOF OF LEMMA 1
+Restatement of Lemma 1 (with explicit notation).
+Let u ∈Hs(Td) with s > 0, and assume that
+its Fourier coefficients are compactly supported:
+bu(ξ) = 0
+for all |ξ|∞> N0,
+and
+bu̸ ≡0.
+Fix j ∈{1, . . . , d} and set v(x) := xj u(x). Then there exist
+α ∈Zd−1,
+m ∈{1, 2, . . . , 2N0 + 1},
+c > 0,
+R ∈N,
+and an infinite set of the fiber at jth coordinate,
+Ξα,R ⊂
+
+ξ ∈Zd : ξ−j = α, |ξj| ≥R
+	
+such that
+bv(ξ)
+ ≥
+c
+ 1 + |ξj|
+ m
+∀ξ ∈Ξα,R.
+(20)
+In particular, if for some α ∈Zd−1 one has
+N0
+X
+r=−N0
+bu
+ (α, r)j
+̸
+= 0
+(equivalently,
+N0
+X
+r=−N0
+bu(α, r)̸ = 0 in the shorthand above),
+then the bound equation 20 holds with the sharper exponent m = 1.
+Proof. We work with square-integrable function v ∈L2(Td) where Td = [0, 2π]d.
+Step 1 — The periodic “coordinate” and its Fourier coefficients. The function x 7→xj is not
+periodic. Introduce the zero-mean, periodic 1D sawtooth
+ψj(x) := xj −π,
+x ∈[0, 2π]d,
+extended periodically to Td. A direct computation (factorization of the integral and one-dimensional
+integration by parts) shows that its Fourier coefficients are supported on the jth-coordinate: for
+ξ ∈Zd,
+c
+ψj(ξ) =
+
+
+
+−1
+i ξj
+,
+if ξ−j = 0 and ξj̸ = 0,
+0,
+if ξ = 0 or ξ−j̸ = 0.
+(21)
+Moreover xj = ψj + π, hence
+bv(ξ) = F[ψju](ξ) + π bu(ξ).
+(22)
+Step 2 — Exact coefficient formula outside the support of bu. Since bu(k) = 0 for |ξ|∞> N0, the
+second term in equation 22 vanishes whenever |ξ|∞> N0. Using equation 21 and the convolution
+theorem, we obtain for any ξ ∈Zd with |ξ|∞> N0:
+bv(ξ) =
+X
+ℓ∈Zd
+c
+ψj(ξ −ℓ) bu(ℓ) = −1
+i
+X
+ℓ−j=ξ−j
+|ℓj|≤N0
+bu(ℓ)
+ξj −ℓj
+.
+(23)
+19
+
+Published as a conference paper at ICLR 2026
+Thus, along any fixed transverse index α := ξ−j ∈Zd−1, the tail bv(α, n) for large |n| is a finite
+sum of simple fractions in the single variable n.
+Step 3 — Moments on a nontrivial fiber and the first non-vanishing moment. Because bu̸ ≡0,
+there exists at least one α ∈Zd−1 for which the fiber
+Fα := {r ∈Z : bu(α, r)̸ = 0}
+is nonempty. Define the (finite) coefficients cr := bu(α, r) for r ∈[−N0, N0], and their moments
+µp :=
+N0
+X
+r=−N0
+rpcr
+(p ≥0).
+Let m ∈{1, . . . , 2N0 + 1} be the smallest index for which µm−1̸ = 0. Such an m exists since not
+all cr vanish.
+Step 4 — Asymptotics along a line and a polynomial lower bound. For n ∈Z with |n| > N0,
+formula equation 23 along the line ξ−j = α reads
+bv(α, n) = −1
+i
+N0
+X
+r=−N0
+cr
+n −r.
+Expanding
+1
+n−r = 1
+n
+P
+q≥0
+  r
+n
+q for |n| > 2N0 and collecting terms yields the asymptotic expansion
+bv(α, n) = −1
+i
+µ0
+n + µ1
+n2 + · · · + µm−1
+nm
++ O
+
+1
+|n|m+1
+
+,
+|n| →∞.
+By the choice of m, the first nonzero term is µm−1/nm. Consequently, there exist R ∈N and c > 0
+such that
+bv(α, n)
+ ≥
+c
+|n|m
+for all |n| ≥R, n ∈Z.
+Step 5 — Conclusion and the special case m = 1. Then equation 20 holds for all ξ ∈Ξα,R with the
+exponent m determined in Step 3, by the definition of Ξα,R and that |n| ≥R. If µ0 = P
+r cr̸ = 0
+for the chosen fiber (equivalently, PN0
+r=−N0 bu(α, r)̸ = 0), then m = 1 and we obtain the sharper
+|bv(ξ)| ≳(1 + |ξj|)−1 along the line ξ−j = α.
+Remark 4. The explicit one-dimensional tail equation 23 shows that multiplying a band-limited
+field by the coordinate xj produces a polynomial Fourier tail decay along lines parallel to the jth
+coordinate, with rate (1 + |ξj|)−m where m is the first non-vanishing moment of the finitely many
+coefficients on the relevant fiber. In particular, when m = 1, the decay is exactly (1 + |ξj|)−1. Such
+algebraic tails are consistent with the pseudo-spectral projection error estimate quoted in Kovachki
+et al. (2021, Thm. 40).
+C.3
+PROOF OF THEOREM 1
+Restatement of Theorem 1.
+Let α = (α1, . . . , αd) ∈Nd with total degree M := |α| ≥1 and
+define the position-multiplier
+M(x) := xα1
+1 xα2
+2 · · · xαd
+d .
+For inputs band-limited to radius N0 and lying in Hs(Td) with s > d
+2, any Fourier Neural Operator
+GFNO
+θ
+that achieves ∥M(x) −GFNO
+θ
+∥Hs→Hs−δ ≤ε (0 < δ < 1) must employ a spectral bandwidth
+(FNO width) m ≳ε−M/s and a parameter count |θ| ≥exp
+ c ε−Md/s
+for some c > 0 depending
+only on (d, s, δ, N0).
+Proof. Set s′ := s −δ with 0 < δ < 1.
+Step 1 – Algebraic tail produced by M(x). Applying Lemma 1 once per factor of xj shows that
+for some constant C0 > 0 and an infinite set Ξ∞⊂Zd,
+|F[M(x)u](ξ)| ≥
+C0
+(1 + |ξ|)M+1
+∀ξ ∈Ξ∞.
+(24)
+20
+
+Published as a conference paper at ICLR 2026
+Step 2 – Pseudo-spectral projection lower bound. For any f ∈Hs, pseudo-spectral projection
+error estimate gives (Gottlieb & Orszag, 1977)
+∥(I −ΠFNO)f∥Hs′ ≥C1
+h X
+|ξ|∞>N
+(1 + |ξ|2s′) |bf(ξ)|2i1/2
+,
+where I is an identity operator. Insert f = M(x)u and the tail bound equation 24; summing over
+Ξ∞∩{|ξ|∞> m} yields
+∥(I −ΠFNO)M(x)u∥Hs′ ≳m−(M−δ).
+Imposing this residual ≤1
+2ε forces
+m ≥C2 ε−M/s,
+C2 = C2(d, s, δ, M, N0) > 0.
+(25)
+Step 3 – Canonical neural scaling in the latent map. An FNO with spectral radius (width) m
+manipulates a latent vector of dimension (2m + 1)d ∼md. Approximating a generic Lipschitz map
+G : Cmd →Cmd to accuracy ε/2 with a fully connected network requires (Yarotsky, 2017; De Ryck
+et al., 2021) at least
+parameters ≳ε−md.
+(Kovachki et al., 2021, Remark 22)
+Step 4 – Substitute the bandwidth lower bound. Using equation 25, md ∼ε−Md/s. Hence the
+latent network must have at least
+|θ| ≳ε−ε−Md/s,
+a super-exponential curse of dimensionality in the target accuracy ε.
+C.4
+PROOF OF THEOREM 2
+Restatement of Theorem 2.
+Let s ≥s′ ≥0 and sp > d/2. Consider any finite composition
+G = (ςℓ◦Lℓ) ◦· · · ◦(ς1◦L1),
+Li = Opm(pi),
+where each Kohn–Nirenberg symbol pi belongs to W sp,2 Td
+x×Td
+ξ
+9, and each ςi is a point-wise non-
+linearity of uniformly bounded degree (so the number of such nonlinearities is O(ℓ) and independent
+of ε). For every ε > 0 there exists a single-layer KANO GKANO
+θ
+such that
+∥G −GKANO
+θ
+∥Hs→Hs′ ≤ε,
+|θ| = O
+ ε−d/(2sp)
+.
+Proof. Step 1 – Kohn–Nirenberg quantization error. By the quadrature bound from Demanet &
+Ying (2011), for each Li we have
+Li −Opm(pi)
+
+Hs→Hs′ ≤C′ B m−(s−s′),
+where Opm(pi) keeps only frequencies |ξ|∞≤m. Since each ςi is a bounded-degree pointwise
+map, its Nemytskii operator is Lipschitz on bounded sets; write Li := Lip(ςi)10 on the relevant
+range and set Lmax := maxi Li. Let M := maxj
+
+∥Lj∥Hs′→Hs′, ∥Opm(pj)∥Hs′→Hs′	
+. Because
+sp > d
+2 implies ∥pj∥L∞≲∥pj∥W sp,2, both Lj and Opm(pj) are bounded on Hs′ with a bound
+independent of m. A telescoping estimate for the interleaved composition then yields
+G −ΠKANO(G)
+
+Hs→Hs′ ≤C∗C′ B m−(s−s′),
+C∗≤ℓ(LmaxM)ℓ−1Lmax.
+9Standard square integrable periodic Sobolev space on the product torus T2d.
+10Lipschitz constant of the point-wise nonlinearity ςi on the relevant value range, i.e.
+Li
+:=
+supa̸=b
+|ςi(a)−ςi(b)|
+|a−b|
+with a, b restricted to the compact interval attained by the i-th preactivations.
+21
+
+Published as a conference paper at ICLR 2026
+Pick m :=
+ 2 C∗C′B/ε
+1/(s−s′). Then the full composition G deviates from its projected counter-
+part
+ΠKANO(G) := (ςℓ◦Opm(pℓ)) ◦· · · ◦(ς1◦Opm(p1))
+by at most ε/2 in Hs →Hs′ operator norm.
+Step 2 – KAN approximation of both symbols and pointwise nonlinearities. By the width-fixed
+KAN scaling law from Wang et al. (2024), for any η > 0 there exists a Kolmogorov–Arnold Network
+Φi,η with |Φi,η| = O(η−d/(2sp)) such that ∥pi −Φi,η∥L∞≤η on Td
+x×Td
+ξ. Likewise, since each ςi
+is a fixed-degree pointwise map, its action over the compact value range visited by the projected flow
+can be uniformly approximated by a width-fixed KAN Ψi,η with size |Ψi,η| = O
+ η−1/(2sp)
+and
+∥ςi −Ψi,η∥L∞≤η. Choose
+ηsym := ε
+4ℓ,
+ηnl := ε
+4ℓ.
+Define the single-layer KANO
+GKANO
+θ
+:= (Ψℓ,ηnl ◦Opm(Φℓ,ηsym)) ◦· · · ◦(Ψ1,ηnl ◦Opm(Φ1,ηsym)),
+where the same spectral radius m from Step 1 is used in every Opm( · ).
+Step 3 – Error accumulation beyond projection. Using linearity of the symbol-to-operator map
+and stability of Nemytskii (pointwise) maps under uniform approximation, the post-projection error
+splits into a sum of the symbol parts and the nonlinearity parts:
+ΠKANO(G) −GKANO
+θ
+
+Hs→Hs′ ≤
+ℓ
+X
+i=1
+Opm(pi) −Opm(Φi,ηsym)
+
+Hs→Hs′ +
+ℓ
+X
+i=1
+∥ςi −Ψi,ηnl∥L∞
+≤ℓηsym + ℓηnl = ε/2.
+Combining with Step 1 yields ∥G −GKANO
+θ
+∥Hs→Hs′ ≤ε.
+Step 4 – Parameter complexity. Summing the sizes of all KAN blocks gives
+|θ| =
+ℓ
+X
+i=1
+O
+ η−d/(2sp)
+sym
+
++
+ℓ
+X
+i=1
+O
+ η−1/(2sp)
+nl
+
++ O(1) = O
+ (ε/ℓ)−d/(2sp)
++ O
+ (ε/ℓ)−1/(2sp)
+.
+Since ℓand the number/degree of the ςi are fixed (do not scale with ε), the dominating term is
+O(ε−d/(2sp)), establishing the claimed complexity.
+D
+ADDITIONAL DETAILS ON THE PURE-SPECTRAL BOTTLENECK OF FNO
+In Section 3.1 we performed a linear analysis of a single FNO layer via its Jacobian to illustrate the
+pure-spectral bottleneck. We showed that, in the first-order approximation, all spectral off–diagonals
+arise from the spectrum of the input–dependent gate σ′ z(u, ·)
+
+(12). Hence, although a single
+FNO layer is capable of generating spectral off-diagonals, they are tied to the input distribution and
+leads to the structural fragility in out-of-distribution performance (generalization on the unseen input
+distribution). Experimental results in Section 5 are aligned with our concerns.
+In this Appendix, we show that the same phenomenon persists at every order of the Fr´echet expansion
+of a single FNO layer, and composing deep layers does not remove the input distribution dependence
+of the spectral off-diagonals generated by the model as well.
+Throughout, we work on the flat torus Td = [−π, π]d and Sobolev spaces Hs as in Appendix C.
+D.1
+HIGHER–ORDER SPECTRAL OFF–DIAGONALS OF FNO
+Recall the FNO layer LFNO (4):
+LFNO(u)(x) = σ
+
+F−1
+m
+
+Rθ1(ξ) · Fm(u)(ξ)
+
+(x) + Wθ2 · u(x)
+
+.
+22
+
+Published as a conference paper at ICLR 2026
+For the analysis it is convenient to collect the linear terms into a linear operator
+A := F−1
+m ◦Rθ(ξ) ◦Fm + Wθ,
+(26)
+so that
+LFNO(u)(x) = σ
+ z(u, x)
+
+,
+z(u, x) := (Au)(x),
+(27)
+where σ is the non-linear activation acting point-wise.
+We first compute the k-th Fr´echet derivative (Fr´echet, 1906) of LFNO(u)(x).
+Proposition 1 (Structure of higher–order derivatives of a single Fourier layer). Let u ∈Hs
+and k be the order of the Fre´echet derivative. Also let h1, . . . , hk ∈Hs be the arbitrary direction
+functions of each order. Then for every integer k ≥1, the Fre´echet derivative of LFNO(u)(x) is:
+DkLFNO(u)[h1, . . . , hk](x) := σ(k) z(u, x)
+
+k
+Y
+j=1
+(Ahj)(x),
+(28)
+where σ(k) is the usual scalar k-th derivative. More explicitly, for each channel q,
+
+DkLFNO(u)[h1, . . . , hk]
+
+q(x) := σ(k) zq(u, x)
+
+k
+Y
+j=1
+[Ahj]q(x).
+(29)
+Proof. Since A (26) is linear, Dz(u) ≡A and Drz(u) ≡0 for all r ≥2. By the chain rule,
+DLFNO(u)[hi](x) = σ′ z(u, x)
+
+(Ahi)(x),
+where σ′ acts point-wise on each channel. For higher order derivatives, we apply the Fa`a di Bruno
+formula (Faa di Bruno, 1855). Because all higher derivatives of z vanish, every term involving
+Drz(u) with r ≥2 drops out, leaving
+DkLFNO(u)[h1, . . . , hk] = σ(k)(z(u))
+
+Ah1, . . . , Ahk
+
+.
+(30)
+Since σ acts point-wise, this reduces to Eq. (28), and to Eq. (equation 29) on each channel.
+Thus, as apparent in Eq. (29), every Fr´echet derivative is a point-wise product of
+• an input-dependent gate σ(k) z(u, x)
+
+depending on the current input u, and
+• the product of k fixed linear responses (Ahi)(x) incapable of generating spectral off-
+diagonals.
+Therefore, the structure of the high-order derivatives of a single layer FNO is just as tied to the input
+u distribution as the first-order Jacobian shown in Section 3.1.
+D.2
+SPECTRAL REPRESENTATION OF HIGH-ORDER DERIVATIVES AND MULTI-LAYER FNO
+Fix k ≥1 and define
+sk(u, x) := σ(k) z(u, x)
+
+,
+bi(x) := (Ahi)(x),
+i = 1, . . . , k.
+(31)
+Then Eq. (28) reads
+DkLFNO(u)[h1, . . . , hk](x) = sk(u, x) ·
+k
+Y
+i=1
+bi(x).
+(32)
+The Fourier transform of a product of (k+1) functions is a (k+1)-fold convolution, so for each
+output frequency ξ ∈Zd we have
+\
+DkLFNO(u)[h1, . . . , hk](ξ) =
+ \
+sk(u) ∗c
+b1 ∗· · · ∗c
+bk
+
+(ξ).
+(33)
+Spectrally, the linear operator A (26) acts diagonally:
+d
+Ahi(ξ) = A(ξ) bhi(ξ),
+(34)
+23
+
+Published as a conference paper at ICLR 2026
+where A(ξ) = R(ξ) + W as in Eq. (12). Expanding the convolution in Eq. (33) yields
+\
+DkLFNO(u)[h1, . . . , hk](ξ) =
+X
+ξ1,...,ξk∈Zd
+\
+sk(u)
+ ξ −ξ1 −· · · −ξk
+
+|
+{z
+}
+depends on inputu
+·
+k
+Y
+i=1
+A(ξi) bhi(ξi),
+(35)
+where {ξi} are the frequency variable for each direction {hi}. Eq. (35 shows that the k-th derivative
+could be read as a multi-linear operator whose spectral kernel
+Kk(u; ξ; ξ1, . . . , ξk) := \
+sk(u)
+ ξ −ξ1 −· · · −ξk
+
+·
+k
+Y
+i=1
+A(ξi)
+(36)
+connects (ξ1, . . . , ξk) to the output function frequency ξ.
+Two structural facts follow immediately from Eq. (36):
+1. Input function u decides the value \
+sk(u) = F
+
+σ(k) z(u, ·)
+
+,
+2. The spectral multipliers A(ξi) depend only on the learned weights and remain diagonal in Fourier:
+they are independent of input u but does not contribute to spectral off-diagonals.
+Consequently, for any k ≥1:
+Every non-diagonal spectral coupling is induced by Fourier coefficients of non-
+linear activation derivatives σ(k) z(u, ·)
+
+evaluated on the current input u.
+Higher orders k ≥2 introduce convolutions of higher derivatives σ(k), but they do not mitigate the
+input dependence argument of spectral off-diagonals provided in Section 3.1.
+Deep FNO networks.
+A full FNO is a composition of multiple FNO layers:
+GFNO
+θ
+= L(ℓ)
+FNO ◦· · · ◦L(1)
+FNO.
+(37)
+Applying the Fa`a di Bruno formula (Faa di Bruno, 1855) to this composition, every term in
+DkGFNO
+θ
+(u) becomes a product of:
+• spectral multipliers {Aj(ξ)} from the linear parts of the layers, and
+• Fourier transforms of activation derivatives σ(r) z(j)(u, ·)
+
+from intermediate layers j and
+derivative orders r ≥1.
+Thus, in a deep FNO, all spectral off-diagonals at any order k still factor through Fourier transforms
+of activation derivatives evaluated on intermediate pre-activations governed by the input u. Adding
+layers introduces more such gates but do not mitigate the input dependence on spectral off-diagonals
+introduced in Section 3.1.
+D.3
+THE MEANING OF INPUT DEPENDENCE OF SPECTRAL OFF-DIAGONALS WHEN
+LEARNING A SPECTRALLY DENSE GROUND-TRUTH OPERATORS
+Let T be a fixed linear operator such as the position multiplier a(x) 7→x2a(x) in Section 3.1. In
+Fourier basis, T is represented by a dense Toeplitz matrix such as Tn[x2] as in Eq. (11), and its
+Fr´echet derivatives are
+DT (u) ≡T
+for all u,
+DkT (u) ≡0
+for all k ≥2,
+i.e., the spectral off-diagonals of T are completely independent of the input u.
+Suppose we wish to learn T with robust out-of-distribution performance over a Sobolev ball
+BB :=
+
+u ∈Hs : ∥u∥Hs ≤B
+	
+.
+A natural notion of generalization is a small error in operator norm for an unseen Sobolev ball BB:
+sup
+u∈BB
+GFNO
+θ
+(u) −T u
+
+Hs
+∥u∥Hs
+≤ε.
+(38)
+This requires that on BB
+24
+
+Published as a conference paper at ICLR 2026
+• the Jacobian DGFNO
+θ
+(u) stays close to T , and
+• all higher-order derivatives DkGFNO
+θ
+(⊓), k ≥2, remain uniformly small (negligible).
+Combining Eq. (36) with the composition structure above reveals a paradox:
+1. If the gates σ(k) z(j)(u, ·)
+
+and their Fourier transforms \
+s(j)
+k (u) vary significantly with
+u ∈BB, then both the Jacobian and all higher-order kernels Kk(u; ξ, ξ1, . . . , ξk) vary with
+the input. In that case the effective spectral off–diagonals of GFNO
+θ
+cannot coincide with a
+single, input-independent Toeplitz kernel across all u ∈BB. Any dense off-diagonal pattern
+learned from the train distribution will be tied to the train subspace and becomes fragile
+under distribution shift, as observed in our experiments in Section 5.
+2. If, on the other hand, we try to make these kernels effectively independent of u on BB, then
+Eq. (28) and Eq.(36) force all activation derivatives to be nearly constant (for k = 1) or
+nearly zero (for k ≥2) on the relevant pre-activation range. In this regime, the network is
+forced into an almost linear operating region where
+• σ′ is approximately constant, so [
+s1(u) is concentrated near zero frequency and
+DLFNO(u) becomes (block-)diagonal in spectral basis; and
+• σ(k) ≈0 for k ≥2, so higher-order terms vanish.
+The resulting layer effectively reduces to a spectral multiplier A(ξ) and cannot represent a
+dense Toeplitz map such as Tn[x2] whose off-diagonals are non-trivial and fixed independent
+of inputs.
+In other words, for spectrally dense, position-dependent operators, FNO faces a fundamental trade-off:
+• it can use strongly input-dependent gates to synthesize spectral off-diagonals, but then those
+off-diagonals are necessarily tied to the input distribution, or
+• it can suppress the input dependence of the gates to emulate a fixed operator, but then the
+spectral kernel collapses towards a diagonal (or nearly diagonal) multiplier.
+In neither case does a practical-size FNO realize a fixed, input-independent dense Toeplitz kernel with
+robust out-of-distribution generalization for spectrally dense operators, even though a sufficiently
+large FNO can parametrize the off-diagonals of the in-sample mapping on the training distribution.
+What we do (and do not) claim about FNO.
+The generalized analysis in this Appendix refines
+the statement of Section 3.1:
+• We do not claim that FNO cannot generate spectral off-diagonals. Eq. (12) and Eq. (36)
+show that at first and higher order, off-diagonals appear whenever the activation derivatives
+have non-trivial Fourier coefficients.
+• We do claim that for spectrally dense operators, these off-diagonals are always tied to
+input-dependent gates. As a result, a large FNO can fit the off-diagonals of the in-sample
+mapping on the training subspace, but it cannot efficiently learn a fixed dense off-diagonals
+with robust out-of-distribution generalization on unseen function spaces which is exactly
+what we observe in our experiments in Section 5.
+Stacking more layers introduces more input-dependent gates but does not create an input-independent
+spectral mixing mechanism, so depth does not mitigate this bottleneck.
+D.4
+WHY KANO DOES NOT SUFFER THE SAME PROBLEM
+By contrast, KANO directly learns an input-independent pseudo-differential symbol pθ(x, ξ) in the
+dual bases via Eq. (15). KANO has a spectral kernel capable of mode mixing as it is governed by
+spatial basis x (which is convolution in spectral basis) as well as the frequency mode ξ via symbol
+pθ(x, ξ), not only by the non-linear activation gates tied to the input function u. Once pθ is learned,
+it is shared across all input functions in the ball BB, including even the unseen function subspace.
+This dual-domain, symbol-based parameterization allows KANO to learn the fixed off-diagonals
+of spectrally dense, position-dependent operators with robust out-of-distribution generalization, as
+confirmed by our experiments in Section 5.
+25
+
+Published as a conference paper at ICLR 2026
+E
+COMPUTATION AND MEMORY COMPLEXITY OF KANO
+In this Appendix we compare the memory and computation complexity of KANO compared to FNO.
+We first quantify the per–layer costs of a single FNO layer (4) and a single KANO layer (15), and
+then combine them with the parameter complexity results of Section 3.2 and Section 4.2 to argue
+that, on the target class of variable–coefficient PDE and position–dependent dynamics, the higher
+per–layer cost of KANO is compensated by better model size scaling.
+Throughout this appendix we work on the discrete torus Td with a uniform spatial grid Y =
+{y1, . . . , ym} and a truncated Fourier set Ξ = {ξ1, . . . , ξm} as in Section 2.1 and Section 4.1.
+E.1
+PER–LAYER FLOPS AND ACTIVATION MEMORY
+We measure complexity in floating–point operations (FLOPs) and activation memory per forward pass
+for a single layer of each model. Backward passes in standard automatic differentiation are assumed
+to be within a constant factor of the forward cost and do not change the asymptotic conclusions.
+FNO layer.
+Consider a single FNO layer (4)
+LFNO(a)(x) = σ
+
+F−1
+m
+
+Rθ1(ξ) · Fm(a)(ξ)
+
+(x) + Wθ2 · a(x)
+
+with Cin input channels and Cout output channels. On a d-dimensional grid Y with md coordinates, a
+single forward application of LFNO has the following costs:
+• FFT and inverse FFT: Fm and F−1
+m are applied channel–wise and cost
+FFT cost ∼O
+ (Cin + Cout) md log md
+.
+• Spectral multiplier: for each retained mode ξ ∈Ξ, Rθ(ξ) ∈CCout×Cin is a dense matrix;
+multiplying by ˆu(ξ) ∈CCin costs O(CinCout) per mode, hence
+spectral block ∼O
+ md CinCout
+
+.
+• Point-wise linear map: Wθ is applied at each spatial point y ∈Y as a dense matrix in
+channel space, costing
+spatial linear map ∼O
+ md CinCout
+
+.
+• Nonlinearity: the point-wise nonlinearity σ is O(md Cout).
+Collecting terms, for fixed channel counts we obtain the per–layer forward cost:
+FLOPs
+ LFNO
+
+∼O
+ md log md + md
+∼O
+ md log md
+.
+(39)
+The activation memory footprint is dominated by storing u, Fmu, the pre–activation z(u, ·) and the
+post–activation:
+memory
+ LFNO
+
+= O
+ md Cin + md Cout
+
+∼O(md).
+(40)
+The parameter memory is O
+ md CinCout
+
+for the spectral multipliers plus O
+ CinCout
+
+for Wθ.
+KANO layer.
+Now consider a KANO layer (15)
+LKANO(a)(x) = Φθ1
+
+F−1
+m
+
+pθ2(x, ξ) ∗Fm(a)(ξ)
+
+(x) , a(x)
+
+,
+where pθ2(x, ξ) is implemented by a width–fixed KAN symbol network and Φθ1 is another
+width–fixed KAN activation network. Using Kohn–Nirenberg quantization (16):
+F−1
+m
+
+p(x, ξ) ∗Fm(a)(ξ)
+
+(x) :=
+ h
+L
+d X
+ξ∈Ξ
+X
+y∈Y
+ei(x−y)·ξ p(x, ξ) a(y),
+on a d-dimensional grid Y with md points and a retained frequency set Ξ with md modes, a single
+forward application of LKANO has the following costs:
+26
+
+Published as a conference paper at ICLR 2026
+• KN quantization (double sum): for each output location x we evaluate the double sum over
+ξ ∈Ξ and y ∈Y, i.e. m2d terms per x. Each term involves a dense matrix–vector product
+p(x, ξ) a(y) of cost O(CinCout). Summed over all x ∈Y this yields
+KN operator ∼O
+ m3d CinCout
+
+.
+• Symbol network evaluation: the symbol KAN pθ2 is evaluated once per pair (x, ξ) ∈Y × Ξ,
+i.e. at m2d points. Let Pp denote the cost of a single forward evaluation of pθ2. Then
+symbol KAN ∼O
+ m2d Pp
+
+.
+• Activation KAN: the activation network Φθ1 is applied point-wise at each spatial point
+x ∈Y. Let PΦ denote the cost of one forward pass of Φθ1. Then
+activation KAN ∼O
+ md PΦ
+
+.
+Collecting terms, for fixed channel counts and fixed KAN architectures we obtain the per–layer
+forward cost:
+FLOPs
+ LKANO
+
+∼O
+ m3d CinCout + m2dPp + mPΦ
+
+.
+(41)
+The activation memory footprint is dominated by storing the feature maps and, if materialized, the
+symbol grid pθ2(x, ξ):
+memory
+ LKANO
+
+∼O
+ md Cin + md Cout + m2d CinCout
+
+∼O
+ m2d CinCout
+
+,
+(42)
+in addition to the parameter size of the KAN subnetworks.
+Inference cost of compact KAN subnetworks.
+For completeness, we quantify the inference cost
+Pp and PΦ of the KAN subnetworks. Consider a fully connected KAN layer with input width din,
+output width dout, and G basis functions per edge. Each edge (j →i) carries a learnable univariate
+function fij : R →R represented as
+fij(x) =
+G
+X
+g=1
+wijg ϕg(x),
+where {ϕg}G
+g=1 are fixed basis functions (e.g. B–splines or rational functions) and wijg are learned
+coefficients. Evaluating fij(xj) for a given scalar input xj requires computing the active basis
+functions ϕg(xj) and a dot product over G elements.
+A single KAN layer thus computes, for each output coordinate i,
+yi =
+din
+X
+j=1
+fij(xj),
+and the total cost of one forward pass through this layer would be O
+ dout din G
+
+, up to lower order
+terms from basis evaluation. The parameter count of this layer is of the same order, O(dout din G).
+Under the assumption of compact KAN subnetworks, widths, depths, and the number of basis
+functions G are all small and independent to the operator resolution m. If we denote by N an upper
+bound on their layer widths and by LKAN their depth, then their total inference costs satisfy
+Pp, PΦ = O
+ LKAN N 2 G
+
+.
+In the per–layer KANO complexity (41) the KAN subnetworks contribute only a constant–factor
+overhead that does not grow with the spatial or spectral resolution, hence for large resolution
+m ≫N, LKAN the dominant term would be the KN quantization term O(m3dCinCout).
+E.2
+COMPUTATION COMPLEXITY AS A FUNCTION OF ACCURACY FOR POSITION-DEPENDENT
+DYNAMICS
+As apparent in Eq. (39 and Eq. (41), KANO requires orders heavier FLOPs compared to FNO due
+to the expensive double sum nature of its KN quantization, when two models are of similar size.
+For small resolution m, the inference cost Pp and PΦ still set hard lower bound on the computation
+27
+
+Published as a conference paper at ICLR 2026
+complexity as well. However, one of the main arguments we make in this work is that KANO enjoys
+incomparable parameter efficiency compared to FNO on the target class of spectrally dense operators
+such as position-dependent dynamics: parameter complexity of KANO scales polynomially where
+that of FNO can scale super-exponentially on a spectrally dense ground-truth operator. Therefore,
+KANO’s expensive FLOPs requirement can be compensated by parameter efficiency where FNO
+suffers the curse of dimensionality.
+For a position-dependent dynamics G and accuracy ε > 0, we write |ΘFNO(ε)| and |ΘKANO(ε)| for
+the smallest parameter counts required by FNO and KANO respectively to achieve ∥G −Gθ∥≤ε,
+following Theorem 1 and Theorem 2. Also, let TFNO(ε) and TKANO(ε) denote the cost of one forward
+(or forward+backward) pass of an FNO or KANO architecture chosen to achieve accuracy ε on the
+ground-truth operator. We do not attempt to model the number of optimization steps; instead, we
+focus on how the cost of a single training or inference step scales with ε. Assuming a model must
+perform at least a constant number of FLOPs per parameter in each step, lower bound for computation
+complexity can be estimated as:
+TFNO(ε) ≳c0 |ΘFNO(ε)|,
+TKANO(ε) ≳c′
+0 |ΘKANO(ε)|
+(43)
+for constants c0, c′
+0 > 0. Such lower bound assumption is not universal for any neural network, but in
+FNO architecture all its parameters equally appear in the matrix computation via the dense parameter
+block R and W; especially for implementations that evaluate and update all parameters in every step.
+Hence, computation complexity lower bound assumption by its model size is reasonable for FNO.
+Computation complexity of FNO by accuracy for position operators from Theorem 1.
+For
+the position–multiplier M(x) := xα1
+1 · · · xαd
+d
+of total degree M := |α| ≥1, the restatement of
+Theorem 1 in Appendix C.3 shows that an FNO GFNO
+θ
+that achieves
+∥M −GFNO
+θ
+∥Hs ≤ε
+on band–limited inputs can suffer curse of dimensionality:
+|ΘFNO(ε)| ∼exp
+ c ε−Md/s
+,
+(44)
+for some constant c > 0 depending only on geometric constants of Sobolev space Hs. From Eq. (43),
+the computation complexity of FNO by accuracy on M can be written as:
+TFNO(ε) ≳c0 |ΘFNO(ε)| ∼O
+ exp(ε−Md/s)
+
+(45)
+Computation complexity of KANO by accuracy for position operators from Theorem 2.
+On
+the other hand, Theorem 2 and Corollary 1 show that as the KANO projection of M yields symbols
+pM(x, ξ) of sufficient smoothness, KANO can achieve ∥M −GKANO
+θ
+∥≤ε with
+|ΘKANO(ε)| ∼O
+ ε−β
+,
+(46)
+where β = d/(2sp) or β = d/(2r) is a geometric exponent determined by the symbol regular-
+ity (Wang et al., 2024). From Eq. (43), the computation complexity of KANO by accuracy on M
+can be written as:
+TKANO(ε) ≳c′
+0 |ΘKANO(ε)| ∼O
+ exp(ε−β)
+
+(47)
+Therefore, when the ground-truth operator is spectrally dense yet its KANO projection give smooth
+enough symbol so that both Theorem 1 and Theorem 2 are effective (for instance, position-dependent
+dynamics), lower bound of computation complexity of FNO can prevail over that of KANO because
+of the curse of dimensionality discussed in Section 3.2.
+We emphasize that this is an asymptotic statement under the specific operator class where both
+Theorem 1 and Theorem 2 hold. For operators that are nearly spectrally diagonal (e.g. standard FNO
+benchmarks), FNO is theoretically much faster than KANO when the two models are in similar size.
+However, when learning a spectrally dense, variable–coefficient operators to high precision, KANO’s
+parameter efficiency can, in theory, compensate for its expensive double sum KN quantization while
+FNO faces a super–exponential growth in model size hence per–step FLOPs to achieve the same
+level of accuracy.
+28
+
+Published as a conference paper at ICLR 2026
+F
+USE OF LARGE LANGUAGE MODEL
+Large Language Model (LLM) is used to polish the writing in this paper, such as detecting grammar
+errors and typos. LLM is also used to search for appropriate references for correct citations, and all
+the proposed references are fully inspected and verified before citing in the paper.
+29

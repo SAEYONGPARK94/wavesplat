@@ -1,0 +1,1365 @@
+Contents lists available at ScienceDirect
+Coastal Engineering
+journal homepage: www.elsevier.com/locate/coastaleng
+From points to waves: Fast ocean wave spatial–temporal fields estimation
+using ensemble transform Kalman filter with optical measurement
+Feng Wang a, Qidan Zhu a,∗, Chengtao Cai a,b, Xiaoyu Wang a, Renjie Qiao a
+a College of intelligent systems science and engineering. Harbin Engineering University, Nantong street, Harbin, 150001, Heilongjiang, China
+b Modeling and Emulation in E-Government National Engineering Laboratory, Nantong street, Harbin, 150001, Heilongjiang, China
+A R T I C L E
+I N F O
+Dataset link: https://github.com/fengHEU/Wa
+ve-ETKF/tree/main
+Keywords:
+Sea surface stereo reconstruction
+Spatial–temporal wave fields
+Maximum a posteriori estimate
+Ensemble transform Kalman filter
+A B S T R A C T
+Accurate spatial–temporal wave measurement is vital for ocean engineering applications. Although stereo
+vision shows great potential in this field, performing dense reconstruction requires processing vast amounts
+of pixel data, which reduces the efficiency of stereo image matching and subsequent point cloud processing.
+Recently, the paradigm of fusing sparse 3D points with predictions has emerged as a promising solution that
+balances accuracy and efficiency, yet requires an optimization framework capable of handling both state
+estimation and robust outlier filtering. Therefore, this study proposes a Kalman filter (KF)-based method
+for ocean wave field estimation, aiming to improve efficiency through recursion and to remove outliers
+and interpolation errors in measurements. The method leverages linear gravity wave dispersion relations for
+prediction, with sparse 3D points interpolated to a uniform grid as measurements. To address limitations
+of high-dimensional data processing, the study implements the Ensemble Transform Kalman Filter (ETKF),
+incorporating fuzzy logic to handle potential outliers. By maintaining an ensemble of states and employing
+ensemble transformation techniques to avoid computationally expensive matrix inversions, ETKF significantly
+improves recursive processing efficiency. Both CPU and GPU implementations were evaluated on published and
+field-collected datasets, demonstrating superior performance in efficiency, accuracy, and robustness compared
+to existing methods under the same paradigm.
+1. Introduction
+Accurate spatial–temporal wave measurement (Benetazzo et al.,
+2016; Li et al., 2022) is essential for ocean engineering applications,
+ranging from navigation to offshore structure safety, and wave en-
+ergy harvesting. Traditional single-point measurement systems cannot
+adequately capture critical features of three-dimensional sea surfaces,
+including directionality, wave height, and surface slope. Furthermore,
+research on spatial–temporal fields based on three-dimensional wave
+measurements has yielded new insights into wave modeling (Leckler
+et al., 2015; Barbariol et al., 2017). Consequently, developing efficient
+and robust spatial–temporal wave measurement methods has become a
+research priority.
+Wave measurement techniques have evolved significantly over the
+past decades. Traditional methods relied on wave gauges and surface
+buoys, which can provide precise time series but fail to capture the
+spatial structure of wave fields. Researchers have explored multi-point
+measurement arrays to address this limitation. For instance, Swan
+and Sheikh (2015) deployed 1400 probes to map the spatial–temporal
+∗Corresponding author.
+E-mail addresses: wfeng@hrbeu.edu.cn (F. Wang), zhuqidan@hrbeu.edu.cn (Q. Zhu), caichengtao@hrbeu.edu.cn (C. Cai), wxiaoyu@hrbeu.edu.cn
+(X. Wang), qiaorenjie@hrbeu.edu.cn (R. Qiao).
+wave fields. However, this approach faces practical challenges due
+to operational complexity and required repeated trials, and the in-
+struments may interfere with wave dynamics, potentially introducing
+measurement noise. Moreover, Benetazzo et al. (2015) found that
+point-measurement-based models inadequately predict certain wave
+characteristics, particularly extreme waves (Benetazzo et al., 2021).
+X-band radar is a key remote sensing device for large-scale ocean
+wave measurement (Kusters et al., 2016; Naaijen et al., 2018), utilizes
+empirical Modulation Transfer Functions (MTFs) to extract wave field
+data from radio wave backscatter (Benetazzo et al., 2018). Klein et al.
+(2020) and Fujimoto and Waseda (2020) proposed non-linear models to
+fit the wave field, but in practice the process requires long calibration
+periods and additional wave measurement equipment.
+Therefore, there is a need to develop reliable and efficient methods
+to measure spatial–temporal wave fields. In recent years, binocular
+stereo vision has shown great potential in this field, finding widespread
+application in both outdoor water surfaces (Benetazzo, 2006; Benetazzo
+et al., 2012) and laboratory wave tanks (Bechle and Wu, 2011; Li
+https://doi.org/10.1016/j.coastaleng.2024.104690
+Received 8 August 2024; Received in revised form 10 December 2024; Accepted 12 December 2024
+Coastal Engineering 197 (2025) 104690 
+Available online 18 December 2024 
+0378-3839/© 2024 Elsevier B.V. All rights are reserved, including those for text and data mining, AI training, and similar technologies. 
+
+F. Wang et al.
+et al., 2022) for wave field reconstruction. The success of this method
+primarily depends on the quality of 3D point clouds, which directly
+relies on accurate pixel matching between stereo image pairs. Lavieri
+et al. (2020) demonstrated that in outdoor environments, accurate
+matching can be achieved with sufficient image texture when cameras
+are positioned at proper distances from the water surface. In general,
+the sky provides a uniform background light source, allowing the sea
+surface to behave as a Lambertian surface.
+The Wave Acquisition Stereo System (WASS) represents a significant
+advancement in stereo vision wave measurement, being an open-source
+software developed by Bergamasco et al. (2017) that combines modern
+computer vision techniques to provide an effective tool for dense recon-
+struction of ocean wave. The system encompasses the entire pipeline of
+generating 3D point clouds using Semi-Global Block Matching (SGBM)
+as introduced by Hirschmuller (2007), extracting sea level and eleva-
+tion data and rendering ocean wave height onto images. WASS has
+been widely utilized for wave characterization in various environments
+such as the sea surface (Guimarães et al., 2019; Vieira et al., 2020) and
+laboratory wave tanks (Benetazzo et al., 2019; Pereira et al., 2021).
+However, wave reconstruction remains computationally intensive,
+as dense reconstruction requires processing vast amounts of pixel data,
+reducing efficiency in both stereo image matching and subsequent
+processing including smoothing interpolation and outlier filtering. To
+break through this bottleneck, Bergamasco et al. (2021) proposed
+WASSfast, which aims at real-time wave field reconstruction using
+sparse 3D points. The method transforms the spectrum estimation into a
+constraint minimization problem, seeking an optimal balance between
+the predicted spectrum and the elevation from the sparse 3D points.
+To avoid overfitting from strict constraints, the soft constraint variant
+was also explored in WASSfast. WASSfast employs an iterative gradient
+descent instead of the closed-form solutions due to the ill-conditioned
+matrices caused by data sparsity. Additionally, Pistellato et al. (2021)
+developed a CNN mode of WASSfast that integrates physics prediction
+with network architecture, trained on fixed 256 × 256 grids for direct
+sparse-to-dense elevation mapping.
+WASSfast not only establishes a new paradigm for wave field esti-
+mation, but also enables reinterpretations within different theoretical
+frameworks. From Bayesian perspectives, fusing prediction and mea-
+surement data represents maximum a posteriori (MAP) estimation,
+where the prediction model provides the prior and wave measurements
+supply likelihood data. This MAP problem is solvable recursively via
+Kalman filter (KF), which can estimate state uncertainty using iterated
+Fisher information matrices. Indeed, researchers have explored wave
+field estimation using KF. For instance, Pascoal et al. (2017) and Kim
+(2020) proposed Kalman filter-based approaches for sea state estima-
+tion, but using multiple ships concurrently as buoys. They constructed
+the state vectors from wave components (paired real and imaginary
+spectrum parts) evolving independently, typically using tens of entry
+frequencies.
+In stereo vision-based wave reconstruction, although point clouds
+provide better spatial representation of wave fields, the high dimen-
+sionality (𝑂(104) in this study) of the state vector flattened from the
+2D wave elevation grid makes direct application of the Kalman fil-
+ter impractical. To address this, we propose a spatial–temporal wave
+field estimation method based on the ensemble transform Kalman
+filter (ETKF). As an extension of the ensemble Kalman filter (EnKF),
+ETKF has been widely used in large-scale data assimilation, particu-
+larly for weather and ocean forecasting (Blockley et al., 2014; Zhou
+et al., 2019). By maintaining an ensemble of states and using trans-
+form techniques to avoid large-scale matrix inversions, the proposed
+ETKF-based method significantly enhances processing efficiency. The
+proposed method adopts WASSfast’s prediction model, and interpolates
+sparse 3D points to a uniform grid of wave elevations as observations.
+The main contributions of this paper are: (1) A theoretical comparison
+between the frameworks of WASSfast’s constrained optimization and
+MAP-based recursive Kalman filtering, under the paradigm of fusing
+spectrum prediction with sparse stereo 3D reconstruction; (2) An ETKF
+implementation for spatial–temporal wave field estimation with optical
+sparse measurement, integrating recursive processing and fuzzy logic to
+achieve efficient computation and outlier elimination.
+The rest of this paper is organized as follows: Section 2 reviews
+the theoretical framework of the new paradigm in WASSfast, and
+examines the fundamental connection between the constrained opti-
+mization problem and the Kalman filter framework. Section 3 details
+the proposed fuzzy logic-enhanced ETKF method for estimating spatial–
+temporal wave fields. Section 4 evaluates the method using a public
+stereo image dataset of ocean waves (Guimarães et al., 2020) as well
+as the field-collected data in a vessel on position keeping. Finally,
+conclusions are given in Section 5.
+2. Comparative analysis
+This study begins with a brief overview of WASSfast, a paradigm
+combines the sparse 3D point cloud with wave spectrum prediction and
+updating. We aim to investigate the theoretical basis of the proposed
+method by analyzing the relationship between the cost functions of the
+Kalman filter and the constrained optimization in WASSfast.
+2.1. The WASSfast paradigm
+The spectrum prediction utilizes the linear dispersion relation of
+gravity waves. Given a 2D wave number spectrum 𝑆(𝐾𝑥, 𝐾𝑦)𝑡0 at time
+𝑡0, the prediction steps are as follows:
+1. 𝑆(𝐾𝑥, 𝐾𝑦)𝑡𝑛−1 is obtained from 𝑍(𝑋 , 𝑌 , 𝑡𝑛−1) using 2D Fast Fourier
+Transform (FFT), where 𝑍(𝑋 , 𝑌 , 𝑡𝑛−1) represents the 2D grid of
+reconstructed wave heights at time 𝑡𝑛−1.
+2. For each wave number (𝐾𝑥, 𝐾𝑦), compute the angular frequency
+𝜔𝑘𝑥,𝑘𝑦:
+𝜔2
+𝑘𝑥,𝑘𝑦= sign(𝑠𝑥𝑘𝑥+ 𝑠𝑦𝑘𝑦)𝑔
+√
+𝑘2
+𝑥+ 𝑘2
+𝑦tanh(𝑑
+√
+𝑘2
+𝑥+ 𝑘2
+𝑦)
+(1)
+where 𝑔is the acceleration of gravity, 𝑑is the depth of water,
+and 𝑠𝑥and 𝑠𝑦are the signs of the wave propagation direction.
+3. Rotate the phase of 𝑆(𝐾𝑥, 𝐾𝑦)𝑡𝑛−1 to obtain the predicted spec-
+trum 𝑆′(𝐾𝑥, 𝐾𝑦)𝑡𝑛at moment 𝑡𝑛:
+𝑆′ (𝐾𝑥, 𝐾𝑦
+)
+𝑡𝑛= 𝑆(𝐾𝑥, 𝐾𝑦
+)
+𝑡𝑛−1 𝑒𝑖(𝑡𝑛−𝑡𝑛−1)𝜔𝑘𝑥,𝑘𝑦
+≜ 𝑡𝑛∣𝑡𝑛−1
+(2)
+This prediction equation provides a simplified model of the sea
+state, neglecting non-linear effects and the Doppler effect of currents.
+However, it serves as a reasonable initial estimate for subsequent
+spectrum updating. The updating process aims to fuse the predicted
+spectrum 𝑆′ with the current 3D point cloud 𝛤𝑡𝑛, reconstructed using a
+feature matching method based on optical flow (Shi and Tomasi, 1994;
+Bouguet, 2001). The spectrum updating is formulated as a minimization
+problem with constraints:
+{ ar g min
+𝑆𝑤‖𝑆−𝑆′‖
+𝑠.𝑡.
+𝐀𝑆= 𝑏
+(3)
+where, 𝑆is the spectrum to be optimized, 𝑆′ is the predicted spec-
+trum, 𝑤is a flattened (row-wise) high-pass Gaussian window of size
+𝑁× 𝑁with a certain cutoff, used to apply greater weights in the
+high-frequency part of the spectrum, 𝐀is the inverse discrete Fourier
+transform (iDFT) matrix of 𝐵× 𝑁2, 𝐵is the number of sparse points,
+and 𝑏is a vector of sparse elevations.
+Applying the Karush–Kuhn–Tucker (KKT) condition, the multipliers
+vector is 𝜆= [𝜆1...𝜆𝑀], and since ‖ ⋅‖ is close in the L2 sense, the cost
+function can be rewritten as:
+𝐿(𝑆 , 𝜆) = (𝑆−𝑆′)𝐻𝐖(𝑆−𝑆′) + 𝜆𝑇(𝐀𝑆−𝑏)
+(4)
+Coastal Engineering 197 (2025) 104690 
+2 
+
+F. Wang et al.
+where 𝐖= 𝑤𝐈. The goal of Eq. (4) is to find a new spectrum 𝑆that is
+as close as possible to the predicted spectrum 𝑆′ (especially in the high-
+frequency part) with the dimension 𝑁2 × 1, and to make sure that the
+grids obtained by iDFT accurately interpolate all the sparse 3D points.
+By taking partial derivatives of 𝐿(𝑆 , 𝜆) with respect to 𝑆and 𝜆and
+equating them to zero, one obtains:
+{
+2𝐖(𝑆−𝑆′) −𝐀𝐻𝜆= 0
+𝐀𝑆= 𝑏
+(5)
+The matrix form of the Eq. (5) can be expressed as:
+(
+𝐖
+𝐀𝐻
+2
+𝐀
+0
+) (
+𝑆
+𝜆
+)
+=
+(
+𝐖𝑆′
+𝑏
+)
+(6)
+Finally, using conjugate gradient iteration, 𝑥is updated to find
+the residual minima between [𝐖𝑆′, 𝑏]𝑇and 𝐅𝑥, where 𝐅𝑥is [𝐖𝑆+
+𝐀𝐻𝜆∕2, 𝐀𝑆]𝑇, 𝑥= [𝑆 , 𝜆]𝑇.
+The NFFT variant (CPU implementation) of WASSfast requires ac-
+curate interpolation of sparse points as a strict constraint. Given that
+the reconstructed elevations from sparse matches are non-uniformly
+distributed on a 2D grid, NFFT is used to accelerate the computation
+of 𝐀𝐻𝜆and 𝐀𝑆. In the GPU-accelerated implementation, the strict
+constraint 𝐀𝑆
+= 𝑏is relaxed, i.e., the estimated spectrum are no
+longer required to accurately reconstruct the sparse points. This can
+be expressed by the cost function in Eq. (7):
+𝐿(𝑆) = (𝑆−𝑆′)𝐻𝐖(𝑆−𝑆′)
++̇ 𝛼
+𝐵
+(𝐀−1𝑆−𝑏
+)𝑇(𝐀−1𝑆−𝑏
+)
+(7)
+wherė 𝛼is a scalar weight balancing data constraint strength, 𝐀−1 is
+the inverse Fast Fourier Transform, and 𝑏is the elevation vector from
+interpolated uniform grid. The second term of the optimization function
+is no longer strictly required to match the data points exactly.
+2.2. The Kalman filter framework
+Consider the spatial–temporal wave field as a dynamical system,
+𝜇𝑡𝑛= 𝐀𝜇𝑡𝑛−1 + 𝜎𝑡𝑛
+𝑧𝑡𝑛= 𝐇𝜇𝑡𝑛+ 𝑣𝑡𝑛
+(8)
+where 𝜎𝑡
+∼(0, 𝐐) and 𝑣𝑡
+∼(0, 𝐑) are time-independent and
+mutually independent, and 𝜇𝑡0 ∼(̄𝜇𝑡0, 𝐏𝑡0) is independent of 𝜎𝑡0 and
+𝑣𝑡0. Here, the state 𝜇represents the spectrum 𝑆, while 𝐀describes a
+one-step prediction based on the linear dispersion relation of gravity
+waves. 𝐐and 𝐑denote process and observation noise, respectively, and
+𝐇is the observation or measurement matrix.
+Given a set of measurements 𝑧𝑡0, 𝑧𝑡1, … , 𝑧𝑡𝑁−1 we need to estimate
+𝜇𝑡0, 𝜇𝑡1, … , 𝜇𝑡𝑁. Therefore, the maximum a posteriori probability (MAP)
+is estimated to be
+(̂𝜇𝑡)𝑡𝑁
+𝑡0 ∈ ar g max
+𝜇𝑡0 ,…,𝜇𝑡𝑁
+𝑝(𝜇𝑡0, … , 𝜇𝑡𝑁−1|𝑧𝑡0, … , 𝑧𝑡𝑁−1)
+(9)
+So based on Bayes rules and the assumption of the first-order
+Markovianity, we have the relationship in Eq. (10),
+𝑝
+(
+𝜇𝑡0, … , 𝜇𝑡𝑁∣𝑧𝑡0, … , 𝑧𝑡𝑁−1
+)
+∝𝑝𝜇𝑡0 (𝜇𝑡0)
+𝑡𝑁−1
+∏
+𝑡1
+𝑝𝑣𝑡𝑛(𝑣𝑡𝑛)𝑝𝜎𝑡(𝜎𝑡𝑛)
+(10)
+where the proportional forms of probability density functions (PDF) are
+as follows,
+𝑝𝜎𝑡𝑛(𝜎) ∝ exp
+(
+−1
+2 𝜎𝑇𝐐−1𝜎
+)
+𝑝𝑣𝑡𝑛(𝑣) ∝ exp
+(
+−1
+2 𝑣𝑇𝐑−1𝑣
+)
+𝑝𝜇𝑡0 (𝜇𝑡0) ∝ exp
+(
+−1
+2 (𝜇𝑡0 −̄ 𝜇)𝑇𝐏−1
+𝑡0 (𝜇𝑡0 −̄ 𝜇)
+)
+(11)
+Taking logarithms of the Eq. (10) yields the log-likelihood in Eq.
+(12). The cost function for the maximum a posteriori probability (MAP)
+estimation problem is posed as in Eq. (13).
+ln 𝑝(𝜇𝑡𝑡0 , … , 𝜇𝑡𝑁|𝑧𝑡0, … , 𝑧𝑡𝑁−1)
+= ln 𝑝𝜇𝑡0 (𝜇𝑡0) +
+𝑡𝑁−1
+∑
+𝑡1
+(
+ln 𝑝𝑣𝑡(𝑧𝑡𝑛−𝐇𝜇𝑡𝑛) + ln 𝑝𝜎𝑡(𝜇𝑡𝑛−𝐀𝜇𝑡𝑛−1)
+)
+= −1
+2(𝜇𝑡0 −̄ 𝜇𝑡0)𝑇𝐏−1
+𝑡0 (𝜇𝑡0 −̄ 𝜇𝑡0)
++
+𝑡𝑁−1
+∑
+𝑡0
+(
+−1
+2 (𝑧𝑡𝑛−𝐇𝜇𝑡𝑛)𝑇𝐑−1(𝑧𝑡𝑛−𝐇𝜇𝑡𝑛)
+−1
+2 (𝜇𝑡𝑛−𝐀𝜇𝑡𝑛−1)𝑇𝐐−1(𝜇𝑡𝑛−𝐀𝜇𝑡𝑛−1)
+)
+(12)
+⎧
+⎪
+⎪
+⎪
+⎪
+⎨
+⎪
+⎪
+⎪
+⎪⎩
+min
+𝜇𝑡0 ,…,𝜇𝑡𝑁,𝜎𝑡1 ,…,𝜎𝑡𝑁,𝑣𝑡1 ,…,𝑣𝑡𝑁
+1
+2(𝜇𝑡0 −̄ 𝜇𝑡0)𝑇𝐏−1
+𝑡0 (𝜇𝑡0 −̄ 𝜇𝑡0)
++
+𝑡𝑁−1
+∑
+𝑡0
+( 1
+2𝑣𝑡𝑛
+𝑇𝐑−1𝑣𝑡𝑛+ 1
+2 𝜎𝑡𝑛
+𝑇𝐐−1𝜎𝑡𝑛
+)
+𝑠.𝑡. 
+𝜇𝑡𝑛= 𝐀𝜇𝑡𝑛−1 + 𝜎𝑡𝑛
+𝑧𝑡𝑛= 𝐇𝜇𝑡𝑛+ 𝑣𝑡𝑛
+(13)
+In Eq. (13), the objective is to estimate a state 𝜇𝑡0 that minimizes
+its distance from its expected valuē 𝜇𝑡0 under the weighting of 𝐏−1
+𝑡0 ,
+while maintaining the states 𝜇𝑡𝑛as close as possible to both predictions
+and observations. The weighting matrices in the cost function are
+determined by the inverse covariance matrices, where larger covariance
+matrices allow larger noise terms. Al-Matouq et al. (2013) showed
+that this objective function in Eq. (13) can be solved using dynamic
+programming, resulting in the five Kalman filter equations presented
+in Eq. (14) and (15).
+The prediction steps are shown in Eq. (14),
+𝜇𝑡𝑛∣𝑡𝑛−1 = 𝐀̂𝜇𝑡𝑛−1∣𝑡𝑛−1
+𝐏𝑡𝑛∣𝑡𝑛−1 = 𝐀̂𝐏𝑡𝑛−1∣𝑡𝑛−1𝐀𝑇+ 𝐐
+(14)
+and the update steps of KF are shown in Eq. (15),
+𝐊= 𝐏𝑡𝑛∣𝑡𝑛−1𝐇𝑇(
+𝐇𝐏𝑡𝑛∣𝑡𝑛−1𝐇𝑇+ 𝐑
+)−1̂
+𝜇𝑡𝑛∣𝑡𝑛= 𝜇𝑡𝑛∣𝑡𝑛−1 + 𝐊
+(
+𝑧𝑡𝑛−𝐇𝜇𝑡𝑛∣𝑡𝑛−1
+)̂
+𝐏𝑡𝑛∣𝑡𝑛= (𝐈−𝐊𝐇)𝐏𝑡𝑛∣𝑡𝑛−1
+(15)
+The above analysis in this section suggests that the cost function
+in MAP estimation considers global information and can be solved
+recursively using the KF, where the recursive process propagates the
+uncertainty from the previous time step to the current one, contributing
+to optimal state estimation. This propagation compresses historical
+information into a dynamic covariance matrix, reflecting the estimation
+uncertainty of the corresponding dimension. In contrast, the optimiza-
+tion problem in Eq. (4) and (7) employ a fixed weight matrix 𝐖as a
+frequency domain filter to penalize high-frequency deviations, which
+reflects a prior smoothness assumption, and uses a scalaṙ 𝛼to balance
+prior information and observed data.
+3. Methodology
+This section describes a methodology for ocean wave reconstruction
+using the Ensemble Transform Kalman Filter (ETKF) framework. The
+proposed method employs sparse 3D reconstruction to provide mea-
+surements for an enhanced ETKF implementation, which incorporates
+fuzzy logic for robust outlier handling. The measurement system and
+filtering mechanism are presented.
+3.1. The measurement in Kalman filter
+3.1.1. Sparse reconstruction
+The accurate 3D sparse reconstruction of ocean wave surfaces pro-
+vides measurements for the Kalman filter over the defined grid area.
+Coastal Engineering 197 (2025) 104690 
+3 
+
+F. Wang et al.
+Fig. 1. Comparison of sparse and dense stereo reconstruction pipelines for ocean wave surface, showing the processing steps and resulting elevation grids.
+Our goal is to efficiently obtain sparse 3D points through precise feature
+matching between stereo image pairs. This feature-based approach
+allows us to focus computational resources on the most distinctive and
+reliable points of the water surface, rather than attempting to match
+every pixel. Fig. 1 shows the process of wave field reconstruction using
+sparse and dense matching points, respectively.
+Firstly, feature detection is performed using the Shi-Tomasi corner
+detector (Shi and Tomasi, 1994) to identify salient corner features
+from image pairs. These features are typically located at wave crests,
+troughs, and regions with significant intensity variations on the water
+surface. In practice we found that this corner-based approach achieves
+a good balance between computational efficiency and feature stability
+compared to more complex detectors.
+The second step involves feature matching. The Lucas–Kanade op-
+tical flow (Bouguet, 2001) is utilized to track the detected features,
+which has demonstrated robust performance in handling water surface
+textures. To ensure matching reliability, feature matches with large
+reprojection errors are eliminated. After filtering, thousands of reliable
+feature correspondences are typically obtained.
+The final two steps are 3D reconstruction and mapping to a 2D
+grid. Using the camera parameters calibrated through the method
+by Zhang (1999), we triangulate the matched features to obtain 3D
+coordinates. During this process, we further apply geometric constraints
+to filter out physically implausible points. For instance, considering
+the measurement range and camera mounting height, the reconstructed
+points should fall within reasonable elevation bounds.
+3.1.2. Interpolated measurements
+With sparse observation points available, two measurement strate-
+gies are considered within the KF framework: direct assimilation of
+sparse values and assimilation of linearly interpolated values. Both
+options are examined in the experiments section. For the interpo-
+lated measurements, we adopt a linear interpolation method based
+on Delaunay triangulation, which achieves a good balance between
+computational efficiency and interpolation accuracy. Specifically, for a
+target point located within a triangle formed by vertices 𝐴(𝑥1, 𝑦1, 𝑧1),
+𝐵(𝑥2, 𝑦2, 𝑧2), and 𝐶(𝑥3, 𝑦3, 𝑧3), the interpolated height 𝑧is computed
+as:
+𝑧= 𝑤1𝑧1 + 𝑤2𝑧2 + 𝑤3𝑧3
+(16)
+where weights 𝑤1, 𝑤2, 𝑤3 are barycentric coordinates satisfying 𝑤1 +
+𝑤2+𝑤3 = 1. The valid points (typically fewer than 7000) are distributed
+highly non-uniformly on 128 × 128 or 256 × 256 grids, leading to
+point clusters and data gaps across the surface. Consequently, the
+interpolation of measurements with sparse and non-uniform distribu-
+tion inevitably introduces noise and outliers. As illustrated in Fig. 3,
+comparing the interpolated map derived from sparse points with the
+map reconstructed from dense points shows the outliers introduced in
+the interpolation.
+Then we analyze state increments to investigate how measurements
+influence the propagation between different dimensions of the state.
+Consider an 𝑛-dimensional state space: 𝝁∈R𝑛, and an 𝑚-dimensional
+innovation vector (measurement space): 𝐝∈R𝑚(𝑚≤𝑛). For any state
+dimension 𝑖, the state increment 𝛥𝜇𝑖can be written as:
+𝛥𝜇𝑖=
+𝑚
+∑
+𝑗=1
+𝐾𝑖𝑗𝑑𝑗
+(17)
+where 𝑑𝑗represents the 𝑗th dimension of 𝐝, and 𝐾𝑖𝑗is an element of
+the Kalman gain matrix, which can be expressed as:
+𝐾𝑖𝑗=
+𝑚
+∑
+𝑘=1
+𝑝𝑖𝑘
+(𝐒−1)
+𝑗 𝑘
+(18)
+The matrix 𝐒, which serves as the normalization denominator in mea-
+surement space, is given by:
+𝐒= 𝐇𝐏𝐇𝑇+ 𝐑
+(19)
+where 𝐇∈R𝑚×𝑛is the observation matrix that provides a linear
+transformation from state space to measurement space. Each row 𝑖of 𝐇
+consists of zeros except for a value 1 at column 𝑗, where 𝑗corresponds
+to the directly measured state variable.
+Due to the sparse structure of 𝐇, only the covariances between state
+dimensions corresponding to the measurement space contribute to 𝐒.
+Let 𝑂= {𝑜1, 𝑜2, … , 𝑜𝑚} denote the set of state dimensions corresponding
+to non-zero entries in 𝐇, the state increment for any dimension 𝑖can
+then be written as:
+𝛥𝜇𝑖= 𝑓
+({𝑑𝑗
+}𝑚
+𝑗=1 ,
+{
+𝑝𝑜𝑘𝑜𝑙
+}𝑚
+𝑘,𝑙=1 ,
+{
+𝑝𝑖𝑜𝑘
+}𝑚
+𝑘=1 , 𝐑
+)
+(20)
+where
+{
+𝑝𝑜𝑘𝑜𝑙
+}𝑚
+𝑘,𝑙=1 denotes the set of covariances between state dimen-
+sions corresponding to the measurement space, and
+{
+𝑝𝑖𝑜𝑘
+}𝑚
+𝑘=1 is the set
+of covariances between any state dimension 𝑖and all directly observed
+state dimensions corresponding to the measurements.
+Eq. (20) indicates that increasing the measurement dimension can
+expand the set of state covariance
+{
+𝑝𝑜𝑘𝑜𝑙
+}𝑚
+𝑘,𝑙=1 and
+{
+𝑝𝑖𝑜𝑘
+}𝑚
+𝑘=1 participat-
+ing in updates. By increasing measurement dimensions, this expansion
+not only contributes to directly observed state dimensions, but also
+enriches the set of correlations utilized in updating unobserved states.
+These correlations are fundamentally established by the prediction
+model, which encodes prior physical constraints into the covariance
+values during the prediction step. In practice, state localization is typi-
+cally employed to retain significant local correlations. Therefore, the
+interpolated measurements enable more comprehensive exploitation
+of state covariance and better capture of spatial correlations during
+updates. The artifacts introduced in the interpolation procedure are
+inherently accommodated through the uncertainty-aware weighting of
+the Kalman filter framework.
+Coastal Engineering 197 (2025) 104690 
+4 
+
+F. Wang et al.
+Fig. 2. The Fuzzy logic-enhanced ETKF-based reconstruction pipeline. The prediction step transforms the previous time step’s estimated elevation grid to a spectrum by FFT,
+applies linear gravity wave dispersion relations for spectrum prediction, and converts back to 2D elevation by iFFT. Then the 2D elevation is flattened into a 1D state vector
+and localized into 𝐿sub-state vectors for ETKF analysis. Observations or measurements are obtained on an interpolation grid of sparse reconstruction. The innovation (difference
+between observation and state prediction) and its change from the previous time step are input into a fuzzy logic system, which outputs adaptive measurement noise sub-matrices
+for each sub-state. After the analysis of ETKF, sub-state vectors are combined into a complete state vector and reshaped to 2D, yielding the current time step’s estimation.
+3.2. Ensemble transform Kalman filter
+When performing actual calculations, the equations for one-step
+state transition and the predicted measurement vector are as follows,
+𝜇𝑓
+𝑡𝑛= 
+(
+𝜇𝑎
+𝑡𝑛−1
+)
+𝑧𝑓
+𝑡𝑛= 𝐇𝜇𝑓
+𝑡𝑛
+(21)
+where the state 𝜇𝑡𝑛is defined as the flatten vector of the elevation
+grid at time 𝑡𝑛with dimension 1 × 𝑁2. 𝜎𝑡𝑛and 𝑣𝑡𝑛represent the
+prediction model error vector and the observation error vector, re-
+spectively. The prediction on the state is denoted as 
+(
+𝜇𝑡𝑛−1
+)
+=
+−1 (
+𝑡𝑛𝑡𝑛−1
+(
+
+(
+𝜇𝑡𝑛−1
+)))
+, where and −1 denote the fast Fourier
+transform (FFT) and inverse transform (iFFT), respectively. The ob-
+servation matrix 𝐇is the identity matrix in the case of assimilating
+interpolated measurement.
+There are two main reasons for adopting elevation rather than
+spectrum as the state. Firstly, minor numerical perturbations in the
+frequency domain can lead to significant errors when reconstructing
+elevation within the filtering. Secondly, using elevation simplifies the
+observation matrix 𝐇to an identity matrix, reducing computational
+cost compared to the tensor product required for a spectrum state. Nev-
+ertheless, the spectrum remains an intermediate state in the prediction
+step, as illustrated in Fig. 2. However, since the state space in this
+study exhibits high dimensionality, the standard KF is computationally
+expensive and requires excessive storage for practical implementation,
+primarily due to the propagation of large forecast error covariance
+matrices.
+Therefore, ETKF is utilized to estimate the wave space–time field
+in this study, which is a Monte Carlo implementation of the Bayesian
+estimate problem and was first proposed for use in the atmospheric
+sciences by Bishop et al. (2001). Suppose the ensemble size is 𝑀,
+and the state 𝜇𝑎
+𝑡𝑛−1 are perturbed to generate the ensemble 𝜇𝑎
+𝑡𝑛−1,𝑗, 𝑗=
+1, … , 𝑀. The Ensemble of states is 𝐗𝑎
+𝑡𝑛−1
+(
+𝜇𝑎
+𝑡𝑛−1,1, 𝜇𝑎
+𝑡𝑛−1,2, … , 𝜇𝑎
+𝑡𝑛−1,𝑀
+)
+, and
+the forecast ensemble is 𝐗𝑓
+𝑡𝑛
+(
+𝜇𝑓
+𝑡𝑛,1, 𝜇𝑓
+𝑡𝑛,2, … , 𝜇𝑓
+𝑡𝑛,𝑀
+)
+, in which the forecast
+state is defined as given in Eq. (22),
+𝜇𝑓
+𝑡𝑛,𝑗= 
+(
+𝜇𝑎
+𝑡𝑛−1,𝑗
+)
+(22)
+The mean forecast statē 𝜇𝑓
+𝑡𝑛is defined as the ensemble mean of 𝜇𝑓
+𝑡𝑛,𝑗,
+i.e.,̄
+𝜇𝑓
+𝑡𝑛= 1
+𝑀
+𝑀
+∑
+𝑗=1
+𝜇𝑓
+𝑡𝑛,𝑗
+(23)
+The perturbation ensemble of the predicted state ensemble is ob-
+tained by subtracting the ensemble mean from the state ensemble,
+𝐘𝑓
+𝑡𝑛=
+1
+√
+𝑀− 1
+(
+𝜇𝑓
+𝑡𝑛,1 −̄ 𝜇𝑓
+𝑡𝑛, 𝜇𝑓
+𝑡𝑛,2 −̄ 𝜇𝑓
+𝑡𝑛, … , 𝜇𝑓
+𝑡𝑛,𝑀−̄ 𝜇𝑓
+𝑡𝑛
+)
+(24)
+In ETKF, the forecast of state error covariances is no longer per-
+formed explicitly, but the covariances of the ensemble of predicted
+states are computed directly as follows,
+𝐏𝑓
+𝑡𝑛=
+1
+𝑀− 1
+𝑀
+∑
+𝑗=1
+(
+𝜇𝑓
+𝑡𝑛,𝑗−̄ 𝜇𝑓
+𝑡𝑛
+) (
+𝜇𝑓
+𝑡𝑛,𝑗−̄ 𝜇𝑓
+𝑡𝑛
+)𝑇
+(25)
+Comparing Eq. (24) with Eq. (25), the relationship between the
+covariance matrix and the perturbation matrix is obtained as follows,
+𝐏𝑓
+𝑡𝑛= 𝐘𝑓
+𝑡𝑛
+(
+𝐘𝑓
+𝑡𝑛
+)𝑇
+(26)
+According to Eq. (26), the Kalman gain computation is transformed
+as follows:
+𝐊𝑒= 𝐏𝑓
+𝑒𝐇𝑇(𝐇𝐏𝑓
+𝑒𝐇𝑇+ 𝐑)−1
+= 𝐘𝑓(𝐘𝑓)𝑇𝐇𝑇(
+𝐇𝐘𝑓(𝐘𝑓)𝑇𝐇𝑇+ 𝐑
+)−1
+= 𝐘𝑓(𝐙𝑓)𝑇(𝐙𝑓(𝐙𝑓)𝑇+ 𝐑)−1
+(27)
+where 𝐙𝑓
+𝑡𝑛= 𝐇𝐘𝑓
+𝑡𝑛represents the perturbation ensemble of predicted
+measurement vector. Let̂ 𝐙𝑓= 𝐑−1
+2 𝐙𝑓
+𝑡𝑛, and perform Singular Value
+Decomposition (SVD) for (̂𝐙𝑓)𝑇, one obtains:
+(̂
+𝐙𝑓)𝑇
+= 𝐔Σ𝐕𝑇
+(28)
+where 𝐔is a 𝑚× 𝑚orthogonal matrix with 𝑚being the dimension of
+measurement space, Σ is a 𝑚×𝑀diagonal matrix where 𝑀represents
+the ensemble size, and 𝐕is a 𝑀× 𝑀orthogonal matrix.
+Therefore, the actual Kalman gain for the ensemble transformation
+analysis is:
+𝐊𝑒= 𝐘𝑓(̂
+𝐙𝑓)𝑇(̂
+𝐙𝑓(̂
+𝐙𝑓)𝑇
++ 𝐈
+)−1
+𝐑−1
+2
+= 𝐘𝑓𝐔Σ (Σ𝑇Σ + 𝐈)−1 𝐕𝑇𝐑−1
+2
+(29)
+it can be seen that the transformation effectively reduces the compu-
+tational complexity since only a diagonal matrix inversion is required.
+Finally, the mean analysis state are shown in Eq. (30),̄
+𝜇𝑎
+𝑡𝑛= 𝐊𝑒
+(
+𝑧𝑡𝑛−̄ 𝑧𝑓
+𝑡𝑛
+)
+(30)
+Coastal Engineering 197 (2025) 104690 
+5 
+
+F. Wang et al.
+Table 1
+Fuzzy rules based on innovation and innovations difference.
+Rule
+IF(𝑑𝑡𝑛)
+IF(̃𝑑𝑡𝑛)
+THEN(𝑟𝑡𝑛)
+1
+Large
+Large
+Large
+2
+Large
+Medium
+Large
+3
+Large
+Small
+Medium
+4
+Medium
+Large
+Large
+5
+Medium
+Medium
+Medium
+6
+Medium
+Small
+Small
+7
+Small
+Large
+Medium
+8
+Small
+Medium
+Small
+9
+Small
+Small
+Small
+wherē 𝜇𝑎
+𝑡𝑛is the estimated state at time 𝑡𝑛, 𝑧𝑡𝑛is the measurements of
+wave elevation at time 𝑡𝑛and̄ 𝑧𝑓
+𝑡𝑛is the mean of predicted measurement
+ensemble 𝐇𝐗𝑓
+𝑡𝑛.
+The transformation matrix and the state perturbation matrix are
+updated as follows,
+𝐓= 𝐔(𝐈+ 𝜮Σ𝑇)−1∕2 𝐔𝑇
+𝐘𝑎
+𝑡𝑛= 𝐘𝑓
+𝑡𝑛𝐓
+(31)
+The perturbed ensemble of states is computed as follows,
+𝐗𝑎
+𝑡𝑛= 𝐗𝑡𝑛+
+√
+𝑀− 1𝐘𝑎
+𝑡𝑛
+(32)
+where 𝐗𝑡𝑛is the ensemble consisting of 𝑀repetitions of the mean state
+vector̄ 𝜇𝑎
+𝑡𝑛, and 𝐗𝑎
+𝑡𝑛will be predicted in the next iteration at 𝑡𝑛+1.
+In the above framework of ETKF, it is observed that matrices
+involving inverse operations are exclusively diagonal, enabling effi-
+cient computation through perturbation propagation instead of state
+covariance matrices.
+Of course, it must be said that as a Monte Carlo method, the
+success of the ETKF greatly depends on ensemble size and statistical
+representativeness. Lorenc (2003) demonstrated that when ensembles
+are generated by random sampling via the Probability Density Function
+(PDF), the discrepancy of forecast error covariance scales inversely
+with ensemble size 𝑀. Furthermore, Wang and Bishop (2003) pointed
+out that when the number of ensemble perturbations is significantly
+smaller than the projected directions of forecast error variance, Eq. (31)
+underestimates the total analytical error variance due to insufficient
+contributions from crucial parts of the error space. In practical applica-
+tions, computational constraints often prevent the ensemble size from
+matching the state dimension (e.g., in this study the state dimension
+is 16384 × 1 or 65536 × 1, while only tens to hundreds of ensemble
+members are used). To address this issue, we employ a localization
+strategy for ETKF, focusing on sub-vectors of states and observations,
+which can also enable GPU-accelerated parallel processing. Fig. 2 illus-
+trates the localization process. Specifically, the state vector is localized
+into 𝐿sub-states that can be updated in parallel and isolation, where
+each sub-state vector has a dimension of (𝑁∕𝐿, 1). The ensemble size
+𝑀is typically set to be slightly larger than 𝑁∕𝐿to ensure adequate
+sampling. While localized sub-states are used in the analysis step, the
+forecast step requires a complete state vector corresponding to the ele-
+vation grid for FFT operations. The localization shifts the computational
+bottleneck from matrix inversion to SVD computation. Therefore, the
+choice of 𝐿is a trade-off between parallel SVD efficiency and spatial
+correlation preservation.
+3.3. Fuzzy logic integration
+The interpolation of non-uniformly distributed sparse 3D points can
+introduce significant outliers in the measurement. As shown in Fig. 4
+(right), the noise distribution of measurement exhibits heavier tails
+than a Gaussian distribution. To address this issue, we employ fuzzy
+logic to adaptively adjust 𝐑by designing appropriate rules based on
+the current innovation and its difference from the previous one.
+The current innovation and the difference of innovations are de-
+fined, respectively, as follows,
+𝑑𝑡𝑛= 𝑧𝑡𝑛−̄ 𝑧𝑓
+𝑡𝑛̃
+𝑑𝑡𝑛= 𝑑𝑡𝑛−𝑑𝑡𝑛−1
+(33)
+Fuzzy logic can distinguish genuine system changes from mea-
+surement errors by evaluating innovation and the difference values.
+High innovation with low difference values suggests a gradual system
+change, as the observation differs from predictions but remains close to
+previous data. In this case, the reliability of observation is considered
+higher. On the other hand, high values in both innovation and differ-
+ence suggest a significant deviation from both predictions and recent
+data, potentially indicating an outlier. In such cases, the observation
+should be assigned a lower confidence. The specific fuzzy rules are
+shown in Table 1.
+For the 𝑖th rule, when given inputs (𝑑𝑡𝑛and̃ 𝑑𝑡𝑛), the activation value
+for the output 𝑟𝑡𝑛is computed as Eq. (34),
+𝐶rule 𝑖
+(𝑟𝑙
+) = min
+(
+𝛷𝑑(
+𝑑𝑡𝑛
+)
+, 𝛷̃𝑑(̃
+𝑑𝑡𝑛
+)
+, 𝛷𝑟(𝑟𝑙
+))
+(34)
+where, 𝛷𝑑(⋅) and 𝛷̃𝑑(⋅) represent membership functions for the input
+variables, 𝛷𝑟(⋅) for the output variables, respectively. Each of the vari-
+ables is mapped into their membership functions: ‘‘small’’, ‘‘medium’’,
+and ‘‘large’’. The fuzzy logic is shown in Fig. 2, 𝑇𝑑, 𝑇̃𝑑, and 𝑇𝑟are
+defined as the thresholds in the membership functions of the variables.
+The centroid computation yields,̂
+𝑟=
+∑𝐿
+𝑙=1 𝜔(𝑟𝑙
+) ⋅𝑟𝑙
+∑𝐿
+𝑙=1 𝜔(𝑟𝑙
+)
+(35)
+where, l=1, 2,..L, and L denotes the number of discrete points for the
+output variable.
+The output variable assigns an adjustment factor to each direction
+of the 𝐑diagonal,
+𝑟𝑡𝑛,𝑖𝑖=̂ 𝑟𝑡𝑛,𝑖𝑖
+(36)
+where 𝑟𝑖𝑖is the 𝑖th diagonal element of 𝐑.
+4. Experiments
+We compared the proposed ETKF-based method with the results
+obtained by WASS and WASSfast for different stereo sequences. The
+data for the experiment include: the public Acqua Alta stereo data
+set (AA 03), collected on the Acqua Alta oceanic research platform
+with a 2.545 m camera baseline and 12.5 m height above sea level,
+covering a measurement range of −25 m to 25 m in the x-direction
+and 30 m to 80 m in the y-direction. The detailed setup parame-
+ters refer to Guimarães et al. (2020). Additionally, we used a field-
+collected dataset, gathered in March 2024 at a certain sea area with
+a 0.12 m camera baseline and approximately 2 m height above sea
+level, covering −3 m to 3 m in the x-direction and 5 m to 12 m in
+the y-direction.
+4.1. On the public dataset
+We first processed all sequences using WASS with the recommended
+parameters from the publish dataset to perform dense reconstruction as
+ground truth. The accuracy of WASS dense reconstruction has been ex-
+tensively validated in previous studies, showing centimeter-level errors
+when compared with ultrasonic gauge measurements over long-term
+monitoring periods (Benetazzo, 2006; Benetazzo et al., 2012, 2015).
+The validation also demonstrated high spectral coherence in frequency
+domain analyses. Then, we estimated the average sea surface by com-
+puting the mean of corresponding surfaces for each frame and defined
+a surface elevation grid, in which the interpolation was performed. The
+PU mode of WASSfast based on the discussed constrained optimization
+was performed on a 128 × 128 grid. For sparse field interpolation,
+WASSfast also provides a CNN mode that performs direct fitting on a
+Coastal Engineering 197 (2025) 104690 
+6 
+
+F. Wang et al.
+Fig. 3. Wave elevation maps reconstructed using different methods, visualized with color mapping. Each column represents a different reconstruction method: original sparse
+points, WASS (GT), sparse interpolation, WASSfast (PU), and the proposed ETKF-based method with both sparse measurements and interpolated measurements. The columns
+display selected frames from the reconstructed 2D elevation grids for each method.
+Fig. 4. Evaluation on public dataset. (Left) Comparison of the center grid elevations from ETKF with both sparse and interpolated measurements, the dense reconstruction and
+sparse interpolation. (Right) Distributions of the absolute error throughout the whole sequences of the center grid in the sparse interpolation and the proposed method, respectively.
+A dynamic visualization of the wave updating process is provided in the supplementary video.
+fixed 256 × 256 grid through a deep neural network. The proposed
+ETKF-based method was compared with both modes at corresponding
+grid sizes to evaluate reconstruction accuracy and computational effi-
+ciency. All experiments were run on a Linux laptop equipped with an
+Intel i5-10400 CPU clocked at 2.90 GHz, an Nvidia GeForce GTX 2060,
+and 32 GB of RAM.
+The performance of ETKF with direct assimilation of sparse mea-
+surements was first examined. The time series comparisons in Fig. 4
+and error curves in Fig. 5(a) indicate higher reconstruction errors
+compared to ETKF with interpolated measurements. Nevertheless, the
+results confirm the fundamental effectiveness of the filtering frame-
+work with direct assimilation of sparse measurements. As can be seen,
+sparse interpolation can significantly distort elevation representations
+on uniform grids due to data gaps and noise caused by keypoint
+mismatches. The proposed method with interpolated measurements
+outperforms all compared methods, generating elevation grids with
+lower MSE. Furthermore, the impact of interpolation on data assimi-
+lation was evaluated by tracking errors at both original measurement
+locations and interpolated points. As can be seen in Fig. 5(b), direct
+assimilation of sparse measurements in ETKF shows limited improve-
+ment at original sparse locations. In contrast, when ETKF assimilates
+interpolated measurements, it achieves significant error reduction not
+only at interpolated points but also remarkably at the original sparse
+locations, demonstrating that interpolated measurements enable better
+information propagation across state dimensions in ETKF.
+Fig. 3 illustrates the qualitative performance of each method in
+elevation reconstruction. The distribution map shows that the inter-
+polation of sparse data generates sharp discontinuities at data gaps,
+and measurement outliers can also create local extrema and physically
+unreasonable values in sparsely sampled regions. ETKF with direct
+assimilation of sparse measurements can reconstruct the coarse-scale el-
+evation distribution but shows limitations in preserving high-frequency
+Coastal Engineering 197 (2025) 104690 
+7 
+
+F. Wang et al.
+Fig. 5. Evaluation on public dataset. (a) Frame-wise MSE of elevation grids compared to WASS reconstruction. (b) MSE evaluation at original and interpolated grid points comparing
+sparse reconstruction and ETKF-based method, where ETKF assimilates both sparse and interpolated measurements.
+Fig. 6. Evaluation on public dataset. (a) Compute time for the CPU implementation of the proposed method and the NFFT variant of WASSfast. (b) Compute time for the GPU
+implementation of the proposed method and the FFT variant of WASSfast.
+Fig. 7. The figure presents a side-by-side comparison of spectrum analysis results derived from methods: WASSfast (left), WASS (center), and ours (right). Black crosses mark the
+positions of wavenumber peaks. Each figure displays slices of the three-dimensional spatial–temporal spectrum at selected frequencies, along with the wavenumber and direction
+represented by the peak point.
+details. WASSfast (PU) tends to smooth the value, suppressing high-
+frequency information. In contrast, the proposed method preserves
+more high-frequency details, yielding elevation maps that closely re-
+semble ones obtained from dense reconstruction. Fig. 6 compares the
+computation time between the proposed method and WASSfast vari-
+ants using sequence AA 03. The proposed method runs 3–4 times
+faster on CPU and 2 times faster on GPU compared to WASSfast,
+demonstrating the computational efficiency of ETKF framework with
+localization-enabled parallel processing.
+Fig. 7 compares the wavenumber spectrum slices of the selected
+frequencies. The proposed method yields spectrum patterns that are
+more symmetrical and uniform, closely resembling the results of WASS.
+In contrast, the spectrum slices of WASSfast show considerable energy
+loss in the middle and high frequency regions of the second and third
+quadrants. As demonstrated by Bergamasco et al. (2021), the prediction
+model assumes that all wavenumber components have the same direc-
+tion of phase change (increasing or decreasing) in each direction (x or
+y). This approximation is clearly inconsistent with real ocean waves, in
+which each wavenumber component can have different phase changes.
+The prediction model enforces the same sign in the x- and y-directions,
+leading to non-physical energy redistribution in wavenumber space for
+components whose predicted phase change direction is opposite to the
+actual one. The proposed method successfully compensates for this
+deficiency. Even if the model underestimates or overestimates energy in
+specific wavenumber regions, corrections can be made by introducing
+the recursive mechanism of uncertainties (in the form of inverse of
+the covariance matrix). Moreover, employing fuzzy logic helps prevent
+outliers.
+Coastal Engineering 197 (2025) 104690 
+8 
+
+F. Wang et al.
+Fig. 8. Performance of ETKF in Wave Elevation Prediction With and Without Fuzzy Logic Integration. (a) Per-frame GPU computation time for ETKF configurations without and
+with fuzzy logic. (b) Mean Squared Error (MSE) of 2D elevation grids generated by Sparse Interpolation, ETKF without Fuzzy Logic (ETKF-no Fuzzy), and ETKF with Fuzzy Logic
+(ETKF-Fuzzy).
+Fig. 9. Evaluation on public dataset. Comparison of the center grid elevations from the proposed method and CNN mode of WASSfast for dense ratios of (a) 0.005 and (b) 0.100.
+Table 2
+Statistics with different ensemble size for the timeseries in the center grid.
+Ensemble size
+MSE
+MSE std
+Mean time (ms)
+100
+23.4
+37.7
+336
+200
+17.3
+34.8
+692
+300
+14.4
+25.5
+789
+400
+16.5
+34.8
+857
+500
+16.1
+33.9
+912
+Fig. 8(a) shows that using fuzzy logic in ETKF slightly increases
+the GPU computation time per frame, but times remain within a close
+range. Fig. 8(b) compares MSE values, demonstrating that ETKF with
+fuzzy logic provides the lowest errors and outperforms sparse interpo-
+lation and ETKF without fuzzy logic, suggesting the robustness of fuzzy
+logic in dealing with outliers. From a practical perspective, we believe
+that the slightly increased computation time is a worthwhile trade-off
+for the improvement in handling outliers.
+Table 2 presents computation times and error statistics for time
+series generated using ETKF with different ensemble sizes, where the
+state variable dimension was fixed at 16384 × 1 with 64 sub-states.
+The results show that while the running time increases with ensemble
+size, the filter performance does not improve consistently, with optimal
+performance achieved at an ensemble size of 300. As a matter of
+fact, this is common in high-dimensional systems within the Monte
+Carlo-based framework (Bocquet and Sakov, 2013; Poterjoy, 2016),
+and Sakov and Oke (2008) pointed out that larger size of ensemble in
+ETKF can sometimes suffer performance degradation due to sampling
+noise in the observations.
+We also evaluated the performance of WASSfast (CNN) and the
+proposed method on a 256 × 256 grid with two scenarios. A nor-
+mal case had an average dense ratio of 0.100, while a challenging
+case used an extremely dense ratio of 0.005 to simulate common
+challenges in wave imaging, such as poor lighting conditions and
+white caps. Fig. 9 illustrates the elevation time series reconstructed
+for two dense ratios. Figs. 10(a) and 10(b) present the detailed MSE
+comparison and computational time analysis, respectively. WASSfast
+Coastal Engineering 197 (2025) 104690 
+9 
+
+F. Wang et al.
+Fig. 10. Evaluation on public dataset. (a) Frame-wise MSE of elevation grids of the proposed method and CNN mode of WASSfast. (b) Compute time for the GPU implementation
+of the proposed method and CNN mode of WASSfast, where the time for WASSfast (CNN) is from its average frame rate.
+Table 3
+Computational time analysis of different processing stages within ETKF-
+Fuzzy.
+Processing stage
+Dense ratio
+0.100
+0.005
+Image Preprocessing
+76 ms
+76 ms
+Point Cloud Generation
+185 ms
+86 ms
+Gridding Interpolation
+69 ms
+6 ms
+State Ensemble Prediction
+18 ms
+18 ms
+Fuzzy Logic Processing
+32 ms
+32 ms
+ETKF State Analysis
+45 ms
+42 ms
+(CNN) demonstrates superior computational efficiency at the higher
+density ratio and achieves good reconstruction accuracy, validating the
+effectiveness of its physics-driven architecture and the fast inference
+capabilities of sparse CNN. Nevertheless, the proposed method shows
+superior robustness and efficiency under extremely sparse conditions.
+This can be attributed to the filtering framework that leverages physical
+correlations between different state dimensions through the covariance
+structure, which helps maintain the quality of reconstruction even with
+minimal measurements.
+Table 3 presents the detailed mean computational time for different
+processing stages under varying dense ratios. While image prepro-
+cessing and ETKF analysis maintain relatively stable performance, the
+processing time of point cloud generation and interpolation increases
+with the density ratio, which provides flexibility in balancing ac-
+curacy and computational cost for specific application requirements.
+The stable ETKF analysis performance is achieved through its recur-
+sive structure that enables efficient computation compared to iterative
+optimization in the Prediction and Update paradigm. Moreover, the
+ensemble transform reduces matrix inversions to diagonal operations,
+and state localization facilitates parallel processing.
+4.2. On the field-collected data
+In order to facilitate future investigations of deck condition based
+on wave reconstruction, it is necessary to acquire wave images from
+the vessel (see Fig. 11). A stereo camera ZED2i, was used to capture
+high-resolution (2208 × 1242) images at 15 frames per second (with
+an actual frame rate between 10 and 15 frames per second) and with
+a maximum effective measurement distance of approximately 20 m.
+The camera is also equipped with an IMU sensor. Throughout the
+measurement process, the vessel remained stable on the sea surface.
+Due to frame-to-frame motion in our collected stereo pairs, direct
+application to the Wass pipeline is not feasible. Following WASS’s
+stereo reconstruction methodology, we employ SGBM stereo matching
+with similar preprocessing and post-processing steps as in WASS to
+generate dense point clouds that serve as ground truth. For sparse
+reconstruction, optical flow is used to generate sparse point clouds.
+Fig. 11. Experimental setup for on-site data collection. The stereo camera is deployed
+on the deck of a vessel on position keeping, with the Zw axis of the world coordinate
+system opposite to the direction of gravity.
+We defined the 𝑍-axis of the world coordinate system as opposing
+the direction of gravity. By capturing the gravity acceleration data
+corresponding to each frame, it is possible to establish the transforma-
+tion relationship between the two coordinate systems. The vibration
+of the vessel can introduce linear acceleration interference, but it is
+relatively minor compared to the dominant gravitational acceleration
+signal. Therefore, the acceleration data recorded by the IMU primarily
+reflects the gravity acceleration acting along the x-, y- and 𝑧-axis
+of the camera coordinate system. The rotation matrix 𝐑𝑤from the
+camera coordinate system to the world coordinate system is shown in
+Eq. (37).
+𝐑𝑤= 𝐈+ (sin 𝜃)𝐍+ (1 − cos 𝜃)𝐍2
+(37)
+where 𝜃= ar ccos (𝐳𝑐⋅𝐳𝑤
+), 𝐍is the skew-symmetric matrix of the
+rotation axis 𝐧= 𝐱𝑐, 𝐳𝑤= −𝐠represents the desired 𝑧-axis of the world
+coordinate system, and 𝐠denotes the unit gravity acceleration vector
+in the camera coordinate system. 𝐈is a 3x3 identity matrix.
+The performance on the field data is shown in Fig. 12 (left), the
+proposed ETKF-based method successfully filters out the outliers intro-
+duced by the interpolation of sparse grid. And Fig. 12 (right) shows
+the error distributions, one from the proposed method has a shorter tail
+and fewer outliers beyond ±250 mm, indicating that the update process
+Coastal Engineering 197 (2025) 104690 
+10 
+
+F. Wang et al.
+Fig. 12. Evaluation on field-collected data. (Left) Comparison of the center grid elevations from the proposed method, the dense reconstruction and sparse interpolation. (Right)
+Distributions of the absolute error throughout the whole sequences of the center grid in the sparse interpolation and the proposed method, respectively.
+Fig. 13. Evaluation on field-collected data. MSE of 2D elevation grids across the
+sequence.
+effectively reduces the occurrence of large errors, consistent with the
+performance on the public dataset.
+Fig. 13 shows that the proposed method has a significantly lower
+MSE than the interpolated elevation when both are compared against
+the dense reconstruction. It is worth noting that significant errors
+occurred at frames 20 and 90 due to data corruption during collection.
+We retained the affected frames in the experiment to investigate the
+robustness of the proposed method in dealing with corrupted measure-
+ments, rather than dropping them out. The results demonstrate that
+following the occurrence of the errors, the method rapidly corrected
+itself. The qualitative results in Fig. 14 indicates that the proposed
+method not only maintains consistency with the dense reconstruction
+results but also significantly enhances the smoothness of elevation
+between regions.
+5. Conclusions
+This study proposes an ETKF-based method for fast spatial–temporal
+wave field reconstruction that combines spectrum predictions with
+sparse 3D points, using fuzzy logic to filter out measurement outliers.
+The proposed method inherently achieves global optimization through
+MAP estimation, distinguishing it from traditional constrained opti-
+mization methods with fixed weight matrices. Experiments on both
+public datasets and field-collected data show superior performance in
+multiple aspects: single-point elevation timeseries, 2D elevation grids,
+and 3D spatial–temporal spectrums. The recursive uncertainty propa-
+gation chain in ETKF significantly enhances computational efficiency
+compared to the constrained optimization framework of WASSfast
+(PU), and the parallel localization of state vector prevents the collapse
+of covariance matrix in update.
+Another important distinction lies in how the two frameworks han-
+dle sparse data. While WASSfast directly uses sparse points as support
+nodes for the fitting surface, the proposed method regards the entire
+interpolated grid as the measurements, accounting for both the inter-
+polation artifacts and measurement noise of the original sparse points
+into the observation model within a filter. Through theoretical analysis
+of innovation propagation and error evaluation, we demonstrate that
+using interpolated measurements enhances state estimation not only
+at directly observed locations but across the entire state space while
+maintaining computational efficiency. The filtering mechanism effec-
+tively handles the uncertainty of the interpolation, while leveraging
+the expanded measurement space to better capture spatial correlations.
+Furthermore, the proposed method maintains robust reconstruction
+accuracy and comparable efficiency under extremely sparse conditions,
+though at the higher dense ratio its computational efficiency is lower
+than CNN mode of WASSfast. Future work could focus on exploring
+appropriate entry frequencies as state vectors to reduce state dimen-
+sionality, while preserving prior correlations through spectral–spatial
+transformation in the mode of direct sparse assimilation.
+CRediT authorship contribution statement
+Feng Wang: Writing – review & editing, Writing – original draft, Vi-
+sualization, Software, Methodology, Investigation, Data curation, Con-
+ceptualization. Qidan Zhu: Writing – review & editing, Supervision, Re-
+sources, Funding acquisition, Conceptualization. Chengtao Cai: Writ-
+ing – review & editing, Supervision, Resources, Funding acquisition.
+Xiaoyu Wang: Writing – review & editing, Validation, Methodology,
+Data curation. Renjie Qiao: Validation, Resources, Investigation.
+Declaration of competing interest
+The authors declare that they have no known competing finan-
+cial interests or personal relationships that could have appeared to
+influence the work reported in this paper.
+Acknowledgments
+The authors would like to acknowledge the support of the National
+Natural Science Foundation of China (Grant No. 52171299), High-
+Technology Ship Research Project of the Ministry of Industry and
+Information Technology of China (Grant No. CH01N20).
+Appendix A. Supplementary data
+Supplementary material related to this article can be found online
+at https://doi.org/10.1016/j.coastaleng.2024.104690.
+Data availability
+Data will be made available on request. The implementation code
+is available through Github under https://github.com/fengHEU/Wave-
+ETKF/tree/main.
+Coastal Engineering 197 (2025) 104690 
+11 
+
+F. Wang et al.
+Fig. 14. Elevation rendering on selected images from field-collected data. The top row presents dense wave reconstructions using stereo matching techniques, while the bottom
+row shows the proposed ETKF-based elevation estimates.
+References
+Al-Matouq, A., Vincent, T., Tenorio, L., 2013. Reduced complexity dynamic program-
+ming solution for Kalman filtering of linear discrete time descriptor systems. In:
+2013 American Control Conference. IEEE, pp. 340–345.
+Barbariol, F., Alves, J.-H.G., Benetazzo, A., Bergamasco, F., Bertotti, L., Carniel, S.,
+Cavaleri, L., Y. Chao, Y., Chawla, A., Ricchi, A., Sclavo, M., Tolman, H., 2017.
+Numerical modeling of space-time wave extremes using WAVEWATCH III. Ocean
+Dyn. 67, 535–549.
+Bechle, A.J., Wu, C.H., 2011. Virtual wave gauges based upon stereo imaging for
+measuring surface wave characteristics. Coast. Eng. 58 (4), 305–316.
+Benetazzo, A., 2006. Measurements of short water waves using stereo matched image
+sequences. Coast. Eng. 53 (12), 1013–1032.
+Benetazzo, A., Barbariol, F., Bergamasco, F., Bertotti, L., Yoo, J., Shim, J.-S., Cava-
+leri, L., 2021. On the extreme value statistics of spatio-temporal maximum sea
+waves under cyclone winds. Prog. Oceanogr. 197, 102642.
+Benetazzo, A., Barbariol, F., Bergamasco, F., Torsello, A., Carniel, S., Sclavo, M., 2015.
+Observation of extreme sea waves in a space–time ensemble. J. Phys. Oceanogr.
+45 (9), 2261–2275.
+Benetazzo, A., Barbariol, F., Bergamasco, F., Torsello, A., Carniel, S., Sclavo, M., 2016.
+Stereo wave imaging from moving vessels: Practical use and applications. Coast.
+Eng. 109, 114–127.
+Benetazzo, A., Cavaleri, L., Ma, H., Jiang, S., Bergamasco, F., Jiang, W., Chen, S.,
+Qiao, F., 2019. Analysis of the effect of fish oil on wind waves and implications
+for air–water interaction studies. Ocean Sci. 15 (3), 725–743.
+Benetazzo, A., Fedele, F., Gallego, G., Shih, P.-C., Yezzi, A., 2012. Offshore stereo
+measurements of gravity waves. Coast. Eng. 64, 127–138.
+Benetazzo, A., Serafino, F., Bergamasco, F., Ludeno, G., Ardhuin, F., Sutherland, P.,
+Sclavo, M., Barbariol, F., 2018. Stereo imaging and X-band radar wave data fusion:
+An assessment. Ocean Eng. 152, 346–352.
+Bergamasco, F., Benetazzo, A., Yoo, J., Torsello, A., Barbariol, F., Jeong, J.-Y.,
+Shim, J.-S., Cavaleri, L., 2021. Toward real-time optical estimation of ocean waves’
+space-time fields. Comput. Geosci. 147, 104666.
+Bergamasco, F., Torsello, A., Sclavo, M., Barbariol, F., Benetazzo, A., 2017. WASS: An
+open-source pipeline for 3D stereo reconstruction of ocean waves. Comput. Geosci.
+107, 28–36.
+Bishop, C.H., Etherton, B.J., Majumdar, S.J., 2001. Adaptive sampling with the
+ensemble transform Kalman filter. Part I: Theoretical aspects. Mon. Wea. Rev. 129
+(3), 420–436.
+Blockley, E., Martin, M., McLaren, A., Ryan, A., Waters, J., Lea, D., Mirouze, I.,
+Peterson, K., Sellar, A., Storkey, D., 2014. Recent development of the met office
+operational ocean forecasting system: an overview and assessment of the new
+Global FOAM forecasts. Geosci. Model Dev. 7 (6), 2613–2638.
+Bocquet, M., Sakov, P., 2013. Joint state and parameter estimation with an iterative
+ensemble Kalman smoother. Nonlinear Process Geophys. 20 (5), 803–818.
+Bouguet, J.-Y., 2001. Pyramidal implementation of the affine lucas kanade feature
+tracker description of the algorithm. Intel Corp. 5 (1–10), 4.
+Fujimoto, W., Waseda, T., 2020. Ensemble-based variational method for nonlinear
+inversion of surface gravity waves. J. Atmos. Ocean. Technol. 37 (1), 17–31.
+Guimarães, P.V., Ardhuin, F., Bergamasco, F., Leckler, F., Filipot, J.-F., Shim, J.-S.,
+Dulov, V., Benetazzo, A., 2020. A data set of sea surface stereo images to resolve
+space-time wave fields. Sci. Data 7 (1), 145.
+Guimarães, P.V., Leckler, F., Filipot, J.-F., Duarte, R., Deeb, S., Benetazzo, A.,
+Horstmann, J., Carrasco, R., 2019. Extreme sea state measurements by stereo video
+system. In: ISOPE International Ocean and Polar Engineering Conference. ISOPE,
+pp. ISOPE–I.
+Hirschmuller, H., 2007. Stereo processing by semiglobal matching and mutual
+information. IEEE Trans. Pattern Anal. Mach. Intell. 30 (2), 328–341.
+Kim, H., 2020. Real-time Monitoring by Using Kalman Filter in the Ocean (Ph.D. thesis).
+Texas A&M University.
+Klein, M., Dudek, M., Clauss, G.F., Ehlers, S., Behrendt, J., Hoffmann, N., Onorato, M.,
+2020. On the deterministic prediction of water waves. Fluids 5 (1), 9.
+Kusters, J., Cockrell, K., Connell, B., Rudzinsky, J., Vinciullo, V., 2016. FutureWaves™: A
+real-time ship motion forecasting system employing advanced wave-sensing radar.
+In: OCEANS 2016 MTS/IEEE Monterey. IEEE, pp. 1–9.
+Lavieri, R.S., Tannuri, E.A., de Mello, P.C., 2020. Image-based measurement system for
+regular waves in an offshore basin. J. Braz. Soc. Mech. Sci. Eng. 42, 1–17.
+Leckler, F., Ardhuin, F., Peureux, C., Benetazzo, A., Bergamasco, F., Dulov, V., 2015.
+Analysis and interpretation of frequency–wavenumber spectra of young wind
+waves. J. Phys. Oceanogr. 45 (10), 2484–2496.
+Li, D., Xiao, L., Wei, H., Li, J., Liu, M., 2022. Spatial-temporal measurement of waves
+in laboratory based on binocular stereo vision and image processing. Coast. Eng.
+177, 104200.
+Lorenc, A.C., 2003. The potential of the ensemble Kalman filter for NWP—A comparison
+with 4D-var. Q. J. R. Meteorol. Soc. 129 (595), 3183–3203.
+Naaijen, P., Van Oosten, K., Roozen, K., van’t Veer, R., 2018. Validation of a
+deterministic wave and ship motion prediction system. In: International Conference
+on Offshore Mechanics and Arctic Engineering, vol. 51272, American Society of
+Mechanical Engineers, V07BT06A032.
+Pascoal, R., Perera, L.P., Soares, C.G., 2017. Estimation of directional sea spectra from
+ship motions in sea trials. Ocean Eng. 132, 126–137.
+Pereira, H.P., Violante-Carvalho, N., Fabbri, R., Babanin, A., Pinho, U., Skvortsov, A.,
+2021. An algorithm for tracking drifters dispersion induced by wave turbulence
+using optical cameras. Comput. Geosci. 148, 104654.
+Pistellato, M., Bergamasco, F., Torsello, A., Barbariol, F., Yoo, J., Jeong, J.-Y.,
+Benetazzo, A., 2021. A physics-driven CNN model for real-time sea waves 3D
+reconstruction. Remote Sens. 13 (18), 3780.
+Poterjoy, J., 2016. A localized particle filter for high-dimensional nonlinear systems.
+Mon. Weather Rev. 144 (1), 59–76.
+Sakov, P., Oke, P.R., 2008. Implications of the form of the ensemble transformation in
+the ensemble square root filters. Mon. Weather Rev. 136 (3), 1042–1053.
+Shi, J., Tomasi, C., 1994. Good features to track. In: 1994 Proceedings of IEEE
+Conference on Computer Vision and Pattern Recognition. IEEE, pp. 593–600.
+Swan, C., Sheikh, R., 2015. The interaction between steep waves and a surface-piercing
+column. Philos. Trans. R. Soc. A-Math. Phys. Eng. Sci. 373 (2033), 20140114.
+Vieira, M., Guimarães, P.V., Violante-Carvalho, N., Benetazzo, A., Bergamasco, F.,
+Pereira, H., 2020. A low-cost stereo video system for measuring directional wind
+waves. J. Mar. Sci. Eng. 8 (11), 831.
+Wang, X., Bishop, C.H., 2003. A comparison of breeding and ensemble transform
+Kalman filter ensemble forecast schemes. J. Atmos. Sci. 60 (9), 1140–1158.
+Zhang, Z., 1999. Flexible camera calibration by viewing a plane from unknown
+orientations. In: Proceedings of the Seventh Ieee International Conference on
+Computer Vision, vol. 1, IEEE, pp. 666–673.
+Zhou, T., Ding, L., Ji, J., Li, L., Huang, W., 2019. Ensemble transform Kalman filter
+(ETKF) for large-scale wildland fire spread simulation using FARSITE tool and state
+estimation method. Fire Saf. J. 105, 95–106.
+Coastal Engineering 197 (2025) 104690 
+12 

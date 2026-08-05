@@ -1,0 +1,69 @@
+
+
+<<<@64133 Conclusion>>>
+
+4. Conclusion
+In this study, we have developed and validated a sequential data assimilation framework for wave recon-
+struction in VOF-based numerical wave tanks. By integrating the EnKF with a finite volume Navier-Stokes
+solver, the proposed framework addresses the challenge of reconstructing specific deterministic wave realiza-
+tions from limited surface elevation measurements. POD was employed to reduce the dimensionality of the
+high-fidelity state space, making the ensemble-based assimilation computationally feasible.
+Investigation into interface representation revealed that converting the discontinuous VOF fraction into a
+level-set field significantly improves the compactness of the modal basis. Furthermore, a physics-constrained
+inflation strategy was introduced. By inflating the spectral amplitudes of the free surface and updating
+the velocity field via potential flow theory, the framework successfully mitigated ensemble collapse and
+maintained filter consistency during long-term sequential updates.
+20
+
+The framework was tested against three distinct wave conditions, including regular waves, irregular
+waves, and plunging waves. A distinguishing feature of the proposed framework, compared to traditional
+potential flow-based methods, is its capability to capture strongly nonlinear flow phenomena through high-
+fidelity CFD modeling. This was demonstrated in the plunging wave case, where the assimilation of linear
+waves in the upstream region allowed for the accurate prediction of the downstream overturning and breaking
+process. The solver naturally evolved the reconstructed states into complex breaking topologies.
+In addition to handling nonlinear events, the framework exhibited robust performance in the phase-
+resolved reconstruction of irregular waves. It successfully adapted to the stochastic nature of random wave
+trains by sequentially assimilating measurement data.
+The method effectively corrected the phase and
+amplitude of the instantaneous wave field to match the specific realization of the truth. This confirms the
+framework’s ability to adapt to continuously changing wave conditions and eliminate errors arising from
+boundary mismatches or initial uncertainties.
+In summary, this work establishes a feasible pathway for constructing “digital twin” wave tanks capable
+of synchronizing with physical reality. Future efforts will focus on three key directions to further advance this
+framework. First, we aim to accelerate the computational efficiency of the framework to achieve real-time
+assimilation, which is a prerequisite for live digital twinning. Second, the methodology will be validated
+against physical wave tank experiments to bridge the gap between numerical simulations and laboratory
+environments. Finally, the framework will be extended to reconstruct three-dimensional wave fields, enabling
+the analysis of more complex wave-structure interactions in ocean engineering applications.
+Acknowledgments
+This work is supported by the Research Project of China COSCO Shipping Corporation Limited (2023-2-
+Z001-03), Open Project of the State Key Laboratory of Ocean Engineering, and the Fundamental Research
+Funds for the Central Universities.
+Appendix A. Observation Operator
+In this study, different representations of the free surface are employed, associated with different obser-
+vation operators.
+First, we derive the observation operators corresponding to the different free surface representations
+when adopting free surface elevations as observations. The mode eigenvalue of the phase field for ensemble
+member n is represented as a(n),f. The modal-to-physical reconstructions are
+ϕ(n),f = ˆUϕ a(n),f.
+(A.1)
+Note the observation operator acting on the state can be written as
+H(a(n),f) = S F
+
+ϕ(n),f
+,
+(A.2)
+where S belongs to Rpk×g is the interpolation operator that extracts elevation values at the observation
+locations; F : RM →Rg is an operator that converts the implicit phase field to a set of nodes representing
+the geometric free surface elevation in the entire region, where g is the number of nodes.
+In the mathematical formulation presented above, the level-set field ϕ is used as the representative state
+variable for the free surface. It is important to note that the same derivation and logic apply analogously
+to the VOF field α.
+References
+[1] N. Peng, K. Chow,
+A numerical wave tank with large eddy simulation for wave breaking,
+Ocean
+Engineering 266 (2022) 112555.
+21
+
+[2] J. Hu, C. Song, R. Ji, J. Deng, J. Zhang

@@ -1,0 +1,76 @@
+Bridging ocean wave physics and deep learning: Physics-informed neural
+operators for nonlinear wavefield reconstruction in real-time
+Svenja Ehlers,1 Merten Stender,2 and Norbert Hoffmann1, 3
+1)Dynamics Group, Hamburg University of Technology, Germany
+2)Cyber-Physical Systems in Mechanical Engineering, Technische Universität Berlin, Germany
+3)Department of Mechanical Engineering, Imperial College London, United Kingdom
+(*Electronic mail: svenja.ehlers@tuhh.de)
+(Dated: 6 August 2025)
+Accurate real-time prediction of phase-resolved ocean wave fields remains a critical yet largely unsolved problem,
+primarily due to the absence of practical data assimilation methods for reconstructing initial conditions from sparse or
+indirect wave measurements. While recent advances in supervised deep learning have shown potential for this purpose,
+they require large labelled datasets of ground truth wave data, which are infeasible to obtain in real-world scenarios.
+To overcome this limitation, we propose a Physics-Informed Neural Operator (PINO) framework for reconstructing
+spatially and temporally phase-resolved, nonlinear ocean wave fields from sparse measurements, without the need for
+ground truth data during training. This is achieved by embedding residuals of the free surface boundary conditions of
+ocean gravity waves into the loss function of the PINO, constraining the solution space in a soft manner. After training,
+we validate our approach using highly realistic synthetic wave data and demonstrate the accurate reconstruction of
+nonlinear wave fields from both buoy time series and radar snapshots. Our results indicate that PINOs enable accurate,
+real-time reconstruction and generalize robustly across a wide range of wave conditions, thereby paving the way for
+operational, data-driven wave reconstruction and prediction in realistic marine environments.
+I.
+INTRODUCTION
+Real-time and phase-resolved wave prediction of nonlinear
+ocean surface waves has the potential to enhance the plan-
+ning of offshore operations, optimizing wave energy converter
+control, and improve maritime safety. In this context, phase-
+resolved refers to the precise tracing of the wave evolution in
+space and time. Real-time capability requires wave compu-
+tations to be faster than the physical waves, while modelling
+nonlinearity is crucial to capture key dynamics such as wave-
+wave interactions, nonlinear dispersion, and rogue waves. An
+important aspect of phase-resolved wave prediction is that,
+in practice, the initial conditions are typically not available.
+Wave fields are measured using in-situ (e.g. wave rider buoys)
+or remote sensing (e.g. radar systems) instruments, resulting
+in sparse measurement data. This first requires a reconstruc-
+tion of the corresponding wave field from these measurements
+to initiate the actual wave prediction.
+For intermediate to deep water, the nonlinear potential flow
+theory is commonly used to model surface gravity waves
+and can be solved with various numerical methods1–4. The
+High-Order Spectral Method (HOSM)5,6 is popular for this
+purpose7–10, as with ongoing advancements in computational
+hardware, HOSM holds promise for highly accurate real-
+time predictions of nonlinear water waves11–13.
+However,
+the fast and accurate reconstruction of the initial conditions,
+also known as wave data assimilation, remains a more dif-
+ficult task13,14: HOSM-assimilation methods follow either
+sequential15,16 or variational17–21 strategies, which may cause
+poor accuracy or require computationally expensive cost-
+function minimization. Moreover, these methods usually de-
+termine only the optimal initial surface elevation, whereas
+a full potential flow description requires both elevation and
+surface velocity potential22. To address this, Desmars et al.
+(2023)23 and Köllisch et al. (2018)13 integrate the free sur-
+face boundary conditions into their assimilation methods. Al-
+though the first method enables effective parallelization, its
+real-time capability is not demonstrated. While the second
+approach theoretically allows for real-time computations, it
+instead demands unrealistically high spatial and temporal res-
+olution of measurement data24.
+In summary, the data assimilation problem for initializing
+nonlinear, phase-resolved, real-time wave prediction methods
+remains largely unresolved. Inspired by recent advances in
+artificial intelligence that have transformed various research
+domains, our previous work explored (physics-informed) ma-
+chine learning approaches to address this challenge:
+• In Ehlers et al. (2023)25, we demonstrate that a Fourier Neu-
+ral Operator (FNO) architecture26 effectively reconstructs
+initial wave elevations from radar snapshots. Once trained,
+the FNO generalizes this mapping across diverse wave con-
+ditions and enables real-time applications. However, its su-
+pervised training approach requires a large dataset of ground
+truth wave elevations for training. While radar measure-
+ments are available in real-wor

@@ -1,0 +1,1588 @@
+Fourier Features Let Networks Learn
+High Frequency Functions in Low Dimensional Domains
+Matthew Tancik1∗
+Pratul P. Srinivasan1,2∗
+Ben Mildenhall1∗
+Sara Fridovich-Keil1
+Nithin Raghavan1
+Utkarsh Singhal1
+Ravi Ramamoorthi3
+Jonathan T. Barron2
+Ren Ng1
+1University of California, Berkeley
+2Google Research
+3University of California, San Diego
+Abstract
+We show that passing input points through a simple Fourier feature mapping
+enables a multilayer perceptron (MLP) to learn high-frequency functions in low-
+dimensional problem domains. These results shed light on recent advances in
+computer vision and graphics that achieve state-of-the-art results by using MLPs
+to represent complex 3D objects and scenes. Using tools from the neural tangent
+kernel (NTK) literature, we show that a standard MLP fails to learn high frequencies
+both in theory and in practice. To overcome this spectral bias, we use a Fourier
+feature mapping to transform the effective NTK into a stationary kernel with a
+tunable bandwidth. We suggest an approach for selecting problem-speciﬁc Fourier
+features that greatly improves the performance of MLPs for low-dimensional
+regression tasks relevant to the computer vision and graphics communities.
+1
+Introduction
+A recent line of research in computer vision and graphics replaces traditional discrete representations
+of objects, scene geometry, and appearance (e.g. meshes and voxel grids) with continuous functions
+parameterized by deep fully-connected networks (also called multilayer perceptrons or MLPs). These
+MLPs, which we will call “coordinate-based” MLPs, take low-dimensional coordinates as inputs
+(typically points in R3) and are trained to output a representation of shape, density, and/or color at
+each input location (see Figure 1). This strategy is compelling since coordinate-based MLPs are
+amenable to gradient-based optimization and machine learning, and can be orders of magnitude more
+compact than grid-sampled representations. Coordinate-based MLPs have been used to represent
+images [28, 38] (referred to as “compositional pattern producing networks”), volume density [27],
+occupancy [24], and signed distance [32], and have achieved state-of-the-art results across a variety
+of tasks such as shape representation [9, 10, 12, 13, 17, 26, 32], texture synthesis [15, 31], shape
+inference from images [22, 23], and novel view synthesis [27, 29, 35, 37].
+We leverage recent progress in modeling the behavior of deep networks using kernel regression with
+a neural tangent kernel (NTK) [16] to theoretically and experimentally show that standard MLPs are
+poorly suited for these low-dimensional coordinate-based vision and graphics tasks. In particular,
+MLPs have difﬁculty learning high frequency functions, a phenomenon referred to in the literature as
+“spectral bias” [3, 33]. NTK theory suggests that this is because standard coordinate-based MLPs
+correspond to kernels with a rapid frequency falloff, which effectively prevents them from being able
+to represent the high-frequency content present in natural images and scenes.
+A few recent works [27, 44] have experimentally found that a heuristic sinusoidal mapping of input
+coordinates (called a “positional encoding”) allows MLPs to represent higher frequency content.
+∗Authors contributed equally to this work.
+Preprint. Under review.
+arXiv:2006.10739v1  [cs.CV]  18 Jun 2020
+
+y
+ (v)
+v
+B
+x
+y
+G
+R
+(a) Coordinate-based MLP
+No Fourier features
+γ(v) = v
+With Fourier features
+γ(v) = FF(v)
+(b) Image regression
+(c) 3D shape regression
+(d) MRI reconstruction
+(e) Inverse rendering
+(x,y)→RGB
+(x,y,z)→occupancy
+(x,y,z)→density
+(x,y,z)→RGB, density
+Figure 1: Fourier features improve the results of coordinate-based MLPs for a variety of high-
+frequency low-dimensional regression tasks, both with direct (b, c) and indirect (d, e) supervision.
+We visualize an example MLP (a) for an image regression task (b), where the input to the network is a
+pixel coordinate and the output is that pixel’s color. Passing coordinates directly into the network (top)
+produces blurry images, whereas preprocessing the input with a Fourier feature mapping (bottom)
+enables the MLP to represent higher frequency details.
+We observe that this is a special case of Fourier features [34]: mapping input coordinates v to
+γ(v) =
+
+a1 cos(2πbT
+1 v), a1 sin(2πbT
+1 v), . . . , am cos(2πbT
+mv), am sin(2πbT
+mv)
+T before passing
+them into an MLP. We show that this mapping transforms the NTK into a stationary (shift-invariant)
+kernel and enables tuning the NTK’s spectrum by modifying the frequency vectors bj, thereby
+controlling the range of frequencies that can be learned by the corresponding MLP. We show that the
+simple strategy of setting aj = 1 and randomly sampling bj from an isotropic distribution achieves
+good performance, and that the scale (standard deviation) of this distribution matters much more than
+its speciﬁc shape. We train MLPs with this Fourier feature input mapping across a range of tasks
+relevant to the computer vision and graphics communities. As highlighted in Figure 1, our proposed
+mapping dramatically improves the performance of coordinate-based MLPs. In summary, we make
+the following contributions:
+• We leverage NTK theory and simple experiments to show that a Fourier feature mapping can be
+used to overcome the spectral bias of coordinate-based MLPs towards low frequencies by allowing
+them to learn much higher frequencies (Section 4).
+• We demonstrate that a random Fourier feature mapping with an appropriately chosen scale can
+dramatically improve the performance of coordinate-based MLPs across many low-dimensional
+tasks in computer vision and graphics (Section 5).
+2
+Related Work
+Our work is motivated by the widespread use of coordinate-based MLPs to represent a variety of visual
+signals, including images [38] and 3D scenes [24, 27, 32]. In particular, our analysis is intended
+to clarify experimental results demonstrating that an input mapping of coordinates (which they
+called a “positional encoding”) using sinusoids with logarithmically-spaced axis-aligned frequencies
+improves the performance of coordinate-based MLPs on the tasks of novel view synthesis from 2D
+images [27] and protein structure modeling from cryo-electron microscopy [44]. We analyze this
+technique to show that it corresponds to a modiﬁcation of the MLP’s NTK, and we show that other
+non-axis-aligned frequency distributions can outperform this positional encoding.
+Prior works in natural language processing and time series analysis [18, 39, 42] have used a similar
+positional encoding to represent time or 1D position. In particular, Xu et al. [42] use random Fourier
+features (RFF) [34] to approximate stationary kernels with a sinusoidal input mapping and propose
+techniques to tune the mapping parameters. Our work extends this by directly explaining such
+2
+
+mappings as a modiﬁcation of the resulting network’s NTK. Additionally, we address the embedding
+of multidimensional coordinates, which is necessary for vision and graphics tasks.
+To analyze the effects of applying a Fourier feature mapping to input coordinates before passing
+them through an MLP, we rely on recent theoretical work that models neural networks in the limits of
+inﬁnite width and inﬁnitesimal learning rate as kernel regression using the NTK [2, 5, 11, 16, 20]. In
+particular, we use the analyses from Lee et al. [20] and Arora et al. [2], which show that the outputs
+of a network throughout gradient descent remain close to those of a linear dynamical system whose
+convergence rate is governed by the eigenvalues of the NTK matrix [2, 3, 5, 20, 43]. Analysis of
+the NTK’s eigendecomposition shows that its eigenvalue spectrum decays rapidly as a function of
+frequency, which explains the widely-observed “spectral bias” of deep networks towards learning
+low-frequency functions [3, 4, 33].
+We leverage this analysis to consider the implications of adding a Fourier feature mapping before the
+network, and we show that this mapping has a signiﬁcant effect on the NTK’s eigenvalue spectrum
+and on the corresponding network’s convergence properties in practice.
+3
+Background and Notation
+To lay the foundation for our theoretical analysis, we ﬁrst review classic kernel regression and its
+connection to recent results that analyze the training dynamics and generalization behavior of deep
+fully-connected networks. In later sections, we use these tools to analyze the effects of training
+coordinate-based MLPs with Fourier feature mappings.
+Kernel regression. Kernel regression is a classic nonlinear regression algorithm [40]. Given
+a training dataset (X, y) = {(xi, yi)}n
+i=1, where xi are input points and yi = f(xi) are the
+corresponding scalar output labels, kernel regression constructs an estimate ˆf of the underlying
+function at any point x as:
+ˆf(x) =
+n
+X
+i=1
+ K−1y
+
+i k(xi, x) ,
+(1)
+where K is an n × n kernel (Gram) matrix with entries Kij = k(xi, xj) and k is a symmetric
+positive semideﬁnite (PSD) kernel function which represents the “similarity” between two input
+vectors. Intuitively, the kernel regression estimate at any point x can be thought of as a weighted sum
+of training labels yi using the similarity between the corresponding xi and x.
+Approximating deep networks with kernel regression. Let f be a fully-connected deep network
+with weights θ initialized from a Gaussian distribution N. Theory proposed by Jacot et al. [16] and
+extended by others [2, 3, 20] shows that when the width of the layers in f tends to inﬁnity and the
+learning rate for SGD tends to zero, the function f(x; θ) converges over the course of training to the
+kernel regression solution using the neural tangent kernel (NTK), deﬁned as:
+kNTK(xi, xj) = Eθ∼N
+∂f(xi; θ)
+∂θ
+, ∂f(xj; θ)
+∂θ
+
+.
+(2)
+When the inputs are restricted to a hypersphere, the NTK for an MLP can be written as a dot product
+kernel (a kernel in the form hNTK(xT
+i xj) for a scalar function hNTK : R →R).
+Prior work [2, 3, 16, 20] shows that an NTK linear system model can be used to approximate the
+dynamics of a deep network during training. We consider a network trained with an L2 loss and a
+learning rate η, where the network’s weights are initialized such that the output of the network at
+initialization is close to zero. Under asymptotic conditions stated in Lee et al. [20], the network’s
+output for any data Xtest after t training iterations can be approximated as:
+ˆy(t) ≈KtestK−1  I −e−ηKt
+y ,
+(3)
+where ˆy(t) = f(Xtest; θ) are the network’s predictions on input points Xtest at training iteration t,
+K is the NTK matrix between all pairs of training points in X, and Ktest is the NTK matrix between
+all points in Xtest and all points in the training dataset X.
+Spectral bias when training neural networks. Let us consider the training error ˆy(t)
+train −y, where
+ˆy(t)
+train are the network’s predictions on the training dataset at iteration t. Since the NTK matrix K
+3
+
+must be PSD, we can take its eigendecomposition K = QΛQT, where Q is orthogonal and Λ is a
+diagonal matrix whose entries are the eigenvalues λi ≥0 of K. Then, since e−ηKt = Qe−ηΛtQT:
+QT(ˆy(t)
+train −y) ≈QT   I −e−ηKt
+y −y
+
+= −e−ηΛtQTy .
+(4)
+This means that if we consider training convergence in the eigenbasis of the NTK, the ith component
+of the absolute error |QT(ˆy(t)
+train −y)|i will decay approximately exponentially at the rate ηλi. In
+other words, components of the target function that correspond to kernel eigenvectors with larger
+eigenvalues will be learned faster. For a conventional MLP, the eigenvalues of the NTK decay rapidly
+[4, 5, 14]. This results in extremely slow convergence to the high frequency components of the target
+function, to the point where standard MLPs are effectively unable to learn these components, as
+visualized in Figure 1. Next, we describe a technique to address this slow convergence by using a
+Fourier feature mapping of input coordinates before passing them to the MLP.
+4
+Fourier Features for a Tunable Stationary Neural Tangent Kernel
+Machine learning analysis typically addresses the case in which inputs are high dimensional points
+(e.g. the pixels of an image reshaped into a vector) and training examples are sparsely distributed. In
+contrast, in this work we consider low-dimensional regression tasks, wherein inputs are assumed to
+be dense coordinates in a subset of Rd for small values of d (e.g. pixel coordinates). This setting has
+two signiﬁcant implications when viewing deep networks through the lens of kernel regression:
+1. We would like the composed NTK to be shift-invariant over the input domain, since the training
+points are distributed with uniform density. In problems where the inputs are normalized to
+the surface of a hypersphere (common in machine learning), a dot product kernel (such as the
+regular NTK) corresponds to spherical convolution. However, inputs in our setting are dense
+in Euclidean space. A Fourier feature mapping of input coordinates makes the composed NTK
+stationary (shift-invariant), acting as a convolution kernel over the input domain (see Appendix C
+for additional discussion on stationary kernels).
+2. We would like to control the bandwidth of the NTK to improve training speed and generalization.
+As we see from Eqn. 4, a “wider” kernel with a slower spectral falloff achieves faster training
+convergence for high frequency components. However, we know from signal processing that
+reconstructing a signal using a kernel whose spectrum is too wide causes high frequency aliasing
+artifacts. We show in Section 5 that a Fourier feature input mapping can be tuned to lie between
+these “underﬁtting’ and “overﬁtting” extremes, enabling both fast convergence and low test error.
+Fourier features and the composed neural tangent kernel. Fourier feature mappings have been
+used in many applications since their introduction in the seminal work of Rahimi and Recht [34],
+which used random Fourier features to approximate an arbitrary stationary kernel function by applying
+Bochner’s theorem. Extending this technique, we use a Fourier feature mapping γ to featurize input
+coordinates before passing them through a coordinate-based MLP, and investigate the theoretical and
+practical effect this has on convergence speed and generalization. The function γ maps input points
+v ∈[0, 1)d to the surface of a higher dimensional hypersphere with a set of sinusoids:
+γ(v) =
+
+a1 cos(2πbT
+1 v), a1 sin(2πbT
+1 v), . . . , am cos(2πbT
+mv), am sin(2πbT
+mv)
+T .
+(5)
+Because cos(α −β) = cos α cos β + sin α sin β, the kernel function induced by this mapping is:
+kγ(v1, v2) = γ(v1)Tγ(v2) =
+m
+X
+j=1
+a2
+j cos
+ 2πbT
+j (v1 −v2)
+
+= hγ(v1 −v2) ,
+(6)
+where hγ(v∆) ≜
+m
+X
+j=1
+a2
+j cos(2πbT
+j v∆) .
+(7)
+Note that this kernel is stationary (a function of only the difference between points). We can think of
+the mapping as a Fourier approximation of a kernel function: bj are the Fourier basis frequencies
+used to approximate the kernel, and a2
+j are the corresponding Fourier series coefﬁcients.
+After computing the Fourier features for our input points, we pass them through an MLP to get
+f(γ(v); θ). As discussed previously, the result of training a network can be approximated by kernel
+4
+
+−0.5
+0.5
+−0.5
+0.5
+(a) No mapping NTK
+−0.5
+0.5
+−0.5
+0.5
+(b) Basic mapping NTK
+−0.5
+−0.25
+0
+0.25
+0.5
+5
+10
+(c) NTK spatial
+−π
+−π/2
+0
+π/2
+π
+100
+101
+102
+(d) NTK Fourier spectrum
+p = 0
+p = 0.5
+p = 1
+p = 1.5
+p = 2
+p = ∞
+Figure 2: Adding a Fourier feature mapping can improve the poor conditioning of a coordinate-based
+MLP’s neural tangent kernel (NTK). (a) We visualize the NTK function kNTK(xi, xj) (Eqn. 2) for
+a 4-layer ReLU MLP with one scalar input. This kernel is not shift-invariant and does not have a
+strong diagonal, making it poorly suited for kernel regression in low-dimensional problems. (b)
+A basic input mapping γ(v) = [cos 2πv, sin 2πv]T makes the composed NTK kNTK(γ(vi), γ(vj))
+shift-invariant (stationary). (c) A Fourier feature input mapping (Eqn. 5) can be used to tune the
+composed kernel’s width, where we set aj = 1/jp and bj = j for j = 1, . . . , n/2. (d) Higher
+frequency mappings (lower p) result in composed kernels with wider spectra, which enables faster
+convergence for high-frequency components (see Figure 3).
+regression using the kernel hNTK(xT
+i xj). In our case, xi = γ(vi) so the composed kernel becomes:
+hNTK(xT
+i xj) = hNTK
+
+γ (vi)T γ (vj)
+
+= hNTK (hγ (vi −vj)) .
+(8)
+Thus, training a network on these embedded input points corresponds to kernel regression with the
+stationary composed NTK function hNTK ◦hγ . The MLP function approximates a convolution of
+the composed NTK with a weighted Dirac delta at each input training point vi:
+ˆf = (hNTK ◦hγ) ∗
+n
+X
+i=1
+wiδvi
+(9)
+where w = K−1y (from Eqn. 1). This allows us to draw analogies to signal processing, where
+the composed NTK acts similarly to a reconstruction ﬁlter. In the next section, we show that the
+frequency decay of the composed NTK determines the behavior of the reconstructed signal.
+5
+Manipulating the Fourier Feature Mapping
+Preprocessing the inputs to a coordinate-based MLP with a Fourier feature mapping creates a
+composed NTK that is not only stationary but also tunable. By manipulating the settings of the aj
+and bj parameters in Eqn. 5, it is possible to dramatically change both the rate of convergence and
+the generalization behavior of the resulting network. In this section, we investigate the effects of the
+Fourier feature mapping in the setting of 1D function regression.
+We train MLPs to learn signals f deﬁned on the interval [0, 1). We sample cn linearly spaced points
+on the interval, using every cth point as the training set and the remaining points as the test set. Since
+our composed kernel function is stationary, evaluating it at linearly spaced points on a periodic
+domain makes the resulting kernel matrix circulant: it represents a convolution and is diagonalizable
+by the Fourier transform. Thus, we can compute the eigenvalues of the composed NTK matrix by
+simply taking the Fourier transform of a single row. All experiments are implemented in JAX [8] and
+the NTK functions are calculated automatically using the Neural Tangents library [30].
+Visualizing the composed NTK. We ﬁrst visualize how modifying the Fourier feature mapping
+changes the composed NTK. We set bj = j (full Fourier basis in 1D) and aj = 1/jp for j =
+1, . . . , n/2. We use p = ∞to denote the mapping γ(v) = [cos 2πv, sin 2πv]T that simply wraps
+[0, 1) around the unit circle (this is referred to as the “basic” mapping in later experiments). Figure 2
+demonstrates the effect of varying p on the composed NTK. By construction, lower p values result in
+a slower falloff in the frequency domain and a correspondingly narrower kernel in the spatial domain.
+Effects of Fourier features on network convergence. We generate ground truth 1D functions by
+sampling cn values from a family with parameter α as follows: we sample a standard i.i.d. Gaussian
+vector of length cn, scale its ith entry by 1/iα, then return the real component of its inverse Fourier
+transform. We will refer to this as a “1/f α noise” signal.
+5
+
+x
+y
+(a) Final learned functions
+p = 0
+p = 1
+p = ∞
+No mapping
+Target signal
+Training points
+0
+50000
+Iteration
+10-5
+10-4
+10-3
+10-2
+10-1
+Mean squared error
+(d) Train loss
+Theory
+Observed
+0
+50000
+Iteration
+10-2
+10-1
+Mean squared error
+(b) Test loss
+0
+50000
+Iteration
+10-2
+10-1
+100
+Absolute Error
+Low
+0
+50000
+Iteration
+10-1
+100
+Mid
+(c) Train loss frequency components
+0
+50000
+Iteration
+10-1
+100
+High
+Figure 3: Combining a network with a Fourier feature mapping has dramatic effects on convergence
+and generalization. Here we train a network on 32 sampled points from a 1D function (a) using
+mappings shown in Fig. 2. A mapping with a smaller p value yields a composed NTK with more
+power in higher frequencies, enabling the corresponding network to learn a higher frequency function.
+The theoretical and experimental training loss improves monotonically with higher frequency kernels
+(d), but the test-set loss is lowest at p = 1 and falls as the network starts to overﬁt (b). As predicted
+by Eqn. 4, we see roughly log-linear convergence of the training loss frequency components (c).
+Higher frequency kernels result in faster convergence for high frequency loss components, thereby
+overcoming the “spectral bias” observed when training networks with no input mapping.
+In Figure 3, we train MLPs (4 layers, 1024 channels, ReLU activations) to ﬁt a bandlimited 1/f 1
+noise signal (c = 8, n = 32) using Fourier feature mappings with different p values. Figures 3b
+and 3d show that the NTK linear dynamics model accurately predict the effects of modifying the
+Fourier feature mapping parameters. Separating different frequency components of the training error
+in Figure 3c reveals that networks with narrower NTK spectra converge faster for low frequency
+components but essentially never converge for high frequency components, whereas networks with
+wider NTK spectra successfully converge across all components. The Fourier feature mapping p = 1
+has adequate power across frequencies present in the target signal (so the network converges rapidly
+during training) but limited power in higher frequencies (preventing overﬁtting or aliasing).
+Tuning Fourier features in practice. Eqn. 3 allows us to estimate a trained network’s theoretical
+loss on a validation set using the composed kernel. For small 1D problems, we can minimize this
+loss with gradient-based optimization to choose mapping parameters aj (given a dense sampling
+of bj). In this carefully controlled setting (1D signals, small training dataset, gradient descent with
+small learning rate, very wide networks), we ﬁnd that this optimized mapping also achieves the best
+performance when training networks. Please refer to Appendix A.1 for details and experiments.
+In real-world problems, especially in multiple dimensions, it is not feasible to use a feature mapping
+that densely samples Fourier basis functions; the number of Fourier basis functions scales with the
+number of training data points, which grows exponentially with dimension. Instead, we sample a
+set of random Fourier features [34] from a parametric distribution. We ﬁnd that the exact sampling
+distribution family is much less important than the distribution’s scale (standard deviation).
+Figure 4 demonstrates this point using hyperparameter sweeps for a variety of sampling distributions.
+In each subﬁgure, we draw 1D target signals (c = 2, n = 1024) from a ﬁxed 1/f α distribution and
+train networks to learn them. We use random Fourier feature mappings (of length 16) sampled from
+different distribution families (Gaussian, uniform, uniform in log space, and Laplacian) and sweep
+over each distribution’s scale. Perhaps surprisingly, the standard deviation of the sampled frequencies
+alone is enough to predict test set performance, regardless of the underlying distribution’s shape. We
+show that this holds for higher-dimensional tasks in Appendix A.4. We also observe that passing this
+sparse sampling of Fourier features through an MLP matches the performance of using a dense set
+of Fourier features with the same MLP, suggesting a strategy for scaling to higher dimensions. We
+6
+
+21
+24
+27
+210
+Standard deviation of sampled bi
+10-2
+Mean squared error
+Underfitting
+Overfitting
+(a) Data sampled from 1/f 0.5
+21
+24
+27
+210
+Standard deviation of sampled bi
+10-4
+10-3
+10-2
+Underfitting
+Overfitting
+(b) Data sampled from 1/f 1.0
+21
+24
+27
+210
+Standard deviation of sampled bi
+10-6
+10-5
+10-4
+10-3
+10-2
+Underfitting
+Overfitting
+(c) Data sampled from 1/f 1.5
+Gaussian
+Uniform
+Uniform log
+Laplacian
+Dense
+Figure 4: We ﬁnd that a sparse random sampling of Fourier features can perform as well as a dense
+set of features and that the width of the distribution matters more than the shape. Here, we generate
+random 1D signals from 1/f α noise and report the test-set accuracy of different trained models that
+use a sparse set (16 out of 1024) of random Fourier features sampled from different distributions.
+Each subplot represents a different family of 1D signals. Each dot represents a trained network,
+where the color indicates which Fourier feature sampling distribution is used. We plot the test error
+of each model versus the empirical standard deviation of its sampled frequencies. The best models
+using sparsely sampled features are able to match the performance of a model trained with dense
+Fourier features (dashed lines with error bars). All sampling distributions trace out the same curve,
+exhibiting underﬁtting (slow convergence) when the standard deviation of sampled frequencies is too
+low and overﬁtting when it is too high. This implies that the precise shape of the distribution used to
+sample frequencies does not have a signiﬁcant impact on performance.
+proceed with a Gaussian distribution for our higher-dimensional experiments in Section 6 and treat
+the scale as a hyperparameter to tune on a validation dataset.
+6
+Experiments
+We validate the beneﬁts of using Fourier feature mappings for coordinate-based MLPs with experi-
+ments on a variety of regression tasks relevant to the computer vision and graphics communities.
+6.1
+Compared mappings
+In Table 1, we compare the performance of coordinate-based MLPs with no input mapping and with
+the following Fourier feature mappings (cos, sin are applied elementwise):
+Basic: γ(v) = [cos(2πvv), sin(2πv)]T. Simply wraps input coordinates around the circle.
+Positional encoding: γ(v) =
+
+. . . , cos(2πσj/mv), sin(2πσj/mv), . . .
+T for j = 0, . . . , m −1.
+Uses log-linear spaced frequencies for each dimension, where the scale σ is chosen for each task and
+dataset by a hyperparameter sweep. This is a generalization of the “positional encoding” used by
+prior work [27, 39, 44]. Note that this mapping is deterministic and only contains on-axis frequencies,
+making it naturally biased towards data that has more frequency content along the axes.
+Gaussian: γ(v) = [cos(2πBv), sin(2πBv)]T, where each entry in B ∈Rm×d is sampled from
+N(0, σ2), and σ is chosen for each task and dataset with a hyperparameter sweep. In the absence of
+any strong prior on the frequency spectrum of the signal, we use an isotropic Gaussian distribution.
+Our experiments show that all of the Fourier feature mappings improve the performance of coordinate-
+based MLPs over using no mapping and that the Gaussian RFF mapping performs best.
+6.2
+Tasks
+We conduct experiments with direct regression, where supervision labels are in the same space as
+the network outputs, as well as indirect regression, where the network outputs are passed through
+a forward model to produce observations in the same space as the supervision labels (Appendix D
+contains a theoretical analysis of indirect regression through a linear forward model). For each task
+and dataset, we tune Fourier feature scales on a held-out set of signals. For each target signal, we train
+an MLP on a training subset of the signal and compute error over the remaining test subset. All tasks
+7
+
+Direct supervision
+Indirect supervision
+2D image
+3D shape [24]
+2D CT
+3D MRI
+3D NeRF [27]
+Natural
+Text
+Shepp
+ATLAS
+ATLAS
+No mapping
+19.32
+18.40
+0.864
+16.75
+15.44
+26.14
+22.41
+Basic
+21.71
+20.48
+0.892
+23.31
+16.95
+28.58
+23.16
+Positional enc.
+24.95
+27.57
+0.960
+26.89
+19.55
+32.23
+25.28
+Gaussian
+25.57
+30.47
+0.973
+28.33
+19.88
+34.51
+25.48
+Table 1: We compare four different input mappings on a variety of low-dimensional regression tasks.
+All results are reported in PSNR except 3D shape, which uses IoU (higher is better for all). No
+mapping represents using a standard MLP with no feature mapping. Basic, Positional encoding, and
+Gaussian are different variants of Fourier feature maps. For the Direct supervision tasks, the network
+is supervised using ground truth labels for each input coordinate. For the Indirect supervision tasks,
+the network outputs are passed through a forward model before the loss is applied (integral projection
+for CT, the Fourier transform for MRI, and nonlinear volume rendering for NeRF). Fourier feature
+mappings improve results across all tasks, with random Gaussian features performing best.
+(except 3D shape regression) use L2 loss and a ReLU MLP with 4 layers and 256 channels. The 3D
+shape regression task uses cross-entropy loss and a ReLU MLP with 8 layers and 256 channels. We
+apply a sigmoid activation to the output for each task (except the view synthesis density prediction).
+We use 256 frequencies for the feature mapping in all experiments (see Appendix A.2 for experiments
+that investigate the effects of network depth and feature mapping sparsity). Appendix E provides
+additional details on each task and our implementations, and Appendix F shows more result ﬁgures.
+2D image regression. In this task, we train an MLP to regress from a 2D input pixel coordinate to the
+corresponding RGB value of an image. For each test image, we train an MLP on a regularly-spaced
+grid containing 1/4 of the pixels and report test error on the remaining pixels. We compare input
+mappings over a dataset of natural images and a dataset of text images.
+3D shape regression. Occupancy Networks [24] implicitly represent a 3D shape as the “decision
+boundary” of an MLP, which is trained to output 0 for points outside the shape and 1 for points inside
+the shape. Each batch of training data is generated by sampling points uniformly at random from
+the bounding box of the shape and calculating their labels using the ground truth mesh. Test error is
+calculated using intersection-over-union versus ground truth on a set of points randomly sampled
+near the mesh surface to better highlight the different mappings’ abilities to resolve ﬁne details.
+2D computed tomography (CT). In CT, we observe integral projections of a density ﬁeld instead of
+direct measurements. In our 2D CT experiments, we train an MLP that takes in a 2D pixel coordinate
+and predicts the corresponding volume density at that location. The network is indirectly supervised
+by the loss between a sparse set of ground-truth integral projections and integral projections computed
+from the network’s output. We conduct experiments using two datasets: procedurally-generated
+Shepp-Logan phantoms [36] and 2D brain images from the ATLAS dataset [21].
+3D magnetic resonance imaging (MRI). In MRI, we observe Fourier transform coefﬁcients of
+atomic response to radio waves under a magnetic ﬁeld. In our 3D MRI experiments, we train an MLP
+that takes in a 3D voxel coordinate and predicts the corresponding response at that location. The
+network is indirectly supervised by the loss between a sparse set of ground-truth Fourier transform
+coefﬁcients and Fourier transform coefﬁcients computed from discretely querying the MLP on a
+voxel grid. We conduct experiments using the ATLAS dataset [21].
+3D inverse rendering for view synthesis. In view synthesis, we observe 2D photographs of a 3D
+scene, reconstruct a representation of that scene, then render images from new viewpoints. To perform
+this task, we train a coordinate-based MLP that takes in a 3D location and outputs a color and volume
+density. This MLP is indirectly supervised by the loss between the set of 2D image observations and
+the same viewpoints re-rendered from the predicted scene representation. We use a simpliﬁed version
+of the method described in NeRF [27], where we remove hierarchical sampling and view dependence
+and replace the original positional encoding with our compared input mappings.
+8
+
+7
+Conclusion
+We leverage NTK theory to show that a Fourier feature mapping can make coordinate-based MLPs
+better suited for modeling functions in low dimensions, thereby overcoming the spectral bias inherent
+in coordinate-based MLPs. We experimentally show that tuning the Fourier feature parameters offers
+control over the frequency falloff of the combined NTK and signiﬁcantly improves performance
+across a range of graphics and imaging tasks. These ﬁndings shed light on the burgeoning technique
+of using coordinate-based MLPs to represent 3D shapes in computer vision and graphics pipelines,
+and provide a simple strategy for practitioners to improve results in these domains.
+Acknowledgements
+We thank Ben Recht for advice, and Cecilia Zhang and Tim Brooks for their comments on the text.
+BM is funded by a Hertz Foundation Fellowship and acknowledges support from the Google BAIR
+Commons program. MT, PS and SFK are funded by NSF Graduate Fellowships. RR was supported
+in part by ONR grants N000141712687 and N000142012529 and the Ronald L. Graham Chair. RN
+was supported in part by an FHL Vive Center Seed Grant. Google University Relations provided a
+generous donation of compute credits.
+References
+[1] Eirikur Agustsson and Radu Timofte. NTIRE 2017 challenge on single image super-resolution:
+Dataset and study. CVPR Workshops, 2017.
+[2] Sanjeev Arora, Simon Du, Wei Hu, Zhiyuan Li, and Ruosong Wang. Fine-grained analysis of
+optimization and generalization for overparameterized two-layer neural networks. ICML, 2019.
+[3] Ronen Basri, Meirav Galun, Amnon Geifman, David Jacobs, Yoni Kasten, and Shira Kritch-
+man. Frequency bias in neural networks for input of non-uniform density. arXiv preprint
+arXiv:2003.04560, 2020.
+[4] Ronen Basri, David Jacobs, Yoni Kasten, and Shira Kritchman. The convergence rate of neural
+networks for learned functions of different frequencies. NeurIPS, 2019.
+[5] Alberto Bietti and Julien Mairal. On the inductive bias of neural tangent kernels. NeurIPS,
+2019.
+[6] Blake Bordelon, Abdulkadir Canatar, and Cengiz Pehlevan. Spectrum dependent learning
+curves in kernel regression and wide neural networks. arXiv preprint arXiv:2002.02561, 2020.
+[7] R. N. Bracewell. Strip integration in radio astronomy. Australian Journal of Physics, 1956.
+[8] James Bradbury, Roy Frostig, Peter Hawkins, Matthew James Johnson, Chris Leary, Dougal
+Maclaurin, and Skye Wanderman-Milne. JAX: composable transformations of Python+NumPy
+programs, 2018. http://github.com/google/jax.
+[9] Zhiqin Chen and Hao Zhang. Learning implicit ﬁelds for generative shape modeling. CVPR,
+2019.
+[10] Boyang Deng, JP Lewis, Timothy Jeruzalski, Gerard Pons-Moll, Geoffrey Hinton, Mohammad
+Norouzi, and Andrea Tagliasacchi. Neural articulated shape approximation. arXiv preprint
+arXiv:1912.03207, 2019.
+[11] Simon S. Du, Xiyu Zhai, Barnabas Poczos, and Aarti Singh. Gradient descent provably
+optimizes over-parameterized neural networks. ICLR, 2019.
+[12] Kyle Genova, Forrester Cole, Aaron Sarna Daniel Vlasic, William T. Freeman, and Thomas
+Funkhouser. Learning shape templates with structured implicit functions. ICCV, 2019.
+[13] Kyle Genova, Forrester Cole, Avneesh Sud, Aaron Sarna, and Thomas Funkhouser. Local deep
+implicit functions for 3D shape. CVPR, 2020.
+[14] Reinhard Heckel and Mahdi Soltanolkotabi. Compressive sensing with un-trained neural net-
+works: Gradient descent ﬁnds the smoothest approximation. arXiv preprint arXiv:2005.03991,
+2020.
+9
+
+[15] Philipp Henzler, Niloy J Mitra, and Tobias Ritschel. Learning a neural 3d texture space from 2d
+exemplars. CVPR, 2020.
+[16] Arthur Jacot, Franck Gabriel, and Clément Hongler. Neural Tangent Kernel: Convergence and
+generalization in neural networks. NeurIPS, 2018.
+[17] Chiyu Jiang, Avneesh Sud, Ameesh Makadia, Jingwei Huang, Matthias Nießner, and Thomas
+Funkhouser. Local implicit grid representations for 3D scenes. CVPR, 2020.
+[18] Seyed Mehran Kazemi, Rishab Goel, Sepehr Eghbali, Janahan Ramanan, Jaspreet Sahota,
+Sanjay Thakur, Stella Wu, Cathal Smyth, Pascal Poupart, and Marcus Brubaker. Time2vec:
+Learning a vector representation of time. arXiv preprint arXiv:1907.05321, 2019.
+[19] Diederik P. Kingma and Jimmy Ba. Adam: A method for stochastic optimization. ICLR, 2015.
+[20] Jaehoon Lee, Lechao Xiao, Samuel Schoenholz, Yasaman Bahri, Roman Novak, Jascha Sohl-
+Dickstein, and Jeffrey Pennington. Wide neural networks of any depth evolve as linear models
+under gradient descent. NeurIPS, 2019.
+[21] Sook-Lei Liew, Julia M. Anglin, Nick W. Banks, Matt Sondag, Kaori L. Ito, Kim, et al. A
+large, open source dataset of stroke anatomical brain images and manual lesion segmentations.
+Scientiﬁc Data, 2018.
+[22] Shaohui Liu, Yinda Zhang, Songyou Peng, Boxin Shi, Marc Pollefeys, and Zhaopeng Cui. Dist:
+Rendering deep implicit signed distance function with differentiable sphere tracing. CVPR,
+2020.
+[23] Shichen Liu, Shunsuke Saito, Weikai Chen, and Hao Li. Learning to infer implicit surfaces
+without 3D supervision. NeurIPS, 2019.
+[24] Lars Mescheder, Michael Oechsle, Michael Niemeyer, Sebastian Nowozin, and Andreas Geiger.
+Occupancy networks: Learning 3D reconstruction in function space. CVPR, 2019.
+[25] Michael Dawson-Haggerty et al. trimesh, 2019. https://trimsh.org/.
+[26] Mateusz Michalkiewicz, Jhony K Pontes, Dominic Jack, Mahsa Baktashmotlagh, and Anders
+Eriksson. Implicit surface representations as layers in neural networks. ICCV, 2019.
+[27] Ben Mildenhall, Pratul P Srinivasan, Matthew Tancik, Jonathan T. Barron, Ravi Ramamoorthi,
+and Ren Ng. NeRF: Representing scenes as neural radiance ﬁelds for view synthesis. arXiv
+preprint arXiv:2003.08934, 2020.
+[28] Anh Nguyen, Jason Yosinski, and Jeff Clune. Deep neural networks are easily fooled: High
+conﬁdence predictions for unrecognizable images. CVPR, 2015.
+[29] Michael Niemeyer, Lars Mescheder, Michael Oechsle, and Andreas Geiger. Differentiable
+volumetric rendering: Learning implicit 3D representations without 3D supervision. CVPR,
+2020.
+[30] Roman Novak, Lechao Xiao, Jiri Hron, Jaehoon Lee, Alexander A. Alemi, Jascha Sohl-
+Dickstein, and Samuel S. Schoenholz. Neural tangents: Fast and easy inﬁnite neural networks
+in Python. ICLR, 2020.
+[31] Michael Oechsle, Lars Mescheder, Michael Niemeyer, Thilo Strauss, and Andreas Geiger.
+Texture ﬁelds: Learning texture representations in function space. ICCV, 2019.
+[32] Jeong Joon Park, Peter Florence, Julian Straub, Richard Newcombe, and Steven Lovegrove.
+DeepSDF: Learning continuous signed distance functions for shape representation. CVPR,
+2019.
+[33] Nasim Rahaman, Aristide Baratin, Devansh Arpit, Felix Draxler, Min Lin, Fred A. Hamprecht,
+Yoshua Bengio, and Aaron Courville. On the spectral bias of neural networks. ICML, 2019.
+[34] Ali Rahimi and Benjamin Recht. Random features for large-scale kernel machines. NeurIPS,
+2007.
+[35] Shunsuke Saito, , Zeng Huang, Ryota Natsume, Shigeo Morishima, Angjoo Kanazawa, and
+Hao Li. PIFu: Pixel-aligned implicit function for high-resolution clothed human digitization.
+ICCV, 2019.
+[36] Lawrence A. Shepp and Benjamin F. Logan. The Fourier reconstruction of a head section. IEEE
+Transactions on nuclear science, 1974.
+10
+
+[37] Vincent Sitzmann, Michael Zollhoefer, and Gordon Wetzstein. Scene representation networks:
+Continuous 3D-structure-aware neural scene representations. NeurIPS, 2019.
+[38] Kenneth O. Stanley.
+Compositional pattern producing networks: A novel abstraction of
+development. Genetic Programming and Evolvable Machines, 2007.
+[39] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez,
+Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. NeurIPS, 2017.
+[40] Martin J. Wainwright. Reproducing Kernel Hilbert Spaces, page 383–415. Cambridge Series in
+Statistical and Probabilistic Mathematics. Cambridge University Press, 2019.
+[41] Ingo Wald, Sven Woop, Carsten Benthin, Gregory S Johnson, and Manfred Ernst. Embree: a
+kernel framework for efﬁcient CPU ray tracing. ACM Transactions on Graphics (TOG), 2014.
+[42] Da Xu, Chuanwei Ruan, Evren Korpeoglu, Sushant Kumar, and Kannan Achan. Self-attention
+with functional time representation learning. NeurIPS, 2019.
+[43] Greg Yang and Hadi Salman. A ﬁne-grained spectral perspective on neural networks. arXiv
+preprint arXiv:1907.10599, 2019.
+[44] Ellen D. Zhong, Tristan Bepler, Joseph H. Davis, and Bonnie Berger. Reconstructing continuous
+distributions of 3D protein structure from cryo-EM images. ICLR, 2020.
+11
+
+A
+Further experiments
+A.1
+Optimizing validation error through the NTK linear dynamics
+Using Eqn. 3 in the main paper, we can predict what error a trained network will achieve on a set of
+testing points. Since this equation depends on the composed NTK, we can directly relate predicted
+test set loss to the Fourier feature mapping parameters a and b for a validation set of signals yval:
+Lopt =
+u(t) −yval
+
+2
+2 ≈
+KvalK−1  I −e−ηKt
+y −yval
+
+2
+2 ,
+(10)
+where Kval is the composed NTK evaluated between points in a validation dataset Xval and training
+dataset X, and η and t are the learning rate and number of iterations that will be used when training
+the actual network.
+In Figure 5, we show the results of minimizing Eqn. 10 by gradient descent on aj values (with ﬁxed
+corresponding “densely sampled” bj = j) for validation sets sampled from three different 1/f α
+noise families. Note that gradient descent on this theoretical loss approximation produces aj values
+which are able to perform as well as the best “power law” aj values for each respective signal class
+(compared dashed lines versus × markers in Figure 5b). As mentioned in the main text, we ﬁnd that
+this optimization strategy is only viable for small 1D regression problems. In our multidimensional
+tasks, using densely sampled bj values is not tractable due to memory constraints. In addition, the
+theoretical approximation only holds when training the network using SGD, and in practice we train
+using the Adam optimizer [19].
+−π
+−π/2
+0
+π/2
+π
+Frequency
+10-1
+100
+101
+102
+Magnitude
+(a) NTK Fourier spectrum
+Power ∞
+Opt. for α = 1.0
+Opt. for α = 1.5
+Opt. for α = 2.0
+0.0
+0.5
+1.0
+1.5
+2.0
+∞
+Fourier features power distribution
+10-5
+10-4
+10-3
+Mean squared error
+α = 1.0
+α = 1.5
+Signal α = 2.0
+(b) Fourier features mapping performances
+Power
+Best Power
+Opt. for α
+Figure 5: The Fourier feature mappings can be optimized for better performance on a class of target
+signals by using the linearized network approximation. Here we consider target signals sampled
+from three different power law distributions. In (a) we show the spectrum for composed kernels
+corresponding to different optimized feature mappings, where the feature mappings are initialized
+to match the “Power ∞” distribution. In (b) we take an alternative approach where we sweep over
+"power law" settings for our Fourier features. We ﬁnd that tuning this simple parameterization is able
+to perform on par with the optimized feature maps.
+A.2
+Feature sparsity and network depth
+In our experiments, we observe that deeper networks need fewer Fourier features than shallow
+networks. As the depth of the MLP increases, we observe that a sparser set of frequencies can achieve
+similar performance; Figure 6 illustrates this effect in the context of 2D image regression.
+Again drawing on NTK theory, we understand this tradeoff as an effect of frequency “spreading,” as
+illustrated in Figure 7. A Fourier featurization consists of only discrete frequencies, but when com-
+posed with the NTK, the inﬂuence of each discrete frequency “spreads” over its local neighborhood
+in the ﬁnal spectrum. We ﬁnd that the “spread” around each frequency feature increases for deeper
+networks. For an MLP to learn all of the frequency components in the target signal, its corresponding
+composed NTK must contain adequate power across the frequency support of the target signal. This
+is accomplished either by including more frequencies in the Fourier features or by spreading those
+frequencies through sufﬁcient NTK depth.
+12
+
+24
+26
+28
+210
+Embedding length
+15
+20
+25
+30
+PSNR
+2 layers
+4 layers
+8 layers
+Figure 6: In a 2D image regression task (ex-
+plained in Section E.1) we ﬁnd that shallower net-
+works require more Fourier features than deeper
+networks. This is explained by the frequency
+spreading effect shown in Figure 7. In this ex-
+periment we use the Natural image dataset and
+a Gaussian mapping. All of the network layers
+have 256 channels, and the networks are trained
+using an Adam [19] optimizer with a learning
+rate of 10−3.
+−π
+−π/2
+0
+π/2
+π
+Frequency
+10-2
+10-1
+100
+101
+Magnitude
+(a) NTK Fourier spectrum with basic mapping
+Depth: 4
+Depth: 8
+Depth: 16
+−π
+−π/2
+0
+π/2
+π
+Frequency
+10-2
+10-1
+100
+101
+Magnitude
+(b) NTK Fourier spectrum with basic mapping and an additional frequency
+Depth: 4
+Depth: 8
+Depth: 16
+Figure 7: Each frequency included in a Fourier embedding is “spread” by the NTK, with deeper
+NTKs causing more frequency spreading. We posit that this frequency spreading is what enables an
+MLP with a sparse set of Fourier features to faithfully reconstruct a complex signal, which would be
+poorly reconstructed by either sparse Fourier feature regression or a plain coordinate-based MLP.
+A.3
+Gradient descent does not optimize Fourier features
+One may wonder if the Fourier feature mapping parameters aj and bj can be optimized alongside
+network weights using gradient descent, which may circumvent the need for careful initialization.
+We performed an experiment in which the aj, bj values are treated as trainable variables (along with
+the weights of the network) and optimize all variables with Adam to minimize training loss. Figure 8
+shows that jointly optimizing these parameters does not improve performance compared to leaving
+them ﬁxed.
+0
+500
+1000
+1500
+2000
+Iteration
+15
+20
+25
+30
+35
+40
+PSNR
+(a) Train
+0
+500
+1000
+1500
+2000
+Iteration
+20.0
+20.5
+21.0
+21.5
+22.0
+22.5
+23.0
+23.5
+(b) Test
+σg = 4
+σg = 12
+σg = 36
+Optimizing aj, bj
+Not optimizing aj, bj
+Figure 8: “Training” the Fourier feature mapping parameters aj and bj along with the network
+weights using Adam does not improve performance, as the bj values do not deviate signiﬁcantly
+from their initial values. We show that this holds when bj are initialized at three different scales of
+Gaussian Fourier features in the case of the 2D image task (aj are always initialized as 1).
+13
+
+A.4
+Visualizing underﬁtting and overﬁtting in 2D
+Figure 4 in the main text shows (in a 1D setting) that as the scale of the Fourier feature sampling
+distribution increases, the trained network’s error traces out a curve that starts in an underﬁtting regime
+(only low frequencies are learned) and ends in an overﬁtting regime (the learned function includes
+high-frequency detail not present in the training data). In Figure 9, we show analogous behavior for
+2D image regression, demonstrating that the same phenomenon holds in a multidimensional problem.
+In Figure 10, we show how changing the scale for Gaussian Fourier features qualitatively affects the
+ﬁnal result in the 2D image regression task.
+21
+23
+25
+27
+Standard deviation of sampled bi
+14
+16
+18
+20
+22
+24
+PSNR
+Gaussian
+Uniform
+Uniform log
+Laplacian
+(a) Test error for 2D image task
+21
+23
+25
+27
+Standard deviation of sampled bi
+20
+30
+40
+PSNR
+Gaussian
+Uniform
+Uniform log
+Laplacian
+Test
+Train
+(b) Train and test error for 2D image task
+Figure 9: An alternate version of Figure 4 from the main text where the underlying signal is a 2D
+image (see 2D image task details in Section E.1) instead of 1D signal. This multi-dimensional case
+exhibits the same behavior as was seen in the 1D case: we see the same underﬁtting/overﬁtting pattern
+for four different isotropic Fourier feature distributions, and the distribution shape matters less than
+the scale of sampled bi values.
+σ = 1
+σ = 2
+σ = 10
+σ = 32
+σ = 64
+Figure 10: A visualization of the 2D image regression task with different Gaussian scales (correspond-
+ing to points along the curve shown in Figure 9). Low values of σ underﬁt, resulting in oversmoothed
+interpolation, and large values of σ overﬁt, resulting in noisy interpolation. We ﬁnd that σ = 10
+performs best for our Natural image dataset.
+A.5
+Failures of positional encoding (axis-aligned bias)
+Here we present a simple experiment to directly showcase the beneﬁts of using an isotropic frequency
+distribution, such as Gaussian RFF, compared to the axis-aligned “positional encoding” used in prior
+work [27, 44]. As discussed in the main paper, the positional encoding mapping only uses on-axis
+frequencies. This approach is well-suited to data that has more frequency content along the coordinate
+axes, but is not as effective for more natural signals.
+In Figure 11, we conduct a simple 2D image experiment where we train a coordinate-based MLP (2
+layers, 256 channels) to ﬁt target 2D sinusoid images (512 × 512 resolution). We sample 64 such
+2D sinusoid images (regularly-sampled in polar coordinates, with 16 angles and 4 radii) and train a
+2D coordinate-based MLP to ﬁt each, using the same setup as the 2D image experiments described
+in Section E.1. The isotropic Gaussian RFF mapping performs well across all angles, while the
+positional encoding mapping performs worse for frequencies that are not axis-aligned.
+14
+
+0
+π/4
+π/2
+3π/4
+π
+Target sinusoid angle (radians)
+29
+30
+31
+32
+33
+34
+PSNR
+Gaussian RFF
+Positional encoding
+Figure 11: We train a coordinate-based MLP to ﬁt target 2D images consisting of simple sinusoids
+at different frequencies and angles. The positional encoding mapping performs well at on-axis
+angles and performs worse on off-axis angles, while the Gaussian RFF mapping performs similarly
+well across all angles (results are averaged over radii). Error bars are plotted over runs with dif-
+ferent randomly-sampled frequencies for the Gaussian RFF mapping, while positional encoding is
+deterministic.
+B
+Additional details for main text ﬁgures
+B.1
+Main text Figure 3 (effect of feature mapping on convergence speed)
+In Figure 12, we present an alternate version of Figure 3 from the main text showing a denser
+sampling of p values to better visualize the effect of changing Fourier feature falloff on the resulting
+trained network. Again, the feature mapping used here is aj = 1/jp, bj = j for j = 1, . . . , n/2.
+x
+y
+(a) Final learned functions
+p = 0
+p = 0.5
+p = 1
+p = 1.5
+p = 2
+Target signal
+Training points
+0
+50000
+Iteration
+10-5
+10-4
+10-3
+10-2
+10-1
+Mean squared error
+(d) Train loss
+Theory
+Observed
+0
+50000
+Iteration
+10-2
+Mean squared error
+(b) Test loss
+0
+50000
+Iteration
+10-3
+10-2
+10-1
+100
+Absolute Error
+Low
+0
+50000
+Iteration
+10-1
+100
+Mid
+(c) Train loss frequency components
+0
+50000
+Iteration
+10-1
+100
+High
+Figure 12: An extension of Figure 3 from the main paper, showing more values of p. In (c) we see
+that mappings with more gradual frequency falloff (lower p) converge signiﬁcantly faster in mid
+and high frequencies, resulting in faster overall training convergence (d). In (b) we see that p = 1
+achieves a lower test error than the other mappings.
+B.2
+Main text Figure 4 (different random feature distributions in 1D)
+Exact details for the sampling distributions used to generate bj values for Figure 4 in the main text
+are shown in Table 2. In Figure 13, we present an alternate version showing both train and test
+performance, emphasizing the underﬁtting/overﬁtting regimes created by manipulating the scale of
+the Fourier features.
+Uniform log distribution
+We include the Uniform log distribution because it is the random equiva-
+lent of the “positional encoding” sometimes used in prior work. One observation is that the sampling
+15
+
+for uniform-log variables (X′ = σX
+ul where X ∼U[0, 1)) corresponds to the following CDF:
+P(X′ ≤x) = log x
+log σul
+,
+for x ∈[1, σul) ,
+(11)
+which has the following PDF:
+p(x) = d
+dxP(X′ ≤x) =
+1
+x log σul
+.
+(12)
+This shows that the randomized equivalent of positional encoding is sampling from a distribution
+proportional to a 1/f falloff power law.
+Name
+Sampled bj values
+Gaussian
+σgX for X ∼N(0, 1)
+Uniform
+σuX for X ∼U[0, 1)
+Uniform log
+σX
+ul for X ∼U[0, 1)
+Laplacian
+σlX for X ∼Laplace(0, 1)
+Positional Enc.
+2σpX for X ∈linspace(0, 1) (deterministic)
+Table 2: Different distributions used for sampling frequencies, where σ is each distribution’s “scale”.
+21
+24
+27
+210
+Standard deviation of sampled bi
+10-14
+10-11
+10-8
+10-5
+10-2
+Mean squared error
+(a) Data sampled from α = 0.5
+21
+24
+27
+210
+Standard deviation of sampled bi
+10-14
+10-11
+10-8
+10-5
+10-2
+(b) Data sampled from α = 1.0
+21
+24
+27
+210
+Standard deviation of sampled bi
+10-14
+10-11
+10-8
+10-5
+10-2
+(c) Data sampled from α = 1.5
+Gaussian
+Uniform
+Uniform log
+Laplacian
+Test
+Train
+Figure 13: An alternate version of Figure 4 from the main text showing both training error and test
+error for a variety of different Fourier feature sampling distributions. Adding training error to the
+plot clearly distinguishes between the underﬁtting regime with low frequency bi (where train and test
+error are similar) versus the overﬁtting regime with high frequency bi (where the test error increases
+but training error approaches machine precision).
+C
+Stationary kernels
+One of the primary beneﬁts of our Fourier feature mapping is that it results in a stationary composed
+NTK function. In this section, we offer some intuition for why stationarity is desirable for our
+low-dimensional graphics and imaging problems.
+First, let us consider the implications of using an MLP applied directly to a low-dimensional input
+(without any Fourier feature mapping). In this setting, the NTK is a function of the dot product
+between its inputs and of their norms [3, 5, 6, 16]. This makes the NTK rotation-invariant, but not
+translation-invariant. For our graphics and imaging applications, we want to be able to model an
+object or scene equally well regardless of its location, so translation-invariance or stationarity is
+a crucial property. We can then add approximate rotation invariance back by using an isotropic
+frequency sampling distribution.
+This aligns with standard practice in signal processing, in which k(u, v) = ˜h(u−v) = ˜h(v−u) (e.g.
+the Gaussian or radial basis function kernel, or the sinc reconstruction ﬁlter kernel). This Euclidean
+notion of similarity based on difference vectors is better suited to the low-dimensional regime, in
+which we expect (and can afford) dense and nearly uniform sampling. Regression with a stationary
+kernel corresponds to reconstruction with a convolution ﬁlter: new predictions are sums of training
+points, weighted by a function of Euclidean distance.
+One of the most important features of our sinusoidal input mapping is that it translates between these
+two regimes. If u, v ∈Rd for small d, γ is our Fourier feature embedding function, and k is a dot
+16
+
+product kernel function, then k(γ(u), γ(v)) = h(γ(u)Tγ(v)) = ˜h(u −v). In words, our sinusoidal
+input mapping transforms a dot product kernel into a stationary one, making it better suited to the
+low-dimensional regime.
+This effect is illustrated in a simple 1D example in Figure 14, which shows that the beneﬁts of a
+stationary composed NTK indeed appear in the MLP setting with a basic Fourier featurization (using
+a single frequency). We train MLPs with and without this basic Fourier embedding to learn a set of
+shifted 1D Gaussian probability density functions. The plain MLP successfully ﬁts a zero-centered
+function but struggles to ﬁt shifted functions, while the MLP with basic Fourier embedding exhibits
+stationary behavior, with good performance regardless of shifts.
+−π
+−π/2
+0
+π/2
+π
+x
+0
+1
+y
+(a) Example target signals
+−π
+−π/2
+0
+π/2
+π
+Center of Gaussian
+10-4
+10-3
+10-2
+Mean squared error
+(b) Reconstruction accuracy
+No Mapping
+Basic Mapping
+Figure 14: A plain coordinate-based MLP can learn a centered function (in this case a Gaussian
+density) but struggles to model shifts of the same function. Adding a basic Fourier embedding
+(with a single frequency) enables the MLP to ﬁt the target function equally well regardless of shifts.
+The NTK corresponding to the plain MLP is based on dot products between inputs, whereas the
+NTK corresponding to the NTK with Fourier embedding is based on Euclidean distances between
+inputs, making it shift-invariant. In this experiment we train an MLP (4 layers, 256 channels, ReLU
+activation) for 500 iterations using the Adam [19] optimizer with a learning rate of 10−4. We report
+mean and standard deviation performance over 20 random network initializations.
+D
+Indirect supervision through a linear map
+In some of the tasks we explore in this work, such as image regression or 3D shape regression,
+optimization is performed by minimizing a loss between the output of a network and a directly
+observed quantity, such as the color of a pixel or the occupancy of a voxel. But in many graphics
+and imaging applications of interest, measurements are indirect, and the loss must be computed on
+the output of a network after it has been processed by some physical forward model. In NeRF [27],
+measurements are taken by sampling and compositing along rays in each viewing direction. In MRI,
+measurements are taken along various curves through the frequency domain. In CT, measurements
+are integral projections of the subject at various angles, which correspond to measuring lines through
+the origin in the frequency domain. Although the measurement transformation for NeRF is nonlinear
+(in density, although it is linear in color), those for both CT and MRI are linear. In this section,
+we extend the linearized training dynamics of Lee et al. [20] to the setting of training through a
+linear operator denoted by a matrix A. This allows us to modify Eqn. 3 to incorporate A, thereby
+demonstrating that the conclusions drawn in this work for the “direct” regression case also apply to
+the “indirect” case.
+Our derivation closely follows Lee et al. [20], and begins by replacing the neural network f with its
+linearization around the initial parameters θ0:
+f lin
+t (x) ≜f0(x) + ∇θf0(x)|θ=θ0ωt ,
+(13)
+where ωt ≜θt −θ0 denotes the change in network parameters since initialization and t denotes time
+in continuous-time gradient ﬂow dynamics. Then [20] describes the dynamics of gradient ﬂow:
+˙f lin
+t (x) = −η ˆΘ0(x, X)∇f lin
+t
+(X)L ,
+(14)
+where ˆΘt(·, ·) = ∇θft(·)∇θft(·)T is the NTK matrix at time t (ˆΘt is shorthand for ˆΘt(X, X))
+and L is the training loss. At this point, we depart slightly from the analysis of [20]: instead of
+17
+
+L = P
+(x,y)∈D ℓ(f lin
+t (x), y) we have L = 1
+2
+A(f lin
+t (X) −y)
+2
+2, where y denotes the vector of
+training labels. The gradient of the loss is then
+∇f lin
+t
+(X)L = ∇f lin
+t
+(X)
+1
+2
+A
+ f lin
+t (X) −y
+2
+2
+(15)
+= ATA
+ f lin
+t (X) −y
+
+.
+(16)
+Substituting this into the gradient ﬂow dynamics of Eqn. 14 gives us:
+˙f lin
+t (x) = −η ˆΘ0(x, X)ATA
+ f lin
+t (X) −y
+
+,
+(17)
+with corresponding solution:
+f lin
+t (X) =
+
+I −e−η ˆΘ0ATAt
+y + e−η ˆΘ0ATAtf0(X) .
+(18)
+Finally, again following [20], we can decompose f lin
+t (x) = µt(x) + γt(x) at any test point x, where
+µt(x) = ˆΘ0(x, X)ˆΘ−1
+0
+
+I −e−η ˆΘ0ATAt
+y ,
+(19)
+γt(x) = f0(x) −ˆΘ0(x, X)ˆΘ−1
+0
+
+I −e−η ˆΘ0ATAt
+f0(X) .
+(20)
+Assuming our initialization is small, i.e., f0(x) ≈0 ∀x, we can write our approximate linearized
+network output as:
+f lin
+t (x) ≈ˆΘ0(x, X)ˆΘ−1
+0
+
+I −e−η ˆΘ0ATAt
+y .
+(21)
+In our previous analysis, we work instead with the expected or inﬁnite-width NTK matrix K, which
+is ﬁxed throughout training. Using this notation, we have
+ˆy(t) ≈f lin
+t (Xtest) ≈KtestK−1 
+I −e−ηKATAt
+y .
+(22)
+This is nearly identical to Eqn. 3in the main paper, except that the convergence is governed by the
+spectrum of KATA rather than K alone. If A is unitary, such as the Fourier transform matrix
+used in (densely sampled) MRI, then training should behave exactly as if we were training on direct
+measurements. However, if A is not full rank, then training will only affect the components with
+nonzero eigenvalues in KATA. In this more common scenario, we want to design a kernel that will
+provide large eigenvalues in the components that A can represent, so that the learnable components
+will converge quickly, and provide reasonable priors for the components we cannot learn.
+In our two tasks that supervise through a linear map, CT and MRI, the ATA has a structure that
+illuminates how the linear map interacts with the composed NTK. The ATA matrices for both these
+tasks are diagonalizable by the DFT matrix, where the diagonal entries are simply the number of
+times the corresponding frequency is measured by the MRI or CT sampling patterns. This follows
+from the fact that CT and MRI measurements can both be formulated as Fourier space sampling:
+CT samples rotated slices in Fourier space through the origin [7] and MRI samples operator-chosen
+Fourier trajectories. This means that frequencies not observed by the MRI or CT sampling patterns
+will never be supervised during training. Therefore, it is crucial to choose a Fourier feature mapping
+that results in a composed NTK with a good prior on these frequencies.
+E
+Task details
+We present additional details for each task from Section 6 in the main text, including training
+parameters, forward models, datasets, etc. All experiments are implemented using JAX [8] and
+trained on a single K80 or RTX2080Ti GPU. Training a single MLP took between 10 seconds (for
+the 2D image task) and 30 minutes (for the inverse rendering task).
+E.1
+2D image
+The 2D image regression tasks presented in the main text all use 512 × 512 resolution images. A
+subsampled grid of 256 × 256 pixels is used as training data, and an offset grid of 256 × 256 pixels
+18
+
+is used for testing. We use two image datasets: Natural and Text, each consisting of 32 images. The
+Natural images are generated by taking center crops of randomly sampled images from the Div2K
+dataset [1]. The Text images are generated by placing random strings of text with random sizes and
+colors on a white background (examples can be seen in Figure 15). For each dataset we perform a
+hyperparameter sweep over feature mapping scales on 16 images. We ﬁnd that scales σg = 10 and
+σp = 6 work best for the Natural dataset and σg = 14 and σp = 5 work best for the Text dataset
+(see Table 2 for mapping deﬁnitions). In Table 3, we report model performance using the optimal
+mapping scale on the remaining 16 images.
+Natural
+Text
+No mapping
+19.32 ± 2.48
+18.40 ± 2.23
+Basic
+21.71 ± 2.71
+20.48 ± 1.96
+Positional enc.
+24.95 ± 3.72
+27.57 ± 3.07
+Gaussian
+25.57 ± 4.19
+30.47 ± 2.11
+Table 3: 2D image results (mean ± standard deviation of PSNR)
+Each model (MLP with 4 layers, 256 channels, ReLU activation, sigmoid output) is trained for 2000
+iterations using the Adam [19] optimizer with default settings (β1 = 0.9, β2 = 0.999, ϵ = 10−8).
+Learning rates are manually tuned for each dataset and method. For Natural images a learning rate of
+10−3 is used for the Gaussian RFF and the positional encoding, and a learning rate of 10−2 is used
+for the basic mapping and “no mapping” methods. For the Text images a learning rate of 10−3 is used
+for all methods.
+E.2
+3D shape
+We evaluate the 3D shape regression task (similar to Occupancy Networks [24]) on four complex
+triangle meshes commonly used in computer graphics applications (Dragon, Armadillo, Buddha,
+and Lucy, shown in Figure 16), each containing hundreds of thousands of vertices. We train one
+coordinate-based MLP network to represent a single mesh rather than trying to generalize one network
+to encode multiple objects, since our goal is to demonstrate that a network with no mapping or the
+low frequency “basic” mapping cannot accurately represent even a single shape, let alone a whole
+class of objects.
+We use a network with 8 layers of 256 channels each and a ReLU nonlinearity between each layer.
+We apply a sigmoid activation to the output. Our batch size is 323 points, and we use the Adam
+optimizer [19] with a learning rate starting at 5 × 10−4 and exponentially decaying by a factor of
+0.01 over the course of 10000 total training iterations. At each training iteration, we sample a batch
+of 3D points uniformly at random from the bounding box of the mesh, and then calculate ground
+truth labels (using the point-in-mesh method implemented in the Trimesh library [25], which relies
+on the Embree kernel for acceleration [41]). We use cross-entropy loss to train the network to match
+these classiﬁcation labels (0 for points outside the mesh, 1 for points inside).
+The meshes are scaled to ﬁt inside the unit cube [0, 1]3 such that the centroid of the mesh is
+(0.5, 0.5, 0.5). We use the Lucy statue mesh as a validation object to ﬁnd optimal scale values for
+the positional encoding and Gaussian feature mapping. As described in the caption for Table 4, we
+calculate error on both a uniformly random test set and a test set that is close to the mesh surface
+(randomly chosen mesh vertices that have been perturbed by a random Gaussian vector with standard
+deviation 0.01) in order to illustrate that Fourier feature mappings provide a large beneﬁt in resolving
+ﬁne surface details. Both test sets have 643 points.
+In Figure 16, we visualize additional results on all four meshes mentioned above (including the
+validation mesh Lucy). We render normal maps, which are computed by taking the cross product
+of the numerical horizontal and vertical derivatives of the depth map. The original depth map is
+generated by intersecting camera rays with the ﬁrst 0.5 isosurface of the network. We select the
+Fourier feature scales for (d) and (e) by doing a hyperparameter search based on validation loss for
+the Lucy mesh in the last row and report test loss over the other three meshes (Table 4). Note that the
+weights for each trained MLP are only 2MB, while the triangle mesh ﬁles for the objects shown are
+61MB, 7MB, 79MB, and 32MB respectively.
+19
+
+Uniform points
+Boundary points
+No mapping
+0.959 ± 0.006
+0.864 ± 0.014
+Basic
+0.966 ± 0.007
+0.892 ± 0.017
+Positional enc.
+0.987 ± 0.005
+0.960 ± 0.011
+Gaussian
+0.988 ± 0.007
+0.973 ± 0.010
+Table 4: 3D shape results (mean ± standard deviation of intersection-over-union). Uniform points
+is an “easy” test set where points are sampled uniformly at random from the bounding box of the
+ground truth mesh, while Boundary points is a “hard” test set where points are sampled near the
+boundary of the ground truth mesh.
+E.3
+2D CT
+In computed tomography (CT), we observe measurements that are integral projections (integrals
+along parallel lines) of a density ﬁeld. We construct a 2D CT task by using ground truth 512 × 512
+resolution images, and computing 20 synthetic integral projections at evenly-spaced angles. For each
+of these images, the supervision data is the set of integral projections, and the test PSNR is evaluated
+over the original image.
+We use two datasets for our 2D CT task: randomized Shepp-Logan phantoms [36], and the ATLAS
+brain dataset [21]. For each dataset, we perform a hyperparameter sweep over mapping scales on 8
+examples. We found that scales σg = 4 and σp = 3 work best for the Shepp dataset and σg = 5 and
+σp = 5 work best for the ATLAS dataset. In Table 5, we report model performance using the optimal
+mapping scale on a distinct set of 8 images.
+Shepp
+ATLAS
+No mapping
+16.75 ± 3.64
+15.44 ± 1.28
+Basic
+23.31 ± 4.66
+16.95 ± 0.72
+Positional enc.
+26.89 ± 1.46
+19.55 ± 1.09
+Gaussian
+28.33 ± 1.15
+19.88 ± 1.23
+Table 5: 2D CT results (mean ± standard deviation of PSNR).
+Each model (MLP with 4 layers, 256 channels, ReLU activation, sigmoid output) is trained for 1000
+iterations using the Adam [19] optimizer with default settings (β1 = 0.9, β2 = 0.999, ϵ = 10−8).
+The learning rate is manually tuned for each method. Gaussian RFF and positional encoding use a
+learning rate of 10−3, and the basic and “no mapping” method use a learning rate of 10−2.
+E.4
+3D MRI
+In magnetic resonance imaging (MRI), we observe measurements that are Fourier coefﬁcients of
+the atomic response to radio waves under a magnetic ﬁeld. We construct a toy 3D MRI task by
+using ground truth 96 × 96 × 96 resolution volumes and randomly sampling ∼13% of the Fourier
+coefﬁcients for each volume from an isotropic Gaussian. For each of these volumes, the supervision
+data is the set of sampled Fourier coefﬁcients, and the test PSNR is evaluated over the original
+volume.
+We use the ATLAS brain dataset [21] for our 3D MRI experiments. We perform a hyperparameter
+sweep over mapping scales on 6 examples. We ﬁnd that scales σg = 5 and σp = 4 perform best. In
+Table 6, we report model performance using the optimal mapping scale on a distinct set of 6 images.
+Each model (MLP with 4 layers, 256 channels, ReLU activation, sigmoid output) is trained for 1000
+iterations using the Adam [19] optimizer with default settings (β1 = 0.9, β2 = 0.999, ϵ = 10−8). We
+use a manually-tuned learning rate of 2 × 10−3 for each method. Results are visualized in Figure 18.
+E.5
+3D inverse rendering for view synthesis
+In this task we use the “tiny NeRF” simpliﬁed version of the view synthesis method NeRF [27] where
+hierarchical sampling and view dependence have been removed. The model is trained to predict
+the color and volume density at an input 3D point. Volumetric rendering is used to render novel
+20
+
+ATLAS
+No mapping
+26.14 ± 1.45
+Basic
+28.58 ± 2.45
+Positional enc.
+32.23 ± 3.08
+Gaussian
+34.51 ± 2.72
+Table 6: 3D MRI results (mean ± standard deviation of PSNR).
+viewpoints of the object. The loss is calculated between the rendered views and ground truth renders.
+In our experiments we use the NeRF Lego dataset of 120 images downsampled to 400 × 400 pixel
+resolution. The dataset is split into 100 training images, 7 validation images, and 13 test images. The
+reconstruction quality on the validation images is used to determine the best mapping scale; for this
+scene we ﬁnd σg = 6.05 and σp = 1.27 perform best.
+The model (MLP with 4 layers, 256 channels, ReLU activation, sigmoid on RGB output) is trained
+for 5 × 105 iterations using the Adam [19] optimizer with default settings (β1 = 0.9, β2 = 0.999,
+ϵ = 10−8). The learning rate is manually tuned for each mapping: 10−2 for no mapping, 5 × 10−3
+for basic, 5 × 10−4 for positional encoding, and 5 × 10−4 for Gaussian. During training we use
+batches of 1024 rays.
+The original NeRF method [27] uses an input mapping similar to the Positional encoding we compare
+against. The original NeRF mapping is smaller than our mappings (8 vs. 256 frequencies). We
+include metrics for this mapping in Table 7 under Original pos. enc. The positional encoding
+mappings only contain frequencies on the axes, and are therefore biased towards signals with on-axis
+frequency content (as demonstrated in Section A.5). In our experiments we rotate the Lego scene,
+which was manually axis-aligned in the original dataset, for a more equitable comparison. Table 7
+also reports metrics for positional encodings on the original axis-aligned scene. Results are visualized
+in Figure 19.
+3D NeRF
+No mapping
+22.41 ± 0.92
+Basic
+23.16 ± 0.90
+Original pos. enc.
+24.81 ± 0.88
+Positional enc.
+25.28 ± 0.83
+Gaussian
+25.48 ± 0.89
+Original pos. enc. (axis-aligned)
+25.60 ± 0.76
+Positional enc. (axis-aligned)
+26.27 ± 0.91
+Table 7: 3D NeRF results (mean and standard deviation of PSNR). Error is calculated based on
+held-out images of the scene since the ground truth radiance ﬁeld is not known.
+21
+
+F
+Additional results ﬁgures
+(a) Ground Truth
+(b) No mapping
+(c) Basic
+(d) Positional enc.
+(e) Gaussian
+Figure 15: Additional results for the 2D image regression task, for three images from our Natural
+dataset (top) and two images from our Text dataset (bottom).
+22
+
+(a) Ground Truth
+(b) No mapping
+(c) Basic
+(d) Positional enc.
+(e) Gaussian
+Figure 16: Additional results for the 3D shape occupancy task [24].
+(a) Ground Truth
+(b) No mapping
+(c) Basic
+(d) Positional enc.
+(e) Gaussian
+Figure 17: Results for the 2D CT task.
+23
+
+(a) Ground Truth
+(b) No mapping
+(c) Basic
+(d) Positional enc.
+(e) Gaussian
+Figure 18: Additional results for the 3D MRI task.
+(a) Ground Truth
+(b) No mapping
+(c) Basic
+(d) Positional enc.
+(e) Gaussian
+Figure 19: Additional results for the inverse rendering task [27].
+24

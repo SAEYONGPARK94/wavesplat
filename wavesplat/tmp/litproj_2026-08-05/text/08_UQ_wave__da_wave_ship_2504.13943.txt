@@ -1,0 +1,828 @@
+arXiv:2504.13943v1  [eess.SY]  16 Apr 2025
+Data Assimilation-based Simultaneous Phase-Resolved Ocean
+Wave and Ship Motion Forecast
+G. Wang and Y. Pan
+(Department of Naval Architecture and Marine Engineering, University of
+Michigan, Ann Arbor, MI USA)
+ABSTRACT
+This paper presents a data-assimilation (DA)-based
+approach to forecast the phase-resolved wave evolution
+process and ship motion, which is developed by coupling
+the high-order spectral method (HOS), ensemble Kalman
+ﬁlter (EnKF), and a Cummins-equation-based ship model
+(CMI). With the developed EnKF-HOS-CMI method,
+the observation data for wave, ship, or both can be
+incorporated into the model, therefore producing the
+optimal analysis results.
+The developed method is
+validated and tested based on a synthetic problem on
+the motions of an irregular wave ﬁeld and a box-shaped
+free-ﬂoating ship.
+We show that the EnKF-HOS-CMI
+method achieves much higher accuracy in the long-term
+simulation of nonlinear phase-resolved wave ﬁeld and
+ship motion in comparison with the HOS-CMI method.
+Also, the ship parameters are estimated accurately by
+using a parameter-augmented state space in EnKF.
+INTRODUCTION
+The prediction of wave-induced ship responses (e.g.,
+motions, strain, and surface pressure) are crucial for the
+overall safety and efﬁciency of maritime activities. They
+enable better health monitoring and decision-making. In
+the meanwhile, it is equally meaningful to reconstruct
+the encountered wave proﬁles based on the observed ship
+responses, which can serve as initial conditions to predict
+the future (even short-term) wave ﬁeld and ship motions.
+In this regard, two types of methods to estimate the in-situ
+wave information from the measured ship responses have
+been developed: one for wave spectra, and the other for
+the encountered incident wave sequences.
+The
+methods
+for
+estimation
+of
+wave
+spectra
+from
+structural
+responses
+have
+been
+well
+developed
+(Pascoal et al.,
+2005;
+Nielsen,
+2006;
+Tannuri et al., 2003; Nielsen and Dietz, 2020; Chen et al.,
+2020).
+Formulated in the frequency domain, these
+methods utilize frequency analyses (e.g., Fast Fourier
+Transform, FFT) and predetermined transfer functions to
+estimate the onsite one-dimensional or directional wave
+spectra. However, it should be noted that although the
+estimated wave spectrum parameters can aid the maritime
+operations to some extent, it is impossible to realize the
+deterministic prediction of the future ship-encountered
+wave ﬁeld and ship responses with this type of methods.
+For example, the potential ship capsize induced by
+extreme waves cannot be captured, which can however
+lead to the signiﬁcant loss of wealth and lives.
+In
+contrast,
+the
+methods
+to
+estimate
+the
+encountered
+incident
+wave
+sequences,
+which
+are
+formulated in the time domain, have the capability to
+realize the deterministic prediction for both wave ﬁeld
+and ship motions, and therefore are receiving more and
+more attentions recently. Koterayama et al. (2002) applied
+FFT analysis on the observed motions of a wave buoy to
+determine the phase information for each component of
+the incident wave ﬁeld. However, the accuracy of this
+method is sensitive to the time length of the observed buoy
+motion, and short-time series (e.g. < 10 min) may lead
+to signiﬁcant deviation from the reference. Takami et al.
+(2022, 2023) developed a prolate spheroidal wave
+functions (PSWF)-based approach, which can determine
+the incident wave proﬁles from short-time sequences of
+ship motion data (i.e. 2 −5min). However, it should be
+noted that these methods based on linear analysis ignores
+the nonlinear components of the problem, which may
+lead to deteriorated performance when the latter becomes
+important.
+In this work, we develop a data assimilation
+(DA)-based approach to
+realize the phase-resolved
+estimation of non-linearly evolving wave ﬁelds from
+the ship motions.
+This is realized by extending
+the author’s previous work on DA-based non-linear
+phase-resolved ocean wave reconstruction and forecast
+framework, namely the EnKF-HOS method by coupling
+an ensemble Kalman ﬁlter and the high-order spectral
+(HOS)
+method
+(Wang and Pan,
+2021;
+Wang et al.,
+2022).
+Through extensive test cases, it has been
+demonstrated that the EnKF-HOS method can realize the
+high-accuracy phase-resolved ocean wave reconstruction
+and
+forecast
+by
+sequentially
+assimilating
+observed
+wave
+data.
+Here
+we
+add
+to
+the
+EnKF-HOS
+method a Cummins-equation-based ship motion model
+(CMI) (Ogilvie, 1964).
+By doing this, we build the
+correlation between the ship motions and encountered
+wave ﬁeld, which provides the foundation for the wave
+ﬁeld reconstruction. More importantly, if the assimilation
+
+result is used as initial condition for forecast, the
+method has the capability to more accurately capture
+the future wave evolution and ship motion.
+Finally,
+in comparison with EnKF-HOS method, the newly
+developed EnKF-HOS-CMI can work with different
+types of data, i.e.
+ship motion data, wave data, or
+both, therefore it has favorable robustness in different
+application scenarios.
+The paper is organized as follows.
+We
+ﬁrst
+introduce
+the
+mathematical
+formulation
+and
+methodologies
+used
+in
+this
+study,
+including
+the
+EnKF-HOS-CMI coupled framework, as well as its
+each component, HOS, EnKF, and Cummins equation.
+The
+validity
+of
+the
+proposed
+algorithm
+is
+tested
+through numerical experiments on a wave-ship coupled
+simulation, considering an irregular wave ﬁeld and
+a box-shaped free-ﬂoating ship,
+with noisy initial
+conditions and imperfect ship parameters. We show that,
+with sufﬁcient data assimilation, the forecast errors for
+both the wave ﬁeld and ship motion are signiﬁcantly
+reduced compared to the solutions without DA. In
+addition, the simultaneous estimation of ship parameters
+are realized. We conclude with some discussions on the
+implementation of this method for realistic wave-ship
+coupled problems.
+MATHEMATICAL
+FORMULATION
+AND
+METHODOLOGY
+Problem statement
+We consider the motions of an irregular wave ﬁeld
+and a box-shaped free-ﬂoating ship (e.g., a barge),
+with the (noisy) wave data, ship motion data, or both
+available. We denote the surface elevation and surface
+potential, reconstructed from the wave data, as ηm,j(x)
+and ψm,j(x), and ship motion data as Sm,j, with j =
+0,1,2,3,··· the index of time t and x the spatial
+coordinates. It is also assumed that the error statistics
+associated with ηm,j(x), ψm,j(x), and Sm,j is known a
+priori from the inherent properties of the measurement
+equipments (e.g., wave buoy and motion reference unit).
+In addition to the measurements, we have
+available a wave model that is able to simulate the
+evolution of the ocean surface (in particular η(x,t) and
+ψ(x,t)), and a ship model that is able to simulate the
+ship motion S(t) in the wave ﬁeld.
+Our purpose is
+to incorporate wave measurements (ηm,j(x),ψm,j(x)),
+ship motion measurements Sm,j, or both into the model
+simulation sequentially in an optimal way such that the
+analysis of the states ηa,j(x), ψa,j(x), and Sa,j are most
+accurate.
+The general EnKF-HOS-CMI coupled framework
+Figure 1: Schematic illustration of the EnKF-HOS-CMI
+coupled framework. The size of ellipse represents the
+amount of uncertainty.
+In this study, we use HOS and Cummins
+equation to simulate the nonlinear phase-resolved wave
+evolution process and ship motion, respectively, coupled
+with EnKF for DA. Figure 1 shows a schematic
+illustration of the proposed EnKF-HOS-CMI coupled
+framework.
+At initial time t = t0,
+measurements
+(ηm,0,ψm,0,Sm,0) are available,
+according to which
+we generate ensembles of perturbed measurements,
+(η(n)
+m,0,ψ(n)
+m,0,S(n)
+m,0), n = 1,2,...,N, with N the ensemble
+size, following the known measurement error statistics
+(i.e., sampling from a given distribution). A forecast step
+is then performed, in which an ensemble of N HOS and
+CMI simulations are conducted, taking (η(n)
+m,0,ψ(n)
+m,0,S(n)
+m,0)
+as initial conditions for each ensemble member n, until
+t = t1 when the next measurements become available.
+At t = t1, an analysis step is performed where the
+model forecasts (η(n)
+f,1 ,ψ(n)
+f,1 ,S(n)
+f,1 ) are combined with new
+measurements (η(n)
+m,1,ψ(n)
+m,1), S(n)
+m,1, or both to generate the
+analysis results (η(n)
+a,1 ,ψ(n)
+a,1 ,S(n)
+a,1).
+A new ensemble of
+HOS and ship motion simulations are then performed
+taking (η(n)
+a,1 ,ψ(n)
+a,1 ,S(n)
+a,1) as initial conditions, and the
+procedures are repeated for t = t2,t3,··· until the desired
+forecast time tmax is reached.
+We next describe in detail the key components
+in the EnKF-HOS-CMI method, the HOS method,
+Cummins equation, and the EnKF method. Regarding
+the generation of measurement ensembles from given
+error statistics, we refer the readers to the references
+
+Wang and Pan (2021) and Wang et al. (2022) for details.
+For simplicity, in the following description we assume
+that the gravitational acceleration and ﬂuid density are
+unity (so that they do not appear in equations) by choices
+of proper time and mass units.
+HOS method and Cummins equation
+Here we assume that the ship dimensions are much
+smaller than the peak wave length, and therefore the
+impacts of the ﬂoating ship on the wave ﬁeld are
+negligible. Given the initial wave ﬁelds (η(n)
+m,0,ψ(n)
+m,0) or
+(η(n)
+a,j ,ψ(n)
+a,j ) with j ≥1, for each ensemble member n, the
+evolution of the wave state from tj to tj+1 is solved by
+integrating a set of nonlinear wave equations in Zakharov
+form:
+∂η(x,t)
+∂t
++ ∂ψ(x,t)
+∂x
+· ∂η(x,t)
+∂x
+−
+
+1 + ∂η(x,t)
+∂x
+· ∂η(x,t)
+∂x
+
+φz(x,t) = 0,
+(1)
+∂ψ(x,t)
+∂t
++ 1
+2
+∂ψ(x,t)
+∂x
+· ∂ψ(x,t)
+∂x
++ η(x,t)
+−1
+2
+
+1 + ∂η(x,t)
+∂x
+· ∂η(x,t)
+∂x
+
+φz(x,t)2 = 0, (2)
+where φz(x,t) ≡∂φ/∂z|z=η(x,t) is the surface vertical
+velocity with φ(x,z,t) being the velocity potential of
+the ﬂow ﬁeld, and ψ(x,t) = φ(x,η,t).
+The key
+procedure in HOS is to solve for φz(x,t) given ψ(x,t)
+and η(x,t), formulated as a boundary value problem for
+φ(x,z,t).
+This is achieved through a pseudo-spectral
+method in combination with a mode-coupling approach,
+with
+details
+included
+in
+multiple
+papers
+such
+as
+Dommermuth and Yue (1987); Pan et al. (2018).
+By assuming small body motion, the motion of a
+ﬂoating ship within the time domain can be described by
+the Cummins equation (Ogilvie, 1964) as
+(M + Ma) ¨S(t)
++
+Z t
+0 K(t −τ) ˙S(τ)dτ
++
+CRS(t) = fexc(t)
+(3)
+where M and Ma are the mass and added mass matrix
+of the ﬂoating structure. K(t) is the impulse response
+function considering the impact of the past motion.
+CR is the radiation-restoring coefﬁcient.
+fexc(t) is
+the external excitation force, which only includes the
+hydrostatic restoring and Froude–Krylov forces in this
+study. Here we consider the linear Froude–Krylov force,
+which is calculated by directly integrating the pressure
+of undisturbed incident waves over the instantaneous
+submerged volume (Jang and Kim, 2020).
+Data Assimilation Scheme by EnKF
+Equations (1), (2), and (3) are integrated in time for each
+ensemble member to provide the ensemble of forecasts at
+t = tj (for j ≥1):
+Θf,j = [θ (1)
+f,j ,θ (2)
+f,j ,···θ (n)
+f,j ,···θ (N−1)
+f,j
+,θ (N)
+f,j ],
+(4)
+where
+θ (n)
+f,j =
+
+
+η(n)
+f,j
+ψ(n)
+f,j
+S(n)
+f,j
+
+
+(5)
+is the nth member of the ensembles of model forecast
+results. The error covariance matrix of the model forecast
+can be computed as:
+Qj = C(Θf,j),
+(6)
+where the operator C is deﬁned as
+C(Θ) = Θ′(Θ′)T,
+(7)
+Θ′ =
+1
+√N −1[θ (1) −¯θ, θ (2) −¯θ, ...
+θ (n) −¯θ ... θ (N−1) −¯θ, θ (N) −¯θ],
+(8)
+¯θ = 1
+N
+N
+∑
+n=1
+θ (n).
+(9)
+Also the error covariance matrix of the measurements can
+be calculated as
+R j = C(Θm,j).
+(10)
+Here it should be noted the measurements may include
+those for wave, ship motion, or both, therefore the
+elements in θ (n)
+m,j needed to be modiﬁed based on the
+speciﬁc situation, i.e., θ (n)
+m,j = [η(n)
+m,j,ψ(n)
+m,j]T, θ (n)
+m,j = S(n)
+m,j,
+or θ (n)
+m,j = [η(n)
+m,j,ψ(n)
+m,j,S(n)
+m,j]T
+An analysis step is then performed, which
+combines
+the
+ensembles
+of
+model
+forecasts
+and
+perturbed measurements to produce the optimal analysis
+states (Carrassi et al., 2018):
+Θa,j = Θf,j +K j[Θm,j −G j Θf,j],
+(11)
+where
+K j = QjGT
+j
+
+G jQjGT
+j + Rj]−1
+(12)
+is the optimal Kalman gain matrix. G j is a linear operator,
+which maps a state vector from the model space to the
+measurement space.
+Finally, to realize the simultaneous estimation
+or correction of parameters (e.g. ship added mass), the
+
+only action needed is to form a parameter-augmentedstate
+space by adding parameters to the original state space for
+the forecast and analysis, i.e.
+θ (n)
+∗,j =
+
+
+η(n)
+∗,j
+ψ(n)
+∗,j
+S(n)
+∗,j
+P (n)
+∗,j
+
+
+(13)
+where P represents the parameters, and ∗= f or a.
+NUMERICAL RESULTS
+To
+test
+the
+performance
+of
+the
+EnKF-HOS-CMI
+algorithm, we conduct a series of numerical experiments
+based on a synthetic case involving a 2D wave ﬁeld
+and a two-degrees-of-freedom (i.e., heave S3 and roll
+S4) free-ﬂoating ship (ﬁg. 2). We ﬁrst use a reference
+HOS-CMI coupled simulation to generate the true wave
+ﬁeld (ηtrue(x,t) and ψtrue(x,t)) and structure motions
+(Strue
+3
+(t) and Strue
+4
+(t)).
+Speciﬁcally, we use a reference
+initial wave ﬁeld described by a JONSWAP spectrum with
+a peak wavenumber kp = 16k0 (with k0 the fundamental
+wavenumber), a global steepness kpHs/2 = 0.11 (with Hs
+the signiﬁcant wave height) and an enhancement factor
+γ = 3.3. L = 256 grid points are used in spatial domain
+[0,2π) in all the simulations. For the ship, the presumed
+reference (exact) properties are tabulated in Table 1. We
+also assume that the ship is stationary initially.
+Then,
+we superpose independent random errors onto ηtrue(x,t),
+Strue
+3
+(t), and Strue
+4
+(t) to produce ηm,j(x), Sm
+3 (t), and Sm
+4 (t),
+respectively. Finally, ψm,j(x) is constructed from ηm,j(x)
+based on the linear wave theory. (we refer the readers
+to see the detailed procedures in Wang and Pan (2021);
+Wang et al. (2022)).
+Figure 2: Schematic illustration of the synthetic case.
+Table 1: Properties of the ship
+Property
+Symbol
+Value
+Water Plane Area
+Sw
+0.08λp
+Draft
+D
+2.68Hs
+Horizontal coordinate of centroid
+xc
+1.2π
+Center of buoyancy
+KC
+−1.34Hs
+Center of mass
+KG
+0
+Mass
+M
+3.78×10−3
+Added Mass
+Ma
+1.31×10−3
+Inertia
+I
+2.02×10−6
+Added Inertia
+Ia
+9.89×10−7
+To evaluate the performance of the developed
+EnKF-HOS-CMI algorithm, we deﬁne an error metric
+ε(t) =
+R | ηtrue(x,t)−ηsim(x,t) |2 dA
+2σ2ηA
+,
+(14)
+where A is the simulation domain, ηsim(x,t) represents
+the simulation results obtained from EnKF-HOS-CMI
+(the ensemble average in this case) or the HOS-CMI
+(i.e. without data assimilation), and ση is the standard
+deviation of ηtrue.
+The errors ε(t) obtained from HOS-CMI and
+EnKF-HOS-CMI are shown in ﬁgure 3. For HOS-CMI
+method, i.e., without DA, ε(t) increases in time from the
+initial value ε(0) ≈0.05, and reaches O(1) at t/Tp ≈
+200.
+For EnKF-HOS-CMI method, we have tested
+its performance by assimilating different types of data,
+including wave data ; heave data; roll data; combination
+of wave, heave, and roll data.
+For all cases with
+EnKF-HOS-CMI method, the data assimilation interval is
+set to be τ = 1
+16T0, where T0 is the period corresponding
+to k0. In addition, we assume that the wave data only
+contain those at x = π, i.e, ηm,j(x = π) and ψm,j(x = π).
+It can be observed that ε(t) from the EnKF-HOS-CMI
+method keeps decreasing when assimilating any type of
+data, and becomes three orders of magnitude smaller than
+that from HOS-CMI method at the end of the simulation.
+Also, it should be noted that when using single data (wave,
+heave, or roll), the errors from EnKF-HOS-CMI method
+are quite close to each other. While in contrast, when all
+the wave, heave and roll data are used, the performance of
+EnKF-HOS-CMI is further improved.
+
+0
+50
+100
+150
+200
+10-3
+10-2
+10-1
+100
+Figure 3: Wave forecast errors with HOS-CMI (—◦—) and
+EnKF-HOS-CMI by assimilating wave data (– – –); heave
+data (· · ·); roll data (—
+□—); wave, heave, and roll data (
+)
+0
+5
+10
+15
+20
+-1.5
+-1
+-0.5
+0
+0.5
+1
+1.5
+10-3
+Figure 4: Time histories of heave motion: reference
+solution (
+) ; w/ DA (· · ·); w/o DA (– – –).
+Next,
+we
+investigate
+the
+performance
+of
+the developed EnKF-HOS-CMI method in terms of
+predicting ship motions. Figures 4 and 5 show the results
+of predicted heave and roll motions, respectively, obtained
+with EnKF-HOS-CMI and HOS-CMI simulations, in
+comparison with the reference solutions.
+For both
+EnKF-HOS-CMI and HOS-CMI simulations, the initial
+states of the ﬂoating ship are assumed to be stationary,
+which is the same as the reference solution. In addition,
+we assume the added mass (Ma) and impulse response
+function K(t) have initial deviations from the truth (as
+shown Figures 6 and 7), and the simultaneous estimation
+(correction) of them is be realized by setting P (n)
+∗,j in
+Equation (13) to be
+P(n)
+∗,j = [M(n)
+a,∗,j,K(n)
+∗,j ]T
+(15)
+It can be found that even if the initial errors for the ship
+motion is set to be zero, the predicted heave and roll
+motions by the HOS-CMI method quickly deviate from
+the truth, which is due to mis-estimation of the wave ﬁled,
+i.e. excitation force, and inaccurate structural parameters.
+In contrast, when using EnKF-HOS-CMI, even though
+some (mild) deviations from the truth can be observed
+(especially for the local extreme points), the results can
+always follow the overall trend of the reference solutions.
+Figure 6 shows time history of the error of the estimated
+added mass. It can be found that, as the observed data
+are assimilated, the error of estimated added mass quickly
+decreases (although experiencing some ﬂuctuations), and
+after only t/Tp = 4, the error is already reduced by 10
+times in comparison with its initial value.
+Figure 7
+shows the estimated impulse response function with the
+EnKF-HOS-CMI after t/Tp = 40, and its deviation from
+the reference is already negligible.
+0
+5
+10
+15
+20
+-5
+-2.5
+0
+2.5
+5
+10-3
+Figure 5:
+Time histories of roll motion:
+reference
+solution (
+) ;
+EnKF-HOS-CMI (· · ·);
+HOS-CMI
+(– – –).
+
+0
+2
+4
+6
+8
+10
+0
+0.05
+0.1
+0.15
+0.2
+Figure 6: Time history of the error for the estimated
+added mass.
+0
+0.2
+0.4
+0.6
+0.8
+1
+1.2
+-0.4
+-0.2
+0
+0.2
+0.4
+0.6
+0.8
+1
+1.2
+1.4
+Figure 7: Plots of K33: reference (
+); initial guess
+(– – –); estimated result after t/Tp = 40 (· · ·).
+CONCLUSION
+In this paper, we develop an EnKF-HOS-CMI coupled
+algorithm, which is aimed at further improvement of
+the robustness of the DA-based phase-resolved ocean
+wave forecast and realizing simultaneous ship motion
+prediction.
+The developed algorithm is tested and
+validated based on the coupled simulation of an irregular
+wave ﬁeld and a boxed-shaped free-ﬂoating ship. It is
+shown that, by assimilating ship motion data (either heave
+or roll) into the HOS-CMI model, the wave forecast
+accuracy is quite close to that given by assimilating the
+wave data.
+Also, it has been demonstrated that the
+wave forecast accuracy can be further improved by using
+both the wave and ship motion data.
+We have also
+tested the performance of the EnKF-HOS-CMI method
+in terms of ship motion prediction and estimating ship
+parameters.
+It is indicated this method can not only
+accurately predict the ship motion, but also realize the
+high-accuracy estimation of parameters. In the future, the
+developed EnKF-HOS-CMI algorithm will be extended to
+three-dimensional problems, and real wave and ship data
+will be used to benchmark and calibrate the method.
+REFERENCES
+Alberto Carrassi, Marc Bocquet, Laurent Bertino, and
+Geir Evensen. Data assimilation in the geosciences: An
+overview of methods, issues, and perspectives. Wiley
+Interdisciplinary Reviews: Climate Change, 9(5):e535,
+2018.
+Xi Chen, Tetsuo Okada, Yasumi Kawamura, and Taiga
+Mitsuyuki.
+Estimation of on-site directional wave
+spectra using measured hull stresses on 14,000 teu
+large container ships. Journal of Marine Science and
+Technology, 25:690–706, 2020.
+Douglas G Dommermuth and Dick KP Yue. A high-order
+spectral method for the study of nonlinear gravity
+waves.
+Journal of Fluid Mechanics, 184:267–288,
+1987.
+HaKun Jang and MooHyun Kim.
+Effects of nonlinear
+fk (froude-krylov) and hydrostatic restoring forces on
+arctic-spar motions in waves.
+International Journal
+of Naval Architecture and Ocean Engineering, 12:
+297–313, 2020.
+Wataru
+Koterayama,
+Masahiko
+Nakamura,
+Tetsuro
+Ikebuchi, Naoyuki Takatsu, Satoshi Fujii, and Kenji
+Sato. A study for development of a wave observation
+platform. Journal of the Society of Naval Architects of
+Japan, 2002(191):57–67, 2002.
+Ulrik D Nielsen and Jesper Dietz. Ocean wave spectrum
+estimation using measured vessel motions from an
+in-service container ship.
+Marine Structures, 69:
+102682, 2020.
+Ulrik Dam Nielsen.
+Estimations of on-site directional
+wave spectra from measured ship responses. Marine
+Structures, 19(1):33–69, 2006.
+T Francis Ogilvie.
+Recent progress toward the
+understanding and prediction of ship motions.
+In
+David W. Taylor Model Basin, Washington DC, USA,
+Presented at: Proceedings of the 5th Symposium on
+Naval Hydrodynamics, Bergen, Norway, pp. 3-80,
+1964.
+
+Yulin Pan, Yuming Liu, and Dick KP Yue. On high-order
+perturbation expansion for the study of long–short
+wave interactions. Journal of Fluid Mechanics, 846:
+902–915, 2018.
+R Pascoal, C Guedes Soares, and AJ Sorensen. Ocean
+wave spectral estimation using vessel wave frequency
+motions.
+In International Conference on Offshore
+Mechanics and Arctic Engineering, volume 41960,
+pages 337–345, 2005.
+Tomoki Takami, Ulrik Dam Nielsen, and Jørgen Juncher
+Jensen.
+Application of prolate spheroidal wave
+functions for assessment and prediction of ship
+responses.
+In
+15th
+International
+Symposium
+on Practical Design of Ships and Other Floating
+Structures, 2022.
+Tomoki Takami, Ulrik Dam Nielsen, Jørgen Juncher
+Jensen, and Xi Chen. Estimation of encountered wave
+elevation sequences based on response measurements
+in multi-directional seas.
+Applied Ocean Research,
+135:103570, 2023.
+Eduardo A Tannuri, Joao V Sparano, Alexandre N
+Simos, and Jos´e J Da Cruz.
+Estimating directional
+wave spectrum based on stationary ship motion
+measurements.
+Applied Ocean Research, 25(5):
+243–261, 2003.
+Guangyao Wang and Yulin Pan.
+Phase-resolved ocean
+wave forecast with ensemble-based data assimilation.
+Journal of Fluid Mechanics, 918:A19, 2021.
+Guangyao Wang, Jinfeng Zhang, Yuxiang Ma, Qinghe
+Zhang, Zhilin Li, and Yulin Pan. Phase-resolved ocean
+wave forecast with simultaneous current estimation
+through data assimilation. Journal of Fluid Mechanics,
+949:A31, 2022.

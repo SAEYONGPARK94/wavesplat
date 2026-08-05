@@ -1,0 +1,1458 @@
+Sensing with shallow recurrent decoder networks
+Jan P. Williams∗, Olivia Zahn∗∗and J. Nathan Kutz†
+∗Department of Mechanical Engineering, University of Washington, Seattle, WA
+∗∗Department of Physics, University of Washington, Seattle, WA and
+† Departments of Applied Mathematics and Electrical and Computer Engineering, University of Washington, Seattle, WA
+Sensing is a universal task in science and engineering. Downstream tasks from sensing include
+inferring full state estimates of a system (system identification), control decisions, and forecasting.
+We propose a SHallow REcurrent Decoder (SHRED) neural network structure for sensing which
+incorporates (i) a recurrent neural network to learn a latent representation of the temporal dynamics
+of the sensors, and (ii) a shallow decoder that learns a mapping between this latent representation
+and the high-dimensional state space.
+SHRED enables accurate reconstructions with far fewer
+sensors, outperforms existing techniques when more measurements are available, and is more robust
+to random sensor placements. In the example cases explored, complex spatio-temporal dynamics
+are characterized with exceedingly limited sensors that can be randomly placed with minimal loss
+of performance.
+I.
+INTRODUCTION
+Emerging sensor technologies are transforming every
+science and engineering domain, with the quantity and
+quality of data collected also driving fundamental ad-
+vances through data-science and machine learning meth-
+ods. In many areas of interest, measurements of the full-
+state are at best impractical and often impossible. Thus
+sensors are commonly used to infer the current and fu-
+ture behavior of high-dimensional systems with a limited
+number of sensor locations. With severely limited and
+noisy sensor measurements, this task is exceptionally dif-
+ficult and frequently requires principled sensor placement
+schemes to yield faithful reconstructions [1].
+Accurate
+and robust reconstruction techniques are vital in enabling
+downstream tasks such as system identification, forecast-
+ing, and control. Existing data-driven techniques to learn
+mappings from sensor measurements to the full-state fall
+into two categories: those that rely only on static sensor
+measurements [2–5] and those that involve delay embed-
+ding techniques [6–9].
+The former have been used ex-
+tensively in the reconstruction of large spatio-temporal
+fields, while the latter have primarily been applied with
+the aim of reconstructing chaotic attractors.
+In this
+work, we apply such delay embedding techniques to high-
+dimensional spatio-temporal flows.
+The aim is not to
+replicate an attractor, but rather infer the full-state from
+sparse sensor measurements. As will be shown, not only
+is there a significant performance increase in compari-
+son to static sensing, but a minimal number of sensors,
+randomly placed, can be used.
+The reconstruction of spatio-temporal dynamics from
+limited
+sensors
+relies
+on
+low-rank
+features
+of
+the
+data.
+Computing low-rank embeddings of such high-
+dimensional data is often achieved through the singular
+value decomposition (SVD), also known as proper orthog-
+onal decomposition (POD) [10, 11]. The coefficients of
+the dominant correlated modes are determined by solving
+a linear inverse problem and the modes themselves serve
+as a linear map between measurements and the spatio-
+temporal state space. Many of these linear methods are
+built upon the mathematical framework of gappy POD
+and have been successful across many disciplines [1, 12–
+15]. More recently, shallow decoder networks (SDN) have
+leveraged advances in machine learning and AI to learn
+end-to-end, nonlinear maps between measurements and
+high-dimensional state spaces. SDNs have been demon-
+strated to outperform their linear counterparts, partic-
+ularly when the number of available sensors is exceed-
+ingly low [2, 16–18]. Both derivatives of gappy POD and
+SDNs rely on measurements at a single snapshot in time
+to reconstruct the corresponding high-dimensional state
+at that time.
+As a result of this static sensing, linear reconstruction
+methods are heavily reliant on optimally placed sensors
+for the inverse problem to be well-conditioned [1, 13]. In
+general, determining optimal sensor locations is a combi-
+natorially hard problem and is infeasible for large search
+spaces. For smaller spaces, there exist a number of well-
+known techniques for sensor placement [19–25], but they
+become computationally intractable in high-dimensional
+systems.
+Instead, convex relaxations of the problem
+become necessary for obtaining approximate solutions.
+A greedy search using the QR decomposition with col-
+umn pivoting offers one approximate solution and such
+methods have been critical in enabling accurate recon-
+structions of high-dimensional systems [1, 13]. However,
+greedy algorithms suffer from the fact that there is no
+guarantee that the sensor locations found are physically
+implementable; for instance, measuring sea-surface tem-
+perature in the middle of the Pacific Ocean is signifi-
+cantly more challenging than taking measurements along
+the coast. Variations of greedy search algorithms can in-
+corporate additional constraints, such as cost and sensor
+fidelity [26–29], but often at the expense of reconstruc-
+tion accuracy. The use of SDNs helps mitigate the de-
+pendence on sensor location, but still is greatly aided by
+principled sensor placement schemes [18].
+The data-driven method presented here incorporates
+temporal trajectories of sensor measurements to improve
+reconstruction accuracy, robustness to noise, and elim-
+arXiv:2301.12011v2  [math.DS]  5 Jun 2024
+
+2
+A
+B
+C
+D
+FIG. 1: Summary diagram of SHallow REcurrent Decoder networks (SHRED) for flow reconstruction from sensor
+measurements. A A graphical representation of the SHRED method. The mulitvariate time-series of sensor
+measurements, {yi}t
+t−k, is fed into a stacked long short-term memory layer. The final output of the recurrent layer,
+ht, serves as an input to a fully-connected shallow decoder mapping from the hidden state to the high-dimensional
+field. B The time series of sensor measurements fed into the SHRED model. C The evolution of the output hidden
+state generated by the input sequence of sensor measurements. D Reconstruction errors of traditional methods
+(QR/POD), shallow decoders (SDN), and SHRED on a turbulent flow when three sensors are available.
+inate the need for optimally placed sensors. We use a
+type of recurrent network layer, long short-term mem-
+ory networks (LSTM) [30], to process a time-series of
+sensor measurements. The latent representation of the
+LSTM is the input into a fully-connected, shallow de-
+coder for reconstruction.
+We demonstrate that these
+SHallow REcurrent Decoders (SHRED) outperform ex-
+isting linear and nonlinear techniques on three example
+datasets: a forced isotropic turbulent flow [31], weekly
+sea-surface temperature [32], and atmospheric ozone con-
+centration [33].
+In all cases, SHRED with as few as
+three randomly placed sensors achieves superior recon-
+struction accuracy than existing techniques using a far
+greater number of optimally placed sensors. Moreover,
+because the inputs to a trained SHRED model consist
+of just a few sensor measurements, SHRED offers an
+on-the-fly compression for modeling physical and engi-
+neering systems. Fig. 1 gives a graphical summary of
+SHRED. The use of both constituents of SHRED in this
+paper, LSTMs and feed-forward shallow decoders, follows
+a long line of work demonstrating the efficacy of each
+component and their use together replicating chaotic at-
+tractors from partial observations [2, 8, 34]. That being
+said, there exist a litany of different architectures that
+could be used to encode sensor trajectories (basic RNNs,
+GRUs [35], ESNs [36], transformers [37], etc.) or decode
+from a learned latent state (CNNs [38], transformers [37],
+residual layers [39], etc.); the fundamental objective of
+SHRED is to combine implicit time-delay embeddings
+of sensor measurements with an expressive decoder for
+high-dimensional state reconstruction. The investigation
+of the many possible architectures to perform this task
+is an important area of future exploration. In this work,
+we have shown explicitly that the combination of the two
+key components, recurrence and decoding, allow for a suc-
+cessful mathematical scheme for sensing.
+II.
+BACKGROUND
+A.
+Proper orthogonal decomposition and QR
+Traditional techniques for high-dimensional state re-
+construction from limited sensor measurements typically
+
+3
+rely on the SVD to compute a low-rank embedding of
+the spatio-temporal dynamics.
+Given N snapshots of
+an m dimensional state, we construct a data matrix
+X = [x1 x2 . . . xN] where xi ∈Rm is the i-th temporal
+snapshot of the state. The SVD factors the data matrix
+into the product of an orthogonal matrix, U ∈Rm×m, a
+diagonal matrix with decreasing entries, Σ ∈Rm×N, and
+another orthogonal matrix V ∈RN×N. An optimal rank
+r approximation of X can be directly obtained through
+the SVD by retaining only the first r columns of U,
+X ≈ˆX = UrΣrVT
+r .
+(1)
+Thus, each temporal snapshot xi can be approximated
+by a linear combination of the first r columns of U, oth-
+erwise known as the dominant POD modes.
+POD based methods estimate a high-dimensional
+state, x, drawn from the same distribution as that of
+the training data by solving for these r coefficients using
+a subsampling of the state,
+y = Cx ≈CUrb,
+(2)
+where C is a “sensing” matrix consisting of rows of
+the m × m identity matrix and b ∈Rr.
+A full-state
+estimate from a set of sensor measurements, y, can then
+be obtained by
+x ≈ˆx = Ur(CUr)−1y.
+(3)
+In practice, it is critical to design C such that the in-
+version in (3) is well-conditioned. An indirect bound on
+the condition number of CUr can be found by deter-
+mining C where | det(CUr)| is maximized. That is, we
+seek
+C. = argmax
+C
+| det CUr| = argmax
+C
+Y
+i
+|λi(CUr)|
+= argmax
+C
+Y
+i
+σi(CUr).
+(4)
+Unfortunately, for large systems this NP-hard, com-
+binatorial search becomes computationally intractable.
+The QR decomposition with column pivoting of UT
+r of-
+fers an approximate greedy solution. The decomposition
+utilizes Householder transformations to find a column
+permutation matrix PT such that
+UT
+r PT = QR
+(5)
+where Q is orthogonal and R is upper triangular with
+decreasing, positive entries on the diagonal. Because at
+each iteration of the algorithm the diagonal entry of R
+is selected to be as large as possible and Q is orthogo-
+nal, we have a a greedy maximization of det(UT
+r PT ) =
+det(PUr). Thus, setting C = P can improve the recon-
+structions obtained by POD based methods. We refer to
+reconstructions obtained in this manner as QR/POD.
+B.
+Shallow decoder networks
+Although QR/POD methods have demonstrated suc-
+cess in a variety of fields, the method can, at most, es-
+timate the coefficients of the first n POD modes if there
+are n sensors available. The included POD modes are
+insufficiently expressive to obtain accurate reconstruc-
+tions when exceedingly few sensors are available. This
+limitation motivates the development of more expressive,
+nonlinear methods for reconstruction. Among these are
+shallow decoder networks (SDN) [2].
+As before, let
+y = Cx
+(6)
+be a point sampling of a high-dimensional state x.
+SDNs are shallow, fully-connected neural networks that
+learn a mapping from the space of sensor measurements,
+y, back to x. SDNs can be denoted as
+F(y; WSD) := R(WbR(Wb−1 · · · R(W1s)))
+(7)
+where y is the input sensor data, R is a scalar, nonlin-
+ear activation function, WSD = {Wi}b
+i=1 are trainable
+weights, and k denotes the number of layers in the SDN.
+Formally, we seek
+F ∈argmin
+e
+F∈F
+N
+X
+i=1
+||xi −eF(yi)||2,
+(8)
+so that reconstruction error is minimized over a set of
+N training states {xi}N
+i=1. The parameters of the net-
+work are randomly initialized and then trained by a gra-
+dient descent method. Once the network is trained, re-
+constructions given subsequent sensor measurements are
+found by
+ˆx = F(y).
+(9)
+SDNs can be trained for any set of sensor measure-
+ments, and unlike QR/POD are not entirely reliant
+on principled sensor placement schemes.
+Still, previ-
+ous empirical work suggests that even neural-network
+based reconstructions can be improved through the use
+of QR placement [18]. Both SDNs and QR/POD have
+been used successfully in the reconstruction of high-
+dimensional dynamical systems, but also for broader
+classes of images [1]. This extension is possible because
+both methods rely only on static, point measurements
+and each reconstruction is performed individually. Dy-
+namical systems, on the other hand, inherently depend
+on the temporal evolution of the state, and incorporating
+this dependence into a method for reconstruction offers
+a natural improvement upon existing techniques.
+Our
+work includes these dynamics through the use of trajec-
+tories of sensor measurements.
+
+4
+III.
+SHALLOW RECURRENT DECODER
+NETWORKS
+A.
+SHRED and separation of variables
+The SHRED architecture is based upon the separation
+of variables technique for solving linear partial differen-
+tial equations (PDEs) [40]. Separation of variables as-
+sumes that a solution can be separated into a product of
+spatial and temporal functions u(x, t) = T(t)X(x). This
+solution form is then used to reduce the PDE into or-
+dinary differential equations: one for time T(t) and one
+for space X(x). Such a decomposition also constitutes
+the underpinnings of spectral methods for the numerical
+solution of the PDE, linear or nonlinear [10]. Consider
+the constant coefficient linear PDE
+˙u = L(∂x, ∂2
+x, · · · )u
+(10)
+where u(x, t) specifies the spatio-temporal field of inter-
+est. Typically the initial condition (IC) and boundary
+conditions (BCs) are given by
+IC:
+u(x, 0) = u0(x)
+(11a)
+BCs:
+α1u(0, t) + β1ux(0, t) = g1(t) and
+α2u(L, t) + β2ux(L, t) = g2(t).
+(11b)
+This may be generalized to systems of several spatial
+variables, or a system with no time dependence. The lin-
+ear operator L specifies the spatial derivatives, which in
+turn model the underlying physics of the system. Sim-
+ple examples of L include L = c∂x (the one-way wave
+equation) and L = κ∂2
+x (the heat equation) [10].
+The earliest solutions of linear PDEs assumed separa-
+tion of variables whereby u(x, t) = exp(λt)X(x) was a
+product of a temporal (exponential) function multiplied
+by a spatial function. The parameter λ is in general com-
+plex. This gives the eigenfunction solution of (10) to be
+u(x, t) =
+N
+X
+n=1
+an exp(λnt)ϕn(x)
+(12)
+where ϕn(x) are the eigenfunctions of the linear operator
+and λn are its eigenvalues (Lϕn(x) = λnϕn(x)). Here a
+finite dimensional approximation N is assumed, which is
+standard in practice for numerical evaluation.
+Typically, initial conditions u(x, 0) = u0(x) are im-
+posed in order to uniquely determine the coefficients bn.
+Specifically, at time t = 0 (12) becomes
+u0(x) =
+N
+X
+n=1
+anϕn(x).
+(13)
+Taking the inner product of both sides with respect to
+ϕm(x) and making use of orthogonality gives
+an = ⟨u0(x), ϕn(x)⟩
+(14)
+SHRED instead has measurements at a single spatial
+(sensor) location xs, but with a temporal history. Thus if
+SHRED has, for example, N temporal trajectory points,
+this gives at each time point of the measurement:
+u(xs, tj) =
+N
+X
+n=1
+an exp(λntj)ϕn(xs)
+for j = 1, 2, · · · N.
+(15)
+This results in N equations for the N unknowns an.
+Specifically, the N × N system of equations Ax =
+b is prescribed by the vector components xk = ak
+and bk = u(xs, tk) and matrix components (akj) =
+exp(λktj)ϕk(xs).
+As with the initial condition (11a),
+the time trajectory of measurements at a single loca-
+tion uniquely prescribes the solution. This analysis can
+be generalized to allow for spatially mobile sensors or
+include multiple sensor measurements at a single time
+point. The former case is addressed in [41] and gener-
+ally requires that the sensor’s movement be periodic. In
+the latter case, if there are two measurements at a given
+time tj, then only N/2 trajectory points are needed to
+uniquely determine the solution. Likewise, three sensor
+measurements at a given time requires only N/3 trajec-
+tory points. As a caveat, it should be noted that sensors
+must actually measure the physics in order to perform a
+reconstruction, i.e. if a shock wave has not hit the sensor
+yet, one cannot construct the spatio-temporal dynamics.
+Moreover, SHRED cannot reconstruct regions of space
+where the dynamics are statistically independent.
+Thus, temporal trajectory information at a single spa-
+tial location, or with a moving sensor, can be equivalent
+to knowing the full spatial field at a given point in time.
+The motivation of SHRED is a nonlinear generalization
+of this concept. The proposed architecture has the form
+u = X(T({yi}i=t
+i=t−k)). In separation of variables, one as-
+sumes the form u = X(x)T(t) which allows for the con-
+struction of differential equations for time and space sep-
+arately: dT/dt = cT and LX = cX. However, they are
+not independent, but are related through the constant c.
+Specifically, the solution T(t) is constrained to constants
+that are the eigenvalues of X(x). In a SHRED model, an
+analogous result is obtained through the joint training
+of X and T. Of course, as a generalization to nonlin-
+ear dynamics, rigorous theoretical bounds of SHRED are
+difficult to achieve, much like analytic and numerical so-
+lutions are difficult to rigorously bound in computational
+PDE settings.
+That being said, standard numerical techniques for
+non-linear PDEs can also be obtained with time-series
+of sparse sensor measurements. Consider a spectral solu-
+tion technique [10] whereby numerical solutions are ap-
+proximated by a spectral basis
+u(x, t) =
+N
+X
+n=1
+an(t)ϕn(x).
+(16)
+This spectral decomposition turns the PDE into a sys-
+tem of N coupled ordinary differential equations with
+
+5
+constants of integration that can be uniquely determined
+by requiring the solution satisfy N temporal trajectory
+points.
+Coupled PDEs
+We can also consider coupled, constant coefficient lin-
+ear PDEs. For example, the coupled system
+˙u = L1u + L2v
+(17a)
+˙v = L3u + L4v
+(17b)
+where u(x, t) and v(x, t) specifies the spatio-temporal
+fields of interest. The PDEs can be instead be written in
+the form
+¨u = L1 ˙u + L2L3u + L2L4
+ L−1
+2 ( ˙u −L1u)
+
+(18)
+where (17a) is differentiated with respect to time and
+(17b) is used in order to write the PDEs as a function of
+u(x, t) alone. Thus knowledge of the field u(x, t) alone
+is capable of constructing the solution fields u(x, t) and
+v(x, t). For this second-order (in time) PDE, both an ini-
+tial condition u(x, 0) and an initial velocity require spec-
+ification ˙u(x, 0) in order to uniquely determine the solu-
+tion. As with the previous arguments, a time trajectory
+embedding of 2N measurements can be used to uniquely
+determine the solution.
+B.
+SHRED architecture
+To model temporal dynamics, we rely on recurrent
+neural networks (RNN) [42] and, more specifically, long
+short-term memory networks (LSTM). The most basic
+RNN accepts as an input a sequence of vectors {vi}t
+i=1
+and outputs a single hidden state, ht. This can be ex-
+pressed through the recursion relation
+ht = R(Wcvt + Wrht−1 + br)
+(19)
+where R is a scalar, nonlinear activation function, Wc,
+Wr and br are trainable weights, and h0 =
+0 · · · 0T .
+Generic RNNs are notorious for suffering from the van-
+ishing gradient problem, causing them to have difficulty
+in identifying long term dependencies. LSTMs address
+this issue through the introduction of a so-called “gradi-
+ent super-highway.” Instead of outputting a single hid-
+den state, LSTMs incorporate an additional “cell state”
+which only undergoes minor, pointwise operations, allow-
+ing gradients to flow easily from many time steps in the
+past. LSTMs are perhaps the most commonly used class
+of RNN at the time of writing, due to their ability to
+learn long and short term dependencies [43]. They are
+frequently used in time-series forecasting, natural lan-
+guage processing, and video analysis, among many other
+domains [43]. For a more complete discussion of LSTMs,
+we direct the reader to [30]. The recursion relation of an
+LSTM can be written as
+ht = σ
+ Wo
+ht−1, vt
+
++ bo
+
+⊙tanh(ct)
+(20)
+ct = σ
+ Wf
+ht−1, vt
+
++ bf
+
+⊙ct−1
+(21)
++σ
+ Wi
+ht−1, vt
+
++ bf
+
+⊙tanh
+ Wg
+ht−1, vt
+
++ bg
+
+for
+trainable
+weights
+and
+biases
+WRN
+=
+{Wo, Wf, Wi, Wg, bo, bf, bi, bg}. Both σ, the sigmoid
+function, and tanh operate pointwise. Note that ht can
+be written as function in terms of only {vi}t
+i=1 and
+parameterized by the trainable weights and biases,
+ht = G({vi}t
+i=1; WRN).
+(22)
+We now introduce the SHallow REcurrent Decoder
+(SHRED), which merges an LSTM with the SDN archi-
+tecture. Suppose we have a multivariate time-series of a
+high-dimensional state {xi}T
+i=1 and corresponding mea-
+surements of the system {yi}T
+i=1. Rather than reconstruct
+xi using only yi, as is done by QR/POD and SDN, we let
+an LSTM learn a latent representation using the previous
+k sets of sensor measurements. This latent representa-
+tion is then used by a shallow decoder to reconstruct the
+high-dimensional state. The SHRED architecture can be
+written as
+H
+ {yi}t
+i=t−k
+
+= F
+ G({yi}t
+i=t−k; WRN); WSD)
+
+(23)
+using eqs. 7 and 22. As in the case of SDNs, we use a
+gradient descent method to train the network weights to
+minimize reconstruction loss,
+H ∈argmin
+e
+H∈H
+N
+X
+i=1
+||xi −e
+H
+ {yi}t
+i=t−k
+
+||2.
+(24)
+H, so defined, represents a map from sensor trajecto-
+ries to the full-state.
+IV.
+RESULTS
+A.
+Reconstruction of high-dimensional
+spatio-temporal fields
+We demonstrate the performance of SHRED trained
+with the Adam optimizer [44] on three example datasets.
+In each case, we compare the reconstruction error ob-
+tained by SHRED with randomly placed sensors to
+SHRED with QR placed sensors (QR SHRED), shal-
+low decoder networks with randomly placed sensors (R-
+SDN), shallow decoder networks with QR placed sensors
+(Q-SDN), and linear reconstructions with QR placed sen-
+sors (QR/POD). The considered reconstruction error is
+
+6
+A
+B
+C
+(α)
+FIG. 2: Turbulent flow summary performance. A Example reconstructions obtained via SHRED and QR/POD of a
+turbulent flow when three sensors are available. Ground truth included for comparison. B Reconstruction errors of
+the current state-of-the-art static sensing methods and SHRED with a varying number of available sensors. The
+solid lines denote the median error from 32 trained estimators and the shaded region denotes the interquartile range.
+C Performance of reconstruction methods in the presence of varying levels of added Gaussian white noise. The
+added noise has mean zero and standard deviation equal to α times the mean absolute value of the field. The
+number in parentheses denotes the number of available sensors.
+defined to be the normalized mean square error over each
+state in a test set [2],
+Error = ||H
+ {yj}i
+i−k
+
+−xi||2
+||xi||2
+.
+(25)
+Because SHRED models rely on trajectories of sensor
+measurements to perform state estimation, we truncate
+each dataset to reconstruct only the final N −k temporal
+snapshots, where N is the initial number of samples and
+k is the length of the utilized trajectories. This length
+can be viewed as a hyper-parameter that can be tuned
+according to the data. Detailed network parameters and
+training protocols can be found in the SI. The used pa-
+rameters of each model were selected via hyperparameter
+search. Finally, we note that in this section, training, val-
+idation, and test samples are temporally interspersed. In
+later sections, we demonstrate results in the case that
+training and test sets are temporally distinct, although
+in all cases we assume no errors in sensor drift or syn-
+chronisation. The study of our method under these more
+difficult conditions is an important area of future work.
+The first application we consider is the pressure field
+of a forced isotropic turbulent flow from the Johns Hop-
+kins Turbulence Database [31]. The flow was generated
+by direct numerical simulation using 10243 nodes and the
+pseudo-spectral method. We select a 350 by 350 two di-
+mensional cutout of computed pressure over 1667 evenly
+spaced temporal snapshots from the three dimensional
+simulation. The temporal spacing of the snapshots is ap-
+proximately 0.006 seconds, while the DNS used to gen-
+erate the data utilized time steps of 0.0002 seconds. We
+seek to reconstruct these high-dimensional states from
+trajectories of point measurements of the states. There
+are many options for determining the optimal parame-
+ter k, where k∆t is the maximal time-delay utilized, for
+reconstructions generated by SHRED. In this case, a sim-
+ple hyperparameter search over k ∈{10, 25, 50, 75, 100}
+was used with the number of sensors held constant at
+3. From these possible k, the best performing value of
+k = 100 was selected. Correspondingly, the final 1567
+temporal snapshots of the pressure field are randomly
+split into training, validation, and test sets consisting
+of 1100, 234, and 233 snapshots, respectively. For each
+considered number of sensors, we generate 32 reconstruc-
+tions with all considered methods. We plot the median
+
+7
+A
+B
+C
+(α)
+FIG. 3: SST summary performance. A Example reconstructions obtained via SHRED and QR/POD of sea-surface
+temperature when three sensors are available. Ground truth included for comparison. B Reconstruction errors of
+the current state-of-the-art static sensing methods and SHRED with a varying number of available sensors. The
+solid lines denote the median error from 32 trained estimators and the shaded region denotes the interquartile range.
+C Performance of reconstruction methods in the presence of varying levels of added Gaussian white noise. The
+added noise has mean zero and standard deviation equal to α times the mean absolute value of the field. The
+number in parentheses denotes the number of available sensors.
+performance and denote the interquartile range by the
+shaded region.
+These results are shown in panel B of
+Fig. 2. Even with only a single, randomly placed sen-
+sor, the reconstructions obtained by SHRED yield signifi-
+cantly lower error than competing methods with as many
+as 50 sensors. Moreover, placement via the greedy QR
+algorithm appears to have a negligible impact on recon-
+structive performance. Panel A of Fig. 2 shows sample
+reconstructions obtained by SHRED and QR/POD with
+three sensors. While QR/POD is only able to identify
+large scale features, SHRED accurately reconstructs fine
+grain features as well.
+Numerically, with 1 sensor the
+median computed error of QR/POD is 0.89 while with
+SHRED the median computed error is 0.11, an approx-
+imately 8 times improvement in performance. The poor
+performance of QR/POD in this example highlights a
+well-known limitation of gappy-POD based techniques.
+The turbulent flow is both tri-periodic and nonstation-
+ary, presenting challenges that POD is fundamentally un-
+able to handle. Such techniques remain widespread in
+part because of their relative interpretability and in part
+because there remains a lack of methods for inferring
+high-dimensional states from sparse sensor measurements
+alone. The comparison to POD illustrates the need for
+nonlinear methods in such cases.
+In the vast majority of real world applications, and in
+contrast to numerical simulations, data is often corrupted
+by noise. As a result, methods for state estimation must
+exhibit resilience to noise. To measure this resilience, we
+corrupt the data with Gaussian noise of mean zero and
+standard deviation of α×|¯x|, where |¯x| is the average ab-
+solute value over all points in all snapshots of the training
+set. We then generate 32 state estimates exactly as be-
+fore using all considered methods. The resulting median
+reconstruction error and interquartile range for varying
+α is shown in panel C of Fig. 2. Again, SHRED outper-
+forms competing techniques using a far greater number
+of sensors.
+The second application we examine is that of sea-
+surface temperature (SST). We consider weekly mean
+sea-surface temperature from the years 1992 to 2019 as
+reported by NOAA [32].
+Unlike the previous example
+of a simulated turbulent flow, SST is a sensor generated
+dataset for which governing equations are not known and
+thus represents a more practical application of SHRED.
+The data consists of 1400 snapshots of a 180 by 360 grid,
+of which 44,219 spatial locations correspond to the sea-
+surface. Each snapshot corresponds to the weekly mean
+
+8
+A
+B
+C
+(α)
+FIG. 4: Ozone summary performance. A Example reconstructions obtained via SHRED and QR/POD of
+atmospheric ozone concentration when three sensors are available. Only one of thirty elevations is shown. Ground
+truth included for comparison. B Reconstruction errors of the current state-of-the-art static sensing methods and
+SHRED with a varying number of available sensors. The solid lines denote the median error from 32 trained
+estimators and the shaded region denotes the interquartile range. C Performance of reconstruction methods in the
+presence of varying levels of added Gaussian white noise. The added noise has mean zero and standard deviation
+equal to α times the mean absolute value of the field. The number in parentheses denotes the number of available
+sensors.
+sea-surface temperature for the respective week. In this
+case, it is easy to make physical arguments for deter-
+mining k, the number of lags used by SHRED. Since
+each data snapshot represents weekly mean sea-surface
+temperature, we expect a strong signal with period 52
+corresponding to annual fluctuations in temperature. As
+a result, we select k = 52 to capture this annual varia-
+tion. We allow the input trajectories to SHRED to have a
+length of 52, corresponding to one year of measurements.
+The final 1348 samples are divided into training, test,
+and validation sets consisting of 1000, 174, and 174 snap-
+shots, respectively. Analogous to Fig. 2, Fig. 3 shows
+example reconstructions and reconstruction error distri-
+butions of SHRED and existing techniques both in the
+presence and absence of added Gaussian noise. The con-
+tour plots shown in panel A of Figure 3 show the ground
+truth and reconstructions with the mean field subtracted.
+We choose to present this visualization because in com-
+parison to other example datasets, the global mean-field
+dominates and the mean subtracted contour plots more
+clearly demonstrate the difference between QR/POD and
+SHRED. Again, the reconstructions obtained by SHRED
+are both visually and empirically superior when few sen-
+sors are available.
+When one sensor is available, the
+median error from QR/POD (0.12) is approximately 6
+times greater than that of SHRED (0.02). Again, the re-
+constructions obtained by SHRED are both visually and
+empirically superior, while requiring far fewer sensors,
+which can be randomly placed without a loss of accu-
+racy.
+The last system for which we consider the perfor-
+mance of SHRED is a simulation of atmospheric chem-
+istry.
+Chemical transport models (CTM) simulate the
+evolution of an ensemble of interacting chemical species
+through a transport operator [33, 45]
+∂ni
+∂t = −∇· (niU)
+(26)
+and a chemical operator
+dni
+dt = (Pi −Li)(n) + Ei −Di,
+(27)
+
+9
+where each entry n =
+n1 n2 · · · nK
+T represents the
+number density of a specific chemical species, U is the
+wind vector, (Pi−Li)(n) is the local chemical production
+and loss term, Ei the emission rate of a species, and Di
+the deposition rate. The output of a CTM, then, consists
+of concentrations for K chemical species for a grid of lat-
+itudes, longitudes, and elevations. The data we consider
+is drawn from the work of Velegar et al. [45] and contains
+simulated atmospheric ozone concentration generated by
+the CTM software GEOS-Chem [33] over the course of
+a year with dynamical time steps of 20 minutes.
+The
+accessed data from [45] is a compressed SVD represen-
+tation using the first 50 POD modes. The decompressed
+data matrix consists of 26,208 snapshots of a 46 by 72
+by 30 (latitude, longitude, elevation) grid with temporal
+spacing of 20 minutes, from which we further downsam-
+ple to obtain 2,600 global ozone concentration fields with
+temporal spacing of roughly 200 minutes. To account for
+the fact that the data matrix is inherently rank 50, we
+add Gaussian noise with standard deviation α = 0.05 to
+the data before performing any analyses. Identical to the
+turbulent flow example, k = 100 for the reconstructions
+generated by SHRED was chosen by a hyperparameter
+search. The resulting snapshots are divided into training,
+validation, and test sets consisting of 1900, 300, and 300
+entries, respectively.
+Fig. 4 shows the performance of SHRED and existing
+techniques on this atmospheric ozone experiment. With 1
+sensor, the median computed error of QR/POD (0.44) is
+roughly 7 times that of SHRED (0.06). However, in this
+case when many sensors are available (> 50) QR/POD
+performs comparably to nonlinear reconstructions. This
+performance is an artifact of the use of a compressed,
+rank 50 representation of the data.
+We note that for both the atmospheric ozone con-
+centration and turbulent flow results, we have trained
+on synthetic data from validated high-fidelity models.
+As full-state measurements of physical high-dimensional
+systems are frequently impossible, such training proce-
+dures are common in data-driven reconstruction meth-
+ods.
+However, the performance of any machine learn-
+ing model trained using synthetic data is critically re-
+liant upon the fidelity of the model used to generate the
+synthetic data.
+In real-world applications devoid of a
+well-validated numerical model or a training set of high-
+dimensional state measurements, it is unlikely that any
+ML model mapping from sparse sensor measurements to
+the full-state will perform well. One manner in which
+this simulation-to-reality gap can be addressed is by per-
+forming an expensive data collection period using a large
+number of deployed sensors. A shallow recurrent decoder
+could then be used to map from a small number of sen-
+sors to the larger set of sensor measurements as opposed
+to the full state.
+After the training period, costs can
+be reduced by removing many of the sensors that were
+initially deployed and interpolating between the sensor
+locations to which the map has been learned.
+A
+B
+FIG. 5: Forecasting error for sea-surface temperature
+with ∆t as one week. A LSTM is trained to forecast QR
+placed, panel A, or randomly placed, panel B, sensor
+measurements which are subsequently used to perform
+reconstructions using SHRED and gappy POD. 16
+forecasts are performed and the median error is denoted
+by the solid lines, with the 25th and 75th percentiles of
+reconstruction error defining the shaded region. The
+dashed line represents an ensembled forecast.
+B.
+Forecasting of high-dimensional spatio-temporal
+fields
+In this section, we explore how the expressiveness of
+SHRED models with few sensors can be leveraged to per-
+form forecasts of high-dimensional spatio-temporal states
+using only a limited subsampling of the state. Forecast-
+ing the evolution of high-dimensional states from sensor
+measurements is an exceedingly challenging task, owing
+to the fact that doing so combines the problem of sys-
+tem identification with the difficulties of forecasting. We
+propose a two step approach that leverages the success
+of LSTMs for low-dimensional time-series forecasting [43]
+and SHRED for state estimation.
+Let {xi}Tt
+1
+represent a training dataset of temporally
+ordered states with corresponding sensor measurements
+{yi}Tt
+1 .
+We train an LSTM network, G
+ {yi}t
+t−k
+
+, to
+map between a trajectory of sensor measurements and
+the subsequent measurement, yt+1, by finding
+G ∈argmin
+e
+G∈G
+N
+X
+i=1
+||yt+1 −eG
+ {yj}i
+i−k
+
+||2
+(28)
+
+10
+A
+B
+FIG. 6: Forecasting error for turbulent flow with
+∆t = 0.006s. A LSTM is trained to forecast QR placed,
+panel A, or randomly placed, panel B, sensor
+measurements which are subsequently used to perform
+reconstructions using SHRED and gappy POD. In this
+experiment, the validation set is selected from earlier in
+the data so that the forecast occurs immediately after
+following training data. 16 forecasts are performed and
+the median error is denoted by the solid lines, with the
+25th and 75th percentiles of reconstruction error
+defining the shaded region. The dashed line represents
+an ensembled forecast.
+using the ADAM optimizer on the training data. Do-
+ing so, we then forecast beyond the time interval of the
+training data to obtain forecasted sensor measurements
+{ˆyi}Tt+p
+Tt+1 for p > 1. The forecasted measurements are
+used by a SHRED model, trained on {xi}Tt
+1 , to obtain
+forecasts of the high-dimensional state x. Detailed train-
+ing protocols are included in SI.
+The forecasted states {ˆxi}Tt+p
+Tt+1 are evaluated against
+the ground truth for each ∆t forecast rather than the
+mean error across all forecasts to demonstrate perfor-
+mance over forecasts of varying length. The error at time
+p∆t is thus given by
+Error =
+
+H
+
+{ˆyj}p
+p−k
+
+−xp
+
+
+2
+||xp||2
+.
+(29)
+We also include reconstructions from forecasted sensor
+measurements obtained by gappy POD for comparison,
+akin to the work of [46]. Finally, we only show results for
+SST and turbulent flow data, as the compressed form of
+the atmospheric ozone data is biased towards both QR
+placement and POD reconstructions.
+For the SST example, we select the first 85% of the
+dataset to act as training data, the subsequent 20 snap-
+shots as validation data, and the remainder as the test
+set. A LSTM for forecasting is trained on the training
+data and sensor measurements are forecast beyond the
+validation set. These forecasted sensor measurements are
+then used to construct a forecast of the high-dimensional
+spatio-temporal field using a trained SHRED model and
+gappy POD. We consider the cases that the sensors are
+placed via QR or randomly. We perform 16 runs for each
+experiment, and consider an ensembled forecast found by
+averaging the forecast of each run. The results for QR
+placed and randomly placed sensors are shown in Fig. 5
+with ∆t representing one week. With QR placement, the
+forecasts obtained by SHRED outperform that of POD
+in the short-term and are similar for longer forecast hori-
+zons. However, with randomly placed sensors SHRED is
+still able to obtain comparably accurate forecasts while
+POD fails to consistently yield faithful reconstructions.
+Unlike sea-surface temperature, even medium-range
+forecasts of a turbulent flow are impossible due to the
+fact that the flow is not quasi-periodic or stationary in
+nature. For this reason, we focus on achieving accurate
+short-term forecasts in this application.
+To do so, we
+use the same scheme as before, with the exception that
+the validation set is selected to occur earlier in the train-
+ing data. Of the 1567 snapshots of the turbulent flow
+with sufficiently long preceding measurement histories,
+the first 1000 are selected as training, followed by 50
+samples selected for validation. The next 100 samples
+are also used for training and the remainder constitute
+the test set. This scheme allows for more accurate short-
+term forecasts because the forecast occurs directly after
+the training data, as opposed to directly after the valida-
+tion set. Fig. 6 shows the results for the cases that sen-
+sors are placed via QR and randomly with ∆t represent-
+ing 0.006 seconds. In both cases, the forecast obtained
+by SHRED deteriorates quickly but greatly outperforms
+that obtained by POD reconstructions.
+C.
+Temporal spacing of time-delays
+To this point, we have only considered SHRED mod-
+els where the temporal spacing between utilized sensor
+measurements is equal to the discretization, ∆t, of the
+data snapshots.
+However, time-delay embedding tech-
+niques can often be sensitive to the selection of both the
+maximal time-delay incorporated, k∆t, and the temporal
+spacing of those time-delays, n∆t∆t [47]. In this nota-
+tion, Sections IV A and IV B show results for n∆t = 1 and
+in this section we consider the performance of SHRED for
+varying n∆t.
+We perform two sets of experiments for each consid-
+ered dataset. The first varies n∆t but keeps k approxi-
+mately constant. This corresponds to a decrease in the
+
+11
+1
+3
+5
+7
+9
+0.050
+0.075
+0.100
+0.125
+0.150
+0.175
+0.200
+Error (const. k)
+Turbulent flow
+1
+3
+5
+7
+9
+0.0150
+0.0175
+0.0200
+0.0225
+0.0250
+0.0275
+0.0300
+SST
+1
+3
+5
+7
+9
+0.050
+0.055
+0.060
+0.065
+0.070
+0.075
+Ozone
+1
+3
+5
+7
+Temporal Spacing (n t)
+0.050
+0.075
+0.100
+0.125
+0.150
+0.175
+0.200
+Error (const. k/n t)
+1
+2
+3
+4
+5
+Temporal Spacing (n t)
+0.0150
+0.0175
+0.0200
+0.0225
+0.0250
+0.0275
+0.0300
+1
+3
+5
+7
+9
+Temporal Spacing (n t)
+0.050
+0.055
+0.060
+0.065
+0.070
+0.075
+FIG. 7: Error results for SHRED models in the three considered datasets when the temporal spacing of the
+trajectories used for reconstruction is varied. k denotes the maximal time-delay of the trajectories used by a SHRED
+model. n∆t denotes the temporal spacing between utilized time-delays in terms of of the discretization of the data,
+∆t. The top row considers the case where k is approximately fixed to the values specified in Section IV A and the
+bottom row considers the case where k varies in addition to n∆t such that k/n∆t is fixed to the values of k specified
+in IV A. Each plot shows the median and interquartile range of reconstruction error from 32 trained SHRED models.
+total number of sensor measurements in the input to a
+SHRED model. The second set of experiments varies n∆t
+and k such that the total number of utilized sensor mea-
+surements is held constant. As a result, the first N−kn∆t
+snapshots in each dataset must be discarded. We there-
+fore modify the number of samples in the training, val-
+idation, and test sets such that there are 900 training
+samples for the turbulent flow, 1000 for the SST, and
+1000 for the atmospheric ozone data.
+The results for
+both experiments are reported in Fig. 7. In both cases,
+all other network hyperparameters and the manner in
+which the train/validation/test split is performed remain
+unchanged from Section IV A.
+We find that the performance of SHRED in the cases
+of SST and atmospheric ozone concentration remains
+largely unchanged when n∆t is varied, provided k is also
+scaled to use the same number of sensor measurements.
+If n∆t is increased and k is held fixed, performance dete-
+riorates for larger values of n∆t.
+On the other hand, our results are less clear when
+SHRED is applied to the turbulent flow data. It appears
+that commensurately increasing n∆t and k moderately
+improves performance, while increasing only n∆t does not
+have a strong effect on reconstruction accuracy. However,
+it is difficult to draw strong conclusions from these results
+as there are strong indications that 900 training samples
+are insufficient to train the model. This is illustrated by
+moderately worse median performance and much larger
+variance for the cases n∆t = 1 in Fig. 7. The only differ-
+ence between these models and those from Section IV A
+is a reduction in access to training data. The effect of this
+reduction is likely more visible in the turbulent flow data
+than SST or atmospheric ozone because it is intrinsically
+a more complex dataset.
+V.
+DISCUSSION
+We have demonstrated SHRED as a method for sys-
+tem identification/state estimation and the forecasting
+
+12
+of high-dimensional time-series data. By including sensor
+trajectories in the model for reconstruction, SHRED out-
+performed competing techniques based on static recon-
+structions from gappy POD or shallow decoder networks.
+We considered three high-dimensional, spatio-temporal
+datasets, a synthetically generated forced turbulent flow,
+a simulation of atmospheric ozone concentration from a
+chemical transport model, and weekly mean sea-surface
+temperature.
+The superior performance of SHRED held across both
+interpolatory (reconstruction) and extrapolatory (fore-
+casting) regimes. In Section IV A, the task was purely
+an interpolatory reconstruction. Training and test data,
+upon which we evaluate reconstruction accuracy, were
+drawn from the same distribution. As a result, overfit-
+ting to the training data was not an issue, and SHRED
+was able to capture fine grain details of complex flows
+with as few as one or three sensors. Applied in this man-
+ner, SHRED offers an attractive method for compression
+of large datasets as well as a framework for developing
+reduced order models of dynamical systems. The perfor-
+mance of SHRED in this section is also indicative of the
+promise of SHRED for high-dimensional data that is sta-
+tionary or periodic. Notably, SHRED demonstrated re-
+markable indifference towards sensor placement. In this
+interpolatory regime, issues arising from the necessity of
+optimal sensor placement can be mitigated by increas-
+ing the information content of inputs to a neural network
+through the use of sensor trajectories. These results show
+that the sensor trajectories encode a significant amount
+of information, just as is expected of time-delayed em-
+beddings of dynamics [48–53].
+In Section IV B, the task at hand was forecasting the
+evolution of high-dimensional spatio-temporal data. In
+contrast to Section IV A, training and test sets are tem-
+porally separated and thus the results are extrapolatory
+in nature. High-dimensional forecasts were accomplished
+by forecasting low-dimensional sensor measurements and
+constructing states from the predicted measurements.
+Forecasting is an inherently difficult task for complex
+systems, especially in the high-dimensional fields often
+encountered in the engineering and the physical sciences.
+Still, SHRED’s use of sensor trajectories allows for im-
+proved forecasting performance as compared to existing
+methods. Furthermore, SHRED for forecasting exhibits
+robustness to sensor placement not found in the other
+methods considered.
+We thus advocate for the use of
+SHRED for both the tasks of state estimation and state
+prediction from forecasted sensor measurements.
+Fur-
+ther work must be done to improve the accuracy of low-
+dimensional sensor forecasts to be used in conjunction
+with SHRED for state prediction. Improving the fore-
+casts of high-dimensional data could enable on-the-fly
+compression and novel sensing mechanisms.
+Finally, future work will explore the extension of
+SHRED to multi-modal data, as briefly discussed in the
+section on coupled PDEs. This extension can be viewed
+as an augmentation of the full-state representation to in-
+clude sensor measurements from various modalities. The
+inputs to the network then have the interpretation of en-
+coding both the spatial location and sensing modality. As
+in the cases considered here, the application of SHRED
+in multi-modal settings will require a high-fidelity model
+with priors that well-represent the physical system of in-
+terest. Provided such a model and coupling between the
+field of observations and augmented full-state, in princi-
+ple it is possible to apply our methodology to reconstruct
+the full-state from measurements of one of its constituent
+fields.
+DATA AVAILABILITY
+Each of the three datasets considered in this paper
+have been released in previous work [31, 32, 45].
+For
+details of accessing the data, we direct the reader to the
+SI.
+CODE AVAILABILITY
+The
+code
+used
+to
+generate
+the
+results
+in
+this
+paper
+can
+be
+found
+at
+(https://github.com/Jan-
+Williams/pyshred).
+ACKNOWLEDGEMENTS
+The authors acknowledge support from the National
+Science Foundation AI Institute in Dynamic Systems
+(grant number 2112085). JNK further acknowledges sup-
+port from the Air Force Office of Scientific Research
+(FA9550-19-1-0011 and FA9550-19-1-0386).
+[1] Manohar, K., Brunton, B. W., Kutz, J. N. & Brun-
+ton, S. L. Data-Driven Sparse Sensor Placement for Re-
+construction: Demonstrating the Benefits of Exploiting
+Known Patterns. IEEE Control Systems Magazine 38,
+63–86 (2018). Conference Name: IEEE Control Systems
+Magazine.
+[2] Erichson, N. B. et al. Shallow neural networks for fluid
+flow reconstruction with limited sensors. Proceedings of
+the Royal Society A: Mathematical, Physical and Engi-
+neering Sciences 476, 20200097 (2020). Publisher: Royal
+Society.
+[3] Yu, J. & Hesthaven, J. S.
+Flowfield Reconstruction
+Method Using Artificial Neural Network.
+AIAA Jour-
+nal 57, 482–498 (2019). Publisher: American Institute
+of Aeronautics and Astronautics.
+
+13
+[4] Callaham, J. L., Maeda, K. & Brunton, S. L. Robust
+flow reconstruction from limited measurements via sparse
+representation. Physical Review Fluids 4, 103907 (2019).
+Publisher: American Physical Society.
+[5] Bolton, T. & Zanna, L. Applications of Deep Learning
+to Ocean Data Inference and Subgrid Parameterization.
+Journal of Advances in Modeling Earth Systems 11, 376–
+399 (2019).
+[6] Takens, F. Detecting strange attractors in turbulence. In
+Rand, D. & Young, L.-S. (eds.) Dynamical Systems and
+Turbulence, Warwick 1980, Lecture Notes in Mathemat-
+ics, 366–381 (Springer, Berlin, Heidelberg, 1981).
+[7] Gilpin, W.
+Deep reconstruction of strange attractors
+from time series.
+In Larochelle, H., Ranzato, M.,
+Hadsell, R., Balcan, M. F. & Lin, H. (eds.) Advances
+in Neural Information Processing Systems,
+vol. 33,
+204–216 (Curran Associates, Inc., 2020). URL https:
+//proceedings.neurips.cc/paper_files/paper/2020/
+file/021bbc7ee20b71134d53e20206bd6feb-Paper.pdf.
+[8] Uribarri, G. & Mindlin, G. B. Dynamical time series em-
+beddings in recurrent neural networks. Chaos, Solitons
+& Fractals 154, 111612 (2022).
+[9] Young, C. D. & Graham, M. D.
+Deep learning de-
+lay coordinate dynamics for chaotic attractors from
+partial observable data.
+Phys. Rev. E 107, 034215
+(2023).
+URL
+https://link.aps.org/doi/10.1103/
+PhysRevE.107.034215.
+[10] Kutz, J. N. Data-Driven Modeling & Scientific Computa-
+tion: Methods for Complex Systems & Big Data (Oxford
+University Press, Oxford, 2013), 1st edition edn.
+[11] Brunton, S. L. & Kutz, J. N.
+Data-Driven Science
+and Engineering:
+Machine Learning, Dynamical Sys-
+tems, and Control (Cambridge University Press, Cam-
+bridge, 2019), 1st edition edn.
+[12] Everson, R. & Sirovich, L. Karhunen–Lo`eve procedure
+for gappy data. JOSA A 12, 1657–1664 (1995). Pub-
+lisher: Optica Publishing Group.
+[13] Drmaˇc, Z. & Gugercin, S. A New Selection Operator for
+the Discrete Empirical Interpolation Method—Improved
+A Priori Error Bound and Extensions. SIAM Journal on
+Scientific Computing 38, A631–A648 (2016). Publisher:
+Society for Industrial and Applied Mathematics.
+[14] Barrault, M., Maday, Y., Nguyen, N. C. & Patera, A. T.
+An ‘empirical interpolation’ method: application to ef-
+ficient reduced-basis discretization of partial differential
+equations. Comptes Rendus Mathematique 339, 667–672
+(2004).
+[15] Chaturantabut, S. & Sorensen, D. C. Nonlinear Model
+Reduction via Discrete Empirical Interpolation. SIAM
+Journal on Scientific Computing 32, 2737–2764 (2010).
+Publisher: Society for Industrial and Applied Mathemat-
+ics.
+[16] Carter, D. W., Voogt, F. D., Soares, R. & Ganapathisub-
+ramani, B. Data-driven sparse reconstruction of flow over
+a stalled aerofoil using experimental data. Data-Centric
+Engineering 2, e5 (2021). Publisher: Cambridge Univer-
+sity Press.
+[17] Sahba, S. et al. Wavefront sensor fusion via shallow de-
+coder neural networks for aero-optical predictive control.
+In Interferometry XXI, vol. 12223, 11–17 (SPIE, 2022).
+[18] Williams, J., Zahn, O. & Kutz, J. N. Data-driven sen-
+sor placement with shallow decoder networks (2022).
+ArXiv:2202.05330 [math].
+[19] Boyd, S. & Vandenberghe, L.
+Convex Optimization
+(2004). ISBN: 9780511804441 Publisher: Cambridge Uni-
+versity Press.
+[20] Joshi, S. & Boyd, S. Sensor Selection via Convex Opti-
+mization. IEEE Transactions on Signal Processing 57,
+451–462 (2009). Conference Name: IEEE Transactions
+on Signal Processing.
+[21] Caselton, W. F. & Zidek, J. V. Optimal monitoring net-
+work designs. Statistics & Probability Letters 2, 223–227
+(1984).
+[22] Krause, A., Singh, A. & Guestrin, C. Near-Optimal Sen-
+sor Placements in Gaussian Processes: Theory, Efficient
+Algorithms and Empirical Studies. The Journal of Ma-
+chine Learning Research 9, 235–284 (2008).
+[23] Lindley, D. V. On a Measure of the Information Pro-
+vided by an Experiment. The Annals of Mathematical
+Statistics 27, 986–1005 (1956). Publisher: Institute of
+Mathematical Statistics.
+[24] Sebastiani, P. & Wynn, H. P. Maximum Entropy Sam-
+pling and Optimal Bayesian Experimental Design. Jour-
+nal of the Royal Statistical Society. Series B (Statistical
+Methodology) 62, 145–157 (2000). Publisher: [Royal Sta-
+tistical Society, Wiley].
+[25] Paninski, L. Asymptotic theory of information-theoretic
+experimental design. Neural Computation 17, 1480–1507
+(2005).
+[26] Clark, E., Kutz, J. N. & Brunton, S. L. Sensor Selection
+With Cost Constraints for Dynamically Relevant Bases.
+IEEE Sensors Journal 20, 11674–11687 (2020). Confer-
+ence Name: IEEE Sensors Journal.
+[27] Clark, E., Brunton, S. L. & Kutz, J. N. Multi-Fidelity
+Sensor Selection: Greedy Algorithms to Place Cheap and
+Expensive Sensors With Cost Constraints. IEEE Sensors
+Journal 21, 600–611 (2021). Conference Name: IEEE
+Sensors Journal.
+[28] Clark, E., Askham, T., Brunton, S. L. & Nathan Kutz,
+J.
+Greedy Sensor Placement With Cost Constraints.
+IEEE Sensors Journal 19, 2642–2656 (2019).
+Confer-
+ence Name: IEEE Sensors Journal.
+[29] Manohar, K., Kaiser, E., Brunton, S. L. & Kutz, J. N.
+Optimized Sampling for Multiscale Dynamics. Multiscale
+Modeling & Simulation 17, 117–136 (2019). Publisher:
+Society for Industrial and Applied Mathematics.
+[30] Hochreiter, S. & Schmidhuber, J.
+Long Short-Term
+Memory. Neural Computation 9, 1735–1780 (1997).
+[31] Li, Y. et al. A public turbulence database cluster and
+applications to study Lagrangian evolution of velocity
+increments in turbulence. Journal of Turbulence 9, N31
+(2008).
+[32] Reynolds, R. W., Rayner, N. A., Smith, T. M., Stokes,
+D. C. & Wang, W. An Improved In Situ and Satellite
+SST Analysis for Climate. Journal of Climate 15, 1609–
+1625 (2002). ADS Bibcode: 2002JCli...15.1609R.
+[33] Bey, I. et al.
+Global modeling of tropospheric chem-
+istry with assimilated meteorology: Model description
+and evaluation. Journal of Geophysical Research: Atmo-
+spheres 106, 23073–23095 (2001).
+[34] Kasai, J., Pappas, N., Peng, H., Cross, J. & Smith,
+N. A.
+Deep Encoder, Shallow Decoder:
+Reevalu-
+ating Non-autoregressive Machine Translation (2021).
+ArXiv:2006.10369 [cs].
+[35] Chung, J., Gulcehre, C., Cho, K. & Bengio, Y. Empir-
+ical Evaluation of Gated Recurrent Neural Networks on
+Sequence Modeling (2014). ArXiv:1412.3555 [cs].
+
+14
+[36] Lukoˇseviˇcius, M. A Practical Guide to Applying Echo
+State Networks. In Montavon, G., Orr, G. B. & M¨uller,
+K.-R. (eds.) Neural Networks: Tricks of the Trade: Sec-
+ond Edition, Lecture Notes in Computer Science, 659–
+686 (Springer, Berlin, Heidelberg, 2012).
+[37] Vaswani, A. et al.
+Attention Is All You Need (2023).
+ArXiv:1706.03762 [cs].
+[38] LeCun, Y., Bengio, Y. & Hinton, G. Deep learning. Na-
+ture 521, 436–444 (2015).
+[39] He, K., Zhang, X., Ren, S. & Sun, J.
+Deep Residual
+Learning for Image Recognition.
+In 2016 IEEE Con-
+ference on Computer Vision and Pattern Recognition
+(CVPR), 770–778 (2016). ISSN: 1063-6919.
+[40] Folland, G. B. Introduction to partial differential equa-
+tions, vol. 102 (Princeton university press, 1995).
+[41] Ebers, M. R., Williams, J. P., Steele, K. M. & Kutz, J. N.
+Leveraging arbitrary mobile sensor trajectories with shal-
+low recurrent decoder networks for full-state reconstruc-
+tion (2023). 2307.11793.
+[42] Rumelhart, D. E. & McClelland, J. L. Learning Internal
+Representations by Error Propagation. In Parallel Dis-
+tributed Processing: Explorations in the Microstructure
+of Cognition: Foundations, 318–362 (MIT Press, 1987).
+Conference Name: Parallel Distributed Processing: Ex-
+plorations in the Microstructure of Cognition: Founda-
+tions.
+[43] Lindemann, B., M¨uller, T., Vietz, H., Jazdi, N. &
+Weyrich, M. A survey on long short-term memory net-
+works for time series prediction. Procedia CIRP 99, 650–
+655 (2021).
+[44] Kingma, D. P. & Ba, J. Adam: A Method for Stochastic
+Optimization (2017). ArXiv:1412.6980 [cs].
+[45] Velegar, M., Erichson, N. B., Keller, C. A. & Kutz, J. N.
+Scalable diagnostics for global atmospheric chemistry us-
+ing Ristretto library (version 1.0). Geoscientific Model
+Development 12, 1525–1539 (2019). Publisher: Coperni-
+cus GmbH.
+[46] Parish, E. J. & Carlberg, K. T.
+Time-series machine-
+learning error models for approximate solutions to pa-
+rameterized dynamical systems.
+Computer Methods in
+Applied Mechanics and Engineering 365, 112990 (2020).
+[47] Abarbanel, H.
+Analysis of Observed Chaotic Data
+(Springer Science & Business Media, 2012).
+[48] Brunton, S. L., Brunton, B. W., Proctor, J. L., Kaiser,
+E. & Kutz, J. N. Chaos as an intermittently forced linear
+system. Nature communications 8, 1–9 (2017).
+[49] Arbabi, H. & Mezic, I. Ergodic theory, dynamic mode
+decomposition, and computation of spectral properties
+of the koopman operator. SIAM Journal on Applied Dy-
+namical Systems 16, 2096–2126 (2017).
+[50] Lee, S., Dietrich, F., Karniadakis, G. E. & Kevrekidis,
+I. G.
+Linking gaussian process regression with data-
+driven manifold embeddings for nonlinear data fusion.
+Interface focus 9, 20180083 (2019).
+[51] Pan, S. & Duraisamy, K. On the structure of time-delay
+embedding in linear models of non-linear dynamical sys-
+tems. Chaos: An Interdisciplinary Journal of Nonlinear
+Science 30, 073135 (2020).
+[52] Kamb, M., Kaiser, E., Brunton, S. L. & Kutz, J. N. Time-
+delay observables for koopman: Theory and applications.
+SIAM Journal on Applied Dynamical Systems 19, 886–
+917 (2020).
+[53] Bakarji, J., Champion, K., Kutz, J. N. & Brunton, S. L.
+Discovering governing equations from partial measure-
+ments with deep delay autoencoders.
+arXiv preprint
+arXiv:2201.05136 (2022).

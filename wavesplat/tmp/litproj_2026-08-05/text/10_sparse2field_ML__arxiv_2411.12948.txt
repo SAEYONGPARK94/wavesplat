@@ -1,0 +1,918 @@
+manuscript submitted to Geophysical Research Letters
+Attention-Based Reconstruction of Full-Field Tsunami
+Waves from Sparse Tsunameter Networks
+Edward McDugald1,2, Arvind Mohan2, Darren Engwirda3,5, Agnese Marcato4,
+Javier Santos4
+1University of Arizona
+2Computer, Computational, and Statistical Sciences Division, Los Alamos National Laboratory
+3Theoretical Division, Los Alamos National Laboratory
+4Earth and Environmental Sciences, Los Alamos National Laboratory
+5Environment, Commonwealth Scientific & Industrial Research Organisation
+Key Points:
+• An attention-based neural network specialized for sparse sensing is implemented
+to reconstruct tsunami waves from sparse observations.
+• We test our model on tsunami simulations whose epicenters differ from those used
+in training, replicating realistic forecasting conditions.
+• We compare our method to the Linear Interpolation with Huygens-Fresnel Prin-
+ciple to generate virtual waveforms, showing improved accuracy.
+Corresponding author: Edward McDugald, =emcdugald@arizona.edu=
+–1–
+arXiv:2411.12948v5  [cs.LG]  19 Jul 2025
+
+manuscript submitted to Geophysical Research Letters
+Abstract
+We investigate the potential of an attention-based neural network architecture, the Sen-
+seiver, for sparse sensing in tsunami forecasting. Specifically, we focus on the Tsunami
+Data Assimilation Method, which generates forecasts from tsunameter networks. Our
+model is used to reconstruct high-resolution tsunami wavefields from extremely sparse
+observations, including cases where the tsunami epicenters are not represented in the train-
+ing set. Furthermore, we demonstrate that our approach significantly outperforms the
+Linear Interpolation with Huygens-Fresnel Principle in generating dense observation net-
+works, achieving markedly improved accuracy.
+Plain Language Summary
+While machine learning methods have achieved accurate forecasts of tsunami wave-
+forms at fixed observation points, the full-field reconstruction of tsunami waves from sparse
+observations has not yet been demonstrated using machine learning techniques. This chal-
+lenge is highly relevant to tsunami data assimilation, where in-ocean tsunameter obser-
+vations are integrated with numerical models to improve tsunami forecasts. In this study,
+we employ an attention-based neural network architecture, the Senseiver, to produce high-
+fidelity reconstructions of tsunami wavefields from extremely sparse tsunameter measure-
+ments at realistic sensor locations. To illustrate the practical value of our approach for
+tsunami forecasters, we perform experiments in which the Senseiver generates virtual wave-
+forms within a sparse observation network, and we compare its performance to a widely
+used interpolation method for the same task.
+1 Introduction
+Tsunami early warning systems are critical for mitigating the devastating human
+and economic impacts of these natural hazards. Most operational systems rely on par-
+tial differential equation (PDE)-based solvers, where the initial ocean surface displace-
+ment is inferred from earthquake source parameters and then propagated using shallow
+water equation (SWE) models. Widely adopted frameworks include NOAA’s MOST sys-
+tem (V. Titov et al., 2016; V. V. Titov & Gonzalez, 1997), GeoClaw (Berger et al., 2011;
+LeVeque et al., 2011), and Gerris/Basilisk (Popinet, 2012, 2020). Despite broad use, these
+approaches face significant challenges, including uncertainty in seismic parameter esti-
+mation, high computational demand, and limited real-time adaptability.
+To overcome these limitations and enable rapid response, tsunami forecasting in-
+creasingly leverages sparse offshore and onshore observations for source characterization
+and direct wave prediction. Methods such as DART buoy data inversion (Percival et al.,
+2011), direct energy estimation from deep-ocean pressure measurements (Bernard et al.,
+2013), and real-time data assimilation using GNSS and other sensors (Tsushima & Ohta,
+2014) have improved speed and accuracy, yet perform best when observation networks
+are sufficiently dense and well-placed. This has motivated the development of sparse sens-
+ing strategies to enhance observational coverage through techniques such as the gener-
+ation of virtual waveform observations and optimization of sensor placement. For exam-
+ple, Wang et al.’s (Wang et al., 2019) Huygens-Fresnel interpolation synthesizes virtual
+tsunami waveforms from sparse tsunameter observations, effectively constructing a denser
+network that can then be used as input to data assimilation schemes, such as optimal
+interpolation (Maeda et al., 2015). Concurrently, sensor placement optimization has be-
+come an active research area, with Fujita et al. (Fujita et al., 2024) combining sensor
+placement and proper orthogonal decomposition for pseudo-super-resolution, and Wang
+et al. (Wang et al., 2020) applying empirical orthogonal function (EOF) analysis to op-
+timally deploy gauges around Crete Island for maximal early warning capability. Notably,
+these methods are rooted primarily in statistical or physics-based frameworks and have
+rarely incorporated machine learning (ML) architectures for wavefield reconstruction.
+–2–
+
+manuscript submitted to Geophysical Research Letters
+Beyond forecasting arrival times and amplitudes at fixed locations, there is increas-
+ing recognition that capturing the spatial dynamics of tsunami waves over wide areas
+is essential. This not only improves hazard understanding but also supports emergency
+response, a need highlighted in post-disaster damage assessments using remote sensing
+and image analysis techniques (Koshimura et al., 2020).
+Recent ML approaches show promise in forecasting tsunami waveforms at fixed points
+(Liu et al., 2021; Rim et al., 2022), but ML solutions for reconstructing full tsunami wave-
+fields from sparse data remain underdeveloped. A related advancement by Archambault
+et al. (Archambault et al., 2024) used an attention-based encoder-decoder model to re-
+construct sea surface height fields from incomplete satellite altimetry data, leveraging
+auxiliary sea surface temperature observations and a supervised-to-unsupervised fine-
+tuning strategy. While their architecture is similar to ours, their problem focuses on spa-
+tial interpolation of gridded satellite data, rather than sparse, point-based tsunami sen-
+sor networks.
+Here, we adapt Senseiver (Santos, 2023), an attention-based neural network tai-
+lored for sparse sensing, capable of reconstructing high-resolution tsunami wavefields from
+limited tsunameter observations. To focus on the fundamental capabilities of this archi-
+tecture, we adopt an idealized simulation environment that uses parameterized source
+models rather than fault-derived displacements. We benchmark Senseiver against the
+Linear Interpolation with Huygens-Fresnel Principle (LIHFP) method (Wang et al., 2019),
+evaluating accuracy and virtual waveform generation at unobserved locations. Our ex-
+periments emulate an operational-like workflow using realistic DART buoy configura-
+tions and test generalization to previously unseen epicenters. In addition to generating
+remarkable full-field reconstructions, results show that Senseiver reduces average errors
+in wave height, arrival time, and maximum amplitude by approximately a factor of two
+compared to LIHFP—demonstrating the promise of attention-based ML tools for ad-
+vancing sensor-informed tsunami forecasting and hazard assessment.
+2 Generating Full-Field Training Data
+Tsunamis can be effectively modeled using the shallow water equations (SWEs),
+which describe the dynamics of a fluid layer via a system of partial differential equations
+for the depth-averaged horizontal velocity u = u(x, t) and fluid thickness h = h(x, t):
+∂u
+∂t + (u · ∇)u + fu⊥= −(1 −β)g∇(h + zb) + cd
+|u|
+h u + νu
+4 ∇4u,
+(1)
+∂h
+∂t + ∇· (uh) = 0.
+(2)
+Here, zb = z(x) denotes the bathymetric height at the base of the fluid domain, g =
+9.80665m s−2 is gravitational acceleration, and f = 2Ωsin ϕ is the Coriolis force, with
+Ω= 7.292×10−5rad s−1 and ϕ the latitude. u⊥= k×u represents tangential velocity
+due to the Coriolis effect, where k is the local vertical. The reduced gravity correction
+β = 0.015 accounts for self-attraction and loading effects—that is, changes in sea sur-
+face height and ocean dynamics resulting from the gravitational pull of redistributed wa-
+ter mass and the elastic deformation of Earth’s crust under that load (Inazu & Saito,
+2013; Shihora et al., 2022). The coefficients cd and ν4 denote drag and viscous scalings,
+respectively.
+Our dataset consists of time integrations of these equations, with the initial ocean
+surface displacement parameterized by the epicenter location x0:
+h0(x; x0) = −zb + 5 exp
+ −(250∥x −x0∥2)4
+,
+where ∥.∥denotes the Euclidean norm. This initial condition produces a localized, flat-
+topped solitary wave, serving as a simplified yet physically reasonable proxy for tsunami
+–3–
+
+manuscript submitted to Geophysical Research Letters
+generation due to seafloor deformation. This approach avoids the complexity of explic-
+itly modeling earthquake fault slip—a technically demanding problem and an active area
+of research (Abbate et al., 2024). While more detailed source models are possible (e.g.,
+elastic dislocation or finite fault modeling), adopting a parameterization based solely on
+epicenter location enables simplicity of experiment design and subsequent analysis. The
+5-meter displacement represents a significant yet plausible event, consistent with histor-
+ically observed tsunami amplitudes. For details on the numerical methods, including cal-
+ibration and validation of the PDE model using historical DART data, see Texts S1–S2
+and Figures S1–S2 in the Supporting Information.
+Importantly, this work is structured as a proof of concept for the Senseiver sparse
+sensing framework. Our primary goal is to evaluate whether Senseiver can reconstruct
+high-resolution tsunami wavefields from sparse observations, using the deep-ocean DART
+system as a realistic baseline. DART buoys were selected specifically because they span
+broad offshore regions, enabling us to assess Senseiver’s capacity to infer wavefields over
+large spatial domains—potentially enhancing direct forecasting and improving data as-
+similation schemes through virtual waveform augmentation, as demonstrated in (Wang
+et al., 2019).
+To construct our training and test datasets, we queried the USGS earthquake cat-
+alog (Survey, n.d.), filtering for events that (a) had magnitudes ≥7.5, (b) listed “Japan”
+in the location descriptor, and (c) occurred in water depths greater than 1000 meters.
+The depth constraint was adopted to avoid simulation artifacts from initial conditions
+placed too close to the coast, which can introduce artifacts on coarser meshes. This also
+ensures the events used are in operationally relevant offshore regions where DART buoys
+can realistically contribute data. From an initial pool of 92 qualifying events meeting our
+criteria, we randomly selected 11 epicenters for training. Test epicenters were drawn from
+the same pool, ensuring each lies within 20 to 100 miles of a training source, to emulate
+scenarios where events are seismologically related but not spatially redundant. This strat-
+egy achieves a balance between data diversity and realistic generalization: the model is
+exposed during training to a broad distribution of real-world offshore earthquakes, while
+inference is performed on novel but physically consistent examples. All selected epicen-
+ters (see Figure 1) are located between 136◦–145◦longitude and 33◦–43◦latitude. The
+test events lie 20–100 miles from the nearest training epicenter, emulating unseen but
+seismologically relevant cases. A full pairwise distance matrix is provided in Table S1.
+We acknowledge that for typical operational tsunami forecasting near Japan—especially
+for events generated close to the coast—DART buoy data alone may not be sufficient
+due to short arrival times. In practice, such forecasts often rely on coastal instrumen-
+tation and denser observation networks. Nevertheless, our focus is not on coastal arrival
+prediction in isolation, but on evaluating the viability of Senseiver in general settings where
+sparse observations are the primary inputs. We believe Senseiver’s demonstrated suc-
+cess across a realistic DART configuration strongly suggests it would also perform well
+in other settings, including denser local arrays and finer model meshes.
+Each simulation frame consists of 163,842 unstructured spatial points (longitude,
+latitude, wave height). To reduce computational load, we subsample frames by a factor
+of two, resulting in 81, 921 pixels per time step. Simulations span 4 hours, computed at
+50-second intervals (289 time steps), yielding a dataset of size (3179, 81921) for each of
+the training and test sets. Temporal resolution is chosen to balance signal fidelity with
+computational cost and supports second-order finite difference diagnostics in model val-
+idation (see Supporting Information, Text S3).
+–4–
+
+manuscript submitted to Geophysical Research Letters
+a
+b
+Figure 1: (a) Coverage of DART Buoys, denoted by black triangles. (b) Training (black)
+and test (red) epicenters used for synthetic tsunami generation.
+3 Methods
+3.1 The Senseiver
+The sparse sensing problem for tsunami waves can be formulated as follows: Given
+a discrete set of ocean state observations s = {s1, s2, . . . , sN} collected at locations xs =
+{xs
+1, xs
+2, . . . , xs
+N}, the objective is to reconstruct the state ˆs = {ˆs1, ˆs2, . . . , ˆsM} at a set
+of query points xq = {xq
+1, xq
+2, . . . , xq
+M} where typically M ≫N. In our work, the in-
+put state s(xs) corresponds to ocean surface heights measured at DART buoy locations,
+while the query state ˆs(xq) represents the ocean surface height throughout the global
+ocean domain. Since the DART network consists of only a few dozen buoys, yet even coarse
+global coverage requires hundreds of thousands of points, this reconstruction task is ex-
+tremely sparse.
+To address this challenge, we employ the Senseiver (Santos et al., 2023), an attention-
+based neural network specifically designed for sparse-to-dense reconstruction tasks. The
+Senseiver utilizes a multi-level encoder-decoder architecture that leverages the strengths
+of attention mechanisms and data compression. Key advantages of the attention oper-
+ation for sparse sensing include: (1) treating positional information as a feature, (2) be-
+ing agnostic to grid structure, thus accommodating arbitrary meshes, and (3) enabling
+immediate long-range spatial associations-unlike CNNs, which require deep layers to in-
+tegrate distant features. However, attention operations scale quadratically with input
+size. Senseiver overcomes this bottleneck by encoding the input into compact latent ar-
+rays, where most attention computations are performed.
+The Senseiver workflow is as follows:
+1. A positional encoder PE maps observation locations to spatial encoding vectors
+as.
+2. An attention-based encoder E transforms the observation-value/location pairs (si, as
+i)
+into a latent matrix Z.
+3. The positional encoder PE also maps query locations to spatial encodings aq.
+–5–
+
+manuscript submitted to Geophysical Research Letters
+4. An attention-based decoder D reconstructs outputs at the encoded query loca-
+tions aq.
+The positional encoder PE implements a trigonometric encoding of spatial coor-
+dinates, while the encoder and decoder (E, D) incorporate trainable multi-layer percep-
+trons within their attention blocks. For a comprehensive description of the Senseiver ar-
+chitecture, see (Santos et al., 2023). The process can be summarized as:
+as = PE(xs) ,
+(3)
+Z = E(s, as) ,
+(4)
+aq = PE(xq) ,
+(5)
+ˆs(xq) = D(Z, aq) .
+(6)
+This flexible architecture enables modeling on unstructured data and allows for cus-
+tom coordinate choices in the positional encoder. In our application, we augment lat-
+itude and longitude with ocean bathymetry encodings. Land pixels are masked out, en-
+suring training occurs only on ocean data. A schematic of the Senseiver workflow is pre-
+sented in Figure 2.
+Model weights are optimized by minimizing the mean squared error:
+L =
+X 
+s(xq) −ˆs(xq)
+2
+,
+(7)
+where
+ˆs(xq) = D (E (s(xq), PE(xs)) , PE(xq)) ,
+(8)
+using the Adam optimizer (Kingma & Ba, 2014). To prevent overfitting, we train on only
+80% of the available training frames. The number and ordering of query points, as well
+as the data frames used in training, are treated as hyperparameters, with further details
+provided in Text S4 of the Supporting Information.
+Figure 2: Overview of the Senseiver architecture for tsunami reconstruction. The sen-
+sor values along with their encoded positions are processed by the encoder into a latent
+array Z of fixed size. The encoded query locations are processed by the attention-based
+decoder, which outputs an estimate of wave height at the query location(s).
+3.2 Experiments
+The primary error metric used to evaluate reconstruction quality is the mean ab-
+solute error (MAE), normalized by the absolute maximum wave height in each frame.
+–6–
+
+manuscript submitted to Geophysical Research Letters
+To ensure this metric captures meaningful differences, we compute the MAE only over
+pixels where the true wave height exceeds 1×10−4. This threshold is necessary because
+most of the ocean domain has zero wave height; including these pixels would artificially
+deflate the error. For each reconstruction, we calculate the absolute difference between
+the true and reconstructed wave height fields, divided by the maximum absolute true
+wave height for that frame:
+Error(x, y, t) = |h(x, y, t) −ˆh(x, y, t)|
+max(|h(x, y, t)|)
+.
+(9)
+While this metric provides a standard quantitative assessment typical in machine
+learning, we also sought to evaluate our approach in a more operationally relevant con-
+text. In practice, tsunami forecasting systems such as the tsunami data assimilation method
+(TDAM) (Maeda et al., 2015) focus on predicting key features of tsunami waveforms—specifically,
+arrival times and maximum amplitudes—at fixed observation points. TDAM performs
+well with dense observation networks, but its accuracy diminishes with sparse sensor cov-
+erage. To address this, the Linear Interpolation with Huygens-Fresnel Principle (LIHFP)
+(Wang et al., 2019) was developed to augment sparse networks, estimating virtual wave-
+forms at unsensed locations by interpolating between real sensor data while accounting
+for arrival times, distances, and bathymetry.
+To bridge the gap between standard ML evaluation and practical tsunami forecast-
+ing, we compare our model’s reconstructions not only in terms of full-field MAE, but also
+by generating six virtual waveforms at strategically chosen locations and benchmarking
+them against those produced by the LIHFP method. This dual evaluation strategy al-
+lows us to assess both the general reconstruction capability of our model and its effec-
+tiveness in a real-world forecasting workflow.
+4 Results
+Averaging the reconstruction loss (Eq. 9) over all 289 frames from each of the eleven
+test epicenters yields a global experiment error of 5.00 × 10−2. Notably, much of this
+error arises from the early time frames, when sensors have yet to detect significant tsunami
+signals. This limitation is inherent to any assimilation method that relies solely on tsuname-
+ter data. On average, the reconstruction error remains below 1×10−1 after 32.9 min-
+utes, with a median threshold time of 38.3 minutes. To assess the physical consistency
+of our model’s reconstructions, we evaluated the continuity equation residual (Eq. 2),
+yielding a global average error of 4.10 × 10−2 across all times and epicenters. Details
+of the diagnostic calculation and frame-by-frame residual plots are provided in the Sup-
+porting Information (Text S3, Figures S15). The key results from the reconstruction ex-
+periments for all eight simulations are summarized in the first seven columns of Table 1.
+Figure 3 presents representative reconstructions for two test simulations, with epi-
+centers at (143.4◦E, 41.4◦N) and (140.8◦E, 33.4◦N), shown at 75, 150, and 225 minutes.
+For each case, we include example waveform reconstructions at fixed DART buoy loca-
+tions and the per-pixel average reconstruction error over time. These two epicenters were
+chosen to illustrate model performance at different distances from the training set: the
+first is the median-distance epicenter (38.4 miles from the nearest training example), while
+the second is the most distant (90.6 miles). Together, they demonstrate reconstruction
+accuracy for both typical and challenging test cases. Reconstructions, error plots, and
+time series for all other test epicenters are provided in Figures S3–S14 of the support-
+ing information.
+Visual inspection shows that the Senseiver effectively captures key features of the
+tsunami wavefield, including the spatial support, number of wave periods, and ampli-
+tude. The error plots reveal that reconstruction error decreases rapidly within the first
+≈50 minutes, highlighting the particular challenge of early-time reconstruction when
+–7–
+
+manuscript submitted to Geophysical Research Letters
+little sensor information is available. For the median-distance epicenter, the error drops
+below 1 × 10−1 after just 10 minutes; for the most distant epicenter, this threshold is
+reached at 40.8 minutes. While resolving the earliest time frames is not the focus of this
+work, we suggest alternative datasets that could better inform the Senseiver at early time
+frames in the conclusion.
+To ensure consistency with the experimental setup of (Wang et al., 2019) and en-
+able direct comparison, we focused our evaluation on virtual waveform reconstruction
+at midpoints between selected DART buoys. Although our experiments center on these
+midpoints, the methodology is readily extensible to arbitrary virtual sensor locations.
+In fact, analyzing Senseiver performance as the virtual observation point moves farther
+from the training data may provide valuable insight into the method’s effective range—potentially
+revealing where LIHFP waveforms surpass Senseiver reconstructions in accuracy. For this
+study, we identified six midpoints among DART buoys that registered significant wave-
+forms in our simulations and compared the Senseiver’s reconstructions at these locations
+to those produced by LIHFP.
+Across the majority of test epicenters, times, and virtual observation sites, the Sen-
+seiver outperformed LIHFP, achieving a mean absolute error (MAE) in wave height of
+7.02×10−2 meters, compared to 18.2×10−2 meters for LIHFP. The Senseiver also demon-
+strated substantial improvements in estimating both arrival times and maximum am-
+plitudes at nearly all virtual observation points. Specifically, the mean absolute error for
+arrival time, averaged across all eleven simulations, was 8.12 minutes for the Senseiver
+and 16.68 minutes for LIHFP. The only exception occurred at the epicenter located at
+(135.9◦E, 33.1◦N), where the Senseiver’s arrival time MAE was 18.611 minutes, slightly
+higher than the 17.778 minutes observed for LIHFP. For maximum amplitude, the Sen-
+seiver achieved an MAE of 13.1×10−2 meters, outperforming LIHFP’s MAE of 25.9×
+10−2 meters across all cases. On average, the percent change in arrival time MAE for
+the Senseiver was −51.9%, and for maximum amplitude, it was −49.9%, indicating a sub-
+stantial reduction in error compared to LIHFP. These results are summarized in Figure 4
+(b) and (c), which display arrival time and maximum amplitude errors for both meth-
+ods across all 48 test epicenter–virtual observation point pairings. Key numerical results
+for all eleven simulations can be found in the last six columns of Table 1.
+Figure 4 (d) provides a detailed summary for the epicenter at (143.4◦E, 41.4◦N)
+(the median epicenter). For this case, the Senseiver achieved a substantially lower MAE
+across the six virtual waveforms: 5.5 × 10−2 meters, compared to 13.3 × 10−2 meters
+for LIHFP. Arrival time errors were similarly reduced, with the Senseiver yielding an MAE
+of 7.22 minutes versus 16.39 minutes for LIHFP. For maximum amplitude, the Senseiver
+achieved an MAE of 14.9×10−2 meters, again outperforming LIHFP’s 23.8×10−2 me-
+ters. Virtual waveform comparisons for all remaining test epicenters are provided in Fig-
+ures S16–S24 of the supporting information.
+We conclude this section by noting the lack of temporal smoothness observed in
+the waveforms generated by the Senseiver. To mitigate this issue, we applied median fil-
+tering—a non-linear technique that replaces each point in a signal with the median value
+within a local window, effectively reducing noise and outliers while preserving key fea-
+tures—in our virtual waveform experiments. This post-processing step substantially im-
+proved arrival time accuracy: for arrival times defined by a 3 cm threshold, repeated me-
+dian filtering reduced the raw Senseiver error from 9.05 minutes to 5.35 minutes. How-
+ever, this improvement came at the cost of a decrease in maximum amplitude accuracy.
+For the plots in Figure 4 and the statistics collected in Table 1, Senseiver signals were
+processed using a single median filter with a kernel length of 13. Analogous statistics are
+provided for the raw Senseiver waveforms as well as heavily filtered senseiver waveforms
+in tables S2-S3 of the supporting information. Addressing temporal smoothness directly
+within the machine learning framework—for example, by incorporating temporal encod-
+–8–
+
+manuscript submitted to Geophysical Research Letters
+h
+g
+f
+e
+d
+c
+b
+a
+Figure 3: (a) Full reconstruction at 75, 150, and 225 minutes for test epicenter
+(143.4◦E, 41.4◦N). The epicenter location is indicated by an X, and yellow triangles no-
+tate the sensors. (b)-(c) Waveform reconstructions at fixed DART buoys with longitude-
+latitude coordinate (135.2◦E, 29.3◦N) and (155.7◦E, 19.2◦N), respectively from top to
+bottom. (d) Per-pixel average reconstruction error as a function of time for test epicenter
+(143.4◦E, 41.4◦N). (e)-(h) Equivalent figures for test epicenter (140.8◦E, 33.4◦N)
+ings, conditioning on previous states, or introducing regularization terms into the loss
+function—remains an important direction for future research.
+–9–
+
+manuscript submitted to Geophysical Research Letters
+a
+b
+c
+d
+Figure 4: (a) Observation network augmented with virtual sensors with locations de-
+rived as midpoints between DART buoys. (b)-(c). Mean absolute error in arrival time and
+maximum amplitude, respectively. Each color map (6 columns × 11 rows) represents all
+combinations of test epicenter and virtual observation pairs. (d) Senseiver and LIHFP-
+based virtual waveform reconstructions at test epicenter (143.4◦E, 41.4◦N).
+5 Conclusion
+We have presented Senseiver, an attention-based neural network capable of recon-
+structing high-resolution tsunami wavefields from sparse observation networks. Our re-
+sults demonstrate substantial improvements over the LIHFP baseline, particularly in gen-
+erating accurate virtual waveforms at unobserved locations. To our knowledge, this is
+the first ML-based solution to address the sparse sensing problem for tsunami forecast-
+ing at high spatial resolution.
+This work serves as a proof of concept, with several important limitations. Our ex-
+periments are restricted to a limited oceanic region and idealized initial conditions. Fu-
+ture research should extend these methods to broader domains, diversify training data,
+and investigate how regional scale interacts with model complexity. Incorporating ad-
+ditional features and regularization strategies may further improve the temporal smooth-
+ness of Senseiver-generated waveforms.
+A key challenge remains early-stage reconstruction, before tsunameter data are avail-
+able. Future work could explore integrating alternative data sources such as GNSS (Rim
+et al., 2022), HF radar (Wang, Imai, Miyashita, et al., 2023), or distributed acoustic sens-
+ing (Xiao et al., 2024) to provide earlier or more robust wavefield estimates. Addition-
+ally, adapting Senseiver to optimize sensor placement during training (Marcato et al.,
+2023) could inform the design of observation networks, particularly in resource-limited
+regions.
+–10–
+
+manuscript submitted to Geophysical Research Letters
+By bridging advances in machine learning with operational tsunami sensing, Sen-
+seiver offers a promising step toward more accurate and timely tsunami early warning
+systems.
+Open Research Section
+The tsunami simulation data used in this study are available from Zenodo https://
+zenodo.org/records/15478821 (McDugald, 2025). The Senseiver codebase is available
+from GitHub https://github.com/OrchardLANL/Senseiver (Santos, 2023), with tsunami-
+specific code provided in the “tsunami” directory. Formal citations for both the dataset
+and software are included in the reference list.
+Acknowledgments
+This project was partially funded by the Artimis LDRD program at the Los Alamos Na-
+tional Laboratory. The Los Alamos Unlimited Release number for this work is LA-UR-
+24-32151. Andrew Arnold (University of Arizona PhD Student in Applied Mathemat-
+ics) assisted in analyzing the virtual waveform experiments.
+–11–
+
+manuscript submitted to Geophysical Research Letters
+Epicenter
+Number
+Longitude
+Latitude
+Closest
+Distance
+from
+Training
+Set
+Mean
+Recon
+Error
+Mean
+Physics
+Error
+Trigger
+Time
+(mins)
+1
+140.827
+33.362
+90.551
+0.073
+0.047
+40.8
+2
+141.459
+36.534
+27.105
+0.045
+0.043
+38.3
+3
+142.050
+41.019
+35.398
+0.056
+0.045
+46.7
+4
+142.542
+34.745
+61.320
+0.062
+0.040
+43.3
+5
+143.228
+39.869
+22.648
+0.036
+0.036
+14.2
+6
+144.060
+40.232
+36.197
+0.042
+0.039
+39.2
+7
+142.619
+37.812
+50.405
+0.040
+0.035
+24.2
+8
+143.416
+41.415
+38.360
+0.041
+0.045
+10.0
+9
+135.905
+33.123
+41.433
+0.061
+0.043
+70.8
+10
+137.071
+33.184
+27.370
+0.035
+0.036
+11.7
+11
+138.025
+34.175
+69.802
+0.057
+0.041
+22.5
+Senseiver
+Arrival
+Time
+MAE
+(mins)
+LIHFP
+Arrival
+Time
+MAE
+(mins)
+Senseiver
+Max
+Amp
+MAE (m)
+LIHFP
+Max
+Amp
+MAE (m)
+Senseiver
+Wave
+Height
+MAE (m)
+LIHFP
+Wave
+Height
+MAE (m)
+13.333
+17.361
+0.100
+0.326
+0.120
+0.246
+8.333
+16.458
+0.121
+0.316
+0.064
+0.211
+5.972
+15.833
+0.067
+0.261
+0.054
+0.117
+8.611
+17.361
+0.229
+0.363
+0.103
+0.268
+6.111
+15.417
+0.186
+0.258
+0.054
+0.160
+5.000
+15.903
+0.185
+0.248
+0.069
+0.167
+3.750
+16.181
+0.182
+0.291
+0.073
+0.201
+7.222
+16.389
+0.149
+0.238
+0.055
+0.133
+18.611
+17.778
+0.100
+0.187
+0.087
+0.165
+4.722
+17.431
+0.043
+0.161
+0.047
+0.173
+7.639
+17.361
+0.082
+0.198
+0.068
+0.164
+Table 1: Overview of Senseiver evaluation metrics for all test epicenters. Columns 4-7
+correspond to reconstruction experiments, and columns 8-13 correspond to LIHFP com-
+parisons. MAE refers to mean absolute error, and Trigger Time refers to the time at
+which no reconstruction exceeds 1 × 10−1.
+–12–
+
+manuscript submitted to Geophysical Research Letters
+References
+Abbate, A., Gonz´alez Vida, J. M., Castro D´ıaz, M. J., Romano, F., Bayraktar,
+H. B., Babeyko, A., & Lorito, S.
+(2024).
+Modelling tsunami initial conditions
+due to rapid coseismic seafloor displacement: efficient numerical integration
+and a tool to build unit source databases.
+Natural Hazards and Earth System
+Sciences, 24(8), 2773–2791. Retrieved from https://nhess.copernicus.org/
+articles/24/2773/2024/ doi: 10.5194/nhess-24-2773-2024
+Archambault, T., Filoche, A., Charantonis, A., B´er´eziat, D., & Thiria, S.
+(2024).
+Learning sea surface height interpolation from multi-variate simulated satel-
+lite observations.
+Journal of Advances in Modeling Earth Systems, 16(6),
+e2023MS004047.
+Retrieved from https://agupubs.onlinelibrary.wiley
+.com/doi/abs/10.1029/2023MS004047
+(e2023MS004047 2023MS004047) doi:
+https://doi.org/10.1029/2023MS004047
+Barton, K. N., Pal, N., Brus, S. R., Petersen, M. R., Arbic, B. K., Engwirda, D.,
+. . . Schindelegger, M.
+(2022).
+Global barotropic tide modeling using inline
+self-attraction and loading in MPAS-Ocean.
+Journal of Advances in Modeling
+Earth Systems, 14(11), e2022MS003207.
+Berger, M. J., George, D. L., LeVeque, R. J., & Mandli, K. T. (2011). The GeoClaw
+software for depth-averaged flows with adaptive refinement. Advances in Water
+Resources, 34(9), 1195–1206.
+Bernard, E., & Titov, V.
+(2015, 10).
+Evolution of tsunami warning systems and
+products. Philosophical transactions. Series A, Mathematical, physical, and en-
+gineering sciences, 373. doi: 10.1098/rsta.2014.0371
+Bernard, E., Wei, Y., Tang, L., & Titov, V.
+(2013, 10).
+Impact of near-field,
+deep-ocean tsunami observations on forecasting the 7 december 2012 japanese
+tsunami. Pure and Applied Geophysics, 171. doi: 10.1007/s00024-013-0720-8
+Engwirda, D. (2017). JIGSAW-GEO: locally orthogonal staggered unstructured grid
+generation for general circulation modelling on the sphere. Geoscientific Model
+Development, 10(6), 2117–2140.
+Fujii, Y., Satake, K., Sakai, S., Shinohara, M., & Kanazawa, T.
+(2011).
+Tsunami
+source of the 2011 off the Pacific coast of Tohoku Earthquake.
+Earth, planets
+and space, 63(7), 815–820.
+Fujita, S., Nomura, R., Moriguchi, S., Otake, Y., Koshimura, S., Leveque, R., &
+Terada, K.
+(2024, 02).
+Optimization of a tsunami gauge configuration for
+pseudo-super-resolution of wave height distribution.
+Earth and Space Science,
+11. doi: 10.1029/2023EA003144
+GEBCO Compilation Group.
+(2023).
+GEBCO 2023 Grid.
+(doi:10.5285/f98b053b-
+0cbc-6c23-e053-6c86abc0af7b)
+Imamura, F., Boret, S., Suppasri, A., & Muhari, A.
+(2019, 05).
+Recent oc-
+currences of serious tsunami damage and the future challenges of tsunami
+disaster risk reduction.
+Progress in Disaster Science, 1, 100009.
+doi:
+10.1016/j.pdisas.2019.100009
+Inazu, D., & Saito, T. (2013). Simulation of distant tsunami propagation with a ra-
+dial loading deformation effect. Earth, Planets and Space, 65, 835–842.
+Kingma, D. P., & Ba, J. (2014). Adam: A method for stochastic optimization. arXiv
+preprint arXiv:1412.6980.
+Koshimura, S., Moya, L., Mas, E., & Bai, Y.
+(2020).
+Tsunami damage detection
+with remote sensing: A review. Geosciences, 10(5). Retrieved from https://
+www.mdpi.com/2076-3263/10/5/177 doi: 10.3390/geosciences10050177
+Lee, E., Jung, T., & Shin, S.
+(2020, 09).
+Numerical and probabilistic study on the
+optimal region for tsunami detection instrument deployment in the eastern sea
+of korea. Applied Sciences, 10, 6071. doi: 10.3390/app10176071
+LeVeque, R. J., George, D. L., & Berger, M. J.
+(2011).
+Tsunami modelling with
+adaptively refined finite volume methods. Acta Numerica, 20, 211–289.
+–13–
+
+manuscript submitted to Geophysical Research Letters
+Lilly, J. R., Capodaglio, G., Petersen, M. R., Brus, S. R., Engwirda, D., & Higdon,
+R. L.
+(2023).
+Storm surge modeling as an application of local time-stepping
+in MPAS-Ocean.
+Journal of Advances in Modeling Earth Systems, 15(1),
+e2022MS003327.
+Lilly, J. R., Engwirda, D., Capodaglio, G., Higdon, R. L., & Petersen, M. R. (2023).
+CFL Optimized Forward–Backward Runge–Kutta Schemes for the Shallow-
+Water Equations. Monthly Weather Review, 151(12), 3191–3208.
+Liu, C., Rim, D., Baraldi, R., & Leveque, R.
+(2021, 12).
+Comparison of machine
+learning approaches for tsunami forecasting from sparse observations. Pure and
+Applied Geophysics, 178. doi: 10.1007/s00024-021-02841-9
+Maeda, T., Obara, K., Shinohara, M., Kanazawa, T., & Uehira, K. (2015, 10). Suc-
+cessive estimation of a tsunami wavefield without earthquake source data: A
+data assimilation approach toward real-time tsunami forecasting.
+Geophysical
+Research Letters, 42. doi: 10.1002/2015GL065588
+Magdalena, I., La’lang, R., Mendoza, R. G., & Lope, J. E. C. (2021). Optimal place-
+ment of tsunami sensors with depth constraint.
+PeerJ Computer Science, 7.
+Retrieved from https://api.semanticscholar.org/CorpusID:240071378
+Manohar, K., Brunton, B., Kutz, J., & Brunton, S.
+(2018, 05).
+Data-driven sparse
+sensor placement for reconstruction.
+IEEE control systems, 38, 63-.
+doi: 10
+.1109/MCS.2018.2810460
+Marcato, A., O’Malley, D., Viswanathan, H., Guiltinan, E., & Santos, J. E.
+(2023).
+Reconstruction of fields from sparse sensing: Differentiable sensor placement
+enhances generalization.
+McDugald, E. (2025). Tsunami sims v2 [dataset]. Zenodo. Retrieved from https://
+doi.org/10.5281/zenodo.15478821 doi: 10.5281/zenodo.15478821
+Meza, J., Catal´an, P., & Tsushima, H.
+(2020, 03).
+A multiple-parameter method-
+ology for placement of tsunami sensor networks. Pure and Applied Geophysics,
+177. doi: 10.1007/s00024-019-02381-3
+Mulia, I., Hirobe, T., Inazu, D., Endoh, T., Niwa, Y., Gusman, A., . . . Hibiya,
+T.
+(2020, 02).
+Advanced tsunami detection and forecasting by radar on
+unconventional airborne observing platforms.
+Scientific Reports, 10.
+doi:
+10.1038/s41598-020-59239-1
+Mulia, I., Ueda, N., Miyoshi, T., Gusman, A., & Satake, K.
+(2022, 09).
+Machine
+learning-based tsunami inundation prediction derived from offshore observa-
+tions. Nature Communications, 13, 5489. doi: 10.1038/s41467-022-33253-5
+NOAA.
+(2011).
+National Data Buoy Center – DART.
+(http://www.ndbc.noaa.gov/dart.shtml)
+Pal, N., Barton, K. N., Petersen, M. R., Brus, S. R., Engwirda, D., Arbic, B. K., . . .
+Wirasaet, D. (2023). Barotropic tides in MPAS-Ocean (E3SM V2): impact of
+ice shelf cavities. Geoscientific Model Development, 16(4), 1297–1314.
+Percival, D., Denbo, D., Eble, M., Gica, E., Mofjeld, H., Spillane, M., . . . Titov, V.
+(2011, 07). Extraction of tsunami source coefficients via inversion of dart
+®
+buoy data. Natural Hazards, 58, 567-590. doi: 10.1007/s11069-010-9688-1
+Popinet, S. (2012). Adaptive modelling of long-distance wave propagation and fine-
+scale flooding during the Tohoku tsunami.
+Natural Hazards and Earth System
+Sciences, 12(4), 1213–1227.
+Popinet, S.
+(2020).
+A vertically-Lagrangian, non-hydrostatic, multilayer model for
+multiscale free-surface flows. Journal of Computational Physics, 418, 109609.
+Rim, D., Baraldi, R., Liu, C. M., LeVeque, R. J., & Terada, K.
+(2022).
+Tsunami
+early warning from global navigation satellite system data using convolutional
+neural networks. Geophysical Research Letters, 49(20), e2022GL099511.
+Ringler, T., Thuburn, J., Klemp, J., & Skamarock, W. (2010). A unified approach to
+energy conservation and potential vorticity dynamics for arbitrarily-structured
+C-grids. Journal of Computational Physics, 229(9), 3065–3090.
+–14–
+
+manuscript submitted to Geophysical Research Letters
+Santos, J. E.
+(2023).
+The senseiver codebase [software].
+GitHub.
+Retrieved from
+https://github.com/OrchardLANL/Senseiver
+Santos, J. E., Fox, Z. R., Mohan, A., O’Malley, D., Viswanathan, H., & Lubbers,
+N. (2023). Development of the Senseiver for efficient field reconstruction from
+sparse observations. Nature Machine Intelligence, 1–9.
+Shihora, L., Sulzbach, R., Dobslaw, H., & Thomas, M.
+(2022).
+Self-attraction and
+loading feedback on ocean dynamics in both shallow water equations and prim-
+itive equations.
+Ocean Modelling, 169, 101914.
+Retrieved from https://
+www.sciencedirect.com/science/article/pii/S1463500321001670
+doi:
+https://doi.org/10.1016/j.ocemod.2021.101914
+Survey, U. G.
+(n.d.).
+Usgs earthquake map.
+https://earthquake.usgs.gov/
+earthquake/map. (Accessed: 2025-05-19)
+Takahashi, N., & Imai, K.
+(2022, 02).
+Realtime tsunami prediction system using
+ocean floor network for local regions. Applied Sciences, 12, 1627. doi: 10.3390/
+app12031627
+Thuburn, J., Ringler, T., Skamarock, W., & Klemp, J. (2009). Numerical represen-
+tation of geostrophic modes on arbitrarily structured C-grids. Journal of Com-
+putational Physics, 228(22), 8321 - 8335.
+Titov, V., Kˆano˘glu, U., & Synolakis, C.
+(2016).
+Development of most for real-time
+tsunami forecasting. Journal of Waterway, Port, Coastal, and Ocean Engineer-
+ing, 142(6), 03116004.
+Retrieved from https://ascelibrary.org/doi/abs/
+10.1061/%28ASCE%29WW.1943-5460.0000357
+doi: 10.1061/(ASCE)WW.1943
+-5460.0000357
+Titov, V. V., & Gonzalez, F. I. (1997). Implementation and testing of the method of
+splitting tsunami (MOST) model.
+Tsushima, H., & Ohta, Y.
+(2014, June).
+Review on near-field tsunami forecasting
+from offshore tsunami data and onshore gnss data for tsunami early warning.
+Journal of Disaster Research, 9(3), 339–357. doi: 10.20965/jdr.2014.p0339
+Vaswani, A., Shazeer, N. M., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., . . .
+Polosukhin, I. (2017). Attention is all you need. In Neural information process-
+ing systems.
+Retrieved from https://api.semanticscholar.org/CorpusID:
+13756489
+Wang, Y. (2022, 10). Green’s function-based tsunami data assimilation (gftda). In
+(p. 19-43). doi: 10.1007/978-981-19-7339-0 2
+Wang, Y., Heidarzadeh, M., Satake, K., Mulia, I. E., & Yamada, M.
+(2020).
+A
+tsunami warning system based on offshore bottom pressure gauges and data
+assimilation for crete island in the eastern mediterranean basin.
+Journal of
+Geophysical Research: Solid Earth, 125(10), e2020JB020293.
+(e2020JB020293
+2020JB020293) doi: https://doi.org/10.1029/2020JB020293
+Wang, Y., Imai, K., Miyashita, T., Ariyoshi, K., Takahashi, N., & Satake, K.
+(2023,
+10).
+Coastal tsunami prediction in tohoku region, japan, based on s-net obser-
+vations using artificial neural network. Earth Planets and Space, 75, 154. doi:
+10.1186/s40623-023-01912-6
+Wang, Y., Imai, K., Mulia, I. E., Ariyoshi, K., Takahashi, N., Sasaki, K., . . . Sato,
+Y. (2023). Data Assimilation Using High-Frequency Radar for Tsunami Early
+Warning: A Case Study of the 2022 Tonga Volcanic Tsunami.
+Journal of
+Geophysical Research: Solid Earth, 128(2), e2022JB025153.
+Wang, Y., Maeda, T., Satake, K., Heidarzadeh, M., Su, H.-Y., Sheehan, A., & Gus-
+man, A.
+(2019, 02).
+Tsunami data assimilation without a dense observation
+network. Geophysical Research Letters, 46. doi: 10.1029/2018GL080930
+Xiao, H., Spica, Z., Li, J., & Zhan, Z. (2024, 01). Detection of earthquake infragrav-
+ity and tsunami waves with underwater distributed acoustic sensing. Geophysi-
+cal Research Letters, 51. doi: 10.1029/2023GL106767
+Xinsheng Qin, M. R. M., Randall J. LeVeque.
+(2019).
+Accelerating an
+adaptive mesh refinement code for depth-averaged flows using gpus.
+–15–
+
+manuscript submitted to Geophysical Research Letters
+Journal of Advances in Modeling Earth Systems, 11(8), 2606–2628.
+(https://doi.org/10.1029/2019MS001635)
+Yang, Y., Dunham, E. M., Barnier, G., & Almquist, M.
+(2019).
+Tsunami
+wavefield reconstruction and forecasting using the ensemble kalman filter.
+Geophysical Research Letters, 46(2), 853-860.
+Retrieved from https://
+agupubs.onlinelibrary.wiley.com/doi/abs/10.1029/2018GL080644
+doi:
+https://doi.org/10.1029/2018GL080644
+–16–

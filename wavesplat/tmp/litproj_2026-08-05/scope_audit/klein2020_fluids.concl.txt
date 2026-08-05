@@ -1,0 +1,130 @@
+
+
+<<<@50361 Conclusions>>>
+
+4. Conclusions
+This paper presents a numerical and experimental study on the applicability and limitations
+of use of intended prediction methods of different complexities: linear wave solution, the NLSE,
+NLSEFD, NLSE2, and the HOSM. The focus lies on the investigation of the prediction accuracy for
+varying parameters such as wave steepness, enhancement factor of the JONSWAP spectrum and wave
+propagation distance. For this purpose, irregular sea states with varying parameters are addressed.
+The irregular sea state investigations focusses on JONSWAP spectra with varying wave steepness
+and enhancement factor.
+In addition, the inﬂuence of the propagation distance as well as the
+forecast horizon is discussed.
+The accuracy of the predictions are evaluated quantitatively by
+the SSP. The results show that the linear method is sufﬁcient for the prediction of irregular sea
+states with small steepness with the same accuracy as the more complex methods. For increasing wave
+
+Fluids 2020, 5, 9
+16 of 20
+steepness, non-linear effects are more dominant resulting in a signiﬁcant decreasing of the accuracy
+of the linear method. The NLSE results have shown throughout that this method is not applicable
+for deterministic wave prediction of arbitrary irregular sea states compared to the other methods.
+However, inclusion of the full dispersion operator resulted in a signiﬁcant increased accuracy compared
+to the classical ﬁrst-order NLSE. Both the NLSE2 and HOSM results illustrate that deterministic wave
+prediction can be extended to steeper waves by applying more complex wave models. Hereby the
+HOSM shows a high accuracy also for the steepest investigated sea states over very large distances.
+In this context, the HOSM prediction based on the waveTUB input snapshot remains almost on the
+same input snapshot accuracy level for all wave steepness.
+The accuracy of the waveTUB reproduction is throughout adequate but showed also that the
+accuracy decreases with increasing wave steepness of the irregular sea states. This illustrates clearly
+that the accuracy of a real world wave forecast tool depends strongly on the accuracy of the detected
+input wave sequence, i.e., assuming a radar-based wave detection, an accurate wave inversion
+algorithm used to extract the deterministic wave ﬁeld from the radar clutter is the crucial factor
+for a successful application of a wave forecast tool.
+Author Contributions: Conceptualization: G.F.C., M.K., S.E. and N.H.; methodology: G.F.C, M.K., M.O., S.E. and
+N.H; software: M.K., M.O. and J.B.; validation: M.D. and M.K.; formal analysis: M.K. and M.D.; investigation,
+M.D. and M.K.; writing—original draft preparation: M.K.; writing—review and editing: M.K.; visualization: M.K.;
+supervision: M.K.; project administration: G.F.C. and M.K.; funding acquisition: G.F.C. and M.K. All authors have
+read and agreed to the published version of the manuscript.
+Funding: This paper is published as a contribution to the joint research project “PrOWOO”. The authors wish
+to express their gratitude to the German Federal Ministry of Economic Affairs and Energy (BMWi) and Project
+Management Jülich (PtJ) for funding and supporting the joint research project (FKZ 03SX358A).
+Acknowledgments: G.F.C., M.K. and M.D. want to thank the project partner OceanWaveS. M.K. thanks Alexey
+Slunyaev for fruitful discussions and sharing the subroutine for the calculation of the NLSE coefﬁcients.
+Conﬂicts of Interest: The authors declare no conﬂict of interest. The funders had no role in the design of the
+study; in the collection, analyses, or interpretation of data; in the writing of the manuscript, or in the decision to
+publish the results.
+Appendix A
+Following the coefﬁcients relevant for implementing Equation (7), which are adopted from
+Slunyaev [42].
+Appendix A.1 Coefﬁcients of Non-linear Interaction Terms
+χ1 = 3k2
+c
+σ4 −1
+8ωcσ2 ,
+χ2 =
+
+kcd−σ2 + 3
+kcσ
++ 1
+kc
+
+χ1 + 3k2
+cd(σ4 −1)(3σ2 + 1)
+16ωcσ3
++ 9kc −σ4 + 1
+16ωcσ2 ,
+Appendix A.2 Linear Dispersion Coefﬁcients
+β1 = −1
+2
+∂2ω
+∂k2 ,
+β2 = −1
+6
+∂3ω
+∂k3 .
+
+Fluids 2020, 5, 9
+17 of 20
+Appendix A.3 Coefﬁcients of Wave-Induced Flow Components
+γ1 = k2
+cV(σ2 −1) −2ωckc
+4V2
+d
+,
+γ2 = 2 V
+V2
+d
+γ1β1 + k2
+c
+σ2 −1
+4V2
+d
+β1 + ω2
+c −k2
+cV2(σ2 + 1)
+4ωcV2
+d
+,
+Appendix A.4 Coefﬁcients in Equations
+˜ρ11 = k2
+c
+σ4 −3
+2(σ2 + 1)χ1 + k4 −5σ4 + 16σ2 −3
+16ωc
+,
+˜ρ12 = 2ωckc −k2
+cV(σ2 −1)
+2ωc
+,
+˜α1 = ˜ρ11 + ˜ρ12γ1,
+P21 =
+
+k2
+cd2 −4σ6 + 7σ4 −2σ2 −1
+8σ2
++ kcd4σ4 −9σ2 + 3
+4σ
++ −4σ2 + 19
+8
+
+γ1 + k2
+c
+−σ4 + 3
+2(σ2 + 1)χ2
++
+
+k2
+cd−3σ6

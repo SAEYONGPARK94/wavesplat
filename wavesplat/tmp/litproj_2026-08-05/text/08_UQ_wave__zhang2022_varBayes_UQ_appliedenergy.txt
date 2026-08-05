@@ -1,0 +1,1630 @@
+Applied Energy 324 (2022) 119711
+Available online 26 July 2022
+0306-2619/© 2022 The Author(s). Published by Elsevier Ltd. This is an open access article under the CC BY license (http://creativecommons.org/licenses/by/4.0/).
+Contents lists available at ScienceDirect
+Applied Energy
+journal homepage: www.elsevier.com/locate/apenergy
+Phase-resolved real-time ocean wave prediction with quantified uncertainty
+based on variational Bayesian machine learning
+Jincheng Zhang a, Xiaowei Zhao a,∗, Siya Jin b, Deborah Greaves b
+a Intelligent Control & Smart Energy (ICSE) Research Group, School of Engineering, University of Warwick, Coventry, UK
+b School of Engineering, Computing and Mathematics, University of Plymouth, Plymouth, UK
+A R T I C L E
+I N F O
+Keywords:
+Bayesian neural network
+Deterministic sea wave prediction
+Predictable zone
+Probabilistic machine learning
+Uncertainty quantification
+Wave tank experiment
+A B S T R A C T
+Phase-resolved wave prediction is of vital importance for the real-time control of wave energy converters. In
+this paper, a novel wave prediction method is proposed, which, to the authors’ knowledge, achieves the real-
+time nonlinear wave prediction with quantified uncertainty (including both aleatory and model uncertainties)
+for the first time. Moreover, the proposed method achieves the prediction of the predictable zone without
+assuming linear sea states, while all previous works on predictable zone determination were based on linear
+wave theory (which produces overly conservative estimations). The proposed method is developed based on
+the Bayesian machine learning approach, which can take advantage of machine learning model’s ability in
+tackling complex nonlinear problems, while taking various forms of uncertainties into account via the Bayesian
+framework. A set of wave tank experiments are carried out for evaluation of the method. The results show
+that the wave elevations at the location of interest are predicted accurately based on the measurements at
+sensor location, and the prediction uncertainty and its variations across the time horizon are well captured.
+The comparison with other wave prediction methods shows that the proposed method outperforms them in
+terms of both prediction accuracy and the length of the predictable zone. Particularly, for short-term wave
+forecasting, the prediction error by the proposed method is as much as 55.4% and 11.7% lower than the
+linear wave theory and deterministic machine learning approaches, and the predictable zone is expanded by
+the proposed method by as much as 74.6%.
+1. Introduction
+As one of the main renewable energy resources, wave energy is
+expected to play an increasingly important role in the energy mix in the
+future [1,2]. In order to reduce the cost of wave power, a lot of research
+efforts have been spent on the modeling, simulations, and predictions
+of ocean waves. The commonly-used models developed in the past
+decades include WAM [3], SWAN [4], and WAVEWATCH III [5]. As the
+existing works have mainly focused on the statistical wave quantities
+(such as significant wave height and peak wave period), the phase-
+resolved wave information is often not obtained. On the other hand, the
+phase-resolved real-time wave information is of great practical interest
+for the safe and optimal operation of wave energy devices. For example,
+the real-time prediction of the phase-resolved wave elevations can be
+used for the control of the wave energy converters (WECs) [6,7], so
+that the controllers can act in advance before the waves hit the WEC
+structures. Such preview-based control strategy is greatly useful for
+optimizing the power generation of WECs [8,9] and the mitigation of
+∗Corresponding author.
+E-mail addresses: jincheng.zhang.1@warwick.ac.uk (J. Zhang), xiaowei.zhao@warwick.ac.uk (X. Zhao), siya.jin@plymouth.ac.uk (S. Jin),
+deborah.greaves@plymouth.ac.uk (D. Greaves).
+their structural fatigue [10,11]. Particularly, the study in [12] showed
+that the model predictive control (MPC) approach was able to provide
+an average increase in power production of 36% over the standard fixed
+damping control, for the investigated Azura WEC under experimental
+conditions. The recent study [13] showed that short-term wave fore-
+casting could enable good performance for the control of a WEC under
+real-world ocean conditions obtained in field measurement campaigns.
+Besides the control of WECs, the phase-resolved wave information is
+also of great interest for the control of other ocean structures, such as
+the load mitigation of floating wind turbines through MPC [14]. To
+tackle these challenges, phase-resolved wave prediction, which aims
+at predicting the wave elevations at the locations and time instants of
+interest based on wave measurements at sensor locations, is becoming
+a hot topic.
+The earlier works on phase-resolved wave predictions were mainly
+based on linear wave theory (LWT) [15,16], where the prediction
+procedure can be divided into the following three steps. First, the time
+https://doi.org/10.1016/j.apenergy.2022.119711
+Received 25 November 2021; Received in revised form 20 June 2022; Accepted 17 July 2022
+
+Applied Energy 324 (2022) 119711
+2
+J. Zhang et al.
+Nomenclature
+BML
+Bayesian machine learning
+BNN
+Bayesian neural network
+COAST
+Coastal, Ocean and Sediment Transport Labora-
+tory
+CWM
+Choppy wave model
+DFT
+Discrete Fourier transform
+DSWP
+Deterministic sea wave prediction
+HOS
+Higher order spectral method
+HOS-WP
+Wave prediction based on HOS method
+ICWM
+Improved choppy wave model
+IFORM
+Inverse first order method
+KL
+Kullback–Leibler
+LWT
+Linear wave theory
+MC
+Monte Carlo
+ML
+Machine learning
+MPC
+Model predictive control
+MRMSE
+Mean root mean square error
+NLWM-WP
+Wave prediction based on nonlinear wave models
+NN
+Neural network
+ReLU
+Rectified linear unit
+RMSE
+Root mean square error
+SCRTP
+Scientific Computing Research Technology Plat-
+form
+UQ
+Uncertainty quantification
+WEC
+Wave energy converter
+series of the wave measurements at the sensor location was transformed
+into frequency domain through Fourier transform. Then the wave
+components at specific frequencies were propagated into the location
+and time of interest according to the linear dispersion relation. Finally
+the wave profile was obtained by adding up the arrived wave compo-
+nents. With this theoretical approach, the predictable zone can also be
+determined based on the wave components’ group velocities [17,18].
+As the LWT-based approach can be evaluated in real-time and can
+achieve satisfactory accuracy when nonlinear effects are negligible, it
+is currently the main tool in phase-resolved wave prediction [19,20].
+However, nonlinear wave effects are omnipresent in real-world sce-
+narios. More importantly, WECs are usually deployed at the sites where
+such effects are too strong to be ignored. In order to achieve nonlinear
+wave predictions, most works in the literature were based on the higher
+order spectral (HOS) method [21,22]. Specifically, the prediction was
+carried out by first reconstructing the initial wave conditions with
+the wave measurement data as the input, and then using the HOS
+method for nonlinear wave propagation [23]. This kind of approach,
+hereby referred as wave prediction based on HOS method (HOS-WP),
+has been employed in several studies [24,25]. However, as it is com-
+putationally expensive, it is extremely challenging to achieve real-time
+predictions with such an approach [26]. To alleviate the computational
+costs of the HOS-WP approach while taking account of nonlinear wave
+effects, wave prediction methods based on efficient, weakly-nonlinear
+wave models (hereby referred as NLWM-WP) were developed. The
+NLWM-WP method mainly consists of two steps, i.e. a data assimilation
+procedure to obtain the model parameters and a wave propagation
+procedure to make predictions [27]. In [28], a nonlinear wave predic-
+tion algorithm was developed based on the Lagrangian choppy wave
+model (CWM) [29]. In [27], a recently-proposed improved choppy
+wave model (ICWM) [30], which showed better performance than the
+CWM and the CWM2 (i.e. an extension of CWM developed in [31]), was
+employed for real-time wave predictions. Comprehensive numerical
+and experimental validations were also carried out in [27] where the
+prediction performance based on the LWT, the LWT with corrected
+dispersion relation, and the ICWM, were compared.
+Recently, machine learning (ML) based approaches are starting to
+gain attention in ocean wave predictions. Many works focused on the
+phase-averaged wave information, such as the prediction of the wave
+height and period, for the purposes of storm forecasting [32], vessel op-
+erations [33,34], and wave power forecasting [35]. While on the other
+hand, the number of studies on phase-resolved wave prediction, which
+is the main focus of this paper, is still limited. In [36], a neural network
+(NN) based method was proposed for the phase-resolved prediction of
+unidirectional waves, where both reconstruction (i.e. the prediction at
+the same time instants as the measurements) and forecasting (i.e. the
+prediction at the time instants in the future) problems were addressed.
+The predictable zone was also investigated based on LWT. The proposed
+method was evaluated using numerical simulations and the results
+showed that it performed much better than the LWT-based approach.
+In [37], a similar NN-based wave prediction method was proposed for
+phase-resolved wave forecasting. The proposed method was evaluated
+using wave tank experiments and a set of input–output strategies were
+tested to improve the prediction accuracy. The comparison results
+showed that the proposed method clearly outperformed the LWT-based
+approach. To summarize, the works in [36,37] both demonstrated
+the great potential of the ML-based approaches in nonlinear wave
+predictions.
+However, a significant research gap still exists on the real-time
+phase-resolved nonlinear wave prediction, as described below.
+(1) The aforementioned NN-based approaches achieved determinis-
+tic wave prediction without quantifying the corresponding un-
+certainty. This lack of uncertainty quantification (UQ) is very
+dangerous in the control of WECs in real-world conditions, be-
+cause the predicted wave elevations might be totally wrong,
+and the use of it with full confidence may lead to catastrophic
+damage to the WECs.
+(2) Despite the efforts in achieving nonlinear wave predictions,
+these works still employed LWT for determining the predictable
+zone, which may lead to inconsistent and overly conservative
+estimation of what can be predicted [26,38]. Therefore, a con-
+sistent nonlinear approach to handle both the prediction and the
+predictable zone should be pursued.
+(3) The work in Ref. [36] investigated both wave reconstruction and
+forecasting. However, synthetic numerical data was employed
+for method validations. Comprehensive experimental investiga-
+tions are thus needed to evaluate the performance of ML in
+realistic wave reconstruction and forecasting, taking account of
+various environmental uncertainties and measurement errors.
+This work focuses on the development of a novel wave prediction
+method that can address these limitations. Different from the previ-
+ous works that formulated the phase-resolved wave prediction as a
+deterministic problem, this work takes a probabilistic approach. In
+particular, this work explores, for the first time, the Bayesian machine
+learning (BML) approach [39,40] for phase-resolved wave prediction,
+which can take advantage of ML’s ability in tackling nonlinear prob-
+lems while taking different kinds of uncertainties into account via the
+Bayesian framework. As the inference of the true posterior distribution
+in the Bayesian neural network (BNN) model is generally infeasible
+due to its extreme computational complexity, various approximation
+methods, such as Monte Carlo (MC) dropout [41] and variational
+inference [42] have been proposed. Various algorithms are also being
+developed to enable efficient training of BNN [43,44]. Along with
+the development of modern ML hardware (e.g. GPU), the use of BNN
+in various fields is just emerging and recent successes in the area
+of energy research include the probabilistic wind forecasting [45],
+solar irradiation forecasting [46], and natural gas hydrate dispersion
+modeling [47]. In this work, BNN is employed for probabilistic, phase-
+resolved, real-time reconstruction and forecasting of ocean waves. The
+
+Applied Energy 324 (2022) 119711
+3
+J. Zhang et al.
+Table 1
+The advantages of the phase-resolved wave prediction method proposed in this work
+compared with existing works in the literature.
+Ref.
+Method
+Nonlinear
+Real-time
+Predictable zone
+UQ
+[15–18]
+LWT
+No
+Yes
+Linear
+No
+[23,24]
+HOS-WP
+Yes
+No
+Linear
+No
+[27,28]
+NLWM-WP
+Yes
+Yes
+Linear
+No
+[36,37]
+NN
+Yes
+Yes
+Linear
+No
+This work
+BNN
+Yes
+Yes
+Nonlinear
+Yes
+proposed method is designed to take account of both the aleatory un-
+certainty (i.e. the uncertainty of the phase-resolved wave information)
+and the epistemic uncertainty (i.e. the uncertainty due to the model’s
+ability). To the best of the authors’ knowledge, this is the first time
+that real-time nonlinear wave prediction is achieved with quantified
+uncertainty including both aleatory and epistemic uncertainties. An-
+other main advantage of the proposed method is that, by rigorously
+quantifying the prediction uncertainty, the predictable zone can also
+be detected automatically, avoiding the use of LWT in the predictable
+zone determination. The advantages of the method proposed in this
+work compared with existing works in the literature (including LWT,
+HOS-WP, NLWM-WP, and NN-based approaches) are summarized in
+Table 1.
+To evaluate the performance of the proposed method, a set of
+wave tank experiments are carried out in this work. The experiments
+are carried out in the ocean basin [48] in the Coastal, Ocean and
+Sediment Transport (COAST) Laboratory at the University of Plymouth,
+UK, which has been used previously for various studies in wave [49,50]
+and tidal [51] energy research. A total 24 experimental runs are carried
+out to generate different wave environments, and the measurements
+at different sensor locations are recorded. The wave predictions are
+then carried out. The results show that the proposed method is able
+to predict the phase-resolved wave elevations accurately. Specifically,
+the prediction mean values match very well with the reference wave
+elevations measured by the wave gauge, and the corresponding pre-
+diction uncertainty and its variation are well captured throughout the
+prediction time horizon. Moreover, the predictable zone determina-
+tion is also successfully achieved by the proposed method. To further
+demonstrate the performance of the proposed method, the LWT-based
+and NN-based wave prediction methods are also implemented in this
+work for comparison. The results show that the proposed method not
+only achieves better accuracy than these methods, but also expands the
+predictable zone, which is of vital importance for the control of WECs
+and their load forecasting.
+The main contributions and novelties of this paper are summarized
+as follows:
+(1) Phase-resolved real-time nonlinear wave prediction with quan-
+tified uncertainty (including both aleatory and epistemic un-
+certainties) is achieved for the first time. Because the previous
+ML-based works [36,37] achieved deterministic phase-resolved
+wave predictions without quantifying the prediction uncertainty,
+it is difficult to use them for the control of WECs in real-
+world conditions, as it may lead to catastrophic damage. This
+work, therefore, brings vital opportunities for the safe and opti-
+mal operation of WECs. The comparison of the proposed wave
+prediction method with existing methods in the literature is
+summarized in Table 1.
+(2) As previous works all rely on LWT for predictable zone determi-
+nation (which leads to overly conservative estimation), another
+main novelty of this work is that it achieves, for the first time,
+the prediction of the predictable zone without assuming linear
+sea states.
+(3) The proposed method is developed based on the variational BML
+approach, which can take advantage of both the ML model’s
+ability in tackling complex nonlinear problems and the Bayesian
+approach’s merits in tackling all kinds of uncertainties.
+(4) The performance of the proposed approach is evaluated through
+a set of wave tank experiments. The results show that phase-
+resolved wave elevation is predicted accurately, the prediction
+uncertainty is captured well throughout the prediction horizon,
+and the predictable zone is obtained successfully. By comparing
+with the existing methods in the literature, it is demonstrated
+that the proposed method not only achieves better accuracy, but
+also expands the predictable zone substantially, which is vital for
+the optimal control of WECs and their load forecasting.
+The remaining part of this paper is organized as follows: the phase-
+resolved wave prediction problem is formulated in Section 2. The
+proposed BNN-based prediction method is described in Section 3. The
+prediction performance is evaluated through a set of wave tank exper-
+iments in Section 4. Finally the conclusions are drawn in Section 5.
+2. Problem formulation
+Phase-resolved wave prediction, often referred as deterministic sea
+wave prediction (DSWP) in previous works, is of vital importance
+for the power maximization and load mitigation of WECs and their
+arrays. The preview wave information obtained by DSWP offers great
+opportunities for the control of WECs before the wave arrives at the
+location where the WECs are deployed. An illustration of the wave
+prediction problem is given in Fig. 1, where a wave probe, marked
+as A in Fig. 1(a), is installed to measure the wave elevations over
+time at an upstream location. Based on the measurements, the objec-
+tive is to predict the wave elevations at the downstream location of
+interest, which is marked as B in Fig. 1(a). An example of the wave
+measurements during a certain time period is shown in Fig. 1(b), and
+the corresponding wave elevations to be predicted are illustrated in
+Fig. 1(c). Denote the wave measurements at the location A from time
+instant 0 to 𝑇𝑎as
+ℎ𝑎= [ℎ𝑎
+0, ℎ𝑎
+1, … , ℎ𝑎
+𝑇𝑎]
+(1)
+where ℎ𝑎
+𝑖represents the wave elevation at the location A at the 𝑖th time
+instant. Denote the wave elevations at location B from time instant 0
+to time instant 𝑇𝑏(𝑇𝑏> 𝑇𝑎) as
+ℎ𝑏= [ℎ𝑏
+0, ℎ𝑏
+1, … , ℎ𝑏
+𝑇𝑎, ℎ𝑏
+𝑇𝑎+1, … , ℎ𝑏
+𝑇𝑏]
+(2)
+where ℎ𝑏
+𝑖represents the wave elevation at the location B at the 𝑖th time
+instant. The phase-resolved wave prediction problem then states as how
+to approximate the mapping 𝑓that takes ℎ𝑎as the input and returns
+ℎ𝑏as the output, i.e.
+ℎ𝑏= 𝑓(ℎ𝑎).
+(3)
+As illustrated in Fig. 1(c), the wave prediction in this work considers
+both reconstruction, where the wave elevations from 0 to 𝑇𝑎are pre-
+dicted, and forecasting, where the wave elevations from 𝑇𝑎into the
+future are predicted.
+The mapping 𝑓is often modeled as deterministic in previous works,
+neglecting the underlying uncertainty including both the uncertainty of
+the phase-resolved wave information and the model uncertainty. Thus
+only point prediction is obtained. However, as illustrated in Fig. 1(c),
+the point prediction of wave elevations (which is represented by the
+dashed line) and the corresponding true values (which is represented
+by the solid line) can differ from each other dramatically. Thus the lack
+of knowledge about the prediction uncertainty is of great danger to the
+WEC deployed at the location of interest. In this work, a novel phase-
+resolved wave prediction method is proposed where the prediction
+uncertainty is rigorously quantified. To achieve this, the mapping 𝑓
+is modeled as probabilistic instead of deterministic. The considered
+wave prediction problem is thus termed as probabilistic phase-resolved
+wave prediction instead of DSWP or probabilistic sea wave predic-
+tion, to avoid confusion with previous deterministic prediction works
+
+Applied Energy 324 (2022) 119711
+4
+J. Zhang et al.
+Fig. 1. An illustration of the probabilistic phase-resolved wave prediction problem investigated in this work.
+Fig. 2. An illustration of the BNN model developed in this work.
+and stochastic wave modeling works focusing on the phase-averaged
+quantities.
+Another aspect of the wave prediction problem is the determination
+of the predictable zone, i.e. given the wave measurements during
+a certain time period, what is the time horizon that credible wave
+prediction can be made? All the previous works have investigated
+this issue based on LWT. In this work, a consistent way to determine
+the predictable zone is developed with the proposed wave prediction
+method, avoiding the assumption of linear sea states.
+3. Methodology
+A probabilistic, phase-resolved, real-time wave prediction method
+is proposed in this work, based on the variational BML approach. The
+proposed method is designed to achieve accurate wave prediction with
+the quantification of both aleatory uncertainty and model uncertainty.
+In this section, the details of the developed BNN model, its training, and
+the online prediction procedure are given first. Then the LWT-based
+and the deterministic NN-based wave prediction methods, which are
+implemented in this work for comparison purpose, are presented.
+3.1. Probabilistic phase-resolved wave prediction
+3.1.1. BayesIan neural network model
+In this work, to take account of the aleatory uncertainty, the output
+of the mapping 𝑓is modeled as a random vector where each component
+is modeled as an independent Gaussian, i.e.
+ℎ𝑏
+𝑖∼(𝑚𝑖, 𝑑2
+𝑖), 1 ≤𝑖≤𝑇𝑏
+(4)
+where 𝑚𝑖and 𝑑𝑖represent the mean and the standard deviation of the
+𝑖th component of the output of 𝑓. To avoid confusion, we mention that
+the output of 𝑓here is the phase-resolved, real-time wave elevations at
+the location B, which is totally different from the phase-averaged wave
+elevation distributions in the stochastic modeling of ocean waves. A
+BNN model, denoted aŝ 𝑓, is then constructed to take ℎ𝑎as the input
+and return the random vector̂ ℎ𝑏as the output, i.e.̂
+ℎ𝑏=̂ 𝑓𝑊(ℎ𝑎)
+(5)
+where 𝑊represents the training variable of the BNN. Various NN
+structures in deterministic ML can also be used in the BML framework
+to take advantage of the underlying data structure, such as convolu-
+tional NN for image classification [52] and recurrent NN for language
+processing [53]. In this work, as was in previous NN-based wave
+prediction works [36,37], the fully-connected NN is employed, which
+makes full connection from the model input to the model output. The
+input–output mappinĝ 𝑓𝑊, which is illustrated in Fig. 2, can thus be
+expressed as
+𝑦0 = ℎ𝑎;
+𝑦𝑖+1 = 𝜎(𝑊𝑖+1𝑦𝑖+ 𝐵𝑖+1), 0 ≤𝑖≤𝑁ℎ−1;
+𝑚= (𝑊𝑁ℎ+1𝑦𝑁ℎ+ 𝐵𝑁ℎ+1);
+𝑑= (𝑊𝑁ℎ+2𝑦𝑁ℎ+ 𝐵𝑁ℎ+2);̂
+ℎ𝑏∼(𝑚, 𝑑𝑖𝑎𝑔(𝑑2))
+(6)
+where the training variable 𝑊includes 𝑊𝑖and 𝐵𝑖in all the layers
+(i.e. 𝑊
+= [𝑊𝑖, 𝐵𝑖], 1 ≤𝑖≤𝑁ℎ+ 2), 𝜎is the activation function
+(which is specified as the rectified linear unit (ReLU) activation in
+this work), is the transformation function (which is specified as the
+softplus function in this work) that guarantees the positivity of the
+returned standard deviation, and is the linear activation that returns
+the mean values of the output. Different from the previous NN-based
+wave prediction works where 𝑊𝑖and 𝐵𝑖are the trainable weight matrix
+and the NN training aims at obtaining the optimal values of 𝑊𝑖and
+𝐵𝑖to fit the training data, this work employs the BML framework
+
+Applied Energy 324 (2022) 119711
+5
+J. Zhang et al.
+where 𝑊𝑖and 𝐵𝑖are random variables and the NN training aims at
+obtaining the posterior distributions of these random variables, i.e. the
+probability distributions of these random variables given the training
+dataset (including the training input and the training target).
+3.1.2. Model training
+The BNN model is trained to infer the posterior distribution of the
+training variable 𝑊given the training dataset. Denote a set of training
+input as
+𝐻𝑎= [(ℎ𝑎)0, (ℎ𝑎)1, … , (ℎ𝑎)𝑁]
+(7)
+where (ℎ𝑎)𝑖= [(ℎ𝑎
+1)𝑖, (ℎ𝑎
+2)𝑖, … , (ℎ𝑎
+𝑇𝑎)𝑖] is the wave elevation at the loca-
+tion A from 0 to 𝑇𝑎at the 𝑖th wave scenario. Denote the corresponding
+training target as
+𝐻𝑏= [(ℎ𝑏)0, (ℎ𝑏)1, … , (ℎ𝑏)𝑁]
+(8)
+where (ℎ𝑏)𝑖= [(ℎ𝑏
+1)𝑖, (ℎ𝑏
+2)𝑖, … , (ℎ𝑏
+𝑇𝑏)𝑖] is the wave elevation at the location
+B from 0 to 𝑇𝑏at the 𝑖th wave scenario. Here a wave scenario denotes
+a particular wave environment at a particular starting time.
+Given the dataset 𝐻𝑎and 𝐻𝑏, the posterior distributions of the
+training variable 𝑊can be expressed according to the Bayes’ rule as
+𝑃(𝑊|[𝐻𝑎, 𝐻𝑏]) =
+𝑃([𝐻𝑎, 𝐻𝑏]|𝑊)𝑃(𝑊)
+∫𝑃([𝐻𝑎, 𝐻𝑏]|𝑊)𝑃(𝑊)𝑑𝑊
+.
+(9)
+Here 𝑃(|) denotes the conditional probability. As the inference of the
+true posterior distribution, as expressed by Eq. (9), is often not feasible
+due to the high dimensionality of the training variable (i.e. the high
+dimensionality of 𝑊
+in this work) [54], variational inference has
+been developed in the literature to approximate the true posterior
+with variational distributions. The training of the BNN via variational
+inference [55] thus aims at minimizing the Kullback–Leibler (KL)
+divergence (which characterizes the difference between probability
+distributions) between the variational distribution 𝑞𝜆(𝑊) and the true
+posterior 𝑃(𝑊|[𝐻𝑎, 𝐻𝑏]), which is defined as
+KL(𝑞𝜆(𝑊) ∥𝑃(𝑊|[𝐻𝑎, 𝐻𝑏])) = ∫𝑞𝜆(𝑊) log
+𝑞𝜆(𝑊)
+𝑃(𝑊|[𝐻𝑎, 𝐻𝑏]𝑑𝑊.
+(10)
+It can be further derived as
+KL(𝑞𝜆(𝑊) ∥𝑃(𝑊|[𝐻𝑎, 𝐻𝑏])) = log(𝑃([𝐻𝑎, 𝐻𝑏]))
++KL(𝑞𝜆(𝑊) ∥𝑃(𝑊)) −𝐸𝑞𝜆(log(𝑃([𝐻𝑎, 𝐻𝑏]|𝑊))).
+(11)
+where
+𝐸𝑞𝜆(log(𝑃([𝐻𝑎, 𝐻𝑏]|𝑊)))
+denotes
+the
+expectation
+of
+log(𝑃([𝐻𝑎, 𝐻𝑏]|𝑊)). As the first term in the right side of Eq. (11) does
+not depend on the training variable 𝑊, the training loss function is
+finally obtained as
+(𝜆) = KL(𝑞𝜆(𝑊) ∥𝑃(𝑊)) −𝑁𝑡𝑜𝑡
+𝑁𝑏
+𝑁𝑏
+∑
+𝑖=1
+log(𝑃([𝐻𝑎
+𝑖, 𝐻𝑏
+𝑖]|𝑊))
+(12)
+for the training with mini-batch stochastic gradient descent. Here
+[𝐻𝑎
+𝑖, 𝐻𝑏
+𝑖] represents the 𝑖th training data batch, 𝑁𝑏is the batch size,
+and 𝑁𝑡𝑜𝑡is the size of the whole training dataset. The interested readers
+may refer to [40,55] for further details regarding the derivation. The
+BNN is then trained to minimize the loss function (𝜆) to obtain the
+optimal variational parameter 𝜆∗. Furthermore, Flipout [44] is used in
+this work to enable efficient training. The implementation details of the
+developed BNN model can be found in the Appendix of this paper.
+3.1.3. Online prediction
+After training, given the wave elevations ℎ𝑎measured at the loca-
+tion A as the input, the posterior distribution of the wave elevations to
+be predicted can be obtained by
+𝑃(̂ℎ𝑏|[𝐻𝑎, 𝐻𝑏]) = ∫𝑃(̂ℎ𝑏|𝑊)𝑃(𝑊|[𝐻𝑎, 𝐻𝑏])𝑑𝑊
+≈∫𝑃(̂ℎ𝑏|𝑊)𝑞𝜆∗(𝑊)𝑑𝑊.
+(13)
+In practice, the prediction is carried out by sampling the training
+variable 𝑊according to the probability distribution 𝑞𝜆∗(𝑊) and then
+propagating the samples througĥ 𝑓𝑊(ℎ𝑎) to obtain the posterior sam-
+ples of̂ ℎ𝑏. From these obtained samples, the posterior distribution
+of̂ ℎ𝑏, i.e.
+(𝑃(̂ℎ𝑏|[𝐻𝑎, 𝐻𝑏])), can be estimated, and various statistical
+quantities of̂ ℎ𝑏, such as its mean value, its standard deviation and its
+95% confidence interval, can be predicted. In addition, the predictable
+zone can also be determined based on the samples of the predicted
+wave elevations. Here, the uncertainty level, which is defined as
+𝛿(̂ℎ𝑏) = 𝑞0.975(̂ℎ𝑏) −𝑞0.025(̂ℎ𝑏),
+(14)
+is calculated and used to characterize how certain the BNN model is
+in making predictions of the wave elevations. Here 𝑞0.975 and 𝑞0.025
+represent the 97.5% and 2.5% quantiles of̂ ℎ𝑏. Then the predictable
+zone is determined as the zone that 𝛿is smaller than a prescribed
+threshold 𝛿0. The hyperparameters involved in the BNN model (such
+as the neuron number, the learning rate, the batch size, etc.) and the
+other parameters (such as the threshold 𝛿0) are tuned empirically. Their
+values are given in the next section.
+3.2. Linear wave theory
+The wave prediction based on LWT has been investigated and
+described in several previous works [56,57]. The prediction procedure
+can be divided into the following three steps. First, the time series
+of the wave measurements at the sensor location is transformed into
+frequency domain through discrete Fourier transform (DFT), i.e.
+𝐹𝑎= DFT(ℎ𝑎).
+(15)
+Then the propagation of the wave components at various frequencies
+is determined according to the linear dispersion relation, i.e.
+𝜔2 = 𝑔𝑘tanh(𝑘ℎ)
+(16)
+where ℎis the water depth. Finally the wave prediction at the loca-
+tion 𝑥𝑏based on the measurements at the location 𝑥𝑎is obtained by
+summing up all the arrived wave components as
+ℎ𝑏=
+∑
+𝑖
+𝑟𝑖cos(𝑘𝑖(𝑥𝑏−𝑥𝑎) −𝜔𝑖𝑡−𝜙𝑖)
+(17)
+where 𝜔𝑖= 2𝜋𝑖∕𝑁, 𝜙𝑖= arg(𝐹𝑎
+𝑖), 𝑟𝑖= abs(𝐹𝑎
+𝑖), and 𝑘𝑖is obtained via
+the linear dispersion relation. Here abs and arg represent the modulus
+and the argument of complex numbers.
+The predictable zone can also be determined based on LWT. This is
+achieved by first calculating the cutting-off frequencies 𝑓low and 𝑓high
+such that most of the energy is contained between 𝑓low and 𝑓high. Then
+the predictable zone is determined as
+(𝑥𝑏−𝑥𝑎)∕𝐶(𝑓high) ≤𝑡≤𝑇𝑎+ (𝑥𝑏−𝑥𝑎)∕𝐶(𝑓low)
+(18)
+where 𝐶(𝑓low) and 𝐶(𝑓high) represent the group velocities which are
+calculated by
+𝐶(𝑓) = 1
+2
+2𝜋𝑓
+𝑘(1 +
+2𝑘ℎ
+sinh(2𝑘ℎ) ).
+(19)
+Here in this work, following the work in [36], the cutting-off frequen-
+cies are determined by including the wave components that account for
+85% of the total energy.
+3.3. Deterministic NN-based wave prediction
+For the deterministic NN-based wave prediction, the same fully-
+connected NN structure is used. However, the training variable 𝑊
+becomes the weight matrix instead of random variables in BNN, and the
+NN output becomes deterministic instead of probabilistic. The input–
+output mapping of the implemented deterministic NN model can thus
+be expressed as
+𝑦0 = ℎ𝑎;
+
+Applied Energy 324 (2022) 119711
+6
+J. Zhang et al.
+𝑦𝑖+1 = 𝜎(𝑊𝑖+1𝑦𝑖+ 𝐵𝑖+1), 0 ≤𝑖≤𝑁ℎ−1;̂
+ℎ𝑏= (𝑊𝑁ℎ+1𝑦𝑁ℎ+ 𝐵𝑁ℎ+1).
+(20)
+The training of the NN model is carried out to minimize the mean-
+squared error between the NN output and the training target by up-
+dating the training weight matrix 𝑊. After training, point prediction
+of the wave elevations can be obtained, by simply propagating a given
+input wave signal through the NN. With this deterministic NN-based
+approach, the prediction uncertainty is not known. In addition, the pre-
+dictable zone cannot be obtained. The previous NN-based works [36,
+37] all employed LWT for the predictable zone determination, as
+described in Section 3.2.
+4. Results
+The proposed wave prediction method is evaluated in this section,
+by carrying out a set of wave tank experiments representing typical
+sea conditions. In the following subsections, the experimental setup is
+first presented. Then the results are given, including the predictions by
+the LWT-based method, the deterministic NN-based method, and the
+proposed method.
+4.1. Wave tank experiments
+The experiments are carried out in the ocean basin at the COAST
+Laboratory at the University of Plymouth [48], which has been used
+extensively in previous works on simulating ocean waves and testing
+WECs [49,50]. A photo of the wave tank for carrying out the exper-
+iments is given in Fig. 3(a) and the experimental setup is illustrated
+in Fig. 3(b). The dimension of the basin is 35 m × 15.5 m, which
+has an adjustable floor that allows different operating water depths
+up to 3 m. 24 hinged wave paddles across one side of the basin are
+applied to generate waves, with wave frequency in the range of 0.1 Hz
+– 2 Hz. We mention that the wave frequencies in the range of 0.1 Hz -
+2 Hz with the corresponding significant wave heights under the limited
+lines aim at avoiding breaking waves. This is limited by the physical
+capabilities of the Ocean Basin (e.g., the basin’s length and depth, the
+beach located downstream of the basin, and the active wave paddles
+system). Furthermore, to reduce wave reflection, a parabolic beach is
+located downstream of the basin and the wave paddles are equipped
+with an active absorption system.
+In this work, two sea conditions, which represent the typical and
+extreme conditions during a 50-year return period for the EMEC site,
+are investigated. The corresponding significant wave height (i.e. Hs)
+and the peak period (i.e. Tp) are reported in Table 2, which are
+derived based on the data provided by ECMWF [58]. The environ-
+mental characterization is performed on the EMEC site off Scotland
+using 30 years of hindcast data. A 50-year contour line of the EMEC
+site is then obtained, using the inverse first order method (IFORM)
+together with a Weibull distribution for Hs and conditional log-normal
+distribution for Tp|Hs. As described in Table 2, during the physical
+tank testing two wave conditions of the EMEC site are scaled down
+to 1/50th and tested: one represents the wave with high probability
+of occurrence of the EMEC site (#1); the other is along the 50-year
+contour line with the highest Hs referring to the extreme condition with
+wave steepness of 0.0291 (#2). The limiting wave steepness is taken
+as 𝑆𝑝≤1∕15 [59]. In order to avoid breaking waves, the two wave
+conditions studied here are smaller than this steepness limit. Details of
+the environmental characterization can be found in [60]. It is also very
+interesting to note that the sea conditions considered in this work are in
+a similar range of steepness as in previous wave prediction works (see,
+for example, the wave steepness reported in Table 1 in [26] and the
+value of Hs/Tp2 reported in Figure 1 in [36]). According to the physical
+water depth of the EMEC site and the scale ratio of the testing (1/50th),
+the water depth of this testing is set at 1.5 m. The tank testing setup
+is described in Fig. 3(b). As shown, four twin-wire resistance wave
+Fig. 3. The illustration of the wave tank experiments.
+Table 2
+The sea conditions investigated in this work.
+Sea Cond.
+Scale model (1/50)
+Full model
+Wave steepness
+Hs [m]
+Tp [s]
+Hs [m]
+Tp [s]
+2𝜋Hs/(gTp2)
+#1
+0.05
+1.1
+2.5
+7.78
+0.0265
+#2
+0.22
+2.2
+11
+15.56
+0.0291
+probes are installed to capture the wave evolution. Particularly, the
+measurements at the first probe (i.e. 8.865 m downstream of the wave
+paddle) and the third probe (13.8 m downstream of the wave paddle)
+are used for the wave predictions in this work, which correspond to
+the location A and the location B in Fig. 1 respectively. In addition, for
+each sea condition, two different peak enhancement factors (i.e. 𝛾= 1
+and 𝛾= 3.3) and six different random seeds are considered, resulting
+in twelve experimental runs for each sea condition. Thus in total 24
+wave scenarios are physically simulated in this work. The two peak
+enhancement factors are studied to understand the effects caused by
+spectral shape, where 𝛾= 3.3 corresponds to the JONSWAP spectral
+with narrow band and 𝛾= 1 is related to the PM spectral with broader
+band. For each wave scenario, in order to obtain one-hour simulation
+at full scale, approximately 8.5-min physical tank testing is needed
+at 1/50 scale, i.e. the time scale ratio is
+√
+1∕50 based on the Froude
+model law. Therefore, in this work, the physical simulations are carried
+out for about 9.5 min. The simulations during the first and the last
+30 s are then discarded, resulting 8.5 min of well-established wave
+environment, which correspond to one hour at full scale.
+
+Applied Energy 324 (2022) 119711
+7
+J. Zhang et al.
+Fig. 4. The results of wave prediction (including both reconstruction and forecasting) with quantified uncertainty by the proposed method for a typical wave scenario representing
+the sea condition #1, including the predictions of both (a) the wave elevations, where the ground truth and the results by the LWT-based and the deterministic NN-based methods
+are also shown; and (b) the predicable zones, where the solid and dashed lines represent the uncertainty level and the corresponding smoothed curve while the vertical gray line
+indicates the predictable zone by the proposed method.
+For the wave predictions in this work, all the quantities measured in
+the scaled simulations, such as the wave elevations and the correspond-
+ing time stamps, are first scaled back to the quantities at full scale.
+Then the data is collected at a frequency of 2 Hz. The wave elevations
+measured at the location A during the whole simulation period for
+all the wave scenarios is collected as the data matrix̃ 𝐻𝑎, wherẽ 𝐻𝑎
+𝑖,𝑗
+represents the wave elevation at the 𝑗th time step for the 𝑖th simulated
+scenario. Similarly, the measurements at the location B are collected as
+the data matrix̃ 𝐻𝑏wherẽ 𝐻𝑏
+𝑖,𝑗represents the wave elevation at the 𝑗th
+time step for the 𝑖th scenario.
+4.2. Prediction results and discussions
+The wave dataset̃ 𝐻𝑎and̃ 𝐻𝑏, as described in Section 4.1, are
+divided into the training dataset (the first 85% time instants) and the
+test dataset (the last 15% time instants). Based on the training dataset,
+the wave prediction model developed in this work is trained to achieve
+the prediction of the wave elevation at the location B from 𝑇0 to 𝑇0 +
+300 s with the wave elevation at the location A from 𝑇0 to 𝑇0 + 200 s as
+the input, i.e. the model is trained to achieve the wave reconstruction
+and the 100 s-ahead wave forecasting simultaneously. Specifically, the
+training is carried out using the first 75% of the training dataset, and
+the hyperparameters (such as the NN structure, the learning rate, etc.)
+involved in the developed model are tuned based on the validation
+dataset (i.e. the last 25% of the training dataset). The final NN structure
+is set as 400-500-600 for both the mean and the standard deviation of
+the BNN output, the batch size for the mini-batch gradient descent is set
+as 2048, and the Adam optimizer [61] is used where the learning rate
+is set as 10−3. The training is carried out using NVIDIA RTX 6000 GPU.
+The whole training process takes about 0.9 h to complete and each
+training iteration requires about 0.33 s. This shows that the offline-
+trained model can also be used for efficient online updating in practical
+scenarios to tackle various uncertainties in real-ocean WEC operations.
+After training, the test dataset is used for evaluating the prediction
+performance including both the prediction accuracy and the uncer-
+tainty characterization. Here, the predictions are carried out for all the
+24 wave scenarios simulated in this work and by all the wave prediction
+methods including the LWT-based method, the deterministic NN-based
+method, and the proposed method. The wave elevations measured by
+the wave gauge, which are assumed unavailable during the training
+process, are used as the reference values to evaluate the prediction
+accuracy.
+4.2.1. Wave predictions with quantified uncertainty
+First, the prediction performance for the whole time period, in-
+cluding both wave reconstruction and forecasting, is examined. The
+results are shown in Figs. 4 and 5 for two typical wave scenarios
+which correspond to the sea conditions #1 and #2 respectively. The
+two wave scenarios shown in Figs. 4 and 5 are from the 24 wave
+scenarios simulated in this work, and the prediction results for the
+other 22 wave scenarios show similar characteristics, thus omitted
+here. Figs. 4(a) and 5(a) show the wave elevations predicted by the
+proposed method, including both the prediction mean values and the
+95% confidence interval. As shown, the prediction mean values (i.e. the
+dashed–dotted line) match very well with the reference values (i.e. the
+solid line), and the predicted 95% confidence interval (i.e. the gray
+area) characterizes the prediction uncertainty accurately throughout
+the prediction time horizon. In particular, as shown in Figs. 4 and 5, the
+prediction uncertainty is very high at the left side of the time domain.
+This is because at these time instants, the waves to be predicted at
+the location B have already passed (thus are not captured by) the
+
+Applied Energy 324 (2022) 119711
+8
+J. Zhang et al.
+Fig. 5. The results of wave prediction (including both reconstruction and forecasting) with quantified uncertainty by the proposed method for a typical wave scenario representing
+the sea condition #2, including the predictions of both (a) the wave elevations, where the ground truth and the results by the LWT-based and the deterministic NN-based methods
+are also shown; and (b) the predicable zones, where the solid and dashed lines represent the uncertainty level and the corresponding smoothed curve while the vertical gray line
+indicates the predictable zone by the proposed method.
+probe at the location A. A high prediction uncertainty is also observed
+at the right side of the time domain, which is because at these time
+instants the waves to be predicted have not arrived at the location
+A yet. As for the center part of the time domain where the waves to
+be predicted are captured by the probe at the location A, a consistent
+low uncertainty level is predicted throughout, and the reference values,
+for the most of the time, fall within the predicted 95% confidence
+interval. It is thus concluded that the wave prediction (including both
+wave reconstruction and forecasting) with quantified uncertainty is
+successfully achieved by the proposed method.
+For comparison purposes, the predictions by the LWT-based and the
+NN-based methods are also carried out and the results are included
+in Figs. 4(a) and 5(a). As shown, the mean values predicted by the
+proposed method match with the reference values much better than
+the LWT-based method, demonstrating the great performance of the
+proposed nonlinear approach compared to the linear approach, while it
+is only slightly better than the deterministic NN-based method, which is
+reasonable as both methods are designed based on data and ML (i.e. one
+is based on probabilistic ML and the other is based on deterministic
+ML). As can be seen from Figs. 4(a) and 5(a), the predictions by
+all the methods show various levels of prediction errors throughout
+the prediction time horizon, and the prediction can be totally wrong
+beyond the predictable zone. Therefore, the wave prediction without
+knowing the prediction uncertainty, which is the case for both the
+LWT-based and the NN-based methods, is of great danger to the assets
+deployed at real-world sea environment. Thus the unique advantage of
+the method proposed in this work is that it can predict the prediction
+uncertainty, as shown by the gray area in Figs. 4(a) and 5(a), along
+with the prediction mean values. For future wave energy applications,
+the 95% confidence interval predicted by the proposed method can be
+used for the control of WECs and their load forecasting to guarantee
+robust performance, while the other wave prediction methods can only
+provide point estimation.
+Moreover, it is worth mentioning that the lack of understanding and
+interpretation of the ML model parameters, which is also present in
+most of other ML applications in various fields, further compounds the
+challenges in deploying deterministic NN-based methods in real-world
+ocean conditions. For example, if the deterministic NN-based method is
+employed to provide the input for the real-time WEC control, the occur-
+rence of prediction errors, which cannot be physically interpreted, may
+lead to unexpected hazardous behaviors of the WEC. Such issues, on
+the other hand, can be mitigated by the proposed BNN-based method,
+by using the prediction mean value and the confidence level at the
+same time. Although the BNN-based method, like the deterministic NN,
+remains lack of interpretation, its advantage is that it will know when
+it is not able to make reliable predictions. Thus when such scenario
+occurs, in practice, the WEC can be simply switched to a default control
+strategy that does not rely on or has weak dependency on the predicted
+wave elevations.
+4.2.2. Predictions of the predictable zone
+In addition to the wave prediction with quantified uncertainty,
+the determination of the predictable zone is also achieved with the
+proposed method. To achieve this, the prediction uncertainty level 𝛿,
+which is defined according to Eq. (14), is calculated. The results are
+shown in Figs. 4(b) and 5(b). As can be seen, there exists a sharp rise
+for the value of 𝛿at both left and right sides, which can be used to
+determine the boundaries of the predictable zone. A smoothing process
+(here via Gaussian kernel smoothing) is first carried out to obtain the
+smoothed curve of the uncertainty level, which is shown by the dashed
+line in Figs. 4(b) and 5(b). Then the predicable zone is calculated as
+the zone where the uncertainty level is less than a prescribed threshold
+
+Applied Energy 324 (2022) 119711
+9
+J. Zhang et al.
+Fig. 6.
+The error distributions over the whole prediction time domain, averaged over all the simulated wave scenarios representing sea condition #1 and #2 respectively. The
+results by the LWT-based and the deterministic NN-based methods are also shown for comparison.
+𝛿0. Here in this work 𝛿0 is set as 𝛿min + (𝛿max −𝛿min)∕4 where 𝛿min
+and 𝛿max represent the minimum and the maximum values of 𝛿during
+the whole prediction horizon. The predictable zone finally obtained is
+shown in Figs. 4(b) and 5(b). For comparison purposes, the predictable
+zone determination based on LWT is also carried out and the results
+are included in Figs. 4(a) and 5(a). As shown, the two approaches,
+even though drastically different from each other (i.e. one is based on
+the physics of linear ocean waves and the other is based on data and
+ML), predict two predictable zones that cover similar time horizons.
+More importantly, the zone predicted by the proposed method contains
+(and is larger than) the zone predicted by LWT. This observation is
+true for all the 24 wave scenarios simulated in this work. As pointed
+out in previous studies [26,38], the assumption of linear sea states
+leads to a more restrictive prediction of the predictable zone. Therefore,
+with the proposed nonlinear method, for the first time, the predictable
+zone determination is achieved without assuming linear sea states, thus
+guaranteeing the wave prediction over a predictable zone larger than
+all the previous works. This brings vital opportunities to the field of
+the control of WECs and their load forecasting, where the length of the
+forecasting time horizon is of great importance. It is worth mentioning
+that this successful determination of the predictable zone is not trivial,
+as no training data is known regarding the zone boundary, making
+this task unachievable by all the previous ML-based wave prediction
+methods.
+It is worth pointing out that the identification of the predictable
+zone boundaries with the proposed method relies on the parameter
+𝛿0, which is empirically determined. Similarly, with the LWT-based
+method in previous works, the determination of the predictable zone
+relies on the empirically-determined cutting-off frequencies, which
+means that a different percentage (e.g. 85% used in this and other
+works [36]) of the energy content required for the cutting-off fre-
+quencies would lead to a different predictable zone. This kind of
+empiricalness was also briefly discussed in [36]. Because the change
+from ‘predictable’ to ‘unpredictable’ is actually gradual, in practice,
+it is up to the users/practitioners to determine the value of 𝛿0 for
+the proposed method or the cutting-off frequencies for the LWT-based
+method. In this work, the value of 𝛿0 is set as a 25% deviation from the
+minimum uncertainty level. The reason of using this value is two-fold:
+one is to predict the predictable zones as conservative as possible which
+is achieved by choosing the value of 𝛿0 as small as possible; the other is
+to choose the value of 𝛿0 so that the local oscillations of the uncertainty
+level (as shown in Figs. 4(b) and 5(b)) do not hinder the identification
+of the zone boundaries. This trade-off leads to the current selection
+of 𝛿0. In addition, because of the above-mentioned empiricalness, a
+meaningful comparison between the predictable zones by the proposed
+method and by the LWT should include both predictable zone length
+and the prediction accuracy within the zone. This is because the
+empirical value of 𝛿0 (or the cutting-off frequencies in the LWT-based
+method) also has an impact on the evaluation of the overall accuracy
+within the predictable zone. For example, it is expected that a larger
+value of 𝛿0 will lead to a larger predictable zone, which will then
+lead to a larger overall prediction error because the error increases
+towards the zone boundaries. Therefore, in the following subsections,
+the quantitative evaluation of the proposed method, in terms of both
+the prediction accuracy and the predictable zone length, is carried out.
+Its performance is compared with other methods, i.e. the LWT-based
+and NN-based methods.
+4.2.3. Quantitative evaluations of the prediction performance
+To quantify the prediction accuracy of the proposed wave predic-
+tion method, the error distributions over the whole prediction time
+domain are first investigated. The root mean square error (RMSE) of
+the predictions compared with the reference values at different time
+horizons, averaged over all the simulated wave scenarios representing
+sea condition #1 and #2 respectively, are calculated and the results
+are given in Fig. 6. The results by LWT-based and NN-based methods
+are also included for comparison. As shown, the proposed method
+outperforms other methods consistently throughout the prediction time
+domain, with a moderate improvement over NN-based method and
+a significant improvement over the LWT-based method. Particularly,
+in the center part of the time domain, the prediction error by the
+proposed method is around 0.1 m and 0.3 m lower than the LWT-
+based method at the sea condition #1 and #2 respectively. Towards the
+zone boundaries, the prediction error by the LWT-based method rises
+earlier and has a larger magnitude (i.e. the error exceeds 1.0 m and
+4.0 m at the sea condition #1 and #2 respectively) than the proposed
+method, demonstrating the proposed method’ ability in both extending
+the predictable zone and improving the accuracy. In addition, a similar
+trend at the zone boundaries is observed between the NN-based and the
+proposed methods. However, because the NN-based method is not able
+to predict the predictable zone, a restrictive zone by LWT is usually
+imposed [36,37], limiting the NN-based method for predictable zone
+extension.
+To evaluate the overall prediction error, the RMSE of the predictions
+compared with the reference values is then calculated, where the pre-
+diction beyond the predictable zone is excluded. Here, two prediction
+RMSEs are calculated, which are defined as
+𝜖1 =
+√
+√
+√
+√
+1
+𝑇𝑙
+max −𝑇𝑙
+min
+∑
+𝑇𝑙
+min≤𝑖≤𝑇𝑙max
+(ℎ∗
+𝑖−ℎ𝑖)2
+(21)
+
+Applied Energy 324 (2022) 119711
+10
+J. Zhang et al.
+Table 3
+The results for the whole prediction time period including both reconstruction and forecasting. Both the
+MRMSEs of the wave elevation predictions and the length of the predictable zone are given. The predictable
+zone cannot be obtained by the NN-based method, thus denoted as ‘‘–’’ in this table.
+Sea condition
+Method
+𝜖1 (% of Hs/2)
+𝜖2 (% of Hs/2)
+Predictable zone length
+#1
+LWT
+0.368 m (9.5%)
+0.384 m (9.9%)
+163.4 s
+NN
+0.311 m (8.0%)
+0.317 m (8.1%)
+–
+BNN
+0.290 m (7.5%)
+0.294 m (7.6%)
+189.9 s
+#2
+LWT
+1.12 m (14.4%)
+1.25 m (16.1%)
+172.9 s
+NN
+0.905 m (11.6%)
+0.941 m (12.1%)
+–
+BNN
+0.785 m (10.1%)
+0.816 (10.5%)
+196.0 s
+and
+𝜖2 =
+√
+√
+√
+√
+1
+𝑇𝑛𝑙
+max −𝑇𝑛𝑙
+min
+∑
+𝑇𝑛𝑙
+min≤𝑖≤𝑇𝑛𝑙
+max
+(ℎ∗
+𝑖−ℎ𝑖)2
+(22)
+where [𝑇𝑙
+min, 𝑇𝑙
+max] and [𝑇𝑛𝑙
+min, 𝑇𝑛𝑙
+max] represent the predictable zone pre-
+dicted by LWT and the proposed method respectively, and ℎ∗
+𝑖and ℎ𝑖
+represent the predicted and the reference values of the wave elevation
+at the 𝑖th time instant. The RMSEs are first calculated for all the wave
+scenarios simulated in this work, then the mean root mean square
+error (MRMSE), which is defined as the mean value of the RMSEs
+averaged over the simulated wave scenarios, is calculated. The MRMSEs
+are calculated separately for the wave scenarios representing the sea
+condition #1 and the sea condition #2. The results are given in Ta-
+ble 3, including the MRMSEs for the proposed method, the LWT-based
+method, and the deterministic NN-based method. The corresponding
+MRMSEs normalized by the half of the significant wave heights are also
+given in Table 3. The significant wave height is used here to normalize
+the prediction errors as it is directly related to the surface variance [28].
+As shown, for the sea condition #1 and #2, the prediction errors (in
+terms of 𝜖2) are just 0.294 m and 0.816 m by the proposed method,
+while they are 0.384 m and 1.25 m by LWT and 0.317 m and 0.941 m
+by the NN-based method. The proposed method clearly outperforms
+other methods, whether the time horizon is restricted to the predictable
+zone determined by LWT or to the one predicted by the proposed
+method. More specifically, for the sea condition #1, the prediction
+error by the proposed method is 21.2% and 6.8% lower than the LWT-
+based and NN-based methods in terms of 𝜖1, while they are 23.4% and
+7.3% in terms of 𝜖2. As for the sea condition #2, the prediction error
+by the proposed method are 29.9% and 13.3% lower than the LWT-
+based and NN-based methods in terms of 𝜖1, while they are 34.7%
+and 13.3% in terms of 𝜖2. These results thus clearly show that the
+performance improvement of the proposed nonlinear method compared
+with LWT-based method is greater at the sea condition #2 (where the
+improvement is around 30%) than at the sea condition #1 (where the
+improvement is around 20%). This is reasonable as the waves at the
+sea condition #2 (where the wave steepness is equal to 0.0291) are
+actually steeper (thus with stronger nonlinear effects) than at the sea
+condition #1 (where the wave steepness is equal to 0.0265). As for
+the comparison of the proposed method with the NN-based method,
+the BNN is only moderately better than the NN, where the prediction
+error, on average, is only improved by around 10%. This is actually
+expected, since the NN and the BNN are similar in tackling the wave
+prediction problem, which is the updating of the training variables
+(i.e. the weight matrix for the NN and the probability distributions
+for the BNN) to fit the training data. More specifically, their ability
+in handling nonlinearity is the same, i.e. the processing of the input
+to the output via multiple layers with nonlinear activation. The BNN
+can be seen as the probabilistic extension of the NN, although the
+implementation details, including the training variables, the training
+loss functions, etc., are different. Therefore, by design, the difference
+between NN and BNN in handling nonlinear wave effects is small and
+their main difference lies in the quantification of the uncertainty. There
+is also a moderate performance gain of the BNN compared to the NN,
+which is probably because the traditional deterministic NN is more
+prone to overfitting than the probabilistic BNN.
+The above results clearly demonstrate that the proposed method not
+only achieves better accuracy in the traditionally-determined predica-
+ble zone, but also is able to predict wave elevations accurately over
+a larger time horizon. To further illustrate this point, the lengths of
+the predictable zones predicted by LWT and the proposed method
+are calculated. The predicted zone lengths are calculated for all the
+wave scenarios and then averaged over the wave scenarios representing
+the sea condition #1 and #2 respectively. The results are given in
+Table 3. As shown, for the sea condition #1, the average length of the
+predictable zone is 189.9 s by the proposed method, which is 16.2%
+larger than the predictable zone by LWT. As for the sea condition #2,
+the average length of the predictable zone is 196.0 s by the proposed
+method, which is 13.4% larger than the predictable zone by LWT.
+In conclusion, the results in Table 3 fully demonstrate the proposed
+method’s performance over the LWT-based and NN-based methods, in
+terms of both prediction accuracy and the extent of the predictable
+zone.
+In addition, the computational costs required for the different meth-
+ods are given here to complete the performance comparisons. All the
+wave predictions in this work are carried out using a MacBook Pro
+laptop with 2 GHz Intel Quad-Core i5 processor. For all the wave
+scenarios considered in this work, on average, the computational time
+needed for the LWT-based method, the NN-based method, and the
+proposed method are 0.017 s, 0.031 s, and 0.041 s respectively. This
+shows that all these methods can achieve real-time wave predictions.
+In practical applications, as long as the new measurement data at the
+sensor location becomes available (i.e. it is measured every 0.5 s in this
+work), it can be fed into the proposed method to predict, in real-time,
+the wave elevations at the location of the WEC, which will then be
+processed by a real-time controller for the optimal control of the WEC.
+4.2.4. Evaluations of the method for short-term forecasting
+To demonstrate the use of the proposed method for the control
+of WECs and their load forecasting, the following parts focus on the
+analysis of the results for wave forecasting. First, from the predic-
+tion results including both wave reconstruction and forecasting, the
+forecasting part is extracted and the results are shown in Figs. 7 and
+8 for the wave scenarios representing the sea conditions #1 and #2
+respectively. The predictable time horizons predicted by LWT and the
+proposed method are also shown in Figs. 7 and 8 to illustrate how far
+into the future that credible prediction can be made. As shown, the
+wave elevations predicted by the proposed method and the reference
+values match with each other very well and the prediction uncertainty
+covers the reference values quite well throughout the prediction time
+horizon, demonstrating the successful quantification of the prediction
+uncertainty. The comparison between different methods shows that the
+proposed method performs better than other methods throughout the
+prediction time horizon. In particular, the linear approach shows clear
+discrepancy with the reference values, including both the magnitude
+and the phase of the predicted wave, especially when the time instant
+is beyond the boundary of the LWT-based predictable zone. This is
+not unexpected, as the LWT-based wave prediction and predictable
+zone determination are both based on linear wave assumption. Thus
+the performance is expected to deteriorate beyond the LWT-based
+
+Applied Energy 324 (2022) 119711
+11
+J. Zhang et al.
+Fig. 7. The results of wave forecasting with quantified uncertainty by the proposed method for a typical wave scenario representing the sea condition #1, including the predictions
+of both the wave elevations and the predicable zones. The corresponding ground truth and the wave elevations predicted by the LWT-based and the deterministic NN-based methods
+are also shown for comparison.
+Fig. 8. The results of wave forecasting with quantified uncertainty by the proposed method for a typical wave scenario representing the sea condition #2, including the predictions
+of both the wave elevations and the predicable zones. The corresponding ground truth and the wave elevations predicted by the LWT-based and the deterministic NN-based methods
+are also shown for comparison.
+Table 4
+The results for the wave forecasting part. Both the MRMSEs of the wave elevation predictions and the
+length of the predictable zone are given. The predictable zone cannot be obtained by the NN-based method,
+thus denoted as ‘‘–’’ in this table.
+Sea No.
+Method
+𝜖3 (% of Hs)
+𝜖4 (% of Hs)
+Predictable zone length
+#1
+LWT
+0.371 m (9.5%)
+0.394 m (10.1%)
+34.8 s
+NN
+0.311 m (8.0%)
+0.324 m (8.3%)
+–
+BNN
+0.279 m (7.2%)
+0.287 m (7.4%)
+41.6 s
+#2
+LWT
+1.26 m (16.2%)
+1.78 m (22.9%)
+13.8 s
+NN
+0.786 m (10.1%)
+0.898 m (11.5%)
+–
+BNN
+0.699 m (9.0%)
+0.793 m (10.2%)
+24.1 s
+predictable zone. On the other hand, the wave elevations predicted
+by the proposed method are still very accurate beyond the LWT-based
+predictable zone, and even retain a fairly good accuracy beyond the
+BNN-based predictable zone until the prediction input and output are
+no longer correlated. Furthermore, as shown in Figs. 7 and 8, the most
+substantial improvement of the proposed method compared with other
+methods is at the time instants between the zone boundaries predicted
+by LWT and the proposed method. This further demonstrates that ac-
+curate forecasting of ocean waves over a consistent and larger credible
+forecasting time horizon is achieved with the proposed method.
+To quantify the accuracy of the proposed method for wave fore-
+casting, the prediction RMSEs are calculated here, which are defined
+as
+𝜖3 =
+√
+√
+√
+√
+1
+𝑇𝑙
+max −𝑇𝑎
+∑
+𝑇𝑎≤𝑖≤𝑇𝑙max
+(ℎ∗
+𝑖−ℎ𝑖)2
+(23)
+and
+𝜖4 =
+√
+√
+√
+√
+1
+𝑇𝑛𝑙
+max −𝑇𝑎
+∑
+𝑇𝑎≤𝑖≤𝑇𝑛𝑙
+max
+(ℎ∗
+𝑖−ℎ𝑖)2
+(24)
+for the forecasting horizons determined by LWT and the proposed
+method respectively. The prediction MRMSEs are given in Table 4. As
+can be seen, the proposed method outperforms other methods in terms
+of both forecasting accuracy and the extent of the forecasting horizon.
+The prediction errors (in terms of 𝜖4) by the proposed method are only
+
+Applied Energy 324 (2022) 119711
+12
+J. Zhang et al.
+0.287 m and 0.793 m for the sea condition #1 and #2, while they
+are 0.394 m and 1.78 m by the LWT and 0.324 m and 0.898 m by
+the NN-based method. More specifically, for the sea condition #1, the
+prediction error by the proposed method is 24.8% and 10.3% lower
+than the LWT-based and the deterministic NN-based methods in terms
+of 𝜖3, while they are 27.2% and 11.4% in terms of 𝜖4. And for the sea
+condition #2, the prediction error by the proposed method are 44.5%
+and 11.1% lower than the LWT-based and the deterministic NN-based
+methods in terms of 𝜖3, while they are 55.4% and 11.7% in terms of
+𝜖4. These results thus illustrate that, similar to the wave prediction for
+the whole time period, the performance improvement for the short-
+term wave forecasting by the proposed method over LWT is greater at
+the sea condition #2 (where the nonlinear wave effects are stronger)
+than at the sea condition #1. In addition, the average forecasting time
+horizons by the proposed method are 41.6 s and 24.1 s for the sea
+condition #1 and #2, while they are only 34.8 s and 13.8 s by the LWT-
+based method. The forecasting time horizon is thus expanded with the
+proposed method by 19.5% and 74.6% for the sea condition #1 and
+#2 respectively. It is therefore concluded that the proposed method
+is able to achieve wave forecasting with greater accuracy and over a
+predictable horizon substantially larger than previous works.
+5. Conclusions
+In this paper, the probabilistic, phase-resolved, real-time prediction
+of ocean waves was investigated, where the prediction uncertainty, in-
+cluding both the aleatory uncertainty (i.e. the uncertainty of the phase-
+resolved wave information) and the epistemic uncertainty (i.e. the
+uncertainty due to the model’s ability), was rigorously quantified. The
+proposed method was developed based on BML approach, which can
+take advantage of the ML model’s ability in tackling complex nonlinear
+systems while taking various kinds of uncertainties into account via
+the Bayesian framework. Different from the previous wave prediction
+works focusing on the point estimation of the wave elevations, this
+work formulated the phase-resolved wave prediction as probabilistic
+and the proposed method was designed to predict the probability
+distributions of the wave elevations, so that various quantities (such
+as the prediction mean value and the 95% confidence interval) can be
+predicted. In addition, based on the proposed wave prediction method,
+a new way to predict the predictable zone was also proposed. As all the
+previous works determined the predictable zone based on LWT (which
+leads to overly conservative estimations), this work achieved, for the
+first time, the prediction of the predictable zone without assuming
+linear sea states.
+To evaluate the proposed method, a set of wave tank experiments
+were carried out, where in total 24 wave scenarios were physically sim-
+ulated. The LWT-based and the deterministic NN-based wave prediction
+methods were also implemented for comparison. The prediction results
+for the whole time period, including both wave reconstruction and
+forecasting, were first examined. The results showed that the phase-
+resolved wave elevations predicted by the proposed method matched
+with the experimental data accurately, and the prediction uncertainty
+and its variations across the time horizon were also well captured
+throughout the prediction time period. In particular, the maximum
+value of the MRMSEs of the wave elevation predictions normalized by
+the half of the significant wave height was 10.5% for the proposed
+method, while it was 16.1% for the LWT-based method and was 12.1%
+for the deterministic NN-based method. More importantly, the time
+horizon where credible prediction can be achieved was enlarged by
+the proposed method, compared with previous works which were all
+based on LWT for predictable zone determination. More specifically,
+the results showed that the predicable zones were enlarged by 16.2%
+and 13.4% respectively for the sea conditions #1 and #2 considered in
+this work.
+To demonstrate the use of the proposed method for the control
+of WECs and their load forecasting, the prediction performance for
+the forecasting part was then analyzed. The results showed that the
+proposed method was able to achieve wave forecasting with greater ac-
+curacy and over a substantially larger forecasting horizon. Particularly,
+the maximum value of the normalized prediction MRMSEs was 10.2%
+for the proposed method, while it was 22.9% for the LWT-based method
+and was 12.1% for the deterministic NN-based method. Moreover,
+compared with previous works, the proposed method expanded the
+credible forecasting time horizons by 19.5% and 74.6% for the sea
+conditions #1 and #2 respectively.
+Based on the proposed method and the findings of this paper,
+several important directions for future works are described below. (1)
+In order to tackle various uncertainties in real-world ocean conditions,
+such as the potential change of the WEC locations and the significant
+change of sea states, comprehensive investigations are needed includ-
+ing the implementation of an online model updating process and the
+development of a transfer learning strategy from wave tanks to real
+oceans. (2) This work investigated three real-time wave prediction
+methods, i.e. the LWT-based, NN-based, and the proposed BNN-based
+methods. It is also interesting to carry out comparison studies with the
+methods based on weakly nonlinear wave models (such as the choppy
+wave model). Such studies will be very helpful in understanding the
+nonlinear wave effects (such as the nonlinear wave phase velocity and
+the nonlinear wave shape) in the phase-resolved wave prediction and
+the corresponding predictable zone determination. (3) The wave tank
+experiments in the current work consider the uni-directional waves.
+Future works may involve the investigation of the three-dimensional
+wave field predictions where complex spatiotemporal wave features
+are present. (4) To tackle the occurrence of freak waves, the training
+and validation of the proposed method with real-world wave data
+containing both typical wave conditions and freak waves, are also of
+great practical interest. (5) Finally, based on the accurately predicted
+wave information and its uncertainty, the uncertainty-aware preview-
+based WEC control strategies are an interesting direction to explore in
+the future.
+CRediT authorship contribution statement
+Jincheng Zhang: Conceptualization, Data curation, Formal analy-
+sis, Investigation, Methodology, Project administration, Software, Val-
+idation, Visualization, Writing – original draft. Xiaowei Zhao: Con-
+ceptualization, Funding acquisition, Formal analysis, Investigation,
+Methodology, Project administration, Resources, Supervision, Writing –
+review & editing. Siya Jin: Data curation, Investigation, Project admin-
+istration, Writing – review & editing. Deborah Greaves: Funding ac-
+quisition, Investigation, Project administration, Resources, Supervision,
+Writing – review & editing.
+Declaration of competing interest
+The authors declare that they have no known competing finan-
+cial interests or personal relationships that could have appeared to
+influence the work reported in this paper.
+Data availability
+Data will be made available on request.
+Acknowledgments
+This work was supported by the UK Engineering and Physical
+Sciences Research Council (grant number: EP/S000747/1). The au-
+thors also acknowledge the Scientific Computing Research Technol-
+ogy Platform (SCRTP) at the University of Warwick for providing
+High-Performance Computing resources.
+
+Applied Energy 324 (2022) 119711
+13
+J. Zhang et al.
+Appendix. The implementation details of the machine learning
+models
+The ML models in this work, including the deterministic NN and
+the BNN, are implemented in Python (version 3.8.6) using the ML
+package Keras (version 2.4.3) [62] with TensorFlow (version 2.4.1)
+backend [63]. In addition, TensorFlow Probability (version 0.12.2), a li-
+brary for probabilistic reasoning and statistical analysis in TensorFlow,
+is used to facilitate the construction of the BNNs.
+The data is standardized by a standard scaler (which transforms
+the data by removing its mean value and scaling to unit variance)
+before being fed into the ML model. In addition, a data generator is
+implemented which extracts the training input and the training target
+by mini-batches from the whole training dataset, and is then used to
+train the ML models via the fit_generator method in Keras. The Adam
+optimizer [61] is used for the training. For the tuning of the hyperpa-
+rameters, a set of values are tested in this work: the training batch sizes
+from [512, 1024, 2048], the learning rates from [10−3, 10−4], and the
+NN structures from [400-500-600, 400-1000-600, 400-2000-600, 400-
+500-500-600, 400-1000-1000-600, 400-2000-2000-600]. A grid search
+procedure is carried out and the final values used in this work are 10−3
+for the learning rate, 400-500-600 for the NN structure, and 2048 for
+the batch size.
+References
+[1] Ahn
+S,
+Haas
+KA,
+Neary
+VS.
+Wave
+energy
+resource
+characterization
+and
+assessment
+for
+coastal
+waters
+of
+the
+United
+States.
+Appl
+Energy
+2020;267:114922.
+[2] Robertson B, Bekker J, Buckham B. Renewable integration for remote commu-
+nities: Comparative allowable cost analyses for hydro, solar and wave energy.
+Appl Energy 2020;264:114677.
+[3] The WAMDI Group. The WAM model—A third generation ocean wave prediction
+model. J Phys Oceanogr 1988;18(12):1775–810.
+[4] Booij
+N,
+Ris
+RC,
+Holthuijsen
+LH.
+A
+third-generation
+wave
+model
+for
+coastal regions: 1. Model description and validation. J Geophys Res Oceans
+1999;104(C4):7649–66.
+[5] Tolman HL, et al. User manual and system documentation of WAVEWATCH III
+TM version 3.14. Technical Note, MMAB Contribution 276, 2009, p. 220.
+[6] Li G, Weiss G, Mueller M, Townley S, Belmont MR. Wave energy con-
+verter control by wave prediction and dynamic programming. Renew Energy
+2012;48:392–403.
+[7] Fusco F, Ringwood JV. A study of the prediction requirements in real-time
+control of wave energy converters. IEEE Trans Sustain Energy 2011;3(1):176–84.
+[8] Fusco F, Ringwood JV. Short-term wave forecasting for real-time control of wave
+energy converters. IEEE Trans Sustain Energy 2010;1(2):99–106.
+[9] Son
+D,
+Yeung
+RW.
+Optimizing
+ocean-wave
+energy
+extraction
+of
+a
+dual
+coaxial-cylinder WEC using nonlinear model predictive control. Appl Energy
+2017;187:746–57.
+[10] Ferri F, Ambühl S, Fischer B, Kofoed JP. Balancing power output and structural
+fatigue of wave energy converters by means of control strategies. Energies
+2014;7(4):2246–73.
+[11] Xu S, Soares CG. Mixture distribution model for extreme mooring tension and
+mooring fatigue analysis due to snap loads. Ocean Eng 2021;234:109245.
+[12] Ling BA, Bosma B, Brekken TK. Experimental validation of model predictive
+control applied to the azura wave energy converter. IEEE Trans Sustain Energy
+2019;11(4):2284–93.
+[13] Previsic M, Karthikeyan A, Lyzenga D. In-ocean validation of a deterministic
+sea wave prediction (DSWP) system leveraging X-band radar to enable optimal
+control in wave energy conversion systems. Appl Ocean Res 2021;114:102784.
+[14] Ma Y, Sclavounos PD, Cross-Whiter J, Arora D. Wave forecast and its application
+to the optimal control of offshore floating wind turbine for load mitigation.
+Renew Energy 2018;128:163–76.
+[15] Morris E, Zienkiewicz H, Belmont M. Short term forecasting of the sea surface
+shape. Int Shipbuild Prog 1998;45(444):383–400.
+[16] Naaijen P, Huijsmans R. Real time wave forecasting for real time ship motion
+predictions. In: ASME 27th international conference on offshore mechanics and
+arctic engineering. 2008, p. 607–14.
+[17] Wu G. Direct simulation and deterministic prediction of large-scale nonlinear
+ocean wave-field (Ph.D. thesis), Massachusetts Institute of Technology; 2004.
+[18] Qi Y, Wu G, Liu Y, Yue DK. Predictable zone for phase-resolved reconstruction
+and forecast of irregular waves. Wave Motion 2018;77:195–213.
+[19] Wijaya AP, Naaijen P, van Groesen E, et al. Reconstruction and future prediction
+of the sea surface from radar observations. Ocean Eng 2015;106:261–70.
+[20] Al-Ani M, Belmont M, Christmas J. Sea trial on deterministic sea waves prediction
+using wave-profiling radar. Ocean Eng 2020;207:107297.
+[21] Dommermuth DG, Yue DK. A high-order spectral method for the study of
+nonlinear gravity waves. J Fluid Mech 1987;184:267–88.
+[22] West
+BJ,
+Brueckner
+KA,
+Janda
+RS,
+Milder
+DM,
+Milton
+RL.
+A
+new
+numerical
+method
+for
+surface
+hydrodynamics.
+J
+Geophys
+Res
+Oceans
+1987;92(C11):11803–24.
+[23] Blondel E, Bonnefoy F, Ferrant P. Deterministic non-linear wave prediction using
+probe data. Ocean Eng 2010;37(10):913–26.
+[24] Köllisch N, Behrendt J, Klein M, Hoffmann N. Nonlinear real time prediction of
+ocean surface waves. Ocean Eng 2018;157:387–400.
+[25] Blondel-Couprie E, Bonnefoy F, Ferrant P. Experimental validation of non-
+linear deterministic prediction schemes for long-crested waves. Ocean Eng
+2013;58:284–92.
+[26] Huchet M, Babarit A, Ducrozet G, Gilloteaux J-C, Ferrant P. Nonlinear deter-
+ministic sea wave prediction using instantaneous velocity profiles. Ocean Eng
+2021;220:108492.
+[27] Desmars N, Bonnefoy F, Grilli S, Ducrozet G, Perignon Y, Guérin CA, Ferrant P.
+Experimental and numerical assessment of deterministic nonlinear ocean waves
+prediction algorithms using non-uniformly sampled wave gauges. Ocean Eng
+2020;212:107659.
+[28] Nouguier F, Grilli ST, Guérin CA. Nonlinear ocean wave reconstruction al-
+gorithms based on simulated spatiotemporal data acquired by a flash LIDAR
+camera. IEEE Trans Geosci Remote Sens 2013;52(3):1761–71.
+[29] Nouguier F, Guérin CA, Chapron B. Choppy wave model for nonlinear gravity
+waves. J Geophys Res Oceans 2009;114(C9):09012.
+[30] Guérin CA, Desmars N, Grilli ST, Ducrozet G, Perignon Y, Ferrant P. An improved
+Lagrangian model for the time evolution of nonlinear surface waves. J Fluid
+Mech 2019;876:527–52.
+[31] Nouguier F, Chapron B, Guérin CA. Second-order Lagrangian description of
+tri-dimensional gravity wave interactions. J Fluid Mech 2015;772:165–96.
+[32] Wei Z. Forecasting wind waves in the US Atlantic Coast using an artificial
+neural network model: Towards an AI-based storm forecast system. Ocean Eng
+2021;237:109646.
+[33] Lou R, Wang W, Li X, Zheng Y, Lv Z. Prediction of ocean wave height suitable
+for ship autopilot. IEEE Trans Intell Transp Syst 2021.
+[34] Hu H, van der Westhuysen AJ, Chu P, Fujisaki-Manome A. Predicting Lake
+Erie
+wave
+heights
+and
+periods
+using
+XGBoost
+and
+LSTM.
+Ocean
+Model
+2021;164:101832.
+[35] Bento P, Pombo J, Calado MdR, Mariano S. Ocean wave power forecasting using
+convolutional neural networks. IET Renew Power Gener 2021;15(14):3341–53.
+[36] Law Y, Santo H, Lim K, Chan E. Deterministic wave prediction for unidi-
+rectional sea-states in real-time using artificial neural network. Ocean Eng
+2020;195:106722.
+[37] Duan W, Ma X, Huang L, Liu Y, Duan S. Phase-resolved wave prediction model
+for long-crest waves based on machine learning. Comput Methods Appl Mech
+Engrg 2020;372:113350.
+[38] Qi Y, Wu G, Liu Y, Kim M-H, Yue DK. Nonlinear phase-resolved reconstruction
+of irregular water waves. J Fluid Mech 2018;838:544–72.
+[39] Ghahramani Z. Probabilistic machine learning and artificial intelligence. Nature
+2015;521(7553):452–9.
+[40] Gal Y. Uncertainty in deep learning (Ph.D. thesis), Cambridge, U.K.: Dept. Eng.,
+Univ. Cambridge; 2016.
+[41] Gal Y, Ghahramani Z. Dropout as a bayesian approximation: Representing model
+uncertainty in deep learning. In: International conference on machine learning.
+PMLR; 2016, p. 1050–9.
+[42] Blundell C, Cornebise J, Kavukcuoglu K, Wierstra D. Weight uncertainty in
+neural network. In: International conference on machine learning. PMLR; 2015,
+p. 1613–22.
+[43] Kingma
+DP,
+Salimans
+T,
+Welling
+M.
+Variational
+dropout
+and
+the
+local
+reparameterization trick. Adv Neural Inf Process Syst 2015;28:2575–83.
+[44] Wen Y, Vicol P, Ba J, Tran D, Grosse R. Flipout: Efficient pseudo-independent
+weight perturbations on mini-batches. 2018, arXiv preprint arXiv:1803.04386.
+[45] Liu Y, Qin H, Zhang Z, Pei S, Jiang Z, Feng Z, Zhou J. Probabilistic spatiotempo-
+ral wind speed forecasting based on a variational Bayesian deep learning model.
+Appl Energy 2020;260:114259.
+[46] Zhang X, Fang F, Wang J. Probabilistic solar irradiation forecasting based on
+variational Bayesian inference with secure federated learning. IEEE Trans Ind
+Inf 2020.
+[47] Shi J, Li J, Usmani AS, Zhu Y, Chen G, Yang D. Probabilistic real-time deep-water
+natural gas hydrate dispersion modeling by using a novel hybrid deep learning
+approach. Energy 2021;219:119572.
+[48] Vyzikas T, Deshoulières S, Barton M, Giroux O, Greaves D, Simmonds D.
+Experimental investigation of different geometries of fixed oscillating water
+column devices. Renew Energy 2017;104:248–58.
+[49] Portillo J, Collins K, Gomes R, Henriques J, Gato L, Howey B, Hann M,
+Greaves D, Falcão A. Wave energy converter physical model design and testing:
+The case of floating oscillating-water-columns. Appl Energy 2020;278:115638.
+[50] Gomes RP, Gato LM, Henriques JC, Portillo JC, Howey BD, Collins KM, Hann MR,
+Greaves DM. Compact floating wave energy converters arrays: Mooring loads and
+survivability through scale physical modelling. Appl Energy 2020;280:115982.
+
+Applied Energy 324 (2022) 119711
+14
+J. Zhang et al.
+[51] Brown S, Ransley E, Xie N, Monk K, De Angelis G, Nicholls-Lee R, Guerrini E,
+Greaves D. On the impact of motion-thrust coupling in floating tidal energy
+applications. Appl Energy 2021;282:116246.
+[52] Gal Y, Ghahramani Z. Bayesian convolutional neural networks with Bernoulli
+approximate variational inference. 2015, arXiv preprint arXiv:1506.02158.
+[53] Gal Y, Ghahramani Z. A theoretically grounded application of dropout in
+recurrent neural networks. Adv Neural Inf Process Syst 2016;29:1019–27.
+[54] Murphy KP. Machine learning: A probabilistic perspective. MIT Press; 2012.
+[55] Blei DM, Kucukelbir A, McAuliffe JD. Variational inference: A review for
+statisticians. J Amer Statist Assoc 2017;112(518):859–77.
+[56] Edgar D, Horwood J, Thurley R, Belmont M. The effects of parameters on the
+maximum prediction time possible in short term forecasting of the sea surface
+shape. Int Shipbuild Prog 2000;47(451):287–301.
+[57] Halliday JR, Dorrell DG, Wood AR. An application of the Fast Fourier Trans-
+form to the short-term prediction of sea wave behaviour. Renew Energy
+2011;36(6):1685–92.
+[58] ECMWF, ERA5. 2020, https://www.ecmwf.int/en/forecasts/datasets/reanalysis-
+datasets/era5.
+[59] DNVAS. Environmental conditions and environmental loads. Høvik, Norway:
+DNV GL.
+[60] Tosdevin T, Jin S, Caio A, Simmonds D, Hann M, Greaves D. Extreme responses
+of a raft type WEC. In: The 14th European wave and tidal energy conference,
+Plymouth, UK.. 2021.
+[61] Kingma DP, Ba J. Adam: A method for stochastic optimization. 2014, arXiv
+preprint arXiv:1412.6980.
+[62] Chollet F, et al. Keras. 2015, https://github.com/fchollet/keras.
+[63] Abadi M, Agarwal A, Barham P, Brevdo E, Chen Z, Citro C, et al. TensorFlow:
+Large-scale machine learning on heterogeneous systems. 2015, https://www.
+tensorflow.org/, Software available from tensorflow.org.

@@ -1,0 +1,1054 @@
+manuscript submitted to JGR: Machine Learning and Computation
+An effective physics-informed neural operator
+framework for predicting wavefields
+X. Ma1, T. Alkhalifah1
+1Earth Science and Engineering Program, Physical Science and Engineering Division, King Abdullah
+University of Science and Technology (KAUST),Thuwal, 23955-6900, Kingdom of Saudi Arabia
+Key Points:
+• We propose a physics-informed convolutional neural operator (PICNO) to efficiently
+predict wavefields governed by the Helmholtz equation.
+• By embedding physics-based constraints into the training process, PICNO signif-
+icantly improves generalization over conventional data-driven neural operators.
+• PICNO achieves up to 53% reduction in relative error and more physically con-
+sistent predictions, even under high-frequency conditions or out-of-distribution sce-
+narios.
+Corresponding author: Xiao Ma, xiao.ma@kaust.edu.sa
+–1–
+arXiv:2507.16431v1  [physics.geo-ph]  22 Jul 2025
+
+manuscript submitted to JGR: Machine Learning and Computation
+Abstract
+Solving the wave equation is fundamental for geophysical applications. However, numer-
+ical solutions of the Helmholtz equation face significant computational and memory chal-
+lenges. Therefore, we introduce a physics-informed convolutional neural operator (PICNO)
+to solve the Helmholtz equation efficiently. The PICNO takes both the background wave-
+field corresponding to a homogeneous medium and the velocity model as input function
+space, generating the scattered wavefield as the output function space. Our workflow in-
+tegrates PDE constraints directly into the training process, enabling the neural opera-
+tor to not only fit the available data but also capture the underlying physics governing
+wave phenomena. PICNO allows for high-resolution reasonably accurate predictions even
+with limited training samples, and it demonstrates significant improvements over a purely
+data-driven convolutional neural operator (CNO), particularly in predicting high-frequency
+wavefields. These features and improvements are important for waveform inversion down
+the road.
+Plain Language Summary
+Seismic wavefields are essential for imaging the Earth’s subsurface, but traditional
+numerical methods to simulate them can be very slow, especially when dealing with com-
+plex geological models or high-frequency waves. In this study, we introduce a machine
+learning approach that not only learns from existing data, but also follows the laws of
+physics governing how waves travel underground. Our method uses a type of neural net-
+work called a convolutional neural operator, enhanced with physical rules, to predict wave-
+fields much faster than conventional solvers. This physics-informed approach improves
+both accuracy and reliability, even when applied to unseen geological settings. It offers
+a promising path to accelerate seismic simulations for large-scale applications like oil ex-
+ploration or earthquake research.
+1 Introduction
+Seismic imaging and inversion have long been important topics in the geophysical
+exploration and seismology community, as they play a critical role in delineating sub-
+surface structures and characterizing geophysical properties. At the heart of these tech-
+niques lies wavefield forward modeling, which serves as the physical foundation for re-
+constructing the Earth’s interior. Accurately computing seismic wavefields is essential
+for improving the fidelity of inversion results, particularly in complex geological settings.
+Frequency-domain wave equations offer an efficient framework for simulating steady-state
+responses of seismic waves, and their numerical solutions are traditionally obtained us-
+ing well-established methods such as finite-difference (Berkhout, 1981; Wu & Alkhali-
+fah, 2018b; B. Yang et al., 2024), spectral element (Berkhout, 1981; Gajewski & Pˇsenc´ık,
+1987), or pseudo-spectral schemes (Carcione, 2010; Virieux et al., 2011; Wu & Alkhal-
+ifah, 2018a). These methods have demonstrated significant success across both explo-
+ration geophysics and seismological applications. However, their computational costs scale
+poorly with increasing model size and frequency content, making them increasingly im-
+practical for large-scale 3D simulations or high-resolution imaging tasks. Furthermore,
+repeated wavefield evaluations for multiple sources and iterations in full waveform in-
+version (FWI) exacerbate the computational burden, prompting the need for more scal-
+able and flexible modeling approaches.
+Recently, the term ”scientific machine learning” (SciML) has emerged as a disci-
+pline within the data science and deep learning community. SciML seeks to address domain-
+specific data challenges and extract insights from physical data through innovative ML-
+based methodological solutions. SciML draws on tools from both machine learning and
+scientific computing to develop new methods that are more physics-aware and robust with
+data analysis. It will be critical in driving the next wave of data-driven scientific discov-
+–2–
+
+manuscript submitted to JGR: Machine Learning and Computation
+ery in the physical and engineering sciences. Among many SciML methods, Physics-Informed
+Neural Networks (PINNs) offer a framework for leveraging known physical laws to ac-
+curately model the behavior of various physical systems (Cuomo et al., 2022; Huang &
+Alkhalifah, 2022; Song et al., 2022). PINNs aim to approximate the solution of a given
+system, typically defined by a partial differential equation (PDE) along with initial and
+boundary conditions (ICs and BCs), by minimizing a physics-constrained loss function
+(Raissi et al., 2019). Through the use of automatic differentiation provided by deep learn-
+ing libraries (pytorch, tensorflow), PINNs compute the derivatives required to evaluate
+the residuals of the governing PDE. In the geophysics community, PINNs already have
+shown promising results, including wavefield prediction (Song et al., 2021; Alkhalifah et
+al., 2021; Rasht-Behesht et al., 2022), traveltime reconstruction (bin Waheed et al., 2021;
+Taufik et al., 2023; Grubas et al., 2023), velocity inversion (Song et al., 2021; Xue et al.,
+2025). While PINNs have demonstrated considerable success in modeling individual phys-
+ical scenarios, their limited ability to generalize across varying initial conditions signif-
+icantly restricts their applicability as efficient surrogate models.
+Another important SciML-based framework is the neural operator, which aims to
+address the limitations of PINNs. Neural operators are neural networks that learn the
+mapping between function spaces, offering an appealing alternative by providing fast sur-
+rogate models for parametric partial differential equations (PDEs). Different from PINNs,
+neural operators are a generalized framework for neural networks aimed at learning op-
+erators that map between infinite-dimensional function spaces rather than single phys-
+ical systems (instance), making it a suitable surrogate model for real word modeling. In
+the architecture of neural operators, a composition of linear integral operators and non-
+linear activation functions enables the resulting neural operator to capture complex, non-
+linear mappings between the input and the desired output. These neural operators ex-
+hibit resolution invariance, offering significant efficiency advantages over conventional
+neural networks. There are various types of neural operators that have been proposed
+in recent works, such as Graph Neural Operator (GNO) (Li et al., 2020b), DeepONets
+(Lu et al., 2021), Low-rank Neural Operator (LNO) (Ryu et al., 2024). In particular, the
+Fourier Neural Operator (FNO) has demonstrated state-of-the-art performance in many
+applications, such as in weather forecasting (Pathak et al., 2022) and carbon dioxide ge-
+ological storage (Wen et al., 2023). In their application, FNO has shown very promis-
+ing results regarding the computational efficiency and accuracy (Li et al., 2020a).
+In the context of learning geophysical simulations, Y. Yang et al. (2023) demon-
+strated that neural operator-based time-domain full waveform modeling can be nearly
+two orders of magnitude faster than traditional numerical methods. By training the Fourier
+Neural Operator (FNO) on a dataset of 20000 velocity models, given by Gaussian ran-
+dom fields (GRF), their approach achieves accurate simulations across a variety of ve-
+locity perturbations, source locations, and mesh discretizations. Also, in frequency do-
+main wavefield prediction, Zou et al. (2024) utilized a U-shape neural operator (U-NO)
+to learn the Helmholtz operator efficiently, U-NO could predict a relatively accurate fre-
+quency domain wavefield compared with the numerical solution in a very short time. In
+addition, to mitigate the generalization problem, Wang et al. (2024) proposed a trans-
+fer learning method in which the baseline FNO model is trained at a single source lo-
+cation and frequency and then shared with the target FNO for seamlessly predicting the
+frequency-domain wavefields at different sources and frequencies. However, this method
+requires massive training data, which is not available in real situations (Song et al., 2024).
+To allow for a more seamless integration of the source and frequency information into
+an FNO frequency-domain wavefield predictor, Huang & Alkhalifah (2025) used the back-
+ground, analytically computed, wavefield as input to the neural operator. However, due
+to the purely data-driven nature of the training, the method also required massive train-
+ing data or otherwise lacked generalization capabilities.
+–3–
+
+manuscript submitted to JGR: Machine Learning and Computation
+Thus, despite the demonstrated success of neural operators on two-dimensional PDE
+problems, ensuring robust generalization remains an ongoing challenge. Neural opera-
+tors trained on limited or specific training data distributions may struggle to extrapo-
+late effectively to other data distributions, limiting their applicability in real-world sce-
+narios. The study of generalization for neural operators is still in its early stages. One
+possible solution for the generalization problem is the use of a physics-informed neural
+operator (PINO). Recently, researchers extended the ”physics-informed” idea into the
+training of neural operators by embedding the discrete form of PDEs into the loss func-
+tion (Li et al., 2024). More specially, by incorporating the violation of physical laws into
+the loss function, the physics-informed neural operators are encouraged to learn both the
+data and the underlying governing equations. Instead of relying on automatic differen-
+tiation—which is often memory-intensive for this type of architecture—these networks
+employ the Fourier-based derivative or finite-difference method to calculate the PDE con-
+straints more efficiently. Karniadakis et al. (2021) showed that PINO generates more ac-
+curate simulation results by bridging the gap between physics-informed optimization and
+data-driven neural operator learning. Several examples show that PINO has a better abil-
+ity for generalization. Furthermore, Rosofsky et al. (2023) extended the application of
+PINO to coupled PDEs. After multiple experiments, they concluded that PINO provides
+the flexibility to produce different initial and boundary conditions for operator learning.
+In contrast to traditional neural operators, PINOs excel at enforcing local physics con-
+straints and do not require extensive runs of conventional solvers when preparing the train-
+ing data.
+In this study, we propose a physics-informed convolutional neural operator (PICNO)
+to tackle the generalization problem of learning the Helmholtz equation. Our PICNO
+can achieve satisfactory wavefield predictions even with limited training data. Further-
+more, PICNO demonstrates strong performance when applied to complex velocity mod-
+els and high-frequency wavefield cases. First, we briefly describe the convolutional neu-
+ral operator (CNO) architecture and corresponding physics-informed loss function. Then,
+we demonstrate the performance of our approach on the synthetic datasets for different
+frequencies. Finally, we discuss several existing challenges associated with physics-informed
+neural operators.
+2 Theory
+2.1 Problem Statement
+In this study, we aim to develop a neural operator-based framework to model (learn)
+seismic wavefields in the frequency domain by leveraging the Convolutional Neural Op-
+erator. Specifically, our objective is to learn the mapping from velocity models and phys-
+ical conditions (source location, frequency) to the complex-valued wavefield solution gov-
+erned by the Helmholtz equation, which describes steady-state wave propagation in het-
+erogeneous media. Let U(x, z, ω) denote the full complex-valued wavefield at two-dimensional
+spatial coordinates (x, z) for angular frequency ω. The governing equation is expressed
+as:
+L(v, ω) U = f(x, z),
+(1)
+where v is the spatially varying velocity model, and f(x, z) represents the external source
+term. L is the linear wave equation operator. In the frequency domain, we often refer
+to Equation 1 as the Helmholtz equation.
+In practice, numerically modeling the full wavefield U poses challenges due to the
+entanglement of source and velocity effects (Alkhalifah et al., 2021). To better decou-
+ple these influences and focus learning on velocity-induced scattering, we reformulate the
+learning target for an ML-based modeling as the scattered wavefield δU, which is defined
+–4–
+
+manuscript submitted to JGR: Machine Learning and Computation
+as the difference between the full wavefield and the background wavefield:
+
+
+
+ω2
+v2 δU + ∇2δU + ω2
+ 1
+v2 −1
+v2
+0
+
+U0 = 0,
+δU = U −U0.
+(2)
+Here, v0 is a reference (or background) velocity model, and U0 denotes the correspond-
+ing background wavefield, which we simplify by making the background velocity constant.
+In this case, we can compute U0 analytically using the Green’s function for a constant
+velocity model, as follows:
+U0(x, z) = i
+4H(2)
+0
+ 
+ω
+s
+(x −xs)2 + (z −zs)2
+v2
+0
+!
+,
+(3)
+where H(2)
+0
+denotes the Hankel function of the second kind of order zero, and (xs, zs)
+is the source location. This analytical formulation incorporates both the source position
+and frequency into the wavefield representation, thereby implicitly encoding key phys-
+ical information without the need for explicit source embedding within the network.
+Following the findings of Huang & Alkhalifah (2024), incorporating U0 as an in-
+put feature not only improves convergence, but also provides the necessary physical con-
+text for wavefield prediction. Therefore, in this study, both the CNO and the physics-
+informed CNO (PICNO) are trained to learn the mapping:
+(U Re
+0 , U Im
+0 , v) −→(δU Re, δU Im),
+where the input channels consist of the real and imaginary parts of the background wave-
+field and velocity models, and the output channels represent the real and imaginary parts
+of the scattered wavefield. This formulation enables the network to learn an approxima-
+tion (operator) that maps physical input fields to seismic responses in the frequency do-
+main, which is essential for efficient forward modeling and inversion in large-scale geo-
+physical applications.
+2.2 The Architecture of CNO
+Convolutional Neural Operators (CNOs) are designed to bridge the gap between
+continuous mathematical operators and discrete learning architectures. In contrast to
+traditional neural networks that operate on fixed-dimensional vectors, operator learn-
+ing frameworks such as CNO aim to learn mappings between infinite-dimensional func-
+tion spaces. Given their locality, weight-sharing, and computational efficiency, convolu-
+tional neural networks (CNNs) serve as a natural foundation for constructing such op-
+erators. Moreover, CNOs are constructed to respect the continuous-discrete equivalence
+(CDE), ensuring that the discrete computations performed by the network are faithful
+approximations of their continuous analogs. The CNO is defined as a compositional map-
+ping between functions:
+G : u 7→P(u) = v0 7→v1 7→· · · 7→vL 7→Q(vL) = u,
+(4)
+where P is a lifting operator that projects the low-dimensional input function u to a high-
+dimensional latent representation v0, and Q is a projection operator that maps the fi-
+nal latent output vL back to the original function space to obtain the predicted output
+u. Each intermediate representation vl is transformed through a layer-wise operation de-
+fined as:
+vl+1 = Vl ◦Σl ◦Kl(vl),
+0 ≤l ≤L −1.
+(5)
+In this formulation, each layer consists of three elementary mappings:
+• Kl: a convolution operator that applies localized filters across the domain;
+–5–
+
+manuscript submitted to JGR: Machine Learning and Computation
+• Σl: a non-linear activation function, for which we use Leaky ReLU (LReLU);
+• Vl: a resolution-changing operator, either upsampling or downsampling, depend-
+ing on the network stage.
+The convolution operator K is defined in discrete physical space using kernels of
+size k × k:
+K(i, j) =
+k−1
+X
+m=0
+k−1
+X
+n=0
+w(m, n) · v(i + m, j + n)
+(6)
+where w(m, n) denotes the trainable weight. Unlike spectral neural operators (e.g.,
+FNO), which represent convolution in the frequency domain via Fourier transforms, CNO
+performs convolution directly in the spatial domain. This physical-space parameteriza-
+tion provides improved locality and interpretability, and ensures compatibility with non-
+periodic boundary conditions and arbitrary geometries. The upsampling operator H in-
+creases resolution by inserting zero-valued samples between adjacent points, followed by
+a low-pass filter to suppress high-frequency artifacts introduced during interpolation. Con-
+versely, the downsampling operator D first applies a low-pass filter to the input, and then
+reduces its resolution through subsampling, thereby mitigating aliasing effects.To enable
+expressive feature representations and support multiscale learning, CNO adopts a mod-
+ular architecture composed of four key building blocks. Each of these blocks is constructed
+through a composition of the elementary mappings introduced earlier—namely, convo-
+lution (K), nonlinearity (Σ), and resolution adjustment (V ):
+1. Downsampling block (D): Applies the downsampling operator to reduce spa-
+tial resolution, enabling the extraction of coarse-grained features.
+2. Upsampling block (H): Reconstructs higher-resolution features from coarser
+representations through interpolation and filtering.
+3. Invariant block (I): Combines a standard convolution with a non-linear acti-
+vation function to maintain spatial resolution while refining features.
+4. Residual block (R): Employs skip connections to enhance gradient flow and sta-
+bilize training, thereby improving the model’s capacity to capture complex map-
+pings.
+Each block receives a band-limited function as input and produces another band-limited
+function of equivalent frequency content, thereby preserving the signal structure through-
+out the network. To enhance feature propagation and promote the reuse of intermedi-
+ate representations, the U-Net-style patching is employed, whereby outputs from ear-
+lier layers are concatenated with those from later layers as additional channels. Figure 1
+illustrates the overall architecture of CNO. The input function u is first transformed by
+the lifting operator P into a high-dimensional latent space. This representation is then
+passed through a sequence of neural operator layers, each composed of convolution, ac-
+tivation, and resolution-changing operations. Finally, the projection operator Q maps
+the processed feature back to the target function space, producing the predicted output
+G(u). Different colors in the diagram represent different block types, visually distinguish-
+ing the roles played by each architectural component. The CNO framework thus com-
+bines the theoretical foundation of operator learning with the practical strengths of con-
+volutional architectures, enabling scalable and flexible approximations of complex function-
+to-function mappings.
+2.3 Physics-Informed Loss Formulation
+To enhance the physical consistency and generalization capability of the neural op-
+erator, we adopt a physics-informed training strategy that incorporates both data su-
+pervision and PDE-based constraints. Specifically, we combine the physics-based loss term
+Jpde, derived from the governing Helmholtz equation, with the conventional data loss
+–6–
+
+manuscript submitted to JGR: Machine Learning and Computation
+…
+…
+………
+………
+…………
+……………
+Q
+………
+………
+P
+Concat
+Concat
+Concat
+………
+………
+……
+……
+..
+..
+..
+..
+Block
+Block
+Block
+Block
+Activation 
+layer
+: v
+K
+
+Dv
+v
+K
+
+Uv
+:
+D
+U
+K
+
+:
+v
+K
+
+v
+:
+Rv
+K +
+Iv
+
+D
+: v
+U
+v
+
+u
+( )
+G u
+D
+H
+I
+R
+Figure 1.
+The architecture of CNO. Different colors of the arrows represent different blocks.
+The input function is first transformed into a high-dimensional space through a lifting layer (P),
+then processed by a series of neural operator layers, and finally mapped back to its original spa-
+tial dimensions via a projection operator (Q).
+Jdata to train the CNO. This hybrid loss effectively reduces the dependence on large quan-
+tities of labeled data, transforming the learning problem from a purely supervised task
+into a semi-supervised one. It also promotes physically plausible predictions even in data-
+sparse situations.
+Although the Physics-Informed CNO (PICNO) can, in principle, be trained solely
+using the physics constraint Jpde, incorporating the data-driven loss term Jdata provides
+additional guidance during optimization and introduces for boundary conditions. In prac-
+tice, the data loss enforces the network toward data-consistent solutions, while the PDE
+loss enforces physical correctness. The effect of these two components improves conver-
+gence stability and enhances the fidelity of the predicted wavefields, especially in the high-
+frequency regime. More specifically, the data loss term Jdata encourages the model out-
+put to align with the ground truth scattered wavefield δU, and is defined as the relative
+mean squared error (MSE) between the network prediction and the reference label:
+Jdata =
+Gθ −δU
+2
+2,
+(7)
+where Gθ denotes the scattered wavefield predicted by PICNO, and δU is the reference
+scattered wavefield obtained from numerical simulation. The physics loss term Jpde pe-
+nalizes violations of the governing PDE. It is formulated by using the network output
+Gθ into the scattering form of the Helmholtz equation and evaluating the residual over
+the spatial domain:
+Jpde =
+
+ω2
+v2 Gθ + ∇2Gθ + ω2
+ 1
+v2 −1
+v2
+0
+
+U0
+
+2
+2
+,
+(8)
+here, ∇2 represents the Laplacian operator, and U0 is the background wavefield gener-
+ated from the constant background velocity model v0. The PDE residual is evaluated
+pointwise over the input grid using an eighth-order finite difference stencil, which pro-
+vides high numerical accuracy while preserving the spatial resolution of the predicted
+–7–
+
+manuscript submitted to JGR: Machine Learning and Computation
+fields. The total loss used for training is a weighted sum of the two terms:
+J = Jdata + λ Jpde,
+(9)
+where the weight λ balances the contribution of the physics constraint relative to the data
+supervision. In this study, we determine λ empirically through trial and error. While more
+advanced hyperparameter optimization strategies may be considered, our empirical tun-
+ing yields satisfactory performance. Details regarding the weight selection issue are demon-
+strated in the ”Discussion” section.
+Overall, by jointly optimizing both data fidelity and physical consistency, the PICNO
+architecture learns a mapping that not only fits the training data but also adheres to the
+underlying wave physics. This joint supervision enables the model to generalize better
+across unseen samples and frequencies, offering a powerful framework for efficient wave-
+field prediction in complex velocity models.
+3 Results
+In this section, we employ the CNO and its physics-informed variant (PICNO) to
+learn the solution operator of the frequency-domain Helmholtz equation. In order to in-
+crease the training difficulty and maximize the evaluation of PICNO’s generalization abil-
+ity, we design two cases where seismic sources are placed beneath the surface. In Case
+1, the horizontal coordinates of the sources are randomly laterally sampled across the
+model domain, while the depth is fixed at the bottom layer. In Case 2, we consider a more
+challenging scenario in which the source locations are randomly distributed throughout
+the entire domain, both horizontally and vertically.
+3.1 Case 1
+To account for wavefield variability across frequencies, we consider three discrete
+frequencies in the Case 1 study: 8 Hz, 10 Hz, and 12 Hz. For each frequency, we con-
+struct a relatively small training set covering only 72 velocity models randomly chosen
+from the OpenFWI dataset (Deng et al., 2022). Furthermore, each velocity model is aug-
+mented with four smoothed variants of different smoothing degrees, resulting in five ver-
+sions per model. In Figure 2, we show two examples in the training dataset. For each
+velocity model, we generate ten different source locations, leading to a total of 72×5×
+10 = 3600 training samples per frequency. The validation set for each frequency con-
+sists of 16 velocity models, leading to a total of 16 × 5 × 10 = 800 validation samples
+per frequency. We separately train the network on the data of these three different fre-
+quencies to investigate the impact of frequency on network performance. It is important
+to note that we deliberately limit the number of base training velocity models to 72 to
+rigorously evaluate the generalization capability of the network. The addition of smoothed
+velocity models serves as a data augmentation strategy that helps the network learn the
+underlying structure of background wavefields, which is particularly beneficial for future
+inversion tasks (Taufik & Alkhalifah, 2025). Again, the goal is to train the neural op-
+erators to predict the corresponding scattered wavefields δU from the input background
+wavefield U0 and the velocity model v. Both CNO and PICNO are optimized using the
+Adam optimizer, with a fixed learning rate of 1×10−6 and a batch size of 32. Each net-
+work is trained for 500 epochs per frequency. The training loss is computed as a com-
+bination of data misfit and, in the case of PICNO, physics residuals from the PDE con-
+straint.
+We illustrate the training loss curves for the Helmholtz equation for the three fre-
+quencies (Figure 3(a)-(c)). As expected, both CNO and PICNO demonstrate similar per-
+formance in minimizing the data loss component, suggesting their capacity to fit the ob-
+served training data. However, a key difference emerges in the PDE loss: PICNO con-
+sistently achieves lower loss values, indicating that it better satisfies the underlying wave
+–8–
+
+manuscript submitted to JGR: Machine Learning and Computation
+equation. This result suggests that the physics-informed loss not only regularizes the train-
+ing, but also encourages physically consistent predictions, particularly in velocity mod-
+els that differ from those seen during training. To further assess generalization perfor-
+mance, we compute the relative L2 error on the validation set:
+Relative L2 Error = 1
+N
+N
+X
+i=1
+∥G(i)
+θ −δU (i)∥2
+∥δU (i)∥2
+,
+(10)
+where G(i)
+θ
+and δU (i) represent the predicted and true scattered wavefields, respectively,
+and N is the number of validation samples. We show the the relative error of these two
+neural operators in Figure 3(d)-(f), it is clear that PICNO consistently outperforms CNO
+in terms of the relative error for three frequencies, demonstrating its superior ability to
+generalize across different velocity models and frequencies. This improvement highlights
+the advantage of incorporating physical knowledge into the training process, particularly
+in low-data regimes.
+On the other hand, we should also acknowledge some of PICNO’s limitations. Firstly,
+its validation error tends to exhibit significant instability during training, characterized
+by abrupt fluctuations. Secondly, the training loss curves occasionally contain outliers
+or sudden jumps in the loss values. These behaviors are indicative of difficulties in con-
+vergence and robustness, particularly in the presence of complex velocity models. A pri-
+mary contributor to these issues is the physics-informed loss term, which is beneficial for
+enforcing physical fidelity. However, it could also substantially increase the complexity
+of the optimization landscape. Unlike purely data-driven loss functions that often pro-
+duce relatively smooth gradients, the PDE residual terms may introduce highly non-convex
+structures and sharp local minima. As a result, the optimization algorithm—such as Adam—may
+struggle to find a stable descent path, especially when the PDE loss is weighted signif-
+icantly. Moreover, the PDE loss introduces constraints that are sensitive to both frequency
+(ω in Equation 8) and complex structure in the velocity models (v in Equation 8). This
+phenomenon can create steep gradients, making the learning dynamics highly sensitive
+to initialization, learning rate, and the balance between data and physics terms (λ in Equa-
+tion 9).
+To mitigate these challenges, more advanced neural operator frameworks may be
+required. Alternatively, preconditioning techniques or curriculum learning schemes could
+help ease the optimization process by gradually increasing the contribution of the PDE
+loss (Cheng et al., 2025). Overall, while PICNO demonstrates strong potential in incor-
+porating physical constraints, its training behavior highlights the need for more robust
+and scalable strategies to navigate the intricate loss surface introduced by physics-informed
+learning.
+We further evaluate the performance of both networks using 800 test samples (ve-
+locity models not included in either the training or validation sets). Table 1 presents the
+average prediction error and the relative improvement achieved by PICNO over CNO.
+Additionally, Figures 4–6 illustrate the predicted wavefields at three different frequen-
+cies—8 Hz, 10 Hz, and 12 Hz—on three representative unseen velocity models. We em-
+phasize that both neural operators require only approximately 0.83 seconds to produce
+the frequency-domain wavefield solution, whereas the conventional numerical method takes
+around 3 seconds. This highlights another key advantage of neural operators—their abil-
+ity to rapidly generate solutions to partial differential equations. From these figures, it
+is evident that PICNO consistently outperforms CNO across all frequencies. At 8 Hz,
+both models provide visually reasonable approximations of the reference wavefield, but
+PICNO shows noticeably smaller residuals, particularly in the shallow regions, where the
+wavefield exhibits more complex waveform patterns (Figure 4(e)). At 10 Hz, the dif-
+ference between the two models becomes more apparent: CNO begins to exhibit visible
+phase mismatches and amplitude damping (Figure 5(c)), while PICNO maintains both
+waveform continuity and high-frequency detail (Figure 5(e)). The superiority of PICNO
+–9–
+
+manuscript submitted to JGR: Machine Learning and Computation
+(a)
+(b)
+Figure 2.
+(a) and (b) show two representative velocity models selected from the training
+dataset, along with their corresponding four smoothed variants. These variations are used for
+data augmentation to improve the model’s robustness.
+is most obvious at 12 Hz, where high-frequency components dominate the wavefield. In
+this case, CNO struggles to recover small-scale features, resulting in significant struc-
+tural deviations (Figure 6(c)). In contrast, PICNO successfully captures wavefront de-
+tails and complex diffraction patterns, demonstrating its enhanced generalization capac-
+ity and ability to honor physical constraints (Figure 6(e)). These qualitative observa-
+tions, supported by the quantitative statistics in Table 1, affirm that PICNO not only
+reduces prediction errors but also yields more physically consistent and high-resolution
+wavefield predictions, particularly under high-frequency conditions where accurate mod-
+eling becomes increasingly challenging.
+MODEL
+8 Hz
+10 Hz
+12 Hz
+CNO
+0.25
+0.34
+0.50
+PICNO
+0.18
+0.22
+0.23
+Relative Promotion
+27.4%
+35.2%
+53.1%
+Table 1.
+The overall relative L2 error (Equation 10) of CNO and PICNO on test samples.
+Promotion refers to the relative error reduction.
+3.2 Case 2
+To further assess the generalization capability of PICNO, we design another ex-
+periment in which source locations are randomly distributed throughout the entire spa-
+tial domain. In this setting, the source positions vary in both the depth and lateral di-
+mensions across different velocity models. We generate 3200 frequency-domain wavefields
+using 72 velocity models for each frequency as stated in Case 1 and retrain the PICNO
+model. Each validation set consists of 800 wavefields generated using 16 velocity mod-
+–10–
+
+manuscript submitted to JGR: Machine Learning and Computation
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+Figure 3.
+(a)-(c) The training loss curves for the 500 epochs of training for the Helmholtz
+equation. (d)-(f) Relative L2 error curves of CNO and PICNO evaluated on the validation
+dataset. Here, we compare the different losses from the data and PDE terms for predicting
+8Hz, 10Hz, and 12Hz wavefields.
+els, where the source locations also vary along the depth and lateral directions. During
+the training stage, we keep all hyperparameters identical to those used in the previous
+section, except that the number of training epochs is set to 800. This adjustment is made
+because we observe that the neural operators tend to converge more slowly when source
+locations are randomly distributed within the full model space. Figure 7 shows the train-
+ing loss and validation mean square error for 12 and 14 Hz wavefields. It is evident that,
+despite being trained on a relatively limited dataset, PICNO achieves considerably lower
+PDE loss than CNO, as illustrated in Figure 7(a) and Figure 7(b). This demonstrates
+that PICNO once again captures the physical principles encoded in the PDE loss. This
+observation is further supported by the comparison of validation relative errors in Fig-
+ure 7(c) and Figure 7(d), where PICNO achieves substantially lower validation errors
+than CNO.
+We also randomly select velocity models from the test dataset for evaluation. As
+shown in Figure 8 and Figure 9, PICNO provides more accurate wavefield predictions
+compared to CNO. In particular, PICNO captures wavefield details that are closer to
+the reference wavefield simulated by solving the physical equations. More precisely, the
+predictions made by CNO deviate from the expected physical behavior, with the pre-
+dicted wavelengths appearing more random. In contrast, PICNO maintains high fidelity
+–11–
+
+manuscript submitted to JGR: Machine Learning and Computation
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+
+
+
+
+	
+
+
+
+
+	
+
+
+Figure 4.
+Prediction results of frequency-domain wavefields for a test sample at 8 Hz. (a)
+Reference wavefield computed using a conventional numerical solver; (b) corresponding veloc-
+ity model; (c) wavefield predicted by CNO; (d) difference between the CNO prediction and the
+reference wavefield; (e) wavefield predicted by PICNO; and (f) difference between the PICNO
+prediction and the reference wavefield. This ordering is consistent across all wavefield prediction
+figures presented in this work.
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+
+
+
+
+	
+
+
+
+
+	
+
+
+Figure 5.
+The frequency domain wavefield prediction results for an instance from the test set
+(10Hz).
+across the domain, preserving both the amplitude and phase structures even under high-
+frequency, random source location conditions. This indicates that the inclusion of physics
+constraints not only regularizes the training process but also significantly improves the
+–12–
+
+manuscript submitted to JGR: Machine Learning and Computation
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+
+
+
+
+	
+
+	
+
+Figure 6.
+The frequency domain wavefield prediction results for an instance from the test set
+(12Hz).
+(a)
+(b)
+(c)
+(d)
+Figure 7.
+(a) and (b) show the training loss curves for the 800 epochs of training for the
+Helmholtz equation. (c) and (d) show Relative L2 error curves of CNO and PICNO evaluated
+on the validation dataset. Here, we compare the different losses for predicting 12Hz and 14Hz
+wavefields.
+model’s generalization ability. It enables PICNO to handle challenging wave propaga-
+tion settings where the source locations vary. Thus, PICNO proves to be a more reliable
+and physically faithful surrogate for wavefield simulation in practical geophysical appli-
+cations.
+–13–
+
+manuscript submitted to JGR: Machine Learning and Computation
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+
+
+
+
+	
+
+
+
+
+	
+
+
+Figure 8.
+The frequency domain wavefield prediction results for an instance from the test set
+(12Hz).
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+
+
+
+
+	
+
+
+
+
+	
+
+
+Figure 9.
+The frequency domain wavefield prediction results for an instance from the test set
+(14Hz).
+3.3 Out of distribution test
+In addition to the in-distribution velocity model tests, we further assess the gen-
+eralization capability of PICNO through an out-of-distribution (OOD) experiment. The
+velocity model used in this evaluation, as shown in Figure 10(b), incorporates geolog-
+ical structures such as faults and sharp velocity discontinuities—features that are not
+included in the training dataset. Despite the presence of such unseen and complex geo-
+physical patterns, PICNO remains robust and consistently yields wavefield predictions
+that closely match the ground truth obtained from numerical solutions of the Helmholtz
+–14–
+
+manuscript submitted to JGR: Machine Learning and Computation
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+
+
+
+
+	
+
+
+
+
+	
+
+
+Figure 10.
+The frequency domain wavefield prediction results for an OOD instance from the
+test set (14Hz).
+equation (Figure 10(e)). In contrast, CNO exhibits substantial prediction errors (Fig-
+ure 10(c)). The improved performance of PICNO in these OOD scenarios highlights its
+ability to internalize the governing physics through the incorporation of PDE-based con-
+straints. Compared with Figure 10(d) and Figure 10(f), although PICNO is trained on
+a comparatively small set of velocity models, it demonstrates a clear capacity to gener-
+alize across diverse velocity models. However, we should also note that the wavefield pre-
+dictions produced by PICNO appear smoother compared to the reference wavefields. This
+is likely due to the limited diversity of the training data as well as the inherent smooth-
+ing effect of the convolution operations employed in the CNO architecture. Neverthe-
+less, PICNO is still well-suited for real-world geophysical applications where the subsur-
+face structures are often unknown. The improved performance of PICNO in these OOD
+scenarios highlights its ability to learn the governing physics through the incorporation
+of PDE-based constraints during training. Compared with CNO, which relies solely on
+data-driven supervision, PICNO benefits from an inductive bias toward physically con-
+sistent solutions. Notably, despite being trained on a relatively small and geologically
+homogeneous set of velocity models, PICNO exhibits a clear capacity to generalize across
+structurally diverse models with minimal degradation in accuracy.
+4 Discussion
+In the “Example” section, we have demonstrated the superior performance of PICNO
+in predicting frequency-domain wavefields. However, despite its advantages, PICNO also
+introduces several challenges. In this section, we focus on analyzing and discussing crit-
+ical limitations observed during training, including the sensitivity of the model to PDE
+loss weight configurations.
+4.1 The balance between the PDE and data losses
+During training, we observe that the relative weighting between the data loss and
+the physics-informed loss plays a crucial role in determining both the convergence be-
+–15–
+
+manuscript submitted to JGR: Machine Learning and Computation
+Figure 11.
+Validation relative error curves under three different training configurations. The
+results compare CNO (trained with data loss only), PICNO case1 (trained with a PDE-to-data
+loss ratio of 10:1), and PICNO case2 (with a ratio of 8:1). This figure illustrates how the choice
+of loss weighting influences convergence behavior and generalization performance during training.
+havior and the inference performance of the neural operator. In particular, putting an
+excessively large or small weight on the PDE loss term can lead to either underfitting
+the physical constraints or a degradation in data fidelity. This delicate balance is illus-
+trated in Figure 11, where we compare the validation relative error across three config-
+urations: ”CNO”: solely with a data loss term; ”PICNO case1”: with a PDE-to-data
+loss ratio of 10:1; and ”PICNO case2”: with a ratio of 8:1. While ”PICNO case2” achieves
+slightly lower validation error, the variation in performance highlights the sensitivity of
+the network to the weighting of the physics term. It is important to emphasize that no
+universally optimal ratio generalizes across different datasets or frequencies. Instead, the
+selection of this hyperparameter often relies on empirical tuning and trial-and-error. It
+is also recognized that the process of tuning loss weights through empirical strategies may
+lead to significant computational costs in some real-world applications. The solution to
+this problem remains an open question and requires further investigation.
+4.2 Outlook on Physics-Informed Neural Operators in Geophysics
+The application of physics-informed neural operators (PINOs) in seismology and
+geophysical problems remains in its early stages (Okazaki, 2024). several open questions
+must be addressed to enable broader application. One major challenge lies in formulat-
+ing appropriate partial differential equations that accurately capture the underlying physics
+of complex Earth structures (Alkhalifah & Tsvankin, 1995; Alkhalifah, 2000). Also, the
+limited availability of labeled data remains a significant constraint on the applicability
+of neural operators in geophysical and seismological problems. Another key issue is the
+scalability of these models, both in terms of computational efficiency and training ro-
+bustness. Nevertheless, embedding physical laws directly into neural network architec-
+tures offers a compelling paradigm for scientific machine learning. By constraining learn-
+ing with domain knowledge, PINOs have the potential to generalize beyond the train-
+ing data and provide physically consistent predictions, even in out-of-distribution sce-
+narios. In the future, we aim to further explore the potential of physics-informed neu-
+ral operators for the geophysical inversion problem.
+5 Conclusions
+We introduced a novel physics-informed convolutional neural operator to learn the
+Helmholtz equation efficiently. Our approach not only relies on the neural operator to
+–16–
+
+manuscript submitted to JGR: Machine Learning and Computation
+learn data fitting but also allows it to capture the underlying physical laws, significantly
+enhancing its generalization ability. Our experiments demonstrate that even with a lim-
+ited amount of training data, PICNO achieves remarkable improvements in wavefield pre-
+diction compared to the standard convolutional neural operator. The advantage is par-
+ticularly evident in high-frequency scenarios, where traditional neural operators often
+struggle due to increased complexity. The ability to generalize across different complex
+velocity models and source locations, even at relatively high frequencies, makes it highly
+promising for applications in seismic inversion.
+Open Research Section
+The code supporting the findings of this study is available at https://github.com/DeepWave-
+KAUST/PICNO-pub.
+Acknowledgments
+The authors thank KAUST for providing the computational resources and research sup-
+port that made this work possible.
+References
+Alkhalifah, T. (2000). An acoustic wave equation for anisotropic media. Geophysics,
+65(4), 1239–1250.
+Alkhalifah, T., Song, C., bin Waheed, U., & Hao, Q.
+(2021).
+Wavefield solutions
+from machine learned functions constrained by the helmholtz equation.
+Artificial
+Intelligence in Geosciences, 2, 11–19.
+Alkhalifah, T., & Tsvankin, I. (1995). Velocity analysis for transversely isotropic me-
+dia. Geophysics, 60(5), 1550–1566.
+Berkhout, A. (1981). Wave field extrapolation techniques in seismic migration, a tu-
+torial. Geophysics, 46(12), 1638–1656.
+bin Waheed, U., Haghighat, E., Alkhalifah, T., Song, C., & Hao, Q.
+(2021).
+Pin-
+neik: Eikonal solution using physics-informed neural networks. Computers & Geo-
+sciences, 155, 104833.
+Carcione, J. M. (2010). A generalization of the fourier pseudospectral method. Geo-
+physics, 75(6), A53–A56.
+Cheng, S., Taufik, M. H., & Alkhalifah, T.
+(2025).
+Seismic wavefield solutions via
+physics-guided generative neural operator. arXiv preprint arXiv:2503.06488.
+Cuomo, S., Di Cola, V. S., Giampaolo, F., Rozza, G., Raissi, M., & Piccialli, F.
+(2022).
+Scientific machine learning through physics–informed neural networks:
+Where we are and what’s next. Journal of Scientific Computing, 92(3), 88.
+Deng, C., Feng, S., Wang, H., Zhang, X., Jin, P., Feng, Y., . . . Lin, Y.
+(2022).
+Openfwi: Large-scale multi-structural benchmark datasets for full waveform inver-
+sion. Advances in Neural Information Processing Systems, 35, 6007–6020.
+Gajewski, D., & Pˇsenc´ık, I.
+(1987).
+Computation of high-frequency seismic wave-
+fields in 3-d laterally inhomogeneous anisotropic media.
+Geophysical Journal In-
+ternational, 91(2), 383–411.
+Grubas, S., Duchkov, A., & Loginov, G.
+(2023).
+Neural eikonal solver: Improving
+accuracy of physics-informed neural networks for solving eikonal equation in case
+of caustics. Journal of Computational Physics, 474, 111789.
+Huang, X., & Alkhalifah, T.
+(2022).
+Pinnup: Robust neural network wavefield so-
+lutions using frequency upscaling and neuron splitting. Journal of Geophysical Re-
+search: Solid Earth, 127(6), e2021JB023703.
+Huang, X., & Alkhalifah, T.
+(2024).
+Learned frequency-domain scattered wavefield
+solutions using neural operator.
+In 85th eage annual conference & exhibition (in-
+–17–
+
+manuscript submitted to JGR: Machine Learning and Computation
+cluding the workshop programme) (Vol. 2024, pp. 1–5).
+Huang, X., & Alkhalifah, T.
+(2025).
+Learned frequency-domain scattered wavefield
+solutions using neural operators. Geophysical Journal International, 241(3), 1467–
+1478.
+Karniadakis, G. E., Kevrekidis, I. G., Lu, L., Perdikaris, P., Wang, S., & Yang,
+L.
+(2021).
+Physics-informed machine learning.
+Nature Reviews Physics, 3(6),
+422–440.
+Li, Z., Kovachki, N., Azizzadenesheli, K., Liu, B., Bhattacharya, K., Stuart, A., &
+Anandkumar, A. (2020a). Fourier neural operator for parametric partial differen-
+tial equations. arXiv preprint arXiv:2010.08895.
+Li, Z., Kovachki, N., Azizzadenesheli, K., Liu, B., Bhattacharya, K., Stuart, A., &
+Anandkumar, A.
+(2020b).
+Neural operator: Graph kernel network for partial
+differential equations. arXiv preprint arXiv:2003.03485.
+Li, Z., Zheng, H., Kovachki, N., Jin, D., Chen, H., Liu, B., . . . Anandkumar, A.
+(2024).
+Physics-informed neural operator for learning partial differential equa-
+tions. ACM/JMS Journal of Data Science, 1(3), 1–27.
+Lu, L., Jin, P., Pang, G., Zhang, Z., & Karniadakis, G. E.
+(2021).
+Learning non-
+linear operators via deeponet based on the universal approximation theorem of
+operators. Nature machine intelligence, 3(3), 218–229.
+Okazaki, T.
+(2024).
+Scientific machine learning seismology.
+arXiv preprint
+arXiv:2409.18397.
+Pathak, J., Subramanian, S., Harrington, P., Raja, S., Chattopadhyay, A., Mardani,
+M., . . . others
+(2022).
+Fourcastnet: A global data-driven high-resolution weather
+model using adaptive fourier neural operators. arXiv preprint arXiv:2202.11214.
+Raissi, M., Perdikaris, P., & Karniadakis, G. E.
+(2019).
+Physics-informed neural
+networks: A deep learning framework for solving forward and inverse problems in-
+volving nonlinear partial differential equations. Journal of Computational physics,
+378, 686–707.
+Rasht-Behesht, M., Huber, C., Shukla, K., & Karniadakis, G. E.
+(2022).
+Physics-
+informed neural networks (pinns) for wave propagation and full waveform inver-
+sions. Journal of Geophysical Research: Solid Earth, 127(5), e2021JB023120.
+Rosofsky, S. G., Al Majed, H., & Huerta, E.
+(2023).
+Applications of physics in-
+formed neural operators.
+Machine Learning: Science and Technology, 4(2),
+025022.
+Ryu, J. J., Xu, X., Erol, H., Bu, Y., Zheng, L., & Wornell, G. W.
+(2024).
+Oper-
+ator svd with neural networks via nested low-rank approximation.
+arXiv preprint
+arXiv:2402.03655.
+Song, C., Alkhalifah, T., & Waheed, U. B.
+(2021).
+Solving the frequency-domain
+acoustic vti wave equation using physics-informed neural networks.
+Geophysical
+Journal International, 225(2), 846–859.
+Song, C., Alkhalifah, T., & Waheed, U. B.
+(2022).
+A versatile framework to solve
+the helmholtz equation using physics-informed neural networks. Geophysical Jour-
+nal International, 228(3), 1750–1762.
+Song, C., Zhao, T., Bin Waheed, U., Liu, C., & Tian, Y.
+(2024).
+Seismic travel-
+time simulation for variable velocity models using physics-informed fourier neural
+operator. IEEE Transactions on Geoscience and Remote Sensing.
+Taufik, M. H., & Alkhalifah, T.
+(2025).
+Wavenumber-aware diffusion sampling to
+regularize multiparameter elastic full waveform inversion.
+Geophysical Journal In-
+ternational, 240(2), 1215–1233.
+Taufik, M. H., Waheed, U. b., & Alkhalifah, T. A.
+(2023).
+A neural network based
+global traveltime function (globenn). Scientific Reports, 13(1), 7179.
+Virieux, J., Calandra, H., & Plessix, R.-´E. (2011). A review of the spectral, pseudo-
+spectral, finite-difference and finite-element modelling techniques for geophysical
+imaging.
+Geophysical Prospecting, 59(Modelling Methods for Geophysical Imag-
+–18–
+
+manuscript submitted to JGR: Machine Learning and Computation
+ing: Trends and Perspectives), 794–813.
+Wang, Y., Zhang, H., Lai, C., & Hu, X.
+(2024).
+Transfer learning fourier neural
+operator for solving parametric frequency-domain wave equations.
+IEEE Transac-
+tions on Geoscience and Remote Sensing.
+Wen, G., Li, Z., Long, Q., Azizzadenesheli, K., Anandkumar, A., & Benson, S. M.
+(2023).
+Real-time high-resolution co 2 geological storage prediction using nested
+fourier neural operators. Energy & Environmental Science, 16(4), 1732–1741.
+Wu, Z., & Alkhalifah, T.
+(2018a).
+An efficient helmholtz solver for acoustic trans-
+versely isotropic media. Geophysics, 83(2), C75–C83.
+Wu, Z., & Alkhalifah, T.
+(2018b).
+A highly accurate finite-difference method with
+minimum dispersion error for solving the helmholtz equation.
+Journal of Compu-
+tational Physics, 365, 350–361.
+Xue, Z., Wang, Y., Wu, X., & Ma, J.
+(2025).
+Multi-geophysical information neural
+network for seismic tomography. Geophysics, 90(3), R89–R100.
+Yang, B., Meng, H., Gu, N., Liu, X., Chen, X., & Ben-Zion, Y. (2024). A frequency
+domain methodology for quantitative evaluation of diffuse wavefield with applica-
+tions to seismic imaging.
+Journal of Geophysical Research: Solid Earth, 129(5),
+e2024JB028895.
+Yang, Y., Gao, A. F., Azizzadenesheli, K., Clayton, R. W., & Ross, Z. E.
+(2023).
+Rapid seismic waveform modeling and inversion with neural operators.
+IEEE
+Transactions on Geoscience and Remote Sensing, 61, 1–12.
+Zou, C., Azizzadenesheli, K., Ross, Z. E., & Clayton, R. W.
+(2024).
+Deep neu-
+ral helmholtz operators for 3-d elastic wave propagation and inversion.
+Geophysi-
+cal Journal International, 239(3), 1469–1484.
+–19–

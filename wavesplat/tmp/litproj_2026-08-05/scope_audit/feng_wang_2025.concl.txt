@@ -1,0 +1,78 @@
+
+
+<<<@49474 Conclusions>>>
+
+5. Conclusions
+This study proposes an ETKF-based method for fast spatial–temporal
+wave field reconstruction that combines spectrum predictions with
+sparse 3D points, using fuzzy logic to filter out measurement outliers.
+The proposed method inherently achieves global optimization through
+MAP estimation, distinguishing it from traditional constrained opti-
+mization methods with fixed weight matrices. Experiments on both
+public datasets and field-collected data show superior performance in
+multiple aspects: single-point elevation timeseries, 2D elevation grids,
+and 3D spatial–temporal spectrums. The recursive uncertainty propa-
+gation chain in ETKF significantly enhances computational efficiency
+compared to the constrained optimization framework of WASSfast
+(PU), and the parallel localization of state vector prevents the collapse
+of covariance matrix in update.
+Another important distinction lies in how the two frameworks han-
+dle sparse data. While WASSfast directly uses sparse points as support
+nodes for the fitting surface, the proposed method regards the entire
+interpolated grid as the measurements, accounting for both the inter-
+polation artifacts and measurement noise of the original sparse points
+into the observation model within a filter. Through theoretical analysis
+of innovation propagation and error evaluation, we demonstrate that
+using interpolated measurements enhances state estimation not only
+at directly observed locations but across the entire state space while
+maintaining computational efficiency. The filtering mechanism effec-
+tively handles the uncertainty of the interpolation, while leveraging
+the expanded measurement space to better capture spatial correlations.
+Furthermore, the proposed method maintains robust reconstruction
+accuracy and comparable efficiency under extremely sparse conditions,
+though at the higher dense ratio its computational efficiency is lower
+than CNN mode of WASSfast. Future work could focus on exploring
+appropriate entry frequencies as state vectors to reduce state dimen-
+sionality, while preserving prior correlations through spectral–spatial
+transformation in the mode of direct sparse assimilation.
+CRediT authorship contribution statement
+Feng Wang: Writing – review & editing, Writing – original draft, Vi-
+sualization, Software, Methodology, Investigation, Data curation, Con-
+ceptualization. Qidan Zhu: Writing – review & editing, Supervision, Re-
+sources, Funding acquisition, Conceptualization. Chengtao Cai: Writ-
+ing – review & editing, Supervision, Resources, Funding acquisition.
+Xiaoyu Wang: Writing – review & editing, Validation, Methodology,
+Data curation. Renjie Qiao: Validation, Resources, Investigation.
+Declaration of competing interest
+The authors declare that they have no known competing finan-
+cial interests or personal relationships that could have appeared to
+influence the work reported in this paper.
+Acknowledgments
+The authors would like to acknowledge the support of the National
+Natural Science Foundation of China (Grant No. 52171299), High-
+Technology Ship Research Project of the Ministry of Industry and
+Information Technology of China (Grant No. CH01N20).
+Appendix A. Supplementary data
+Supplementary material related to this article can be found online
+at https://doi.org/10.1016/j.coastaleng.2024.104690.
+Data availability
+Data will be made available on request. The implementation code
+is available through Github under https://github.com/fengHEU/Wave-
+ETKF/tree/main.
+Coastal Engineering 197 (2025) 104690 
+11 
+
+F. Wang et al.
+Fig. 14. Elevation rendering on selected images from field-collected data. The top row presents dense wave reconstructions using stereo matching techniques, while the bottom
+row shows the proposed ETKF-based elevation estimates.
+References
+Al-Matouq, A., Vincent, T., Tenorio, L., 2013. Reduced complexity dynamic program-
+ming solution for Kalman filtering of linear discrete time descriptor systems. In:
+2013 American Control Conference. IEEE, pp. 340–345.
+Barbariol, F., Alves, J.-H.G., Benetazzo, A., Bergamasco, F., Bertotti, L., Carniel, S.,
+Cavaleri, L., Y. Chao, Y., Chawla, A., Ricchi, A., Sclavo, M., Tolman, H., 2017.
+Numerical modeling of space-time wave extremes using WAVEWATCH III. Ocean
+Dyn. 67, 535–549.
+Bechle, A.J., Wu, C.H., 2011. Virtual wave gauges based upon stereo imaging for
+measuring surface wave characteristics. Coast. Eng. 58 (4), 305–316.
+Benetazzo, A., 2006. Measurements of short water waves using stereo matched image

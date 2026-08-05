@@ -1,0 +1,74 @@
+
+
+<<<@65597 Conclusion>>>
+
+5. Conclusion
+This work introduces a novel machine learning-based approach for
+the phase-resolved reconstruction of ocean wave surface elevations
+from sparse radar measurements. To evaluate the performance of our
+approach, we generate synthetic nonlinear wave surface data for a wide
+range of sea states and corresponding radar surface data by incorpo-
+rating both tilt- and shadowing modulation mechanisms. Two neural
+network architectures based on the U-Net or the Fourier neural operator
+are trained, both provided with varying amounts of spatio-temporal
+radar surface measurement input.
+Our results and discussion indicate that both models are capable
+of producing high-quality wave surface reconstructions with average
+errors below SSP ≤0.10 when trained with a sufficient amount of
+𝑛s = 10 or 9 consecutive radar snapshots. Furthermore, both models
+generalize well across different sea states. On average, the U-Net-
+based model achieves slightly smaller errors across the entire spatial
+domain of each reconstructed wave sample, while the FNO-based model
+produces a more uniform wave reconstruction between areas that were
+shadowed and visible in the corresponding radar input. This observa-
+tion is further confirmed by the edge case of instantaneous inversion,
+i.e. if the networks are trained with only a single radar snapshot in each
+input. The weakness in the reconstruction of shadowing-affected areas
+of the U-Net-based model can be attributed to the local operation of
+the network architecture, where its small convolutional kernels do not
+receive processable information when shifted across shadowed input
+areas with zero intensities only. The problem can be circumvented
+using the FNO-based network that learns a global mapping between
+radar input and wave output in the Fourier space. This network struc-
+ture already encodes prior physical knowledge about the periodic data
+structure apparent in ocean waves and is therefore possibly better
+suited for our use case.
+Our findings suggest that the FNO-based network may offer ad-
+ditional advantages, especially concerning smaller training datasets
+and noisy input radar data. Furthermore, future research could delve
+into the reconstruction of two-dimensional ocean wave surfaces, as
+the FNO network can also be implemented using 2D-FFTs. However,
+due to the different propagation directions of the component waves
+in short-crested, two-dimensional sea states, we anticipate a poten-
+tial degradation in the reconstruction performance compared to the
+
+Ocean Engineering 288 (2023) 116059
+13
+S. Ehlers et al.
+Fig. 14. Error surfaces depicting the ratio
+nL2shad𝑖
+nL2vis𝑖
+between the reconstruction quality achieved on shadowed and visible areas depending on the specific 𝐿p −𝜖-combination of
+the samples from the test set. The individual cell entries display the mean ratio across the 4–5 samples available for each specific parameter combination. The uniformity of the
+reconstructions achieved by the U-Net-based model U,10 in (a) thus is compared to the one achieved by the FNO-based model F,9 in (b).
+one-dimensional scenario explored in this study. This performance
+degradation could be mitigated through appropriate countermeasures,
+such as employing FNOs with increased capacity, conducting longer
+training runs, or applying suitable regularization techniques.
+Moreover, the current methodology solely relies on synthetic radar
+input and the corresponding wave output data. Although it can be
+presumed that the HOS method generates wave surfaces that exhibit
+a reasonable degree of realism, radar imaging mechanisms for marine
+X-Band radar are not yet fully understood, such that state-of-the-art
+radar models are associated with higher uncertainties. Consequently,
+on the one hand, a model trained solely on synthetic radar-wave data
+pairs cannot be applied for inference using real-world radar data. On
+the other hand, the acquisition of real-world radar-wave pair samples
+to train the neural networks is associated with high operational costs
+due to the necessity of deploying a dense grid of buoys for captur-
+ing wave snapshots. These data issues currently limit the application
+of the developed machine-learning-based reconstruction approach for
+real-world applications. In future research, we endeavour to tackle
+this issue through two opportunities: Firstly, we aim to enhance the
+realism of synthetic radar data models to improve their accuracy. Al-
+ternatively, we intend to investigate the feasibility of physics-i

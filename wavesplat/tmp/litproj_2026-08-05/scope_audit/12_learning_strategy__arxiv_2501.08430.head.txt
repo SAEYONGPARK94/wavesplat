@@ -1,0 +1,69 @@
+Physics-informed neural networks for phase-resolved data assimilation and prediction
+of nonlinear ocean waves
+Svenja Ehlers∗
+Dynamics Group, Hamburg University of Technology, Hamburg, Germany
+Norbert Hoffmann
+Dynamics Group, Hamburg University of Technology, Hamburg, Germany and
+Department of Mechanical Engineering, Imperial College London, London, United Kingdom
+Tianning Tang
+Department of Engineering Science, University of Oxford, Oxford, United Kingdom
+Adrian H. Callaghan and Rui Cao
+Civil and Environmental Engineering, Imperial College London, London, United Kingdom
+Enrique M. Padilla
+BarcelonaTech, Laboratori d’Enginyeria Mar´ıtima, Universitat Polit´ecnica de Catalunya, Barcelona, Spain
+Yuxin Fang
+College of Oceanography and Space Informatics, China University of Petroleum, Qingdao, China and
+Civil and Environmental Engineering, Imperial College London, London, United Kingdom
+Merten Stender
+Cyber-Physical Systems in Mechanical Engineering, Technische Universit¨at Berlin, Berlin, Germany
+(Dated: January 16, 2025)
+The assimilation and prediction of phase-resolved surface gravity waves are critical challenges in
+ocean science and engineering. Potential flow theory (PFT) has been widely employed to develop
+wave models and numerical techniques for wave prediction. However, traditional wave prediction
+methods are often limited.
+For example, most simplified wave models have a limited ability to
+capture strong wave nonlinearity, while fully nonlinear PFT solvers often fail to meet the speed
+requirements of engineering applications. This computational inefficiency also hinders the devel-
+opment of effective data assimilation techniques, which are required to reconstruct spatial wave
+information from sparse measurements to initialize the wave prediction.
+To address these chal-
+lenges, we propose a novel solver method that leverages physics-informed neural networks (PINNs)
+that parameterize PFT solutions as neural networks.
+This provides a computationally inexpen-
+sive way to assimilate and predict wave data. The proposed PINN framework is validated through
+comparisons with analytical linear PFT solutions and experimental data collected in a laboratory
+wave flume. The results demonstrate that our approach accurately captures and predicts irregular,
+nonlinear, and dispersive wave surface dynamics. Moreover, the PINN can infer the fully nonlinear
+velocity potential throughout the entire fluid volume solely from surface elevation measurements,
+enabling the calculation of fluid velocities that are difficult to measure experimentally.
+I.
+INTRODUCTION
+Accurate knowledge of phase-resolved water wave dynamics is crucial in ocean engineering, for example, to assess the
+impact of waves on maritime structures. In most cases of nonlinear, phase-resolved ocean wave modelling, the problem
+is reduced to potential flow theory (PFT), governed by the Laplace differential equation and boundary conditions
+at the water surface and seabed. As the PFT cannot be solved analytically, various wave theories have emerged,
+using simplifying assumptions to derive analytical solutions, such as linear wave theory [1], Stokes weakly nonlinear
+wave theory [2] or the nonlinear Schr¨odinger equation [3, 4]. In addition, numerical simulation methods are employed
+for modelling ocean waves based on the PFT: For example, boundary element methods (BEM) can be applied for
+linear problems in engineering applications with sufficiently fast computation. However, modelling nonlinear wave
+dynamics with BEM [5, 6] becomes computationally inefficient for large computational domains [7, 8]. In contrast,
+∗corresponding author: svenja.ehlers@tuhh.de
+arXiv:2501.08430v1 [cs.LG] 14 Jan 2025
+
+2
+the pseudo-spectral high-order spectral method (HOSM), independently developed by Dommermuth and Yue [9] and
+West et al. [10], is capable of handling waves in larger domains and provides the highest prediction accuracy across
+highly nonlinear wave conditions [cf. 11–14]. Moreover, the HOSM is computationally efficient, provided that initial
+conditions are available [cf. 14–16].
+However, spatio-temporal initial wave fields are rarely available in reality, as wave measurements are often sparse in
+space or time. This limitation has already been addressed by Padilla et al. [17] for certain one-dimensional laboratory
+conditions using spatial interpolation.
+A more general approach typically involves data assimilation methods to
+integrate observational data with the numerical model.
+In such methods, the wave prediction process typically
+consists of three steps:
+(S1) measurement of sparse wave-related quantities, e.g. by wave buoys, radar systems, optical measurements, etc.
+(S2) reconstruction of the underlying, spatio-temporal wave field by assimilation methods to initialize a wave model
+(S3) forward propagation of the reconstructed wave field in time
+Assimilation methods often rely on variational optimization techniques to minimize a cost function that quantifies
+the agreement betwe

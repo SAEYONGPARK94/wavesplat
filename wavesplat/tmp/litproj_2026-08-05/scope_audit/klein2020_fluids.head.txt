@@ -1,0 +1,69 @@
+fluids
+Article
+On the Deterministic Prediction of Water Waves
+Marco Klein 1,*, Matthias Dudek 2, Günther F. Clauss 3, Sören Ehlers 1, Jasper Behrendt 4,
+Norbert Hoffmann 4 and Miguel Onorato 5
+1
+Hamburg University of Technology, Ship Structural Design and Analysis, 21073 Hamburg, Germany
+2
+Neue Warnow Design & Technology GmbH, 18055 Rostock, Germany
+3
+Technische Universität Berlin, Ocean Engineering, 10623 Berlin, Germany
+4
+Hamburg University of Technology, Mechanical Engineering, 21073 Hamburg, Germany
+5
+University of Turin, Department of Physics, 10125 Torino, Italy
+*
+Correspondence: marco.klein@tuhh.de
+Received: 19 December 2019; Accepted: 27 December 2019; Published: 7 January 2020
+
+
+Abstract: This paper discusses the potential of deterministic wave prediction as one basic module for
+decision support of offshore operations. Therefore, methods of different complexity—the linear wave
+solution, the non-linear Schrödinger equation (NLSE) of two different orders and the high-order
+spectral method (HOSM)—are presented in terms of applicability and limitations of use. For this
+purpose, irregular sea states with varying parameters are addressed by numerical simulations as
+well as model tests in the controlled environment of a seakeeping basin. The irregular sea state
+investigations focuses on JONSWAP spectra with varying wave steepness and enhancement factor.
+In addition, the inﬂuence of the propagation distance as well as the forecast horizon is discussed. For
+the evaluation of the accuracy of the prediction, the surface similarity parameter is used, allowing an
+exact, quantitative validation of the results. Based on the results, the pros and cons of the different
+deterministic wave prediction methods are discussed. In conclusion, this paper shows that the
+classical NLSE is not applicable for deterministic wave prediction of arbitrary irregular sea states
+compared to the linear solution. However, the application of the exact linear dispersion operator
+within the linear dispersive part of the NLSE increased the accuracy of the prediction for small wave
+steepness signiﬁcantly. In addition, it is shown that non-linear deterministic wave prediction based
+on second-order NLSE as well as HOSM leads to a substantial improvement of the prediction quality
+for moderate and steep irregular wave trains in terms of individual waves and prediction distance,
+with the HOSM providing a high accuracy over a wider range of applications.
+Keywords: decision support system; non-linear wave prediction; high-order spectral method;
+second-order non-linear Schrödinger equation; JONSWAP Spectrum
+1. Introduction
+Ships and offshore structures are exposed to the sea, limiting the scope of application of offshore
+operations, from efﬁcient and economic offshore operations in moderate sea states to reliability as well
+as survival in extreme wave conditions. To classify offshore operating conditions, predeﬁned limiting
+criteria such as absolute or relative motions are typically combined with a limiting characteristic wave
+height or sea state based on stochastic analysis in the design process, allowing identifying feasible and
+infeasible sea states, respectively. Typically, these limiting sea states are further reduced in terms of
+allowable signiﬁcant wave heights by insurer and surveyor of offshore operations. This approach limits
+the applicability of offshore operations strictly as most sea states (in particular in the transition area
+between feasible and infeasible region of a scatter diagram) will feature favourable wave sequences
+allowing short-term offshore operations which are elapsed unused. Knowing the future in terms of
+deterministic prediction of the encountering wave ﬁeld and structure motion a sufﬁcient time span
+Fluids 2020, 5, 9; doi:10.3390/ﬂuids5010009
+www.mdpi.com/journal/ﬂuids
+
+Fluids 2020, 5, 9
+2 of 20
+in advance would allow reducing the downtime as the critical part of an offshore operation typically
+corresponds to a short time interval of the whole operation. In addition, a decision support system
+(DSS) based on deterministic wave prediction can also detect critical wave groups in pretended feasible
+sea states increasing the safety of complex operations. The impact of such a DSS on shipping as
+warning system (e.g., parametric roll, extreme wave events, extreme motions and structure response)
+should not be left unmentioned even though the focus may lie on offshore operations.
+The established research on deterministic wave prediction comprises two indispensable
+constituents: sea state registration and wave prediction. The deterministic structure motion prediction
+based on the wave prediction is a further key element for a DSS but will not be discussed in detail
+within this paper. For the registration of the future encountering wave ﬁeld, the surface elevation has
+to be measured at a certain distance from the prediction point (e.g., location of offshore operation).
+Different measurement methods are available, 

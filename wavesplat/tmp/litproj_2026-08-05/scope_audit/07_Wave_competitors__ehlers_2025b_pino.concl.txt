@@ -1,0 +1,86 @@
+
+
+<<<@41511 CONCLUSION>>>
+
+CONCLUSION AND OUTLOOK
+In this study, we presented a Physics-Informed Neural Op-
+erator (PINO) tailored for wave data assimilation. Our PINO
+reconstructs fully-resolved free-surface wave elevation fields
+and corresponding velocity potential fields from sparse mea-
+surements, such as buoy data (case A) or radar snapshots com-
+bined with data from a single calibration buoy (case B). A key
+advantage of our approach is that it eliminates the need for
+fully-resolved ground-truth data during training, which is typ-
+ically impractical to obtain in real-ocean applications. This
+implies, instead of directly minimizing the reconstruction er-
+
+10
+ror relative to a ground truth, as in conventional supervised
+learning, the PINO learns to generate physically consistent
+wave fields by minimizing residuals of the governing equa-
+tions. Specifically, we incorporate the residuals of the free-
+surface boundary conditions, derived from the potential flow
+theory of ocean gravity waves, directly into the loss function.
+These physics-based constraints guide the model to infer con-
+sistent wave fields between sparsely distributed measurement
+locations.
+Compared to our previous methods for wave surface recon-
+struction, the proposed PINO combines the strengths of our
+FNO-based approach25 and PINN-based approach27, while
+addressing their limitations. First, the PINO is highly data-
+efficient as a training set of only 634 sparse input samples
+is enough to achieve a satisfying performance on the test
+set, quantified by mean SSP values of SSP = 0.1035 (case
+A) and SSP = 0.1341 (case B). This demonstrates that em-
+bedding physical knowledge significantly reduces the amount
+of data required, compared to conventional machine learning
+models such as our FNO-approach25, which needed approx-
+imately three times more training data to reach similar accu-
+racy. Moreover, unlike the FNO25, the PINO does not rely
+on labelled datasets of ground-truth wave elevations, making
+it directly applicable in real-world scenarios with only sparse
+observational data. In contrast to our PINN-approach27, the
+PINO can assimilate indirect measurements such as radar
+backscatter and does not require a time-consuming solution
+of a separate inverse problem for each wave instance. Instead,
+once trained, the PINO generalizes across wave conditions
+and enables rapid, instance-independent inference, taking by
+far less than one second to reconstruct a previously unseen
+wave instance. Overall, these properties make the proposed
+PINO approach a promising candidate for real-time, physics-
+constrained wave field reconstruction from sparse and indirect
+measurements, with high potential for operational application
+in engineering and oceanography.
+Currently, the proposed PINO approach has been demon-
+strated on long-crested, unidirectional (1D + t) wave sur-
+faces. Extending this framework to realistic two-dimensional
+(2D+t) wave fields, where waves arrive from multiple direc-
+tions and interact through complex superposition, is the future
+perspective for this work. Since the core of the PINO relies
+on Fourier layers that can be extended to higher dimensions,
+this extension does not present fundamental methodological
+challenges. However, the increased dimensionality will de-
+mand substantially more computational resources or efficient
+parallelization strategies. Although the more complex wave
+fields may slightly reduce reconstruction accuracy, we expect
+that the embedded physics constraints will sustain robust per-
+formance. Importantly, once trained, the PINO should still
+enable extremely fast inference, making real-time physics-
+informed wave field reconstruction in 2D + t scenarios fea-
+sible for practical applications.
+FUNDING
+This work was supported by the Deutsche Forschungsge-
+meinschaft (DFG - German Research Foundation) [project
+number 277972093: Excitability of Ocean Rogue Waves].
+DECLARATION OF INTERESTS
+The authors declare that they have no known competing fi-
+nancial interests or personal relationships that could have ap-
+peared to influence the work reported in this paper.
+DECLARATION OF GENERATIVE AI AND AI- ASSISTED
+TECHNOLOGIES IN THE WRITING PROCESS
+The investigations were conducted and the manuscript was
+written completely by the authors. Once the manuscript was
+completed, the authors used ChatGPT 3.5 (https://chat.
+openai.com/) in order to improve its grammar and readabil-
+ity. After using this tool, the authors reviewed and edited the
+content as needed and take full

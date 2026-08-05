@@ -1,0 +1,1335 @@
+HAL Id: hal-01855465
+https://hal.science/hal-01855465v1
+Submitted on 3 Sep 2020
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.
+L’archive ouverte pluridisciplinaire HAL, est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+Distributed under a Creative Commons CC BY 4.0 - Attribution - International License
+Phase-Resolved Reconstruction Algorithm and Deterministic
+Prediction of Nonlinear Ocean Waves From Spatio-Temporal
+Optical Measurements
+Nicolas Desmars, Yves Perignon, Guillaume Ducrozet, Charles-Antoine Guérin,
+Stephan T. Grilli, Pierre Ferrant
+To cite this version:
+Nicolas Desmars, Yves Perignon, Guillaume Ducrozet, Charles-Antoine Guérin, Stephan T. Grilli, et al.. Phase-
+Resolved Reconstruction Algorithm and Deterministic Prediction of Nonlinear Ocean Waves From Spatio-
+Temporal Optical Measurements. ASME 2018 37th International Conference on Ocean, Offshore and Arctic
+Engineering, Jun 2018, Madrid, Spain. ⟨10.1115/OMAE2018-78367⟩. ⟨hal-01855465⟩
+
+PHASE-RESOLVED RECONSTRUCTION ALGORITHM AND DETERMINISTIC
+PREDICTION OF NONLINEAR OCEAN WAVES FROM SPATIO-TEMPORAL
+OPTICAL MEASUREMENTS
+Nicolas Desmars
+LHEEA Lab, UMR CNRS 6598
+´Ecole Centrale de Nantes
+Nantes, 44321
+France
+Email: nicolas.desmars@ec-nantes.fr
+Yves P´erignon
+LHEEA Lab, UMR CNRS 6598
+´Ecole Centrale de Nantes
+Nantes, 44321
+France
+Email: yves.perignon@ec-nantes.fr
+Guillaume Ducrozet
+LHEEA Lab, UMR CNRS 6598
+´Ecole Centrale de Nantes
+Nantes, 44321
+France
+Email: guillaume.ducrozet@ec-nantes.fr
+Charles-Antoine Gu´erin
+Institut M´editerran´een d’Oc´eanologie
+Universit´e de Toulon, La Garde
+Toulon, 83041
+France
+Email: charles-antoine.guerin@univ-tln.fr
+Stephan T. Grilli
+Department of Ocean Engineering
+University of Rhode Island
+Kingston, Rhode Island, 02881
+Email: grilli@uri.edu
+Pierre Ferrant
+LHEEA Lab, UMR CNRS 6598
+´Ecole Centrale de Nantes
+Nantes, 44321
+France
+Email: pierre.ferrant@ec-nantes.fr
+ABSTRACT
+We investigate a nonlinear phase-resolved reconstruction al-
+gorithm and models for the deterministic prediction of ocean
+waves based on a large number of spatio-temporal optical mea-
+surements of surface elevations. We consider a single sensor
+(e.g., LIDAR, stereo-video, etc.) mounted on a ﬁxed offshore
+structure and remotely measuring ﬁelds of free surface eleva-
+tions. Assuming a uniform distribution of measurement points
+over the sensor aperture angles, the density of free surface ob-
+servation points geometrically decreases with the distance from
+the sensor. Additionally, wave shadowing effects occur, which
+become more important at small viewing angles (i.e., grazing in-
+cidence on the surface). These effects result in observations of
+surface elevation that are sparsely distributed. Here, based on
+earlier work by [1], we present and discuss the characteristics
+of an algorithm, aimed at assimilating such sparse data and able
+to deterministically reconstruct and propagate ocean surface el-
+evations for their prediction in time and space. This algorithm
+could assist in the automatic steering and control of a variety of
+surface vehicles. Speciﬁcally, we compare prediction results us-
+ing linear wave theory and the weakly nonlinear Choppy Wave
+Model [2,3], extended here to an “improved” second order for-
+mulation. The latter model is based on an efﬁcient Lagrangian
+formulation of the free surface and was shown to be able to model
+wave properties that are important to the proper representation
+of nonlinear free surfaces, namely wave shape and celerity. Syn-
+thetic datasets from highly nonlinear High Order Spectral simu-
+lations are used as reference oceanic surfaces. Predicted results
+are analyzed over an area that evolves in time, using the theoret-
+ical amount of information assimilated during the reconstruction
+of the wave ﬁeld. For typical horizons of prediction, we discuss
+the capabilities of our assimilation process for each wave model
+considered.
+1
+
+INTRODUCTION
+The availability of real-time phase-resolved wave ﬁelds is
+important to many offshore applications, such as the optimal
+maneuvering and operations of surface vessels or ocean renew-
+able energy harvesting systems. However, many standard ocean
+wave models [4,5] only predict phase-averaged quantities based
+on spectral representations (e.g., directional wave energy spec-
+trum), which do not provide a detailed description of determin-
+istic wave properties (e.g., free surface elevation and ﬂuid pres-
+sure ﬁelds). Nevertheless, under the linear wave superposition
+assumption, such spectral representations can be used to generate
+phase-resolved wave ﬁelds, by combining frequency wave com-
+ponent amplitudes with a set of (typically random) phases. Based
+on this data, the initial wave ﬁeld can be computed through an
+inverse Fourier transform (FT) and its propagation in space and
+time performed using a linear or nonlinear propagation model
+(e.g., High Order Spectral (HOS) model [6]).
+Here, we instead propose a method for directly reconstruct-
+ing a phase-resolved nonlinear wave ﬁeld, based on spatio-
+temporal optical measurements of the ocean surface.
+Future
+sea state conditions are then predicted by propagating the re-
+constructed waves in time and space using a weakly nonlinear
+model. This problem was studied in some earlier work on the
+basis of free surface elevation time series measured at ﬁxed wave
+probes [7–9]. However, in situ measurements, typically made
+from a moving vessel or vehicle, are more challenging since
+wave reconstruction must rely on data acquired at constantly up-
+dated locations surrounding the path of the vehicle, which leads
+to practical limitations. A successful solution to this problem
+was proposed based on X-band radar measurements made from
+an onboard sensor, combined with a 3D-FT to reconstruct a large
+patch of free surface elevation surrounding the sensor [10–13].
+This initial estimate was then used in a direct numerical simula-
+tion of future sea states.
+Our work is based on the new nonlinear ocean surface re-
+construction algorithm proposed by Nouguier et al. [1,14], on the
+basis of simulated free surface elevation datasets, such as would
+be acquired by an optical sensor that can remotely and simulta-
+neously measure surface elevations at many geo-referenced loca-
+tions at a high frequency (e.g., a generic LIDAR camera, stereo-
+video acquisition system). Their algorithm was based on apply-
+ing the weakly nonlinear Choppy Wave Model [2, 3], which is
+Lagrangian and thus more efﬁcient for propagating wave ﬁelds
+in the time domain than Eulerian models based on higher-order
+Stokes expansions. In this paper, we both validate and extend this
+approach by using simulation results from a HOS model as ref-
+erence data. Linear wave propagation models can be used to pro-
+vide short-term forecasts in calm sea states. However, as time be-
+tween the prediction horizon and the initial sea state reconstruc-
+tion increases and/or the sea state becomes more severe, non-
+linear wave effects play an increasingly large role in the proper
+representation of wave ﬁelds, their propagation (e.g., due to am-
+plitude dispersion effects on wave celerity), and on the accuracy
+of the forecast. Using a nonlinear wave reconstruction and prop-
+agation algorithm thus becomes crucial to an accurate sea state
+prediction.
+In this study, the performance of the weakly nonlinear
+Choppy Wave Model (CWM) and its improved second-order for-
+mulation developed hereby, are compared with predictions of
+the higher-order, but much more computationally demanding,
+“HOS-ocean” model [6]. Earlier work on ocean surface recon-
+struction and forecasting algorithms [15–17] has shown that the
+size of the dataset assimilated during the reconstruction phase
+yields a well-deﬁned time evolving spatial area, over which a
+sea-state prediction is theoretically possible. Accordingly, in this
+paper, we also evaluate the efﬁciency of our prediction method
+with respect to this theoretical prediction zone.
+This paper is organized as follows. We ﬁrst describe the
+wave models used for the free surface reconstruction and prop-
+agation. Second, for each wave model, we present the inverse
+problem that must be solved to perform the initial free surface
+reconstruction. Third, we detail the method for generating syn-
+thetic spatio-temporal free surface elevation datasets, such as
+would be acquired by a the depicted optical sensor. Fourth, for
+one-dimensional measurements used for simplicity, we analyze
+the effect on the forecast accuracy of reconstruction parameters,
+such as high cut-off frequency of the reconstructed spectrum,
+heterogeneity of the observation grid, and number of spatial ob-
+servation times. For a two-dimensional surface reconstruction,
+we ﬁnally investigate the effect of directional wave spreading.
+WAVE PROPAGATION MODELS
+Two types of wave models are applied in this work to re-
+construct ocean surfaces, based on a measured spatio-temporal
+dataset. These are based on: (i) linear wave theory (LWT); and
+(ii) the ﬁrst- and second-order Lagrangian CWM, which include
+some intrinsic nonlinear wave properties. Note that the follow-
+ing developments are done under deep water assumption, but the
+extension to ﬁnite depth is straightforward.
+Linear Wave Model
+We consider a Cartesian coordinate system (x,y,z), with x
+and y axes located on the mean water surface and the z axis be-
+ing vertical and positive upward. A linear ocean surface repre-
+sentation is derived by superposing N individual wave compo-
+nents, propagating in the horizontal plane r = (x,y), of ampli-
+tude An, wavelength λn and direction θn with respect to the x-axis
+(n = 1,...,N), yielding,
+η (r,t) =
+N
+∑
+n
+An cos(kn ·r −ωnt +ϕn),
+(1)
+2
+
+where t is time, ϕn are random phases uniformly distributed in
+[0,2π], and kn = knˆkn = (kn cosθn,kn sinθn) where kn = 2π/λn
+are wavenumbers related to angular frequencies ωn through the
+deep water dispersion relationship, ω2
+n = kng, where g denotes
+the acceleration of gravity. To simplify the mathematical devel-
+opments, we will use the equivalent formulation,
+η (r,t) =
+N
+∑
+n
+(an cosψn +bn sinψn),
+(2)
+where ψn = kn · r −ωnt are spatio-temporal phases, and
+(an,bn) = (An cosϕn,An sinϕn) are wave parameters describing
+the ocean surface.
+Choppy Wave Model
+Optical measurements of the ocean surface provide, at each
+time, the surface elevation measured for a set of spatial points
+at irregular but deﬁned Eulerian locations in a reference coordi-
+nate system. Hence, the wave model used in the reconstruction
+algorithm must also be able to provide and use comparable in-
+formation. On the other hand, Lagrangian representations of the
+free surface of a given order can model nonlinear wave proper-
+ties that are not included in Eulerian developments of the same
+order [2, 3, 18]. Here, the CWM following our developments
+meets both of these requirements, as it is derived as a solution of
+Lagrangian dynamical equations in an Eulerian system.
+Let RL and ZL denote the horizontal and vertical displace-
+ments of a particle with initial horizontal position r0 and vertical
+position z0 = 0 (i.e., on the free surface), respectively. A La-
+grangian perturbation expansion in wave steepness of these pa-
+rameters yields [19–21],
+(
+RL (r0,t) = r0 +∑i Di (r0,t),
+ZL (r0,t) = ∑i Zi (r0,t),
+(3)
+where Di and Zi are the ith-order terms in the Lagrangian ex-
+pansion. Expressing the particle coordinates from Eqn. (3) in
+an Eulerian framework requires ﬁnding an explicit relationship
+between RL and ZL, which can be achieved through the implicit
+relationship [14],
+ZL
+ 
+RL −∑
+i
+Di (r0,t),t
+!
+≃ZL
+ 
+RL −∑
+i
+Di (RL,t),t
+!
+.
+(4)
+The CWM surface elevation based on this expansion are then
+reformulated as,
+˜η (r,t) = ∑
+i
+Zi
+ 
+r −∑
+i
+Di (r,t),t
+!
+.
+(5)
+The zeroth-order Lagrangian solution is the particle position at
+rest, i.e., D0 = (0,0) and Z0 = 0. The ﬁrst-order solution yields
+[19–21],
+(
+D1 (r,t) = ∑N
+n ˆkn (−an sinψn +bn cosψn),
+Z1 (r,t) = ∑N
+n an cosψn +bn sinψn.
+(6)
+Assuming a single wave component, this ﬁrst-order solution has
+been shown to be consistent with a third-order Stokes expansion
+for a surface frozen at t = 0 (see Eqn. (63) in [2], with a misprint
+in the sign of the cos(2Kx) factor). Apart from the mean sur-
+face level this makes the ﬁrst-order CWM efﬁcient at represent-
+ing nonlinear geometrical properties of ocean surface waves (i.e.,
+sharper crests and ﬂatter troughs). However, at this order, water
+particles located on the free surface move around circles around
+their initial position (r,z = 0) with a uniform angular velocity
+and, hence, their mean position is at z = 0. Thus, the asymmetry
+observed in nonlinear wave shape is not properly accounted, as
+it would require a non-zero mean surface level [2,18,22].
+Increasing the order of the Lagrangian expansion, we ﬁnd
+that the second-order term Z2 includes a vertical shift of the mean
+water level [19, 21], which causes particles to oscillate around a
+higher position. This important feature was added to the recon-
+struction process by reformulating the ﬁrst-order CWM as,
+˜η (r,t) =
+N
+∑
+n
+(an cos ˜ψn +bn sin ˜ψn)+ 1
+2kn
+ a2
+n +b2
+n
+
+,
+˜ψn = kn ·(r −D1 (r,t))−ωnt.
+(7)
+which, throughout the paper, will be referred to as CWM1.
+In addition, we also developed and used an improved formu-
+lation for a second-order CWM, denoted ICWM,
+˜η (r,t) =
+N
+∑
+n
+an cos ˜Ψn +bn sin ˜Ψn + 1
+2kn
+ a2
+n +b2
+n
+
+,
+˜Ψn = kn ·[r −(DI (r,t)+Ust)]−Ωnt,
+(8)
+with,
+DI (r,t) =
+N
+∑
+n
+ˆkn (−an sinΨn +bn cosΨn),
+Ψn = kn ·r −Ωnt,
+(9)
+where Ωn = ωn −1/2kn ·Us and Us = ∑N
+n ωnkn
+ a2
+n +b2
+n
+
+is the
+Stokes drift vector. Note that, for a monochromatic wave, this in-
+troduces corrections of the phase and group velocities consistent
+3
+
+xc
+yc
+zc
+αa
+β
+α
+βa
+observation zone
+FIGURE 1.
+GEOMETRICAL PARAMETERS LEADING TO THE
+OBSERVATION ZONE.
+with third-order Stokes theory. In fact, here, we only consider
+self-interaction terms at second order, thus neglect the effect of
+interactions of different components. The detailed derivation of
+this formulation will be presented in future work [23].
+METHODS
+We present a theoretical, yet realistic, setup for an optical
+system able to instantaneously remotely measure a large dataset
+of ocean surface elevations. This dataset is used in combination
+with various wave models (e.g., LWT, CWM1, ICWM) to per-
+form a nowcast (i.e., initial) ocean surface reconstruction, and
+based on this to issue short-term forecasts of ocean surface eleva-
+tions over a speciﬁed area. To this effect, we discuss the suitable
+choice of cutoff frequencies and directions of the reconstructed
+wave ﬁeld, and based on this deﬁne the area over which the ac-
+curacy of the sea state forecast will be evaluated, as compared
+to a prediction made with a higher-order HOS model. We detail
+the free surface reconstruction process for linear and nonlinear
+wave models, and the regularization procedure that is required
+for solving the resulting inverse problem.
+Setup Description
+Let us consider an optical system (denoted by OS throughout
+this paper) simply mounted on a ﬁxed offshore structure at loca-
+tion (xc,yc,zc) (zc = 30 m is used in the present applications) and
+facing the ocean surface with viewing angles (α,β) = (76◦,0◦)
+and aperture angles (αa,βa) (here αa = 20◦), and remotely mea-
+suring free surface elevations using J rays (here J = 64 × 64 =
+4096), uniformly distributed over the aperture angles. This yields
+the observation zone shown in Fig. 1. During an assimilation
+time Ta, the OS acquires K sets of spatial observations, at a con-
+stant sampling frequency fs (here 1 Hz), leading to J × K = L
+spatio-temporal observations.
+We assume a random incident wave ﬁeld, with its main di-
+rection along the x-axis, described by a directional JONSWAP
+(JS) spectrum, S(k,θ) = F (k) × G(θ) [24], of signiﬁcant wave
+height Hs, peak period Tp, and peakedness parameter γ. The di-
+rectional spreading function is standard and deﬁned as,
+G(θ) =
+(
+1
+σ cos2 h
+π(θ−θdir)
+2σ
+i
+,
+if |θ −θdir| ≤π
+2 ,
+0,
+if |θ −θdir| > π
+2 ,
+(10)
+where θdir = 0 is the mean direction of propagation of the wave
+ﬁeld, and σ is a directional parameter.
+The combination of wave ﬁeld parameters selected in the
+present simulations is: Hs = 3 m, Tp = 10 s, γ = 3.3, σ = π/4,
+which corresponds to a realistic moderately steep sea state, fre-
+quently observable in open oceans, with a corresponding, deep
+water characteristic steepness, Hs/λp ≃2%.
+Cutoff Frequencies and Directions
+In practical applications, the reconstructed wave ﬁeld com-
+ponents should be limited in frequency and direction to the band-
+widths that are meaningful to the dynamic response of the struc-
+ture or ocean vehicle of interest. As the study of a speciﬁc struc-
+tural response is beyond the scope of this paper, we ﬁrst aim at
+accurately reconstructing wave ﬁelds without specifying any re-
+sponse bandwidth. Hence, the cutoff limits
+ kmin,max,θ min,max
+are calculated with respect to the reference ocean wave spectrum.
+Additionally, both the size of the observation area and the
+spatial sampling resolution are related to the minimum and max-
+imum wave frequencies that can be reconstructed, respectively.
+For the sake of simplicity, here, we only consider spatial ob-
+servations (i.e., K = 1) to estimate cutoff frequencies. In this
+case, the low cutoff wavenumber (or frequency since ω = √gk)
+is deﬁned by the largest distance Lobs between two observation
+points as, kmin ≥2π/Lobs. In the following, we set kmin to its
+minimal value by determining Lobs at the ﬁrst observation time
+tobs. When reconstructing a signal over a regular observation
+grid (i.e., with constant spatial sampling frequency), the max-
+imum high cutoff frequency must satisfy Shannon’s condition,
+i.e., kmax ≤2π/(2ℓobs), where ℓobs is the distance between two
+observation points. Since the observation grid is highly irregular,
+we will determine kmax by evaluating its inﬂuence on the quality
+of the reconstruction.
+Cutoff limits in wave directions are set by considering the
+fraction of total wave energy beyond which the remaining energy
+can be considered as negligible, i.e.,
+Z θmin
+−∞
+G(θ)dθ =
+Z +∞
+θmax G(θ)dθ = µ
+Z +∞
+−∞G(θ)dθ,
+(11)
+with µ the fraction of total energy considered as negligible. In
+4
+
+the following µ = 1%, which corresponds to θ min,max ≃±35◦
+for the spreading function deﬁned above.
+Prediction Zone Deﬁnition
+Only a limited amount of information is assimilated during
+the reconstruction process, due to the physical spatio-temporal
+limitations of optical free surface observations (e.g., limited size
+of observation zone) and the ﬁnite bandwidths of the recon-
+structed wave ﬁeld.
+Hence, only a similarly limited spatio-
+temporal region, called prediction zone, is accessible for sea
+state forecast, as a result of propagating the assimilated informa-
+tion [16,17]. For a one-dimensional (1D) wave ﬁeld, this region
+is bounded by the time evolution of the amplitude and phase of
+the slowest and fastest wave components at the end (xmax
+obs ) and
+beginning (xmin
+obs ) of the observation zone, respectively. It can be
+shown that reconstructed information attached to a speciﬁc wave
+component (i.e., wave amplitude and phase) is traveling at the
+wave group velocity Cg = ω/(2k) [15]. Thus, in 1D, as shown
+in Fig. 2a, a point (x,t ≥trec) is included in the prediction zone
+if,
+xmin
+obs +Cmax
+g
+(t −trec) ≤x ≤xmax
+obs +Cmin
+g
+(t −tobs),
+(12)
+where trec and tobs are the reconstruction and observation times,
+respectively. Both the LWT and CWM1 models rely on the lin-
+ear deep water dispersion relationship, while ICWM includes a
+second order correction term which affects both phase and group
+velocity. The two constrains described by Eqn. (12) eventually
+cross each other (at point Pmax = (xmax,tmax); Fig. 2a), which
+means that the measured information is obsolete and can no
+longer be used in a prediction. Note that increasing the assim-
+ilation time Ta leads to increasing the size of the prediction zone.
+In two-dimensions (2D), the wave ﬁeld is decomposed
+in individual wave components propagating in direction θ ∈
+
+θ min,θ max
+. The corresponding prediction zone can be calcu-
+lated for each direction using Eqn. (12), as if it were a 1D case,
+by replacing xobs by dobs = robs · ˆk = xobs cosθ + yobs sinθ, the
+distance along the considered direction. The intersection of each
+zone forms the 2D prediction zone. To save computational time,
+the prediction zone area can be approximated based on the two
+extreme directions θ min and θ max, as shown in Fig. 2b. The far-
+thest reachable prediction zone Pmax corresponds to a segment
+(Fig. 2b).
+Data Assimilation Process
+Linear Reconstruction
+For a linear wave ﬁeld repre-
+sented by Eqn. (1), the reconstruction process is based on the
+minimization of a quadratic cost function representing the mean
+square difference between observations and predictions of the
+wave model. Here, assuming there are no measuring and model
+t
+𝒫max
+trec
+surface elevation
+prediction zone
+observation points
+Lobs
+Ta
+tobs
+(a)
+Δt
+spatial prediction zone at trec+Δt
+observation points
+Δt
+𝒫max
+(b)
+FIGURE 2.
+(a) SPATIO-TEMPORAL EVOLUTION OF THE PRE-
+DICTION ZONE FOR A 1D SET OF OBSERVATIONS, AND (b) LO-
+CATION OF THE PREDICTION ZONE FOR A 2D SET OF OBSER-
+VATIONS FOR A SINGLE TIME RECONSTRUCTION.
+errors, the cost function is,
+C = 1
+L
+L
+∑
+ℓ=1
+( ˜η (rℓ,tℓ)−ηℓ)2 ,
+(13)
+where ˜η (rℓ,tℓ) and ηℓare the predicted and measured surface
+elevations at observation points rℓand at time tℓ(ℓ= 1,...,L),
+respectively. This problem is equivalent to a least-square mini-
+mization of a cost function, which can be achieved by specifying
+(for n,m = 1,...,N; note that index summation is implied for re-
+peated indices),
+ ∂C
+∂am
+= 0,
+∂C
+∂bm
+= 0
+
+⇐⇒AmnXn = Bm,
+(14)
+5
+
+where,
+Xn = an,
+XN+n = bn,
+(15)
+is the control vector of 2N unknown wave parameters and,
+Bm =
+L
+∑
+ℓ=1
+ηℓcosψmℓ,
+BN+m =
+L
+∑
+ℓ=1
+ηℓsinψmℓ,
+(16)
+is a vector containing the observation points information, with
+ψmℓ= km ·rℓ−ωmtℓ, and,
+Amn =
+L
+∑
+ℓ=1
+cosψmℓcosψnℓ,
+Am,N+n =
+L
+∑
+ℓ=1
+cosψmℓsinψnℓ,
+AN+m,n =
+L
+∑
+ℓ=1
+sinψmℓcosψnℓ,
+AN+m,N+n =
+L
+∑
+ℓ=1
+sinψmℓsinψnℓ,
+(17)
+is the wave model matrix. The linear system of Eqns. (14) to (17)
+can then be solved for the wave model parameters (an,bn).
+Nonlinear Reconstruction
+For a nonlinear sea state re-
+construction the cost function of Eqn. (13) is also minimized, us-
+ing one of the nonlinear wave models, CWM1 or ICWM, to rep-
+resent surface elevations (Eqns. (7) or (8)). Here, we detail the
+system construction for CWM1. Following the same methodol-
+ogy as for the linear model, we use the cost function minimiza-
+tion Eqn. (14) with,
+Bm =
+L
+∑
+ℓ=1
+ηℓPmℓ,
+BN+m =
+L
+∑
+ℓ=1
+ηℓQmℓ,
+(18)
+with,
+Pmℓ= (1+bmkm sinψmℓ)cos ˜ψmℓ−amkm sinψmℓsin ˜ψmℓ+kmam,
+Qmℓ= (1+amkm cosψmℓ)sin ˜ψmℓ−bmkm cosψmℓcos ˜ψmℓ+kmbm.
+(19)
+Similarly, we have,
+Amn =
+L
+∑
+ℓ=1
+Pmℓ
+
+cos ˜ψnℓ+ 1
+2knan
+
+,
+Am,N+n =
+L
+∑
+ℓ=1
+Pmℓ
+
+sin ˜ψnℓ+ 1
+2knbn
+
+,
+AN+m,n =
+L
+∑
+ℓ=1
+Qmℓ
+
+cos ˜ψnℓ+ 1
+2knan
+
+,
+AN+m,N+n =
+L
+∑
+ℓ=1
+Qmℓ
+
+sin ˜ψnℓ+ 1
+2knbn
+
+.
+(20)
+Since both Amn and Bm now depend on wave parameters (an,bn),
+the system of Eqns. (14) becomes nonlinear and is solved itera-
+tively. To do so, equations are linearized by computing A(p)
+mn and
+B(p)
+m
+based on wave parameters obtained at the previous itera-
+tion p, when solving for X(p+1)
+n
+at iteration p+1. The solution is
+initialized at p = 1, using A(0)
+mn and B(0)
+m based on the linear recon-
+struction problem and thus on Eqns. (16) and (17). Convergence
+is typically achieved within 5 to 10 iterations.
+A similar approach can be used for ICWM, but the inverse
+problem becomes more complex due to the higher-order of ex-
+pansion in the formulation. The complete derivation of the so-
+lution for this model and its reconstruction system will be pre-
+sented in future work.
+Regularization
+In applications, the inverse reconstruc-
+tion problem deﬁned above (Eqn. (14)) can become ill-
+conditioned due to practical constraints, such as the heteroge-
+neous distribution of spatial observation points, the limited ocean
+area observed by the OS, and the the frequency and direction
+bandwidth cutoffs in the reconstructed wave ﬁeld. To be able to
+ﬁnd consistent results independently of the conditioning of the
+matrix to invert (i.e., Amn), a Tikhonov regularization method is
+applied, which yields,
+min
+n
+||AmnXn −Bm||2 −r2 ||Xm||2o
+,
+(21)
+where r is the regularization parameter and ||.|| denotes the Eu-
+clidean norm. The optimal regularization parameter is found us-
+ing the “L-curve” method, which consists of ﬁnding the r value
+corresponding to the point of maximum curvature (i.e., corner)
+of the (log||AmnXn −Bm||,log||Xm||) function, hence, providing
+an optimal compromise between minimizing the residual error
+and ensuring that the norm of the solution does not become too
+large. The L-curve corner can be determined analytically through
+solving a singular value decomposition problem [25,26].
+6
+
+0
+1
+2
+3
+4
+x/λp
+0
+2
+4
+6
+8
+10
+z/Hs
+HOS free surface
+observation points
+OS
+FIGURE 3.
+1D SPATIAL SAMPLING OF A SYNTHETIC NONLINEAR FREE SURFACE. STRAIGHT LINES ARE OS RAY TRAJECTORIES.
+RESULTS AND DISCUSSION
+In the following applications, we illustrate and discuss key
+characteristics of our proposed ocean wave reconstruction algo-
+rithms, for optically measured surface elevation data. In the ab-
+sence of ﬁeld data, the algorithms are applied to reference syn-
+thetic surface elevation datasets, generated ﬁrst in 1D using a
+higher-order HOS model. The inﬂuence of reconstruction pa-
+rameters on the accuracy of the solution with respect to the ref-
+erence data is studied, in particular, the number of wave com-
+ponents, the high cutoff frequency, the heterogeneity of the ob-
+servation grid, and the number of observation times, while high-
+lighting differences between linear and nonlinear prediction re-
+sults. We then present a 2D case and show how the horizontal
+aperture angle can help in the reconstruction.
+Synthetic Dataset and Error Deﬁnition
+The open source HOS-ocean model [6] is used to generate
+synthetic reference ocean surfaces from which datasets of obser-
+vation points are extracted. Since its ﬁrst developments [27,28],
+this model, which simulates the nonlinear propagation of direc-
+tional wave ﬁelds over large spatio-temporal domains, has under-
+gone numerous validations and been used in various applications,
+such as for simulating freak waves [29], developing a numerical
+wave tank [30], or in wave prediction [31, 32]. Based on an ini-
+tialization with a JS spectrum and a set of random phases, HOS-
+ocean computes the time evolution of the complex amplitude of
+wave components. These are then used to construct snapshots of
+the reference ocean surface at selected observation times. In the
+presented case, the order of the HOS expansion is set to 1 or 5, to
+generate a linear or a nonlinear reference surface, respectively. In
+each case, the HOS numerical grid and parameters are selected
+to ensure converged results.
+Based on the computed reference surfaces,
+synthetic
+datasets of surface elevations data such as would be acquired by
+the depicted OS are generated by computing the intersection be-
+tween J optical rays with the reference ocean surface (see, e.g.,
+Fig. 3 for a 1D surface).
+The following relative standard error (RSE) is used as an
+indicator of the prediction accuracy,
+εRSE (t) =
+v
+u
+u
+t∑Nr
+q=1 (η (rq,t)−ηq)2
+∑Nr
+q=1 η2q
+,
+(22)
+where r deﬁnes the footprint of the spatial prediction zone at
+time t and Nr is the number of reconstructed points, which is se-
+lected large enough to achieved a converged error estimate. RSE
+quantiﬁes the scaled mean squared difference between the recon-
+structed and reference surfaces over the observation points in the
+prediction zone. Since the quality of the prediction depends on
+the local surface geometry at the observation time (e.g., through
+shadowing effects), an overall RSE is computed by averaging
+RSE values for Ns = 50 surface reconstructions of ocean surface
+generated at the same time with HOS-ocean for different initial
+random phases,
+¯εRSE (t) = 1
+Ns
+Ns
+∑
+q=1
+εRSEq (t),
+(23)
+using the same initial wave spectrum.
+One-Dimensional Reconstruction
+Using a JS spectrum with parameters as deﬁned above, 1D
+linear surfaces are ﬁrst generated and then reconstructed based
+on data acquired at a single time (i.e., K = 1), with L = 64 ob-
+servation points uniformly distributed over the observation area.
+Figure 4 shows the RSE at reconstruction time trec = tobs = 0
+(i.e., for a nowcast), as a function of the number of wave com-
+ponents N used in the reconstructed wave ﬁeld, for different
+high cutoff frequencies. Note that Shannon’s criterion yields,
+kmax ≤13.9kp, but the HOS surface was generated using a cutoff
+frequency kmax ≃16kp. As expected, results show that the recon-
+struction error decreases as the high cutoff frequency grows, and
+eventually converges to a minimum, here approximately 10%,
+for kmax = 10kp. In all cases, the number of wave components
+(N = 15 to 60) appears to have a very limited inﬂuence on the
+accuracy of the reconstruction. However, this number must be
+7
+
+10
+20
+30
+40
+50
+60
+N
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+¯εRSE(trec)
+kmax = 2kp
+kmax = 3kp
+kmax = 5kp
+kmax = 8kp
+kmax = 10kp
+kmax = 12kp
+FIGURE 4.
+LINEAR RECONSTRUCTION ERROR OF A LINEAR
+SURFACE AT TIME trec = tobs = 0 (NOWCAST), AS A FUNCTION
+OF THE NUMBER OF WAVE COMPONENTS, FOR DIFFERENT
+HIGH CUTOFF FREQUENCIES, OVER A REGULAR GRID FOR
+K = 1.
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+3.0
+t/Tp
+0.00
+0.05
+0.10
+0.15
+0.20
+0.25
+0.30
+¯εRSE
+LWT
+CWM1
+ICWM
+LWT, linear reference
+FIGURE 5.
+PREDICTION ERROR OF A NONLINEAR OCEAN
+SURFACE AS A FUNCTION OF TIME, FOR DIFFERENT WAVE
+RECONSTRUCTION MODELS, OVER A REGULAR GRID FOR
+K = 1.
+large enough to allow for a proper inversion of the reconstruc-
+tion system. We ﬁnd: N ≥30 for kmax ≥8kp and N ≥40 for
+kmax ≥12kp. In the following we use kmax = 10kp and N = 50.
+Next, nonlinear reference surfaces are generated using the
+same parameters and the reconstruction error over the predic-
+tion zone is computed as a function of time t = trec = 0 to
+3Tp ≃0.8tmax, for the same L = 64 uniformly distributed ob-
+servation points, using either the LWT, CWM1, or ICWM model
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+3.0
+t/Tp
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+¯εRSE
+K = 1
+K = 2
+K = 3
+K = 5
+K = 10
+K = 20
+K = 30
+K = 10, LWT
+K = 10, regular grid
+K = 10, regular grid, LWT
+FIGURE 6.
+PREDICTION ERROR OF A NONLINEAR OCEAN
+SURFACE AS A FUNCTION OF TIME, FOR DIFFERENT NUM-
+BERS OF OBSERVATION TIMES, USING ICWM OVER AN IR-
+REGULAR GRID. SOME REGULAR GRID RESULTS ARE PLOT-
+TED FOR REFERENCE.
+in the reconstruction. For each model, the ocean surface is ﬁrst
+reconstructed at t = trec = 0 and then propagated to a later time
+where its RSE error with respect to the reference HOS solution is
+evaluated; for comparison, the case of Fig. 4 propagated in time
+is also marked on the ﬁgure (i.e., reconstruction using LWT of a
+linear reference surface). Figure 5 shows that at t = trec = 0 all
+models give the same results, which is expected since at initial
+time the different reconstruction algorithms all solve equivalent
+inverse problems. Then, as time increases, each wave model be-
+haves according to its own properties. While the CWM1 model
+provides a better prediction than the LWT model, the ICWM fur-
+ther improves the prediction accuracy as time increases, due to
+the additional nonlinear phase speed corrections. Here, the im-
+provement of the nonlinear over the linear prediction is on the
+order of a few percent. The linear prediction of a linear reference
+surface, shown on the same ﬁgure, is an indication of the best
+reconstruction accuracy that could be achieved for this problem
+and dataset, if all nonlinear effects were properly accounted for
+in the nonlinear wave models. Hence, the difference between this
+linear and nonlinear forecasts using ICWM increases with time
+due to the incomplete representation of time-dependent nonlinear
+effects in the latter model, to approximately reach 5% at t = 3Tp.
+Ocean observations made by an OS such as a LIDAR cam-
+era yield highly irregular grids, since the density of observation
+points geometrically decreases with the distance from the OS,
+which is made worse by wave shadowing effects becoming more
+important at grazing incidence angles (i.e., for the most distant
+observation points; see Fig. 3). The effect of using an irregu-
+lar grid on the accuracy of the ocean surface reconstruction is
+8
+
+0.5
+1.0
+1.5
+2.0
+2.5
+3.0
+3.5
+4.0
+4.5
+x/λp
+−1.0
+−0.5
+0.0
+0.5
+1.0
+η/Hs
+HOS
+ICWM, K = 1
+ICWM, K = 30
+observation points
+FIGURE 7.
+ELEVATION AT RECONSTRUCTION TIME OF THE REFERENCE (HOS) AND RECONSTRUCTED (ICWM) SURFACES, FOR
+DIFFERENT NUMBERS OF OBSERVATION TIMES. VERTICAL LINES DEFINE THE SPATIAL LIMITS OF THE INITIAL PREDICTION
+ZONE.
+assessed by recalculating the case of Fig. 5, using the ICWM
+model, for a dataset of L = 64 irregularly spaced observation
+points. First, considering a single observation time (i.e., K = 1),
+Fig. 6 shows that the reconstruction error greatly increases (by
+more than a factor of 2) as compared to a regular dataset. As
+suggested in earlier work [1], however, this deterioration of the
+ocean reconstruction and forecasting can be signiﬁcantly reduced
+by increasing the number of observation times. Indeed, this has
+the effect of making some portions of the free surface, invisible
+to the OS at a given time due to shadowing effects, visible and
+hence measurable at a later time. Thus, for K = 2, Fig. 6 shows
+that the error already drops by 10% as compared to K = 1, and
+then further drops when increasing K to reach a maximum of
+∼20% for K = 10. The latter, however, is still 5% larger than
+the error achieved when using a regular grid, for the same num-
+ber of observation times (also shown in the ﬁgure). Comparing
+results in Figs. 5 and 6 we also see that, when using a regular
+grid of observation points, increasing K has no signiﬁcant effect
+on the prediction error; for both the LWT and ICWM models,
+maximum errors indeed remain on the order of 15 to 20% for
+K = 1 and 10, even if ICWM leads to a consistently better pre-
+diction.
+Figure 6 also shows that the reconstruction error decreases
+when K increases form 1 to 10, but then gradually increases for
+larger K values. This might result from increasing numerical
+errors in the inverse problem solution, as the observed dataset
+becomes larger. Moreover, since reconstructed waves are only
+modeled up to second-order in nonlinearity in ICWM, higher-
+order time-dependent nonlinear effects included in the HOS-
+ocean solution, which affect the reconstruction process when us-
+ing temporal data, are not well represented in the wave model as
+time increases. Therefore, the model becomes unable to prop-
+erly represent the ocean surface when the assimilation time Ta is
+too long (e.g., phase shifts resulting from amplitude dispersion
+effects). Varying the temporal sampling frequency (set here to 1
+Hz) would allow ﬁnding out whether it is the assimilation time or
+the total number of observations L that is more likely to improve,
+and then limit, the quality of the prediction.
+In general, increasing the assimilation time Ta results both
+in a decrease of the prediction error and in an increase of the
+size of the prediction area. Both effects are illustrated in Fig. 7,
+which shows the reference and reconstructed surface elevations
+at reconstruction time trec, for K = 1 and 30. Observation points
+are shown at the ﬁrst observation time tobs. With K = 30, the re-
+constructed surface is much closer to the reference data than for
+K = 1, and the prediction area is larger. The ﬁgure shows that, for
+K = 30, the reconstructed surface remains quite close to the ref-
+erence data even beyond the prediction zone (x/λp ≥3.8). This
+suggests that the estimate for the upper limit of the prediction
+zone, which is calculated based on the distance traveled by the
+slowest wave component during the assimilation time, is conser-
+vative (Eqn. (12)). Since longer waves travel faster, the predic-
+tion of low frequency components can still be accurate beyond
+the upper limit. A similar effect affects the high frequency com-
+ponents at distances below the lower limit, when time increases
+(t > trec). This suggests the presence of a “gray area” surround-
+ing the prediction zone and growing with time, over which the
+amount of measured information could still be enough for an ac-
+curate prediction, but with decreasing accuracy as distance in-
+creases from the prediction zone boundary.
+In Fig. 7, when the density of observation points decreases
+(K = 1; 1.2 ≤x/λp ≤2.3), the reconstructed surface tends not
+to ﬁt well the reference surface elevation. As Shannon’s condi-
+tion is not met over this part of the observation zone, an aliasing
+phenomenon leads to overestimating high frequency component
+amplitudes, which causes the observed high frequency surface
+oscillations. However, since this poorly reconstructed part of the
+observation zone is located close to the lower limit of the predic-
+tion zone, and the inaccuracy only affects high frequency com-
+ponents, the growing “gray area” effect tends to remove that part
+of the surface from the prediction zone, while the other part re-
+mains within it. This explains the decreasing prediction error as
+a function of time for small K values observed in Fig. 6. With
+several observation times, this phenomenon disappears due to an
+artiﬁcial reﬁnement of the observation grid: as indicated before,
+parts of the surface that were initially not illuminated by the OS
+rays become visible at a different observation time.
+9
+
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+3.0
+t/Tp
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+εRSE
+βa = 10◦
+βa = 30◦
+βa = 50◦
+βa = 70◦
+βa = 90◦
+βa = 110◦
+FIGURE 8.
+PREDICTION ERROR OF A NONLINEAR OCEAN
+SURFACE AS A FUNCTION OF TIME, USING ICWM FOR DIF-
+FERENT HORIZONTAL APERTURE ANGLES.
+Two-Dimensional Reconstruction
+We now generate a 2D nonlinear wave ﬁeld with HOS-
+ocean, for the same input JS spectrum as before, and reconstruct
+it using an observation grid of 64×64 spatial points (L = 4096)
+with kmax = 10kp, K = 10, and 50 wave frequencies distributed
+over 30 directions, yielding N = 1500 wave components. Since
+the number of spatial observations is signiﬁcantly larger than
+before, calculating the exact intersection of L optical rays with
+time-varying reference surfaces becomes numerically demand-
+ing. Thus, we estimate the horizontal location of observation
+points, rℓ, as if the reference surface were plane, neglecting shad-
+owing effects. Results are comparable since the major contribu-
+tion to the spatial spreading of observation points, i.e., the in-
+creasingly grazing incidence of OS rays at large distances, is ac-
+counted for. Also, the reconstruction error is now calculated for
+one surface and not averaged over 50 surfaces as in 1D, and the
+study presented here is limited to the linear wave reconstruction,
+even if the reference oceanic surface is nonlinear.
+In the following, we estimate the effect of the directional
+spreading of the observation grid on the ocean reconstruction,
+which is function of the horizontal aperture angle βa of the OS
+(Fig. 1). Figure 8 shows the reconstruction error calculated as
+a function of time over the 2D prediction zone. With βa = 10◦,
+the error is ∼70% at reconstruction time and almost monoton-
+ically decreases as time increases up to t = 3Tp. Similar to 1D
+cases, this decrease in error results from the growing “gray area”
+surrounding the prediction zone boundary. Poorly reconstructed
+parts of the ocean surface close to the initial prediction zone
+boundary are gradually removed as time increases. However,
+with the decreasing size of the prediction zone, the error esti-
+mate becomes more subject to slight variations, depending on
+FIGURE
+9.
+LOCAL
+2D
+LINEAR
+PREDICTION
+ERROR
+|η −ηHOS|/Hs,
+AT
+RECONSTRUCTION
+TIME
+(TOP)
+AND
+AFTER 2Tp OF PROPAGATION (BOTTOM). LINES MARK THE
+BOUNDARY OF THE PREDICTION ZONE.
+which waves are crossing the prediction zone at the considered
+time; this explains the increasing error at t = 2.5Tp. Such ef-
+fects did not occur in the 1D cases since errors were averaged
+over 50 different surfaces. Figure 8 shows that increasing βa re-
+sults in a signiﬁcantly reduced error, which converges to a min-
+imum on the order of 15% for βa = 110◦; this error is similar
+to 1D cases. This large error reduction is related to the area
+of the ocean surface covered by the observation zone, as com-
+pared to the area of the prediction zone, at reconstruction time.
+As shown in Fig. 2b, the two-dimensional prediction zone de-
+pends on the range of directions of propagation of wave compo-
+10
+
+nents in the reconstructed wave ﬁeld. Here, as θ min,max ≃±35◦
+and the OS is facing the main wave direction, the optimal aper-
+ture angle that leads to a maximal prediction zone coverage is
+180−
+ |θ max|+
+θ min
+≃110◦.
+Figure 9 shows the horizontal distribution of the local error
+|η −ηHOS|/Hs, where η is the reconstructed linear surface and
+ηHOS the nonlinear reference surface, at reconstruction time and
+after two peak periods of propagation, using an aperture angle
+βa = 110◦. The prediction error is clearly much smaller within
+the prediction zone than outside of it. At both selected times,
+the “gray area” with reduced local error, which surrounds the
+prediction zone boundary, can clearly be identiﬁed. At recon-
+struction time, the “gray area” is close to the the upper limit of
+the prediction zone (right side of the boundary in Fig. 9 top) be-
+cause the reconstructed longer waves propagate faster, and thus
+reach beyond this limit during assimilation time. After 2Tp, the
+“gray area” has expanded and is now completely surrounding the
+prediction zone. This conﬁrms that the method used here for es-
+timating the prediction zone boundary is conservative.
+CONCLUDING REMARKS
+We showed that both 1D and 2D ocean wave ﬁelds (or sea
+states) can be accurately reconstructed on the basis of irregular
+datasets of realistic, but synthetic (and thus error free), optical
+measurements. Reconstruction algorithms based on linear and
+various nonlinear wave models were applied and validated. De-
+spite its simple analytical formulation, the Choppy Wave Model
+(CWM) is able to simulate relevant nonlinear effects in ocean
+wave ﬁelds. The new improved Choppy models that better pre-
+dict wave shape (CWM1) and nonlinear phase velocity (ICWM),
+allow improving the accuracy of the wave reconstruction and pre-
+diction.
+We quantiﬁed effects on the reconstruction of the main
+characteristic of optical measurements, which is to yield highly
+sparsely distributed datasets, making for a particularly chal-
+lenging spatial reconstruction. However, we showed that using
+spatio-temporal information allows overcoming this issue.
+We quantiﬁed the inﬂuence of several reconstruction param-
+eters, which are shown to be of signiﬁcant importance to the pre-
+diction error. In particular, adequately selecting the cutoff limits
+of the reconstructed spectrum (in both frequency and direction)
+and the optical system viewing angles, allows accurately predict-
+ing the wave ﬁeld up to several peak periods of propagation. The
+inﬂuence on the prediction results of a growing “gray area” sur-
+rounding the prediction zone boundary was highlighted.
+The numerical algorithms used in the present work were not
+optimized for computational efﬁciency nor parallelized. On the
+basis of theoretical and practical estimations, it is expected that
+optimized and efﬁciently parallelized algorithms (e.g., on multi-
+core or GPU processors) will easily cope with the increased com-
+plexity and computational demand resulting from including non-
+linear effects in a 2D ocean reconstruction. At present, however,
+the assessment of such computational performance of the method
+is beyond the scope of this paper and will be left out for future
+work.
+ACKNOWLEDGMENT
+This work is supported by Naval Group and Centrale Nantes
+through their Joint Laboratory for Marine Technology, and by
+the PREDEMO-NAV project, grant ANR-15-ASTR-0006. The
+authors would like to acknowledge the efforts of reviewers for
+their constructive comments.
+REFERENCES
+[1] Nouguier, F., Grilli, S. T., and Gu´erin, C.-A., 2014. “Non-
+linear ocean wave reconstruction algorithms based on spa-
+tiotemporal data acquired by a ﬂash lidar camera”. IEEE
+Transactions on Geoscience and Remote Sensing, 52(3),
+March, pp. 1761–1771.
+[2] Nouguier, F., Gu´erin, C.-A., and Chapron, B., 2009.
+““choppy wave” model for nonlinear gravity waves”. Jour-
+nal of Geophysical Research, 114, September, pp. 1–16.
+[3] Nouguier, F., Gu´erin, C.-A., and Chapron, B., 2010. “Scat-
+tering from nonlinear gravity waves: the “choppy wave”
+model”.
+IEEE Transactions on Geoscience and Remote
+Sensing, 48(12), December, pp. 4184–4192.
+[4] Booij, N., Holthuijsen, L., and Ris, R., 2001.
+“The
+¨swan ¨wave model for shallow water”. Coastal Engineering
+Proceedings, 1(25).
+[5] Chawla, A., Tolman, H. L., Gerald, V., Spindler, D.,
+Spindler, T., Alves, J.-H. G. M., Cao, D., Hanson, J. L.,
+and Devaliere, E.-M., 2013. “A multigrid wave forecasting
+model: A new paradigm in operational wave forecasting”.
+Weather and Forecasting, 28(4), pp. 1057–1078.
+[6] Ducrozet, G., Bonnefoy, F., Le Touz´e, D., and Ferrant, P.,
+2016. “Hos-ocean: Open-source solver for nonlinear waves
+in open ocean based on high-order spectral method”. Com-
+puter Physics Communications, 203, June, pp. 245–254.
+[7] Blondel, E., Bonnefoy, F., and Ferrant, P., 2010.
+“De-
+terministic non-linear wave prediction using probe data”.
+Ocean Engineering, 37, pp. 913–926.
+[8] Takagi, K., Hamamichi, S., Wada, R., and Sakurai, Y.,
+2017. “Prediction of wave time-history using multipoint
+measurements”. Ocean Engineering, 140, pp. 412–418.
+[9] Simanesew, A., Trulsen, K., Krogstad, H. E., and Borge, J.
+C. N., 2017. “Surface wave predictions in weakly nonlinear
+directional seas”. Applied Ocean Research,
+65, March,
+pp. 79–89.
+[10] Dankert, H., Horstmann, J., and Rosenthal, W., 2005.
+“Wind- and wave-ﬁeld measurements using marine x-band
+11
+
+radar-image sequences”. IEEE Journal of Oceanic Engi-
+neering, 30(3), July, pp. 534–542.
+[11] Xiao, W., Liu, Y., and Yue, D. K. P., 2010. “Large-scale
+deterministic predictions of nonlinear ocean wave-ﬁelds”.
+DoD High Performance Computing Modernization Pro-
+gram Users Group Conference, pp. 317–324.
+[12] Hilmer, T., and Thornhill, E., 2014. “Deterministic wave
+predictions from the wamos ii”. OCEANS 2014 - TAIPEI,
+pp. 1–8.
+[13] Qi, Y., Xiao, W., and Yue, D. K. P., 2016. “Phase-resolved
+wave ﬁeld simulation calibration of sea surface reconstruc-
+tion using noncoherent marine radar”. Journal of Atmo-
+spheric and Ocean Technology, 33, pp. 1135–1149.
+[14] Grilli, S. T., Gu´erin, C.-A., and Goldstein, B., 2011. “Ocean
+wave reconstruction algorithms based on spatio-temporal
+data acquired by a ﬂash lidar camera”.
+Proceedings of
+the Twenty-ﬁrst International Offshore and Polar Engineer-
+ing Conference (ISOPE2011), International Society of Off-
+shore and Polar Engineers, pp. 275–282.
+[15] Wu, G., 2004. “Direct simulation and deterministic predic-
+tion of large-scale nonlinear ocean wave-ﬁeld”. PhD The-
+sis, Massachusetts Institute of Technology, May.
+[16] Blondel,
+E.,
+2009.
+“Reconstruction
+et
+pr´evision
+d´eterministe de houle `a partir de donn´ees mesur´ees”. PhD
+Thesis, ´Ecole Centrale de Nantes, October.
+[17] Qi, Y., Wu, G., Liu, Y., and Yue, D. K. P., 2017. “Pre-
+dictable zone for phase-resolved reconstruction and fore-
+cast of irregular waves”. Wave Motion.
+[18] Gjosund, S. H., 2003. “A lagrangian model for irregular
+waves and wave kinematics”. Journal of Offshore Mechan-
+ics and Arctic Engineering, 125, May, pp. 94–102.
+[19] Pierson, W. J., 1961.
+Models of random seas based on
+the lagrangian equations of motion. Technical report, New
+York University, April.
+[20] Pierson, W. J., 1962. “Perturbation analysis of the navier-
+stokes equations in lagrangian form with selected linear so-
+lutions”. Journal of Geophysical Research,
+67(8), July,
+pp. 3151–3160.
+[21] Nouguier, F., Chapron, B., and Gu´erin, C.-A., 2015.
+“Second-order lagrangian description of tri-dimensional
+gravity wave interactions”.
+Journal of Fluid Mechanics,
+772, June, pp. 165–195.
+[22] Longuet-Higgins, M. S., 1986. “Eulerian and lagrangian
+aspects of surface waves”.
+Journal of Fluid Mechanics,
+173, May, pp. 683–707.
+[23] Gu´erin, C., Desmars, N., Grilli, S., Ducrozet, G., P´erignon,
+Y., and Ferrant, P. An improved “choppy wave” model for
+the time evolution of nonlinear surfaces. In Preparation.
+[24] Hasselmann, K., Barnet, T., Bouws, E., Carlson, H.,
+Cartwright, D., Enke, K., Ewing, J., Gienapp, H., Hassel-
+mann, D., Krusemann, P., Meerburg, A., Mller, P., Olbers,
+D., Richter, K., Seil, W., and Walden, H., 1973. “Mea-
+surements of wind-wave growth and swell decay during the
+joint north sea wave project (jonswap)”. Deutsche Hydro-
+graphische Zeitschrift, Reihe A, 8(12).
+[25] Calvetti, D., Reichel, L., and Shuibi, A., 2004. “L-curve
+and curvature bounds for tikhonov regularization”. Nume-
+rial Algorithms, 35, pp. 301–314.
+[26] Hansen, P. C., ed., 2001. Computational inverse problems
+in electrocardiology, p. r. johnston ed. WIT Press, Chap.
+The L-curve and Its Use in the Numerical Treatment of In-
+verse Problems, pp. 119–142.
+[27] Dommermuth, D. G., and Yue, D. K. P., 1987. “A high-
+order spectral method for the study of nonlinear gravity
+waves”. Journal of Fluid Mechanics, 184, p. 267288.
+[28] West, B. J., Brueckner, K. A., Janda, R. S., Milder, D. M.,
+and Milton, R. L., 1987. “A new numerical method for sur-
+face hydrodynamics”. Journal of Geophysical Research:
+Oceans, 92(C11), pp. 11803–11824.
+[29] Ducrozet, G., Bonnefoy, F., Le Touz´e, D., and Ferrant, P.,
+2007. “3-d hos simulations of extreme waves in open seas”.
+Natural Hazards and Earth System Sciences, 7, pp. 109–
+122.
+[30] Bonnefoy, F., Ducrozet, G., Le Touz´e, D., and Ferrant, P.,
+eds., 2009. Advances in Numerical Simulation of Nonlinear
+Water Waves, Vol. 11 of Advances in Coastal and Ocean
+Engineering. World Scientiﬁc, Chap. Time-Domain Simu-
+lation of Nonlinear Water Waves Using Spectral Methods,
+pp. 129–164.
+[31] Blondel-Couprie, E., Bonnefoy, F., and Ferrant, P., 2013.
+“Experimental validation of non-linear deterministic pre-
+diction schemes for long-crested waves”. Ocean Engineer-
+ing, 58, pp. 284 – 292.
+[32] Qi, Y., Wu, G., Liu, Y., Kim, M.-H., and Yue, D. K. P.,
+2018. “Nonlinear phase-resolved reconstruction of irreg-
+ular water waves”.
+Journal of Fluid Mechanics,
+838,
+p. 544572.
+12

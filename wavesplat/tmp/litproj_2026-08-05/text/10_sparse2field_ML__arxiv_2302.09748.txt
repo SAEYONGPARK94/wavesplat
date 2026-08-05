@@ -1,0 +1,1410 @@
+QUANTIFYING UNCERTAINTY FOR DEEP LEARNING BASED
+FORECASTING AND FLOW-RECONSTRUCTION USING NEURAL
+ARCHITECTURE SEARCH ENSEMBLES
+A PREPRINT
+Romit Maulik∗
+Argonne National Laboratory,
+Lemont, Illinois 60439, USA.
+Romain Egele
+Université Paris-Saclay,
+1190 Gif-sur-Yvette, France.
+Krishnan Raghavan
+Argonne National Laboratory,
+Lemont, Illinois 60439, USA.
+Prasanna Balaprakash
+Argonne National Laboratory,
+Lemont, Illinois 60439, USA.
+February 21, 2023
+ABSTRACT
+Classical problems in computational physics such as data-driven forecasting and signal reconstruction
+from sparse sensors have recently seen an explosion in deep neural network (DNN) based algorithmic
+approaches. However, most DNN models do not provide uncertainty estimates, which are crucial
+for establishing the trustworthiness of these techniques in downstream decision making tasks and
+scenarios. In recent years, ensemble-based methods have achieved signiﬁcant success for the
+uncertainty quantiﬁcation in DNNs on a number of benchmark problems. However, their performance
+on real-world applications remains under-explored. In this work, we present an automated approach
+to DNN discovery and demonstrate how this may also be utilized for ensemble-based uncertainty
+quantiﬁcation. Speciﬁcally, we propose the use of a scalable neural and hyperparameter architecture
+search for discovering an ensemble of DNN models for complex dynamical systems. We highlight
+how the proposed method not only discovers high-performing neural network ensembles for our tasks,
+but also quantiﬁes uncertainty seamlessly. This is achieved by using genetic algorithms and Bayesian
+optimization for sampling the search space of neural network architectures and hyperparameters.
+Subsequently, a model selection approach is used to identify candidate models for an ensemble set
+construction. Afterwards, a variance decomposition approach is used to estimate the uncertainty of
+the predictions from the ensemble. We demonstrate the feasibility of this framework for two tasks
+- forecasting from historical data and ﬂow reconstruction from sparse sensors for the sea-surface
+temperature. We demonstrate superior performance from the ensemble in contrast with individual
+high-performing models and other benchmarks.
+Keywords Deep ensembles · scientiﬁc machine learning · neural architecture and hyperparameter search
+1
+Introduction
+1.1
+Motivation
+Data-driven surrogate modeling research has shown great promise in improving the predictability and efﬁciency of
+computational physics applications. Among various algorithms, deep learning-based models have been observed to
+show signiﬁcant gains in accuracy and time-to-solution over classical numerical-methods based techniques. However,
+the widespread adoption of deep learning models is still limited by its black-box nature. To that end, uncertainty
+∗Email: rmaulik@anl.gov
+arXiv:2302.09748v1  [cs.LG]  20 Feb 2023
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+quantiﬁcation methods have been developed to overcome the challenges associated with the black-box nature of the
+deep-learning models and establish trustworthiness by providing uncertainty estimates along with the predictions.
+The data or aleatoric uncertainty is attributed to the noise in the data, for example, low resolution sensors and sparse
+measurements; the model or epistemic uncertainty is attributed to the lack of training data. The former is inherent
+to the data and cannot be reduced by collecting more data; the latter is used to characterize the model’s predictive
+capability with respect to the training data and it can reduced by collecting appropriate data. In many computational
+physics applications, it is crucial to effectively quantify both data- and model-form uncertainties in predictions from
+deep learning models. Quantiﬁcation of such uncertainties alleviates the risks associated with the deployment of such
+black-box data-driven models for real-world tasks.
+Deep ensembles is a promising approach for uncertainty quantiﬁcation. In this approach, a ensemble of neural networks
+(NNs) are trained independently but they differ in the way in which they are trained. Consequently, the weights of the
+neural network parameters will be different. The prediction from these models are then used to improve prediction
+and estimate uncertainty. Despite its simplicity, deep-ensembles-based uncertainty estimation has achieved superior
+performance over more sophisticated uncertainty quantiﬁcation methods on a number of benchmarks.
+Crucial to the effectiveness of uncertainty quantiﬁcation in the deep-ensemble-based methods is the diversity of the
+high-performing models. Speciﬁcally, if the models are signiﬁcantly different from each other and also equally high
+performing, then the prediction and the uncertainty estimates become accurate [Egele et al., 2022]. However, this
+poses additional challenges due to the large overhead associated with the manual design of models. Despite one time
+cost, the development overhead signiﬁcantly increases the ofﬂine design and training costs of the ensemble model
+development and increase amortization time (i.e., the time required to offset ofﬂine costs). To that end, we explore an
+integrated automated deep ensemble approach that not only discovers high-performing models but also makes ensemble
+predictions with quantiﬁed uncertainty in a scalable manner. Speciﬁcally, the highlights of this article are as follows:
+• We demonstrate a uniﬁed strategy for discovering high-performing deep learning models for dynamical
+systems forecasting and signal recovery with epistemic and aleatoric uncertainty quantiﬁcation that leverages
+distributed computing.
+• For uncertainty quantiﬁcation, we use the law of decomposition of variance from members of an ensemble to
+separately estimate both the aleatoric and epistemic uncertainty.
+• We validate our proposed approach for forecasting ﬂow-ﬁelds as well as instantaneous state reconstructions
+for a real-world, high-dimensional scientiﬁc machine learning problem with complex dynamics, given by the
+NOAA Optimum Interpolation Data Set.
+1.2
+Related work
+In recent times, deep learning models have been popular for complex predictive modeling tasks. In this section, we
+review past work in surrogate modeling of dynamical systems as well as attempts to quantify the uncertainty of these
+data-driven models. Data-driven surrogate models are primarily designed to reduce the computational costs associated
+with expensive forward models in many-query tasks [Carlberg et al., 2011, Wang et al., 2012, San and Borggaard,
+2015, Ballarin et al., 2015, San and Maulik, 2018, Wang et al., 2019, Choi and Carlberg, 2019, Renganathan et al.,
+2020, Ren et al., 2020a]. Therefore these ﬁnd extensive application in control [Proctor et al., 2016, Peitz et al., 2019,
+Noack et al., 2011, Rowley and Dawson, 2017, Raibaudo et al., 2020, Ren et al., 2020b], optimization [Peherstorfer
+et al., 2016, Fan et al., 2020], uncertainty quantiﬁcation [Sapsis and Majda, 2013, Zahr et al., 2018, Goh et al., 2019]
+and data-assimilation [Arcucci et al., 2019, Tang et al., 2020, Casas et al., 2020, Maulik et al., 2022] among others.
+Typically, for complex dynamical systems possessing large degrees of freedom, a ﬁrst step in model construction is the
+identiﬁcation of a reduced-basis for evolving dynamics [San and Borggaard, 2014, Korda et al., 2018, Kalb and Deane,
+2007]. After identifying this basis, a cost-effective strategy is necessary for evolving the dynamics in this transformed
+space [Kalashnikova and Barone, 2010, Mohebujjaman et al., 2019, Carlberg et al., 2011, Xiao et al., 2013, Fang et al.,
+2013, Carlberg et al., 2017, Huang et al., 2022]. A popular approach to this latent-space dynamics evolution has been
+the use of neural networks with inductive biases for sequential data. For example, long short-term memory (LSTM)
+neural networks [Hochreiter and Schmidhuber, 1997] have recently become very popular in modeling these dynamics
+[Vlachas et al., 2018, Ahmed et al., 2019, Maulik et al., 2019, Mohan et al., 2019, Mohan and Gaitonde, 2018, Gonzalez
+and Balajewicz, 2018, Hasegawa et al., 2020a, Wang et al., 2020, Hasegawa et al., 2020b, Chattopadhyay et al., 2020,
+Maulik et al., 2020a]. Other methods include Gaussian processes [Renganathan et al., 2021, Ma and Pan, 2021, Guo and
+Hesthaven, 2018], transformer models [Vaswani et al., 2017, Geneva and Zabaras, 2022] which use temporal attention
+to learn patterns and make forecasts as well as neural ordinary differential equations (commonly known as the neural
+ODE), where neural networks are assumed to parameterize the right-hand side of an ODE [Linot et al., 2023, Maulik
+et al., 2019]. We note that this review is not exhaustive and that several research studies have utilized variants of LSTMs
+with greater complexity for complex forecasting tasks.
+2
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+Data-driven methods have also seen extensive use in ﬂow-reconstruction from sparse sensors. This is due to a desire to
+build better technologies to reconstruct ﬂuid-ﬂow ﬁelds, that may have a large number of frequencies and degrees of
+freedom from sparse ﬁxed sensors or moving tracer particles (such as those used in experimental imaging with particle
+image velocimetry). Typically, these techniques rely on linear stochastic [Adrian and Moin, 1988] or gappy proper
+orthogonal decomposition [Everson and Sirovich, 1995] estimation. The former reconstructs the ﬂow-ﬁeld by building
+a correlation matrix between the sensor inputs and the full ﬂow-ﬁelds while the latter solves a linear least-squares
+problem in an afﬁne subspace spanned by the truncated proper orthogonal decomposition basis vectors. Neural network
+architectures have been seen to outperform these classical methods for various applications [Fukami et al., 2020,
+Carter et al., 2021, Erichson et al., 2020]. Variational inference-based neural architectures, potentially augmented with
+physics-informed biases, have also been used to reconstruct ﬂow ﬁelds from sparse sensors with quantiﬁed uncertainty
+[Sun and Wang, 2020, Dubois et al., 2022]. However, it is well-known that Bayesian approaches add signiﬁcant
+computational cost, mainly due to their sampling process (e.g. Markov Chain Monte Carlo for characterizing the
+posterior) and are outperformed by ensemble-based approaches for uncertainty quantiﬁcation [Egele et al., 2022].
+From the perspective of uncertainty quantiﬁcation for machine learning applications of computational science, several
+recent articles have attempted to develop algorithms that provide both predictions as well as conﬁdence interval estimates.
+Here we draw a distinction between using machine learning to accelerate parameteric uncertainty quantiﬁcation, for
+example in Bayesian inversion with surrogate models (examples include Sheriffdeen et al. [2019], Constantine et al.
+[2016], Goh et al. [2019], Liu et al. [2021], Lye et al. [2020]), and performing uncertainty quantiﬁcation of the machine
+learning algorithm predictions themselves. In the context of the latter, recently Maulik et al. [2020b] demonstrate how
+a probabilistic neural network may be used to capture the aleatoric uncertainty associated with surrogate model or
+ﬂow-reconstruction predictions. In Morimoto et al. [2022], the epistemic uncertainty of deep learning frameworks was
+captured using a weight sampling procedure during convergence, however, with strong assumptions of approximate
+convexity of the loss surface. In practical problems, particularly with physics-based constraints which promote non-
+smoothness [Krishnapriyan et al., 2021], such an approach is limited. In Zhu et al. [2019], a probabilistic surrogate
+model, based on a generative neural network architecture (the normalizing ﬂow) was able to obtain a probability density
+function of the output quantity of interest, conditioned by the input parameters. While this approach avoids the Gaussian
+assumption for aleatoric uncertainty in Maulik et al. [2020b], the weights of the surrogate were deterministic and
+therefore did not quantify NN epistemic uncertainty. In Pawar et al. [2022], both aleatoric and epistemic uncertainty
+were accounted for using the deep ensembles approach but all members of the ensemble were identical neural network
+architectures initialized differently and therefore were not optimized for the function approximation task.
+In this study, we jointly address the issue of optimal architecture and hyperparameter selection, as well as deep
+ensembles based uncertainty quantiﬁcation. It is well-known that selecting the best neural network architecture for a
+function approximation is a difﬁcult task - to that end we have recently demonstrated how scalable neural architecture
+search may be used for surrogate model discovery Maulik et al. [2020c]. In this article, we further expand on our
+algorithm by demonstrating how the architecture search may be vertically integrated for ensemble forecasting and
+signal recovery while providing predictions with conﬁdence intervals.
+2
+Methods and data
+2.1
+AutoDEUQ: Uncertainty quantiﬁcation through deep neural network ensembles
+Automated deep ensemble with uncertainty quantiﬁcation (AutoDEUQ) is a recently proposed deep-ensemble-based UQ
+method. AutoDEUQ estimates aleatoric and epistemic uncertainties by automatically generating a catalog of NN models
+through joint neural architecture and hyperparameter search, wherein each model is trained to minimize the negative
+log-likelihood to capture aleatoric uncertainty (data noise/uncertainty), and selecting a set of similarly performing
+models from the catalog to construct the ensembles and model epistemic uncertainty (i.e., function approximation
+uncertainty). The overall schematic of our neural architecture search based deep ensembles algorithm for uncertainty
+quantiﬁcation of scientiﬁc machine learning applications is shown in Figure 1.
+We assume a supervised learning scenario, with a the dataset D composed of i.i.d points (xi ∈X, yi ∈Y), where xi
+and yi = f (xi) are the input and the corresponding output of the ith point, respectively, and X ⊂RN and Y ⊂RM
+are the input and output spaces of N and M dimensions, respectively. In the context of regression problems, a focus of
+our study, the outputs are given by a scalar or vector of real values. Given D, we seek to characterize the predictive
+distribution p(y|x) using a parameterized distribution pθ(y|x), which estimates aleatoric uncertainty through individual
+trained NNs and then estimates the epistemic uncertainty with an ensemble of high-performing NNs pE(y|x). We
+deﬁne Θ to be the sample space for θ.
+The aleatoric uncertainty can be characterized by using the quantiles of pθ. Following previous work Lakshminarayanan
+et al. [2016], we make the usual assumption of a Gaussian distribution for pθ ∼N(µθ, σ2
+θ) and use variance as
+3
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+Figure 1: Overall schematic of deep ensembles based uncertainty quantiﬁcation using AutoDEUQ Egele et al. [2022].
+4
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+a measure of the aleatoric uncertainty. We explicitly partition θ into (θa, θh, θw) such that Θ is decomposed into
+(Θa, Θh, Θw), where θa ∈Θa represents the values of the neural architecture decision variables (network topology
+parameters), θh ∈Θh represents NN training hyperparameters (e.g., learning rate, batch size), and θw ∈Θw represents
+the NN weights. The NN is trained to output mean µθ and variance σ2
+θ. For a given choice of architecture decision
+variables θa and training hyperparameters θh, to obtain θ∗
+w, we seek to minimize the negative log-likelihood given the
+real data D. Speciﬁcally, we can learn the aleatoric uncertainty using the negative log-likelihood loss (as opposed to the
+usual mean squared error) in the training: Lakshminarayanan et al. [2016]:
+ℓ(x, y; θ) = −log pθ = log σ2
+θ(x)
+2
++ (y −µθ(x))2
+2σ2
+θ(x)
++ cst,
+(1)
+where cst is a constant. The NN training problem is then
+θ∗
+w = arg max
+θw∈Θw
+ℓ(x, y; θa, θh, θw).
+(2)
+To model epistemic uncertainty, we use deep ensembles (an ensemble composed of NNs) Lakshminarayanan et al.
+[2016]. In our approach, we generate a catalog of NN models C = {θi, i = 1, 2, · · · , c} (where θ ∈Θ is a tuple
+of architecture, optimization hyperparameters, and weights) and repeatedly sample K models to form the ensemble
+E|E = {θi, i = 1, 2, · · · , K}. Let pθ describe the probability that θ is a member of the ensemble ∀θ ∈C. Let pE—the
+probability density function of the ensemble—be obtained as a mixture distribution where the mixture is given as
+pE = Epθ. Deﬁne µθ and σ2
+θ as the mean and variance of each element in the ensemble, respectively. Then, the mean
+of the mixture is µE := E[µθ], and the variance Rudary [2009] is
+σ2
+E := V[pE] =
+E[σ2
+θ]
+| {z }
+Aleatoric Uncertainty
++
+V[µθ]
+| {z }
+Epistemic Uncertainty
+,
+(3)
+where E refers to the expected value and V refers to the variance. Equation (3) formally provides the decomposition of
+the overall uncertainty of the ensemble into its individual components such that E[σ2
+θ] marginalizes the effect of θ and
+captures the aleatoric uncertainty and V[µθ] captures the spread of the prediction across different models and neglects
+the noise of the data, therefore capturing the epistemic uncertainty.
+The overall estimate of the mean and the variance may then be written as
+µE = 1
+K
+X
+θ∈E
+µθ
+σ2
+E =
+1
+K
+X
+θ∈E
+σ2
+θ
+|
+{z
+}
+Aleatoric Uncertainty
++
+1
+K −1
+X
+θ∈E
+(µθ −µE)2
+|
+{z
+}
+Epistemic Uncertainty
+,
+(4)
+where K is the size of the ensemble. The total uncertainty here quantiﬁed by σ2
+E is a combination of aleatoric and
+epistemic uncertainty.
+Let us assume that our total data D is partitioned in the usual train-validation-test split manner as D = Dtrain ∪Dvalid ∪
+Dtest. A neural architecture conﬁguration θa is a vector from the neural architecture search space Θa, deﬁned by a set of
+neural architecture decision variables. A hyperparameter conﬁguration θh is a vector from the training hyperparameter
+search space Θh deﬁned by a set of hyperparameters used for training (e.g., learning rate, batch size). The problem of
+joint neural architecture and hyperparameter search can be formulated as the following bilevel optimization problem:
+θ∗
+a, θ∗
+h = arg max
+θa,θh
+1
+N valid
+X
+x,y∈Dvalid
+ℓ(x, y; θa, θh, θ∗
+w)
+s.t. θ∗
+w = arg max
+θw
+1
+N train
+X
+x,y∈Dtrain
+ℓ(x, y; θa, θh, θw),
+(5)
+where the best architecture decision variables θ∗
+a and training hyperparameters values θ∗
+h are selected based on
+D = Dvalid and the corresponding weights θw are selected based on D = Dtrain.
+The pseudo-code of the AutoDEUQ is shown in Algorithm 1. To perform a joint neural architecture and hyperparameter
+search, we leverage aging evolution with asynchronous Bayesian optimization (AgEBO) Egele et al. [2021].
+Aging evolution (AgE) Real et al. [2019] is a parallel neural architecture search (NAS) method for searching over the
+architecture space. The AgEBO method follows the manager-worker paradigm, wherein a manager node runs a search
+5
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+Algorithm 1: AutoDEUQ: Neural architecture and hyperparameter search for ensemble construction.
+inputs :P: population size, S: sample size, W: workers
+output :E: ensemble of models
+/* Initialization for AgEBO
+*/
+1 population ←create_queue(P) // Alloc empty Q of size P
+2 BO ←Bayesian_Optimizer()
+3 for i ←1 to W do
+4
+config.θa ←random_sample(Θa)
+5
+config.θh ←random_sample(Θh)
+6
+submit_for_training(conﬁg) // Nonblocking
+7
+So
+8 end
+/* Optimization loop for AgEBO
+*/
+9 while stopping criterion not met do
+// Query results
+10
+results ←check_finished_training ()
+11
+C ←C ∪results // Add to catalogue population
+12
+if |results| > 0 then
+13
+population.push(results) // Aging population
+// Generate hyperparameter configs
+14
+BO.tell(results.θh, results.valid_score)
+15
+next ←BO.ask(|results|) // Generate architecture configs
+16
+for i ←1 to |results| do
+17
+if |population| = P then
+18
+parent.config ←select_parent(population,S)
+19
+child.config.θa ←mutate(parent.θa)
+20
+else
+21
+child.config.θa ←random_sample(Θa)
+22
+end
+23
+child.config.θh ←next[i].θh
+24
+submit_for_training(child.config) // Nonblocking
+25
+end
+26
+end
+27 end
+/* Ensemble selection
+*/
+28 E ←{}
+29 while |E.unique()| ≤K do
+30
+θ∗←arg minθ∈C ℓ(θ, X, y) // Find lowest validation loss
+31
+E ←E ∪{θ∗} // Append model to ensemble
+32 end
+33 return E
+method to generate multiple NNs and W workers (compute nodes) train them simultaneously. The AgEBO method
+constructs the initial population by sampling W architecture and W hyperparameter conﬁgurations and concatenating
+them (lines 1–7). The NNs obtained by using these concatenated conﬁgurations are sent for simultaneous evaluation
+on W workers (line 6). The iterative part (lines 8–26) of the method checks whether any of the workers ﬁnish their
+evaluation (line 9), collects validation metric values from the ﬁnished workers, and uses them to generate the next set
+of architecture and hyperparameter conﬁgurations for simultaneous evaluation to ﬁll up the free workers that ﬁnished
+their evaluations (lines 11–25). At a given iteration, in order to generate a NN, architecture, and hyperparameter
+conﬁgurations are generated in the following way. From the incumbent population, S NNs are sampled (line 17). A
+random mutation is applied to the best of S NNs to generate a child architecture conﬁguration (line 18). This mutation
+is obtained by ﬁrst randomly selecting an architecture decision variable from the selected NN and replacing its value
+with another randomly selected value excluding the current value. The new child replaces the oldest member of the
+population. The AgEBO optimizes the hyperparameters (θh) by marginalizing the architecture decision variables (θa).
+At a given iteration, to generate a hyperparameter conﬁguration, the AgEBO uses a (supervised learning) model M to
+predict a point estimate (mean value) µ(θi
+h) and standard deviation σ(θi
+h) for a large number of unseen hyperparameter
+conﬁgurations. The best conﬁguration is selected by ranking all sampled hyperparameter conﬁgurations using the upper
+conﬁdence bound acquisition function, which is parameterized by κ ≥0 that controls the trade-off between exploration
+and exploitation. To generate multiple hyperparameter conﬁgurations at the same time, the AgEBO leverages a
+multipoint acquisition function based on a constant liar strategy Ginsbourger et al. [2010].
+6
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+The catalog C of NN models is obtained by running AgEBO and storing all the models from the runs. To build the
+ensemble E of models from C, we adopt a top-K strategy (lines 27–32). Here, the idea is to select the K highest-
+performing models for the validation data and construct the ensemble from its individual predictions. This approach is
+appropriate when the validation data is representative of the generalization task (i.e., big enough, diverse enough, with
+good coverage) Caruana et al. [2004].
+The architecture search space is modeled by using a directed acyclic graph, which starts and ends with input and output
+nodes, respectively. They represent the input and output layers of NN, respectively. Between the two are intermediate
+nodes deﬁned by a series of variable N and skip connection SC nodes. Both types of nodes correspond to categorical
+decision variables. The variable nodes model dense layers with a list of different layer conﬁgurations. The skip
+connection node creates a skip connection between the variable nodes. This second type of node can take two values:
+disable or create the skip connection. For a given pair of consecutive variable nodes Nk, Nk+1, three skip connection
+nodes SCk+1
+k−3, SCk+1
+k−2, SCk+1
+k−1 are created. These nodes allow for connection to the previous nonconsecutive variable
+nodes Nk−3, Nk−2, Nk−1, respectively.
+For the hyperparameter search space, we use a learning rate in the continuous range [10−4, 10−1] with a log-uniform
+prior; a batch size in the discrete range [32, . . . , bmax] (where bmax = 256) with a log-uniform prior; an optimizer
+in {sgd, rmsprop, adagrad, adam}; a patience value of 15 for the reduction of the learning rate, and value of 20 early
+stopping of training. The individual deﬁnitions of the architecture search space are experiment speciﬁc and are explored
+in the respective problem deﬁnitions below. Models are checkpointed during their evaluation based on the minimum
+validation loss achieved. We note that AutoDEUQ is deployed in the DeepHyper package, designed for scalable
+automatic machine learning on leadership class high-performance computers Balaprakash et al. [2018].
+2.2
+Dataset
+In this study we use the open-source National Oceanic and Atmospheric Administration (NOAA) Optimum Interpolation
+sea surface temperature V2 data set (henceforth NOAA-SST).2 This data set has a strong periodic structure due to
+seasonal ﬂuctuations in addition to rich ﬁne-scaled phenomena due to complex ocean dynamics. Weekly-averaged
+NOAA-SST snapshots are available on a quarter-degree grid which is sub-sampled to a one-degree grid for the purpose
+of demonstrating our proposed methodology in a computationally efﬁcient manner. This data set, at the 1-degree
+resolution, has previously been used in several data-driven analysis tasks (for instance, see Kutz et al. [2016], Callaham
+et al. [2019a] for speciﬁc examples), particularly from the point of view of extracting seasonal and long-term trends
+as well as for ﬂow-ﬁeld recovery [Maulik et al., 2020b]. Each “snapshot” of data originally corresponds to an array
+of size 360 × 180 (i.e., arranged according to the longitudes and latitudes of a one-degree resolution). However, for
+effective utilization in forecasting and ﬂow-reconstruction, a mask is used to remove missing locations in the array
+that corresponds to the land area. Furthermore, it should be noted that regressions are performed for those coordinates
+which correspond to oceanic regions alone, and inland bodies of water are ignored. The non-zero data points then are
+subsequently ﬂattened to obtain a column vector for each snapshot of our training and test data. We note that this data is
+available from October 22, 1981, to June 30, 2018 (i.e., 1,914 snapshots for the weekly averaged temperature).
+2.3
+Task 1: Forecasting
+For our forecasting task, we utilize the period of October 22, 1981, to December 31, 1989. The rest (i.e., 1990 to 2018)
+is used for testing. Our ﬁnal number of snapshots for training amounts to 427, and for testing amounts to 1487. This
+train-test split of the data set is a common conﬁguration for data-driven studies Callaham et al. [2019a] and the 8-year
+training period captures several short and long-term trends in the global sea surface temperature. Individual training
+samples are constructed by selecting a window of inputs (from the past) and a corresponding window of outputs (for the
+forecast task in the future) from the set of 427 training snapshots from the NOAA dataset. From the perspective of
+notation, if yt is a snapshot of training data, t = 1, 2, . . . , 427, a forecasting technique may be devised by learning to
+predict yt+1, . . . , yt+τ given yt, yt−1, . . . , yt−τ. We note that this forecast is performed non-autoregressively—that
+is, the data-driven method is not utilized for predictions beyond the desired window size τ. Therefore, it is always
+assumed that the true yt, yt−1, . . . , yt−τ is available prior to making predictions. This means that given a window of
+true inputs (for example obtained via an observation of the state of the system given re-analysis data), a forecast is made
+for a series of outputs (corresponding to the window length) before a metric of accuracy is computed for optimization.
+This is in contrast to a situation where simply one step of a prediction is utilized for computing a ﬁtness metric which
+adversely affects the ability of the predictive method for longer forecasts into the future (due to amplifying errors with
+each forecast step). The window size for the set of experiments on this data set is ﬁxed at 8 weeks. The window-in and
+window-out construction of the training data leads to a ﬁnal training data set of size 411 samples. Since this data set
+2Available at https://www.esrl.noaa.gov/psd/
+7
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+is produced by combining local and satellite temperature observations, it represents an attractive forecasting task for
+non-intrusive data-driven methods without requiring the physical modeling of underlying processes.
+Subsequently, proper orthogonal decomposition (POD) provides a systematic method to project dynamics of a high-
+dimensional system onto a lower-dimensional subspace. We suppose that a single snapshot of the full system is a vector
+in RN, where N could be the number of grid points at which the ﬁeld is resolved. Observing the system across a
+number of time points gives us the snapshots y1, . . . , yT , with mean subtracted by convention. The aim of POD is to
+ﬁnd a small set of orthonormal basis vectors v1, . . . , vM, with M ≪N, which approximates the spatial snapshots,
+yt ≈PM
+j=1 aj(t)vj,
+t = 1, . . . , T, and so allows us to approximate the evolution of the full N dimensional system
+by considering only the evolution of the M coefﬁcients aj(t). POD chooses the basis, vj, to minimize the residual
+with respect to the L2 norm, R = PT
+t=1 ||yt −PM
+j=1 aj(t)vj||2. Deﬁning the snapshot matrix, S = [y1| · · · |yT ], the
+optimal basis is given by the M eigenvectors of SST , with largest eigenvalues, after which, the coefﬁcients are found
+by orthogonal projection, a(t) = ⟨yt, v⟩Taira et al. [2020]. The coefﬁcients a(t) correspond to a time-series with an
+M−dimensional state vector which is the focus of our temporal forecasting.
+For our learning, we take only the training data snapshots, say D1, . . . , DT , from which we calculate the mean
+¯D = (1/T) P
+t Dt, hence deﬁning the mean subtracted snapshots yt = Dt −¯D. We then create the snapshot matrix,
+S, and ﬁnd numerically the M eigenvectors of SST with largest eigenvalues. From this, we train models to forecast
+the coefﬁcients making predictions of future coefﬁcients given previous ones. Note that our model is also capable of
+making predictions for the aleatoric uncertainty, i.e., we can predict the variance of the output data given a Gaussian
+likelihood assumption for the loss function. This implies that we also predict variances in addition to the deterministic
+mean, i.e.,
+f †(a(t), a(t −1), . . . , a(t −τ)) = ((ˆa(t + 1), σˆa(t + 1)), (ˆa(t + 2), σˆa(t + 2)), . . . , (ˆa(t + τ), σˆa(t + τ)))
+(6)
+(a(t + 1), a(t + 2), . . . , a(t + τ)) ≈(ˆa(t + 1), ˆa(t + 2), . . . , ˆa(t + τ))
+(7)
+Here, τ corresponds to the time-delay that is embedded into the input feature space for the purpose of forecasting. In this article, τ
+also stands for the forecast length obtained from the ﬁt model although in the general case, these quantities can be chosen to be
+different. We can now test for predictions on unseen data, E1, . . . , EQ, where Et is an unseen snapshot of data at time t and Q
+is the total number of test snapshots. Note that these test snapshots are obtained for a time-interval that has not been utilized for
+constructing the POD basis vectors. We proceed by taking the mean ¯
+D, and vectors vj calculated from the training data to get test
+coefﬁcients at an instant in time aj(t) = ⟨Et −¯
+D, vj⟩,
+j = 1, . . . , M, which will be used with the model f † to make future
+predictions in the unseen testing interval. The prediction for the coefﬁcients ˆa, can be converted into predictions in the physical
+space by taking ¯
+D + P
+j ˆajvj. This procedure only makes use of testing data to pass into the model, not to train the model in any
+way. Crucially, to make a forecast of Et+1, Et+2, . . . , Et+τ, only previous measurements Et, Et−1, . . . , Et−τ are needed. The
+connection to AgeBO comes in through how one may obtain several models like f † which may subsequently be used for forecasting.
+2.4
+Task 2: Field reconstruction from sparse sensors
+In this section, we consider the problem of reconstructing the sea-surface temperature data given sparse observations of the ﬂow-ﬁeld.
+We use 20 years of data (1040 snapshots spanning 1981 to 2001) as the training data set, while the test data set is prepared from 874
+snapshots spanning from year 2001 to 2018. Thus the regression problem is given by attempting to ﬁnd a map
+yt ≈g†(H[yt])
+(8)
+where H is the observation operator mapping the full state to sparse observations. We note that unlike the previous forecasting
+problem, there is no requirement of a normalization procedure on the data for constructing our data-driven models. This test setting
+represents extrapolation in time but not physics, since the data set has the inﬂuence of seasonal periodicity. The aforementioned
+problem setting follows the work of Callaham et al. [2019b] who attempted to reconstruct ﬂuid-ﬂow ﬁelds from local sensors using
+sparse representations. As in their article, the input sensors for the baseline model are chosen randomly from the region of 50◦S to
+50◦N. We utilize the same conﬁguration as our previous articles [Maulik et al., 2020d] that have also used this benchmark problem
+for algorithmic development for the purpose of consistency.
+3
+Results
+In the following section, we detail our results for the forecasting and reconstruction experiments.
+3.1
+Forecasting
+We ﬁrst assess the capability of DeepHyper NAS for discovering high-performing models that forecasting the NOAA sea-surface
+temperature. Here, forecasts are performed for 8-week output windows, given 8-week input information. The inputs and outputs
+of our model are given by sets of POD coefﬁcients. We devise a search-space of stacked long short-term memory (LSTM) neural
+8
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+Output
+Input
+
+  
+
+
+
+Repeat
+
+  
+Figure 2: A description of the neural architecture search space constructed for the ﬂow-forecasting task.
+network models as shown in Figure 2. In this search space, we utilize ﬁve fully-connected (i.e., stacked) LSTM cells that are then
+allowed to have interactions between them using skip connections. The output of this neural architecture is a sequence of coefﬁcients
+(with corresponding mean and aleatoric variance) in the latent space of the dynamics.
+In Figure 3, we show results from the NAS of stacked LSTM architectures. We ﬁrst show that the search for neural architectures
+demonstrates improving performance with increasing number of iterations of the outer-loop differential evolution algorithm with a
+sharp increase in the log-likelihood over the ﬁrst few iterations followed by a gradual convergence. In addition, we also show the
+performance of various models obtained at the ﬁnal iteration, where a large majority of the models have superior performance in
+comparison to a few that are abnormally accurate or inaccurate.
+We extract 10 neural architectures from the entire search population and perform ensemble analyses with them. Note that the choice
+of the number of architectures is a user-deﬁned parameter. We ﬁrst compute the root-mean-squared-error of each neural architecture
+with respect to the truth for the testing range of the data set. We remind the reader that the output of a neural architecture member
+of the ensemble is a mean value for a Gaussian as well as a variance that represents the aleatoric uncertainty. We compute error
+statistics for individual ensemble members solely with the mean value predicted at the output layer. For computing the prediction of
+the entire ensemble, we compute a mean of the predictions from each member of the ensemble and then compute corresponding
+error statistics. We plot histograms of the RMSE for various weeks in Figure 4 which demonstrate how ensemble statistics reduce the
+potential heavy-tailed errors of individual ensemble members.
+Finally, we use the ensemble predictions from our 10 selected high-performing architectures to construct estimates of epistemic and
+aleatoric uncertainty from our identiﬁed surrogate models. Figure 6 shows these plots for the ﬁnal week of forecasts. A ﬁrst takeaway
+from these plots is that Epistemic and Aleatoric uncertainty is characterized in coherent regions of the ﬂow-ﬁeld. These coherent
+regions are distinctly indicative of geographical trends. In terms of accuracy, the performance of the ensemble-based predictions
+(over here represented by the ensemble mean) improves on the previous search model reported in Maulik et al. [2020c] signiﬁcantly
+as shown in Table 1. We also mention comparisons with two physics-based models given by the Community Earth System Model
+9
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+0
+200
+400
+600
+800
+Iterations
+0.7
+0.8
+0.9
+1.0
+1.1
+Log-likelihood
+(a) Convergence
+0
+200
+400
+600
+800
+Models
+−0.5
+0.0
+0.5
+1.0
+Log-likelihood
+(b) Model spectrum
+Figure 3: Convergence of neural architecture search shown through moving averages (left) and spectrum of model
+performance (right) for the forecasting task. The red dashed line indicates the start of intelligent search space exploration.
+Table 1: RMSE breakdown (in Celsius) for different forecast techniques compared against the NAS-POD-LSTM
+forecasts between April 5, 2015, and June 24, 2018, in the Eastern Paciﬁc region (between -10 to +10 degrees
+latitude and 200 to 250 degrees longitude). Ensemble based forecasts outperform the ‘best-model’ obtained via neural
+architecture search as reported in previous literature [Maulik et al., 2020e].
+RMSE (◦Celsius)
+Week 1
+Week 2
+Week 3
+Week 4
+Week 5
+Week 6
+Week 7
+Week 8
+This study
+0.33
+0.34
+0.34
+0.35
+0.37
+0.38
+0.38
+0.39
+Maulik et al. [Maulik et al., 2020c]
+0.62
+0.63
+0.64
+0.66
+0.63
+0.66
+0.69
+0.65
+CESM
+1.88
+1.87
+1.83
+1.85
+1.86
+1.87
+1.86
+1.83
+HYCOM
+0.99
+0.99
+1.03
+1.04
+1.02
+1.05
+1.03
+1.05
+(CESM) [Kay et al., 2015] 3 and Global Hybrid Coordinate Ocean Model (HYCOM) 4 that rely on the solution of complex partial
+differential equations on distributed computing resources. However, we highlight the fact that the slightly larger biases in the CESM
+and HYCOM data may be an artifact of interpolation from grids of different spatiotemporal resolution.
+From the perspective of computational cost, the search for the LSTM surrogate models in this section required 1 node-hour (8
+GPU-hours) of wall-time on Theta GPU and evaluated 812 architectures sampled from the search-space. Here, it must be noted that
+for larger training requirements (i.e., when data sets are extremely large), smaller randomized subsets of the training data can be used
+to accelerate the convergence of architecture discovery before the full-data is exposed to the high-performing models. We leave such
+considerations for a future study. Additionally, our search procedure inherently priorities architectures that have fewer parameters
+since these members convergence more rapidly. In practice, this property of neural architecture search may be leveraged to ﬁnd
+surrogates that lead to greater computational gains without sacriﬁcing accuracy. Individual surrogate models identiﬁed are very
+cheap to deploy with each forward model evaluation obtained on the order of milliseconds.
+3.2
+Reconstruction
+In this subsection, we evaluate our proposed methodology for the previously introduced benchmark ﬂow-reconstruction problem. Our
+neural architecture search space builds a fully-connected network architecture from prespeciﬁed sensor input locations that measure
+the state, to the output which is the entire ﬂow-ﬁeld of dimension 360 times 180. The search space for sampling high-performing
+neural ensembles is shown in Figure. 7. In this search space, we have added 5 layers of fully-connected layers that are then allowed
+to interact within each other using discoverable skip connections. The training and testing data are segregated according to Maulik
+et al. [2020b], and speciﬁcally, the former is further split to obtain a validation data set that is used for directing the search for
+members of the ensemble.
+Figure 8(a) shows the convergence of the neural architecture search for the ﬂow-reconstruction task. We observe an initial period
+of exploration which leads to several underperforming architectures but the search is soon seen to converge to a high value of the
+log-likelihood. Figure 8(b) shows the range of model performance for all the sampled architectures during the search. A small
+proportion of the total models is seen to have poor performance, representing the initial stage of exploration by the differential
+evolution algorithm. As in the previous example, we retain the 10 best models obtained at the end of this search and compute
+3http://www.cesm.ucar.edu/projects/community-projects/LENS/data-sets.html
+4https://www.ncdc.noaa.gov/data-access/model-data/model-datasets/navoceano-hycom-glb
+10
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+0.2
+0.4
+0.6
+0.8
+RMSE
+0
+20
+40
+60
+80
+100
+120
+140
+Count
+All members
+Ensemble member 1
+Ensemble member 2
+Ensemble member 3
+Ensemble member 4
+Ensemble member 5
+Ensemble member 6
+Ensemble member 7
+Ensemble member 8
+Ensemble member 9
+Ensemble member 10
+(a) Week 1
+0.0
+0.2
+0.4
+0.6
+0.8
+RMSE
+0
+20
+40
+60
+80
+100
+120
+140
+Count
+(b) Week 2
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+RMSE
+0
+20
+40
+60
+80
+100
+120
+140
+Count
+(c) Week 3
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+RMSE
+0
+20
+40
+60
+80
+100
+120
+140
+160
+Count
+(d) Week 4
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+RMSE
+0
+20
+40
+60
+80
+100
+120
+140
+160
+Count
+(e) Week 5
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+RMSE
+0
+20
+40
+60
+80
+100
+120
+140
+160
+Count
+(f) Week 6
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+RMSE
+0
+20
+40
+60
+80
+100
+120
+140
+160
+Count
+(g) Week 7
+0.0
+0.2
+0.4
+0.6
+0.8
+RMSE
+0
+20
+40
+60
+80
+100
+120
+140
+Count
+(h) Week 8
+Figure 4: Pointwise RMSE histograms for various forecast weeks showing individual member bin counts as well as
+ensemble mean performance. Most points on the grid show a RMSE of around 0.2.
+11
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+0.2
+0.4
+0.6
+0.8
+RMSE
+−20
+−10
+0
+10
+20
+30
+40
+50
+Count diﬀerence
+Diﬀerence in counts for forecast week 1
+(a) Week 1
+0.2
+0.4
+0.6
+0.8
+RMSE
+−30
+−20
+−10
+0
+10
+20
+30
+40
+Count diﬀerence
+Diﬀerence in counts for forecast week 2
+(b) Week 2
+0.2
+0.4
+0.6
+0.8
+1.0
+RMSE
+−20
+−10
+0
+10
+20
+30
+40
+50
+Count diﬀerence
+Diﬀerence in counts for forecast week 3
+(c) Week 3
+0.2
+0.4
+0.6
+0.8
+1.0
+RMSE
+−30
+−20
+−10
+0
+10
+20
+30
+40
+Count diﬀerence
+Diﬀerence in counts for forecast week 4
+(d) Week 4
+0.2
+0.4
+0.6
+0.8
+1.0
+RMSE
+−40
+−30
+−20
+−10
+0
+10
+20
+30
+40
+Count diﬀerence
+Diﬀerence in counts for forecast week 5
+(e) Week 5
+0.2
+0.4
+0.6
+0.8
+1.0
+RMSE
+−30
+−20
+−10
+0
+10
+20
+30
+40
+Count diﬀerence
+Diﬀerence in counts for forecast week 6
+(f) Week 6
+0.2
+0.4
+0.6
+0.8
+1.0
+RMSE
+−20
+−10
+0
+10
+20
+30
+40
+Count diﬀerence
+Diﬀerence in counts for forecast week 7
+(g) Week 7
+0.2
+0.4
+0.6
+0.8
+RMSE
+−20
+−10
+0
+10
+20
+30
+40
+50
+Count diﬀerence
+Diﬀerence in counts for forecast week 8
+(h) Week 8
+Figure 5: Showing count differences between the ensemble RMSE and individual member RMSE histograms for the
+SST forecasting task at different lead-times. Here count values larger than zero indicate a greater number of ensemble
+predictions at a particular RMSE level. It is clear that large positive values of this metric are encountered before large
+negative values for all weeks - indicating that the ensemble is superior to individual members.
+12
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+0
+100
+200
+300
+Longitude
+0
+50
+100
+150
+Latitude
+Epistemic uncertainty for forecast week: 8
+0
+5
+10
+15
+20
+(a) Epistemic Uncertainty
+0
+100
+200
+300
+Longitude
+0
+50
+100
+150
+Latitude
+Aleatoric uncertainty for forecast week: 8
+0
+5
+10
+15
+20
+(b) Aleatoric Uncertainty
+0
+100
+200
+300
+Longitude
+0
+50
+100
+150
+Latitude
+MAE for forecast week: 8
+0.0
+0.5
+1.0
+1.5
+(c) Mean absolute error
+Figure 6: Epistemic uncertainty (top-left), aleatoric uncertainty (top-right) and mean absolute errors (bottom) for the
+forecasting problem (showing forecasts on week 8). Uncertainty is represented by the absolute value of the standard
+deviation of modal coefﬁcients projected back into the physical space.
+statistics for RMSE for individual ensemble members as well as the prediction by the ensemble. This is shown through histogram
+counts in Figure 9(a), where one can qualitatively observe that large counts in the tails in some members of the ensemble are reduced.
+The improvement on individual members of the ensemble can be observed in Figure 9(b) where larger values of the difference in
+counts imply that the ensemble made more predictions with that value of the error. The desirable behavior of have large positive
+values at low RMSE and larger negative values at high RMSE is observed here as well. Finally averaged estimates of uncertainty are
+shown in Figure 10 where it can be seen that epistemic uncertainty is mainly driven by coastal areas in the northern hemisphere
+whereas aleatoric uncertainty arises from the typical ENSO ﬂuctuations in the Paciﬁc Ocean. The metric used for assessing the
+performance of the ensemble is given by the relative L2-norm error of 0.0428 which is comparable to the model obtained in Maulik
+et al. [2020b] but with added estimates of epistemic and aleatoric uncertainty represented clearly. From a computational perspective,
+the neural architecture search was performed using 8 GPU hours, with the total evaluation of 401 models and the model evaluation
+post-training was performed virtually instantaneously. A signiﬁcant correlation between the error and the uncertainty is also clearly
+observed.
+4
+Conclusion
+In this paper, we have demonstrated a computational workﬂow that may be used both for constructing deep learning models for
+forecasting dynamical systems and for reconstructing ﬂow-ﬁeld information from sparse sensors. Our experiments demonstrate
+that a joint neural architecture and hyperparameter search not only discovers effective models for target function approximation
+but also doubles as an effective tool to quantify uncertainty in our predictions. This is accomplished by using a number of the
+high-performing models discovered by the deep neural network search in an ensemble-based uncertainty quantiﬁcation approach. By
+endowing our search space with an output layer that may use a maximum-likelihood based estimation, i.e., if the outputs are both the
+mean as well as variance which goes into a Gaussian likelihood maximization formulation, we are able to quantify the aleatoric
+uncertainty of the predictions associated with each model. By leveraging the law of decomposition of the total uncertainty of an
+ensemble, we are also able to quantify the aleatoric and epistemic uncertainty in predictions of the entire ensemble of members.
+Our data set for experiments comes from the NOAA optimum interpolation sea-surface temperature data set, thereby representing a
+representative data set for complex geoscience data set. Our conclusions suggest that scalable distributed neural architecture and
+hyperparameter search may represent a vertically integrated workﬂow for high-performing surrogate model construction as well as
+efﬁcient uncertainty quantiﬁcation.
+13
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+Output
+Input
+
+  
+ 
+
+
+
+Repeat
+
+  
+ 
+Figure 7: A description of the neural architecture search space constructed for the ﬂow-reconstruction task.
+0
+100
+200
+300
+400
+Iterations
+−101
+−100
+0
+Log-likelihood
+(a) Convergence
+0
+100
+200
+300
+400
+Models
+−102
+−101
+−100
+0
+Log-likelihood
+(b) Model spectrum
+Figure 8: Convergence of neural architecture search (left) and spectrum of model performance (right) for the ﬂow-
+reconstruction task. The vertical dashed line at 100 iterations indicates the start of intelligent exploration of the search
+space.
+14
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+0.5
+0.6
+0.7
+0.8
+0.9
+RMSE
+0.0
+2.5
+5.0
+7.5
+10.0
+12.5
+15.0
+17.5
+20.0
+Count
+All members
+Ensemble member 1
+Ensemble member 2
+Ensemble member 3
+Ensemble member 4
+Ensemble member 5
+Ensemble member 6
+Ensemble member 7
+Ensemble member 8
+Ensemble member 9
+Ensemble member 10
+(a) RMSE histogram
+0.5
+0.6
+0.7
+0.8
+0.9
+RMSE
+−8
+−6
+−4
+−2
+0
+2
+4
+6
+8
+Count diﬀerence
+Diﬀerence in counts for ﬂow reconstruction
+(b) RMSE count differences
+Figure 9: RMSE histogram for ﬂow-reconstruction on test data set showing ensemble predictions as well as individual
+member statistics (left) and count differences between the ensemble RMSE and individual member RMSE for the SST
+ﬂow reconstruction task. Here count values larger than zero indicate a greater number of ensemble predictions, i.e.,
+there were more predictions from the ensemble with that value of an RMSE. It is clear that large positive values of this
+metric are encountered before large negative values - indicating that the ensemble is superior to individual members
+(right).
+0
+100
+200
+300
+Longitude
+0
+50
+100
+150
+Latitude
+Epistemic uncertainty
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+3.0
+(a) Epistemic Uncertainty
+0
+100
+200
+300
+Longitude
+0
+50
+100
+150
+Latitude
+Aleatoric uncertainty
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+3.0
+(b) Aleatoric Uncertainty
+0
+100
+200
+300
+Longitude
+0
+50
+100
+150
+Latitude
+Mean absolute error
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+3.0
+(c) Mean absolute error
+Figure 10: Epistemic uncertainty (top-left), aleatoric uncertainty (top-right) and mean absolute errors (bottom) for the
+ﬂow-reconstruction problem. The sensor locations are shown in red. One can observe that the mean-absolute errors are
+highly correlated with the aleatoric uncertainty.
+15
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+Data availability
+Training data used in the present study are available publicly on Google Drive:
+Example 1 (NOAA sea surface temperature - forecasting):
+https://drive.google.com/drive/folders/1pVW4epkeHkT2WHZB7Dym5IURcfOP4cXu?usp=sharing),
+Example 2 (NOAA sea surface temperature - reconstruction):
+https://drive.google.com/drive/folders/1pVW4epkeHkT2WHZB7Dym5IURcfOP4cXu?usp=sharing),
+Code availability
+Sample codes for neural architecture search as well as ensemble based predictions will be made available after peer-review (or on
+request). Tutorials and examples for deploying the neural architecture and hyperparameter searches for arbitrary modeling tasks can
+be found at https://github.com/deephyper/deephyper.
+Acknowledgement
+This work was supported by the U.S. Department of Energy, Ofﬁce of Science, Ofﬁce of Advanced Scientiﬁc Computing Research,
+under Contract DE-AC02-06CH11357. We acknowledge funding support from ASCR for DOE-FOA-2493 “Data-intensive scientiﬁc
+machine learning" and the DOE Early Career Research Program award. This research was funded in part and used resources of
+the Argonne Leadership Computing Facility, which is a DOE Ofﬁce of Science User Facility supported under Contract DE-AC02-
+06CH11357.
+5
+Declaration of interest
+The authors report no conﬂict of interest.
+References
+Romain Egele, Romit Maulik, Krishnan Raghavan, Bethany Lusch, Isabelle Guyon, and Prasanna Balaprakash. Autodeuq: Automated
+deep ensemble with uncertainty quantiﬁcation. In 2022 26th International Conference on Pattern Recognition (ICPR), pages
+1908–1914. IEEE, 2022.
+Kevin Carlberg, Charbel Bou-Mosleh, and Charbel Farhat. Efﬁcient non-linear model reduction via a least-squares Petrov–Galerkin
+projection and compressive tensor approximations. Int. J. Numer. Meth. Eng., 86(2):155–181, 2011.
+Z. Wang, I. Akhtar, J. Borggaard, and T. Iliescu. Proper orthogonal decomposition closure models for turbulent ﬂows: a numerical
+comparison. Comput. Meth. Appl. M., 237:10–26, 2012.
+O San and J Borggaard. Principal interval decomposition framework for POD reduced-order modeling of convective Boussinesq
+ﬂows. Int. J. Numer. Meth. Fl., 78(1):37–62, 2015.
+Francesco Ballarin, Andrea Manzoni, Alﬁo Quarteroni, and Gianluigi Rozza. Supremizer stabilization of POD–Galerkin ap-
+proximation of parametrized steady incompressible Navier–Stokes equations. Int. J. Numer. Meth. Eng., 102(5):1136–1161,
+2015.
+Omer San and Romit Maulik. Extreme learning machine for reduced order modeling of turbulent geophysical ﬂows. Phys. Rev. E, 97
+(4):042322, 2018.
+Q. Wang, J. S. Hesthaven, and D. Ray. Non-intrusive reduced order modeling of unsteady ﬂows using artiﬁcial neural networks with
+application to a combustion problem. J. Comp. Phys., 384:289–307, 2019.
+Youngsoo Choi and Kevin Carlberg. Space–time least-squares petrov–galerkin projection for nonlinear model reduction. SIAM J.
+Sci. Comput., 41(1):A26–A58, 2019.
+S Ashwin Renganathan, Romit Maulik, and Vishwas Rao. Machine learning for nonintrusive model order reduction of the parametric
+inviscid transonic ﬂow past an airfoil. Physics of Fluids, 32(4):047110, 2020.
+Jiahao Ren, Haiou Wang, Jiangkuan Xing, Kun Luo, and Jianren Fan. A lower-dimensional approximation model of turbulent ﬂame
+stretch and its related quantities with machine learning approaches. Physics of Fluids, 32(11):115113, 2020a.
+J. L. Proctor, S. L. Brunton, and J. N. Kutz. Dynamic mode decomposition with control. SIAM J. Appl. Dyn. Syst., 15(1):142–161,
+2016.
+Sebastian Peitz, Sina Ober-Blöbaum, and Michael Dellnitz. Multiobjective optimal control methods for the navier-stokes equations
+using reduced order modeling. Acta Applicandae Mathematicae, 161(1):171–199, 2019.
+Bernd R Noack, Marek Morzynski, and Gilead Tadmor. Reduced-order modelling for ﬂow control, volume 528. Springer Science &
+Business Media, 2011.
+16
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+C. W. Rowley and S. T. M. Dawson. Model reduction for ﬂow analysis and control. Annual Review of Fluid Mechanics, 49:387–417,
+2017.
+Cedric Raibaudo, Peng Zhong, Bernd R Noack, and Robert John Martinuzzi. Machine learning strategies applied to the control of a
+ﬂuidic pinball. Physics of Fluids, 32(1):015108, 2020.
+Feng Ren, Hai-bao Hu, and Hui Tang. Active ﬂow control using machine learning: A brief review. Journal of Hydrodynamics, 32(2):
+247–253, 2020b.
+Benjamin Peherstorfer, Karen Willcox, and Max Gunzburger. Optimal model management for multiﬁdelity Monte Carlo estimation.
+SIAM J. Sci. Comput., 38(5):A3163–A3194, 2016.
+Dewei Fan, Bingfu Zhang, Yu Zhou, and Bernd R Noack. Optimization and sensitivity analysis of active drag reduction of a
+square-back ahmed body using machine learning control. Physics of Fluids, 32(12):125117, 2020.
+Themistoklis P Sapsis and Andrew J Majda. Statistically accurate low-order models for uncertainty quantiﬁcation in turbulent
+dynamical systems. P. Natl. Acad. Sci. USA, 110(34):13705–13710, 2013.
+Matthew J Zahr, Kevin T Carlberg, and Drew P Kouri. An efﬁcient, globally convergent method for optimization under uncertainty
+using adaptive model reduction and sparse grids. arXiv preprint arXiv:1811.00177, 2018.
+Hwan Goh, Sheroze Sheriffdeen, Jonathan Wittmer, and Tan Bui-Thanh. Solving bayesian inverse problems via variational
+autoencoders. arXiv preprint arXiv:1912.04212, 2019.
+Rossella Arcucci, Laetitia Mottet, Christopher Pain, and Yi-Ke Guo. Optimal reduced space for variational data assimilation. J.
+Comp. Phys., 379:51–69, 2019.
+Meng Tang, Yimin Liu, and Louis J Durlofsky. A deep-learning-based surrogate model for data assimilation in dynamic subsurface
+ﬂow problems. Journal of Computational Physics, page 109456, 2020.
+César Quilodrán Casas, Rossella Arcucci, Pin Wu, Christopher Pain, and Yi-Ke Guo. A reduced order deep data assimilation model.
+Physica D: Nonlinear Phenomena, 412:132615, 2020.
+Romit Maulik, Vishwas Rao, Jiali Wang, Gianmarco Mengaldo, Emil Constantinescu, Bethany Lusch, Prasanna Balaprakash, Ian
+Foster, and Rao Kotamarthi. Efﬁcient high-dimensional variational data assimilation with machine-learned reduced-order models.
+Geoscientiﬁc Model Development, 15(8):3433–3445, 2022.
+Omer San and Jeff Borggaard. Basis selection and closure for pod models of convection dominated boussinesq ﬂows. In 21st
+International Symposium on Mathematical Theory of Networks and Systems, volume 5, 2014.
+Milan Korda, Mihai Putinar, and Igor Mezi´c. Data-driven spectral analysis of the koopman operator. Applied and Computational
+Harmonic Analysis, 2018.
+Virginia L Kalb and Anil E Deane. An intrinsic stabilization scheme for proper orthogonal decomposition based low-dimensional
+models. Phys. Fluids, 19(5):054106, 2007.
+I Kalashnikova and MF Barone. On the stability and convergence of a galerkin reduced order model (rom) of compressible ﬂow with
+solid wall and far-ﬁeld boundary treatment. International journal for numerical methods in engineering, 83(10):1345–1375, 2010.
+Muhammad Mohebujjaman, Leo G Rebholz, and Traian Iliescu. Physically constrained data-driven correction for reduced-order
+modeling of ﬂuid ﬂows. Int. J. Numer. Meth. Fl., 89(3):103–122, 2019.
+D Xiao, F Fang, J Du, CC Pain, IM Navon, AG Buchan, Ahmed H Elsheikh, and G Hu. Non-linear petrov–galerkin methods
+for reduced order modelling of the navier–stokes equations using a mixed ﬁnite element pair. Computer Methods In Applied
+Mechanics and Engineering, 255:147–157, 2013.
+Fangxin Fang, Christopher C Pain, IM Navon, Ahmed H Elsheikh, Juan Du, and D Xiao. Non-linear petrov–galerkin methods for
+reduced order hyperbolic equations and discontinuous ﬁnite element methods. Journal of Computational Physics, 234:540–559,
+2013.
+Kevin Carlberg, Matthew Barone, and Harbir Antil. Galerkin v. least-squares petrov–galerkin projection in nonlinear model reduction.
+Journal of Computational Physics, 330:693–734, 2017.
+Zhongzhan Huang, Senwei Liang, Hong Zhang, Haizhao Yang, and Liang Lin. Accelerating numerical solvers for large-scale
+simulation of dynamical system via neurvec. arXiv preprint arXiv:2208.03680, 2022.
+Sepp Hochreiter and Jürgen Schmidhuber. Long short-term memory. Neural computation, 9(8):1735–1780, 1997.
+P. R. Vlachas, W. Byeon, Z. Y. Wan, T. P. Sapsis, and P. Koumoutsakos. Data-driven forecasting of high-dimensional chaotic systems
+with long short-term memory networks. Proceedings of the Royal Society A: Mathematical, Physical and Engineering Sciences,
+474(2213):20170844, 2018.
+S. E. Ahmed, O. San, A. Rasheed, and T. Iliescu. A long short-term memory embedding for hybrid uplifted reduced order models.
+arXiv preprint, arXiv:1912.06756, 2019.
+Romit Maulik, Arvind Mohan, Bethany Lusch, Sandeep Madireddy, and Prasanna Balaprakash. Time-series learning of latent-space
+dynamics for reduced-order model closure. arXiv preprint arXiv:1906.07815, 2019.
+A. T. Mohan, D. Daniel, M. Chertkov, and D. Livescu. Compressed convolutional LSTM: An efﬁcient deep learning framework to
+model high ﬁdelity 3D turbulence. arXiv preprint, arXiv:1903.00033, 2019.
+17
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+Arvind T Mohan and Datta V Gaitonde. A deep learning based approach to reduced order modeling for turbulent ﬂow control using
+LSTM neural networks. arXiv preprint arXiv:1804.09269, 2018.
+F. J. Gonzalez and M. Balajewicz. Learning low-dimensional feature dynamics using deep convolutional recurrent autoencoders.
+arXiv preprint, arXiv:1808.01346, 2018.
+Kazuto Hasegawa, Kai Fukami, Takaaki Murata, and Koji Fukagata. CNN-LSTM based reduced order modeling of two-dimensional
+unsteady ﬂows around a circular cylinder at different Reynolds numbers. Fluid Dynamics Research, 52(6):065501, 2020a.
+Qian Wang, Nicolò Ripamonti, and Jan S Hesthaven. Recurrent neural network closure of parametric pod-galerkin reduced-order
+models based on the mori-zwanzig formalism. Journal of Computational Physics, 410:109402, 2020.
+Kazuto Hasegawa, Kai Fukami, Takaaki Murata, and Koji Fukagata. Machine-learning-based reduced-order modeling for unsteady
+ﬂows around bluff bodies of various shapes. Theoretical and Computational Fluid Dynamics, 34:367–383, 2020b.
+Ashesh Chattopadhyay, Adam Subel, and Pedram Hassanzadeh. Data-Driven Super-Parameterization Using Deep Learning:
+Experimentation With Multiscale Lorenz 96 Systems and Transfer Learning. Journal of Advances in Modeling Earth Systems, 12
+(11):e2020MS002084, 2020.
+Romit Maulik, Bethany Lusch, and Prasanna Balaprakash. Non-autoregressive time-series methods for stable parametric reduced-
+order models. Physics of Fluids, 32(8):087115, 2020a.
+S Ashwin Renganathan, Romit Maulik, and Jai Ahuja. Enhanced data efﬁciency using deep neural networks and gaussian processes
+for aerodynamic design optimization. Aerospace Science and Technology, 111:106522, 2021.
+Zhan Ma and Wenxiao Pan. Data-driven nonintrusive reduced order modeling for dynamical systems with moving boundaries using
+gaussian process regression. Computer Methods in Applied Mechanics and Engineering, 373:113495, 2021.
+Mengwu Guo and Jan S Hesthaven. Reduced order modeling for nonlinear structural analysis using gaussian process regression.
+Computer methods in applied mechanics and engineering, 341:807–826, 2018.
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin.
+Attention is all you need. Advances in neural information processing systems, 30, 2017.
+Nicholas Geneva and Nicholas Zabaras. Transformers for modeling physical systems. Neural Networks, 146:272–289, 2022.
+Alec J Linot, Joshua W Burby, Qi Tang, Prasanna Balaprakash, Michael D Graham, and Romit Maulik. Stabilized neural ordinary
+differential equations for long-time forecasting of dynamical systems. Journal of Computational Physics, 474:111838, 2023.
+R. J. Adrian and P. Moin. Stochastic estimation of organized turbulent structure: homogeneous shear ﬂow. J. Fluid Mech., 190:
+531–559, 1988.
+Richard Everson and Lawrence Sirovich. Karhunen–Loeve procedure for gappy data. JOSA A, 12(8):1657–1664, 1995.
+Kai Fukami, Koji Fukagata, and Kunihiko Taira. Assessment of supervised machine learning methods for ﬂuid ﬂows. Theoretical
+and Computational Fluid Dynamics, 34:497–519, 2020.
+Douglas W Carter, Francis De Voogt, Renan Soares, and Bharathram Ganapathisubramani. Data-driven sparse reconstruction of ﬂow
+over a stalled aerofoil using experimental data. Data-Centric Engineering, 2:e5, 2021.
+N Benjamin Erichson, Lionel Mathelin, Zhewei Yao, Steven L Brunton, Michael W Mahoney, and J Nathan Kutz. Shallow neural
+networks for ﬂuid ﬂow reconstruction with limited sensors. Proceedings of the Royal Society A, 476(2238):20200097, 2020.
+Luning Sun and Jian-Xun Wang. Physics-constrained bayesian neural network for ﬂuid ﬂow reconstruction with sparse and noisy
+data. Theoretical and Applied Mechanics Letters, 10(3):161–169, 2020.
+Pierre Dubois, Thomas Gomez, Laurent Planckaert, and Laurent Perret. Machine learning for ﬂuid ﬂow reconstruction from limited
+measurements. Journal of Computational Physics, 448:110733, 2022.
+Sheroze Sheriffdeen, Jean C Ragusa, Jim E Morel, Marvin L Adams, and Tan Bui-Thanh. Accelerating PDE-constrained inverse
+solutions with deep learning and reduced order models. arXiv preprint arXiv:1912.08864, 2019.
+Paul G Constantine, Carson Kent, and Tan Bui-Thanh. Accelerating Markov chain Monte Carlo with active subspaces. SIAM Journal
+on Scientiﬁc Computing, 38(5):A2779–A2805, 2016.
+Yang Liu, Dewei Wang, Xiaodong Sun, Nam Dinh, and Rui Hu. Uncertainty quantiﬁcation for multiphase-cfd simulations of bubbly
+ﬂows: a machine learning-based bayesian approach supported by high-resolution experiments. Reliability Engineering & System
+Safety, 212:107636, 2021.
+Kjetil O Lye, Siddhartha Mishra, and Deep Ray. Deep learning observables in computational ﬂuid dynamics. Journal of Computa-
+tional Physics, 410:109339, 2020.
+Romit Maulik, Kai Fukami, Nesar Ramachandra, Koji Fukagata, and Kunihiko Taira. Probabilistic neural networks for ﬂuid ﬂow
+surrogate modeling and data recovery. Physical Review Fluids, 5(10):104401, 2020b.
+Masaki Morimoto, Kai Fukami, Romit Maulik, Ricardo Vinuesa, and Koji Fukagata. Assessments of epistemic uncertainty using
+Gaussian stochastic weight averaging for ﬂuid-ﬂow regression. Physica D: Nonlinear Phenomena, 440:133454, 2022.
+Aditi Krishnapriyan, Amir Gholami, Shandian Zhe, Robert Kirby, and Michael W Mahoney. Characterizing possible failure modes
+in physics-informed neural networks. Advances in Neural Information Processing Systems, 34:26548–26560, 2021.
+18
+
+Neural architecture search ensembles for scientiﬁc machine learning
+A PREPRINT
+Yinhao Zhu, Nicholas Zabaras, Phaedon-Stelios Koutsourelakis, and Paris Perdikaris. Physics-constrained deep learning for
+high-dimensional surrogate modeling and uncertainty quantiﬁcation without labeled data. Journal of Computational Physics, 394:
+56–81, 2019.
+Suraj Pawar, Omer San, Prakash Vedula, Adil Rasheed, and Trond Kvamsdal. Multi-ﬁdelity information fusion with concatenated
+neural networks. Scientiﬁc Reports, 12(1):5900, 2022.
+Romit Maulik, Romain Egele, Bethany Lusch, and Prasanna Balaprakash. Recurrent neural network architecture search for
+geophysical emulation. In Proceedings of the International Conference for High Performance Computing, Networking, Storage
+and Analysis, SC ’20. IEEE Press, 2020c. ISBN 9781728199986.
+Balaji Lakshminarayanan, Alexander Pritzel, and Charles Blundell. Simple and scalable predictive uncertainty estimation using deep
+ensembles. arXiv preprint arXiv:1612.01474, 2016.
+Matthew R Rudary. On predictive linear Gaussian models. University of Michigan, 2009.
+Romain Egele, Prasanna Balaprakash, Venkatram Vishwanath, Isabelle Guyon, and Zhengying Liu. AgEBO-Tabular: Joint neural
+architecture and hyperparameter search with autotuned data-parallel training for tabular data. In SC21: International Conference
+for High Performance Computing, Networking, Storage and Analysis, pages 1–14, 2021. doi:10.1145/3458817.3476203.
+Esteban Real, Alok Aggarwal, Yanping Huang, and Quoc V Le. Regularized evolution for image classiﬁer architecture search. In
+Proceedings of the aaai conference on artiﬁcial intelligence, volume 33, pages 4780–4789, 2019.
+David Ginsbourger, Rodolphe Le Riche, and Laurent Carraro. Kriging is well-suited to parallelize optimization. In Yoel Tenne
+and Chi-Keong Goh, editors, Computational Intelligence in Expensive Optimization Problems, volume 2, pages 131–162.
+Springer Berlin Heidelberg, 2010. ISBN 978-3-642-10700-9 978-3-642-10701-6. doi:10.1007/978-3-642-10701-6_6. URL
+http://link.springer.com/10.1007/978-3-642-10701-6_6. Series Title: Adaptation Learning and Optimization.
+Rich Caruana, Alexandru Niculescu-Mizil, Geoff Crew, and Alex Ksikes. Ensemble selection from libraries of models. In Twenty-ﬁrst
+international conference on Machine learning - ICML ’04, page 18. ACM Press, 2004. doi:10.1145/1015330.1015432. URL
+http://portal.acm.org/citation.cfm?doid=1015330.1015432.
+P. Balaprakash, M. Salim, T. Uram, V. Vishwanath, and S. Wild. Deephyper: Asynchronous hyperparameter search for deep neural
+networks. In 2018 IEEE 25th International Conference on High Performance Computing (HiPC), pages 42–51. IEEE, 2018.
+J Nathan Kutz, Xing Fu, and Steven L Brunton. Multiresolution dynamic mode decomposition. SIAM Journal on Applied Dynamical
+Systems, 15(2):713–735, 2016.
+Jared L Callaham, Kazuki Maeda, and Steven L Brunton. Robust ﬂow reconstruction from limited measurements via sparse
+representation. Physical Review Fluids, 4(10):103907, 2019a.
+Kunihiko Taira, Maziar S. Hemati, Steven L. Brunton, Yiyang Sun, Karthik Duraisamy, Shervin Bagheri, Scott T. M. Dawson, and Chi-
+An Yeh. Modal analysis of ﬂuid ﬂows: Applications and outlook. AIAA Journal, 58(3):998–1022, 2020. doi:10.2514/1.J058462.
+URL https://doi.org/10.2514/1.J058462.
+J. L. Callaham, K. Maeda, and S. L. Brunton. Robust ﬂow reconstruction from limited measurements via sparse representation. Phys.
+Rev. Fluids, 4:103907, 2019b.
+Romit Maulik, Nathan A Garland, Joshua W Burby, Xian-Zhu Tang, and Prasanna Balaprakash. Neural network representability of
+fully ionized plasma ﬂuid model closures. Physics of Plasmas, 27(7):072106, 2020d.
+Jennifer E Kay, Clara Deser, A Phillips, A Mai, Cecile Hannay, Gary Strand, Julie Michelle Arblaster, SC Bates, Gokhan Danabasoglu,
+J Edwards, et al. The Community Earth System Model (CESM) large ensemble project: A community resource for studying
+climate change in the presence of internal climate variability. Bulletin of the American Meteorological Society, 96(8):1333–1349,
+2015.
+Romit Maulik, Themistoklis Botsas, Nesar Ramachandra, Lachlan Robert Mason, and Indranil Pan. Latent-space time evolution of
+non-intrusive reduced-order models using gaussian process emulation. Physica D: Nonlinear Phenomena, page 132797, 2020e.
+19

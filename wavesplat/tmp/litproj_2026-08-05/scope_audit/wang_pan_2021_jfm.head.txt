@@ -1,0 +1,67 @@
+J. Fluid Mech. (2021), vol. 918, A19, doi:10.1017/jfm.2021.340
+Phase-resolved ocean wave forecast with
+ensemble-based data assimilation
+Guangyao Wang1,2 and Yulin Pan2,†
+1State Key Laboratory of Hydraulic Engineering Simulation and Safety, Tianjin University,
+Tianjin 300072, China
+2Department of Naval Architecture and Marine Engineering, University of Michigan, Ann Arbor,
+MI 48109, USA
+(Received 22 November 2020; revised 18 February 2021; accepted 9 April 2021)
+Through ensemble-based data assimilation, we address one of the most notorious
+difﬁculties in phase-resolved ocean wave forecast, regarding the deviation of numerical
+solution from the true surface elevation due to the chaotic nature of and underrepresented
+physics in the nonlinear wave models. In particular, we develop a coupled approach of
+the high-order spectral (HOS) method with the ensemble Kalman ﬁlter (EnKF), through
+which the measurement data can be incorporated into the simulation to improve the
+forecast performance. A unique feature in this coupling is the mismatch between the
+predictable zone and measurement region, which is accounted for through a special
+algorithm to modify the analysis equation in EnKF. We test the performance of the new
+EnKF–HOS method using both synthetic data and real radar measurements. For both
+cases (though differing in details), it is shown that the new method achieves much higher
+accuracy than the HOS-only method, and can retain the phase information of an irregular
+wave ﬁeld for an arbitrarily long forecast time with sequentially assimilated data.
+Key words: surface gravity waves, computational methods
+1. Introduction
+Accurate prediction of ocean waves plays a signiﬁcant role in the industries of shipping,
+oil and gas, aquaculture, ocean renewable energy, coastal and offshore construction. In
+the past few decades, both phase-averaged and phase-resolved wave models have been
+developed. The phase-averaged wave models, which provide statistical descriptions in
+terms of the wave spectrum, have been widely used in the operational forecast of global
+and regional sea states (Booij, Ris & Holthuijsen 1999; Tolman et al. 2009). Despite their
+† Email address for correspondence: yulinpan@umich.edu
+© The Author(s), 2021. Published by Cambridge University Press. This is an Open Access article,
+distributed under the terms of the Creative Commons Attribution licence (http://creativecommons.org/
+licenses/by/4.0/), which permits unrestricted re-use, distribution, and reproduction in any medium,
+provided the original work is properly cited.
+918 A19-1
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+wide applications and success, phase-averaged models have the limitation of providing
+no information on the individual deterministic waves. For example, rogue waves, which
+often appear sporadically and potentially cause enormous damage to offshore structures
+and ships (Broad 2006; Nikolkina et al. 2011), cannot be captured. On the other hand,
+phase-resolved models can predict the evolution of individual waves, but have received
+much less attention historically, partly due to the difﬁculty in obtaining the phase-resolved
+ocean surface as initial conditions. This has now been largely ameliorated with the
+recent development of sensing technologies and wave ﬁeld reconstruction algorithms (e.g.
+Reichert et al. 2004; Nwogu & Lyzenga 2010; Gallego et al. 2011; Nouguier, Grilli &
+Guérin 2013; Lyzenga et al. 2015; Qi, Xiao & Yue 2016; Desmars et al. 2018; Qi et al.
+2018a). For example, the Doppler coherent marine radars have been applied to measure
+the radial surface velocity ﬁeld, based on which the ﬁeld of both velocity potential and
+surface elevation can be reconstructed in real time (Nwogu & Lyzenga 2010; Lyzenga
+et al. 2015).
+Given the reconstructed surface elevation and velocity potential as initial conditions,
+the evolution of the wave ﬁeld can be predicted by linear or nonlinear phase-resolved
+wave models. Although the linear models yield low computational cost, their prediction
+horizon is severely limited (e.g. Blondel et al. 2010; Qi et al. 2017). For nonlinear models,
+the Euler equations governing the free surface need to be numerically integrated. One
+efﬁcient numerical algorithm to achieve this goal, based on the high-order spectral (HOS)
+method, is developed by Dommermuth & Yue (1987) and West et al. (1987), with later
+variants such as Craig & Sulem (1993) and Xu & Guyenne (2009). The novelties of
+these algorithms lie in the development of an efﬁcient spectral solution of a boundary
+value problem involved in the nonlinear wave equations, which is neglected in the linear
+wave models with the sacriﬁce of accuracy. In recent years, HOS has been developed
+for short-time predictions of large ocean surface, taking radar measurements as initial
+conditions (Xiao 2013). However, due to the signiﬁcant uncertainties involved in realistic
+forecast (e.g. imperfect initial free surface due

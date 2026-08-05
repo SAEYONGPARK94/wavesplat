@@ -1,0 +1,1581 @@
+COCOGEN: PHYSICALLY-CONSISTENT AND CONDITIONED
+SCORE-BASED GENERATIVE MODELS FOR FORWARD AND
+INVERSE PROBLEMS
+Christian Jacobsen
+Department of Aerospace Engineering
+University of Michigan
+Ann Arbor, MI 48109
+csjacobs@umich.edu
+Yilin Zhuang
+Department of Aerospace Engineering
+University of Michigan
+Ann Arbor, MI 48109
+ylzhuang@umich.edu
+Karthik Duraisamy
+Department of Aerospace Engineering
+Michigan Institute for Computational Discovery & Engineering
+University of Michigan
+Ann Arbor, MI 48109
+kdur@umich.edu
+ABSTRACT
+Recent advances in generative artificial intelligence have had a significant impact on diverse domains
+spanning computer vision, natural language processing, and drug discovery. This work extends
+the reach of generative models into physical problem domains, particularly addressing the efficient
+enforcement of physical laws and conditioning for forward and inverse problems involving partial
+differential equations (PDEs). Our work introduces two key contributions: firstly, we present an
+efficient approach to promote consistency with the underlying PDE. By incorporating discretized
+information into score-based generative models, our method generates samples closely aligned with
+the true data distribution, showcasing residuals comparable to data generated through conventional
+PDE solvers, significantly enhancing fidelity. Secondly, we showcase the potential and versatility of
+score-based generative models in various physics tasks, specifically highlighting surrogate modeling
+as well as probabilistic field reconstruction and inversion from sparse measurements. A robust
+foundation is laid by designing unconditional score-based generative models that utilize reversible
+probability flow ordinary differential equations. Leveraging conditional models that require minimal
+training, we illustrate their flexibility when combined with a frozen unconditional model. These
+conditional models generate PDE solutions by incorporating parameters, macroscopic quantities, or
+partial field measurements as guidance. The results illustrate the inherent flexibility of score-based
+generative models and explore the synergy between unconditional score-based generative models
+and the present physically-consistent sampling approach, emphasizing the power and flexibility in
+solving for and inverting physical fields governed by differential equations, and in other scientific
+machine learning tasks.
+1
+Introduction
+Generative modeling techniques aim to sample from an unknown data distribution given only samples from the dis-
+tribution. These methods can be largely classified into three main categories: likelihood-based models, implicit gen-
+erative models, and the more recent diffusion and score-based generative models. A large array of likelihood-based
+techniques exist in the literature such as variational autoencoders (VAEs) [1, 2, 3], autoregressive models [4, 5, 6],
+energy-based models (EBMs) [7, 8], and normalizing flow models [9, 10, 11]. Likelihood-based approaches have
+arXiv:2312.10527v2  [cs.LG]  20 Oct 2024
+
+CoCoGen
+A PREPRINT
+been shown to be useful, yet impose restrictions on the model or distribution form to ensure a regularized distribu-
+tion and facilitate likelihood computation during training. Implicit generative models such as generative adversarial
+networks (GANs) [12] are challenging to train due to the adversarial nature of training. Score-based approaches,
+on the other hand, model the score function (gradient of the log density) directly, bypassing restrictions on model
+or distribution form to represent a valid probability density [13]. This leads to much greater flexibility in allowable
+model architectures and facilitates the learning of more complex distributions over other methods. Although many
+such models are often referred to as diffusion models in the literature, we mostly refer to them as score-based models
+which contain diffusion models as a subset.
+The pioneering work of Song et al. [14] ties the earliest diffusion models together under a common framework of
+score-based modeling, a framework which our work is based on. Some of the earliest score-based generative models
+include de-noising diffusion probabilistic models (DDPM) [15] and de-noising score matching with Langevin dynam-
+ics (SMLD) [16]. These early models initially showed great potential in advancing the state of the art in generative
+modeling. However, more recent approaches such as score-based generative modeling with SDEs [14], Poisson flow
+generative models (PFGM) [17, 18], and consistency trajectory models (CTM) [19] suggest that score-based generative
+models may be a superior choice among generative modeling techniques.
+Diffusion models and score-based generative models have demonstrated state-of-the-art results in a variety of fields
+including natural language processing [20, 21, 22, 23], computer vision [24, 25, 26, 27], multi-model learning [28,
+29, 30, 31, 32], drug design [33, 34], and medical imaging [35, 36], also opening new avenues of exploration in their
+respective domains. Models based on diffusion and score-based generation overwhelmingly dominate the current
+state-of-the-art [19] in generative tasks such as the Frechet inception distance (FID) score on the popular CIFAR-10
+dataset [37]. We therefore do not address comparisons to other classes of generative models in this work, but rather
+focus on a new breadth of areas to advance and apply these models to. A comprehensive study of the available methods
+and applications of diffusion models and score-based generative models is included in Ref. [38].
+Diffusion and score-based models present great potential to be applied in areas of physics involving data augmen-
+tation, surrogate modeling, super-resolution, reduced order modelling, field inversion, field reconstruction, and un-
+certainty quantification among others. To the best of our knowledge, however, previous works have not thoroughly
+addressed enforcing adherence to physical laws. Some recent works have applied diffusion or score-based models to
+problems involving fluid flows, but little work on general problems governed by partial differential equations (PDEs)
+currently exists. Yang et al. [39] develop a surrogate model named FluidDiff based on diffusion models is developed
+to predict flows governed by the 2D incompressible Navier-Stokes equations given a source function. The model is
+shown to achieve greater accuracy in prediction over other methods such as conditional GANs [12], U-Nets [40], and
+even physics-informed neural networks [41] (PINNs) in some cases. The primary metric of comparison is the root
+mean-squared error (RMSE) without emphasis on the adherence of predictions to the physical equations. Ultimately,
+without enforcement of the physical equations, the model may inevitably predict non-physical behavior. Another im-
+portant work develops an iterative method for performing field reconstruction from sparse measurements on 2D flows
+governed by the Kolmogorov flow equations [42]. The model is based on conditional DDPMs in which the condi-
+tioning information is a low resolution guess of the full field along with gradients of the physical residual. Accurate
+high-fidelity reconstructions are observed along with reasonably good adherence to the physical equations of interest;
+however, there is no enforcement of physical behavior. Residual gradients are included as conditioning information,
+but there is no enforcement towards minimizing the residual during sampling. This in turn also allows for the model
+to potentially predict non-physical behavior.
+Our work thus aims to address the issue of enforcing physical consistency in score-based generative models. We
+do not claim to develop state-of-the-art models for performing the tasks described here, but rather demonstrate the
+effectiveness and flexibility that score-based models present in addressing a wide range of physics-based problems.
+Physical consistency enforcement involves ensuring or encouraging model predictions to follow physical equations
+of interest. We develop a novel and flexible method of enforcing score-based generative models to generate samples
+which are characterized by low residual with respect to a nonlinear PDE describing some physical system. This
+method is different from PINN-type methods [41] in many ways: i) The goal is to not solve a PDE, but rather to
+generate samples constrained by them; ii) Rather than using the PDE residual during the training stage, the residual is
+utilized during the sample generation stage; iii) Rather than relying on the continuous form of the residual, a discrete
+form is utilized based on the defined data. This method of sampling along with other aspects of the sampling process
+are fully scrutinized and illustrated to greatly reduce residuals of generated samples over the baseline sampling method
+on an unconditional model. We further exemplify the power of physical consistency enforcement by illustrating it in
+tandem with two applications. At this juncture, we remark that the work by Chung et al. [36] is most closely related to
+some aspects of the work presented here, although applied to image reconstruction. Corrector steps are applied during
+sampling from the score-based model to encourage sample consistency with a linear system modeling the data. Our
+work similarly contains correction steps; however, the nature of the correction steps is quite different and achieved
+2
+
+CoCoGen
+A PREPRINT
+in a different manner. The ‘correction steps’ in our work constitute minimizing the residual from general nonlinear
+physical PDEs rather than a linear system to perform image reconstruction.
+Conditional score-based models based on a frozen unconditional backbone are created for each of the applications,
+adapting the ideas of ControlNet [32] to create flexible conditional augmentations. Both applications are illustrated
+on 2D data governed by Darcy’s law describing flow through porous media. We first train a conditional score-based
+generative model as a surrogate model for predicting fluid flows as a function of the underlying parameters which
+determine the entire fluid flow. A second application performing probabilistic field reconstruction and inversion of
+Darcy flow fields is achieved by similarly training a conditional augmentation to the unconditional model. Pressure
+and permeability fields are predicted from sparsely sampled pressure measurements as the conditioning information.
+Sampling from the conditional model given such measurements consistently results in generated samples which adhere
+to the physical equations of interest with accurate reconstruction.
+The organization of this manuscript is as follows: Section 2 is a self-contained introduction to score-based generative
+models with SDEs, largely based on the work of Song et al [14]. Section 3 details our particular selection of the forward
+and reverse SDEs along with details of the training strategy in the unconditional and conditional settings. Our novel
+sampling approach which enforces physical consistency by incorporating the PDEs into the sampling process is also
+described in depth. Section 4 illustrates the use of physical consistency steps to ensure samples adhere to the equations
+of interest in an unconditional setting. Section 5 presents conditional generation in combination with our sampling
+approach to guide sample generation. Applications are illustrated in this conditional setting and include full-field
+generation and surrogate modeling, and probabilistic field reconstruction and inversion from sparse measurements.
+We provide our concluding remarks and directions for future work in Sec. 6.
+Figure 1: We propose a method of injecting the governing equations into the sampling process of score-based genera-
+tive models to enforce consistency of samples with the underlying PDE.
+2
+Background
+The overarching goal of generative modelling is to sample from an unknown data distribution given only samples
+in the form of data from such a distribution. Unconditional generative modelling aims to sample from p(y) given
+N independent identically distributed (i.i.d.) samples {y(i)}N
+i=1 from the distribution. However, often there exist
+additional quantities in the form of conditional variables θ which contain information about data samples y. In this
+case, a conditional generative model can be sought to enable sampling from the conditional distribution p(y|θ). We
+explore both unconditional (Sec. 3) and conditional (Sec. 5) score-based generative models in the context of forward
+and inverse problems, beginning by describing the unconditional form.
+Score-based generative models are a class of generative modeling technique in which data is used to learn the Stein
+score function [13] (gradient of the log-density ∇y log p(y)). Once the score function is approximated, sampling from
+the distribution p(y) can be performed using an iterative process known as Langevin dynamics [43, 44]. However,
+in practice it is difficult to accurately estimate the score function in all regions of the data space due to data sparsity.
+Recent works [16, 15] have thus suggested a key process of iteratively adding varying levels of noise to data samples
+and estimating the score function at each noise level. Adding noise effectively changes the underlying distribution,
+reducing sparsity in the data space and allowing for accurate score estimation in broader regions of the data space
+when compared to the original data distribution. Noise is sequentially added until the data is approximately distributed
+according to a prior distribution which is easy to sample from. Sample generation is then performed as the reverse
+of this process: sampling from the prior distribution and iteratively removing the noise until the data sample approxi-
+3
+
+CoCoGen
+A PREPRINT
+mately belongs to the original data distribution. We refer readers to Ref. [45] for an intuitive and thorough explanation
+of score-based generative models.
+This iterative process of sequentially adding noise to data can be viewed in a continuous sense as the solution to a
+stochastic differential equation (SDE) [14]. We consider a data distribution at t = 0 given by p(y(t = 0)) where t
+does not represent physical time, but is rather a modelling quantity used to simulate the SDE. This is the distribution
+from which data samples {y(i)}N
+i=1 are drawn, where y(i) ∼p(y(t = 0)) and y ∈X (the data space). A stochastic
+differential equation (SDE) of the form
+dy = f(y, t)dt + g(t)dw
+(1)
+describes the ‘dynamics’ of adding noise to data samples, where f : Rn × R →Rn is a function known as the drift
+coefficient, g : R →R is a function known as the diffusion coefficient, and w denotes standard Brownian motion. The
+system ‘dynamics’ are constructed such that the distribution p(y(t = T)) at final time T approximately follows a prior
+distribution π(y) which is easy to sample from, such as the standard normal distribution. The particular form of f(y, t)
+and g(t) are chosen such that p(y(t = T)) ≈π(y), or vice-versa. The SDE describes dynamics of adding random
+noise to samples from p(y(t = 0)) until π(y) is achieved. Suppose a sample y(t = 0) is drawn from p(y(t = 0)), and
+the dynamics of the SDE are simulated. Viewing y(t) at any intermediate time step t ∈(0, T] is essentially a noisy
+version of the initial sample. In this work, we assume a final time T = 1 in all experiments, though this is simply a
+convention.
+In this continuous setting, the noising process can be reversed by using a well-known result [46] to solve the reverse
+SDE backward in time. This reverse SDE is given by
+dy = [f(y, t) −g2(t)∇y log p(y(t))]dt + g(t)dw ,
+(2)
+where the distribution at any time p(y(t)) is identical when solving the forward or reverse SDE. As f and g are chosen
+particularly such that p(y(t = T)) ≈π(y), a sample y(t = T) ∼π(y) is drawn and the reverse SDE (Eq. 2) is
+simulated backward in time to obtain a sample y(t = 0) which is approximately drawn from p(y(t = 0)).
+To solve the reverse SDE, the score function ∇y log p(y(t)) must be known for all times t ∈[0, T]. Therefore,
+score-based generative modeling aims to model the score function using a parameterized model such as CNN-based
+or transformer-based machine learning models. This model sϕ(y(t), t) should approximate the score function for all
+times t ∈[0, T] such that sϕ(y(t), t) ≈∇y log p(y(t)) and the dynamics of Eq. 2 are approximated by
+dy = [f(y, t) −g2(t)sϕ(y(t), t)]dt + g(t)dw .
+(3)
+The functions f and g are often selected such that they induce a Gaussian transition kernel
+p(y(t)|y(0)) = N(y(t); µ(y(0), t), σ2(y(0), t)I) ,
+(4)
+where y(0) denotes a sample y(t = 0) from the data distribution.
+This means that the score of the transition
+kernel can be computed for any time t without solving the forward SDE as ∇y log p(y(t)|y(0)) = (µ(y(0), t) −
+y(t))(µ(y(0), t) −y(t))T /σ2(y(0), t).
+The model sϕ(y(t), t) is trained using a score-matching objective [14]. In our work, we use denoising score-matching
+(DSM) [47, 14] in which the loss function is given by
+min
+ϕ Et∼U[0,T ]
+
+λ(t)Ep(y(0))p(y(t)|y(0))[||sϕ(y(t), t) −∇y(t) log p(y(t)|y(0))||2
+2]
+
+(5)
+where λ(t) : [0, 1] →R>0 is a positive weighting function and p(t) ∼U[0, T]. A closed form solution for the quantity
+∇y(t) log p(y(t)|y(0)) can be easily obtained from the transition kernel in Eq. 4. We note that when λ(t) = 1/2, the
+optimal solution to Eq. 5 corresponds to sϕ(y(t), t) = ∇y log p(y(t)) almost surely [47], which is sufficient to solve
+the reverse SDE in Eq. 2.
+The probability flow ordinary differential equation (PF ODE) is similar to the reverse SDE in that it can be solved
+in reverse time to approximately sample from p(y(t = 0)) given the distribution at p(y(t = T)). Although this
+equation is an ODE rather than an SDE, the marginals at each intermediate time t of the reverse SDE and PF ODE are
+identical [14]. The PF ODE is reversible in time and given by
+dy =
+
+f(y, t) −1
+2g2(t)∇x log p(y(t))
+
+dt .
+(6)
+As illustrated in Sec. 4, solving the PF ODE offers advantages in terms of accuracy in physics-based applications. This
+is likely due to the absence of a noise injection term, which may allow for better denoising capabilities during sampling.
+However, in some cases such as the RePaint [25] algorithm exemplified in Sec. D of the provided supplementary
+materials, the reverse SDE offers superior performance in terms of efficiency. We will discuss the use of both of these
+equations to sample from trained models throughout this work.
+4
+
+CoCoGen
+A PREPRINT
+3
+Enforcing Physical Consistency and Conditioning
+Score-based generative models have seen great success in generating natural images and replicating human-like cre-
+ativity in some tasks. However, generating solutions to physical problems requires more quantitative rigor to ensure
+that the generated samples are consistent with the particular physical laws of interest. Our aim is to develop a procedure
+for sampling from score-based generative models which will ensure that generated samples adhere to some specified
+governing physical equations. If all samples generated satisfy the equations of interest, this unlocks many potential
+applications for score-based generative models and prevents such models from predicting non-physical behaviors.
+We consider general steady-state partial differential equations (PDEs) of the form
+F(x, y, η) = 0 ,
+(7)
+where x are the spatial coordinates, y are the physical variables of interest, and η are parameters describing the
+physical system. In our examples, solutions y are computed on a discretized spatial domain such that a single solution
+– or data sample – is given on a 2D physical domain X = Rn×n. We remark that constraining samples to follow the
+governing PDE is done only at inference/sample time, and does not have any effect on the training procedure.
+This allows for much greater flexibility without the need for re-training the model. We first discuss training a score-
+based generative model before describing our approach to enforcing physical consistency in generated samples.
+3.1
+Unconditional Model Training
+Figure 2: ControlNet-type architecture based on a UNet-type unconditional model architecture. The conditional
+model contains a fixed pretrained unconditional model with parameters ϕ and a conditional model augmentation with
+trainable parameters ψ.
+We train a convolution-based UNet-type [40] architecture to approximate the score function in time with the weighting
+function set to a constant λ(t) = 1. The overall architecture for both our unconditional and conditional generative
+models is illustrated in Fig. 2. Our choice of f(y, t) and g(t) in the SDE form correspond to the variance-preserving
+(VP) SDE [14] in which
+f(y, t) = −1
+2β(t)y, and
+(8)
+g(t) =
+p
+β(t) ,
+(9)
+5
+
+CoCoGen
+A PREPRINT
+giving a final forward SDE form of
+dy = −1
+2β(t)ydt +
+p
+β(t)dw .
+(10)
+Further, we define β(t) as a linear function with two hyperparameters:
+β(t) = βmin + (βmax −βmin)t ,
+(11)
+where βmin, βmax > 0 and βmax > βmin. This SDE form induces a transition kernel of
+p(y(t)|y(0)) = N (µ(y, t), Σ(t)) ,
+(12)
+where
+µ(y, t) = y(0) exp
+
+−1
+4t2(βmax −βmin) −1
+2tβmin
+
+(13)
+Σ(t) = I
+
+1 −exp
+
+−1
+2t2(βmax −βmin) −tβmin
+
+(14)
+With a Gaussian transition kernel, the score function can be computed analytically such that we train with the following
+loss function:
+min
+θ
+Et∼U[0,T ]
+h
+Ep(y(0))p(y(t)|y(0))[||sθ(y(t), t) + zΣ1/2(t)||2
+2]
+i
+,
+(15)
+where z ∼N(0, I). During training, we set βmin = 1 × 10−4, βmax = 10, and T = 1 for all of our experiments.
+3.2
+Learning Conditional Score Functions
+Unconditional generators have diverse applications, such as sampling from p(y) for data augmentation, distribution
+learning, and anomaly detection. Moreover, they can serve as a robust foundation for constructing conditional gen-
+erative models. Such models aim to sample from p(y|θ), where θ represents conditioning information, guiding the
+sampling process. Integrating conditioning into existing unconditional score-based generative models extends their
+utility, particularly in generating physical fields based on various input conditions like generative parameters, bound-
+ary conditions, partial field measurements, or macroscopic quantities. A conditional score-based generative model has
+the potential to undertake tasks like field reconstruction, field inversion, and effective probabilistic surrogate model-
+ing. In some instances, an approximate conditional sampling can be achieved from a pre-trained unconditional model
+without additional training or conditional modeling. However, in most cases, generating samples from the desired
+conditional distribution requires extra data, modeling, and/or training efforts.
+In scenarios where an analytical approximation to the conditional score function is unavailable, we resort to training
+a conditional model to approximate the conditional score function. Developing a conditional score-based generative
+model requires not only data samples y but also corresponding conditional information θ for each sample, forming
+pairs {y(i), θ(i)}N
+i=1 in the dataset. The conditioning information could be a macroscopic quantity derived from the
+physical field, the generative parameters defining the physical field, or partial field measurements, among other possi-
+bilities. With these data samples, a conditional generative model aims to sample from the true conditional distribution
+p(y|θ).
+Since the forward Stochastic Differential Equation (SDE) noising process defined by Eq. 10 is Markovian, it remains
+independent of conditioning, even when conditioning information is available. The forward process stays the same:
+p(y(t)|y(0), θ) = p(y(t)|y(0)). However, the score approximation model sϕ(y(t), t, θ) is designed to accept condi-
+tioning information as an additional input. In the general conditional case, the score approximation model is trained
+by
+min
+ϕ Et
+
+λ(t)Ep(y(0),θ)p(y(t)|y(0))[||sϕ(y(t), t, θ) −∇y(t) log p(y(t)|y(0), θ)||2
+2]
+
+,
+(16)
+effectively embedding conditioning information into the score approximation to learn ∇y log p(y(t)|θ).
+Training a full-scale generative model is often quite expensive and can be difficult to properly tune with optimal
+hyperparameters, architectures, and training schedules. However, in some scenarios in which multiple downstream
+objectives are of interest from the same application, we aim to train a single unconditional model and augment the
+unconditional model with smaller conditional models which can be easily connected and disconnected to facilitate
+generation using multiple different types of conditioning. To achieve this, we turn towards recent advancements in
+conditional score-based generative modeling and adapt them for our applications. In particular, we leverage Con-
+trolNet [32], a form of model architecture specifically designed to augment pretrained unconditional models with
+6
+
+CoCoGen
+A PREPRINT
+conditional generative capabilities. The idea of ControlNet is to freeze the pretrained unconditional model and con-
+nect it to a smaller trainable model which will incorporate the conditional information. The overall model architecture
+including the unconditional model and conditional augmentation which we employ is shown in Fig. 2. The conditional
+portion of the model to be trained is initialized with special zero-convolution [32] layers such that the model will pro-
+duce unhindered unconditional samples at the onset of training. Thus, if a pretrained unconditional model is validated
+to generate physical fields which are consistent with the underlying physical PDE, the conditional model is already
+guaranteed to produce physically accurate solutions at the onset of training.
+During training, the unconditional model parameters are frozen. The conditional augmentation is trained using a
+very similar objective function to Eq. 16 with the main exception that the conditional score function approximation
+sϕ,ψ(y(t), t, θ) contains non-trainable parameters ϕ and trainable parameters ψ. The training objective we train con-
+ditional augmentations with therefore becomes
+min
+ψ Et
+
+λ(t)Ep(y(0),θ)p(y(t)|y(0))[||sϕ,ψ(y(t), t, θ) −∇y(t) log p(y(t)|y(0), θ)||2
+2]
+
+.
+(17)
+3.3
+Sampling
+Sampling from the trained score-based generative model is achieved by solving the reverse SDE or PF ODE backward
+in time. In our work, the particular form of reverse SDE solved during sampling is given by
+dy =
+
+−1
+2β(t)y −β(t)sθ(y(t), t)
+
+dt +
+p
+β(t)dw ,
+(18)
+and the PF ODE by
+dy =
+
+−1
+2β(t)y −1
+2β(t)sθ(y(t), t)
+
+dt .
+(19)
+These equations can be easily constructed from Eqs. 2, 6, 10, and 11. We note that the unconditional score function
+approximation sϕ(y(t), t) is replaced with the conditional approximation sϕ,ψ(y(t), t, θ) in Eqs. 18 and 19 to achieve
+conditional sampling.
+We assume a prior distribution of π(y) = N(0, I). The transition kernel in Eq. 4 approaches this prior at t →∞, but
+with large enough difference in βmax −βmin, the transition kernel at t = T = 1 will be close to the selected prior.
+After sampling from the prior, this becomes the initial condition of the reverse SDE or reverse PF ODE. Solving either
+of Eqs. 18 or 19 from t = 1 to t = 0 will result in a sample drawn from the original data distribution p(y(0)), as long as
+the score function approximation is accurate. These equations can be solved using any discretized SDE or ODE solver
+of choice. For simplicity, we opt to solve the reverse SDE in Eq. 18 using the first-order accurate Euler-Maruyama
+(EM) [48] method, and the PF ODE in Eq. 19 with the first-order accurate forward Euler (FE) scheme. Defining τ as
+the number of discrete time steps, this corresponds to a timestep of ∆t = T/τ.
+To enforce physical consistency, we turn towards modifying the sampling process after training by reducing the phys-
+ical residual r at each point in the computational domain, where
+r = F(x, y, η) .
+(20)
+The residual constitutes computing the PDE operator on a discretized approximate solution to the PDE. In practice,
+this residual will be nonzero, indicating that the discretized physical field y does not perfectly satisfy the physical
+equations. Our goal is to generate samples from a score-based generative model which minimizes this residual.
+Generated samples should contain residuals which are similar to the residual obtained by solving the PDE using
+traditional means. To reduce the residual at the final time of the sampling process, we aim to minimize the following
+expression at each point in the computational domain:
+min
+y(t=0) ∥r∥2
+2 .
+To this end, we propose appending a residual minimization step to the SDE or ODE solver for the last N of τ time
+steps, aiming to minimize ∥r∥2
+2 by appending a small step in the negative gradient direction ∇y∥r∥2
+2 = 2r∇yr. This
+requires evaluating the full order operator of the PDE and gradient of the residual by updating the sample according to
+yi−1 = Solver(yi, ti) −2ϵr∇yr ,
+(21)
+where ϵ is the residual step size hyperparameter and Solver(yi, ti) indicates a step using the particular solver (EM for
+reverse SDE or FE for PF ODE). The residual is computed at each point in the computational domain, and each value
+7
+
+CoCoGen
+A PREPRINT
+is updated via physical consistency steps. After the reverse SDE process is solved to t = 0, we propose performing an
+additional M physical consistency steps by iteratively updating the final sample according to
+yi−1 = yi −2ϵr∇yr .
+The sampling process is flexible, with tunable hyperparameters ϵ, τ, N, and M, which can balance the need for
+efficiency over the degree to which samples follow the governing equations. An in-depth investigation into the effects
+of these hyperparameters is performed in Sec. 4.3. In our experiments, we find empirically that setting ϵ too large or
+too small results in unimproved sampling. We use ϵ = 2×10−4/ max ∇yr during sampling in all of our experiments,
+though we suspect that this form may not be optimal for all PDEs and datasets.
+However, the residual minimization step appended to the solver can be implemented for any governing PDE. As the
+training process is not altered, a trained generative model is expected to produce samples which are relatively close to
+satisfying the equations. Thus, with an accurately trained generative model, relatively few physical consistency steps
+will be required to greatly reduce residuals and bring the generated samples closer to adhering to the physics. We
+illustrate this process on an example from fluid dynamics involving flow through porous media.
+4
+Unconditional Generation of Darcy Flow Fields
+Before addressing forward and inverse problems, we first demonstrate the capabilities of physical consistency sampling
+by training an unconditional model. Samples from the unconditional model are distributed approximately as the true
+data distribution. However, we find empirically that such samples will generally not satisfy the PDE. It is possible
+that developing more advanced architectures and finely tuning the training procedure may result in consistently small
+physical residuals, but we illustrate that the use of physical consistency sampling negates this need altogether. Our
+primary demonstrative example is that of Darcy flow.
+The Darcy flow equations relate fluid pressure to the permeability of a porous media through which it flows. A
+permeability field K(x) describes the degree to which a fluid can pass through the media at each location x in the
+spatial domain while a source function fs(x) models physical locations in which a source or sink of fluid are entering
+or exiting the system. The pressure p(x) and velocity fields u(x) of the fluid then satisfy the following equations
+according to Darcy’s law:
+u(x) = −K(x)∇p(x),
+x ∈X
+∇· u(x) = fs(x),
+x ∈X
+(22)
+u(x) · ˆn(x) = 0,
+x ∈∂X
+Z
+X
+p(x)dx = 0.
+We generate training samples of Darcy flow fields by setting a constant source function given by Eq. 23 and sampling
+a random permeability field K(x).
+fs(x) =
+
+
+
+r,
+|xi −1
+2w| ≤1
+2w, i = 1, 2
+−r,
+|xi −1 + 1
+2w| ≤1
+2w, i = 1, 2
+0,
+otherwise
+,
+(23)
+We sample K(x) by modeling the log-permeability field as a Gaussian random field with covariance function k
+K(x) = exp(G(x)), G(·) ∼N(¯µ, k(·, ·)) .
+(24)
+We take the covariance function as
+k(x, x′) = exp(−||x −x′||2/l)
+(25)
+in our experiments, as in [49].
+For dimensionality reduction and to create a parametric representation of the data, the intrinsic dimensionality s of the
+data is specified by leveraging the Karhunen-Loeve Expansion (KLE), retaining only the first s terms in
+G(x) = ¯µ +
+s
+X
+i=1
+p
+λiθiϕi(x) ,
+(26)
+where λi and ϕi(x) are eigenvalues and eigenfunctions of the covariance function (Eq. 25) sorted by decreasing λi,
+and each θi are sampled according to some distribution p(θ), denoted the generative parameter distribution, which we
+set to be p(θ) = N(0, I). These generative parameters θ entirely determine the solution to the governing equations.
+In other words, the solution is deterministic function of the generative parameters.
+8
+
+CoCoGen
+A PREPRINT
+4.1
+Traditional Finite Difference Solution and Datasets
+After sampling the permeability field, Eq 22 is solved for the pressure fields. Note that once the pressure field is
+obtained, the velocity fields can be easily approximated using finite difference approximations using the relationship
+u(x) = −K(x)∇p(x). We discretize the spatial domain X = [0, 1]2 on an n × n grid to form a computational grid
+of n2 nodes. This leads to discrete steps of ∆x1 = ∆x2 = 1/(n −1) in the spatial coordinate system. Each node in
+the computational domain is labeled with two indices i, j corresponding to the spatial location of the node such that
+xi,j = [(i −1)/(n −1), (j −1)/(n −1)]T . A linear system Ap = f is then formed and solved for pressure on the
+computational domain. To create this linear system, we define the solution pi,j at each point in the discretized spatial
+domain. The Darcy flow equations for pressure only are given by
+−∇· [K(x)∇p(x)] = fs(x)
+(27)
+∇p(x) · ˆn(x) = 0
+(28)
+Z
+X
+p(x)dx = 0 .
+(29)
+Equation 27 can be expanded using chain rule to be
+−K(x)∂2p(x)
+∂x2
+1
+−∂K(x)
+∂x1
+∂p(x)
+∂x1
+−K(x)∂2p(x)
+∂x2
+2
+−∂K(x)
+∂x2
+∂p(x)
+∂x2
+= fs(x)
+(30)
+On our discretized domain, we use second order central finite differences on interior points to compute first and second
+order partial derivatives. For example,
+∂p(x)
+∂x1
+
+xi,j
+≈pi+1,j −pi−1,j
+2∆x1
+and
+∂2p(x)
+∂x2
+1
+
+xi,j
+≈pi−1,j −2pi,j + pi+1,j
+∆x2
+1
+.
+The pressure gradient across the boundaries is zero according to Eq. 28. Thus on the left (x1 = 0) boundary for
+example,
+∂p(x)
+∂x1
+
+xi,j
+≈pi+1,j −pi−1,j
+2∆x1
+= 0 ,
+and thus pi+1,j = pi−1,j. The second order partial derivative on the left (i = 1) boundary is therefore given by
+∂2p(x)
+∂x2
+1
+
+x1,j
+≈2p2,j −2p1,j
+∆x2
+1
+.
+Additionally, the integral constraint in Eq. 29 can be enforced by adding another row to the matrix A, creating an
+over-determined system of equations. We thus solve the system Ap = f where A ∈R(n2+1)×n2, p ∈Rn2, and
+f ∈Rn2+1. The vectors p and f are given by Eq. 31.
+p =
+
+
+p(x1,1)
+p(x2,1)
+...
+p(xn,1)
+p(x1,2)
+...
+p(xn,n)
+
+
+, fs =
+
+
+fs(x1,1)
+fs(x2,1)
+...
+fs(xn,1)
+fs(x1,2)
+...
+fs(xn,n)
+0
+
+
+.
+(31)
+The matrix A is constructed using the finite difference formulas previously described. The exact form and a description
+of the discretized equations which the linear system solves are included in Sec. A of the included supplementary
+materials.
+The velocity components u(x) are computed using second order finite difference approximations on p to compute
+u(x) = −K(x)∇p(x). Due to this, we train the generative model using only the permeability K(x) and pressure
+field p(x) data such that a single data sample consists of the set y = {K(x), p(x)}.
+We employ two training and test datasets throughout the work. The first training dataset contains 10,000 samples
+generated by solving the Darcy flow equations with an intrinsic dimensionality of s = 16 on a discretized grid of
+n = 64. The generative parameters corresponding to each sample are randomly generated according to p(θ) = N(0, I)
+and saved to be used in conditional experiments. An additional 1,000 samples are generated and withheld from training
+as a test set used only in conditional experiments. The second training and test sets are generated with an intrinsic
+dimensionality of s = 256, keeping all other parameters identical to the s = 16 dataset.
+9
+
+CoCoGen
+A PREPRINT
+4.2
+Residual Computation
+Implementing the score-based generative model requires a method of evaluating the degree to which generated sam-
+ples satisfy the Darcy flow equations. One way of doing this is to evaluate the PDE residual (Eq. 32) on generated
+samples. Note that the integral condition of Eq. 29 can be easily satisfied for any generated sample by regularizing the
+intermediate output ˜p according to
+p = ˜p −
+Z
+X
+˜pdx .
+We thus ignore this as part of the residual computation and satisfy the integral condition by construction. The residual
+is therefore considered only to be
+r = K(x)∂2p(x)
+∂x2
+1
++ ∂K(x)
+∂x1
+∂p(x)
+∂x1
++ K(x)∂2p(x)
+∂x2
+2
++ ∂K(x)
+∂x2
+∂p(x)
+∂x2
++ f(x) ,
+(32)
+following Eq. 27. This residual is a function of the spatial coordinate x and can be approximated at each point in the
+computational domain given K(x) and p(x). However, when applying physical consistency steps according to Eq. 21,
+we apply the residual gradient only to pressure fields, avoiding direct updates of the permeability field.
+When solving the Darcy flow equations as outlined above, the gradients ∂p/∂x1 = 0 and ∂p/∂x2 = 0 are approxi-
+mately satisfied on the domain boundaries by construction of the linear system. However, in computing the residual,
+we must compute gradients on these boundaries. We therefore use second order forward and backward difference
+approximations to the first and second order derivatives on the boundaries to compute the residual. This facilitates
+approximating the residual on both data generated by solving the linear system Ap = f and samples obtained from
+the generative model by solving the reverse SDE.
+4.3
+Physically-Consistent Unconditional Generative Model
+Constraining generated samples to follow physical equations as described in Sec. 3 is quite flexible and inherently
+contains hyperparameters which can be set and altered after training. In particular, the number of discrete time steps
+τ used in the solver, the number of residual minimization steps N prior to T = 0, and the number of residual
+minimization steps M after solving the reverse SDE or reverse PF ODE all play an important role in enforcing the
+physical laws which samples are to follow. We demonstrate our method of enforcing physical consistency by training
+an unconditional generative model on the Darcy flow training dataset with dimensionality s = 16.
+4.3.1
+Training
+Our unconditional model architecture is illustrated as the left side of Fig 2. Each of the components labeled with
+parameters ϕ constitute the unconditional generative model. Additional architectural, training, and hyperparameter
+details are provided in Sec. B of the included supplementary materials.
+4.3.2
+Physically-Consistent Sampling
+After training, the sampling process is quite flexible as discussed in 3.3. Sampling amounts to solving Eq. 3 or 6
+backwards in time augmented with physical consistency steps, but the particular method of solving has a large impact
+on the quality of the final samples at t = 0. We investigate the effect that each equation and various combinations of
+hyperparameters have on the average physical residual for generated samples.
+Higher-order solvers can also be used to provide gains in sampling efficiency [50], but is outside the scope of this
+work. Instead, we aim to minimize sample residuals without an initial emphasis on sampling efficiency. The use of
+physical consistency steps defined in Sec. 3.3 along with the number of time steps used to solve either the reverse SDE
+or PF ODE constitute our investigation into reducing the physical residual of generated samples.
+In terms of computational cost, the physical residuals are computed using finite differences, which are relatively
+inexpensive compared to the cost of the forward pass of the diffusion model. On an Nvidia A6000 GPU, the average
+time taken for solving one PF ODE step with a batch size of one is approximately 3.1 × 10−3 seconds, while the
+average time taken for evaluating the physical residual is about 1.5 × 10−5 seconds. The SDE formulation used in
+this work takes O(1000) steps in the reverse sampling process. However, there are other SDE formulations [51] with
+straightened flow trajectories that can significantly reduce the number of sampling steps required. These alternative
+formulations can achieve comparable performance with fewer iterations, thereby enhancing computational efficiency
+without sacrificing accuracy.
+When implementing physical consistency steps to reduce the PDE operator residual, we exclusively apply the steps to
+the pressure component of the samples. This deliberate choice ensures that no adjustments are made to the permeability
+10
+
+CoCoGen
+A PREPRINT
+field. Since the pressure field is a deterministic function of the permeability field, we refrain from directly modifying
+the permeability field generated by the model. Instead, we allow the model to fully generate the permeability field
+without interference.
+Sampling is performed by varying τ, N, and M and solving either the PF ODE or the reverse SDE to generate a
+synthetic dataset of 1,000 samples. For each dataset, the average physical residual is computed as outlined in Sec. 4.2.
+The primary results of this experiment are illustrated in Fig. 3, where pD(x) denotes the training data distribution and
+pS(x) denotes the distribution of 1,000 samples generated according to the indicated method.
+Figure 3: Darcy flow equations are enforced through physical consistency sampling. Hyperparameters τ, N, and M
+as well as the sampling equation have a large impact on physical residuals.
+Initially, we observe that the choice of the number of discrete timesteps τ is crucial when employing the Euler-
+Maruyama method for solving the reverse SDE or the forward Euler method for solving the PF ODE. Insufficiently
+small values of τ result in high errors in approximating the dynamics described by Eqs. 18 and 19, leading to sub-
+optimal sampling quality and increased physical residuals. In both scenarios, solving either the reverse SDE or PF
+ODE with a value of τ which is too small renders physical consistency enforcement incapable of reducing residuals in
+generated samples to match the quality of the training dataset.
+However, with a sufficiently large value of τ, physical consistency can effectively reduce residuals on the generated
+datasets to be equal to or even lower than those in the training dataset. In the context of solving the reverse SDE, the
+stochastic nature of the process necessitates large numbers of physical consistency steps to reduce residuals towards the
+training dataset levels. However, when solving the PF ODE, relatively fewer physical consistency steps are required.
+The PF ODE generally yields significantly smaller residuals on generated samples compared to the reverse SDE,
+regardless of the presence of physical consistency steps. The additional noise provided by solving the reverse SDE
+may be beneficial in some cases in which the importance of diversity may outweigh that of fidelity. However, in many
+physical problems where fidelity is paramount, the PF ODE emerges as the superior choice.
+The minimum number of PDE operator evaluations needed to achieve a generated dataset residual less than or equal
+to that of the training set was attained by solving the PF ODE with τ = 2000, M = 1, and N = 3, resulting in a total
+of 4 evaluations.
+We observe that the number of physical consistency steps, denoted as N, preceding the time t = 0 serves a dual
+purpose beyond reducing the physical residual. As mentioned, we exclusively apply physical consistency steps to
+pressure fields. Given that the score function approximation jointly predicts the score functions for both pressure and
+permeability fields, a correlation emerges in the denoising process for each field. Consequently, directly modifying
+11
+
+CoCoGen
+A PREPRINT
+(a) N = 0
+(b) N = 50
+Figure 4: Physical consistency steps applied only to pressure fields provide a denoising effect on permeability fields
+while reducing the physical residual. Samples are obtained by solving the reverse SDE using EM solver with τ = 2000
+time steps and M = 0 additional physical consistency steps.
+the pressure field during the reverse process indirectly influences the permeability field through the score function pre-
+diction. This, in turn, produces a denoising effect on the permeability fields while concurrently reducing the physical
+residual. Figure 4 illustrates the denoising effect that physical consistency steps have on pressure and permeability
+fields. Applying physical consistency steps provides two main benefits: encouraging generated samples to follow the
+physical equations of interest as well providing a denoising effect during sampling. Such benefits are not exclusive to
+unconditional models and can also be applied to conditional sample generation for forward and inverse problems.
+5
+Conditional Generation
+Conditional generative models hold immense potential in physics-based applications, offering versatile utility in vari-
+ous tasks such as field prediction, uncertainty quantification, and field reconstruction. Their broad range of applications
+makes it advantageous to train a single unconditional generative model that can be leveraged by numerous conditional
+models.
+For instance, in the context of field prediction, conditional generative models can be trained to generate specific fields
+based on various input conditions such as generative parameters, boundary conditions, partial field measurements,
+or other relevant factors, effectively solving a forward prediction problem. This allows for the flexible generation of
+fields tailored to specific scenarios. Field reconstruction involves the task of reconstructing a complete field based on
+partial or incomplete information, and constitutes a reverse problem. Conditional generative models can be trained
+to reconstruct fields by leveraging available data and conditioning information, offering a powerful tool in scenarios
+where complete field data may be limited or noisy. In both cases of solving a forward or inverse problem, physical
+consistency sampling ensures that all predictions will adhere to the underlying physical behavior governed by the PDE.
+The advantage of training a single unconditional generative model lies in its ability to capture the underlying distribu-
+tion of the data. This model can then be flexibly adapted for various conditional tasks, eliminating the need to train
+12
+
+CoCoGen
+A PREPRINT
+separate models for each specific condition. This approach not only streamlines the training process but also facilitates
+efficient model reuse across a diverse set of applications.
+We train two separate conditional augmentations on the Darcy flow dataset with s = 16, each of which are connected
+to the unconditional model architecture as illustrated in Fig. 2. The conditional portion of the model (blue) can be
+removed from the overall architecture to leave behind an unconditional model. This renders it easy to add or remove
+different conditional augmentations to the same pretrained unconditional model. We copy the same unconditional
+model trained in Sec. 4, and train two separate augmentations as described in Sec. 3.2: one for pressure and per-
+meability field prediction from the underlying generative parameters of the permeability field and one for pressure /
+permeability field reconstruction from partial pressure measurements.
+5.1
+Conditional Field Generation from Generative Parameters
+We illustrate the first application for conditional generative models as that of surrogate modeling, a forward problem. A
+conditional augmentation is trained with a baseline unconditional model on the Darcy flow dataset with an underlying
+dimensionality of s = 256. The conditioning input θ ∈Rs are the parameters θ determining the permeability field
+in Eq. 26. The conditional generative model will output samples from p(y|θ), given the particular parameterization.
+As data samples x are determined by an injective mapping G(θ) : Rs →Rn2, the true conditional p.d.f. is zero
+everywhere except y = G(θ).
+The training procedure is outlined in Sec. 3.2, and additional details are included in Sec. C.1 of the included supple-
+mentary materials. In this case, the three control encoding blocks in Fig 2 are identical in structure to the encoding
+blocks of the unconditional U-Net [40] with the exception of a zero-convolution at the output of each block. The input
+to the first control encoding block must therefore be the same shape as the noisy inputs y(t). To achieve this, the
+condition encoder consists of linear layers which encode the conditioning from Rs to Rn2 and reshape it to be directly
+summed with y(t).
+After training, sampling is performed using conditions θ from a separate test set which were not present in the training
+data. We sampling with physical consistency enforcement by solving the PF ODE with τ = 2000, N = 50, and
+M = 10. Both qualitative and quantitative reconstructions are provided in Fig 5, illustrating accurate predictions for
+both pressure and permeability fields from the underlying parameterization of the permeability field. Predictions on
+the test set result in an average L2-norm of 7.0 × 10−4 on pressure field predictions and 6 × 10−4 on permeability
+field predictions. We note that prediction is performed by drawing a single sample from p(y|θ) for each value of θ in
+the test set.
+5.2
+Conditional generation for temporal PDE
+To ensure broader applicability of the method, the 1D Burgers equation is considered as a representative example of a
+Hyperbolic PDE:
+∂u
+∂t + u∂u
+∂x = ν ∂2u
+∂x2 ,
+(33)
+where u is the velocity field, ν is the viscosity coefficient, and x is the spatial coordinate. Spatially periodic boundary
+conditions are used and the initial condition is assumed to be a superposition of sinusoidal waves, using the formulation
+provided in PDEBench [52]:
+u0(x) =
+X
+ki=k1,...,kN
+Ai sin(ki + ϕi),
+(34)
+where Ai is the amplitude, selected from a uniform distribution [0, 1], ki is the wave number, with kmax = 8, N = 2,
+and ϕi is the phase, selected from a uniform distribution [0, 2π].
+The dataset is generated based on the script provided in PDEBench [52] with ν = 0.01. The grid size is 64, and time
+step 0.01 for 64 steps. The dataset can be interpreted as time slabs rather than time steps, thus treated as 2D data, with
+spatial and temporal dimensions. We select the conditioning input, θ, to be the initial condition, u0(x), and the target
+output, y, to be the velocity field at each time step, u(x, t). This formulation is analogous to solving the PDE with the
+initial and boundary conditions.
+The discretized residual equation of the 1D Burgers equation can be written as:
+ri,j = ui,j+1 −ui,j−1
+2∆t
++ ui,j
+ui+1,j −ui−1,j
+2∆x
+−ν ui+1,j −2ui,j + ui−1,j
+∆x2
+(35)
+13
+
+CoCoGen
+A PREPRINT
+Figure 5: Samples from a conditional model trained on Darcy flow data (s = 256) where the conditional augmentation
+takes permeability field generative parameters as input.
+Similar to the residual computation for the Darcy flow problem, the time derivatives at the boundaries are calculated
+using second-order forward and backward finite differences. For temporal problems, the time step used in the simula-
+tion may be different from the time step in the dataset, thus, the computed residual may not be precisely zero. In this
+example, we pick the residual step size, ϵ, to be 5 × 10−3 and vary the number of physical consistency steps from 0 to
+500 with changing M from 0 to 5.
+14
+
+CoCoGen
+A PREPRINT
+Figure 6: Comparison of the conditional generation results for the 1D Burgers equation. The top row shows the
+generated velocity field with 18 physical consistency steps, and the bottom row shows the ground truth velocity field.
+The eight initial conditions are randomly selected from the test dataset.
+The dataset consists of 10,000 simulations, with a split ratio of 0.7:0.2:0.1 for training, validation, and testing. The
+diffusion model employs the classifier-free guidance [53] for handling the conditioning input. For details of the
+implementation and the training procedure, please refer to the Appendix C.2.
+Fig 6 shows the conditional generation results for the 1D Burgers equation. The eight initial conditions are randomly
+selected from the test dataset. The results demonstrate that the model can accurately generate the velocity field,
+indicating that the model effectively captures the underlying advection and diffusion processes. The L1 norm of the
+residual, computed from the difference between the generated velocity field and the ground truth, is shown in Fig 7.
+The sampled solution can capture the sharp interface of the shock wave, and the residual is mainly due to the position of
+the shock wave. Since the velocity profiles at each time step are generated simultaneously, the errors do not propagate
+over the temporal dimension over the given time steps. This property could help stabilize the unrolled prediction for
+future time steps by using the last time step as the conditioning input.
+15
+
+CoCoGen
+A PREPRINT
+Figure 7: L1 norm of the residual of the eight selected simulations for the 1D Burgers equation with 18 physical
+consistency steps.
+Table 1: Comparison of RMSE and physical residual for the 1D Burgers equation using CoCoGen with different
+numbers of physical consistency steps.
+Phy. Steps
+0
+100
+200
+300
+400
+500
+RMSE
+3.69E-2
+3.46E-2
+3.45E-2
+3.46E-2
+3.51E-2
+3.61E-2
+Phy. Res.
+8.84
+7.52
+7.25
+6.95
+6.60
+6.24
+Table 2: Comparison of RMSE for the 1D Burgers equation using U-Net, FNO, and PINN.
+Model
+U-Net
+1 [52]
+FNO
+1 [52]
+PINN
+1 [52]
+RMSE
+9.7E-2
+6.4E-3
+5.3E-1
+Tab 1 presents the comparison of the root mean square error (RMSE) and physical residual for the 1D Burgers equation
+with different numbers of physical consistency steps. In this example, performing more physical consistency steps
+reduces the physical residual and slightly improves the RMSE. Tab 2 shows the RMSE of three baselines models
+reported in PDEBench [52]. The RMSE of the proposed model is comparable to these autoregressive baseline models.
+The dataset used in this example is generated from the same script but with a smaller spatial grid size and fewer time
+steps. The RMSE of the baseline models is computed from single-step predictions, whereas the diffusion model can
+be viewed as performing 63 steps of unrolled prediction simultaneously. The results indicate that the diffusion model
+could potentially provide a new perspective for performing forward tasks for temporal PDEs.
+5.2.1
+Conditional Field Inversion and Reconstruction with Sparse Measurements
+In addition to solving forward problems, we also illustrate the application of score-based generative models to solve
+inverse problems. We train a conditional augmentation to perform probabilistic field inversion and reconstruction
+from sparse measurements. The goal is to perform field inversion to obtain permeability field approximations and
+reconstruction to obtain pressure field approximations from only measurements of the pressure field. During training,
+we select a random number m of pressure sensors, place them randomly in the physical domain, and assume accurate
+pressure measurements at each location. These pressure measurements are taken as the conditioning variables θ such
+that we sample from p(y|θ) given the measurements. Further training details are provided in Sec. C.1 of the included
+supplementary materials.
+1Results taken from the autoregressive baseline models trained on 1D Burgers equation with ν = 0.01.
+16
+
+CoCoGen
+A PREPRINT
+Figure 8: Sampling from p(y|θ) where θ are m = 250 partial measurements of the pressure field. Samples are always
+consistent with the underlying PDE, even if prediction accuracy is low.
+Figure 9: Many samples can be drawn from p(y|θ), facilitating uncertainty quantification. The data sample (left) is
+compared to the expectation Ep(y|θ)[y] (center) and standard deviation (right) for both pressure (top) and permeability
+(bottom) fields.
+Figure 8 illustrates a single sample drawn from p(y|θ) along with the conditioning information (pressure measure-
+ments with m = 250 sensors) and ground truth. However, as the generative model provides the ability to sample
+from the conditional distribution, uncertainty quantification is possible when predicting the pressure and permeability
+17
+
+CoCoGen
+A PREPRINT
+fields. This is illustrated in Fig. 9, showing the mean and standard deviation of p(y|θ) compared to the true data
+sample. In reality, the conditional distribution is likely not a Gaussian distribution, but is very flexible due to the use of
+score-based generative models. We visualize only the mean and standard deviation in Fig. 9 for simplicity. In contrast
+to the surrogate modeling example in Sec. 5.1, it is difficult to guarantee that y is a deterministic function of θ. For
+example, consider a case in which a single pressure measurement is given. There exists no unique solution to the
+entire pressure and permeability fields which will exhibit the correct pressure at the single sensor location. Therefore,
+uncertainty quantification may be very useful in a real-world situation to determine the reliability or capacity of the
+current measurements to fully determine the physical fields. Further, as sampling is always performed with physical
+consistency enforcement (PF ODE, τ = 2000, N = 50, M = 10), all samples will approximately adhere to the
+governing PDE.
+Figure 10: Generating conditional samples with physical consistency enforcement for field inversion and reconstruc-
+tion with sparse measurements (m = 250) has minimal impact on reconstruction / inversion errors while improving
+sample consistency with the physical PDE.
+In an effort to quantify the average field reconstruction error for the case illustrated in Fig. 8, we apply the same
+m = 250 pressure measurements to each of the 1,000 cases in the test set, predict the pressure and permeability fields,
+and measure the error. The pressure reconstruction error is computed as Ep(x|θ)[∥P −ˆP∥2
+2], and the permeability
+reconstruction error is computed as Ep(x|θ)[∥K −ˆK∥2
+2]. The pressure field approximation ˆP and permeability field
+approximation ˆK are compared to the true pressure P and permeability K fields. This expectation is approximated
+by sampling only a single time from p(x|θ), essentially sampling from the model a single time for each data sample.
+Although Fig. 9 illustrates that uncertainty may be high in p(x|θ), we use this as an illustrative example which does
+not require a thorough estimation of the expectation.
+Our first objective is to illustrate the effect that physical consistency sampling has on the reconstructive performance of
+the model. Figure 10 shows that as the number of physical consistency steps N is increased, there is nearly zero effect
+on the reconstructive performance until a large number of steps are used. Even then, in the worst case investigated,
+only a 2% increase in pressure reconstruction error is observed while permeability reconstruction remains constant.
+However, notably the physical residual decreases consistently with increasing number of physical consistency steps.
+This shows that physics can be enforced without negatively impacting the reconstructive performance on the model,
+even though physics are not enforced during training. One possible explanation for this is that the measurements
+themselves are included as conditioning. Although PDE information is not included at training time, the measurement
+information is. As the sampling process is performed, iteratively passing the sample through the score estimation
+model, physical consistency steps will ultimately result in small changes to the sample before the sampling process is
+complete. The samples including these small changes are then input into the score estimation function along with the
+measurement information as conditioning, allowing the model to adapt itself to the small changes caused by physical
+consistency sampling. In effect, this facilitates the reduction of residuals while maintaining constant reconstruction
+error.
+18
+
+CoCoGen
+A PREPRINT
+(a) Reconstruction errors.
+(b) Physical residuals.
+Figure 11: Our method greatly outperforms a POD-based method on field inversion and reconstruction from sparse
+measurements in terms of reconstruction error and physical residual. Sampling for our method is performed with
+physical consistency by solving the PF ODE with τ = 2000, N = 50 and M = 10.
+Solving the inverse problem using score-based generative models is further investigated by comparing it to a more
+established method of reconstructing data from measurements using a basis Ψ obtained by performing proper orthog-
+onal decomposition (POD) on the training dataset. Given a measurement matrix P and partial field measurements
+q, the full field is reconstructed by approximating the reconstruction in terms of the basis Ψ. This approximate re-
+construction is computed as ˆy = Ψ[PΨ]†q [54, 55]. The aim of comparison is to illustrate the effect that physical
+consistency sampling has on predictions when compared to another method. Here, we investigate the reconstructive
+performance of each method as a function of the number of pressure measurements taken, but also illustrate the av-
+erage physical residual of reconstructions as a function of the number of measurements. Figure 11a shows that for
+more sparsely sampled measurements, the score-based generative model is able to more accurately reconstruct both
+pressure and permeability fields. As there are no permeability measurements taken, the POD-based method cannot
+accurately reconstruct the permeability field, even in the limit of measuring the entire pressure field. However, this
+method does approach perfect reconstruction of the pressure field as the entire field is measured, while the score-based
+model does not. Regardless of the number of measurements taken, Fig. 11b clearly shows that the score-based model
+with physical consistency sampling reliably produces samples which adhere to the physical PDE while the POD-based
+method produces predictions with orders of magnitude higher residuals.
+This particular example is intended to illustrate the potential for score-based generative models with physical con-
+sistency sampling in solving inverse problems, not to compare against advanced solutions. Whether the conditional
+distribution p(x|θ) has little uncertainty as in the forward problem demonstrated in Sec. 5.1 or is quite uncertain as in
+the case of few measurements here, generates samples will follow adhere to the underlying PDE.
+6
+Conclusions
+Our work establishes a robust framework for developing score-based generative models that faithfully adhere to gov-
+erning physical equations. Through the integration of physical consistency sampling and conditional score-based gen-
+erative models, we present a versatile tool with potential for application to various tasks from the domain of physics.
+Key insights gleaned from our study underscore the importance of physical consistency sampling. Termed CoCo-
+Gen - signifying physical consistency and conditioning - this method consistently produces small residuals across
+diverse applications, alleviating the need for meticulous fine-tuning of architectures and hyperparameters for specific
+problems to achieve a similar effect. Leveraging the probability flow ordinary differential equation (PF ODE) con-
+tributes to smaller physical residuals over solver the reverse SDE, and adjusting the number of physical consistency
+steps N not only reduces residuals of generated samples but also effectively mitigates noise, even on unaltered fields.
+However, proper hyperparameter tuning is still important, as an excessively small value for parameter τ can impede
+achieving small physical residuals even with physical consistency sampling. When appropriately configured, physical
+consistency sampling ensures that all generated samples align faithfully with the governing equations, irrespective of
+reconstruction error, preventing the model from predicting non-physical scenarios in a conditional or unconditional
+19
+
+CoCoGen
+A PREPRINT
+setting. We expect that more advanced methods of solving the reverse SDE or probability flow ODE may provide
+additional benefits in terms of minimizing residuals, especially when combined with physical consistency sampling.
+For the 1D Burgers equation, we considered time slabs of data and showed that low levels of error can be achieved
+compared to benchmark methods. For long time prediction, the last time step can be used as the conditioning input
+and unrolled predictions can be performed for future time steps.
+The versatility of score-based generative models is evident in their capacity to address both forward and inverse
+problems. Physical consistency sampling further guarantees that all predictions are, at the very least, physically
+plausible. Remarkably, this framework does not compromise prediction performance in terms of accuracy; instead,
+it systematically reduces physical residuals, affirming its efficacy over baseline sampling methods. In the Darcy
+flow example, the pressure field in the reverse process indirectly affects the permeability field via the score function
+estimation. This is shown to de-noise permeability fields and simultaneously lowers the physical residual.
+In essence, our work provides a flexible framework for leveraging score-based generative models in physics-based
+applications. Looking forward, we believe that the insights and methodologies presented herein pave the way for
+further exploration and application of score-based generative models in addressing several scientific machine learning
+tasks.
+References
+[1] D. Kingma, M. Welling, Auto-Encoding Variational Bayes, International Conference on Learning Representa-
+tions (12 2013).
+[2] D. J. Rezende, S. Mohamed, D. Wierstra, Stochastic backpropagation and approximate inference in deep gen-
+erative models, in: E. P. Xing, T. Jebara (Eds.), Proceedings of the 31st International Conference on Machine
+Learning, Vol. 32 of Proceedings of Machine Learning Research, PMLR, Bejing, China, 2014, pp. 1278–1286.
+URL https://proceedings.mlr.press/v32/rezende14.html
+[3] C. Jacobsen, K. Duraisamy, Disentangling generative factors of physical fields using variational autoencoders,
+Frontiers in Physics 10 (2022). doi:10.3389/fphy.2022.890910.
+URL https://www.frontiersin.org/articles/10.3389/fphy.2022.890910
+[4] H. Larochelle, I. Murray, The neural autoregressive distribution estimator, in: G. Gordon, D. Dunson, M. Dud´ık
+(Eds.), Proceedings of the Fourteenth International Conference on Artificial Intelligence and Statistics, Vol. 15
+of Proceedings of Machine Learning Research, PMLR, Fort Lauderdale, FL, USA, 2011, pp. 29–37.
+URL https://proceedings.mlr.press/v15/larochelle11a.html
+[5] M. Germain, K. Gregor, I. Murray, H. Larochelle, Made: Masked autoencoder for distribution estimation, in:
+F. Bach, D. Blei (Eds.), Proceedings of the 32nd International Conference on Machine Learning, Vol. 37 of
+Proceedings of Machine Learning Research, PMLR, Lille, France, 2015, pp. 881–889.
+URL https://proceedings.mlr.press/v37/germain15.html
+[6] A. van den Oord, N. Kalchbrenner, K. Kavukcuoglu, Pixel recurrent neural networks, in: M. F. Balcan, K. Q.
+Weinberger (Eds.), Proceedings of The 33rd International Conference on Machine Learning, Vol. 48 of Proceed-
+ings of Machine Learning Research, PMLR, New York, New York, USA, 2016, pp. 1747–1756.
+URL https://proceedings.mlr.press/v48/oord16.html
+[7] Y. Lecun, S. Chopra, R. Hadsell, M. Ranzato, F. Huang, A tutorial on energy-based learning, MIT Press, Cam-
+bridge, 2006.
+[8] Y. Song, D. P. Kingma, How to train your energy-based models (2021). arXiv:2101.03288.
+URL https://arxiv.org/abs/2101.03288
+[9] D. Rezende, S. Mohamed, Variational inference with normalizing flows, in: F. Bach, D. Blei (Eds.), Proceed-
+ings of the 32nd International Conference on Machine Learning, Vol. 37 of Proceedings of Machine Learning
+Research, PMLR, Lille, France, 2015, pp. 1530–1538.
+URL https://proceedings.mlr.press/v37/rezende15.html
+[10] L. Dinh, D. Krueger, Y. Bengio, Nice: Non-linear independent components estimation (2015). arXiv:1410.
+8516.
+URL https://arxiv.org/abs/1410.8516v6
+[11] L. Dinh, J. Sohl-Dickstein, S. Bengio, Density estimation using real NVP, in: International Conference on
+Learning Representations, 2017.
+URL https://openreview.net/forum?id=HkpbnH9lx
+20
+
+CoCoGen
+A PREPRINT
+[12] I. Goodfellow, J. Pouget-Abadie, M. Mirza, B. Xu, D. Warde-Farley, S. Ozair, A. Courville, Y. Bengio,
+Generative adversarial nets, in: Z. Ghahramani, M. Welling, C. Cortes, N. Lawrence, K. Weinberger (Eds.),
+Advances in Neural Information Processing Systems, Vol. 27, 2014.
+URL
+https://proceedings.neurips.cc/paper_files/paper/2014/file/
+5ca3e9b122f61f8f06494c97b1afccf3-Paper.pdf
+[13] K. Chwialkowski, H. Strathmann, A. Gretton, A kernel test of goodness of fit, in: M. F. Balcan, K. Q. Wein-
+berger (Eds.), Proceedings of The 33rd International Conference on Machine Learning, Vol. 48 of Proceedings
+of Machine Learning Research, PMLR, New York, New York, USA, 2016, pp. 2606–2615.
+URL https://proceedings.mlr.press/v48/chwialkowski16.html
+[14] Y. Song, J. Sohl-Dickstein, D. P. Kingma, A. Kumar, S. Ermon, B. Poole, Score-based generative modeling
+through stochastic differential equations, in: International Conference on Learning Representations, 2021.
+URL https://openreview.net/forum?id=PxTIG12RRHS
+[15] J. Ho, A. Jain, P. Abbeel, Denoising diffusion probabilistic models, in: H. Larochelle, M. Ranzato, R. Hadsell,
+M. Balcan, H. Lin (Eds.), Advances in Neural Information Processing Systems, Vol. 33, 2020, pp. 6840–6851.
+URL
+https://proceedings.neurips.cc/paper_files/paper/2020/file/
+4c5bcfec8584af0d967f1ab10179ca4b-Paper.pdf
+[16] Y. Song, S. Ermon, Generative modeling by estimating gradients of the data distribution, in: H. Wallach,
+H. Larochelle, A. Beygelzimer, F. d'Alch´e-Buc, E. Fox, R. Garnett (Eds.), Advances in Neural Information
+Processing Systems, Vol. 32, 2019.
+URL
+https://proceedings.neurips.cc/paper_files/paper/2019/file/
+3001ef257407d5a371a96dcd947c7d93-Paper.pdf
+[17] Y. Xu, Z. Liu, M. Tegmark, T. S. Jaakkola, Poisson flow generative models, in: A. H. Oh, A. Agarwal, D. Bel-
+grave, K. Cho (Eds.), Advances in Neural Information Processing Systems, 2022.
+URL https://openreview.net/forum?id=voV_TRqcWh
+[18] Y. Xu, Z. Liu, Y. Tian, S. Tong, M. Tegmark, T. Jaakkola, Pfgm++: Unlocking the potential of physics-inspired
+generative models (2023). arXiv:2302.04265.
+URL https://arxiv.org/abs/2302.04265
+[19] D. Kim, C.-H. Lai, W.-H. Liao, N. Murata, Y. Takida, T. Uesaka, Y. He, Y. Mitsufuji, S. Ermon, Consistency
+trajectory models: Learning probability flow ode trajectory of diffusion (2023). arXiv:2310.02279.
+URL https://arxiv.org/abs/2310.02279
+[20] J. Austin, D. D. Johnson, J. Ho, D. Tarlow, R. van den Berg, Structured denoising diffusion models in discrete
+state-spaces, in: A. Beygelzimer, Y. Dauphin, P. Liang, J. W. Vaughan (Eds.), Advances in Neural Information
+Processing Systems, 2021.
+URL https://openreview.net/forum?id=h7-XixPCAL
+[21] X. L. Li, J. Thickstun, I. Gulrajani, P. Liang, T. Hashimoto, Diffusion-LM improves controllable text generation,
+in: A. H. Oh, A. Agarwal, D. Belgrave, K. Cho (Eds.), Advances in Neural Information Processing Systems,
+2022.
+URL https://openreview.net/forum?id=3s9IrEsjLyk
+[22] S. Gong, M. Li, J. Feng, Z. Wu, L. Kong, Diffuseq: Sequence to sequence text generation with diffusion models,
+in: The Eleventh International Conference on Learning Representations, 2023.
+URL https://openreview.net/forum?id=jQj-_rLVXsj
+[23] X. Han, S. Kumar, Y. Tsvetkov, Ssd-lm: Semi-autoregressive simplex-based diffusion language model for text
+generation and modular control, ACL: Annual Meeting of the Association for Computational Linguistics.
+URL https://par.nsf.gov/biblio/10433150
+[24] C. Saharia, J. Ho, W. Chan, T. Salimans, D. J. Fleet, M. Norouzi, Image super-resolution via iterative refinement,
+IEEE Transactions on Pattern Analysis and Machine Intelligence 45 (4) (2023) 4713–4726. doi:10.1109/
+TPAMI.2022.3204461.
+[25] A. Lugmayr, M. Danelljan, A. Romero, F. Yu, R. Timofte, L. Van Gool, Repaint: Inpainting using denoising
+diffusion probabilistic models, in: 2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR), 2022, pp. 11451–11461. doi:10.1109/CVPR52688.2022.01117.
+[26] C. Saharia, W. Chan, H. Chang, C. Lee, J. Ho, T. Salimans, D. Fleet, M. Norouzi, Palette: Image-to-image diffu-
+sion models, in: ACM SIGGRAPH 2022 Conference Proceedings, SIGGRAPH ’22, Association for Computing
+Machinery, New York, NY, USA, 2022. doi:10.1145/3528233.3530757.
+URL https://doi.org/10.1145/3528233.3530757
+21
+
+CoCoGen
+A PREPRINT
+[27] J. Xu, S. Liu, A. Vahdat, W. Byeon, X. Wang, S. D. Mello, Open-vocabulary panoptic segmentation with text-to-
+image diffusion models, in: 2023 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR),
+IEEE Computer Society, Los Alamitos, CA, USA, 2023, pp. 2955–2966. doi:10.1109/CVPR52729.2023.
+00289.
+URL https://doi.ieeecomputersociety.org/10.1109/CVPR52729.2023.00289
+[28] R. Rombach, A. Blattmann, D. Lorenz, P. Esser, B. Ommer, High-resolution image synthesis with latent diffusion
+models, in: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, 2022, pp.
+10684–10695.
+[29] A. Ramesh, P. Dhariwal, A. Nichol, C. Chu, M. Chen, Hierarchical text-conditional image generation with clip
+latents (2022). arXiv:2204.06125.
+URL https://arxiv.org/abs/2204.06125
+[30] A. Nichol, P. Dhariwal, A. Ramesh, P. Shyam, P. Mishkin, B. McGrew, I. Sutskever, M. Chen, Glide: Towards
+photorealistic image generation and editing with text-guided diffusion models, in: International Conference on
+Machine Learning, 2022.
+[31] N. Ruiz, Y. Li, V. Jampani, Y. Pritch, M. Rubinstein, K. Aberman, Dreambooth: Fine tuning text-to-image
+diffusion models for subject-driven generation (2022).
+URL https://arxiv.org/abs/2208.12242
+[32] M. A. Lvmin Zhang, Anyi Rao, Adding conditional control to text-to-image diffusion models, in: International
+Conference on Computer Vision, 2023.
+[33] J. Guan, W. W. Qian, X. Peng, Y. Su, J. Peng, J. Ma, 3d equivariant diffusion for target-aware molecule generation
+and affinity prediction, in: The Eleventh International Conference on Learning Representations, 2023.
+URL https://openreview.net/forum?id=kJqXEPXMsE0
+[34] S. Luo, Y. Su, X. Peng, S. Wang, J. Peng, J. Ma, Antigen-specific antibody design and optimization with
+diffusion-based generative models for protein structures, in: A. H. Oh, A. Agarwal, D. Belgrave, K. Cho (Eds.),
+Advances in Neural Information Processing Systems, 2022.
+URL https://openreview.net/forum?id=jSorGn2Tjg
+[35] Y. Song, L. Shen, L. Xing, S. Ermon, Solving inverse problems in medical imaging with score-based generative
+models, in: International Conference on Learning Representations, 2022.
+URL https://openreview.net/forum?id=vaRCHVj0uGI
+[36] H. Chung, J. C. Ye, Score-based diffusion models for accelerated mri, Medical Image Analysis 80 (2022) 102479.
+doi:https://doi.org/10.1016/j.media.2022.102479.
+URL https://www.sciencedirect.com/science/article/pii/S1361841522001268
+[37] A. Krizhevsky, Learning multiple layers of features from tiny images, 2009.
+URL https://api.semanticscholar.org/CorpusID:18268744
+[38] L. Yang, Z. Zhang, Y. Song, S. Hong, R. Xu, Y. Zhao, W. Zhang, B. Cui, M.-H. Yang, Diffusion models: A
+comprehensive survey of methods and applications, ACM Comput. Surv. 56 (4) (nov 2023). doi:10.1145/
+3626235.
+URL https://doi.org/10.1145/3626235
+[39] G. Yang, S. Sommer, A denoising diffusion model for fluid field prediction (2023). arXiv:2301.11661.
+URL https://arxiv.org/abs/2301.11661
+[40] O. Ronneberger, P. Fischer, T. Brox, U-net: Convolutional networks for biomedical image segmentation, in:
+N. Navab, J. Hornegger, W. M. Wells, A. F. Frangi (Eds.), Medical Image Computing and Computer-Assisted
+Intervention – MICCAI 2015, Springer International Publishing, Cham, 2015, pp. 234–241.
+[41] M. Raissi, P. Perdikaris, G. Karniadakis, Physics-informed neural networks: A deep learning framework for
+solving forward and inverse problems involving nonlinear partial differential equations, Journal of Computational
+Physics 378 (2019) 686–707. doi:https://doi.org/10.1016/j.jcp.2018.10.045.
+URL https://www.sciencedirect.com/science/article/pii/S0021999118307125
+[42] D. Shu, Z. Li, A. Barati Farimani, A physics-informed diffusion model for high-fidelity flow field reconstruc-
+tion, Journal of Computational Physics 478 (2023) 111972. doi:https://doi.org/10.1016/j.jcp.2023.
+111972.
+URL https://www.sciencedirect.com/science/article/pii/S0021999123000670
+[43] G. Parisi, Correlation functions and computer simulations, Nuclear Physics B 180 (3) (1981) 378–384. doi:
+https://doi.org/10.1016/0550-3213(81)90056-0.
+URL https://www.sciencedirect.com/science/article/pii/0550321381900560
+22
+
+CoCoGen
+A PREPRINT
+[44] U. Grenander, M. I. Miller, Representations of knowledge in complex systems, Journal of the Royal Statistical
+Society. Series B (Methodological) 56 (4) (1994) 549–603.
+URL http://www.jstor.org/stable/2346184
+[45] Y. Song, Estimating gradients of the data distribution (05 2021).
+URL https://yang-song.net/blog/2021/score/
+[46] B. D. Anderson, Reverse-time diffusion equation models, Stochastic Processes and their Applications 12 (3)
+(1982) 313–326. doi:https://doi.org/10.1016/0304-4149(82)90051-5.
+URL https://www.sciencedirect.com/science/article/pii/0304414982900515
+[47] P. Vincent, A connection between score matching and denoising autoencoders, Neural Computation 23 (7) (2011)
+1661–1674. doi:10.1162/NECO_a_00142.
+[48] P. Kloeden, E. Platen, Numerical Solution of Stochastic Differential Equations, Stochastic Modelling and Ap-
+plied Probability, Springer Berlin, Heidelberg, 2011.
+[49] Y. Zhu, N. Zabaras, Bayesian Deep Convolutional Encoder–Decoder Networks for Surrogate Modeling and
+Uncertainty Quantification, Journal of Computational Physics 366 (2018) 415–447.
+[50] T. Karras, M. Aittala, T. Aila, S. Laine, Elucidating the design space of diffusion-based generative models, in:
+A. H. Oh, A. Agarwal, D. Belgrave, K. Cho (Eds.), Advances in Neural Information Processing Systems, 2022.
+URL https://openreview.net/forum?id=k7FuTOWMOc7
+[51] P. Esser, S. Kulal, A. Blattmann, R. Entezari, J. M¨uller, H. Saini, Y. Levi, D. Lorenz, A. Sauer, F. Boesel, et al.,
+Scaling rectified flow transformers for high-resolution image synthesis, arXiv preprint arXiv:2403.03206 (2024).
+[52] M. Takamoto, T. Praditia, R. Leiteritz, D. MacKinlay, F. Alesiani, D. Pfl¨uger, M. Niepert, Pdebench: An exten-
+sive benchmark for scientific machine learning, Advances in Neural Information Processing Systems 35 (2022)
+1596–1611.
+[53] J. Ho, T. Salimans, Classifier-free diffusion guidance, arXiv preprint arXiv:2207.12598 (2022).
+[54] S. Chaturantabut, D. C. Sorensen, Nonlinear model reduction via discrete empirical interpolation, SIAM Journal
+on Scientific Computing 32 (5) (2010) 2737–2764.
+[55] C. R. Wentland, K. Duraisamy, C. Huang, Scalable projection-based reduced-order models for large multiscale
+fluid systems, AIAA Journal 61 (10) (2023) 4499–4523.
+Appendix A
+Solving Darcy Flow with a Linear System
+Section 4.1 in the main text describes the construction of the linear system Ap = f to solve the Darcy flow equations
+for pressure using finite differences on a discretized computational domain. The matrix A is formed by constructing
+n2 + 1 equations for pressure values at n2 spatial locations in the computational domain. The equations are broken
+down into 4 categories: corner nodes, edge nodes, interior nodes, and integral enforcement.
+There are four corner equations corresponding to nodes 1, 1, n, 1, 1, n, and n, n. These equations are given by
+corner node 1, 1 : −K(x1,1)
+∆x2
+[2p(x2,1) −4p(x1,1) + 2p(x1,2)] = fs(x1,1)
+corner node n, 1 : −K(xn,1)
+∆x2
+[2p(xn−1,1) −4p(xn,1) + 2p(xn,2)] = fs(xn,1)
+corner node 1, n : −K(x1,n)
+∆x2
+[2p(x2,n) −4p(x1,n) + 2p(x1,n−1)] = fs(x1,n)
+corner node n, n : −K(xn,n)
+∆x2
+[2p(xn−1,n) −4p(xn,n) + 2p(xn,n−1)] = fs(xn,n)
+There are an additional 4(n −2) equations corresponding to nodes along edges which are not also corner nodes. The
+equations for each of these edges are given by
+edge i = 1 : −K(x1,j)
+∆x2
+[p(x1,j−1) −4p(x1,j) + p(x1,j+1) + 2p(x2,j)]
+−
+1
+2∆x[K(x1,j+1) −K(x1,j−1)][p(x1,j+1) −p(x1,j−1)] = fs(x1,j)
+23
+
+CoCoGen
+A PREPRINT
+edge i = n : −K(xn,j)
+∆x2
+[p(xn,j−1) −4p(xn,j) + p(xn,j+1) + 2p(xn−1,j)]
+−
+1
+2∆x[K(xn,j+1) −K(xn,j−1)][p(xn,j+1) −p(xn,j−1)] = fs(xn,j)
+edge j = 1 : −K(xi,1)
+∆x2
+[p(xi−1,1) −4p(xi,1) + p(xi+1,1) + 2p(xi,2)]
+−
+1
+2∆x[K(xi+1,1) −K(xi−1,1)][p(xi+1,1) −p(xi−1,1)] = fs(xi,1)
+edge j = n : −K(xi,n)
+∆x2
+[p(xi−1,n) −4p(xi,n) + p(xi+1,n) + 2p(xi,n−1)]
+−
+1
+2∆x[K(xi+1,n) −K(xi−1,n)][p(xi+1,n) −p(xi−1,n)] = fs(xi,n)
+A remaining (n −2)2 equations correspond to interior nodes (not on corners or edges) and are given by
+interior node i, j : −K(xi,j)
+∆x2
+[p(xi,j−1 + p(xi−1,j) −4p(xi,j) + p(xi+1,j) + p(xi,j+1)]
+−
+1
+2∆x[K(xi+1,j) −K(xi−1,j)][p(xi+1,j) −p(xi−1,j)]
+−
+1
+2∆x[K(xi,j+1) −K(xi,j−1)][p(xi,j+1) −p(xi,j−1)] = fs(xi,j)
+The final equation is formed by approximating the integral condition given in Eq. 22 of the main text using 2-
+dimensional trapezoidal rule. This equation is given by
+∆x2
+4
+"
+p(x1,1) + p(xn,1) + p(x1,n) + p(xn,n) + 2
+n−1
+X
+i=2
+p(xi,1) + 2
+n−1
+X
+i=2
+p(xi,n)
++2
+n−1
+X
+j=2
+p(x1,j) + 2
+n−1
+X
+j=2
+p(xn,j) + 4
+n−1
+X
+i=2
+n−1
+X
+j=2
+p(xi,j)
+
+= 0
+We do not provide the explicit form of the matrix A due to the large form of the matrix, but it can be easily constructed
+from the provided equations. The overdetermined system is solved through least squares minimization where the
+solution is given by p = (AT A)−1AT f.
+Appendix B
+Unconditional Model and Training Details
+Unconditional models for both the Darcy flow s = 16 and s = 256 datasets are identical in architecture and identical
+in training, containing 17.7M trainable parameters. We use a U-Net-type architecture consisting of convolution-based
+encoding and decoding layers described in the main text as the unconditional score-approximation model. This model
+is trained for 5000 epochs with a learning rate of 10−4 and batch size of 128. The SDE process which we employ is
+the variance-preserving SDE [14] with a linear β(t) function corresponding to βmin = 10−4, βmax = 10, and T = 1.
+The optimization took 24.5 hours to complete 200,000 optimization iterations on 4 NVIDIA A6000 GPUs, which is
+sufficient to achieve convergence. This time includes sampling a batch of 8 fields every 1,000 optimization steps with
+each batch of samples taking an average of 31 seconds to obtain.
+Appendix C
+Conditional Model and Training Details
+C.1
+Darcy flow and ControlNet
+The conditional model architectures are exemplified by the ControlNet-based architecture in the main text. Each
+conditional augmentation has a slightly different architecture due to the need for the condition encoder to accept
+various forms in input. However, training is performed in an identical way to the unconditional training in B.
+24
+
+CoCoGen
+A PREPRINT
+In the case of surrogate modeling, we use a condition encoder consisting of 3 linear layers followed by a reshaping
+operator and convolutional layers. The entire conditional augmentation in this case consists of 5.8M trainable param-
+eters, with the 17.7M parameters in the unconditional model frozen during training. This results in a total of 23.5M
+parameters in the model. The optimization took 11.6 hours to achieve convergence for a total of 100,000 optimization
+iterations, less than half as long as training the unconditional model.
+The ControlNet architecture for performing field reconstruction and inversion is identical to that of the surrogate model
+ControlNet with the exception of the condition encoder. Here, the condition encoder consists of 3 convolutional layers
+only as the conditioning data is of the same shape as the input data. This results in a conditional augmentation with
+5.7M trainable parameters, bringing the total parameters in the model to 23.4M including the frozen unconditional
+model. The optimization took 18.1 hours to achieve convergence for a total of 160,000 optimization iterations, a
+significant speedup over the unconditional model training.
+C.2
+1D Burgers equation and EDM
+The classifier-free guidance [53] demonstrates that the score function can be reformulated as follows when condition-
+ing on the input θ:
+∇x log pt(x(t)|θ) = γ ∇x log pt(x(t)|θ)
+|
+{z
+}
+conditional score
++(1 −γ) ∇x log pt(x(t))
+|
+{z
+}
+unconditional score
+(36)
+where γ is the conditional scale. In the 1D Burgers equation, we set γ = 1, and the original score function in the loss
+function is replaced by the conditional score function. For the 1D Burgers equation, the condition is the initial velocity
+profile, and the vector can be applied to the 2D channel via linear modulation with learnable coefficients.
+To generate samples that condition on the initial velocity profile, we solve the PF ODE for 1000 steps. We introduce
+the physical consistency step from steps 505 to 1000, with a interval of 5 steps, and we vary the number of physical
+consistency steps after the PF ODE step from 0 to 5. The diffusion model has the same depth and width as the model
+used for the Darcy flow problem. We train for 1,000 epochs with a batch size of 32 and a learning rate of 1 × 10−4
+using a cosine annealing and warm-up schedule.
+Appendix D
+Analytic Approximation to Conditional Sampling - Field Reconstruction and
+Inversion
+There exist a few special cases of conditional sampling in which it is possible to approximate conditional sampling
+after training only an unconditional generative model. Data imputation is one of such cases and attempts to predict
+or reconstruct unknown dimensions of data given some particular measured values of known dimensions. This is a
+conditional problem in which the aim is to sample from a conditional distribution in which conditioning information
+is the particular measured values ω of some known dimensions Ω(y(0)). The particular distribution to sample from
+is defined as p(z|Ω(x(0)) = ω), where ¯Ω(y(0)) = z corresponds to the unknown dimensions. Given a trained
+unconditional score-based generative model, an approximation to this conditional sampling can be performed without
+any need for further training [14]. In our experiments, we measure only Darcy flow pressure fields at various spatial
+locations. From these measurements, the entire pressure field is reconstructed and an inverse problem is effectively
+solved to also approximate the permeability field. The examples in this work are intended to illustrate a framework
+which can be applied to any number of physical systems, effectively using measurements to predict physical fields
+which are consistent with governing equations. Although we perform this procedure with a closed form approximation
+based on a pretrained unconditional model, the technique can also be performed by training a conditional model as
+described in Sec. 3.2 of the main text.
+We perform data imputation by following the ideas from [14] in which Ω(y) denotes the known (measured) dimensions
+of y and ¯Ω(y) denotes the unknown dimensions of y. Further, f¯Ω(·, t) and g¯Ω(t) define a restriction of the operators
+f(·, t) and g(t) in the SDE to the unknown dimensions only.
+As some portion of y is known, a new diffusion process is defined such that z(t) = ¯Ω(y(t)) and
+dz = f¯Ω(z, t)dt + g¯Ω(t)dw .
+However, we do not desire to simply sample from p(z(t = 0)), but rather p(z(t = 0)|Ω(y(t = 0)) = ˆy), where ˆy are
+the measured values. The reverse process is therefore defined as
+dz = [f¯Ω(z, t) −g¯Ω(z, t)2∇z log pt(z|Ω(y(0)) = ˆy)]dt + g¯Ω(t)dw
+25
+
+CoCoGen
+A PREPRINT
+It is shown in [14] that ∇z log pt(z|Ω(y(0)) =
+ˆy) can be approximated by ∇z log pt(u(t)) where u(t) =
+[z(t); ˆΩ(y(t))] is a vector such that Ω(u(t)) = ˆΩ(y(t)) and ¯Ω(u(t)) = z(t). The quantity ˆΩ(y(t)) denotes a
+random sample from pt(Ω(y(t))|Ω(y(0)) = ˆy), which can typically be obtained by sampling the corresponding
+known dimensions from the forward SDE process as the dimensions of y are uncorrelated in the forward pro-
+cess (Eq. 15 of the main text). The vector u(t) contains all known and unknown components of y and therefore
+sθ(y(t), t) ≈∇z log pt(u(t)) ≈∇z log pt(z|Ω(y(0)) = ˆy). Thus, an approximation to ∇z log pt(z|Ω(y(0)) = ˆy)
+can be computed by leveraging the score function approximation sθ(y(t), t) without any additional special training
+by sampling the known dimensions of y(t) at each time step according to the forward process. Further, sampling with
+physical consistency steps (Sec. 3 of the main text) can still be performed in the same manner, leading to samples
+which are consistent with the governing PDE.
+Table 3: Field reconstruction and inversion (no RePaint) with various number of pressure measurements (Darcy Flow,
+s = 16). Analytic approximation to data imputation used in sampling.
+Equation
+m
+EpS(y)[||r||2
+2]
+EpS(y)[||r||2
+2] −EpD(y)[||r||2
+2]
+EpD(y)[||P −ˆP||2
+2]
+EpD(y)[||K −ˆK||2
+2]
+SDE
+0
+3.6
+-0.9
+1.02 × 10−1
+8.8 × 10−3
+SDE
+10
+224.1
+219.6
+1.04 × 10−1
+9.5 × 10−3
+SDE
+50
+1463.5
+1459.0
+8.73 × 10−2
+9.1 × 10−3
+SDE
+100
+3986.1
+3981.6
+5.92 × 10−2
+8.5 × 10−3
+SDE
+250
+4142.1
+4137.6
+3.25 × 10−2
+7.8 × 10−3
+SDE
+500
+1970.2
+1965.7
+9.1 × 10−3
+6.4 × 10−3
+SDE
+1000
+183.8
+179.3
+5.0 × 10−4
+4.3 × 10−3
+SDE
+2000
+7.5
+3.0
+3.6 × 10−6
+2.8 × 10−3
+SDE
+4000
+7.6
+3.1
+2.4 × 10−7
+2.0 × 10−3
+It is worth mentioning that performing data imputation in this special case can be orders of magnitude more expensive
+when solving the PF ODE reverse process rather than the reverse SDE process. It is illustrated in Sec. 3 of the main
+text that solving the PF ODE reverse process results in improved physical residual minimization with smaller PDE
+operator evaluations when compared to the reverse SDE. However, the outlined method of data imputation requires
+sampling from the forward process to obtain ˆΩ(y(t)). Sampling in time via the forward PF ODE process involves
+solving the PF ODE forward in time. In contrast, the forward SDE has a closed form solution to obtain samples at any
+future time (Eq. 4 in the main text), rendering data imputation (field reconstruction and inversion) far more feasible
+and inexpensive.
+Table 4: Field reconstruction and inversion with RePaint performance with the number of repainting steps r (Darcy
+Flow, s = 16, m = 500).
+Equation
+r
+EpS(y)[||r||2
+2]
+EpS(y)[||r||2
+2] −EpD(y)[||r||2
+2]
+EpD(y)[||P −ˆP||2
+2]
+EpD(y)[||K −ˆK||2
+2]
+SDE
+1
+750.7
+746.2
+4.9 × 10−3
+4.3 × 10−3
+SDE
+2
+26.2
+21.7
+3.0 × 10−4
+2.9 × 10−3
+SDE
+3
+8.7
+4.2
+3.1 × 10−5
+3.8 × 10−3
+SDE
+5
+10.6
+6.1
+1.9 × 10−5
+2.9 × 10−3
+SDE
+10
+9.6
+5.1
+1.7 × 10−5
+4.8 × 10−3
+We use the same score-based generative model defined in the experiments of Sec. 3 in the main text in our experiments.
+However, only the reverse SDE is solved and not the PF ODE due to aforementioned inefficiencies. We perform the
+baseline data imputation approximation for various number of measured dimensions. The number of measurements
+is defined as m. To perform data imputation, we randomly select m spatial locations to measure only pressure in the
+physical domain, similar to Sec. 5.2.1 in the main text. The random seed is kept constant such that for two cases in
+which m2 > m1, the spatial locations of case 1 are a subset of the spatial locations of case 2.
+For each experiment, we vary only the number of pressure measurements used to reconstruct the pressure field and
+invert the permeability field. The reverse process uses an Euler-Maruyama time integration method to solve the reverse
+SDE with τ = 2, 000 time steps. We also use N = 50 physical consistency steps and M = 10 additional physical
+consistency steps. For these experiments, we illustrate results on the Darcy flow s = 16 dataset only.
+Pressure data is denoted P with reconstructions denoted ˆP. Similarly, permeability data and reconstructions are
+denoted K and ˆK respectively. Table 3 gives quantitative reconstruction results, and Fig. 12a illustrates qualitative
+reconstruction on the test set. Although the reconstruction for both pressure and permeability fields improves with
+26
+
+CoCoGen
+A PREPRINT
+(a) r = 0
+(b) r = 5
+Figure 12: Field reconstruction and inversion (a) without and (b) with RePaint. RePaint incorporates more information
+about the known dimensions into the unknown dimensions. Figure is high quality, zoom in for more clarity.
+increasing number of samples, the physical residual is very high, particularly for smaller number of measurements,
+even with physical consistency enforcement. This is likely due to the incoherence between the known (measured) and
+unknown regions of the data samples. It is evident in Fig. 12 that the measured points do not match well with the
+reconstructed points.
+To reduce this discrepancy, we turn towards a recent work addressing this issue called RePaint [25]. This effectively
+alters between reverse and forward steps to reduce the boundary discrepancy between measured and unmeasured
+regions of the data samples. At each discrete time step i of the reverse SDE solver, an additional r resampling steps
+are performed. A resampling step consists of solving the forward SDE for a single time step, followed by solving the
+reverse SDE for the same time step, effectively alternating r times between stepping forward and stepping backward
+in time according to the SDE. This allows better mixing of the measured and unmeasured dimensions of the data,
+adding artificial noise before denoising, effectively incorporating more information about the known dimensions to
+the unknown dimensions at each resampling step. However, this comes at a significant cost: the number of score
+function evaluations scales linearly with r. This can be partially alleviated by performing r resampling steps only
+at some discrete pre-selected number of time steps instead of at each time step. However, this presents additional
+difficulties such as determining the optimal time steps to perform resampling at. In our experiments, we perform
+resampling r times at each time step.
+We investigate the power of RePainting by setting a constant number of pressure measurements (m = 500), and
+solving the reverse SDE with various numbers of resampling steps. Table 4 illustrates the results of this experiment,
+showing that the resampling procedure greatly improves reconstruction performance and drastically reduces physical
+residuals over the standard method of sampling without RePaint (r = 0). Additionally, reconstructions rapidly improve
+with increasing number of resampling steps. Sampling with RePaint and r = 3 reduces the average physical residual
+27
+
+CoCoGen
+A PREPRINT
+from 1970.2 to 8.7 over sampling without RePaint. The average reconstruction error is also reduced from 9.1 × 10−3
+to 3.1×10−5 and the field inversion error is reduced from 6.4×10−3 to 3.8×10−3. Figure 12b qualitatively shows the
+effect that RePaint has on sample quality. When compared to sampling without RePainting (Fig. 12a), reconstructions
+are far more accurate and predictions less noisy, especially permeability fields. This is a direct result of reducing the
+boundary discrepancy using the RePainting algorithm, leading to de-noised samples.
+Performing field reconstruction and inversion as described in this section outperforms the method of conditional gener-
+ation using ControlNet detailed in the main text in terms of reconstruction performance. However, using the repainting
+algorithm linearly increases the cost of sampling as a function or r. Thus, the best results here require around 5x more
+compute time to obtain over those obtained using ControlNet-based augmentations for conditional generation.
+28

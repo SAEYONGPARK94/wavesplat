@@ -1,0 +1,50 @@
+
+
+<<<@55245 CONCLUSION>>>
+
+CONCLUSION AND OUTLOOK
+This study demonstrates that physics-informed neural networks (PINNs) are well-suited for integration with non-
+linear potential flow theory (PFT) equations, commonly applied to reconstruct and predict ocean gravity waves. This
+compatibility arises from the universal approximation theorem, stating that neural networks can approximate any
+nonlinear function. However, applying PFT in PINNs presents a particularly challenging case due to the requirement
+to solve for two coupled solution fields, velocity potential ˜Φ(x, t, z) and surface elevation ˜η(x, t) within a dynamic,
+time-varying domain. Furthermore, measurements are sparse and typically available for only one solution component,
+usually the surface elevation.
+To address these challenges, we train two neural networks in parallel, one for each solution field. Thereby, the output
+of the ˜η-network informs the z-component of the ˜Φ-network to handle the time-varying free surface. Furthermore,
+Fourier feature embedding seems beneficial when handling multi-frequency wave data. Integrating sparse surface
+measurements as hard constraints in the ˜η-network ensures accurate data adherence, enhancing training efficiency
+and preventing it from converging to neighbouring solutions. Additionally, the ReLoBraLo loss balancing scheme
+addresses the multi-objective optimization challenge posed by various loss components of varying magnitudes. We
+evaluate this PFT-PINN approach using three scenarios:
+(1) We demonstrated the assimilation of an irregular wave surface between sparse spatial measurements using an
+
+17
+analytical solution of linear wave theory as ground truth surface elevation (ηtrue) for extracting sparse synthetic
+measurements (ηm) and comparing the PINNs reconstruction (˜η) post-training. This reconstruction is quantified
+by an error of SSP = 0.024, confirming hypothesis H1. Analytical solutions additionally provide a ground truth
+potential (Φtrue), enabling the confirmation of hypothesis H2 by reconstructing the physically consistent velocity
+potential (˜Φ) solely from surface elevation measurements (ηm).
+(2) The second assimilation task involved sparse surface measurements (ηm) from a laboratory wave flume, with
+additional high-resolution camera systems providing ground truth (ηtrue) for comparing the PINN reconstruction
+(˜η). Since real waves contain nonlinear effects, the accurate reconstruction of SSP = 0.049 supports hypothesis H3,
+indicating that the approach demonstrates excellent opportunities to investigate its performance using wave data
+with nonlinear and other effects incorporated. Although, real wave data do not provide a ground truth velocity
+potential (Φtrue) for an exact comparison, the amplitude, frequency and phase shift of the PINN’s potential (˜Φ)
+fall within expected ranges.
+(3) Finally, we demonstrated PFT-PINN’s ability to predict nonlinear future wave dynamics while assimilating mea-
+surement data, confirming hypothesis H4. This involved assimilation of a wave surface (˜η) from four sparse surface
+snapshots (ηm) in [tsn,1, tsn,4], while simultaneously predicting the wave dynamics one peak period into the future
+(t > tsn,4). Compared to the ground truth (ηtrue) the investigation yields an SSP of 0.084 averaged across the
+entire surface domain. However, the accuracy of the prediction decreases as the temporal distance from the last
+snapshot of the assimilation region increases.
+In summary, this study confirms that PFT-PINNs can capture nonlinear wave fields in assimilation and prediction
+tasks. Particularly, the method proves advantageous for pure assimilation tasks (S2), as indicated by the achieved
+SSP values in the first two scenarios. Moreover, existing numerical tools, already offer highly efficient solutions for
+wave prediction (S3) as long as initial conditions for the wave field are available. However, reconstructing these initial
+conditions from sparse measurements often requires extensive iterations using numerical tools, emphasising that the
+PFT-PINN approach could offer a promising alternative solution for wave data assimilation.
+Since this study demonstrates the feasibility of reconstructing 1D + t wave surfaces η(x, t), future work should
+extend the PFT-PINN approach to 2D + t waves to include the y-direction. While this is expected to not involve
+great effort from an implementation point of view, additional wave propagation directions and their interactions in
+short-crested sea states could potentially affe

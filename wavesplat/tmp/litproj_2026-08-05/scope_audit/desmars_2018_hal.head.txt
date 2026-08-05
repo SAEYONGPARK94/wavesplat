@@ -1,0 +1,113 @@
+HAL Id: hal-01855465
+https://hal.science/hal-01855465v1
+Submitted on 3 Sep 2020
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.
+L’archive ouverte pluridisciplinaire HAL, est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+Distributed under a Creative Commons CC BY 4.0 - Attribution - International License
+Phase-Resolved Reconstruction Algorithm and Deterministic
+Prediction of Nonlinear Ocean Waves From Spatio-Temporal
+Optical Measurements
+Nicolas Desmars, Yves Perignon, Guillaume Ducrozet, Charles-Antoine Guérin,
+Stephan T. Grilli, Pierre Ferrant
+To cite this version:
+Nicolas Desmars, Yves Perignon, Guillaume Ducrozet, Charles-Antoine Guérin, Stephan T. Grilli, et al.. Phase-
+Resolved Reconstruction Algorithm and Deterministic Prediction of Nonlinear Ocean Waves From Spatio-
+Temporal Optical Measurements. ASME 2018 37th International Conference on Ocean, Offshore and Arctic
+Engineering, Jun 2018, Madrid, Spain. ⟨10.1115/OMAE2018-78367⟩. ⟨hal-01855465⟩
+
+PHASE-RESOLVED RECONSTRUCTION ALGORITHM AND DETERMINISTIC
+PREDICTION OF NONLINEAR OCEAN WAVES FROM SPATIO-TEMPORAL
+OPTICAL MEASUREMENTS
+Nicolas Desmars
+LHEEA Lab, UMR CNRS 6598
+´Ecole Centrale de Nantes
+Nantes, 44321
+France
+Email: nicolas.desmars@ec-nantes.fr
+Yves P´erignon
+LHEEA Lab, UMR CNRS 6598
+´Ecole Centrale de Nantes
+Nantes, 44321
+France
+Email: yves.perignon@ec-nantes.fr
+Guillaume Ducrozet
+LHEEA Lab, UMR CNRS 6598
+´Ecole Centrale de Nantes
+Nantes, 44321
+France
+Email: guillaume.ducrozet@ec-nantes.fr
+Charles-Antoine Gu´erin
+Institut M´editerran´een d’Oc´eanologie
+Universit´e de Toulon, La Garde
+Toulon, 83041
+France
+Email: charles-antoine.guerin@univ-tln.fr
+Stephan T. Grilli
+Department of Ocean Engineering
+University of Rhode Island
+Kingston, Rhode Island, 02881
+Email: grilli@uri.edu
+Pierre Ferrant
+LHEEA Lab, UMR CNRS 6598
+´Ecole Centrale de Nantes
+Nantes, 44321
+France
+Email: pierre.ferrant@ec-nantes.fr
+ABSTRACT
+We investigate a nonlinear phase-resolved reconstruction al-
+gorithm and models for the deterministic prediction of ocean
+waves based on a large number of spatio-temporal optical mea-
+surements of surface elevations. We consider a single sensor
+(e.g., LIDAR, stereo-video, etc.) mounted on a ﬁxed offshore
+structure and remotely measuring ﬁelds of free surface eleva-
+tions. Assuming a uniform distribution of measurement points
+over the sensor aperture angles, the density of free surface ob-
+servation points geometrically decreases with the distance from
+the sensor. Additionally, wave shadowing effects occur, which
+become more important at small viewing angles (i.e., grazing in-
+cidence on the surface). These effects result in observations of
+surface elevation that are sparsely distributed. Here, based on
+earlier work by [1], we present and discuss the characteristics
+of an algorithm, aimed at assimilating such sparse data and able
+to deterministically reconstruct and propagate ocean surface el-
+evations for their prediction in time and space. This algorithm
+could assist in the automatic steering and control of a variety of
+surface vehicles. Speciﬁcally, we compare prediction results us-
+ing linear wave theory and the weakly nonlinear Choppy Wave
+Model [2,3], extended here to an “improved” second order for-
+mulation. The latter model is based on an efﬁcient Lagrangian
+formulation of the free surface and was shown to be able to model
+wave properties that are important to the proper representation
+of nonlinear free surfaces, namely wave shape and celerity. Syn-
+thetic datasets from highly nonlinear High Order Spectral simu-
+lations are used as reference oceanic surfaces. Predicted results
+are analyzed over an area that evolves in time, using the theoret-
+ical amount of information assimilated during the reconstruction
+of the wave ﬁeld. For typical horizons of prediction, we discuss
+the capabilities of our assimilation process for each wave model
+considered.
+1
+
+INTRODUCTION
+The availability of real-time phase-resolved wave ﬁelds is
+important to many offshore applications, such as the optimal
+maneuvering and operations of surface vessels or ocean renew-
+able energy harvesting systems. However, many standard ocean
+wave models [4,5] only predict phase-averaged quantities based
+on spectral representations (e.g., directional wave energy spec-
+trum), which do not provide a detailed description of determin-
+istic wave properties (e.g., free surface elevation and ﬂuid pres-
+sure ﬁelds). Nevertheless, under the linear wave superposition
+assumption, such spectral representations can be used to generate
+phase-resolved wave ﬁelds, by combining frequency wave com-
+p

@@ -1,0 +1,99 @@
+### wang_pan_2022_jfm.pdf  (chars=61446, wave_score=19)
+
+For the 2-D case, we use a reference initial wave ﬁeld described by a JONSWAP spectrum with a peak wavenumber kp = 16k0 (with k0 the fundamental wavenumber), a global steepness kpHs/2 = 0.11 (with Hs the signiﬁcant wave height) and an enhancement factor γ = 3.3.
+
+For the 3-D case, the initial wave ﬁeld is taken from the same JONSWAP spectrum peaked at wavenumber kp = 6k0, together with a directional spreading function:
+
+D(θ) = ⎧ ⎨ ⎩ 2 β cos2 π β θ  , for −β 2 < θ < β 2 , 0, otherwise, (3.2) where β = π/6 is the spreading angle.
+
+Pan 0 20 40 60 80 100 0 20 40 60 t/Tp 80 100 10–3 10–2 ϵ(t) 10–1 100 (a) (b) 10–3 10–2 ϵ(t) 10–1 100 Figure 2.
+
+949 A31-10 https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press Phase-resolved ocean wave forecast with current estimation 0 0.2 0.4 0.6 0.8 1.0 –1.0 –0.5 η/Hs η/Hs η/Hs x/2π 0 0.5 1.0 (a) (b) (c) 0 0.2 0.4 0.6 0.8 1.0 –1.0 –0.5 0 0.5 1.0 0 0.2 0.4 0.6 0.8 1.0 –1.0 –0.5 0 0.5 1.0 Figure 3.
+
+Surface elevations ηtrue(x) (blue dash-dotted line), ηsim(x) with IEnKF-HOS-C (red dotted line) and HOS-C-only (black solid line) methods, at (a) t/Tp = 10, (b) t/Tp = 50 and (c) t/Tp = 90, for the 2-D wave ﬁeld.
+
+Steady cases We consider both 2-D and 3-D wave ﬁelds with the true current velocity given by Utrue x = 0.025vp(kp), (3.6) where vp(kp) represents the phase velocity of the peak wavenumber kp in the JONSWAP spectrum.
+
+The initial guess of the current velocity is predeﬁned as Ux,0 = 0.03vp(kp) (3.7) 949 A31-11 https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press G.
+
+Pan 0 0.2 0.4 0.6 0.8 1.0 –1.0 –0.5 0 0.5 1.0 (a) 0 0.2 0.4 0.6 0.8 1.0 –1.0 –0.5 0 0.5 1.0 0 0.2 0.4 0.6 0.8 1.0 –1.0 –0.5 0 0.5 1.0 x/2π η/Hs η/Hs (b) (c) η/Hs Figure 4.
+
+for the 2-D case and U0 = (0.03vp(kp), 0.005vp(kp)) (3.8) for the 3-D case.
+
+949 A31-12 https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press Phase-resolved ocean wave forecast with current estimation 0.95 1.00 1.05 1.10 1.15 1.20 (a) (b) 0 20 40 60 t/Tp 80 100 0 20 40 60 80 100 0.8 0.9 Ux/|Utrue| Uy/|Utrue| Ux/Ux true 1.0 1.1 1.2 –0.2 –0.1 0 0.1 0.2 Figure 5.
+
+For the IEnKF-HOS-C simulations, data from d = 12 locations (randomly selected with a uniform distribution) are assimilated with an interval τ = Tp/32, with Tp the wave period for the peak mode kp.
+
+For both 2-D and 3-D cases, as the simulation proceeds ϵ(t) obtained from the HOS-C-only method increases from the initial value ϵ(0) ≈0.05 and approaches O(1) at t/Tp ≈100;
+
+To further visualize the wave ﬁelds, ﬁgures 3 and 4 show snapshots of ηtrue(x) and ηsim(x) obtained from both IEnKF-HOS-C and HOS-C-only methods at three time instants of t/Tp = 10, 50 and 90 for the 2-D and 3-D cases, respectively.
+
+At t/Tp = 90, the IEnKF-HOS-C solution is already almost indistinguishable from ηtrue(x).
+
+Pan 10–3 10–2 ϵ(t) 10–1 (a) (b) 10–3 10–2 ϵ(t) 10–1 0 20 40 60 t/Tp 80 100 0 20 40 60 80 100 Figure 6.
+
+assimilated, Ua approaches Utrue (although experiencing some ﬂuctuations) with their difference practically negligible after t/Tp = 40.
+
+Finally, we test the robustness of the IEnKF-HOS-C method for opposing current, by reversing the signs in (3.6), (3.7) and (3.8), and keeping the initial wave states the same as 949 A31-14 https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press Phase-resolved ocean wave forecast with current estimation 0 0.2 0.4 0.6 0.8 1.0 1.2 (a) (b) 0 0.2 0.4 0.6 0.8 1.0 1.2 –0.20 –0.16 –0.12 –0.08 –0.04 0 0.04 20 40 60 t/Tp 80 100 20 40 60 80 100 Ux/|Utrue| Uy/|Utrue| Ux/Ux true Figure 7.
+
+The current estimation now takes O(60Tp) to converge to the true values (seemingly longer than the following current case) mainly because the opposing current effect slows down the wave propagation, which makes the time to convergence longer when normalized by the intrinsic period Tp.
+
+We focus on 3-D wave ﬁelds hereafter and for this section we consider both linear and sinusoidal time variations of the current ﬁelds, described by Utrue x (t) = (1 + α1t/Tp)Uc (3.9) and Utrue x (t) = (cos(α2t/Tp) + 1.12)Uc, (3.10) with α1 = 0.005, α2 = 0.04 and Uc = 0.025vp(kp).
+
+Noisy measurements of the wave ﬁeld at 24 randomly sampled locations are assimilated with an interval τ = Tp/32.
+
+Pan 0 20 40 60 t/Tp 80 100 0 20 40 60 80 100 (b) 10–3 10–2 ϵ(t) 10–1 100 (a) 10–3 10–2 ϵ(t) 10–1 100 Figure 8.
+
+For the HOS-C-only simulations, ϵ(t) grows quickly in time (somewhat faster than for the steady current cases at the early stage of simulations) and reaches O(1) at t/Tp ≈80.
+
+The IEnKF-HOS-C method is again successful in accurately estimating the wave ﬁelds with the error ϵ(t) reducing to O(10−3) at t/Tp ≈100.
+
+949 A31-16 https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press Phase-resolved ocean wave forecast with current estimation (a) (b) –1.25 –1.20 –1.15 –1.10 –1.05 –1.00 –0.95 –1.20 –1.15 –1.10 –1.05 –1.00 –0.95 –0.25 –0.20 –0.15 –0.10 –0.05 0 0.05 0 20 40 60 t/Tp 80 100 0 20 40 60 80 100 Ux/|Utrue| Uy/|Utrue| Ux/Ux true Figure 9.
+
+The parameter values are chosen as U1 = 0.01vp(kp), U2 = 0.025vp(kp), q = 15 and γ = 25/π such that the transitions between the locally uniform regions are smooth (i.e.
+
+Ux,0(x) = 0.15vp(kp), (3.12) Uy,0(x) = 0.02vp(kp), (3.13) with the initial ensemble for both velocity components generated by (2.4) with cu = 0.04(U1)2 and au = π/2.
+
+With the IEnKF-HOS-C method, data of surface elevation at d = 64 randomly selected locations are assimilated into the numerical model with an interval τ = Tp/64.
+
+Pan 0 20 40 60 t/Tp 80 100 0 20 40 60 80 100 (b) 10–3 10–2 ϵ(t) 10–1 100 (a) 10–3 10–2 ϵ(t) 10–1 100 Figure 10.
+
+The current ﬁelds captured by IEnKF-HOS-C, in terms of the snapshots of Ux,a(x) and Uy,a(x) at three cross-sections of constant y for t/Tp = 10, 50 and 90, are plotted in ﬁgure 14.
+
+Utrue x (x, t) = ⎧ ⎪⎨ ⎪⎩ U1 + eγ x−qU2 eγ x−q + 1 cos(α3t/Tp), for 0 ≤x ≤π, Utrue x (2π −x), for π < x ≤2π, (3.14) where α3 = 0.01.
+
+949 A31-18 https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press Phase-resolved ocean wave forecast with current estimation 1.0 1.1 1.2 1.3 1.4 1.5 1.6 (a) (b) –0.3 –0.2 Uy/Uc Uy/Uc Ux/Uc Ux/Uc –0.1 0 0.1 0.2 0.3 20 40 60 t/Tp 80 100 0 20 40 60 80 100 0 0.5 1.0 1.5 2.0 2.5 –0.3 –0.2 –0.1 0 0.1 0.2 0.3 Figure 11.
+
+0.2 0.4 x/2π 0.6 0.8 1.0 0 0.01 Ux true/vp(kp) 0.02 0.03 Figure 12.
+
+The estimated current ﬁeld by IEnKF-HOS-C is further plotted in ﬁgure 16, in terms of the snapshots of Ux,a and Uy,a at the three cross-sections of constant y for three time instants t/Tp = 10, 50 and 90.
+
+Pan 0 20 40 60 t/Tp 80 100 10–3 10–2 ϵ(t) 10–1 100 Figure 13.
+
+The numerical simulation starts from 23:18:32 UTC on 17 September 2013 and lasts for 40Tp with Tp = 11.28 s.
+
+The initial condition is taken from the measurements in the computational domain (ﬁgure 17) featuring a global wave steepness kpHs/2 = 0.02.
+
+In ﬁgure 17 it can be clearly observed that the dominant wavelength is λp ≈200 m that is consistent with the estimated value by the linear wave theory for Tp = 11.28 s.
+
+The DA interval is set to be the same as the data acquisition interval of the radar, which ﬂuctuates around Tp/4 = 2.82 s, i.e.
+
+949 A31-20 https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press Phase-resolved ocean wave forecast with current estimation 0.03 (a) (b) (c) (d) (e) ( f ) 0.02 0.01 0 Ux/vp(kp) 0.010 0.005 0 –0.005 –0.010 Uy/vp(kp) 0.03 0.02 0.01 0 Ux/vp(kp) 0.010 0.005 0 –0.005 –0.010 Uy/vp(kp) 0.03 0.02 0.01 0 Ux/vp(kp) 0.010 0.005 0 –0.005 –0.010 Uy/vp(kp) 0.2 0.4 x/2π 0.6 0.8 1.0 0.2 0.4 x/2π 0.6 0.8 1.0 0 0.2 0.4 0.6 0.8 1.0 0.2 0.4 0.6 0.8 1.0 0 0.2 0.4 0.6 0.8 1.0 0.2 0.4 0.6 0.8 1.0 0 Figure 14.
+
+Estimations Ux,a (a,c,e) and Uy,a (b,d, f) by IEnKF-HOS-C at (a,b) t/Tp = 10, (c,d) t/Tp = 50 and (e, f) t/Tp = 90 in comparison with the true current ﬁeld (3.11) (black solid line), for three cross-sections:
+
+Pan 0 20 40 t/Tp 60 80 100 10–3 10–2 ϵ(t) 10–1 100 Figure 15.
+
+In addition, we see that the reconstruction quality of IEnKF-HOS-C gradually increases with time after t/Tp = 15–20, which is mainly due to the improved estimation of current with time.
+
+Speciﬁcally, three additional choices of t0 between 23:10:10 and 23:25:02 UTC on 17 September 2013 are tested, namely 23:12:03, 23:14:22 and 23:16:28, for the case with 949 A31-22 https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press Phase-resolved ocean wave forecast with current estimation 0.03 (a) (b) (c) (d) (e) ( f ) 0.02 0.01 0 Ux/vp(kp) 0.010 0.005 0 –0.005 –0.010 Uy/vp(kp) 0.03 0.02 0.01 0 Ux/vp(kp) 0.010 0.005 0 –0.005 –0.010 Uy/vp(kp) 0.03 0.02 0.01 Ux/vp(kp) 0.010 0.005 0 –0.005 –0.010 Uy/vp(kp) x/2π 0.2 0.4 x/2π 0.6 0.8 1.0 0 0.2 0.4 0.6 0.8 1.0 0.2 0.4 0.6 0.8 1.0 0 0.2 0.4 0.6 0.8 1.0 0 0.2 0.4 0.6 0.8 1.0 0.2 0.4 0.6 0.8 1.0 0 Figure 16.
+
+Initial surface elevation ηm,0(x)/Hs (with Hs = 1.50 m) measured by radar at t = t0, i.e.
+
+As indicated by the numerical results, the developed IEnKF-HOS-C method outperforms not only the HOS-C-only method but also the 949 A31-24 https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press Phase-resolved ocean wave forecast with current estimation 0 10 20 30 40 –0.5 –0.4 –0.3 –0.2 0.5 0.4 0.3 0.2 0.1 t/Tp Ux (m s–1) Uy (m s–1) 0 10 20 30 40 –0.5 –0.4 –0.3 –0.2 0.5 0.4 0.3 0.2 0.1 Ux (m s–1) Uy (m s–1) 0 10 20 30 40 –0.5 –0.4 –0.3 –0.2 0.5 0.4 0.3 0.2 0.1 Ux (m s–1) Uy (m s–1) 0 10 20 30 40 –0.5 –0.4 –0.3 –0.2 0.5 0.4 0.3 0.2 0.1 Ux (m s–1) Uy (m s–1) (b) (a) (c) (d ) Figure 19.
+
+Pan 0 5 10 15 20 25 30 35 40 0.6 0.7 0.8 0.9 1.0 t/Tp ρ(ηm, j, ηsim) Figure 20.
+
+0 5 10 15 20 25 t/Tp D/σ2 η 30 35 40 1.0 1.4 1.8 2.2 2.6 (×10–3) Figure 21.
+
+949 A31-26 https://doi.org/10.1017/jfm.2022.765 Published online by Cambridge University Press Phase-resolved ocean wave forecast with current estimation 0.25 0.30 0.35 Ux (m s–1) Uy (m s–1) 0.40 0.45 0 5 10 15 20 25 30 35 40 0 5 10 15 20 25 30 35 40 –0.55 –0.50 –0.45 –0.40 –0.35 t/Tp (b) (a) Figure 22.

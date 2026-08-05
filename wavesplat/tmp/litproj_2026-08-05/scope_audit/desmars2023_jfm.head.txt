@@ -1,0 +1,69 @@
+J. Fluid Mech. (2023), vol. 975, A8, doi:10.1017/jfm.2023.841
+Nonlinear deterministic reconstruction and
+prediction of remotely measured ocean surface
+waves
+Nicolas Desmars1,2,†, Moritz Hartmann2,3, Jasper Behrendt4,
+Norbert Hoﬀmann1,5 and Marco Klein1,2
+1Dynamics Group, Hamburg University of Technology, 21073 Hamburg, Germany
+2Ship Performance Department, Institute of Maritime Energy Systems, German Aerospace Center (DLR),
+21502 Geesthacht, Germany
+3Institute for Ship Structural Design and Analysis, Hamburg University of Technology, 21073 Hamburg,
+Germany
+4BHS Hamburg, 21073 Hamburg, Germany
+5Mechanical Engineering, Imperial College London, SW7 2AZ London, UK
+(Received 6 February 2023; revised 27 September 2023; accepted 30 September 2023)
+Algorithms for reconstructing and predicting nonlinear ocean wave ﬁelds from
+remote measurements are presented. Three types of synthetic observations are used
+to quantify the inﬂuence of remote measurement modulation mechanisms on the
+algorithms’ performance. First, the observations correspond to randomly distributed
+surface elevations. Then, they are related to a marine radar model – the second type takes
+the wave shadowing modulation into account whereas the third one also includes the tilt
+modulation. The observations are numerically generated based on unidirectional waves
+of various steepness values. Linear and weakly nonlinear prediction algorithms based on
+analytical models are considered, as well as a highly nonlinear algorithm relying on the
+high-order spectral (HOS) method. Reconstructing surfaces from shadowed observations
+is found to have an impact limited to the non-visible regions, while tilt modulation affects
+the reconstruction more generally due to the indirect, more complex extraction of wave
+information. It is shown that the accuracy of the surface reconstruction mainly depends on
+the correct modelling of the wave shape nonlinearities. Modelling the nonlinear correction
+of the dispersion relation, in particular the frequency-dependent wave phase effects in
+the case of irregular waves, substantially improves the prediction. The suitability of the
+algorithms for severe wave conditions in ﬁnite depth and using non-perfect observations is
+assessed through wave tank experiments. It shows that only the third-order HOS solution
+predicts the right amplitude and phase of an emerging extreme wave, emphasizing the
+relevance of the corresponding physical modelling.
+† Email address for correspondence: nicolas.desmars@protonmail.com
+© The Author(s), 2023. Published by Cambridge University Press. This is an Open Access article,
+distributed under the terms of the Creative Commons Attribution licence (https://creativecommons.
+org/licenses/by/4.0/), which permits unrestricted re-use, distribution, and reproduction in any medium,
+provided the original work is properly cited.
+975 A8-1
+https://doi.org/10.1017/jfm.2023.841 Published online by Cambridge University Press
+
+N. Desmars and others
+Key words: surface gravity waves
+1. Introduction
+The deterministic (i.e. phase-resolved) prediction of the incoming wave loads on marine
+structures represents one of the main challenges towards more efﬁcient and safer offshore
+operations. The cost reduction of offshore wind through the extension of operational
+time windows for the installation/maintenance of offshore wind turbines, the gain in
+efﬁciency of marine energy devices through active control or the safety improvement of
+aircraft takeoffs/landings are only a few examples of domains that could beneﬁt from the
+advance knowledge of wave-induced structure motions. Such predictions are performed by
+means of the calculation of the ocean surface evolution from the analysis of surrounding
+wave measurements. More speciﬁcally, they consist of three steps: (i) measuring some
+wave-related quantities, (ii) reconstructing the underlying wave ﬁeld (i.e. extracting wave
+information from the measurements) and (iii) propagating the reconstructed wave ﬁeld to
+the area of interest.
+Regardless of their well-characterized properties and proven suitability for deterministic
+predictions, in situ wave measurements, such as made from wave buoys (e.g. Fisher,
+Thomson & Schwendeman 2021) or acoustic Doppler current proﬁlers (Huchet et al.
+2021), are not adaptable to predictions over a region in motion, such as around a ship with
+forward speed, due to the need to update the measured region according to the trajectory
+of the area of interest. In that case, measurements are typically performed from remote
+sensors mounted on a moving structure. Lidar cameras, for example, have recently been
+developed for the measurement of ocean surface displacements at a distance (Belmont
+et al. 2007; Kabel, Georgakis & Rod Zeeberg 2019), providing suitable data for wave
+prediction (Grilli, Guérin & Goldstein 2011; Nouguier, Grilli & Guérin 2014). Stereovideo
+systems are also able, through the mapping of the surface elevation, to give access
+to sufﬁcient information for short-

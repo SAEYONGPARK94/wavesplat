@@ -1,0 +1,1086 @@
+PiRD: Physics-informed Residual Diffusion
+for Flow Field Reconstruction
+Siming Shana, Pengkai Wanga, Song Chenb, Jiaxu Liub, Chao Xua, Shengze Caia∗
+a Institute of Cyber-Systems & Control, College of Control Science & Engineering,
+Zhejiang University, Hangzhou, 310027, China
+b School of Mathematical Sciences, Zhejiang University, Hangzhou, 310027, China
+Abstract
+The use of machine learning in fluid dynamics is becoming more common to expedite the computa-
+tion when solving forward and inverse problems of partial differential equations. Yet, a notable challenge
+with existing convolutional neural network (CNN)-based methods for data fidelity enhancement is their
+reliance on specific low-fidelity data patterns and distributions during the training phase. In addition,
+the CNN-based method essentially treats the flow reconstruction task as a computer vision task that
+prioritizes the element-wise precision which lacks a physical and mathematical explanation. This de-
+pendence can dramatically affect the models’ effectiveness in real-world scenarios, especially when the
+low-fidelity input deviates from the training data or contains noise not accounted for during training.
+The introduction of diffusion models in this context shows promise for improving performance and gen-
+eralizability. Unlike direct mapping from a specific low-fidelity to a high-fidelity distribution, diffusion
+models learn to transition from any low-fidelity distribution towards a high-fidelity one. Our proposed
+model - Physics-informed Residual Diffusion, demonstrates the capability to elevate the quality of data
+from both standard low-fidelity inputs, to low-fidelity inputs with injected Gaussian noise, and randomly
+collected samples. By integrating physics-based insights into the objective function, it further refines the
+accuracy and the fidelity of the inferred high-quality data. Experimental results have shown that our
+approach can effectively reconstruct high-quality outcomes for two-dimensional turbulent flows from a
+range of low-fidelity input conditions without requiring retraining.
+1
+Introduction
+As a typical inverse problem, reconstructing spatial fields from sparse sensor data is a highly challenging
+task, yet its applications are widespread, encompassing numerous fields such as medicine, industrial devices,
+remote sensing, fluid dynamics, and more [1–6]. Efforts to improve traditional methodologies for effectively
+handling sparse input data have to face a balance between computational efficiency and effectiveness [7].
+Meanwhile, due to the potential movement and loss of sparse sensors, the fidelity of experimental setups
+utilizing these collected data is inevitably affected, which leads to structural instability [8]. Moreover, the
+noise introduced by the sensor measurement process cannot be ignored. All these aspects lead to a complex
+challenge for reconstruction, which is difficult to meet by traditional methods.
+In fluid dynamics, Direct Numerical Simulation (DNS) [9] is a classic method that simulates fluid mo-
+tion directly by solving the complete Navier-Stokes equations in all scales. To obtain high-fidelity flow field
+information, DNS requires significant computational resources, especially when solving ill-posed problems
+or inverse problems related to turbulent flows. Indeed, owing to computational efficiency challenges, sev-
+eral methods employing simplified turbulence models for approximate calculations have been devised, such
+as Large Eddy Simulation (LES) [10], Reynolds-Averaged Navier-Stokes (RANS) models [11] and hybrid
+RANS-LES approaches [12]. Nonetheless, these approaches require a trade-off between accuracy and com-
+putational expedience. In addition, data assimilation algorithms are proposed to integrate the measurements
+with the aforementioned numerical models. For example, Wang et al.[13] introduced an adjoint-variational
+data-assimilation algorithm to reconstruct the flow fields from measurements and enhance traditional meth-
+ods in the sparse condition. However, these methods also suffer from computational inefficiency, requiring
+∗Corresponding author: shengze cai@zju.edu.cn.
+1
+arXiv:2404.08412v2  [physics.flu-dyn]  9 May 2024
+
+iterative solutions to the Navier-Stokes equations. To mitigate the conflicts between computational cost and
+simulation accuracy, it is worth investigating the end-to-end learning-based models designed for rapid infer-
+ence to bridge the gap between simulations and real-world flow field environments, which have demonstrated
+success in diverse applications such as image processing.
+In the field of image processing, the use of machine learning for super-resolution enhancement and data
+recovery techniques from low-resolution or sparse pixel points is developing rapidly, including algorithms
+based on convolutional neural networks (CNN) [14–16], transformer architectures [17–19], and generative
+adversarial networks (GAN) [20–22]. While super-resolution is generally regarded as an image-based data
+recovery technique, these neural network frameworks have been widely applied to fluid mechanics [23–28],
+providing promising alternatives to traditional methods.
+Despite the considerable achievements gained by CNN-based methodologies in enhancing the resolution
+of specific low-fidelity image distributions, they share a common limitation: these models are intricately
+designed and fine-tuned for a distinct class of under-resolved flow field data, heavily reliant on their training
+data characteristics. In contrast, real-world flow field scenarios present a far more complex and unpredictable
+landscape. Sensor placement is often sparse and varied, and the data acquired is frequently contaminated
+with noise. Such conditions inevitably result in discrepancies between training datasets and real-world testing
+scenarios. This limitation presents challenges in the generalization and robustness of CNN-based models,
+restricting their applicability in real-world environments.
+Revisiting techniques from the field of image reconstruction, if we regard sparse low-resolution fluid flow
+data as noisy experimental measurements, then super-resolution flow field reconstruction can be considered
+as a natural denoising problem. Therefore, the diffusion model in the generation problem [29–33] also has the
+potential to reconstruct the sparse data flow field. In this context, Shu et al. [34] introduced a model based
+on the Diffusion Probabilistic Model (DDPM) [32] for super-resolution tasks, demonstrating its versatility
+across various scenarios to overcome the limitations in the CNN-based model used in fluid dynamics.
+However, due to the denoising nature of DDPM-based models, rather than incorporating physics-informed
+constraints directly into the objective function, a physics-conditioning embedding is applied during the
+training phase.
+This approach allows the model to correct physics deviations in the denoised flow field
+iteratively during the sampling phase. Although effective, the reliance on the number of sampling steps
+to achieve minimal partial differential equation loss may inadvertently compromise the efficiency of the
+algorithm. This introduces the need for fine-tuning certain hyperparameters for specific datasets to achieve
+accurate results, potentially straying from the original intent of developing such models. Moreover, despite
+the integration of physical condition embedding, the flow field reconstructed using DDPM occasionally fails
+to comply with the physical constraints on a localized scale.
+To tackle these challenges, we propose a residual-based diffusion model for flow field super-resolution in
+this work, inspired by Yue et al.[35] where a diffusion model with residual shifting was presented. Unlike
+traditional DDPM-based methods, the residual-based diffusion model requires fewer sampling steps and
+predicts the original high-fidelity flow field directly.
+This approach enables the practical application of
+Physics-Informed Neural Networks (PINNs) [36–40] by integrating the residuals of the governing equations
+within the objective function, leading to a brand new model called physics-informed residual diffusion (PiRD)
+model in this paper. Our model not only demonstrates robust performance in reconstructing low-fidelity data
+across a variety of conditions in the turbulence experiment, but also enhances both training and sampling
+efficiency—requiring approximately 20 epochs for training and 20 steps for sampling.
+We make the following key contributions: (i) We present a novel, effective and motivated approach
+that embeds physical information into the diffusion model to solve the problem of flow field reconstruction
+under sparse and noisy measurements. (ii) Due to the nature of the ResShift diffusion model, our proposed
+method can complete the training or inference in about 20 steps, which greatly improves the calculation
+speed compared with [34], and it is beneficial for future application to actual real-time flow field scenarios.
+(iii) Through some classical turbulence experiments, PiRD is proved to be more accurate and robust than
+the CNN-based model for flow field reconstruction on sparse data. Moreover, PiRD can handle various sensor
+placements and noisy measurements which are not considered in the training data.
+2
+
+2
+Methods
+2.1
+Problem Setup
+The primary objective of this research is to address the limitations of current CNN-based methods in recon-
+structing high-fidelity (HF) flow fields, denoted as ω ∼UHF, from low-fidelity (LF) observations, denoted
+as ˜ω ∼ULF.
+CNN-based models like UNet, represented as fθ, have shown proficiency in dealing with
+in-distribution low-fidelity data. This process can be described as:
+w = fθ(˜ω),
+˜ω = D(ω)
+where D represents certain the down-sampling operation, or a certain method to degrade the high-fidelity
+flow field, the neural network is essentially trying to learn this operation to reserve this process, and in-
+distribution data means the high-fidelity data that was corrupted by this down-sampling operation D, or in
+which operations that are highly similar to it. However, the learned model can only be applicable for the
+scenarios that are degraded by this specific learned D, as a result, if the degraded flow field is not corrupted
+by it, the reconstruction process still trying to reverse D which ultimately make the prediction inaccurate.
+Therefore, to address this problem, we build up a Markov chain between high-fidelity flow fields UHF and
+low-fidelity flow fields ULF that are independent of D, such that we can reconstruct low-fidelity flow fields
+given any possible D. In addition, physics-informed loss function can also be integrated into such a process
+to act as not only a physical constraint to make sure that the prediction follows the underlying physical law,
+but also a guide for the model to infer the information lost in the low-fidelity flow field and ensure robust
+performance across diverse and challenging scenarios.
+2.2
+Physics-informed Residual Diffusion
+This section introduces our proposed model used to map the low-fidelity distribution to the high-fidelity
+distribution through a learned Markov chain and to ensure that the entire process follows the underlying
+physical law such that we can eventually produce a high-fidelity prediction that also obeys the underlying
+governing equation. In the following, we present the architecture of Physics-informed Residual Diffusion
+(PiRD) which is composed of two essential modules: (i) Residual Shifting Diffusion Model that could build a
+Markov chain between LF distributions and HF distributions; (ii) Physics-informed neural networks(PINNs)
+for fluid mechanics that ensure the predictions obey the underlying governing equation.
+2.2.1
+Residual Shifting Diffusion Model for Vorticity Field
+Residual Shifting Diffusion Model was first proposed by Yue et al.
+[35] developed for the image super-
+resolution task. This method diverges from traditional diffusion approaches that transit high-fidelity images
+to Gaussian noise. Instead, it constructs a Markov chain between high-resolution images and low-resolution
+images by shifting the residual between them. We apply this method as the backbone of our task, expand
+this ideal and further develop it into the application of low-fidelity flow field super-resolution and sparse flow
+field reconstruction. Let ω denoted as the high-fidelity flow field, ad ˜ω as its corresponding low-fidelity flow
+field, and let e = ˜ω −ω denoted the residual between them, this residual does not only contains the spatially
+related difference between them but also contains the physical related information lost between them. The
+forward diffusion Markov chain can be described as:
+q(ωt|wt−1, ˜ω) = N(ωt; ωt−1 + αte, κ2αtI),
+t = 1, 2, . . . , T,
+(1)
+q(ωt|ω, ˜ω) = N(ωt; ω + ηte, κ2ηtI),
+t = 1, 2, . . . , T,
+(2)
+where {ηt}T
+t=1 is a shifting schedule that increases with the time step t such that a smooth transition of ω to
+˜ω over a sequence of T steps can be built. αt = ηt −ηt−1 for t > 1 and α1 = η1, κ is the key parameter that
+controls the progression of noise variance. Therefore the reverse process estimates the posterior distribution
+p(w|˜ω) using:
+p(ω|˜ω) =
+Z
+p(ωT |˜ω)
+T
+Y
+t=1
+pθ(ωt−1|ωt, ˜ω) dw1:T ,
+(3)
+Since in the forward diffusion process we have defined ωT = ω + ηT e + κ√ηT ϵ, and ηT →1 we can approx-
+imate ωT = (ω + e) + κϵ = ˜ω + κϵ where ϵ ∼N(0, I), consequently, we can also approximate p(ωT |˜ω) by
+3
+
+N(ωT |˜ω, κ2I). pθ(ωt−1|ωt, ˜ω) is the reverse transition kernel. By minimizing the negative evidence lower
+bound to make q(xt−1|xt, x0, y0) tractable, we can get below representations:
+min
+θ
+X
+t
+DKL[q(ωt−1|ωt, ω, ˜ω) ∥pθ(ωt−1|ωt, ˜ω)],
+(4)
+q(ωt−1|ωt, ω, ˜ω) = N
+
+ωt−1; ηt−1
+ηt
+ωt + αt
+ηt
+ω, κ2 ηt−1
+ηt
+αtI
+
+.
+(5)
+The above reverse transition kernel shows that for each iterative backward process, we need the original
+high-fidelity flow field ω to infer from ωt to ωt−1, therefore the objective function can be designed as follows:
+min
+θ
+X
+t
+∥fθ(ωt, ˜ω, t) −ω∥2
+2.
+(6)
+For a comprehensive derivation of forward diffusion process and backward inference process, and the design
+of the noise schedule, please see Section A of the Appendix.
+2.2.2
+Physics-informed neural networks (PINNs) for fluid mechanics
+Within the realm of fluid mechanics, the application of Physics-Informed Neural Networks (PINNs) to
+the vorticity transport equations exemplifies a sophisticated methodology for solving parametrized partial
+differential equations (PDEs) that describe complex fluid behaviours. The Vorticity Transport Equation in
+fluid dynamics is pivotal in describing the evolution of the vorticity vector ω, which represents the curl of
+the fluid velocity u. This equation is crucial for understanding the rotational behaviors within fluid flows. In
+applications where comparative analysis across different flow conditions is essential, the non-dimensional form
+of the vorticity transport equation, incorporating the Reynolds number Re, is frequently used. The Reynolds
+number characterizes the ratio of inertial forces to viscous forces within the fluid, providing insight into the
+effects of fluid viscosity across various flow regimes. The non-dimensional vorticity transport equation is
+expressed as:
+∂ω
+∂t + (u · ∇)ω = 1
+Re∇2ω
+(7)
+In this form, the equation highlights three major phenomena: (1) The Temporal Change ∂ω
+∂t describes
+the rate of change of vorticity over time. (2) The Advection term (u · ∇)ω represents the transport of
+vorticity by the velocity field. (3) The Diffusion
+1
+Re∇2ω accounts for the diffusion of vorticity, moderated
+by the fluid’s viscosity, which is inversely scaled by the Reynolds number. The vorticity transport equation
+describes the dynamics of vorticity, accounting for its transport and diffusion in fluid flows. This equation
+sets the stage for employing Physics-Informed Neural Networks (PINNs) in fluid mechanics, leveraging these
+fundamental principles to enhance model predictions and simulations. The PINNs framework for solving
+the vorticity transport equation integrates the physics of the problem directly into the learning process of
+the neural network. By approximating the solution, the network is trained to comply with the governing
+PDE across the domain Ωand throughout the time interval [0, T]. This training process is facilitated by the
+formulation of a composite loss function L, which encapsulates the adherence of the network’s output to the
+underlying physical laws and empirical data. The loss function is articulated as
+L = β1LPDE + β2Ldata + β3LIC + β4LBC,
+(8)
+where each term represents a different aspect of the learning criteria: LPDE penalizes deviations from the
+vorticity transport PDE, Ldata quantifies the discrepancies between the predictions and actual flow measure-
+ments, LIC and LBC ensure the model’s output matches the initial and boundary conditions, respectively,
+βi denotes the weighting coefficient for each term. To accurately model fluid behavior, PINNs incorporate
+initial and boundary conditions directly into the loss function. Initial conditions set the stage for the fluid’s
+state at the beginning of the observation period, whereas boundary conditions dictate the fluid’s behaviour
+at the domain’s edges, influencing the evolution of the flow over time. The precise specification of these con-
+ditions is vital for capturing the physical scenario under investigation, such as the generation and dynamics
+of vorticity in flows past obstacles.
+An adaptive optimization algorithm, typically ADAM, is employed to minimize the loss function. This
+optimization approach adjusts the learning rate dynamically, enabling efficient convergence towards a pa-
+rameter set that best represents the solution to the vorticity transport equation while respecting both the
+fluid dynamics and the available empirical data.
+4
+
+Figure 1: The architecture of PiRD. During the forward process, a time-step t is randomly drawn from (0, T],
+then a UNet is used for predicting ω from ωt with the objective function that both penalize the element-wise
+difference but also the physics loss. During the inference process, the LF field ˜ω is first mapped to ωT then
+followed by the reverse Markov chain and finally predicted HF field ω.
+2.2.3
+Physics-informed Residual Diffusion
+The vanilla Residual Diffusion Model (RDM) operates by constructing a Markov chain, characterizing a
+residual, e, that quantifies the discrepancy between the high-fidelity vorticity field, ω, and its low-fidelity
+counterpart, ˜ω.
+This residual is dissected into two principal components: efidelity, which represents the
+element-wise discrepancies, and ephysics, which captures deviations from established physical laws. Conse-
+quently, the relationship between ˜ω and ω can be represented by the following equation:
+ω = ˜ω + e = ˜ω + (efidelity + ephysics).
+(9)
+While efidelity plays a pivotal role in enhancing resolution, effectively addressing ephysics poses a significant
+challenge due to the complex nature of fluid dynamics, and flow field reconstruction cannot be simply seen as
+a mere computer vision task, which prioritizes the pixel-wise similarity. In many scenarios, it is possible that
+for a pair of predictions with the same pixel-wise mean relative error compared to the ground truth, their
+respective prediction has large differences in terms of physics property. Therefore, if the Markov chain could
+facilitate the inference of a high-fidelity (HF) vorticity field from a low-fidelity (LF) one while rigorously
+adhering to physical laws, the flow field reconstructed could make sure that it not only revert efidelity but
+also ephysics. Nonetheless, realizing this ideal scenario requires two often unattainable conditions in practical
+applications: (i) the presence of ample training data to thoroughly represent Markov chain transitions. (ii)
+LF distribution representations at the termination of the chain (XT ) that accurately reflect all conceivable
+LF situations, crucial for recovering ephysics.
+To address these challenges, we introduce Physics-informed Residual Diffusion (PiRD). PiRD enriches
+the RDM framework by embedding physics-informed constraints within the model’s loss function, ensuring
+adherence to physical laws at every step of the Markov chain. This approach serves a dual purpose: it acts as
+a form of data augmentation, introducing crucial information for model learning, and it can also guarantee
+that each LF vorticity field is transitioned towards the HF distribution in compliance with physical principles
+without the concern that the physics-wise error will accumulate during the sampling process. Through this
+integration, PiRD can effectively map complex LF vorticity fields to HF fields, ensuring that subsequent
+transitions are physically coherent. As a result, the final predicted ˆω not only exhibits high fidelity but also
+aligns with the fundamental physical principles, surmounting the inherent limitations of conventional RDM
+5
+
+in vorticity super-resolution and reconstruction tasks.
+Figure 1 illustrates the core architecture of the proposed PiRD model. It utilizes a Markov chain method-
+ology to facilitate the reconstruction of high-fidelity flow fields from their low-fidelity counterparts, ensuring
+adherence to physical laws throughout the reconstruction process.
+The loss function employed in PiRD comprises two components: the element-wise loss and the PDE loss.
+The element-wise is the L2 norm between the prediction ˆω and the true flow field ω, normalized by the L2
+norm of ω, emphasizing the accuracy of individual elements. The PDE loss ensures that the predicted field
+complies with the underlying governing equations, to maintain the physical plausibility. Mathematically, the
+loss function is expressed as:
+Loss = α
+X
+t
+∥fθ(ωt, ˜ω, t) −ω∥2
+2 + β
+X
+t
+∥G(fθ(ωt, ˜ω, t))∥2
+2,
+(10)
+where α and β are the weighting parameters that balance the significance of data fidelity and physical
+consistency, respectively. The differential operator G, employed in the loss function, represents the dynamics
+captured by the non-dimensional two-dimensional (2D) vorticity transport equation for incompressible fluid
+flow as shown in Equation 7.
+In 2D incompressible flows, the velocity field u can be derived from the vorticity field ω using the stream
+function ψ, where ω = −∇2ψ, and u is obtained from the gradients of ψ. This relationship allows the velocity
+field to be implicitly determined from the vorticity field, facilitating the calculation of G as:
+G(fθ(ωt, ˜ω, t)) = ∂fθ(ωt, ˜ω, t)
+∂t
++ (u · ∇)fθ(ωt, ˜ω, t) −1
+Re∇2fθ(ωt, ˜ω, t).
+(11)
+The ideal outcome, G(fθ(ωt, ˜ω, t)) = 0, indicates that the predicted vorticity field adheres to the dynamics
+governed by the vorticity transport equation. Hence, the PDE loss component is defined as the right hand
+side of the of Equation 10, which penalizes predictions fθ(ωt, ˜ω, t) that deviate from its governing equation,
+thereby enforcing compliance with fluid dynamics principles.
+To effectively compute the rate of change of vorticity over time, the model utilizes three channels of input
+corresponding to vorticity fields at consecutive time frames, k −1, k, and k + 1 as shown in Figure 1. It’s
+important to note that in this context, k refers to the time frame within the entire dataset’s time span,
+rather than representing a specific time step during the forward or backward process in the diffusion model.
+This tri-channel approach enables the approximation of ∂ω
+∂k using finite difference methods.
+The forward process models the diffusion of the flow field from a high-fidelity state ω to a noised low-
+fidelity state over discrete time steps t = 1, 2, . . . , T. This diffusion is simulated as a Gaussian process, given
+by:
+ωt = ω + ηte + κ√ηtϵ = ω + ηt(ω −˜ω) + κ√ηtϵ,
+ϵ ∼N(0, I)
+(12)
+In the sampling process, the reverse Markov chain recovers the high-fidelity flow field starting from the
+low-fidelity observations ˜ω. This process inverts the forward diffusion, iteratively reconstructing the previous
+time step ωt−1 from a more noisy time step ωt, until the original flow field ω0 is retrieved:
+ωt−1 = ηt−1
+ηt
+ωt + αt
+ηt
+fθ(ωt, ˜ω, t) + κ
+rηt−1
+ηt
+αtϵ,
+ϵ ∼N(0, I)
+(13)
+We choose UNet as the underlying neural network architecture because of its exceptional performance
+in capturing complex spatial hierarchies inherent in image-like data, which is analogous to flow fields. With
+its encoding and decoding pathways, the architecture’s design is well-suited to preserving high-resolution
+details crucial for reconstructing the intricate structures found in vorticity fields, making it a proper choice
+for this task.
+3
+Experimental Setup
+Experiments were designed to evaluate the effectiveness and robustness of the proposed method, referred to as
+Physics-informed Residual Diffusion(PiRD), in reconstructing high-fidelity flow fields across various complex
+and practical scenarios using a two-dimensional Kolmogorov flow dataset. The investigation encompassed
+multiple tasks under different low-fidelity conditions to simulate potential challenges.
+The initial set of
+conditions involved simple low-fidelity scenarios where the high-fidelity flow field, originally at 256 × 256
+pixels, was uniformly down-sampled by a scale of 4 and 8. This represented 4× and 8× up-sampling tasks,
+6
+
+Figure 2: Downsampling methods for the experiments. (a) illustrates an evenly down-sampling operation.
+The original data is initially downsampled evenly, followed by nearest interpolation to upsample it to match
+the desired input dimension of the model. (b) depicts a random selection down-sampling operation. A
+certain percentage of data points are randomly selected from the original dataset, after which the tesselation
+method is employed on the sparse dataset to achieve the desired dimension. Gaussian noise is introduced to
+the downsampled dataset during the noisy flow field reconstruction experiments.
+respectively. The second scenario focused on sparse and randomly-distributed data, where only a certain
+percentage of the data was randomly selected for reconstruction tasks. The sparsity levels considered were
+5%, and 1.5625% of the original data, aiming to test the capability of reconstructing the high-fidelity flow
+field from significantly reduced data points. The third scenario combined low-fidelity conditions with varying
+levels of injected Gaussian noise. For this set of experiments, the low-fidelity flow field was set down-sampled
+by a scale of 4, and a sparse flow field with 5% of the original data. Gaussian noise was then introduced to
+these low-fidelity flow fields during the testing stage at densities ranging from 20% to 100%. This experiment
+was designed to test the capacity of the PiRD in handling noisy, low-fidelity inputs. The data pre-processing
+methods described above can be visualized in Figure 2.
+3.1
+Evaluation Metrices
+For a quantitative assessment of the reconstruction, we adopt the Mean Relative Error (MRE) which is
+the element-wise l2 norm between the prediction and ground truth data, and divided by a normalization
+factor which is the l2 norm of the ground truth. We also calculate the PDE loss to evaluate how much
+our prediction deviates from the underlying physical law. These two aforesaid evaluation matrices can be
+described as follows:
+MRE(ˆω, ω) = ∥ˆω −ω∥2
+∥ω∥2
+,
+(14)
+LossPDE(ˆω) = 1
+n
+n
+X
+i=1
+|G(ˆωi)|2,
+(15)
+where ˜ω represents the predicted flow field, ω represents the original high-fidelity flow field, G represents a
+differential operator that is applied to the predicted flow field.
+3.2
+Dataset
+The dataset we consider is a 2-dimensional Kolmogorov flow same with that in Shu et al.[34], which is
+governed by the Navier-Stokes equations for incompressible flow. The vorticity equation that characterizes
+7
+
+this flow is given by:
+∂ω(x, t)
+∂t
++ u(x, t) · ∇ω(x, t) = 1
+Re∇2ω(x, t) + f(x),
+x ∈(0, 2π)2, t ∈(0, T],
+(16)
+∇· u(x, t) = 0,
+x ∈(0, 2π)2, t ∈(0, T],
+(17)
+ω(x, 0) = ω0(x),
+x ∈(0, 2π)2.
+(18)
+where ω represents vorticity, u is the velocity field, Re is the Reynolds number (set to 1000 for this dataset),
+and f(x) is a forcing term defined as f(x) = −4 cos(4x2) −0.1ω(x, t), to mitigate energy accumulation at
+larger scales. The boundary condition of this dataset is periodic. The dataset contains 40 simulations, each
+with a temporal span of 10 seconds partitioned into 320 snapshots and a spatial resolution of 256× 256 grid.
+3.3
+Model Training
+The dataset was partitioned into training (80%), validation (10%), and testing (10%) sets. Optimization
+strategies are based on a cosine annealing learning rate, the maximum number of epochs was set to 20, the
+maximum and minimum learning rate was set to 1e−3 and 1e−5 respectively, T was set to 20, and κ was set
+to 2 to ensure the generalizability of ωT . We set the weights for the data term and PDE term as 0.7 and
+2e−4, respectively. The entire training process was conducted on a single RTX3090 GPU over approximately
+3 hours.
+4
+Results
+4.1
+Comparison with current reconstruction methods
+In this section, we conduct a quantitative analysis comparing our Physics-informed Residual Diffusion (PiRD)
+model against three state-of-the-art super-resolution methods: a modified UNet with ResNet block and
+attention block which is similar to the model proposed by Pant et al.[41], a physics-informed Denoising
+Diffusion Probabilistic Model (DDPM) proposed by Shu et al.
+[34], and the Residual Diffusion Model
+(RDM) proposed by Yue et al. [35].
+To ensure a fair comparison, UNet, RDM, and PiRD are all trained for a reconstruction task scaling from
+64 × 64 to 256 × 256. Notice that, unlike the DDPM-based method—which requires only the high-fidelity
+vorticity field for training—our PiRD model necessitates prior knowledge of the residual between high-fidelity
+(HR) and low-fidelity (LR) fields.
+Subsequent tests evaluate the Mean Relative Error (MRE) and Partial Differential Equation (PDE) loss
+across four different tasks: 4× up-sampling, 8× up-sampling, 5%, and 1.5625% reconstruction to 256 × 256
+resolution. We utilize bicubic interpolation to resize the down-sampled low-fidelity dataset during training,
+ensuring that the input matches the desired dimensions of our output. Subsequently, for up-sampling tasks,
+we employ nearest interpolation, and for reconstruction tasks, we utilize Voronoi tessellation to resize the
+input, maintaining consistency with the desired output dimensions (256 × 256). This standardized approach
+ensures that all testing distributions and patterns remain unseen for UNet, RDM and PiRD, facilitating
+a fair comparison of their performance. As the reverse process of the diffusion models are initialized with
+a random sample, we also iterate each batch 10 times and take the average of the flow fields as our final
+prediction. This approach is designed to reduce the influence of randomness in the predictive outcomes
+to produce a more stable and reproducible result.
+By computing the standard deviation over these 10
+results, we can also provide the uncertainty of the predicted flow fields. For a visualization of the standard
+deviation of these 10 iterations and the residual of the prediction and the ground truth, we invite readers
+to consult the Section C.5 of the Appendix. For training PiRD, T was set to 20 and κ was set to 2. For
+inference, we test PiRD’s performance on both T = 20 and T = 10, since our experiment demonstrates that
+PiRD demonstrates a flexibility on T due to the inherent flexibility of our variance schedule design. Results
+for the physics-informed DDPM are generated using the hyper-parameters recommended by the original
+authors, with Discrete Denoising Implicit Models (DDIM) sampling steps set at 30 and 60 respectively. The
+Residual Diffusion Model (RDM) without the physical loss component is trained for an ablation study, and
+the hyper-parameters for training the RDM are identical with those for training PiRD.
+As illustrated in Table 1, UNet model struggles across all the tested scenarios particularly in terms of the
+PDE loss, reflecting its inability to generalize to unseen low-fidelity distributions and patterns which haven’t
+8
+
+Methods
+4x
+8x
+5%
+1.5625%
+MRE
+PDE
+MRE
+PDE
+MRE
+PDE
+MRE
+PDE
+PiRD - 20(ours)
+0.1178
+2.0663
+0.3616
+1.9088
+0.2889
+1.8443
+0.3814
+2.1696
+PiRD - 10(ours)
+0.2033
+2.1465
+0.4726
+2.6937
+0.1966
+1.9114
+0.3733
+2.9808
+RDM - 20
+0.1520
+49.8802
+0.3617
+43.1972
+0.3027
+39.7595
+0.3967
+45.2784
+DDPM-based - 30
+0.2832
+8.0110
+0.5251
+7.4526
+0.2811
+3.7741
+0.3912
+14.7641
+DDPM-based - 60
+0.2844
+5.1598
+0.5258
+4.6567
+0.2881
+2.1297
+0.4378
+3.8925
+UNet
+0.1207
+259.0664
+0.3995
+699.3475
+0.3478
+668.0065
+0.4981
+998.8791
+Table 1: Quantitative Comparison. MRE means the Mean Relative Error, PDE means Partial Differential
+Equation residual of the predicted vorticity field. The best and second best results are highlighted in bold
+and underline respectively. All the models are trained with 4x up-sampling data only. The numbers beside
+the methods represents the inference step (e.g. “-10” represents the prediction takes 10 steps to sample).
+been encountered during training. Although it achieves the second lowest MRE on the 4x up-sampling task,
+it performs worst on recovering the underlying physical law. The extremely high PDE loss validates our
+opinion that the flow field reconstruction cannot be merely seen as a computer vision task, which may result
+in a successful recovery of element-wise information, but unacceptable physical-wise information. This can
+be further validated by visualizing the zoomed-in qualitative comparison in Figure 3. As shown, UNet model
+fails to predict reasonable and smooth flow fields, especially when the low-fidelity input contains randomly
+distributed measurements (e.g., the 5% and 1.5625% reconstruction tasks).
+Conversely, PiRD and DDPM-based method, consistently maintains low and reasonable PDE losses,
+indicating successful recovery of underlying physical laws during the reconstruction process while also min-
+imizing mean relative errors. Notably, PiRD outperforms other methods across all scenarios in terms of
+both MRE and PDE loss, confirming our assumption that different low-fidelity scenarios can be collectively
+mapped into a noisy LF distribution, followed by the use of the learned reverse Markov chain to sample LF
+flow fields back to the HF distribution. Furthermore, compared to the RDM (Residual Diffusion Model),
+PiRD demonstrates superior performance not only in terms of PDE loss but also in achieving lower Mean
+Relative Error (MRE). This outcome highlights the effectiveness of incorporating the physical component
+into the loss function, ensuring adherence to the underlying governing equation and providing guidance for
+distribution learning, ultimately resulting in reduced MRE loss.
+It is noteworthy that the performance of the DDPM-based method on PDE loss is dependent on the
+number of sampling steps employed. Specifically, increasing the steps from 30 to 60 tends to reduce PDE
+loss but at the expense of higher MRE. This trade-off arises because the DDPM-based method involves
+subtracting the PDE deviation relative to the vorticity field at each sampling step - a process that is
+challenging to manage without potentially compromising MRE performance.
+In contrast, our PiRD model excels in predicting the high-fidelity field with both a remarkably low
+MRE and an exceptionally low PDE loss, demonstrating its effectiveness and robustness in the flow field
+reconstruction task. For a comprehensive and varied examination of PiRD’s performance, we invite readers
+to consult the Section C of the Appendix, where the reconstructed flow fields with different inputs are
+presented.
+4.2
+Evaluation on kinetic energy spectrum and vorticity distribution
+The kinetic energy spectrum is a crucial metric in turbulence research and is used to understand the dis-
+tribution of energy among different scales within the flow field. It characterizes how kinetic energy varies
+with the wavenumber, revealing the flow’s energy cascade from larger to smaller scales. It is important to
+highlight that despite UNet’s mean relative error (MRE) being comparable to that of PiRD for the task of
+4x up-sampling, as indicated in Table 1, its performance on the kinetic energy spectrum is relatively poor,
+as shown in Figure 4a. Although it performs well in recovering large-scale vortices, it fails to retrieve the
+vorticity at higher wavenumber. This discrepancy further validates our view that the accurate recovery of
+element-wise data does not necessarily translate to successfully retrieving physically meaningful informa-
+tion. On the contrary, our method demonstrates a robust capability to recover the energy distribution of
+the turbulent flow as shown in Figure 4a.
+9
+
+Figure 3: Flow field reconstruction from four different low-fidelity inputs (i.e., 4× downsampling, 8× down-
+sampling, 5% random selection, and 1.5625% random selection). A zoomed-in comparison among PiRD,
+DDPM-based, and UNet methods for three testing cases.
+The spectrum obtained by our technique aligns closely with the ground truth across a range of wavenum-
+bers, particularly in the inertial subrange, indicating that our method successfully captures the scale-
+dependent distribution of kinetic energy. The slight deviation at higher wavenumbers can be attributed
+to the inherent challenges in resolving the smallest scales of turbulence.
+Furthermore, the vorticity distribution offers valuable insight into the likelihood of encountering spe-
+cific vorticity magnitudes within the flow. An accurate method for capturing this distribution from coarse
+data suggests its ability to preserve essential characteristics of turbulence structure. These include features
+such as the distribution’s peak and tails, which provide valuable information about underlying turbulence
+phenomena.
+The obtained distribution as illustrates in Figure 4b, demonstrates a strong alignment with the ground
+truth, particularly in accurately representing the distribution’s peak and tails. These aspects are indicative
+of significant vorticity events within the flow.
+4.3
+Evaluation on noisy low-fidelity vorticity field
+In this section, we investigate the robustness of PiRD against a progressive density of Gaussian noise injected
+into the low-fidelity input as shown in Figure 2, the noise injection and prediction process can be described
+below
+ˆω = fθ(˜ω + αϵ),
+ϵ ∼N(0, I)
+(19)
+10
+
+(a) Kinetic energy spectrum
+(b) Vorticity distribution
+Figure 4: Comparison of PiRD’s performance on (a) kinetic energy spectrum and (b) vorticity distribution.
+Figure 5: PiRD and UNet’s performances on MRE and PDE under a progressive density of injected Gaussian
+noise. (a and b) illustrate the comparisons of MRE and PDE loss for PiRD and UNet on the noisy 4x
+reconstruction task. (c and d) illustrate the comparisons of MRE and PDE loss for PiRD and UNet on the
+noisy 5% reconstruction task.
+where α ranges from 0.2 to 1.0 by a step size of 0.2, the low-fidelity field is down-sampled from the high-
+fidelity one by a scale of 4, and randomly selected 5% of the high-fidelity data respectively, and then
+normalized to Gaussian distribution before the Gaussian noise is injected. As shown in Figure 5, as the
+injected noise density increases, UNet’s performance degrades significantly.
+On the contrary, PiRD has
+stably and accurately predicted the HF field for both scenarios. In addition, as illustrated in Figure 6, the
+kinetic energy spectrum and vorticity distribution appear identical across all noise densities compared to the
+case where no noise is injected. This observation suggests that PiRD is highly robust to noise interference.
+Although there is a slight degradation in MRE as the noise density increases, the performance on PDE loss,
+vorticity distribution, and kinetic energy spectrum remains consistent.
+5
+Conclusion
+This study highlights the inherent limitations of conventional CNN-based methods in reconstructing flow
+fields. Specifically, these methods tend to perform optimally only on data that mirrors the distribution or
+down-sampling processes they were originally trained on. A mere adaptation of computer vision techniques
+to flow field reconstruction tasks often leads to results that, while visually plausible, may not adhere strictly
+to the mathematical and physical principles governing the flow dynamics.
+Our proposed model, PiRD, is expected to address these challenges by establishing a Markov chain that
+links low-fidelity and high-fidelity flow fields. This approach not only ensures the retention of physical laws
+throughout the training and sampling processes but also exhibits remarkable resilience to various down-
+sampling operations. By prioritizing both element-wise accuracy and adherence to physical laws, PiRD may
+set a new benchmark in performance across experimental datasets. PiRD is demonstrated to be promising for
+flow field reconstruction tasks, merging the realms of deep learning and fluid dynamics with unprecedented
+efficacy.
+11
+
+Figure 6: Reconstruction performance of PiRD and UNet under a progressive density of injected Gaussian
+noise. (a and b) illustrate PiRD and UNet ’s performances on Noisy low-fidelity vorticity field reconstruction
+for 4x and 5% senarios respectively. (c and d) illustrate PiRD’s performance on vorticity distribution and
+kinetic energy spectrum for 4x reconstruction task. (e and f) illustrate PiRD’s performance on vorticity
+distribution and kinetic energy spectrum for 5% reconstruction task. Both models are trained with clean 4x
+up-sampling data without any noise.
+As the first attempt to apply the Residual Diffusion Model to the flow field reconstruction problem,
+the proposed method still exhibits certain limitations. While PiRD demonstrates improved accuracy and
+robustness compared to CNN-based models when handling unseen sparse and noisy measurements, further
+optimization of its performance is possible when both the training and testing sets adhere to the exact same
+distribution. Moreover, a correlation between the standard deviation of multiple model samples and the
+reconstruction error can be established.
+In the near future, exploring the integration of more controllable physical flow information into the
+diffusion model training process, as an alternative to the conventional addition of Gaussian noises, may
+represent a promising direction for developing a more accurate and generalizable flow generation model.
+12
+
+References
+[1] Kevin Course and Prasanth B Nair. State estimation of a physical system with unknown governing
+equations. Nature, 622(7982):261–267, 2023.
+[2] N Benjamin Erichson, Lionel Mathelin, Zhewei Yao, Steven L Brunton, Michael W Mahoney, and
+J Nathan Kutz. Shallow neural networks for fluid flow reconstruction with limited sensors. Proceedings
+of the Royal Society A, 476(2238):20200097, 2020.
+[3] Huanfeng Shen, Xinghua Li, Qing Cheng, Chao Zeng, Gang Yang, Huifang Li, and Liangpei Zhang.
+Missing information reconstruction of remote sensing data: A technical review. IEEE Geoscience and
+Remote Sensing Magazine, 3(3):61–85, 2015.
+[4] Saiprasad Ravishankar, Jong Chul Ye, and Jeffrey A Fessler. Image reconstruction: From sparsity to
+data-adaptive methods and machine learning. Proceedings of the IEEE, 108(1):86–109, 2019.
+[5] Neda Davoudi, Xos´e Lu´ıs De´an-Ben, and Daniel Razansky. Deep learning optoacoustic tomography
+with sparse data. Nature Machine Intelligence, 1(10):453–460, 2019.
+[6] Weisong Zhao, Shiqun Zhao, Liuju Li, Xiaoshuai Huang, Shijia Xing, Yulin Zhang, Guohua Qiu, Zhen-
+qian Han, Yingxu Shang, De-en Sun, et al. Sparse deconvolution improves the resolution of live-cell
+super-resolution fluorescence microscopy. Nature biotechnology, 40(4):606–617, 2022.
+[7] Steven L Brunton, Bernd R Noack, and Petros Koumoutsakos. Machine learning for fluid mechanics.
+Annual review of fluid mechanics, 52:477–508, 2020.
+[8] Keyi Wu, Peng Chen, and Omar Ghattas. A fast and scalable computational framework for large-scale
+high-dimensional bayesian optimal experimental design. SIAM/ASA Journal on Uncertainty Quantifi-
+cation, 11(1):235–261, 2023.
+[9] Myoungkyu Lee and Robert D Moser. Direct numerical simulation of turbulent channel flow up to.
+Journal of Fluid Mechanics, 774:395–415, 2015.
+[10] Ugo Piomelli. Large-eddy simulation: achievements and challenges. Progress in Aerospace Sciences,
+35(4):335–362, 1999.
+[11] G Alfonsi.
+Reynolds averaged navier-stokes equations for turbulence modeling.
+Applied Mechanics
+Reviews, 63(7, Art. 040802), 2009.
+[12] Stefan Heinz. A review of hybrid RANS-LES methods for turbulent flows: Concepts and applications.
+Progress in Aerospace Sciences, 114:100597, 2020.
+[13] Mengze Wang and Tamer A Zaki. State estimation in turbulent channel flow from limited observations.
+Journal of Fluid Mechanics, 917:A9, 2021.
+[14] Chao Dong, Chen Change Loy, Kaiming He, and Xiaoou Tang.
+Image super-resolution using deep
+convolutional networks. IEEE transactions on pattern analysis and machine intelligence, 38(2):295–
+307, 2015.
+[15] Chunwei Tian, Yong Xu, Wangmeng Zuo, Bob Zhang, Lunke Fei, and Chia-Wen Lin. Coarse-to-fine
+cnn for image super-resolution. IEEE Transactions on Multimedia, 23:1489–1502, 2020.
+[16] Chengping Rao, Pu Ren, Qi Wang, Oral Buyukozturk, Hao Sun, and Yang Liu. Encoding physics to
+learn reaction-diffusion processes. Nature Machine Intelligence, 5(7):765–779, 2023.
+[17] Xiangyu Chen, Xintao Wang, Jiantao Zhou, Yu Qiao, and Chao Dong. Activating more pixels in image
+super-resolution transformer. In Proceedings of the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition, pages 22367–22377, 2023.
+[18] Fuzhi Yang, Huan Yang, Jianlong Fu, Hongtao Lu, and Baining Guo. Learning texture transformer
+network for image super-resolution. In Proceedings of the IEEE/CVF Conference on Computer Vision
+and Pattern Recognition, pages 5791–5800, 2020.
+13
+
+[19] Ziwei Luo, Youwei Li, Shen Cheng, Lei Yu, Qi Wu, Zhihong Wen, Haoqiang Fan, Jian Sun, and
+Shuaicheng Liu. Bsrt: Improving burst super-resolution with swin transformer and flow-guided de-
+formable alignment. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
+Recognition, pages 998–1008, 2022.
+[20] Chenyu You, Guang Li, Yi Zhang, Xiaoliu Zhang, Hongming Shan, Mengzhou Li, Shenghong Ju, Zhen
+Zhao, Zhuiyang Zhang, Wenxiang Cong, et al. Ct super-resolution GAN constrained by the identi-
+cal, residual, and cycle learning ensemble (GAN-CIRCLE). IEEE Transactions on Medical Imaging,
+39(1):188–203, 2019.
+[21] Sefi Bell-Kligler, Assaf Shocher, and Michal Irani. Blind super-resolution kernel estimation using an
+internal-GAN. Advances in Neural Information Processing Systems, 32, 2019.
+[22] Kui Jiang, Zhongyuan Wang, Peng Yi, Guangcheng Wang, Tao Lu, and Junjun Jiang. Edge-enhanced
+gan for remote sensing image superresolution. IEEE Transactions on Geoscience and Remote Sensing,
+57(8):5799–5812, 2019.
+[23] Romit Maulik, Kai Fukami, Nesar Ramachandra, Koji Fukagata, and Kunihiko Taira. Probabilistic neu-
+ral networks for fluid flow surrogate modeling and data recovery. Physical Review Fluids, 5(10):104401,
+2020.
+[24] Han Gao, Luning Sun, and Jian-Xun Wang. Super-resolution and denoising of fluid flow using physics-
+informed convolutional neural networks without high-resolution labels. Physics of Fluids, 33(7), 2021.
+[25] Luning Sun and Jian-Xun Wang. Physics-constrained bayesian neural network for fluid flow reconstruc-
+tion with sparse and noisy data. Theoretical and Applied Mechanics Letters, 10(3):161–169, 2020.
+[26] Kai Fukami, Romit Maulik, Nesar Ramachandra, Koji Fukagata, and Kunihiko Taira. Global field
+reconstruction from sparse sensors with voronoi tessellation-assisted deep learning. Nature Machine
+Intelligence, 3(11):945–951, 2021.
+[27] Tomoki Asaka, Katsunori Yoshimatsu, and Kai Schneider. Machine learning-based vorticity evolution
+and super-resolution of homogeneous isotropic turbulence using wavelet projection. Physics of Fluids,
+36(2), 2024.
+[28] Alejandro G¨uemes, Carlos Sanmiguel Vila, and Stefano Discetti. Super-resolution generative adversarial
+networks of randomly-seeded fields. Nature Machine Intelligence, 4(12):1165–1173, 2022.
+[29] Roger Ratcliff, Philip L Smith, Scott D Brown, and Gail McKoon. Diffusion decision model: Current
+issues and history. Trends in cognitive sciences, 20(4):260–281, 2016.
+[30] Diederik Kingma, Tim Salimans, Ben Poole, and Jonathan Ho. Variational diffusion models. Advances
+in Neural Information Processing Systems, 34:21696–21707, 2021.
+[31] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denoising diffusion implicit models. arXiv preprint
+arXiv:2010.02502, 2020.
+[32] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffusion probabilistic models. Advances in
+neural information processing systems, 33:6840–6851, 2020.
+[33] Jared B Fudge. Protein sequences absent in nature generated with diffusion model. Nature Biotechnol-
+ogy, 41(5):616–616, 2023.
+[34] Dule Shu, Zijie Li, and Amir Barati Farimani. A physics-informed diffusion model for high-fidelity flow
+field reconstruction. Journal of Computational Physics, 478:111972, 2023.
+[35] Zongsheng Yue, Jianyi Wang, and Chen Change Loy. Resshift: Efficient diffusion model for image
+super-resolution by residual shifting. Advances in Neural Information Processing Systems, 36, 2024.
+[36] M Raissi, P Perdikaris, and GE Karniadakis.
+Physics-informed neural networks: A deep learning
+framework for solving forward and inverse problems involving nonlinear partial differential equations.
+Journal of Computational Physics, 378:686–707, 2019.
+14
+
+[37] George Em Karniadakis, Ioannis G Kevrekidis, Lu Lu, Paris Perdikaris, Sifan Wang, and Liu Yang.
+Physics-informed machine learning. Nature Reviews Physics, 3(6):422–440, 2021.
+[38] Shengze Cai, Zhiping Mao, Zhicheng Wang, Minglang Yin, and George Em Karniadakis.
+Physics-
+informed neural networks (pinns) for fluid mechanics: A review. Acta Mechanica Sinica, 37(12):1727–
+1738, 2021.
+[39] Maziar Raissi and George Em Karniadakis. Hidden physics models: Machine learning of nonlinear
+partial differential equations. Journal of Computational Physics, 357:125–141, 2018.
+[40] Tianyi Li, Luca Biferale, Fabio Bonaccorso, Martino Andrea Scarpolini, and Michele Buzzicotti. Syn-
+thetic lagrangian turbulence by generative diffusion models. Nature Machine Intelligence, pages 1–11,
+2024.
+[41] Pranshu Pant and Amir Barati Farimani. Deep learning for efficient reconstruction of high-resolution
+turbulent dns data. arXiv preprint arXiv:2010.11348, 2020.
+15
+
+Appendix
+A
+Detailed mathematical derivation of residual diffusion model
+A.1
+Derivation of the Forward Process
+The conditional probability distribution forward process can be described as follows:
+q(ωt|ωt−1, ˜ω) = N(ωt; ωt−1 + αte, κ2αtI),
+t = 1, 2, . . . , T,
+(20)
+where its equation form can be therefore described as:
+ωt = ωt−1 + αt(ωt −ω) + κ√αtϵt
+= ωt−1 + αte + κ√αtϵt
+= (ωt−2 + αt−1e + κ√αt−1ϵt−1) + αte + κ√αtϵt
+. . .
+= ω +
+t
+X
+i=1
+αie + κ
+t
+X
+i=1
+√αiϵi
+= ω +
+t
+X
+i=1
+(ηi −ηi−1)e + κ
+t
+X
+i=1
+√αiϵi,
+= ω + ηte + κ
+t
+X
+i=1
+√αiϵi,
+(21)
+where κ Pt
+i=1
+√αiϵi ∼N(0, V ar(κ Pt
+i=1
+√αi)I), according to the scaling rule of variance, we get get:
+κ
+t
+X
+i=1
+√αiϵi ∼N(0, κ2
+t
+X
+i=1
+αiI)
+∼N(0, κ2ηtI)
+(22)
+finally, we can express ωt and q(ωt|ωt−1, ˜ω) as:
+ωt = ω + ηte + κ√ηtϵi
+q(ωt|ω, ˜ω) = N(ωt; ω + ηte, κ2ηtI),
+t = 1, 2, . . . , T,
+(23)
+A.2
+Derivation of the Backward Process
+The entire backward process can be described as:
+p(ω | ˜ω) =
+Z
+p(ωT | ˜ω)
+T
+Y
+t=1
+pθ(ωt−1 | ωt, ˜ω) dω1:T
+(24)
+where p(ωT | ˜ω) ∝N(ωT | ˜ω, κ2I),The optimization for θ is achieved by minimizing the negative evidence
+lower bound:
+minθ
+X
+t
+DKL[q(ωt−1 | ωt, ω, ˜ω)||pθ(ωt−1 | ωt, ˜ω)]
+(25)
+The according to Bayes’s rule, q(ωt−1 | ωt, ω, ˜ω) ∝q(ωt | ωt−1, ˜ω)q(ωt−1 | ω, ˜ω), where
+q(ωt | ωt−1, ˜ω) = N(ωt; ωt−1 + αte0, κ2αtI)
+q(ωt−1 | ω, ˜ω) = N(ωt−1; ω + ηt−1e0, κ2ηt−1I)
+(26)
+Then extract the exponent component of the quadratic form of q(ωt−1 | ωt, ω, ˜ω), we can get:
+−1
+2
+
+1
+κ2αt
++
+1
+κ2ηt−1
+
+ωt−1ωT
+t−1 +
+ωt −αte0
+κ2αt
++ ω + ηt−1e0
+κ2ηt−1
+
+ωT
+t−1 + C
+= −(ωt−1 −µ)(ωt−1 −µ)T
+2λ2
++ C
+(27)
+where µ = ηt−1
+ηt ωt + αt
+ηt ω and λ2 = κ2 ηt−1
+ηt αt, C is the constant.
+16
+
+A.3
+Noise Schedule Design
+Recall that {ηt}T
+t=1 is the shifting schedule that increases with the time step t such that a smooth transition
+of ω to ˜ω over a sequence of T steps can be built. The η1 should satisfies that η1 →0, therefore η1 is set to
+be the minimum value between (0.04/κ)2 and 0.001. The ηT should satisfies that ηT →1, therefore ηT is
+set equal to 0.999. The intermediate time step ηt is designed as follows:
+√ηt = √η1 × bβt
+0 ,
+t = 2, . . . , T −1
+(28)
+where
+βt = ( t −1
+T −1)p × (T −1), b0 = exp
+
+1
+2(T −1)log ηT
+η1
+
+.
+(29)
+p is fixed at 0.3 for our experiments.
+B
+Ablation Studies
+B.1
+PiRD’s performance under different training configurations
+Configurations
+4x
+8x
+5%
+1.5625%
+T
+kappa
+MRE
+PDE
+MRE
+PDE
+MRE
+PDE
+MRE
+PDE
+10
+2
+0.1198
+1.8086
+0.3619
+1.8025
+0.2885
+1.6290
+0.3856
+1.9341
+15
+2
+0.1196
+1.9842
+0.3601
+1.8103
+0.2910
+1.8470
+0.3866
+2.0792
+20
+2
+0.1186
+2.0727
+0.3616
+1.9088
+0.2889
+1.8443
+0.3814
+2.1696
+30
+2
+0.1224
+1.8243
+0.3590
+1.7667
+0.2922
+1.7010
+0.3866
+2.0133
+1
+0.0847
+1.9991
+0.3648
+1.9357
+0.2869
+1.8438
+0.4045
+2.8366
+20
+3
+0.1539
+2.1359
+0.3627
+2.0230
+0.2980
+2.0774
+0.3776
+2.1410
+4
+0.2011
+3.3922
+0.3795
+2.8995
+0.3054
+3.4197
+0.3767
+3.2438
+Table 2: PiRD’s performance under different training configurations
+B.2
+PiRD’s performance under different noise level
+Noise Level
+MRE
+Equation Loss
+4x
+5%
+4x
+5%
+UNet
+PiRD
+UNet
+PiRD
+UNet
+PiRD
+UNet
+PiRD
+0.0
+0.1207
+0.1178
+0.3478
+0.2889
+259.0664
+2.0663
+668.0065
+1.8443
+0.2
+0.1560
+0.1233
+0.3659
+0.2906
+409.8747
+2.0963
+851.9433
+1.8587
+0.4
+0.2247
+0.1373
+0.4022
+0.3007
+801.6868
+2.1556
+1332.9699
+1.9334
+0.6
+0.2990
+0.1599
+0.4533
+0.3189
+1350.3967
+2.2641
+1992.5789
+2.0817
+0.8
+0.3723
+0.1907
+0.5126
+0.3458
+2006.1515
+2.4555
+2765.8066
+2.3558
+1.0
+0.4435
+0.2302
+0.5751
+0.3826
+2733.3027
+2.7867
+3618.42871 2.8328
+Table 3: Comparison of UNet and PiRD performance for 4x and 5% reconstruction tasks at various noise
+levels. The models are trained with clean 4x up-sampling data without any noise.
+C
+Qualitative comparisons
+C.1
+Qualitative comparisons among methods for 4x upsampling task
+17
+
+Figure 7: PiRD’s performance on 4x upsampling task compares with other benchmarks.
+18
+
+C.2
+Qualitative comparisons among methods for 8x upsampling task
+Figure 8: PiRD’s performance on 8x upsampling task compares with other benchmarks.
+19
+
+C.3
+Qualitative comparisons among methods for 5% reconstruction task
+Figure 9: PiRD’s performance on 5% reconstruction task compares with other benchmarks.
+20
+
+C.4
+Qualitative comparisons among methods for 1.5625% reconstruction task
+Figure 10: PiRD’s performance on 1.5625% reconstruction task compares with other benchmarks.
+21
+
+C.5
+Residual vs standard deviation of PiRD’s 10 samples
+Figure 11: Comparison between the standard deviation of PiRD’s 10 samples and the residual between
+PiRD’s prediction and ground truth.
+22

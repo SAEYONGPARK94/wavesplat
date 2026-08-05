@@ -1,0 +1,74 @@
+Contents lists available at ScienceDirect
+Coastal Engineering
+journal homepage: www.elsevier.com/locate/coastaleng
+From points to waves: Fast ocean wave spatial–temporal fields estimation
+using ensemble transform Kalman filter with optical measurement
+Feng Wang a, Qidan Zhu a,∗, Chengtao Cai a,b, Xiaoyu Wang a, Renjie Qiao a
+a College of intelligent systems science and engineering. Harbin Engineering University, Nantong street, Harbin, 150001, Heilongjiang, China
+b Modeling and Emulation in E-Government National Engineering Laboratory, Nantong street, Harbin, 150001, Heilongjiang, China
+A R T I C L E
+I N F O
+Dataset link: https://github.com/fengHEU/Wa
+ve-ETKF/tree/main
+Keywords:
+Sea surface stereo reconstruction
+Spatial–temporal wave fields
+Maximum a posteriori estimate
+Ensemble transform Kalman filter
+A B S T R A C T
+Accurate spatial–temporal wave measurement is vital for ocean engineering applications. Although stereo
+vision shows great potential in this field, performing dense reconstruction requires processing vast amounts
+of pixel data, which reduces the efficiency of stereo image matching and subsequent point cloud processing.
+Recently, the paradigm of fusing sparse 3D points with predictions has emerged as a promising solution that
+balances accuracy and efficiency, yet requires an optimization framework capable of handling both state
+estimation and robust outlier filtering. Therefore, this study proposes a Kalman filter (KF)-based method
+for ocean wave field estimation, aiming to improve efficiency through recursion and to remove outliers
+and interpolation errors in measurements. The method leverages linear gravity wave dispersion relations for
+prediction, with sparse 3D points interpolated to a uniform grid as measurements. To address limitations
+of high-dimensional data processing, the study implements the Ensemble Transform Kalman Filter (ETKF),
+incorporating fuzzy logic to handle potential outliers. By maintaining an ensemble of states and employing
+ensemble transformation techniques to avoid computationally expensive matrix inversions, ETKF significantly
+improves recursive processing efficiency. Both CPU and GPU implementations were evaluated on published and
+field-collected datasets, demonstrating superior performance in efficiency, accuracy, and robustness compared
+to existing methods under the same paradigm.
+1. Introduction
+Accurate spatial–temporal wave measurement (Benetazzo et al.,
+2016; Li et al., 2022) is essential for ocean engineering applications,
+ranging from navigation to offshore structure safety, and wave en-
+ergy harvesting. Traditional single-point measurement systems cannot
+adequately capture critical features of three-dimensional sea surfaces,
+including directionality, wave height, and surface slope. Furthermore,
+research on spatial–temporal fields based on three-dimensional wave
+measurements has yielded new insights into wave modeling (Leckler
+et al., 2015; Barbariol et al., 2017). Consequently, developing efficient
+and robust spatial–temporal wave measurement methods has become a
+research priority.
+Wave measurement techniques have evolved significantly over the
+past decades. Traditional methods relied on wave gauges and surface
+buoys, which can provide precise time series but fail to capture the
+spatial structure of wave fields. Researchers have explored multi-point
+measurement arrays to address this limitation. For instance, Swan
+and Sheikh (2015) deployed 1400 probes to map the spatial–temporal
+∗Corresponding author.
+E-mail addresses: wfeng@hrbeu.edu.cn (F. Wang), zhuqidan@hrbeu.edu.cn (Q. Zhu), caichengtao@hrbeu.edu.cn (C. Cai), wxiaoyu@hrbeu.edu.cn
+(X. Wang), qiaorenjie@hrbeu.edu.cn (R. Qiao).
+wave fields. However, this approach faces practical challenges due
+to operational complexity and required repeated trials, and the in-
+struments may interfere with wave dynamics, potentially introducing
+measurement noise. Moreover, Benetazzo et al. (2015) found that
+point-measurement-based models inadequately predict certain wave
+characteristics, particularly extreme waves (Benetazzo et al., 2021).
+X-band radar is a key remote sensing device for large-scale ocean
+wave measurement (Kusters et al., 2016; Naaijen et al., 2018), utilizes
+empirical Modulation Transfer Functions (MTFs) to extract wave field
+data from radio wave backscatter (Benetazzo et al., 2018). Klein et al.
+(2020) and Fujimoto and Waseda (2020) proposed non-linear models to
+fit the wave field, but in practice the process requires long calibration
+periods and additional wave measurement equipment.
+Therefore, there is a need to develop reliable and efficient methods
+to measure spatial–temporal wave fields. In recent years, binocular
+stereo vision has shown great potential in this field, finding widespread
+application in both outdoor water surfaces (Benetazzo, 2006; Benetazzo
+et al., 2012) and laboratory wave tanks (Bechle and Wu, 2011; Li
+https://doi.org/10.1016/j.coastaleng.2024.104690
+Received 8 August 2024; Received

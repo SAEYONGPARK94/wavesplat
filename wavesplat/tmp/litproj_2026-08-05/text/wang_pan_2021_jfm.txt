@@ -1,0 +1,1827 @@
+J. Fluid Mech. (2021), vol. 918, A19, doi:10.1017/jfm.2021.340
+Phase-resolved ocean wave forecast with
+ensemble-based data assimilation
+Guangyao Wang1,2 and Yulin Pan2,†
+1State Key Laboratory of Hydraulic Engineering Simulation and Safety, Tianjin University,
+Tianjin 300072, China
+2Department of Naval Architecture and Marine Engineering, University of Michigan, Ann Arbor,
+MI 48109, USA
+(Received 22 November 2020; revised 18 February 2021; accepted 9 April 2021)
+Through ensemble-based data assimilation, we address one of the most notorious
+difﬁculties in phase-resolved ocean wave forecast, regarding the deviation of numerical
+solution from the true surface elevation due to the chaotic nature of and underrepresented
+physics in the nonlinear wave models. In particular, we develop a coupled approach of
+the high-order spectral (HOS) method with the ensemble Kalman ﬁlter (EnKF), through
+which the measurement data can be incorporated into the simulation to improve the
+forecast performance. A unique feature in this coupling is the mismatch between the
+predictable zone and measurement region, which is accounted for through a special
+algorithm to modify the analysis equation in EnKF. We test the performance of the new
+EnKF–HOS method using both synthetic data and real radar measurements. For both
+cases (though differing in details), it is shown that the new method achieves much higher
+accuracy than the HOS-only method, and can retain the phase information of an irregular
+wave ﬁeld for an arbitrarily long forecast time with sequentially assimilated data.
+Key words: surface gravity waves, computational methods
+1. Introduction
+Accurate prediction of ocean waves plays a signiﬁcant role in the industries of shipping,
+oil and gas, aquaculture, ocean renewable energy, coastal and offshore construction. In
+the past few decades, both phase-averaged and phase-resolved wave models have been
+developed. The phase-averaged wave models, which provide statistical descriptions in
+terms of the wave spectrum, have been widely used in the operational forecast of global
+and regional sea states (Booij, Ris & Holthuijsen 1999; Tolman et al. 2009). Despite their
+† Email address for correspondence: yulinpan@umich.edu
+© The Author(s), 2021. Published by Cambridge University Press. This is an Open Access article,
+distributed under the terms of the Creative Commons Attribution licence (http://creativecommons.org/
+licenses/by/4.0/), which permits unrestricted re-use, distribution, and reproduction in any medium,
+provided the original work is properly cited.
+918 A19-1
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+wide applications and success, phase-averaged models have the limitation of providing
+no information on the individual deterministic waves. For example, rogue waves, which
+often appear sporadically and potentially cause enormous damage to offshore structures
+and ships (Broad 2006; Nikolkina et al. 2011), cannot be captured. On the other hand,
+phase-resolved models can predict the evolution of individual waves, but have received
+much less attention historically, partly due to the difﬁculty in obtaining the phase-resolved
+ocean surface as initial conditions. This has now been largely ameliorated with the
+recent development of sensing technologies and wave ﬁeld reconstruction algorithms (e.g.
+Reichert et al. 2004; Nwogu & Lyzenga 2010; Gallego et al. 2011; Nouguier, Grilli &
+Guérin 2013; Lyzenga et al. 2015; Qi, Xiao & Yue 2016; Desmars et al. 2018; Qi et al.
+2018a). For example, the Doppler coherent marine radars have been applied to measure
+the radial surface velocity ﬁeld, based on which the ﬁeld of both velocity potential and
+surface elevation can be reconstructed in real time (Nwogu & Lyzenga 2010; Lyzenga
+et al. 2015).
+Given the reconstructed surface elevation and velocity potential as initial conditions,
+the evolution of the wave ﬁeld can be predicted by linear or nonlinear phase-resolved
+wave models. Although the linear models yield low computational cost, their prediction
+horizon is severely limited (e.g. Blondel et al. 2010; Qi et al. 2017). For nonlinear models,
+the Euler equations governing the free surface need to be numerically integrated. One
+efﬁcient numerical algorithm to achieve this goal, based on the high-order spectral (HOS)
+method, is developed by Dommermuth & Yue (1987) and West et al. (1987), with later
+variants such as Craig & Sulem (1993) and Xu & Guyenne (2009). The novelties of
+these algorithms lie in the development of an efﬁcient spectral solution of a boundary
+value problem involved in the nonlinear wave equations, which is neglected in the linear
+wave models with the sacriﬁce of accuracy. In recent years, HOS has been developed
+for short-time predictions of large ocean surface, taking radar measurements as initial
+conditions (Xiao 2013). However, due to the signiﬁcant uncertainties involved in realistic
+forecast (e.g. imperfect initial free surface due to measurement and reconstruction errors;
+the effects of wind, current, etc., that are not accurately accounted for) as well as the
+chaotic nature of the nonlinear evolution equations, the simulation may deviate quickly
+from the true wave dynamics (Annenkov & Shrira 2001). Because of this critical difﬁculty,
+operational phase-resolved wave forecast has been considered as a ‘hopeless adventure’ to
+pursue (Janssen 2008).
+The purpose of this paper, however, is to show that the dilemma faced by the
+phase-resolved wave forecast can be largely addressed by data assimilation (DA), i.e. a
+technique to link the model to reality by updating the model state with measurement
+data (Evensen 2003, 2009; Bannister 2017). Mathematically, the principle of DA is to
+minimize the error of analysis (i.e. results after combining model and measurements),
+or in a Bayesian framework, to minimize the variance of the state posterior given the
+measurements (Evensen 1994, 2003; Carrassi et al. 2018). Depending on formulations
+and purposes, two categories of DA algorithms exist, namely the variational-based
+and the Kalman-ﬁlter-based approaches. Among the limited studies to couple DA with
+phase-resolved wave models, most use the variational-based method, where the purpose
+is to ﬁnd the optimal initial condition to minimize a cost function measuring the
+distance between the model prediction and data in future times (Aragh & Nwogu
+2008; Qi et al. 2018a; Fujimoto & Waseda 2020). These methods, however, are not
+directly applicable to operational forecast due to their requirement of future data far
+after the analysis state (in contrast to the realistic situation where data becomes available
+sequentially in time). On the other hand, the Kalman-ﬁlter-based approach allows data
+918 A19-2
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+to be sequentially assimilated, by updating the present state as a weighted average of
+prediction and data according to the error statistics. While Kalman-ﬁlter-based approaches
+have been commonly applied in phase-averaged models to improve the forecast accuracy
+(Komen et al. 1996; Pinto, Bernadino & Pires Silva 2005; Emmanouil, Galanis & Kallos
+2012; Almeida, Rusu & Guedes Soares 2016), their development and application for
+phase-resolved wave models is still at a very early stage. The only attempt (based on
+the authors’ knowledge) to couple such an approach with a phase-resolved wave model
+is Yoon, Kim & Choi (2015), which, however, assumes linear propagation of the model
+error covariance matrix, thus limiting its application only to wave ﬁelds of small steepness.
+More robust methods based on the ensemble Kalman ﬁlter (EnKF) (i.e. with error statistics
+estimated by an ensemble of model simulations), which have led to many recent successes
+in the geosciences (Carrassi et al. 2018), have never been applied to phase-resolved wave
+forecast. Moreover, most existing work, if not all, uses only synthetic data for the validation
+of their methods, which ignores the realistic complexity that should be incorporated
+into the forecast framework, such as the mismatch between the predictable zone and
+measurement region, and the under-represented physics in the model.
+In the present work, we develop the sequential DA capability for nonlinear wave
+models, by coupling EnKF with HOS. The coupling is implemented in a straightforward
+manner due to the non-intrusive nature of EnKF, i.e. the HOS code can be directly
+reused without modiﬁcation (Evensen 2003, 2009). The new EnKF–HOS solver is able
+to handle long-term forecast of the ocean surface ensuring minimized analysis error
+by combining model prediction and measurement data. The possible mismatch of the
+predictable zone (spatial area theoretically predictable given the limited range of initial
+conditions, which shrinks in time) and measurement region (spatial area covered by the
+marine radar which moves with, say, ship speed) is accounted for by a new analysis
+equation in EnKF. To improve the robustness of the algorithm (i.e. address other practical
+issues such as misrepresentation of the error covariance matrix due to ﬁnite ensemble size
+and underrepresented physics in the model), we apply both adaptive covariance inﬂation
+and localization, which are techniques developed elsewhere in the EnKF community
+(Anderson & Anderson 1999; Hamill & Whitaker 2005; Anderson 2007; Carrassi et al.
+2018). We test the performance of the EnKF–HOS method against synthetic and realistic
+radar data, which shows consistent and signiﬁcant improvement in forecast accuracy over
+the HOS-only method in both cases. For the former, we further characterize the effect
+of parameters in EnKF on the performance. For the latter, we show that the EnKF–HOS
+method can retain the wave phases for arbitrarily long forecast time, in contrast to the
+HOS-only method which loses all phase information in a short time.
+The paper is organized as follows. The problem statement and detailed algorithm of the
+EnKF–HOS method are introduced in § 2. The validation and benchmark of the method
+against synthetic and realistic radar data are presented in § 3. We give a conclusion of the
+work in § 4.
+2. Mathematical formulation and methodology
+2.1. Problem statement
+We consider a sequence of measurements of the ocean surface in spatial regions Mj,
+with j = 0, 1, 2, 3, . . . the index of time t. In general, we allow Mj to be different for
+different j, reﬂecting a mobile system of measurement, e.g. a shipborne marine radar or
+moving probes. We denote the surface elevation and surface potential, reconstructed from
+the measurements in Mj, as ηm,j(x) and ψm,j(x) with x the two-dimensional (2-D) spatial
+918 A19-3
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+coordinates, and assume that the error statistics associated with ηm,j(x) and ψm,j(x) is
+known a priori from the inherent properties of the measurement equipment.
+In addition to the measurements, we have available a wave model that is able to
+simulate the evolution of the ocean surface (in particular η(x, t) and ψ(x, t)) given initial
+conditions. Our purpose is to incorporate measurements ηm,j(x) and ψm,j(x) into the
+model simulation sequentially (i.e. immediately as data become available in time) in
+an optimal way such that the analysis of the states ηa,j(x) and ψa,j(x) (thus the overall
+forecast) are most accurate.
+2.2. The general EnKF–HOS coupled framework
+In this study, we use HOS as the nonlinear phase-resolved wave model, coupled with the
+EnKF for DA. Figure 1 shows a schematic illustration of the proposed EnKF–HOS coupled
+framework. At initial time t = t0, measurements ηm,0(x) and ψm,0(x) are available,
+according to which we generate ensembles of perturbed measurements, η(n)
+m,0(x) and
+ψ(n)
+m,0(x), n = 1, 2, . . . , N, with N the ensemble size, following the known measurement
+error statistics (see details in § 2.3). A forecast step is then performed, in which an
+ensemble of N HOS simulations are conducted, taking η(n)
+m,0(x) and ψ(n)
+m,0(x) as initial
+conditions for each ensemble member n (§ 2.4), until t = t1 when the next measurements
+become available. At t = t1, an analysis step is performed where the model forecasts
+η(n)
+f,1(x) and ψ(n)
+f,1(x) are combined with new perturbed measurements η(n)
+m,1(x) and
+ψ(n)
+m,1(x) to generate the analysis results η(n)
+a,1(x) and ψ(n)
+a,1(x) (§ 2.5). The analysis step
+ensures minimal uncertainty represented by the analysis ensembles (ﬁgure 1), which is
+mathematically accomplished through the EnKF algorithm. A new ensemble of HOS
+simulations are then performed taking η(n)
+a,1(x) and ψ(n)
+a,1(x) as initial conditions, and the
+procedures are repeated for t = t2, t3, . . . until the desired forecast time tmax is reached.
+The details of each step are introduced next in the aforementioned sections, with the
+addition of an inﬂation/localization algorithm to improve the robustness of EnKF included
+in § 2.6, and treatment of the mismatch between predictable zone and measurement region
+by modifying the EnKF analysis equation in § 2.7. The full process is ﬁnally summarized
+in § 2.8 with algorithm 1.
+2.3. Generation of the ensemble of perturbed measurements
+As described in § 2.2, ensembles of perturbed measurements are needed at t = tj, as the
+initial conditions of N HOS simulations for j = 0, and the input of the analysis step for
+j ≥1. As shown in Burgers, Jan van Leeuwen & Evensen (1998), using an ensemble of
+measurements (instead of a single measurement) in the analysis step is essential to obtain
+the correct ensemble variance of the analysis result. We collect and denote these ensembles
+by
+Sm,j =
+
+s(1)
+m,j, s(2)
+m,j, . . . s(n)
+m,j, . . . s(N−1)
+m,j
+, s(N)
+m,j
+
+∈Rdj×N,
+(2.1)
+where s represents the state variables of surface elevation η or surface potential ψ, and
+S the corresponding ensemble. This simpliﬁed notation will be used hereafter when
+necessary to avoid writing two separate equations for η and ψ. s(n)
+m,j with n = 1, 2, . . . , N is
+the nth member of the perturbed measurements. Here dj denotes the number of elements
+in the measurement state vector of either η or ψ at t = tj. Without loss of generality, in this
+918 A19-4
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+Wave dynamics
+Forecast step
+Forecast step
+Analysis step
+Analysis step
+Measurements
+Forecast 
+Analysis
+(Continuation)
+Time
+t0
+t1
+t2
+[η, ψ](1)
+f ,1
+[η, ψ](1)
+m,1
+[η, ψ](1)
+m,0
+[η, ψ](n)
+m,0
+[η, ψ](N)
+m,0
+[η, ψ](1)
+m,2
+[η, ψ](n)
+m,1
+[η, ψ](n)
+m,2
+[η, ψ](N)
+m,1
+[η, ψ](N)
+m,2
+[η, ψ](1)
+a,1
+[η, ψ](n)
+a,1
+[η, ψ](N)
+a,1
+[η, ψ](1)
+a,2
+[η, ψ](n)
+a,2
+[η, ψ](N)
+a,2
+[η, ψ](n)
+f ,1
+[η, ψ](N)
+f ,1
+[η, ψ](1)
+f ,2
+[η, ψ](n)
+f ,2
+[η, ψ](N)
+f ,2
+Figure 1. Schematic illustration of the EnKF–HOS coupled framework. The size of ellipse represents the
+amount of uncertainty. We use short notations [η, ψ](n)
+∗,j to represent η(n)
+∗,j (x), ψ(n)
+∗,j (x) with ∗= m, f, a for
+measurement, forecast and analysis, and j = 0, 1, 2.
+work, we use constant dj = d for j ≥1, and choose d0 for the convenience of specifying
+the model initial condition (see details in § 3).
+To generate each ensemble member s(n)
+m,j from measurements sm,j, we ﬁrst produce η(n)
+m,j
+from
+η(n)
+m,j(x) = ηm,j(x) + w(n)(x),
+(2.2)
+where w(n)(x) is the random noise following a zero-mean Gaussian process with spatial
+correlation function (Evensen 2003, 2009)
+C(w(n)(x1), w(n)(x2)) =
+⎧
+⎨
+⎩
+c exp
+
+−|x1 −x2|2
+a2
+
+,
+for |x1 −x2| ≤
+√
+3a,
+0,
+for |x1 −x2| >
+√
+3a.
+(2.3)
+In (2.3), c is the variance of w(n)(x) and a the decorrelation length scale, both of which
+practically depend on the characteristics of the measurement devices (and thus assumed
+known a priori). The perturbed measurement of surface potential ψ(n)
+m,j is reconstructed
+from η(n)
+m,j based on the linear wave theory,
+ψ(n)
+m,j(x) ∼
+	 iω(k)
+|k|
+˜η(n)
+m,j(k) exp (ik · x) dk,
+(2.4)
+where ˜η(n)
+m,j(k) denotes the nth member of perturbed surface elevation in Fourier space,
+and ω(k) is the angular frequency corresponding to the vector wavenumber k. We use
+‘∼’ instead of ‘=’ in (2.4) as the sign of the integrand relies on the wave travelling
+direction (and the complex conjugate relation that has to be satisﬁed for modes k and −k).
+918 A19-5
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+We remark that this linear construction of ψ(n)
+m,j(x) is the best available given the current
+radar technology, since ψm,j(x) is either not directly measured or holds a linear relation
+with ηm,j(x) (Stredulinsky & Thornhill 2011; Hilmer & Thornhill 2015; Lyzenga et al.
+2015). The additional error introduced by (2.4), however, can be remedied by the EnKF
+algorithm as will be shown in § 3.
+Although the error statistics of the measurements can be fully determined by (2.3) and
+(2.4), it is a common practice in EnKF to compute the error covariance matrix directly
+from the ensemble (2.1) (in order to match the same procedure which has to be used for
+the forecast ensemble). For this purpose, we deﬁne an operator ℭapplied on the ensemble
+S (such as Sm,j) such that
+ℭ(S) = S′(S′)T,
+(2.5)
+where
+S′ =
+1
+√
+N −1
+
+s(1) −¯s, s(2) −¯s, . . . , s(n) −¯s, . . . , s(N−1) −¯s, s(N) −¯s
+
+,
+(2.6)
+¯s = 1
+N
+N
+
+n=1
+s(n).
+(2.7)
+Therefore, applying ℭon Sm,j,
+Rs,j = ℭ(Sm,j)
+(2.8)
+gives the error covariance matrix of the measurements.
+2.4. Nonlinear wave model by HOS
+Given the initial condition s(n)
+m,j for each ensemble member n, the evolution of s(n)(x, t)
+is solved by integrating the surface wave equations in Zakharov form (Zakharov 1968),
+formulated as
+∂η(x, t)
+∂t
++ ∂ψ(x, t)
+∂x
+· ∂η(x, t)
+∂x
+−
+
+1 + ∂η(x, t)
+∂x
+· ∂η(x, t)
+∂x
+
+φz(x, t) = 0,
+(2.9)
+∂ψ(x, t)
+∂t
++ 1
+2
+∂ψ(x, t)
+∂x
+· ∂ψ(x, t)
+∂x
++ η(x, t) −1
+2
+
+1 + ∂η(x, t)
+∂x
+· ∂η(x, t)
+∂x
+
+φz(x, t)2 = 0,
+(2.10)
+where φz(x, t) ≡∂φ/∂z|z=η(x, t) is the surface vertical velocity with φ(x, z, t) being the
+velocity potential of the ﬂow ﬁeld, and ψ(x, t) = φ(x, η, t). In (2.9) and (2.10), we have
+assumed, for simplicity, that the time and mass units are chosen so that the gravitational
+acceleration and ﬂuid density are unity (e.g. Dommermuth & Yue 1987).
+The key procedure in HOS is to solve for φz(x, t) given ψ(x, t) and η(x, t), formulated
+as a boundary value problem for φ(x, z, t). This is achieved through a pseudo-spectral
+method in combination with a mode-coupling approach, with details included in multiple
+papers such as Dommermuth & Yue (1987) and Pan, Liu & Yue (2018).
+918 A19-6
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+2.5. DA scheme by EnKF
+Equations (2.9) and (2.10) are integrated in time for each ensemble member to provide the
+ensemble of forecasts at t = tj (for j ≥1):
+Sf,j =
+
+s(1)
+f,j , s(2)
+f,j , . . . s(n)
+f,j , . . . s(N−1)
+f,j
+, s(N)
+f,j
+
+∈RL×N,
+(2.11)
+where L is the number of elements in the forecast state vector and s(n)
+f,j (x) ≡s(n)
+f (x, tj) is
+the nth member of the ensembles of model forecast results. The error covariance matrix of
+the model forecast can be computed by applying the operator ℭon Sf,j:
+Qs,j = ℭ(Sf,j).
+(2.12)
+An analysis step is then performed, which combines the ensembles of model forecasts
+and perturbed measurements to produce the optimal analysis results (Carrassi et al. 2018):
+Sa,j
+L×N
+= Sf,j
+L×N
++ Ks,j
+L×d
+[Sm,j
+d×N
+−Gj
+d×L
+Sf,j
+L×N
+],
+(2.13)
+where
+Ks,j = Qs,jGT
+j
+
+GjQs,jGT
+j + Rs,j
+−1
+(2.14)
+is the optimal Kalman gain matrix of the state (for s = η or s = ψ). Here Gj is a linear
+operator, which maps a state vector from the model space to the measurement space: RL →
+Rd. In the present study, Gj is constructed by considering a linear interpolation (or Fourier
+interpolation (Grafakos 2008)) from the space of model forecast, i.e. s(n)
+f,j , to the space of
+measurements, i.e. s(n)
+m,j.
+While we have now completed the formal introduction of the EnKF–HOS algorithm
+(and all steps associated with ﬁgure 1), additional procedures are needed to improve the
+robustness of EnKF and address the possible mismatch between the predictable zone and
+measurement region. These will be discussed, respectively, in §§ 2.6 and 2.7, with the
+former leading to a (heuristic but effective) correction of Sf,j and Qs,j before (2.13) and
+(2.14) are applied, and the latter a modiﬁcation of (2.13) when the mismatch occurs.
+2.6. Adaptive inﬂation and localization
+With N →∞and exact representation of physics by (2.9) and (2.10), it is expected that
+(2.11) and (2.12) capture the accurate statistics of the model states and (2.13) provides the
+true optimal analysis. However, due to the ﬁnite ensemble size and the underrepresented
+physics in (2.9) and (2.10), errors associated with statistics computed by (2.12) may lead to
+suboptimal analysis and even (classical) ﬁlter divergence (Evensen 2003, 2009; Carrassi
+et al. 2018). These errors have been investigated by numerous previous studies (Hansen
+2002; Evensen 2003; Lorenc 2003; Hamill & Whitaker 2005; Houtekamer et al. 2005;
+Evensen 2009; Carrassi et al. 2018), which are characterized by (i) underestimates of the
+ensemble variance in Qs,j and (ii) spurious correlations in Qs,j over long spatial distances.
+To remedy this situation, adaptive inﬂation and localization (respectively, for error (i) and
+(ii)) are usually applied as common practices in EnKF to correct Sf,j and Qs,j before they
+are used in (2.13) and (2.14).
+In this work, we apply the adaptive inﬂation algorithm (Anderson & Anderson 1999;
+Anderson 2007) in our EnKF–HOS framework. Speciﬁcally, each ensemble member in
+918 A19-7
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+Time
+Position
+Boundary of the computational domain
+P(t) from t = tj–1 to t = tj
+tj
+Pj
+Uj
+tj–1
+0
+xc
+xr
+X
+Figure 2. The spatial–temporal predictable zone (red) for a case of unidirectional waves which are assumed
+to travel from left to right, with initial data in [0, X] at t = tj−1. The boundary of the computational domain is
+indicated by the purple vertical lines. The left and right boundary moves with speed cmax
+g
+and cmin
+g
+, respectively.
+At t = tj, the spatial predictable zone Pj (yellow) is located in [xc, xr] = [cmax
+g
+(tj −tj−1), X + cmin
+g
+(tj −tj−1)]
+(or in [xc, X] within the computational domain), and the unpredictable zone Uj (orange) is located in [0, xc].
+(2.11) is linearly inﬂated before the subsequent computation, i.e.
+s(n),inf
+f,j
+=
+
+λj(s(n)
+f,j −¯sf,j) + ¯sf,j,
+n = 1, 2, . . . , N,
+(2.15)
+where λj ≥1 is referred to as the covariance inﬂation factor. The purpose of (2.15) is to
+amplify the underestimated ensemble variance in Qs,j, especially when ¯sf,j is far from
+sm,j, therefore, to avoid ignorance of Sm,j in (2.13) (i.e. ﬁlter divergence) due to the
+overconﬁdence in the forecast. The appropriate value of λj can be determined at each
+t = tj through the adaptive inﬂation algorithm (Anderson 2007), which considers λj as
+an additional state variable maximizing a posterior distribution p(λj|ηm,j). The detailed
+algorithm is presented in Appendix A.
+After obtaining the inﬂated Qs,j, a localization scheme is applied, which removes the
+spurious correlation by performing the Schur product (i.e. element-wise matrix product)
+between Qs,j and a local-correlation function µ (Carrassi et al. 2018),
+Qloc
+s,j = µ ◦Qs,j,
+(2.16)
+with µ deﬁned as the Gaspari–Cohn function (see Appendix B for details).
+2.7. Interplay between predictable zone and measurement region
+The predictable zone is a spatiotemporal zone where the wave ﬁeld is computationally
+tractable given an observation of the ﬁeld in a limited space at a speciﬁc time instant
+(Naaijen, Trulsen & Blondel-Couprie 2014; Köllisch et al. 2018; Qi et al. 2018b).
+Depending on the wave travelling direction, the boundary of the spatial predictable zone
+moves in time with speed cmax
+g
+or cmin
+g
+, which are the maximum and minimum group
+speeds within all wave modes of interest (see ﬁgure 2 for an example of predictable zone
+P(t) and unpredictable zone U(t) for a unidirectional wave ﬁeld starting with initial data
+in [0, X]).
+In practice, for a forecast from tj−1 to tj, the predictable zone P(t) at t = tj only
+constitutes a subregion of the computational domain (see caption of ﬁgure 2), and there
+is no guarantee that the measurement region Mj overlaps with the predictable zone
+Pj = P(tj). This requires a special treatment of the region where the measurements
+are available but the forecast is untrustworthy, i.e. x ∈(Uj ∩Mj), where Uj = U(tj).
+918 A19-8
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+To address this issue, we develop a modiﬁed analysis equation which replaces (2.13) when
+considering the interplay between Pj, Uj and Mj.
+We consider our computational region as a subset of Pj ∪Mj, so that the analysis results
+at all x can be determined from the prediction and/or measurements. We further partition
+the forecast and analysis state vectors s(n)
+f,j and s(n)
+a,j (in the computational domain), as well
+as the measurement state vector s(n)
+m,j (in Mj), according to
+S∗,j ∈RL×N =
+
+SP
+∗,j ∈RLP×N
+SU
+∗,j ∈RLU×N
+
+,
+Sm,j ∈Rd×N =
+
+SP
+m,j ∈RdP×N
+SU
+m,j ∈RdU×N
+
+,
+(2.17a,b)
+where ∗= f, a. The variables with superscript U (P) represent the part of state vectors for
+which x ∈Uj (x ∈Pj), with associated number of elements LU and dU (LP and dP) for
+s(n)
+∗,j and s(n)
+m,j. The modiﬁed analysis equation is formulated as
+SP
+a,j
+LP×N
+= SP
+f,j
+LP×N
++ KP
+s,j
+LP×dP
+[ SP
+m,j
+dP×N
+−
+GP
+j
+dP×LP
+SP
+f,j
+LP×N
+],
+(2.18a)
+SU
+a,j
+LU×N
+=
+Hj
+LU×d
+Sm,j
+d×N
+,
+(2.18b)
+where KP
+s,j = Ks,j(1 : LP, 1 : dP) and GP
+s,j = Gs,j(1 : dP, 1 : LP) are submatrices of Ks,j
+and Gs,j associated with x ∈Pj in both measurement and forecast (analysis) spaces, Hj is
+a linear operator which maps a state vector from measurement space to unpredictable zone
+in the analysis space: Rd →RLU (based on linear/Fourier interpolation).
+By implementing (2.18a), SU
+f,j is discarded in the analysis to compute SP
+a,j; and by
+(2.18b), SU
+a,j is determined only from the measurements Sm,j without involving SU
+f,j.
+Therefore, the modiﬁed EnKF analysis equation provides the minimum analysis error
+when considering the interplay among Pj, Uj and Mj.
+2.8. Pseudocode and computational cost
+Finally, we provide a pseudocode for the complete EnKF–HOS coupled algorithm in
+algorithm 1. For an ensemble forecast by HOS, the algorithm takes O(NLlogL) operations
+for each time step t. For the analysis step at t = tj, the algorithm has a computational
+complexity of O(dLN) for (2.13) and O(dL2) + O(d3) + O(d2L) for (2.14) (if Gaussian
+elimination is used for the inverse). Therefore, the average computational complexity for
+one time step is O(NLlogL) + O(dL2)/(τ/t) (for L >∼N and L >∼d), with τ the DA
+interval.
+3. Numerical results
+To test the performance of the EnKF–HOS algorithm, we apply it on a series of cases
+with both synthetic and real ocean wave ﬁelds. For the former, we use a reference HOS
+simulation to generate the true wave ﬁeld, on top of which we superpose random errors
+to generate the synthetic noisy measurements. For the latter, we use real data collected
+by a shipborne Doppler coherent marine radar (Nwogu & Lyzenga 2010; Lyzenga et al.
+2015). The adaptive inﬂation and localization algorithms are only applied for the latter
+case, where the under-represented physics in (2.9) and (2.10) signiﬁcantly inﬂuences the
+model statistics. The perturbed measurement ensemble (2.1) are generated with parameters
+918 A19-9
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+Algorithm 1 Algorithm for the EnKF–HOS method.
+1: Input: ηm,0, ψm,0 (initial measurements), tmax (ﬁnal computational time), N
+(ensemble size), T = {t1, t2, t3 . . .} (time instants of DA), ¯λ0 and σ 2
+0 (initial guess
+of the inﬂation factor, see Appendix A)
+2: Begin
+3: initialize:
+4:
+t = t0, j = 0
+5:
+Generate Sm,0 with (2.1) ∼(2.4).
+6: time loop:
+7:
+while t ≤tmax do
+8:
+j = j + 1.
+9:
+Solve (2.9) and (2.10) until t = tj to obtain Sf,j.
+10:
+read ηm,j (measurements)
+11:
+Generate Sm,j with (2.1) ∼(2.4).
+12:
+Calculate Rs,j with (2.8).
+13:
+Perform adaptive inﬂation with (2.15) and calculate Qs,j with (2.12).
+14:
+Perform covariance localization on Qs,j with (2.16).
+15:
+Calculate Sa,j with (2.13) (or (2.18a) when considering Pj, Uj and Mj).
+16:
+Output ¯sa,j (ensemble mean of Sa,j).
+17:
+Sf,j = Sa,j.
+18:
+end
+19: end
+c = 0.0025σ 2
+η (where ση is the standard deviation of the surface elevation ﬁeld) and
+a = λ0/8 (where λ0 is the fundamental wavelength in the computational domain) in
+(2.3) in all cases unless otherwise speciﬁed. We remark that these choices may not
+reﬂect the true error statistics of the radar measurement, which unfortunately has not
+been characterized yet. In all HOS computations, we use a nonlinearity order M = 4 to
+solve (2.9) and (2.10) considering sufﬁciently deep water. The results from EnKF–HOS
+simulations are compared with HOS-only simulations (both taking noisy measurements
+as initial conditions) to demonstrate the advantage of the new EnKF–HOS method.
+3.1. Synthetic cases
+We consider the synthetic cases where the true solution of a wave ﬁeld (ηtrue(x, t)
+and ψtrue(x, t)) is generated by a single reference HOS simulation starting from the
+(exact) initial condition. The (noisy) measurements of surface elevation are generated by
+superposing random error on the true solution,
+ηm,j(x) = ηtrue(x, tj) + v(x),
+j = 0, 1, 2 . . . ,
+(3.1)
+where v(x) is a random ﬁeld, which represents the measurement error and shares the same
+distribution as w(n) (see (2.2) and (2.3)). For simplicity in generating the initial model
+ensemble, we use ηm,0 ∈RL in (3.1) (i.e. d0 = L in (2.1)), and ηm,j ∈Rd for j ≥1 with d
+speciﬁed in each case below. Similar to ψ(n)
+m,j(x), ψm,0(x) is generated based on the linear
+wave theory,
+ψm,0(x) ∼
+	 iω(k)
+|k|
+˜ηm,0(k) exp (ik · x) dk,
+(3.2)
+918 A19-10
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+where ˜ηm,0(k) denotes the measurement of surface elevation in Fourier space at t = 0.
+Although the linear relation (3.2) may introduce initial error in ψm,0(x), the EnKF
+algorithm ensures the sequential reduction of the error with the increase of time.
+Depending on how the true solution is generated, we further classify the synthetic cases
+into idealistic and realistic cases. In the idealistic case, the true solution is taken from
+an HOS simulation with periodic boundary conditions, so that the entire computational
+domain is predictable. In the realistic case, we consider the true solution as a patch in
+the boundless ocean (practically taken from a patch in a much larger domain where the
+HOS simulation is conducted), and the interplay between Mj and Pj discussed in § 2.7 is
+critical. Correspondingly, we apply the modiﬁed EnKF analysis equation (2.18) only in the
+realistic cases.
+To quantify the performance of EnKF–HOS and HOS-only methods, we deﬁne an error
+metric
+ϵ(t; A) =
+	
+A
+| ηtrue(x, t) −ηsim(x, t) |2 dA
+2σ 2η A
+,
+(3.3)
+where A is a region of interest based on which the spatial average is performed (here we
+use A to represent both the region and its area), ηsim(x, t) represents the simulation results
+obtained from EnKF–HOS (the ensemble average in this case) or the HOS-only method,
+and ση is the standard deviation of, say, ηtrue in A. It can be shown that the deﬁnition (3.3)
+yields ϵ(t; A) = 1 −ρA(ηtrue, ηsim), with
+ρA(ηa, ηb) =
+	
+A
+ηa(x, t)ηb(x, t)dA
+σ 2η A
+,
+(3.4)
+being the correlation coefﬁcient between ηa and ηb (in this case ηtrue and ηsim). Therefore,
+ϵ(t; A) = 1 corresponds to the case that all phase information is lost in the simulation.
+In the following, we show results for idealistic and realistic cases of synthetic irregular
+wave ﬁelds. Preliminary results validating the EnKF–HOS method for Stokes waves in the
+idealistic setting can be found in Wang & Pan (2020).
+3.1.1. Results for idealistic cases
+We consider idealistic cases with both 2-D (with one horizontal direction x) and
+three-dimensional (3-D) (with two horizontal directions x = (x, y)) wave ﬁelds. The true
+solutions for both situations are obtained from reference simulations starting from initial
+conditions prescribed by a realization of the JONSWAP spectrum S(ω), with a spreading
+function D(θ) for the 3-D case (where ω and θ are the angular frequency and angle with
+respect to the positive x direction).
+For the 2-D wave ﬁeld, we use an initial spectrum S(ω) with global steepness
+kpHs/2 = 0.11, peak wavenumber kp = 16k0 with k0 the fundamental wavenumber in the
+computational domain and enhancement factor γ = 3.3. In the (reference, EnKF–HOS
+and HOS-only) simulations, L = 256 grid points are used in spatial domain [0, 2π). The
+noisy measurements sm,j are generated through (3.1) and (3.2), with a comparison between
+sm,0(x) and strue(x, t0) shown in ﬁgure 3.
+Both EnKF–HOS and HOS-only simulations start from initial measurements sm,0(x). In
+the EnKF–HOS method, the ensemble size is set to be N = 100, and measurements at
+d = 2 locations of x/(2π) = 100/256 and 170/256 are assimilated into the model
+918 A19-11
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+–1.0
+–0.5
+0
+0.5
+1.0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+–20
+–15
+–10
+–5
+0
+5
+10
+15
+20
+x/2π
+η/Hs
+ψ/(H 2
+s/Tp)
+(a)
+(b)
+Figure 3. Plots of (a) ηtrue(x, t0) (—–) and ηm,0(x) (– – –, red); (b) ψtrue(x, t0) (—–) and ψm,0(x) (– – –, red).
+(assuming from measurements of two buoys) with a constant DA interval τ = tj −tj−1 =
+Tp/16, where Tp = 2π/kp from the dispersion relation.
+The error ϵ(t; A) with A = [0, 2π) obtained from EnKF–HOS and HOS-only
+simulations are shown in ﬁgure 4. For the HOS-only method, i.e. without DA, ϵ(t; A)
+increases in time from the initial value ϵ(0; A) ≈0.05, and reaches O(1) at t/Tp ≈100.
+In contrast, ϵ(t; A) from the EnKF–HOS simulation keeps decreasing, and becomes
+several orders of magnitude smaller than that from the HOS-only method (and two orders
+of magnitude smaller than the measurement error) at the end of the simulation. For
+visualization of the wave ﬁelds, ﬁgure 5 shows snapshots of ηtrue(x) and ηsim(x) (with
+EnKF–HOS and HOS-only methods) at three time instants of t/Tp = 5, 45 and 95, which
+indicates the much better agreement with ηtrue(x) when DA is applied. Notably, at and
+after t/Tp = 45, the EnKF–HOS solution is not visually distinguishable from ηtrue(x).
+The inﬂuence of the parameter c (reﬂecting the measurement error) on the results from
+both methods are summarized in table 1. We present the critical time instants t∗when
+ϵ(t∗; A) reaches O(1) in the HOS-only method, i.e. when the simulation completely loses
+the phase information. As expected, all cases lose phase information for sufﬁciently long
+time, and the critical time t∗decreases with the increase of c. In contrast, for EnKF–HOS
+method, the error ϵ(t; A) decreases with time and reaches O(10−3) at t = 100Tp in all
+cases.
+We further investigate the effects of EnKF parameters on the performance, including
+DA interval τ, the ensemble size N and the number of DA locations d. The errors ϵ(t; A)
+obtained with different parameter values are plotted in ﬁgure 6 (for τ from Tp/16 to Tp/2),
+918 A19-12
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+t/Tp
+ϵ(t; A)
+0
+20
+40
+60
+80
+100
+10–3
+10–2
+10–1
+100
+Figure 4. Error ϵ(t; A) with A = [0, 2π) from EnKF–HOS (– – –, red) and HOS-only (—–) methods, for
+the 2-D idealistic case.
+ﬁgure 7 (for N from 40 to 100) and ﬁgure 8 (for d from 1 to 4). In the tested ranges,
+the performance of EnKF–HOS is generally better (i.e. faster decrease of ϵ(t; A) with an
+increase of t) for smaller τ, larger N and larger d. In addition, for τ = Tp/2 as shown
+in ﬁgure 6, ϵ(t; A) slowly increases with time, indicating a situation that the assimilated
+data is not sufﬁcient to counteract the deviation of HOS simulation from the true solution
+(due to the chaotic nature of (2.9) and (2.10)). It is also found that when N = 20, the error
+increases with time, mainly due to the ﬁlter divergence caused by insufﬁcient ensemble
+size to capture the error statistics.
+Finally, we compare the EnKF–HOS algorithm with the explicit Kalman ﬁlter method
+developed by Yoon et al. (2015), where the evolution of the wave ﬁeld is solved by (2.9) and
+(2.10) while the propagation of the covariance matrix is linearized. To manifest the contrast
+between the two approaches, we use as an initial condition a JONSWAP spectrum with a
+greater global steepness kpHs/2 = 0.15, yet keeping all other parameters the same as the
+main 2-D idealistic case. Figure 9 compares the errors ϵ(t; A) with A = [0, 2π) from the
+EnKF–HOS method and the explicit Kalman ﬁlter method. Although both errors decrease
+with time, the EnKF–HOS method shows a faster decreasing rate, with ϵ(100TP; A)
+approximately one order of magnitude smaller than that from the explicit Kalman ﬁlter
+method.
+For the 3-D wave ﬁeld, we use the same initial spectrum S(ω) as in the main 2-D
+idealistic case, with a direction spreading function
+D(θ) =
+⎧
+⎨
+⎩
+2
+β cos2
+π
+β θ
+
+,
+for −β
+2 < θ < β
+2 ,
+0,
+otherwise,
+(3.5)
+where β = π/6 is the spreading angle. The (reference, EnKF–HOS and HOS-only)
+simulations are conducted with L = 64 × 64 grid points. In the EnKF–HOS method,
+N = 100 ensemble members are used, and data from d = 10 locations (randomly selected
+with uniform distribution) are assimilated with interval τ = Tp/16.
+Figure 10 shows the error ϵ(t; A) (with A = [0, 2π) × [0, 2π)) obtained from the
+EnKF–HOS and HOS-only methods. Similar to the 2-D case, we see that ϵ(t; A) from
+the EnKF–HOS method decreases with time, and becomes several orders of magnitude
+smaller than that from the HOS-only method (with the latter increasing with time).
+A closer scrutiny for error on a snapshot can be obtained by deﬁning a local spatial error
+918 A19-13
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+–1.0
+–0.5
+0
+0.5
+1.0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+–1.0
+–0.5
+0
+0.5
+1.0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+–1.0
+–0.5
+0
+0.5
+1.0
+x/2π
+η/Hs
+η/Hs
+η/Hs
+(a)
+(b)
+(c)
+Figure 5. Surface elevations ηtrue(x) (◦, blue), ηsim(x) with EnKF–HOS (– – –, red) and HOS-only (—–)
+methods, at (a) t/Tp = 5, (b) t/Tp = 50 and (c) t/Tp = 95.
+at a time instant t:
+e(x; t) = | ηtrue(x, t) −ηsim(x, t) |
+ση
+.
+(3.6)
+Three snapshots at e(x; t) for t/Tp = 5, 50 and 95 are shown in ﬁgure 11, demonstrating
+the much smaller error achieved using the EnKF–HOS method especially for large t, i.e.
+the superior performance of including DA in the simulation.
+918 A19-14
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+t∗
+ϵ(100Tp; A) with EnKF–HOS
+c = 0.0004σ 2
+η
+150Tp
+1.65 × 10−3
+c = 0.0025σ 2
+η
+100Tp
+6.21 × 10−3
+c = 0.0100σ 2
+η
+70Tp
+7.28 × 10−3
+c = 0.0400σ 2
+η
+40Tp
+9.02 × 10−3
+Table 1. Values of t∗in HOS-only method and ϵ(100Tp; A) in EnKF–HOS method for different values of c.
+t/Tp
+ϵ(t; A)
+0
+20
+40
+60
+80
+100
+10–3
+10–2
+10–1
+100
+Figure 6. Error ϵ(t; A) with A = [0, 2π) from EnKF–HOS method for τ = Tp/16 (– – –, red), τ = Tp/8 (□,
+brown), τ = Tp/4 (◦, magenta) and τ = Tp/2 (—–, blue). Other parameter values are kept the same as the
+main 2-D idealistic case.
+t/Tp
+ϵ(t; A)
+0
+20
+40
+60
+80
+100
+10–3
+10–2
+10–1
+100
+Figure 7. Error ϵ(t; A) with A = [0, 2π) from EnKF–HOS method for N = 20 (□), N = 40 (—–, brown),
+N = 70 (◦, blue) and N = 100 (– – –, red). Other parameter values are kept the same as the main 2-D idealistic
+case.
+3.1.2. Results for realistic cases
+We consider ηtrue(x) for the realistic case taken from a subregion R with quarter edge
+length of a periodic computational domain W, i.e. a patch in the ocean (see ﬁgure 12a).
+The reference simulation in W is performed with 256 × 256 grid points, with all other
+parameters kept the same as the 3-D idealistic reference simulation. The EnKF–HOS and
+HOS-only simulations are conducted over R = [0, 2π) × [0, 2π) with L = 64 × 64 grid
+918 A19-15
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+t/Tp
+ϵ(t; A)
+0
+20
+40
+60
+80
+100
+10–3
+10–2
+10–1
+100
+Figure 8. Error
+ϵ(t; A)
+with
+A = [0, 2π)
+from
+EnKF–HOS
+method
+for
+d = 1
+at
+x/(2π) =
+100/256
+(—–,
+magenta),
+d = 2
+at
+x/(2π) = 100/256 and 170/256
+(–
+–
+–,
+red)
+and
+d = 4
+at
+x/(2π) = 100/256, 135/256, 170/256 and 205/256 (◦, blue). Other parameter values are kept the same as the
+main 2-D idealistic case.
+0
+20
+40
+60
+80
+100
+10–4
+10–3
+10–2
+10–1
+100
+t/Tp
+ϵ(t; A)
+Figure 9. Error ϵ(t; A) with A = [0, 2π) from EnKF–HOS method (– – –, red) and the explicit Kalman
+ﬁlter method by Yoon et al. (2015) (—–, blue).
+0
+20
+40
+60
+80
+100
+10–3
+10–2
+10–1
+t/Tp
+ϵ(t; A)
+Figure 10. Error ϵ(t; A) with A = [0, 2π) × [0, 2π) from EnKF–HOS (– – –, red) and HOS-only (—–)
+methods, for the 3-D idealistic case.
+918 A19-16
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+0.5
+0.4
+0.3
+0.2
+0.1
+0
+0.5
+0.4
+0.3
+0.2
+0.1
+0
+0.5
+0.4
+0.3
+0.2
+0.1
+0
+y/2π
+(a)
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+y/2π
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+y/2π
+x/2π
+x/2π
+(b)
+(c)
+(d)
+(e)
+( f )
+Figure 11. Local spatial error e(x; t) obtained with EnKF–HOS (a,c,e) and HOS-only (b,d, f) methods at
+(a,b) t/Tp = 5, (c,d) t/Tp = 50 and (e, f) t/Tp = 95 for the 3-D idealistic case.
+points, starting from initial noisy measurements. For j ≥1, We further consider a practical
+situation where the measurements are obtained from a marine radar and only available in
+Mj = Bc ∩R, where B = {x|x > π, π/2 < y < 3π/2} (say a structure of interest located
+within B preventing the surrounding measurements, see ﬁgure 12b). We use d = 2176
+(locating on every computational grid point in Mj) and an assimilation interval τ = Tp/4.
+In this case, the use of modiﬁed EnKF analysis (2.18) is critical due to the interplay
+between Mj, Pj and Uj. In particular, the left, upper/lower bounds of P(t) moves (towards
+918 A19-17
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+w
+R
+8π
+8π
+2π
+2π
+2π
+3π/2
+π/2
+π
+2π
+y
+x
+(a)
+(a)
+Figure 12. Schematic illustration of spatial domains: (a) periodic computational domain W for the reference
+simulation and subregion R for EnKF–HOS and HOS-only simulations; (b) computational region R with
+measurement zone Mj marked by blue, region B = {x|x > π, π/2 < y < 3π/2} with no data available by
+yellow, predictable zone Pj by checker board, and unpredictable zone Uj by downward diagonal stripes.
+right, down/up), respectively, with speeds cmax
+g,x and cmax
+g,y , i.e. the maximum group speeds
+up in the x and y directions (corresponding to the group speed of mode k = (1, 1)). After
+applying the modiﬁed EnKF analysis equation (2.18), which takes into consideration of
+Mj, Pj and Uj (see a sketch in ﬁgure 12b), Pj is recovered to ﬁll in R due to the DA.
+In contrast, in the HOS-only method, P(t) ≡P∗(t) keeps shrinking and vanishes for
+sufﬁcient time. We consider two error metrics ϵ(t; R) and ϵ(t; P∗(t)), which are plotted in
+ﬁgure 13 for both EnKF–HOS and HOS-only methods. For HOS-only simulation, ϵ(t; R)
+increases rapidly in time and reaches O(1) at t/Tp ∼O(3). This is resulted from the
+chaotic nature of (2.9) and (2.10), as well as the larger error in U(t). For EnKF–HOS
+simulation, ϵ(t; R) decreases with time and reaches a constant level of O(0.002) after
+t/Tp ∼O(3). The further reduction of the error is prohibited due to the region U(t),
+because ϵ(t; U(t)) has a lower bound from the measurement error. The general trend of
+ϵ(t; P∗(t)) is similar to ϵ(t; R), but the magnitude of ϵ(t; P∗(t)) is smaller than that of
+ϵ(t; R) for both methods. In particular, the growth rate of ϵ(t; P∗(t)) for the HOS-only
+method is comparable to those in 2-D/3-D idealistic cases. This is due to the removal of
+U(t) from A in the computation of the error.
+To further understand the error characteristics, we plot the local spatial error e(x; t)
+at t/Tp = 2.875, 4.875 and 7.25 for both methods in ﬁgure 14. While the spatial error
+generally increases in time for the HOS-only method, e(x; t) from the EnKF–HOS method
+is signiﬁcantly smaller and exhibits a heterogeneous spatial distribution. Within Uj, e(x; t)
+is relatively high with the same order of the measurement error. In Pj, e(x; t) decreases
+with time and becomes signiﬁcantly lower than that in Uj. Remarkably, this also applies
+to the region where measurements are not available (i.e. Mc ∩R) as the waves in this
+region travel from upstream locations where DA is performed. This result is of practical
+importance as it shows that the wave forecast at a location of interest in the ocean (say
+the location of an offshore structure) can be made accurate through DA in the upstream
+region.
+3.2. Results with real radar measurements
+In this section, we test the performance of the EnKF–HOS method with real radar
+measurements of the ocean wave ﬁeld. The measurements are obtained from a shipborne
+X-band (9.4 GHz) Doppler coherent marine radar off the coast of Southern California.
+918 A19-18
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+0
+2
+4
+6
+8
+10
+10–4
+10–3
+10–2
+10–1
+100
+t/Tp
+ϵ(t; A)
+Figure 13. The error metric ϵ(t; R) obtained from EnKF–HOS (◦, red) and HOS-only (—–) methods; and
+ϵ(t; P∗(t)) obtained from EnKF–HOS (□, blue) and HOS-only (– – –, magenta) methods, for the 3-D realistic
+case.
+We consider a patch from the radar-scanned area as our initial domain of interest R0, which
+covers a 480 m × 480 m area resolved on a 64 × 64 grid (ﬁgure 15). The starting time of
+computation is 2013-09-13T01 : 00 : 13Z, with a global wave steepness kpHs/2 = 0.027
+from the initial radar data. The direction of waves is determined for each mode (travelling
+at its phase speed) by ﬁnding the direction which correlates better with two sequential
+snapshots of surface elevation (which gives consistent direction for almost all the modes).
+In both EnKF–HOS and HOS-only simulations, we rescale the computational domain Rj
+to [0, 2π) × [0, 2π) and use L = 64 × 64 grid points. For EnKF, we use d = 64 × 64,
+which covers the whole patch, and set the DA interval the same as radar data collection
+interval, which ﬂuctuates in time around Tp/4 = 2.82 s. The ensemble size is set to
+be N = 100. For adaptive inﬂation, we use ¯λ0 = 1 in the prior distribution of λ0 (see
+Appendix A) to sequentially determine λj in (2.15), which is applied at each t = tj together
+with the localization (2.16).
+A critical issue in this case is the movement of Mj in time due to the ship speed (around
+0.2 m s−1), which results in a mismatch between Mj and the computational region Rj−1 at
+each t = tj. To address this issue, we shift the computational region from Rj−1 to Rj which
+matches Mj. In the EnKF–HOS method, we further partition Rj into Pj and Uj (using the
+predictable zone calculated from Rj−1) and apply the modiﬁed analysis equation (2.18)
+accordingly. In the HOS-only method, we use Fourier periodic extension (Grafakos 2008)
+to obtain the wave ﬁeld covering Rj.
+Since the true solution is not available in this case, we directly use ρA(ηm,j, ηsim) (see
+(3.4)) as the metric to evaluate the performance. Figure 16 plots ρA(ηm,j, ηsim) with A =
+Rj and A = P∗(t) (for which the shrinking speed is still taken as the group speed of
+mode k = (1, 1)) obtained from EnKF–HOS and HOS-only methods. While all time series
+start from 1 at t = t0, ρRj(ηm,j, ηsim) and ρP∗(t)(ηm,j, ηsim) from the HOS-only simulation
+quickly approach O(0.25) and O(0.40) within one peak period Tp, indicating the (almost)
+complete loss of the phase information. This is much faster than any synthetic case, mainly
+due to the under-resolved physics in (2.9) and (2.10) with respect to the real ocean (which
+includes extra physical effects of current, wind, etc.). Furthermore, ρRj(ηm,j, ηsim) from
+the HOS-only method is lower in comparison with that reported in Lyzenga et al. (2015)
+(approximately 0.5 ∼0.75 after 10TP, which we have conﬁrmed using our code). This is
+mainly due to the different region used in Lyzenga et al. (2015), which may feature less
+918 A19-19
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+0.8
+0.6
+0.4
+0.2
+0
+1.0
+0.8
+0.6
+0.4
+0.2
+0
+1.0
+0.8
+0.6
+0.4
+0.2
+0
+x/2π
+x/2π
+y/2π
+y/2π
+y/2π
+(a)
+(b)
+(c)
+(d)
+(e)
+( f )
+Figure 14. Local spatial error e(x; t) obtained from (a,c,e) EnKF–HOS and (b,d, f) HOS-only methods for the
+3-D realistic case, at (a,b) t/Tp = 2.875, (c,d) t/Tp = 4.875 and (e, f) t/Tp = 7.25. The regions bounded by
+the black dash lines represent P∗(t) with the HOS-only method.
+signiﬁcant effects of current and wind, as well as smaller radar error due to its smaller
+distance from the ship. In contrast to results from the HOS-only method, the correlation
+ρRj(ηm,j, ηsim) and ρP∗(t)(ηm,j, ηsim) from EnKF–HOS remain at O(0.75) (with the latter
+slightly greater than the former), retaining the phase information for arbitrarily long time.
+Figure 17 further plots the snapshots of ηm,j(x) and ηsim(x, t) at two cross-sections of
+y/(2π) = 1/3 and 2/3 for both methods at three time instants of t/Tp = 1, 5 and 9. It can
+918 A19-20
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+0.8
+0.6
+0.4
+0.2
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+0.8
+0.6
+0.4
+0.2
+–0.2
+–0.4
+–0.6
+–0.8
+–1.0
+0
+x/2π
+y/2π
+Figure 15. Initial surface elevation ηm,0(x)/Hs (with Hs = 1.70 m) measured by radar at t = t0,
+i.e. 2013-09-13T01 : 00 : 13Z.
+0
+2
+4
+6
+8
+10
+0.25
+0.50
+0.75
+1.00
+ρA(ηm, j, ηsim)
+t/Tp
+Figure 16. Time series of ρRj(ηm,j, ηsim) from EnKF–HOS (– – –, red) and HOS-only (—–) methods; and
+ρP∗(t)(ηm,j, ηsim) from EnKF–HOS (◦, blue) and HOS-only (⋄, brown) methods.
+be visually observed that the EnKF–HOS results are (on average) much closer to ηm,j(x)
+for all cases.
+We ﬁnally test the effect of parameter ¯λ0 on the performance of EnKF–HOS. In general,
+the value of ¯λ0 can be considered as a control of the extent to which the inﬂation is applied.
+For larger values of ¯λ0, it is expected that the ensemble variance of (2.11) is ampliﬁed to
+a greater extent, and more weights are assigned to measurements when the analysis (2.18)
+is applied. Physically, larger values of ¯λ0 may be chosen if the model is associated with
+signiﬁcant under-represented physics (thus severely underestimates the variance in (2.11)).
+To elucidate this effect of ¯λ0, we test another value of ¯λ0 = 2, and compare the resulting
+ρRj(ηm,j, ηsim) with that from ¯λ0 = 1 in ﬁgure 18. Indeed, the result for ¯λ0 = 2 shows a
+918 A19-21
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+1.000
+0.667
+0.333
+–0.333
+–0.667
+–1.000
+0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+1.000
+0.667
+0.333
+–0.333
+–0.667
+–1.000
+0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+1.000
+0.667
+0.333
+–0.333
+–0.667
+–1.000
+0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+1.000
+0.667
+0.333
+–0.333
+–0.667
+–1.000
+0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+1.000
+0.667
+0.333
+–0.333
+–0.667
+–1.000
+0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+1.000
+0.667
+0.333
+–0.333
+–0.667
+–1.000
+0
+0
+0.2
+0.4
+0.6
+0.8
+1.0
+x/2π
+η/Hs
+η/Hs
+η/Hs
+x/2π
+(a)
+(b)
+(c)
+(d)
+(e)
+( f )
+Figure 17. Snapshots of ηm,j(x) (—◦—, blue) and ηsim(x, t) from EnKF–HOS (– – –, red) and HOS-only
+(—–) methods, at two cross-sections (a,c,e) y/(2π) = 1/3 and (b,d, f) y/(2π) = 2/3, and time instants
+(a,b) t/Tp = 1,(c,d) t/Tp = 5 and (e, f) t/Tp = 9.
+2
+4
+6
+8
+10
+0
+0.25
+0.50
+0.75
+1.00
+ρRj(ηm, j, ηsim)
+t/Tp
+Figure 18. Time series of ρRj(ηm,j, ηsim) with ¯λ0 = 1.0 (– – –, red) and ¯λ0 = 2.0 (—–, brown).
+higher correlation with the measurement, with ρRj above O(0.8) for all time. We note that
+the higher value of ρRj does not imply the closeness of ηsim to ηtrue, since the relation
+between ηm,j and ηtrue is not known in this case.
+918 A19-22
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+4. Conclusions
+In this paper, we develop the ensemble-based DA capability for phase-resolved wave
+forecast, resulting in a new EnKF–HOS method. A unique consideration in EnKF–HOS
+is the treatment of the interplay between predictable and measurement zones, which is
+successfully accounted for through a modiﬁed analysis equation. The performance of the
+EnKF–HOS method is extensively tested and compared with the (traditional) HOS-only
+method using both synthetic wave ﬁelds and real radar data. In all cases, signiﬁcant
+advantages are demonstrated by using the EnKF–HOS method, namely the dramatic
+reduction of forecast error and retaining the phase information for an arbitrarily long time
+with DA of radar data. In contrast, the phase information is lost within one peak period
+in the HOS-only method when considering the real ocean waves. The parameters involved
+in the EnKF–HOS method are carefully benchmarked, including the ensemble size, DA
+interval, number of DA locations and the inﬂation factor. The developed EnKF–HOS
+algorithm is intrinsically parallel and very suitable for implementation on a graphics
+processing unit (GPU), a compact device that can be conveniently installed in the offshore
+environment (our ongoing work). Finally, the accuracy of the EnKF–HOS method can be
+further improved given deeper knowledge about the radar measurement error, which we
+recommend as one of the next essential focuses for the remote sensing community.
+Acknowledgements. We would like to thank Dr D. Lyzenga, Dr O. Nwogu and Dr R. Beck in the Department
+of Naval Architecture and Marine Engineering at the University of Michigan, for providing and interpreting the
+radar data. We also thank Dr P. Hess from the Ofﬁce of Naval Research to grant us permission to use this data
+set for research.
+Funding. The research is funded by the Michigan Institute for Computational Discovery and Engineering
+(MICDE) through a 2019 Catalyst Grant. The computational resources are provided by NSF-XSEDE grant
+TG-CTS200016.
+Declaration of interests. The authors report no conﬂict of interest.
+Author ORCIDs.
+Yulin Pan https://orcid.org/0000-0002-7504-8645.
+Appendix A. Adaptive inﬂation
+We apply the adaptive inﬂation algorithm developed by Anderson (2007) to determine the
+values of λj in (2.15). The algorithm is applied at each t = tj (for j ≥1), and we shall drop
+the subscript j on other variables in the following description for simplicity.
+The key idea in adaptive inﬂation is to consider λ as an additional state variable and
+update its value through Bayes’ theorem given the measurements
+p (λ|ηm(x)) ∼p(λ)p(ηm(x)|λ),
+(A1)
+where p(λ) is the (given) prior distribution and p(ηm(x)|λ) is the likelihood function. In
+principle, our purpose is to ﬁnd the optimal λ which maximizes the posterior p(λ|ηm(x)) =
+p(λ|ηm(1), . . . , ηm(d)). Intuitively, the inﬂation (2.15) using such an optimal λ provides
+sufﬁcient variance of the forecast ensemble to cover the measurements, and thus avoid the
+overconﬁdence in the forecast when analysis is performed.
+By assuming independent measurement errors, it can be shown that the full
+Bayes’ problem (A1) is equivalent to the sequential problem (which saves signiﬁcant
+918 A19-23
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+computational cost, see Anderson (2007) for details)
+p (λ|ηm(1)) = p (ηm(1)|λ) p (λ) /Z1,
+(A2)
+p (λ|ηm(1), ηm(2), . . . , ηm(i)) = p (ηm(i)|λ) p (λ|ηm(1), ηm(2), . . . , ηm(i −1)) /Zi,
+(A3)
+where (A3) is applied sequentially for i = 2, . . . , d, and Zi are the normalization factors
+(which do not play a role in the computation).
+In computing (A2) and (A3), we use a Gaussian prior distribution,
+p(λ) = N (¯λ0, σ 2
+0 ),
+(A4)
+with mean ¯λ0 and variance σ 2
+0 (say ¯λ0 = 1 and σ 2
+0 = c¯λ2
+0/H2
+s at j = 1, with the situation
+of j > 1 discussed at the end of Appendix A). The key computations in (A2) and (A3) are
+the likelihood functions p(ηm(i)|λ) for i = 1, 2, . . . , d, which will be discussed below.
+Given a value of λ, a member in the forecast ensemble at measurement location i
+is denoted by [Gη(n),inf
+f
+](i) with η(n),inf
+f
+given by (2.15). This ensemble is assumed to
+have a Gaussian distribution consistent with the EnKF framework, with mean [G ¯ηf ](i)
+and variance σf (i)2 = λ[GQηGT](i, i) (note that only σf (i)2 is affected by the inﬂation).
+Let D = ηm(i) −[G ¯ηf ](i) be the distance between the mean forecast and measurement at
+location i, which is drawn from a zero-mean Gaussian random variable D with variance
+θ2
+i = σf (i)2 + Rη(i, i) (here we consider the summation of two independent Gaussian
+random variables and assume that both the measurement and forecast are unbiased). It
+follows that
+p (ηm(i)|λ) = p (D = D|λ) =
+1
+√
+2πθi
+exp
+
+−D2
+2θ2
+i
+
+.
+(A5)
+Therefore, the posterior distribution in each equation of (A2) and (A3) can be formulated
+as
+p (λ|ηm(1), . . . , ηm(i)) =
+1
+2πθiσi−1
+exp
+
+−D2
+2θ2
+i
+−(λ −¯λi−1)2
+2σ 2
+i−1
+
+Zi.
+(A6)
+The formulation (and sequential computation) of (A6) for i = 1, 2, . . . , d require each
+posterior p(λ|ηm(1), . . . , ηm(i)) in (A2) and (A3) (and thus the prior for the next
+sequential equation) to be approximated by Gaussian distribution G(λ) ∼N (¯λi, σ 2
+i ).
+We follow Anderson (2007) to set the ¯λi as the mode of p(λ|ηm(1), . . . , ηm(i)), and
+compute σi by considering Γ = p(¯λi|ηm(1), . . . , ηm(i))/p(¯λi + σi|ηm(1), . . . , ηm(i)) =
+G(¯λi)/G(¯λi + σi), i.e. the same decay rate of the distribution, which gives σ 2
+i =
+−(σ 2
+i−1/2) ln Γ .
+Finally, we use λ = ¯λd in (2.15) for inﬂation at t = tj, and set N (¯λd, σ 2
+d ) computed at
+time t = tj as the prior p(λ) at t = tj+1. The computations of (A2) and (A3) are repeated,
+which completes the full algorithm to determine λ by adaptive inﬂation at each tj.
+918 A19-24
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+0
+1
+2
+r
+3
+0.2
+0.4
+0.6
+0.8
+1.0
+μ
+Figure 19. Gaspari–Cohn correlation function µ(r) used in the localization.
+Appendix B. Gaspari–Cohn function
+The local-correlation function µ in the localization equation (2.16) is deﬁned as the
+Gaspari–Cohn function (Gaspari & Cohn 1999), given by
+[µ]ij =
+⎧
+⎪⎨
+⎪⎩
+1 −5
+3r2 + 5
+8r3 + 1
+2r4 −1
+4r5,
+for 0 ≤r < 1,
+4 −5r + 5
+3r2 + 5
+8r3 −1
+2r4 + 1
+12r5 −2
+3r,
+for 1 ≤r < 2,
+0,
+for r ≥2,
+(B1)
+where r = |xi −xj|/(
+√
+3a/2), with a taking the same value as in (2.3). A plot of µ(r) is
+provided in ﬁgure 19.
+REFERENCES
+ALMEIDA, S., RUSU, L. & GUEDES SOARES, C. 2016 Data assimilation with the ensemble kalman ﬁlter in a
+high-resolution wave forecasting model for coastal areas. J. Oper. Oceanogr. 9 (2), 103–114.
+ANDERSON, J.L. 2007 An adaptive covariance inﬂation error correction algorithm for ensemble ﬁlters. Tellus
+A 59 (2), 210–224.
+ANDERSON, J.L. & ANDERSON, S.L. 1999 A monte carlo implementation of the nonlinear ﬁltering problem
+to produce ensemble assimilations and forecasts. Mon. Weath. Rev. 127 (12), 2741–2758.
+ANNENKOV, S.Y. & SHRIRA, V.I. 2001 On the predictability of evolution of surface gravity and
+gravity–capillary waves. Physica D 152, 665–675.
+ARAGH, S. & NWOGU, O. 2008 Variation assimilating of synthetic radar data into a pseudo-spectral wave
+model. J. Coast. Res. 10052, 235–244.
+BANNISTER, R.N. 2017 A review of operational methods of variational and ensemble-variational data
+assimilation. Q. J. R. Meteorol. Soc. 143 (703), 607–633.
+BLONDEL, E., et al. 2010 Experimental validation of deterministic non-linear wave prediction schemes in
+2D. In The Twentieth International Offshore and Polar Engineering Conference. International Society of
+Offshore and Polar Engineers.
+BOOIJ, N.R.R.C., RIS, R.C. & HOLTHUIJSEN, L.H. 1999 A third-generation wave model for coastal regions:
+1. Model description and validation. J. Geophys. Res. 104 (C4), 7649–7666.
+BROAD, W.J. 2006 Rogue giants at sea, vol. 11. The New York Times.
+BURGERS, G., JAN VAN LEEUWEN, P. & EVENSEN, G. 1998 Analysis scheme in the ensemble kalman ﬁlter.
+Mon. Weath. Rev. 126 (6), 1719–1724.
+CARRASSI, A., BOCQUET, M., BERTINO, L. & EVENSEN, G. 2018 Data assimilation in the geosciences: an
+overview of methods, issues, and perspectives. Wiley Interdiscip. Rev. 9 (5), e535.
+CRAIG, W. & SULEM, C. 1993 Numerical simulation of gravity waves. J. Comput. Phys. 108 (1), 73–83.
+918 A19-25
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+G. Wang and Y. Pan
+DESMARS, N., PÉRIGNON, Y., DUCROZET, G., GUÉRIN, C.-A., GRILLI, S.T. & FERRANT, P. 2018
+Phase-resolved reconstruction algorithm and deterministic prediction of nonlinear ocean waves from
+spatio-temporal optical measurements. In International Conference on Offshore Mechanics and Arctic
+Engineering, vol. 51272, p. V07BT06A054. American Society of Mechanical Engineers.
+DOMMERMUTH, D.G. & YUE, D.K.P. 1987 A high-order spectral method for the study of nonlinear gravity
+waves. J. Fluid Mech. 184, 267–288.
+EMMANOUIL, G., GALANIS, G. & KALLOS, G. 2012 Combination of statistical kalman ﬁlters and data
+assimilation for improving ocean waves analysis and forecasting. Ocean Model. 59, 11–23.
+EVENSEN, G. 1994 Sequential data assimilation with a nonlinear quasi-geostrophic model using monte carlo
+methods to forecast error statistics. J. Geophys. Res. 99 (C5), 10143–10162.
+EVENSEN, G. 2003 The ensemble kalman ﬁlter: theoretical formulation and practical implementation. Ocean
+Dyn. 53 (4), 343–367.
+EVENSEN, G. 2009 Data Assimilation: The Ensemble Kalman Filter. Springer Science & Business Media.
+FUJIMOTO, W. & WASEDA, T. 2020 Ensemble-based variational method for nonlinear inversion of surface
+gravity waves. J. Atmos. Ocean. Technol. 37 (1), 17–31.
+GALLEGO, G., YEZZI, A., FEDELE, F. & BENETAZZO, A. 2011 A variational stereo method for the
+three-dimensional reconstruction of ocean waves. IEEE Trans. Geosci. Remote Sens. 49 (11), 4445–4457.
+GASPARI, G. & COHN, S.E. 1999 Construction of correlation functions in two and three dimensions. Q. J. R.
+Meteorol. Soc. 125 (554), 723–757.
+GRAFAKOS, L. 2008 Classical Fourier Analysis, vol. 2. Springer.
+HAMILL, T.M. & WHITAKER, J.S. 2005 Accounting for the error due to unresolved scales in ensemble data
+assimilation: a comparison of different approaches. Mon. Weath. Rev. 133 (11), 3132–3147.
+HANSEN, J.A. 2002 Accounting for model error in ensemble-based state estimation and forecasting. Mon.
+Weath. Rev. 130 (10), 2373–2391.
+HILMER, T. & THORNHILL, E. 2015 Observations of predictive skill for real-time deterministic sea waves
+from the wamos II. In OCEANS 2015-MTS/IEEE Washington, pp. 1–7. IEEE.
+HOUTEKAMER, P.L., MITCHELL, H.L., PELLERIN, G., BUEHNER, M., CHARRON, M., SPACEK, L.
+& HANSEN, B. 2005 Atmospheric data assimilation with an ensemble kalman ﬁlter: results with real
+observations. Mon. Weath. Rev. 133 (3), 604–620.
+JANSSEN, P.A.E.M 2008 Progress in ocean wave forecasting. J. Comput. Phys. 227 (7), 3572–3594.
+KÖLLISCH, N., BEHRENDT, J., KLEIN, M. & HOFFMANN, N. 2018 Nonlinear real time prediction of ocean
+surface waves. Ocean Engng 157, 387–400.
+KOMEN, G.J., CAVALERI, L., DONELAN, M., HASSELMANN, K., HASSELMANN, S. & JANSSEN,
+P.A.E.M. 1996 Dynamics and modelling of ocean waves. Cambridge University Press.
+LORENC, A.C. 2003 The potential of the ensemble kalman ﬁlter for nwp—a comparison with 4d-var. Q. J. R.
+Meteorol. Soc. 129 (595), 3183–3203.
+LYZENGA, D.R., NWOGU, O.G., BECK, R.F., O’BRIEN, A., JOHNSON, J., DE PAOLO, T. & TERRILL, E.
+2015 Real-time estimation of ocean wave ﬁelds from marine radar data. In 2015 IEEE International
+Geoscience and Remote Sensing Symposium (IGARSS), pp. 3622–3625. IEEE.
+NAAIJEN, P., TRULSEN, K. & BLONDEL-COUPRIE, E. 2014 Limits to the extent of the spatio-temporal
+domain for deterministic wave prediction. Intl Shipbuild. Progr. 61 (3–4), 203–223.
+NIKOLKINA, I., DIDENKULOVA, I., PELINOVSKY, E. & LIU, P. 2011 Rogue waves in 2006–2010. Nat.
+Hazards Earth Syst. Sci. 11 (11), 2913–2924.
+NOUGUIER, F., GRILLI, S.T. & GUÉRIN, C.-A. 2013 Nonlinear ocean wave reconstruction algorithms based
+on simulated spatiotemporal data acquired by a ﬂash lidar camera. IEEE Trans. Geosci. Remote Sens. 52
+(3), 1761–1771.
+NWOGU, O.G. & LYZENGA, D.R. 2010 Surface-waveﬁeld estimation from coherent marine radars. IEEE
+Geosci. Remote Sens. Lett. 7 (4), 631–635.
+PAN, Y., LIU, Y. & YUE, D.K.P. 2018 On high-order perturbation expansion for the study of long–short wave
+interactions. J. Fluid Mech. 846, 902–915.
+PINTO, J.P., BERNADINO, M.C. & PIRES SILVA, A. 2005 A kalman ﬁlter application to a spectral wave
+model. Nonlinear Process. Geophys. 12 (6), 775–782.
+QI, Y., WU, G., LIU, Y., KIM, M.-H. & YUE, D.K.P. 2018a Nonlinear phase-resolved reconstruction of
+irregular water waves. J. Fluid Mech. 838, 544.
+QI, Y., WU, G., LIU, Y. & YUE, D.K.P. 2018b Predictable zone for phase-resolved reconstruction and forecast
+of irregular waves. Wave Motion 77, 195–213.
+QI, Y., XIAO, W. & YUE, D.K.P. 2016 Phase-resolved wave ﬁeld simulation calibration of sea surface
+reconstruction using noncoherent marine radar. J. f Atmos. Ocean. Technol. 33 (6), 1135–1149.
+918 A19-26
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press
+
+Phase-resolved ocean wave forecast with data assimilation
+QI, Y., et al. 2017 Phase-resolved reconstruction and forecast of nonlinear irregular wave ﬁeld based on direct
+numerical simulations. PhD thesis, Massachusetts Institute of Technology.
+REICHERT, K., HESSNER, K., DANNENBERG, J. & TRÄNKMANN, I. 2004 X-band radar as a tool to
+determine spectral and single wave properties. In 25th International Conference on Offshore Mechanics
+and Arctic Engineering, pp. 683–688. American Society of Mechanical Engineers Digital Collection.
+STREDULINSKY, D.C. & THORNHILL, E.M. 2011 Ship motion and wave radar data fusion for shipboard wave
+measurement. J. Ship Res. 55 (2), 73–85.
+TOLMAN, H.L., et al. 2009 User manual and system documentation of wavewatch III TM version 3.14. Tech.
+Note, MMAB Contrib. 276, 220.
+WANG, G. & PAN, Y. 2020 Data assimilation for phase-resolved ocean wave forecast. In ASME 2020 39th
+International Conference on Ocean, Offshore and Arctic Engineering. American Society of Mechanical
+Engineers Digital Collection.
+WEST, B.J., BRUECKNER, K.A., JANDA, R.S., MILDER, D.M. & MILTON, R.L. 1987 A new numerical
+method for surface hydrodynamics. J. Geophys. Res. 92 (C11), 11803–11824.
+XIAO, W. 2013 Study of directional ocean waveﬁeld evolution and rogue wave occurrence using large-scale
+phase-resolved nonlinear simulations. PhD thesis, Massachusetts Institute of Technology.
+XU, L. & GUYENNE, P. 2009 Numerical simulation of three-dimensional nonlinear water waves. J. Comput.
+Phys. 228 (22), 8446–8466.
+YOON, S., KIM, J. & CHOI, W. 2015 An explicit data assimilation scheme for a nonlinear wave prediction
+model based on a pseudo-spectral method. IEEE J. ocean. Engng 41 (1), 112–122.
+ZAKHAROV, V.E. 1968 Stability of periodic waves of ﬁnite amplitude on the surface of a deep ﬂuid. J. Appl.
+Mech. Tech. Phys. 9 (2), 190–194.
+918 A19-27
+https://doi.org/10.1017/jfm.2021.340 Published online by Cambridge University Press

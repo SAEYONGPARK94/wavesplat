@@ -1,0 +1,45 @@
+### elhlers_2023_oe.pdf  (chars=99556, wave_score=42)
+
+Furthermore, the accuracy of the linear approach decreases remarkably for larger temporal horizons of prediction and increasing wave steepness (Lünser et al., 2022), necessitating a wave https://doi.org/10.1016/j.oceaneng.2023.116059 Received 17 May 2023;
+
+(1987) and Dommermuth and Yue (1987), provides the best prediction accuracy over a wide spatiotemporal domain as well as characteristic wave steepness (Klein et al., 2020;
+
+As obtaining ground truth wave surface elevation data for large spatial domains in real ocean conditions is almost impractical, we first generate synthetic yet highly realistic one-dimensional spatio-temporal wave surfaces 𝜂(𝑥, 𝑡) using the HOS method for different sea states in Section 2.
+
+The HOS simulation is linearly initialized by spatial wave surface elevation snapshots 𝜂(𝑥, 𝑡s = 0) sampled from the JONSWAP spectrum for finite water depth (Hasselmann et al., 1973;
+
+The relations 𝜔= 2𝜋∕𝑇and 𝑘= 2𝜋∕𝐿 allow for substituting the peak frequency with a peak period 𝑇p, peak wavelength 𝐿p, or peak wavenumber 𝑘p.
+
+Moreover, a dimensionless wave steepness parameter 𝜖= 𝑘p⋅𝐻s∕2 is defined based on the significant wave height 𝐻s.
+
+The water depth is 𝑑= 500 m and the sea state parameters peak wavelength 𝐿p and steepness 𝜖are varied systematically over 𝐿p ∈{80, 90, … , 190, 200} m and 𝜖∈{0.01, 0.02, … , 0.09, 0.10}, resulting in 130 possible 𝐿p −𝜖combinations.
+
+For each 𝐿p −𝜖-combination, we generate four different initial surfaces 𝜂(𝑥, 𝑡s = 0) by superimposing the wave components of the JONSWAP spectrum with random phase shifts.
+
+4, the adapted U-Net architecture, has a depth of 𝑛d = 5 consecutive encoder blocks followed by the same number of consecutive decoder blocks with skip-connections between them.
+
+Two samples from the test set described by the same wavelength 𝐿p = 180 m, but different steepness 𝜖, reconstructed by the U-Net-based architecture U,1.
+
+6(a) corresponds to a peak wavelength 𝐿p = 180 m and small amplitudes caused by a small steepness of 𝜖= 0.01.
+
+Two samples from the test set described by the same wavelength 𝐿p = 180 m, but different wave steepness 𝜖, reconstructed by the U-Net-based architecture trained with 𝑛s = 10 historical snapshots in the radar input U,10.
+
+Two samples from the test set described by the same wavelength 𝐿p = 180 m, but different wave steepness 𝜖reconstructed by the FNO-based architecture F,1.
+
+Moreover, the reconstruction quality on the entire 𝑟-domain is almost equivalent to the results of U,10, but especially for the small steepness sample in (a) the error ratio between shadowed and visible areas is remarkably smaller using F,9 which indicates the potential of a more uniform reconstruction.
+
+6, 8, 9 and 11 have been limited to the examination of only two exemplary samples from the test set, both described by peak wavelength 𝐿p = 180 m and either steepness 𝜖= 0.01 or 𝜖= 0.10.
+
+This can be achieved by plotting sample-specific error values such as nL2𝑖against each sample’s describing combination of peak wavelength 𝐿p and steepness 𝜖for all 𝑁test = 624 test set samples reconstructed using the U-Net-based models U,1 and U,10 or the FNO-based models F,1 and F,9.
+
+Graphs visualizing the average proportion of each input 𝐱𝑖being affected by shadowing modulation in dependency of the samples wave steepness values 𝜖= 0.01−0.10 for the shortest, one medium and the longest peak wavelength 𝐿p occurring in the test set.
+
+We observe from that Figure, that the slightly higher mean error across the entire test set of F,9 compared to U,10, is primarily caused by the individual errors nL2𝑖of samples with low steepness 𝜖or short wavelengths 𝐿p.
+
+However, due to the different propagation directions of the component waves in short-crested, two-dimensional sea states, we anticipate a potential degradation in the reconstruction performance compared to the Ocean Engineering 288 (2023) 116059 13 S.
+
+The data set of 𝑁= 3120 samples was divided into a fixed and independent test set comprising 20% or 𝑁test = 624 samples, with the remaining 2496 samples partitioned into four equal-sized parts based on the governing sea state parameters (𝐿p, 𝜖) using a stratified data split technique to ensure equal representation of each wave characteristic in the resulting subsets.
+
+To address this concern, we visualized the JONSWAP spectra employed to initialize the HOS wave simulation for a specific steepness value 𝜖(since different 𝜖= 0.08 just scale the amplitude of spectral density) and all peak wavelengths 𝐿p ∈{80, 90, … , 190, 200} m, each corresponding to a specific 𝜔p and 𝑘p.
+
+JONSWAP spectra used in the data generation for one exemplary steepness value 𝜖, but varying peak wavelengths 𝐿p = 80 −200 m.

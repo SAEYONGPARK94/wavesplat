@@ -1,0 +1,1064 @@
+LEVDA: LATENT ENSEMBLE VARIATIONAL DATA
+ASSIMILATION VIA DIFFERENTIABLE DYNAMICS
+Phillip Si, Peng Chen
+School of Computational Sciences and Engineering, Georgia Institute of Technology
+{psi6, pchen402}@gatech.edu
+ABSTRACT
+Long-range geophysical forecasts are fundamentally limited by chaotic dynamics
+and numerical errors. While data assimilation can mitigate these issues, classical
+variational smoothers require computationally expensive tangent-linear and ad-
+joint models. Conversely, recent efficient latent filtering methods often enforce
+weak trajectory-level constraints and assume fixed observation grids. To bridge
+this gap, we propose Latent Ensemble Variational Data Assimilation (LEVDA),
+an ensemble-space variational smoother that operates in the low-dimensional la-
+tent space of a pretrained differentiable neural dynamics surrogate.
+By per-
+forming four-dimensional ensemble-variational (4DEnVar) optimization within
+an ensemble subspace, LEVDA jointly assimilates states and unknown parame-
+ters without the need for adjoint code or auxiliary observation-to-latent encoders.
+Leveraging the fully differentiable, continuous-in-time-and-space nature of the
+surrogate, LEVDA naturally accommodates highly irregular sampling at arbi-
+trary spatiotemporal locations. Across three challenging geophysical benchmarks,
+LEVDA matches or outperforms state-of-the-art latent filtering baselines under
+severe observational sparsity while providing more reliable uncertainty quantifi-
+cation. Simultaneously, it achieves substantially improved assimilation accuracy
+and computational efficiency compared to full-state 4DEnVar.
+1
+INTRODUCTION
+The accuracy of long-range forecasts in many geophysical systems is fundamentally limited by in-
+trinsic chaos and a sensitive dependence on initial conditions (Lorenz, 2017; 1969; 1982). Global
+weather prediction is a prominent example, but similar challenges arise in ocean dynamics, geo-
+physical flows, and other high-dimensional spatiotemporal processes. In both traditional numerical
+models and newer machine-learning surrogates, forecast skill is further degraded by numerical er-
+rors stemming from uncertainty and discretization (Bauer et al., 2015; Dueben & Bauer, 2018). Data
+assimilation (DA) mitigates these issues by systematically incorporating observational data into pre-
+dictive models to infer initial conditions—and potentially unknown parameters—that are consistent
+with historical measurements, thereby reducing error growth over longer lead times (Kalnay, 2003;
+Carrassi et al., 2018; Bannister, 2017).
+Recent score-based approaches, such as Latent-EnSF (Si & Chen, 2025) and LD-EnSF (Xiao et al.,
+2026), have demonstrated strong performance for filtering under sparse observations by leveraging
+learned generative priors in a low-dimensional latent space. However, because these methods typi-
+cally operate sequentially, they provide weaker trajectory-level constraints over a multi-time assim-
+ilation window—a critical drawback when enforcing dynamical consistency or performing reliable
+joint state–parameter estimation. Furthermore, they often require the training of additional amor-
+tized components, such as observation-to-latent encoders, whose underlying assumptions can be
+restrictive. While score-based smoothing methods like SDA (Rozet & Louppe, 2023) and FlowDAS
+(Chen et al., 2025) target the smoothing posterior directly, they can be computationally intensive
+and frequently treat dynamics implicitly rather than as an explicit, differentiable prior. Similarly,
+approaches like APPA (Andry et al., 2025) that learn latent dynamics via spatiotemporal diffusion
+models remain challenging to adapt for joint state–parameter estimation and highly irregular spa-
+tiotemporal observation networks.
+1
+arXiv:2602.19406v1  [cs.LG]  23 Feb 2026
+
+Conversely, variational data assimilation methods, such as 4DVar (Rabier et al., 1998), enforce
+strict dynamical consistency by fitting trajectories to all observations within a specified time win-
+dow. Their primary computational bottleneck is the need for repeated nonlinear model runs and
+the derivation of gradients via explicit tangent-linear and adjoint models. Ensemble formulations
+like four-dimensional ensemble-variational (4DEnVar) method (Zhu et al., 2022) mitigate this by
+replacing adjoints with flow-dependent covariance information derived from an ensemble. While
+recent machine-learning–accelerated variational methods (e.g., FengWu-4DVar (Xiao et al., 2024))
+substantially speed up assimilation by reducing forward and gradient costs, they typically yield a
+single deterministic MAP trajectory; extracting calibrated uncertainty quantification (UQ) requires
+additional approximations (Hodyss et al., 2016). Thus, a critical gap remains: achieving the rigor-
+ous multi-time constraints of variational smoothing and the reliable UQ of ensemble methods, while
+maintaining the computational efficiency of low-dimensional latent surrogates.
+To bridge this gap, we introduce Latent Ensemble Variational Data Assimilation (LEVDA), a
+smoothing-based framework that performs 4DEnVar-style ensemble-space optimization directly in
+the latent space of a pretrained differentiable dynamical surrogate (e.g., an LDNet (Regazzoni et al.,
+2024)). LEVDA enables gradient-based assimilation through the surrogate dynamics without re-
+quiring adjoint models, and it avoids the need to train auxiliary observation-to-latent encoders by
+computing observation misfits directly from decoded latent trajectories. By leveraging the fully
+differentiable and continuous-in-time-and-space nature of the surrogate, LEVDA effortlessly ac-
+commodates observations at arbitrary, off-grid spatiotemporal locations and natively supports the
+joint assimilation of states and unknown parameters. Consequently, LEVDA confers several practi-
+cal benefits that are difficult to achieve simultaneously with prior data-driven approaches: it enforces
+multi-time dynamical constraints, handles highly irregular observation operators, and substantially
+reduces computational complexity compared to full-state ensemble variational smoothers.
+In summary, our main contributions are:
+• We propose LEVDA, a latent extension of 4DEnVar that performs efficient variational
+smoothing in an ensemble subspace of a pretrained differentiable latent dynamics network.
+• We enable joint state–parameter ensemble variational data assimilation without requiring
+explicit adjoint code or auxiliary observation-to-latent encoders.
+• We show that LEVDA’s continuous-in-time-and-space formulation naturally accommo-
+dates highly irregular, time-varying observations at arbitrary spatiotemporal locations.
+• We evaluate LEVDA on three challenging geophysical benchmarks, demonstrating state-
+of-the-art accuracy under extreme observational sparsity with improved uncertainty quan-
+tification, while substantially reducing runtime costs relative to full-state 4DEnVar.
+2
+BACKGROUND
+We briefly review the modeling assumptions and variational frameworks that form the foundation
+of LEVDA. We first define the standard state-space model and observation process, followed by a
+summary of variational smoothing (4DVar) and its ensemble-based counterpart (4DEnVar). Finally,
+we introduce the differentiable latent dynamical surrogates that make efficient, low-dimensional
+assimilation possible.
+2.1
+DYNAMICAL SYSTEMS
+Consider a physical system characterized by a state vector xt ∈Rdx and potentially time-varying
+parameters ut ∈Rdu at discrete time steps t ∈Z+. Given initial conditions (x0, u0), we model the
+forward dynamics as a Markov process:
+xt = M(xt−1, ut−1) + ϵt,
+ϵt ∼N(0, Qt),
+(1)
+ut = Mu(ut−1) + ηt,
+ηt ∼N(0, Qu
+t ),
+(2)
+for t = 1, 2, . . . , where the state transition M : Rdx × Rdu →Rdx and parameter evolution
+Mu : Rdu →Rdu may be nonlinear. For strictly static parameters, we simply take Mu(u) = u and
+Qu
+t = 0.
+2
+
+Observations of the system are acquired via
+yt = Ht(xt) + γt,
+γt ∼N(0, Rt),
+(3)
+where the observation operator Ht : Rdx →Rdy can be time-varying to accommodate irregular
+sampling or moving sensors. We assume the noise sequences {ϵt}, {ηt}, and {γt} are mutually
+independent, with covariance matrices that may vary over time.
+2.2
+4DVAR
+To unify the notation for joint state-parameter estimation, we define the augmented state vector zt =
+(xt, ut) ∈Rdx+du. Under the dynamical model in Equations (1) and (2), the one-step transition
+densities and observation likelihood are standard Gaussians:
+p(xt | xt−1, ut−1) = N
+ M(xt−1, ut−1), Qt
+
+,
+p(ut | ut−1) = N
+ Mu(ut−1), Qu
+t
+
+,
+p(yt | xt) = N
+ Ht(xt), Rt
+
+.
+(4)
+Equivalently, the augmented transition density factors as p(zt | zt−1) = p(xt | xt−1, ut−1)p(ut |
+ut−1), and the likelihood depends only on the physical state, p(yt | zt) = p(yt | xt).
+Given a sequence of past observations y1:t−1 and a fixed assimilation window of length τ, the
+smoothing posterior over the window is given by Bayes’ rule:
+p(zt:t+τ | y1:t+τ) ∝p(zt:t+τ | y1:t−1) p(yt:t+τ | zt:t+τ).
+(5)
+Because yt:t+τ is conditionally independent of y1:t−1 given the trajectory zt:t+τ, the likelihood
+term simplifies. Applying the Markov property of {zt} and the conditional independence of the
+observations, the posterior neatly factorizes as:
+p(zt:t+τ | y1:t+τ) ∝p(zt | y1:t−1)
+τY
+i=1
+p(zt+i | zt+i−1)
+τY
+i=0
+p(yt+i | xt+i).
+(6)
+Variational smoothing, or 4DVar, computes a maximum a posteriori (MAP) estimate of the trajectory
+over the assimilation window. In incremental implementations, the filtering prior is approximated
+by a Gaussian background, p(zt | y1:t−1) ≈N(zb
+t, B), and the optimal state is found by minimizing
+the negative log-posterior. Under the Gaussian assumptions established above, the weak-constraint
+4DVar cost function (up to an additive constant) is given by:
+J(zt:t+τ) = 1
+2∥zt −zb
+t∥2
+B−1 + 1
+2
+τ
+X
+i=1
+∥xt+i −M(xt+i−1, ut+i−1)∥2
+Q−1
+t+i
++ 1
+2
+τ
+X
+i=1
+∥ut+i −Mu(ut+i−1)∥2
+(Qu
+t+i)−1 + 1
+2
+τ
+X
+i=0
+∥yt+i −Ht+i(xt+i)∥2
+R−1
+t+i.
+(7)
+Strong-constraint 4DVar is recovered by assuming a perfect model (Qt = 0 and Qu
+t = 0). In this
+setting, the future states (xt+i, ut+i) are strictly determined by the initial condition (xt, ut) via the
+forward dynamics, allowing the optimization to be posed directly over zt.
+2.3
+4DENVAR
+4DEnVar is an ensemble-space analogue of incremental 4DVar that avoids the need for explicit
+tangent-linear and adjoint models by restricting the analysis increment to a subspace spanned by
+an ensemble (Courtier et al., 1994; Zhu et al., 2022). Maintaining consistency with the previous
+subsection, we work with the augmented state zt = (xt, ut). In strong-constraint 4DEnVar, the
+model is assumed perfect over the window, meaning the full trajectory is completely determined by
+the window-initial condition.
+Let zb
+t be a background initial condition (e.g., the mean of the filtering prior) and let {z(k)
+t
+}K
+k=1 be
+an ensemble of initial conditions with mean ¯zt =
+1
+K
+PK
+k=1 z(k)
+t
+. We define the perturbations as
+δz(k)
+t
+= z(k)
+t
+−¯zt, which form the ensemble perturbation matrix:
+Pz =
+1
+√
+K −1
+h
+δz(1)
+t
+· · ·
+δz(K)
+t
+i
+.
+(8)
+3
+
+This formulation provides an empirical approximation of the background covariance, B ≈PzP T
+z .
+Consequently, 4DEnVar parameterizes the analysis increment at the window start as δzt = Pzα for
+a coefficient vector α ∈RK.
+To evaluate the observation-space misfit, each ensemble member is propagated through the non-
+linear model to obtain trajectories {z(k)
+t+i}K
+k=1 for i = 0, . . . , τ. Let x(k)
+t+i denote the physical state
+component of z(k)
+t+i. For each observation time, we compute the observation-space perturbations:
+δy(k)
+t+i = Ht+i(x(k)
+t+i) −1
+K
+K
+X
+ℓ=1
+Ht+i(x(ℓ)
+t+i),
+i = 0, . . . , τ,
+(9)
+and assemble the corresponding matrices
+Py,t+i =
+1
+√
+K −1[δy(1)
+t+i · · · δy(K)
+t+i ].
+(10)
+Let xb
+t+i be the background trajectory obtained by propagating zb
+t, and define the innovations dt+i =
+yt+i −Ht+i(xb
+t+i). The incremental 4DEnVar objective in the reduced ensemble space is then:
+J(α) = 1
+2αT α + 1
+2
+τ
+X
+i=0
+∥dt+i −Py,t+iα∥2
+R−1
+t+i.
+(11)
+Minimizing this quadratic cost yields the optimal coefficients α∗, and the analysis update is com-
+puted as za
+t = zb
+t + Pzα∗(yielding the updated physical states and parameters (xa
+t , ua
+t )). Oper-
+ationally, outer loops are often used to update the background trajectory and recompute perturba-
+tions, addressing nonlinearities in the dynamics and observation operators. Additionally, localization
+and inflation are typically applied to maintain filter stability in high-dimensional regimes. Weak-
+constraint variants can be constructed by augmenting the ensemble-space control with model-error
+terms, analogous to the 4DVar formulation above.
+2.4
+DIFFERENTIABLE LATENT DYNAMICS
+Latent Dynamics Networks (LDNets) (Regazzoni et al., 2024) provide a compact, differentiable
+surrogate for high-dimensional dynamical systems by jointly learning a latent vector field and a
+decoder to physical space. We represent the latent state as a continuous-time function s(t) ∈Rds
+and let u(t) denote any (known or unknown) time-varying parameters or forcings. A typical LDNet
+defines the latent evolution via an ordinary differential equation:
+d
+dts(t) = Fθ(s(t), u(t)),
+(12)
+where the neural vector field Fθ can be integrated using a differentiable numerical ODE solver. For
+example, discretizing time on a regular grid tk = t0 + k∆t and assuming u(t) is piecewise constant
+yields the forward-Euler update:
+sk+1 = sk + ∆t Fθ(sk, uk),
+k = 0, 1, . . . ,
+(13)
+where sk ≈s(tk) and uk ≈u(tk).
+Given a latent trajectory s(t), a decoder Dϕ maps the latent states back to physical quantities. In
+particular, we use coordinate-based neural field decoders that enable continuous spatial evaluation
+at any query point ξ ∈Ωvia
+ˆx(t, ξ) = Dϕ(s(t), ξ).
+(14)
+Following Xiao et al. (2026), we adopt a shifted discrete-time convention with a fixed initialization
+s−1 = 0 to naturally accommodate varying initial conditions across different trajectories. Further-
+more, the integration step size ∆t can be treated as a learnable parameter and optimized jointly with
+the network weights (θ, ϕ).
+To train the surrogate, we assume access to a dataset of N physical trajectories {x(n)(tk, ·)}T
+k=0 with
+potentially varying initial conditions. The model is trained to minimize the reconstruction error of
+the decoded latent trajectories. To reduce computational cost and naturally handle irregular spatial
+4
+
+data, we sample a subset of spatial query points Ξn,k ⊂Ωfor each trajectory n at time tk, evaluating
+the decoder only at these locations. Denoting the predicted field as ˆx(n)(tk, ξ) = Dϕ(s(n)(tk), ξ),
+the standard training objective is:
+L(θ, ϕ) = 1
+N
+N
+X
+n=1
+T
+X
+k=0
+1
+|Ξn,k|
+X
+ξ∈Ξn,k
+ˆx(n)(tk, ξ) −x(n)(tk, ξ)
+
+2
+2 .
+(15)
+Here, each latent trajectory s(n)(tk) is generated by integrating the learned dynamics forward. Cru-
+cially, this combination of continuous-time latent evolution, coordinate-based decoding, and end-to-
+end differentiability forms the technical foundation of LEVDA, enabling gradient-based variational
+smoothing across arbitrary, grid-free spatiotemporal observation networks.
+3
+METHODOLOGY
+LEVDA integrates differentiable latent dynamics with ensemble-variational smoothing to formulate
+a latent-space analogue of 4DEnVar. For a given assimilation window starting at time t, the method
+takes three inputs: (i) a fully differentiable pretrained latent surrogate (trained via (15)), (ii) an
+ensemble representing the background distribution of window-initial latent variables, and (iii) a
+collection of (potentially spatiotemporally irregular) observations. In turn, LEVDA produces an
+analysis ensemble of latent states and parameters for the window onset, along with decoded physical
+trajectories that harmonize the observations with the latent dynamics.
+3.1
+LATENT-4DVAR
+We assume access to a pretrained differentiable latent surrogate that evolves an augmented latent
+state z(t) = (s(t), u(t)) and decodes s(t) to physical space via Dϕ. Concretely, we model the latent
+dynamics by
+d
+dts(t) = Fθ(s(t), u(t)),
+d
+dtu(t) = G(u(t)),
+(16)
+where G encodes any assumed parameter evolution (e.g., G ≡0 for static parameters). The decoded
+physical state is defined as x(t) = Dϕ(s(t)). Observations at time ti follow the standard state-space
+model from Equation (3); crucially, however, the observation operator Hti is applied in physical
+space after decoding. This means LEVDA does not require an additional observation-to-latent en-
+coder as used in LD-EnSF (Xiao et al., 2026). The assimilation process simply differentiates through
+the composite map z(t) 7→s(t) 7→x(t) = Dϕ(s(t)) 7→Hti(x(ti)).
+For a smoothing window anchored at time t, let Tt = {t1, . . . , tm} denote the sequence of observa-
+tion times within the window. These observations can be irregular and need not lie on a fixed grid. To
+handle arbitrary observation times, any ˜t ∈Tt falling between the fixed discrete integration steps tk
+and tk+1 of (13) is parameterized as ˜t = tk + α∆t with α ∈[0, 1). Consistent with a forward-Euler
+discretization, we approximate the latent state at the observation time via linear interpolation:
+s(˜t) ≈s(tk) + α∆t ˙s(tk),
+(17)
+where ˙s(tk) = Fθ(s(tk), u(tk)). Because this continuous-time formulation gracefully handles off-
+grid data, LEVDA naturally accommodates a varying number of available observations per assimi-
+lation window.
+Latent-space 4DVar computes a maximum a posteriori (MAP) estimate of the window-initial latent
+variables z(t) = (s(t), u(t)), which in turn determines the implied trajectory under Equation (16).
+We approximate the filtering prior with a Gaussian background z(t) ∼N(zb
+t, B), where zb
+t =
+(sb
+t, ub
+t), and assume a block-diagonal covariance B = diag(Bs, Bu). In practice, Bs and Bu can
+be estimated from the background ensemble (e.g., using a diagonal or shrinkage estimator). The
+strong-constraint latent 4DVar objective is therefore:
+J(s(t), u(t)) = 1
+2∥s(t)−sb
+t∥2
+B−1
+s
++ 1
+2∥u(t)−ub
+t∥2
+B−1
+u + 1
+2
+X
+ti∈Tt
+yti −Hti
+ Dϕ(s(ti))
+2
+R−1
+ti , (18)
+where the state s(ti) at each observation time is obtained by integrating Equation (16) forward from
+the initial condition (s(t), u(t)). While one could optimize over the full latent trajectory and include
+a weak-constraint model-mismatch term (analogous to weak-constraint 4DVar), we focus here on
+the strong-constraint setting enabled by the differentiable surrogate.
+5
+
+3.2
+LATENT ENSEMBLE VARIATIONAL DATA ASSIMILATION
+While latent-space 4DVar provides a clean MAP formulation, its direct application requires speci-
+fying (and inverting) background covariances over the augmented latent variables (s, u) and opti-
+mizing in the full augmented latent dimension ds + du. LEVDA is designed to make latent varia-
+tional smoothing computationally efficient and robust by: (i) restricting the update to an ensemble
+subspace, thereby optimizing over only K coefficients; (ii) avoiding the explicit construction or in-
+version of Bs and Bu by relying on the empirical covariance of the ensemble; (iii) leveraging a
+flow-dependent, data-adaptive geometry via ensemble perturbations; and (iv) returning an analysis
+ensemble for uncertainty quantification, rather than a single deterministic MAP trajectory.
+Let {zb,(k)
+t
+}K
+k=1 be an ensemble of background window-initial latent variables, where zb,(k)
+t
+=
+(sb,(k)
+t
+, ub,(k)
+t
+) and the ensemble mean is ¯zb
+t =
+1
+K
+PK
+k=1 zb,(k)
+t
+. Operationally, this background
+ensemble can be obtained by propagating the previous analysis ensemble forward under the latent
+surrogate, or by encoding an ensemble of full-state estimates into the latent space (if an encoder
+is available). We define the perturbations as δz(k)
+t
+= zb,(k)
+t
+−¯zb
+t. To prevent filter collapse, we
+optionally apply multiplicative and additive inflation:
+δz(k)
+t
+←ρ δz(k)
+t
++ ϵ(k),
+ρ ≥1, ϵ(k) ∼N(0, σ2Ids+du),
+and then form the ensemble perturbation matrix:
+Pz =
+1
+√
+K −1
+h
+δz(1)
+t
+· · ·
+δz(K)
+t
+i
+.
+LEVDA restricts candidate analysis initial conditions to the affine subspace zt(α) = ¯zb
+t + Pzα
+for α ∈RK. This restriction implicitly assumes a standard Gaussian prior α ∼N(0, I) and an
+empirical background covariance B ≈PzP T
+z . Given a candidate state zt(α), we integrate Equation
+(16) to obtain the latent trajectory and its decoded states. We then minimize the following ensemble-
+space variational objective:
+J(α) = 1
+2∥α∥2
+2 + 1
+2
+X
+ti∈Tt
+yti −Hti
+ Dϕ(s(ti; α))
+2
+R−1
+ti ,
+(19)
+where s(ti; α) denotes the latent state at time ti obtained by integrating forward from the initial
+condition zt(α).
+To produce an analysis ensemble rather than a single point estimate, we perform multiple indepen-
+dent optimizations of Equation (19) using different warm starts within the same ensemble subspace.
+Specifically, we optimize a collection of coefficient vectors {α(j)}K
+j=1. Each vector is initialized to
+represent one of the background members (e.g., starting at α(j) =
+√
+K −1ej, so that ¯zb
+t + Pzα(j)
+recovers the j-th background member when ϵ(k) = 0). We solve each optimization problem us-
+ing gradient-based methods (e.g., L-BFGS) via automatic differentiation through the latent solver.
+Because the observation misfit remains nonlinearly coupled to α, these distinct optimization trajec-
+tories allow the analysis members to capture local nonlinearity and multi-modality. Furthermore,
+this process is trivially parallelizable across the K members. Finally, we construct the analysis
+ensemble by setting
+za,(j)
+t
+= ¯zb
+t + Pzα(j)
+∗,
+j = 1, . . . , K,
+yielding the updated parameters ua,(j)
+t
+and decoded analysis states xa,(j)
+t
+= Dϕ(sa,(j)
+t
+).
+Connection to 4DEnVar. LEVDA shares the same ensemble-subspace philosophy as 4DEnVar:
+both restrict the analysis increment to an affine subspace spanned by background ensemble pertur-
+bations. The key distinction lies in how sensitivities are handled. Classical 4DEnVar avoids explicit
+tangent-linear and adjoint models by using nonlinear ensemble propagation to form an empirical lin-
+ear map from ensemble coefficients to observation-space increments (e.g., via Py,ti), which yields
+a purely quadratic ensemble-space objective that can be solved without differentiating through the
+forward model. In contrast, LEVDA keeps the observation misfit nonlinearly coupled to the coef-
+ficients through the differentiable latent dynamics and decoder. It computes ∇αJ in Equation (19)
+by exact automatic differentiation through the latent solver, Dϕ, and Hti. Thus, LEVDA avoids
+6
+
+the need for adjoint code for the original high-dimensional simulator, but fully leverages the exact
+gradients of the pretrained differentiable surrogate. When the latent dimension approaches the full
+state dimension and Dϕ is close to the identity map, LEVDA closely mirrors a full-state ensemble-
+variational smoother. In the low-dimensional setting, however, it yields substantial computational
+savings while retaining rigorous, multi-time, dynamics-aware constraints.
+4
+EXPERIMENTS
+4.1
+EXPERIMENTAL SETUP
+We evaluate LEVDA on three benchmark settings adapted from Xiao et al. (2026): (i) Kolmogorov
+flow with uncertain viscosity, (ii) tsunami propagation with an unknown source, and (iii) global
+atmospheric dynamics with an unknown forcing term.
+Kolmogorov flow.
+Canonical sinusoidally forced turbulence with an unknown viscosity (or
+Reynolds number Re) (Kochkov et al., 2021). The evaluation window covers 200 simulation steps
+following a 100-step burn-in period.
+Tsunami modeling. Simplified shallow-water dynamics where an initial Gaussian bump is placed
+at a random location to simulate an unknown landslide or earthquake source (Si & Chen, 2025).
+Atmospheric modeling. A global spherical simulation adapted from the planetswe example in
+Well (Ohana et al., 2024), governed by complex dynamics with an unknown forcing term. The
+simulation spans 21 days (504 hours), initialized from ERA5 500 hPa data (Hersbach et al., 2020).
+Observations are extremely sparse, covering only ∼0.2% of the time steps.
+Table 1 summarizes the discretization details and spatial and temporal observation sparsity for each.
+Setting
+Grid
+Simulation steps
+Obs. times (interval)
+∆t
+Obs. grid
+Kolmogorov flow
+150 × 150
+200
+40 (5)
+0.04
+10 × 10
+Tsunami modeling
+150 × 150
+2000
+50 (40)
+≈21 s
+10 × 10
+Atmospheric modeling
+512 × 256
+30240
+63 (480)
+≈60 s
+16 × 8
+Table 1: Summary of experimental setups (adapted from Xiao et al. (2026)). Obs. times represent
+the total number of observation times while interval in parentheses denotes the spacing (in simulation
+steps) between consecutive observations. Obs. grid indicates the spatial subsampling resolution.
+Implementation Details. For all experiments, we use the LDNets from Xiao et al. (2026) with
+latent dimensions Ds = 10 (Kolmogorov), Ds = 12 (Tsunami), and Ds = 52 (Atmosphere).
+Unless otherwise stated, we use an ensemble size of K = 100 for all latent methods (LEVDA,
+LD-EnSF, Latent-EnSF) and K = 40 for the full-state 4DEnVar baseline (constrained by high cost
+of full-state propagation). Observations are generated by subsampling the ground truth (see Table 1)
+and adding Gaussian noise with a 10% noise-to-signal ratio.
+Metric. We evaluate reconstruction accuracy using the relative Root Mean Square Error (RMSE) of
+the analysis ensemble mean ¯xt with respect to the ground truth x⋆
+t measured in the Euclidean norm:
+relative RMSE(t) = ∥¯xt −x⋆
+t ∥2
+∥x⋆
+t ∥2
+.
+In time-series plots, shaded regions denote the standard deviation of the member-wise relative errors,
+which are
+e(i)
+t
+= ∥x(i)
+t
+−x⋆
+t ∥2
+∥x⋆
+t ∥2
+,
+i = 1, . . . , N.
+4.2
+BASELINES
+We compare LEVDA against five baselines spanning state-space filtering, latent-space filtering, and
+full-state smoothing. All methods use the same observations and noise level.
+7
+
+State-Space Filtering. We use local ensemble transform Kalman filter (LETKF) (Hunt et al., 2007)
+and ensemble score filter (EnSF) (Bao et al., 2024). These operate directly on the high-dimensional
+grid but often struggle with sparse observations and nonlinear dynamics.
+Latent-Space Filtering. We compare against Latent-EnSF (Si & Chen, 2025), which filters in a
+latent space (requiring coupled state and observation encoders), and LD-EnSF (Xiao et al., 2026),
+which uses the same differentiable dynamics as LEVDA but in a sequential filtering framework
+relying on an LSTM observation encoder.
+Full-State Smoothing. We use 4DEnVar (Zhu et al., 2022) as a high-dimensional gold standard. We
+report results only for the tsunami setting because of the substantial engineering and runtime costs
+required at our target resolutions. Specifically, full-state 4DEnVar operates directly in the state space,
+requiring the construction of localized covariance operators and careful tuning of localization and
+inflation parameters. These steps are tightly coupled to the simulator’s discretization and boundary
+conditions, introducing significant implementation complexity and overhead.
+4.3
+COMPARISON OF ACCURACY, ROBUSTNESS, AND UNCERTAINTY
+Figure 1 summarizes assimilation accuracy and uncertainty across the three benchmarks. Overall,
+LEVDA matches or outperforms LD-EnSF without requiring an auxiliary LSTM observation en-
+coder, and it consistently surpasses the remaining baselines under sparse observations. Additionally,
+Appendix A reports that LEVDA achieves more robust assimilation with varying assimilation win-
+dow length τ and the ensemble size K, varying levels of observation sparsity and noise, as well as
+more accurate parameter estimation. Improved uncertainty quantification measured by the spread-
+error ratio and energy score for LEVDA is reported in Appendix B.
+Figure 1: Relative RMSE of the ensemble-mean trajectory over time for Kolmogorov flow (left),
+tsunami modeling (middle), and atmospheric modeling (right); shaded regions show the standard
+deviation of member-wise relative RMSE.
+Figure 2 visualizes the final-time zonal wind velocity at 500 hPa for the atmospheric benchmark. De-
+spite the sparse observation density, gradient propagation through the latent surrogate remains stable,
+allowing LEVDA to produce realistic reconstructions comparable to LD-EnSF. Extended temporal
+visualizations comparing assimilation performance for Kolmogorov flow and tsunami modeling are
+provided in Appendix D.
+4.4
+SPATIOTEMPORALLY VARYING OBSERVATION OPERATORS
+LEVDA is designed to handle flexible observation patterns, relaxing the standard assumption that
+measurements must arrive on fixed grids at regular intervals. In practice, data is often collected
+by moving platforms or sampled asynchronously. We evaluate LEVDA under three progressively
+more realistic scenarios: time-varying observation locations, irregular observation timestamps, and
+a joint regime combining both irregularities. As shown in Figure 3, LEVDA maintains performance
+comparable to the idealized fixed-grid baseline in all cases.
+Moving Observation Locations. LEVDA overcomes the fixed-grid limitation of encoder-based
+methods like LD-EnSF, enabling assimilation from time-varying locations typical of moving plat-
+forms or drifting sensors. We evaluate this using the tsunami benchmark (Table 1), comparing the
+standard fixed-grid setup to a scenario where observation coordinates are resampled at each time
+step (maintaining 0.4% sparsity). Figure 3a shows that LEVDA adapts robustly to these spatially
+shifting observations, achieving accuracy comparable to the fixed-grid baseline.
+8
+
+Figure 2: Atmospheric benchmark: final-time zonal wind u at 500 hPa. The visualization compares
+the ground truth (with sparse observations) to the assimilated states and errors for different methods.
+Figure 3: Effect of irregular sampling on tsunami modeling: (a) moving observation locations (ran-
+domized at each observed time), (b) irregular observation times with fixed spatial locations, and (c)
+joint spatiotemporal irregularity. Curves depict the relative RMSE of the ensemble-mean trajectory;
+shaded regions indicate the standard deviation of member-wise relative RMSE.
+Irregular Observation Times. LDNets model the system dynamics via a learned time derivative
+of the latent state, rather than a fixed-step recurrence. This continuous-time formulation allows the
+latent state to be propagated using standard numerical integrators (e.g., forward Euler) to any arbi-
+trary timestamp. Consequently, LEVDA can naturally assimilate observations taken at irregular or
+asynchronous intervals, decoupling the assimilation process from the rigid fixed-time grids required
+by many discrete-time data-driven models.
+In Figure 3b, we examine an irregular-sampling regime by drawing 51 observation times uniformly
+at random, matching the total count of the fixed-interval baseline. Observation times that do not fall
+at regular time steps are calculated by (17).
+During smoothing, LEVDA assimilates only those observations that fall within the current time
+window; consequently, the number of available observations per window varies naturally. For valid
+comparison, all methods are evaluated on the original fixed simulation grid, even though LEVDA
+(Irregular Time) assimilates the asynchronously sampled data.
+Joint Spatiotemporal Irregularity. We combine spatial subsampling and temporal irregularity to
+form a joint spatiotemporal stress test. At each randomly selected observation time, we indepen-
+dently draw a random subset of spatial locations. Consistent with the findings in Figure 3b, Fig-
+ure 3c demonstrates that LEVDA maintains performance comparable to the fixed-interval baseline
+even under this fully irregular regime.
+4.5
+RUNTIME AND TRAINING COST
+Table 2 compares wall-clock runtimes for 4DEnVar, Latent-EnSF, LD-EnSF, and LEVDA. LEVDA
+eliminates the need to train an observation-to-latent encoder (as required by LD-EnSF) and avoids
+the prohibitive cost of full-state 4DEnVar. Instead, it relies on iterative ensemble-space optimization,
+utilizing gradients computed via automatic differentiation through the latent surrogate. Overall,
+LEVDA remains significantly faster than the full-dimensional 4DEnVar baseline while maintaining
+competitive accuracy under sparse observations.
+9
+
+Example
+Kolmogorov Flow
+Tsunami Modeling
+Atmospheric Modeling
+Metric
+4DEnVar
+Latent-EnSF
+LD-EnSF
+LEVDA
+4DEnVar
+Latent-EnSF
+LD-EnSF LEVDA
+4DEnVar
+Latent-EnSF
+LD-EnSF
+LEVDA
+Encoder Training (s)
+0
+43, 156
+298
+0
+0
+27, 718
+312
+0
+0
+58, 231
+1429
+0
+Assimilation (s)
+−
+7.57
+0.35
+13.91
+24, 639
+5.77
+0.37
+11.32
+−
+37.5
+1.42
+19.47
+Assimilation dim.
+Dx=45,000
+Ds=499
+Ds=10
+Ds=10
+Dx=67,500
+Ds=400
+Ds=12
+Ds=12
+Dx=393,216
+Ds=512
+Ds=52
+Ds=52
+Table 2: Wall-clock runtime comparison. We report the latent assimilation dimension Ds for latent
+methods (Latent-EnSF, LD-EnSF, LEVDA) and the full-state dimension Dx for 4DEnVar. Assim-
+ilation runtimes correspond to full-trajectory assimilation with an ensemble size of K = 100 for
+latent methods, whereas 4DEnVar is restricted to K = 40 due to the high computational cost of
+full-state propagation. 4DEnVar simulations use an AMD 7543 CPU (64 threads), while data-driven
+and latent methods utilize an Nvidia A6000 GPU.
+5
+RELATED WORK
+We position our work at the intersection of (i) latent-space filtering for sparse observations, (ii)
+score-based smoothing via conditional generation, and (iii) surrogate-accelerated variational data
+assimilation. Latent-EnSF (Si & Chen, 2025) and LD-EnSF (Xiao et al., 2026) demonstrate that
+score-based priors in a low-dimensional latent space render filtering feasible for large-scale systems
+with sparse observations. However, as sequential methods, they enforce weaker trajectory-level con-
+straints across multi-time windows. Additionally, they often require training auxiliary components
+(e.g., observation-to-latent encoders) to map measurements into the latent space.
+In contrast, score-based smoothing methods such as SDA (Rozet & Louppe, 2023) and FlowDAS
+(Chen et al., 2025) target the smoothing posterior via conditional trajectory generation. While these
+approaches avoid explicit adjoint derivations, their inference cost is often dominated by the large
+number of required denoising or flow steps. Moreover, they typically represent dynamics implic-
+itly through a generative model, rather than via an explicit differentiable surrogate that supports
+efficient gradient-based windowed optimization and joint state–parameter inference. Similarly, al-
+though APPA (Andry et al., 2025) learns dynamics via generative models, extending it to handle
+joint parameter inference and irregular sampling would require non-trivial architectural changes.
+Finally, data-driven surrogates are increasingly replacing expensive PDE solvers to accelerate as-
+similation. For instance, FengWu-4DVar (Xiao et al., 2024) employs a fast surrogate for single-
+trajectory 4DVar but yields a MAP estimate (Hodyss et al., 2016), providing limited distributional
+guidance. LEVDA instead optimizes within a latent ensemble subspace, naturally preserving ensem-
+ble outputs for uncertainty quantification. A detailed qualitative comparison is provided in Appendix
+C.
+6
+CONCLUSION
+We introduced Latent Ensemble Variational Data Assimilation (LEVDA), an ensemble-variational
+smoother that performs 4DEnVar-style optimization in the low-dimensional latent space of a pre-
+trained differentiable dynamical surrogate. By optimizing over an ensemble subspace and differenti-
+ating through the surrogate via automatic differentiation, LEVDA enables efficient windowed assim-
+ilation while bypassing the need for tangent-linear/adjoint implementations of the high-dimensional
+simulator or auxiliary observation-to-latent encoders. LEVDA jointly assimilates states and un-
+known parameters, naturally accommodates time-dependent observation operators (including mov-
+ing sensors), and supports observations at arbitrary spatiotemporal locations. Across three chal-
+lenging geophysical benchmarks, LEVDA matches or outperforms state-of-the-art latent filtering
+baselines under severe sparsity while providing substantial accuracy and runtime advantages over
+full-state 4DEnVar. Finally, our ablations demonstrate robustness to spatiotemporal irregularity and
+modest ensemble sizes.
+Limitations. LEVDA relies on a pretrained differentiable surrogate and inherits its potential failure
+modes: assimilation accuracy depends on the surrogate’s fidelity over the window, and performance
+may degrade under significant distribution shifts or unmodeled model errors. Furthermore, LEVDA
+optimizes a nonconvex objective within an ensemble subspace. While the low latent dimension en-
+sures tractability and Appendix A demonstrates robustness across varying τ, K, and sparsity levels,
+difficult regimes may still require careful tuning of hyperparameters such as ensemble size and in-
+flation. Finally, although LEVDA improves uncertainty quantification, achieving consistent calibra-
+10
+
+tion, especially for atmospheric dynamics, remains a challenge. Future work incorporating explicit
+weak-constraint model-error terms or adaptive regularization offers a promising path forward.
+7
+ACKNOWLEDGMENTS
+This work was supported in part by the National Science Foundation under Grant No. 2325631.
+We thank Pengpeng Xiao for her collaboration on our work LD-EnSF (Xiao et al., 2026), which
+provided part of the LDNet implementation and benchmarks for this project.
+REFERENCES
+Andry, G., Rozet, F., Lewin, S., Rochman, O., Mangeleer, V., Pirlet, M., Faulx, E., Gr´egoire, M.,
+and Louppe, G. Appa: Bending weather dynamics with latent diffusion models for global data
+assimilation. arXiv preprint arXiv:2504.18720, 2025.
+Bannister, R. N.
+A review of operational methods of variational and ensemble-variational data
+assimilation. Quarterly Journal of the Royal Meteorological Society, 143(703):607–633, 2017.
+Bao, F., Zhang, Z., and Zhang, G. An ensemble score filter for tracking high-dimensional nonlinear
+dynamical systems. Computer Methods in Applied Mechanics and Engineering, 432:117447,
+2024.
+Bauer, P., Thorpe, A., and Brunet, G. The quiet revolution of numerical weather prediction. Nature,
+525(7567):47–55, 2015.
+Carrassi, A., Bocquet, M., Bertino, L., and Evensen, G. Data assimilation in the geosciences: An
+overview of methods, issues, and perspectives. Wiley Interdisciplinary Reviews: Climate Change,
+9(5):e535, 2018.
+Chen, S., Jia, Y., Qu, Q., Sun, H., and Fessler, J. A.
+Flowdas: A stochastic interpolant-based
+framework for data assimilation. arXiv preprint arXiv:2501.16642, 2025.
+Courtier, P., Th´epaut, J.-N., and Hollingsworth, A. A strategy for operational implementation of
+4d-var, using an incremental approach. Quarterly Journal of the Royal Meteorological Society,
+120(519):1367–1387, 1994.
+Dueben, P. D. and Bauer, P. Challenges and design choices for global weather and climate models
+based on machine learning. Geoscientific Model Development, 11(10):3999–4009, 2018.
+Hersbach, H., Bell, B., Berrisford, P., Hirahara, S., Hor´anyi, A., Mu˜noz-Sabater, J., Nicolas, J.,
+Peubey, C., Radu, R., Schepers, D., et al. The era5 global reanalysis. Quarterly journal of the
+royal meteorological society, 146(730):1999–2049, 2020.
+Hodyss, D., Bishop, C. H., and Morzfeld, M. To what extent is your data assimilation scheme
+designed to find the posterior mean, the posterior mode or something else? Tellus A: dynamic
+meteorology and oceanography, 68(1):30625, 2016.
+Hunt, B. R., Kostelich, E. J., and Szunyogh, I. Efficient data assimilation for spatiotemporal chaos:
+A local ensemble transform Kalman filter. Physica D: Nonlinear Phenomena, 230(1-2):112–126,
+2007.
+Kalnay, E. Atmospheric modeling, data assimilation and predictability. Cambridge university press,
+2003.
+Kochkov, D., Smith, J. A., Alieva, A., Wang, Q., Brenner, M. P., and Hoyer, S. Machine learning–
+accelerated computational fluid dynamics. Proceedings of the National Academy of Sciences, 118
+(21):e2101784118, 2021.
+Lorenz, E. N. Atmospheric predictability as revealed by naturally occurring analogues. Journal of
+Atmospheric Sciences, 26(4):636–646, 1969.
+11
+
+Lorenz, E. N. Atmospheric predictability experiments with a large numerical model. Tellus, 34(6):
+505–513, 1982.
+Lorenz, E. N. Deterministic nonperiodic flow 1. In Universality in Chaos, 2nd edition, pp. 367–378.
+Routledge, 2017.
+Ohana, R., McCabe, M., Meyer, L., Morel, R., Agocs, F., Beneitez, M., Berger, M., Burkhart, B.,
+Dalziel, S., Fielding, D., et al. The well: a large-scale collection of diverse physics simulations for
+machine learning. Advances in Neural Information Processing Systems, 37:44989–45037, 2024.
+Rabier, F., Th´epaut, J.-N., and Courtier, P. Extended assimilation and forecast experiments with a
+four-dimensional variational assimilation system. Quarterly Journal of the Royal Meteorological
+Society, 124(550):1861–1887, 1998.
+Regazzoni, F., Pagani, S., Salvador, M., Dede’, L., and Quarteroni, A. Learning the intrinsic dynam-
+ics of spatio-temporal processes through latent dynamics networks. Nature Communications, 15
+(1):1834, 2024.
+Rozet, F. and Louppe, G. Score-based data assimilation. Advances in Neural Information Processing
+Systems, 36:40521–40541, 2023.
+Si, P. and Chen, P. Latent-ensf: A latent ensemble score filter for high-dimensional data assim-
+ilation with sparse observation data. In The Thirteenth International Conference on Learning
+Representations, 2025.
+Xiao, P., Si, P., and Chen, P. Ld-ensf: Synergizing latent dynamics with ensemble score filters
+for fast data assimilation with sparse observations. The Fourteenth International Conference on
+Learning Representations, 2026.
+Xiao, Y., Bai, L., Xue, W., Chen, K., Han, T., and Ouyang, W.
+FengWu-4DVar:
+Cou-
+pling the data-driven weather forecasting model with 4d variational assimilation, 2024. URL
+https://arxiv.org/abs/2312.12455.
+Zhu, S., Wang, B., Zhang, L., Liu, J., Liu, Y., Gong, J., Xu, S., Wang, Y., Huang, W., Liu, L., et al. A
+four-dimensional ensemble-variational (4DEnVar) data assimilation system based on GRAPES-
+GFS: System description and primary tests. Journal of Advances in Modeling Earth Systems, 14
+(7):e2021MS002737, 2022.
+12
+
+A
+ABLATION STUDIES ON TSUNAMI MODELING
+We perform ablation studies using the tsunami modeling benchmark to evaluate LEVDA’s robust-
+ness to three key hyperparameters: smoothing time horizon, ensemble size, and observation sparsity.
+Figure 4 illustrates the sensitivity of the reconstruction error to variations in these settings.
+Figure 4: Tsunami benchmark sensitivity analysis: LEVDA Relative RMSE as a function of (a)
+smoothing time horizon τ, (b) ensemble size K, and (c) spatial observation stride (sparsity).
+Smoothing Time Horizon. We vary the smoothing time horizon τ (the length of the assimilation
+window) to assess robustness to the duration of temporal context utilized. Figure 4a demonstrates
+that LEVDA is relatively insensitive to τ beyond a critical threshold. The failure observed at τ = 0
+is consistent with theoretical expectations: an instantaneous snapshot provides insufficient dynamic
+information to uniquely identify the governing parameters u.
+Ensemble Size. We vary the ensemble size K to evaluate the sample efficiency of the data assimila-
+tion process. Figure 4b indicates that performance stabilizes for K ≥10, with moderate degradation
+at K = 5 and divergence at K = 2. This efficiency stems from performing optimization within a
+low-dimensional latent subspace, where a relatively small ensemble is sufficient to span the tangent
+space required for effective updates.
+Spatial Observation Sparsity. To evaluate robustness to data scarcity, we test spatial strides s ∈
+{2, 5, 15, 30, 50}, corresponding to observation densities ranging from 25% down to an extreme
+0.04% on the 2D grid. We benchmark against 4DEnVar (with localization radius r = 2) at strides 2
+and 15. Figure 4c reveals a stark contrast: while 4DEnVar is competitive at high density (s = 2), it
+suffers a performance collapse at the experimental setting of s = 15 (0.4%). Conversely, LEVDA
+maintains high accuracy and stability up to s = 15, degrades only modestly at s = 30, and remains
+functional even at the hyper-sparse rate of 0.04% (s = 50).
+Our experiments reveal that 4DEnVar is highly sensitive to the localization radius under sparse con-
+ditions. Extreme sparsity creates a fundamental dilemma: a large localization radius introduces sam-
+pling noise via spurious long-range correlations, causing filter divergence, whereas a small radius
+prevents the propagation of information from sparse observations to the vast unobserved regions. At
+s = 15 (0.4% density), we observe a specific failure mode where the analysis fits the observations
+well (low residual) but fails globally (high state error). This occurs because the localization mask
+truncates the physical cross-covariances necessary to infer the unobserved state variables, rendering
+the full-state inverse problem ill-posed, a limitation LEVDA avoids by assimilating in a globally
+coupled latent space.
+Robustness to Temporal Sparsity. We examine LEVDA’s sensitivity to temporal data scarcity
+by increasing the time interval between observations. Figure 5a demonstrates remarkable stability:
+error rates remain nearly flat even as observations become increasingly infrequent. This resilience
+stems from optimizing a continuous trajectory within the low-dimensional latent manifold, which
+effectively bridges the gaps between sparse timepoints.
+For this experiment, we extended the smoothing window to τ = 10 (versus the standard τ = 5) to
+ensure the assimilation horizon remains sufficiently long to capture these wider observation gaps.
+Sensitivity to Observation Noise. We analyze LEVDA’s robustness to varying magnitudes of ob-
+servation noise, addressing the reality that real-world sensor statistics are often uncertain. Because
+the noise level dictates the balance between the observation likelihood and the learned latent prior,
+the assimilation framework must remain stable even when this balance shifts. Figure 5b reports
+13
+
+performance under noise-to-signal ratios of 5%, 10%, and 20% for the tsunami modeling case. Cru-
+cially, we maintain identical hyperparameter weights across all trials, demonstrating that LEVDA
+handles increased measurement uncertainty without requiring specific retuning.
+Figure 5: Additional Tsunami benchmark ablations: (a) Impact of temporal sparsity on LEVDA
+Relative RMSE (using extended smoothing window τ = 10). (b) Robustness to observation noise
+(5%, 10%, 20% noise-to-signal ratios) under fixed likelihood weighting. (c) Parameter estimation
+accuracy: Relative RMSE of the parameter u over the assimilation window.
+Parameter Estimation. Beyond state reconstruction, many inverse problems necessitate the recov-
+ery of governing latent parameters. In the tsunami modeling benchmark, we focus on estimating
+the initial condition parameter u that specifies the starting location of the Gaussian bump. Although
+u is not directly observed, it dictates the subsequent wave evolution and must be inferred solely
+from sparse partial observations. Figure 5c tracks the RMSE of the estimated parameter over the
+course of the assimilation window. LEVDA consistently achieves a lower RMSE than LD-EnSF,
+despite not utilizing an explicit encoder as in LD-EnSF to map observations to parameters. Instead,
+LEVDA treats u as an augmented component of the latent state, estimating it jointly via the vari-
+ational smoothing objective. This approach leverages the full temporal context of the smoothing
+window, allowing observations from multiple time steps to progressively constrain u, thereby re-
+ducing the uncertainty often associated with purely filtering-based updates. The superior accuracy
+of LEVDA confirms that variational smoothing offers a more robust mechanism for latent parameter
+discovery than direct encoder-based inversion.
+B
+UNCERTAINTY QUANTIFICATION METRICS
+We evaluate the quality of LEVDA’s uncertainty estimates using proper scoring rules and calibration
+diagnostics. Across all test cases, LEVDA consistently improves these metrics, demonstrating a
+more reliable characterization of ensemble dispersion. However, achieving proper calibration in the
+atmospheric modeling case remains a significant challenge for all evaluated methods.
+Spread-Error Ratio. To evaluate the reliability of the assimilated ensemble, we first employ the
+Spread-Error Ratio (SER). This metric diagnoses the calibration of the ensemble by comparing its
+internal diversity (spread) to the actual predictive accuracy of its mean. The SER at time t is defined
+as:
+SERt = Spreadt
+Errort
+=
+q
+1
+K
+PK
+j=1∥x(j)
+t
+−¯xt∥2
+2
+∥¯xt −x⋆
+t ∥2
+,
+(20)
+where ¯xt =
+1
+K
+PK
+j=1 x(j)
+t
+is the ensemble mean, x(j)
+t
+represents individual ensemble members,
+and x⋆
+t is the ground truth. An SER of 1 indicates ideal calibration, whereas SER < 1 signals
+overconfident under-dispersion, and SER > 1 signals underconfident over-dispersion. We report the
+evolution of the SER across the three benchmarks in Figure 6.
+Continuous Ranked Probability Score.
+Our second uncertainty metric is the Continuous Ranked
+Probability Score (CRPS), a proper scoring rule that quantifies the discrepancy between the fore-
+cast and observed cumulative distribution functions. A lower CRPS indicates superior probabilistic
+skill, reflecting an optimal balance between predictive accuracy and ensemble dispersion. For high-
+dimensional states, we compute the CRPS using an energy-score formulation, averaging across
+spatial dimensions and channels to evaluate performance over time (Figure 7).
+14
+
+Figure 6: Spread-Error Ratio (SER) over time for Kolmogorov flow, tsunami modeling, and atmo-
+spheric modeling (left-to-right). Values closer to 1 indicate better calibration of the ensemble spread.
+Figure 7: Continuous Ranked Probability Score (CRPS) over time for Kolmogorov flow, tsunami
+modeling, and atmospheric modeling (left-to-right). Lower values represent higher probabilistic
+accuracy.
+Overall, LEVDA achieves the lowest CRPS and best SER among evaluated baselines, indicating su-
+perior probabilistic accuracy. In addition, LEVDA produces SER closer to 1 than baselines in nearly
+all settings, reflecting improved calibration rather than merely sharper, under-dispersed posteriors.
+C
+CAPABILITY COMPARISON
+Table 3 contrasts LEVDA with existing latent-space ensemble methods and score-based DA ap-
+proaches. LEVDA distinguishes itself as the only framework in this comparison that simultaneously
+integrates smoothing, differentiable dynamics, irregular observation windows, and joint parameter
+estimation.
+Capability
+Latent-EnSF LD-EnSF SDA FlowDAS APPA LEVDA
+Smoothing
+X
+X
+✓
+✓
+✓
+✓
+Differentiable Dynamics
+X
+✓
+X
+X
+X
+✓
+Moving observations
+X
+X
+✓
+✓
+✓
+✓
+Irregular-time observations
+X
+X
+X
+X
+X
+✓
+Parameter estimation
+X
+✓
+X
+X
+X
+✓
+Table 3: Feature comparison across latent and score-based DA methods. Here, “Differentiable
+Dynamics” refers to the use of an explicit learned surrogate for state evolution (as opposed to implicit
+trajectory priors), while “Irregular-time Observations” denotes native support for data at arbitrary
+time stamps without resampling to a fixed temporal grid.
+15
+
+D
+VISUALIZATION OF EXPERIMENTAL SYSTEMS
+Figure 8: Visualization of surface elevation η in tsunami dynamics. The rows display: (1) ground
+truth; (2) LDNet predictions from a known initial condition; (3) prediction errors; and (4) sparse
+observations (10 × 10 subsampled from a 150 × 150 grid). The remaining rows show assimilation
+results starting from a deviated initial condition: (5) a single assimilated trajectory from the LD-
+EnSF ensemble (N = 20); (6) LD-EnSF error; (7) a single assimilated trajectory from the LEVDA
+ensemble (N = 20); and (8) LEVDA error.
+16
+
+Figure 9: Kolmogorov flow benchmark: vorticity field, comparing ground truth and assimilated
+reconstruction. The rows display: (1) ground truth; (2) perturbed trajectory with different Reynolds
+number; (3) error of perturbed trajectory; (4) sparse observations; (10 × 10 subsampled from a
+150 × 150 grid (5) assimilated results of a single trajectory from the LD-EnSF ensemble (N = 20);
+(6) LD-EnSF error; (7) a single assimilated trajectory from the LEVDA ensemble (N = 20); (8)
+LEVDA error.
+17

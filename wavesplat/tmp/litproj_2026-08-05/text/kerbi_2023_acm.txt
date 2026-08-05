@@ -1,0 +1,199 @@
+3D Gaussian Splatting for Real-Time 
+Radiance Field Rendering
+November 20, 2023
+Bernhard Kerbl*, Georgios Kopanas*, Thomas Leimkühler, George Drettakis
+In SIGGRAPH 2023
+Presenter: Donghwan Kim 20233091
+
+Contents
+2
+1.
+Background
+2.
+Contribution
+3.
+Method
+4.
+Results
+5.
+Conclusion
+
+1. Background
+Rasterization
+https://darkpgmr.tistory.com/77
+Lecture Slide for <3D Transformation> from CS380 (Spring 2020) Sung-eui Yoon
+3
+
+1. Background
+Ray Casting
+Lecture Slide for <Ray tracing> from CS380 (Spring 2020) Sung-eui Yoon
+4
+
+1. Background
+NeRF (Neural Radiance Fields): Ray-marching
+Ben Mildenhall, Pratul P. Srinivasan, Matthew Tancik, Jonathan T. Barron, Ravi Ramamoorthi, Ren Ng. NeRF: Representing Scenes as Neural Radiance 
+Fields for View Synthesis. In ECCV, 2020.
+5
+
+1.
+preserve continuous properties
+2.
+avoid unnecessary computation in empty space
+3.
+rasterization-based rendering
+2. Contribution
+6
+3D Gaussians
+
+3. Method
+7
+Overview
+
+3. Method
+8
+Structure-from-Motion
+
+●
+Camera calibration for in-the-wild NeRF.
+3. Method
+9
+Structure-from-Motion
+https://mvje.tistory.com/92
+https://woochan-autobiography.tistory.com/944
+
+3. Method
+10
+Initial spare point cloud
+
+3. Method
+11
+3D Gaussians
+
+●
+3D Gaussian
+●
+2D projection, where W is viewing transformation, and J is the Jacobian of 
+aﬃne projective transformation.
+●
+Positive semi-deﬁnite covariance, where S is scale and R is rotation matrix.
+3. Method
+12
+3D Gaussian Splatting - Geometry
+Matthias Zwicker, Hanspeter Pﬁster, Jeroen Van Baar, Markus Gross. EWA volume splatting. In Proceedings of IEEE Visualization, 2001.
+
+●
+Opacity ɑ
+●
+Color - Spherical Harmonics (SH) coeﬃcients
+3. Method
+13
+3D Gaussian Splatting - Opacity and Color
+https://xoft.tistory.com/50
+Robin Green. Spherical harmonic lighting: The gritty details. In Archives of the game developers conference, 2003.
+
+●
+Position (mean) p
+●
+Covariance Σ
+●
+Opacity ɑ
+●
+Color - Spherical Harmonics (SH) coeﬃcients
+3. Method
+14
+3D Gaussian Optimization
+→ Gradient Descent
+●There is no neural networks to optimize!
+
+●
+Clone 3D gaussians: Under-reconstruction (missing geometric features)
+●
+Split 3D gaussians: Over-reconstruction (covering large area)
+●
+Remove 3D gaussians: Opacity is lower than threshold
+3. Method
+15
+Adaptive Control of Gaussians
+
+3. Method
+16
+Optimization
+
+3. Method
+17
+Tile-based Rasterizer
+
+1.
+Parallelize within GPU cores.
+2.
+Avoid the expense of depth sorting per pixel.
+3. Method
+18
+Split Image to 16x16 Tiles
+
+For NeRF,
+, where
+For 3D Gaussian Splatting, the color and opacity ɑ are accumulated per pixel
+from the closest to farthest gaussian
+until opacity threshold
+3. Method
+19
+Rasterization
+
+4. Results
+20
+Evaluation Metrics
+1.
+PSNR (Peak Signal-to-Noise Ratio) ↑
+2.
+SSIM (Structural Similarity Index Measure) ↑
+3.
+LPIPS (Learned Perceptual Image Patch Similarity) ↓
+4.
+FPS (Frame Per Seconds for inference rendering with A6000) ↑
+5.
+Train (training time for A6000) ↓
+Model Variations
+1.
+Ours7K: 7K iterations
+2.
+Ours30K: 30K iterations
+
+4. Results
+21
+1.
+State of the Art Quality (Equivalent to MipNerf360)
+2.
+Real-Time Rendering (More than 100 FPS)
+3.
+Fast Training (Less than 1h)
+
+4. Results
+22
+Qualitative Evaluation
+
+4. Results
+23
+Quantitative Evaluation
+PSNR scores for Synthetic NeRF
+
+They proposed new radiance ﬁeld rendering methods using 3D gaussian as 
+volumetric representation for real-time rendering while preserving state-of-the-art 
+quality.
+5. Conclusion
+24
+
+Author’s project page and video
+https://darkpgmr.tistory.com/77
+https://mvje.tistory.com/92
+https://woochan-autobiography.tistory.com/944
+https://xoft.tistory.com/50
+Lecture Slide of CS380 (Spring 2020) Sung-eui Yoon
+Bernhard Kerbl, Georgios Kopanas, Thomas Leimkühler, George Drettakis. 3D Gaussian Splatting for Real-Time Radiance Field Rendering. In 
+SIGGRAPH, 2023.
+Ben Mildenhall, Pratul P. Srinivasan, Matthew Tancik, Jonathan T. Barron, Ravi Ramamoorthi, Ren Ng. NeRF: Representing Scenes as Neural Radiance 
+Fields for View Synthesis. In ECCV, 2020.
+Matthias Zwicker, Hanspeter Pﬁster, Jeroen Van Baar, Markus Gross. EWA volume splatting. In Proceedings of IEEE Visualization, 2001.
+Robin Green. Spherical harmonic lighting: The gritty details. In Archives of the game developers conference, 2003.
+References
+25

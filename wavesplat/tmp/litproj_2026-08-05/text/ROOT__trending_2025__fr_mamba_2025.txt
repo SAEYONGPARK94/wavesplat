@@ -1,0 +1,1174 @@
+FR-Mamba: Time-Series Physical Field Reconstruction
+Based on State Space Model
+Jiahuan Longa, Wenzhe Zhanga, Ning Wanga, Tingsong Jianga, Wen Yaoa
+aChinese Academy of Military Sciences, Beijing, China
+Abstract
+Physical field reconstruction (PFR) aims to predict the state distribution of
+physical quantities (e.g., velocity, pressure, and temperature) based on lim-
+ited sensor measurements. It plays a critical role in domains such as fluid
+dynamics and thermodynamics. However, existing deep learning methods
+often fail to capture long-range temporal dependencies, resulting in subopti-
+mal performance on time-evolving physical systems. To address this, we pro-
+pose FR-Mamba, a novel spatiotemporal flow field reconstruction framework
+based on state space modeling. Specifically, we design a hybrid neural net-
+work architecture that combines Fourier Neural Operator (FNO) and State
+Space Model (SSM) to capture both global spatial features and long-range
+temporal dependencies. We adopt Mamba, a recently proposed efficient SSM
+architecture, to model long-range temporal dependencies with linear time
+complexity. In parallel, the FNO is employed to capture non-local spatial
+features by leveraging frequency-domain transformations. The spatiotem-
+poral representations extracted by these two components are then fused to
+reconstruct the full-field distribution of the physical system. Extensive ex-
+periments demonstrate that our approach significantly outperforms existing
+PFR methods in flow field reconstruction tasks, achieving high-accuracy per-
+formance on long sequences.
+Keywords:
+Physical field reconstruction, Spatiotemporal modeling, State
+space model, Fourier neural operator, Mamba, Long-sequence learning
+1. Introduction
+Flow field reconstruction from sparse sensor measurements is a funda-
+mental yet challenging problem in fluid mechanics and engineering appli-
+cations [1, 2, 3, 4]. High-resolution reconstruction of unsteady flow fields
+Preprint submitted to Elsevier
+May 23, 2025
+arXiv:2505.16083v1  [cs.LG]  21 May 2025
+
+is essential for understanding the underlying fluid dynamics and support-
+ing complex decision-making in real-world systems. A classic example is the
+two-dimensional flow past a cylinder [5], which exhibits periodic vortex shed-
+ding and is commonly used to model real-world flows around structures like
+buildings or bridge columns. However, due to the sparse and uneven place-
+ment of sensors, traditional statistical methods [6, 7, 8] often fail to capture
+fine-grained structures—particularly in regions with rich dynamics.
+In recent years, deep learning-based physical reconstruction models have
+made progress in mapping sensor inputs to global flow field outputs. How-
+ever, most existing methods operate in a frame-by-frame manner, relying
+solely on single-time-step observations and thus ignoring the rich temporal
+context embedded in historical measurements. To address this, some ap-
+proaches have introduced sequence models such as LSTM [9], RNN [10] and
+Transformer [11] to capture temporal dependencies. While these models offer
+a step forward, they often struggle with memory degradation and vanishing
+gradients when dealing with long sequences, limiting their ability to model
+long-range temporal dynamics effectively. Therefore, it is important to de-
+sign more efficient and scalable network architectures capable of modeling
+long-range temporal dependencies in physical fields.
+State space models (SSMs) [12, 13, 14, 15, 16, 17] have recently gained
+attention for their ability to efficiently model long-range dependencies with
+linear time and memory complexity. Among them, Mamba [14] has emerged
+as one of the most powerful and widely adopted SSM architectures to date.
+It is designed for efficient long-sequence modeling, combining the expressive
+power of state-space models with a streamlined architecture that enables
+fast and scalable training in practice. For instance, Vision-Mamba improves
+video sequence modeling via efficient state-space representations [18], while
+NLP-Mamba achieves state-of-the-art results in long-text processing [16].
+These advancements motivate us to explore whether SSMs can be effectively
+adapted to the domain of physical field reconstruction.
+However, directly applying existing SSMs to time-series physical field re-
+construction has inherent limitations. In natural language processing, each
+token carries semantic meaning, and SSMs primarily model the temporal
+evolution of these meanings. In contrast, physical sensor data is inherently
+spatial, with each measurement tied to a fixed spatial location. Flattening
+such data into a 1D sequence disrupts the spatial structure, making it diffi-
+cult for pure SSMs to capture inter-sensor spatial correlations—thus limiting
+reconstruction performance.
+2
+
+To address the spatial modeling limitations, recent studies have explored
+frequency-domain approaches such as Fourier Neural Operators (FNOs) [19],
+which offer strong generalization and expressive power for spatial field re-
+construction. Traditionally, FNOs have been combined with Transformer-
+or RNN-based temporal modules [20, 21].
+However, these architectures
+often suffer from high computational cost and limited scalability in long-
+sequence scenarios due to quadratic attention complexity or recurrent pro-
+cessing constraints. In contrast, modern SSMs like Mamba provide a linear-
+time, memory-efficient alternative for capturing long-range temporal depen-
+dencies. Motivated by this complementarity, we integrate FNO and SSM
+into a unified framework that enables efficient and expressive modeling of
+both spatial and temporal structures in physical fields.
+In this paper, we propose FR-Mamba, a Mamba-based model for time-
+series physical field reconstruction. Specifically, we design an enhanced ar-
+chitecture that integrates a Fourier Neural Operator (FNO) with a State
+Space Model (SSM). The SSM branch efficiently captures long-range tempo-
+ral dependencies from sequential sensor data, while the FNO branch models
+global spatial structures through frequency-domain representations.
+This
+dual-branch design enables the model to recover implicit spatial correlations
+even when inputs are flattened into 1D sequences.
+By stacking multiple
+Mamba blocks, FR-Mamba attains strong representational capacity to ad-
+dress complex, large-scale flow reconstruction tasks. Extensive experiments
+demonstrate that FR-Mamba significantly outperforms existing methods,
+particularly in long-sequence prediction settings.
+The main contributions
+are as follows:
+• To the best of our knowledge, it is the first work to introduce the
+State Space Model (SSM) into physical field reconstruction.
+Lever-
+aging SSM’s long-sequence modeling ability, we can capture historical
+dependencies from sensor data with linear time complexity.
+• We propose a novel dual-branch FNO-Mamba architecture that inte-
+grates Fourier Neural Operators (FNOs) with Mamba to jointly learn
+spatial and temporal features. The Mamba branch encodes long-range
+temporal dynamics, while the FNO branch captures global spatial struc-
+tures through frequency-domain representations.
+• Extensive experiments on flow field datasets demonstrate that our
+method significantly outperforms existing approaches in terms of global
+3
+
+reconstruction error. It maintains stable accuracy over long sequences
+and generalizes well across diverse flow regimes.
+2. Related Work
+2.1. Deep Learning Approaches for Physical Field Reconstruction
+Physical field reconstruction aims to estimate the spatiotemporal distri-
+bution of physical quantities (e.g., velocity, pressure, temperature) based on
+sparse sensor measurements, the applications of which include geophysics [22,
+23], fluid dynamics [24, 8], thermodynamics [25, 26] and climate science [27].
+Traditional approaches to field reconstruction often rely on physics-based
+partial differential equations (PDEs) [28, 29] and statistical methods [6, 7, 8].
+While these methods can model some phenomena, they face challenges in
+integrating sparse sensor data, especially when dealing with complex or
+nonlinear systems.
+In recent years, deep learning-based models have be-
+come mainstream for physical field reconstruction [30, 31, 24, 32, 11]. Gap-
+pyMLP [30] proposes a hybrid approach that combines POD with multi-
+layer perceptrons to reconstruct physical fields from sparse sensor measure-
+ments. VoronoiUNet [31] introduces a Voronoi-encoded Unet architecture
+with uncertainty quantification for reliable temperature field prediction un-
+der irregular sensor layouts. VoronoiCNN [24] utilizes Voronoi tessellation
+to convert unstructured sensor inputs into grid-based representations, en-
+abling CNN-based spatial flow reconstruction. ShallowDecoder [32] employs
+a shallow feedforward neural network to directly map sparse observations
+to high-dimensional flow fields with minimal model complexity. PFTrans-
+former [11] employs an attention-based encoder–decoder framework to recon-
+struct physical fields from sparse and irregular sensor inputs, offering scalable
+and efficient inference for large spatiotemporal domains. However, these PFR
+methods suffer from limitations such as vanishing gradients and a failure to
+effectively capture long-range dependencies over extended sequences. These
+challenges make them less suitable for reconstructing time-series physical
+fields, where capturing long-term temporal correlations is essential.
+2.2. State Space Models and Mamba
+State-space models (SSMs) [12, 13, 14, 15, 16] have gained increasing
+attention in the machine learning community for their ability to efficiently
+model long-term temporal dependencies. In time-series modeling, SSMs pro-
+vide a framework for compressing and tracking temporal information, offering
+4
+
+significant advantages over traditional sequence models such as LSTM and
+RNN. Early works like LSSL [33] and S4 [12] introduced efficient state repre-
+sentations and linear scalability with sequence length, overcoming limitations
+of CNNs and transformers. Later advancements such as S5 [34] and H3 [35]
+improved computational efficiency and achieved competitive performance in
+tasks like language modeling. Among the recent advances, Mamba [14] stands
+out as a state-of-the-art SSM architecture that achieves strong performance
+across various domains, including video processing and natural language un-
+derstanding. By introducing selective state-space representations, Mamba
+enables efficient long-sequence processing while preserving modeling capac-
+ity.
+For instance, Vision-Mamba [18] improves real-time video processing
+by compressing long video sequences into compact representations. Simi-
+larly, NLP-Mamba [16] enhances long-text understanding and generation by
+capturing dependencies across sentences and paragraphs. In this paper, we
+explore the application of state-space models to time-series physical field
+reconstruction, aiming to capture long-range temporal dependencies from
+sparse sensor measurements in complex dynamical systems.
+3. Methodology
+In this section, we first introduce the problem formulation and define
+the training objective for reconstructing vorticity fields from sparse sensor
+observations (Section 3.1). We then outline the overall FR-Mamba archi-
+tecture, emphasizing its hierarchical structure and dual-branch design for
+temporal and spatial feature learning (Section 3.2). Section 3.3 details the
+FNO-Mamba module, which combines selective state-space modeling with
+frequency-domain spatial encoding. Finally, Section 3.4 presents the com-
+plete flow reconstruction pipeline, including spatiotemporal feature fusion
+and the final decoding process for generating dense physical field outputs.
+3.1. Problem Formulation
+The goal of this work is to reconstruct time-series vorticity fields from
+sparse sensor observations. Vorticity is a key physical quantity in fluid dy-
+namics that characterizes local rotational motion within a flow field. Accu-
+rately recovering vorticity over time enables better understanding and mod-
+eling of transient flow behavior.
+At each time step t ∈{1, . . . , T}, we are given a sparse set of vorticity
+measurements xt ∈RNs, where Ns is the number of sensors. The target is to
+5
+
+reconstruct the full vorticity field ut ∈RH×W, representing the underlying
+flow dynamics on a 2D spatial grid. A neural network model fθ is learned
+to map the input sequence {x1, . . . , xT} to the corresponding predictions
+{ˆu1, . . . , ˆuT}. The model is trained by minimizing the mean absolute error
+(MAE) between predicted and ground-truth fields, defined as:
+LMAE =
+1
+THW
+T
+X
+t=1
+H
+X
+i=1
+W
+X
+j=1
+ˆut
+i,j −ut
+i,j
+ .
+3.2. Overview of Our Framework
+As illustrated in Figure 1, we present the overall architecture of FR-
+Mamba for reconstructing time-series physical fields from sparse observa-
+tions. The model is composed of stacked FNO-Mamba blocks that support
+hierarchical representation learning. Each FNO-Mamba block comprises two
+branches dedicated to temporal and spatial feature extraction. Specifically,
+the temporal feature branch employs a State Space Model (SSM) to effi-
+ciently extract historical temporal features and state representations from
+sensor input sequences. The spatial feature branch utilizes a one-dimensional
+Fourier Neural Operator (FNO1d) to transform sensor data into the fre-
+quency domain, effectively capturing global spatial features.
+Finally, the
+high-dimensional temporal and spatial features extracted by the two branches
+within each FNO-Mamba block are fused through a gating mechanism. The
+fused spatiotemporal representation is then mapped into the target transient
+flow field using a feedforward neural network.
+To further enhance global
+spatial consistency, a two-dimensional Fourier Neural Operator (FNO2d) is
+introduced in the output domain, enabling accurate reconstruction of tran-
+sient vortex dynamics.
+3.3. FNO-Mamba Module
+The FNO-Mamba module consists of two branches: the temporal fea-
+ture extraction branch, the spatial feature extraction branch. The
+former uses the state-space model to extract temporal features from the long-
+time sensor data, while the latter captures the spatial features of the sensors
+using a one-dimensional Fourier Neural Operator. The features extracted
+by both branches are then fused, and high-precision flow field reconstruction
+output is obtained through iterative computation.
+6
+
+Figure 1: The framework of our FR-Mamba.
+7
+
+3.3.1. Temporal Feature Extraction
+To efficiently capture the historical semantic information contained in the
+input sequences, the temporal feature extraction branch introduces the Selec-
+tive State Space Model (SSM) [14] to process the historical input sequences.
+It primarily includes the following three key steps: (1) Selective Input
+Construction. Instead of directly feeding raw sensor inputs into the SSM,
+we first generate control matrices that selectively emphasize important time
+steps. This is achieved by applying a linear projection followed by a 1D con-
+volution to the input sequence, allowing the model to highlight temporally
+informative features relevant to physical field dynamics; (2) Discretization
+of Control Matrices in SSM. Since SSMs originate from continuous-time
+systems, we discretize the control matrices to adapt them for computation
+over discrete-time sensor data. A learnable time-step parameter is introduced
+to improve flexibility and temporal resolution during training; (3) Compu-
+tation of SSM Output. The SSM updates its hidden state at each time
+step based on the input and the discretized control matrices. The output at
+each step is then computed via the observation matrix, resulting in a global
+temporal representation that summarizes the dynamic evolution across the
+entire input sequence.
+Constructing the selective input for SSM. Sensor data often contains
+redundant temporal information, and the contribution of each time step to
+the flow field reconstruction may vary significantly. Directly using raw input
+at every time point can lead to inefficient computation and suboptimal fea-
+ture utilization. To address this, we construct selective temporal inputs that
+emphasize informative time steps and suppress irrelevant ones, improving
+both efficiency and accuracy.
+As illustrated in Figure 2, this process begins by encoding the input
+feature from the (i−1)-th FNO-Mamba block, E(i−1)
+F
+, using a linear trans-
+formation followed by a 1D convolution.
+This produces the embedding
+X(i)
+Emb1 ∈RB×L×M, which captures both local and sequential temporal in-
+formation, where B, L, and M denote the batch size, sequence length, and
+feature dimension, respectively. In parallel, a second embedding X(i)
+Emb2 is
+computed from the same input E(i−1)
+F
+for use in the later fusion stage. Specif-
+ically, X(i)
+Emb1 is used to generate SSM-related parameters, while X(i)
+Emb2 serves
+as a gating mechanism to adaptively balance the contributions of temporal
+and spatial features in the final output. The detailed computation of these
+parameters is as follows:
+8
+
+Figure 2: The overview of temporal feature extraction branch.
+X(i)
+Emb1 ∈RB×L×M = SiLU
+
+Conv1d
+ Linear(E(i−1)
+F
+)
+
+,
+(1)
+X(i)
+Emb2 ∈RB×L×M = SiLU
+
+Linear
+ E(i−1)
+F
+
+.
+(2)
+Based on X(i)
+Emb1, three sets of SSM-related parameters are generated using
+separate linear layers:
+B(i) ∈RB×L×N = LinearB X(i)
+Emb1
+
+,
+(3)
+C(i) ∈RB×L×N = LinearC X(i)
+Emb1
+
+,
+(4)
+∆(i) ∈RB×L×M = log
+
+1 + exp
+ Linear∆ X(i)
+Emb1
+
++ γ
+
+,
+(5)
+where B(i), C(i) are the input control matrix and observation matrix of
+the SSM. ∆(i) is a learnable time-step encoding. γ is a learnable bias term.
+9
+
+A is the shared state transition matrix initialized as a global trainable pa-
+rameter. These matrices (A, B(i), C(i), ∆(i)) form the full parameter set of
+the selective SSM, enabling the model to dynamically adapt to each time
+step and effectively extract task-relevant temporal dynamics. This selective
+encoding enhances the temporal modeling capacity of the system, especially
+under sparse or uneven sampling conditions.
+Discretization of Control Matrices in SSM. Since physical field data
+is typically collected at discrete time intervals, it is necessary to discretize
+the continuous-time state-space model in order to make it compatible with
+discrete-time computation. This discretization allows the model to effectively
+extract temporal features from sequential sensor inputs within a numerically
+stable and trainable framework.
+For the continuous state-space model, the model is discretized using the
+Zero Order Hold (ZOH) method [36] at a discrete time step ∆.
+Let the
+state transition matrix A and the input matrix B of the continuous model
+be discretized to obtain:
+¯A ∈RB∗L∗M∗N = exp(∆A),
+(6)
+¯B ∈RB∗L∗M∗N = A−1
+exp(∆A) −I
+
+B,
+(7)
+where I is the identity matrix. The discretized state transition matrix ¯A
+and the input matrix ¯B are suitable for the discrete representation of tran-
+sient physical fields and are used to extract and represent historical temporal
+features at each time step.
+Computation of SSM Output. After completing the discretization of the
+SSM input (i.e., obtaining parameters such as ¯A, ¯B, and C(i)), the discrete
+state-space model is used to iteratively update the sequence’s hidden states.
+The update equations are defined as follows:
+h(tk) = ¯A h(tk−1) + ¯B x(tk),
+(8)
+y(tk) = C(i) h(tk),
+(9)
+where tk ∈{1, 2, . . . , L} denotes the time step, h(tk) ∈RN is the hidden
+state at time tk, and x(tk) is the input signal at the corresponding time step.
+10
+
+Figure 3: The overall calculation process of SSM.
+As shown in Figure 3, the entire SSM computation process can be viewed
+as a parallel state compression performed independently across each feature
+dimension. After updating all time steps, the final hidden state is mapped
+to the target feature space using the matrix C(i), resulting in the temporal
+feature E(i)
+T that integrates historical information. Additionally, this iterative
+process can also be viewed as a global convolution operation:
+K =
+ CB, CA B, . . . , CA
+L B, . . .
+
+,
+y = x · K.
+(10)
+Where K ∈RL can be considered as a global convolution kernel. By uti-
+lizing the SSM, the temporal feature extraction branch efficiently captures
+long-term temporal dependencies in historical sensor observations with linear
+time complexity. However, the independent modeling strategy for each fea-
+ture dimension in the SSM neglects the inherent spatial relationships within
+11
+
+Figure 4: The overview of spatial feature extraction branch.
+the sensor observation inputs. Therefore, to effectively integrate spatial fea-
+tures, another spatial feature extraction network is required to achieve this
+task.
+3.3.2. Spatial Feature Extraction
+To address the limitations of the temporal feature extraction branch in
+capturing spatial information from sensors, we construct a spatial feature
+extraction branch to capture spatial information. It uses the Fourier Neural
+Operator (FNO1d) to map the original features to the frequency domain and
+models the global spatial receptive field through frequency-domain convolu-
+tion, effectively capturing the spatial position information embedded in the
+sensor observations and enhancing the extraction of global spatial features.
+As shown in the Figure 4, the initial embedding of the spatial feature
+branch is denoted as X(i)
+Emb1 ∈RB×L×M, where B is the batch size, L repre-
+sents the sequence length (i.e., the number of time steps), and M denotes the
+feature dimension. For clarity, we omit the batch dimension in the follow-
+ing derivations and focus on the computation for a single sample, treating
+X(i)
+Emb1 ∈RL×M.
+For each time step j ∈[1, L], the corresponding input
+X(i)
+Emb1,j ∈R1×M can be regarded as a single-channel M-dimensional spa-
+tial feature function. We first project this signal into a higher-dimensional
+feature space using a linear mapping:
+v(0)
+j
+∈RM×d = Wproj1 X(i)
+Emb1,j,
+(11)
+12
+
+where Wproj1 is the projection matrix.
+d denotes the internal feature
+dimension in the Fourier layers, used to expand the spatial token represen-
+tation for frequency-domain modeling. Next, for the transformed features
+{v(0)
+j }L
+j=1, we use T layers (T = 4) of Fourier layers for iterative computation
+to further extract spatial features from the input data. Let the input of the
+ℓ-th layer be v(ℓ)
+j
+∈RM×d (where ℓ= 0, 1, . . . , T −1). The computational
+process consists of the following steps:
+For each channel, the input signal is first transformed into the frequency
+domain using a one-dimensional Fourier transform F:
+ˆvℓ
+j = F
+ vℓ
+j
+
+,
+(12)
+where the Fourier transform F is implemented using the one-dimensional
+Discrete Fourier Transform (DFT). The specific calculation is given by:
+ˆvℓ
+j[k, c] =
+M−1
+X
+x=0
+vℓ
+j[x, c] e−2πi kx
+M ,
+k = 0, 1, . . . , M −1.
+(13)
+To accelerate computation, only the first m frequency components are
+retained, where m ≪M, as high-frequency components are typically asso-
+ciated with transient variations in physical fields, which can be captured by
+the temporal branch.
+For each retained frequency k ∈{0, 1, . . . , m −1}, a learnable complex-
+valued weight matrix Wk ∈Cd×d is applied to perform weighting, learning the
+globally intrinsic positional information and enhancing global spatial feature
+fusion. The updated frequency-domain features ˆuℓ
+j are defined as:
+ˆuℓ
+j[k, c′] =
+d
+X
+c=1
+ˆvℓ
+j[k, c] Wk(c, c′),
+c′ = 1, . . . , d.
+(14)
+The weighted frequency-domain representation is then transformed back
+to the spatial domain using the inverse one-dimensional Fourier transform
+F−1:
+˜vℓ
+j = F−1 ˆuℓ
+j
+
+.
+(15)
+The inverse Fourier transform F−1 is implemented using the one-dimensional
+inverse Discrete Fourier Transform (IDFT), which is computed as:
+13
+
+˜vℓ
+j[x, c′] = 1
+d
+m−1
+X
+k=0
+˜uℓ
+j[k, c′] e 2πi kx
+M ,
+x = 0, 1, . . . , M −1.
+(16)
+A local linear transformation Wlocal is applied to the inverse-transformed
+result ˜vℓ
+j and the original local feature vℓ
+j, followed by a nonlinear activation
+function σ(·) to update the output:
+vℓ+1
+j
+(x) = σ
+
+Wlocal vℓ
+j(x) + ˜vℓ
+j(x)
+
+,
+(17)
+where x denotes the spatial feature position index. The above core oper-
+ations can be viewed as a discretized form of the kernel integral operator K
+in the spatial domain, which can be expressed in the continuous form as:
+ Kvℓ
+j
+
+(x) =
+Z
+k(x, y) vℓ
+j(y) dy.
+(18)
+The discrete implementation utilizes the Fourier transform to convert the
+integral operation of the kernel integral operator K in Eq. (18) into weighted
+summation operations in the frequency domain. During this process, updat-
+ing the parameter W in the frequency domain effectively realizes the function
+of the convolution kernel K. Subsequently, the frequency-domain results are
+mapped back to the spatial domain through the inverse Fourier transform,
+thereby constructing a global receptive field covering the entire input space
+and achieving the extraction of intrinsic spatial features.
+After T iterative layers, the final output is mapped back to the original
+input dimension using a linear layer:
+E(i)
+S = Wproj2
+
+{v(T)
+j
+}L
+j=1
+
+.
+(19)
+3.4. Flow Reconstruction Pipeline
+3.4.1. Feature Fusion Between Temporal and Spatial Branches.
+As shown in Figure 5(a), the temporal and spatial feature extraction
+branches in the i-th FNO-Mamba block generate temporal and spatial fea-
+tures, E(i)
+T
+and E(i)
+S , respectively. To effectively fuse these features, a gating
+mechanism is introduced, using an auxiliary embedding X(i)
+Emb2 to dynami-
+cally weight their contributions:
+14
+
+Figure 5: The feature fusion of our FR-Mamba.
+˜E(i)
+F = X(i)
+Emb2 ⊙E(i)
+T + X(i)
+Emb2 ⊙E(i)
+S ,
+(20)
+E(i)
+F = ˜E(i)
+F + E(i−1)
+F
+,
+(21)
+where ⊙denotes the Hadamard product. This design enables adaptive
+adjustment of spatiotemporal feature importance for better transient physics
+representation.
+3.4.2. Flow Field Reconstruction
+As shown in Figure 5(b), after Nlayer iterations, the final fused spatiotem-
+poral feature E
+(Nlayer)
+F
+∈RB×L×d is obtained. A feedforward network (FFN)
+maps this feature to the target flow field dimension:
+˜U = reshape
+ FFN(E
+(Nlayer)
+F
+)
+
+.
+(22)
+15
+
+Here, the output of the FFN is reshaped from RB×L×C to RB×H×W×C,
+where L = H × W corresponds to the spatial resolution of the reconstructed
+flow field, and C is the number of output channels (e.g., velocity components).
+To enhance global spatial feature fusion, a 2D Fourier operator with residual
+connection refines the reconstruction:
+ˆU = ˜U + FNO2d( ˜U),
+(23)
+where the 2D Fourier operator is an extension of the 1D Fourier operator to
+two-dimensional spatial inputs.
+4. Experiments
+4.1. Experimental Setup
+4.1.1. Datasets and Metrices
+We evaluate our method on the same two-dimensional unsteady flow
+dataset as used in [24, 30], which simulates flow around a circular cylin-
+der at a Reynolds number of Re = 100. The dataset consists of observation
+data collected by 16 sensors uniformly distributed in the two-dimensional
+flow field. These observation data are used to reconstruct the global vortex
+field, thereby verifying the model’s performance in reconstructing time-series
+physical fields over long time sequences. Time-series snapshots of the vortex
+field are obtained by solving the incompressible Navier-Stokes equations, as
+described by the following equation:
+∂ui
+∂t + uj
+∂ui
+∂xj
+= −1
+ρ
+∂p
+∂xi
++ ν ∂2ui
+∂xj∂xj
+,
+(24)
+where ui and p represent velocity and pressure, respectively, and ν is the
+dynamic viscosity of the fluid. The resolution of each vortex field snapshot
+is (192,112), represented by uniformly discretized two-dimensional images.
+The sampling time interval between snapshots in the dataset is ∆, and it
+contains a total of 5000 temporally consecutive transient vortex field snap-
+shots, covering multiple vortex shedding cycles. In the experiments, the first
+400 snapshots are used for training, and the last 1000 snapshots are used for
+testing, as illustrated in Figure 6. Within the grid region of the flow field, 16
+sensors are uniformly distributed to collect measurements as the model input.
+The ultimate goal of the model is to reconstruct the transient vortex field
+based on these time-sequenced discrete sensor input data. For metrics, we
+16
+
+use Mean Absolute Error (MAE) and Maximum Absolute Error (Max-AE)
+as our evaluation metrics.
+Figure 6: Structure of the time-resolved flow field dataset with 4000 training and 1000
+validation snapshots.
+4.1.2. Loss Functions
+We use the mean absolute error between the reconstructed vortex field
+sequence ˆU and the true vortex field sequence U as the loss function. It is
+defined as follows:
+L =
+1
+ML
+L
+X
+l=1
+M
+X
+m=1
+ ˆUl,m −Ul,m
+ ,
+(25)
+where M is the total number of discrete points in the spatial domain of the
+target physical field, and L is the number of discrete vortex field snapshots
+in the transient vortex field sequence. This process is treated as a regres-
+sion task, where the model parameters are updated by minimizing the mean
+absolute error between the true and reconstructed physical fields.
+17
+
+Method
+Backbones
+Mean Absolute Error (e-4)
+T1
+T2
+T3
+T4
+T5
+Ave.
+SVR-POD [37]
+SVR
+27.98
+33.36
+38.05
+41.96
+55.35
+39.33
+LSTM-POD [9]
+LSTM
+1.36
+1.42
+1.44
+1.48
+1.50
+1.44
+Shallow Decoder [32]
+FCN
+3.18
+3.54
+3.66
+3.81
+4.11
+3.66
+Voronoi CNN [24]
+CNN
+14.74
+23.04
+24.74
+25.00
+38.16
+25.14
+Voronoi UNet [31]
+UNet
+1.62
+1.68
+1.70
+1.71
+1.72
+1.69
+Gappy MLP [30]
+MLP
+3.16
+3.52
+3.54
+3.65
+3.81
+3.54
+PFR-Transformer [11]
+Transformer
+0.84
+0.86
+0.95
+0.96
+0.97
+0.91
+FR-Mamba
+Mamba
+0.30
+0.31
+0.31
+0.32
+0.32
+0.31
+Table 1: Comparison of Mean Absolute Error (MAE) for various methods in reconstructing
+time-series cylinder flow. T1–T5 represent different time intervals.
+4.2. Main Results
+4.2.1. Quantitative comparison with other methods
+As shown in Table 1 and Table 2, we quantitatively compare various
+physical reconstruction methods on time-evolving flow field dataset.
+As
+shown, FR-Mamba achieves the lowest reconstruction error on the task of flow
+around a circular cylinder, manifesting its superiority over existing methods
+including SVR-POD [37], LSTM-POD [9], Voronoi UNet [31], Shallow De-
+coder [32], Voronoi CNN [24], Gappy MLP [30], and PFR-Transformer [11],
+on the metrices of mean absolute error (MAE) and maximum absolute error
+(Max-AE). To further assess performance during different vortex evolution
+stages, four time intervals (T1: 3001–3400, T2: 3401–3800, T3: 3801–4200,
+T4: 4201–4600, T5: 4601-5000) are also examined.
+Results show that FR-Mamba consistently achieves the lowest reconstruc-
+tion error across all intervals, with MAE ranging from 0.30 to 0.32 and Max-
+AE remaining around 0.10, demonstrating both accuracy and stability. In
+contrast, Voronoi UNet [31] achieves a higher MAE of 1.69 and Max-AE of
+0.74, despite benefiting from convolutional structures and skip connections
+to better capture multi-scale features. However, it requires additional sensor
+location metadata and image-format conversion, which increases implemen-
+tation complexity. Shallow Decoder [32] and Gappy MLP [30], both based on
+fully connected networks, achieve MAEs of 3.66 and 3.54 respectively. While
+they improve upon traditional baselines like SVR-POD [37] (MAE: 39.33),
+they do not explicitly incorporate sensor position information, which limits
+their spatial generalization. Gappy MLP further incorporates historical flow
+18
+
+Method
+Backbones
+Max Absolute Error (e-2)
+T1
+T2
+T3
+T4
+T5
+Ave.
+SVR-POD [37]
+SVR
+25.38
+38.22
+52.00
+55.37
+65.33
+47.26
+LSTM-POD [9]
+LSTM
+0.72
+0.76
+0.90
+0.92
+1.09
+0.88
+Shallow Decoder [32]
+FCN
+1.11
+1.26
+1.37
+1.41
+1.68
+1.37
+Voronoi CNN [24]
+CNN
+10.45
+12.94
+13.50
+14.13
+15.23
+13.25
+Voronoi UNet [31]
+UNet
+0.67
+0.71
+0.72
+0.74
+0.84
+0.74
+Gappy MLP [30]
+MLP
+0.98
+1.12
+1.19
+1.21
+1.45
+1.19
+PFR-Transformer [11]
+Transformer
+0.49
+0.52
+0.54
+0.54
+0.58
+0.53
+FR-Mamba
+Mamba
+0.10
+0.10
+0.10
+0.10
+0.11
+0.10
+Table 2: Comparison of Max Absolute Error (Max-AE) for various methods in recon-
+structing time-series cylinder flow. T1–T5 represent different time intervals.
+priors to enhance temporal constraints, but still suffers from Max-AE as high
+as 1.19, and is highly sensitive to sensor placement—struggling to reconstruct
+complex, high-dimensional spatiotemporal patterns.
+Overall, FR-Mamba combines the advantages of prior methods while elim-
+inating their key limitations, achieving accurate and robust reconstruction
+of the time-series flow field reconstruction.
+4.2.2. Quantitative comparison in different regions
+To further evaluate the proposed model’s temporal reconstruction per-
+formance across these regions, Figure 7 presents visualizations of time-series
+flow field predictions generated by different methods. During the flow around
+a cylinder, the flow field can be divided into several distinct regions, includ-
+ing the near-wall region, wake region, and far-field region, each exhibiting
+different flow characteristics and evolution patterns. Specifically, Figure 7(a)
+illustrates five sampling points: three randomly selected from the near-wall
+region (points a, b, and c), one from the wake region (point d), and one from
+the far field (point e). The vorticity values at these locations were tracked
+over 50 consecutive time steps. Figures 7(b) to 7(f) show the reconstruc-
+tion results from different methods—Gappy MLP, Shallow Decoder, Voronoi
+CNN, and the proposed FR-Mamba—with the black curve representing the
+ground truth.
+As shown in these visualizations, differences in vorticity dynamics across
+regions lead to varying reconstruction performance. For instance, Shallow
+Decoder achieves relatively low error in the wake and far-field regions be-
+19
+
+Figure 7: Visualization of different regions in the flow field.
+tween time steps 30 to 40 but exhibits noticeably higher errors in the near-
+wall region during the same period. This highlights the difficulty existing
+methods face when modeling complex, high-dimensional spatiotemporal dy-
+namics—particularly in regions with sharp vorticity gradients—resulting in
+degraded reconstruction quality.
+In contrast, the proposed FR-Mamba performs consistently well across
+all regions and time steps. It accurately fits the true time-varying vorticity
+curves for all sampling points, including those in regions with sharp changes.
+Notably, FR-Mamba effectively captures the complex evolution patterns even
+in highly dynamic regions, enabling high-precision temporal reconstruction.
+4.2.3. Qualitative Comparison with Other Methods
+Figure 8 presents a qualitative comparison of reconstruction error maps at
+three representative time steps (T1–T3), selected from the test set. We com-
+pare six methods: Gappy MLP [30], LSTM [9], Shallow Decoder [32], Voronoi
+CNN [24], Voronoi UNet [38], and the proposed FR-Mamba. From the re-
+sults, FR-Mamba achieves the lowest reconstruction error across all time
+steps, significantly reducing the global maximum error from 1.170 (Gappy
+MLP) to 1.02 × 10−3. While Shallow Decoder performs reasonably well in
+smooth regions, it exhibits large errors in areas with sharp flow transitions,
+indicating limited capacity for modeling complex spatial structures. Voronoi
+UNet improves reconstruction in these regions by leveraging its multi-scale
+20
+
+Figure 8: The qualitative comparison of our FR-Mamba with other representative meth-
+ods.
+21
+
+Figure 9: Visualization of prediction results and corresponding error of our FR-Mamba.
+22
+
+Nlayer
+D = 8
+D = 16
+D = 32
+MAE(e-4)
+Max-AE(e-2)
+MAE(e-4)
+Max-AE(e-2)
+MAE(e-4)
+Max-AE(e-2)
+5
+0.411
+0.229
+0.382
+0.221
+0.375
+0.202
+10
+0.310
+0.108
+0.332
+0.173
+0.405
+0.221
+20
+0.510
+0.273
+0.553
+0.299
+0.625
+0.305
+Table 3: Varing of FNO-Mamba layers and hidden state dimension.
+FNO1d
+FNO2d
+MAE(e-4)
+Max-AE(e-2)
+–
+–
+0.397
+0.355
+✓
+–
+0.315
+0.125
+✓
+✓
+0.310
+0.108
+Table 4: The ablation studies on 1D and 2D Fourier Neural Operators.
+convolutional architecture, but it requires additional sensor layout informa-
+tion and image-format inputs. Gappy MLP introduces temporal priors to
+enhance reconstruction and reduces the peak error to 0.016 and 0.009 at T1
+and T2, respectively. However, its global error remains high under complex
+dynamics. These results highlight FR-Mamba’ effectiveness in reconstructing
+complex, time-evolving physical fields.
+4.2.4. Visualization of Error on Different Time Sequences
+As shown in Figure 9, to evaluate the performance of the proposed FR-
+Mamba model on the vortex field reconstruction task, five time steps (T1−T5)
+were randomly selected from the test set for visual comparison. Each row
+displays the ground truth vortex snapshot, the reconstructed result by the
+model, and the corresponding absolute error distribution. It can be observed
+that FR-Mamba accurately reconstructs the major spatial structures of the
+vortex field and consistently maintains low reconstruction errors across dif-
+ferent time steps, demonstrating strong reconstruction accuracy and robust
+spatiotemporal generalization capability.
+4.3. Ablation Study on Network Depth and Hidden Dimension
+As shown in Table 3, we conduct an ablation study by varying the number
+of FNO-Mamba layers (Nlayer) and the hidden state dimension (D). When
+the model is shallow (Nlayer = 5), increasing D from 8 to 32 leads to consistent
+improvements in both MAE and Max-AE, indicating enhanced capacity to
+23
+
+capture transient physical dynamics. At a moderate depth (Nlayer = 10), the
+model achieves its best overall performance with D = 8, reaching a MAE
+of 0.310 and Max-AE of 0.108. Increasing D beyond this point results in
+diminished gains or slight degradation, suggesting a trade-off between model
+capacity and optimization stability. However, when the number of layers
+increases to 20, performance drops significantly across all D values. This
+indicates that excessive depth leads to parameter redundancy and overfitting,
+especially under limited training data. Overall, a moderate depth with a
+compact hidden dimension yields the best trade-off between accuracy and
+efficiency for physical field reconstruction.
+4.4. Ablation Study on the Fourier Neural Operator
+As shown in Table 4, we perform ablation studies on the 1D Fourier Neu-
+ral Operator (FNO1d) in the FNO-Mamba module and the 2D Fourier Neural
+Operator (FNO2d) in the overall model to assess their contributions to re-
+construction accuracy. Removing both FNO1d and FNO2d yields a MAE
+of 0.397 and a Max-AE of 0.355, indicating that despite Mamba’s temporal
+modeling capability, the absence of spatial encoding significantly limits recon-
+struction performance. Introducing FNO1d alone leads to a substantial im-
+provement, reducing MAE to 0.315 and Max-AE to 0.125. This demonstrates
+that FNO1d effectively captures transient variations by mapping temporal
+features to the frequency domain and integrating them via parameterized ker-
+nel operators. Notably, the reduction in Max-AE highlights FNO1d’s critical
+role in enhancing temporal-spatial interactions. Further adding FNO2d re-
+sults in additional performance gains, with MAE and Max-AE dropping to
+0.310 and 0.108, respectively. While the improvement is smaller, FNO2d
+contributes to more coherent global spatial structure and better local detail
+preservation. In summary, both FNO1d and FNO2d play complementary
+roles: FNO1d enhances temporal semantic fusion, while FNO2d refines spa-
+tial feature learning.
+Their combination significantly improves the recon-
+struction of complex, time-evolving physical fields.
+5. Conclusion
+In this paper, we introduced FR-Mamba, a novel approach for time-series
+physical field reconstruction using a State Space Model (SSM) integrated
+with Fourier Neural Operators (FNO). By efficiently capturing both tempo-
+ral dependencies and spatial features, FR-Mamba significantly outperforms
+24
+
+existing methods in reconstructing complex, transient physical fields such
+as fluid flow around a cylinder. Our method effectively addresses the lim-
+itations of traditional flow reconstruction techniques, particularly in terms
+of accuracy over long sequences and in regions with abrupt changes. The
+key contribution of this work lies in the design of the FNO-Mamba mod-
+ule, which combines the strength of SSM for long-term temporal modeling
+and FNO for global spatial feature extraction, providing a powerful tool for
+physical field reconstruction. Extensive experiments demonstrated that FR-
+Mamba achieves low Mean Absolute Error (MAE) and Maximum Absolute
+Error (Max-AE) across varying flow field conditions, establishing its robust-
+ness and versatility in dynamic flow environments. This approach is highly
+beneficial for applications in fluid dynamics, environmental monitoring, and
+other engineering domains where precise reconstruction of time-series phys-
+ical fields is crucial. In future work, we plan to explore further optimiza-
+tions and adapt the model to more complex physical phenomena, including
+multi-phase flows and higher-dimensional physical fields, with the goal of
+broadening its applicability to a wider range of scientific and engineering
+challenges.
+References
+[1] J. Yu, J. S. Hesthaven, Flowfield reconstruction method using artificial
+neural network, Aiaa Journal 57 (2) (2019) 482–498.
+[2] D. Shu, Z. Li, A. B. Farimani, A physics-informed diffusion model for
+high-fidelity flow field reconstruction, Journal of Computational Physics
+478 (2023) 111972.
+[3] X. Deng, M. Guo, H. Chen, Y. Tian, J. Le, H. Zhang, Dual-path flow
+field reconstruction for a scramjet combustor based on deep learning,
+Physics of Fluids 34 (9) (2022).
+[4] Z. Luo, L. Wang, J. Xu, Z. Wang, M. Chen, J. Yuan, A. C. Tan, Recon-
+struction of missing flow field from imperfect turbulent flows by machine
+learning, Physics of Fluids 35 (8) (2023).
+[5] Q. D. Nguyen, W. Lu, L. Chan, A. Ooi, C. Lei, A state-of-the-art review
+of flows past confined circular cylinders, Physics of Fluids 35 (7) (2023).
+25
+
+[6] R. Das, A simulated annealing-based inverse computational fluid dy-
+namics model for unknown parameter estimation in fluid flow problem,
+International Journal of Computational Fluid Dynamics 26 (9-10) (2012)
+499–513.
+[7] H. Zhou, Y. C. Soh, C. Jiang, X. Wu, Compressed representation learn-
+ing for fluid field reconstruction from sparse sensor observations, in: 2015
+International Joint Conference on Neural Networks (IJCNN), IEEE,
+2015, pp. 1–6.
+[8] J.-C. Loiseau, B. R. Noack, S. L. Brunton, Sparse reduced-order mod-
+elling: sensor-based dynamics to full-state estimation, Journal of Fluid
+Mechanics 844 (2018) 459–490.
+[9] Z. Deng, Y. Chen, Y. Liu, K. C. Kim, Time-resolved turbulent veloc-
+ity field reconstruction using a long short-term memory (lstm)-based
+artificial intelligence framework, Physics of Fluids 31 (7) (2019).
+[10] A. Sherstinsky, Fundamentals of recurrent neural network and long
+short-term memory network, Physica D: Nonlinear Phenomena 404
+(2020) 132306.
+[11] J. E. Santos, Z. R. Fox, A. Mohan, D. O’Malley, H. Viswanathan,
+N. Lubbers, Development of the senseiver for efficient field reconstruc-
+tion from sparse observations, Nature Machine Intelligence 5 (11) (2023)
+1317–1325.
+[12] A. Gu, K. Goel, C. R´e, Efficiently modeling long sequences with struc-
+tured state spaces, in: Proceedings of the International Conference on
+Learning Representations (ICLR), 2022.
+[13] M. Poli, N. Mishra, F. Becattini, J. Gall, A. Geiger, A hypothesis on the
+inductive bias of ssms, in: Proceedings of the International Conference
+on Learning Representations (ICLR), 2023.
+[14] A. Gu, T. Dao, Mamba: Linear-time sequence modeling with selective
+state spaces, in: Proceedings of the First Conference on Language Mod-
+eling (COLM), 2024.
+[15] A. Hatamizadeh, J. Kautz, Mambavision: A hybrid mamba-transformer
+vision backbone, arXiv preprint arXiv:2407.08083 (2024).
+26
+
+[16] X. Li, J. Wang, Y. Liu, Nlp-mamba: Enhancing long text understanding
+with state space models, Journal of Natural Language Engineering 29 (4)
+(2023) 567–580.
+[17] R. Umatani, T. Imai, K. Kawamoto, S. Kunimasa, Time series clustering
+with an em algorithm for mixtures of linear gaussian state space models,
+Pattern Recognition 138 (2023) 109375.
+[18] W. Gu, L. Zhang, M. Chen, Vision-mamba: Efficient state space models
+for real-time video processing, IEEE Transactions on Pattern Analysis
+and Machine Intelligence 45 (7) (2023) 1234–1245. doi:10.1109/TPAMI.
+2023.1234567.
+[19] Z. Li, N. Kovachki, K. Azizzadenesheli, B. Liu, K. Bhattacharya, A. M.
+Stuart, A. Anandkumar, Fourier neural operator for parametric partial
+differential equations, in: Proceedings of the International Conference
+on Learning Representations (ICLR), 2020.
+[20] J. Pathak, S. Subramanian, P. Harrington, S. Raja, M. Brewster,
+D. Hall, M. Henaff, R. Keisler, D. Medina, R. Walters, et al., Fourcast-
+net: A global data-driven high-resolution weather model using adaptive
+fourier neural operators, in: Advances in Neural Information Processing
+Systems (NeurIPS), 2022.
+[21] Y. Wang, H. Wu, J. Zhang, Z. Gao, J. Wang, P. S. Yu, M. Long, Predrnn:
+A recurrent neural network for spatiotemporal predictive learning, IEEE
+Transactions on Pattern Analysis and Machine Intelligence 45 (2) (2022)
+2208–2225.
+[22] Y. Huang, S. Zhu, S. Chen, Deep learning-driven super-resolution recon-
+struction of two-dimensional explosion pressure fields, Journal of Build-
+ing Engineering 78 (2023) 107620.
+[23] G. Y. Tian, A. Sophian, D. Taylor, J. Rudlin, Multiple sensors on pulsed
+eddy-current detection for 3-d subsurface crack assessment, IEEE Sen-
+sors Journal 5 (1) (2005) 90–96.
+[24] Fukami, Kai, Maulik, Romit, Ramachandra, Nesar, Fukagata, Koji,
+Taira, Kunihiko, Global field reconstruction from sparse sensors with
+Voronoi tessellation-assisted deep learning, Nature Machine Intelligence
+3 (11) (2021) 945–951.
+27
+
+[25] X. Peng, X. Li, Z. Gong, X. Zhao, W. Yao, A deep learning method based
+on partition modeling for reconstructing temperature field, International
+Journal of Thermal Sciences 182 (2022) 107802.
+[26] X. Chen, Z. Gong, X. Zhao, W. Zhou, W. Yao, A machine learning
+surrogate modeling benchmark for temperature field reconstruction of
+heat source systems, Science China Information Sciences 66 (5) (2023)
+152203.
+[27] H. Su, J. Jiang, A. Wang, W. Zhuang, X.-H. Yan, Subsurface tempera-
+ture reconstruction for the global ocean from 1993 to 2020 using satellite
+observations and deep learning, Remote Sensing 14 (13) (2022) 3198.
+[28] M. Gherlone, P. Cerracchio, M. Mattone, M. Di Sciuva, A. Tessler,
+Shape sensing of 3d frame structures using an inverse finite element
+method, International Journal of Solids and Structures 49 (22) (2012)
+3100–3112.
+[29] Y. Gu, L. Wang, W. Chen, C. Zhang, X. He, Application of the meshless
+generalized finite difference method to inverse heat source problems,
+International Journal of Heat and Mass Transfer 108 (2017) 721–729.
+[30] Zhao, X, Chen, X, Gong, Z, et al., A hybrid method based on proper or-
+thogonal decomposition and deep neural networks for flow and heat field
+reconstruction, Expert Systems with Applications 247 (2024) 123137.
+[31] Y. Xia, W. Yao, X. Zheng, Z. Gong, Reliability analysis of heat source
+layout temperature field prediction considering uncertainty in deep neu-
+ral network surrogate models, Quality and Reliability Engineering In-
+ternational 39 (5) (2023) 1775–1795.
+[32] N. B. Erichson, et al., Shallow decoder networks for fluid flow recon-
+struction, Journal of Fluid Mechanics 935 (2021) A10.
+[33] A. Gu, I. Johnson, K. Goel, K. Saab, T. Dao, A. Rudra, C. R´e, Com-
+bining recurrent, convolutional, and continuous-time models with linear
+state space layers, Advances in neural information processing systems
+34 (2021) 572–585.
+28
+
+[34] J. T. Smith, A. Warrington, S. W. Linderman, Simplified state space
+layers for sequence modeling, in: Proceedings of the Eleventh Interna-
+tional Conference on Learning Representations (ICLR), 2023.
+[35] D. Y. Fu, T. Dao, K. K. Saab, A. W. Thomas, A. Rudra, C. R´e, Hungry
+hungry hippos: Towards language modeling with state space models,
+arXiv preprint arXiv:2212.14052 (2022).
+[36] K. C. Pohlmann, Principles of digital audio, McGraw-Hill Professional,
+2000.
+[37] X. Zhao, Z. Gong, X. Chen, W. Yao, Y. Zhang, A unified framework of
+deep neural networks and gappy proper orthogonal decomposition for
+global field reconstruction, in: 2023 International Joint Conference on
+Neural Networks (IJCNN), IEEE, 2023, pp. 1–8.
+[38] O. Ronneberger, P. Fischer, T. Brox, U-net: Convolutional networks
+for biomedical image segmentation, in: Medical image computing and
+computer-assisted intervention–MICCAI 2015: 18th international con-
+ference, Munich, Germany, October 5-9, 2015, proceedings, part III 18,
+Springer, 2015, pp. 234–241.
+29

@@ -1,0 +1,72 @@
+HAL Id: hal-02880225
+https://hal.science/hal-02880225v1
+Submitted on 2 Sep 2020
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.
+L’archive ouverte pluridisciplinaire HAL, est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+Distributed under a Creative Commons CC BY-NC 4.0 - Attribution - Non-commercial use - International
+License
+Experimental and numerical assessment of deterministic
+nonlinear ocean waves prediction algorithms using
+non-uniformly sampled wave gauges
+Nicolas Desmars, Félicien Bonnefoy, Stéphan T. Grilli, Guillaume Ducrozet, Yves
+Perignon, Charles-Antoine Guérin, Pierre Ferrant
+To cite this version:
+Nicolas Desmars, Félicien Bonnefoy, Stéphan T. Grilli, Guillaume Ducrozet, Yves Perignon, et al.. Experi-
+mental and numerical assessment of deterministic nonlinear ocean waves prediction algorithms using non-
+uniformly sampled wave gauges. Ocean Engineering, 2020, 212, pp.107659. ⟨10.1016/j.oceaneng.2020.107659⟩.
+⟨hal-02880225⟩
+
+Experimental and numerical assessment of deterministic nonlinear ocean
+waves prediction algorithms using non-uniformly sampled wave gauges
+N. Desmars a,∗, F. Bonnefoy a, S.T. Grilli b, G. Ducrozet a, Y. Perignon a, C.-A. Guérin c, P. Ferrant a
+a École Centrale de Nantes, LHEEA Res. Dept. (ECN and CNRS), 44321 Nantes, France
+b Department of Ocean Engineering, University of Rhode Island, Narragansett, RI 02882, USA
+c Université de Toulon, Aix-Marseille Université, IRD, CNRS-INSU, Mediterranean Institute of Oceanography (MIO UM 110), 83957 La Garde, France
+We assess the capability of fast wave models to deterministically predict nonlinear ocean surface waves from non-uniformly distributed data such as sampled 
+from an optical ocean sensor. Linear and weakly nonlinear prediction algorithms are applied to long-crested irregular waves based on a set of laboratory 
+experiments and corresponding numerical simulations. An array of wave gauges is used for data acquisition, representing the typical spatial sampling an 
+optical sensor (e.g., LIDAR) would make at grazing incidence. Predictions of the weakly nonlinear Improved Choppy Wave Model are compared to those of 
+the Linear Wave Theory with and without a nonlinear dispersion relationship correction. Wave models are first inverted based on gauge data which provides 
+the initial model parameters, then propagated to issue a prediction. We find that the wave prediction accuracy converges with the amount of input data used 
+in the inversion. When waves are propagated in the models, correctly modeling the nonlinear wave phase velocity provides the main improvement in 
+accuracy, while including nonlinear wave shape effects only improves surface elevation representation in the spatio-temporal region where input data are 
+acquired. Surface slope prediction accuracy, however, strongly depends on the appropriate nonlinear wave shape modeling.
+1. Introduction
+The availability of real-time phase-resolved wave fields is key for
+the optimization of a vast range of marine applications. The prediction
+and control of the wave-induced motion is crucially important to
+extend the operational envelope and optimal maneuvering of many
+surface vessels, such as to stabilize aircraft or helicopter carriers during
+takeoff/landing manoeuvres, ships during ship-to-ship transfer, or to
+perform installation and maintenance operations on marine structures.
+For ocean renewable energy harvesting systems, advance knowledge of
+incoming waves conditions the performances of control strategies. For
+instance, it is shown that the optimal control of wave energy converters
+relying on wave-to-wave predictions significantly improves their effi-
+ciency (Li et al., 2012). Also, the life-time of floating wind turbines
+could be increased by mitigating fatigue loads through appropriate
+control of the structure motions induced by wave loads (Ma et al.,
+2018).
+The deterministic prediction of ocean wave fields requires inverting
+a model describing the wave dynamics based on a set of observations,
+i.e., measurements that contain information about the wave geometry
+and kinematics (e.g., Nouguier et al., 2014). Based on such an inversion
+∗Corresponding author.
+E-mail address: nicolas.desmars@protonmail.com (N. Desmars).
+(i.e., nowcast), the properly parameterized wave model can then be
+used to propagate the wave field forward in time (i.e., forecast) to
+the area of interest. Note that the later can itself be in motion (e.g., a
+moving ship).
+X-band radars, such as WaMoS II developed by OceanWaveS
+GmbH™(Hilmer and Thornhill, 2015), the prediction systems of Next
+Ocean™(Naaijen et al., 2

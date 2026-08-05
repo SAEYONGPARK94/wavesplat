@@ -1,0 +1,859 @@
+Digital Processing of 
+Synthetic Aperture Radar Data 
+Algorithms and Implementation 
+Ian G. Cumming 
+Frank H. Wong 
+ARTECH 
+H O U S E 
+BOSTON|LONDON 
+artechhouse.com 
+
+Contents 
+Foreword 
+xix 
+Preface 
+xxiii 
+Acknowledgments 
+xxv 
+I 
+Fundamentals of Synthetic Aperture Radar 
+1 
+1 Introduction 
+3 
+1.1 
+Brief Background of SAR 
+3 
+1.2 
+Radar in Remote Sensing 
+5 
+1.3 
+SAR Fundamentals 
+5 
+1.4 
+Spaceborne SAR Sensors 
+10 
+1.5 
+Outline of the Book 
+14 
+1.5.1 
+Example of a Spaceborne SAR Image 
+16 
+References 
+19 
+2 Signal Processing Fundamentals 
+21 
+2.1 
+Introduction 
+21 
+2.2 
+Linear Convolution 
+22 
+2.2.1 
+Continuous-Time Convolution 
+22 
+2.2.2 
+Discrete-Time Convolution 
+24 
+2.3 
+Fourier Transforms 
+27 
+2.3.1 
+Continuous-Time Fourier Transform 
+27 
+2.3.2 
+Discrete Fourier Transform 
+28 
+vn 
+
+viii 
+Contents 
+2.3.3 
+Fourier Transform Properties 
+30 
+2.3.4 
+Examples of Fourier Transforms 
+34 
+2.4 
+Convolution Using DFTs 
+36 
+2.5 
+Sampling of Signals 
+38 
+2.5.1 
+Spectrum of Sampled Signals 
+38 
+2.5.2 
+Signal Types 
+40 
+2.5.3 
+Nyquist Sampling Rate and Aliasing 
+42 
+2.6 
+Smoothing Windows 
+49 
+2.7 
+Interpolation 
+51 
+2.7.1 
+Sine Interpolation 
+52 
+2.7.2 
+Spectra of Interpolation Kernels 
+56 
+2.7.3 
+Nonbaseband and Complex Interpolation 
+58 
+2.8 
+Point Target Analysis 
+59 
+2.9 
+Summary 
+64 
+2.9.1 
+Magellan Image of Venus Crater 
+65 
+References 
+66 
+3 Pulse Compression of Linear FM Signals 
+69 
+3.1 
+Introduction 
+69 
+3.2 
+Linear FM Signals 
+70 
+3.2.1 
+Time Domain Representation 
+70 
+3.2.2 
+Spectrum of the Linear FM Pulse 
+72 
+3.2.3 
+Sampling of FM Signals 
+76 
+3.2.4 
+Frequency and Time Discontinuities 
+78 
+3.3 
+Pulse Compression 
+80 
+3.3.1 
+Principles of Pulse Compression 
+80 
+3.3.2 
+Time Domain Compression of Linear FM Signals . . . . 
+82 
+3.3.3 
+Frequency Domain Matched Filter 
+87 
+3.3.4 
+The Effect of Windows 
+90 
+3.3.5 
+Oversampling Ratio Revisited 
+93 
+3.4 
+Matched Filter Implementation 
+93 
+3.4.1 
+Target Registration and Matched Filter Throwaway . . 96 
+3.5 
+FM Rate Mismatch 
+98 
+
+Contents 
+ix 
+3.5.1 
+Effect of Mismatch in a Baseband Signal 
+98 
+3.5.2 
+Effect of Mismatch in a Nonbaseband Signal 
+102 
+3.5.3 
+Filter Mismatch and Time Bandwidth Product 
+102 
+3.6 
+Summary 
+103 
+3.6.1 
+A Wide Swath ENVISAT/ASAR Image 
+104 
+References 
+107 
+Appendix ЗА: Derivation of the Matched Filter Output 
+108 
+3A.1 
+Signal and Matched Filter of Equal Length 
+108 
+3A.2 
+Signal and Matched Filter of Unequal Length 
+110 
+Appendix 3B: Derivation of the Phase Error Due to Mismatch . . . 
+Ill 
+4 Synthetic Aperture Concepts 
+113 
+4.1 
+Introduction 
+113 
+4.2 
+SAR Geometry 
+114 
+4.2.1 
+Definition of Terms 
+114 
+4.2.2 
+Satellite Ground Range Geometry 
+120 
+4.2.3 
+Satellite Orbit Geometry 
+122 
+4.3 
+The Range Equation 
+125 
+4.3.1 
+Hyperbolic Form of the Range Equation 
+125 
+4.3.2 
+Relationships Between Velocities and Angles 
+128 
+4.4 
+SAR Signal in the Range Direction 
+130 
+4.4.1 
+Transmitted Pulse 
+130 
+4.4.2 
+Data Acquisition 
+131 
+4.5 
+SAR Signal in the Azimuth Direction 
+133 
+4.5.1 
+What Is Doppler Frequency in the SAR Context? 
+. . . 133 
+4.5.2 
+Coherent Pulses 
+134 
+4.5.3 
+Choice of PRF 
+136 
+4.5.4 
+Azimuth Signal Strength and Doppler History 
+137 
+4.5.5 
+Azimuth Parameters 
+140 
+4.6 
+The Two-Dimensional Signal 
+141 
+4.6.1 
+Data Arrangement in Signal Memory 
+142 
+4.6.2 
+Demodulated Baseband Signal 
+144 
+4.6.3 
+The SAR Impulse Response 
+146 
+
+x 
+Contents 
+4.6.4 
+Typical Radar Parameter Values 
+147 
+4.7 
+SAR Resolution and Synthetic Aperture 
+147 
+4.7.1 
+Resolution Derived from Bandwidth 
+147 
+4.7.2 
+Synthetic Aperture 
+151 
+4.8 
+Summary 
+153 
+4.8.1 
+ScanSAR Narrow Image of Vancouver Island 
+155 
+References 
+156 
+Appendix 4A: Derivation of the Approximate Radar Velocity . . . . 157 
+Appendix 4B: Quadrature Demodulation 
+159 
+4B.1 
+Theory of Quadrature Demodulation 
+160 
+4B.2 
+Errors and Corrections 
+161 
+Appendix 4C: Concept of Synthetic Aperture 
+164 
+5 SAR Signal Properties 
+169 
+5.1 
+Introduction 
+169 
+5.2 
+Signal Spectrum in the Low-Squint Case 
+170 
+5.2.1 
+Spectrum in the Range Doppler Domain 
+171 
+5.2.2 
+Two-Dimensional Spectrum 
+172 
+5.3 
+Signal Spectrum in the General Case 
+172 
+5.3.1 
+Range Fourier Transform 
+174 
+5.3.2 
+Azimuth Fourier Transform 
+175 
+5.3.3 
+Range Inverse Fourier Transform 
+178 
+5.4 
+Azimuth Aliasing and the Doppler Centroid 
+182 
+5.4.1 
+Origin of Azimuth Aliasing and Ambiguities 
+182 
+5.4.2 
+The Doppler Centroid 
+185 
+5.4.3 
+The Doppler Ambiguity 
+188 
+5.4.4 
+Doppler Centroid Variation with Range 
+189 
+5.5 
+Range Cell Migration 
+194 
+5.5.1 
+RCM Components 
+195 
+5.5.2 
+Multiple Targets at the Same Range 
+198 
+5.5.3 
+Target Trajectory Wraparound 
+199 
+5.6 
+Point Target Examples 
+200 
+5.6.1 
+Simulation Parameters 
+200 
+
+Contents 
+xi 
+5.7 
+Prelude to SAR Processing Algorithms 
+204 
+5.7.1 
+Time Domain Matched Filtering 
+205 
+5.7.2 
+Real-Time Processed Airborne Radar Image 
+207 
+5.7.3 
+Unfocused SAR 
+209 
+5.7.4 
+Moving on to Better Processing Algorithms 
+210 
+5.8 
+Summary 
+211 
+References 
+214 
+Appendix 5A: Range/Azimuth Coupling 
+215 
+Appendix 5B: A Note on the Azimuth FM Rate 
+219 
+5B.1 
+Geometric Interpretation from Slopes 
+220 
+5B.2 
+Approximate Signal Representation 
+221 
+II 
+SAR Processing Algorithms 
+223 
+6 The Range Doppler Algorithm 
+225 
+6.1 
+Introduction 
+225 
+6.2 
+Algorithm Overview 
+226 
+6.3 
+RDA in the Low Squint Case 
+229 
+6.3.1 
+Raw Radar Signal Data (Raw Data) 
+229 
+6.3.2 
+Range Compression 
+231 
+6.3.3 
+Azimuth Fourier Transform 
+232 
+6.3.4 
+Range Cell Migration Correction 
+235 
+6.3.5 
+Broadening Due to Residual RCM 
+241 
+6.3.6 
+Azimuth Compression 
+243 
+6.3.7 
+Example of a Low Squint RADARSAT-1 Image 
+. . . . 248 
+6.4 
+The High Squint Case 
+250 
+6.4.1 
+Modifications to Handle Squint 
+250 
+6.4.2 
+Implementation of SRC 
+253 
+6.4.3 
+SRC Options Needed for Satellite and Airborne Cases . 256 
+6.4.4 
+SRC Simulation Experiments 
+258 
+6.4.5 
+An L-Band Airborne Radar Image Example 
+264 
+6.5 
+Multilook Processing 
+265 
+6.5.1 
+Frequency and Time Relationship of Looks 
+265 
+
+xii 
+Contents 
+6.5.2 
+Look Extraction, Detection, and Summation 
+267 
+6.5.3 
+Equivalent Number of Looks 
+270 
+6.5.4 
+An Example of Multilook Processing 
+271 
+6.5.5 
+FM Rate Error 
+276 
+6.5.6 
+Multilook Processed Image 
+278 
+6.6 
+Summary 
+280 
+References 
+281 
+7 The Chirp Scaling Algorithm 
+283 
+7.1 
+Introduction 
+283 
+7.1.1 
+Overview of the Chirp Scaling Algorithm 
+284 
+7.2 
+The Chirp Scaling Concept 
+287 
+7.3 
+Applying Chirp Scaling to RCMC 
+294 
+7.3.1 
+Bulk and Differential RCMC 
+295 
+7.3.2 
+A More Accurate Expression for RCM 
+298 
+7.4 
+Derivation of the Scaling Function 
+300 
+7.4.1 
+Examples of the Size of Differential RCM 
+302 
+7.5 
+CSA Processing Details 
+304 
+7.5.1 
+Range Processing 
+304 
+7.5.2 
+Azimuth Processing 
+309 
+7.6 
+Processing Examples 
+310 
+7.6.1 
+Simulations with Point Targets 
+310 
+7.6.2 
+Processing of SRTM/X-SAR Data 
+315 
+7.7 
+Summary 
+316 
+References 
+319 
+8 The Omega-K Algorithm 
+323 
+8.1 
+Introduction 
+323 
+8.1.1 
+Overview of the Omega-K Algorithm 
+324 
+8.2 
+Reference Function Multiply 
+328 
+8.3 
+Stolt Interpolation 
+330 
+8.3.1 
+The Change of Variables 
+330 
+8.4 
+Interpretations of the Stolt Mapping 
+335 
+8.4.1 
+Components of the Stolt Mapping 
+335 
+
+Contents 
+xiii 
+8.4.2 
+Interpretation Via Fourier Transform Properties . . . . 336 
+8.4.3 
+Interpretation Via the Region of Support 
+340 
+8.4.4 
+Interpretation Via Imaging Geometry 
+341 
+8.5 
+Error Analysis 
+343 
+8.6 
+Approximate Version of the Omega-K 
+Algorithm 
+345 
+8.6.1 
+Approximation Components 
+346 
+8.6.2 
+Relation to the RDA and the CSA 
+348 
+8.6.3 
+Discussion of Errors in the Approximate LJKA 
+. . . . 348 
+8.7 
+Processing Examples 
+349 
+8.7.1 
+Simulation of the Full LJKA Algorithm 
+349 
+8.7.2 
+Approximate Version of the LJKA 
+356 
+8.7.3 
+An X-Band Airborne Radar Spotlight Image Example . 357 
+8.8 
+Summary 
+358 
+References 
+359 
+Appendix 8A: Stolt Mapping in the Wavenumber Domain 
+362 
+9 The SPECAN Algorithm 
+369 
+9.1 
+Introduction 
+369 
+9.1.1 
+Overview of the SPECAN Algorithm 
+370 
+9.2 
+Derivation of the SPECAN Algorithm 
+372 
+9.2.1 
+From Convolution to SPECAN 
+372 
+9.2.2 
+Geometric Interpretation 
+373 
+9.2.3 
+Aliasing and FFT Length 
+377 
+9.2.4 
+Output Sample Spacing 
+379 
+9.2.5 
+Number of Good FFT Output Points 
+380 
+9.2.6 
+Placement of Subsequent FFTs 
+382 
+9.2.7 
+Stitching the FFT Outputs Together 
+385 
+9.3 
+Multilook Processing 
+385 
+9.4 
+Processing Efficiency 
+389 
+9.5 
+Range Cell Migration Correction 
+393 
+9.5.1 
+Time Domain Linear RCMC 
+394 
+9.5.2 
+Skewing and Deskewing 
+394 
+9.6 
+Phase Compensation 
+396 
+
+9.7 
+Image Quality Issues 
+400 
+9.7.1 
+Frequency Discontinuities at the Stitching Points . . . . 400 
+9.7.2 
+Azimuth FM Rate Error 
+403 
+9.7.3 
+Radiometric Scalloping 
+405 
+9.8 
+Processing Examples 
+416 
+9.8.1 
+Simulated Point Targets 
+416 
+9.8.2 
+ERS Image Processed by SPECAN 
+418 
+9.9 
+Summary 
+420 
+References 
+421 
+10 Processing ScanSAR Data 
+425 
+10.1 Introduction 
+425 
+10.2 ScanSAR Data Acquisition 
+427 
+10.3 Compression of a Single-Burst Target 
+431 
+10.4 Full-Aperture Processing 
+434 
+10.5 The SPECAN Algorithm 
+437 
+10.6 The Modified SPECAN Algorithm 
+438 
+10.6.1 Outline of the Algorithm 
+438 
+10.6.2 SRTM Processing Example 
+442 
+10.7 The Short IFFT Algorithm 
+442 
+10.8 The Extended Chirp Scaling Algorithm 
+447 
+10.9 Stitching Processed Bursts Together 
+450 
+10.10 Summary 
+453 
+10.10.1 RADARSAT-1 ScanSAR Image 
+454 
+References 
+455 
+11 Comparison of Algorithms 
+461 
+11.1 Introduction 
+461 
+11.2 Recap of the Precision Processing Algorithms 
+461 
+11.2.1 Range Doppler Algorithm 
+461 
+11.2.2 Chirp Scaling Algorithm 
+462 
+11.2.3 Omega-K Algorithm 
+462 
+11.3 Comparison of Processing Functions 
+463 
+11.3.1 Form of Range Equation 
+465 
+
+Contents 
+xv 
+11.3.2 Implementation of the Azimuth Matched Filter 
+465 
+11.3.3 Implementation of Range Cell Migration Correction . . 465 
+11.3.4 Implementation of Secondary Range Compression . . . 466 
+11.4 Summary of Processing Errors 
+466 
+11.4.1 QPE in the Azimuth Matched Filter 
+467 
+11.4.2 QPE in Secondary Range Compression 
+468 
+11.4.3 Residual RCM 
+469 
+11.4.4 Examples of the Size of the Processing Errors 
+470 
+11.5 Computation Load 
+473 
+11.5.1 Basic Algorithm Operations 
+473 
+11.5.2 Range Doppler Algorithm 
+473 
+11.5.3 Chirp Scaling Algorithm 
+474 
+11.5.4 Omega-K Algorithm 
+475 
+11.6 Pros and Cons of Each Algorithm 
+476 
+11.6.1 Pros and Cons of the RDA 
+476 
+11.6.2 Pros and Cons of the CSA 
+477 
+11.6.3 Pros and Cons of the ШКА 
+478 
+11.7 Summary 
+479 
+11.7.1 ASAR Image of the Strait of Messina 
+480 
+III 
+Doppler Parameter Estimation 
+481 
+12 Doppler Centroid Estimation 
+483 
+12.1 Introduction 
+483 
+12.1.1 Doppler Centroid Frequency 
+483 
+12.1.2 Satellite SAR System Geometry 
+484 
+12.1.3 Outline of This Chapter 
+487 
+12.2 Doppler Centroid Accuracy Requirements 
+489 
+12.2.1 Baseband Centroid Accuracy Requirements 
+489 
+12.2.2 Doppler Ambiguity Accuracy Requirements 
+497 
+12.3 Calculating Doppler Centroid from Geometry 
+497 
+12.3.1 Examples of Doppler Centroid Calculations 
+501 
+12.3.2 Yaw and Pitch Steering 
+503 
+
+12.4 Estimation of the Baseband Centroid from 
+Received Data 
+504 
+12.4.1 Magnitude-Based Estimation Approach 
+504 
+12.4.2 Phase-Based Estimation Method 
+509 
+12.5 Estimation of the Doppler Ambiguity from 
+Received Data 
+514 
+12.5.1 A Magnitude-Based DAR Estimation Method 
+515 
+12.5.2 Phase-Based DAR Estimation Methods 
+518 
+12.5.3 The Wavelength Diversity Algorithm 
+521 
+12.5.4 Multilook Cross Correlation Algorithm 
+526 
+12.5.5 Multilook Beat Frequency Algorithm 
+530 
+12.5.6 PRF Diversity Method 
+535 
+12.5.7 Comparison of DAR Algorithms 
+536 
+12.6 Principles of the Global Estimation Procedure 
+539 
+12.6.1 Spatial Diversity 
+539 
+12.6.2 Estimator Quality Measures 
+540 
+12.7 Surface Fitting Approaches 
+543 
+12.7.1 Global Fit Using a Polynomial Surface 
+543 
+12.7.2 Global Fit Using a Geometry Model 
+545 
+12.7.3 Automatic Fitting Procedure 
+546 
+12.8 Summary 
+549 
+References 
+550 
+Appendix 12A: Details of the Doppler Calculation 
+553 
+Appendix 12B: The Offset Frequency in DAR Algorithms 
+561 
+12B.1 Model of Signal from Each Look 
+561 
+12B.2 Multilook Cross Correlation Algorithm 
+562 
+12B.3 Multilook Beat Frequency Algorithm 
+565 
+13 Azimuth FM Rate Estimation 
+567 
+13.1 Introduction 
+567 
+13.2 Azimuth FM Rate Accuracy Requirements 
+567 
+13.3 Geometry Models to Compute the 
+Azimuth FM Rate 
+570 
+13.4 Estimating the Azimuth FM Rate from Data 
+574 
+
+Contents 
+xvii 
+13.4.1 Autofocus Via Contrast Maximization 
+575 
+13.4.2 Autofocus Via Look Misregistration 
+576 
+13.4.3 Phase-Based Autofocus Methods 
+582 
+13.5 Summary 
+584 
+13.5.1 A Miniature SAR System - MiSAR 
+584 
+References 
+586 
+Appendix A: 
+RADARSAT Data CD 
+587 
+List of Acronyms 
+589 
+List of Symbols 
+593 
+Selected Bibliography 
+597 
+About the Authors 
+617 
+Index 
+619 

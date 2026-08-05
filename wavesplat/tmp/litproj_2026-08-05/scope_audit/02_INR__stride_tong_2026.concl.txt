@@ -1,0 +1,61 @@
+
+
+<<<@40886 Conclusion>>>
+
+5
+Conclusion
+We introduced STRIDE, a two-stage framework for reconstructing spatiotemporal fields from sparse point-sensor
+measurements. STRIDE first maps a short observation window to a low-dimensional latent state using a temporal
+encoder, and then decodes the latent state with a coordinate-based implicit neural representation (INR) to produce
+continuous, resolution-invariant reconstructions. Across four benchmarks spanning chaotic dynamics and wave
+propagation, our default instantiation STRIDE-FMMNN achieves lower reconstruction errors than strong baselines and
+is more stable to train than the SIREN-backbone variant STRIDE-SIREN, while retaining the ability to super-resolve
+by querying the decoder at arbitrary spatial coordinates.
+From a theoretical standpoint, we provided a justification for why a finite-dimensional latent state can suffice: under
+delay observability of point measurements on the relevant invariant set, the reconstruction operator factors through
+a finite-dimensional embedding, making STRIDE-type architectures natural approximators. A key limitation is the
+computational cost inherited from INR decoders, since reconstructing a full field requires many coordinate queries.
+Future work will focus on accelerating INR inference and scaling STRIDE to larger, higher-frequency problems and
+more challenging sensing regimes.
+Acknowledgment:
+The authors thank Prof. Nathan Kutz for the motivating discussion during his visit to Georgia Tech, and Sebastian
+Gutierrez Hernandez for his group presentation on the FMMNN architecture [17]. This research was supported by NSF
+grant # 2325631.
+14
+
+From Sparse Sensors to Continuous Fields: STRIDE for Spatiotemporal Reconstruction
+References
+[1] Steven Brunton, Bernd Noack, and Petros Koumoutsakos. Machine Learning for Fluid Mechanics. Annual Review
+of Fluid Mechanics, 52(1):477–508, January 2020. arXiv:1905.11075 [physics].
+[2] Rui Wang and Rose Yu. Physics-Guided Deep Learning for Dynamical Systems: A Survey, February 2023.
+arXiv:2107.01272 [cs].
+[3] N. Benjamin Erichson, Lionel Mathelin, Zhewei Yao, Steven L. Brunton, Michael W. Mahoney, and J. Nathan
+Kutz. Shallow Neural Networks for Fluid Flow Reconstruction with Limited Sensors. Proceedings of the Royal
+Society A: Mathematical, Physical and Engineering Sciences, 476(2238):20200097, June 2020. arXiv:1902.07358
+[physics].
+[4] George Em Karniadakis, Ioannis G. Kevrekidis, Lu Lu, Paris Perdikaris, Sifan Wang, and Liu Yang. Physics-
+informed machine learning. Nature Reviews Physics, 3(6):422–440, June 2021. Publisher: Nature Publishing
+Group.
+[5] Javier E. Santos, Zachary R. Fox, Arvind Mohan, Daniel O’Malley, Hari Viswanathan, and Nicholas Lubbers.
+Development of the Senseiver for efficient field reconstruction from sparse observations. Nature Machine
+Intelligence, 5(11):1317–1325, November 2023. Publisher: Nature Publishing Group.
+[6] Xihaier Luo, Wei Xu, Yihui Ren, Shinjae Yoo, and Balu Nadiga. Continuous Field Reconstruction from Sparse
+Observations with Implicit Neural Networks, January 2024. arXiv:2401.11611 [cs].
+[7] Jan P. Williams, Olivia Zahn, and J. Nathan Kutz. Sensing with shallow recurrent decoder networks, June 2024.
+arXiv:2301.12011 [math].
+[8] Matteo Tomasetto, Jan P. Williams, Francesco Braghin, Andrea Manzoni, and J. Nathan Kutz. Reduced Order
+Modeling with Shallow Recurrent Decoder Networks, February 2025. arXiv:2502.10930 [cs].
+[9] Dongwei Lyu, Rie Nakata, Pu Ren, Michael W. Mahoney, Arben Pitarka, Nori Nakata, and N. Benjamin Erichson.
+WaveCastNet: An AI-enabled Wavefield Forecasting Framework for Earthquake Early Warning, May 2024.
+arXiv:2405.20516 [cs].
+[10] Jialin Song, Zezheng Song, Pu Ren, N Benjamin Erichson, Michael W Mahoney, and Xiaoye S Li. Forecasting
+high-dimensional spatio-temporal systems from sparse measurements. Machine Learning: Science and Technology,
+5(4):045067, December 2024. Publisher: IOP Publishing.
+[11] Floris Takens. Detecting strange attractors in turbulence. In David A. Rand and Lai-Sang Young, editors,
+Dynamical Systems and Turbulence, Warwick 1980, volume 898 of Lecture Notes in Mathematics, pages 366–381.
+Springer, 1981.
+[12] Timothy Sauer, James A. Yorke, and Martin Casdagli. Embedology. Journal of Statistical Physics, 65(3-4):579–
+616, 1991.
+[13] Vincent Sitzmann, Julien N. P. Martel, Alexander W. Bergman, David B. Lindell, and Gordon Wetzstein. Implicit
+Neural Representations with Periodic Activation Functions, June 2020. arXiv:2006.09661 [cs].
+[14] Ethan Perez, Flo

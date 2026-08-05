@@ -1,0 +1,1171 @@
+ 
+1 
+ 
+Neural reconstruction of 3D ocean wave hydrodynamics from camera 
+sensing 
+Jiabin Liu#,*,1,2, Zihao Zhou#,1,2, Jialei Yan1,2, Anxin Guo1,2, Alvise Benetazzo*,3, Hui Li*,1,2 
+1 Key Lab of Smart Prevention and Mitigation of Civil Engineering Disasters of the Ministry of Industry and 
+Information Technology, Harbin Institute of Technology, Harbin, 150090, China 
+2 Key Lab of Structures Dynamic Behavior and Control of the Ministry of Education, Harbin Institute of 
+Technology, Harbin, 150090, China 
+3 Institute of Marine Sciences, National Research Council, Venice, Italy 
+Abstract 
+Precise three-dimensional (3D) reconstruction of wave free surfaces and associated 
+velocity fields is essential for developing a comprehensive understanding of ocean physics. To 
+address the high computational cost of dense visual reconstruction in long-term ocean wave 
+observation tasks and the challenges introduced by persistent visual occlusions, we propose an 
+wave free surface visual reconstruction neural network, which is designed as an attention-
+augmented pyramid architecture tailored to the multi-scale and temporally continuous 
+characteristics of wave motions. Using physics-based constraints, we perform time-resolved 
+reconstruction of nonlinear 3D velocity fields from the evolving free-surface boundary. 
+Experiments under real-sea conditions demonstrate millimetre-level wave elevation prediction 
+in the central region, dominant-frequency errors below 0.01 Hz, precise estimation of high-
+frequency spectral power laws, and high-fidelity 3D reconstruction of nonlinear velocity fields, 
+while enabling dense reconstruction of two million points in only 1.35 s. Built on a stereo-vision 
+dataset, the model outperforms conventional visual reconstruction approaches and maintains 
+strong generalization in occluded conditions, owing to its global multi-scale attention and its 
+learned encoding of wave propagation dynamics. 
+ 
+Keywords: wave free surface, 3D velocity field, visual reconstruction, neural network 
+1. Introduction 
+Wave dynamics serve as a primary driver in nearshore physical ocean systems, where their 
+complex spatiotemporal evolution governs energy fluxes1, coastal material transport2, and 
+boundary layer processes3. Amid increasingly frequent extreme marine events driven by global 
+climate change4, the accurate and effective measurement of wave hydrodynamic parameters has 
+emerged as a forefront challenge in advancing observational capabilities and predictive 
+ 
+# Jiabin Liu and Zihao Zhou contributed equally to this work 
+* Corresponding author. 
+E-mail address: liujiabin@hit.edu.cn, alvise.benetazzo@ve.ismar.cnr.it, lihui@hit.edu.cn  
+
+ 
+2 
+ 
+accuracy in ocean physics5, 6. Traditional measurement techniques predominantly depend on 
+contact-based sensors, such as wave staffs and moored wave buoys7, which are capable of 
+delivering stable and long-duration time series of surface elevation data8. However, the 
+inherently limited spatial resolution of these point-based instruments impedes the 
+comprehensive characterization of the continuous, evolution of wave fields9. This severely 
+constrains the ability to model and forecast complex hydrodynamic processes at regional 
+scales10. 
+With the deployment of large arrays of low-cost cameras, recent advances in vision-based 
+remote sensing methods offer promising alternatives11. In particular, computer vision 
+approaches enable non-intrusive, high-resolution capture of both spatial wave free surface 
+structures and temporal wave dynamics12. Among these, stereo vision (SV) has been widely 
+applied in both laboratory and field environments for wave reconstruction through stereo 
+matching and triangulation13, 14. Subsequent developments have optimized the reconstruction 
+algorithms using the OpenCV library, incorporating self-calibration based on the scale-invariant 
+feature transform (SIFT)15, 16 and employing the semi-global block matching (SGBM)17 
+algorithm to enhance reconstruction accuracy. A notable example is the wave acquisition stereo 
+system (WASS), which utilizes a fixed stereo camera configuration to enable large-scale, high-
+density wave free surface reconstruction18. Further integration of stereo vision with digital 
+image processing allows for frame-by-frame acquisition of wave imagery using synchronized 
+cameras, enabling the construction of a spatial-temporal volume for sequential wave free 
+surface reconstruction19. Experimental results confirm that the reconstructed wave free surfaces 
+exhibit strong agreement with classical wave theory in terms of spatial-temporal distribution 
+and dynamic characteristics, thereby validating the reliability and physical consistency of this 
+vision-based measurement approach20. 
+Vision-based techniques for dynamic surface reconstruction encounter significant 
+challenges. As the resolution and coverage of imaging systems increase, the number of pixels 
+and disparity hypotheses grows rapidly, imposing substantial demands on memory and 
+processing time and limiting the feasibility of real-time or continuous observation, particularly 
+in field applications with constrained computational resources. For megapixel-level dense 
+reconstruction, recovering the free surface at a single time instant typically requires several 
+minutes of computation. This substantial computational burden has become a critical bottleneck 
+for large-scale deployment and sustained ocean wave monitoring. Pixel correspondence is also 
+highly sensitive to imaging perturbations such as occlusion, strong illumination, and 
+overexposure. These issues are especially pronounced in oceanic environments, where varying 
+meteorological and lighting conditions can drastically alter the visual scene. For example, storm 
+events may introduce severe visual occlusions due to waves and spray, while clear-sky 
+conditions may generate regions of overexposed pixels. Conventional vision methods (e.g., 
+BM21, GC22, SGBM17) , which rely on local feature matching, are intrinsically limited in 
+handling such challenges, as they often fail to exploit the inherent spatial and temporal 
+
+ 
+3 
+ 
+continuity of dynamic surfaces, making it difficult to achieve a complete and temporally 
+coherent reconstruction of continuously evolving wave fields. Various approaches—including 
+tracer particles23, projected structured light24, laser imaging25, or calibration grids26—have been 
+explored to enhance surface measurability; however, these often involve complex deployment 
+procedures and limited adaptability in open-sea conditions, restricting their practicality for long-
+term, autonomous wave monitoring. 
+Recent advances in deep learning have brought new opportunities for 3D reconstruction27, 
+28. Depth estimation from a fixed viewpoint typically yields only relative depth, limiting its 
+ability to reconstruct metrically accurate 3D structures29, 30. While methods like NeRF31 and 
+Gaussian splatting30 can recover absolute scale, they require dynamic views or multi-angle 
+observations, making them unsuitable for fixed marine monitoring setups. In contrast, stereo 
+vision offers a more practical solution for accurate 3D reconstruction under such constraints. 
+Stereo matching networks such as RAFT-Stereo32, UniMatch33, Selective-Stereo34 and YOLO-
+based35 models have shown notable improvements in stereo estimation accuracy and 
+computational efficiency. Current neural network models for vision-based reconstruction of 
+wave free surfaces face persistent limitations. In particular, they are generally constrained to 
+recovering the mean water level, while failing to resolve fine-scale surface details. This 
+limitation is largely due to the disparity of scales: observation distances typically range from 
+10–100 m, whereas wave motions are on the order of meters, with smaller fluctuations down to 
+the centimeter level. As a result, high-frequency, small-amplitude variations in both space and 
+time are often lost in the reconstruction process. Furthermore, variations in environmental 
+conditions, including complex ocean illumination, wave-breaking occlusions, and atmospheric 
+effects such as rain or fog, impose greater demands on the generalization of these models. 
+In this study, we introduce an ocean wave hydrodynamic visual sensing neural network 
+(WHVS-Net) that addresses the fundamental challenges of weak textures, occlusions, and 
+temporal inconsistencies inherent in vision-based reconstruction. WHVS-Net employs an 
+attention-augmented pyramidal architecture to capture the multi-scale and temporally 
+continuous characteristics of free surface dynamics. Wave features are matched in the latent 
+space through the fusion of global image information and camera calibration parameters, while 
+multi-scale attention and temporal consistency modeling enhance robustness in feature 
+extraction and matching. Building on the reconstructed free surface, the framework enables 
+nonlinear 3D velocity field recovery, thereby advancing high-fidelity characterization of wave 
+hydrodynamics. Validation under real-sea conditions demonstrates the accuracy and 
+generalization of WHVS-Net, establishing a data-driven paradigm for intelligent and scalable 
+visual sensing of ocean waves. 
+2. Results 
+2.1 Implementation details 
+
+ 
+4 
+ 
+The WASS project18 is a long-term in situ wave observation project that provides raw 
+images from the Black Sea coast (44.39°N, 33.98°E)36, 37 and is used in study to train our 
+network under realistic conditions. The geographical location map is shown in Fig. 1a. This 
+region is influenced by multiple wind systems and constrained by complex topography, 
+exhibiting rich nonlinear wave behavior and strong directional scattering characteristics. The 
+acquisition system was installed on a coastal platform and comprised a fixed-baseline stereo 
+camera array oriented toward a nearshore monitoring zone36. The configuration provides wide-
+angle spatial coverage with synchronized perspectives, while a hardware synchronization 
+mechanism ensures the stable acquisition of continuous stereo image pairs. The raw dataset 
+includes time-synchronized grayscale stereo images, along with the intrinsic and extrinsic 
+calibration parameters of the cameras36. Each image has a resolution of 2456 × 2058 pixels. 
+Unlike traditional stereo datasets such as KITTI38, ScanNet39, and SceneFlow40, which 
+focus on rigid or semi-rigid scenes, WHVS-Net training requires data that capture highly 
+dynamic, non-rigid, and continuously deforming surfaces. Developed under the WASS36 project 
+using the SGBM algorithm, the high-resolution dataset of wave images encompasses diverse 
+sea states and observational conditions, providing a standardized benchmark for the validation 
+of wave free surface reconstruction. In the stereo vision reconstruction workflow (Fig. 1b), 
+disparity prediction through a deep neural network enables the recovery of point clouds in the 
+camera coordinate system. Most existing models focus purely on image-based reconstruction 
+(e.g., disparity or depth)41, 42 and thus lack the physical interpretability required for extracting 
+hydrodynamic parameters like wave spectra. To achieve a more physically meaningful 
+representation, a geometric self-supervised plane fitting module is employed to estimate the 
+free-surface reference plane, defined by the mean water level (𝑍= 0). The resulting rotation 
+matrix and translation vector are then used to transform the reconstructed points from the 
+camera coordinate system into a global coordinate system, facilitating the extraction of the 3D 
+wave free surface (Fig. 1c). Following the transformation and alignment (Fig. 1d), the 
+reconstructed wave elevation η is projected onto the left image view within the defined 
+reconstruction region. 
+ 
+
+ 
+5 
+ 
+ 
+Fig. 1 Stereo vision-based acquisition and reconstruction of wave free surface. a Geographical context of the 
+sampling site, showing the Black Sea and its surrounding seas, with a magnified view indicating the 
+observation location at 44.39°N, 33.98°E. b Workflow of the wave free surface reconstruction, illustrating 
+the transformation from camera to global coordinates, disparity prediction through a deep network, and plane 
+fitting via self-supervised pose learning. c Point clouds for dense 3D surface reconstruction. d Camera-view 
+example of a reconstructed ocean wave free surface, with the defined reconstruction region highlighted. The 
+reconstruction image region is defined as 𝑢 ∈ [412,2044],𝑣 ∈ [389, 1669] , where 𝑢  and 𝑣  are the 
+horizontal and vertical pixel coordinates, respectively. This yields a final resolution of 1632 × 1280 pixels, 
+corresponding to approximately 2 million reconstructed points. 
+The dataset comprises continuous stereo sequences that capture diverse wave free surface 
+patterns and their spatiotemporal evolution, exhibiting highly dynamic characteristics. During 
+training, the left and right images 𝐼𝐿(𝑢,  𝑣) and 𝐼𝑅(𝑢,  𝑣) are jointly fed into the network to 
+generate a predicted disparity map 𝑑pred(𝑢,  𝑣), which is compared against the ground-truth 
+𝑑GT(𝑢,  𝑣)  to compute the loss and supervise the optimization of network parameters. The 
+training data are collected under varying wave conditions36, with each condition containing 
+
+ 
+6 
+ 
+approximately 10,000–40,000 images. These temporal segments exhibit significant changes in 
+both illumination and wave parameters. The data are divided into training, validation, and test 
+sets in a ratio of 10:1:1. The wave scenarios comprising the independent test set, which was 
+held out for final evaluation, are listed in Table 1. The test set is categorized into two groups, A 
+and B, based on variations in camera pose. Each group comprises data from three distinct time 
+periods, labeled A1, A2, A3 and B1, B2, B3, respectively. 
+Table 1 Hydrodynamic conditions of the test set 
+Dataset ID 
+𝐻𝑠 (mm) 
+𝑓𝑝(Hz) 
+𝑇𝑝(s) 
+𝐵 (𝑚𝑚) 
+A1 
+450 
+0.35 
+2.94 
+2030 
+A2 
+360 
+0.38 
+2.63 
+2030 
+A3 
+550 
+0.27 
+3.61 
+2030 
+B1 
+650 
+0.19 
+5.27 
+1872 
+B2 
+410 
+0.24 
+4.24 
+1872 
+B3 
+660 
+0.23 
+4.44 
+1872 
+Note: 𝐻𝑠 denotes the significant wave height. 𝑓𝑝 and 𝑇𝑝 represent the peak frequency and 
+wave period, respectively. 𝐵 is the baseline length. 
+2.2 Architecture for WHVS-Net 
+Inspired by the multi-scale matching strategy of pyramidal optical flow methods, we 
+reformulate stereo matching as constrained pyramidal flow estimation43. Within this unified 
+framework, the model inherits the inherent advantages of multi-scale processing—capturing 
+large displacements at coarse resolutions and refining local details at finer scales44. As 
+illustrated in Fig. 2, the proposed WHVS-Net integrates three major components to enable 
+stereo-based reconstruction of wave sea surfaces. First, the network employs multi-scale and 
+single-scale encoders to extract hierarchical representations from the input image frames. 
+Through residual blocks45, these encoders generate the left and right feature maps (𝐹𝐿 , 𝐹𝑅 ) 
+along with reference feature maps (𝐹𝑠
+′). Notably, the reference features are derived exclusively 
+from the normalized left image, ensuring structural independence from the stereo feature maps 
+and providing stable guidance for disparity estimation. 
+
+ 
+7 
+ 
+ 
+Fig. 2 Architecture of WHVS-Net and internal 3D internal velocity reconstruction. a Feature encoder that 
+extract hierarchical features from input wave images, generating feature maps (𝐹𝐿, 𝐹𝑅) and reference feature 
+maps ( 𝐹′𝑠 ), through residual blocks. b One-dimensional feature matching module computes spatial 
+correspondences between left and right features to guide disparity estimation (𝑑𝑚𝑎𝑡𝑐ℎ,𝑠 ). c Multi-scale 
+attention mechanism is applied to refine disparity predictions across different spatial resolutions. Attention 
+maps are computed using queries and keys projected from the reference feature maps (𝐹′𝑠), while the values 
+are constructed from disparity cues (𝑑𝑚𝑎𝑡𝑐ℎ,𝑠). This process yields disparity estimates (𝑑𝑠𝑐𝑎𝑙𝑒,𝑠) at different 
+scales, which are subsequently integrated in the decoder to produce the final disparity outputs. The details of 
+the 3D internal velocity reconstruction are presented in Subsection 2.5. 
+An extrinsic feature-wise linear modulation (FiLM) modulation mechanism is introduced, 
+which encodes the camera’s rotation and translation parameters into channel-wise scaling and 
+shifting coefficients that are applied to the feature maps. This modulation enables the feature 
+representations to adapt to varying camera poses. Based on this feature representation, a one-
+dimensional correlation module is applied to perform feature matching along epipolar lines. By 
+operating directly in the latent space, this module establishes pixel-wise correspondences 
+
+ 
+8 
+ 
+between the left and right feature maps, thereby producing preliminary disparity cues (𝑑𝑚𝑎𝑡𝑐ℎ,𝑠). 
+Such latent-space matching not only ensures differentiability and computational efficiency, but 
+also enables the network to implicitly learn geometric consistency while suppressing local 
+ambiguities that are difficult to resolve in the image domain. These cues serve as the foundation 
+for hierarchical disparity estimation.  
+To address the long-standing trade-off between capturing large displacements and 
+preserving fine structural details, WHVS-Net incorporates a multi-scale attention mechanism 
+operating across progressively downsampled feature maps at resolutions of 1/8, 1/16, and 1/32 
+32. Within this mechanism, queries and keys are projected from the reference feature maps (𝐹𝑠
+′), 
+while values are derived from the disparity cues (𝑑𝑚𝑎𝑡𝑐ℎ,𝑠 ). The attention operation refines 
+disparity predictions across scales, yielding multi-resolution disparity maps (𝑑𝑠𝑐𝑎𝑙𝑒,𝑠). Ocean 
+wave is temporally smooth. Therefore, introducing a temporal fusion mechanism can effectively 
+suppress instantaneous noise and enhance the physical consistency of the predictions.  
+The architecture implements a hierarchical feature fusion mechanism that enables coarse-
+to-fine disparity estimation, explicitly tailored to the non-rigid and multi-scale characteristics 
+of ocean waves. This design balances the dual objectives of capturing large, dynamic 
+displacements inherent in wave dynamic while reconstructing fine structural details of the free 
+surface, making it more suitable for wave hydrodynamic sensing under real sea conditions. 
+Details are provided in the Methods. 
+2.3 Reconstruction validation 
+ 
+Fig. 3 Validation of wave free surface elevation reconstruction. a Comparison of temporal wave elevation 
+signals reconstructed by the proposed neural network (blue) and stereo vision reference data (red) under two 
+
+ 
+9 
+ 
+different camera poses (A1 and B1). b Scatter plot analysis for condition A1, indicating the correlation 
+between predicted (𝜂)  and ground-truth (𝜂GT)  wave heights, with performance metrics including 𝑅2  , 
+RMSE and NRMSE. c Significant wave height (𝐻𝑠) error analysis across all six experimental conditions (A1–
+A3, B1–B3). d Two-dimensional distribution of mean absolute error (MAE), where warmer colors denote 
+higher local error intensities across the image plane. e Radial mean absolute error MAEr(𝑢𝑟) =
+1
+𝑇
+1
+𝑁∑
+∑
+|𝜂(𝑢𝑟, 𝜃𝑖, 𝑡) −𝜂GT(𝑢𝑟, 𝜃𝑖,𝑡)|
+𝑁
+𝑖=1
+𝑇
+𝑡=1
+ with respect to the image center across all six conditions, showing 
+error growth as the radius (𝑢𝑟) increases outward from the optical center. 
+In Fig. 3a, the pixel center of the image is selected as the monitoring point to extract a 
+wave elevation time series, which is compared under two different camera poses (A1 and B1). 
+The results show that the proposed method achieves strong consistency with the stereo vision 
+reference data in both the temporal location and amplitude of wave crests and troughs. Except 
+for a few peaks exhibiting minor deviations, the reconstructed waveforms accurately capture 
+the unsteady evolution of surface waves. The scatter plot analysis for condition A1 (Fig. 3b) 
+demonstrates a strong correlation between predicted wave heights and ground-truth, with a 
+coefficient of determination of 𝑅2 = 0.89 . Performance metrics including RMSE = 0.03 𝑚 
+and NRMSE = 0.06 𝑚 further confirm the method’s high precision. Significant wave height 
+(𝐻𝑠) comparisons across six experimental conditions (A1-A3, B1-B3) are shown in Fig. 3c, 
+where all estimation errors remain within 10%, indicating robust adaptability across diverse 
+observational settings. 
+Further examination of the spatial distribution of reconstruction errors is provided in Fig. 
+3d and 3e. The error field (Fig. 3d) indicates that the mean absolute error remains consistently 
+at the millimeter level across the majority of the domain, without evidence of systematic bias. 
+Slightly elevated errors occur near the image boundaries, likely due to geometric distortions 
+and reduced reliability of peripheral features; nevertheless, these deviations remain within 
+tolerable bounds. The radial distribution in Fig. 3e exhibits a monotonic growth of error with 
+increasing distance from the optical center. The growth rate is moderate, and the overall 
+magnitude remains uniformly controlled, thereby confirming the robustness and stability of the 
+proposed method across the entire field of view. 
+
+ 
+10 
+ 
+ 
+Fig. 4 Frequency-domain analysis. a Power spectral density (PSD) of wave free surface elevation obtained 
+under two different camera poses (A1 and B1). b Scatter plot of spectral amplitudes for condition A1 with 
+𝑅2, RMSE, and NRMSE values. c Peak frequency (𝑓𝑝) error evaluation across all six experimental conditions 
+(A1-A3, B1-B3). d Two-dimensional directional frequency spectra for condition A1, including ground-truth 
+reference (𝑆𝜂𝜂
+GT(𝜃, 𝑓) , left), predicted spectra (𝑆𝜂𝜂(𝜃, 𝑓) , middle), and their residual error distribution 
+(𝑆𝜂𝜂(𝜃, 𝑓) −𝑆𝜂𝜂
+GT(𝜃, 𝑓), right). 
+The frequency-domain validation highlights the capability of the proposed network to 
+reproduce key spectral characteristics of oceanic waves. As shown in Fig. 4a, the predicted PSD 
+curves closely follow the stereo vision reference across a wide frequency range, accurately 
+capturing both the dominant peak, secondary spectral components and high-frequency 
+components. Conventionally, the high-frequency tail of the wave spectrum is formed in 
+equilibrium and saturation ranges 46, 47 with power laws of 𝑓−4 and 𝑓−5, respectively. The 
+equilibrium range exists near the peak frequency, and the saturation range is formed at a 
+relatively higher frequency. As shown in Fig. 4a, the visual reconstruction method effectively 
+captures high-frequency components of the wave spectrum, which follow a power-law decay 
+of approximately 𝑓−5. It evident that the network model is able to learn these high-frequency 
+fluctuations from the visually reconstructed dataset. These findings are highly promising for 
+mitigating frequency bias in wave spectral estimation. It can be attributed to its multi-scale 
+architecture, which facilitates the simultaneous representation of both low- and high-frequency 
+wave components with high fidelity. Quantitative scatter plot analysis for condition A1 (Fig. 4b) 
+demonstrates strong correlation between predicted and ground-truth spectral amplitudes, with 
+𝑅2 = 0.86, confirming high predictive accuracy of PSD.  
+The accuracy of peak frequency estimation is further confirmed across all six experimental 
+conditions (A1–A3, B1–B3), where errors remain consistently below 5% (Fig. 4c). Directional 
+
+ 
+11 
+ 
+frequency spectra provide a more comprehensive assessment (Fig. 4d). The predicted spectra 
+𝑆𝜂𝜂(𝜃, 𝑓) exhibit strong agreement with the ground-truth reference 𝑆𝜂𝜂
+GT(𝜃, 𝑓) , not only 
+reproducing the dominant wave direction (around 95° ) and the associated frequency band 
+( 𝑓𝑝≈0.35 Hz ), but also capturing the energy concentration patterns. Residual maps 
+( 𝑆𝜂𝜂(𝜃, 𝑓) −𝑆𝜂𝜂
+GT(𝜃, 𝑓) indicate that discrepancies are generally confined to low-energy 
+peripheral regions, with maximum deviations below 2 × 10−3 m2/Hz. Overall, the results 
+confirm that the proposed framework maintains high fidelity in reconstructing frequency–
+directional characteristics of wave fields, with errors well within acceptable limits. 
+2.4 Visual occlusion 
+In ocean environments, atmospheric and surface effects such as rainfall, and wave spray 
+often cause visual occlusions that degrade image information. To assess the robustness of 
+surface reconstruction under visual interference, we systematically evaluated two types of 
+occlusion patterns: distribution and localization, as illustrated in Fig. 5a. Occlusions were 
+applied simultaneously to both left and right stereo views using binary masks. Fig. 5b illustrates 
+the non-overlapping field-of-view occlusion that arises when cropped stereo images are used as 
+the input to the SV algorithm, leading missing disparity information near the left boundaries. 
+Unlike the external occlusions shown in Fig. 5a, this type of data loss originates from the 
+intrinsic baseline geometry of the stereo configuration, where the limited intersection between 
+the two camera frustums naturally results in non-overlapping regions at the image edges.  
+Fig. 5c shows the variation of the mean reconstruction error with increasing occlusion ratio. 
+For occlusion ratios below 15%, the neural network consistently outperforms conventional 
+visual reconstruction methods, exhibiting significantly lower errors regardless of the occlusion 
+pattern. Interestingly, under the same occlusion ratio, the network achieves better performance 
+with localized occlusions than with distributed ones, suggesting that spatial continuity in the 
+data facilitates accurate reconstruction. 
+
+ 
+12 
+ 
+ 
+Fig. 5 Surface reconstruction under occlusion under A1. a Types of occlusion, including localization 
+occlusion and distribution occlusion. b non-overlapping field-of-view occlusion. c Reconstruction error as a 
+function of occlusion ratio, compared with ground truth. SV and NN denote stereo vision and neural network, 
+respectively. L and D indicate localized occlusion and distributed occlusion. ∆𝜂 represents the average error 
+relative to the stereo vision reconstruction under no-occlusion conditions. d Error distribution of surface 
+reconstruction using the stereo vision method and the neural network method. ∆𝜂 represents the per-pixel 
+error relative to the stereo vision reconstruction under no-occlusion conditions. The error values of the NN/SV 
+methods are reported for three occlusion scenarios applied to the same image. Note that under SV 
+reconstruction with non-overlapping field-of-view occlusion, the blank region on the left indicates a complete 
+loss of wave information. 
+Fig. 5d presents the error distribution across the reconstructed surface. The first two 
+columns correspond to externally induced occlusions (localized and distributed). In those cases, 
+the network achieves stable reconstruction performance despite the presence of missing 
+disparity data. Specifically, conventional visual methods show pronounced errors in occluded 
+regions, and even outside these regions, the reconstruction error remains higher than that of the 
+network. This discrepancy arises because traditional visual reconstruction method, rely on 
+pixel- or window-based correspondence estimation under brightness constancy and small 
+disparity assumptions, making them sensitive to illumination and texture variations17, 22, 28. As 
+a result, matching and propagation errors accumulate even in non-occluded regions. Errors from 
+occluded regions further bias camera pose estimation, propagating to non-occluded areas and 
+degrading overall reconstruction accuracy. Although such methods introduce limited global 
+correlation via cost aggregation, they still lack the hierarchical and multi-scale feature 
+
+ 
+13 
+ 
+integration inherent to neural networks. The network, in contrast, leverages both spatial and 
+temporal correlations to wave propagate information from surrounding and temporally adjacent 
+regions, effectively compensating for missing data in occluded areas. The last column illustrates 
+the baseline-induced non-overlapping field-of-view occlusion, which directly causes the loss of 
+information on the left side. This occlusion results from the inherent geometric limitation of 
+stereo vision—regions visible to stereo camera lack valid disparity and therefore cannot be 
+reconstructed by conventional stereo matching methods. However, the proposed network 
+effectively mitigates this limitation by learning to maintain structural consistency and temporal 
+continuity, even in non-overlapping regions where pixel-wise correspondence is unavailable. 
+Notably, the network was trained solely on unoccluded data. Its ability to generalize and 
+reconstruct occluded surfaces demonstrates that the network can extract and integrate intrinsic 
+global patterns, achieving predictive accuracy that surpasses the conventional visual methods. 
+These results highlight the potential of neural network-based approaches to overcome 
+limitations of traditional visual reconstruction, particularly in complex marine environments 
+where occlusions from breaking waves or other disturbances are common. The findings also 
+emphasize the importance of multi-scale spatial-temporal feature fusion in achieving robust and 
+high-fidelity surface reconstruction under challenging observational conditions. 
+2.5 3D internal velocity reconstruction 
+
+ 
+14 
+ 
+ 
+Fig. 6 3D velocity field reconstruction. a Time-sequential visualization of reconstructed free surface at 
+different instants, with the corresponding vertical velocity distribution superimposed on the free surface under 
+A1 condition. b 3D velocity fields extracted from 𝑡 = 5 s, including horizontal velocity components (𝑈𝑥, 𝑈𝑦) 
+at free surface and streamlines in wave field. c Isosurface of the 3D velocity field at 𝑡 =5 s. 
+After obtaining the spatiotemporal evolution data of the wave free surface, the vertical 
+velocity, 𝑈𝑧 , at the surface can be straightforwardly derived within the framework of linear 
+wave theory. In contrast, the determination of horizontal velocity components, 𝑈⃗⃗ 𝜂= (𝑈𝑥, 𝑈𝑦) 
+at free surface, requires solving the nonlinear Zakharov equation48, which considerably 
+increases both the mathematical complexity. To address this, a simplified and effective 
+nonlinear method has been developed to derive 𝑈⃗⃗ 𝜂, as expressed by 
+𝑈𝑧=
+1
+1 + |∇𝜂|2 (𝜕𝜂
+𝜕𝑡+ ∇𝜂∫∇𝒯
+𝑡
+0
+𝑑𝑡)
+(1) 
+
+ 
+15 
+ 
+𝑈⃗⃗ 𝜂= ∫∇𝒯
+𝑡
+0
+𝑑𝑡−∇𝜂𝑈𝑧
+(2) 
+in which 𝒯 is given as 
+𝒯= −𝑔𝜂+ 1
+2
+1
+1 + |∇𝜂|2 (𝜕𝜂
+𝜕𝑡)
+2
+(3) 
+where 𝑔 is the gravitational acceleration. 
+Based on the theoretical framework described above, we numerically reconstruct the time-
+resolved 3D velocity field (𝑈𝑥, 𝑈𝑦, 𝑈𝑧) from the sequentially recovered free surface elevation 
+data 𝜂(𝑋, 𝑌, 𝑡). Spatial gradients ∇𝜂 are computed using central differencing schemes, while 
+temporal derivatives 𝜕𝜂/𝜕𝑡 are estimated via a backward three-point finite difference method. 
+The time integration of ∫∇𝒯
+𝑡
+0
+𝑑𝑡  is performed in the frequency domain using Fourier-based 
+integration with regularization to mitigate low frequency singularities.  
+Fig. 6a provides the visualization of the reconstructed wave elevation dynamics and 3D 
+velocity fields under condition A1. In the time-sequential snapshots, the wave elevation evolves 
+from 𝑡= 1 s to 𝑡= 9 s, with the superimposed vertical velocity field (𝑈𝑧) highlighting the 
+kinematic response of the free surface. The calculated vertical velocity reaches magnitudes up 
+to ±0.6m/s, consistent with the expected scale of orbital motion induced by surface waves. The 
+spatiotemporal evolution demonstrates coherent propagation of wave crests and troughs, while 
+the associated vertical motions remain phase-locked with the surface elevation. The horizontal 
+velocity components (𝑈𝑥, 𝑈𝑦) at 𝑡 =5 s, along with the vertical velocity at the same time 
+instant, are extracted to illustrate their spatial distribution and correlation (Fig. 6b). The 
+horizontal velocity fields exhibit alternating banded structures aligned with the direction of 
+wave propagation.  
+Once the 3D velocity field at the free surface is obtained, the subsurface velocity field can 
+be reconstructed within the framework of potential flow theory. For viscous flows, such a 
+reconstruction is generally ill-posed due to the lack of complete boundary and initial conditions, 
+resulting in non-unique solutions. In contrast, potential flows do not suffer from this limitation, 
+as a bottom boundary condition can be imposed to enforce an exponentially decaying velocity 
+with depth. The reconstruction is carried out by constructing the fundamental solutions of the 
+Laplace’s equation for the velocity potential and ensuring that the free surface boundary 
+conditions are satisfied, thereby yielding a subsurface velocity field consistent with the 
+measured surface velocities. The velocity potential 𝛷(𝑋, 𝑌, 𝑍, 𝑡) is expressed as a Fourier 
+series in the horizontal directions,  
+𝛷(𝑋, 𝑌, 𝑍, 𝑡) = ∑
+∑𝑎𝑛𝑚(𝑡)𝑒𝜅𝑛𝑚𝑍𝑒𝑖(𝑘𝑛𝑋+𝑘𝑚𝑌)
+𝑀
+𝑚=−𝑀
+𝑁
+𝑛=−𝑁
+(4) 
+with coefficients 𝑎𝑛𝑚(𝑡) modulated by the vertical decay factor 𝑒𝜅𝑛𝑚𝑍 and the horizontal 
+wavenumbers 𝑒𝑖(𝑘𝑛𝑋+𝑘𝑚𝑌), where 𝜅𝑛𝑚 has 𝜅𝑛𝑚= (𝑘𝑛
+2 + 𝑘𝑚
+2 )1/2.  
+
+ 
+16 
+ 
+A fully connected neural network is constructed to map the input time 𝑡 to the coefficients 
+𝑎𝑛𝑚(𝑡), as shown in Fig. 1. The network is trained by minimizing a physics-informed loss 
+function that enforces consistency between the velocity reconstructed from 𝑎𝑛𝑚(𝑡) and the 
+observed velocity 𝑼  at the free surface 𝑧= 𝜂(𝑋, 𝑌, 𝑡) , while penalizing high-frequency 
+components through a Tikhonov regularization term weighted by 𝜆.  
+ℒ𝑎(𝑎𝑛𝑚(𝑡)) = 1
+2 ‖∇𝛷|𝑧=𝜂(𝑋,𝑌,𝑡) −𝑼|𝑧=𝜂(𝑋,𝑌,𝑡)‖
+2 + 1
+2 𝜆∑
+∑‖𝜅𝑛𝑚𝑎𝑛𝑚‖2
+𝑀
+𝑚=−𝑀
+𝑁
+𝑛=−𝑁
+(5) 
+After obtaining the optimal coefficients 𝑎𝑛𝑚(𝑡) = arg min
+𝑎𝑛𝑚(𝑡) ℒa, the internal velocity field 
+is reconstructed by computing the spatial derivatives of the potential function defined in Eq. (4). 
+The right side of Fig. 6b presents the streamlines of the 3D velocity field, providing a clear 
+visualization of the particle trajectories within the flow. The streamlines show that the particles 
+follow arc paths, highlighting the underlying transport mechanisms and the complex 3D wave 
+motion. Fig. 6c shows the 3D isosurface of the instantaneous wave-induced velocity field. 
+Regions of higher velocity appear beneath the wave crest and gradually weaken with depth. 
+These methods reveal the organized spatial structure of the subsurface flow, providing direct 
+insight into the internal hydrodynamics and energy distribution below the surface waves. 
+Building on this, we achieve neural reconstruction of 3D wave hydrodynamics using ocean-
+wave video sequences. Even in irrotational flow, the subsurface motion dictates essential 
+processes, including the exponential attenuation of orbital velocities with depth, the phase-
+resolved distribution of kinetic energy, and the spatial gradients of dynamic pressure induced 
+by propagating waves. These insights offer an unprecedented view of the flow structures 
+associated with surface waves, with implications for wave mechanics, coastal hydrodynamics, 
+and ocean engineering applications. 
+3. Discussion 
+This study presents WHVS-Net, a neural framework for accurate 3D reconstruction of 
+wave hydrodynamics, including both the free surface and velocity field. Unlike conventional 
+vision-based methods that depend on dense stereo matching and are computationally intensive 
+and sensitive to occlusions, WHVS-Net uses an attention-augmented pyramid architecture 
+tailored to the multi-scale and temporally coherent characteristics of ocean waves. We employ 
+implicit encoding of camera parameters to facilitate fast matching in the latent image space. 
+Multi-scale attention captures fine-scale free surface structures, while spatiotemporal continuity 
+enables the network to learn the dynamic motion patterns of ocean waves. 
+Experiments conducted under real-sea conditions demonstrate millimetre-level accuracy 
+in wave height prediction and dominant frequency errors of less than 0.01 Hz. The model further 
+captures fine-scale wave dynamics by accurately reproducing the high-frequency spectral 
+power law of 𝑓−5 . Through the integration of spatial multi-scale features with temporal 
+
+ 
+17 
+ 
+continuity, the framework achieves high-accuracy surface reconstruction even in the presence 
+of visual occlusions. Leveraging a stereo vision dataset, the neural network consistently 
+surpasses conventional vision-based methods and demonstrates strong generalization by 
+reliably reconstructing occluded scenarios. In addition, a velocity field solver is developed for 
+the free surface, and a potential-flow-based regularized least-squares formulation is applied to 
+enforce consistency with velocity observations. This approach enables accurate and high-
+fidelity reconstruction of the 3D internal flow fields of ocean waves. 
+Furthermore, expanding the data acquisition framework to incorporate a broader spectrum 
+of wave conditions, illumination scenarios, and geographical settings will facilitate the 
+construction of a more diverse, representative, and benchmark-ready dataset ecosystem. Finally, 
+the integration of multi-modal sensing strategies—combining visual, radar49, 50 or LiDAR51, 52—
+may offer a promising path toward enhanced robustness and cross-scenario generalization. 
+Collectively, these research directions are expected to advance neural network-based wave 
+hydrodynamic reconstruction from experimental proof-of-concept to scalable, field-deployable 
+systems, thereby making a substantive contribution to quantitative sea observation and ocean 
+physics. 
+4. Methods 
+4.1 Feature extraction 
+Given a pair of input RGB images 𝐼𝐿, 𝐼𝑅∈ℝ𝑉×𝑈×3 , an initial normalization step is 
+applied to scale the intensity values to the range [−1, 1]. The normalized images, denoted as 
+𝐼𝐿,𝑛𝑜𝑟𝑚 and 𝐼𝑅,𝑛𝑜𝑟𝑚 , are subsequently fed into a convolutional backbone to extract dense 
+feature representations. Specifically, the left and right feature maps are extracted via a shared 
+ResNet45 encoder: 
+𝐹𝐿, 𝐹𝑅= 𝑅𝑒𝑠𝑁𝑒𝑡(𝐼𝐿,𝑛𝑜𝑟𝑚, 𝐼𝐿,𝑛𝑜𝑟𝑚) ∈ℝ𝐻×𝑊 ×𝐷
+(6) 
+In parallel, multi-scale feature maps are computed from the left image using a hierarchical 
+multi-scale ResNet-based encoder: 
+𝐹𝑠
+′ = 𝑀𝑢𝑙𝑡𝑖𝑆𝑐𝑎𝑙𝑒𝑅𝑒𝑠𝑁𝑒𝑡(𝐼𝐿,𝑛𝑜𝑟𝑚 ) ∈ℝ
+𝐻
+2𝑠×𝑊
+2𝑠  ×𝐷, 𝑠∈{0,1,2, … }
+(7) 
+To incorporate camera extrinsic parameters (rotation 𝑅 and translation 𝑇), we introduce 
+an extrinsic FiLM module. This module maps the extrinsic matrix into channel-wise affine 
+parameters (𝛾, 𝛽) via a multi-layer perceptron: 
+𝐸𝑥𝑡𝑟𝑖𝑛𝑠𝑖𝑐𝐹𝑖𝐿𝑀(𝐹, 𝑅, 𝑇) = 𝐹⊙(1 + 𝛾) + 𝛽 
+(8) 
+where (𝛾, 𝛽)  are generated from the flattened extrinsic matrix [𝑣𝑒𝑐(𝑅), 𝑇] ∈ℝ12 . By 
+extending camera parameters into a higher-dimensional space and fusing image features within 
+a multi-scale low-dimensional embedding space, efficient feature matching and reconstruction 
+are achieved. The resulting parameter modulation is applied to feature maps, facilitating 
+network adaptation to varying camera poses.  
+
+ 
+18 
+ 
+4.2 Multi-scale disparity refinement 
+To compute the horizontal correlation between the left and right feature maps 𝐹𝐿, 𝐹𝑅 in 
+the latent space, a row-wise latent normalized correlation volume 𝐶1𝐷 (𝑖, 𝑗, 𝑘) is constructed. 
+For each row index 𝑖, the similarity between pixel 𝑗 in the left feature map and pixel 𝑘 in the 
+right feature map is defined as: 
+𝐶1𝐷(𝑖, 𝑗, 𝑘) = 1
+√𝐷
+∑𝐹𝐿(𝑖, 𝑗, 𝑑) ∙𝐹𝑅(𝑖, 𝑘, 𝑑)
+𝐷
+𝑑=1
+∈ℝ𝐻×𝑊×𝑊 
+(9) 
+where 𝐷 denotes channel dimension of the feature map. This operation enforces a One-
+dimensional matching constraint by restricting the dot-product computation to feature vectors 
+along the same image row. To ensure physically valid stereo correspondence, the matching is 
+constrained to only consider candidates to the left of the current pixel in the left image, i.e., 
+𝐶1𝐷 (𝑖, 𝑗, 𝑘) = 0, 𝑖𝑓  𝑘> 𝑗
+(10) 
+The similarity scores along each row are then normalized via a softmax function to obtain 
+a matching probability distribution: 
+𝑊𝑑𝑖𝑠𝑝(𝑖, 𝑗, 𝑘) = 𝑠𝑜𝑓𝑡𝑚𝑎𝑥(𝐶1𝐷(𝑖, 𝑗, 𝑘)) =
+𝑒𝐶1𝐷(𝑖,𝑗,𝑘)
+∑
+𝑒𝐶1𝐷(𝑖,𝑗,𝑘)
+𝑊
+𝑘=1
+∈ℝ𝐻×𝑊×𝑊
+(11) 
+ 
+Let 𝑃= [0,1,2, … , 𝑊−1] ∈ℝ𝑊 represent the horizontal pixel indices in the right image. 
+The sub-pixel disparity coordinate (𝑖, 𝑗) is then computed as the expected matching location: 
+𝐶𝑜𝑜𝑟𝑅(𝑖, 𝑗) = ∑𝑊𝑑𝑖𝑠𝑝(𝑖, 𝑗, 𝑘) ∙
+𝑊
+𝑘=1
+𝑃𝑘∈ℝ𝐻×𝑊
+(12) 
+ 
+Finally, the coarse disparity cues 𝑑𝑚𝑎𝑡𝑐ℎ is given by: 
+𝑑𝑚𝑎𝑡𝑐ℎ(𝑖, 𝑗) = 𝑗−𝐶𝑜𝑜𝑟𝑅(𝑖, 𝑗) ∈ℝ𝐻×𝑊
+(13) 
+This formulation enables efficient and differentiable estimation of dense disparity through 
+soft-attention over row-wise correlation volumes. Disparity maps are highly correlated with the 
+source images in spatial structure. To refine the disparity predictions, an attention-guided53 
+correction mechanism is introduced, wherein the reference feature map 𝐹𝑠
+′ provides scale-
+specific guidance to the coarse disparity cues 𝑑𝑚𝑎𝑡𝑐ℎ. This operation is implemented via a self-
+attention that adaptively reweights disparity values based on spatial consistency information:  
+𝑑𝑠𝑐𝑎𝑙𝑒,𝑠= 𝑠𝑜𝑓𝑡𝑚𝑎𝑥(𝐹𝑠
+′𝐹𝑠
+′𝑇
+√𝐷
+) 𝑑𝑚𝑎𝑡𝑐ℎ,𝑠∈ℝ
+𝐻
+2𝑠×𝑊
+2𝑠, 𝑠∈{0,1,2, … }
+(14) 
+Each disparity cues is replaced by a weighted sum over all spatial locations, where the attention 
+weights are dynamically derived from the feature similarity across the reference map. This 
+operation enables spatial consistency to inform local reconstruction, effectively suppressing 
+irrelevant noise and enhancing the coherence and accuracy of the disparity field. 
+
+ 
+19 
+ 
+4.3 Temporal fusion for video stereo 
+To construct a disparity-difference consistency mask, given three consecutive initial 
+disparity maps 𝑑𝑡−1
+0
+, 𝑑𝑡
+0, 𝑑𝑡+1
+0
+ , the mask between any two frames 𝑙, 𝑘∈[𝑡−1, 𝑡 , 𝑡+ 1] is 
+defined as： 
+𝑚𝑎→𝑏(𝑢, 𝑣) = 𝑒𝑥𝑝(−|𝑑𝑎
+0(𝑢, 𝑣) − 𝑑𝑏
+0(𝑢, 𝑣), |
+𝜎𝑑
+)
+(15) 
+where 𝜎𝑑  controls the decay rate of the mask. 𝑚∈[0, 1]  represents the confidence of 
+disparity consistency between adjacent frames at pixel. 
+For the current frame 𝑑𝑡 the disparity is refined by incorporating residual information 
+from its neighboring frames: 
+𝑑𝑡= 𝑑𝑡
+0 + 𝜏−1𝑚𝑡−1→𝑡(𝑑𝑡−1
+0
+−𝑑𝑡
+0) + 𝜏1𝑚𝑡+1→𝑡(𝑑𝑡+1
+0
+−𝑑𝑡
+0)
+(16) 
+where 𝜏−1, 𝜏1 ∈[0, 1] denote the residual fusion weights for the previous and the next frame, 
+respectively. 
+4.4 Comparison with established models 
+During network inference, the predicted disparity map 𝑑𝑝𝑟𝑒𝑑 exhibits a distinct spatial 
+pattern: along the vertical axis, regions with smaller 𝑣 values (i.e., waves closer to the camera) 
+tend to have larger disparities and higher variance, whereas regions with larger 𝑣 values (i.e., 
+more distant waves) show smaller disparities and reduced variance. This spatial heterogeneity 
+suggests that disparity errors should be evaluated with position-dependent sensitivity. 
+To account for this, a position-aware weighted L1 disparity loss function is designed to 
+prioritize accuracy in distant (low-disparity) regions while allowing greater tolerance for near-
+field (high-disparity) regions. The loss is formulated as: 
+𝐿𝑑𝑖𝑠𝑝 = 1
+|𝛺| ∑
+𝜔(𝑣) ∙|𝑑𝑝𝑟𝑒𝑑(𝑢, 𝑣) −𝑑𝐺𝑇(𝑢, 𝑣)|
+(𝑢,𝑣)∈𝛺
+(17) 
+where 𝛺 denotes the set of valid pixels, and the vertical position-dependent weighting function 
+𝜔(𝑣) models the physical variation of disparity with respect to image row coordinate 𝑣: 
+𝜔(𝑣) = 𝛼+ (1 −𝛼) (1 −𝑣
+𝑉)
+𝛽
+(18) 
+where, 𝛼= 0.3 defines the minimum weight assigned to pixels near the bottom of the image, 
+and a quadratic decay is applied with 𝛽= 2. 
+In Table 2, we compare WHVS-Net with Raft-stereo32, GMStereo33, Selective-Stereo34 , 
+MonSter54 an DEFOM-Stereo55 in terms of model parameters, inference time, and performance 
+on the proposed wave benchmark for non-sequential inputs. Inference was performed on a 
+single NVIDIA 4090 GPU at a resolution of 1632 × 1280. We evaluate performance using far-
+field and full-field endpoint errors, as well as Bad 1px and D1 metrics. The results indicate that 
+WHVS-Net delivers the lowest errors and the fastest inference compared to the other methods, 
+
+ 
+20 
+ 
+while maintaining a small parameter size. 
+Table 2 Quantitative evaluation on WASS dataset benchmark 
+Model 
+EPE(pixel) 
+Bad 
+1px(%) 
+D1(%) 
+Param 
+(M) 
+Runtime 
+(s) 
+Full-field 
+Far-field 
+Raft-stereo32 
+2.13 
+3.18 
+28.42 
+20.59 
+11.1 
+4.41 
+GMStereo33 
+2.24 
+3.97 
+30.36 
+21.32 
+7.4 
+1.78 
+Selective-Stereo34 
+1.99 
+2.35 
+27.14 
+19.86 
+11.7 
+2.19 
+MonSter54 
+2.09 
+4.02 
+29.31 
+20.18 
+53.4 
+3.40 
+DEFOM-Stereo55 
+1.86 
+3.71 
+26.64 
+19.38 
+47.3 
+2.45 
+WHVS-Net 
+1.72 
+2.32 
+25.81 
+16.41 
+7.9 
+1.35 
+In Table 3, ablation experiments are conducted to evaluate the importance and 
+effectiveness of each key module in WHVS-Net. The configurations include using the full 
+model, removing the temporal module, reducing the multi-scale depth, and eliminating the 
+attention and reference mechanisms. Removing this module increases the temporal consistency 
+metric 𝜎𝑡 , the temporal mean RMSE of disparity differences between consecutive frames, 
+indicating the crucial role of temporal information in achieving stable reconstruction. Reducing 
+multi-scale depth markedly degrades far-field accuracy, confirming their ability to capture wave 
+features across scales. Eliminating attention leads to the worst performance, highlighting its 
+critical role in feature aggregation. Together, these results verify the necessity of all modules 
+and their complementary contributions to the robustness and accuracy of WHVS-Net. 
+Table 3 Ablation experiments of WHVS-Net 
+Setup 
+EPE(pixel) 
+Bad 1px(%) 
+D1(%) 
+𝜎𝑡(pixel) 
+Full-field 
+Far-field 
+Full 
+1.65 
+2.29 
+24.12 
+16.01 
+0.32 
+W/o temporal 
+1.72 
+2.32 
+25.81      
+16.41 
+0.46 
+MS depth 2 
+1.88 
+3.41 
+27.24      
+19.11 
+— 
+MS depth 1 
+2.29 
+4.04 
+31.11     
+21.77 
+— 
+W/o attn.+ref. 
+2.77 
+5.15 
+36.97   
+27.51 
+— 
+4.5 Derivation of Eqs. (1) and (2) 
+Water wave problems are conventionally resolved in the framework of potential flow 
+theory. It is assumed that (1) the fluid is inviscid, irrotational and incompressible and that (2) 
+the effects of the surface tension, dissolved gases, cavitation, density, and temperature gradients 
+of the water are negligible. The condition at the free surface, 𝜂 , includes the dynamic free 
+surface boundary condition, 
+𝜂= −1
+𝑔
+𝑑𝛷
+𝑑𝑡|
+𝑧=𝜂
+−1
+2𝑔∇𝛷|𝑧=𝜂⋅∇𝛷|𝑧=𝜂−1
+2𝑔𝑈𝑧
+2
+(19) 
+and the kinematic free surface boundary condition, 
+
+ 
+21 
+ 
+𝜕𝜂
+𝜕𝑡+ ∇𝜂⋅∇𝛷|𝑧=𝜂= 𝑈𝑧
+(20) 
+where 𝑔 is the gravitational acceleration and where 𝑈𝑧 is the vertical velocity at the free 
+surface. 𝛷  is the potential function of water waves. For convenience of the subsequent 
+derivation, the free surface velocity potential function defined by 
+𝛷𝑠(𝑥, 𝑡) = 𝛷(𝑥, 𝑧= 𝜂, 𝑡) 
+(21) 
+By substituting it into Eqs. (19) and (20), the free surface boundary conditions become  
+𝜕𝛷𝑠
+𝜕𝑡= −𝑔𝜂−1
+2 |∇𝛷𝑠|2 + 1
+2 (1 + |∇𝜂|2)𝑈𝑧
+2
+(22) 
+𝜕𝜂
+𝜕𝑡= (1 + |∇𝜂|2)𝑈𝑧−∇𝛷𝑠∇𝜂
+(23) 
+Because 𝜂 can be obtained by visual reconstruction, 𝛷𝑠 can be determined from  
+𝜕𝛷𝑠
+𝜕𝑡= −𝑔𝜂−1
+2 |∇𝛷𝑠|2 + 1
+2 (1 + |∇𝜂|2) (𝜕𝜂/𝜕𝑡+ ∇𝛷𝑠∇𝜂
+(1 + |∇𝜂|2)
+)
+2
+(24) 
+In the above equation, an iterative procedure is required to obtain the solution of 𝛷𝑠 . 
+However, since the term |∇𝛷𝑠|2 exhibits relatively weak nonlinearity, it can be reasonably 
+approximated and simplified as 
+𝛷𝑠≈∫(−𝑔𝜂+ 1
+2
+1
+1 + |∇𝜂|2 (𝜕𝜂
+𝜕𝑡)
+2
+)
+𝑡
+0
+𝑑𝑡= ∫𝒯
+𝑡
+0
+𝑑𝑡
+(25) 
+Then, the nonlinear velocities at wave free surface are given as 
+𝑈𝑧=
+1
+(1 + |∇𝜂|2) (𝜕𝜂
+𝜕𝑡+ ∇𝛷𝑠∇𝜂) =
+1
+1 + |∇𝜂|2 (𝜕𝜂
+𝜕𝑡+ ∇𝜂∫∇𝒯
+𝑡
+0
+𝑑𝑡)
+(26) 
+𝑈⃗⃗ 𝜂= ∇𝛷𝑠−∇𝜂𝑈𝑧= ∫∇𝒯
+𝑡
+0
+𝑑𝑡−∇𝜂𝑈𝑧
+(27) 
+Acknowledgment 
+Financial supports from the National Natural Science Foundation of China (Grant No. 
+52478507, 523B2087, U24A20174) are greatly appreciated by the authors. 
+References 
+1. 
+Lu Z-Q, Zhao L, Fu H-L, Yeatman E, Ding H, Chen L-Q. Ocean wave energy harvesting with high 
+energy density and self-powered monitoring system. Nature Communications 15, 6513 (2024). 
+ 
+2. 
+Green MO, Coco G. Review of wave‐driven sediment resuspension and transport in estuaries. 
+Reviews of Geophysics 52, 77-117 (2014). 
+ 
+3. 
+Casas-Prat M, et al. Wind-wave climate changes and their impacts. Nature Reviews Earth & 
+Environment 5, 23-42 (2024). 
+ 
+4. 
+Capotondi A, et al. A global overview of marine heatwaves in a changing climate. Communications 
+
+ 
+22 
+ 
+Earth & Environment 5, 701 (2024). 
+ 
+5. 
+Wei Z, Davison A. A convolutional neural network based model to predict nearshore waves and 
+hydrodynamics. Coastal Engineering 171, 104044 (2022). 
+ 
+6. 
+Cui Y, et al. Forecasting the eddying ocean with a deep neural network. Nature Communications 
+16, 2268 (2025). 
+ 
+7. 
+Lindroth S, Leijon M. Offshore wave power measurements—A review. Renewable and Sustainable 
+Energy Reviews 15, 4274-4285 (2011). 
+ 
+8. 
+Holthuijsen LH. Waves in oceanic and coastal waters. Cambridge university press (2010). 
+ 
+9. 
+Cavaleri L, Fox-Kemper B, Hemer M. Wind waves in the coupled climate system. Bulletin of the 
+American Meteorological Society 93, 1651-1661 (2012). 
+ 
+10. 
+Ardhuin F, et al. Semiempirical dissipation source functions for ocean waves. Part I: Definition, 
+calibration, and validation. Journal of Physical Oceanography 40, 1917-1941 (2010). 
+ 
+11. 
+Gomit G, Chatellier L, David L. Free-surface flow measurements by non-intrusive methods: a 
+survey. Experiments in Fluids 63, 94 (2022). 
+ 
+12. 
+de Vries S, Hill DF, de Schipper MA, Stive MJF. Remote sensing of surf zone waves using stereo 
+imaging. Coastal Engineering 58, 239-250 (2011). 
+ 
+13. 
+Benetazzo A. Measurements of short water waves using stereo matched image sequences. Coastal 
+Engineering 53, 1013-1032 (2006). 
+ 
+14. 
+Benetazzo A, Fedele F, Gallego G, Shih PC, Yezzi A. Offshore stereo measurements of gravity 
+waves. Coastal Engineering 64, 127-138 (2012). 
+ 
+15. 
+Lowe DG. Distinctive image features from scale-invariant keypoints. International journal of 
+computer vision 60, 91-110 (2004). 
+ 
+16. 
+Zhang Z. A flexible new technique for camera calibration. IEEE Transactions on pattern analysis 
+and machine intelligence 22, 1330-1334 (2000). 
+ 
+17. 
+Hirschmuller H. Stereo processing by semiglobal matching and mutual information. IEEE Trans 
+Pattern Anal Mach Intell 30, 328-341 (2008). 
+ 
+18. 
+Bergamasco F, Torsello A, Sclavo M, Barbariol F, Benetazzo A. WASS: An open-source pipeline 
+for 3D stereo reconstruction of ocean waves. Computers & Geosciences 107, 28-36 (2017). 
+ 
+19. 
+Li D, Xiao L, Wei H, Li J, Liu M. Spatial-temporal measurement of waves in laboratory based on 
+binocular stereo vision and image processing. Coastal Engineering 177, 104200 (2022). 
+ 
+20. 
+Liu J, Guo A, Li H. Experimental investigation on three-dimensional structures of wind wave 
+surfaces. Ocean Engineering 265, 112628 (2022). 
+ 
+21. 
+Jain J, Jain A. Displacement measurement and its application in interframe image coding. IEEE 
+Transactions on communications 29, 1799-1808 (1981). 
+ 
+22. 
+Boykov Y, Veksler O, Zabih R. Fast approximate energy minimization via graph cuts. IEEE 
+Transactions on pattern analysis and machine intelligence 23, 1222-1239 (2002). 
+ 
+23. 
+van Meerkerk M, Poelma C, Westerweel J. Scanning stereo-PLIF method for free surface 
+measurements in large 3D domains. Experiments in Fluids 61, 19 (2020). 
+ 
+24. 
+Evers FM. Videometric water surface tracking of spatial impulse wave propagation. Journal of 
+Visualization 21, 903-907 (2018). 
+
+ 
+23 
+ 
+ 
+25. 
+Buckley MP, Horstmann J, Savelyev I, Carpenter JR. Direct observations of airflow separation 
+over ocean surface waves. Nature Communications 16, 5526 (2025). 
+ 
+26. 
+Zhu S, Liu J, Liu C, Lu W, Guo A. Visual identification of wave load on a four-cylinder array with 
+incomplete waterline information. Physics of Fluids 36, 025167 (2024). 
+ 
+27. 
+Ming Y, Meng X, Fan C, Yu H. Deep learning for monocular depth estimation: A review. 
+Neurocomputing 438, 14-33 (2021). 
+ 
+28. 
+Liang Z, et al. Learning for disparity estimation through feature constancy. In Proc. IEEE 
+conference on computer vision and pattern recognition, 2811-2820 (2018). 
+ 
+29. 
+Godard C, Mac Aodha O, Firman M, Brostow GJ. Digging into self-supervised monocular depth 
+estimation. In Proc. IEEE/CVF international conference on computer vision, 3828-3838 (2019). 
+ 
+30. 
+Yang L, Kang B, Huang Z, Xu X, Feng J, Zhao H. Depth anything: Unleashing the power of large-
+scale unlabeled data. In Proc. IEEE/CVF conference on computer vision and pattern recognition, 10371-10381 
+(2024). 
+ 
+31. 
+Mildenhall B, Srinivasan PP, Tancik M, Barron JT, Ramamoorthi R, Ng R. Nerf: Representing 
+scenes as neural radiance fields for view synthesis. Communications of the ACM 65, 99-106 (2021). 
+ 
+32. 
+Lipson L, Teed Z, Deng J. RAFT-Stereo: Multilevel Recurrent Field Transforms for Stereo 
+Matching. In Proc. International Conference on 3D Vision (3DV), 218-227 (2021). 
+ 
+33. 
+Xu H, et al. Unifying flow, stereo and depth estimation. IEEE Transactions on Pattern Analysis 
+and Machine Intelligence 45, 13941-13958 (2023). 
+ 
+34. 
+Wang X, Xu G, Jia H, Yang X. Selective-stereo: Adaptive frequency information selection for 
+stereo matching. In Proc. Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern 
+Recognition, 19701-19710 (2024). 
+ 
+35. 
+Takahashi M, Ji Y, Umeda K, Moro A. Expandable YOLO: 3D object detection from RGB-D 
+images. In Proc. 21st International Conference on Research and Education in Mechatronics (REM), 1-5 (2020). 
+ 
+36. 
+Guimarães PV, et al. A data set of sea surface stereo images to resolve space-time wave fields. 
+Scientific data 7, 145 (2020). 
+ 
+37. 
+Guimarães PV. Sea surface and energy dissipation. École centrale de Nantes (2018). 
+ 
+38. 
+Geiger A, Lenz P, Stiller C, Urtasun R. Vision meets robotics: The kitti dataset. The international 
+journal of robotics research 32, 1231-1237 (2013). 
+ 
+39. 
+Dai A, Chang AX, Savva M, Halber M, Funkhouser T, Nießner M. Scannet: Richly-annotated 3d 
+reconstructions of indoor scenes. In Proc. IEEE conference on computer vision and pattern recognition, 5828-
+5839 (2017). 
+ 
+40. 
+Mayer N, et al. A large dataset to train convolutional networks for disparity, optical flow, and scene 
+flow estimation. In Proc. IEEE conference on computer vision and pattern recognition, 4040-4048 (2016). 
+ 
+41. 
+Ioannidou A, Chatzilari E, Nikolopoulos S, Kompatsiaris I. Deep learning advances in computer 
+vision with 3d data: A survey. ACM computing surveys (CSUR) 50, 1-38 (2017). 
+ 
+42. 
+Han X-F, Laga H, Bennamoun M. Image-based 3D object reconstruction: State-of-the-art and 
+trends in the deep learning era. IEEE transactions on pattern analysis and machine intelligence 43, 1578-1604 
+(2019). 
+ 
+43. 
+Bouguet J-Y. Pyramidal implementation of the affine lucas kanade feature tracker description of 
+the algorithm. Intel corporation 5, 4 (2001). 
+
+ 
+24 
+ 
+ 
+44. 
+Tosi F, Bartolomei L, Poggi M. A survey on deep stereo matching in the twenties. International 
+Journal of Computer Vision 133, 4245-4276 (2025). 
+ 
+45. 
+He K, Zhang X, Ren S, Sun J. Deep residual learning for image recognition. In Proc. IEEE 
+conference on computer vision and pattern recognition, 770-778 (2016). 
+ 
+46. 
+Romero L, Melville WK. Airborne observations of fetch-limited waves in the Gulf of Tehuantepec. 
+Journal of Physical Oceanography 40, 441-465 (2010). 
+ 
+47. 
+Takagaki N, Takane K, Kumamaru H, Suzuki N, Komori S. Laboratory measurements of an 
+equilibrium-range constant for wind waves at extremely high wind speeds. Dynamics of Atmospheres and 
+Oceans 84, 22-32 (2018). 
+ 
+48. 
+Zakharov VE. Stability of periodic waves of finite amplitude on the surface of a deep fluid. Journal 
+of Applied Mechanics and Technical Physics 9, 190-194 (1968). 
+ 
+49. 
+Passaro M, Hemer MA, Quartly GD, Schwatke C, Dettmering D, Seitz F. Global coastal 
+attenuation of wind-waves observed with radar altimetry. Nature communications 12, 3812 (2021). 
+ 
+50. 
+Yang Z, Huang W. SWHFormer: A Vision Transformer for Significant Wave Height Estimation 
+From Nautical Radar Images. IEEE Transactions on Geoscience and Remote Sensing 62, 1-13 (2024). 
+ 
+51. 
+Baker CM, Moulton M, Palmsten ML, Brodie K, Nuss E, Chickadel CC. Remotely sensed short-
+crested breaking waves in a laboratory directional wave basin. Coastal Engineering 183, 104327 (2023). 
+ 
+52. 
+Qiao X, Huang W. WaveTransNet: A Transformer-Based Network for Global Significant Wave 
+Height Retrieval From Spaceborne GNSS-R Data. IEEE Transactions on Geoscience and Remote Sensing 62, 
+1-11 (2024). 
+ 
+53. 
+Vaswani A, et al. Attention is all you need. In Proc. NeurIPS 30, 5998–6008 (2017). 
+ 
+54. 
+Cheng J, et al. Monster: Marry monodepth to stereo unleashes power. In Proc. Proceedings of the 
+Computer Vision and Pattern Recognition Conference, 6273-6282 (2025). 
+ 
+55. 
+Jiang H, et al. Defom-stereo: Depth foundation model based stereo matching. In Proc. Proceedings 
+of the Computer Vision and Pattern Recognition Conference, 21857-21867 (2025). 
+ 
+ 

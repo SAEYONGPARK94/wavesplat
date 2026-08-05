@@ -1,0 +1,58 @@
+FROM SPARSE SENSORS TO CONTINUOUS FIELDS:
+STRIDE FOR SPATIOTEMPORAL RECONSTRUCTION
+Yanjie Tong, Peng Chen
+School of Computational Science and Engineering
+Georgia Institute of Technology
+Atlanta, GA 30332
+{ytong80, pchen402}@gatech.edu
+ABSTRACT
+Reconstructing high-dimensional spatiotemporal fields from sparse point-sensor measurements is
+a central challenge in learning parametric PDE dynamics. Existing approaches often struggle to
+generalize across trajectories and parameter settings, or rely on discretization-tied decoders that do not
+naturally transfer across meshes and resolutions. We propose STRIDE (Spatio-Temporal Recurrent
+Implicit DEcoder), a two-stage framework that maps a short window of sensor measurements to
+a latent state with a temporal encoder and reconstructs the field at arbitrary query locations with
+a modulated implicit neural representation (INR) decoder. Using the Fourier Multi-Component
+and Multi-Layer Neural Network (FMMNN) as the INR backbone improves representation of
+complex spatial fields and yields more stable optimization than sine-based INRs. We provide a
+conditional theoretical justification: under stable delay observability of point measurements on
+a low-dimensional parametric invariant set, the reconstruction operator factors through a finite-
+dimensional embedding, making STRIDE-type architectures natural approximators. Experiments on
+four challenging benchmarks spanning chaotic dynamics and wave propagation show that STRIDE
+outperforms strong baselines under extremely sparse sensing, supports super-resolution, and remains
+robust to noise.
+1
+Introduction
+Many scientific and engineering systems are governed by nonlinear partial differential equations (PDEs) and evolve
+on high-dimensional spatiotemporal fields that depend on parameters (e.g., forcing, geometry, material properties, or
+initial/boundary conditions) [1, 2]. In practice, however, measurements are often restricted to sparse point sensors,
+so recovering the full field amounts to an ill-posed state estimation problem [3]. Although high-fidelity solvers can
+produce accurate trajectories, their computational cost limits repeated simulation across parameter settings and real-time
+deployment [4]. These constraints motivate learned surrogates that reconstruct full spatiotemporal states from sparse
+measurements while generalizing across trajectories and (possibly unobserved) parameters.
+Existing data-driven approaches for mapping sparse observations to full states fall broadly into two categories: methods
+that reconstruct from concurrent measurements only [5, 6], and methods that explicitly exploit temporal history (e.g.,
+delay embeddings or recurrent state estimators) [7, 8, 9, 10]. The former can perform well when the mapping is nearly
+instantaneous, but can struggle in parametric or chaotic regimes where the same sensor snapshot may correspond to
+multiple underlying states. The latter reduce this ambiguity by using a short observation window, echoing classical
+embedding and observability ideas [11, 12], but many existing designs still rely on decoders tied to a fixed discretization
+or whose parameter count scales with the output dimension, limiting transfer to irregular meshes and varying resolutions.
+A complementary approach is to represent fields with implicit neural representations (INRs), i.e., continuous coordinate-
+to-field maps that can be queried at arbitrary locations, naturally supporting irregular meshes and super-resolution.
+Among INR backbones, SIREN has demonstrated strong expressivity via sine activations [13]. In PDE learning,
+modulated INRs (e.g., FiLM-modulated SIREN) have been used in operator learning and spatiotemporal prediction
+[14, 15, 16]. While sine-activated networks like SIREN are expressive, they often encounter challenging optimization
+arXiv:2602.04201v1 [cs.LG] 4 Feb 2026
+
+From Sparse Sensors to Continuous Fields: STRIDE for Spatiotemporal Reconstruction
+landscapes when modeling high-frequency content. To address this, the Fourier Multi-Component and Multi-Layer
+Neural Network (FMMNN) was recently introduced to enhance optimization stability and improve the representation of
+fine-scale spatial structures [17].
+We propose STRIDE (Spatio-Temporal Recurrent Implicit DEcoder), a two-stage framework that combines windowed
+sensor history with continuous decoding. STRIDE maps a short observation window to a low-dimensional latent
+state with a temporal encoder (e.g., LSTM [18], or alternatives such as Mamba [19]) and reconstructs the field at
+arbitrary query locations with a modulated INR decoder. Our default instantiation uses FMMNN with lightweight
+shift modulations, enabling resolution-invariant reconstruction while improving training stability relative to sine-
+based backbones. We further provide a conditional theoretical justification: under stable delay observability of point
+measurements on an effectively low-dimensional parametric invariant set (Mañé-type projection results [20]), the
+recon

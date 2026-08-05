@@ -1,0 +1,58 @@
+Surface Similarity Parameter: A New Machine Learning Loss Metric for
+Oscillatory Spatio-Temporal Data
+Mathies Wedlera,∗, Merten Stendera,, Marco Kleina,, Svenja Ehlersa,, Norbert Hoﬀmanna,b,
+aHamburg University of Technology, Dynamics Group, Schlossm¨uhlendamm 30, 21073 Hamburg, Germany
+bImperial College London, Department of Mechanical Engineering, 58 Prince’s Gate, South Kensington, London SW7 1AY,
+United Kingdom
+Abstract
+Supervised machine learning approaches require the formulation of a loss functional to be minimized in the
+training phase. Sequential data are ubiquitous across many ﬁelds of research, and are often treated with
+Euclidean distance-based loss functions that were designed for tabular data. For smooth oscillatory data,
+those conventional approaches lack the ability to penalize amplitude, frequency and phase prediction errors
+at the same time, and tend to be biased towards amplitude errors. We introduce the surface similarity
+parameter (SSP) as a novel loss function that is especially useful for training machine learning models on
+smooth oscillatory sequences. Our extensive experiments on chaotic spatio-temporal dynamical systems in-
+dicate that the SSP is beneﬁcial for shaping gradients, thereby accelerating the training process, reducing the
+ﬁnal prediction error, increasing weight initialization robustness, and implementing a stronger regularization
+eﬀect compared to using classical loss functions. The results indicate the potential of the novel loss metric
+particularly for highly complex and chaotic data, such as data stemming from the nonlinear two-dimensional
+Kuramoto–Sivashinsky equation and the linear propagation of dispersive surface gravity waves in ﬂuids.
+Keywords:
+deep learning, loss function, error metric, similarity, nonlinear dynamics, spatio-temporal
+dynamics
+1. Introduction
+Given the fact that almost any natural process is dynamic and non-stationary, sequential data is ubiq-
+uitous across many scientiﬁc disciplines, such as weather forecasting, ﬁnance, natural language processing,
+acoustics and many more. Besides classical analytical and numerical techniques (Anderson, 1995; Wriggers,
+2008), machine learning approaches have been adopted lately for various regression or classiﬁcation tasks
+on sequential data given a continuous quantity y (t) sampled at discrete instants y (t) = [y(t1), . . . y(tN)]
+(Bagnall et al., 2016; Zhang et al., 2016; Shi & Yeung, 2018; Herzog et al., 2018; Vlachas et al., 2018; Fawaz
+et al., 2019; Legaard et al., 2021; Stender et al., 2021). Most data-driven approaches are rooted in a su-
+pervised optimization framework for a model’s f parameters θ, essentially targeting at minimizing an error
+functional J (y, ˆy(θ)) that describes the discrepancy between the model prediction ˆy and the ground truth
+y (LeCun et al., 2015; Singh et al., 2016). Some techniques utilize sequence featurization (Fulcher & Jones,
+2014), i.e. turning sequential data into vectors of descriptive scalar values, while direct approaches perform
+the error computation on the raw sequences themselves (Hochreiter & Schmidhuber, 1997; Fawaz et al.,
+2019). There is a plethora of metrics for measuring the similarity of two (multivariate) sequences, such as
+generic time domain distance metrics or custom metrics tailored towards speciﬁc aspects of the given data
+(Mue, 2007; Fulcher et al., 2013; Jiang et al., 2019). The choice of a speciﬁc error metric as loss function
+∗Corresponding author
+Email address: mathies.wedler@tuhh.de (Mathies Wedler)
+URL: www.tuhh.de/dyn (Mathies Wedler)
+Preprint submitted to Neural Networks
+September 30, 2022
+arXiv:2204.06843v2 [cs.LG] 29 Sep 2022
+
+for the training of machine learning methods is of crucial importance: the loss function shapes the gradient
+(LeCun et al., 2015), thus the convergence behavior of the optimization, and potentially biased predictions.
+Conventional Euclidean distance metrics such as the mean squared error (MSE) and mean absolute
+error (MAE) do not take the sequential data characteristic into account, nor smoothness or continuity of
+the predicted sequences. Instead, considering sequences as a set of values sampled from some distribution,
+the MSE and MAE aim at ﬁtting the mean and median, respectively, of that distribution. Often times, a
+spectral decomposition of complex (spatio-) temporal dynamics is utilized to describe the data in a ﬁnite
+series of harmonics, each described by amplitude, frequency and phase (Giannakis et al., 2019). From this
+viewpoint, Euclidean distance metrics are biased towards amplitude errors, rendering them as sub-optimal
+loss functions for some machine learning tasks as our work will illustrate. We introduce the surface similarity
+parameter SSP (Perlin & Bustamante, 2014) as a novel loss metric, that is capable of combining amplitude,
+frequency and phase errors into a single scalar error metric. Thereby, the SSP can provide several beneﬁts
+for machine learning applications on complex oscillatory sequential da

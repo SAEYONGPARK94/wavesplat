@@ -1,0 +1,74 @@
+Applied Energy 324 (2022) 119711
+Available online 26 July 2022
+0306-2619/© 2022 The Author(s). Published by Elsevier Ltd. This is an open access article under the CC BY license (http://creativecommons.org/licenses/by/4.0/).
+Contents lists available at ScienceDirect
+Applied Energy
+journal homepage: www.elsevier.com/locate/apenergy
+Phase-resolved real-time ocean wave prediction with quantified uncertainty
+based on variational Bayesian machine learning
+Jincheng Zhang a, Xiaowei Zhao a,∗, Siya Jin b, Deborah Greaves b
+a Intelligent Control & Smart Energy (ICSE) Research Group, School of Engineering, University of Warwick, Coventry, UK
+b School of Engineering, Computing and Mathematics, University of Plymouth, Plymouth, UK
+A R T I C L E
+I N F O
+Keywords:
+Bayesian neural network
+Deterministic sea wave prediction
+Predictable zone
+Probabilistic machine learning
+Uncertainty quantification
+Wave tank experiment
+A B S T R A C T
+Phase-resolved wave prediction is of vital importance for the real-time control of wave energy converters. In
+this paper, a novel wave prediction method is proposed, which, to the authors’ knowledge, achieves the real-
+time nonlinear wave prediction with quantified uncertainty (including both aleatory and model uncertainties)
+for the first time. Moreover, the proposed method achieves the prediction of the predictable zone without
+assuming linear sea states, while all previous works on predictable zone determination were based on linear
+wave theory (which produces overly conservative estimations). The proposed method is developed based on
+the Bayesian machine learning approach, which can take advantage of machine learning model’s ability in
+tackling complex nonlinear problems, while taking various forms of uncertainties into account via the Bayesian
+framework. A set of wave tank experiments are carried out for evaluation of the method. The results show
+that the wave elevations at the location of interest are predicted accurately based on the measurements at
+sensor location, and the prediction uncertainty and its variations across the time horizon are well captured.
+The comparison with other wave prediction methods shows that the proposed method outperforms them in
+terms of both prediction accuracy and the length of the predictable zone. Particularly, for short-term wave
+forecasting, the prediction error by the proposed method is as much as 55.4% and 11.7% lower than the
+linear wave theory and deterministic machine learning approaches, and the predictable zone is expanded by
+the proposed method by as much as 74.6%.
+1. Introduction
+As one of the main renewable energy resources, wave energy is
+expected to play an increasingly important role in the energy mix in the
+future [1,2]. In order to reduce the cost of wave power, a lot of research
+efforts have been spent on the modeling, simulations, and predictions
+of ocean waves. The commonly-used models developed in the past
+decades include WAM [3], SWAN [4], and WAVEWATCH III [5]. As the
+existing works have mainly focused on the statistical wave quantities
+(such as significant wave height and peak wave period), the phase-
+resolved wave information is often not obtained. On the other hand, the
+phase-resolved real-time wave information is of great practical interest
+for the safe and optimal operation of wave energy devices. For example,
+the real-time prediction of the phase-resolved wave elevations can be
+used for the control of the wave energy converters (WECs) [6,7], so
+that the controllers can act in advance before the waves hit the WEC
+structures. Such preview-based control strategy is greatly useful for
+optimizing the power generation of WECs [8,9] and the mitigation of
+∗Corresponding author.
+E-mail addresses: jincheng.zhang.1@warwick.ac.uk (J. Zhang), xiaowei.zhao@warwick.ac.uk (X. Zhao), siya.jin@plymouth.ac.uk (S. Jin),
+deborah.greaves@plymouth.ac.uk (D. Greaves).
+their structural fatigue [10,11]. Particularly, the study in [12] showed
+that the model predictive control (MPC) approach was able to provide
+an average increase in power production of 36% over the standard fixed
+damping control, for the investigated Azura WEC under experimental
+conditions. The recent study [13] showed that short-term wave fore-
+casting could enable good performance for the control of a WEC under
+real-world ocean conditions obtained in field measurement campaigns.
+Besides the control of WECs, the phase-resolved wave information is
+also of great interest for the control of other ocean structures, such as
+the load mitigation of floating wind turbines through MPC [14]. To
+tackle these challenges, phase-resolved wave prediction, which aims
+at predicting the wave elevations at the locations and time instants of
+interest based on wave measurements at sensor locations, is becoming
+a hot topic.
+The earlier works on phase-resolved wave predictions were mainly
+based on linear wave theory (LWT) [15,16], where the prediction
+procedure can be divided into the following three steps. Fi

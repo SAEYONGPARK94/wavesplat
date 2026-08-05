@@ -1,0 +1,57 @@
+
+
+<<<@70731 Conclusion>>>
+
+5. Conclusion
+This work introduces a novel machine learning-based approach for the phase-resolved reconstruction
+of ocean wave surface elevations from sparse radar measurements.
+To evaluate the performance of our
+approach, we generate synthetic nonlinear wave surface data for a wide range of sea states and corresponding
+radar surface data by incorporating both tilt- and shadowing modulation mechanisms. Two neural network
+architectures based on the U-Net or the Fourier neural operator are trained, both provided with varying
+amounts of spatio-temporal radar surface measurement input.
+Our results and discussion indicate that both models are capable of producing high-quality wave surface
+reconstructions with average errors below SSP ≤0.10 when trained with a sufficient amount of ns = 10
+or 9 consecutive radar snapshots.
+Furthermore, both models generalize well across different sea states.
+On average, the U-Net-based model achieves slightly smaller errors across the entire spatial domain of
+each reconstructed wave sample, while the FNO-based model produces a more uniform wave reconstruction
+between areas that were shadowed and visible in the corresponding radar input. This observation is further
+confirmed by the edge case of instantaneous inversion, i.e. if the networks are trained with only a single radar
+snapshot in each input. The weakness in the reconstruction of shadowing-affected areas of the U-Net-based
+model can be attributed to the local operation of the network architecture, where its small convolutional
+kernels do not receive processable information when shifted across shadowed input areas with zero intensities
+only. The problem can be circumvented using the FNO-based network that learns a global mapping between
+radar input and wave output in the Fourier space. This network structure already encodes prior physical
+knowledge about the periodic data structure apparent in ocean waves and is therefore possibly better suited
+for our use case.
+Our findings suggest that the FNO-based network may offer additional advantages, especially concerning
+smaller training datasets and noisy input radar data. Furthermore, future research could delve into the
+reconstruction of two-dimensional ocean wave surfaces, as the FNO network can also be implemented using
+2D-FFTs. However, due to the different propagation directions of the component waves in short-crested, two-
+dimensional sea states, we anticipate a potential degradation in the reconstruction performance compared
+to the one-dimensional scenario explored in this study. This performance degradation could be mitigated
+through appropriate countermeasures, such as employing FNOs with increased capacity, conducting longer
+training runs, or applying suitable regularization techniques.
+Moreover, the current methodology solely relies on synthetic radar input and the corresponding wave
+output data. Although it can be presumed that the HOS method generates wave surfaces that exhibit a
+reasonable degree of realism, radar imaging mechanisms for marine X-Band radar are not yet fully under-
+stood, such that state-of-the-art radar models are associated with higher uncertainties. Consequently, on the
+19
+
+one hand, a model trained solely on synthetic radar-wave data pairs cannot be applied for inference using
+real-world radar data. On the other hand, the acquisition of real-world radar-wave pair samples to train
+the neural networks is associated with high operational costs due to the necessity of deploying a dense grid
+of buoys for capturing wave snapshots. These data issues currently limit the application of the developed
+machine-learning-based reconstruction approach for real-world applications. In future research, we endeav-
+our to tackle this issue through two opportunities: Firstly, we aim to enhance the realism of synthetic radar
+data models to improve their accuracy. Alternatively, we intend to investigate the feasibility of physics-
+informed learning approaches as a tool to overcome the challenges associated with measuring real-world
+high-resolution wave output data.
+20
+
+Appendix A. Influence of neural network hyperparameters
+To mitigate the high cost of obtaining a larger data set, a four-fold cross-validation approach with an
+independent test set was utilized for finding the network hyperparameters, as recommended for example
+by Raschka (2018). The data set of N = 3120 samples was divided into a fixed and independent test set
+comprising 20% or Ntest = 624 samples, with the remain

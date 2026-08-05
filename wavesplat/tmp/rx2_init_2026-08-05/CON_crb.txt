@@ -1,0 +1,29 @@
+====================================================================================================
+CON attack 2 — CRB at the DEPLOYED initialisation window
+====================================================================================================
+engine: scripts/d1_crb.py  device=cuda  sigma=0.02 m
+gradcheck (analytic Jacobian vs autograd): 5.329070518200751e-15
+
+episode                                  N    Tp  T_obs       M  depth    cond(F)  CRB nRMSE CRBdir deg CRB|k| rel
+episode_BF4_15comp_seed0_uniform.h5     15  7.00  14.00    7126   50.0   3.00e+08     0.0125      0.104     0.0019
+episode_BF4_30comp_seed0_uniform.h5     30  7.00  14.00    7144   50.0   9.37e+11     0.0649      0.416     0.0062
+episode_BF5_15comp_seed0_uniform.h5     15  9.00  18.00    9218   50.0   1.04e+11     0.0058      0.110     0.0018
+episode_BF5_30comp_seed0_uniform.h5     30  9.00  18.00    9050   50.0   8.53e+13     0.0306      0.644     0.0105
+
+====================================================================================================
+COMPARISON with the measured arms (crowded 4, median-of-3 per episode)
+====================================================================================================
+episode                                     CRB  oracle+frz   oracle  shipped  best deploy
+episode_BF4_15comp_seed0_uniform.h5      0.0125      0.0279   0.1542   0.2788       0.2681
+episode_BF4_30comp_seed0_uniform.h5      0.0649      0.0918   0.1817   0.3106       0.2646
+episode_BF5_15comp_seed0_uniform.h5      0.0058      0.0290   0.0907   0.2266       0.1968
+episode_BF5_30comp_seed0_uniform.h5      0.0306      0.1029   0.2047   0.2291       0.2457
+MEAN                                     0.0285      0.0629   0.1578   0.2612       0.2438
+
+  quoted gap            = 0.1809  (best deployable init -> oracle+frozen)
+  the CRB (0.0285) sits BELOW the oracle arm -> the bound does not forbid reaching the oracle; attack 2 does not land on this evidence.
+
+  Direction-I information wall for reference (results/direction1/REPORT.md, 2026-06-27,
+  BF4 seed0, d=50 m): T_wall(CRB<0.25) = 0.1 s (5c) / 4.3 s (15c) / 9.7 s (30c);
+  cond(F)@1s = 7.7e4 / 8.6e12 / 9.0e17. Estimator-vs-CRB at 1 s: 15c and 30c both
+  "CRB vacuous -- estimator beats the unbiased bound".

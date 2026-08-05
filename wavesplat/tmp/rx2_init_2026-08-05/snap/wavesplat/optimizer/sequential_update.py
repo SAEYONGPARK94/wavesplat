@@ -1,0 +1,1500 @@
+"""
+sequential_update.py
+Two-phase sequential wave field estimation.
+
+Phase 1 (Initialization): Joint optimization over first 2*Tp frames
+    - Coarse-to-fine: N=3 → 8 → 15
+    - FFT-based initial values
+    - Full window optimization
+
+Phase 2 (Tracking): Per-frame warm-start update
+    - Predict: φᵢ += ωᵢ·Δt
+    - Update: 5-10 gradient steps
+    - Target: 50ms/frame
+"""
+
+import os
+import torch
+import torch.nn as nn
+import numpy as np
+import time
+from typing import List, Dict, Optional
+
+from wavesplat.model.spectral_gaussian import SpectralGaussianModel
+from wavesplat.model.dispersion import dispersion_omega
+from wavesplat.optimizer.initializer import initialize_from_frames
+from wavesplat.optimizer.coarse_to_fine import CoarseToFineSchedule
+from wavesplat.data_loader import FrameData
+
+
+# `_adaptive_prune_grow` historically compares an ABSOLUTE residual RMS in metres against
+# `grow_residual_threshold` (0.05 m) with no normalisation by sea state. This is the same
+# defect class as coarse_to_fine.SCALE_INVARIANT_ADVANCE, but it lives in a different
+# function, so that flag never reached it. Measured over 8 episodes spanning Hs 0.3-5.0 m
+# (tmp/SCALE_AUDIT_fable_2026-07-23.md): residual_rms rises monotonically with Hs
+# (0.069 -> 0.107 -> 0.175 m), so on crowded high-Hs episodes the threshold is *guaranteed*
+# to fire and the 30% rollback guard fires along with it -- an outcome previously read as
+# incidental rather than structural.
+# When True, the residual RMS is divided by the observation RMS of the same frames, so the
+# threshold means "fraction of observed signal amplitude still unexplained". That normaliser
+# needs no ground truth and is therefore deployable. False preserves shipped behaviour.
+SCALE_INVARIANT_GROW = False
+
+# The L1 sparsity term adds `lambda_l1 * sum|w|`, a quantity in metres, to a mean-squared
+# loss in metres squared. lambda_l1 therefore carries a hidden unit, and its effective
+# strength is sea-state dependent: measured 3-62% of the total loss across Hs 0.3-5.0 m,
+# non-monotonically, with a 58% swing in total recovered amplitude in a BF3-2comp ablation
+# (tmp/SCALE_AUDIT_fable_2026-07-23.md; the nRMSE impact was not isolated there).
+# When True the penalty is multiplied by the observation RMS so both terms are [m^2].
+# False preserves shipped behaviour.
+SCALE_INVARIANT_L1 = False
+
+# The tracking warm-start historically advances every component's phase by omega*dt before the
+# per-frame gradient update (`self.model.phi.add_(omega * dt)` in `update`). This DOUBLE-counts
+# time: the forward model already evolves the wave through its own -omega*t term
+# (spectral_gaussian.forward), so evaluating forward(t) with the init-time phase already gives
+# the correctly-propagated field. Adding omega*dt on top cancels the -omega*t evolution and
+# FREEZES the field at the initialization instant; the 10 Adam steps/frame then have to re-slew
+# the phase back every frame, and under Adam momentum + L1 that per-frame tug-of-war bleeds
+# amplitude toward zero. Measured (tmp/TRACKER_AMPDECAY_2026-07-25.md): starting from a
+# parameter-exact init (field nRMSE 0.000), shipped tracking decorrelates to nRMSE ~0.31 with no
+# gradient (pure frozen-wave propagation) and to ~0.16 with gradient while sum|w| decays -32%;
+# setting lambda_l1=0 does NOT stop the decay (0.1631 vs 0.1633), so L1 is not the cause.
+# When False, the redundant advance is skipped and forward(t) tracks the true time evolution
+# directly, leaving only the genuine slow drift from any wavenumber error for the gradient to
+# correct. True restores the pre-2026-07-26 legacy behaviour bit-for-bit.
+# DEFAULT FLIPPED to False on 2026-07-26 (user decision) after the 100-episode gate:
+# 0.1990 -> 0.1145 mean nRMSE, improves 100/100 episodes, Wilcoxon p=3.9e-18
+# (tmp/rerun_2026-07-25/PHASEFIX_100EP_2026-07-25.md). Every headline number published
+# before that date was measured with the legacy True behaviour unless stated otherwise.
+TRACK_PHASE_PREDICT = False
+
+# Deployed size of the analytic median-of-k field ensemble (see MedianEnsembleUpdater).
+# k=3 is the pre-registered, confirmed value; it applies ONLY to the analytic fallback of
+# the `auto` router. k=1 disables the ensemble.
+DEFAULT_ANALYTIC_ENSEMBLE_K = 3
+
+# Deployed member count of the real-domain bank-MMSE field ensemble (see
+# SequentialUpdater._initialize_bank): pointwise-median FIELD across fits whose only
+# difference is the val-split seed {s, s+1000, s+2000}. Measured 2026-07-29 on the three
+# frozen GIF-ledger windows: never worse than the median single seed, and it repairs the
+# one bad-seed lead blow-up observed (AA15a w5 lead-mean 0.824 -> 0.621,
+# tmp/bankmmse_port_2026-07-29/m3_field.json). 1 disables the ensemble.
+DEFAULT_REAL_BANK_ENSEMBLE_K = 3
+
+
+def _rx1_gate(name: str) -> bool:
+    """Rx-1 (2026-08-05) RESEARCH gate. Unset or '0' == shipped behaviour, bit-for-bit.
+
+    The environment is read at CALL time, not import time, because the Rx-1 driver reuses
+    multiprocessing pool workers across cells; an import-time read would freeze whichever
+    cell the worker happened to run first.
+
+    RX1_CONF_NORM=1
+        Divide the confidence-weighted data term by sum(weights) instead of n_obs in
+        `_compute_loss`. The shipped form divides a WEIGHTED sum by an UNWEIGHTED count,
+        so the data term is scaled by mean(confidence) (~0.86 measured) while the L1 and
+        smoothness penalties are not -- i.e. the penalties are relatively amplified.
+    RX1_PHASE2_NOREG=1
+        Drop the L1 + smoothness penalties from the TRACKING objective only; Phase 1
+        (initialisation) keeps them. This isolates "the tracking loop calls the same
+        penalised objective as Phase 1" from "the penalties exist at all".
+
+    Neither gate is a deployment knob: both are off by default and are not read by any
+    shipped config path.
+    """
+    return os.environ.get(name, '0') == '1'
+
+
+def _frames_have_gt(frames) -> bool:
+    """True if ANY frame carries a non-degenerate ground-truth field.
+
+    Real-data front-ends (wavesplat/real_data.py, the scene_real harnesses) build
+    FrameData with gt_field=None; EpisodeDataLoader always attaches a non-zero field.
+    Mirrors the `has_gt` test in run.py, widened from the last init frame to the window.
+    """
+    for f in frames:
+        g = getattr(f, 'gt_field', None)
+        if g is None:
+            continue
+        try:
+            if float(torch.abs(g).max()) > 1e-10:
+                return True
+        except (RuntimeError, ValueError, TypeError):
+            continue
+    return False
+
+
+class SequentialUpdater:
+    """
+    Two-phase sequential wave field estimator.
+
+    Usage:
+        updater = SequentialUpdater(config)
+        updater.initialize(init_frames)
+        for frame in tracking_frames:
+            result = updater.update(frame)
+    """
+
+    def __init__(self, config: dict):
+        """
+        Args:
+            config: dict with keys:
+                n_gaussians: list [3, 8, 15] or int
+                depth: water depth [m]
+                lr: learning rate (default 0.01)
+                lambda_l1: L1 sparsity weight (default 0.001)
+                lambda_smooth: smoothness weight (default 0.0001)
+                init_max_iters: max iterations for initialization (default 500)
+                tracking_steps: gradient steps per frame (default 10)
+                device: 'cpu' or 'cuda'
+                loss_thresholds: list of loss thresholds per stage (default [0.1, 0.05, None])
+                max_iters_per_stage: list of max iters per stage (default [200, 200, 500])
+                tracking_mode: 'phi_only', 'w_phi', or 'all' (default 'phi_only')
+                tracking_lr: learning rate for tracking phase (default 0.005)
+                max_steepness: wave steepness clamp (default 0.15)
+        """
+        self.config = config
+        self.depth = config.get('depth', 50.0)
+        self.lr = config.get('lr', 0.01)
+        self.lambda_l1 = config.get('lambda_l1', 0.001)
+        self.lambda_smooth = config.get('lambda_smooth', 0.0001)
+        self.tracking_steps = config.get('tracking_steps', 10)
+        self.device = config.get('device', 'cpu')
+        self.loss_thresholds = config.get('loss_thresholds', None)
+        self.max_iters_per_stage = config.get('max_iters_per_stage', None)
+        self.tracking_mode = config.get('tracking_mode', 'w_phi')
+        self.tracking_lr = config.get('tracking_lr', 0.005)
+        self.init_method = config.get('init_method', 'v2_konly')
+        # WavePrior UNIFIED (init_method='auto'): diagnostics of the GT-free regime
+        # router, populated only when init_method=='auto' (see _auto_select_init).
+        # Default (v2_konly) leaves these None -> no behavioural effect.
+        self._auto_selected = None
+        self._auto_n_selected = None
+        # WavePrior UNIFIED-GUARD (init_method='auto'): GT-free disagreement guard that
+        # vetoes a learned route on a single-clean-swell over-proposal (see
+        # _auto_select_init). RETIRED 2026-07-27 (default auto_guard=False), kept for
+        # reproducibility. Populated only on the 'auto' path; None otherwise.
+        self._auto_guard_fired = None
+        self._auto_bf_peak_ratio = None
+        # REAL-DOMAIN GATE (init_method='auto'): True when the router was bypassed because
+        # the input carries no ground-truth field, i.e. real measured data (see initialize).
+        self._auto_real_gate = None
+        # REAL-DOMAIN ESTIMATOR (2026-07-29): what runs behind the gate. 'bank_mmse'
+        # (deployed default) = the ported research estimator, ~2x better on the frozen
+        # real windows (see _initialize_bank); 'v2_konly' = the pre-port 2026-07-27
+        # behaviour, kept as an escape hatch for reproducing the older real-data runs.
+        self.real_estimator = str(config.get('real_estimator', 'bank_mmse'))
+        self._bank = None   # list[BankMMSEFit] once _initialize_bank has run
+        self.use_dispersion = config.get('use_dispersion', True)
+        self.use_confidence = config.get('use_confidence', True)
+        # Was documented above and set in configs/estimation.yaml, but never read: every
+        # clamp_steepness() call site used the function default. The shipped YAML value
+        # happens to equal that default, so behaviour is unchanged -- but the knob was
+        # silently inert and would not have taken effect if changed. (2026-07-24)
+        self.max_steepness = config.get('max_steepness', 0.15)
+        self.seed = config.get('seed', None)
+
+        # Neural corrector (nonlinear correction)
+        self.neural_corrector_path = config.get('neural_corrector_path', None)
+
+        n_gaussians = config.get('n_gaussians', [3, 8, 15])
+        if isinstance(n_gaussians, int):
+            self.stages = [n_gaussians]
+        else:
+            self.stages = list(n_gaussians)
+
+        # Adaptive N parameters
+        self.adaptive_n = config.get('adaptive_n', True)
+        self.prune_threshold = config.get('prune_threshold', 0.10)  # energy fraction to discard
+        self.grow_residual_threshold = config.get('grow_residual_threshold', 0.05)
+        self.max_n = config.get('max_n', 30)
+
+        # Multi-frame tracking
+        self.tracking_window = config.get('tracking_window', 3)
+        self._frame_buffer = []
+
+        self.model = None
+        self.optimizer = None
+        self.tracking_optimizer = None
+        self._last_dt = 0.1
+
+    def _build_model(self, n: int) -> SpectralGaussianModel:
+        # Build model WITHOUT neural corrector (optimization should be clean)
+        # NN corrector is loaded but disabled during optimization, enabled only for prediction
+        model = SpectralGaussianModel(
+            n, depth=self.depth, use_dispersion=self.use_dispersion,
+            use_neural_corrector=False)
+        if self.neural_corrector_path is not None:
+            # Preserve RNG state: NN corrector creation changes torch random state
+            rng_state = torch.random.get_rng_state()
+            model.load_neural_corrector(self.neural_corrector_path)
+            torch.random.set_rng_state(rng_state)
+            # Disable during optimization — will be re-enabled for prediction
+            model.use_neural_corrector = False
+        model.to(self.device)
+        return model
+
+    def _build_optimizer(self):
+        """Build optimizer for initialization phase (all params unfrozen).
+
+        RESEARCH-ONLY knob `init_k_lr_scale` (default 1.0 = shipped behaviour, bit-identical):
+        multiplies the (kx, ky) group learning rate during the INITIALISATION phase only.
+        0.0 freezes the wavenumbers at whatever the initializer placed them, which is what
+        experiment S2 (2026-08-05) needs to ask "given TRUE (kx, ky), can amplitude+phase
+        alone reconstruct the crowded field?". Tracking already freezes kx/ky under the
+        shipped tracking_mode='w_phi'; this extends that freeze backwards over init.
+        """
+        k_lr = self.lr * 0.5 * float(self.config.get('init_k_lr_scale', 1.0))
+        param_groups = [
+            {'params': [self.model.w, self.model.phi], 'lr': self.lr},
+            {'params': [self.model.kx, self.model.ky], 'lr': k_lr},
+        ]
+        if not self.use_dispersion:
+            param_groups.append(
+                {'params': [self.model.omega_free], 'lr': self.lr})
+        self.optimizer = torch.optim.Adam(param_groups)
+
+    def _build_tracking_optimizer(self):
+        """Build optimizer for tracking phase based on tracking_mode.
+
+        Freezes parameters not being updated and creates a fresh Adam optimizer
+        with tracking_lr for the remaining parameters.
+        """
+        mode = self.tracking_mode
+
+        if mode == 'phi_only':
+            self.model.kx.requires_grad_(False)
+            self.model.ky.requires_grad_(False)
+            self.model.w.requires_grad_(False)
+            self.model.phi.requires_grad_(True)
+            params = [{'params': [self.model.phi], 'lr': self.tracking_lr}]
+        elif mode == 'w_phi':
+            self.model.kx.requires_grad_(False)
+            self.model.ky.requires_grad_(False)
+            self.model.w.requires_grad_(True)
+            self.model.phi.requires_grad_(True)
+            params = [{'params': [self.model.w, self.model.phi],
+                        'lr': self.tracking_lr}]
+        else:  # 'all' — original behavior
+            self.model.kx.requires_grad_(True)
+            self.model.ky.requires_grad_(True)
+            self.model.w.requires_grad_(True)
+            self.model.phi.requires_grad_(True)
+            params = [
+                {'params': [self.model.w, self.model.phi],
+                 'lr': self.tracking_lr},
+                {'params': [self.model.kx, self.model.ky],
+                 'lr': self.tracking_lr * 0.5},
+            ]
+
+        # A1 ablation: omega_free needs gradient in tracking too
+        if not self.use_dispersion:
+            self.model.omega_free.requires_grad_(True)
+            params.append({'params': [self.model.omega_free],
+                           'lr': self.tracking_lr})
+
+        self.tracking_optimizer = torch.optim.Adam(params)
+
+    def _compute_loss(self, frames: List[FrameData],
+                      reg: bool = True) -> torch.Tensor:
+        """Compute weighted MSE + regularization over multiple frames.
+
+        `reg=False` drops the L1 and smoothness penalties (Rx-1 K4, tracking-only).
+        Default True == shipped behaviour.
+        """
+        total_loss = torch.tensor(0.0, device=self.device)
+        n_obs = 0
+        w_sum = 0.0
+        conf_norm = _rx1_gate('RX1_CONF_NORM')     # Rx-1 K3; False == shipped
+
+        for frame in frames:
+            if len(frame.x_obs) == 0:
+                continue
+
+            z_pred = self.model(frame.x_obs, frame.y_obs, frame.t)
+            residual = z_pred - frame.z_obs
+            weights = frame.confidence if self.use_confidence \
+                else torch.ones_like(frame.confidence)
+            weighted_sq = weights * residual ** 2
+            total_loss = total_loss + weighted_sq.sum()
+            n_obs += len(frame.x_obs)
+            if conf_norm:
+                w_sum += float(weights.sum())
+
+        if conf_norm and w_sum > 1e-12:
+            total_loss = total_loss / w_sum
+        elif n_obs > 0:
+            total_loss = total_loss / n_obs
+
+        # L1 sparsity on weights. Note the shipped form adds a [m] quantity to an [m^2] loss,
+        # so lambda_l1 carries a hidden unit and its effective strength moves with sea state:
+        # measured contribution ranges over 3-62% of the total loss across Hs, non-monotonically
+        # (tmp/SCALE_AUDIT_fable_2026-07-23.md). SCALE_INVARIANT_L1 multiplies by the
+        # observation RMS to make the penalty [m^2] like the data term; False keeps shipped
+        # behaviour. The scale is computed under no_grad -- it is a normaliser, not a target.
+        if reg and self.lambda_l1 > 0:
+            l1 = torch.sum(torch.abs(self.model.w))
+            if SCALE_INVARIANT_L1:
+                with torch.no_grad():
+                    zs = [f.z_obs for f in frames if len(f.z_obs) > 0]
+                    scale = torch.sqrt(torch.mean(torch.cat(zs) ** 2)) if zs else None
+                if scale is not None and float(scale) > 1e-9:
+                    l1 = l1 * scale
+            total_loss = total_loss + self.lambda_l1 * l1
+
+        # Spectral smoothness: penalize weight variation (sorted by |k|)
+        if reg and self.lambda_smooth > 0 and self.model.n_gaussians > 1:
+            with torch.no_grad():
+                k_mag = torch.sqrt(self.model.kx ** 2 + self.model.ky ** 2)
+                sort_idx = torch.argsort(k_mag)
+            w_sorted = self.model.w[sort_idx]
+            smooth_penalty = torch.sum((w_sorted[1:] - w_sorted[:-1]) ** 2)
+            total_loss = total_loss + self.lambda_smooth * smooth_penalty
+
+        return total_loss
+
+    def _compute_residuals(self, model, frames):
+        """Compute observation residuals for coarse-to-fine refinement.
+
+        Returns (x, y, residual_z, t) when init_method is v2/v2_konly,
+        or (x, y, residual_z) for v1 (backward compatible).
+        """
+        all_x, all_y, all_res, all_t = [], [], [], []
+        with torch.no_grad():
+            for frame in frames:
+                if len(frame.x_obs) == 0:
+                    continue
+                z_pred = model(frame.x_obs, frame.y_obs, frame.t)
+                res = (frame.z_obs - z_pred).cpu().numpy()
+                n = len(frame.x_obs)
+                all_x.append(frame.x_obs.cpu().numpy())
+                all_y.append(frame.y_obs.cpu().numpy())
+                all_res.append(res)
+                all_t.append(np.full(n, frame.t))
+
+        # 'oracle' is the RESEARCH-ONLY S2 arm (2026-08-05). It differs from 'v2_konly'
+        # only in where the initial (kx, ky) come from, so every downstream stage --
+        # residual form, prune, grow -- must behave identically to 'v2_konly'; hence it
+        # joins the beamform family here. Additive: no shipped init_method changes.
+        if all_x:
+            x = np.concatenate(all_x)
+            y = np.concatenate(all_y)
+            r = np.concatenate(all_res)
+            if self.init_method in ('v2', 'v2_konly', 'learned', 'oracle'):
+                return x, y, r, np.concatenate(all_t)
+            return x, y, r
+        if self.init_method in ('v2', 'v2_konly', 'learned', 'oracle'):
+            return np.array([]), np.array([]), np.array([]), np.array([])
+        return np.array([]), np.array([]), np.array([])
+
+    def initialize(self, frames: List[FrameData],
+                   x_range=(10.0, 250.0), y_range=(-100.0, 100.0),
+                   verbose: bool = False) -> Dict:
+        """
+        Phase 1: Joint optimization over initialization window.
+
+        Args:
+            frames: list of FrameData from init window
+            x_range, y_range: spatial domain
+            verbose: print progress
+
+        Returns:
+            dict with 'loss_history', 'n_iters', 'elapsed_s'
+        """
+        # WavePrior UNIFIED: init_method='auto' routes learned vs v2_konly from a
+        # GT-free signal (the learned proposal's n_selected) computed on the same init
+        # window both arms see, so one config value handles every regime. Additive; only
+        # entered when init_method=='auto'. It mutates self.init_method to the chosen arm
+        # and then falls through to the normal dispatch below. The shipped default
+        # (v2_konly) never enters this branch.
+        if self.init_method == 'auto':
+            # REAL-DOMAIN GATE (2026-07-27). The deployment authorisation covers SYNTHETIC
+            # inputs only: "실측 경로 별도 게이트 -- 실측 입력에서 auto는 여전히 비활성이어야 함"
+            # (tmp/confirm2_2026-07-27/RESULT_CONFIRM2.md §4, residual condition, unreleased).
+            # WHY IT IS NOT OPTIONAL: on all 30 real windows the proposal's n_selected is
+            # >= 8 (the sparse observation geometry makes it over-propose), so the th=8
+            # router would route 30/30 to the learned arm -- the arm measured to be no
+            # better and sometimes worse on real seas -- and the retired guard fired 0/30
+            # (docs/HANDOFF_OPUS_2026-07-26.md §"Blind auto (W5 official)"). Without this
+            # gate the shipped default silently applies an unauthorised policy to real data.
+            # SIGNAL: absence of a ground-truth field. It is the one property that separates
+            # every real path (wavesplat/real_data.py builds FrameData with gt_field=None,
+            # as do the scene_real harnesses) from every synthetic path (EpisodeDataLoader
+            # always attaches a non-zero gt_field). It needs no filename convention, no
+            # loader flag and no metadata key, so it cannot be bypassed by a new real
+            # front-end. Same test run.py uses for `has_gt`, applied to the init window.
+            # Escape hatch for deliberate research use: real_domain_gate=False.
+            if frames and self.config.get('real_domain_gate', True) \
+                    and not _frames_have_gt(frames):
+                import sys as _sys
+                import warnings
+                if self.real_estimator not in ('bank_mmse', 'v2_konly'):
+                    raise ValueError(
+                        f"real_estimator must be 'bank_mmse' or 'v2_konly', "
+                        f"got {self.real_estimator!r}")
+                self._auto_real_gate = True
+                if self.real_estimator == 'bank_mmse':
+                    # BANK-MMSE PORT (2026-07-29, user-directed deployment). The router
+                    # stays bypassed on real input (the learned arm's n_selected is >= 8
+                    # on every measured window and it has no demonstrated real-sea
+                    # benefit); what changed is the fallback: the single v2_konly run was
+                    # measured ~2x worse than the research bank-MMSE on the frozen real
+                    # windows (nowcast nRMSE 0.858/0.927/1.048 vs 0.498/0.666/0.718,
+                    # tmp/bankmmse_port_2026-07-29/m3_field.json), so the gate now routes
+                    # to the ported estimator under an observation-only parametrization.
+                    msg = ("real (ground-truth-free) input detected: the learned/router "
+                           "path is not authorised here; routing to the ported bank-MMSE "
+                           "estimator (observation-only parameters, median-of-k field). "
+                           "Set real_estimator='v2_konly' for the pre-2026-07-29 "
+                           "fallback, or real_domain_gate=False to reach the router "
+                           "deliberately.")
+                    warnings.warn(msg, RuntimeWarning, stacklevel=2)
+                    print(f"  [Init/auto] REAL-DOMAIN GATE -> bank_mmse. {msg}",
+                          file=_sys.stderr, flush=True)
+                    self._auto_selected = 'bank_mmse'
+                    self.init_method = 'bank_mmse'
+                    return self._initialize_bank(frames, verbose)
+                msg = ("init_method='auto' is NOT authorised on real (ground-truth-free) "
+                       "input: the learned arm's n_selected is >= 8 on every measured "
+                       "window, so the th=8 router would route 100% to an arm with no "
+                       "demonstrated real-sea benefit. Forcing init_method='v2_konly' "
+                       "(single run, no median-of-k ensemble). Set real_domain_gate=False "
+                       "to override deliberately.")
+                warnings.warn(msg, RuntimeWarning, stacklevel=2)
+                print(f"  [Init/auto] REAL-DOMAIN GATE -> v2_konly (single). {msg}",
+                      file=_sys.stderr, flush=True)
+                self._auto_selected = 'v2_konly'
+                self.init_method = 'v2_konly'
+            else:
+                self._auto_real_gate = False
+                self.init_method = self._auto_select_init(frames, verbose)
+
+        # WavePrior Stage-1: learned set-proposal supplies the component set, then the
+        # SAME joint fit / adaptive-N / tracker run on top. Additive; the shipped
+        # default (v2_konly) never enters this branch.
+        if self.init_method == 'learned':
+            return self._initialize_learned(frames, x_range, y_range, verbose)
+
+        t0 = time.time()
+        loss_history = []
+
+        # Coarse-to-fine schedule (configurable thresholds)
+        default_thresholds = [0.1, 0.05, None] if len(self.stages) == 3 else [None]
+        default_max_iters = [200, 200, 500] if len(self.stages) == 3 else [500]
+        schedule = CoarseToFineSchedule(
+            stages=self.stages,
+            loss_thresholds=self.loss_thresholds or default_thresholds,
+            max_iters_per_stage=self.max_iters_per_stage or default_max_iters,
+            init_method=self.init_method,
+            depth=self.depth,
+        )
+
+        # Observation-variance scale for the (optional) scale-invariant stage-advance test.
+        # Set unconditionally; it is only consulted when
+        # coarse_to_fine.SCALE_INVARIANT_ADVANCE is True.
+        try:
+            _z = np.concatenate([f.z_obs.detach().cpu().numpy().ravel() for f in frames])
+            schedule.loss_scale = float(np.mean(_z ** 2)) if _z.size else None
+        except Exception:
+            schedule.loss_scale = None
+
+        # Initialize first stage
+        n_init = schedule.current_n()
+        init_kx, init_ky, init_w, init_phi = initialize_from_frames(
+            frames, n_init, self.depth, x_range, y_range,
+            init_method=self.init_method, seed=self.seed
+        )
+
+        self.model = self._build_model(n_init)
+        with torch.no_grad():
+            self.model.kx.copy_(init_kx.to(self.device))
+            self.model.ky.copy_(init_ky.to(self.device))
+            self.model.w.copy_(init_w.to(self.device))
+            self.model.phi.copy_(init_phi.to(self.device))
+        self._build_optimizer()
+
+        stage_iters = 0
+        total_iters = 0
+        max_total = sum(schedule.max_iters)
+
+        for iteration in range(max_total):
+            self.optimizer.zero_grad()
+            loss = self._compute_loss(frames)
+            loss.backward()
+            self.optimizer.step()
+            self.model.clamp_steepness(self.max_steepness)
+
+            loss_val = loss.item()
+            loss_history.append(loss_val)
+            stage_iters += 1
+            total_iters += 1
+
+            if verbose and iteration % 50 == 0:
+                print(f"  [Init] iter={iteration}, N={self.model.n_gaussians}, "
+                      f"loss={loss_val:.6f}")
+
+            # Check coarse-to-fine advancement
+            if schedule.should_advance(loss_val, stage_iters):
+                if verbose:
+                    print(f"  [Refine] N={schedule.current_n()} → "
+                          f"{schedule.stages[schedule.current_stage + 1]}")
+                schedule.advance(
+                    self.model, frames, self._compute_residuals,
+                    x_range, y_range
+                )
+                self._build_optimizer()
+                stage_iters = 0
+
+                if not schedule.has_next():
+                    # Final stage: continue until max_iters
+                    continue
+
+        elapsed = time.time() - t0
+        if verbose:
+            print(f"  [Init complete] {total_iters} iters, "
+                  f"N={self.model.n_gaussians}, "
+                  f"loss={loss_history[-1]:.6f}, {elapsed:.1f}s")
+
+        # Set _last_t for tracking phase
+        if frames:
+            self._last_t = frames[-1].t
+
+        # Adaptive N: prune weak components, grow if residual high
+        if self.adaptive_n:
+            self._adaptive_prune_grow(frames, x_range, y_range, verbose)
+
+        # Build tracking-specific optimizer (freezes params per tracking_mode)
+        self._build_tracking_optimizer()
+
+        return {
+            'loss_history': loss_history,
+            'n_iters': total_iters,
+            'elapsed_s': elapsed,
+            'final_n': self.model.n_gaussians,
+        }
+
+    def _initialize_learned(self, frames: List[FrameData],
+                            x_range=(10.0, 250.0), y_range=(-100.0, 100.0),
+                            verbose: bool = False) -> Dict:
+        """Phase 1 for init_method='learned' (WavePrior Stage-1).
+
+        The learned set-proposal supplies the FULL component set at once (kx, ky and,
+        unless learned_konly, LS-fit w/phi), so the coarse-to-fine N-staging is
+        bypassed -- there is nothing to grow into. Everything after the install is the
+        shipped pipeline: the same joint-fit optimizer / loss, the same adaptive
+        prune+grow, the same tracking optimizer. Only the kx/ky *source* changes.
+        """
+        from wavesplat.optimizer.learned_init import learned_init_params
+
+        t0 = time.time()
+        init_kx, init_ky, init_w, init_phi, n = learned_init_params(
+            frames, self.depth, self.config, seed=self.seed)
+
+        self.model = self._build_model(n)
+        with torch.no_grad():
+            self.model.kx.copy_(init_kx.to(self.device))
+            self.model.ky.copy_(init_ky.to(self.device))
+            self.model.w.copy_(init_w.to(self.device))
+            self.model.phi.copy_(init_phi.to(self.device))
+        self._build_optimizer()
+
+        # Joint fit at full N (analog of the shipped final-stage polish budget).
+        max_iters = int(self.config.get('learned_init_iters', 500))
+        loss_history = []
+        for iteration in range(max_iters):
+            self.optimizer.zero_grad()
+            loss = self._compute_loss(frames)
+            loss.backward()
+            self.optimizer.step()
+            self.model.clamp_steepness(self.max_steepness)
+            loss_history.append(loss.item())
+            if verbose and iteration % 100 == 0:
+                print(f"  [Init/learned] iter={iteration}, N={self.model.n_gaussians}, "
+                      f"loss={loss.item():.6f}")
+
+        if frames:
+            self._last_t = frames[-1].t
+
+        if self.adaptive_n:
+            self._adaptive_prune_grow(frames, x_range, y_range, verbose)
+
+        self._build_tracking_optimizer()
+
+        elapsed = time.time() - t0
+        if verbose:
+            print(f"  [Init/learned complete] {max_iters} iters, "
+                  f"N={self.model.n_gaussians}, "
+                  f"loss={loss_history[-1] if loss_history else float('nan'):.6f}, "
+                  f"{elapsed:.1f}s")
+        return {
+            'loss_history': loss_history,
+            'n_iters': max_iters,
+            'elapsed_s': elapsed,
+            'final_n': self.model.n_gaussians,
+        }
+
+    def _auto_select_init(self, frames: List[FrameData], verbose: bool = False) -> str:
+        """WavePrior UNIFIED: GT-free regime router for init_method='auto'.
+
+        Computes the learned set-proposal's selected-component count (n_selected) on the
+        same init window both arms see, and returns 'learned' when
+        n_selected >= auto_switch_thresh (default 8 -- the Stage-1 crowding signal, frozen
+        from the design regimes, not tuned on nRMSE), else 'v2_konly'. The raw proposal
+        atoms are cached into config['learned_atoms'] so a 'learned' route reuses them
+        without re-running the (GPU) diffusion proposal. Purely additive; only called when
+        init_method=='auto'. No GT is used -- the decision is made from observations alone.
+
+        Config knobs (all optional): auto_switch_thresh (int, default 8),
+        learned_atoms (precomputed raw atoms dict, skips the GPU proposal),
+        learned_ckpt / learned_nsamp / learned_diffusion_seed (proposal),
+        learned_energy_thresh / learned_dedup_dk / max_n (pooling, must match the
+        learned arm's so the signal and the installed set agree).
+        """
+        from wavesplat.optimizer.learned_init import (
+            propose_atoms, pool_and_select, DEFAULT_CKPT)
+        cfg = self.config
+        thresh = int(cfg.get('auto_switch_thresh', 8))
+        cache = cfg.get('learned_atoms')
+        if cache is not None:
+            rkx = np.asarray(cache['kx'], float)
+            rky = np.asarray(cache['ky'], float)
+            ren = np.asarray(cache['energy'], float)
+        else:
+            dseed = int(cfg.get('learned_diffusion_seed',
+                                0 if self.seed is None else self.seed))
+            try:
+                rkx, rky, ren = propose_atoms(
+                    frames, self.depth,
+                    ckpt=cfg.get('learned_ckpt', DEFAULT_CKPT),
+                    nsamp=int(cfg.get('learned_nsamp', 4)),
+                    diffusion_seed=dseed)
+            except (FileNotFoundError, OSError, ImportError) as e:
+                # 'auto' is the shipped default: a missing/unreadable diffusion checkpoint
+                # must degrade to the analytic path, not crash the estimator.
+                import warnings
+                warnings.warn(f"init_method='auto': learned proposal unavailable "
+                              f"({e}); falling back to v2_konly.")
+                self._auto_n_selected = None
+                self._auto_guard_fired = None
+                self._auto_selected = 'v2_konly'
+                return 'v2_konly'
+            # Cache so a 'learned' route reuses these exact atoms (no double proposal).
+            cfg['learned_atoms'] = dict(kx=rkx, ky=rky, energy=ren)
+        sk, _, _ = pool_and_select(
+            rkx, rky, ren,
+            energy_thresh=float(cfg.get('learned_energy_thresh', 0.03)),
+            dedup_dk=float(cfg.get('learned_dedup_dk', 0.03)),
+            max_n=int(cfg.get('max_n', 30)))
+        n_sel = int(len(sk))
+        chosen = 'learned' if n_sel >= thresh else 'v2_konly'
+        self._auto_n_selected = n_sel
+
+        # WavePrior UNIFIED-GUARD (additive): the proposal over-proposes ~30 near-degenerate
+        # atoms on a single clean swell (the characterized BF2_1comp misroute), so n_selected
+        # says 'crowded' when the sea is not. The learned atoms cannot self-diagnose this (the
+        # slope over-proposals are atom-level indistinguishable from a crowded spectrum). The
+        # v2 beamform power map, computed from the observations alone, does: a single swell
+        # yields one dominant peak (bf_peak_ratio ~ 0). When the base decision is 'learned' and
+        # the beamform is that single-dominant, veto -> v2_konly. GT-free; never promotes
+        # v2->learned. Off by setting auto_guard=False (then this block is inert).
+        # Threshold 0.05 sits below the crowded-sea beamform-ratio floor measured on the
+        # design set (tmp/unified_guard_2026-07-26/), so no crowded route is flipped there.
+        #
+        # ── RETIRED 2026-07-27: default flipped True -> False ────────────────────────
+        # The guard was tuned on the design set and did NOT survive the fresh held-out 40
+        # (docs/HANDOFF_OPUS_2026-07-26.md S2 FAIL): out of sample it fired on episodes it
+        # should not have and stayed silent on the one that exploded (bfr 0.065 > 0.05),
+        # i.e. it was WORSE than no-guard. It is also uninformative on real seas
+        # (bf_peak_ratio on all 30 real windows carries no signal, ibid.). The confirmation
+        # round that authorised deployment specifies "router th=8 + guard retired"
+        # (tmp/confirm2_2026-07-27/RESULT_CONFIRM2.md §4, PREREG_CONFIRM2.md L41).
+        # The code is kept, not deleted, so the historical configuration is reproducible by
+        # passing auto_guard=True; nothing in the shipped path sets it.
+        guard = bool(cfg.get('auto_guard', False))
+        guard_ratio = float(cfg.get('auto_guard_ratio', 0.05))
+        fired = False
+        bfr = None
+        if guard and chosen == 'learned':
+            from wavesplat.optimizer.initializer import beamform_peak_ratio
+            bfr = float(beamform_peak_ratio(frames, self.depth))
+            if bfr < guard_ratio:
+                chosen = 'v2_konly'
+                fired = True
+        self._auto_guard_fired = fired
+        self._auto_bf_peak_ratio = bfr
+        self._auto_selected = chosen
+        if verbose:
+            gtag = (f" guard(bf_ratio={bfr:.3f}<{guard_ratio})->veto" if fired
+                    else (f" guard(bf_ratio={bfr:.3f})ok" if bfr is not None else ""))
+            print(f"  [Init/auto] n_selected={n_sel} (thresh={thresh}) -> {chosen}{gtag}")
+        return chosen
+
+    @staticmethod
+    def _bank_obs_from_frames(frames: List[FrameData]):
+        """(n,3) obs points P=(x,y,t) and elevations z from FrameData, time-major."""
+        P_list, z_list = [], []
+        for f in frames:
+            if len(f.x_obs) == 0:
+                continue
+            x = f.x_obs.detach().cpu().numpy().ravel()
+            y = f.y_obs.detach().cpu().numpy().ravel()
+            zz = f.z_obs.detach().cpu().numpy().ravel()
+            P_list.append(np.column_stack([x, y, np.full(len(x), float(f.t))]))
+            z_list.append(zz)
+        if not P_list:
+            return np.zeros((0, 3)), np.zeros(0)
+        return np.vstack(P_list).astype(float), np.concatenate(z_list).astype(float)
+
+    def _initialize_bank(self, frames: List[FrameData],
+                         verbose: bool = False) -> Dict:
+        """Phase 1 for the real-domain route: median-of-k bank-MMSE field ensemble.
+
+        The estimator is the ported research bank-MMSE (optimizer/bank_mmse.py --
+        the call behind every published real-sea field number), fitted on the init
+        window's observations with OBSERVATION-ONLY parameters: sigma0 = 0.05*Hs_obs
+        (Hs_obs = 4*std(z)) and kp from the estimator's own two-stage beamform zoom.
+        Members differ only in the val-split seed {s, s+1000, s+2000, ...} (the
+        MedianEnsembleUpdater offsets); prediction is the pointwise-median field.
+        Measured 2026-07-29 on the frozen GIF-ledger windows against the previous
+        single-v2_konly route (nowcast nRMSE): 0.858 -> 0.498 (AA15a w5),
+        0.927 -> 0.666 (AA15b w3), 1.048 -> 0.718 (YS17 w0)
+        (tmp/bankmmse_port_2026-07-29/{blind_vs_frozen,m3_field}.json).
+
+        No gradient tracking on this route: the fit is closed-form linear in z.
+        update() maintains a rolling observation window and, only if
+        bank_refit_every_s is set, refits from it; the default (None) keeps the fit
+        frozen, which is exactly the protocol the real-sea numbers were measured
+        under (pure forecast after the init window).
+        """
+        t0 = time.time()
+        P, z = self._bank_obs_from_frames(frames)
+        if len(z) < 32:
+            raise ValueError(f"bank-MMSE route needs >= 32 observations in the "
+                             f"init window, got {len(z)}")
+        k = int(self.config.get('real_bank_ensemble_k',
+                                DEFAULT_REAL_BANK_ENSEMBLE_K))
+        if not 1 <= k <= 5:
+            raise ValueError('real_bank_ensemble_k must be 1..5')
+        base = 0 if self.seed is None else int(self.seed)
+        self._bank_seeds = [base + off for off in (0, 1000, 2000, 3000, 4000)[:k]]
+        self._bank_fit_window(P, z)
+        self._bank_obs = (P, z)
+        self._bank_memory_s = float(self.config.get('bank_memory_s', 40.0))
+        self._bank_refit_every_s = self.config.get('bank_refit_every_s', None)
+        self._bank_last_fit_t = float(np.max(P[:, 2]))
+        self._last_t = frames[-1].t
+        elapsed = time.time() - t0
+        if verbose:
+            print(f"  [Init/bank] median-of-{k} bank-MMSE, seeds={self._bank_seeds}, "
+                  f"kp={[round(f.kp, 4) for f in self._bank]}, "
+                  f"B={[f.n_candidates for f in self._bank]}, "
+                  f"val_misfit={[round(f.vr, 4) for f in self._bank]}, "
+                  f"{elapsed:.1f}s")
+        return {
+            # per-member held-out predictive misfit: the GT-free fit-quality signal
+            'loss_history': [f.vr for f in self._bank],
+            'n_iters': 0,
+            'elapsed_s': elapsed,
+            'final_n': 0,               # no Gaussian components on this route
+            'bank_members': k,
+            'bank_seeds': list(self._bank_seeds),
+            'bank_kp': [f.kp for f in self._bank],
+            'bank_n_candidates': [f.n_candidates for f in self._bank],
+            'bank_val_misfit': [f.vr for f in self._bank],
+            'Hs_obs': self._bank_Hs_obs,
+        }
+
+    def _bank_fit_window(self, P, z):
+        """Fit the k-member ensemble from one observation window (GT-free).
+
+        The window is capped at bank_max_obs points with the SAME deterministic
+        subsample the frozen research harness used (scene_real m_cap=600,
+        default_rng(0)): every published real-sea bank number was measured on
+        600-obs windows, and the cap also bounds the O(n^2 B) fit cost."""
+        from wavesplat.optimizer.bank_mmse import fit_bank_mmse
+
+        cap = int(self.config.get('bank_max_obs', 600))
+        if len(z) > cap:
+            ii = np.random.default_rng(0).choice(len(z), cap, replace=False)
+            P, z = P[ii], z[ii]
+        self._bank_Hs_obs = 4.0 * float(np.std(z))
+        sigma0 = 0.05 * self._bank_Hs_obs
+        self._bank = [fit_bank_mmse(P, z, self.depth, sigma0, kp_hint=None,
+                                    seed=s) for s in self._bank_seeds]
+
+    def _bank_update(self, frame: FrameData) -> Dict:
+        """Phase 2 on the bank-MMSE route: rolling window + optional refit.
+
+        Each frame's observations join the rolling memory window (bank_memory_s,
+        default 40 s = the frozen protocol's window). If bank_refit_every_s is set,
+        the ensemble refits from that window once enough time has accumulated (a
+        full fit -- seconds, schedule accordingly); the default None keeps the init
+        fit frozen, matching the validated pure-forecast protocol. 'loss' is the
+        GT-free observation misfit of the current median field at this frame's
+        points (the analogue of the gradient path's obs-fit loss).
+        """
+        t0 = time.time()
+        self._last_t = frame.t
+        if len(frame.x_obs) == 0:
+            return {'loss': float('nan'), 'n_pts': 0, 'elapsed_ms': 0.0}
+        Pf, zf = self._bank_obs_from_frames([frame])
+        P, z = self._bank_obs
+        P = np.vstack([P, Pf])
+        z = np.concatenate([z, zf])
+        keep = P[:, 2] >= float(frame.t) - self._bank_memory_s
+        self._bank_obs = (P[keep], z[keep])
+        if self._bank_refit_every_s is not None and \
+                float(frame.t) - self._bank_last_fit_t \
+                >= float(self._bank_refit_every_s):
+            self._bank_fit_window(*self._bank_obs)
+            self._bank_last_fit_t = float(frame.t)
+        preds = np.stack([f.render(Pf) for f in self._bank], axis=0)
+        med = np.median(preds, axis=0)
+        return {'loss': float(np.mean((med - zf) ** 2)),
+                'n_pts': int(len(zf)),
+                'elapsed_ms': (time.time() - t0) * 1000.0}
+
+    def _bank_predict_grid(self, grid_x, grid_y, t: float) -> torch.Tensor:
+        """(Ny, Nx) pointwise-median field of the bank ensemble at time t --
+        same grid convention as SpectralGaussianModel.predict_grid."""
+        gx = np.asarray(grid_x.detach().cpu().numpy() if torch.is_tensor(grid_x)
+                        else grid_x, dtype=float).ravel()
+        gy = np.asarray(grid_y.detach().cpu().numpy() if torch.is_tensor(grid_y)
+                        else grid_y, dtype=float).ravel()
+        Xg, Yg = np.meshgrid(gx, gy)
+        Q = np.column_stack([Xg.ravel(), Yg.ravel(), np.full(Xg.size, float(t))])
+        preds = np.stack([f.render(Q) for f in self._bank], axis=0)
+        med = np.median(preds, axis=0).reshape(len(gy), len(gx))
+        return torch.as_tensor(med, dtype=torch.float32)
+
+    def update(self, frame: FrameData) -> Dict:
+        """
+        Phase 2: Single-frame tracking update.
+
+        1. Predict: φᵢ += ωᵢ·Δt
+        2. Update: gradient descent on single-frame loss
+        3. Return timing and loss info
+
+        Args:
+            frame: single FrameData
+
+        Returns:
+            dict with 'loss', 'n_pts', 'elapsed_ms'
+        """
+        if self._bank is not None:
+            return self._bank_update(frame)
+
+        t0 = time.time()
+
+        if self.model is None:
+            raise RuntimeError("Must call initialize() before update()")
+
+        # Phase prediction: advance phases by ω·Δt.
+        # NOTE: this is redundant with the forward model's own -ω·t term and, when enabled,
+        # double-counts time (see TRACK_PHASE_PREDICT note above). Gated so shipped behaviour
+        # (advance ON) is the default; TRACK_PHASE_PREDICT=False skips it.
+        dt = frame.t - getattr(self, '_last_t', frame.t)
+        if TRACK_PHASE_PREDICT and abs(dt) > 1e-6:
+            with torch.no_grad():
+                omega = self.model._omega()
+                self.model.phi.add_(omega * dt)
+        self._last_t = frame.t
+
+        if len(frame.x_obs) == 0:
+            return {'loss': float('nan'), 'n_pts': 0, 'elapsed_ms': 0.0}
+
+        # Multi-frame window: keep recent frames for more stable gradients
+        self._frame_buffer.append(frame)
+        if len(self._frame_buffer) > self.tracking_window:
+            self._frame_buffer.pop(0)
+
+        # Gradient update using tracking optimizer on window
+        opt = self.tracking_optimizer if self.tracking_optimizer is not None \
+            else self.optimizer
+        # Rx-1 K4: `reg=False` makes the TRACKING objective the data term alone while
+        # Phase 1 keeps its penalties. Default (gate unset) is reg=True == shipped.
+        track_reg = not _rx1_gate('RX1_PHASE2_NOREG')
+        for step in range(self.tracking_steps):
+            opt.zero_grad()
+            loss = self._compute_loss(self._frame_buffer, reg=track_reg)
+            loss.backward()
+            opt.step()
+
+        self.model.clamp_steepness(self.max_steepness)
+
+        elapsed_ms = (time.time() - t0) * 1000
+
+        return {
+            'loss': loss.item(),
+            'n_pts': len(frame.x_obs),
+            'elapsed_ms': elapsed_ms,
+        }
+
+    def _adaptive_prune_grow(self, frames, x_range, y_range, verbose=False):
+        """Adaptive N: prune weak components, grow if residual is still high.
+
+        Pruning uses energy-based selection: keep fewest components that
+        capture (1 - prune_threshold) fraction of total energy (Σ wᵢ²).
+        """
+
+        # --- Prune: energy-based selection ---
+        with torch.no_grad():
+            energy = self.model.w ** 2  # energy per component
+            total_energy = energy.sum().item()
+
+            if total_energy < 1e-12:
+                return
+
+            # Sort by energy descending, keep enough for target fraction
+            target_fraction = 1.0 - self.prune_threshold  # e.g., keep 95%
+            sort_idx = torch.argsort(energy, descending=True)
+            cumulative = torch.cumsum(energy[sort_idx], dim=0)
+            n_keep = int((cumulative / total_energy < target_fraction).sum().item()) + 1
+            n_keep = max(1, min(n_keep, self.model.n_gaussians))
+
+            n_before = self.model.n_gaussians
+            if n_keep < n_before:
+                keep_idx = sort_idx[:n_keep]
+                keep_idx = keep_idx.sort()[0]
+
+                # Safety check: compute residual before and after pruning
+                # Rollback if pruning significantly increases residual
+                result_before = self._compute_residuals(self.model, frames)
+                res_before = result_before[2] if len(result_before) >= 3 else np.array([])
+                rms_before = float(np.sqrt(np.mean(res_before ** 2))) if len(res_before) > 0 else 0.0
+
+                # Temporarily prune
+                import copy
+                saved_state = {
+                    'w': self.model.w.data.clone(),
+                    'kx': self.model.kx.data.clone(),
+                    'ky': self.model.ky.data.clone(),
+                    'phi': self.model.phi.data.clone(),
+                    'n': self.model.n_gaussians,
+                }
+                if not self.model.use_dispersion:
+                    saved_state['omega_free'] = self.model.omega_free.data.clone()
+
+                self.model.remove_gaussians(keep_idx)
+
+                result_after = self._compute_residuals(self.model, frames)
+                res_after = result_after[2] if len(result_after) >= 3 else np.array([])
+                rms_after = float(np.sqrt(np.mean(res_after ** 2))) if len(res_after) > 0 else 0.0
+
+                # Rollback if residual increases by more than 30%
+                if rms_before > 1e-12 and rms_after > 1.3 * rms_before:
+                    # Restore original model
+                    self.model.n_gaussians = saved_state['n']
+                    self.model.w = torch.nn.Parameter(saved_state['w'])
+                    self.model.kx = torch.nn.Parameter(saved_state['kx'])
+                    self.model.ky = torch.nn.Parameter(saved_state['ky'])
+                    self.model.phi = torch.nn.Parameter(saved_state['phi'])
+                    if not self.model.use_dispersion:
+                        self.model.omega_free = torch.nn.Parameter(saved_state['omega_free'])
+                    if verbose:
+                        print(f"  [Adaptive] Pruning rolled back: residual would increase "
+                              f"{rms_before:.4f} → {rms_after:.4f}")
+                else:
+                    if verbose:
+                        frac = cumulative[n_keep-1].item() / total_energy * 100
+                        print(f"  [Adaptive] Pruned: {n_before} → {self.model.n_gaussians} "
+                              f"(kept {frac:.1f}% energy)")
+
+        # --- Grow: add components if residual energy is high ---
+        if self.model.n_gaussians >= self.max_n:
+            return
+
+        # Compute residual energy
+        result = self._compute_residuals(self.model, frames)
+        if self.init_method in ('v2', 'v2_konly', 'learned', 'oracle') and len(result) == 4:
+            all_x, all_y, all_res, all_t = result
+        else:
+            all_x, all_y, all_res = result[:3]
+            all_t = None
+
+        if len(all_res) == 0:
+            return
+
+        residual_rms = float(np.sqrt(np.mean(all_res ** 2)))
+
+        # Quantity actually compared against grow_residual_threshold. Absolute metres by
+        # default; a dimensionless fraction of observed signal amplitude when
+        # SCALE_INVARIANT_GROW is set (see the module-level note).
+        grow_metric = residual_rms
+        if SCALE_INVARIANT_GROW:
+            obs = [f.z_obs.detach().cpu().numpy() for f in frames if len(f.z_obs) > 0]
+            if obs:
+                obs_rms = float(np.sqrt(np.mean(np.concatenate(obs) ** 2)))
+                if obs_rms > 1e-9:
+                    grow_metric = residual_rms / obs_rms
+
+        if grow_metric < self.grow_residual_threshold:
+            if verbose:
+                print(f"  [Adaptive] Residual RMS={residual_rms:.4f} "
+                      f"(metric={grow_metric:.4f}) < threshold "
+                      f"{self.grow_residual_threshold}, no growth needed")
+            return
+
+        # Decide how many to add (proportional to residual, capped)
+        n_add = min(
+            max(3, int(grow_metric / self.grow_residual_threshold * 3)),
+            self.max_n - self.model.n_gaussians
+        )
+
+        if n_add <= 0:
+            return
+
+        # Use beamforming on residuals to find new peaks
+        if self.init_method in ('v2', 'v2_konly', 'learned', 'oracle') and all_t is not None:
+            from wavesplat.optimizer.initializer import (
+                _beamform_coarse, _beamform_refine, _linear_projection,
+            )
+            power, kx_axis, ky_axis = _beamform_coarse(
+                all_x, all_y, all_res, all_t, self.depth,
+                kx_range=(-4.0, 4.0), ky_range=(-4.0, 4.0),
+                n_kx=61, n_ky=61)
+
+            # Zero DC
+            cx = np.argmin(np.abs(kx_axis))
+            cy = np.argmin(np.abs(ky_axis))
+            power[max(0, cy-1):cy+2, max(0, cx-1):cx+2] = 0.0
+
+            kx_list, ky_list, amp_list = [], [], []
+            dkx = kx_axis[1] - kx_axis[0]
+            from wavesplat.optimizer.initializer import MIN_DK
+            min_dk = MIN_DK
+
+            for _ in range(n_add):
+                flat_idx = np.argmax(power.ravel())
+                iy_p, ix_p = np.unravel_index(flat_idx, power.shape)
+                if power[iy_p, ix_p] < 1e-12:
+                    break
+                kx_c, ky_c = kx_axis[ix_p], ky_axis[iy_p]
+                kx_f, ky_f, _ = _beamform_refine(
+                    all_x, all_y, all_res, all_t, self.depth,
+                    kx_c, ky_c, delta=0.15, n_fine=31)
+                amp, _ = _linear_projection(
+                    all_x, all_y, all_res, all_t, kx_f, ky_f, self.depth)
+                kx_list.append(kx_f)
+                ky_list.append(ky_f)
+                amp_list.append(amp)
+
+                suppress = int(min_dk / dkx) + 1
+                y_lo = max(0, iy_p - suppress)
+                y_hi = min(power.shape[0], iy_p + suppress + 1)
+                x_lo = max(0, ix_p - suppress)
+                x_hi = min(power.shape[1], ix_p + suppress + 1)
+                power[y_lo:y_hi, x_lo:x_hi] = 0.0
+
+            n_found = len(kx_list)
+        else:
+            kx_list, ky_list, amp_list = [], [], []
+            n_found = 0
+
+        # Pad with random if needed
+        if n_found < n_add:
+            extra = n_add - n_found
+            kx_list.extend(np.random.randn(extra) * 0.1)
+            ky_list.extend(np.random.randn(extra) * 0.1)
+            amp_list.extend(np.ones(extra) * 0.01)
+
+        n_actual = min(len(kx_list), n_add)
+        if n_actual > 0:
+            device = self.model.w.device
+            self.model.add_gaussians(
+                n_actual,
+                init_kx=torch.tensor(kx_list[:n_actual], dtype=torch.float32, device=device),
+                init_ky=torch.tensor(ky_list[:n_actual], dtype=torch.float32, device=device),
+                init_w=torch.tensor(amp_list[:n_actual], dtype=torch.float32, device=device),
+                init_phi=torch.rand(n_actual, device=device) * 2 * np.pi,
+            )
+
+            # Fine-tune the new components with a few iterations
+            self._build_optimizer()
+            for _ in range(50):
+                self.optimizer.zero_grad()
+                loss = self._compute_loss(frames)
+                loss.backward()
+                self.optimizer.step()
+                self.model.clamp_steepness(self.max_steepness)
+
+            if verbose:
+                print(f"  [Adaptive] Grew: +{n_actual} → N={self.model.n_gaussians} "
+                      f"(residual RMS={residual_rms:.4f})")
+
+    def _ls_w_update(self, frames: List[FrameData]):
+        """Analytically update w via least-squares with current kx/ky/phi/omega.
+
+        Builds design matrix A[row,i] = cos(kx_i*x + ky_i*y - omega_i*t + phi_i)
+        and solves w = argmin ||A w - z||^2.
+        """
+        n = self.model.n_gaussians
+        if n == 0:
+            return
+
+        with torch.no_grad():
+            kx = self.model.kx.cpu().numpy()
+            ky = self.model.ky.cpu().numpy()
+            phi = self.model.phi.cpu().numpy()
+            omega = self.model._omega().cpu().numpy()
+
+        rows_A = []
+        rows_z = []
+        for frame in frames:
+            if len(frame.x_obs) == 0:
+                continue
+            x = frame.x_obs.cpu().numpy()
+            y = frame.y_obs.cpu().numpy()
+            z = frame.z_obs.cpu().numpy()
+            t = frame.t
+            phase = (kx[None, :] * x[:, None]
+                     + ky[None, :] * y[:, None]
+                     - omega[None, :] * t
+                     + phi[None, :])
+            rows_A.append(np.cos(phase))
+            rows_z.append(z)
+
+        if not rows_A:
+            return
+
+        A = np.vstack(rows_A)
+        z_vec = np.concatenate(rows_z)
+
+        w_ls, _, _, _ = np.linalg.lstsq(A, z_vec, rcond=None)
+
+        with torch.no_grad():
+            self.model.w.copy_(torch.tensor(w_ls, dtype=torch.float32,
+                                            device=self.model.w.device))
+
+    def amplitude_refit(self, frames: List[FrameData],
+                        verbose: bool = False) -> Dict:
+        """
+        Phase 3: Post-hoc least-squares amplitude+phase calibration.
+
+        Freezes kx, ky and solves for optimal w and phi via linear LS
+        using cos/sin decomposition:
+            z = Σ [a_i cos(θ_i) + b_i sin(θ_i)]
+        where θ_i = kx_i·x + ky_i·y - ω_i·t, then
+            w_i = sqrt(a_i² + b_i²), phi_i = atan2(b_i, a_i)
+
+        This corrects both amplitude decay and phase drift caused by
+        tracking oscillation in Phase 2.
+
+        Args:
+            frames: list of recent FrameData (typically last 5-10 frames)
+            verbose: print progress
+
+        Returns:
+            dict with 'w_before', 'w_after', 'residual_before', 'residual_after'
+        """
+        if self._bank is not None:
+            # bank-MMSE route: the fit is already the exact closed-form linear
+            # solution on its window -- there are no drifting amplitudes to refit
+            return {}
+        if self.model is None:
+            raise RuntimeError("Model not initialized")
+
+        n = self.model.n_gaussians
+        if n == 0:
+            return {}
+
+        with torch.no_grad():
+            kx = self.model.kx.cpu().numpy()
+            ky = self.model.ky.cpu().numpy()
+            omega = self.model._omega().cpu().numpy()
+            w_before = self.model.w.cpu().numpy().copy()
+
+        # Build design matrix with cos/sin pairs:
+        # A = [cos(θ_1) sin(θ_1) cos(θ_2) sin(θ_2) ... cos(θ_N) sin(θ_N)]
+        # where θ_i = kx_i·x + ky_i·y - ω_i·t  (no phi — we solve for it)
+        rows_A = []
+        rows_z = []
+        for frame in frames:
+            if len(frame.x_obs) == 0:
+                continue
+            x = frame.x_obs.cpu().numpy()
+            y = frame.y_obs.cpu().numpy()
+            z = frame.z_obs.cpu().numpy()
+            t = frame.t
+
+            # base phase without phi: (M, N)
+            theta = (kx[None, :] * x[:, None]
+                     + ky[None, :] * y[:, None]
+                     - omega[None, :] * t)
+            # Interleave cos/sin columns: (M, 2N)
+            cos_theta = np.cos(theta)
+            sin_theta = np.sin(theta)
+            A_frame = np.empty((len(x), 2 * n), dtype=np.float64)
+            A_frame[:, 0::2] = cos_theta
+            A_frame[:, 1::2] = sin_theta
+            rows_A.append(A_frame)
+            rows_z.append(z)
+
+        if not rows_A:
+            return {}
+
+        A = np.vstack(rows_A)   # (total_obs, 2N)
+        z_vec = np.concatenate(rows_z)  # (total_obs,)
+
+        # Solve [a_1, b_1, a_2, b_2, ...] = argmin ||A c - z||^2
+        coeffs, _, _, _ = np.linalg.lstsq(A, z_vec, rcond=None)
+
+        a = coeffs[0::2]  # cos coefficients
+        b = coeffs[1::2]  # sin coefficients
+        w_refit = np.sqrt(a ** 2 + b ** 2)
+        phi_refit = np.arctan2(b, a)
+
+        # Compute residuals for reporting
+        # Before: use old w, phi
+        phi_before = self.model.phi.detach().cpu().numpy()
+        A_before = np.empty((len(z_vec), n))
+        idx = 0
+        for frame in frames:
+            if len(frame.x_obs) == 0:
+                continue
+            m = len(frame.x_obs)
+            x = frame.x_obs.cpu().numpy()
+            y = frame.y_obs.cpu().numpy()
+            theta = (kx[None, :] * x[:, None]
+                     + ky[None, :] * y[:, None]
+                     - omega[None, :] * frame.t
+                     + phi_before[None, :])
+            A_before[idx:idx + m] = np.cos(theta)
+            idx += m
+        residual_before = float(np.sqrt(np.mean((A_before @ w_before - z_vec) ** 2)))
+        residual_after = float(np.sqrt(np.mean((A @ coeffs - z_vec) ** 2)))
+
+        # Update model weights and phases
+        with torch.no_grad():
+            self.model.w.copy_(torch.tensor(w_refit, dtype=torch.float32,
+                                            device=self.model.w.device))
+            self.model.phi.copy_(torch.tensor(phi_refit, dtype=torch.float32,
+                                              device=self.model.phi.device))
+
+        if verbose:
+            print(f"  [Refit] LS refit (w+phi): "
+                  f"residual {residual_before:.4f} → {residual_after:.4f}")
+            print(f"  [Refit] |w| mean: {np.mean(np.abs(w_before)):.4f} → "
+                  f"{np.mean(np.abs(w_refit)):.4f}")
+
+        return {
+            'w_before': w_before.tolist(),
+            'w_after': w_refit.tolist(),
+            'residual_before': residual_before,
+            'residual_after': residual_after,
+        }
+
+    def predict_field(self, grid_x: torch.Tensor, grid_y: torch.Tensor,
+                      t: float) -> torch.Tensor:
+        """Predict wave field on regular grid at time t.
+
+        Temporarily enables neural corrector (if loaded) for prediction only.
+        """
+        if self._bank is not None:
+            return self._bank_predict_grid(grid_x, grid_y, t)
+        if self.model is None:
+            raise RuntimeError("Model not initialized")
+        with torch.no_grad():
+            # Enable NN corrector for prediction if loaded
+            had_nn = self.model.use_neural_corrector
+            if self.neural_corrector_path and self.model._neural_corrector is not None:
+                self.model.use_neural_corrector = True
+            result = self.model.predict_grid(grid_x, grid_y, t)
+            self.model.use_neural_corrector = had_nn
+            return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Median-of-k analytic field ensemble  (deployed 2026-07-27)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _rng_snapshot():
+    return (torch.get_rng_state(), np.random.get_state())
+
+
+def _rng_restore(state):
+    torch.set_rng_state(state[0])
+    np.random.set_state(state[1])
+
+
+def _seed_globals(seed: int):
+    """Same global seeding run.set_seed does; inlined to avoid a circular import."""
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+
+class MedianEnsembleUpdater:
+    """`auto` router + median-of-k ensemble on the ANALYTIC fallback.
+
+    WHY. The analytic arm initialises component phases at random in two places, so a
+    fixed (episode, config) still gives a *bimodal* run-to-run spread, CV up to 53%
+    (tmp/ESTIMATOR_VARIANCE_RESULT_2026-07-23.md). A few percent of sparse lanes land in
+    the bad mode and blow up 5-10x. The documented prescription is median-of-k, and the
+    confirmation round applied it at the level of the predicted FIELD (not of the scalar
+    score), which makes it deployable: no ground truth is used to combine members. On the
+    fresh reserve-seed 40 it removed every sparse-lane violation (>0.10: 0/80, q95 0.0552)
+    while harming no slice (max deviation +0.0025), and it demonstrably fired -- 28 lanes
+    with member disagreement >0.05, 8 genuine repairs
+    (tmp/confirm2_2026-07-27/RESULT_CONFIRM2.md §2).
+
+    SCOPE -- deliberately narrow, three exclusions:
+      1. Only the ANALYTIC fallback of `init_method='auto'`. An explicit
+         `init_method='v2_konly'` (what the paper scripts pass) never reaches this class
+         and stays bit-identical -- reproducibility of published numbers is protected.
+      2. If the router picks `learned`, the ensemble is NOT built (one member): the
+         authorised configuration ensembles the analytic arm only.
+      3. If the real-domain gate fires, the ensemble is NOT built (spec: the real path is
+         outside the authorisation).
+
+    Members are the standard estimator run with est seeds {s, s+1000, s+2000}; the output
+    of `predict_field` is the pointwise median across members. For odd k the median IS one
+    of the member values, so k=1 is bit-identical to a single SequentialUpdater run.
+    Latency is additive and was measured: 6.5 ms/frame per member -> 19.7 ms for k=3,
+    inside the 100 ms budget (ibid.); initialisation is 3x and parallelisable.
+
+    Each member owns its RNG state (snapshot/restore around every call), so interleaving
+    the members frame-by-frame is equivalent to running them one after another.
+
+    The public surface mirrors SequentialUpdater (`initialize`, `update`, `predict_field`,
+    `amplitude_refit`, `.model`); unknown attributes are forwarded to member 0.
+    """
+
+    MEMBER_OFFSETS = (0, 1000, 2000, 3000, 4000)   # frozen arm = first 3
+
+    def __init__(self, config: dict):
+        self.config = config
+        k = int(config.get('analytic_ensemble_k', DEFAULT_ANALYTIC_ENSEMBLE_K))
+        if k < 1 or k > len(self.MEMBER_OFFSETS):
+            raise ValueError(f'analytic_ensemble_k must be 1..{len(self.MEMBER_OFFSETS)}')
+        self.k_requested = k
+        self._primary = SequentialUpdater(config)
+        self._members = [self._primary]
+        self._rng = [None]
+        self.member_seeds = [config.get('seed')]
+        # populated by initialize(): how many members were actually built
+        self.ensemble_k = 1
+
+    # ── attribute forwarding ────────────────────────────────────────────────
+    def __getattr__(self, name):
+        # Only reached for attributes NOT found on the instance/class.
+        if name.startswith('__'):
+            raise AttributeError(name)
+        try:
+            primary = self.__dict__['_primary']
+        except KeyError:
+            raise AttributeError(name)
+        return getattr(primary, name)
+
+    @property
+    def model(self):
+        return self._primary.model
+
+    @property
+    def members(self):
+        return list(self._members)
+
+    # ── phase 1 ─────────────────────────────────────────────────────────────
+    def initialize(self, frames: List[FrameData],
+                   x_range=(10.0, 250.0), y_range=(-100.0, 100.0),
+                   verbose: bool = False) -> Dict:
+        # Member 0 runs first and unchanged: it carries the router decision and the
+        # ambient RNG stream, so a single-member outcome is bit-identical to the
+        # non-ensemble path.
+        result = self._primary.initialize(frames, x_range, y_range, verbose)
+        self._rng[0] = _rng_snapshot()
+
+        route = self._primary.init_method
+        real_gate = bool(getattr(self._primary, '_auto_real_gate', False))
+        if self.k_requested <= 1 or route != 'v2_konly' or real_gate:
+            self.ensemble_k = 1
+            result['ensemble_k'] = 1
+            # model is None when the real-domain gate routed to bank-MMSE (which has
+            # no Gaussian components and runs its own internal field ensemble)
+            result['member_n'] = [int(self._primary.model.n_gaussians)
+                                  if self._primary.model is not None else 0]
+            result['member_elapsed_s'] = [float(result['elapsed_s'])]
+            return result
+
+        base = self.config.get('seed')
+        base = 0 if base is None else int(base)
+        elapsed = [float(result['elapsed_s'])]
+        for off in self.MEMBER_OFFSETS[1:self.k_requested]:
+            s = base + off
+            cfg = dict(self.config)
+            cfg['init_method'] = 'v2_konly'      # explicit: no second router call
+            cfg['seed'] = s
+            _seed_globals(s)
+            m = SequentialUpdater(cfg)
+            r = m.initialize(frames, x_range, y_range, verbose=False)
+            self._members.append(m)
+            self._rng.append(_rng_snapshot())
+            self.member_seeds.append(s)
+            elapsed.append(float(r['elapsed_s']))
+
+        self.ensemble_k = len(self._members)
+        result['ensemble_k'] = self.ensemble_k
+        result['member_n'] = [int(m.model.n_gaussians) for m in self._members]
+        result['member_elapsed_s'] = elapsed
+        result['elapsed_s'] = float(sum(elapsed))   # honest total initialisation cost
+        if verbose:
+            print(f"  [Init/ensemble] median-of-{self.ensemble_k} analytic members, "
+                  f"seeds={self.member_seeds}, N={result['member_n']}, "
+                  f"{result['elapsed_s']:.1f}s total")
+        return result
+
+    # ── phase 2 ─────────────────────────────────────────────────────────────
+    def update(self, frame: FrameData) -> Dict:
+        if len(self._members) == 1:
+            return self._primary.update(frame)
+
+        outs = []
+        for i, m in enumerate(self._members):
+            _rng_restore(self._rng[i])
+            outs.append(m.update(frame))
+            self._rng[i] = _rng_snapshot()
+
+        losses = [o['loss'] for o in outs]
+        finite = [v for v in losses if np.isfinite(v)]
+        return {
+            # median of the member observation-fit losses: the ensemble's GT-free quality
+            # signal (see RESULT_CONFIRM2 §3 R7 -- selecting on it is a separate, not-yet
+            # pre-registered idea; reporting it is not).
+            'loss': float(np.median(finite)) if finite else float('nan'),
+            'n_pts': outs[0]['n_pts'],
+            # additive by construction: members run sequentially in one deployment thread
+            'elapsed_ms': float(sum(o['elapsed_ms'] for o in outs)),
+            'member_loss': losses,
+            'member_elapsed_ms': [o['elapsed_ms'] for o in outs],
+        }
+
+    def amplitude_refit(self, frames: List[FrameData], verbose: bool = False):
+        out = self._primary.amplitude_refit(frames, verbose=verbose)
+        for i, m in enumerate(self._members[1:], start=1):
+            _rng_restore(self._rng[i])
+            m.amplitude_refit(frames, verbose=False)
+            self._rng[i] = _rng_snapshot()
+        return out
+
+    # ── prediction ──────────────────────────────────────────────────────────
+    def predict_field(self, grid_x: torch.Tensor, grid_y: torch.Tensor,
+                      t: float) -> torch.Tensor:
+        if len(self._members) == 1:
+            return self._primary.predict_field(grid_x, grid_y, t)
+        preds = [m.predict_field(grid_x, grid_y, t) for m in self._members]
+        # Pointwise (element-wise) median. k is odd, so the result is one of the member
+        # values at every point -- no interpolation, no dtype change.
+        return torch.median(torch.stack(preds, dim=0), dim=0).values
+
+
+def make_updater(config: dict):
+    """Build the estimator the deployed policy calls for.
+
+    `init_method='auto'` (the shipped default) gets the median-of-k analytic ensemble
+    wrapper; every explicit init_method -- in particular the `v2_konly` the paper scripts
+    pass -- gets the plain SequentialUpdater and is therefore bit-identical to before.
+    """
+    if config.get('init_method') == 'auto' and \
+            int(config.get('analytic_ensemble_k', DEFAULT_ANALYTIC_ENSEMBLE_K)) > 1:
+        return MedianEnsembleUpdater(config)
+    return SequentialUpdater(config)

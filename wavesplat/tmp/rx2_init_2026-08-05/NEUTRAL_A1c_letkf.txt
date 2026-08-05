@@ -1,0 +1,28 @@
+A1c — baselines on the four Rx-2 episodes (runs per episode in the baseline file):
+  ETKF       per-ep 0.3957 0.4177 0.3826 0.4030   mean=0.3997 median=0.3993   runs/episode=1
+  GPR-1      per-ep 0.2758 0.2842 0.2946 0.3178   mean=0.2931 median=0.2894   runs/episode=1
+  GPR-disp   per-ep 0.2698 0.2771 0.2862 0.3094   mean=0.2857 median=0.2817   runs/episode=1
+  LETKF      per-ep 0.2282 0.2347 0.2298 0.2651   mean=0.2394 median=0.2322   runs/episode=1
+
+  flat-sea null   0.2533 0.2736 0.2388 0.2732   mean=0.2597
+
+  ==> PRO_analyze.py hardcodes LETKF = 0.2394; that is the MEAN of the four LETKF rows
+      (recomputed mean = 0.2394). Median = 0.2322.  The pre-registered statistic is the median.
+
+A1c2 — paired sign tests vs LETKF and vs the flat-sea null (n=4, floor p=0.125)
+arm              vs          medDelta   k/n       p   per-episode delta
+S1-A0            LETKF        +0.0149 2/4   1.000   +0.0438 +0.0981 -0.0140 -0.0187
+S1-A0            flat-sea     -0.0022 2/4   1.000   +0.0186 +0.0593 -0.0231 -0.0268
+S1-A1            LETKF        +0.0019 2/4   1.000   +0.0273 +0.0808 -0.0275 -0.0234
+S1-A1            flat-sea     -0.0147 2/4   1.000   +0.0021 +0.0419 -0.0365 -0.0315
+S2-C1            LETKF        +0.0417 0/4   0.125   +0.0481 +0.0755 +0.0105 +0.0353
+S2-C1            flat-sea     +0.0251 0/4   0.125   +0.0229 +0.0367 +0.0014 +0.0273
+S2-T1            LETKF        -0.0286 3/4   0.625   -0.0281 +0.0140 -0.0695 -0.0292
+S2-T1            flat-sea     -0.0452 4/4   0.125   -0.0533 -0.0249 -0.0786 -0.0372
+S2-T1f           LETKF        -0.0720 4/4   0.125   -0.0857 -0.0646 -0.0794 -0.0598
+S2-T1f           flat-sea     -0.0960 4/4   0.125   -0.1109 -0.1035 -0.0884 -0.0679
+X-T1f-notrack    LETKF        -0.1771 4/4   0.125   -0.2019 -0.1443 -0.1960 -0.1583
+X-T1f-notrack    flat-sea     -0.1941 4/4   0.125   -0.2271 -0.1831 -0.2051 -0.1663
+
+  NOTE: LETKF has exactly ONE run per episode in the baseline file (no seed replicates),
+        so every 'k/4 vs LETKF' pairs a median-of-3 WS cell against a single LETKF draw.

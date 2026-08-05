@@ -1,0 +1,92 @@
+====================================================================================================
+SECTION 0 — sources
+====================================================================================================
+  s1s2   rows= 132 cells=['S1-A0', 'S1-A1', 'S1-A2', 'S1-A3', 'S2-C1', 'S2-T1', 'S2-T1f', 'S2-T2', 'S2-T4', 'X-A0-notrack', 'X-T1f-notrack']
+  rx1    rows= 180 cells=['D-BASE', 'D-K12', 'D-K6', 'D-NOTRACK', 'K1', 'K12', 'K12-S1', 'K2', 'K3', 'K4', 'K5', 'K6', 'K7', 'X-BASE', 'X-NOTRACK']
+  e2     rows= 180 cells=['A0', 'U0', 'U1', 'U1M2', 'U1M5', 'U2']
+  e1     rows= 180 cells=['A', 'B', 'C', 'D', 'E']
+
+====================================================================================================
+ATTACK 1 — what effect could each "dead" candidate still be hiding?
+====================================================================================================
+PRIMARY statistic = median of paired per-episode deltas (Rx-2 PREREG).
+CI-seed  = 95% bootstrap over SEEDS only (episodes held fixed).
+CI-both  = 95% bootstrap over seeds AND episodes (generalisation to new episodes).
+MDE      = |effect| needed for an 80% chance of n/n sign agreement, the ONLY outcome
+           that reaches the p-floor at that n.
+
+candidate                          n   PRIMARY    k/n       p             CI-seed             CI-both       sd    MDE80
+tracker OFF @deployment            4   +0.0000   2/4   1.0000 [-0.0397,+0.0231] [-0.0401,+0.0358]   0.0215   0.0345
+tracker lambda=0 @deployment       4   +0.0007   2/4   1.0000 [-0.0318,+0.0264] [-0.0372,+0.0316]   0.0171   0.0274
+tracker steps=1 @deployment        4   -0.0023   3/4   0.6250 [-0.0355,+0.0295] [-0.0338,+0.0303]   0.0091   0.0146
+budget 15 -> 40 (S1)               4   -0.0063   2/4   1.0000 [-0.0340,+0.0143] [-0.0341,+0.0253]   0.0252   0.0404
+budget 15 -> 22 (S1)               4   -0.0150   4/4   0.1250 [-0.0364,+0.0090] [-0.0365,+0.0142]   0.0058   0.0093
+budget 15 -> 30 (S1)               4   -0.0106   3/4   0.6250 [-0.0259,+0.0136] [-0.0264,+0.0182]   0.0103   0.0165
+prune OFF @oracle                  4   +0.0000   0/4   0.1250 [-0.0182,+0.0191] [-0.0190,+0.0197]   0.0005   0.0008
+adaptive-N OFF @oracle             4   +0.0000   0/4   0.1250 [-0.0049,+0.0049] [-0.0053,+0.0051]   0.0000   0.0000
+grid 81->401 (E2 U1)              12   -0.0014   6/12  1.0000 [-0.0135,+0.0035] [-0.0272,+0.0051]   0.0278   0.0580
+grid+minsep (E2 U1M2)             12   +0.0000   6/12  1.0000 [-0.0135,+0.0027] [-0.0356,+0.0035]   0.0326   0.0680
+radius 0.2->0.1 (E2 U2)           12   +0.0134   4/12  0.3877 [-0.0053,+0.0367] [-0.0304,+0.0402]   0.0445   0.0930
+
+The prize being claimed for initialisation, on the same 4 crowded episodes:
+  oracle-placement medDelta(nRMSE) = -0.0974  per-ep [-0.1295, -0.1628, -0.0653, -0.0411]
+  -> compare each MDE above with this. A candidate whose MDE exceeds the prize could
+     be hiding an effect the size of the prize and still have come back "NULL".
+
+====================================================================================================
+ATTACK 3 — does init_nrmse buy nRMSE? (empirical transfer coefficient)
+====================================================================================================
+Transfer = d(final nRMSE) / d(init_nrmse), from within-episode arm pairs.
+
+[a] DEPLOYABLE arms only (no oracle anywhere) — this is the operating point that matters
+  s1s2 deployable {A0,A1,A2,A3,C1}             pairs=  40  slope0=+0.612 [+0.457,+0.757]  slope=+0.576  r=+0.772  |dinit| med=0.0151
+  E2 grid/radius/minsep cells (12 ep, all deployable) pairs= 122  slope0=+0.756 [+0.658,+0.868]  slope=+0.755  r=+0.919  |dinit| med=0.0064
+  E1 cells (all deployable)                    pairs= 120  slope0=+0.744 [+0.639,+0.859]  slope=+0.746  r=+0.911  |dinit| med=0.0068
+
+[b] pairs that SPAN the oracle (one arm is oracle placement)
+  s1s2 all arms incl. oracle                   pairs=  84  slope0=+0.518 [+0.474,+0.566]  slope=+0.539  r=+0.936  |dinit| med=0.0548
+
+[c] the single biggest deployable init improvement measured, and what it bought:
+    episode_BF4_15comp_seed0_uniform.h5        dinit=-0.0107  dnRMSE=-0.0172  ratio=+1.61
+    episode_BF4_30comp_seed0_uniform.h5        dinit=-0.0460  dnRMSE=-0.0219  ratio=+0.48
+    episode_BF5_15comp_seed0_uniform.h5        dinit=-0.0298  dnRMSE=+0.0046  ratio=-0.15
+    episode_BF5_30comp_seed0_uniform.h5        dinit=+0.0167  dnRMSE=+0.0333  ratio=+2.00
+    median dinit=-0.0202  median dnRMSE=-0.0063  -> transfer +0.310
+
+====================================================================================================
+ATTACK 4 — is the oracle 0.0629 confounded with init_k_lr_scale=0?
+====================================================================================================
+arm        init_method  k frozen   init_nrmse    nRMSE
+S1-A0      v2_konly     no             0.2612   0.2667
+S1-A3      v2_konly     no             0.2438   0.2664
+S2-C1      v2_konly     no             0.2852   0.2818
+S2-T1      oracle       no             0.1578   0.2112
+S2-T1f     oracle       YES            0.0629   0.1671
+X-T1f-notrack oracle       YES            0.0629   0.0643
+
+  quoted gap  (S1-A3 -> S2-T1f, oracle AND k frozen) = 0.1809
+  placement-only gap (S1-A3 -> S2-T1, same machinery) = 0.0860
+  k-FREEZING component (S2-T1 -> S2-T1f)              = 0.0949 = 52.5% of the quoted gap
+  paired: medDelta init_nrmse (T1f-T1) = -0.0959 4/4 p=0.1250   per-ep [-0.1263, -0.0899, -0.0618, -0.1018]
+  paired: medDelta nRMSE      (T1f-T1) = -0.0441 4/4 p=0.1250
+
+====================================================================================================
+ATTACK 5 — is "initialisation dominates deployment error" crowded-only?
+====================================================================================================
+E2 cell A0 == the shipped ladder == s1s2 S1-A0, run on the 12-episode paper panel.
+episode                                     init_nrmse    nRMSE
+episode_BF2_1comp_seed0_uniform.h5              0.0610   0.0631
+episode_BF3_1comp_seed0_uniform.h5              0.0089   0.0087
+episode_BF3_2comp_seed0_slope.h5                0.0081   0.0087
+episode_BF3_2comp_seed0_uniform.h5              0.0071   0.0073
+episode_BF3_5comp_seed0_slope.h5                0.0149   0.0187
+episode_BF3_5comp_seed0_uniform.h5              0.0202   0.0240
+episode_BF4_15comp_seed0_uniform.h5             0.2788   0.2720
+episode_BF4_1comp_seed0_uniform.h5              0.0046   0.0037
+episode_BF4_30comp_seed0_uniform.h5             0.3106   0.3328
+episode_BF4_5comp_seed0_uniform.h5              0.0057   0.0173
+episode_BF5_15comp_seed0_uniform.h5             0.2266   0.2157
+episode_BF5_30comp_seed0_uniform.h5             0.2291   0.2464
+MEDIAN (12 ep)                                  0.0175   0.0214
+  crowded subset (15/30comp)                    0.2539   0.2592  n=4
+  non-crowded subset (1/2/5comp)                0.0085   0.0130  n=8

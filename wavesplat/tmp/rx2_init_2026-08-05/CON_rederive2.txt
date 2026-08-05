@@ -1,0 +1,78 @@
+====================================================================================================
+ATTACK 1 (sharpened) — MDE ledger, tie-safe, with an alpha=0.05 MDE where n allows
+====================================================================================================
+  prize as quoted   (S1-A0 -> S2-T1f, oracle AND k frozen) = 0.0974 nRMSE
+  prize, placement only (S1-A0 -> S2-T1, same machinery)   = 0.0637 nRMSE
+
+candidate                      n ties   PRIMARY     k/n       p      sd  MDE(n/n)  MDE(a=.05)  MDE/prize
+tracker OFF @deployment        4    0   +0.0000   2/4    1.0000  0.0215    0.0345    unreach.       35%
+tracker lambda=0 @deploy       4    0   +0.0007   2/4    1.0000  0.0171    0.0274    unreach.       28%
+tracker steps=1 @deploy        4    0   -0.0023   3/4    0.6250  0.0091    0.0146    unreach.       15%
+budget 15->22 (S1-A1)          4    0   -0.0150   4/4    0.1250  0.0058    0.0093    unreach.       10%
+budget 15->30 (S1-A2)          4    0   -0.0106   3/4    0.6250  0.0103    0.0165    unreach.       17%
+budget 15->40 (S1-A3)          4    0   -0.0063   2/4    1.0000  0.0252    0.0404    unreach.       41%
+prune OFF @oracle              4    3   +0.0000   0/1    1.0000  0.0005    0.0008    unreach.        1%
+adaptive-N OFF @oracle         4    4   +0.0000   0/0       nan  0.0000    0.0000    unreach.        0%
+grid 81->401 (12 ep)          12    0   -0.0014   6/12   1.0000  0.0278    0.0580      0.0580       60%
+grid 81->401 (crowded 4)       4    0   -0.0458   4/4    0.1250  0.0305    0.0490    unreach.       50%
+grid+minsep (12 ep)           12    0   +0.0000   6/12   1.0000  0.0326    0.0680      0.0680       70%
+grid+minsep (crowded 4)        4    0   -0.0484   3/4    0.6250  0.0428    0.0688    unreach.       71%
+E1 suppression D (12 ep)      12    0   +0.0065   3/12   0.1460  0.0550    0.1147      0.1147      118%
+E1 suppression D (crowd 4)     4    0   -0.0568   3/4    0.6250  0.0391    0.0627    unreach.       64%
+
+  Reading: "MDE(n/n)" is the effect that would be found 80% of the time by the ONLY
+  outcome that reaches the p-floor at n=4 (all four deltas one way). An intervention
+  whose MDE/prize is large came back NULL from a test that could not have seen an
+  effect that big. It is not evidence of absence at that scale.
+
+====================================================================================================
+ATTACK 1b — seed noise vs. the levers
+====================================================================================================
+  S1-A0    within-cell nRMSE range across 3 seeds: median 0.0379  max 0.0818
+  S1-A3    within-cell nRMSE range across 3 seeds: median 0.0365  max 0.0629
+  S2-C1    within-cell nRMSE range across 3 seeds: median 0.0182  max 0.0541
+  S2-T1    within-cell nRMSE range across 3 seeds: median 0.0363  max 0.0509
+  S2-T1f   within-cell nRMSE range across 3 seeds: median 0.0095  max 0.0123
+  every measured DEPLOYABLE intervention moves the median by <= 0.015;
+  the seed range of the shipped arm alone is ~0.038 on the same episodes.
+
+====================================================================================================
+ATTACK 3 (sharpened) — is "initialisation dominates" a finding or a restatement?
+====================================================================================================
+  E2 A0   : across 12 episodes r(init_nrmse, nRMSE) = +0.9973   R^2 = 0.9946
+  E2 U1   : across 12 episodes r(init_nrmse, nRMSE) = +0.9911   R^2 = 0.9822
+  E2 U2   : across 12 episodes r(init_nrmse, nRMSE) = +0.9849   R^2 = 0.9700
+  s1s2 deployable arms (16 cells): r = +0.9028
+
+  Combined with the measured fact that turning the tracker OFF at deployment changes
+  nRMSE by +0.0000 (rx1 D-NOTRACK), "the deployment field error IS the initialisation
+  field error" is close to an identity, not a causal discovery. What is NOT an identity,
+  and is the thing that actually needs testing, is whether any DEPLOYABLE knob can move
+  init_nrmse by an amount worth having:
+    S1-A0->S1-A1     med d(init_nrmse) -0.0138 (3/4, p=0.625)   med d(nRMSE) -0.0150
+    S1-A0->S1-A2     med d(init_nrmse) -0.0119 (3/4, p=0.625)   med d(nRMSE) -0.0106
+    S1-A0->S1-A3     med d(init_nrmse) -0.0202 (3/4, p=0.625)   med d(nRMSE) -0.0063
+    S1-A0->S2-C1     med d(init_nrmse) +0.0208 (1/4, p=0.625)   med d(nRMSE) +0.0144
+    best deployable init gain measured anywhere = -0.0202  = 11.2% of the quoted 0.1809 init gap
+
+====================================================================================================
+ATTACK 5 (sharpened) — how big is the prize on the panel the paper actually reports?
+====================================================================================================
+  12-episode panel, shipped arm:      mean nRMSE 0.1015  median 0.0214
+  same panel with the 4 crowded episodes replaced by the ORACLE arm (unattainable):
+                                      mean nRMSE 0.0683  median 0.0214
+  -> perfect, oracle-grade initialisation on every crowded episode moves the panel
+     mean by 0.0332 and the panel MEDIAN by 0.0000.
+
+  Where the deployment error lives, by regime (shipped arm, 12-ep panel):
+    crowded  n= 4  init 0.2539  nRMSE 0.2592
+    other    n= 8  init 0.0085  nRMSE 0.0130   ratio crowded/other = 19.9x
+
+  And what fraction of the 100-episode deployment distribution is "crowded"?
+   (dataset census, data_finemesh_2026-07-23, uniform+slope):
+      1comp :  30  (30.0%)
+      2comp :  10  (10.0%)
+      5comp :  20  (20.0%)
+     15comp :  20  (20.0%)
+     30comp :  20  (20.0%)
+    crowded (15/30comp) = 40.0% of the corpus

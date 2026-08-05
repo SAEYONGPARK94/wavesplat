@@ -127,11 +127,12 @@ class CoarseToFineSchedule:
         use_beamform = self.init_method in ('v2', 'v2_konly', 'relax', 'relax_konly',
                                             'oracle')
 
+        phi_new = None
         if use_beamform and len(result) == 4:
             # v2: beamforming on residuals with timestamps
             all_x, all_y, all_res, all_t = result
             if len(all_x) > 0:
-                kx_new, ky_new, amp_new = self._beamform_residuals(
+                kx_new, ky_new, amp_new, phi_new = self._beamform_residuals(
                     all_x, all_y, all_res, all_t, n_new)
             else:
                 kx_new = np.random.randn(n_new) * 0.05
@@ -161,6 +162,21 @@ class CoarseToFineSchedule:
             kx_new = np.concatenate([kx_new, np.random.randn(extra) * 0.05])
             ky_new = np.concatenate([ky_new, np.random.randn(extra) * 0.05])
             amp_new = np.concatenate([amp_new, np.ones(extra) * 0.01])
+            if phi_new is not None:
+                phi_new = np.concatenate(
+                    [phi_new, np.random.uniform(0, 2 * np.pi, extra)])
+
+        # RESEARCH gate RX2_GROW_FITPHI (initializer._rx2_gate, read at call time): use the
+        # phase _linear_projection already fitted instead of a fresh U(0, 2pi) draw. The
+        # default branch below is byte-identical to the shipped code, including the RNG draw.
+        from wavesplat.optimizer.initializer import _rx2_gate as _rx2
+        if _rx2('RX2_GROW_FITPHI') and phi_new is not None and len(phi_new) >= n_new:
+            init_phi = torch.tensor(np.asarray(phi_new[:n_new], dtype=np.float64),
+                                    dtype=torch.float32, device=model.w.device)
+        else:
+            init_phi = (torch.rand(n_new, device=model.w.device) * 2 * np.pi
+                        if GROW_RANDOM_PHI else
+                        torch.zeros(n_new, device=model.w.device))
 
         model.add_gaussians(
             n_new,
@@ -170,15 +186,35 @@ class CoarseToFineSchedule:
                                  device=model.w.device),
             init_w=torch.tensor(amp_new[:n_new], dtype=torch.float32,
                                 device=model.w.device),
-            init_phi=(torch.rand(n_new, device=model.w.device) * 2 * np.pi
-                      if GROW_RANDOM_PHI else
-                      torch.zeros(n_new, device=model.w.device)),
+            init_phi=init_phi,
         )
 
     def _beamform_residuals(self, x, y, z_res, t, n_new):
-        """Find new peaks in residuals using dispersion-aware beamforming."""
+        """Find new peaks in residuals using dispersion-aware beamforming.
+
+        SHIPPED BEHAVIOUR (all Rx-2 gates off): the coarse power map is computed once, and
+        every one of the ``n_new`` components is refined and least-squares-projected
+        against the SAME untouched residual ``z_res``; only a MIN_DK box in the power map
+        is zeroed between picks. That is strictly weaker than the greedy in
+        ``initialize_from_frames_v2``, which subtracts each fitted component before the
+        next pick. On the deployment ladder [3, 8, 15] this site places 12 of the 15 atoms.
+
+        The RX2_GROW_* gates (see initializer._rx2_gate) restore subtraction / map
+        recomputation / a tighter suppression radius. Off by default, bit-for-bit.
+        """
+        from wavesplat.optimizer.initializer import (
+            MIN_DK, RECOMPUTE_MIN_DK, _rx2_gate,
+        )
+        recompute = _rx2_gate('RX2_GROW_RECOMPUTE')
+        subtract = recompute or _rx2_gate('RX2_GROW_SUBTRACT')
+        min_dk = RECOMPUTE_MIN_DK if _rx2_gate('RX2_GROW_TIGHT_SUPPRESS') else MIN_DK
+
+        # Working residual. Shipped path aliases z_res (never written to); the subtracting
+        # path needs its own buffer.
+        z_work = np.array(z_res, copy=True) if subtract else z_res
+
         power, kx_axis, ky_axis = _beamform_coarse(
-            x, y, z_res, t, self.depth,
+            x, y, z_work, t, self.depth,
             kx_range=(-4.0, 4.0), ky_range=(-4.0, 4.0),
             n_kx=61, n_ky=61  # coarser grid for speed
         )
@@ -189,11 +225,10 @@ class CoarseToFineSchedule:
         cy = np.argmin(np.abs(ky_axis))
         power[max(0, cy - 1):cy + 2, max(0, cx - 1):cx + 2] = 0.0
 
-        kx_list, ky_list, amp_list = [], [], []
-        from wavesplat.optimizer.initializer import MIN_DK
-        min_dk = MIN_DK
+        kx_list, ky_list, amp_list, phi_list = [], [], [], []
+        suppressed = []
 
-        for _ in range(n_new):
+        for comp_idx in range(n_new):
             flat_idx = np.argmax(power.ravel())
             iy_p, ix_p = np.unravel_index(flat_idx, power.shape)
             if power[iy_p, ix_p] < 1e-12:
@@ -201,13 +236,14 @@ class CoarseToFineSchedule:
 
             kx_c, ky_c = kx_axis[ix_p], ky_axis[iy_p]
             kx_f, ky_f, _ = _beamform_refine(
-                x, y, z_res, t, self.depth, kx_c, ky_c,
+                x, y, z_work, t, self.depth, kx_c, ky_c,
                 delta=0.15, n_fine=31)
-            amp, _ = _linear_projection(x, y, z_res, t, kx_f, ky_f, self.depth)
+            amp, ph_fit = _linear_projection(x, y, z_work, t, kx_f, ky_f, self.depth)
 
             kx_list.append(kx_f)
             ky_list.append(ky_f)
             amp_list.append(amp)
+            phi_list.append(ph_fit)
 
             # Suppress neighborhood
             suppress = int(min_dk / dkx) + 1
@@ -216,5 +252,21 @@ class CoarseToFineSchedule:
             x_lo = max(0, ix_p - suppress)
             x_hi = min(power.shape[1], ix_p + suppress + 1)
             power[y_lo:y_hi, x_lo:x_hi] = 0.0
+            suppressed.append((y_lo, y_hi, x_lo, x_hi))
 
-        return np.array(kx_list), np.array(ky_list), np.array(amp_list)
+            if subtract:
+                k_mag = np.sqrt(kx_f ** 2 + ky_f ** 2 + 1e-12)
+                omega = np.sqrt(_G * k_mag * np.tanh(k_mag * self.depth))
+                ph = kx_f * x + ky_f * y - omega * t + ph_fit
+                z_work = z_work - amp * np.cos(ph)
+            if recompute and comp_idx + 1 < n_new:
+                power, kx_axis, ky_axis = _beamform_coarse(
+                    x, y, z_work, t, self.depth,
+                    kx_range=(-4.0, 4.0), ky_range=(-4.0, 4.0),
+                    n_kx=61, n_ky=61)
+                power[max(0, cy - 1):cy + 2, max(0, cx - 1):cx + 2] = 0.0
+                for (a, b, c_, d) in suppressed:
+                    power[a:b, c_:d] = 0.0
+
+        return (np.array(kx_list), np.array(ky_list), np.array(amp_list),
+                np.array(phi_list))

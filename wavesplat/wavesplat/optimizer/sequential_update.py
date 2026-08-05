@@ -1047,11 +1047,22 @@ class SequentialUpdater:
 
         # Use beamforming on residuals to find new peaks
         if self.init_method in ('v2', 'v2_konly', 'learned', 'oracle') and all_t is not None:
+            # Same non-subtracting greedy as coarse_to_fine._beamform_residuals; the
+            # RX2_GROW_* research gates (initializer._rx2_gate, read at CALL time) are
+            # applied at BOTH residual sites so an intervention is not diluted to one of
+            # them. All gates off == shipped behaviour, bit-for-bit.
             from wavesplat.optimizer.initializer import (
                 _beamform_coarse, _beamform_refine, _linear_projection,
+                MIN_DK, RECOMPUTE_MIN_DK, _rx2_gate, G as _G_INIT,
             )
+            _recompute = _rx2_gate('RX2_GROW_RECOMPUTE')
+            _subtract = _recompute or _rx2_gate('RX2_GROW_SUBTRACT')
+            min_dk = (RECOMPUTE_MIN_DK if _rx2_gate('RX2_GROW_TIGHT_SUPPRESS')
+                      else MIN_DK)
+            z_work = (np.array(all_res, copy=True) if _subtract else all_res)
+
             power, kx_axis, ky_axis = _beamform_coarse(
-                all_x, all_y, all_res, all_t, self.depth,
+                all_x, all_y, z_work, all_t, self.depth,
                 kx_range=(-4.0, 4.0), ky_range=(-4.0, 4.0),
                 n_kx=61, n_ky=61)
 
@@ -1060,25 +1071,25 @@ class SequentialUpdater:
             cy = np.argmin(np.abs(ky_axis))
             power[max(0, cy-1):cy+2, max(0, cx-1):cx+2] = 0.0
 
-            kx_list, ky_list, amp_list = [], [], []
+            kx_list, ky_list, amp_list, phi_list = [], [], [], []
             dkx = kx_axis[1] - kx_axis[0]
-            from wavesplat.optimizer.initializer import MIN_DK
-            min_dk = MIN_DK
+            _suppressed = []
 
-            for _ in range(n_add):
+            for _i_add in range(n_add):
                 flat_idx = np.argmax(power.ravel())
                 iy_p, ix_p = np.unravel_index(flat_idx, power.shape)
                 if power[iy_p, ix_p] < 1e-12:
                     break
                 kx_c, ky_c = kx_axis[ix_p], ky_axis[iy_p]
                 kx_f, ky_f, _ = _beamform_refine(
-                    all_x, all_y, all_res, all_t, self.depth,
+                    all_x, all_y, z_work, all_t, self.depth,
                     kx_c, ky_c, delta=0.15, n_fine=31)
-                amp, _ = _linear_projection(
-                    all_x, all_y, all_res, all_t, kx_f, ky_f, self.depth)
+                amp, _ph_fit = _linear_projection(
+                    all_x, all_y, z_work, all_t, kx_f, ky_f, self.depth)
                 kx_list.append(kx_f)
                 ky_list.append(ky_f)
                 amp_list.append(amp)
+                phi_list.append(_ph_fit)
 
                 suppress = int(min_dk / dkx) + 1
                 y_lo = max(0, iy_p - suppress)
@@ -1086,10 +1097,25 @@ class SequentialUpdater:
                 x_lo = max(0, ix_p - suppress)
                 x_hi = min(power.shape[1], ix_p + suppress + 1)
                 power[y_lo:y_hi, x_lo:x_hi] = 0.0
+                _suppressed.append((y_lo, y_hi, x_lo, x_hi))
+
+                if _subtract:
+                    _kmag = np.sqrt(kx_f ** 2 + ky_f ** 2 + 1e-12)
+                    _om = np.sqrt(_G_INIT * _kmag * np.tanh(_kmag * self.depth))
+                    _ph = kx_f * all_x + ky_f * all_y - _om * all_t + _ph_fit
+                    z_work = z_work - amp * np.cos(_ph)
+                if _recompute and _i_add + 1 < n_add:
+                    power, kx_axis, ky_axis = _beamform_coarse(
+                        all_x, all_y, z_work, all_t, self.depth,
+                        kx_range=(-4.0, 4.0), ky_range=(-4.0, 4.0),
+                        n_kx=61, n_ky=61)
+                    power[max(0, cy-1):cy+2, max(0, cx-1):cx+2] = 0.0
+                    for (_a, _b, _c, _d) in _suppressed:
+                        power[_a:_b, _c:_d] = 0.0
 
             n_found = len(kx_list)
         else:
-            kx_list, ky_list, amp_list = [], [], []
+            kx_list, ky_list, amp_list, phi_list = [], [], [], []
             n_found = 0
 
         # Pad with random if needed
@@ -1098,16 +1124,24 @@ class SequentialUpdater:
             kx_list.extend(np.random.randn(extra) * 0.1)
             ky_list.extend(np.random.randn(extra) * 0.1)
             amp_list.extend(np.ones(extra) * 0.01)
+            phi_list.extend(np.random.uniform(0, 2 * np.pi, extra))
 
         n_actual = min(len(kx_list), n_add)
         if n_actual > 0:
             device = self.model.w.device
+            from wavesplat.optimizer.initializer import _rx2_gate as _rx2
+            if _rx2('RX2_GROW_FITPHI') and len(phi_list) >= n_actual:
+                _init_phi = torch.tensor(
+                    np.asarray(phi_list[:n_actual], dtype=np.float64),
+                    dtype=torch.float32, device=device)
+            else:
+                _init_phi = torch.rand(n_actual, device=device) * 2 * np.pi
             self.model.add_gaussians(
                 n_actual,
                 init_kx=torch.tensor(kx_list[:n_actual], dtype=torch.float32, device=device),
                 init_ky=torch.tensor(ky_list[:n_actual], dtype=torch.float32, device=device),
                 init_w=torch.tensor(amp_list[:n_actual], dtype=torch.float32, device=device),
-                init_phi=torch.rand(n_actual, device=device) * 2 * np.pi,
+                init_phi=_init_phi,
             )
 
             # Fine-tune the new components with a few iterations

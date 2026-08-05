@@ -24,6 +24,22 @@ LETKF = {'episode_BF4_15comp_seed0_uniform.h5': 0.2282,
          'episode_BF4_30comp_seed0_uniform.h5': 0.2347,
          'episode_BF5_15comp_seed0_uniform.h5': 0.2298,
          'episode_BF5_30comp_seed0_uniform.h5': 0.2651}
+# FLAT-SEA (zero-predictor) null, re-derived independently at the exact frames run.py scores
+# (PREREG AMENDMENT 1). Mandatory alongside every table: init_nrmse is saturated at this
+# floor in the shipping-fallback band, so it cannot separate "slightly wrong" placement from
+# "completely wrong" placement.
+NULL_INIT = {'episode_BF4_15comp_seed0_uniform.h5': 0.2489,
+             'episode_BF4_30comp_seed0_uniform.h5': 0.2692,
+             'episode_BF5_15comp_seed0_uniform.h5': 0.2602,
+             'episode_BF5_30comp_seed0_uniform.h5': 0.2982}
+NULL_TRACK = {'episode_BF4_15comp_seed0_uniform.h5': 0.2533,
+              'episode_BF4_30comp_seed0_uniform.h5': 0.2736,
+              'episode_BF5_15comp_seed0_uniform.h5': 0.2388,
+              'episode_BF5_30comp_seed0_uniform.h5': 0.2732}
+# seed-paired bootstrap MDE at the shipping-fallback point (PREREG AMENDMENT 1, 4000x, 80%)
+BOOT_MDE = {'init_nrmse': 0.0183, 'nRMSE': 0.0309}
+# corrected reachable prize (oracle placement with k TRAINABLE == s1s2 arm S2-T1)
+PRIZE_NRMSE = 0.0637
 # lower is better / higher is better
 LOWER = ['init_nrmse', 'nRMSE', 'Hs_error', 'absVR_framewise', 'avg_RMSE_unobserved']
 HIGHER = ['Pearson_rho', 'Skill_Score']
@@ -91,13 +107,29 @@ def main():
     have = [c for c in cells if all((c, e) in med for e in EPISODES)]
     print(f'# rows {len(rows)}   complete cells {have}\n')
 
-    print('== per-cell medians (mean over the 4 crowded episodes) ==')
-    hdr = f"{'cell':<8}" + ''.join(f'{k[:11]:>12}' for k in METRICS) + f"{'N':>6}"
+    print('== per-cell, PREREG aggregation = median over the 4 crowded episodes ==')
+    print('   (flat-sea null and LETKF printed at the bottom -- mandatory companions)')
+    hdr = (f"{'cell':<9}" + ''.join(f'{k[:11]:>12}' for k in METRICS) +
+           f"{'N':>6}{'>null_i':>9}{'>null_n':>9}{'<LETKF':>8}")
     print(hdr)
     for c in have:
-        v = [np.mean([med[(c, e)][k] for e in EPISODES]) for k in METRICS]
-        n = np.mean([med[(c, e)]['N'] for e in EPISODES])
-        print(f'{c:<8}' + ''.join(f'{x:>12.4f}' for x in v) + f'{n:>6.1f}')
+        v = [np.median([med[(c, e)][k] for e in EPISODES]) for k in METRICS]
+        n = np.median([med[(c, e)]['N'] for e in EPISODES])
+        bi = sum(1 for e in EPISODES if med[(c, e)]['init_nrmse'] < NULL_INIT[e])
+        bn = sum(1 for e in EPISODES if med[(c, e)]['nRMSE'] < NULL_TRACK[e])
+        bl = sum(1 for e in EPISODES if med[(c, e)]['nRMSE'] < LETKF[e])
+        print(f'{c:<9}' + ''.join(f'{x:>12.4f}' for x in v) +
+              f'{n:>6.1f}{bi:>7}/4{bn:>7}/4{bl:>6}/4')
+    print(f"{'FLAT-NULL':<9}{np.median(list(NULL_INIT.values())):>12.4f}"
+          f"{np.median(list(NULL_TRACK.values())):>12.4f}")
+    print(f"{'LETKF':<9}{'':>12}{np.median(list(LETKF.values())):>12.4f}"
+          f"{'':>34}{sum(1 for e in EPISODES if LETKF[e] < NULL_TRACK[e]):>7}/4")
+    print()
+    print('== mean-over-episodes companion table (NOT the prereg statistic; for comparability'
+          ' with the older mean-based tables only) ==')
+    for c in have:
+        v = [np.mean([med[(c, e)][k] for e in EPISODES]) for k in ('init_nrmse', 'nRMSE')]
+        print(f'  {c:<9} init {v[0]:.4f}  nRMSE {v[1]:.4f}')
     print()
 
     base = 'X-BASE'
@@ -113,20 +145,30 @@ def main():
             d = [med[(c, e)][k] - med[(base, e)][k] for e in EPISODES]
             kk, nn, p = sign_p(d, lower)
             per = ' '.join(f'{x:+.4f}' for x in d)
-            print(f'  {c:<8} med {np.median(d):+.4f}  {kk}/{nn}  p={p:.3f}   [{per}]')
+            flag = ''
+            if k in BOOT_MDE:
+                flag = ('  [< bootstrap MDE %.4f => UNINTERPRETABLE]' % BOOT_MDE[k]
+                        if abs(np.median(d)) < BOOT_MDE[k] else
+                        '  [> bootstrap MDE %.4f]' % BOOT_MDE[k])
+            print(f'  {c:<8} med {np.median(d):+.4f}  {kk}/{nn}  p={p:.3f}   [{per}]{flag}')
 
-    if orc:
-        print('\n== gap closure on init_nrmse (per-episode, denominator = X-BASE - ORACLE) ==')
-        for c in have:
-            if c in (base, orc):
-                continue
-            cl = []
-            for e in EPISODES:
-                gap = med[(base, e)]['init_nrmse'] - med[(orc, e)]['init_nrmse']
-                cl.append((med[(base, e)]['init_nrmse'] - med[(c, e)]['init_nrmse']) / gap)
-            print(f'  {c:<8} median {np.median(cl)*100:+6.1f}%  '
-                  f'{sum(1 for x in cl if x>0)}/4 positive   '
-                  f'[{" ".join(f"{x*100:+.1f}%" for x in cl)}]')
+    for denom, tag in [('ORACLE-K', 'REACHABLE ceiling, k trainable == s1s2 S2-T1  [PRIMARY]'),
+                       ('ORACLE', 'k-FROZEN ceiling == s1s2 S2-T1f  [not deployable]')]:
+        if denom not in have:
+            continue
+        for k in ('init_nrmse', 'nRMSE'):
+            print(f'\n== gap closure on {k}: denominator = X-BASE - {denom}   ({tag}) ==')
+            for c in have:
+                if c in (base,) or c.startswith('ORACLE') or c.startswith('X-BASE'):
+                    continue
+                cl = []
+                for e in EPISODES:
+                    gap = med[(base, e)][k] - med[(denom, e)][k]
+                    cl.append((med[(base, e)][k] - med[(c, e)][k]) / gap if abs(gap) > 1e-9
+                              else np.nan)
+                print(f'  {c:<8} median {np.nanmedian(cl)*100:+7.1f}%  '
+                      f'{sum(1 for x in cl if x>0)}/4 positive   '
+                      f'[{" ".join(f"{x*100:+.0f}%" for x in cl)}]')
 
     print('\n== vs frozen LETKF (single-seed reference, NOT re-run) ==')
     for c in have:
@@ -156,13 +198,42 @@ def main():
         print(f'  {k:<22} range_med {rm:.4f}  sigma_d {sd:.4f}  realized MDE {d80*sd:.4f}')
 
     print('\n== diagnostics (detection_rate is DISQUALIFIED as a placement metric; '
-          'reported with n_est) ==')
+          'ALWAYS printed with its same-n_est one-point-stacking null) ==')
+    nulls = stacking_nulls({int(round(med[(c, e)]['N'])) for c in have for e in EPISODES})
     for c in have:
-        dr = np.mean([med[(c, e)]['spec.detection_rate'] for e in EPISODES])
-        ke = np.mean([med[(c, e)]['spec.k_mag_rel_error_mean'] for e in EPISODES])
-        ae = np.mean([med[(c, e)]['spec.amp_rel_error_mean'] for e in EPISODES])
-        n = np.mean([med[(c, e)]['N'] for e in EPISODES])
-        print(f'  {c:<8} det {dr:.3f}  k_mag_err {ke:.3f}  amp_rel_err {ae:.3f}  N {n:.1f}')
+        dr = np.median([med[(c, e)]['spec.detection_rate'] for e in EPISODES])
+        nl = np.median([nulls[(e, int(round(med[(c, e)]['N'])))] for e in EPISODES])
+        over = sum(1 for e in EPISODES
+                   if med[(c, e)]['spec.detection_rate'] >
+                   nulls[(e, int(round(med[(c, e)]['N'])))])
+        ke = np.median([med[(c, e)]['spec.k_mag_rel_error_mean'] for e in EPISODES])
+        ae = np.median([med[(c, e)]['spec.amp_rel_error_mean'] for e in EPISODES])
+        n = np.median([med[(c, e)]['N'] for e in EPISODES])
+        print(f'  {c:<8} det {dr:.3f}  stack-null {nl:.3f}  beats-null {over}/4  '
+              f'k_mag_err {ke:.3f}  amp_rel_err {ae:.3f}  N {n:.1f}')
+
+
+def stacking_nulls(n_ests):
+    """Discipline #1 of tmp/placement_field_debate_2026-08-05/VERDICT.md: the matcher's
+    acceptance radius is so wide that stacking every atom on the GT energy centroid already
+    scores 0.60-0.87. Every detection_rate must be printed next to that null at the SAME
+    n_est."""
+    import h5py
+    from run_rx2 import DATA, match_components
+    out = {}
+    for e in EPISODES:
+        with h5py.File(os.path.join(DATA, e), 'r') as f:
+            comp = np.asarray(f['config/wave_components'])
+        A, kx, ky = comp[:, 0], comp[:, 2], comp[:, 3]
+        wsum = max(float(np.sum(A ** 2)), 1e-12)
+        cx = float(np.sum(A ** 2 * kx) / wsum)
+        cy = float(np.sum(A ** 2 * ky) / wsum)
+        for n in n_ests:
+            n = max(int(n), 1)
+            ekx = np.full(n, cx); eky = np.full(n, cy)
+            m, _, _ = match_components(ekx, eky, np.ones(n), kx, ky, A)
+            out[(e, n)] = len(m) / max(len(A), 1)
+    return out
 
     # interaction for the declared bundles
     print('\n== declared BUNDLE interactions (never given a single-cause name) ==')

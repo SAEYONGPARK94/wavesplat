@@ -12,12 +12,47 @@ v2 overcomes the spatial Nyquist limitation that prevents v1 from resolving
 high-wavenumber components (e.g., ky_Nyq=0.38 vs actual ky=1.3-2.7 rad/m).
 """
 
+import os
 import torch
 import numpy as np
 import math
 from typing import List, Tuple
 
 from wavesplat.model.dispersion import wavenumber_from_omega, dispersion_omega
+
+
+def _rx2_gate(name: str) -> bool:
+    """Rx-2 (2026-08-05) RESEARCH gate. Unset or '0' == shipped behaviour, bit-for-bit.
+
+    The environment is read at CALL time, not import time, because the Rx-2 driver reuses
+    multiprocessing pool workers across cells; an import-time read would freeze whichever
+    cell the worker happened to run first. Same contract as
+    sequential_update._rx1_gate.
+
+    Gates (all off by default, none reachable from any shipped config path):
+
+    RX2_GROW_SUBTRACT=1
+        At the two RESIDUAL placement sites (coarse_to_fine._beamform_residuals and
+        sequential_update._adaptive_prune_grow), subtract each newly fitted component from
+        the working residual before the next peak is refined/projected. The shipped code
+        does NOT do this -- it refines and least-squares-projects every new component
+        against the SAME untouched residual and only zeroes a box in the power map. Note
+        initialize_from_frames_v2 already subtracts, so the deployment ladder [3,8,15] uses
+        the subtracting greedy for 3 atoms and the non-subtracting greedy for the other 12.
+    RX2_GROW_RECOMPUTE=1
+        Implies RX2_GROW_SUBTRACT. Additionally recompute the coarse beamform power map
+        from the updated residual after each component (previously suppressed cells stay
+        zeroed), i.e. the 'recompute_residual' policy ported to the residual sites.
+    RX2_GROW_TIGHT_SUPPRESS=1
+        Use RECOMPUTE_MIN_DK instead of MIN_DK as the suppression radius at the residual
+        sites. Only meaningful together with RX2_GROW_RECOMPUTE, where the box stops being
+        load-bearing.
+    RX2_GROW_FITPHI=1
+        Seed newly grown components with the phase that _linear_projection already
+        computed and the shipped code throws away (`amp, _ = _linear_projection(...)`),
+        instead of a fresh U(0, 2pi) draw.
+    """
+    return os.environ.get(name, '0') == '1'
 
 # Minimum separation enforced between beamform peaks [rad/m]. Hardcoded identically at three
 # sites historically; hoisted here so it can be varied. fable's census

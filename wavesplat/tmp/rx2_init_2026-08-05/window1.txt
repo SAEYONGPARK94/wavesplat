@@ -1,0 +1,17 @@
+reconstruction check on 72 runs: median rel err -0.0029  p95 |rel err| 0.0058
+  => reconstruction USABLE
+
+cell      init(in-win)   frame1  frames1-5  frame-mean   (median over 4 eps)
+ORACLE          0.0722   0.0765     0.0888      0.1626
+P1              0.2670   0.2693     0.2652      0.2658
+P2              0.2554   0.2565     0.2535      0.2603
+P3              0.2256   0.2227     0.2211      0.2637
+X-BASE          0.2796   0.2736     0.2652      0.2849
+X-BASE2         0.2796   0.2736     0.2652      0.2849
+
+paired delta vs X-BASE at each horizon (if the init gain dies by frame 1 it was window fit, not physics)
+  ORACLE    d_init -0.1817   d_frame1 -0.1754 (+97% of the init gain survives one frame)   d_f1-5 -0.1550   d_mean -0.1114
+  P1        d_init -0.0052   d_frame1 -0.0069 (+132% of the init gain survives one frame)   d_f1-5 -0.0062   d_mean -0.0112
+  P2        d_init -0.0159   d_frame1 -0.0191 (+120% of the init gain survives one frame)   d_f1-5 -0.0181   d_mean -0.0074
+  P3        d_init -0.0214   d_frame1 -0.0205 (+96% of the init gain survives one frame)   d_f1-5 -0.0125   d_mean -0.0094
+  X-BASE2   d_init +0.0000   d_frame1 +0.0000 (+nan% of the init gain survives one frame)   d_f1-5 +0.0000   d_mean +0.0000

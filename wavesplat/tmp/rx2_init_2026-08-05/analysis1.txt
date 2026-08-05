@@ -1,0 +1,124 @@
+== did the treatment fire? (atom coords vs X-BASE, per run) ==
+  ORACLE    identical-to-X-BASE 0/12 runs
+  P1        identical-to-X-BASE 0/12 runs
+  P2        identical-to-X-BASE 0/12 runs
+  P3        identical-to-X-BASE 0/12 runs
+  X-BASE2   identical-to-X-BASE 12/12 runs  <-- IDENTICAL TO CONTROL: did not fire
+
+# rows 72   complete cells ['ORACLE', 'P1', 'P2', 'P3', 'X-BASE', 'X-BASE2']
+
+== per-cell, PREREG aggregation = median over the 4 crowded episodes ==
+   (flat-sea null and LETKF printed at the bottom -- mandatory companions)
+cell       init_nrmse       nRMSE    Hs_error absVR_frame avg_RMSE_un Pearson_rho Skill_Score     N  >null_i  >null_n  <LETKF
+ORACLE         0.0722      0.1626      0.3479      0.5608      0.2611      0.7683      0.5765  22.5      4/4      4/4     4/4
+P1             0.2670      0.2658      0.2759      0.4835      0.4338      0.3010     -0.0731  19.0      2/4      2/4     0/4
+P2             0.2554      0.2603      0.2762      0.4869      0.4394      0.3344     -0.0942  19.0      2/4      2/4     1/4
+P3             0.2256      0.2637      0.3495      0.5475      0.4226      0.2802     -0.0961  18.0      3/4      2/4     2/4
+X-BASE         0.2796      0.2849      0.2823      0.5024      0.4350      0.2014     -0.1953  19.5      2/4      1/4     0/4
+X-BASE2        0.2796      0.2849      0.2823      0.5024      0.4350      0.2014     -0.1953  19.5      2/4      1/4     0/4
+FLAT-NULL      0.2647      0.2632
+LETKF                      0.2323                                        4/4
+
+== mean-over-episodes companion table (NOT the prereg statistic; for comparability with the older mean-based tables only) ==
+  ORACLE    init 0.0791  nRMSE 0.1702
+  P1        init 0.2624  nRMSE 0.2703
+  P2        init 0.2531  nRMSE 0.2695
+  P3        init 0.2202  nRMSE 0.2615
+  X-BASE    init 0.2748  nRMSE 0.2809
+  X-BASE2   init 0.2748  nRMSE 0.2809
+
+== paired deltas vs X-BASE (median over 4 eps, k/n improved, exact 2-sided sign p) ==
+!! n=4 -> sign-test floor p=0.125. alpha=0.05 UNREACHABLE. no "significant", no ranking.
+
+-- init_nrmse (lower is better) --
+  ORACLE   med -0.1817  4/4  p=0.125   [-0.2986 -0.1813 -0.1822 -0.1209]  [> bootstrap MDE 0.0183]
+  P1       med -0.0052  3/4  p=0.625   [-0.0562 +0.0171 -0.0054 -0.0051]  [< bootstrap MDE 0.0183 => UNINTERPRETABLE]
+  P2       med -0.0159  3/4  p=0.625   [-0.0575 +0.0024 -0.0048 -0.0270]  [< bootstrap MDE 0.0183 => UNINTERPRETABLE]
+  P3       med -0.0214  4/4  p=0.125   [-0.1712 -0.0234 -0.0194 -0.0043]  [> bootstrap MDE 0.0183]
+  X-BASE2  med +0.0000  0/0  p=1.000   [+0.0000 +0.0000 +0.0000 +0.0000]  [< bootstrap MDE 0.0183 => UNINTERPRETABLE]
+
+-- nRMSE (lower is better) --
+  ORACLE   med -0.1114  4/4  p=0.125   [-0.1370 -0.1428 -0.0857 -0.0771]  [> bootstrap MDE 0.0309]
+  P1       med -0.0112  3/4  p=0.625   [-0.0157 -0.0066 +0.0026 -0.0224]  [< bootstrap MDE 0.0309 => UNINTERPRETABLE]
+  P2       med -0.0074  3/4  p=0.625   [-0.0142 -0.0006 +0.0042 -0.0349]  [< bootstrap MDE 0.0309 => UNINTERPRETABLE]
+  P3       med -0.0094  3/4  p=0.625   [-0.0671 -0.0145 -0.0043 +0.0083]  [< bootstrap MDE 0.0309 => UNINTERPRETABLE]
+  X-BASE2  med +0.0000  0/0  p=1.000   [+0.0000 +0.0000 +0.0000 +0.0000]  [< bootstrap MDE 0.0309 => UNINTERPRETABLE]
+
+-- Hs_error (lower is better) --
+  ORACLE   med +0.0656  0/4  p=0.125   [+0.0647 +0.0389 +0.0665 +0.1494]
+  P1       med -0.0081  2/4  p=1.000   [+0.0255 -0.0504 -0.0384 +0.0223]
+  P2       med +0.0033  2/4  p=1.000   [+0.0323 -0.0256 -0.0446 +0.0464]
+  P3       med +0.0411  1/4  p=0.625   [+0.1002 -0.0431 +0.0341 +0.0482]
+  X-BASE2  med +0.0000  0/0  p=1.000   [+0.0000 +0.0000 +0.0000 +0.0000]
+
+-- absVR_framewise (lower is better) --
+  ORACLE   med +0.0850  0/4  p=0.125   [+0.0933 +0.0767 +0.0288 +0.1541]
+  P1       med -0.0149  2/4  p=1.000   [+0.0352 -0.0603 -0.0566 +0.0269]
+  P2       med +0.0111  2/4  p=1.000   [+0.0446 -0.0224 -0.0879 +0.0548]
+  P3       med +0.0101  2/4  p=1.000   [+0.1357 -0.0363 -0.0291 +0.0493]
+  X-BASE2  med +0.0000  0/0  p=1.000   [+0.0000 +0.0000 +0.0000 +0.0000]
+
+-- avg_RMSE_unobserved (lower is better) --
+  ORACLE   med -0.1710  4/4  p=0.125   [-0.1684 -0.1741 -0.1737 -0.1581]
+  P1       med -0.0136  3/4  p=0.625   [-0.0194 -0.0077 +0.0054 -0.0466]
+  P2       med -0.0087  2/4  p=1.000   [-0.0176 +0.0001 +0.0087 -0.0719]
+  P3       med -0.0123  3/4  p=0.625   [-0.0825 -0.0170 -0.0077 +0.0174]
+  X-BASE2  med +0.0000  0/0  p=1.000   [+0.0000 +0.0000 +0.0000 +0.0000]
+
+-- Pearson_rho (higher is better) --
+  ORACLE   med +0.5325  4/4  p=0.125   [+0.6283 +0.6394 +0.3532 +0.4367]
+  P1       med +0.0649  3/4  p=0.625   [+0.0779 +0.0519 -0.0034 +0.1214]
+  P2       med +0.0241  2/4  p=1.000   [+0.0643 -0.0252 -0.0160 +0.2017]
+  P3       med +0.0081  2/4  p=1.000   [+0.3323 +0.0297 -0.0134 -0.0550]
+  X-BASE2  med +0.0000  0/0  p=1.000   [+0.0000 +0.0000 +0.0000 +0.0000]
+
+-- Skill_Score (higher is better) --
+  ORACLE   med +0.7597  4/4  p=0.125   [+0.9060 +0.9489 +0.6134 +0.5307]
+  P1       med +0.0965  3/4  p=0.625   [+0.1387 +0.0544 -0.0136 +0.1827]
+  P2       med +0.0595  2/4  p=1.000   [+0.1257 -0.0067 -0.0429 +0.2637]
+  P3       med +0.1005  3/4  p=0.625   [+0.5155 +0.1172 +0.0837 -0.0787]
+  X-BASE2  med +0.0000  0/0  p=1.000   [+0.0000 +0.0000 +0.0000 +0.0000]
+
+== gap closure on init_nrmse: denominator = X-BASE - ORACLE   (k-FROZEN ceiling == s1s2 S2-T1f  [not deployable]) ==
+  P1       median    +3.6%  3/4 positive   [+19% -9% +3% +4%]
+  P2       median   +10.9%  3/4 positive   [+19% -1% +3% +22%]
+  P3       median   +11.8%  4/4 positive   [+57% +13% +11% +4%]
+
+== gap closure on nRMSE: denominator = X-BASE - ORACLE   (k-FROZEN ceiling == s1s2 S2-T1f  [not deployable]) ==
+  P1       median    +8.0%  3/4 positive   [+11% +5% -3% +29%]
+  P2       median    +5.4%  3/4 positive   [+10% +0% -5% +45%]
+  P3       median    +7.6%  3/4 positive   [+49% +10% +5% -11%]
+
+== vs frozen LETKF (single-seed reference, NOT re-run) ==
+  ORACLE   nRMSE mean4 0.1702   beats LETKF 4/4
+  P1       nRMSE mean4 0.2703   beats LETKF 0/4
+  P2       nRMSE mean4 0.2695   beats LETKF 1/4
+  P3       nRMSE mean4 0.2615   beats LETKF 2/4
+  X-BASE   nRMSE mean4 0.2809   beats LETKF 0/4
+  X-BASE2  nRMSE mean4 0.2809   beats LETKF 0/4
+
+== rho-vs-v decomposition  m = (1-rho^2) + (sqrt(v)-rho)^2  (frame-wise, then mean) ==
+cell            m   decorr   shrink  shrink%  d_decorr  d_shrink
+ORACLE     0.4487   0.4203   0.0280     6.2%   -0.4456   -0.2564
+P1         1.1079   0.8720   0.2365    21.3%   -0.0215   -0.0620
+P2         1.1141   0.8559   0.2603    23.4%   -0.0211   -0.0281
+P3         1.0408   0.8333   0.1997    19.2%   -0.0049   -0.1123
+X-BASE     1.1998   0.8879   0.3010    25.1%    0.0000    0.0000
+X-BASE2    1.1998   0.8879   0.3010    25.1%    0.0000    0.0000
+
+== realized sigma_d + realized MDE (from X-BASE seed ranges, post hoc) ==
+  init_nrmse             range_med 0.0376  sigma_d 0.0210  realized MDE 0.0447
+  nRMSE                  range_med 0.0366  sigma_d 0.0205  realized MDE 0.0436
+  Hs_error               range_med 0.0829  sigma_d 0.0464  realized MDE 0.0988
+  absVR_framewise        range_med 0.1193  sigma_d 0.0667  realized MDE 0.1420
+  avg_RMSE_unobserved    range_med 0.0529  sigma_d 0.0296  realized MDE 0.0630
+  Pearson_rho            range_med 0.1561  sigma_d 0.0873  realized MDE 0.1859
+  Skill_Score            range_med 0.2969  sigma_d 0.1661  realized MDE 0.3535
+
+== diagnostics (detection_rate is DISQUALIFIED as a placement metric; ALWAYS printed with its same-n_est one-point-stacking null) ==
+  ORACLE   det 1.000  stack-null 0.733  beats-null 4/4  k_mag_err 0.000  amp_rel_err 0.580  N 22.5
+  P1       det 0.467  stack-null 0.683  beats-null 1/4  k_mag_err 0.639  amp_rel_err 4.283  N 19.0
+  P2       det 0.467  stack-null 0.683  beats-null 1/4  k_mag_err 0.287  amp_rel_err 0.938  N 19.0
+  P3       det 0.667  stack-null 0.667  beats-null 2/4  k_mag_err 0.308  amp_rel_err 0.781  N 18.0
+  X-BASE   det 0.400  stack-null 0.700  beats-null 1/4  k_mag_err 0.628  amp_rel_err 0.584  N 19.5
+  X-BASE2  det 0.400  stack-null 0.700  beats-null 1/4  k_mag_err 0.628  amp_rel_err 0.584  N 19.5

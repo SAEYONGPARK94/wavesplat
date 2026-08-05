@@ -1,0 +1,139 @@
+{
+  "P1_relabelling": {
+    "spread_deg": 30.0,
+    "N": 30,
+    "M": 3,
+    "reps": 200000,
+    "r1_within_mean": 0.9128315953471137,
+    "sigma1_within_deg_from_mean_r1": 23.923084764088784,
+    "sigma1_within_deg_mean_of_s1": 23.662798463290986,
+    "arm_B_measured_within_deg": 20.739092344330743,
+    "arm_B_per_seed_within_deg": [
+      20.05192728855583,
+      25.470584787895056,
+      20.739092344330743,
+      31.853942533301446,
+      19.368636850997078
+    ],
+    "arm_B_measured_across_deg": 15.295497242126505,
+    "arm_A_measured_across_deg": 24.179175017429724,
+    "verdict": "r1_within depends only on (M, direction law); frequency enters nowhere.  If the i.i.d.-no-frequency draw matches arm B, the arm did not create a frequency-direction coupling -- it relabelled i.i.d. draws."
+  },
+  "P2_power": {
+    "ws_BA_pairs": [
+      -0.047065809679528114,
+      0.006455093001325907,
+      0.016460380827387155,
+      -0.033448585619529125,
+      -0.02995272415379685
+    ],
+    "sd_pairwise": 0.0274350060930799,
+    "mean": -0.017510329124828205,
+    "median": -0.02995272415379685,
+    "mde_sign_test_80pct": 0.04696873043135279,
+    "mde_as_pct_of_armA_level": null,
+    "power_at_observed_abs_delta": 0.4773956853291096,
+    "power_grid": {
+      "0.25xMDE=0.0117": 0.131,
+      "0.5xMDE=0.0235": 0.336,
+      "0.75xMDE=0.0352": 0.592,
+      "1xMDE=0.0470": 0.801,
+      "1.5xMDE=0.0705": 0.975,
+      "2xMDE=0.0939": 0.998
+    },
+    "mde_paired_t_test_80pct": 0.03648401342860788,
+    "t_stat": -1.427165209975528,
+    "note": "sign test needs 5/5; MDE = z(0.8^(1/5)) * sd = 1.712*sd. A paired t-test on the same 5 numbers has a smaller MDE."
+  },
+  "P3_attribution": {
+    "letkf_BA": [
+      0.05289945046691552,
+      0.02276959281629118,
+      0.00968116229320612,
+      0.008078161936471068,
+      0.008118673170552176
+    ],
+    "letkf_CA": [
+      -0.003260525416875215,
+      0.019280114118250813,
+      0.0072819545332890034,
+      0.0003940404167124545,
+      0.021232989104842948
+    ],
+    "letkf_BC": [
+      0.056159975883790736,
+      0.003489478698040366,
+      0.0023992077599171158,
+      0.007684121519758613,
+      -0.013114315934290771
+    ],
+    "median_BA": 0.00968116229320612,
+    "median_CA": 0.0072819545332890034,
+    "median_BC": 0.003489478698040366,
+    "mean_BC": 0.011323693585443212,
+    "n_pos_BC": 4,
+    "sd_BC": 0.026276302891564924,
+    "ci90_mean_BC": [
+      -0.013729694025543087,
+      0.03637708119642951
+    ],
+    "ratio_upper_over_median_BA": 3.7575117630201897,
+    "equivalence_question": "For \"C reproduces B\" to be MEASURED, the CI on B-C must exclude effects comparable to B-A itself."
+  },
+  "P4_clean_contrast": {
+    "design": "N=30, M=3, n_freq=10 held FIXED in every rung; only the within/across split of the SAME total spread moves.",
+    "ladder": [
+      {
+        "s_within_deg": 4.0,
+        "s_across_deg": 23.7,
+        "N": 30,
+        "M": 3,
+        "n_freq": 10,
+        "sigma1_within_deg": 3.2688554995822305,
+        "sigma1_across_deg": 22.118077808866175,
+        "sigma1_total_deg": 22.34052950173638
+      },
+      {
+        "s_within_deg": 10.0,
+        "s_across_deg": 22.0,
+        "N": 30,
+        "M": 3,
+        "n_freq": 10,
+        "sigma1_within_deg": 8.154616038204638,
+        "sigma1_across_deg": 21.162544863562285,
+        "sigma1_total_deg": 22.579154875037098
+      },
+      {
+        "s_within_deg": 14.0,
+        "s_across_deg": 19.5,
+        "N": 30,
+        "M": 3,
+        "n_freq": 10,
+        "sigma1_within_deg": 11.388347841078254,
+        "sigma1_across_deg": 19.689945631278484,
+        "sigma1_total_deg": 22.57729502635077
+      },
+      {
+        "s_within_deg": 17.0,
+        "s_across_deg": 17.0,
+        "N": 30,
+        "M": 3,
+        "n_freq": 10,
+        "sigma1_within_deg": 13.795521727311176,
+        "sigma1_across_deg": 18.350954507716935,
+        "sigma1_total_deg": 22.744587068975267
+      },
+      {
+        "s_within_deg": 20.0,
+        "s_across_deg": 13.5,
+        "N": 30,
+        "M": 3,
+        "n_freq": 10,
+        "sigma1_within_deg": 16.183219661889503,
+        "sigma1_across_deg": 16.652985747766337,
+        "sigma1_total_deg": 22.981688618178996
+      }
+    ],
+    "code_change": "wave_generator.py:266 currently draws directions = rng.normal(dir_rad, spread_rad, n_components) with no bin structure.  A frequency-conditional draw is a 2-line change and does not touch N or n_freq."
+  }
+}

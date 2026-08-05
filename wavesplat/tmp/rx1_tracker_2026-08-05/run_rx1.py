@@ -195,6 +195,26 @@ def run_one(job):
 
         frames = r['frame_results']
         avg = {k: float(np.nanmean([f[k] for f in frames if k in f])) for k in PANEL}
+
+        # AMENDMENT 2: |VR-1| must be formed PER FRAME then averaged (averaging VR first
+        # and transforming afterwards flips the sign on cells that push VR above 1).
+        # Same for the exact split  m = (1-rho^2) + (sqrt(v)-rho)^2, whose two terms are
+        # the DECORRELATION floor and the SHRINKAGE part.
+        vr_f = np.array([f['Variance_Ratio'] for f in frames if 'Variance_Ratio' in f],
+                        dtype=float)
+        rho_f = np.array([f['Pearson_rho'] for f in frames if 'Pearson_rho' in f],
+                         dtype=float)
+        perframe = {}
+        if vr_f.size and vr_f.size == rho_f.size:
+            s = np.sqrt(np.clip(vr_f, 0, None))
+            perframe = {
+                'absVR1_framemean': float(np.nanmean(np.abs(vr_f - 1.0))),
+                'decorr_framemean': float(np.nanmean(1.0 - rho_f ** 2)),
+                'shrink_framemean': float(np.nanmean((s - rho_f) ** 2)),
+                'm_framemean': float(np.nanmean(1.0 - 2 * rho_f * s + vr_f)),
+                'vr_frames': [round(float(x), 6) for x in vr_f],
+                'rho_frames': [round(float(x), 6) for x in rho_f],
+            }
         ru = [f['RMSE_unobserved'] for f in frames
               if 'RMSE_unobserved' in f and np.isfinite(f.get('RMSE_unobserved', np.nan))]
         avg_ru = float(np.mean(ru)) if ru else float('nan')

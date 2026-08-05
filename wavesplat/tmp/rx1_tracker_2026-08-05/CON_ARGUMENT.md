@@ -12,6 +12,11 @@
 `CON_rederive.py` `CON_contraction.py` `CON_strata.py` `CON_mde.py` `CON_gradshare.py`
 `CON_probe_arms.py` `CON_probe_analyze.py`. **`paper/`·초기화기 미수정, 저장소 파일 변경 0건.**
 
+**오염 통제** (`CON_bitid.py`): 찬성측이 `sequential_update.py` 를 **21:21:05** 에 수정했고
+내 48런은 **21:20:24** 에 완료됐다(파일 mtime 대조). 그래도 확인차 동결 칸
+`S2-T1f|BF4_15comp|42` 를 **수정된 파일로** 재실행 —
+`nRMSE 0.142480505863` 외 6지표 **소수 12자리까지 동일** ⟹ 게이트 OFF 시 출하 경로 비트 동일 확인.
+
 ---
 
 ## 순위 요약 (다음에 할 일을 바꾸는 순서)

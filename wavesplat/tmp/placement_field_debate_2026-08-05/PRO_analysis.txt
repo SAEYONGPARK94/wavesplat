@@ -1,0 +1,279 @@
+========================================================================================================
+PRO ANALYSIS — proposition J.  Existing raw JSONL/HDF5 re-analysis only; zero estimator runs.
+========================================================================================================
+E1 e2e=180  E1 probe=180 (n_g=[3, 15, 30])  S1S2 e2e=132  episodes=12
+crowded(4)=['BF4_15comp_see', 'BF4_30comp_see', 'BF5_15comp_see', 'BF5_30comp_see']
+verified: 'placed_nn_median' occurrences in tmp/s1s2_2026-08-05/results.jsonl = 0
+
+########################################################################################################
+# PART 0 — the confound demo: why the POOLED placement<->field correlation is a trap
+########################################################################################################
+  spearman(detection, nRMSE)  POOLED over 60 (episode,cell) cells = -0.787  <-- looks like ONE axis
+  spearman(detection, n_gt_components)                            = -0.796
+  spearman(n_gt_components, nRMSE)                                = +0.785
+  partial spearman(detection, nRMSE | n_gt)                       = -0.433
+  => the pooled number is mostly 'crowded episodes are both hard to detect and hard to fit'.
+     Per 2026-08-04 discipline the stratifying variable must be controlled before any mechanism claim.
+
+########################################################################################################
+# PART 1 — TWO AXES, episode- and arm-controlled
+########################################################################################################
+
+--- E1: 12 ep x 5 cells, median-of-3 (n=60) ---
+x = placement metric            y = field metric   POOLED       p  WITHIN-ep       p  WITHIN ep+arm       p
+-----------------------------------------------------------------------------------------------------------
+detection_rate                  nRMSE            -0.787  0.0000     -0.487  0.0000         -0.500  0.0002
+detection_rate                  init_nrmse       -0.787  0.0000     -0.513  0.0000         -0.661  0.0000
+detection_rate                  absVR1           -0.627  0.0000      0.650  0.0000          0.475  0.0002
+detection_rate                  Hs_error         -0.592  0.0000      0.650  0.0000          0.536  0.0000
+energy_detection_rate           nRMSE            -0.748  0.0000     -0.432  0.0004         -0.381  0.0032
+k_mag_rel_error_mean            nRMSE             0.871  0.0000      0.597  0.0000          0.503  0.0001
+k_mag_rel_error_mean            init_nrmse        0.889  0.0000      0.674  0.0000          0.553  0.0000
+k_mag_rel_error_mean            absVR1            0.755  0.0000     -0.382  0.0030         -0.355  0.0061
+
+--- S1 budget arms: 4 ep x 4 arms (n=16) ---
+x = placement metric            y = field metric   POOLED       p  WITHIN-ep       p  WITHIN ep+arm       p
+-----------------------------------------------------------------------------------------------------------
+detection_rate                  nRMSE            -0.073  0.7915     -0.488  0.0566         -0.525  0.0373
+detection_rate                  init_nrmse        0.025  0.9264     -0.476  0.0642         -0.155  0.5655
+detection_rate                  absVR1           -0.248  0.3512      0.334  0.2097          0.359  0.1721
+detection_rate                  Hs_error         -0.211  0.4298      0.342  0.1933          0.302  0.2549
+energy_detection_rate           nRMSE            -0.241  0.3735     -0.229  0.3915         -0.532  0.0370
+k_mag_rel_error_mean            nRMSE             0.044  0.8802     -0.406  0.1199         -0.435  0.0925
+k_mag_rel_error_mean            init_nrmse        0.135  0.6190     -0.059  0.8297         -0.079  0.7666
+k_mag_rel_error_mean            absVR1           -0.247  0.3569      0.000  1.0000          0.026  0.9236
+
+--- S2 placement arms (tracker ON): 4 ep x 6 arms (n=24) ---
+x = placement metric            y = field metric   POOLED       p  WITHIN-ep       p  WITHIN ep+arm       p
+-----------------------------------------------------------------------------------------------------------
+detection_rate                  nRMSE            -0.674  0.0004     -0.662  0.0006          0.079  0.7133
+detection_rate                  init_nrmse       -0.759  0.0001     -0.650  0.0006          0.452  0.0268
+detection_rate                  absVR1            0.429  0.0384      0.726  0.0001          0.058  0.7896
+detection_rate                  Hs_error          0.434  0.0341      0.705  0.0001          0.216  0.3105
+energy_detection_rate           nRMSE            -0.573  0.0046     -0.640  0.0007          0.087  0.6793
+k_mag_rel_error_mean            nRMSE             0.559  0.0051      0.803  0.0000         -0.078  0.7180
+k_mag_rel_error_mean            init_nrmse        0.648  0.0006      0.811  0.0000          0.251  0.2370
+k_mag_rel_error_mean            absVR1           -0.095  0.6572     -0.280  0.1865          0.116  0.5952
+
+--- E1: per-episode Spearman across the 5 cells (episode FULLY controlled), then sign test ---
+  detection_rate               vs nRMSE        med rho=-0.735  pos 0/3  sign p=0.2500
+  detection_rate               vs init_nrmse   med rho=-0.838  pos 0/4  sign p=0.1250
+  detection_rate               vs absVR1       med rho=+0.945  pos 4/4  sign p=0.1250
+  detection_rate               vs Hs_error     med rho=+0.945  pos 4/4  sign p=0.1250
+  k_mag_rel_error_mean         vs nRMSE        med rho=+0.500  pos 9/12  sign p=0.1460
+  k_mag_rel_error_mean         vs init_nrmse   med rho=+0.750  pos 11/12  sign p=0.0063
+
+########################################################################################################
+# PART 2 — THE INTERVENTION VIEW + dose-response on the mediator
+########################################################################################################
+
+★ DOSE-RESPONSE — all four treatments raise crowded detection; the FIELD HARM tracks the
+  spacing collapse / surplus-atom count, not the detection gain.  (medians over 12 episodes)
+cell  nn_med@15 surplus@15 outside@15 ddet crowd ddet 12ep  dHs_err   sgn  d|VR-1|   sgn  dfinal_n
+--------------------------------------------------------------------------------------------------
+A         0.789        0.5       11.0      (ref)     (ref)                                    15.0
+B         0.090       10.0        1.0     +0.433    +0.000  +0.0486 12/12  +0.0918 12/12      +0.0
+C         0.329        2.5        7.5     +0.367    +0.000  +0.0013  6/12  -0.0010  5/12      +0.0
+D         0.034       10.0        0.0     +0.600    +0.000  +0.0439 12/12  +0.0830 12/12      +0.0
+E         0.213        4.5        7.0     +0.217    +0.000  +0.0110 11/12  +0.0213 11/12      +0.0
+  sgn = #episodes the metric got WORSE / #non-tied.   surplus@15 = 15 - n_outside_box - min(N_gt,15).
+
+★ MATCHED-GAIN CONTRAST  B vs C  — the single cleanest test of proposition J
+   cell B: crowded detection gain +0.433 | nn@15 med 0.090 | surplus@15 med 10 | dHs +0.0486 | d|VR-1| +0.0918
+   cell C: crowded detection gain +0.367 | nn@15 med 0.329 | surplus@15 med 2 | dHs +0.0013 | d|VR-1| -0.0010
+   B - C  Hs_error    med=+0.0555  B-worse 11/12  sign p=0.0063
+   B - C  |VR-1|      med=+0.0912  B-worse 11/12  sign p=0.0063
+   B - C  final_n     med=+0.0000  B-worse 5/8  sign p=0.7266
+   B - C  init_nrmse  med=-0.0195  B-worse 4/12  sign p=0.3877
+   B - C  nRMSE       med=-0.0080  B-worse 6/12  sign p=1.0000
+   B - C  nn@15       med=-0.1773  B-larger 2/12  sign p=0.0386   (B is TIGHTER 11/12)
+   B - C  det@15      med=+0.0000  B-better 4/4  sign p=0.1250   (detection is TIED)
+
+Correlation across the 48 intervention contrasts (episode = pairing unit):
+x = placement gain    y = field change  spearman   perm p
+---------------------------------------------------------
+d_det@3               d_nRMSE             -0.415   0.0029
+d_det@3               d_init_nrmse        -0.484   0.0006
+d_det@3               d_Hs_error           0.177   0.2315
+d_det@3               d_absVR1             0.216   0.1424
+d_det@15              d_nRMSE             -0.522   0.0000
+d_det@15              d_init_nrmse        -0.453   0.0009
+d_det@15              d_Hs_error           0.253   0.0875
+d_det@15              d_absVR1             0.203   0.1672
+d_spec_detection_rate d_nRMSE             -0.551   0.0001
+d_spec_detection_rate d_init_nrmse        -0.554   0.0002
+d_spec_detection_rate d_Hs_error           0.410   0.0040
+d_spec_detection_rate d_absVR1             0.388   0.0063
+
+########################################################################################################
+# PART 3 — MEDIATION TEST:  stacking (nn collapse / surplus atoms)
+########################################################################################################
+
+(3a) WITHIN-EPISODE leg a->b:  per-episode Spearman across the 5 cells, then sign test over 12 ep
+mediator (probe)      field         med rho   pos/n   sign p   expected
+-------------------------------------------------------------------------------
+nn_median@3           VR              0.704   10/12   0.0386   + (tighter->less variance)
+nn_median@3           Hs_error       -0.704    1/12   0.0063   - 
+nn_median@3           |VR-1|         -0.704    2/12   0.0386   - 
+nn_median@3           final_n        -0.740     1/9   0.0391   - 
+surplus@3             VR             -0.354     0/3   0.2500   - (more surplus->less variance)
+surplus@3             Hs_error        0.354     3/3   0.2500   + 
+surplus@3             |VR-1|          0.354     3/3   0.2500   + 
+surplus@3             final_n         0.612     3/3   0.2500   + 
+
+nn_median@15          VR              0.683   12/12   0.0005   + (tighter->less variance)
+nn_median@15          Hs_error       -0.700    0/12   0.0005   - 
+nn_median@15          |VR-1|         -0.683    0/12   0.0005   - 
+nn_median@15          final_n        -0.671     2/8   0.2891   - 
+surplus@15            VR             -0.872     0/8   0.0078   - (more surplus->less variance)
+surplus@15            Hs_error        0.872     8/8   0.0078   + 
+surplus@15            |VR-1|          0.872     8/8   0.0078   + 
+surplus@15            final_n         0.866     5/5   0.0625   + 
+
+nn_median@30          VR              0.683   11/12   0.0063   + (tighter->less variance)
+nn_median@30          Hs_error       -0.700    1/12   0.0063   - 
+nn_median@30          |VR-1|         -0.683    1/12   0.0063   - 
+nn_median@30          final_n        -0.354     2/8   0.2891   - 
+surplus@30            VR             -0.872    0/10   0.0020   - (more surplus->less variance)
+surplus@30            Hs_error        0.872   10/10   0.0020   + 
+surplus@30            |VR-1|          0.872   10/10   0.0020   + 
+surplus@30            final_n         0.544     5/6   0.2188   + 
+
+(3b) e2e-INTERNAL mediator (no probe proxy): surviving surplus atoms  final_n - N_gt
+   surplus_final_n vs VR          med rho=-0.707  pos 1/7  sign p=0.1250
+   surplus_final_n vs |VR-1|      med rho=+0.707  pos 6/7  sign p=0.1250
+   surplus_final_n vs Hs_error    med rho=+0.707  pos 6/7  sign p=0.1250
+   surplus_final_n vs nRMSE       med rho=+0.866  pos 5/7  sign p=0.4531
+   surplus_final_n vs init_nrmse  med rho=+0.229  pos 4/7  sign p=1.0000
+   48-contrast  d_surplus_final_n vs d_absVR1      rho=+0.089  p=0.5455
+   48-contrast  d_surplus_final_n vs d_Hs_error    rho=+0.108  p=0.4631
+   48-contrast  d_surplus_final_n vs d_nRMSE       rho=-0.055  p=0.7168
+   48-contrast  d_surplus_final_n vs d_init_nrmse  rho=-0.042  p=0.7775
+
+(3c) DOES CONTROLLING THE MEDIATOR REVIVE detection -> field?  (partial Spearman, 48 contrasts)
+field y      mediator z         rho(det,y)  rho(det,y|z)  rho(z,y)  rho(z,y|det)
+--------------------------------------------------------------------------------
+nRMSE        log10 nn@3             -0.415        -0.540     0.207         0.425
+init_nrmse   log10 nn@3             -0.484        -0.614     0.204         0.469
+|VR-1|       log10 nn@3              0.216         0.164     0.180         0.110
+Hs_error     log10 nn@3              0.177         0.124     0.172         0.117
+
+nRMSE        surplus@3              -0.415        -0.408     0.113         0.077
+init_nrmse   surplus@3              -0.484        -0.482     0.048        -0.002
+|VR-1|       surplus@3               0.216         0.209    -0.081        -0.060
+Hs_error     surplus@3               0.177         0.169    -0.091        -0.074
+
+nRMSE        surplus final_n        -0.415        -0.436    -0.055        -0.158
+init_nrmse   surplus final_n        -0.484        -0.504    -0.042        -0.165
+|VR-1|       surplus final_n         0.216         0.240     0.089         0.139
+Hs_error     surplus final_n         0.177         0.204     0.108         0.150
+
+nRMSE        log10 nn@15            -0.522        -0.525    -0.005        -0.063
+init_nrmse   log10 nn@15            -0.453        -0.454     0.006        -0.040
+|VR-1|       log10 nn@15             0.203         0.193    -0.139        -0.123
+Hs_error     log10 nn@15             0.253         0.243    -0.144        -0.125
+
+nRMSE        surplus@15             -0.522        -0.387     0.405         0.152
+init_nrmse   surplus@15             -0.453        -0.346     0.322         0.086
+|VR-1|       surplus@15              0.203         0.221    -0.039         0.096
+Hs_error     surplus@15              0.253         0.247    -0.090         0.069
+
+(3d) EPISODE-FIXED-EFFECT regression on the 60 (episode,cell) cells.
+     y = alpha_e + b1*detection@15 + b2*log10(nn@15)  [+ b3*surplus@15]
+   |VR-1|      det alone: b_det=+0.2549+-0.0603 | +log_nn: b_det=+0.1946+-0.0638, b_lognn=-0.0336+-0.0149 | +surplus: b_det=+0.2615+-0.0693, b_lognn=+0.0177+-0.0284, b_sur=+0.0087+-0.0041
+   Hs_error    det alone: b_det=+0.1575+-0.0378 | +log_nn: b_det=+0.1181+-0.0398, b_lognn=-0.0219+-0.0093 | +surplus: b_det=+0.1536+-0.0439, b_lognn=+0.0053+-0.0179, b_sur=+0.0046+-0.0026
+   nRMSE       det alone: b_det=-0.0719+-0.0237 | +log_nn: b_det=-0.0908+-0.0256, b_lognn=-0.0105+-0.0060 | +surplus: b_det=-0.0558+-0.0268, b_lognn=+0.0163+-0.0110, b_sur=+0.0045+-0.0016
+   init_nrmse  det alone: b_det=-0.1254+-0.0259 | +log_nn: b_det=-0.1415+-0.0283, b_lognn=-0.0090+-0.0066 | +surplus: b_det=-0.1182+-0.0313, b_lognn=+0.0089+-0.0128, b_sur=+0.0030+-0.0019
+
+########################################################################################################
+# PART 4 — S2 ORACLE: counterexample or confirmation?  What spacing does the oracle place at?
+########################################################################################################
+
+TRUE component nn spacing = the spacing the oracle arm places at, because S2-T1f/T4 FREEZE k
+at ground truth (k_mag_rel_error_mean = 0.000 measured).  Computed from config/wave_components.
+episode                    N_gt   nn_min   nn_med   nn_max  |k|max  |k|min
+--------------------------------------------------------------------------
+BF2_1comp_uniform             1      n/a      n/a      n/a  0.7703  0.7703
+BF3_1comp_uniform             1      n/a      n/a      n/a  0.4074  0.4074
+BF3_2comp_slope               2   0.5904   0.5904   0.5904  0.7504  0.1684
+BF3_2comp_uniform             2   0.5904   0.5904   0.5904  0.7504  0.1684
+BF3_5comp_slope               5   0.1463   0.2068   0.4109  1.0061  0.0749
+BF3_5comp_uniform             5   0.1463   0.2068   0.4109  1.0061  0.0749
+BF4_15comp_uniform           15   0.0168   0.0835   0.2452  0.6987  0.0307
+BF4_1comp_uniform             1      n/a      n/a      n/a  0.2515  0.2515
+BF4_30comp_uniform           30   0.0082   0.0439   0.1946  0.7188  0.0274
+BF4_5comp_uniform             5   0.0897   0.1277   0.2536  0.6211  0.0470
+BF5_15comp_uniform           15   0.0096   0.0505   0.1483  0.4226  0.0214
+BF5_30comp_uniform           30   0.0047   0.0263   0.1177  0.4348  0.0194
+
+★ HEAD-TO-HEAD (crowded 4 ep): three ways to 'fix placement', and what each does to spacing
+regime                                    atom nn_median  detection   k_err    nRMSE      VR   Hs_err
+-----------------------------------------------------------------------------------------------------
+A  shipping (wide grid)                           0.6567      0.417   0.438   0.2592   0.556   0.2446
+B  narrow grid, static peak                       0.1120      0.767   0.232   0.2282   0.386   0.3935
+D  narrow grid + recompute (E1 PRIMARY)           0.0493      0.767   0.232   0.2276   0.427   0.3639
+S2-T1f  oracle k (frozen at truth)                0.0472      1.000   0.000   0.1602   0.437   0.3454
+X-T1f-notrack  oracle + tracker OFF               0.0472      1.000   0.000   0.0621   0.837   0.0448
+
+  oracle spacing / cell-D spacing = 1.0x ;  oracle spacing / cell-A spacing = 0.07x
+  ==> the oracle is NOT 'the narrow-grid fix taken further'. It places atoms ~1x FARTHER APART
+      than the narrow grid does, and by construction has ZERO surplus atoms (n_est = N_gt exactly).
+
+★ THE OTHER HALF OF S2 — perfect placement makes the DISPERSION metrics WORSE than shipping
+arm                         nRMSE  init_nrmse      VR   |VR-1|   Hs_err    det   k_err  final_n
+-----------------------------------------------------------------------------------------------
+S1-A0                      0.2592      0.2539   0.556    0.444   0.2446  0.417   0.438     15.0
+S2-C1                      0.2884      0.2970   0.513    0.487   0.2928  0.217   0.216     13.0
+S2-T1                      0.2180      0.1679   0.380    0.620   0.3767  1.000   0.220     22.5
+S2-T1f                     0.1602      0.0604   0.437    0.563   0.3454  1.000   0.000     22.5
+S2-T4                      0.1602      0.0604   0.437    0.563   0.3454  1.000   0.000     22.5
+X-A0-notrack               0.2664      0.2539   1.042    0.109   0.0723  0.417   0.438     15.0
+X-T1f-notrack              0.0621      0.0604   0.837    0.163   0.0448  1.000   0.000     22.5
+
+   S2-T1f         -S1-A0     nRMSE     med=-0.0974  larger 0/4  p=0.1250
+   S2-T1f         -S1-A0     |VR-1|    med=+0.1532  larger 4/4  p=0.1250
+   S2-T1f         -S1-A0     Hs_error  med=+0.1205  larger 4/4  p=0.1250
+   S2-T1f         -S1-A0     VR        med=-0.1532  larger 0/4  p=0.1250
+
+   X-T1f-notrack  -S2-T1f    nRMSE     med=-0.1074  larger 0/4  p=0.1250
+   X-T1f-notrack  -S2-T1f    |VR-1|    med=-0.4614  larger 0/4  p=0.1250
+   X-T1f-notrack  -S2-T1f    Hs_error  med=-0.2846  larger 0/4  p=0.1250
+   X-T1f-notrack  -S2-T1f    VR        med=+0.4614  larger 4/4  p=0.1250
+
+   S2-T1f         -S2-C1     nRMSE     med=-0.1145  larger 0/4  p=0.1250
+   S2-T1f         -S2-C1     |VR-1|    med=+0.1021  larger 4/4  p=0.1250
+   S2-T1f         -S2-C1     Hs_error  med=+0.0759  larger 4/4  p=0.1250
+   S2-T1f         -S2-C1     VR        med=-0.1021  larger 0/4  p=0.1250
+
+★ SAME-DIRECTION REPLICATION: two totally different placement interventions, same dispersion harm
+   E1  narrow grid   (D-A, 12 ep): d_Hs_error +0.0439 12/12 | d|VR-1| +0.0830 12/12
+   S2  oracle k      (T1f-A0, 4 ep): d_Hs_error +0.1205 | d|VR-1| +0.1532
+
+★ DECOMPOSITION of the S2-T1f residual: how much does perfect placement NOT remove?
+   perfect placement, tracker ON  nRMSE = 0.1602
+   perfect placement, tracker OFF nRMSE = 0.0621
+   tracker-attributable error that perfect placement CANNOT remove = +0.0981  = 61% of the perfect-placement arm's error
+   shipping A0 0.2592 vs frozen LETKF ref 0.2394 -> gap +0.0198
+   ==> the tracker term is 5.0x the ENTIRE WS-vs-LETKF gap.
+
+########################################################################################################
+# PART 5 — S1 budget sweep: more atoms into a fixed k-support = stacking by construction
+########################################################################################################
+arm           nRMSE    det   edet  n_est final_n surplus     VR  |VR-1|   Hs_err  amp_err  dir_err   k_err nn_proxy
+-------------------------------------------------------------------------------------------------------------------
+S1-A0        0.2592  0.417  0.593   15.0    15.0     0.0  0.556   0.444   0.2446   0.7270    22.43   0.438   0.1463
+S1-A1        0.2485  0.500  0.632   25.5    25.5     5.0  0.524   0.476   0.2561   0.7461    26.24   0.531   0.1122
+S1-A2        0.2535  0.450  0.647   30.0    30.0     7.5  0.532   0.468   0.2537   0.6480    39.27   0.428   0.1035
+S1-A3        0.2672  0.567  0.822   40.0    40.0    17.5  0.498   0.502   0.2654   0.6923    29.41   0.384   0.0896
+  nn_proxy = |k|max / sqrt(n_est) : GEOMETRIC PROXY. S1 raw data has no placed_nn_median field.
+
+  paired vs S1-A0 (4 crowded ep, median-of-3):
+   S1-A1: det +0.1667(3/3)  nRMSE -0.0150(0/4)  |VR-1| -0.0039(2/4)  Hs_err -0.0041(2/4)  amp_err -0.0860(1/4)  dir_err +2.9827(3/4)
+   S1-A2: det +0.0833(2/3)  nRMSE -0.0106(1/4)  |VR-1| +0.0189(2/4)  Hs_err +0.0102(2/4)  amp_err -0.0724(1/4)  dir_err +18.5541(4/4)
+   S1-A3: det +0.2000(4/4)  nRMSE -0.0063(2/4)  |VR-1| +0.0429(3/4)  Hs_err +0.0271(3/4)  amp_err +0.0365(2/4)  dir_err +4.9458(4/4)
+
+  ★ BF4_15comp: detection 0.467 -> 1.000 (A1/A3 reach ALL 15 true components).
+     S1-A0: det=0.467 edet=0.725 n_est=10 final_n=10 nRMSE=0.2720 VR=0.519 Hs_err=0.2758 amp_err=0.691
+     S1-A1: det=1.000 edet=1.000 n_est=25 final_n=25 nRMSE=0.2554 VR=0.420 Hs_err=0.3500 amp_err=0.521
+     S1-A2: det=0.933 edet=0.995 n_est=30 final_n=30 nRMSE=0.2552 VR=0.463 Hs_err=0.3256 amp_err=0.566
+     S1-A3: det=1.000 edet=1.000 n_est=40 final_n=40 nRMSE=0.2548 VR=0.433 Hs_err=0.3388 amp_err=0.772

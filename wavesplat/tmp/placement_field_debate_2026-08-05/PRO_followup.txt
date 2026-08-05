@@ -1,0 +1,141 @@
+========================================================================================================
+PRO FOLLOW-UP — the decisive sub-analyses
+========================================================================================================
+
+### F1. THE PUREST TEST — episodes where PLACEMENT QUALITY IS EXACTLY TIED across all 5 cells
+If placement and field were one axis, tied placement must give tied field.
+episodes with probe detection AND k_mag_rel_error identical in all five cells: 5
+episode                    det    kerr | A: surplus/|VR-1|/Hs | B: surplus/|VR-1|/Hs | C: surplus/|VR-1|/Hs | D: surplus/|VR-1|/Hs | E: surplus/|VR-1|/Hs
+BF2_1comp_uniform         1.00  0.0017 |  1/0.322/0.177 | 12/0.614/0.378 |  2/0.501/0.294 | 14/0.623/0.386 |  4/0.492/0.288
+BF3_1comp_uniform         1.00  0.0090 |  2/0.057/0.029 | 14/0.096/0.050 |  3/0.056/0.028 | 14/0.114/0.059 |  5/0.064/0.033
+BF3_2comp_slope           1.00  0.0026 |  1/0.036/0.018 | 12/0.050/0.026 |  4/0.058/0.030 | 13/0.059/0.030 |  6/0.051/0.026
+BF3_2comp_uniform         1.00  0.0079 |  2/0.031/0.016 | 12/0.117/0.061 |  4/0.037/0.019 | 13/0.070/0.035 |  7/0.050/0.025
+BF4_1comp_uniform         1.00  0.0029 |  3/0.028/0.014 | 12/0.036/0.018 |  5/0.025/0.013 | 14/0.034/0.017 |  6/0.041/0.021
+  within these episodes: spearman(surplus@15, |VR-1|) med=+0.872 pos 5/5 sign p=0.0625
+  within these episodes: spearman(surplus@15, Hs_error) med=+0.872 pos 5/5 sign p=0.0625
+  field SPREAD across cells at TIED placement: |VR-1| range med=0.0587 (max 0.3010), Hs_error range med=0.0308 (max 0.2090)
+  reference scale: pre-registered MDE |VR-1| 0.0482, Hs_error 0.0235 -> the tied-placement spread
+  is 1.2x / 1.3x the MDE.
+
+### F2. THE MIRROR TEST — do the E1 field harms disappear where surplus is 0?
+Cell D vs A, stratified by the D-arm surplus at n_g=15 (surplus = 15 - outside_box - min(N_gt,15)).
+episode                  N_gt surp_D surp_A d_det@15 d_init_nrmse  d_nRMSE     d_Hs  d|VR-1|  N_A->N_D
+------------------------------------------------------------------------------------------------------
+BF2_1comp_uniform           1     14      1   +0.000      +0.1195  +0.1380  +0.2090  +0.3010    2->15  
+BF3_1comp_uniform           1     14      2   +0.000      -0.0009  +0.0124  +0.0302  +0.0575    2->15  
+BF4_1comp_uniform           1     14      3   +0.000      +0.0010  +0.0030  +0.0033  +0.0066    2->15  
+BF3_2comp_slope             2     13      1   +0.000      +0.0014  +0.0051  +0.0120  +0.0235   15->15  
+BF3_2comp_uniform           2     13      2   +0.000      +0.0021  +0.0134  +0.0199  +0.0388   15->15  
+BF3_5comp_slope             5     10      0   +0.000      +0.0053  +0.0074  +0.0371  +0.0699   15->15  
+BF3_5comp_uniform           5     10      2   +0.000      +0.0174  +0.0386  +0.1019  +0.1847   15->15  
+BF4_5comp_uniform           5     10      0   +0.400      +0.0010  +0.0056  +0.0066  +0.0126   15->15  
+BF4_15comp_uniform         15      0      0   +0.800      -0.1163  -0.0758  +0.0765  +0.1040   10->18  
+BF4_30comp_uniform         30      0      0   +0.300      -0.0685  -0.0608  +0.0507  +0.0961    9->18  
+BF5_15comp_uniform         15      0      0   +0.867      -0.1273  -0.0528  +0.1620  +0.3277   21->15  
+BF5_30comp_uniform         30      0      0   +0.400      +0.0121  +0.0126  +0.1312  +0.1320   20->18  
+  surplus>=10  n=8   Hs_error    medD= +0.0251  worse 8/8  p=0.0078
+  surplus>=10  n=8   |VR-1|      medD= +0.0481  worse 8/8  p=0.0078
+  surplus>=10  n=8   init_nrmse  medD= +0.0018  worse 7/8  p=0.0703
+  surplus>=10  n=8   nRMSE       medD= +0.0099  worse 8/8  p=0.0078
+
+  surplus<10   n=4   Hs_error    medD= +0.1039  worse 4/4  p=0.1250
+  surplus<10   n=4   |VR-1|      medD= +0.1180  worse 4/4  p=0.1250
+  surplus<10   n=4   init_nrmse  medD= -0.0924  worse 1/4  p=0.6250
+  surplus<10   n=4   nRMSE       medD= -0.0568  worse 1/4  p=0.6250
+
+  !! CONFOUND, stated: for cell D, surplus == 15 - N_gt exactly (n_outside_box = 0 in 12/12).
+     So this stratification is NOT independent of the crowding stratifier. It is reported as
+     descriptive; the CONTROLLED version of the same claim is F1 and PART 3a (within-episode).
+
+### F3. THE ORACLE'S SPACING — is the oracle 'the narrow grid taken further'?
+episode                  N_gt true nn_med cellA nn@15 cellD nn@15  D/true  A/true
+---------------------------------------------------------------------------------
+BF2_1comp_uniform           1         nan      0.8041      0.0510     nan     nan
+BF3_1comp_uniform           1         nan      1.1473      0.0100     nan     nan
+BF3_2comp_slope             2      0.5904      1.1122      0.0100    0.02    1.88
+BF3_2comp_uniform           2      0.5904      0.7998      0.0100    0.02    1.35
+BF3_5comp_slope             5      0.2068      0.7790      0.0100    0.05    3.77
+BF3_5comp_uniform           5      0.2068      0.5316      0.0361    0.17    2.57
+BF4_15comp_uniform         15      0.0835      0.5826      0.0728    0.87    6.98
+BF4_1comp_uniform           1         nan      1.1809      0.0100     nan     nan
+BF4_30comp_uniform         30      0.0439      0.7308      0.0539    1.23   16.63
+BF4_5comp_uniform           5      0.1277      0.6395      0.0361    0.28    5.01
+BF5_15comp_uniform         15      0.0505      0.5595      0.0447    0.89   11.08
+BF5_30comp_uniform         30      0.0263      1.4994      0.0316    1.20   57.05
+
+  crowded 4 ep: true nn_med = 0.0472 ; cell D nn@15 = 0.0493  -> ratio 1.04 (D matches the physics)
+  2/5-comp ep: true nn_med = 0.2068 ; cell D nn@15 = 0.0100  -> ratio 0.05 (D is 21x TIGHTER than physics)
+
+  ==> ORACLE ARM: n_est == N_gt exactly, atoms sit exactly on the truth, so its nn ratio is 1.00
+      BY DEFINITION and its surplus is 0 BY DEFINITION, at every crowding level.
+episode                  N_gt T1f n_est T1f final_n T1f surplus A0 final_n A0 surplus
+-------------------------------------------------------------------------------------
+BF4_15comp_uniform         15        15          15           0         10          0
+BF4_30comp_uniform         30        30          30           0          9          0
+BF5_15comp_uniform         15        15          15           0         21          6
+BF5_30comp_uniform         30        30          30           0         20          0
+
+### F4. THE TWO CHANNELS, SEPARATED AND SIZED (E1, cell D vs A)
+Channel 1 (benefit): placement -> nRMSE, only fires where detection has headroom.
+Channel 2 (harm):   surplus/stacking -> dispersion, fires everywhere.
+  detection headroom in cell A: 5 ep (['BF4_15comp_see', 'BF4_30comp_see', 'BF4_5comp_see', 'BF5_15comp_see', 'BF5_30comp_see'])
+  no headroom (A already 1.000): 7 ep
+  HEADROOM     init_nrmse  med=  -0.0685  larger 2/5  p=1.0000
+  HEADROOM     nRMSE       med=  -0.0528  larger 2/5  p=1.0000
+  HEADROOM     Hs_error    med=  +0.0765  larger 5/5  p=0.0625
+  HEADROOM     |VR-1|      med=  +0.1040  larger 5/5  p=0.0625
+  HEADROOM     Skill       med=  +0.3972  larger 3/5  p=1.0000
+  HEADROOM     rho         med=  +0.2219  larger 3/5  p=1.0000
+
+  NO HEADROOM  init_nrmse  med=  +0.0021  larger 6/7  p=0.1250
+  NO HEADROOM  nRMSE       med=  +0.0124  larger 7/7  p=0.0156
+  NO HEADROOM  Hs_error    med=  +0.0302  larger 7/7  p=0.0156
+  NO HEADROOM  |VR-1|      med=  +0.0575  larger 7/7  p=0.0156
+  NO HEADROOM  Skill       med=  -0.0062  larger 0/7  p=0.0156
+  NO HEADROOM  rho         med=  -0.0017  larger 0/7  p=0.0156
+
+  NET over all 12 (the deployment mix): nRMSE medD=+0.0065  <-- the two channels cancel
+
+### F5. IS THE HARM CHANNEL THE SAME ONE IN E1 AND S2?  (dispersion signature)
+intervention                                   d_det  d_nRMSE   d_rho    d_VR  d|VR-1|    d_Hs
+----------------------------------------------------------------------------------------------
+E1  D vs A  (narrow grid, 12 ep)              +0.000  +0.0065  -0.001  -0.083  +0.0830 +0.0439
+E1  B vs A  (narrow grid, 12 ep)              +0.000  +0.0054  -0.001  -0.092  +0.0918 +0.0486
+E1  D vs A  (narrow grid, crowded 4)          +0.400  -0.0568  +0.227  -0.118  +0.1180 +0.1039
+S2  T1f vs A0 (oracle k, crowded 4)           +0.583  -0.0974  +0.432  -0.153  +0.1532 +0.1205
+S1  A3 vs A0 (budget 40, crowded 4)           +0.200  -0.0063  +0.020  -0.043  +0.0429 +0.0271
+S1  A1 vs A0 (budget 22, crowded 4)           +0.167  -0.0150  +0.079  +0.004  -0.0039 -0.0041
+  ==> FOUR independent placement interventions, one signature: detection UP, VR DOWN, Hs_error UP.
+
+### F6. WHERE THE ENERGY GOES — amplitude error vs detection (E1 e2e, within episode)
+  within-episode spearman(detection, amp_rel_error) med=+0.562 pos 3/4 p=0.6250
+  within-episode spearman(surplus@15, amp_rel_error)  med=+0.733 pos 8/8 p=0.0078
+  S1 budget: S1-A0=0.727  S1-A1=0.746  S1-A2=0.648  S1-A3=0.692
+  S2 oracle: S1-A0=0.727  S2-C1=0.861  S2-T1f=0.628  X-T1f-notrack=0.574
+
+### F7. TRACKER x PLACEMENT 2x2 (S2) — the field axis has its own bottleneck
+                      placement=beamform    placement=oracle    row effect
+--------------------------------------------------------------------------
+nRMSE tracker ON                  0.2592              0.1602       -0.0990
+nRMSE tracker OFF                 0.2664              0.0621       -0.2043
+  tracker effect                 -0.0072             +0.0981interaction +0.1053
+
+VR tracker ON                     0.5564              0.4374       -0.1190
+VR tracker OFF                    1.0422              0.8373       -0.2049
+  tracker effect                 -0.4858             -0.3999interaction +0.0859
+
+Hs_error tracker ON                0.2446              0.3454       +0.1008
+Hs_error tracker OFF                0.0723              0.0448       -0.0276
+  tracker effect                 +0.1723             +0.3006interaction +0.1283
+
+rho tracker ON                    0.3427              0.7791       +0.4364
+rho tracker OFF                   0.4707              0.9678       +0.4971
+  tracker effect                 -0.1280             -0.1887interaction -0.0607
+
+Skill tracker ON                 -0.0200              0.5892       +0.6092
+Skill tracker OFF                -0.1812              0.9344       +1.1155
+  tracker effect                 +0.1612             -0.3452interaction -0.5063
+
+  placement main effect on nRMSE with tracker OFF  = -0.2043
+  placement main effect on nRMSE with tracker ON   = -0.0990
+  ==> the tracker EATS 52% of the placement gain.

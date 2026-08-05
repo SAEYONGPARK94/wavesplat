@@ -1,0 +1,51 @@
+CON tables - re-analysis of existing raw data only (no new runs)
+sources: tmp/e1_grid_2026-08-05/{probe,results}.jsonl (180+180) | tmp/s1s2_2026-08-05/results.jsonl (132)
+
+T1  probe detection_rate: budget the ladder ACTUALLY calls (n_g=3) vs the headline budget (n_g=15)
+    n_gaussians=[3,8,15] -> initialize_from_frames_v2 receives n=3. n_g=15 is counterfactual.
+episode                            Ngt   D-A @ng3   D-A @ng15
+episode_BF4_15comp_seed0_uniform.h5  15     +0.000      +0.800
+episode_BF4_30comp_seed0_uniform.h5  30     +0.033      +0.300
+episode_BF5_15comp_seed0_uniform.h5  15     +0.067      +0.867
+episode_BF5_30comp_seed0_uniform.h5  30     +0.000      +0.400
+    median: n_g=3 +0.0167   n_g=15 +0.6000   ratio 36x
+
+T2  E1 e2e stratified: where placement MOVED vs where the field was HARMED (disjoint sets)
+  CROWDED 4      det +0.4000 (range +0.233..+0.533)  init_nrmse -0.0924  Hs +0.1039  |VR-1| +0.1180
+  NON-CROWDED 8  det +0.0000 (range +0.000..+0.000)  init_nrmse +0.0018  Hs +0.0251  |VR-1| +0.0481
+
+T3  STRICT SINGLE-FACTOR placement contrast (cfg diff = {init_method} only, tracker ON both)
+  S2-T1 vs S2-C1:
+    nRMSE        medDelta -0.0703   better 4/4
+    init_nrmse   medDelta -0.1297   better 4/4
+    Pearson_rho  medDelta +0.3741   better 4/4
+    Skill_Score  medDelta +0.5379   better 4/4
+    RMSE_unobs   medDelta -0.1119   better 4/4
+    Hs_error     medDelta +0.0976   better 0/4
+    |VR-1|       medDelta +0.1332   better 0/4
+  S2-T1f vs S2-C1:
+    nRMSE        medDelta -0.1145   better 4/4
+    init_nrmse   medDelta -0.2055   better 4/4
+    Pearson_rho  medDelta +0.6175   better 4/4
+    Skill_Score  medDelta +0.8040   better 4/4
+    RMSE_unobs   medDelta -0.1762   better 4/4
+    Hs_error     medDelta +0.0759   better 0/4
+    |VR-1|       medDelta +0.1021   better 0/4
+
+T4  tracker contrast at FIXED placement
+  S2-T1f -> X-T1f-notrack: nRMSE 0.1671->0.0643 init_nrmse 0.0629->0.0629 Pearson_rho 0.7620->0.9624 Skill_Score 0.5646->0.9255 RMSE_unobs 0.2787->0.1051 Hs_error 0.3676->0.0535 |VR-1| 0.6098->0.1518
+  S1-A0 -> X-A0-notrack: nRMSE 0.2667->0.2741 init_nrmse 0.2612->0.2612 Pearson_rho 0.3228->0.4507 Skill_Score -0.0907->-0.1396 RMSE_unobs 0.4218->0.4230 Hs_error 0.2540->0.0643 |VR-1| 0.4362->0.1382
+
+T5  proposed mediator (nn spacing) vs the GT spacing it must distinguish
+episode                              GTnn D nn ng15 D nn ng3
+episode_BF4_15comp_seed0_uniform.h5  0.083     0.073    0.036
+episode_BF4_30comp_seed0_uniform.h5  0.044     0.054    0.073
+episode_BF5_15comp_seed0_uniform.h5  0.051     0.045    0.045
+episode_BF5_30comp_seed0_uniform.h5  0.026     0.032    0.040
+episode_BF3_5comp_seed0_uniform.h5  0.207     0.036    0.156
+episode_BF3_2comp_seed0_uniform.h5  0.590     0.010    0.063
+
+T6  within-episode Spearman(detection_rate, nRMSE), crowded 4
+  all arms           -0.83(p=0.0000)  -0.87(p=0.0000)  -0.83(p=0.0000)  -0.53(p=0.0001)
+  deployable only    -0.75(p=0.0000)  -0.65(p=0.0000)  -0.64(p=0.0001)  -0.10(p=0.5686)
+  E1 cells only      -0.75(p=0.0013)  -0.75(p=0.0012)  -0.75(p=0.0012)  -0.25(p=0.3754)

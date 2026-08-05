@@ -1,0 +1,158 @@
+=== A. cell-level ranking of the two rival mediators (n=5 design points) ===
+cell   spacing n3  spacing n15  #outside n15   med dHs
+A          0.1531       0.7894          11.0    0.0000
+B          0.0608       0.0903           1.0    0.0486
+C          0.0671       0.3293           7.5    0.0013
+D          0.0608       0.0338           0.0    0.0439
+E          0.0689       0.2129           7.0    0.0110
+  spearman(spacing_n15, #outside_n15) = +1.000  <- rival mediators are rank-identical
+  spearman(spacing_n15, med dHs)      = -0.900
+  spearman(#outside_n15, med dHs)     = -0.900
+  spearman(spacing_n3,  med dHs)      = -0.800   <- at the budget the ladder actually uses
+  => 5 design points, 2 candidates with identical ranks: not separable by these data.
+
+=== B. the placement the e2e ACTUALLY ended with (spec on final spectrum_params) ===
+episode                 A        B        C        D        E     D-A
+BF2_1comp_se        1.000    1.000    1.000    1.000    1.000  +0.000
+BF3_1comp_se        1.000    1.000    1.000    1.000    1.000  +0.000
+BF3_2comp_          1.000    1.000    1.000    1.000    1.000  +0.000
+BF3_2comp_se        1.000    1.000    1.000    1.000    1.000  +0.000
+BF3_5comp_          1.000    1.000    1.000    1.000    1.000  +0.000
+BF3_5comp_se        1.000    1.000    1.000    1.000    1.000  +0.000
+BF4_15comp_se       0.467    0.933    0.667    0.933    0.933  +0.467
+BF4_1comp_se        1.000    1.000    1.000    1.000    1.000  +0.000
+BF4_30comp_se       0.267    0.600    0.467    0.600    0.533  +0.333
+BF4_5comp_se        1.000    1.000    1.000    1.000    1.000  +0.000
+BF5_15comp_se       0.467    1.000    0.533    1.000    0.800  +0.533
+BF5_30comp_se       0.367    0.600    0.367    0.600    0.467  +0.233
+  median D-A (final detection_rate) = +0.0000; improved 4/12, worse 0/12
+
+  final n_est (median-of-3), which sets the ceiling min(n_est,n_gt)/n_gt:
+episode                 A        B        C        D        E
+BF2_1comp_se            2       15        2       15        2
+BF3_1comp_se            2       15        2       15        2
+BF3_2comp_             15       15       15       15       15
+BF3_2comp_se           15       15       15       15       15
+BF3_5comp_             15       15        6       15       15
+BF3_5comp_se           15       15        6       15       15
+BF4_15comp_se          10       18       19       18       18
+BF4_1comp_se            2       15        2       15       15
+BF4_30comp_se           9       18       18       18       18
+BF4_5comp_se           15       15       15       15       15
+BF5_15comp_se          21       18       21       15       21
+BF5_30comp_se          20       18       19       18       18
+
+=== C. E1 crowded: is the final detection at the final ceiling? ===
+  A BF4_15comp_se  n_est  10 ceil 0.667 det 0.467 det/ceil 0.700
+  B BF4_15comp_se  n_est  18 ceil 1.000 det 0.933 det/ceil 0.933
+  C BF4_15comp_se  n_est  19 ceil 1.000 det 0.667 det/ceil 0.667
+  D BF4_15comp_se  n_est  18 ceil 1.000 det 0.933 det/ceil 0.933
+  E BF4_15comp_se  n_est  18 ceil 1.000 det 0.933 det/ceil 0.933
+  A BF4_30comp_se  n_est   9 ceil 0.300 det 0.267 det/ceil 0.889
+  B BF4_30comp_se  n_est  18 ceil 0.600 det 0.600 det/ceil 1.000
+  C BF4_30comp_se  n_est  18 ceil 0.600 det 0.467 det/ceil 0.778
+  D BF4_30comp_se  n_est  18 ceil 0.600 det 0.600 det/ceil 1.000
+  E BF4_30comp_se  n_est  18 ceil 0.600 det 0.533 det/ceil 0.889
+  A BF5_15comp_se  n_est  21 ceil 1.000 det 0.467 det/ceil 0.467
+  B BF5_15comp_se  n_est  18 ceil 1.000 det 1.000 det/ceil 1.000
+  C BF5_15comp_se  n_est  21 ceil 1.000 det 0.533 det/ceil 0.533
+  D BF5_15comp_se  n_est  15 ceil 1.000 det 1.000 det/ceil 1.000
+  E BF5_15comp_se  n_est  21 ceil 1.000 det 0.800 det/ceil 0.800
+  A BF5_30comp_se  n_est  20 ceil 0.667 det 0.367 det/ceil 0.550
+  B BF5_30comp_se  n_est  18 ceil 0.600 det 0.600 det/ceil 1.000
+  C BF5_30comp_se  n_est  19 ceil 0.633 det 0.367 det/ceil 0.579
+  D BF5_30comp_se  n_est  18 ceil 0.600 det 0.600 det/ceil 1.000
+  E BF5_30comp_se  n_est  18 ceil 0.600 det 0.467 det/ceil 0.778
+
+=== D. degenerate "all atoms at one point" null, evaluated at the arm's OWN final n_est ===
+exp  arm     episode         n_est    det  stack1  beyond
+E1   A       BF4_15comp_se      10  0.467   0.667  -0.200
+E1   A       BF4_30comp_se       9  0.267   0.300  -0.033
+E1   A       BF5_15comp_se      21  0.467   0.867  -0.400
+E1   A       BF5_30comp_se      20  0.367   0.667  -0.300
+E1   B       BF4_15comp_se      18  0.933   0.867  +0.067
+E1   B       BF4_30comp_se      18  0.600   0.600  +0.000
+E1   B       BF5_15comp_se      18  1.000   0.867  +0.133
+E1   B       BF5_30comp_se      18  0.600   0.600  +0.000
+E1   C       BF4_15comp_se      19  0.667   0.867  -0.200
+E1   C       BF4_30comp_se      18  0.467   0.600  -0.133
+E1   C       BF5_15comp_se      21  0.533   0.867  -0.333
+E1   C       BF5_30comp_se      19  0.367   0.633  -0.267
+E1   D       BF4_15comp_se      18  0.933   0.867  +0.067
+E1   D       BF4_30comp_se      18  0.600   0.600  +0.000
+E1   D       BF5_15comp_se      15  1.000   0.867  +0.133
+E1   D       BF5_30comp_se      18  0.600   0.600  +0.000
+E1   E       BF4_15comp_se      18  0.933   0.867  +0.067
+E1   E       BF4_30comp_se      18  0.533   0.600  -0.067
+E1   E       BF5_15comp_se      21  0.800   0.867  -0.067
+E1   E       BF5_30comp_se      18  0.467   0.600  -0.133
+S1S2 S1-A0   BF4_15comp_se      10  0.467   0.667  -0.200
+S1S2 S1-A0   BF4_30comp_se       9  0.267   0.300  -0.033
+S1S2 S1-A0   BF5_15comp_se      21  0.467   0.867  -0.400
+S1S2 S1-A0   BF5_30comp_se      20  0.367   0.667  -0.300
+S1S2 S1-A1   BF4_15comp_se      25  1.000   0.867  +0.133
+S1S2 S1-A1   BF4_30comp_se      26  0.533   0.867  -0.333
+S1S2 S1-A1   BF5_15comp_se      28  0.467   0.867  -0.400
+S1S2 S1-A1   BF5_30comp_se      25  0.433   0.833  -0.400
+S1S2 S1-A2   BF4_15comp_se      30  0.933   0.867  +0.067
+S1S2 S1-A2   BF4_30comp_se      30  0.433   0.867  -0.433
+S1S2 S1-A2   BF5_15comp_se      30  0.467   0.867  -0.400
+S1S2 S1-A2   BF5_30comp_se      30  0.333   0.867  -0.533
+S1S2 S1-A3   BF4_15comp_se      40  1.000   0.867  +0.133
+S1S2 S1-A3   BF4_30comp_se      40  0.600   0.867  -0.267
+S1S2 S1-A3   BF5_15comp_se      40  0.533   0.867  -0.333
+S1S2 S1-A3   BF5_30comp_se      40  0.400   0.867  -0.467
+S1S2 S2-C1   BF4_15comp_se      13  0.400   0.867  -0.467
+S1S2 S2-C1   BF4_30comp_se      30  0.233   0.867  -0.633
+S1S2 S2-C1   BF5_15comp_se      13  0.200   0.867  -0.667
+S1S2 S2-C1   BF5_30comp_se      12  0.167   0.400  -0.233
+S1S2 S2-T1   BF4_15comp_se      15  1.000   0.867  +0.133
+S1S2 S2-T1   BF4_30comp_se      30  1.000   0.867  +0.133
+S1S2 S2-T1   BF5_15comp_se      15  1.000   0.867  +0.133
+S1S2 S2-T1   BF5_30comp_se      30  1.000   0.867  +0.133
+S1S2 S2-T1f  BF4_15comp_se      15  1.000   0.867  +0.133
+S1S2 S2-T1f  BF4_30comp_se      30  1.000   0.867  +0.133
+S1S2 S2-T1f  BF5_15comp_se      15  1.000   0.867  +0.133
+S1S2 S2-T1f  BF5_30comp_se      30  1.000   0.867  +0.133
+S1S2 S2-T2   BF4_15comp_se      15  1.000   0.867  +0.133
+S1S2 S2-T2   BF4_30comp_se      30  1.000   0.867  +0.133
+S1S2 S2-T2   BF5_15comp_se      14  0.933   0.867  +0.067
+S1S2 S2-T2   BF5_30comp_se      30  1.000   0.867  +0.133
+S1S2 S2-T4   BF4_15comp_se      15  1.000   0.867  +0.133
+S1S2 S2-T4   BF4_30comp_se      30  1.000   0.867  +0.133
+S1S2 S2-T4   BF5_15comp_se      15  1.000   0.867  +0.133
+S1S2 S2-T4   BF5_30comp_se      30  1.000   0.867  +0.133
+S1S2 X-A0-notrackBF4_15comp_se      10  0.467   0.667  -0.200
+S1S2 X-A0-notrackBF4_30comp_se       9  0.267   0.300  -0.033
+S1S2 X-A0-notrackBF5_15comp_se      21  0.467   0.867  -0.400
+S1S2 X-A0-notrackBF5_30comp_se      20  0.367   0.667  -0.300
+S1S2 X-T1f-notrackBF4_15comp_se      15  1.000   0.867  +0.133
+S1S2 X-T1f-notrackBF4_30comp_se      30  1.000   0.867  +0.133
+S1S2 X-T1f-notrackBF5_15comp_se      15  1.000   0.867  +0.133
+S1S2 X-T1f-notrackBF5_30comp_se      30  1.000   0.867  +0.133
+
+  A        mean det 0.392  mean stack1-null 0.625  mean beyond-null -0.233  (beats null in 0/4)
+  D        mean det 0.783  mean stack1-null 0.733  mean beyond-null +0.050  (beats null in 2/4)
+  S1-A0    mean det 0.392  mean stack1-null 0.625  mean beyond-null -0.233  (beats null in 0/4)
+  S1-A1    mean det 0.608  mean stack1-null 0.858  mean beyond-null -0.250  (beats null in 1/4)
+  S1-A3    mean det 0.633  mean stack1-null 0.867  mean beyond-null -0.233  (beats null in 1/4)
+  S2-T1f   mean det 1.000  mean stack1-null 0.867  mean beyond-null +0.133  (beats null in 4/4)
+
+=== E. E1 cell D vs A, split by WHETHER THE PLACEMENT METRIC MOVED AT ALL ===
+-- placement moved  (crowded 4), n=4 --
+   final detection_rate  D-A  median +0.4000   range [+0.233,+0.533]   nonzero 4/4
+   nRMSE       D-A median -0.0568   worse in 1/4   sign p=0.6250
+   init_nrmse  D-A median -0.0924   worse in 1/4   sign p=0.6250
+   Hs_error    D-A median +0.1039   worse in 4/4   sign p=0.1250
+   absVR       D-A median +0.1180   worse in 4/4   sign p=0.1250
+   final n_est   D-A median +3.0   |  init spacing(n_g=3) D-A median -0.0402
+-- placement IDENTICAL (other 8), n=8 --
+   final detection_rate  D-A  median +0.0000   range [+0.000,+0.000]   nonzero 0/8
+   nRMSE       D-A median +0.0099   worse in 8/8   sign p=0.0078
+   init_nrmse  D-A median +0.0018   worse in 7/8   sign p=0.0703
+   Hs_error    D-A median +0.0251   worse in 8/8   sign p=0.0078
+   absVR       D-A median +0.0481   worse in 8/8   sign p=0.0078
+   final n_est   D-A median +0.0   |  init spacing(n_g=3) D-A median -0.0911
+
+   => the two strata differ in WHICH THINGS MOVED:
+      crowded: detection moved AND spacing moved;  other 8: ONLY spacing / n_est moved.

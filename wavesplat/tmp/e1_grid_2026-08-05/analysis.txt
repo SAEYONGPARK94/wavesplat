@@ -1,0 +1,166 @@
+cells present: ['A', 'B', 'C', 'D', 'E'] | episodes: 12
+
+=== per-cell pooled medians over 12 episodes (median-of-3 seeds) ===
+cell       init_nrmse           nRMSE  detection_rate  energy_detecti  k_mag_rel_erro  direction_erro
+A              0.0175          0.0214          1.0000          1.0000          0.0013          0.0685
+B              0.0297          0.0416          1.0000          1.0000          0.0025          0.1730
+C              0.0839          0.0873          1.0000          1.0000          0.0122          0.3097
+D              0.0289          0.0444          1.0000          1.0000          0.0019          0.1167
+E              0.0127          0.0256          1.0000          1.0000          0.0014          0.0565
+
+=== realized seed noise (12ep, control cell A) vs pre-registered sigma_d ===
+  init_nrmse                 range_med=0.0230  realized sigma_d=0.0129 -> realized MDE=0.0114   (prereg MDE=0.0262)
+  nRMSE                      range_med=0.0236  realized sigma_d=0.0132 -> realized MDE=0.0118   (prereg MDE=0.0188)
+  detection_rate             range_med=0.0000  realized sigma_d=0.0000 -> realized MDE=0.0000   (prereg MDE=0.0829)
+  energy_detection_rate      range_med=0.0000  realized sigma_d=0.0000 -> realized MDE=0.0000   (prereg MDE=0.1008)
+  k_mag_rel_error_mean       range_med=0.0036  realized sigma_d=0.0020 -> realized MDE=0.0018   (prereg MDE=0.3132)
+  direction_error_deg_mean   range_med=0.1133  realized sigma_d=0.0634 -> realized MDE=0.0563   (prereg MDE=8.22)
+  Skill_Score                range_med=0.0601  realized sigma_d=0.0337 -> realized MDE=0.0299   (prereg MDE=0.18)
+  Pearson_rho                range_med=0.0195  realized sigma_d=0.0109 -> realized MDE=0.0097   (prereg MDE=0.1047)
+  Directional_R2             range_med=0.0669  realized sigma_d=0.0374 -> realized MDE=0.0333   (prereg MDE=0.1434)
+  Hs_error                   range_med=0.0264  realized sigma_d=0.0148 -> realized MDE=0.0131   (prereg MDE=0.0235)
+  absVR1                     range_med=0.0502  realized sigma_d=0.0281 -> realized MDE=0.0249   (prereg MDE=0.0482)
+
+=== D vs A — PRIMARY: narrow+recompute vs shipped ===
+metric                       medianΔ     k/n        p      MDE  verdict
+init_nrmse                    0.0012    4/12   0.3877   0.0262  미탐지(MDE=0.0262)
+nRMSE                         0.0065    3/12   0.1460   0.0188  미탐지(MDE=0.0188)
+detection_rate                0.0000     4/4   0.1250   0.0829  미탐지(MDE=0.0829)
+energy_detection_rate         0.0000     4/4   0.1250   0.1008  미탐지(MDE=0.1008)
+k_mag_rel_error_mean          0.0001    6/12   1.0000   0.3132  미탐지(MDE=0.3132)
+direction_error_deg_mean      0.0222    5/12   0.7744   8.2200  미탐지(MDE=8.22)
+Skill_Score                  -0.0042    3/12   0.1460   0.1800  미탐지(MDE=0.18)
+Pearson_rho                  -0.0011    3/12   0.1460   0.1047  미탐지(MDE=0.1047)
+Directional_R2               -0.0062    3/12   0.1460   0.1434  미탐지(MDE=0.1434)
+Hs_error                      0.0439    0/12   0.0005   0.0235  HARM
+absVR1                        0.0830    0/12   0.0005   0.0482  HARM
+
+=== B vs A — factor1 alone (narrow grid) ===
+metric                       medianΔ     k/n        p      MDE  verdict
+init_nrmse                    0.0013    4/12   0.3877   0.0262  미탐지(MDE=0.0262)
+nRMSE                         0.0054    3/12   0.1460   0.0188  미탐지(MDE=0.0188)
+detection_rate                0.0000     4/4   0.1250   0.0829  미탐지(MDE=0.0829)
+energy_detection_rate         0.0000     4/4   0.1250   0.1008  미탐지(MDE=0.1008)
+k_mag_rel_error_mean          0.0002    6/12   1.0000   0.3132  미탐지(MDE=0.3132)
+direction_error_deg_mean      0.0217    5/12   0.7744   8.2200  미탐지(MDE=8.22)
+Skill_Score                  -0.0027    3/12   0.1460   0.1800  미탐지(MDE=0.18)
+Pearson_rho                  -0.0010    3/12   0.1460   0.1047  미탐지(MDE=0.1047)
+Directional_R2               -0.0066    2/12   0.0386   0.1434  WEAK-HARM
+Hs_error                      0.0486    0/12   0.0005   0.0235  HARM
+absVR1                        0.0918    0/12   0.0005   0.0482  HARM
+
+=== C vs A — factor2 alone (recompute) ===
+metric                       medianΔ     k/n        p      MDE  verdict
+init_nrmse                    0.0059    3/12   0.1460   0.0262  미탐지(MDE=0.0262)
+nRMSE                         0.0033    3/12   0.1460   0.0188  미탐지(MDE=0.0188)
+detection_rate                0.0000     3/3   0.2500   0.0829  미탐지(MDE=0.0829)
+energy_detection_rate         0.0000     3/4   0.6250   0.1008  미탐지(MDE=0.1008)
+k_mag_rel_error_mean          0.0014    2/12   0.0386   0.3132  WEAK-HARM
+direction_error_deg_mean      0.0606    4/12   0.3877   8.2200  미탐지(MDE=8.22)
+Skill_Score                  -0.0018    3/12   0.1460   0.1800  미탐지(MDE=0.18)
+Pearson_rho                  -0.0009    3/12   0.1460   0.1047  미탐지(MDE=0.1047)
+Directional_R2               -0.0017    4/12   0.3877   0.1434  미탐지(MDE=0.1434)
+Hs_error                      0.0013    6/12   1.0000   0.0235  미탐지(MDE=0.0235)
+absVR1                       -0.0010    7/12   0.7744   0.0482  미탐지(MDE=0.0482)
+
+=== E vs A — 2026-07-23 replication (MIN_DK 0.15->0.05, wide) ===
+metric                       medianΔ     k/n        p      MDE  verdict
+init_nrmse                   -0.0001    6/12   1.0000   0.0262  미탐지(MDE=0.0262)
+nRMSE                         0.0040    2/12   0.0386   0.0188  WEAK-HARM
+detection_rate                0.0000     4/4   0.1250   0.0829  미탐지(MDE=0.0829)
+energy_detection_rate         0.0000     4/4   0.1250   0.1008  미탐지(MDE=0.1008)
+k_mag_rel_error_mean          0.0006    4/12   0.3877   0.3132  미탐지(MDE=0.3132)
+direction_error_deg_mean     -0.0118    6/12   1.0000   8.2200  미탐지(MDE=8.22)
+Skill_Score                  -0.0024    2/12   0.0386   0.1800  WEAK-HARM
+Pearson_rho                  -0.0004    4/12   0.3877   0.1047  미탐지(MDE=0.1047)
+Directional_R2               -0.0010    3/12   0.1460   0.1434  미탐지(MDE=0.1434)
+Hs_error                      0.0110    1/12   0.0063   0.0235  WEAK-HARM
+absVR1                        0.0213    1/12   0.0063   0.0482  WEAK-HARM
+
+=== factorial main effects & interaction (init_nrmse, nRMSE, detection_rate) ===
+  init_nrmse             GRID main      median=-0.0065 k=7/12 p=0.7744
+  init_nrmse             PEAK main      median=+0.0027 k=3/12 p=0.1460
+  init_nrmse             interaction    median=-0.0065 k=8/12 p=0.3877
+  nRMSE                  GRID main      median=+0.0020 k=5/12 p=0.7744
+  nRMSE                  PEAK main      median=+0.0026 k=2/12 p=0.0386
+  nRMSE                  interaction    median=-0.0051 k=9/12 p=0.1460
+  detection_rate         GRID main      median=+0.0000 k=4/4 p=0.1250
+  detection_rate         PEAK main      median=+0.0000 k=3/3 p=0.2500
+  detection_rate         interaction    median=+0.0000 k=0/3 p=0.2500
+
+=== strata (DESCRIPTIVE ONLY — prereg sec 7) : Δ vs A, init_nrmse & nRMSE ===
+  -- init_nrmse --
+  sparse(1comp)      n=3  B-A=+0.0003  C-A=+0.0002  D-A=+0.0010  E-A=+0.0002
+  mid(2,5comp)       n=5  B-A=+0.0032  C-A=+0.0076  D-A=+0.0021  E-A=+0.0001
+  crowded(15,30)     n=4  B-A=-0.0822  C-A=-0.0015  D-A=-0.0924  E-A=-0.0183
+  -- nRMSE --
+  sparse(1comp)      n=3  B-A=+0.0051  C-A=+0.0003  D-A=+0.0124  E-A=+0.0059
+  mid(2,5comp)       n=5  B-A=+0.0118  C-A=+0.0063  D-A=+0.0074  E-A=+0.0022
+  crowded(15,30)     n=4  B-A=-0.0396  C-A=-0.0006  D-A=-0.0568  E-A=-0.0088
+
+=== PREREG sec 6 negative control (5 eps with NO true pair < 0.15) ===
+  init_nrmse   B-A: control(n=5) median=+0.0016 | lens-applies(n=7) median=+0.0010
+  init_nrmse   C-A: control(n=5) median=+0.0006 | lens-applies(n=7) median=+0.0169
+  init_nrmse   D-A: control(n=5) median=+0.0014 | lens-applies(n=7) median=+0.0010
+  init_nrmse   E-A: control(n=5) median=+0.0002 | lens-applies(n=7) median=-0.0071
+  nRMSE        B-A: control(n=5) median=+0.0051 | lens-applies(n=7) median=+0.0056
+  nRMSE        C-A: control(n=5) median=+0.0041 | lens-applies(n=7) median=+0.0025
+  nRMSE        D-A: control(n=5) median=+0.0124 | lens-applies(n=7) median=+0.0056
+  nRMSE        E-A: control(n=5) median=+0.0059 | lens-applies(n=7) median=+0.0022
+
+=== per-episode init_nrmse (median-of-3), all cells ===
+episode                                        A         B         C         D         E
+BF2_1comp_seed0_uniform                   0.0610    0.1786    0.0916    0.1805    0.0941
+BF3_1comp_seed0_uniform                   0.0089    0.0076    0.0060    0.0080    0.0087
+BF3_2comp_seed0_uniform                   0.0071    0.0104    0.0113    0.0093    0.0099
+BF3_2comp_seed0_slope                     0.0081    0.0097    0.0087    0.0095    0.0082
+BF3_5comp_seed0_uniform                   0.0202    0.0408    0.0804    0.0376    0.0131
+BF3_5comp_seed0_slope                     0.0149    0.0186    0.0874    0.0202    0.0123
+BF4_1comp_seed0_uniform                   0.0046    0.0048    0.0048    0.0056    0.0048
+BF4_5comp_seed0_uniform                   0.0057    0.0067    0.0133    0.0067    0.0074
+BF4_15comp_seed0_uniform                  0.2788    0.1625    0.2957    0.1625    0.2651
+BF4_30comp_seed0_uniform                  0.3106    0.2420    0.2907    0.2420    0.2712
+BF5_15comp_seed0_uniform                  0.2266    0.1307    0.1931    0.0993    0.2036
+BF5_30comp_seed0_uniform                  0.2291    0.2411    0.2735    0.2411    0.2552
+
+=== per-episode avg nRMSE (median-of-3), all cells ===
+episode                                        A         B         C         D         E
+BF2_1comp_seed0_uniform                   0.0631    0.1999    0.1020    0.2011    0.1001
+BF3_1comp_seed0_uniform                   0.0087    0.0138    0.0079    0.0211    0.0103
+BF3_2comp_seed0_uniform                   0.0073    0.0215    0.0136    0.0207    0.0198
+BF3_2comp_seed0_slope                     0.0087    0.0128    0.0128    0.0138    0.0100
+BF3_5comp_seed0_uniform                   0.0240    0.0527    0.0886    0.0626    0.0262
+BF3_5comp_seed0_slope                     0.0187    0.0306    0.0859    0.0261    0.0195
+BF4_1comp_seed0_uniform                   0.0037    0.0063    0.0040    0.0066    0.0096
+BF4_5comp_seed0_uniform                   0.0173    0.0229    0.0197    0.0229    0.0249
+BF4_15comp_seed0_uniform                  0.2720    0.1961    0.2731    0.1961    0.2488
+BF4_30comp_seed0_uniform                  0.3328    0.2720    0.3043    0.2720    0.2732
+BF5_15comp_seed0_uniform                  0.2157    0.1974    0.2133    0.1630    0.2214
+BF5_30comp_seed0_uniform                  0.2464    0.2590    0.2770    0.2590    0.2902
+
+=== BF3_5comp — the 2026-07-23 "mid-density harm" episode (prereg sec 7) ===
+  BF3_5comp_seed0_uniform      A: init=0.0202 (range 0.0183)  nRMSE=0.0240 (range 0.0211)  det=1.000
+  BF3_5comp_seed0_uniform      B: init=0.0408 (range 0.0312)  nRMSE=0.0527 (range 0.0226)  det=1.000
+  BF3_5comp_seed0_uniform      C: init=0.0804 (range 0.0714)  nRMSE=0.0886 (range 0.0670)  det=1.000
+  BF3_5comp_seed0_uniform      D: init=0.0376 (range 0.0099)  nRMSE=0.0626 (range 0.0225)  det=1.000
+  BF3_5comp_seed0_uniform      E: init=0.0131 (range 0.0200)  nRMSE=0.0262 (range 0.0253)  det=1.000
+  BF3_5comp_seed0_slope        A: init=0.0149 (range 0.1193)  nRMSE=0.0187 (range 0.1124)  det=1.000
+  BF3_5comp_seed0_slope        B: init=0.0186 (range 0.0060)  nRMSE=0.0306 (range 0.0089)  det=1.000
+  BF3_5comp_seed0_slope        C: init=0.0874 (range 0.1544)  nRMSE=0.0859 (range 0.1571)  det=1.000
+  BF3_5comp_seed0_slope        D: init=0.0202 (range 0.0054)  nRMSE=0.0261 (range 0.0059)  det=1.000
+  BF3_5comp_seed0_slope        E: init=0.0123 (range 0.0022)  nRMSE=0.0195 (range 0.0127)  det=1.000
+
+=== final_n diagnostic (median-of-3) ===
+episode                                      A       B       C       D       E
+BF2_1comp_seed0_uniform                      2      15       2      15       2
+BF3_1comp_seed0_uniform                      2      15       2      15       2
+BF3_2comp_seed0_uniform                     15      15      15      15      15
+BF3_2comp_seed0_slope                       15      15      15      15      15
+BF3_5comp_seed0_uniform                     15      15       6      15      15
+BF3_5comp_seed0_slope                       15      15       6      15      15
+BF4_1comp_seed0_uniform                      2      15       2      15      15
+BF4_5comp_seed0_uniform                     15      15      15      15      15
+BF4_15comp_seed0_uniform                    10      18      19      18      18
+BF4_30comp_seed0_uniform                     9      18      18      18      18
+BF5_15comp_seed0_uniform                    21      18      21      15      21
+BF5_30comp_seed0_uniform                    20      18      19      18      18

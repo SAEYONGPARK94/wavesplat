@@ -1,0 +1,85 @@
+========================================================================================
+TRACKER GIVE-BACK vs INITIALISATION QUALITY   (unit = arm x episode, median-of-3)
+  give-back = mean tracked nRMSE  -  nRMSE at the last init frame
+========================================================================================
+arm             episode          init  tracked  give-back  x init
+S2-T1f          BF4_15comp     0.0279   0.1425    +0.1146    5.10
+S2-T4           BF4_15comp     0.0279   0.1425    +0.1146    5.10
+S2-T1f          BF5_15comp     0.0290   0.1504    +0.1214    5.19
+S2-T4           BF5_15comp     0.0290   0.1504    +0.1214    5.19
+S2-T1           BF5_15comp     0.0907   0.1603    +0.0695    1.77
+S2-T2           BF5_15comp     0.0907   0.1613    +0.0705    1.78
+S2-T1f          BF4_30comp     0.0918   0.1700    +0.0782    1.85
+S2-T4           BF4_30comp     0.0918   0.1700    +0.0782    1.85
+S2-T1f          BF5_30comp     0.1029   0.2053    +0.1024    2.00
+S2-T4           BF5_30comp     0.1029   0.2053    +0.1024    2.00
+S2-T1           BF4_15comp     0.1542   0.2001    +0.0459    1.30
+S2-T2           BF4_15comp     0.1542   0.2001    +0.0459    1.30
+S2-T1           BF4_30comp     0.1817   0.2487    +0.0669    1.37
+S2-T2           BF4_30comp     0.1817   0.2487    +0.0669    1.37
+S1-A1           BF5_15comp     0.1964   0.2023    +0.0059    1.03
+S1-A3           BF5_15comp     0.1968   0.2204    +0.0235    1.12
+S1-A2           BF5_15comp     0.1970   0.2099    +0.0129    1.07
+S2-T1           BF5_30comp     0.2047   0.2359    +0.0312    1.15
+S2-T2           BF5_30comp     0.2047   0.2359    +0.0312    1.15
+S1-A0           BF5_15comp     0.2266   0.2157    -0.0109    0.95
+S1-A0           BF5_30comp     0.2291   0.2464    +0.0173    1.08
+S2-C1           BF5_15comp     0.2335   0.2403    +0.0068    1.03
+S1-A1           BF5_30comp     0.2374   0.2417    +0.0043    1.02
+S1-A2           BF5_30comp     0.2443   0.2519    +0.0075    1.03
+S1-A3           BF5_30comp     0.2457   0.2797    +0.0339    1.14
+S1-A1           BF4_15comp     0.2638   0.2554    -0.0084    0.97
+S1-A3           BF4_30comp     0.2646   0.3110    +0.0464    1.18
+S1-A2           BF4_15comp     0.2675   0.2552    -0.0123    0.95
+S1-A3           BF4_15comp     0.2681   0.2548    -0.0133    0.95
+S1-A0           BF4_15comp     0.2788   0.2720    -0.0068    0.98
+S2-C1           BF5_30comp     0.2957   0.3004    +0.0048    1.02
+S1-A1           BF4_30comp     0.2979   0.3155    +0.0176    1.06
+S1-A2           BF4_30comp     0.2979   0.3175    +0.0196    1.07
+S2-C1           BF4_30comp     0.2983   0.3102    +0.0119    1.04
+S1-A0           BF4_30comp     0.3106   0.3328    +0.0223    1.07
+S2-C1           BF4_15comp     0.3135   0.2763    -0.0372    0.88
+----------------------------------------------------------------------------------------
+CONTROL: tracker frozen (tracking_lr = 0)
+X-T1f-notrack   BF4_15comp     0.0279   0.0262    -0.0017    0.94
+X-T1f-notrack   BF5_15comp     0.0290   0.0338    +0.0048    1.17
+X-T1f-notrack   BF4_30comp     0.0918   0.0904    -0.0014    0.98
+X-T1f-notrack   BF5_30comp     0.1029   0.1068    +0.0039    1.04
+X-A0-notrack    BF5_15comp     0.2266   0.2401    +0.0135    1.06
+X-A0-notrack    BF5_30comp     0.2291   0.2371    +0.0080    1.04
+X-A0-notrack    BF4_15comp     0.2788   0.2926    +0.0139    1.05
+X-A0-notrack    BF4_30comp     0.3106   0.3266    +0.0161    1.05
+
+TRACKED arms  n=36   give-back = +0.1230 -0.4361 * init      Pearson r = -0.896
+    -> extrapolated give-back at a PERFECT init (init=0): +0.1230 nRMSE
+    -> give-back is zero at init = 0.2821  (above that the tracker helps)
+FROZEN arms   n=8   give-back = -0.0018 +0.0550 * init      Pearson r = +0.896
+
+Split by init quality (tracked arms only):
+  init in [0.00,0.10) : n= 8  median give-back +0.0964   median ratio 3.48x   hurt 8/8
+  init in [0.10,0.20) : n= 9  median give-back +0.0459   median ratio 1.30x   hurt 9/9
+  init in [0.20,1.00) : n=19  median give-back +0.0075   median ratio 1.03x   hurt 13/19
+
+paper/wavesplat.tex L2547-2551 states, for 24 arm-episode pairs of the re-measured
+ablation/model-order experiments: tracking ends above its own init on 20/24, margin
++0.001 to +0.022 nRMSE, median +0.003.  Cells here that exceed +0.022:
+   S2-T1f          BF5_15comp   give-back +0.1214   (5.5x the stated bound)
+   S2-T4           BF5_15comp   give-back +0.1214   (5.5x the stated bound)
+   S2-T1f          BF4_15comp   give-back +0.1146   (5.2x the stated bound)
+   S2-T4           BF4_15comp   give-back +0.1146   (5.2x the stated bound)
+   S2-T1f          BF5_30comp   give-back +0.1024   (4.7x the stated bound)
+   S2-T4           BF5_30comp   give-back +0.1024   (4.7x the stated bound)
+   S2-T1f          BF4_30comp   give-back +0.0782   (3.6x the stated bound)
+   S2-T4           BF4_30comp   give-back +0.0782   (3.6x the stated bound)
+   S2-T2           BF5_15comp   give-back +0.0705   (3.2x the stated bound)
+   S2-T1           BF5_15comp   give-back +0.0695   (3.2x the stated bound)
+   S2-T1           BF4_30comp   give-back +0.0669   (3.0x the stated bound)
+   S2-T2           BF4_30comp   give-back +0.0669   (3.0x the stated bound)
+   S1-A3           BF4_30comp   give-back +0.0464   (2.1x the stated bound)
+   S2-T1           BF4_15comp   give-back +0.0459   (2.1x the stated bound)
+   S2-T2           BF4_15comp   give-back +0.0459   (2.1x the stated bound)
+   S1-A3           BF5_30comp   give-back +0.0339   (1.5x the stated bound)
+   S2-T1           BF5_30comp   give-back +0.0312   (1.4x the stated bound)
+   S2-T2           BF5_30comp   give-back +0.0312   (1.4x the stated bound)
+   S1-A3           BF5_15comp   give-back +0.0235   (1.1x the stated bound)
+   S1-A0           BF4_30comp   give-back +0.0223   (1.0x the stated bound)

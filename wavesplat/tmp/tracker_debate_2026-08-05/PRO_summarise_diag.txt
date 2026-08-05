@@ -1,0 +1,48 @@
+============================================================================================================
+SINGLE-CELL DIAGNOSTIC  episode BF4_15comp (crowded), seeds as listed, medians
+  D* = ORACLE placement (Phase 1 = S2-T1f)   E* = BEAMFORM placement (Phase 1 = S1-A0)
+============================================================================================================
+arm                  n    init    nRMSE     VR    rho  sum|w|  unobs   Hs_e  what
+D6-notrack           1  0.0279   0.0262  0.923  0.995   1.000  0.031  0.027  tracker frozen (control, = X-T1f-notrack)
+D0-default           3  0.0279   0.1425  0.438  0.844   0.810  0.175  0.333  SHIPPED tracker (control, = S2-T1f)
+D1p2-track_only_l1   3  0.0279   0.0526  0.849  0.981   1.012  0.065  0.068  PHASE-2 ONLY: lambda_l1=0
+D2p2-track_only      3  0.0279   0.0167  0.990  0.998   1.052  0.021  0.021  PHASE-2 ONLY: lambda_l1=0, lambda_smooth=0
+D1-l1_0              1  0.0221   0.0498  0.843  0.981   0.983  0.061  0.071  both phases: lambda_l1=0
+D2-l1_smooth_0       3  0.0227   0.0161  0.999  0.998   1.019  0.020  0.016  both phases: lambda_l1=0, lambda_smooth=0
+D3-noconf            1  0.0169   0.0915  0.607  0.945   0.887  0.113  0.214  use_confidence=False
+D4-steps1            1  0.0279   0.0608  0.764  0.976   0.947  0.075  0.116  tracking_steps 10 -> 1
+D8-lr10x_less        1  0.0279   0.0868  0.647  0.949   0.899  0.107  0.187  tracking_lr 0.005 -> 0.0005
+D5-window12          1  0.0279   0.1424  0.442  0.844   0.837  0.175  0.330  tracking_window 3 -> 12
+D7-noclamp           1  0.0279   0.1425  0.438  0.845   0.810  0.175  0.333  clamp_steepness disabled
+------------------------------------------------------------------------------------------------------------
+E6-A0-notrack        1  0.3172   0.3021  1.096  0.321   1.000  0.360  0.059  tracker frozen (control, = X-A0-notrack)
+E0-A0-default        3  0.2788   0.2720  0.519  0.250   0.899  0.334  0.276  SHIPPED tracker (control, = S1-A0)
+E1p2-track_only_l1   3  0.2788   0.2743  0.677  0.306   1.090  0.336  0.172  PHASE-2 ONLY: lambda_l1=0
+E2p2-track_only      3  0.2788   0.2747  0.699  0.308   1.090  0.337  0.160  PHASE-2 ONLY: lambda_l1=0, lambda_smooth=0
+E1-A0-l1_0           1  0.3488   0.3184  1.620  0.408   1.237  0.391  0.285  both phases: lambda_l1=0
+E2-A0-l1smooth_0     3  0.3533   0.3172  1.558  0.390   1.056  0.390  0.254  both phases: lambda_l1=0, lambda_smooth=0
+------------------------------------------------------------------------------------------------------------
+
+PAIRED per-seed (identical Phase 1 by construction for the p2 arms):
+  D2p2-track_only      minus D0-default       n=3  d_nRMSE med -0.1258 (3/3 better)  d_rho med +0.1559  Phase-1 identical: True
+  D1p2-track_only_l1   minus D0-default       n=3  d_nRMSE med -0.0894 (3/3 better)  d_rho med +0.1376  Phase-1 identical: True
+  E2p2-track_only      minus E0-A0-default    n=3  d_nRMSE med +0.0076 (0/3 better)  d_rho med +0.0126  Phase-1 identical: True
+  E1p2-track_only_l1   minus E0-A0-default    n=3  d_nRMSE med +0.0068 (0/3 better)  d_rho med +0.0120  Phase-1 identical: True
+
+COLLAPSE SPEED (arm D0-default, seed 42): how fast the shipped tracker undoes the init
+ frame   t[s]    nRMSE     VR    rho  sum|w| lam1*sum|w|  data term penalty share
+     0   14.1   0.0344  0.857  0.993   1.150    0.001150   0.000126         90.1%
+     1   14.2   0.0419  0.802  0.990   1.111    0.001111   0.000099         91.8%
+     2   14.3   0.0491  0.741  0.989   1.070    0.001070   0.000109         90.8%
+     5   14.6   0.0846  0.571  0.964   0.946    0.000946   0.000119         88.9%
+    10   15.1   0.1189  0.422  0.924   0.844    0.000844   0.000115         88.0%
+    20   16.1   0.1281  0.358  0.919   0.821    0.000821   0.000212         79.5%
+    40   18.1   0.1525  0.411  0.824   0.829    0.000829   0.000152         84.5%
+    80   22.1   0.1467  0.389  0.857   0.796    0.000796   0.000162         83.1%
+   159   30.0   0.1393  0.560  0.837   0.968    0.000968   0.000293         76.8%
+  (`obs_loss` returned by update() is the FULL objective = data + L1 + smooth;
+   the smoothness term is not separated here, so "data term" is an upper bound.)
+
+CLAMP / WINDOW falsifications:
+  D7-noclamp     nRMSE 0.142481 vs default 0.142481  delta +0.000000   clamp fired on 0/160 frames (default: 0/160)
+  D5-window12    nRMSE 0.142397 vs default 0.142481  delta -0.000084   clamp fired on 0/160 frames (default: 0/160)

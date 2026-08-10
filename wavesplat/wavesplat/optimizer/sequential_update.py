@@ -402,6 +402,24 @@ class SequentialUpdater:
         Returns:
             dict with 'loss_history', 'n_iters', 'elapsed_s'
         """
+        # S8 (2026-08-10) opt-in probe, the mirror image of S8_L1_PHASE1_ONLY (see update()).
+        # `lambda_l1` acts in Phase 1 AND in tracking, so decomposing "which locus does the
+        # work" from one direction alone is an accounting identity, not evidence. With
+        # S8_L1_TRACK_ONLY=1 PHASE 1 is pinned to the SHIPPED default while tracking keeps
+        # the configured value. Gate unset (the default) touches nothing -- byte-identical.
+        _l1_p1_saved = None
+        if os.environ.get('S8_L1_TRACK_ONLY') == '1':
+            _l1_p1_saved = self.lambda_l1
+            self.lambda_l1 = 0.001
+        try:
+            return self._initialize_inner(frames, x_range, y_range, verbose)
+        finally:
+            if _l1_p1_saved is not None:
+                self.lambda_l1 = _l1_p1_saved
+
+    def _initialize_inner(self, frames: List[FrameData],
+                          x_range=(10.0, 250.0), y_range=(-100.0, 100.0),
+                          verbose: bool = False) -> Dict:
         # WavePrior UNIFIED: init_method='auto' routes learned vs v2_konly from a
         # GT-free signal (the learned proposal's n_selected) computed on the same init
         # window both arms see, so one config value handles every regime. Additive; only
@@ -915,11 +933,26 @@ class SequentialUpdater:
         # Rx-1 K4: `reg=False` makes the TRACKING objective the data term alone while
         # Phase 1 keeps its penalties. Default (gate unset) is reg=True == shipped.
         track_reg = not _rx1_gate('RX1_PHASE2_NOREG')
-        for step in range(self.tracking_steps):
-            opt.zero_grad()
-            loss = self._compute_loss(self._frame_buffer, reg=track_reg)
-            loss.backward()
-            opt.step()
+        # S8 (2026-08-10) opt-in probe.  `lambda_l1` is a single config key but it acts in
+        # TWO places: the Phase-1 fit (`_compute_loss` via `initialize`) and this tracking
+        # loop.  So "change one line in estimation.yaml" moves two loci at once, and a
+        # deployment claim cannot name a single mechanism.  With S8_L1_PHASE1_ONLY=1 the
+        # TRACKING objective is pinned to the SHIPPED default (configs/estimation.yaml:12,
+        # lambda_l1=0.001) while Phase 1 keeps the configured value, which separates them.
+        # Gate unset (the default) touches nothing -- byte-identical to before.
+        _l1_saved = None
+        if os.environ.get('S8_L1_PHASE1_ONLY') == '1':
+            _l1_saved = self.lambda_l1
+            self.lambda_l1 = 0.001
+        try:
+            for step in range(self.tracking_steps):
+                opt.zero_grad()
+                loss = self._compute_loss(self._frame_buffer, reg=track_reg)
+                loss.backward()
+                opt.step()
+        finally:
+            if _l1_saved is not None:
+                self.lambda_l1 = _l1_saved
 
         self.model.clamp_steepness(self.max_steepness)
 

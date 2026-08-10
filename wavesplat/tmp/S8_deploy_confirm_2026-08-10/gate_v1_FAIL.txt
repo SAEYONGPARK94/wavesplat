@@ -1,0 +1,90 @@
+S7 실행 전 게이트 (PREREG §3.1 / AMENDMENT_1 A5)
+
+### 신규 혼잡32 (시드 32-39)  (data_s8_crowded_2026-08-10, 32 에피소드)
+  진폭 A         draw 종수 =  32  ✅
+  omega        draw 종수 =  32  ✅
+  위상 phi       draw 종수 =  32  ✅
+  방향 theta     draw 종수 =  32  ✅
+  진실면          draw 종수 =  32  ✅
+  ⟹ 가장 좁은 축 = 32  ⟹ 전승 시 바닥 p = 4.66e-10  ✅ α=0.05 도달 가능
+
+### G-1b 길이블록 내 draw  신규 혼잡32 (시드 32-39)
+  진폭 A         len15: 16/16  len30: 16/16  ✅
+  omega        len15: 16/16  len30: 16/16  ✅
+  위상 phi       len15: 16/16  len30: 16/16  ✅
+  방향 theta     len15: 16/16  len30: 16/16  ✅
+  진실면          len1444800: 32/32  ✅
+  ⟹ 보증 = **블록당 16 종** (블록 간 독립성은 길이가 달라 측정 불가)
+
+### G-2/G-3  신규 혼잡32 (시드 32-39)  (data_s8_crowded_2026-08-10)
+  mesh_verdict ADEQUATE : 32/32  ✅
+  세 손잡이 ON (ra/rf/ds) : 32/32  ✅
+  lambda_min            : min 8.526 m  max 40.077 m
+
+### 신규 희소32 (시드 32-39)  (data_s8_sparse_2026-08-10, 32 에피소드)
+  진폭 A         draw 종수 =  32  ✅
+  omega        draw 종수 =  32  ✅
+  위상 phi       draw 종수 =  32  ✅
+  방향 theta     draw 종수 =  32  ✅
+  진실면          draw 종수 =  32  ✅
+  ⟹ 가장 좁은 축 = 32  ⟹ 전승 시 바닥 p = 4.66e-10  ✅ α=0.05 도달 가능
+
+### G-1b 길이블록 내 draw  신규 희소32 (시드 32-39)
+  진폭 A         len2: 16/16  len5: 16/16  ✅
+  omega        len2: 16/16  len5: 16/16  ✅
+  위상 phi       len2: 16/16  len5: 16/16  ✅
+  방향 theta     len2: 16/16  len5: 16/16  ✅
+  진실면          len1444800: 32/32  ✅
+  ⟹ 보증 = **블록당 16 종** (블록 간 독립성은 길이가 달라 측정 불가)
+
+### G-2/G-3  신규 희소32 (시드 32-39)  (data_s8_sparse_2026-08-10)
+  mesh_verdict ADEQUATE : 32/32  ✅
+  세 손잡이 ON (ra/rf/ds) : 32/32  ✅
+  lambda_min            : min 8.541 m  max 104.671 m
+
+### G-1c pooled 64 (레짐 대조가 가로지르는 집합)
+  진폭 A         len2: 16/16  len5: 16/16  len15: 16/16  len30: 16/16  ✅
+  omega        len2: 16/16  len5: 16/16  len15: 16/16  len30: 16/16  ✅
+  위상 phi       len2: 16/16  len5: 16/16  len15: 16/16  len30: 16/16  ✅
+  방향 theta     len2: 16/16  len5: 16/16  len15: 16/16  len30: 16/16  ✅
+  진실면          len1444800: 64/64  ✅
+
+### G-4 충돌 0 (기존 집합과 파일명 교집합)
+  기존 19 집합과 교집합: 0  ✅
+  시드 전부 24-31       : ⛔
+
+### G-5 코드 출처 (A14: 미커밋 변경 위에서 실행 중)
+  HEAD = ce256c7c7323
+  wavesplat/generate_dataset.py                |   3 +
+   wavesplat/wavesim/config.py                  |  16 +++
+   wavesplat/wavesim/data_writer.py             |  14 ++-
+   wavesplat/wavesim/pipeline.py                |  27 ++++-
+   wavesplat/wavesim/wave_generator.py          |  88 +++++++++++++++-
+   wavesplat/wavesplat/evaluation/metrics.py    |  89 ++++++++++++++++
+   wavesplat/wavesplat/optimizer/initializer.py |  25 +++++
+   wavesplat/wavesplat/run.py                   | 147 ++++++++++++++++++++++++++-
+   8 files changed, 401 insertions(+), 8 deletions(-)
+  ★ 미커밋 diff md5 = 62db3c1d7e3ecc9a68603162660501be
+  ⚠이 배치의 데이터와 추정기는 위 미커밋 변경 위에서 돈다. 런 종료 후 같은 md5 를 재확인하고, HEAD 대비 대표 셀 bit-identity 를 별도 측정한다(§5).
+
+### G-6 신규 게이트 결백 (S8_L1_PHASE1_ONLY / S8_L1_TRACK_ONLY)
+  G-6 신규 게이트 결백 검사 — S7 기록값 대비 재현 (게이트 2종 모두 OFF)
+    AUTO           혼잡  S7 0.11202832361838469
+                        지금 0.11202832361838469   ✅ 비트 동일
+    AUTO           희소  S7 0.01268197570849831
+                        지금 0.01268197570849831   ✅ 비트 동일
+    AUTO-L1-1e4    혼잡  S7 0.10209346888586879
+                        지금 0.10209346888586879   ✅ 비트 동일
+  
+  게이트 ON 시 동작 확인 (달라져야 정상)
+    S8_L1_PHASE1_ONLY      nRMSE 0.124957249  (기본 0.102093469, Δ=+2.286e-02)  ✅ 발화
+    S8_L1_TRACK_ONLY       nRMSE 0.094047453  (기본 0.102093469, Δ=-8.046e-03)  ✅ 발화
+  
+  G-6: PASS ✅
+
+======================================================================
+  신규 혼잡32 (시드 32-39): 가장 좁은 축 32종, 바닥 p = 4.66e-10
+  신규 희소32 (시드 32-39): 가장 좁은 축 32종, 바닥 p = 4.66e-10
+  ⚠보증 = **길이 블록당 16종**(블록 간 독립성은 길이가 달라 측정 불가) — S1 F8 승계
+  ⚠조건 단위 자유도 = 4 (BF×성분수), 조건 라벨 바닥 p = 0.125 — A8
+GATE: FAIL ⛔ — S8 을 돌리지 않는다

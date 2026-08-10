@@ -54,11 +54,13 @@ def g4_collisions():
         inter = new & {os.path.basename(p) for p in glob.glob(os.path.join(d, '*.h5'))}
         if inter:
             bad.append((os.path.basename(d), sorted(inter)[:3]))
-    seeds_ok = all(f'seed{s}_' in e for e in new for s in [int(e.split('seed')[1].split('_')[0])]
-                   if True) and all(
-        24 <= int(e.split('seed')[1].split('_')[0]) <= 31 for e in new)
+    # ⚠AMENDMENT 2: 이 검사는 S7 에서 상속될 때 시드 구간이 `24 <= s <= 31` 로 **굳어 있었다**.
+    # 상수를 다시 적지 않고 **이 배치의 `SEEDS` 에서 유도**한다 — 같은 방식으로 다시 낡을 수 없다.
+    got = {int(e.split('seed')[1].split('_')[0]) for e in new}
+    want = set(SEEDS)
+    seeds_ok = (got == want)
     print(f'  기존 {len(others)} 집합과 교집합: {"0  ✅" if not bad else f"⛔ {bad}"}')
-    print(f'  시드 전부 24-31       : {"✅" if seeds_ok else "⛔"}')
+    print(f'  시드 전부 {min(want)}-{max(want)} : {"✅" if seeds_ok else f"⛔ 실측 {sorted(got)}"}')
     return not bad and seeds_ok
 
 

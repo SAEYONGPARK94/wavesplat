@@ -634,6 +634,31 @@ def initialize_oracle(frames, n_gaussians: int, depth: float, seed: int = None):
     init_ky = torch.tensor(ky_list[:n_gaussians], dtype=torch.float32)
     init_w = torch.ones(n_gaussians) * 0.01
     init_phi = torch.rand(n_gaussians) * 2 * math.pi
+
+    # (S4 2026-08-08) AMPLITUDE/PHASE ORACLE.  Opt-in via S4_ORACLE_WPHI=1; with the gate
+    # off the two lines above stand and this function is byte-for-byte what it was.
+    #
+    # Why this exists: S3 measured that with oracle (kx, ky) AND the tracker off, the
+    # crowded field still decorrelates 48% from truth (decorr 0.4829 = 99.1% of the total
+    # error, shrink 0.0045).  Placement is exhausted and amplitude shrinkage is ~0, so the
+    # residual lives in phase -- but every "oracle" arm run so far still had to FIND (w, phi)
+    # itself, exactly as the docstring above says.  Seeding them from GT is the measurement
+    # that separates "we cannot search for phase" from "the representation cannot fit".
+    #
+    # The model is z = sum w*cos(kx*x + ky*y - omega*t + phi) (spectral_gaussian.py:6) and
+    # the GT is the same expression with the same sign convention, so A -> w and phi -> phi
+    # transfer directly.  Padding beyond N_gt keeps the control arm's law (0.01 / U(0,2pi)).
+    if os.environ.get('S4_ORACLE_WPHI') == '1':
+        A_all = comp[:, 0]
+        phi_all = comp[:, 4]
+        if n_gaussians <= n_gt:
+            w_src = A_all[order]
+            phi_src = phi_all[order]
+        else:
+            w_src = np.concatenate([A_all, init_w.numpy()[n_gt:]])
+            phi_src = np.concatenate([phi_all, init_phi.numpy()[n_gt:]])
+        init_w = torch.tensor(np.asarray(w_src[:n_gaussians]), dtype=torch.float32)
+        init_phi = torch.tensor(np.asarray(phi_src[:n_gaussians]), dtype=torch.float32)
     return init_kx, init_ky, init_w, init_phi
 
 

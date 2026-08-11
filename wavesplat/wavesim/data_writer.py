@@ -32,7 +32,10 @@ def save_episode(filepath: str,
                  spectrum_1d: np.ndarray,
                  mesh_info: dict = None,
                  direction_spread_deg: float = None,
-                 dirs_per_freq: int = None):
+                 dirs_per_freq: int = None,
+                 random_amplitudes: bool = None,
+                 decorrelate_stream: bool = None,
+                 random_frequencies: bool = None):
     """
     Save a full episode to HDF5.
 
@@ -80,6 +83,15 @@ def save_episode(filepath: str,
             cfg.attrs['direction_spread_deg'] = direction_spread_deg
         if dirs_per_freq is not None:
             cfg.attrs['dirs_per_freq'] = dirs_per_freq
+        # Independence provenance: an audit must be able to tell from the file
+        # alone whether this episode is an independent realisation of its sea
+        # state or shares its spectrum with every other episode of that config.
+        if random_amplitudes is not None:
+            cfg.attrs['random_amplitudes'] = bool(random_amplitudes)
+        if decorrelate_stream is not None:
+            cfg.attrs['decorrelate_stream'] = bool(decorrelate_stream)
+        if random_frequencies is not None:
+            cfg.attrs['random_frequencies'] = bool(random_frequencies)
         # Raycast-mesh adequacy, so an episode carries its own provenance and
         # an audit needs only to read the file (see wavesim/mesh_adequacy.py).
         for key, val in (mesh_info or {}).items():

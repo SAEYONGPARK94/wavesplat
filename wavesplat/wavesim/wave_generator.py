@@ -10,6 +10,8 @@ Physical basis:
   - Full dispersion: ω = √(g·k·tanh(k·d))  [no deep-water approximation]
 """
 
+import hashlib
+
 import numpy as np
 from dataclasses import dataclass, field
 from typing import List, Optional
@@ -138,7 +140,10 @@ def jonswap_components(Hs: float, Tp: float,
                         seed: Optional[int] = None,
                         Q_max: float = 0.8,
                         peak_locked: bool = False,
-                        dirs_per_freq: int = 1) -> List[WaveComponent]:
+                        dirs_per_freq: int = 1,
+                        random_amplitudes: bool = False,
+                        random_frequencies: bool = False,
+                        stream_tag: Optional[str] = None) -> List[WaveComponent]:
     """
     Generate wave components from JONSWAP spectrum (Hasselmann et al. 1973).
 
@@ -172,10 +177,62 @@ def jonswap_components(Hs: float, Tp: float,
             which is the only way to make the within-frequency term non-zero.
             dirs_per_freq=1 is bit-identical to the previous behaviour.
 
+        random_amplitudes: draw each bin's amplitude from the Rayleigh
+            distribution whose mean square is the deterministic 2*S*dOmega
+            (the "random-amplitude" scheme) instead of using that value
+            directly (the "deterministic-amplitude" scheme).
+
+            Default False reproduces every episode generated before
+            2026-08-07 bit-for-bit.  Why the option exists: with the default,
+            amplitudes and omegas are a pure function of (Hs, Tp,
+            n_components) with NO rng draw at all, so re-running with a new
+            seed re-draws only phases and directions.  The number of distinct
+            spectra a dataset can contain is therefore capped by its number of
+            configurations, no matter how many seeds are run -- measured on
+            data_finemesh_2026-07-23, the 16 "crowded" episodes hold exactly 4
+            distinct amplitude/omega vectors (tmp/audit_independence_2026-08-07/).
+            That caps the attainable p of any cluster-robust test.  Under
+            random_amplitudes each seed is an independent realisation of the
+            sea state, which is what the statistics assume.  Hs is still
+            normalised exactly, so the sea state is unchanged in the mean.
+
+        random_frequencies: place each bin's frequency uniformly INSIDE its bin
+            instead of at the bin centre (stratified / "random frequency"
+            sampling).  Default False reproduces every stored episode.
+
+            Why it exists: with the default, omega_centers is
+            linspace(0.5*omega_p, 3*omega_p, n_freq+1) midpoints -- a pure
+            function of (Tp, n_components) with no rng draw.  Because
+            |k| follows from omega through the dispersion relation, the RADIAL
+            wavenumber structure is then identical across every seed of a
+            configuration; only the directions vary.  Measured on the
+            random-amplitude rebuild of the 16 crowded cells, amplitude/phase/
+            direction/field were all 16 distinct while omega was still 4
+            (tmp/K6_run_2026-08-07/independence_gate.txt), which caps any
+            cluster-robust test at p=0.125 for a k-placement experiment.
+
+            Uses its own rng stream (tag 'freq'), so switching it on does NOT
+            shift the phase/direction/amplitude draws: each knob stays
+            independent of the others at a fixed seed.
+
+        stream_tag: mix this string into the rng seed.  Default None keeps the
+            legacy stream (seeded by `seed` alone).  Why it exists: the legacy
+            stream ignores sea_state and n_components entirely, so BF4 and BF5
+            at the same seed receive IDENTICAL phases and directions, and a
+            15-component episode receives an exact prefix of the 30-component
+            one.  Passing e.g. f'{sea_state}_{n_components}' decorrelates them.
+
     Returns:
         List of WaveComponent
     """
-    rng = np.random.default_rng(seed)
+    if stream_tag is None:
+        rng = np.random.default_rng(seed)
+    else:
+        # SeedSequence spawn_key mixing: stable across runs and platforms, and
+        # distinct tags give provably distinct streams.
+        digest = hashlib.sha256(str(stream_tag).encode()).digest()
+        entropy = int.from_bytes(digest[:8], 'little')
+        rng = np.random.default_rng(np.random.SeedSequence([seed or 0, entropy]))
 
     omega_p = 2 * np.pi / Tp  # peak angular frequency
 
@@ -202,6 +259,17 @@ def jonswap_components(Hs: float, Tp: float,
     omegas = np.linspace(omega_min, omega_max, n_freq + 1)
     omega_centers = 0.5 * (omegas[:-1] + omegas[1:])
     d_omega = np.diff(omegas)
+
+    if random_frequencies:
+        # One draw per bin, uniform inside the bin.  Bin edges and widths are
+        # untouched, so sum(S*dOmega) -- and therefore the energy budget -- is
+        # the same partition as before; only the evaluation point moves.
+        # Separate rng stream so this knob does not shift phases/directions.
+        fdigest = hashlib.sha256(f'freq|{stream_tag}'.encode()).digest()
+        frng = np.random.default_rng(
+            np.random.SeedSequence([seed or 0,
+                                    int.from_bytes(fdigest[:8], 'little')]))
+        omega_centers = omegas[:-1] + frng.uniform(0.0, 1.0, n_freq) * d_omega
 
     if peak_locked:
         # What a "1-component sea" is supposed to mean: the component sits at
@@ -264,6 +332,22 @@ def jonswap_components(Hs: float, Tp: float,
     dir_rad = np.deg2rad(direction_deg)
     spread_rad = np.deg2rad(direction_spread_deg)
     directions = rng.normal(dir_rad, spread_rad, n_components)
+
+    if random_amplitudes:
+        # Drawn AFTER phases and directions on purpose: at a fixed seed this
+        # leaves both of those bit-identical to the deterministic-amplitude
+        # run, so toggling this flag moves exactly one factor (the amplitude
+        # spectrum) and nothing else.
+        # Rayleigh(sigma) has E[X^2] = 2*sigma^2, so sigma = 1/sqrt(2) gives
+        # E[R^2] = 1 and the ensemble-mean energy per bin is unchanged.
+        amplitudes = amplitudes * rng.rayleigh(1.0 / np.sqrt(2.0), n_components)
+        # Re-normalise so this realisation still has exactly the target Hs;
+        # the sea state is held fixed and only the SHAPE of the spectrum is
+        # randomised.  (Without this, Hs itself would wander and the episode
+        # would no longer be the sea state it is labelled with.)
+        Hs_r = 4.0 * np.sqrt(np.sum(amplitudes ** 2 / 2.0))
+        if Hs_r > 0:
+            amplitudes = amplitudes * (Hs / Hs_r)
 
     # Build components
     components = []

@@ -56,7 +56,10 @@ def run_episode(sea_state: str = 'BF4',
                 strict_mesh: bool = False,
                 use_gpu_raycast: bool = False,
                 peak_locked: bool = False,
-                dirs_per_freq: int = 1) -> str:
+                dirs_per_freq: int = 1,
+                random_amplitudes: bool = False,
+                random_frequencies: bool = False,
+                decorrelate_stream: bool = False) -> str:
     """
     Run one WaveSim episode and save to HDF5.
 
@@ -80,7 +83,15 @@ def run_episode(sea_state: str = 'BF4',
                                      direction_deg=direction_deg,
                                      direction_spread_deg=direction_spread_deg,
                                      peak_locked=peak_locked,
-                                     dirs_per_freq=dirs_per_freq)
+                                     dirs_per_freq=dirs_per_freq,
+                                     random_amplitudes=random_amplitudes,
+                                     random_frequencies=random_frequencies,
+                                     # Legacy stream ignores sea_state and
+                                     # n_components, so BF4/BF5 at one seed get
+                                     # identical phases and 15comp is a prefix
+                                     # of 30comp.  Opt in to separate them.
+                                     stream_tag=(f'{sea_state}_{n_components}'
+                                                 if decorrelate_stream else None))
     satisfied, q_val = check_q_constraint(components)
     assert satisfied, f"Q constraint violated: {q_val:.3f}"
 
@@ -248,8 +259,14 @@ def run_episode(sea_state: str = 'BF4',
     # M>1 is a separate arm, never a replacement -- the tag keeps it from
     # colliding with a dirs_per_freq=1 episode of the same (state, N, seed).
     mtag = '' if dirs_per_freq == 1 else f"_m{dirs_per_freq}"
+    # Same rule for the independence knobs: a randomised-amplitude or
+    # decorrelated-stream episode is a different draw, never a drop-in
+    # replacement for the stored one of the same (state, N, seed).
+    rtag = '_ra' if random_amplitudes else ''
+    ftag = '_rf' if random_frequencies else ''
+    stag = '_ds' if decorrelate_stream else ''
     fname = (f"episode_{sea_state}_{n_components}comp_seed{seed}"
-             f"_{raydrop_model}{dtag}{ptag}{mtag}.h5")
+             f"_{raydrop_model}{dtag}{ptag}{mtag}{rtag}{ftag}{stag}.h5")
     filepath = os.path.join(output_dir, fname)
 
     save_episode(
@@ -260,7 +277,9 @@ def run_episode(sea_state: str = 'BF4',
                         if raydrop_model == 'fixedT' else {'n_pts': n_pts}),
         sea_state=sea_state, Hs=Hs, Tp=Tp, gamma=3.3,
         depth=depth, spectrum_1d=spectrum, mesh_info=mesh_info,
-        direction_spread_deg=direction_spread_deg, dirs_per_freq=dirs_per_freq
+        direction_spread_deg=direction_spread_deg, dirs_per_freq=dirs_per_freq,
+        random_amplitudes=random_amplitudes, decorrelate_stream=decorrelate_stream,
+        random_frequencies=random_frequencies
     )
 
     if verbose:

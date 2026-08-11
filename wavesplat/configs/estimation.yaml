@@ -9,7 +9,14 @@ model:
 # ── Optimizer ───────────────────────────────────────────────────────────────
 optimizer:
   lr: 0.01                    # base learning rate (kx/ky get 0.5×)
-  lambda_l1: 0.001            # L1 sparsity weight on amplitudes
+  lambda_l1: 0.0001           # L1 sparsity weight on amplitudes.
+                              # 1e-3 -> 1e-4 on 2026-08-11 (S9, prereg BOTH verdict):
+                              # sparse 50/64 -33.0% (p 7e-6), crowded 27/32 -9.9%; all 9
+                              # distance shells improved, 0 worsened; GT-free sensor
+                              # residual improved in both regimes. See
+                              # tmp/S9_lr_x_l1_2026-08-11/RESULT.md
+                              # NOTE: this constant is ALSO written in wavesplat/run.py
+                              # (DEFAULT_CONFIG and the yaml-loader fallback). Keep in sync.
   lambda_smooth: 0.0001       # spectral smoothness weight
   tracking_steps: 10          # gradient steps per tracking frame
   tracking_mode: w_phi         # 'phi_only', 'w_phi', or 'all'

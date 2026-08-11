@@ -245,5 +245,122 @@ def test_gerstner_tank_depth():
     assert np.all(nz > 0), "Surface normal must point upward"
 
 
+# ---------------------------------------------------------------------------
+# Independence knobs (2026-08-07).  These lock in the two properties that make
+# the knobs safe to add: the default path is unchanged, and each knob moves
+# exactly one factor.  See tmp/audit_independence_2026-08-07/ for the measured
+# defect that motivated them.
+# ---------------------------------------------------------------------------
+
+def test_independence_knobs_default_is_unchanged():
+    """Both knobs off must reproduce the legacy draw exactly, or every stored
+    episode silently stops being reproducible."""
+    base = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0)
+    same = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0,
+                              random_amplitudes=False, stream_tag=None)
+    for a, b in zip(base, same):
+        assert (a.A, a.omega, a.kx, a.ky, a.phi, a.Q) == \
+               (b.A, b.omega, b.kx, b.ky, b.phi, b.Q)
+
+
+def test_legacy_amplitudes_carry_no_randomness():
+    """Documents the defect: without random_amplitudes, the seed cannot change
+    the spectrum, so a dataset holds at most one spectrum per configuration."""
+    a = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0)
+    b = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=1)
+    assert np.allclose([c.A for c in a], [c.A for c in b])
+    assert np.allclose([c.omega for c in a], [c.omega for c in b])
+
+
+def test_random_amplitudes_varies_spectrum_and_preserves_Hs():
+    a = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0,
+                           random_amplitudes=True)
+    b = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=1,
+                           random_amplitudes=True)
+    assert not np.allclose([c.A for c in a], [c.A for c in b])
+    for comps in (a, b):
+        Hs = 4.0 * np.sqrt(sum(c.A ** 2 / 2.0 for c in comps))
+        assert abs(Hs - 1.2) < 1e-9, f"Hs drifted to {Hs}"
+
+
+def test_random_amplitudes_moves_only_amplitude():
+    """Single-knob discipline: at one seed, toggling the flag must leave the
+    phases and directions bit-identical."""
+    det = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0)
+    rnd = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0,
+                             random_amplitudes=True)
+    assert np.allclose([c.phi for c in det], [c.phi for c in rnd])
+    assert np.allclose([np.arctan2(c.ky, c.kx) for c in det],
+                       [np.arctan2(c.ky, c.kx) for c in rnd])
+    assert not np.allclose([c.A for c in det], [c.A for c in rnd])
+
+
+def test_legacy_stream_is_shared_across_sea_states_and_nested_in_n():
+    """Documents the second defect: the legacy rng ignores sea_state and
+    n_components entirely."""
+    bf4 = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0)
+    bf5 = jonswap_components(2.0, 9.0, n_components=15, depth=50.0, seed=0)
+    assert np.allclose([c.phi for c in bf4], [c.phi for c in bf5])
+    n30 = jonswap_components(1.2, 7.0, n_components=30, depth=50.0, seed=0)
+    assert np.allclose([c.phi for c in bf4], [c.phi for c in n30][:15])
+
+
+def test_stream_tag_decorrelates():
+    bf4 = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0,
+                             stream_tag='BF4_15')
+    bf5 = jonswap_components(2.0, 9.0, n_components=15, depth=50.0, seed=0,
+                             stream_tag='BF5_15')
+    assert not np.allclose([c.phi for c in bf4], [c.phi for c in bf5])
+    n30 = jonswap_components(1.2, 7.0, n_components=30, depth=50.0, seed=0,
+                             stream_tag='BF4_30')
+    assert not np.allclose([c.phi for c in bf4], [c.phi for c in n30][:15])
+    # and it must still be deterministic
+    again = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0,
+                               stream_tag='BF4_15')
+    assert np.allclose([c.phi for c in bf4], [c.phi for c in again])
+
+
+def test_legacy_frequencies_carry_no_randomness():
+    """Documents the third defect: omega sits at the bin centre, a pure function
+    of (Tp, n_components).  |k| follows from omega, so the radial wavenumber
+    structure repeats across every seed of a configuration."""
+    a = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0)
+    b = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=1)
+    assert np.allclose([c.omega for c in a], [c.omega for c in b])
+
+
+def test_random_frequencies_varies_omega_within_band():
+    a = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0,
+                           random_frequencies=True)
+    b = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=1,
+                           random_frequencies=True)
+    assert not np.allclose([c.omega for c in a], [c.omega for c in b])
+    omega_p = 2 * np.pi / 7.0
+    for comps in (a, b):
+        for c in comps:
+            assert 0.5 * omega_p <= c.omega <= 3.0 * omega_p
+        Hs = 4.0 * np.sqrt(sum(x.A ** 2 / 2.0 for x in comps))
+        assert abs(Hs - 1.2) < 1e-9
+
+
+def test_random_frequencies_uses_its_own_stream():
+    """Single-knob discipline: toggling it must not shift phases or directions."""
+    det = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0)
+    rf = jonswap_components(1.2, 7.0, n_components=15, depth=50.0, seed=0,
+                            random_frequencies=True)
+    assert np.allclose([c.phi for c in det], [c.phi for c in rf])
+    assert not np.allclose([c.omega for c in det], [c.omega for c in rf])
+
+
+def test_all_three_knobs_off_is_still_bit_identical():
+    base = jonswap_components(1.2, 7.0, n_components=30, depth=50.0, seed=2)
+    same = jonswap_components(1.2, 7.0, n_components=30, depth=50.0, seed=2,
+                              random_amplitudes=False, random_frequencies=False,
+                              stream_tag=None)
+    for a, b in zip(base, same):
+        assert (a.A, a.omega, a.kx, a.ky, a.phi, a.Q) == \
+               (b.A, b.omega, b.kx, b.ky, b.phi, b.Q)
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

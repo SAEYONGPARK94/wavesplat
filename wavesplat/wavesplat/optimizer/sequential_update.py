@@ -457,10 +457,18 @@ class SequentialUpdater:
                     # stays bypassed on real input (the learned arm's n_selected is >= 8
                     # on every measured window and it has no demonstrated real-sea
                     # benefit); what changed is the fallback: the single v2_konly run was
-                    # measured ~2x worse than the research bank-MMSE on the frozen real
-                    # windows (nowcast nRMSE 0.858/0.927/1.048 vs 0.498/0.666/0.718,
-                    # tmp/bankmmse_port_2026-07-29/m3_field.json), so the gate now routes
-                    # to the ported estimator under an observation-only parametrization.
+                    # measured WORSE than the research bank-MMSE on the frozen real
+                    # windows (nowcast nRMSE 0.858/0.927/1.048 vs 0.498/0.666/0.718), so
+                    # the gate now routes to the ported estimator under an
+                    # observation-only parametrization.
+                    #   CORRECTION 2026-08-11 (P1 watchdog, re-derived from raw):
+                    #   this comment used to say "~2x worse" and cite m3_field.json for
+                    #   BOTH arms.  Both were wrong.  (a) The ratios are 1.723/1.392/1.460
+                    #   -- median 1.46x, and NO window reaches 2x.  (b) The two arms live
+                    #   in DIFFERENT files: bank = tmp/bankmmse_port_2026-07-29/
+                    #   m3_field.json, v2_konly = tmp/confirm2_2026-07-27/real_gif_info.json.
+                    #   The routing decision itself stands (bank wins all 3 windows); only
+                    #   the stated magnitude was inflated.  Do not cite "2x".
                     msg = ("real (ground-truth-free) input detected: the learned/router "
                            "path is not authorised here; routing to the ported bank-MMSE "
                            "estimator (observation-only parameters, median-of-k field). "

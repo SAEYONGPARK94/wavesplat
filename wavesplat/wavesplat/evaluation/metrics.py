@@ -133,6 +133,90 @@ def rmse_unobserved(pred: np.ndarray, gt: np.ndarray,
     return rmse(pred[unobs_mask], gt[unobs_mask])
 
 
+def rmse_shell(pred: np.ndarray, gt: np.ndarray,
+               grid_x: np.ndarray, grid_y: np.ndarray,
+               obs_x: np.ndarray, obs_y: np.ndarray,
+               r_in: float, r_out: float) -> float:
+    """RMSE on the annulus r_in <= d < r_out from the nearest observation.
+
+    Why this exists (2026-08-07, E-C audit): `rmse_observed`/`rmse_unobserved` are
+    DISK metrics, i.e. area-weighted mixtures of all shells inside/outside r.  A disk
+    crossing is therefore pushed outward by geometry alone and cannot locate where the
+    tracker actually stops helping -- the E-C "75 m crossover" was a mask-area balance
+    point (44.5% of the grid), not a physical radius.  Shells are additive and local,
+    so the sign flip can be measured instead of reconstructed.  r_out = inf is allowed.
+    """
+    Xg, Yg = np.meshgrid(grid_x, grid_y)
+    if len(obs_x) == 0:
+        return float('nan')
+
+    min_dists = np.full(Xg.shape, np.inf)
+    for j in range(len(obs_x)):
+        d = np.sqrt((Xg - obs_x[j]) ** 2 + (Yg - obs_y[j]) ** 2)
+        min_dists = np.minimum(min_dists, d)
+
+    mask = (min_dists >= r_in) & (min_dists < r_out)
+    if not np.any(mask):
+        return float('nan')
+    return rmse(pred[mask], gt[mask])
+
+
+def shell_fraction(grid_x: np.ndarray, grid_y: np.ndarray,
+                   obs_x: np.ndarray, obs_y: np.ndarray,
+                   r_in: float, r_out: float) -> float:
+    """Grid-area fraction of that annulus.  E-C's prereg required coverage to be
+    co-reported and the scorer never emitted it; storing it per frame removes the
+    possibility of quoting a radius without its area."""
+    Xg, Yg = np.meshgrid(grid_x, grid_y)
+    if len(obs_x) == 0:
+        return float('nan')
+    min_dists = np.full(Xg.shape, np.inf)
+    for j in range(len(obs_x)):
+        d = np.sqrt((Xg - obs_x[j]) ** 2 + (Yg - obs_y[j]) ** 2)
+        min_dists = np.minimum(min_dists, d)
+    return float(np.mean((min_dists >= r_in) & (min_dists < r_out)))
+
+
+def rmse_observed(pred: np.ndarray, gt: np.ndarray,
+                  grid_x: np.ndarray, grid_y: np.ndarray,
+                  obs_x: np.ndarray, obs_y: np.ndarray,
+                  min_dist: float = 10.0) -> float:
+    """
+    RMSE only at grid points NEAR an observation -- the exact complement of
+    rmse_unobserved under the same min_dist, so the two partition the grid.
+
+    Why this exists (2026-08-07): Rx-6 measured that switching the tracker off
+    improves the UNOBSERVED field by 2.12x more than it improves overall nRMSE
+    (-0.0400, 26/31, p=1.9e-04).  That is consistent with two different stories
+    and they have opposite prescriptions:
+      * tracking helps where it can see and hurts where it cannot
+        => overfitting/extrapolation failure, fix with regularisation
+      * tracking hurts everywhere
+        => the tracking objective itself is misspecified
+    Distinguishing them needs the observed-region error, which was never
+    recorded.  This is that missing half.  Additive: no existing metric changes.
+    """
+    Xg, Yg = np.meshgrid(grid_x, grid_y)
+
+    if len(obs_x) == 0:
+        return float('nan')
+
+    min_dists = np.full(Xg.shape, np.inf)
+    batch = 1000
+    for i in range(0, len(obs_x), batch):
+        ox = obs_x[i:i + batch]
+        oy = obs_y[i:i + batch]
+        for j in range(len(ox)):
+            d = np.sqrt((Xg - ox[j]) ** 2 + (Yg - oy[j]) ** 2)
+            min_dists = np.minimum(min_dists, d)
+
+    obs_mask = min_dists < min_dist
+    if not np.any(obs_mask):
+        return float('nan')
+
+    return rmse(pred[obs_mask], gt[obs_mask])
+
+
 def directional_r2(pred_field: np.ndarray, gt_field: np.ndarray) -> float:
     """
     Directional R² from 2D wavenumber spectra.
@@ -325,6 +409,11 @@ def compute_all_metrics(pred_field: np.ndarray,
 
     if obs_x is not None and obs_y is not None:
         metrics['RMSE_unobserved'] = rmse_unobserved(
+            pred_field, gt_field, grid_x, grid_y, obs_x, obs_y
+        )
+        # Complement of the line above under the same min_dist; together they
+        # partition the grid.  See rmse_observed for why this is needed.
+        metrics['RMSE_observed'] = rmse_observed(
             pred_field, gt_field, grid_x, grid_y, obs_x, obs_y
         )
 

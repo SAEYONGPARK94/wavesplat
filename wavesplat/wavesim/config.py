@@ -89,6 +89,22 @@ class ScenarioCfg:
     # 6,263/6,263 cases, median 29.5 deg.  M>1 is an additive research arm,
     # never a replacement (tmp/s4_within_spread_2026-08-05/PREREG.md).
     dirs_per_freq: int = 1
+    # --- independence knobs (2026-08-07) ------------------------------------
+    # Measured defect they address (tmp/audit_independence_2026-08-07/):
+    # with both False, amplitudes and omegas carry NO rng draw, so every
+    # episode of one configuration shares one spectrum however many seeds are
+    # run, and the phase/direction stream ignores sea_state and n_components,
+    # so BF4/BF5 at one seed get identical draws and 15comp is an exact prefix
+    # of 30comp.  The 16 "crowded" episodes of data_finemesh_2026-07-23 hold
+    # 4 distinct amplitude vectors and 8 distinct phase vectors, which caps
+    # the p any cluster-robust test on that set can reach.
+    # Both default False = every stored episode reproduces bit-for-bit.
+    random_amplitudes: bool = False
+    decorrelate_stream: bool = False
+    # omega sits at the bin centre by default -- a pure function of (Tp,
+    # n_components) with no rng draw -- and |k| follows from omega, so the
+    # radial wavenumber structure repeats across every seed of a config.
+    random_frequencies: bool = False
 
 
 @dataclass

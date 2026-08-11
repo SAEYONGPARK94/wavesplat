@@ -15,7 +15,8 @@ import numpy as np
 import torch
 
 from wavesplat.data_loader import EpisodeDataLoader
-from wavesplat.optimizer.sequential_update import SequentialUpdater, make_updater
+from wavesplat.optimizer.sequential_update import (SequentialUpdater, make_updater,
+                                                   LAMBDA_L1_DEFAULT)
 from wavesplat.evaluation.metrics import rmse_observed, rmse_unobserved, compute_all_metrics, rmse, nrmse
 
 
@@ -24,8 +25,9 @@ DEFAULT_CONFIG = {
     'depth': 50.0,
     'lr': 0.01,
     # 1e-3 -> 1e-4 on 2026-08-11 (S9 prereg confirmation, verdict BOTH).
-    # ALSO written in configs/estimation.yaml and in the yaml-loader fallback below.
-    'lambda_l1': 0.0001,
+    # Imported from the optimizer so the value has ONE definition (see
+    # sequential_update.LAMBDA_L1_DEFAULT).  configs/estimation.yaml mirrors it.
+    'lambda_l1': LAMBDA_L1_DEFAULT,
     'lambda_smooth': 0.0001,
     'tracking_steps': 10,
     'tracking_mode': 'w_phi',

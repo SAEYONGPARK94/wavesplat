@@ -26,6 +26,19 @@ from wavesplat.optimizer.initializer import initialize_from_frames
 from wavesplat.optimizer.coarse_to_fine import CoarseToFineSchedule
 from wavesplat.data_loader import FrameData
 
+# ── Shipping default for the L1 sparsity weight — SINGLE SOURCE ──────────────────
+# 1e-3 -> 1e-4 on 2026-08-11 (S9, prereg verdict BOTH: sparse 50/64 -33.0% p=7e-06,
+# crowded 27/32 -9.9%; all 9 shells improved, GT-free residual improved in both regimes).
+#
+# Why this constant lives HERE and not in run.py: it was previously written in THREE
+# places -- configs/estimation.yaml, run.py DEFAULT_CONFIG, and this `.get()` fallback.
+# The S9 deploy updated the first two and left this one at 1e-3, so an estimator built
+# without an explicit key silently disagreed with the shipping default.  run.py now
+# imports this name, so there is one definition and the yaml simply mirrors it.
+# (The same class of defect -- a constant written twice and going stale -- has now cost
+# this project three separate incidents; see tmp/S9_lr_x_l1_2026-08-11/PREREG.md §7.)
+LAMBDA_L1_DEFAULT = 1e-4
+
 
 # `_adaptive_prune_grow` historically compares an ABSOLUTE residual RMS in metres against
 # `grow_residual_threshold` (0.05 m) with no normalisation by sea state. This is the same
@@ -157,7 +170,7 @@ class SequentialUpdater:
         self.config = config
         self.depth = config.get('depth', 50.0)
         self.lr = config.get('lr', 0.01)
-        self.lambda_l1 = config.get('lambda_l1', 0.001)
+        self.lambda_l1 = config.get('lambda_l1', LAMBDA_L1_DEFAULT)
         self.lambda_smooth = config.get('lambda_smooth', 0.0001)
         self.tracking_steps = config.get('tracking_steps', 10)
         self.device = config.get('device', 'cpu')

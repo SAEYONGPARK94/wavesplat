@@ -69,18 +69,31 @@ L1_SHIP = 1e-3                                     # 출하 기본값 (estimatio
 L1_TREAT = 1e-4                                    # ★PRIMARY 처치
 QTR = TRACK_LR * 0.25
 
+# ★재현성 수리 2026-08-11 (E1 3에이전트 감사가 잡음).
+# 이 배치가 돌 때 λ 를 명시하지 않은 셀들은 `sequential_update` 폴백에서 **1e-3** 을 받았고,
+# 당시 출하 기본값이 1e-3 이라 **우연히 옳았다**. 배포(2026-08-11) 후 그 폴백은
+# `LAMBDA_L1_DEFAULT`(=1e-4) 이므로, 명시하지 않으면 재실행 시 **기준선 계열이 전부 처치값이
+# 되어 짝 Δ 가 0 이 된다**(=효과의 조용한 소멸). ⚠`AUTO-DUP` 누출 프로브는 '같음'만 보므로
+# 이 실패를 **잡지 못한다**. ⟹ **전 셀에 λ 를 명시**한다. 측정된 대조는 그대로 보존된다.
 NEW_CELLS = {
     'AUTO-L1':       {'lambda_l1': L1_TREAT},                          # ★PRIMARY 처치
     'AUTO-QTR-L1':   {'tracking_lr': QTR, 'lambda_l1': L1_TREAT},      # lr 축 폐쇄
-    'AUTO-QTR':      {'tracking_lr': QTR},                             # lr 성분 단독
-    'AUTO-NT':       {'tracking_lr': 0.0},                             # 사다리 끝 + 양성 대조
-    'AUTO-SEED-NULL': {},                                              # ★무처치 널 (시드만 다름)
-    'AUTO-DUP':      {},                                               # AUTO 의 바이트 복제
+    'AUTO-QTR':      {'tracking_lr': QTR, 'lambda_l1': L1_SHIP},       # lr 성분 단독
+    'AUTO-NT':       {'tracking_lr': 0.0, 'lambda_l1': L1_SHIP},       # 사다리 끝 + 양성 대조
+    'AUTO-SEED-NULL': {'lambda_l1': L1_SHIP},                          # ★무처치 널 (시드만 다름)
+    'AUTO-DUP':      {'lambda_l1': L1_SHIP},                           # AUTO 의 바이트 복제
 }
 for _name, _extra in NEW_CELLS.items():
     R.CELLS.setdefault(_name, dict(cfg=dict(R.CELLS['AUTO']['cfg'])))
     S5.S4.EXTRA[_name] = _extra
-R.CELLS.setdefault('AUTO', dict(cfg=dict(R.CELLS['AUTO']['cfg'])))     # 출하 기본값, EXTRA 없음
+R.CELLS.setdefault('AUTO', dict(cfg=dict(R.CELLS['AUTO']['cfg'])))
+# ★재현성 수리 2026-08-11 (E1 감사가 잡음). 이 배치가 돌 때 `AUTO` 는 `lambda_l1` 키를 **갖지
+# 않았고** `sequential_update.py` 의 폴백에서 1e-3 을 받았다 — 당시 출하 기본값이 1e-3 이라
+# **우연히 옳았다**. 배포(2026-08-11) 후 그 폴백은 `LAMBDA_L1_DEFAULT`(=1e-4)를 가리키므로,
+# 명시하지 않으면 재실행 시 `AUTO` 와 `AUTO-L1` 이 **같은 셀이 되어 효과가 조용히 0 이 된다**
+# (⚠`AUTO-DUP` 누출 프로브는 '같음'만 보므로 이 실패를 잡지 못한다).
+# ⟹ 기준선을 **명시**한다. 측정된 대조(1e-3 대 1e-4)와 보고된 결과는 그대로 보존된다.
+S5.S4.EXTRA['AUTO'] = {'lambda_l1': L1_SHIP}
 
 CELLS = ['AUTO', 'AUTO-L1', 'AUTO-QTR-L1', 'AUTO-QTR', 'AUTO-NT', 'AUTO-SEED-NULL', 'AUTO-DUP']
 

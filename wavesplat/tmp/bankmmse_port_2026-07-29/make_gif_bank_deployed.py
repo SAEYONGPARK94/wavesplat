@@ -43,10 +43,28 @@ plt.rcParams.update({'figure.facecolor': SURF, 'axes.facecolor': SURF,
 
 
 # ---------------------------------------------------------------- data + estimate
-def frames_from_scene(sc, t_shift):
-    """Format adapter only (verbatim from tmp/blind_auto_real_2026-07-26/run_blind_auto.py
+def frames_from_scene(sc, t_shift, dtype=torch.float32):
+    """Format adapter (verbatim from tmp/blind_auto_real_2026-07-26/run_blind_auto.py
     plus a constant time offset, so absolute record time never enters the optimiser).
-    No value altered, nothing filtered, no mean removed."""
+    No value altered, nothing filtered, no mean removed.
+
+    ★2026-08-11 CORRECTION to this docstring: the adapter DOES change one thing --
+    grouping by np.unique(P[:,2]) re-orders the observations into time-major order.
+    That matters, because the bank route is a function of the input ORDER, not only
+    of the observation set: fit_bank_mmse draws its validation split by ARRAY
+    POSITION (bank_mmse.py:140 `rng.choice(n, ...)`) and _bank_fit_window's cap
+    likewise selects POSITIONS.  Measured on a synthetic window, permuting the same
+    observation set moves the shipped predict_field by up to 2.5e-02 m
+    (tmp/P1_real_path_2026-08-11/probe_order_risk.py) -- the cap does NOT make it
+    order-invariant, it only makes it deterministic for a given input array.
+    The re-order here is unavoidable (FrameData is per-timestamp) and harmless
+    ONLY because scene_real assembles its raw stream in the same time-major order,
+    so both sides subsample the identically-ordered stream.  See estimate() below.
+
+    dtype: FrameData storage dtype.  float32 is the package's real-data convention
+    (wavesplat/real_data.py:305); float64 is offered only so the reconciliation
+    probe can show that the residual ~4e-08 between this path and the research call
+    is observation quantisation and nothing else."""
     from wavesplat.data_loader import FrameData
     P = np.asarray(sc['P'], float); z = np.asarray(sc['z'], float)
     out = []
@@ -54,9 +72,9 @@ def frames_from_scene(sc, t_shift):
         m = P[:, 2] == tt
         n = int(m.sum())
         out.append(FrameData(t=float(tt - t_shift),
-                             x_obs=torch.tensor(P[m, 0], dtype=torch.float32),
-                             y_obs=torch.tensor(P[m, 1], dtype=torch.float32),
-                             z_obs=torch.tensor(z[m], dtype=torch.float32),
+                             x_obs=torch.tensor(P[m, 0], dtype=dtype),
+                             y_obs=torch.tensor(P[m, 1], dtype=dtype),
+                             z_obs=torch.tensor(z[m], dtype=dtype),
                              confidence=torch.ones(n, dtype=torch.float32),
                              incidence_angles=torch.zeros(n, dtype=torch.float32)))
     return out
@@ -79,12 +97,45 @@ def dense_gt(record, win):
                 gx=rec.gx[::sq], gy=rec.gy[::sq], lead_max=float(cfg['lead_max']))
 
 
-def estimate(sc, seed=42):
+def scene_uncapped(record, win):
+    """The same frozen scene with scene_real's 600-obs cap NOT applied.
+
+    Deterministic and identical to scene_real(record, win) in every field except
+    P/z: the sampling rng (default_rng(700+win)) is fully consumed BEFORE the cap,
+    and the cap itself uses a fresh default_rng(0) (d3_compare_gifs.py:199-201).
+    So scene_real's P is exactly default_rng(0).choice(n_full, 600)[of this P]."""
+    import d3_compare_gifs as cg
+    return cg.scene_real(record, win=win, m_cap=10 ** 9)
+
+
+def estimate(sc, seed=42, sc_obs=None, dtype=torch.float32):
+    """Deployed path: shipped DEFAULT_CONFIG -> make_updater -> real-domain gate.
+
+    ★2026-08-11 FIX (sc_obs).  Feeding this the frozen scene's *already capped*
+    600 observations double-applies the protocol subsample and silently changed
+    the forecast: scene_real caps a time-ordered 5760-point stream with
+    default_rng(0).choice(5760, 600) and keeps the SHUFFLED result, while
+    frames_from_scene re-sorts those 600 back into time-major order and the
+    package's own cap (sequential_update._bank_fit_window, `if len(z) > cap`)
+    then no-ops at exactly 600.  Because fit_bank_mmse picks its validation split
+    positionally, the two orders select different physical points (measured
+    overlap 38/150 = chance) and hence different (pexp, smult) and a different
+    prior -- AA15a w5 lead-14 nRMSE 0.7049 (research) vs 0.9043 (this harness).
+
+    The package is the side that is right here, by its own stated contract:
+    _bank_fit_window caps "with the SAME deterministic subsample the frozen
+    research harness used (scene_real m_cap=600, default_rng(0))".  It can only
+    honour that if it is handed the UNCAPPED window.  So pass sc_obs =
+    scene_uncapped(record, win) and let the deployed estimator do its own cap;
+    measured result is then bit-identical to the research call (max|delta| 0.0,
+    see tmp/P1_real_path_2026-08-11/RECONCILE.md).  sc keeps supplying the
+    grid/GT/Pq, so the research arms are untouched."""
     from wavesplat.optimizer.sequential_update import make_updater
     from wavesplat.run import DEFAULT_CONFIG, set_seed
-    t_shift = float(np.asarray(sc['P'])[:, 2].min())
+    sc_obs = sc if sc_obs is None else sc_obs
+    t_shift = float(np.asarray(sc_obs['P'])[:, 2].min())
     t0 = float(sc['Pq'][0, 2]) - t_shift
-    frames = frames_from_scene(sc, t_shift)
+    frames = frames_from_scene(sc_obs, t_shift, dtype=dtype)
     cfg = dict(DEFAULT_CONFIG)
     cfg.update(depth=float(sc['depth']), seed=seed, device='cpu')
     set_seed(seed)
@@ -306,7 +357,12 @@ def main():
                    'sigma0 = 0.05·Hs, kp_hint, seed = i0).  No new observation after '
                    't = 0: all later frames are pure forecast.')
     else:
-        upd, t0, init_s, cfg = estimate(sc, a.seed)
+        # ★2026-08-11: hand the deployed estimator the UNCAPPED window so its own
+        # deterministic rng(0) 600-cap fires (see estimate.__doc__). Without this
+        # the protocol subsample is applied twice and the forecast diverges from
+        # the research call it is supposed to reproduce.
+        upd, t0, init_s, cfg = estimate(sc, a.seed,
+                                        sc_obs=scene_uncapped(a.record, a.win))
         prim = upd._primary
         assert prim.init_method == 'bank_mmse' and prim._auto_real_gate, (
             'expected the post-port gate route')

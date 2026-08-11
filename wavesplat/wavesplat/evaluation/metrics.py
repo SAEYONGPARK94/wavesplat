@@ -30,8 +30,34 @@ def rmse(pred: np.ndarray, gt: np.ndarray) -> float:
 
 
 def nrmse(pred: np.ndarray, gt: np.ndarray, Hs: float) -> float:
-    """Normalized RMSE: RMSE / Hs."""
+    """Normalized RMSE: RMSE / **Hs**.
+
+    ⚠CROSS-DOMAIN TRAP (2026-08-11, P1 audit -- cost two wrong reports to the user).
+    The synthetic harnesses normalise by **Hs** (this function).  The real-sea harnesses
+    normalise by **sigma** -- the dense-GT standard deviation -- e.g.
+    `tmp/bankmmse_port_2026-07-29/measure_blind_vs_frozen.py:score()`.
+    For a sea surface Hs = 4*sigma, and the measured ratio across all five real records
+    is **3.99-4.06**.  So a real-sea nRMSE is ~4x larger than a synthetic one for the
+    SAME physical error, purely from the denominator.
+
+    Putting the two side by side without converting produced the claim "real is an order
+    of magnitude worse than synthetic".  That was false: converted to Hs units, real-sea
+    nowcast is 0.171 vs synthetic crowded 0.178 -- a ratio of **0.96**.
+
+    ⟹ NEVER compare a synthetic nRMSE against a real-sea nRMSE directly.
+      Convert first with `sigma_units_to_hs_units()` below, and say which unit you mean.
+    """
     return rmse(pred, gt) / max(Hs, 1e-6)
+
+
+def sigma_units_to_hs_units(nrmse_sigma: float, Hs_over_sigma: float = 4.0) -> float:
+    """Convert a sigma-normalised nRMSE (real-sea convention) to Hs units (synthetic).
+
+    Pass the *measured* `Hs_over_sigma` for the record when you have it; the 4.0 default
+    is the theoretical value and matched measurement to within 1.5% on all five
+    Bergamasco records (3.994 / 3.999 / 4.002 / 4.005 / 4.059).
+    """
+    return nrmse_sigma / max(Hs_over_sigma, 1e-6)
 
 
 def hs_error(pred_field: np.ndarray, Hs_true: float) -> float:

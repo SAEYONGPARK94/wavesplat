@@ -1,0 +1,54 @@
+==============================================================================
+W3_SOLVER gates  (PREREG FROZEN_md5.txt + AMENDMENT_1)
+==============================================================================
+G-1  sample      : planned=1200 present=48 missing=1152 -> FAIL
+     first missing: ['KONLY-FITPHI|BF4_15comp_seed20_uniform_ra_rf_ds|1592', 'KONLY-FITPHI|BF4_15comp_seed20_uniform_ra_rf_ds|1593', 'KONLY-FITPHI|BF4_15comp_seed20_uniform_ra_rf_ds|1594', 'KONLY-FITPHI|BF4_15comp_seed21_uniform_ra_rf_ds|1592', 'KONLY-FITPHI|BF4_15comp_seed21_uniform_ra_rf_ds|1593', 'KONLY-FITPHI|BF4_15comp_seed21_uniform_ra_rf_ds|1594']
+G-2  DCC schema  : violations=0 -> PASS
+G-3  lambda      : mismatches=0 ensemble_disagree=0 -> PASS
+G-4  FITPHI      : OFF-arms-clean=True ; ON arms below 50% intervention: [('SHIP-FITPHI', 'crowded')]
+     KONLY          crowded  intervened  0/ 3  mean_atoms 0.0
+     KONLY          sparse   intervened  0/ 3  mean_atoms 0.0
+     KONLY-FITPHI   crowded  intervened  3/ 3  mean_atoms 13.3
+     KONLY-FITPHI   sparse   intervened  3/ 3  mean_atoms 12.0
+     ORA-K-NOREG    crowded  intervened  0/ 3  mean_atoms 0.0
+     ORA-K-NOREG    sparse   intervened  0/ 3  mean_atoms 0.0
+     ORA-K@L3       crowded  intervened  0/ 3  mean_atoms 0.0
+     ORA-K@L3       sparse   intervened  0/ 3  mean_atoms 0.0
+     ORA-K@L3-DUP   crowded  intervened  0/ 3  mean_atoms 0.0
+     ORA-K@L4       crowded  intervened  0/ 3  mean_atoms 0.0
+     ORA-K@L4       sparse   intervened  0/ 3  mean_atoms 0.0
+     SHIP           crowded  intervened  0/ 3  mean_atoms 0.0
+     SHIP           sparse   intervened  0/ 3  mean_atoms 0.0
+     SHIP-FITPHI    crowded  intervened  0/ 3  mean_atoms 0.0
+     SHIP-FITPHI    sparse   intervened  1/ 2  mean_atoms 18.0
+G-5  leak probe  : pairs=3 max|delta|=0.000e+00 -> PASS
+G-6  seed spread :
+     ORA-K@L3       max_spread=8.797e-03 median_spread=4.400e-03 
+     ORA-K-NOREG    max_spread=2.389e-02 median_spread=1.194e-02 
+     ORA-K@L4       max_spread=2.353e-02 median_spread=1.177e-02 
+     ORA-K@L3-DUP   max_spread=8.797e-03 median_spread=8.797e-03 
+     SHIP           max_spread=2.924e-02 median_spread=1.862e-02 
+     SHIP-FITPHI    max_spread=2.924e-02 median_spread=1.513e-02 
+     KONLY          max_spread=5.932e-02 median_spread=3.790e-02 
+     KONLY-FITPHI   max_spread=1.887e-02 median_spread=1.042e-02 
+G-7  fingerprint : distinct code_md5=1 -> PASS
+G-8  ZERO stable : episodes=2 all-single-valued=True -> PASS
+G-9  seed ledger : consumed=[1592, 1593, 1594] expected=[1592, 1593, 1594] -> PASS
+G-10 errors      : transient error rows=1 ({'AcceleratorError': 1}) unrecovered=1152 nondeterministic_retries=0 -> FAIL
+G-11 CVX self    : rows=2 rank_deficient=0 worse_than_truth=0 (report-only)
+------------------------------------------------------------------------------
+GATES FAIL
+
+--- smoke sign tests (NOT a verdict; n=1 per stratum) ---
+P-1  ORA-K-NOREG    < ORA-K@L3       [crowded] 1/1  A -0.10816  B -42.69%
+P-1  ORA-K-NOREG    < ORA-K@L3       [sparse ] 1/1  A -0.00080  B -25.34%
+S-1  ORA-K-NOREG    < ORA-K@L4       [crowded] 1/1  A -0.02778  B -16.06%
+S-1  ORA-K-NOREG    < ORA-K@L4       [sparse ] 1/1  A -0.00007  B -2.84%
+S-2  ORA-K-NOREG    < SHIP           [crowded] 1/1  A -0.09269  B -38.96%
+S-2  ORA-K-NOREG    < SHIP           [sparse ] 1/1  A -0.00271  B -53.50%
+S-3  SHIP-FITPHI    < SHIP           [crowded] 0/1  A +0.00000  B +0.00%
+S-3  SHIP-FITPHI    < SHIP           [sparse ] 1/1  A -0.00051  B -10.10%
+S-4  KONLY-FITPHI   < KONLY          [crowded] 0/1  A +0.00479  B +1.81%
+S-4  KONLY-FITPHI   < KONLY          [sparse ] 1/1  A -0.00330  B -46.29%
+crowded ZERO condition: {'ORA-K-CVX': (1, 1, True), 'ORA-K@L3': (0, 1, False), 'ORA-K-NOREG': (1, 1, True), 'ORA-K@L4': (1, 1, True), 'ORA-K@L3-DUP': (0, 1, False), 'SHIP': (1, 1, True), 'SHIP-FITPHI': (1, 1, True), 'KONLY': (0, 1, False), 'KONLY-FITPHI': (0, 1, False)}
+sparse ZERO condition: {'ORA-K-CVX': (1, 1, True), 'ORA-K@L3': (1, 1, True), 'ORA-K-NOREG': (1, 1, True), 'ORA-K@L4': (1, 1, True), 'SHIP': (1, 1, True), 'SHIP-FITPHI': (1, 1, True), 'KONLY': (1, 1, True), 'KONLY-FITPHI': (1, 1, True)}

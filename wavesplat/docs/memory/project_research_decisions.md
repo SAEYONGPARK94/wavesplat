@@ -3,6 +3,8 @@ name: WaveSplat core research decisions (revised)
 description: 핵심 연구 결정 — Contributions 통일, 시뮬레이션 전략, 물리적 범위
 type: project
 ---
+> ⛔**ARCHIVED / 낡은 사본 (2026-08-13 감사).** 현행 연구 기록의 권위는 auto-memory(`~/.claude/projects/-home-vexit-wavesplat/memory/MEMORY.md`)와 `tmp/<배치>/RESULT.md` 다. 이 디렉터리의 수치는 다수가 이후 측정에서 무효화됐다 — 인용 금지.
+
 
 ## 확정된 Contributions (방법론 중심, 통일)
 - **C1**: Grid-free spectral estimation framework (ETKF의 grid 보간 한계 극복)

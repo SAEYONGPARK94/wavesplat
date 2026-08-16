@@ -81,8 +81,12 @@ RECORDS = {
     'LJ18g': dict(path='data/real_bergamasco/LJ_2018/Surfaces_20180103_093938_Grid2_short.nc',
                   depth=45.0, stride=2, r_fan=(20.0, 100.0), U=2.4,
                   lead_max=20.0,
-                  note='250x300 m storm swell lam~300 m — fan<<lambda '
-                       'stress regime (real-scale fan)'),
+                  # ⛔ 2026-08-13 감사 정정: '250x300 m' 는 LJ Grid2 의 31.5% 상수 클램프
+                  # 인공물이었다(mask_Z 가 "100% 유효"라고 거짓 보고). 클램프 교정 후
+                  # 유효박스는 162x183 m. 근거: reference_citation_bans.md (08-12 B-3)
+                  note='162x183 m (valid box after clamp correction; the old '
+                       '"250x300 m" was a constant-clamp artifact) storm swell '
+                       'lam~300 m — fan<<lambda stress regime (real-scale fan)'),
 }
 
 

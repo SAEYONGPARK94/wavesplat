@@ -1,6 +1,18 @@
 # WaveSplat PhD 방향 — 팩트 기반 재검토
 Date: 2026-05-19
 
+> ⛔**2026-08-13 3라운드 감사 — 이 문서의 §1.3·§1.4 수치는 철회됐다. 인용 금지.**
+> 이 문서는 2026-05-19 스냅숏이고 그 이후 기본값·수치가 전부 바뀌었다.
+> 근거: `memory/reference_citation_bans.md` · `tmp/AUDIT_recheck_2026-08-13/R3_regression.md §4(ii)`
+>
+> | 이 문서의 문장 | 상태 |
+> |---|---|
+> | `v2_konly (default)` (§1.3) | ⛔**낡음** — 2026-07-26 flip 이후 출하 기본값은 `init_method: auto` (GT-free 라우터, `run.py:43` · `configs/estimation.yaml:24`). `v2_konly` 는 명시 지정 시에만 쓰인다 |
+> | `WS 0.223 vs ETKF 0.319 vs GPR 0.276` (§1.4) | ⛔**RETRACTED** — 세 값이 **서로 다른 코퍼스**다. GPR `0.276` 은 `results/gpr_comparison.json` 의 **n=10** 산출(같은 파일 동반 팔은 WS-P1 0.2325 · ETKF 0.4499)이고, 100-에피소드 표에 섞을 수 없다. 100-ep 에서 같은 WS 열(0.2229)은 **LETKF 0.2278 과 51/49 p=0.9204 = 널** 이다 |
+> | `WS 13.4 ms / ETKF 132.6 ms` (§1.4) | ⛔**RETRACTED** — 16스레드 unpinned 아티팩트. 허용되는 서술은 **동일 프로세스·1스레드 1.5–2.6×** (CPU = AMD Ryzen 7 7800X3D) |
+> | `57 tests all passing` (§1.4) | ⛔**낡음** — 실측 **196**(wavesim 85 + wavesplat 111, `pytest --collect-only`) |
+> | `13ms, nRMSE 0.223` (§5 리스크 불릿, `:231`) | ⛔**위와 동일 사유로 인용 금지** |
+
 ## Part 1: WaveSplat 실제 코드 팩트 체크
 
 ### 1.1 Forward Model (spectral_gaussian.py:66-88)
@@ -21,14 +33,15 @@ z(x, y, t) = Σ wᵢ · cos(kxᵢ·x + kyᵢ·y - ωᵢ·t + φᵢ)
 - **Neural network 없음, training 없음, pretraining 없음**
 
 ### 1.3 초기화 (initializer.py)
-- v2_konly (default): dispersion-aware beamforming on raw observations
+- ~~v2_konly (default)~~ ⛔**낡음 (2026-08-13 감사)** — 출하 기본값은 `init_method: auto`.
+  v2_konly: dispersion-aware beamforming on raw observations
 - Greedy peak extraction → fine refinement → linear projection
 - **순수 고전 신호처리** (classical beamforming + LS projection)
 
 ### 1.4 현재 성능
-- WS avg nRMSE: 0.223 vs ETKF 0.319 vs GPR 0.276
-- Speed: WS 13.4ms/frame (tracking), ETKF 132.6ms, GPR >200ms
-- 57 tests all passing
+- ~~WS avg nRMSE: 0.223 vs ETKF 0.319 vs GPR 0.276~~ ⛔**RETRACTED (2026-08-13 감사)** — 상단 배너 참조
+- ~~Speed: WS 13.4ms/frame (tracking), ETKF 132.6ms, GPR >200ms~~ ⛔**RETRACTED (2026-08-13 감사)**
+- ~~57 tests all passing~~ ⛔**낡음** — 실측 **196**
 
 ---
 
@@ -228,7 +241,7 @@ PhD 전체로는 이상적이지만, 각 phase가 1편 분량이므로 시간 �
 - 트렌디: Mamba가 scientific computing에서 급부상
 
 **리스크**:
-- 현재 tracking이 이미 잘 작동 (13ms, nRMSE 0.223)
+- 현재 tracking이 이미 잘 작동 ~~(13ms, nRMSE 0.223)~~ ⛔**두 수치 RETRACTED (2026-08-13 감사)** — 상단 배너 참조
 - Mamba를 적용해도 큰 개선이 있을지 불확실
 - "Mamba를 wave estimation에 적용" = application paper 위험
 - 구현 복잡도 매우 높음

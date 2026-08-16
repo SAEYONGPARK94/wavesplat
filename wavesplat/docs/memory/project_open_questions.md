@@ -3,6 +3,8 @@ name: WaveSplat remaining open questions (post-P2)
 description: 남은 미해결 항목 — 대부분 해결, 실험적 확장 항목만 잔존
 type: project
 ---
+> ⛔**ARCHIVED / 낡은 사본 (2026-08-13 감사).** 현행 연구 기록의 권위는 auto-memory(`~/.claude/projects/-home-vexit-wavesplat/memory/MEMORY.md`)와 `tmp/<배치>/RESULT.md` 다. 이 디렉터리의 수치는 다수가 이후 측정에서 무효화됐다 — 인용 금지.
+
 
 ## 코드/문서 수정 — ✅ 모두 해결 완료
 

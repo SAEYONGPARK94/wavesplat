@@ -3,6 +3,8 @@ name: Evaluation metrics design
 description: 평가 메트릭 설계 — primary/secondary, 공간 분리, 수렴 시간, 통계
 type: project
 ---
+> ⛔**ARCHIVED / 낡은 사본 (2026-08-13 감사).** 현행 연구 기록의 권위는 auto-memory(`~/.claude/projects/-home-vexit-wavesplat/memory/MEMORY.md`)와 `tmp/<배치>/RESULT.md` 다. 이 디렉터리의 수치는 다수가 이후 측정에서 무효화됐다 — 인용 금지.
+
 
 ## Primary Metrics
 | 메트릭 | 정의 | 목표 |

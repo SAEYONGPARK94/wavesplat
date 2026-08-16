@@ -42,6 +42,16 @@ prs = Presentation()
 prs.slide_width = Inches(13.333)
 prs.slide_height = Inches(7.5)
 
+# ── ⛔ 2026-08-13 감사 차단 게이트 ──
+def _blocked_banned_headline():
+    """⛔ 인용금지 수치를 재생산하는 슬라이드 경로의 차단 게이트 (2026-08-13 감사)."""
+    raise RuntimeError(
+        "⛔ 이 그림/슬라이드는 인용금지 수치(0.223/0.319/13.4/132.6/~10x)를 하드코딩하고 있었다. "
+        "2026-08-13 감사에서 차단됨. 재활성화하려면 검증된 수치로 교체할 것. "
+        "근거: memory/reference_citation_bans.md, tmp/AUDIT_recheck_2026-08-13/A3_citation_bans.md"
+    )
+
+
 # ── helpers ──
 def add_slide(bg_color=WHITE):
     layout = prs.slide_layouts[6]  # blank
@@ -405,7 +415,11 @@ shape.line.color.rgb = GREEN
 tf = shape.text_frame
 tf.word_wrap = True
 p = tf.paragraphs[0]
-p.text = "Adaptive N:  N=1 (단일 swell) ~ N=21 (complex sea)  |  13.4 ms/frame 평균"
+# ⛔ 2026-08-13 감사 차단점 — 이 지점부터 아래 슬라이드들이 인용금지 수치를 재생산한다.
+_blocked_banned_headline()
+# ⛔ 원본 이력 (주석 처리, 인용금지 — "13.4 ms/frame 평균"):
+# p.text = "Adaptive N:  N=1 (단일 swell) ~ N=21 (complex sea)  |  13.4 ms/frame 평균"
+p.text = "Adaptive N:  N=1 (단일 swell) ~ N=21 (complex sea)  |  ⛔RETRACTED (latency)"
 p.font.size = Pt(16)
 p.font.bold = True
 p.font.color.rgb = DARK
@@ -502,7 +516,9 @@ add_table(s, 0.8, 1.5, 5.5, 3.0, 7, 2, data_ds)
 # Baseline table
 data_bl = [
     ["Method", "Config", "Note"],
-    ["ETKF (tuned)", "24-config sweep\nbest: g=40×30, nₑ=100", "nRMSE 0.319\n(sweep range: 3.3×)"],
+    # ⛔ 원본 이력 (주석 처리, 인용금지 — "nRMSE 0.319"):
+    # ["ETKF (tuned)", "24-config sweep\nbest: g=40×30, nₑ=100", "nRMSE 0.319\n(sweep range: 3.3×)"],
+    ["ETKF (tuned)", "24-config sweep\nbest: g=40×30, nₑ=100", "⛔RETRACTED\n(sweep range: 3.3×)"],
     ["GPR-1", "Matérn ν=5/2\nℓ=20m, σ=0.02m", "시간 모델 없음"],
     ["GPR-sliding", "3-frame window", "강한 GPR 버전"],
 ]
@@ -527,9 +543,13 @@ add_section_header(s, "04", "핵심 결과: 6-Metric Evaluation (100 episodes)",
 
 data_main = [
     ["Method", "nRMSE ↓", "Hs err ↓", "VR → 1", "ρ ↑", "SS ↑", "Dir R² ↑"],
-    ["WaveSplat", "0.223", "0.277", "0.661", "0.446", "+0.034", "−0.253"],
-    ["ETKF (tuned)", "0.319", "0.258", "0.898", "0.109", "−0.702", "+0.065"],
-    ["GPR-1", "0.261", "0.780", "0.065", "0.193", "−0.140", "+0.028"],
+    # ⛔ 원본 이력 (주석 처리, 인용금지 — 0.223 / 0.319 / 0.261 및 그 파생 열):
+    # ["WaveSplat",    "0.223", "0.277", "0.661", "0.446", "+0.034", "−0.253"],
+    # ["ETKF (tuned)", "0.319", "0.258", "0.898", "0.109", "−0.702", "+0.065"],
+    # ["GPR-1",        "0.261", "0.780", "0.065", "0.193", "−0.140", "+0.028"],
+    ["WaveSplat", "⛔", "⛔", "⛔", "⛔", "⛔", "⛔"],
+    ["ETKF (tuned)", "⛔", "⛔", "⛔", "⛔", "⛔", "⛔"],
+    ["GPR-1", "⛔", "⛔", "⛔", "⛔", "⛔", "⛔"],
 ]
 add_table(s, 1.0, 1.5, 11.3, 2.5, 4, 7, data_main)
 
@@ -538,7 +558,9 @@ observations = [
     "• ✅ Skill Score: WaveSplat만 양수 (+0.034) — zero-predictor보다 나은 유일한 방법",
     "• ⚠️ GPR은 거의 zero predictor: VR=0.065 → 진폭의 6.5%만 재현",
     "• ⚠️ ETKF는 variance-correct but shape-wrong: VR=0.898 but ρ=0.109",
-    "• ⚡ WaveSplat nRMSE 30.1% lower  &  ~10× faster (13.4 vs 132.6 ms)",
+    # ⛔ 원본 이력 (주석 처리, 인용금지):
+    # "• ⚡ WaveSplat nRMSE 30.1% lower  &  ~10× faster (13.4 vs 132.6 ms)",
+    "• ⛔RETRACTED (2026-08-13 감사) — nRMSE 30.1% lower / ~10x faster 는 재현되지 않는다",
     "",
     "• WaveSplat 한계도 노출:",
     "•    VR=0.66 → 진폭 ~34% 과소추정 (pruning의 대가)",
@@ -566,15 +588,24 @@ if not added:
 added2 = try_add_image(s, 'fig3_speed', 6.8, 1.5, 6.0, 4.5)
 if not added2:
     add_textbox(s, 6.8, 1.5, 6.0, 4.5,
+                # ⛔ 원본 이력 (주석 처리, 인용금지):
+                # "WaveSplat: 13.4 ms/frame\n"
+                # "ETKF (tuned): 132.6 ms (median 110)\n"
+                # "GPR: > 200 ms\n\n"
+                # "→ ~10× speed advantage",
                 "[fig3_speed.png]\n\n"
-                "WaveSplat: 13.4 ms/frame\n"
-                "ETKF (tuned): 132.6 ms (median 110)\n"
-                "GPR: > 200 ms\n\n"
-                "→ ~10× speed advantage",
+                "⛔RETRACTED (2026-08-13 감사)\n"
+                "지연 수치는 스레드 미고정 아티팩트\n"
+                "허용: 동일 프로세스·1스레드 1.5–2.6×\n"
+                "CPU = AMD Ryzen 7 7800X3D",
                 16, color=GRAY, alignment=PP_ALIGN.CENTER)
 
+# ⛔ 원본 이력 (주석 처리, 인용금지):
+# add_textbox(s, 0.5, 6.3, 12, 0.6,
+#             "WaveSplat: 12/12 승  |  Best 8.5×  |  13.4 ms vs 132.6 ms (~10× faster)",
+#             18, bold=True, color=ACCENT, alignment=PP_ALIGN.CENTER)
 add_textbox(s, 0.5, 6.3, 12, 0.6,
-            "WaveSplat: 12/12 승  |  Best 8.5×  |  13.4 ms vs 132.6 ms (~10× faster)",
+            "⛔RETRACTED (2026-08-13 감사) — 12/12 승·8.5×·지연비 전량 재측정 필요",
             18, bold=True, color=ACCENT, alignment=PP_ALIGN.CENTER)
 add_page_number(s, 10, TOTAL_SLIDES)
 
@@ -587,8 +618,11 @@ add_section_header(s, "04", "통계 검증 (100 Paired Runs)", "Statistical Vali
 data_stat = [
     ["Comparison", "mean ± std", "Wilcoxon p", "Cohen's d", "95% CI"],
     ["WaveSplat", "0.219 ± 0.079", "—", "—", "—"],
-    ["vs ETKF", "0.321 ± 0.041", "1.1 × 10⁻¹⁵", "1.16 (large)", "[0.085, 0.119]"],
-    ["vs GPR-sliding", "0.253 ± 0.020", "4.7 × 10⁻⁴", "0.42 (sm-med)", "[0.018, 0.050]"],
+    # ⛔ 원본 이력 (주석 처리, 인용금지 — p=1.1e-15 / Cohen's d=1.16):
+    # ["vs ETKF",        "0.321 ± 0.041", "1.1 × 10⁻¹⁵", "1.16 (large)", "[0.085, 0.119]"],
+    # ["vs GPR-sliding", "0.253 ± 0.020", "4.7 × 10⁻⁴",  "0.42 (sm-med)", "[0.018, 0.050]"],
+    ["vs ETKF", "⛔", "⛔", "⛔", "⛔"],
+    ["vs GPR-sliding", "⛔", "⛔", "⛔", "⛔"],
 ]
 add_table(s, 1.5, 1.5, 10.3, 2.5, 4, 5, data_stat)
 
@@ -599,11 +633,14 @@ explanations = [
     "• 100 paired = 10 configs × 5 seeds × 2 raydrop",
     "• 같은 조건에서 WS vs baseline → paired test",
     "",
-    "• Cohen's d = 1.16 → large effect (> 0.8)",
-    "•   = WS vs ETKF 차이가 매우 유의미",
-    "• Cohen's d = 0.42 → small-medium",
-    "•   = WS vs GPR도 통계적으로 robust",
-    "• 두 CI 모두 0을 포함하지 않음",
+    # ⛔ 원본 이력 (주석 처리, 인용금지 — Cohen's d = 1.16 / 0.42):
+    # "• Cohen's d = 1.16 → large effect (> 0.8)",
+    # "•   = WS vs ETKF 차이가 매우 유의미",
+    # "• Cohen's d = 0.42 → small-medium",
+    # "•   = WS vs GPR도 통계적으로 robust",
+    # "• 두 CI 모두 0을 포함하지 않음",
+    "• ⛔RETRACTED (2026-08-13 감사) — Cohen's d / p / CI 전량",
+    "•   재도출: WS 0.2229 vs LETKF 0.2278, 51/49, p = 0.9204 (널)",
 ]
 add_bullet_list(s, 7.0, 4.2, 5.5, 3.0, explanations, font_size=14, bold_prefix=False)
 add_page_number(s, 11, TOTAL_SLIDES)
@@ -661,7 +698,9 @@ add_textbox(s, 0.8, 1.5, 3.8, 0.4,
             "Raydrop Sensitivity", 20, bold=True, color=ACCENT)
 raydrop = [
     "• 10 paired episodes (U vs S)",
-    "• WaveSplat: 20/20 wins",
+    # ⛔ 원본 이력 (주석 처리, 인용금지 — "20/20 wins"):
+    # "• WaveSplat: 20/20 wins",
+    "• ⛔RETRACTED — 20/20 wins (구버전 계열)",
     "• Slope: WS −9.1%, ETKF −16.2%",
     "• 두 raydrop 모두에서 안정",
 ]
@@ -792,10 +831,15 @@ add_textbox(s, 0.8, 1.5, 11.5, 0.4,
 
 data_strong = [
     ["Method", "nRMSE ↓", "VR → 1", "ρ ↑", "SS ↑", "Dir R² ↑", "Hs err ↓", "ms ↓"],
-    ["WaveSplat", "0.223", "0.661", "0.446", "+0.034", "−0.253", "0.277", "14.5"],
-    ["LETKF (loc50)", "0.228", "0.111", "0.359", "+0.142", "+0.087", "0.692", "118.3"],
+    # ⛔ 원본 이력 (주석 처리 — nRMSE 열은 2026-08-13 재도출값으로 교체, 나머지 열은 미검증):
+    # ["WaveSplat",    "0.223", "0.661", "0.446", "+0.034", "−0.253", "0.277", "14.5"],
+    # ["LETKF (loc50)","0.228", "0.111", "0.359", "+0.142", "+0.087", "0.692", "118.3"],
+    # 재도출(results/100ep_ws_letkf.json): WS 0.2229 vs LETKF 0.2278, 51/49, p=0.9204 = 널
+    ["WaveSplat", "0.2229", "⛔", "⛔", "⛔", "⛔", "⛔", "⛔"],
+    ["LETKF (loc50)", "0.2278", "⛔", "⛔", "⛔", "⛔", "⛔", "⛔"],
+    ["→ 판정", "51/49, p=0.9204 = 널", "", "", "", "", "", ""],
 ]
-add_table(s, 0.8, 2.0, 11.5, 1.8, 3, 8, data_strong)
+add_table(s, 0.8, 2.0, 11.5, 1.8, 4, 8, data_strong)  # 4행: 헤더 + WS + LETKF + 판정
 
 # Regime-dependent analysis
 add_textbox(s, 0.8, 4.0, 5.8, 0.4,
@@ -1085,7 +1129,10 @@ shape.line.color.rgb = ACCENT
 tf = shape.text_frame
 tf.word_wrap = True
 p = tf.paragraphs[0]
-p.text = ("WaveSplat: nRMSE 30.1%↓, ~10× faster, SS only+  |  "
+# ⛔ 원본 이력 (주석 처리, 인용금지 — "nRMSE 30.1%↓, ~10× faster"):
+# p.text = ("WaveSplat: nRMSE 30.1%↓, ~10× faster, SS only+  |  "
+#           "Hydrofoil: aRMS 11~41%↓, BF3 E2E 92~96%")
+p.text = ("WaveSplat: ⛔RETRACTED (2026-08-13 감사)  |  "
           "Hydrofoil: aRMS 11~41%↓, BF3 E2E 92~96%")
 p.font.size = Pt(16)
 p.font.bold = True
@@ -1126,7 +1173,7 @@ add_textbox(s, 7.0, 1.5, 5.8, 0.4,
 
 status_items = [
     "• 논문 1 (WaveSplat)",
-    "•   ✅ 코드/실험 완료 (57 tests pass)",
+    "•   ✅ 코드/실험 완료 (196 tests pass)",  # 2026-08-13 실측 (구 "57" 은 낡음)
     "•   ✅ 논문 작성 완료 (Ocean Eng. format)",
     "•   ✅ 적대적 페르소나 10라운드 검토 완료",
     "•   ⏳ 공동저자 sign-off → 투고",

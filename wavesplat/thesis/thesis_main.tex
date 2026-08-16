@@ -220,16 +220,31 @@ LiDAR 관측 품질의 공간적 불균질성을 직접 모델링한다.
 또한 에너지 기반 가지치기(pruning)와 잔차 기반 성장(growth)을 통해
 파도 성분 수 $N$을 관측된 해상(海象) 복잡도에 자동 적응시킨다.
 
-100개 에피소드(Beaufort 2--5 해상, 성분 수 1--30, 5개 시드, 2가지 raydrop 모델)에
-걸친 평가에서, \WS{}는 하이퍼파라미터를 최적화한 ETKF 대비 평균 nRMSE를
-\textbf{30.1\%} 낮추고 (\textbf{0.223} vs.\ \textbf{0.319}),
-처리 속도는 약 \textbf{10배} 빠른 \textbf{13.4\,ms/프레임}을 달성한다.
-사전 지정된 6개 지표 평가 패널에서 \WS{}는 zero-predictor 대비 양수의
-점추정 Skill Score를 기록한 유일한 방법임을 보인다
-(전체 95\% bootstrap CI는 0을 포함하나, $\leq$5-성분 해상에서는 유의).
-100회 대응 검증을 통한 Wilcoxon signed-rank 검정 결과
-($p = 1.1\times10^{-15}$, Cohen's $d = 1.16$)는 이 차이가
-통계적으로 유의한 large effect임을 확인한다.
+% RETRACTED 2026-08-14: 아래 원문의 헤드라인 수치 전체가 인용금지다. 사유는 "출처 부재"가
+% 아니라 (i) 프레임 불일치 — 근거 파일 results/b1_full_comparison.json 에서 WaveSplat 은
+% 평균 167 프레임(120--220), ETKF·GPR-1 은 301 프레임에서 채점됐고 100/100 에피소드 전부에서
+% WS 가 더 적다 ⟹ 두 팔이 같은 프레임에서 채점된 적이 없다 (ii) 기준선 선택 — 그 ETKF 는
+% grid 40x30 / ne=100 / mult_inflation 1.0 이고, 같은 WS 열을 튜닝 LETKF 와 붙이면
+% results/100ep_ws_letkf.json 에서 0.2229 vs 0.2278, 51/100, p=0.9204 = 널
+% (iii) 지연은 프로세스 간 비교다. Skill Score 열과 Wilcoxon p / Cohen's d 도 같은 파일 계열이다.
+% (근거: memory/reference_citation_bans.md (08-13 3라운드) · 직접 재도출 2026-08-14)
+% --- 원문 (이력 보존) ---
+% 100개 에피소드(Beaufort 2--5 해상, 성분 수 1--30, 5개 시드, 2가지 raydrop 모델)에
+% 걸친 평가에서, \WS{}는 하이퍼파라미터를 최적화한 ETKF 대비 평균 nRMSE를
+% \textbf{30.1\%} 낮추고 (\textbf{0.223} vs.\ \textbf{0.319}),
+% 처리 속도는 약 \textbf{10배} 빠른 \textbf{13.4\,ms/프레임}을 달성한다.
+% 사전 지정된 6개 지표 평가 패널에서 \WS{}는 zero-predictor 대비 양수의
+% 점추정 Skill Score를 기록한 유일한 방법임을 보인다
+% (전체 95\% bootstrap CI는 0을 포함하나, $\leq$5-성분 해상에서는 유의).
+% 100회 대응 검증을 통한 Wilcoxon signed-rank 검정 결과
+% ($p = 1.1\times10^{-15}$, Cohen's $d = 1.16$)는 이 차이가
+% 통계적으로 유의한 large effect임을 확인한다.
+\textbf{[철회] (2026-08-14):} 본 초록이 원래 제시하던 100 에피소드 정확도·지연 헤드라인
+수치는 철회한다. 근거 파일에서 \WS{}와 기준선이 서로 다른 프레임 수에서 채점됐고,
+기준선 선택이 결과를 좌우하며(같은 \WS{} 열을 튜닝된 LETKF와 대조하면 차이가 통계적 널이다),
+지연은 서로 다른 프로세스에서 측정됐다.
+검증된 대체값이 없는 항목은 숫자를 제시하지 않는다.
+지연에 대해 인용 가능한 유일한 값은 \emph{동일 프로세스·단일 스레드에서 1.5--2.6배}이다.
 
 또한 본 논문은 \WS{}의 downstream 응용으로서,
 추정된 파랑 정보를 활용한 하이드로포일 선박의 2자유도 feedforward 제어
@@ -283,18 +298,29 @@ incidence angle and range. An energy-based pruning and residual-triggered
 growth mechanism adapts the number of wave components $N$ to the observed
 sea state complexity.
 
-On a dataset of 100 episodes spanning Beaufort 2--5 sea states
-(1--30 wave components, 5 random seeds, 2 raydrop models), \WS{} achieves a
-\textbf{30.1\%} lower average nRMSE than a hyperparameter-tuned ETKF-grid
-baseline (\textbf{0.223} vs.\ \textbf{0.319}) while running approximately
-\textbf{10$\times$} faster (\textbf{13.4\,ms/frame}).
-A pre-specified six-metric evaluation panel shows that \WS{} is the only
-method with a positive Skill Score against a zero predictor (full-dataset
-95\% CI: $-0.08$ to $+0.15$; statistically significant only for
-$\leq$5-component seas, 95\% CI: $+0.25$ to $+0.48$).
-A 100-paired-run statistical validation confirms this improvement is
-statistically significant ($p = 1.1\times10^{-15}$, Wilcoxon signed-rank;
-Cohen's $d = 1.16$, large effect; Holm-corrected $p = 2.2\times10^{-15}$).
+% RETRACTED 2026-08-14: 국문초록과 동일 사유 (프레임 불일치 · 기준선 선택 · 프로세스 간 지연).
+% (근거: memory/reference_citation_bans.md (08-13 3라운드) · results/b1_full_comparison.json 재도출)
+% --- 원문 (이력 보존) ---
+% On a dataset of 100 episodes spanning Beaufort 2--5 sea states
+% (1--30 wave components, 5 random seeds, 2 raydrop models), \WS{} achieves a
+% \textbf{30.1\%} lower average nRMSE than a hyperparameter-tuned ETKF-grid
+% baseline (\textbf{0.223} vs.\ \textbf{0.319}) while running approximately
+% \textbf{10$\times$} faster (\textbf{13.4\,ms/frame}).
+% A pre-specified six-metric evaluation panel shows that \WS{} is the only
+% method with a positive Skill Score against a zero predictor (full-dataset
+% 95\% CI: $-0.08$ to $+0.15$; statistically significant only for
+% $\leq$5-component seas, 95\% CI: $+0.25$ to $+0.48$).
+% A 100-paired-run statistical validation confirms this improvement is
+% statistically significant ($p = 1.1\times10^{-15}$, Wilcoxon signed-rank;
+% Cohen's $d = 1.16$, large effect; Holm-corrected $p = 2.2\times10^{-15}$).
+\textbf{[RETRACTED] (2026-08-14):} the 100-episode accuracy and latency headline
+figures previously stated here are withdrawn. In the underlying result file the
+proposed method and the baselines were never scored on the same frames; the verdict
+depends on which baseline is chosen (against a tuned LETKF the same column is a
+statistical null); and the latency figures were measured in separate processes.
+No replacement numbers are given where none have been verified.
+The only citable latency statement is \emph{1.5--2.6$\times$ within the same
+process on a single thread}.
 
 This dissertation further presents a downstream application of \WS{}: a
 two-degree-of-freedom feedforward control algorithm for hydrofoil vessels
@@ -499,25 +525,61 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
         자유 파라미터를 $5N \to 4N$으로 감소시키고 물리적 유효성을 보장한다.
         이 제약은 추적 단계에서 위상 예측의 warm start를 제공하여
         프레임당 최적화 스텝을 200회에서 10회로 감소시킨다.
+        % RETRACTED 2026-08-14 (부분): "정확도 기여" 주장만 철회. 파라미터 감소(5N→4N)는
+        % 산술적 사실이므로 유지한다. 2026-08-13 개입 실험 32런에서 omega 를 분산관계 값으로
+        % 출발만 시키자 희소 +7.3%(9/16, p=0.804) · 혼잡 -0.7%(8/16, p=1.000) = 양 층 널이었고,
+        % 기존 절제 팔(NODISP)은 제약이 아니라 omega 초기화 자체를 제거하고 있었다.
+        % 2026-04 results/ablation_bf45.json 도 근거 불가(Full 팔 중앙 0.2757 이 제로필드 ~0.25 를 못 이김).
+        % (근거: memory/project_audit_recheck_2026-08-13.md §2 · memory/reference_citation_bans.md)
+        \emph{[범위] (2026-08-14):} 여기서 주장하는 것은 \emph{파라미터 감소}이며,
+        이 제약이 \emph{정확도}에 기여하는지는 \textbf{아직 측정되지 않았다}
+        (기존 절제 실험은 제약이 아니라 $\omega$ 초기화까지 함께 제거하고 있었다).
 
   \item \textbf{기하 신뢰 가중치}: \\
-        LiDAR 관측의 입사각·거리 의존 품질을 직접 모델링하여,
-        관측 품질이 공간적으로 크게 변하는 해양 표면 측정의
-        이분산성(heteroscedasticity)을 반영한다.
+        % RETRACTED 2026-08-14: 이 기여는 DEAD 다. 신선 표본(S13)에서 신뢰 가중치를 끄는 쪽이
+        % 오히려 나았다 — 혼잡 10/64 · 희소 16/64, med_rel -15.6% / -20.4%.
+        % use_confidence 는 손실 가중치 한 곳(optimizer/sequential_update.py:330)만 건드리므로
+        % 절제가 대칭이며(다른 것을 함께 끄지 않는다), 따라서 이 음성은 해석 가능한 음성이다.
+        % (근거: memory/reference_citation_bans.md (08-13 재감사) · memory/project_audit_recheck_2026-08-13.md §2)
+        % --- 원문 (이력 보존) ---
+        % LiDAR 관측의 입사각·거리 의존 품질을 직접 모델링하여,
+        % 관측 품질이 공간적으로 크게 변하는 해양 표면 측정의
+        % 이분산성(heteroscedasticity)을 반영한다.
+        \textbf{[철회] (2026-08-14).} LiDAR 관측의 입사각·거리 의존 품질을 모델링하는
+        가중치를 도입했으나, 신선 표본에서 이 가중치를 \emph{끄는} 쪽이 더 나은 것으로
+        측정되었다. 정확도 기여로서는 철회하며, 제5절(한계)의 음성 결과로 재배치한다.
 
   \item \textbf{적응형 성분 수 ($N$) 제어}: \\
+        % RETRACTED 2026-08-14: 적응형 N 의 효과는 2026-08-03 에 NULL 로 측정됐다.
+        % 저장소 프로젝트 지시(CLAUDE.md)가 "Adaptive N: 효과는 NULL 로 측정됨(08-03)" 으로 기재.
+        % (근거: memory/project_session_2026-08-03_cdip_stage2.md · CLAUDE.md)
+        \textbf{[철회] (2026-08-14).}
         에너지 기반 가지치기와 잔차 기반 성장을 통해
         단순 너울($N=1$)부터 복잡한 다성분 해상($N=21$)까지
         해상 복잡도에 자동 적응한다.
+        \emph{단, 이 기제의 정확도 효과는 이후 측정에서 NULL 로 판정되었다}(2026-08-03).
 
   \item \textbf{사전 지정 6-지표 평가 패널}: \\
         nRMSE 단일 지표로는 걸러낼 수 없는 zero-predictor를 진단하는
         6개 지표(nRMSE, VR, $\rho$, SS, Dir $R^2$, $H_s$ error)를
         사전 지정하여 공정한 비교를 수행한다.
 
-  \item \textbf{공정한 ETKF 기준선}: \\
-        24개 설정 하이퍼파라미터 스윕을 통해 최적화된 ETKF를
-        기준선으로 제공하여, 임의의 파라미터 선택에 따른 불이익을 방지한다.
+  \item \textbf{24-설정 ETKF 하이퍼파라미터 스윕}: \\
+        % RETRACTED 2026-08-14 (제목 축소): "공정한 기준선" 이라는 표현을 철회하고
+        % 실제로 한 일("24-설정 스윕")로 범위를 좁힌다. 사유 넷 —
+        % (i) 배경 앙상블이 공간 백색잡음 진폭 0.1 m 이고(baselines/letkf_grid.py:88)
+        %     코퍼스 Hs 는 그보다 크며, 스펙트럼 사전분포가 없다. 이 축은 어떤 스윕에도 없다.
+        % (ii) 스윕 대상 클래스는 ETKFGrid 인데 배포 대조는 LETKFGrid(loc50) = 다른 클래스.
+        % (iii) 기준선이 일부 에피소드에서 제로필드에 진다.
+        % (iv) Gaspari-Cohn loc_radius=50 m 는 2c=100 m 밖에서 항등적으로 0 ⟹ 기준선이
+        %      먼바다를 구조적으로 갱신할 수 없다.
+        % 이 넷은 감사에서 MAJOR 잔여로 남아 있으며 아직 재실험되지 않았다.
+        % (근거: memory/project_audit_recheck_2026-08-13.md §6.5 MAJOR 잔여 ·
+        %  memory/project_persona_debate_novelty_2026-08-14.md §2)
+        24개 설정 하이퍼파라미터 스윕을 통해 선택된 ETKF를 기준선으로 사용한다.
+        \emph{[범위] (2026-08-14):} 이 스윕은 격자 해상도·앙상블 크기·inflation 축만
+        다루며, 배경오차공분산의 스펙트럼 사전분포와 국소화 반경은 \textbf{어떤 축에도
+        포함되지 않았다}. 따라서 이 기준선을 ``공정한(fair) 기준선''이라 부르지 않는다.
 
   \item \textbf{파랑 예측 기반 하이드로포일 2DOF feedforward 제어}: \\
         \WS{}의 파도장 추정 결과를 활용하는 downstream 제어 응용을 제시한다.
@@ -1011,9 +1073,15 @@ $\mathcal{O}(\epsilon^2)$ 근사이며, 여기서 $\epsilon = |k| \cdot |w|$는 
 
 \begin{table}[htbp]
 \centering
-\caption{해상 상태별 파도 가파름과 선형 모델 불일치.
-$\epsilon = |k_p| \cdot H_s/2$는 피크 파수 $k_p$에서의 가파름.}
+\caption{해상 상태별 파도 가파름과 선형 모델 불일치(해석적 추정).
+$\epsilon = |k_p| \cdot H_s/2$는 피크 파수 $k_p$에서의 가파름.
+\textbf{[범위] (2026-08-14):} 이 표는 \emph{실제 바다}에서 기대되는 불일치의 해석적
+추정이며, \textbf{본 논문의 합성 코퍼스에는 적용되지 않는다} --- 그 코퍼스에서
+ground truth는 변위 없는 선형 중첩이므로 실측 불일치가 0이다(제3장 시뮬레이션 절 참조).}
 \label{tab:steepness}
+% SCOPE 2026-08-14: 이 표 자체는 해석적이라 유효하나, "우리 검증에서 불일치가 작았다" 는
+% 뜻으로 읽히면 거짓이 된다. 합성 GT 의 실측 불일치는 0 이다.
+% (근거: memory/project_audit_recheck_2026-08-13.md §6.5)
 \begin{tabular}{lcccc}
 \toprule
 해상 상태 & $H_s$ [m] & $T_p$ [s] & $\epsilon$ & $\epsilon^2$ [\%] \\
@@ -1446,9 +1514,18 @@ $M$을 프레임당 LiDAR 관측 수, $N$을 스펙트럼 성분 수라 하자.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.80\textwidth]{figures_ws/fig3_speed.pdf}
-\caption{프레임당 처리 시간 비교. \WS{}는 13.4\,ms/프레임으로
-ETKF (132.6\,ms)와 GPR ($>$200\,ms) 대비 약 10배 이상 빠르며,
-10\,Hz LiDAR의 100\,ms 실시간 예산을 충족한다.}
+% RETRACTED 2026-08-14: 13.4 / 132.6 ms 와 "약 10배" 는 인용금지.
+% 두 값은 results/b1_full_comparison.json 에 실재하나(13.376 / 132.639) 서로 다른 프로세스에서
+% 스레드 고정 없이 측정된 값이다. 허용되는 유일한 대체 서술 = 동일 프로세스·1스레드 1.5--2.6배.
+% (근거: memory/reference_citation_bans.md (08-05), (08-13 3라운드))
+% --- 원문 (이력 보존) ---
+% \caption{프레임당 처리 시간 비교. \WS{}는 13.4\,ms/프레임으로
+% ETKF (132.6\,ms)와 GPR ($>$200\,ms) 대비 약 10배 이상 빠르며,
+% 10\,Hz LiDAR의 100\,ms 실시간 예산을 충족한다.}
+\caption{프레임당 처리 시간 비교.
+\textbf{[철회] (2026-08-14):} 이 그림이 근거로 삼은 절대 지연값과 ``약 10배'' 배율은
+서로 다른 프로세스에서 스레드 고정 없이 측정된 값이므로 철회한다.
+동일 프로세스·단일 스레드 조건에서 인용 가능한 값은 \textbf{1.5--2.6배}이다.}
 \label{fig:speed}
 \end{figure}
 
@@ -1457,13 +1534,24 @@ $z(x_j, y_j, t) = \sum_{i=1}^{N} w_i \cos(\cdot)$를 계산하여
 프레임당 $\mathcal{O}(M \cdot N)$이다.
 $K$ 경사 스텝과 윈도우 크기 $K_w$로 프레임당 추적 비용은
 $\mathcal{O}(K \cdot K_w \cdot M \cdot N)$이다.
-실제 $K=10$, $K_w=3$, $N \leq 30$에서 CPU 단일 스레드(Intel i7-12700H) 기준
-\textbf{13.4\,ms/프레임}.
+% RETRACTED 2026-08-14: (a) CPU 오기 — 실제 측정 기기는 AMD Ryzen 7 7800X3D 이고
+% "Intel i7-12700H" 는 2026-08-05 부터 인용금지다. (b) 13.4 ms 는 프로세스 간 비교 산출이라 인용금지.
+% (근거: memory/reference_citation_bans.md (08-05), (08-13 3라운드))
+% --- 원문 (이력 보존) ---
+% 실제 $K=10$, $K_w=3$, $N \leq 30$에서 CPU 단일 스레드(Intel i7-12700H) 기준
+% \textbf{13.4\,ms/프레임}.
+실제 $K=10$, $K_w=3$, $N \leq 30$에서 CPU 단일 스레드
+(\textbf{AMD Ryzen 7 7800X3D}) 기준으로 측정하였다.
+\textbf{[철회] (2026-08-14):} 프레임당 절대 지연값은 프로세스 간 비교 산출이므로 철회한다.
 
 \textbf{ETKF-grid}: $N_e$개 앙상블 멤버를 $G_x \times G_y$ 격자에 유지.
 FFT 기반 전파에 $\mathcal{O}(N_e \cdot G_x G_y \cdot \log(G_x G_y))$,
 앙상블 변환에 $\mathcal{O}(N_e^3 + N_e^2 \cdot M)$.
-$N_e=100$, $G=40\times30$에서 \textbf{132.6\,ms/프레임}.
+% RETRACTED 2026-08-14: 132.6 ms 는 "132.6 ms 가 ETKF 비용" 으로 2026-08-05 부터 인용금지.
+% (근거: memory/reference_citation_bans.md (08-05), (08-13 3라운드))
+% --- 원문 (이력 보존) --- $N_e=100$, $G=40\times30$에서 \textbf{132.6\,ms/프레임}.
+$N_e=100$, $G=40\times30$ 설정에서 측정하였다.
+\textbf{[철회] (2026-08-14):} 절대 지연값은 프로세스 간 비교 산출이므로 철회한다.
 
 \textbf{GPR}: $M$개 관측에 $\mathcal{O}(M^3)$ Cholesky 분해.
 50 points/frame에서도 커널 하이퍼파라미터 최적화로 \textbf{$>$200\,ms/프레임}.
@@ -1471,15 +1559,24 @@ $N_e=100$, $G=40\times30$에서 \textbf{132.6\,ms/프레임}.
 \begin{table}[htbp]
 \centering
 \caption{계산 복잡도 비교. $M$: 관측/프레임, $N$: 스펙트럼 성분,
-$G$: 격자 크기, $N_e$: 앙상블 멤버.}
+$G$: 격자 크기, $N_e$: 앙상블 멤버.
+\textbf{[철회] (2026-08-14):} ``실측'' 열의 절대 지연값은 프로세스 간 비교 산출이므로
+철회한다. 점근 복잡도 열은 해석적 결과이므로 영향받지 않는다.
+동일 프로세스·단일 스레드에서 인용 가능한 값은 \textbf{1.5--2.6배}이다.}
 \label{tab:complexity}
+% RETRACTED 2026-08-14: 실측 열의 13.4 / 132.6 ms 를 [철회] 로 대체. 대체 절대값이 검증돼 있지
+% 않으므로 숫자를 새로 만들지 않는다. (근거: memory/reference_citation_bans.md (08-05),(08-13))
+% --- 원문 실측 열 (이력 보존) ---
+% \WS{} & $\mathcal{O}(K \cdot K_w \cdot M \cdot N)$ & 13.4\,ms \\
+% ETKF-grid & $\mathcal{O}(N_e \cdot G^2 \log G^2)$ & 132.6\,ms \\
+% GPR       & $\mathcal{O}(M^3)$ & $>$200\,ms \\
 \begin{tabular}{lcc}
 \toprule
 방법 & 프레임당 복잡도 & 실측 \\
 \midrule
-\WS{} & $\mathcal{O}(K \cdot K_w \cdot M \cdot N)$ & 13.4\,ms \\
-ETKF-grid & $\mathcal{O}(N_e \cdot G^2 \log G^2)$ & 132.6\,ms \\
-GPR       & $\mathcal{O}(M^3)$ & $>$200\,ms \\
+\WS{} & $\mathcal{O}(K \cdot K_w \cdot M \cdot N)$ & [철회] \\
+ETKF-grid & $\mathcal{O}(N_e \cdot G^2 \log G^2)$ & [철회] \\
+GPR       & $\mathcal{O}(M^3)$ & [철회] \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1568,7 +1665,22 @@ $w_i = \sqrt{2 S(\omega_i) \Delta\omega}$, $\omega_i$는 각 구간의 중심 �
 방향 분산은 $\cos^{2s}(\theta/2)$ 방향 확산 함수($s=10$, $\pm 20^\circ$ 유효 폭)로
 각 성분에 독립 방향을 부여한다.
 
-\paragraph{Gerstner wave 생성}
+\paragraph{Gerstner wave 생성 --- [철회]·정정 (2026-08-14)}
+% RETRACTED 2026-08-14: 이 절이 기술하는 Gerstner 운동학은 *설계 의도*이지 실제로 생성된
+% 데이터가 아니다. wavesim/gt_generator.py:38 의 evaluate_field() 가
+%   `_, _, Z, NX, NY, NZ = single_gerstner(...)`
+% 로 수평 변위 성분 두 개를 버리고 표고만 반환하며(직접 확인 2026-08-14),
+% wavesim/pipeline.py:157,165 가 GT 필드와 레이캐스트 메시를 둘 다 그 함수로 만든다
+% ⟹ Q 가 어느 쪽에도 들어가지 않는다. 저장된 gt_wave_field 를 평면파 합으로 재구성하면
+% 4개 에피소드에서 max|delta| = 0.000e+00.
+% (근거: memory/project_audit_recheck_2026-08-13.md §6.5 · 코드 직독 2026-08-14)
+\textbf{[철회] (2026-08-14):} 아래 Gerstner 정식화는 시뮬레이터의 \emph{설계 의도}이며
+본 논문에서 사용한 합성 데이터의 실제 성질이 \textbf{아니다}. 생성 경로에서
+수평 변위 성분이 폐기되어, 저장된 ground-truth 파고장과 레이캐스트 메시 모두
+\textbf{변위 없는 격자 위의 선형 중첩}이 된다(비선형 파라미터 $Q$가 데이터에 반영되지 않는다).
+비선형 검증은 이 코퍼스가 아니라 별도의 HOS ($M{=}3$) 배치로 수행하였다.
+아래 정식화는 이력 보존과 구현 참조를 위해 남긴다.
+
 Gerstner wave~\citep{Gerstner1802}는 Euler 좌표가 아닌
 Lagrange 좌표에서 정의되는 2차 비선형 회전파의 정확해이다.
 Lagrange 좌표 $(\xi, \zeta)$에서의 입자 궤적:
@@ -1593,12 +1705,21 @@ Q_i = \min\!\bigl(0.8,\; 1/{\textstyle\sum_j |k_j| w_j}\bigr)
 \]
 로 설정하여 비선형 효과를 최대한 포함하면서 안정성을 유지한다.
 
-Gerstner wave를 ground truth로 선택한 이유는 두 가지이다:
-(1) 수평 궤도 운동이 포함되어 선형 모델(\ref{eq:forward})의 현실적 테스트를 제공한다 ---
-선형 모델은 $\mathcal{O}(\epsilon^2)$ 근사이므로, Gerstner ground truth에서의
-성능이 선형 모델의 실용적 한계를 측정한다;
-(2) 해석해이므로 수치 파도 시뮬레이션(CFD 등)의 이산화 오차가 없어
-순수한 모델 오차만을 평가할 수 있다.
+% RETRACTED 2026-08-14: 이유 (1) 은 실측으로 반증됐다 — 생성 경로가 수평 궤도 운동을
+% 폐기하므로 GT 에 그 성분이 없고, 따라서 이 코퍼스는 선형 모델의 "현실적 테스트" 가 아니다.
+% 이유 (2)(해석해라 이산화 오차 없음)는 유지된다.
+% --- 원문 (이력 보존) ---
+% Gerstner wave를 ground truth로 선택한 이유는 두 가지이다:
+% (1) 수평 궤도 운동이 포함되어 선형 모델(\ref{eq:forward})의 현실적 테스트를 제공한다 ---
+% 선형 모델은 $\mathcal{O}(\epsilon^2)$ 근사이므로, Gerstner ground truth에서의
+% 성능이 선형 모델의 실용적 한계를 측정한다;
+% (2) 해석해이므로 수치 파도 시뮬레이션(CFD 등)의 이산화 오차가 없어
+% 순수한 모델 오차만을 평가할 수 있다.
+\textbf{[철회] (2026-08-14):} 이 선택의 근거로 제시했던 두 이유 중
+``수평 궤도 운동이 포함되어 선형 모델의 현실적 테스트를 제공한다''는
+철회한다 --- 생성 경로가 그 성분을 폐기하므로 ground truth에 수평 궤도 운동이 없고,
+따라서 이 코퍼스는 선형 모델의 한계를 측정하지 못한다.
+``해석해이므로 이산화 오차가 없다''는 이유는 유지된다.
 
 해상 조건은 Beaufort 2--5 ($H_s = 0.3$--$2.0$\,m, $T_p = 4$--$9$\,s)를 포괄하며,
 성분 수 1, 2, 5, 15, 30과 $\pm 20^\circ$ 방향 분산을 포함한다.
@@ -1687,7 +1808,22 @@ $\cos\theta$는 Lambertian 투영, $(d/d_{\text{ref}})^2$는 역제곱 거리 �
         --- 급경사 표면에서 높은 raydrop, 파봉 부근에서 높은 반환율
 \end{itemize}
 
-시뮬레이션의 물리적 신뢰성은 \textbf{39개의 단위 테스트}로 검증된다:
+% CORRECTED 2026-08-14: 낡은 수치 정정 — 39 -> 196 (실측, 2026-08-13 세 에이전트 독립 실행:
+% 85 wavesim + 111 wavesplat). 여기에 배포 기본값 회귀 테스트 8개가 2026-08-13 에 추가됐다.
+% [범위] -- 2026-08-13 3라운드 감사: 이 테스트들은 배포 기본값을 검사하지 않는다
+%   (lambda_l1 / init_method / tracking_mode 를 동시에 되돌려도 통과했다). 그래서 8개를 신설했다.
+% 또한 "Gerstner 단일파 RMSE" 항목은 single_gerstner() 함수 자체의 단위 시험이며,
+% 파이프라인이 그 함수의 변위 출력을 버리므로 *생성된 데이터가 비선형임을 보증하지 않는다*.
+% (근거: memory/project_audit_recheck_2026-08-13.md §1, §6, §6.5)
+% --- 원문 (이력 보존) --- 시뮬레이션의 물리적 신뢰성은 \textbf{39개의 단위 테스트}로 검증된다:
+시뮬레이션의 물리적 신뢰성은 \textbf{196개의 단위 테스트}로 검증된다
+(2026-08-13 실측; 이후 배포 기본값 회귀 테스트 8개 추가).
+\textbf{[범위] (2026-08-14):} 이 테스트들은 구성요소의 수치 정확성을 검사하며,
+\emph{배포 기본값이 지켜지는지}는 검사하지 않는다(그래서 별도의 회귀 테스트를 신설하였다).
+또한 아래 ``Gerstner 단일파'' 항목은 해당 \emph{함수}의 단위 시험이며,
+생성 파이프라인이 그 함수의 변위 출력을 사용하지 않으므로
+\emph{생성된 데이터가 비선형임을 보증하지 않는다}.
+검사 항목:
 분산관계 해석해 대비 오차 $< 10^{-6}$\,rad/s,
 Gerstner 단일파 RMSE $< 10^{-10}$\,m,
 Fresnel 반사율 단조 증가, ray-surface 교차 정밀도, 수심 $d=50$\,m에서의
@@ -1718,7 +1854,11 @@ $80 \times 60$ 공간 격자($x \in [-10, 390]$\,m, $y \in [-150, 150]$\,m,
         각 관측점의 위치 $(x_j, y_j)$, 파고 $z_j$, 시각 $t_j$,
         입사각 $\theta_j$, 거리 $r_j$ 포함.
   \item \textbf{Ground truth}: 301 프레임 $\times$ $80 \times 60$ 격자의
-        파고장 $\eta(x, y, t)$. Gerstner wave 해석해로 직접 계산.
+        파고장 $\eta(x, y, t)$.
+        % CORRECTED 2026-08-14: "Gerstner wave 해석해" -> 실제로는 변위 성분이 폐기된
+        % 평면파 선형 중첩 (wavesim/gt_generator.py:38, 직접 확인).
+        \emph{정정 (2026-08-14):} 변위 성분이 폐기된 \textbf{평면파의 선형 중첩}으로
+        직접 계산된다(생성기가 Gerstner의 수평 변위를 사용하지 않는다).
   \item \textbf{메타데이터}: $H_s$, $T_p$, 방향, 성분 수, 시드, raydrop 모델.
 \end{itemize}
 
@@ -1775,8 +1915,16 @@ BF5에서 18\,s (180 프레임)이 초기화에 소요되며,
 \caption{ETKF 하이퍼파라미터 스윕: 24개 설정 중 최상/최하 결과.
 $g$=격자 해상도, $n_e$=앙상블 크기, $\alpha$=multiplicative inflation,
 $\sigma$=additive inflation. 최상 설정(bold)을 논문 전체에서 ``ETKF (tuned)''로 사용.
-스윕 12 에피소드 평균(0.358)이 전체 100 에피소드 평균(0.319)보다 높은 것은
-스윕 부분집합이 BF2·BF5 극단 에피소드를 포함하지 않아 ETKF에게 유리하게 편향되지 않기 때문이다.}
+% RETRACTED 2026-08-14: "전체 100 에피소드 평균(0.319)" 은 인용금지 수치다.
+% 또한 이 스윕이 다룬 축은 격자·앙상블·inflation 뿐이고 배경오차공분산·국소화 반경은
+% 어떤 축에도 없다. (근거: memory/reference_citation_bans.md (08-13 3라운드) ·
+%  memory/project_audit_recheck_2026-08-13.md §6.5)
+% --- 원문 (이력 보존) ---
+% 스윕 12 에피소드 평균(0.358)이 전체 100 에피소드 평균(0.319)보다 높은 것은
+% 스윕 부분집합이 BF2·BF5 극단 에피소드를 포함하지 않아 ETKF에게 유리하게 편향되지 않기 때문이다.
+\textbf{[범위] (2026-08-14):} 이 스윕은 격자 해상도·앙상블 크기·inflation 만 변화시킨다.
+배경오차공분산의 스펙트럼 사전분포와 국소화 반경은 \textbf{스윕 축에 없다}.
+전체 100 에피소드 기준선 평균값과의 대조는 인용금지 수치에 의존하므로 철회한다.}
 \label{tab:etkf_sweep}
 \begin{tabular}{lccccc}
 \toprule
@@ -1821,15 +1969,42 @@ $H_s$ err $\downarrow$ & $|H_{s,\text{est}} - H_{s,\text{gt}}|/H_{s,\text{gt}}$ 
 \section{실험 결과}
 \label{sec:results}
 
+% SCOPE 2026-08-14: P1 이 박사 판정의 조건으로 요구한 범위 문장. 근거는 코드 직독 —
+%  - wavesim/pipeline.py:44 run_episode(...) 에 선속(ship speed) 인자가 없다 (센서 원점 고정).
+%  - 같은 시그니처의 direction_deg 기본값이 0.0 = 파가 센서에서 멀어지는 following seas.
+%  - scripts/d3_h6_v2_e2e.py:14-16 이 이 구성을 스스로 "AWAY from the sensor --
+%    the anti-causal configuration for encounter" 라 라벨한다.
+\paragraph{[범위] 이 절의 모든 정확도 측정에 적용되는 조건 (2026-08-14 명시).}
+본 절과 이하 정확도 결과는 전부 \textbf{(i) 정지 플랫폼}(시뮬레이터의 에피소드 생성 함수에
+선속 인자가 존재하지 않으며 센서 원점이 고정된다), \textbf{(ii) \texttt{direction\_deg}$=0$}
+(following seas --- 파가 센서에서 \emph{멀어지는} 기하이며, 본 저장소의 스크립트가 스스로
+이를 조우(encounter) 예측에 대해 \emph{anti-causal} 구성이라 기술한다),
+\textbf{(iii) 합성 데이터} 조건에서 측정되었다.
+따라서 이 결과들은 선언된 응용 시나리오(전진하는 선박의 조우 예보 기하)에서
+직접 측정된 것이 아니다.
+
 \subsection{전체 100 에피소드 6-지표 평가}
 \label{sec:full_eval}
 
 \begin{table}[htbp]
 \centering
-\caption{전체 100 에피소드 사전 지정 6-지표 비교 결과 (주요 결과).
-VR은 1이 목표; $\ll 1$은 near-zero prediction. SS는 zero predictor 대비;
-\WS{}만 양수.}
+\caption{전체 100 에피소드 사전 지정 6-지표 비교 결과.
+VR은 1이 목표; $\ll 1$은 near-zero prediction. SS는 zero predictor 대비.
+\textbf{[철회] (2026-08-14) --- 이 표의 수치는 인용할 수 없다.}
+근거 파일(\texttt{results/b1\_full\_comparison.json})에서 \WS{}는 에피소드당 평균
+167 프레임(120--220)에서, ETKF와 GPR-1은 301 프레임에서 채점되었고
+\textbf{100/100 에피소드 전부에서 \WS{}의 프레임 수가 더 적다} ---
+즉 세 팔이 같은 프레임에서 채점된 적이 없다.
+또한 이 ETKF는 격자 $40\times30$ / $n_e{=}100$ / inflation 1.0 설정이며,
+같은 \WS{} 열을 튜닝된 LETKF와 대조하면 차이가 \textbf{통계적 널}이다.
+Skill Score 열도 같은 파일 산출이므로 함께 철회한다.}
 \label{tab:main_results}
+% RETRACTED 2026-08-14: 표 전체 [철회]. 사유 (i) 프레임 불일치 (ii) 기준선 선택 (iii) 파생 통계
+% (Skill Score, Wilcoxon p, Cohen's d) 가 같은 파일 계열. 수치를 지우지 않고 표시만 하는 이유는
+% 이력 보존이며, 검증된 대체값이 없으므로 숫자를 새로 만들지 않는다.
+% 직접 재도출 2026-08-14: WS avg_nRMSE 0.2229 / ETKF 0.3189 / GPR-1 0.2610,
+%   n_frames 평균 167 / 301 / 301.
+% (근거: memory/reference_citation_bans.md (08-13 3라운드) · memory/project_audit_recheck_2026-08-13.md §6.5)
 \small
 \begin{tabular}{lcccccc}
 \toprule
@@ -1842,10 +2017,18 @@ GPR-1 & 0.261 & 0.780 & 0.065 & 0.193 & $-0.140$ & +0.028 \\
 \end{tabular}
 \end{table}
 
-표~\ref{tab:main_results}의 핵심 관찰은
-\emph{\WS{}가 Skill Score가 양수인 유일한 방법}이라는 것이다 (+0.034):
-모든 기준선이 zero predictor보다 \emph{열등}하다.
-이는 nRMSE 열만으로는 드러나지 않는 두 가지 실패 모드를 노출시킨다:
+% RETRACTED 2026-08-14: Skill Score 열(+0.034 / -0.702 / -0.140)은 표 tab:main_results 와
+% 같은 파일 산출이므로 프레임 불일치·기준선 선택 결함을 그대로 물려받는다 ⟹ 인용금지.
+% 아래 두 진단(GPR near-zero predictor · ETKF 형상 불일치)의 *정성적* 서술은 별도 코퍼스에서
+% 재현된 바 있어 남기되, 수치는 이 표에 의존하므로 함께 철회 표시한다.
+% (근거: memory/reference_citation_bans.md (08-13 3라운드) · wavesplat/README.md:48)
+% --- 원문 (이력 보존) ---
+% 표~\ref{tab:main_results}의 핵심 관찰은
+% \emph{\WS{}가 Skill Score가 양수인 유일한 방법}이라는 것이다 (+0.034):
+% 모든 기준선이 zero predictor보다 \emph{열등}하다.
+\textbf{[철회] (2026-08-14):} ``\WS{}가 Skill Score가 양수인 유일한 방법''이라는 진술과
+그 수치는 표~\ref{tab:main_results}와 같은 근거 파일에서 나오므로 함께 철회한다.
+아래 두 진단은 정성적 서술로만 읽어야 하며, 인용된 수치는 같은 철회 대상이다:
 
 \begin{itemize}
   \item \textbf{GPR은 near-zero predictor이다.}
@@ -1862,9 +2045,12 @@ GPR-1 & 0.261 & 0.780 & 0.065 & 0.193 & $-0.140$ & +0.028 \\
 
 \begin{table}[htbp]
 \centering
-\caption{해상 상태별 평균 nRMSE. GPR의 해상 상태 불변성(0.258--0.263)은
-near-zero predictor의 진단적 지문이다.}
+\caption{해상 상태별 평균 nRMSE.
+\textbf{[철회] (2026-08-14):} 이 표는 표~\ref{tab:main_results}와 같은 근거 파일의
+층별 분해이므로 동일한 프레임 불일치·기준선 선택 결함을 물려받는다. 인용 금지.}
 \label{tab:bybf}
+% RETRACTED 2026-08-14: tab:main_results 와 동일 사유.
+% (근거: memory/reference_citation_bans.md (08-13 3라운드))
 \begin{tabular}{lcccc}
 \toprule
 해상 상태 & \WS{} & ETKF & GPR-1 & 에피소드 수 \\
@@ -1882,10 +2068,12 @@ BF5 & \textbf{0.283} & 0.302 & 0.262 & 20 \\
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.95\textwidth]{figures_ws/fig1_comparison.pdf}
-\caption{전체 100 에피소드 6-지표 비교 요약. \WS{}가 nRMSE 및 Skill Score에서
-가장 우수한 성능을 보인다. GPR의 near-zero VR과 ETKF의 낮은 $\rho$가
-6-지표 패널의 진단적 가치를 입증한다.}
+\caption{전체 100 에피소드 6-지표 비교 요약.
+\textbf{[철회] (2026-08-14):} 이 그림은 표~\ref{tab:main_results}와 같은 근거 파일에서
+그려졌으므로 nRMSE·Skill Score 우위 주장은 철회한다(프레임 불일치·기준선 선택).
+6-지표 패널이 실패 모드를 드러낸다는 \emph{진단적} 용도만 유지한다.}
 \label{fig:comparison}
+% RETRACTED 2026-08-14: tab:main_results 와 동일 사유.
 \end{figure}
 
 \WS{}의 한계도 동일한 패널에서 드러난다.
@@ -1997,12 +2185,21 @@ BF4 30comp에서 $N_a = 18$은 ground truth 30개 대비 60\%만 모델링하며
 나머지 12개 성분의 미포착이 nRMSE 0.314의 주요 원인이다.
 
 \paragraph{속도 이점}
-\WS{}는 평균 13.4\,ms/프레임으로 tuned ETKF 대비 약 10배 빠르다.
-BF3 2comp (U)에서 ETKF가 635\,ms로 급증하는데,
-이는 높은 nRMSE에서 앙상블 발산 → inflation 보정 →
-추가 앙상블 연산의 악순환에 기인한다.
-\WS{}는 성분 수에 비례하는 예측 가능한 비용($\sim$13\,ms $\pm$ 3\,ms)을 보이며,
-실시간 예산(100\,ms) 대비 7배의 여유를 확보한다.
+% RETRACTED 2026-08-14: "13.4 ms/프레임", "약 10배", 그리고 그로부터 유도된 절대 여유 배수는
+% 프로세스 간 비교 산출이므로 인용금지. 허용 대체값 = 동일 프로세스·1스레드 1.5--2.6배.
+% (근거: memory/reference_citation_bans.md (08-05), (08-13 3라운드))
+% --- 원문 (이력 보존) ---
+% \WS{}는 평균 13.4\,ms/프레임으로 tuned ETKF 대비 약 10배 빠르다.
+% BF3 2comp (U)에서 ETKF가 635\,ms로 급증하는데,
+% 이는 높은 nRMSE에서 앙상블 발산 → inflation 보정 →
+% 추가 앙상블 연산의 악순환에 기인한다.
+% \WS{}는 성분 수에 비례하는 예측 가능한 비용($\sim$13\,ms $\pm$ 3\,ms)을 보이며,
+% 실시간 예산(100\,ms) 대비 7배의 여유를 확보한다.
+\textbf{[철회] (2026-08-14):} 절대 지연값과 ``약 10배'' 배율, 그리고 그로부터 유도한
+실시간 예산 여유 배수를 전부 철회한다. 두 팔의 지연이 서로 다른 프로세스에서
+스레드 고정 없이 측정되었기 때문이다.
+동일 프로세스·단일 스레드에서 인용 가능한 값은 \textbf{1.5--2.6배}이며,
+측정 기기는 \textbf{AMD Ryzen 7 7800X3D}이다.
 
 \paragraph{적응형 $N_a$의 유효성}
 $N_a$는 해상 복잡도를 정확히 반영한다:
@@ -2010,7 +2207,13 @@ BF4 1comp $\to N_a = 1$, BF3 2comp $\to N_a = 2$,
 BF3 5comp $\to N_a = 4$ (5개 중 1개가 에너지 10\% 미만으로 가지치기),
 BF4 15comp $\to N_a = 19$ (에너지 보존을 위해 ground truth보다 4개 추가).
 $N_a > N_{\text{true}}$ 사례는 빔포밍이 잔차 에너지에서 추가 피크를 검출한 것으로,
-이 추가 성분은 비선형 Gerstner 파형의 고차 하모닉을 근사한다.
+% RETRACTED 2026-08-14: 이 기제 설명("비선형 Gerstner 파형의 고차 하모닉을 근사")은
+% 성립하지 않는다 — 합성 GT 에 비선형 하모닉이 없다(생성기가 변위 성분을 폐기).
+% (근거: memory/project_audit_recheck_2026-08-13.md §6.5 · 코드 직독 2026-08-14)
+% --- 원문 (이력 보존) --- 이 추가 성분은 비선형 Gerstner 파형의 고차 하모닉을 근사한다.
+\textbf{[철회] (2026-08-14):} 추가 성분이 ``비선형 Gerstner 파형의 고차 하모닉을
+근사한다''는 설명을 철회한다 --- 합성 ground truth에 비선형 하모닉이 존재하지 않는다.
+이 추가 성분의 정체는 미측정이다.
 
 \subsection{다중 시드 통계 검증}
 \label{sec:statistical}
@@ -2031,9 +2234,17 @@ nRMSE의 비정규 분포(하한 0에서 절단)에 적합하다.
 
 \begin{table}[htbp]
 \centering
-\caption{100 대응 검증 통계. 여기서 mean은 별도 대응 실행의 평균이며,
-표~\ref{tab:main_results}의 단일 실행 평균(0.223/0.319)과의 차이는 run-to-run 초기화 변동에 의한 것이다.}
+\caption{100 대응 검증 통계.
+\textbf{[철회] (2026-08-14):} 이 표의 $p$-값과 Cohen's $d$는 표~\ref{tab:main_results}와
+같은 근거 파일 계열에서 나온 것으로, 프레임 불일치·기준선 선택 결함을 그대로 물려받는다.
+또한 이 코퍼스는 레거시 생성기 산출물이라 독립 draw 가 위상·방향 축에서 5개뿐이며
+(클러스터 단위 바닥 $p$가 $2^{-5}$), 에피소드 단위 $p$를 액면가로 읽을 수 없다. 인용 금지.}
 \label{tab:stats}
+% RETRACTED 2026-08-14: Wilcoxon p=1.1e-15 · Cohen's d=1.16 · Holm 2.2e-15 전부 인용금지.
+% 사유 (i) tab:main_results 와 같은 파일 계열 (ii) data/ 100 에피소드가 레거시 생성기
+% 산출물이라 독립 draw 가 진실장 50 / 진폭 10 / omega 10 / 위상·방향 5 로 분해되고
+% 클러스터 단위 바닥 p = 2^-5 = 0.031 이다.
+% (근거: memory/reference_citation_bans.md (08-13 재감사) · memory/project_audit_recheck_2026-08-13.md §4)
 \footnotesize
 \begin{tabular}{llllll}
 \toprule
@@ -2045,9 +2256,14 @@ nRMSE의 비정규 분포(하한 0에서 절단)에 적합하다.
 \end{tabular}
 \end{table}
 
-두 신뢰 구간 모두 0을 제외하며, \WS{}--ETKF 격차는
-large effect (Cohen's $d > 0.8$), \WS{}--GPR 격차는
-small-to-medium이지만 100 paired run에 걸쳐 견고하다.
+% RETRACTED 2026-08-14: "large effect" 결론은 위 표의 철회된 통계량에 의존한다.
+% (근거: memory/reference_citation_bans.md (08-13 재감사))
+% --- 원문 (이력 보존) ---
+% 두 신뢰 구간 모두 0을 제외하며, \WS{}--ETKF 격차는
+% large effect (Cohen's $d > 0.8$), \WS{}--GPR 격차는
+% small-to-medium이지만 100 paired run에 걸쳐 견고하다.
+\textbf{[철회] (2026-08-14):} 위 표의 통계량이 철회되었으므로 그로부터 도출한
+효과 크기 등급 판정(``large effect'')도 함께 철회한다.
 
 단, 3-프레임 슬라이딩 GPR은 공간 보간만 수행하며 분산관계 등 시간적 물리 모델이 없다.
 \WS{}는 분산관계를 하드 제약으로 적용하고 추적 단계에서 위상을 전파하므로, 두 방법 사이에는
@@ -2056,24 +2272,34 @@ GPR-disp를 더 공정한 시간 비교 대상으로 추가 평가하였으며
 (Section~\ref{sec:strongbaselines}), 12-에피소드 서브셋에서도
 \WS{} (0.211)이 GPR-disp (0.267)를 21\% 앞선다.
 
-두 Wilcoxon 검정에 대해 Holm--Bonferroni 다중 비교 보정을 적용하였다:
-정렬된 $p$-값 $p_1 = 1.1\times10^{-15}$ (ETKF 비교),
-$p_2 = 4.7\times10^{-4}$ (GPR 비교)에 대해
-$p_1^* = 2 \times 1.1\times10^{-15} = 2.2\times10^{-15}$,
-$p_2^* = 4.7\times10^{-4}$이며,
-두 비교 모두 $\alpha = 0.05$ 수준에서 유의성이 유지된다.
-
-동일 (해상, 성분 수) 설정을 공유하는 에피소드들은 시드만 다르므로 완전히 독립적이지 않다.
-보수적 검증으로 20개 설정 수준 평균에 대해 Wilcoxon 검정을 수행해도
-유의성이 유지됨을 확인하였다 ($p < 0.001$).
+% RETRACTED 2026-08-14: Holm 보정 결과와 "설정 수준 평균에서도 유의" 진술 모두
+% 위 표의 철회된 통계량에 의존한다. 그리고 아래 원문이 인정한 종속성은 실제로는 더 깊다 —
+% 레거시 코퍼스의 독립 draw 는 위상·방향 축에서 5개뿐이라 클러스터 단위 바닥 p = 0.031 이다.
+% (근거: memory/project_audit_recheck_2026-08-13.md §4)
+% --- 원문 (이력 보존) ---
+% 두 Wilcoxon 검정에 대해 Holm--Bonferroni 다중 비교 보정을 적용하였다:
+% 정렬된 $p$-값 $p_1 = 1.1\times10^{-15}$ (ETKF 비교),
+% $p_2 = 4.7\times10^{-4}$ (GPR 비교)에 대해
+% $p_1^* = 2 \times 1.1\times10^{-15} = 2.2\times10^{-15}$,
+% $p_2^* = 4.7\times10^{-4}$이며,
+% 두 비교 모두 $\alpha = 0.05$ 수준에서 유의성이 유지된다.
+%
+% 동일 (해상, 성분 수) 설정을 공유하는 에피소드들은 시드만 다르므로 완전히 독립적이지 않다.
+% 보수적 검증으로 20개 설정 수준 평균에 대해 Wilcoxon 검정을 수행해도
+% 유의성이 유지됨을 확인하였다 ($p < 0.001$).
+\textbf{[철회] (2026-08-14):} Holm--Bonferroni 보정 결과와 설정 수준 재검정 결과를
+함께 철회한다. 근본 원인은 보정 방법이 아니라 표본 구조다 --- 이 코퍼스는
+레거시 생성기 산출물이어서 위상·방향 축의 독립 draw 가 다섯 개뿐이며,
+따라서 클러스터 단위로 도달 가능한 최소 $p$가 에피소드 단위 $p$보다 훨씬 크다.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.85\textwidth]{figures_ws/fig6_multiseed.pdf}
-\caption{다중 시드 nRMSE 분포. 100 대응 에피소드에서 \WS{}(파란색)가
-ETKF(주황색) 대비 일관되게 낮은 nRMSE를 보인다.
-Wilcoxon signed-rank 검정 $p = 1.1\times10^{-15}$.}
+\caption{다중 시드 nRMSE 분포.
+\textbf{[철회] (2026-08-14):} 표~\ref{tab:stats}와 같은 사유로 이 그림의 유의성 표기를
+철회한다(같은 근거 파일 계열 + 레거시 코퍼스의 클러스터 종속).}
 \label{fig:multiseed}
+% RETRACTED 2026-08-14: p=1.1e-15 인용금지. (근거: memory/reference_citation_bans.md (08-13 재감사))
 \end{figure}
 
 \subsection{적응형 모델 차수 분석}
@@ -2082,8 +2308,13 @@ Wilcoxon signed-rank 검정 $p = 1.1\times10^{-15}$.}
 \begin{table}[htbp]
 \centering
 \caption{적응형 모델 차수 vs.\ 고정 $N$=15 비교.
-$N_{\text{true}}$: ground-truth 파도 성분 수.}
+$N_{\text{true}}$: ground-truth 파도 성분 수.
+\textbf{[철회] (2026-08-14):} 적응형 $N$의 정확도 이득은 이후(2026-08-03) 측정에서
+\textbf{NULL}로 판정되었다. 이 12-에피소드 표의 이득 방향을 결론으로 인용해서는 안 된다.}
 \label{tab:adaptive}
+% RETRACTED 2026-08-14: 적응형 N 효과 = NULL (2026-08-03). 저장소 프로젝트 지시(CLAUDE.md)에
+% "Adaptive N: energy-based pruning + residual-triggered growth. 효과는 NULL 로 측정됨(08-03)" 기재.
+% (근거: CLAUDE.md · memory/project_session_2026-08-03_cdip_stage2.md)
 \begin{tabular}{lcccc}
 \toprule
 에피소드 & $N_{\text{true}}$ & $N_{\text{adapt}}$ & 고정 & 적응형 \\
@@ -2109,8 +2340,12 @@ BF4 30comp & 30 & 18 & 0.332 & \textbf{0.314} \\
 \label{fig:adaptive_n}
 \end{figure}
 
-적응형 $N$은 고정 $N=15$ 대비 평균 6.6\% nRMSE 개선을 달성한다.
-모델이 해상 복잡도를 정확히 식별한다:
+% RETRACTED 2026-08-14: "평균 6.6% nRMSE 개선" 은 이후 측정에서 NULL 로 판정됐다(2026-08-03).
+% (근거: CLAUDE.md "Adaptive N: ... 효과는 NULL 로 측정됨(08-03)")
+% --- 원문 (이력 보존) --- 적응형 $N$은 고정 $N=15$ 대비 평균 6.6\% nRMSE 개선을 달성한다.
+\textbf{[철회] (2026-08-14):} 적응형 $N$의 nRMSE 개선 주장은 이후 측정에서
+NULL 로 판정되어 철회한다.
+아래의 \emph{서술적} 관찰(모델 차수가 해상 복잡도에 따라 움직인다)은 유지한다:
 단일 성분 너울에 $N=1$, 중간 해상에 $N=2$--4, 복잡한 다성분 해상에 $N=18$--21.
 $N_{\text{true}} \geq 30$에서 $N_{\text{adapt}} \approx 18$로 포화되는데,
 이는 빔포밍의 파수 공간 해상도 한계를 반영한다.
@@ -2148,22 +2383,56 @@ A1: 분산 제약 제거 ($\omega$ 자유 파라미터). A2: 신뢰 가중치 �
 \centering
 \includegraphics[width=0.85\textwidth]{figures_ws/fig4_ablation.pdf}
 \caption{Ablation 연구 결과. Full 모델, 분산 제약 제거(A1), 신뢰 가중치 제거(A2)의
-BF3 에피소드별 nRMSE 비교. 신뢰 가중치 제거가 slope-model 에피소드에서
-가장 큰 성능 저하를 유발한다.}
+BF3 에피소드별 nRMSE 비교.
+\textbf{[철회] (2026-08-14):} ``신뢰 가중치 제거가 가장 큰 성능 저하를 유발한다''는
+결론은 신선 표본에서 부호가 반대로 측정되어 철회한다(본문 참조).}
 \label{fig:ablation}
+% RETRACTED 2026-08-14: A2 결론 반증. (근거: memory/reference_citation_bans.md (08-13 재감사))
 \end{figure}
 
 \textbf{A1 (분산 제약 제거)}: 비제약 최적화기가 BF3에서 더 낮은 nRMSE를 달성한다
-(0.158 vs.\ 0.188). BF4--BF5 확장 평가(50 에피소드 $\times$ 3 시드)에서도
-유사한 패턴이 관찰된다 (A1=0.241 vs.\ Full=0.266).
-이 결과는 신중한 해석이 필요하다: 비제약 최적화기는
-선형 forward 모델과 비선형 Gerstner ground truth 간의 모델 불일치를
-$(k, \omega)$ 쌍이 분산 곡면에서 이탈하도록 허용함으로써 흡수한다.
+(0.158 vs.\ 0.188).
+% RETRACTED 2026-08-14: BF4--BF5 확장 평가(results/ablation_bf45.json) 인용을 철회한다.
+% 두 가지 결함이 겹친다:
+%  (1) 선택 인용 — 같은 파일에서 A2(신뢰 가중치 제거) 팔도 Full 보다 좋다.
+%      직접 재도출 2026-08-14 (150 짝): Full 0.2662 · A1 0.2412 · A2 0.2425,
+%      A2 가 Full 보다 좋은 짝이 134/150. 본문은 A1 만 인용하고 A2 를 빼놓은 채
+%      아래에서 "A2 제거 = 14.5% 저하" 라고 쓰고 있었다.
+%  (2) 근거 자격 미달 — 이 파일은 어느 절제도 판정하지 못한다. Full 팔의 중앙값
+%      0.2757 이 제로필드(nRMSE ~0.25)를 못 이기기 때문이다.
+% (근거: memory/reference_citation_bans.md (08-13 재감사) · 직접 재도출 2026-08-14)
+% --- 원문 (이력 보존) ---
+% BF4--BF5 확장 평가(50 에피소드 $\times$ 3 시드)에서도
+% 유사한 패턴이 관찰된다 (A1=0.241 vs.\ Full=0.266).
+\textbf{[철회] (2026-08-14):} BF4--BF5 확장 평가 파일의 인용을 철회한다.
+같은 파일에서 \emph{A2 팔도 Full 보다 좋고}(대응 표본의 대다수에서), 본문은 A1 만
+인용한 채 아래에서 A2 제거가 성능을 떨어뜨린다고 서술하고 있었다 --- 선택 인용이다.
+더 근본적으로 그 파일은 어느 절제도 판정할 수 없다: Full 팔조차 제로필드 예측기를
+넘지 못하기 때문이다.
+남은 BF3 6-에피소드 결과에 대한 아래 해석은 유지하되, 확장 평가의 뒷받침은 없다.
+% RETRACTED 2026-08-14 (기제 설명 부분): "선형 forward 모델과 비선형 Gerstner GT 사이의
+% 모델 불일치를 흡수한다" 는 성립하지 않는다 — 실측 불일치가 0 이다(생성기가 변위 폐기).
+% A1 이 왜 더 낮은 nRMSE 를 내는지는 미측정이다. 물리적 유효성 논거(아래)는 유지된다.
+% (근거: memory/project_audit_recheck_2026-08-13.md §6.5 · 코드 직독 2026-08-14)
+% --- 원문 (이력 보존) ---
+% 이 결과는 신중한 해석이 필요하다: 비제약 최적화기는
+% 선형 forward 모델과 비선형 Gerstner ground truth 간의 모델 불일치를
+% $(k, \omega)$ 쌍이 분산 곡면에서 이탈하도록 허용함으로써 흡수한다.
+이 결과는 신중한 해석이 필요하다.
+\textbf{[철회] (2026-08-14):} 이전 판은 비제약 최적화기가 ``선형 forward 모델과
+비선형 Gerstner ground truth 사이의 모델 불일치를 흡수한다''고 설명했다. 이 기제는
+성립하지 않는다 --- 합성 코퍼스에서 그 불일치는 실측 0이다. A1이 더 낮은 nRMSE를
+내는 이유는 \textbf{미측정}이다. 아래의 물리적 유효성 논거는 그와 무관하게 유지된다:
+비제약 최적화기는 $(k, \omega)$ 쌍이 분산 곡면에서 이탈하는 것을 허용한다.
 이는 \emph{물리적 정확성}과 nRMSE를 교환하는 것이다.
 결과적 스펙트럼 추정치는 $\omega^2 = g|k|\tanh(|k|d)$를 만족하지 않아,
 시간 전파, 좌표계 변환, 분산관계를 가정하는 downstream 파랑 예측 모듈에
 사용할 수 없다.
 
+% NOTE 2026-08-14: 아래 R-bar 는 같은 BF4--BF5 파일 계열의 부산물이나, 재는 양이 정확도가
+% 아니라 "추정된 (k,omega) 가 분산 곡면에서 얼마나 벗어나는가" 이므로 제로필드 바닥 논거의
+% 영향을 받지 않는다. 따라서 철회하지 않는다. (범위: 이 값은 물리적 유효성의 지표이지
+% 정확도 기여의 근거가 아니다.)
 진폭 가중 상대 잔차 $\bar{R} = \sum_i |w_i||\omega_i - \omega_i^{\text{disp}}| / (\omega_i^{\text{disp}} \sum_j |w_j|)$를
 BF4--BF5 부분집합에서 측정하면, A1은 $\bar{R} = 0.51 \pm 0.12$
 (평균 $\approx 0.10$\,Hz 분산 곡면 이탈)인 반면
@@ -2172,11 +2441,29 @@ Full은 $\bar{R} \equiv 0$이다.
 프레임당 상태를 $2N$으로 축소시키는 핵심 역할을 한다.
 따라서 이 ablation은 제약의 정규화 가치가 아닌 물리적 유효성의 비용을 측정한다.
 
-\textbf{A2 (신뢰 가중치 제거)}: 기하 신뢰 가중치 제거는 평균 14.5\% 성능 저하
-(0.215 vs.\ 0.188)를 초래하며, slope-model 에피소드에서 가장 큰 저하가 관찰된다
-(BF3 2comp (S): $0.088 \to 0.204$, 2.3배 증가).
-관측 품질이 LiDAR 시야 내에서 크게 변하는 해양 표면 측정에서
-거리·입사각 의존 노이즈 모델링이 필수적임을 확인한다.
+% RETRACTED 2026-08-14: 이 절의 결론("신뢰 가중치가 필수적")은 반증됐다.
+%  (i) 신선 표본(S13)에서 use_confidence 를 끄는 쪽이 더 나았다 — 혼잡 10/64 · 희소 16/64,
+%      med_rel -15.6% / -20.4%.
+%  (ii) 여기 인용된 BF4--BF5 확장 파일 자체에서도 A2 팔이 Full 보다 좋다(직접 재도출,
+%      A2 0.2425 vs Full 0.2662, 134/150 짝).
+%  절제의 대칭성은 확인됨 — use_confidence 는 손실 가중치 한 곳
+%  (wavesplat/optimizer/sequential_update.py:330)만 건드린다.
+% (근거: memory/reference_citation_bans.md (08-13 재감사) ·
+%  memory/project_audit_recheck_2026-08-13.md §2 · 직접 재도출 2026-08-14)
+% --- 원문 (이력 보존) ---
+% \textbf{A2 (신뢰 가중치 제거)}: 기하 신뢰 가중치 제거는 평균 14.5\% 성능 저하
+% (0.215 vs.\ 0.188)를 초래하며, slope-model 에피소드에서 가장 큰 저하가 관찰된다
+% (BF3 2comp (S): $0.088 \to 0.204$, 2.3배 증가).
+% 관측 품질이 LiDAR 시야 내에서 크게 변하는 해양 표면 측정에서
+% 거리·입사각 의존 노이즈 모델링이 필수적임을 확인한다.
+\textbf{A2 (신뢰 가중치 제거) --- [철회] (2026-08-14)}:
+이 6-에피소드 표에서는 신뢰 가중치를 제거하면 성능이 떨어지는 것으로 보였으나,
+이후 \emph{신선 표본}에서 반대 부호가 측정되었다 --- 가중치를 \emph{끄는} 쪽이
+양 레짐 모두에서 더 나았다. 또한 위에서 인용을 철회한 BF4--BF5 확장 파일에서도
+A2 팔이 Full 보다 좋다. 따라서 ``거리·입사각 의존 노이즈 모델링이 필수적''이라는
+결론을 철회하며, 기하 신뢰 가중치는 제1장 기여에서도 철회되었다.
+이 절제는 손실 가중치 한 곳만 건드리므로 대칭적이며, 그 점에서 이 음성 결과는
+해석 가능한 음성이다.
 
 \subsection{Raydrop 모델 강건성}
 \label{sec:raydrop}
@@ -2425,19 +2712,59 @@ BF2, $H_s=0.3$\,m, 단일 성분.
         밀집 관측에서는 사후 LS 보정이 효과적이나,
         희소 LiDAR($\sim$50~pts/frame)에서는 공간 커버리지 부족으로 개선되지 않는다.
         Momentum 없는 optimizer나 주기적 상태 초기화 등 대안적 추적 전략이 향후 연구 방향이다.
-  \item VR = 0.66: 진폭 약 34\% 과소추정 --- 상기 추적 중 진폭 감쇠에 기인
-  \item SS = +0.034: 양수이나 marginal --- 추정 품질의 추가 개선이 필요
+  % SCOPE/RETRACTION 2026-08-14: 아래 세 값은 전부 tab:main_results 와 같은 근거 파일
+  % (results/b1_full_comparison.json) 산출이다. Skill Score 는 인용금지 목록에 명시적으로
+  % 올라 있으므로 철회한다. VR·Dir R^2 는 단일 팔 기술통계라 프레임 불일치가 *교차 팔 비교*를
+  % 무효화하는 것과 별개이므로 값을 남기되, 범위를 명시한다.
+  % (근거: memory/reference_citation_bans.md (08-13 3라운드) · wavesplat/README.md:48)
+  \item VR = 0.66: 진폭 약 34\% 과소추정 --- 상기 추적 중 진폭 감쇠에 기인.
+        \emph{([범위] 2026-08-14: 단일 팔 기술통계이며 기준선과의 비교로 읽어서는 안 된다.)}
+  % --- 원문 (이력 보존) --- \item SS = +0.034: 양수이나 marginal --- 추정 품질의 추가 개선이 필요
+  \item Skill Score: \textbf{[철회] (2026-08-14)} --- 이 값은 인용금지 수치다
+        (표~\ref{tab:main_results}와 같은 근거 파일). 추정 품질의 추가 개선이
+        필요하다는 \emph{정성적} 한계 서술만 유지한다.
   \item Dir $R^2 = -0.25$: 방향 성분이 chance 미만 --- 가장 심각한 한계로,
-        downstream 제어에서 BF4 head sea 성능 저하의 직접적 원인
+        downstream 제어에서 BF4 head sea 성능 저하의 직접적 원인.
+        \emph{([범위] 2026-08-14: 단일 팔 기술통계이며 기준선과의 비교로 읽어서는 안 된다.)}
+  % RETRACTED 2026-08-14: "GT 가 Gerstner(비선형)" 서술이 거짓임이 실측으로 확정됐다.
+  % wavesim/gt_generator.py:38 의 evaluate_field() 가
+  %   `_, _, Z, NX, NY, NZ = single_gerstner(...)`
+  % 로 Gerstner 의 수평 변위 성분 두 개를 버리고 표고만 반환한다(직접 확인 2026-08-14).
+  % wavesim/pipeline.py:157,165 가 GT 필드와 레이캐스트 메시를 둘 다 이 함수로 만들므로
+  % Gerstner Q 가 어느 쪽에도 들어가지 않는다. 저장된 gt_wave_field 를
+  % Sum A cos(kx x + ky y - w t + phi) 로 재구성하면 희소·혼잡·공개 코퍼스 4개 에피소드에서
+  % max|delta| = 0.000e+00 ⟹ 불일치는 O(eps^2) 가 아니라 정확히 0 이고,
+  % GT 는 추정기의 모델식과 100% 동일하다. 따라서 "<0.5%" 도 같은 이유로 무효다.
+  % ⟹ "모든 방법에 동일하게 적용" 이라는 공정성 논거도 성립하지 않는다(격자 방법은 그 표현을
+  %   쓰지 않는다).
+  % 39개 단위 테스트도 낡은 수치다 — 실측 196 (+ 배포 기본값 회귀 8).
+  % 비선형 검증은 별도의 HOS M=3 배치(wavesplat/tmp/HOSGATE_2026-08-13/)로 수행했다.
+  % (근거: memory/project_audit_recheck_2026-08-13.md §6.5 · memory/reference_citation_bans.md
+  %  (08-13 3라운드) · memory/project_hosgate_result_2026-08-13.md · 코드 직독 2026-08-14)
+  % --- 원문 (이력 보존) ---
+  % \item 시뮬레이션 전용: 조파수조 실험 검증 필요 (제5장).
+  %       단, GT가 Gerstner(비선형)이고 모든 추정 방법(\WS{}, ETKF, LETKF, GPR)이
+  %       선형 forward 모델을 사용하므로, $\mathcal{O}(\epsilon^2)$ 모델 불일치는
+  %       모든 방법에 동일하게 적용되어 비교의 공정성에는 영향하지 않는다.
+  %       시뮬레이터 자체는 39개 단위 테스트(분산관계, Gerstner 진폭,
+  %       JONSWAP 스펙트럼, ray-mesh 교차 등)로 검증되었으며,
+  %       이는 \citet{Desmars2020, Desmars2023}의 방법론 검증 접근과 일관된다.
+  % \item 선형 파도 모델: $\mathcal{O}(\epsilon^2)$ 불일치는 BF2--5에서 $<0.5\%$이나
+  %       가파른 파도에서 증가; 2차 Stokes 확장으로 스펙트럼 파라미터화를 유지하며 해결 가능
   \item 시뮬레이션 전용: 조파수조 실험 검증 필요 (제5장).
-        단, GT가 Gerstner(비선형)이고 모든 추정 방법(\WS{}, ETKF, LETKF, GPR)이
-        선형 forward 모델을 사용하므로, $\mathcal{O}(\epsilon^2)$ 모델 불일치는
-        모든 방법에 동일하게 적용되어 비교의 공정성에는 영향하지 않는다.
-        시뮬레이터 자체는 39개 단위 테스트(분산관계, Gerstner 진폭,
-        JONSWAP 스펙트럼, ray-mesh 교차 등)로 검증되었으며,
-        이는 \citet{Desmars2020, Desmars2023}의 방법론 검증 접근과 일관된다.
-  \item 선형 파도 모델: $\mathcal{O}(\epsilon^2)$ 불일치는 BF2--5에서 $<0.5\%$이나
-        가파른 파도에서 증가; 2차 Stokes 확장으로 스펙트럼 파라미터화를 유지하며 해결 가능
+        \textbf{[철회] (2026-08-14) --- 정정}: 이전 판은 여기서 ``합성 ground truth가
+        Gerstner(비선형) 운동학을 쓰므로 $\mathcal{O}(\epsilon^2)$ 모델 불일치가 모든
+        방법에 동일하게 적용된다''고 기술했다. 이는 \textbf{거짓}이다.
+        정확한 사실은 다음과 같다: \emph{합성 ground truth는 변위 없는 격자 위의
+        선형 중첩이며}(생성기가 Gerstner의 수평 변위 성분을 버리고 표고만 사용한다),
+        따라서 ground truth가 제안 방법의 모델식과 \textbf{동일한 함수공간}에 놓인다.
+        비선형 검증은 이 코퍼스가 아니라 \textbf{별도의 HOS ($M{=}3$) 배치}로 수행하였다.
+        시뮬레이터 단위 테스트 수는 39개가 아니라 \textbf{196개}이며,
+        여기에 배포 기본값 회귀 테스트 8개가 추가되었다.
+  \item 선형 파도 모델: 가파른 파도에서 비선형성이 증가하며,
+        2차 Stokes 확장으로 스펙트럼 파라미터화를 유지하며 해결 가능.
+        \textbf{[철회] (2026-08-14):} ``$\mathcal{O}(\epsilon^2)$ 불일치가 BF2--5에서
+        $<0.5\%$''라는 수치는 위와 같은 이유로 철회한다(합성 코퍼스에서 실측 불일치는 0이다).
   \item 해류 미추정: Doppler 이동
         $\omega = \sqrt{g|k|\tanh(|k|d)} + \mathbf{k}\cdot\mathbf{U}$의 해류 항 미포함;
         해류--파도 동시 추정은 자연스러운 확장
@@ -2446,6 +2773,14 @@ BF2, $H_s=0.3$\,m, 단일 성분.
   \item \textbf{Cold start 지연}: Phase~1 초기화에 $T_{\text{init}} = 2T_p$
         ($\sim$16\,s at BF4)가 소요되며, 이 기간 동안 추정값이 제공되지 않는다.
         추적과 병행하는 백그라운드 재초기화 방식으로 완화 가능하다.
+  % SCOPE 2026-08-14: 이 항목이 "정지 플랫폼" 은 인정했으나 "파가 센서에서 멀어지는 기하" 는
+  % 빠져 있었다. 코드 직독 — wavesim/pipeline.py:44 run_episode() 의 direction_deg 기본값 0.0,
+  % scripts/d3_h6_v2_e2e.py:14-16 이 이를 "AWAY from the sensor -- anti-causal for encounter" 라 라벨.
+  \item \textbf{조우 기하 미반영}: 본 논문의 모든 정확도 에피소드는
+        \texttt{direction\_deg}$=0$, 즉 파가 센서에서 \emph{멀어지는} following seas
+        기하에서 생성되었다. 이는 조우(encounter) 예보에 대해 \textbf{anti-causal}한
+        구성이며, 본 저장소의 스크립트가 스스로 그렇게 기술한다.
+        선언된 응용(전진 선박의 조우 예보)의 기하에서는 측정되지 않았다.
   \item \textbf{선박 운동 미반영}: 시뮬레이션이 고정 센서 플랫폼을 가정한다.
         실해양에서는 heave, pitch, roll에 의한 빔 패턴 변동이 발생하며,
         IMU/INS 기반 좌표 변환이 전처리 단계에서 필수적이다.
@@ -3011,8 +3346,22 @@ Head sea에서 0.1\,s, beam sea에서 0.3\,s가 최적이며,
 
 장거리 미리보기는 파도 분산과 다성분 간섭에 의한 공간 파도장 비상관화로
 성능이 저하된다.
+% RETRACTED 2026-08-14: "이는 LiDAR 정밀도가 가장 높은 영역이다" 는 기하로 반증됐다.
+% 2026-08-12 측정: 제어 프리뷰점 8/8 이 LiDAR 사각지대 안에 있다
+% (프리뷰점 7.65 m < 관측 격자 시작 10.0 m < 사각지대 경계 10.72 m) ⟹ 관측 0개.
+% 즉 그 구간은 정밀도가 가장 높은 곳이 아니라 관측이 존재하지 않는 곳이고,
+% 문장이 사실과 반대로 적혀 있었다.
+% (근거: memory/MEMORY.md 2026-08-12 · memory/project_persona_debate_blankslate_2026-08-12.md)
+% --- 원문 (이력 보존) ---
+% 이 결과는 LiDAR 추정 시스템이 주로 각 foil 전방 $\sim$3\,m 이내의 근거리에서
+% 정확해야 함을 의미하며, 이는 LiDAR 정밀도가 가장 높은 영역이다.
 이 결과는 LiDAR 추정 시스템이 주로 각 foil 전방 $\sim$3\,m 이내의 근거리에서
-정확해야 함을 의미하며, 이는 LiDAR 정밀도가 가장 높은 영역이다.
+정확해야 함을 의미한다.
+\textbf{[철회] (2026-08-14):} 이전 판은 이어서 ``이는 LiDAR 정밀도가 가장 높은
+영역이다''라고 기술했다. 이는 \textbf{사실과 반대}다 --- 이후 기하 측정에서
+제어 프리뷰점 전부가 \textbf{LiDAR 사각지대 안}에 놓이는 것으로 확인되었다
+(프리뷰점이 관측 격자의 시작 거리보다 가까워 관측점이 존재하지 않는다).
+따라서 이 절의 설계 함의는 유리한 조건이 아니라 \emph{미해결 제약}으로 읽어야 한다.
 
 \subsection{LP 필터 파라미터}
 
@@ -3032,21 +3381,32 @@ $\alpha \geq 0.15$에서 BF4 Head가 엄격히 해로워진다.
 
 \begin{table}[htbp]
 \centering
-\caption{End-to-end 지연 시간 예산 (Intel i7-12700H, CPU 단일 스레드).}
+\caption{End-to-end 지연 시간 예산 (\textbf{AMD Ryzen 7 7800X3D}, CPU 단일 스레드).
+\textbf{[철회] (2026-08-14):} \WS{} 추적 갱신 행의 절대값과 그로부터 계산된
+총 파이프라인·예산 여유 수치는 프로세스 간 비교로 얻은 지연값에 의존하므로 철회한다.}
 \label{tab:latency}
+% RETRACTED/CORRECTED 2026-08-14:
+%  (a) CPU 오기 정정 — "Intel i7-12700H" -> AMD Ryzen 7 7800X3D (2026-08-05 부터 인용금지 항목).
+%  (b) 13.4 ms 행과 그 파생 합계(14.6 / 85.4)는 프로세스 간 비교 산출이라 인용금지.
+%      검증된 대체 절대값이 없으므로 숫자를 새로 만들지 않고 [철회] 로 표시한다.
+% (근거: memory/reference_citation_bans.md (08-05), (08-13 3라운드))
 \begin{tabular}{lcc}
 \toprule
 단계 & 지연 (ms) & 100\,ms 예산 대비 \\
 \midrule
 LiDAR 취득 (per scan, 10\,Hz) & 0.1 & 0.1\% \\
 Point-cloud 전처리            & 0.5 & 0.5\% \\
-\WS{} 추적 갱신            & 13.4 & 13.4\% \\
+% --- 원문 (이력 보존) --- \WS{} 추적 갱신 & 13.4 & 13.4\% \\
+\WS{} 추적 갱신            & [철회] & [철회] \\
 미리보기 평가 (4 foil points)   & 0.3 & 0.3\% \\
 LP 필터 + feedforward 명령      & 0.2 & 0.2\% \\
 PD 피드백 계산              & 0.1 & 0.1\% \\
 \midrule
-\textbf{총 파이프라인}              & \textbf{14.6} & \textbf{14.6\%} \\
-\textbf{예산 여유}               & 85.4 & 85.4\% \\
+% --- 원문 (이력 보존) ---
+% \textbf{총 파이프라인} & \textbf{14.6} & \textbf{14.6\%} \\
+% \textbf{예산 여유}     & 85.4 & 85.4\% \\
+\textbf{총 파이프라인}              & \textbf{[철회]} & \textbf{[철회]} \\
+\textbf{예산 여유}               & [철회] & [철회] \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -3502,12 +3862,20 @@ LiDAR 거리 & 10--50\,m & 10--250\,m & 시뮬레이션의 1/5 \\
 실험 결과로 검증할 세 가지 핵심 가설:
 
 \begin{enumerate}
+  % RETRACTED 2026-08-14: H1·H2 의 괄호 안 기준값이 인용금지 수치(0.223 / 30.1%)에서
+  % 유도됐다. 기준값을 새로 발명하지 않고 철회 표시만 한다.
+  % (근거: memory/reference_citation_bans.md (08-13 3라운드))
+  % --- 원문 (이력 보존) ---
+  % \item \textbf{H1: 파라미터 이전성}. ... (시뮬레이션 평균 0.223의 약 1.8배 이내)
+  % \item \textbf{H2: 구조적 우위 유지}. ... (시뮬레이션에서의 30.1\% 개선이 10\% 이상 유지)
   \item \textbf{H1: 파라미터 이전성}. 시뮬레이션 최적 하이퍼파라미터로
         실데이터에서도 nRMSE $< 0.40$을 달성한다.
-        (시뮬레이션 평균 0.223의 약 1.8배 이내)
+        \emph{([철회] 2026-08-14 --- 이 문턱을 정당화하던 시뮬레이션 기준값이
+        인용금지 수치이므로, 문턱은 재설정되어야 한다.)}
   \item \textbf{H2: 구조적 우위 유지}. 실데이터에서도 \WS{}가 ETKF 대비
         낮은 nRMSE를 기록한다.
-        (시뮬레이션에서의 30.1\% 개선이 10\% 이상 유지)
+        \emph{([철회] 2026-08-14 --- 유지 기준으로 삼던 시뮬레이션 개선율이
+        인용금지 수치이므로, 기준은 재설정되어야 한다.)}
   \item \textbf{H3: WaveSim 충실도}. 실측 LiDAR 특성(raydrop 비율, 노이즈 분산)이
         WaveSim 모델(식~\ref{eq:return_prob})과 20\% 이내로 일치한다.
 \end{enumerate}
@@ -3532,21 +3900,41 @@ H1이 기각될 경우 하이퍼파라미터 재튜닝을 수행하고,
 \paragraph{파도장 추정 (\WS{})}
 파도장을 $N$개의 평면파 집합으로 파라미터화하고
 분산관계를 하드 제약으로 부과한 격자 비의존 스펙트럼 추정 프레임워크를 제안하였다.
-100 에피소드 평가에서 24개 설정으로 최적화된 ETKF 대비
-nRMSE를 \textbf{30.1\%} 낮추고 (\textbf{0.223} vs.\ 0.319),
-약 \textbf{10배} 빠른 처리 속도 (\textbf{13.4} vs.\ 132.6\,ms/프레임)를 달성하였다.
-사전 지정된 6-지표 패널에서 \WS{}는 zero-predictor 대비 양수의
-점추정 Skill Score($+0.034$)를 기록한 유일한 방법이었다
-(전체 100 에피소드 95\% bootstrap CI는 $[-0.08, +0.15]$로 0을 포함하나,
-$\leq$5-성분 에피소드 60개에서는 SS$=+0.37$, CI $[+0.25, +0.48]$으로 0을 배제함).
-이 6-지표 패널은 ETKF의 ``분산 정합이나 형상 불일치'' (VR=0.90, $\rho$=0.11)와
-GPR의 ``near-zero predictor'' (VR=0.065) 실패 모드를 nRMSE 단독으로는
-드러나지 않는 진단적 가치를 입증하였다.
-100회 대응 검증 (Wilcoxon $p = 1.1\times10^{-15}$, Cohen's $d = 1.16$)으로
-이 차이가 통계적으로 large effect임을 확인하였다.
+% RETRACTED 2026-08-14: 결론절의 정확도·지연·통계 헤드라인이 전부 인용금지 수치다.
+% 사유 (i) 프레임 불일치 (ii) 기준선 선택 (iii) 프로세스 간 지연 (iv) 레거시 코퍼스의
+% 클러스터 종속(위상·방향 독립 draw 5개). Skill Score 열도 같은 파일 계열.
+% (근거: memory/reference_citation_bans.md (08-13 3라운드), (08-13 재감사))
+% --- 원문 (이력 보존) ---
+% 100 에피소드 평가에서 24개 설정으로 최적화된 ETKF 대비
+% nRMSE를 \textbf{30.1\%} 낮추고 (\textbf{0.223} vs.\ 0.319),
+% 약 \textbf{10배} 빠른 처리 속도 (\textbf{13.4} vs.\ 132.6\,ms/프레임)를 달성하였다.
+% 사전 지정된 6-지표 패널에서 \WS{}는 zero-predictor 대비 양수의
+% 점추정 Skill Score($+0.034$)를 기록한 유일한 방법이었다
+% (전체 100 에피소드 95\% bootstrap CI는 $[-0.08, +0.15]$로 0을 포함하나,
+% $\leq$5-성분 에피소드 60개에서는 SS$=+0.37$, CI $[+0.25, +0.48]$으로 0을 배제함).
+% 이 6-지표 패널은 ETKF의 ``분산 정합이나 형상 불일치'' (VR=0.90, $\rho$=0.11)와
+% GPR의 ``near-zero predictor'' (VR=0.065) 실패 모드를 nRMSE 단독으로는
+% 드러나지 않는 진단적 가치를 입증하였다.
+% 100회 대응 검증 (Wilcoxon $p = 1.1\times10^{-15}$, Cohen's $d = 1.16$)으로
+% 이 차이가 통계적으로 large effect임을 확인하였다.
+\textbf{[철회] (2026-08-14):} 이 결론절이 제시하던 100 에피소드 정확도 개선율,
+지연 배율, Skill Score, Wilcoxon $p$ 및 Cohen's $d$ 수치를 전부 철회한다.
+근거 파일에서 \WS{}와 기준선이 같은 프레임에서 채점된 적이 없고, 기준선 선택에 따라
+판정이 뒤집히며(튜닝된 LETKF 대비로는 통계적 널), 지연은 서로 다른 프로세스에서
+측정되었고, 코퍼스의 독립 draw 구조가 보고된 $p$ 값을 지지하지 않는다.
+검증된 대체값이 없는 항목은 숫자를 제시하지 않는다.
+6-지표 패널이 nRMSE 단독으로는 드러나지 않는 실패 모드를 노출시킨다는
+\emph{진단적} 결론은 유지하되, 위 수치는 인용해서는 안 된다.
 
+% RETRACTED 2026-08-14: "고정 N=15 대비 6.6% 추가 개선" — 적응형 N 효과는 NULL 로 측정됨(08-03).
+% (근거: CLAUDE.md · memory/project_session_2026-08-03_cdip_stage2.md)
+% --- 원문 (이력 보존) ---
+% 적응형 모델 차수는 단순 너울($N=1$)에서 복잡한 다성분 해상($N=21$)까지
+% 자동 적응하여 고정 $N=15$ 대비 6.6\% 추가 개선을 달성하였다.
 적응형 모델 차수는 단순 너울($N=1$)에서 복잡한 다성분 해상($N=21$)까지
-자동 적응하여 고정 $N=15$ 대비 6.6\% 추가 개선을 달성하였다.
+자동 적응한다.
+\textbf{[철회] (2026-08-14):} 고정 $N$ 대비 정확도 개선 주장은 이후 측정에서
+NULL 로 판정되어 철회한다.
 두 가지 LiDAR raydrop 모델(확산/specular)과 20\% 관측 밀도에서도
 견고한 성능을 보였으며, 추가 노이즈 주입(기준선 5배)에서도
 $\pm$13\% 이내의 안정적 성능을 유지하였다.
@@ -3590,7 +3978,8 @@ LiDAR 정밀도가 가장 높은 근거리 영역과 일치한다.
 \begin{enumerate}
   \item \textbf{수조 실험 검증}: 조파수조에서 LiDAR + \WS{} 적용,
         파고계 기반 ground truth와의 비교를 통한 Sim-to-Real gap 정량화.
-        시뮬레이션에서 확인된 39개 물리 단위 테스트의 실데이터 대응 검증.
+        % CORRECTED 2026-08-14: 39 -> 196 (실측 2026-08-13).
+        시뮬레이션에서 확인된 196개 물리 단위 테스트의 실데이터 대응 검증.
 
   \item \textbf{방향성 추정 개선}: Dir $R^2 = -0.25$의 한계를 극복하기 위한
         방향 추정 알고리즘 개선. 다중 프레임 방향 추적,

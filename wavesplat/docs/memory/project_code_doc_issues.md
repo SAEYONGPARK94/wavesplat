@@ -3,6 +3,8 @@ name: Code-document discrepancies found in review
 description: 코드↔문서 불일치 9건 — α_threshold 버그, 905nm/1550nm, Contribution 번호 등
 type: project
 ---
+> ⛔**ARCHIVED / 낡은 사본 (2026-08-13 감사).** 현행 연구 기록의 권위는 auto-memory(`~/.claude/projects/-home-vexit-wavesplat/memory/MEMORY.md`)와 `tmp/<배치>/RESULT.md` 다. 이 디렉터리의 수치는 다수가 이후 측정에서 무효화됐다 — 인용 금지.
+
 
 ## 발견된 불일치 (2026.04.06 4인 토론 후 업데이트)
 

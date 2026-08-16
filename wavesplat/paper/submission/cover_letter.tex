@@ -32,26 +32,55 @@ multi-component seas.
 
 \textbf{Key contributions and findings:}
 \begin{itemize}
+  % SCOPE/RETRACTION 2026-08-14: geometry-aware confidence weighting is DEAD as a
+  % contribution (fresh out-of-sample corpus: turning it off was better in both strata,
+  % crowded 10/64, sparse 16/64). The dispersion constraint's accuracy contribution is
+  % UNMEASURED. (basis: memory/reference_citation_bans.md (08-13 recheck) ·
+  %  memory/project_audit_recheck_2026-08-13.md section 2)
   \item A grid-free spectral estimation framework with
         dispersion-constrained parameterisation and geometry-aware
         confidence weighting, runnable in real time on a single CPU
         thread.
+        \textbf{[RETRACTED 2026-08-14]} The geometry-aware confidence
+        weighting is withdrawn as a contribution (disabling it was better on
+        a fresh out-of-sample corpus), and the accuracy contribution of the
+        dispersion constraint has not yet been measured.
   \item A pre-registered six-metric evaluation panel
         (nRMSE, variance ratio, Pearson $\rho$, Skill Score,
         directional $R^2$, $H_s$ error) on 100 episodes spanning
         Beaufort~2--5 and 1--30 spectral components, compared against
         a hyperparameter-tuned ETKF-grid (24-config sweep) and a
         sliding-window GPR.
-  \item WaveSplat attains \textbf{30.1\% lower nRMSE}
-        ($0.223$ vs.\ $0.319$) and runs $\sim\!10\times$ faster
-        ($13.4$ vs.\ $132.6$~ms/frame) than the best ETKF
-        configuration, and is the \emph{only} method with a positive
-        Skill Score against a zero predictor.
-  \item Improvements are highly significant over 100 paired runs
-        (Wilcoxon $p{=}1.1\!\times\!10^{-15}$ vs.\ ETKF, paired
-        Cohen's $d{=}1.16$; $p{=}4.7\!\times\!10^{-4}$ vs.\ sliding
-        GPR, $d{=}0.42$), robust under two LiDAR raydrop models, and
-        stable under 20--100\% observation-density subsampling.
+  % RETRACTED 2026-08-14: same reasons as paper/cover_letter.tex --
+  %  (i) frame mismatch (WaveSplat 120-220 frames vs ETKF/GPR 301, 100/100 episodes);
+  %  (ii) baseline choice (same column vs tuned LETKF = 51/100, p=0.9204, null);
+  %  (iii) latency is a cross-process comparison (same-process value 1.5-2.6x);
+  %  plus the corpus has only five independent phase/direction draws, so the
+  %  cluster-level floor on p is 2^-5.
+  % (basis: memory/reference_citation_bans.md (08-13 round 3), (08-13 recheck) ·
+  %  memory/project_audit_recheck_2026-08-13.md sections 4 and 6.5)
+  % --- original (kept for history) ---
+  % \item WaveSplat attains \textbf{30.1\% lower nRMSE}
+  %       ($0.223$ vs.\ $0.319$) and runs $\sim\!10\times$ faster
+  %       ($13.4$ vs.\ $132.6$~ms/frame) than the best ETKF
+  %       configuration, and is the \emph{only} method with a positive
+  %       Skill Score against a zero predictor.
+  % \item Improvements are highly significant over 100 paired runs
+  %       (Wilcoxon $p{=}1.1\!\times\!10^{-15}$ vs.\ ETKF, paired
+  %       Cohen's $d{=}1.16$; $p{=}4.7\!\times\!10^{-4}$ vs.\ sliding
+  %       GPR, $d{=}0.42$), robust under two LiDAR raydrop models, and
+  %       stable under 20--100\% observation-density subsampling.
+  \item \textbf{[RETRACTED 2026-08-14]} The accuracy improvement, speed-up
+        factor, per-frame latencies and Skill Score claim previously stated
+        here are withdrawn: the arms were never scored on the same frames,
+        the verdict reverses against a tuned LETKF baseline, and the latency
+        figures come from separate processes.
+  \item \textbf{[RETRACTED 2026-08-14]} The significance figures previously
+        stated here are withdrawn: they derive from the same result file and
+        from a corpus that does not contain enough independent draws to
+        support them. Robustness to two LiDAR raydrop models and to
+        20--100\% observation-density subsampling is unaffected by this
+        retraction.
 \end{itemize}
 
 \textbf{Relevance to Ocean Engineering.} The paper sits squarely in

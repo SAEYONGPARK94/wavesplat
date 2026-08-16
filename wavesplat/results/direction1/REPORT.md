@@ -1,3 +1,24 @@
+> ⛔**2026-08-13 감사 — 이 문서의 수치를 출하 시스템의 성능·배포 근거로 인용하지 말 것.**
+> ⚠**2026-08-13 3라운드 정정** — 이 자리에 처음 붙었던 *"`wavesim` 임포트 0회 / LiDAR 0회 호출 /
+> 관측을 상자 균일난수로 만든다"* 는 **이 문서에 대해서는 거짓**이었다(회귀검증 R3 §B-2).
+> 사실은 **스크립트마다 다르다**:
+>
+> | 절 | 코드 | 관측의 출처 |
+> |---|---|---|
+> | §1·§3·§4·§6 (BF4 5/15/30-comp 표) | `scripts/d1_crb.py` | ✅**실제 에피소드 LiDAR 점군** — `:39` `from wavesim.data_writer import load_episode`, `:149` 호출, `:154` 가 `lidar_points`·`lidar_valid_mask` 를 그대로 관측 좌표로 쓴다. 개구 `L_par×L_perp` = **31.6×59.7 … 71.9×53.2 m**(`crb_results.json`) |
+> | §8 예측가능 영역 | `scripts/d1_predictable_zone.py` | ✅**동상** — `:29` 가 `d1_crb` 의 `load_ep`/`collect_obs` 를 임포트해 같은 LiDAR 점군을 쓴다 |
+> | §2 `fig_aperture_law.png` | `d1_crb.validate_aperture_law` (`:270-`) | ⚠**상자 균일난수** M=300, L=50 m, 단일 성분 — LiDAR 아님 |
+>
+> **그래도 출하 증거가 아닌 진짜 이유**(이쪽은 유효):
+> 1. 이 문서는 **CRB(하한) 계산**이고 출하 추정기를 **한 번도 돌리지 않았다**. §4 의 "estimator" 열은
+>    `results/spacetime_gp_30ep.json` 의 **ST-DF-GP** 값을 하드코딩해 인용한 것(`d1_crb.py:322-326`)이지
+>    출하 `SequentialUpdater` 가 아니다.
+> 2. CRB 는 **참 성분·정합 차수**를 가정한 최선 경계이고 깊이는 `d = 50 m` 가정(§6)이다.
+> 3. 잡음은 `σ = 0.02 m` iid 가정 — 실제 raydrop/입사각 의존 잡음 모델이 아니다.
+>
+> ⚠`19.97×19.96 m` 개구는 **`d74_closed_loop_trajectory.py`**(`L_FOOT = 20.0`)의 값이지 이 문서의 값이 아니다.
+> 근거: `tmp/AUDIT_recheck_2026-08-13/{A3_citation_bans.md, R3_regression.md §B-2}`
+
 # Direction I — Cramér–Rao Bound for space-time wave field estimation
 
 **Date:** 2026-06-27 · **Code:** [`scripts/d1_crb.py`](../../scripts/d1_crb.py) · **GPU:** RTX 4080 Super (float64)

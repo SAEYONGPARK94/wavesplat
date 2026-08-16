@@ -35,8 +35,14 @@ def _unpack(dset, sl):
     return out
 
 
-def load_surface_nc(path, tmax_frames=None):
-    """Load Guimaraes/WASS 'Surfaces' netCDF (int16-packed Z + 2D X/Y grids) via h5py."""
+def load_surface_nc(path, tmax_frames=None, frames=None):
+    """Load Guimaraes/WASS 'Surfaces' netCDF (int16-packed Z + 2D X/Y grids) via h5py.
+
+    `frames` = explicit frame indices to read, for sampling across a long record.
+    These files are int16-packed and 1.2-11 GB on disk, so unpacking the whole series
+    to float32 needs 2x that in RAM (the 11 GB LJ Grid2 record asks for 20.2 GiB and
+    dies).  `tmax_frames` keeps the legacy 'first N frames' behaviour.
+    """
     f = h5py.File(path, 'r')
     is_wass = ('Z' in f and 'mask_Z' in f) or \
               (b'WASS' in bytes(f.attrs.get('type', b'')) if 'type' in f.attrs else False)
@@ -46,8 +52,16 @@ def load_surface_nc(path, tmax_frames=None):
 
     zd = f['Z']                                   # (T, n0, n1) int16, packed
     T_all, n0, n1 = zd.shape
-    T = min(T_all, tmax_frames) if tmax_frames else T_all
-    Z = _unpack(zd, np.s_[:T])                    # (T, n0, n1) meters, NaN where fill
+    if frames is not None:
+        sel = np.unique(np.asarray(frames, int))  # h5py fancy index must be increasing
+        if sel.size and (sel[0] < 0 or sel[-1] >= T_all):
+            f.close()
+            raise IndexError(f'frames out of range for T={T_all}')
+    else:
+        sel = np.arange(min(T_all, tmax_frames) if tmax_frames else T_all)
+    T = int(sel.size)
+    # contiguous prefix -> plain slice (h5py fancy indexing is much slower)
+    Z = _unpack(zd, sel if frames is not None else np.s_[:T])   # (T,n0,n1) m, NaN=fill
     # 2D coordinate grids: _nc4_non_coord_X varies along axis0, Y varies along axis1
     Xg2 = _unpack(f['_nc4_non_coord_X'], np.s_[:]) if '_nc4_non_coord_X' in f else None
     Yg2 = _unpack(f['Y'], np.s_[:]) if 'Y' in f and f['Y'].ndim == 2 else None
@@ -56,7 +70,10 @@ def load_surface_nc(path, tmax_frames=None):
     # mask (valid grid points, no NaN over series)
     if 'mask_Z' in f:
         mask = _unpack(f['mask_Z'], np.s_[:]); Z[:, mask == 0] = np.nan
-    t = f['time'][:T].astype(float) if 'time' in f else np.arange(T) * 0.1
+    # fps comes from the native cadence, not from the (possibly strided) selection
+    t_all = f['time'][:].astype(float) if 'time' in f else np.arange(T_all) * 0.1
+    t = t_all[sel]
+    dt = float(np.median(np.diff(t_all))) if T_all > 1 else None
     # label axis1 as "x", axis0 as "y" (isotropic dispersion → labeling is a convention)
     gx, gy = np.asarray(ax1, float), np.asarray(ax0, float)   # Nx=n1, Ny=n0
     depth_meta = None
@@ -67,8 +84,9 @@ def load_surface_nc(path, tmax_frames=None):
     meta = dict(format='WASS', shape=[int(T), int(n0), int(n1)],
                 dx=float(np.median(np.diff(gx))), dy=float(np.median(np.diff(gy))),
                 patch=[float(gx.max()-gx.min()), float(gy.max()-gy.min())],
-                fps=float(1.0/np.median(np.diff(t))) if T > 1 else None,
-                depth_meta=depth_meta, frames_total=int(T_all))
+                fps=float(1.0/dt) if dt else None,
+                depth_meta=depth_meta, frames_total=int(T_all),
+                frames_idx=sel.tolist() if frames is not None else None)
     f.close()
     return Z, gx, gy, t, meta
 

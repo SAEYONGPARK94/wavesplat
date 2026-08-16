@@ -3,6 +3,8 @@ name: 4-persona discussion format
 description: 연구 검토 시 지도교수(Prof.K)/외부위원(Prof.E)/리뷰어(Rev.2)/학생(Saeyong) 4인 토론
 type: feedback
 ---
+> ⛔**ARCHIVED / 낡은 사본 (2026-08-13 감사).** 현행 연구 기록의 권위는 auto-memory(`~/.claude/projects/-home-vexit-wavesplat/memory/MEMORY.md`)와 `tmp/<배치>/RESULT.md` 다. 이 디렉터리의 수치는 다수가 이후 측정에서 무효화됐다 — 인용 금지.
+
 
 연구 문서나 코드 검토 시 4가지 페르소나로 토론을 진행.
 

@@ -11,7 +11,13 @@
 One estimator, one config (`init_method='auto'`, guard on) now measures
 **0.0875 mean nRMSE on the 100-episode finemesh benchmark**, beating both pure arms
 (analytic 0.1145, learned 0.1011), with oracle switching at 0.0818. On real stereo data
-the learned arm's role is **failure-mode insurance, not accuracy**: it reduces error on
+⛔**RETRACTED (2026-08-13 감사)** — this TL;DR line said the learned arm's role is
+**"failure-mode insurance, not accuracy"**. "Insurance" is a banned framing: the 2026-07-26
+late GPU re-measurement (recorded in §"FINAL STATE" below, and in the 08-06 ban entry)
+found **no measured contribution of the learned arm on real data, on either axis**.
+Allowed wording: **INTERLOCK**, or "no evidence of contribution".
+Ground: `reference_citation_bans.md`. Original sentence preserved below for history:
+~~the learned arm's role is failure-mode insurance, not accuracy~~: it reduces error on
 all 3 analytic collapse windows (2.31→1.07, 1.12→0.79, 2.93→0.96) with 0 own collapses —
 but under the FROZEN criterion (fixed = nRMSE<1.0) that is **2/3**, and the deployed
 detector∘fallback chain brings only **1/3** below the line (it misses the mild window

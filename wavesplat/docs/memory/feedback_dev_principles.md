@@ -3,6 +3,8 @@ name: 8 development principles from discussion
 description: 4인 토론에서 합의된 개발 8원칙 — first principles, full dispersion, Q constraint 등
 type: feedback
 ---
+> ⛔**ARCHIVED / 낡은 사본 (2026-08-13 감사).** 현행 연구 기록의 권위는 auto-memory(`~/.claude/projects/-home-vexit-wavesplat/memory/MEMORY.md`)와 `tmp/<배치>/RESULT.md` 다. 이 디렉터리의 수치는 다수가 이후 측정에서 무효화됐다 — 인용 금지.
+
 
 1. 모든 물리는 first principles에서 유도. "라이브러리가 해준다"는 근거 아님.
 2. 모든 구성요소 독립 검증 (unit test + 해석해 비교).

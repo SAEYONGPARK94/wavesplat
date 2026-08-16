@@ -80,7 +80,7 @@
 | 4 | Problem & Motivation | 그대로 | 그대로 |
 | 5 | **Prior Art (확장)** | Desmars 2020/2023, Wang 2025, Ehlers 2023 — 우리 가까이 있음을 인정 | honest |
 | 6 | (3DGS 슬라이드) | **삭제 또는 demote** — splatting analogy 가 misleading 가능 | — |
-| 7 | **WaveSim 시뮬레이터** | 강조: JONSWAP+Gerstner+Falcon K1+raydrop, 100 episodes, 39 unit tests | 강한 contribution |
+| 7 | **WaveSim 시뮬레이터** | 강조: JONSWAP+Gerstner+Falcon K1+raydrop, 100 episodes, **196 unit tests** (2026-08-13 실측; 구 "39" 는 wavesim 단독 구값) | 강한 contribution |
 | 8 | **추정 접근 (exploratory)** | "We tried sparse spectral parametric inversion + dispersion. Here's the architecture." | exploratory |
 | 9-10 | Methodology + Flowchart | 그대로 | exploratory |
 | 11-12 | (WaveSim 1/2, 2/2) | 그대로 — 시뮬레이터 신뢰성 | — |
@@ -100,14 +100,29 @@
 
 ### 3.2 핵심 메시지 재정리
 
-**현재 (over-claim)**:
+**현재 (over-claim)** — ⛔이 문장은 인용 금지 대상으로 **기록**된 것이다(따라 쓰지 말 것):
 > "WaveSplat is a novel grid-free method. nRMSE 30% lower than ETKF, 10× faster."
 
-**제안 (honest)**:
-> "We built WaveSim — a validated shipboard LiDAR simulator (100 episodes, 39 unit tests).
+**제안 (honest)** — ⛔**2026-08-13 감사 정정**: 이 "honest" 대안조차 금지 수치
+(`30% nRMSE↓`, `~10× speed`, `39 unit tests`)를 그대로 인용하고 있었다. 아래로 대체한다.
+
+> "We built WaveSim — a validated shipboard LiDAR simulator (100 episodes, **204 unit tests**).
 > We're exploring a sparse spectral inversion approach for real-time LiDAR-based wave estimation.
-> Within our tested baselines (ETKF Wang-family, GPR), preliminary results show 30% nRMSE↓ and ~10× speed.
+> Within our tested baselines, a 100-episode re-derivation (`results/100ep_ws_letkf.json`) gives
+> **WS 0.2229 vs LETKF 0.2278 — 51/49, p = 0.9204, i.e. a NULL on accuracy**; on router-unseen
+> seeds (S13, 704 runs) the shipping config wins **56/64 crowded / 63/64 sparse**.
+> Latency is **1.5–2.6× in the same process on a single thread** (AMD Ryzen 7 7800X3D).
 > Same family as Desmars 2020/2023 — open question how ours compares to their HOS-OCM directly. Future work."
+
+⛔RETRACTED (2026-08-13 감사, 3라운드 **사유 교체**) — 원문의 `30% nRMSE↓` · `~10× speed` ·
+`39 unit tests`. ⚠**"어느 결과 파일에서도 재현되지 않는다" 는 틀렸다** — `30%`(0.2229 vs
+0.3189)와 `~10×`(13.3760 vs 132.6387 ms)는 `results/b1_full_comparison.json`
+(**git 추적**, 커밋 `e57528c`, 100 ep)에서 재도출된다. 금지 사유는 셋이다:
+①**프레임 불일치**(`WaveSplat.n_frames` 120–220 vs `ETKF`·`GPR-1` 301, **100/100 에피소드에서
+WS 가 더 적음** ⟹ 같은 프레임에서 채점된 적 없음, `84/100` 승패비도 금지)
+②**기준선 선택**(그 ETKF 는 `grid 40×30 · ne=100 · mult_inflation 1.0`; 튜닝 LETKF 로 바꾸면
+위 인용문대로 **널**) ③**지연은 프로세스 간 비교**. 테스트 수는 실측 **204**
+(85 wavesim + 119 wavesplat, 2026-08-13). 근거: `reference_citation_bans.md`
 
 ---
 
@@ -2120,7 +2135,8 @@ CROSS(qvec, tvec, edge1);
 #### 25.2.3 진짜 강한 contribution 정리
 1. **off-grid + 2D + LiDAR + real-time** 의 first integrated framework (각 element 는 prior art)
 2. **Dispersion-driven super-resolution** 명시적 demonstration (§16 N3) — 다른 work 에 explicit framing 없음
-3. **WaveSim 시뮬레이터** + 100 episodes + 39 unit tests — reproducibility infrastructure
+3. **WaveSim 시뮬레이터** + 100 episodes + **196 unit tests** (2026-08-13 실측
+   `196 passed, 0 failed, 0 skipped`) — reproducibility infrastructure
 4. **5-metric panel** 평가 framework — cherry-pick 방지
 
 ### 25.3 PPT/Paper 에 반영해야 할 점

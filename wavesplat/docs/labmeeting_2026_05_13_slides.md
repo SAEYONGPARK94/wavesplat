@@ -1,5 +1,16 @@
 # Lab Meeting 2026-05-13 — WaveSplat Presentation Draft
 
+> ⛔**ARCHIVED — 2026-08-13 감사에서 이 문서의 헤드라인 수치가 철회됐다.**
+> `0.223`·`0.211` / `0.319` / `13.4 ms` / `132.6 ms` / `30.1%` / `~10×`·`47×` 는 **인용 금지**다.
+> 사유(3라운드 확정): **(i) 프레임 불일치** — 출처인 `results/b1_full_comparison.json` 에서
+> `WaveSplat.n_frames` 는 120–220, `ETKF`·`GPR-1` 은 301 이고 **100/100 에피소드 전부에서 WS 가 적다**
+> ⟹ 두 팔이 같은 프레임에서 채점된 적이 없다(그 파일의 `84/100` 도 금지) · **(ii) 기준선 선택** —
+> 같은 `WaveSplat` 열을 튜닝 LETKF 상대로 재도출하면 `results/100ep_ws_letkf.json` 에서
+> **0.2229 vs 0.2278, 51/100, p=0.9204 = 널** · **(iii) 지연은 프로세스 간 비교** —
+> 동일프로세스 1스레드 정직값은 **1.5–2.6×**, CPU 는 **AMD Ryzen 7 7800X3D**.
+> 이 문서는 발표 당시의 기록으로 보존한다 — 본문 수치를 오늘의 주장으로 쓰지 마라.
+> 근거: `memory/reference_citation_bans.md` · `tmp/AUDIT_recheck_2026-08-13/R3_fresh.md`
+
 **발표자**: Saeyong Park
 **발표 시간**: 20분 (1 slide ≈ 1분, 18 slides + Q&A 2분)
 **대상**: 외부 청자 (도메인 가정 최소화)

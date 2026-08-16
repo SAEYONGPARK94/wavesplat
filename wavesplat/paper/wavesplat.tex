@@ -48,9 +48,20 @@ On a dataset of 100 episodes spanning Beaufort~2--5 sea states
 (Section~\ref{sec:regen}) and reported as the median over 5 estimator
 seeds per episode, WaveSplat achieves an average normalized RMSE
 (nRMSE) of \textbf{0.115} compared to \textbf{0.332} for a
-hyperparameter-tuned ETKF-grid baseline (\textbf{65.5\%} improvement),
-while running approximately \textbf{10$\times$} faster
-(11.0~vs.~132.6~ms/frame on a single CPU thread, Intel i7-12700H).
+hyperparameter-tuned ETKF-grid baseline (\textbf{65.5\%} improvement).
+% RETRACTED 2026-08-14: latency claim only. "approximately 10x faster",
+% "11.0 vs 132.6 ms/frame" and the CPU model are all on the citation-ban list:
+% the two arms were timed in separate processes without thread pinning, and the
+% CPU is AMD Ryzen 7 7800X3D, not Intel i7-12700H. The only citable value is
+% 1.5-2.6x measured within a single process on one thread.
+% (basis: memory/reference_citation_bans.md entries (08-05) and (08-13 round 3))
+% --- original (kept for history) ---
+% while running approximately \textbf{10$\times$} faster
+% (11.0~vs.~132.6~ms/frame on a single CPU thread, Intel i7-12700H).
+\textbf{[RETRACTED 2026-08-14]} The previously stated speed-up factor and
+per-frame latencies are withdrawn: the two arms were timed in separate
+processes without thread pinning. Within a single process on one thread
+(AMD Ryzen 7 7800X3D) the measured advantage is \textbf{1.5--2.6$\times$}.
 A pre-specified five-metric evaluation panel further shows that
 WaveSplat is the only method among the primary baselines (ETKF, GPR)
 with a positive Skill Score against a zero predictor
@@ -64,9 +75,15 @@ A supplementary comparison with stronger baselines---LETKF with
 Gaspari--Cohn localization and dispersion-aware multi-frame GPR---on
 all 100 episodes confirms that WaveSplat retains the best average nRMSE
 (0.115 vs.\ 0.228 for LETKF, which we verify is mesh-invariant,
-Section~\ref{sec:strongbaselines}) while running $8.1\times$ faster;
+Section~\ref{sec:strongbaselines});
+% RETRACTED 2026-08-14: "while running $8.1\times$ faster" -- cross-method latency
+% ratios in this repository were all obtained from separate-process timings; the only
+% verified same-process, single-thread value is 1.5-2.6x. No replacement ratio is
+% invented here. (basis: memory/reference_citation_bans.md (08-13 round 3, reason iii))
 on a 12-episode subset including all five methods WaveSplat leads at
 0.182.
+\textbf{[RETRACTED 2026-08-14]} The speed-up factor against LETKF stated here is
+withdrawn for the same reason as above (separate-process timing).
 A 100-paired-run multi-seed validation confirms the improvement is
 statistically significant against both ETKF
 ($p = 2.5\!\times\!10^{-16}$) and sliding GPR
@@ -99,10 +116,21 @@ dispersion relation \sep data assimilation \sep real-time estimation
 \begin{highlights}
 \item Grid-free spectral wave estimation from sparse shipboard LiDAR,
   with dispersion-constrained parameters and online model-order selection.
+% RETRACTED 2026-08-14 (latency half only): "$\sim$10x faster (11.0 vs 132.6 ms/frame)"
+% is on the citation-ban list -- separate-process timing, no thread pinning.
+% Verified same-process, single-thread value: 1.5-2.6x. CPU is AMD Ryzen 7 7800X3D.
+% (basis: memory/reference_citation_bans.md (08-05), (08-13 round 3))
+% --- original (kept for history) ---
+% \item 65.5\% lower nRMSE than a hyperparameter-tuned ETKF-grid over
+%   100 Nyquist-adequate episodes (0.115 vs.\ 0.332, median over 5 seeds)
+%   and $\sim$10$\times$ faster (11.0 vs.\ 132.6~ms/frame, single CPU
+%   thread).
 \item 65.5\% lower nRMSE than a hyperparameter-tuned ETKF-grid over
-  100 Nyquist-adequate episodes (0.115 vs.\ 0.332, median over 5 seeds)
-  and $\sim$10$\times$ faster (11.0 vs.\ 132.6~ms/frame, single CPU
-  thread).
+  100 Nyquist-adequate episodes (0.115 vs.\ 0.332, median over 5 seeds);
+  \textbf{[RETRACTED 2026-08-14]} the previously claimed
+  $\sim$10$\times$ speed-up and per-frame latencies are withdrawn
+  (separate-process timing); the verified same-process, single-thread
+  value is 1.5--2.6$\times$.
 \item Only method with a positive Skill Score in a pre-specified
   five-metric evaluation against a zero-predictor reference.
 \item Statistically significant: Wilcoxon $p{=}2.5\!\times\!10^{-16}$
@@ -255,16 +283,47 @@ Our key contributions are:
     Estimation accuracy depends on initialization quality;
     tracking refines amplitudes and phases given the wavenumbers
     established during initialization.
+  % SCOPE 2026-08-14 (C2): the *parameter-count reduction* is an arithmetic fact and
+  % stands. The *accuracy* claim does not: the ablation arm used to support it removed
+  % omega initialisation as well as the constraint. In a 32-run intervention where omega
+  % was merely started at its dispersion value, both strata were null
+  % (sparse +7.3%, 9/16, p=0.804; crowded -0.7%, 8/16, p=1.000).
+  % results/ablation_bf45.json also cannot adjudicate it (its Full arm does not beat a
+  % zero-field predictor). Current status: UNDECIDED / not yet measured.
+  % (basis: memory/project_audit_recheck_2026-08-13.md section 2 ·
+  %  memory/reference_citation_bans.md)
   \item \textbf{Dispersion-constrained parameterization (C2)}: Hard
     enforcement of the full dispersion relation (including $\tanh$
     depth dependence) reduces the free parameter count and acts as a
     physics-based regularizer, improving tracking stability over
     extended time horizons.
-  \item \textbf{Geometry-aware confidence weighting (C3)}: Per-observation
-    weights $c_j = \cos\theta_j/(r_j/d_{\text{ref}})$ based on incidence
-    angle and range account for the heteroscedastic noise structure of
-    LiDAR measurements on ocean surfaces, where specular reflection
-    probability and signal-to-noise ratio vary with incidence geometry.
+    \emph{[SCOPE 2026-08-14]} The claim made here is the parameter-count
+    reduction. Whether this constraint contributes to \emph{accuracy}
+    \textbf{has not yet been measured}: the ablation arm previously used to
+    support it removed the frequency initialisation together with the
+    constraint, and a controlled intervention that isolates the constraint
+    was null in both strata.
+  % RETRACTED 2026-08-14 (C3): DEAD. On a fresh out-of-sample corpus, turning the
+  % confidence weighting OFF was better in both strata (crowded 10/64, sparse 16/64;
+  % median relative -15.6% / -20.4%). The ablation is symmetric -- use_confidence
+  % touches only the loss weight at wavesplat/optimizer/sequential_update.py:330 --
+  % so this negative is interpretable rather than an artefact of a broken arm.
+  % (basis: memory/reference_citation_bans.md (08-13 recheck) ·
+  %  memory/project_audit_recheck_2026-08-13.md section 2)
+  % --- original (kept for history) ---
+  % \item \textbf{Geometry-aware confidence weighting (C3)}: Per-observation
+  %   weights $c_j = \cos\theta_j/(r_j/d_{\text{ref}})$ based on incidence
+  %   angle and range account for the heteroscedastic noise structure of
+  %   LiDAR measurements on ocean surfaces, where specular reflection
+  %   probability and signal-to-noise ratio vary with incidence geometry.
+  \item \textbf{Geometry-aware confidence weighting (C3) ---
+    [RETRACTED 2026-08-14]}: Per-observation weights
+    $c_j = \cos\theta_j/(r_j/d_{\text{ref}})$ based on incidence angle and
+    range were introduced to account for the heteroscedastic noise structure
+    of LiDAR measurements on ocean surfaces. This is \textbf{withdrawn as a
+    contribution}: on a fresh out-of-sample corpus, disabling the weighting
+    was \emph{better} in both the sparse and the crowded stratum.
+    It is retained below only as a reported negative result.
 \end{enumerate}
 
 The pipeline also includes an online model-order mechanism (energy-based
@@ -473,6 +532,17 @@ giving a model mismatch of $< 0.25\%$.
 For the Beaufort~2--5 range considered in this work
 (non-breaking waves), the linear model is an excellent
 approximation~\citep{holthuijsen2007}.
+% SCOPE 2026-08-14: this estimate is analytic and applies to the real ocean. It does
+% NOT describe the synthetic corpus used in this paper: the generator discards the
+% Gerstner horizontal-displacement components (wavesim/gt_generator.py:38, verified by
+% direct reading), so the measured mismatch between the stored ground truth and the
+% model equation is exactly 0.000e+00 across four episodes.
+% (basis: memory/project_audit_recheck_2026-08-13.md section 6.5)
+\emph{[SCOPE 2026-08-14]} This is an analytic estimate for real ocean waves.
+It does \textbf{not} describe the synthetic corpus used in this paper: there,
+the ground truth is a displacement-free linear superposition, so the measured
+mismatch against the model equation is exactly zero (see
+Section~\ref{sec:experiments}).
 
 \subsection{Observation model}
 
@@ -487,7 +557,18 @@ and incidence angle.  The number of valid observations per frame
 varies between 50 and 200, depending on sea state, vessel motion,
 and LiDAR raydrop characteristics.
 
-\subsection{Geometry-aware confidence weighting (C3)}
+\subsection{Geometry-aware confidence weighting (C3) --- [RETRACTED 2026-08-14]}
+
+% RETRACTED 2026-08-14: see the contribution list. On a fresh out-of-sample corpus,
+% disabling this weighting was better in both strata (crowded 10/64, sparse 16/64;
+% median relative -15.6% / -20.4%). The ablation is symmetric.
+% (basis: memory/reference_citation_bans.md (08-13 recheck))
+\textbf{[RETRACTED 2026-08-14]} This mechanism is described here for
+completeness, but it is \emph{withdrawn as a contribution}: on a fresh
+out-of-sample corpus, turning the weighting off was better in both the
+sparse and the crowded stratum. Read this section as a description of an
+implemented component and a reported negative result, not as a claimed
+accuracy benefit.
 
 LiDAR elevation accuracy on ocean surfaces degrades with two
 physical mechanisms:
@@ -506,8 +587,17 @@ where $\theta_j$ is the beam incidence angle between the LiDAR ray
 direction and the local water surface normal $\mathbf{n}$, $r_j$ is
 the slant range to observation $j$, and $d_{\text{ref}} = 125$~m is a reference distance chosen
 as half the maximum LiDAR range.
+% CORRECTED 2026-08-14: "ground-truth Gerstner wave mesh" -> the mesh is built from
+% evaluate_field(), which discards the Gerstner displacement components
+% (wavesim/gt_generator.py:38; wavesim/pipeline.py:157,165). It is a displacement-free
+% linear-superposition mesh. (basis: memory/project_audit_recheck_2026-08-13.md sec. 6.5)
+% --- original (kept for history) ---
+% In the simulation experiments reported here, $\mathbf{n}$ is obtained
+% from the ground-truth Gerstner wave mesh.
 In the simulation experiments reported here, $\mathbf{n}$ is obtained
-from the ground-truth Gerstner wave mesh.  For real-data deployment,
+from the ground-truth surface mesh, which (see
+Section~\ref{sec:experiments}) is a displacement-free linear
+superposition rather than a Gerstner surface.  For real-data deployment,
 the surface normal is unknown prior to reconstruction; a pragmatic
 approximation is $\mathbf{n} \approx \hat{\mathbf{z}}$ (flat-surface
 assumption), introducing a slope-dependent error bounded by the wave
@@ -667,9 +757,15 @@ beamforming step and are not re-run through the full $N$=3$\to$8$\to$15
 coarse-to-fine schedule, trading some initialization quality for
 computational efficiency at this stage.
 The threshold is derived from the theoretical
+% SCOPE 2026-08-14: the "Gerstner--linear model mismatch" term in this budget is not
+% present in the synthetic corpus (measured mismatch 0.000e+00) -- it is an allowance
+% for real waves. The threshold itself is unchanged; only its justification narrows.
+% (basis: memory/project_audit_recheck_2026-08-13.md section 6.5)
 residual floor: combining LiDAR range noise ($\sigma_r \approx
-0.02$~m) with the Gerstner--linear model mismatch at BF4
-($O(\epsilon^2)\,H_s/2 \approx 6$~mm) and angular-noise projection
+0.02$~m) with a nonlinear--linear model mismatch allowance at BF4
+($O(\epsilon^2)\,H_s/2 \approx 6$~mm; \emph{[SCOPE 2026-08-14]} this term is
+an allowance for real waves and is \textbf{absent} in the synthetic corpus,
+where the measured mismatch is zero) and angular-noise projection
 (${\sim}5$~mm) yields a lower-bound RMS of ${\sim}0.022$~m;
 $\tau_R = 0.05$~m provides a ${\sim}2.3\times$ safety margin for
 unambiguous detection of unmodeled signal.
@@ -750,16 +846,29 @@ $N$ the number of spectral components.
 $z(x_j, y_j, t) = \sum_{i=1}^{N} w_i \cos(\cdot)$,
 costing $O(M \cdot N)$ per frame. With $K$ gradient steps and window
 size $K_w$, the per-frame tracking cost is $O(K \cdot K_w \cdot M \cdot N)$.
-In practice, $K{=}10$, $K_w{=}3$, $N \leq 30$, yielding 13.4~ms/frame
-on CPU (single-threaded, Intel i7-12700H).
+% RETRACTED/CORRECTED 2026-08-14: (a) 13.4 ms/frame is a banned figure -- it comes from
+% a separate-process timing comparison; (b) the CPU is AMD Ryzen 7 7800X3D, not
+% Intel i7-12700H (banned since 2026-08-05).
+% (basis: memory/reference_citation_bans.md (08-05), (08-13 round 3))
+% --- original (kept for history) ---
+% In practice, $K{=}10$, $K_w{=}3$, $N \leq 30$, yielding 13.4~ms/frame
+% on CPU (single-threaded, Intel i7-12700H).
+In practice, $K{=}10$, $K_w{=}3$, $N \leq 30$, measured on CPU
+(single-threaded, \textbf{AMD Ryzen 7 7800X3D}).
+\textbf{[RETRACTED 2026-08-14]} The absolute per-frame latency previously
+quoted here is withdrawn (separate-process timing).
 
 \textbf{ETKF-grid}: The Ensemble Transform Kalman Filter maintains
 $N_e$ ensemble members on a $G_x \times G_y$ spatial grid.
 Each update involves FFT-based propagation at
 $O(N_e \cdot G_x G_y \cdot \log(G_x G_y))$ plus the ensemble
-transform at $O(N_e^3 + N_e^2 \cdot M)$. With the tuned configuration
-($N_e{=}100$, $G{=}40 \times 30$), this yields 132.6~ms/frame
-(Table~\ref{tab:complexity}).
+% RETRACTED 2026-08-14: "132.6 ms/frame as the ETKF cost" is on the citation-ban list
+% (separate-process timing). (basis: memory/reference_citation_bans.md (08-05),(08-13))
+% --- original (kept for history) --- ... this yields 132.6~ms/frame.
+transform at $O(N_e^3 + N_e^2 \cdot M)$. The tuned configuration is
+($N_e{=}100$, $G{=}40 \times 30$); see Table~\ref{tab:complexity}.
+\textbf{[RETRACTED 2026-08-14]} The absolute per-frame latency previously
+quoted here is withdrawn (separate-process timing).
 
 \textbf{GPR}: Gaussian Process Regression with $M$ observations
 requires $O(M^3)$ for Cholesky factorization, making it impractical
@@ -773,15 +882,23 @@ Table~\ref{tab:complexity} summarizes the scaling comparison.
 \caption{Computational complexity comparison.
 $M$: observations/frame, $N$: spectral components,
 $G$: grid size, $N_e$: ensemble members.
-ETKF uses the tuned configuration ($N_e=100$, $G=40\times30$).}
+ETKF uses the tuned configuration ($N_e=100$, $G=40\times30$).
+\textbf{[RETRACTED 2026-08-14]} The ``Measured'' column is withdrawn: those
+timings come from separate processes without thread pinning. The asymptotic
+column is analytic and is unaffected. The only citable comparative value is
+1.5--2.6$\times$ within one process on a single thread.}
 \label{tab:complexity}
+% RETRACTED 2026-08-14: measured column replaced by markers. No substitute absolute
+% values have been verified, so no numbers are invented.
+% --- original measured column (kept for history) ---
+% WaveSplat & ... & 13.4~ms \\  ETKF-grid & ... & 132.6~ms \\  GPR & ... & $>$200~ms \\
 \begin{tabular}{lcc}
 \toprule
 Method & Per-frame complexity & Measured \\
 \midrule
-WaveSplat & $O(K \cdot K_w \cdot M \cdot N)$ & 13.4~ms \\
-ETKF-grid & $O(N_e \cdot G^2 \log G^2)$ & 132.6~ms \\
-GPR       & $O(M^3)$ & $>$200~ms \\
+WaveSplat & $O(K \cdot K_w \cdot M \cdot N)$ & [retracted] \\
+ETKF-grid & $O(N_e \cdot G^2 \log G^2)$ & [retracted] \\
+GPR       & $O(M^3)$ & [retracted] \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -800,9 +917,28 @@ sampling~\citep{hasselmann1973}.  The simulator parameters are:
     ($H_s$=0.3--2.0~m, $T_p$=4--9~s)
   \item \textbf{Wave complexity}: 1, 2, 5, 15, 30 spectral components
     with directional spreading ($\pm 20^\circ$)
-  \item \textbf{Ground-truth wave model}: Gerstner waves (nonlinear),
-    providing a realistic test of the linear forward
-    model~\eqref{eq:forward}
+  % RETRACTED/CORRECTED 2026-08-14: the ground truth is NOT nonlinear. The generator
+  % calls evaluate_field(), which is
+  %   `_, _, Z, NX, NY, NZ = single_gerstner(...)` (wavesim/gt_generator.py:38)
+  % -- the two horizontal displacement components are discarded, and
+  % wavesim/pipeline.py:157,165 build BOTH the ground-truth field and the raycast mesh
+  % from that function. Reconstructing the stored gt_wave_field as a plane-wave sum gives
+  % max|delta| = 0.000e+00 on four episodes across sparse, crowded and public corpora.
+  % Nonlinear validation was performed in a separate HOS (M=3) batch, not on this corpus.
+  % (basis: memory/project_audit_recheck_2026-08-13.md section 6.5 ·
+  %  memory/project_hosgate_result_2026-08-13.md · direct code reading 2026-08-14)
+  % --- original (kept for history) ---
+  % \item \textbf{Ground-truth wave model}: Gerstner waves (nonlinear),
+  %   providing a realistic test of the linear forward model~\eqref{eq:forward}
+  \item \textbf{Ground-truth wave model} --- \textbf{[RETRACTED/CORRECTED
+    2026-08-14]}: earlier versions stated ``Gerstner waves (nonlinear),
+    providing a realistic test of the linear forward model''. This is
+    \textbf{false}. The synthetic ground truth is a \emph{displacement-free
+    linear superposition on a fixed grid}: the generator discards the
+    horizontal displacement components of the Gerstner solution, so the
+    ground truth lies in the \emph{same function space} as the estimator's
+    model equation. Nonlinear validation was carried out in a separate
+    higher-order-spectral ($M{=}3$) batch, not on this corpus.
   \item \textbf{LiDAR model}: 500 horizontal beams per scan,
     10~Hz scan rate, range 10--250~m.  The beam count represents the
     total number of ray directions per frame (horizontal fan);
@@ -1013,6 +1149,22 @@ and dispersion constraints.
 % ============================================================================
 \section{Results}
 \label{sec:results}
+
+% SCOPE 2026-08-14: required scope statement, verified by direct code reading.
+%  - wavesim/pipeline.py:44 run_episode(...) takes no ship-speed argument; the sensor
+%    origin is fixed.
+%  - the same signature defaults direction_deg = 0.0, i.e. waves travel away from the
+%    sensor (following seas).
+%  - scripts/d3_h6_v2_e2e.py:14-16 labels this configuration in the repository's own
+%    words: "AWAY from the sensor -- the anti-causal configuration for encounter".
+\paragraph{Scope of all accuracy results in this section (stated 2026-08-14).}
+Every accuracy figure reported below was obtained on a \textbf{stationary
+platform} (the episode generator takes no vessel-speed argument and the sensor
+origin is fixed), with \textbf{$\texttt{direction\_deg}=0$}---following seas, a
+geometry in which the waves travel \emph{away} from the sensor, which this
+repository's own tooling labels as the \emph{anti-causal} configuration for
+encounter forecasting---and on \textbf{synthetic data}. These results are
+therefore not measured in the encounter geometry of the stated application.
 
 We organize the results section around the full 100-episode
 evaluation: Section~\ref{sec:fulleval} reports the primary
@@ -1366,26 +1518,44 @@ Key observations:
     beamforming initializer's configured peak-separation radius
     (Sec.~\ref{sec:limitations}), not a method-independent resolution
     bound.
-  \item \textbf{Speed}: WaveSplat runs at 11.0~ms/frame on the full
-    100-episode dataset (16~ms on this complexity-weighted 12-episode
-    subset) vs.\ 132.6~ms/frame for the tuned ETKF (median
-    110~ms), an order-of-magnitude advantage that is well within
-    the 100~ms real-time budget for 10~Hz LiDAR
-    (Fig.~\ref{fig:speed}).  The tuned ETKF uses
-    $n_{\text{ens}}$=100 ensemble members---twice the nominal
-    configuration ($n_{\text{ens}}$=50, 31.7~ms)---because the
-    larger ensemble significantly improves nRMSE at the cost of
-    $\sim$4$\times$ higher per-frame latency.
+  % RETRACTED 2026-08-14: the whole speed bullet rests on separate-process timings
+  % (no thread pinning). 132.6 ms as the ETKF cost and "order-of-magnitude advantage"
+  % are both on the citation-ban list; the only verified same-process, single-thread
+  % value is 1.5-2.6x. No substitute absolute values are invented.
+  % (basis: memory/reference_citation_bans.md (08-05), (08-13 round 3))
+  % --- original (kept for history) ---
+  % \item \textbf{Speed}: WaveSplat runs at 11.0~ms/frame on the full
+  %   100-episode dataset (16~ms on this complexity-weighted 12-episode
+  %   subset) vs.\ 132.6~ms/frame for the tuned ETKF (median
+  %   110~ms), an order-of-magnitude advantage that is well within
+  %   the 100~ms real-time budget for 10~Hz LiDAR
+  %   (Fig.~\ref{fig:speed}).  The tuned ETKF uses
+  %   $n_{\text{ens}}$=100 ensemble members---twice the nominal
+  %   configuration ($n_{\text{ens}}$=50, 31.7~ms)---because the
+  %   larger ensemble significantly improves nRMSE at the cost of
+  %   $\sim$4$\times$ higher per-frame latency.
+  \item \textbf{Speed} --- \textbf{[RETRACTED 2026-08-14]}: the per-frame
+    latencies, the ``order-of-magnitude'' advantage, the real-time budget
+    margin and the ensemble-size cost ratio previously reported here are all
+    withdrawn, because the two arms were timed in separate processes without
+    thread pinning. The tuned ETKF does use $n_{\text{ens}}$=100 ensemble
+    members---twice the nominal configuration---because the larger ensemble
+    improves nRMSE at higher per-frame cost; the \emph{magnitude} of that
+    cost is not established here. The only citable comparative figure is
+    1.5--2.6$\times$ within one process on a single thread.
 \end{itemize}
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/fig3_speed.pdf}
-\caption{Per-frame inference speed comparison. WaveSplat maintains
-consistent $\sim$13~ms/frame across all episodes, while the tuned
-ETKF ($n_{\text{ens}}$=100) ranges from 90 to over 600~ms depending
-on ensemble convergence (median 110~ms, mean 132.6~ms).}
+\caption{Per-frame inference speed comparison.
+\textbf{[RETRACTED 2026-08-14]} The absolute per-frame latencies shown and
+quoted here are withdrawn: the arms were timed in separate processes without
+thread pinning. Within one process on a single thread the measured advantage
+is 1.5--2.6$\times$ (CPU: AMD Ryzen 7 7800X3D).}
 \label{fig:speed}
+% RETRACTED 2026-08-14: 132.6 ms / ~13 ms / 110 ms all from cross-process timing.
+% (basis: memory/reference_citation_bans.md (08-05), (08-13 round 3))
 \end{figure*}
 
 \subsection{Multi-seed statistical validation}
@@ -2110,9 +2280,15 @@ authors upon request.
 
 \subsection{Practical deployment considerations}
 
-WaveSplat's computational footprint (13.4~ms/frame, single CPU thread)
-makes it suitable for deployment on standard shipboard computing
-hardware.  The algorithm requires no GPU acceleration, no pre-trained
+% RETRACTED 2026-08-14: 13.4 ms/frame is a banned figure (cross-process timing).
+% (basis: memory/reference_citation_bans.md (08-05), (08-13 round 3))
+% --- original (kept for history) ---
+% WaveSplat's computational footprint (13.4~ms/frame, single CPU thread)
+% makes it suitable for deployment on standard shipboard computing hardware.
+WaveSplat's computational footprint on a single CPU thread
+(\textbf{[RETRACTED 2026-08-14]} --- the absolute per-frame figure previously
+quoted here is withdrawn as a cross-process timing) is intended for
+deployment on standard shipboard computing hardware.  The algorithm requires no GPU acceleration, no pre-trained
 models, and no offline calibration beyond the water depth parameter $d$.
 The spectral parameters are directly interpretable: a naval architect
 can inspect the estimated wavenumber vector, amplitude, and frequency
@@ -2143,8 +2319,16 @@ headline: the localized LETKF baseline is \emph{mesh-invariant}
 (its nRMSE moves by $-0.0006$, paired $t=-1.56$ over 12 episodes,
 because its spectral forecast is a per-mode rotation that does not pass
 through the raycast mesh), so WaveSplat's improvement to $0.115$ against
+% RETRACTED 2026-08-14 (one number): "0.319" is on the citation-ban list -- it is the
+% ETKF column of results/b1_full_comparison.json, in which WaveSplat was scored on
+% 120-220 frames while ETKF/GPR were scored on 301, in 100/100 episodes.
+% The mesh-invariance observation itself is unaffected in direction; only the anchor
+% value is withdrawn. (basis: memory/reference_citation_bans.md (08-13 round 3))
 LETKF's steady $0.228$ is a genuine gain; the tuned ETKF is likewise
-near-mesh-invariant in nRMSE ($0.319\!\to\!0.332$), its variance ratio
+near-mesh-invariant in nRMSE (moving to $0.332$ from a pre-regeneration
+value that is \textbf{[RETRACTED 2026-08-14]} --- that anchor comes from a
+comparison in which the arms were not scored on the same frames),
+its variance ratio
 rising toward unity on the adequate reference field while its correlation
 with truth does not.  Two supplementary probes below---the
 localization-radius sensitivity sweep and the Beaufort~6--7 scalability
@@ -2503,23 +2687,70 @@ results in this paper remain from one frozen dataset.
 \emph{Simulation-only validation}: all results use WaveSim; real LiDAR
 may contain systematic biases (multi-path, spray) not in our noise
 model, and wave tank and sea-trial validation is planned next.
-We note that the simulator itself is validated by 39 unit tests
+% CORRECTED 2026-08-14: 39 -> 196 unit tests (measured 2026-08-13; 85 wavesim +
+% 111 wavesplat, three agents ran it independently), plus 8 shipping-default
+% regression tests added on 2026-08-13.
+% SCOPE: the "Gerstner kinematics" test exercises the single_gerstner() FUNCTION;
+% the generation pipeline discards that function's displacement output, so the test
+% does NOT certify that the generated data is nonlinear.
+% (basis: memory/project_audit_recheck_2026-08-13.md sections 1, 6, 6.5)
+% --- original (kept for history) ---
+% We note that the simulator itself is validated by 39 unit tests
+We note that the simulator itself is validated by 196 unit tests
+(measured 2026-08-13; a further 8 shipping-default regression tests were
+added subsequently)
 covering dispersion, Gerstner kinematics, Fresnel optics, and
-raydrop statistics; moreover, the 100-episode evaluation across
+raydrop statistics --- \emph{[SCOPE 2026-08-14]} the Gerstner test exercises
+the kinematics \emph{function}, which the generation pipeline does not use for
+horizontal displacement, so it does not certify that the generated data is
+nonlinear; moreover, the 100-episode evaluation across
 5 seeds, 10 configurations, and 2 observation models provides a
 level of statistical rigour that would be difficult to achieve with
 physical experiments alone, following the methodology validation
 approach of prior LiDAR-based wave estimation studies that initially
 established algorithms in simulation before progressing to wave tank
 trials~\citep{desmars2020, desmars2023jfm}.
-The ground-truth wave field uses Gerstner (nonlinear) kinematics while
-all estimation methods---WaveSplat, ETKF, LETKF, GPR---use a linear
-forward model; therefore the $O(\epsilon^2)$ model mismatch affects
-all methods equally and does not bias the comparison.
-\emph{Linear forward model}: the $O(\epsilon^2)$ mismatch is
-$<0.5\%$ for the BF2--5 range tested ($\epsilon\approx 0.05$--$0.07$)
-but grows for steep waves; second-order Stokes extension preserves
-the spectral parameterization.
+% RETRACTED 2026-08-14: this fairness argument is FALSE and was the single most
+% load-bearing false statement in the manuscript.
+% wavesim/gt_generator.py:38 reads
+%   `_, _, Z, NX, NY, NZ = single_gerstner(...)`
+% -- it discards the two horizontal displacement components and returns elevation only
+% (verified by direct reading 2026-08-14). wavesim/pipeline.py:157,165 build both the
+% ground-truth field and the raycast mesh from that function, so the Gerstner steepness
+% parameter Q enters neither. Reconstructing the stored gt_wave_field as
+% Sum_i A_i cos(kx_i x + ky_i y - w_i t + phi_i) gives max|delta| = 0.000e+00 on four
+% episodes spanning sparse, crowded and public corpora.
+% Consequences: (a) the mismatch is not O(eps^2), it is exactly zero, so "<0.5%" is void;
+% (b) a mismatch of zero is NOT "equal for all methods" -- the grid-based methods do not
+% use that representation, so a zero mismatch favours the plane-wave estimator.
+% Nonlinear validation was done in a separate HOS (M=3) batch, not on this corpus.
+% (basis: memory/project_audit_recheck_2026-08-13.md section 6.5 ·
+%  memory/reference_citation_bans.md (08-13 round 3) ·
+%  memory/project_hosgate_result_2026-08-13.md · direct code reading 2026-08-14)
+% --- original (kept for history) ---
+% The ground-truth wave field uses Gerstner (nonlinear) kinematics while
+% all estimation methods---WaveSplat, ETKF, LETKF, GPR---use a linear
+% forward model; therefore the $O(\epsilon^2)$ model mismatch affects
+% all methods equally and does not bias the comparison.
+% \emph{Linear forward model}: the $O(\epsilon^2)$ mismatch is
+% $<0.5\%$ for the BF2--5 range tested ($\epsilon\approx 0.05$--$0.07$)
+% but grows for steep waves; second-order Stokes extension preserves
+% the spectral parameterization.
+\textbf{[RETRACTED 2026-08-14] --- correction.} Earlier versions stated here
+that ``the ground-truth wave field uses Gerstner (nonlinear) kinematics
+$\ldots$ therefore the $O(\epsilon^2)$ model mismatch affects all methods
+equally and does not bias the comparison'', and that the mismatch is
+$<0.5\%$ over BF2--5. Both statements are \textbf{false}. The correct facts
+are: the synthetic ground truth is a \emph{displacement-free linear
+superposition on a fixed grid}, so it lies in the same function space as the
+estimator's model equation and the measured mismatch is \emph{zero}; and a
+zero mismatch is not neutral between methods, because the grid-based
+baselines do not use that representation. \emph{Nonlinear validation was
+performed in a separate higher-order-spectral ($M{=}3$) batch, not on this
+corpus.}
+\emph{Linear forward model}: the linear approximation degrades for steep
+waves; second-order Stokes extension preserves the spectral
+parameterization.
 \emph{Tracking phase dependence on initialization}: the \texttt{w\_phi}
 tracking mode freezes wavenumbers and updates only amplitudes and phases,
 so components missed during beamforming initialization cannot be recovered
@@ -2680,10 +2911,19 @@ By representing waves as optimizable spectral components with
 hard dispersion constraints, WaveSplat
 achieves 65.5\% lower nRMSE than a hyperparameter-tuned ETKF-grid
 baseline ($0.115$ vs.\ $0.332$ over 100 Nyquist-adequate episodes,
-median over 5 seeds) while running approximately
-$10\times$ faster ($11.0$ vs.\ $132.6$~ms/frame), and is the only
+median over 5 seeds),
+% RETRACTED 2026-08-14 (latency clause only): "approximately 10x faster
+% (11.0 vs 132.6 ms/frame)" is on the citation-ban list -- separate-process timing.
+% Verified same-process, single-thread value: 1.5-2.6x.
+% (basis: memory/reference_citation_bans.md (08-05), (08-13 round 3))
+% --- original (kept for history) --- while running approximately
+% $10\times$ faster ($11.0$ vs.\ $132.6$~ms/frame),
+and is the only
 method among primary baselines with a positive Skill Score in a
 pre-specified five-metric panel.
+\textbf{[RETRACTED 2026-08-14]} The speed-up factor and per-frame latencies
+previously stated in this conclusion are withdrawn (separate-process timing);
+the verified same-process, single-thread value is 1.5--2.6$\times$.
 Against stronger baselines including LETKF with spatial localization,
 WaveSplat retains the best average nRMSE on 12 pre-specified
 representative episodes.

@@ -1,4 +1,13 @@
+> ⛔**2026-08-13 감사 — 이 리뷰의 전제("레버가 PROVEN real")는 철회됨.** 근거로 삼는
+> `d72` 의 `CRB ×4.4` 는 **단일 시드**(seed=1)이고 복제는 **2.8배**(8시드)·**3.22배**(30시드)
+> ⟹ **부호 생존, 크기 사망**. 게다가 **실측 관측기하 위 field-CRB 에서는 정지가 이긴다**
+> (정지 0.00986 vs cross 0.01615, **0/12**) ⟹ "이동이 정보를 만든다" 는 **반증됐다**.
+> 근거: `tmp/AUDIT_recheck_2026-08-13/A3_citation_bans.md`, `reference_citation_bans.md`
+>
+> 본문은 이력 보존을 위해 남긴다 — **인용하지 말 것.**
+
 # Review — learning in the platform-motion direction (2026-06-29)
+# ⛔ RETRACTED 2026-08-13
 
 User: consider doing LEARNING in the platform-motion synthetic-aperture direction.
 
@@ -7,8 +16,10 @@ Our earlier active-sensing work was a NEGATIVE: free-aim measurement SELECTION i
 the apparent learning lever vanished on continuous seas (d42/d43/d63/d65). The reason: with a fixed
 sensor, there was no real degree of freedom that mattered.
 
-**Platform motion changes this.** d72 proves the lever is real and LARGE and DIRECTIONAL: cross-track
-motion sharpens the directional CRB ×4.4, along-track (surfing) HURTS. So *which way the ship goes*
+**Platform motion changes this.** ⛔**RETRACTED (2026-08-13 감사)** — "d72 proves the lever is real
+and LARGE": `CRB ×4.4` 는 단일 시드값이고(복제 2.8배/3.22배), 실측 관측기하에서는 부호가
+뒤집힌다(정지가 이긴다, 0/12). 원문 보존: ~~d72 proves the lever is real and LARGE and DIRECTIONAL:
+cross-track motion sharpens the directional CRB ×4.4, along-track (surfing) HURTS.~~ So *which way the ship goes*
 matters enormously — and the optimal path is non-obvious (depends on the estimated multidirectional sea,
 ship dynamics, and the evolving field). **For the first time, learning has a genuine, winnable thing to
 optimize.** This is the honest distinction: before, the lever didn't exist; now it does.

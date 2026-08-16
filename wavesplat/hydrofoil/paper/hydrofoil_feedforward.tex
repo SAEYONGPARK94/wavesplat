@@ -34,10 +34,31 @@ perturbation before it arrives.
 An IIR low-pass filter ($\alpha$=0.05) on the feedforward signal suppresses
 estimation noise without degrading the causal preview advantage.
 
-Using WaveSplat---a grid-free spectral wave estimator achieving
-$\sim$20\% normalized RMSE (nRMSE) at 13~ms/frame---the feedforward
+% RETRACTED/SCOPE 2026-08-14:
+%  (a) "13 ms/frame" is the banned 13.4 ms figure -- it comes from a separate-process
+%      timing comparison. The only citable comparative value is 1.5-2.6x within one
+%      process on a single thread (CPU: AMD Ryzen 7 7800X3D).
+%  (b) Cross-citing the estimator's ACCURACY into a CONTROL claim is itself on the ban
+%      list: the accuracy episodes were generated with direction_deg = 0 (following
+%      seas, waves moving AWAY from the sensor -- the repository labels this
+%      anti-causal for encounter in scripts/d3_h6_v2_e2e.py:14-16), whereas the control
+%      scenarios here are head/beam seas. The two were never measured in one geometry.
+% (basis: memory/reference_citation_bans.md (08-05), (08-12 full audit), (08-13 round 3))
+% --- original (kept for history) ---
+% Using WaveSplat---a grid-free spectral wave estimator achieving
+% $\sim$20\% normalized RMSE (nRMSE) at 13~ms/frame---the feedforward
+% controller reduces heave acceleration RMS by 11--41\% across
+% Beaufort~3--4 scenarios.
+Using WaveSplat---a grid-free spectral wave estimator---the feedforward
 controller reduces heave acceleration RMS by 11--41\% across
 Beaufort~3--4 scenarios.
+\textbf{[RETRACTED 2026-08-14]} The per-frame latency figure previously quoted
+for the estimator is withdrawn (separate-process timing).
+\textbf{[SCOPE 2026-08-14]} The estimator's reported accuracy was measured in
+\emph{following seas} (waves travelling away from the sensor) on a stationary
+platform, whereas the control scenarios below are head and beam seas;
+the two have never been measured in a single geometry, so the accuracy figure
+should not be read as established for this control setting.
 In noise-injection simulations, WaveSplat-level feedforward recovers
 93--103\% of the perfect-knowledge benefit in Beaufort~3.
 However, end-to-end testing reveals that performance is sensitive to
@@ -190,9 +211,14 @@ estimates from onboard sensors.
 Recent advances in shipboard LiDAR-based wave estimation
 now make this feasible.
 
+% RETRACTED 2026-08-14: "at 13~ms/frame" is the banned 13.4 ms figure
+% (separate-process timing). Same-process, single-thread value: 1.5-2.6x.
+% (basis: memory/reference_citation_bans.md (08-05), (08-13 round 3))
+% --- original (kept for history) --- ... with ${\sim}20\%$ nRMSE at 13~ms/frame ...
 WaveSplat \citep{park2026wavesplat} achieves real-time
-spectral wave field estimation with ${\sim}20\%$ nRMSE
-at 13~ms/frame from sparse LiDAR.
+spectral wave field estimation with ${\sim}20\%$ nRMSE from sparse LiDAR
+(\textbf{[RETRACTED 2026-08-14]} --- the per-frame latency figure previously
+quoted here is withdrawn as a separate-process timing).
 Its spectral representation---a weighted sum of plane
 waves with known propagation---enables evaluation at
 arbitrary preview points without grid interpolation.
@@ -343,8 +369,10 @@ measurements at 10~Hz frame rate~\citep{nouguier2014, collins2022}.
 Grid-based methods using the Ensemble Transform Kalman Filter
 (ETKF)~\citep{huhn2022, desmars2020} achieve accurate
 reconstruction but require spatial discretization and grid interpolation.
+% RETRACTED 2026-08-14: "13~ms/frame" banned (separate-process timing).
 WaveSplat~\citep{park2026wavesplat} provides a grid-free spectral
-alternative with $\sim$20\% nRMSE and 13~ms/frame inference.
+alternative with $\sim$20\% nRMSE
+(\textbf{[RETRACTED 2026-08-14]} --- inference-latency figure withdrawn).
 Its analytic wave model enables direct evaluation of surface
 elevation, slope, and orbital velocity at arbitrary spatial points,
 making it naturally suited for the preview-point evaluation required
@@ -618,8 +646,10 @@ The estimated wave field is:
 \begin{equation}
   \hat{\eta}(x,y,t) = \sum_{i=1}^{N} w_i \cos(k_{x,i} x + k_{y,i} y - \omega_i t + \varphi_i)
 \end{equation}
+% RETRACTED 2026-08-14: "13~ms/frame" banned (separate-process timing).
 with $\omega_i$ constrained by the dispersion relation, achieving
-$\sim$20\% nRMSE at 13~ms/frame on CPU.
+$\sim$20\% nRMSE on CPU
+(\textbf{[RETRACTED 2026-08-14]} --- per-frame latency figure withdrawn).
 
 This spectral representation allows \emph{direct} analytical evaluation of
 $\hat{\eta}$, $\partial\hat{\eta}/\partial x$, and
@@ -1129,8 +1159,10 @@ The end-to-end pipeline operates as follows:
 \begin{enumerate}
   \item LiDAR scans provide sparse ocean surface observations
     (50--200 points/frame at 10~Hz)
+  % RETRACTED 2026-08-14: "in 13~ms/frame" banned (separate-process timing).
   \item WaveSplat estimates spectral parameters
-    $(w_i, k_{x,i}, k_{y,i}, \omega_i, \varphi_i)$ in 13~ms/frame
+    $(w_i, k_{x,i}, k_{y,i}, \omega_i, \varphi_i)$
+    (\textbf{[RETRACTED 2026-08-14]} --- per-frame latency figure withdrawn)
   \item The WaveSplat bridge converts these to wave components
     compatible with the disturbance model
   \item The hydrofoil simulator uses GT components for
@@ -1148,17 +1180,31 @@ LiDAR observations.
 
 Table~\ref{tab:latency} breaks down the per-cycle latency of the
 full LiDAR$\,\to\,$WaveSplat$\,\to\,$feedforward pipeline.
-The dominant cost is WaveSplat estimation (13.4~ms), while the
+% RETRACTED 2026-08-14: 13.4 ms and every figure derived from it (14.6 ms total,
+% 85.4% margin) are banned -- separate-process timing, no thread pinning.
+% No verified substitute absolute values exist, so no numbers are invented.
+% (basis: memory/reference_citation_bans.md (08-05), (08-13 round 3))
+% --- original (kept for history) ---
+% The dominant cost is WaveSplat estimation (13.4~ms), while the
+% feedforward controller itself contributes sub-millisecond overhead.
+% The total pipeline consumes 14.6~ms per 100~ms control cycle
+% (Table~\ref{tab:latency}), leaving 85.4\% of the real-time budget
+% for other shipboard processes.
+The dominant cost is WaveSplat estimation, while the
 feedforward controller itself contributes sub-millisecond overhead.
-The total pipeline consumes 14.6~ms per 100~ms control cycle
-(Table~\ref{tab:latency}), leaving 85.4\% of the real-time budget
-for other shipboard processes (vessel state estimation, mission
-planning, safety monitoring).
+\textbf{[RETRACTED 2026-08-14]} The absolute estimation latency, the total
+pipeline figure and the resulting real-time budget margin are withdrawn: the
+estimation timing came from a separate-process comparison. The remaining
+pipeline stages below were measured in this work and are unaffected.
 
 \begin{table}[t]
 \centering
+% CORRECTED 2026-08-14: CPU was misreported. Actual machine: AMD Ryzen 7 7800X3D.
+% "Intel i7-12700H" has been on the citation-ban list since 2026-08-05.
 \caption{End-to-end latency budget per 10~Hz control cycle
-(Intel~i7-12700H, single CPU thread).}
+(\textbf{AMD Ryzen~7 7800X3D}, single CPU thread).
+\textbf{[RETRACTED 2026-08-14]} The WaveSplat row and the totals derived from
+it are withdrawn (separate-process timing).}
 \label{tab:latency}
 \begin{tabular}{lcc}
 \toprule
@@ -1166,13 +1212,17 @@ Stage & Latency (ms) & \% of 100~ms budget \\
 \midrule
 LiDAR acquisition (per scan, 10~Hz) & 0.1 & 0.1\% \\
 Point-cloud preprocessing            & 0.5 & 0.5\% \\
-WaveSplat tracking update            & 13.4 & 13.4\% \\
+% --- original (kept for history) --- WaveSplat tracking update & 13.4 & 13.4\% \\
+WaveSplat tracking update            & [retracted] & [retracted] \\
 Preview evaluation (4 foil points)   & 0.3 & 0.3\% \\
 LP filter + feedforward command      & 0.2 & 0.2\% \\
 PD feedback computation              & 0.1 & 0.1\% \\
 \midrule
-\textbf{Total pipeline}              & \textbf{14.6} & \textbf{14.6\%} \\
-\textbf{Budget margin}               & 85.4 & 85.4\% \\
+% --- original (kept for history) ---
+% \textbf{Total pipeline} & \textbf{14.6} & \textbf{14.6\%} \\
+% \textbf{Budget margin}  & 85.4 & 85.4\% \\
+\textbf{Total pipeline}              & \textbf{[retracted]} & \textbf{[retracted]} \\
+\textbf{Budget margin}               & [retracted] & [retracted] \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1383,10 +1433,28 @@ At cruise speed (11.3~m/s), even 0.1~s preview provides 1.1~m
 of spatial anticipation---sufficient for the foil chord-scale
 ($\sim$0.2~m) AoA variations that dominate the disturbance.
 
+% RETRACTED 2026-08-14: "where LiDAR accuracy is typically highest" is refuted by the
+% sensor geometry. A 2026-08-12 measurement found all eight control preview points fall
+% inside the LiDAR blind zone (preview point 7.65 m < observation grid start 10.0 m <
+% blind-zone boundary 10.72 m) -- i.e. that band contains ZERO observations. The
+% statement was written the wrong way round.
+% (basis: memory/MEMORY.md 2026-08-12 ·
+%  memory/project_persona_debate_blankslate_2026-08-12.md)
+% --- original (kept for history) ---
+% This finding is practically important: it means that the LiDAR
+% estimation system needs to be accurate primarily in the near-field
+% (within $\sim$3~m of each foil in the heading direction), where
+% LiDAR accuracy is typically highest.
 This finding is practically important: it means that the LiDAR
 estimation system needs to be accurate primarily in the near-field
-(within $\sim$3~m of each foil in the heading direction), where
-LiDAR accuracy is typically highest.
+(within $\sim$3~m of each foil in the heading direction).
+\textbf{[RETRACTED 2026-08-14]} Earlier versions added ``where LiDAR accuracy
+is typically highest''. That is \textbf{the opposite of the truth}: a later
+geometric check found that all of the control preview points lie
+\emph{inside the LiDAR blind zone}, closer to the sensor than the first
+observation range, so that band contains \emph{no observations at all}.
+This near-field requirement must therefore be read as an \emph{unresolved
+constraint}, not as a favourable one.
 
 \subsection{Per-foil spectral evaluation vs single-point sensors}
 \label{sec:discuss_sp}
@@ -1531,11 +1599,14 @@ The key findings are:
 
 These results establish that even moderate wave estimation accuracy
 ($\sim$20\% nRMSE) is sufficient for effective feedforward control.
-The total computational budget for the LiDAR $\to$ WaveSplat $\to$
-feedforward pipeline is 14.6~ms per cycle (Table~\ref{tab:latency}:
-13.4~ms estimation + 1.2~ms preprocessing, controller, and I/O),
-well within the 100~ms real-time budget on standard shipboard
-computing hardware.
+% RETRACTED 2026-08-14: 14.6 ms / 13.4 ms budget claim -- separate-process timing.
+% (basis: memory/reference_citation_bans.md (08-05), (08-13 round 3))
+% --- original (kept for history) --- The total computational budget ... is 14.6~ms
+% per cycle (13.4~ms estimation + 1.2~ms preprocessing, controller, and I/O) ...
+\textbf{[RETRACTED 2026-08-14]} The end-to-end computational budget figure
+previously stated here is withdrawn, because its dominant term is a
+separate-process estimation timing. The non-estimation stages
+(preprocessing, controller, I/O) were measured in this work and remain.
 This makes the approach a practical candidate for deployment on
 the emerging class of electric hydrofoil passenger vessels, where
 ride comfort directly impacts commercial viability.

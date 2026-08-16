@@ -3,6 +3,8 @@ name: Baseline comparison design (revised)
 description: GPR(single+window), ETKF-grid, Oracle baseline — physics/temporal 기여 분리 가능
 type: project
 ---
+> ⛔**ARCHIVED / 낡은 사본 (2026-08-13 감사).** 현행 연구 기록의 권위는 auto-memory(`~/.claude/projects/-home-vexit-wavesplat/memory/MEMORY.md`)와 `tmp/<배치>/RESULT.md` 다. 이 디렉터리의 수치는 다수가 이후 측정에서 무효화됐다 — 인용 금지.
+
 
 ## Baseline 비교 표 (핵심 — 논문 Table 후보)
 

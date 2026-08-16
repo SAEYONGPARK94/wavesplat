@@ -1,3 +1,5 @@
+> ⛔**ARCHIVED / 낡은 사본 (2026-08-13 감사).** 현행 연구 기록의 권위는 auto-memory(`~/.claude/projects/-home-vexit-wavesplat/memory/MEMORY.md`)와 `tmp/<배치>/RESULT.md` 다. 이 디렉터리의 수치는 다수가 이후 측정에서 무효화됐다 — 인용 금지.
+
 - [Saeyong Profile](user_phd_student.md) — 박사과정, Avikus 실무경험, WaveSplat 연구
 - [Discussion Format](feedback_discussion_format.md) — 4인 페르소나(Prof.K/Prof.E/Rev.2/Saeyong) 토론
 - [Development Principles](feedback_dev_principles.md) — 8원칙: first principles, full dispersion, Q constraint 등

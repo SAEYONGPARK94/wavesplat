@@ -156,14 +156,15 @@ class SequentialUpdater:
                 n_gaussians: list [3, 8, 15] or int
                 depth: water depth [m]
                 lr: learning rate (default 0.01)
-                lambda_l1: L1 sparsity weight (default 0.001)
+                lambda_l1: L1 sparsity weight (default LAMBDA_L1_DEFAULT = 1e-4,
+                    deployed 2026-08-11 by S9; was 1e-3 before that)
                 lambda_smooth: smoothness weight (default 0.0001)
                 init_max_iters: max iterations for initialization (default 500)
                 tracking_steps: gradient steps per frame (default 10)
                 device: 'cpu' or 'cuda'
                 loss_thresholds: list of loss thresholds per stage (default [0.1, 0.05, None])
                 max_iters_per_stage: list of max iters per stage (default [200, 200, 500])
-                tracking_mode: 'phi_only', 'w_phi', or 'all' (default 'phi_only')
+                tracking_mode: 'phi_only', 'w_phi', or 'all' (default 'w_phi')
                 tracking_lr: learning rate for tracking phase (default 0.005)
                 max_steepness: wave steepness clamp (default 0.15)
         """

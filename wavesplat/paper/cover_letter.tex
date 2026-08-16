@@ -43,36 +43,78 @@ Four novel contributions are presented:
   \item A \emph{grid-free spectral estimation framework} with persistent
     cross-frame tracking via dispersion-based phase prediction, enabling
     real-time operation with approximately 10 gradient steps per frame.
+  % SCOPE 2026-08-14: the 5N->4N reduction stands (arithmetic). The "quantified through
+  % ablation" clause does not: the ablation arm removed omega initialisation together
+  % with the constraint, and an isolating 32-run intervention was null in both strata
+  % (sparse p=0.804, crowded p=1.000). Status: not yet measured.
+  % (basis: memory/project_audit_recheck_2026-08-13.md section 2)
   \item A \emph{dispersion-constrained parameterisation} that reduces the
-    free parameter count from $5N$ to $4N$ and acts as a physics-based
-    regulariser against overfitting, quantified through ablation.
-  \item An \emph{incidence-angle-weighted observation model} that accounts
-    for the heteroscedastic noise structure of LiDAR measurements on ocean
-    surfaces.
-  \item An \emph{adaptive model complexity} mechanism that automatically
-    selects the number of spectral components from $N{=}1$ for simple swells
-    to $N{=}21$ for complex multi-component seas.
+    free parameter count from $5N$ to $4N$.
+    \textbf{[SCOPE 2026-08-14]} The accuracy contribution of this constraint
+    has \emph{not yet been measured}; the ablation previously cited removed
+    the frequency initialisation along with the constraint.
+  % RETRACTED 2026-08-14: DEAD. On a fresh out-of-sample corpus, disabling the
+  % confidence weighting was better in both strata (crowded 10/64, sparse 16/64).
+  % (basis: memory/reference_citation_bans.md (08-13 recheck))
+  \item \textbf{[RETRACTED 2026-08-14]} An \emph{incidence-angle-weighted
+    observation model} was presented as a contribution; on a fresh
+    out-of-sample corpus, disabling it was \emph{better} in both strata,
+    so it is withdrawn as a contribution and retained only as a negative result.
+  % RETRACTED 2026-08-14: adaptive model order measured NULL on 2026-08-03; the
+  % manuscript itself now presents it as a mechanism, not an accuracy contribution.
+  % (basis: CLAUDE.md · memory/project_session_2026-08-03_cdip_stage2.md)
+  \item \textbf{[RETRACTED 2026-08-14 as a contribution]} An \emph{adaptive
+    model complexity} mechanism selects the number of spectral components from
+    $N{=}1$ for simple swells to $N{=}21$ for complex multi-component seas.
+    Its \emph{accuracy} benefit was subsequently measured as null; it is
+    reported as a mechanism only.
 \end{enumerate}
 
 \textbf{Key results.}
 On a physics-based simulation dataset of 100 episodes spanning Beaufort 2--5
 sea states (1--30 wave components), WaveSplat achieves:
-\begin{itemize}
-  \item \textbf{30.1\% lower normalised RMSE} than a hyperparameter-tuned
-    Ensemble Transform Kalman Filter (ETKF) baseline
-    (0.223 vs.\ 0.319, Wilcoxon $p{=}1.1\!\times\!10^{-15}$,
-    Cohen's $d{=}1.16$);
-  \item \textbf{approximately $10\times$ faster} inference
-    (13.4 vs.\ 132.6 ms/frame, single CPU thread);
-  \item the \textbf{only positive Skill Score} in a pre-registered
-    six-metric evaluation panel against a zero-predictor reference,
-    exposing both the ETKF (shape-incoherent) and sliding-window GPR
-    (near-zero predictor) as failing this basic test.
-\end{itemize}
-The improvement is highly significant across 100 paired runs with five
-random seeds, and is robust to both diffuse and specular LiDAR observation
-models and to extreme observation sparsity ($<$8\% degradation at 20\%
-observation density).
+% RETRACTED 2026-08-14: every headline figure in this block is on the citation-ban list.
+% Reasons (not "no source" -- the numbers do exist in results/b1_full_comparison.json):
+%  (i)  frame mismatch -- WaveSplat was scored on 120-220 frames per episode (mean 167),
+%       ETKF and GPR on 301, and WaveSplat has fewer in 100/100 episodes, so the arms
+%       were never scored on the same frames (re-derived directly 2026-08-14);
+%  (ii) baseline choice -- that ETKF is grid 40x30 / ne=100 / mult_inflation 1.0; the
+%       same WaveSplat column against a tuned LETKF is 0.2229 vs 0.2278, 51/100,
+%       p=0.9204 = statistical null (results/100ep_ws_letkf.json);
+%  (iii) latency is a cross-process comparison; the same-process, single-thread value
+%       is 1.5-2.6x on an AMD Ryzen 7 7800X3D.
+%  The Skill Score column and the Wilcoxon p / Cohen's d come from the same file family;
+%  in addition the corpus is a legacy-generator product whose independent draws number
+%  five on the phase/direction axis, so the cluster-level floor on p is 2^-5.
+% (basis: memory/reference_citation_bans.md (08-13 round 3), (08-13 recheck) ·
+%  memory/project_audit_recheck_2026-08-13.md sections 4 and 6.5)
+% --- original (kept for history) ---
+% \begin{itemize}
+%   \item \textbf{30.1\% lower normalised RMSE} than a hyperparameter-tuned
+%     Ensemble Transform Kalman Filter (ETKF) baseline
+%     (0.223 vs.\ 0.319, Wilcoxon $p{=}1.1\!\times\!10^{-15}$,
+%     Cohen's $d{=}1.16$);
+%   \item \textbf{approximately $10\times$ faster} inference
+%     (13.4 vs.\ 132.6 ms/frame, single CPU thread);
+%   \item the \textbf{only positive Skill Score} in a pre-registered
+%     six-metric evaluation panel against a zero-predictor reference,
+%     exposing both the ETKF (shape-incoherent) and sliding-window GPR
+%     (near-zero predictor) as failing this basic test.
+% \end{itemize}
+% The improvement is highly significant across 100 paired runs with five
+% random seeds, and is robust to both diffuse and specular LiDAR observation
+% models and to extreme observation sparsity ($<$8\% degradation at 20\%
+% observation density).
+\textbf{[RETRACTED 2026-08-14]} The accuracy, latency, Skill Score and
+significance figures previously listed here are \textbf{withdrawn in full}.
+In the underlying result file the proposed method and the baselines were never
+scored on the same frames; the verdict reverses with the choice of baseline
+(against a tuned LETKF the same column is a statistical null); the latency
+figures were measured in separate processes; and the corpus does not contain
+enough independent draws to support the quoted $p$-values.
+No replacement numbers are stated, because none have been verified for this
+comparison. The only citable latency statement is 1.5--2.6$\times$ within one
+process on a single thread (CPU: AMD Ryzen 7 7800X3D).
 
 \textbf{Relevance to Ocean Engineering.}
 This work directly addresses the operational challenge of real-time

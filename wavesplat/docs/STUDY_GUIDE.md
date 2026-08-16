@@ -11,28 +11,53 @@
 
 ---
 
-## ⚡ WaveSplat 최신 수치 (2026-04-10, 외워야 할 최종본)
+## ⚡ WaveSplat 수치
+
+> ⛔**2026-08-13 감사 — 이 표의 헤드라인 수치는 전량 철회됨. 외우지 말 것.**
+> (금지 유지 · 3라운드에서 **사유 교체**)
+> `0.223 / 0.319 / 30.1%` · `13.4 ms` · `132.6 ms` · `~10×` · `84/100` 인용 금지.
+>
+> ⚠**1라운드가 적은 "결과 파일이 저장소에 존재하지 않는다" 는 거짓이었다**(그 감사관은
+> `results/` 를 한 파일도 열지 않았다). 네 수치는 `results/b1_full_comparison.json`
+> (**git 추적**, 커밋 `e57528c`, 100 ep, `etkf_config` 내장)에서 **전부 재도출된다**:
+> `WaveSplat.avg_nRMSE` **0.2229** · `ETKF.avg_nRMSE` **0.3189** ·
+> `WaveSplat.avg_inference_ms` **13.3760** · `ETKF.avg_inference_ms` **132.6387**.
+>
+> **금지가 유지되는 진짜 사유 3가지**:
+> 1. **프레임 불일치** — `WaveSplat.n_frames` **120–220** vs `ETKF`·`GPR-1` **301**,
+>    **100/100 에피소드 전부에서 WS 가 더 적다** ⟹ 두 팔이 **같은 프레임에서 채점된 적이 없다**.
+>    ⟹ ⛔그 파일의 **`84/100` 승패비도 인용 금지**. (S13 배치는 통과 — 불일치 0/128.)
+> 2. **기준선 선택** — 그 ETKF 는 `grid 40×30 · ne=100 · mult_inflation 1.0`. 같은 `WaveSplat`
+>    열을 튜닝 LETKF 와 붙이면 아래 표대로 **널**이다.
+> 3. **지연은 프로세스 간 비교** — 정직값은 동일 프로세스·1스레드 **1.5–2.6×**.
+>
+> 근거: `reference_citation_bans.md`, `tmp/AUDIT_recheck_2026-08-13/`
+
+**같은 `WaveSplat` 열을 튜닝 LETKF 와 붙인 재도출** (`results/100ep_ws_letkf.json`, 100 에피소드):
 
 | 항목 | 값 | 비고 |
 |------|-----|------|
-| nRMSE (100 ep) | WS **0.223** / ETKF(tuned) **0.319** / GPR-1 **0.261** | **30.1% 개선** |
-| Speed (ms/frame) | WS **13.4** / ETKF(tuned) **132.6** (median 110) / GPR > 200 | **~10× 빠름** |
-| Skill Score | WS **+0.034 (유일 양수)** / ETKF −0.702 / GPR −0.140 | zero-predictor 구분 |
-| Variance Ratio | WS 0.66 / ETKF 0.90 / **GPR 0.065** | GPR = near-zero |
-| Pearson ρ | WS 0.45 / ETKF 0.11 / GPR 0.19 | ETKF shape-wrong |
-| Dir R² | WS **−0.25** (honest limit) / ETKF +0.07 / GPR +0.03 | 방향성 약점 |
-| Wilcoxon | vs ETKF p=**1.1×10⁻¹⁵**, Cohen's d=**1.16 (large)** | 100 paired runs |
-|          | vs sliding GPR p=**4.7×10⁻⁴**, Cohen's d=**0.42** | CI excludes 0 |
-| Dispersion drift (A1) | R̄=**0.51 ± 0.12** vs Full=0 | A1의 16% nRMSE는 물리 포기 비용 |
-| ETKF sweep | 24 configs, best **0.358** / worst **1.187** (3.3×) | nₑ=100, α=1.00, σ=0.005 |
-| Raydrop | **20/20 wins** (uniform + slope) | 양쪽 모두 WaveSplat 우위 |
-| Sparsity | < 8% degrade at 20% obs density | ~10 pts/frame으로 충분 |
-| Noise | ±13% nRMSE under σ=0.10 m (5× baseline) | adaptive N이 흡수 |
-| **LETKF 비교 (12 ep)** | WS **0.211** / LETKF **0.238** / GPR-disp **0.267** | WS 6/7 지표 1위 |
-| LETKF Dir R² | WS **0.431** vs LETKF 0.074 | **5.8× 방향 정확도** |
-| LETKF Speed | WS **13.2ms** vs LETKF 115.7ms | **8.8× 빠름** |
-| SS Bootstrap CI | WS [−0.15, +0.46] / LETKF [+0.08, +0.17] | LETKF만 CI에서 0 제외 |
-| 논문 길이 | **40 p** | OE 권장 상한 |
+| nRMSE (100 ep) | WS **0.2229** / LETKF **0.2278** | **51/49, p = 0.9204 → 널 (차이 없음)** |
+| Speed | 동일 프로세스·1스레드에서 **1.5–2.6×** | CPU = **AMD Ryzen 7 7800X3D**. 단일 숫자 대신 중앙값+IQR 병기 |
+| Out-of-sample 승패 | S13 704런: 혼잡 **56/64** · 희소 **63/64** | 라우터 미노출 시드 |
+| 단위시험 | **204 passed, 0 failed, 0 skipped** | 85 wavesim + 119 wavesplat (2026-08-13 실측; 신규 8 = `test_shipping_defaults.py`) |
+
+⛔**RETRACTED (2026-08-13 감사)** — 원 표에 있던 다음 값은 재실행 전 인용 불가:
+`nRMSE 0.223/0.319/0.261 (30.1% 개선)` · `Speed 13.4/132.6/>200 ms (~10×)` ·
+`Skill Score +0.034/−0.702/−0.140` · `Variance Ratio 0.66/0.90/0.065` ·
+`Pearson ρ 0.45/0.11/0.19` · `Dir R² −0.25/+0.07/+0.03` ·
+`Wilcoxon p=1.1×10⁻¹⁵ (d=1.16)` · `p=4.7×10⁻⁴ (d=0.42)` · `Raydrop 20/20 wins` ·
+`LETKF 12ep 비교 0.211/0.238/0.267 (6/7 지표 1위)` · `LETKF Dir R² 5.8×` ·
+`LETKF Speed 13.2 vs 115.7 ms (8.8×)` · `SS Bootstrap CI`.
+⚠**사유는 "재현 불가" 가 아니다**(3라운드 교체) — 100-에피소드 계열
+(`nRMSE`·`Speed`·`Skill Score`·`Variance Ratio`·`Pearson ρ`·`Dir R²`)은
+`results/b1_full_comparison.json` 에서 **재도출되며 프레임 불일치·기준선 선택 결함을 물려받고**,
+지연은 **프로세스 간 비교**다. `Wilcoxon p/d`·`Raydrop 20/20`·`LETKF 12ep` 계열만 그 파일에서
+**그대로 재현되지 않는**(구버전 12-에피소드) 값이다. 근거: `reference_citation_bans.md`
+
+유지되는 항목(위 3사유와 무관): Dispersion drift (A1) `R̄=0.51 ± 0.12 vs Full=0` ·
+ETKF sweep `24 configs, best 0.358 / worst 1.187 (3.3×)` ·
+Sparsity `< 8% degrade at 20% obs density` · Noise `±13% under σ=0.10 m`.
 
 ---
 
@@ -209,7 +234,9 @@ $$
 관측 LiDAR 점을 투영해 **beamforming power**를 계산합니다.
 상위 N개 피크를 초기 컴포넌트로 선택합니다.
 
-- **v2_konly 방식**: 빔포밍은 k만 결정, ω와 φ는 후속 최적화에 위임
+- **`v2_konly` 방식**: 빔포밍은 k만 결정, ω와 φ는 후속 최적화에 위임.
+  ⛔단 `v2_konly` 는 **출하 기본값이 아니다** — 2026-07-26 flip 이후 기본값은 GT-free 라우터
+  **`auto`** (`wavesplat/run.py:43` · `configs/estimation.yaml:24`). 명시 지정 시에만 쓰인다.
 - 평균 18% tracking 성능 개선 달성
 
 ### Step 2: Optimization (Coarse-to-Fine)
@@ -239,14 +266,24 @@ $$
 
 12개 에피소드 (BF2-5, uniform/slope LiDAR, 5 seeds) 기준:
 
-| 방법 | 평균 nRMSE | 런타임 (ms/frame) |
-|---|---|---|
-| **WaveSplat** | **0.223** | **13.4** |
-| ETKF (tuned) | 0.319 | 132.6 |
-| GPR-1 | 0.261 | >200 |
+> ⛔**RETRACTED (2026-08-13 감사, 3라운드 사유 교체)** — 이 표에 있던
+> `WS 0.223 / 13.4` · `ETKF 0.319 / 132.6` · `GPR 0.261 / >200`,
+> 그리고 "nRMSE 30.1% 개선, ~10× 속도 우위", "73.7 Hz 동작" 은 인용 금지다.
+> ⚠단 사유는 "재현되지 않는다" 가 **아니다** — 이 값들은 `results/b1_full_comparison.json`
+> (커밋 `e57528c`, 100 ep)에서 재도출된다. 금지 사유는 ①**프레임 불일치**
+> (`WaveSplat.n_frames` 120–220 vs `ETKF`·`GPR-1` 301, **100/100 에피소드에서 WS 가 더 적음**
+> ⟹ `84/100` 승패비도 금지) ②**기준선 선택**(`grid 40×30 · ne=100 · mult_inflation 1.0`)
+> ③**프로세스 간 지연 비교**다. 근거: `reference_citation_bans.md`
 
-- **nRMSE**: 30.1% 개선 vs ETKF(tuned), ~10× 속도 우위
-- **실시간성**: 73.7 Hz 동작 → LiDAR 10 Hz 대비 여유 있음
+**같은 `WaveSplat` 열을 튜닝 LETKF 와 붙인 재도출** (`results/100ep_ws_letkf.json`, 100 ep):
+
+| 방법 | 평균 nRMSE | 판정 |
+|---|---|---|
+| WaveSplat | 0.2229 | — |
+| LETKF | 0.2278 | **51/49, p = 0.9204 → 널** |
+
+- **nRMSE**: ⛔"30.1% 개선" 은 근거 없음 — 이 표본에서 차이는 **통계적으로 널**이다.
+- **지연**: 동일 프로세스·1스레드에서 **1.5–2.6×** (CPU = AMD Ryzen 7 7800X3D).
 - **메모리**: O(N·D) (N=컴포넌트, D=파라미터 수). 격자 기반 대비 100×↓
 
 ## 9. 경쟁 기법 대비 우위 (novelty 방어)
@@ -355,7 +392,7 @@ $$
 | 10 | Dataset + Pre-registered metrics | 100 ep, BF2~5, U/S, **6-metric panel** 정의 | §IV |
 | 11 | Tuned ETKF fairness | 24-config sweep, best 0.358 / worst 1.187 (3.3×) | Table ETKF sweep |
 | 12 | **Headline: 6-metric Table** | **SS: WS +0.034 유일 양수**, VR/ρ로 ETKF/GPR 실패 모드 진단 | Table II |
-| 13 | Speed & Statistics | 13.4 vs 132.6 ms (~10×), p=1.1e−15, **Cohen's d=1.16 large** | §V-B,C |
+| 13 | Speed & Statistics | ⛔RETRACTED — `13.4 vs 132.6 ms (~10×)` · `p=1.1e−15` · `d=1.16`. 재측정 후 "1스레드 1.5–2.6×" 로 재작성 | §V-B,C |
 | 14 | A1 dispersion ablation (Q4) | A1 nRMSE 16% 낮지만 **R̄=0.51, 0.10 Hz off** → 물리 유효성의 대가 | §V-E |
 | 15 | Honest limits | VR=0.66 under-fit, **Dir R²=−0.25** → hydrofoil BF4-head 연결 | §V-A |
 | 16 | **Paper 2: Hydrofoil FF** | 2DOF 문제, FF+FB, f_c=0.8 Hz | Hydro §III |
@@ -370,7 +407,7 @@ $$
 - A3: ETKF sweep 전체 24-config 랭킹
 - A4: Dispersion residual 공식 + 10-run 통계
 - A5: Sparsity 표 (20~100%)
-- A6: Raydrop 20/20 wins 상세 표
+- A6: Raydrop 표 — ⛔`20/20 wins` 수치는 철회됨(구버전 12-에피소드 계열)
 - A7: Per-episode Table I (12 eps)
 
 ## 15. 예상 질문 & 답변
@@ -421,11 +458,17 @@ A. 본 연구는 시뮬레이션 기반 proof-of-concept. 실측 검증은 Aviku
 - [ ] FF vs FB 제어의 차이와 합성 이유
 - [ ] f_c = α/(2πΔt) 필터 공식 유도
 - [ ] ISO 2631 승차감 지표 (간단히)
-- [ ] 논문 핵심 수치 **외워두기** (2026-04-10 최종):
-  - nRMSE WS 0.223 / ETKF(tuned) 0.319 → **30.1% 개선** (과거 0.233/0.450/48%는 구버전)
-  - Speed WS 13.4 ms / ETKF(tuned) 132.6 ms → **~10× 빠름**
-  - SS +0.034 (only positive), Wilcoxon p=1.1e−15 (Cohen's d=1.16)
-  - Dispersion drift: A1 R̄=0.51±0.12 vs Full=0
+- [ ] 논문 핵심 수치 — ⛔**2026-08-13 감사: 아래 구 목록은 외우면 안 된다.**
+  - ⛔RETRACTED: `nRMSE WS 0.223 / ETKF 0.319 → 30.1% 개선` ·
+    `Speed WS 13.4 ms / ETKF 132.6 ms → ~10× 빠름` · `84/100 승` ·
+    `SS +0.034 (only positive)` · `Wilcoxon p=1.1e−15 (Cohen's d=1.16)`.
+    ⚠사유(3라운드 교체): 이 값들은 `results/b1_full_comparison.json` 에 **있다** —
+    금지 이유는 **프레임 불일치**(WS 120–220 vs ETKF/GPR 301 프레임, 100/100 에피소드) ·
+    **기준선 선택**(튜닝 LETKF 로 바꾸면 널) · **프로세스 간 지연 비교**다.
+    근거: `reference_citation_bans.md`
+  - ✅검증된 값: **WS 0.2229 vs LETKF 0.2278, 51/49, p = 0.9204 (널)**,
+    지연 **1스레드 1.5–2.6×** (AMD Ryzen 7 7800X3D), 단위시험 **204 passed**
+  - Dispersion drift: A1 R̄=0.51±0.12 vs Full=0 (유효)
   - Hydrofoil 가속도 저감: BF3 head 50%, BF4 head 42%, BF4 bow 38%
 
 ---
@@ -483,9 +526,15 @@ estimator라는 진단적 증거입니다.
 **Q-B. "Tuned ETKF의 Nₑ=100이 너무 큰 것 아닌가? 공정한가?"**
 A. 24-config sweep의 **top-10이 모두 Nₑ=100**이고, 40×30 grid가 80×60보다 일관되게
 우수했습니다 (후자는 ensemble이 undersize). 즉 Nₑ=100이 ETKF 자체에 가장 유리한
-설정입니다. Nₑ=50의 pre-tuning 수치 31.7 ms도 Fig. 3 본문에 함께 보고하여 독자가
-두 버전을 모두 볼 수 있게 했습니다. Tuning 덕에 ETKF는 더 느려졌지만 nRMSE는
-0.436→0.319로 크게 개선되었으므로, 우리 비교는 ETKF에게 유리한 방향의 tuning 뒤입니다.
+설정입니다.
+⛔RETRACTED (2026-08-13 감사, 3라운드 사유 교체) — 원문의 `Nₑ=50 pre-tuning 31.7 ms` 와
+`nRMSE 0.436→0.319`. 지연은 **프로세스 간 비교**(스레드 미고정 포함)이고, `0.319` 는
+**재현되지 않는 분모가 아니라** `results/b1_full_comparison.json` 의 값(`0.3189`)으로서
+**프레임 불일치**(WS 120–220 vs ETKF 301 프레임, 100/100 에피소드)와 **기준선 선택**의
+산물이다. 근거: `reference_citation_bans.md`
+"ETKF 에게 유리한 방향으로 튜닝한 뒤 비교했다" 는 **설계 서술은 유효**하고, S13 에서
+기준선을 더 강화했을 때 오히려 우리 보고값이 나빠졌다는 사실이 이를 뒷받침한다
+(공개 LETKF 였다면 63/64, 튜닝 후 56/64).
 
 **Q-C. "A1 dispersion ablation에서 `R̄=0.51`이 정확히 무슨 의미인가?"**
 A. A1에서 학습된 각 성분 (kᵢ, ωᵢ)의 **진폭 가중 상대 편차**입니다:
@@ -520,19 +569,29 @@ frame 간 tracking이 무너집니다. 코드는 `scripts/run_q4_dispersion_resi
 - [ ] **HDF5 에피소드 파일을 직접 열어 LiDAR 포인트 scatter plot**
   - `HANDS_ON.md`의 snippet 활용
   - 한 프레임에 몇 점, 어느 영역 커버, 어떻게 희소한지 눈으로 확인
-- [ ] **한 에피소드 끝까지 돌려보고 핵심 수치 암기**
-  - nRMSE 0.223, 13.4 ms, 30.1% 개선 vs ETKF(tuned), ~10× 속도
-  - 자다가 물어도 나와야 함
+- [ ] **한 에피소드 끝까지 돌려보고 핵심 수치 확인**
+  - ⛔RETRACTED — `nRMSE 0.223, 13.4 ms, 30.1% 개선, ~10× 속도` 를 암기하지 말 것.
+    근거: `reference_citation_bans.md`
+  - ✅확인할 값: **WS 0.2229 vs LETKF 0.2278 (51/49, p = 0.9204 = 널)**,
+    지연은 **1스레드 1.5–2.6×**
 
 ## E-3. 엘리베이터 피치 암기 (3가지 버전)
 
-**30초 버전 (한 문장)**
+> ⛔**2026-08-13 감사 — 아래 세 피치는 모두 철회된 수치를 담고 있다.**
+> `13 ms` · `30% 낮춤` · `0.223 vs 0.319` · `10배` · `13.4 vs 132.6 ms` ·
+> `p=1.1e−15` · `d=1.16` · "Skill Score 가 양수인 유일한 방법".
+> ⚠**사유(3라운드 교체)**: 이 값들은 `results/b1_full_comparison.json` 에 **실재한다** —
+> 금지 이유는 **프레임 불일치**(WS 120–220 vs ETKF/GPR 301 프레임, 100/100 에피소드) ·
+> **기준선 선택**(튜닝 LETKF 로 바꾸면 널) · **프로세스 간 지연 비교**다.
+> 발표 전 아래 피치를 다시 쓸 것. 근거: `reference_citation_bans.md`
+
+**30초 버전 (한 문장)** — ⛔RETRACTED
 > "LiDAR 희소 관측으로부터 격자 없이 분산관계가 hard constraint로 걸린 spectral
 > Gaussian 집합을 직접 최적화하여 13 ms 안에 파면을 복원하고, 100 에피소드 기준
 > tuned ETKF 대비 nRMSE를 30% 낮추면서 사전 등록된 6개 메트릭 중 Skill Score가
 > 양수인 유일한 방법이 되었다."
 
-**2분 버전 (기술적, 2026-04-10 최종)**
+**2분 버전 (기술적, 2026-04-10)** — ⛔RETRACTED
 > "기존 파면 추정은 격자 기반이라 희소·불규칙 LiDAR 관측에 적합하지 않다. 우리는
 > 파면을 N개의 spectral Gaussian으로 직접 파라미터화하고, 분산관계
 > ω=√(g|k|tanh(|k|d))를 hard constraint로 걸어 자유도를 5N에서 4N으로 줄인다.
@@ -552,19 +611,30 @@ frame 간 tracking이 무너집니다. 코드는 `scripts/run_q4_dispersion_resi
 
 ## E-4. 반드시 외울 수치 & 사실 목록 (2026-04-10 최신)
 
-**WaveSplat 논문 (full 100 episodes / 6-metric panel)**
-- [ ] **nRMSE**: WS **0.223** / ETKF(tuned) **0.319** / GPR-1 **0.261** → 30.1% 개선
-- [ ] **Runtime**: WS **13.4 ms** / ETKF(tuned) **132.6 ms (median 110)** / GPR >200 ms → ~10×
-- [ ] **Skill Score (사전 등록)**: WS **+0.034 유일 양수** / ETKF −0.702 / GPR −0.140
-- [ ] **Variance Ratio**: WS 0.66 / ETKF 0.90 / **GPR 0.065** (near-zero predictor 지문)
-- [ ] **Pearson ρ**: WS 0.45 / ETKF 0.11 / GPR 0.19
-- [ ] **Dir R² (honest limitation)**: WS **−0.25** (방향성 약점) — hydrofoil BF4-head 악화의 원인
-- [ ] **통계**: Wilcoxon vs ETKF p=**1.1×10⁻¹⁵**, **Cohen's d=1.16 (large)**;
-            vs sliding GPR p=**4.7×10⁻⁴**, Cohen's d=0.42; **100 paired runs**
+**WaveSplat 논문 (full 100 episodes)**
+
+> ⛔**2026-08-13 감사 — 아래 ⛔ 항목은 외우면 안 된다.**
+> ⚠**금지 사유는 "결과 파일이 없다" 가 아니다**(1라운드 오진) — 100-에피소드 값들은
+> `results/b1_full_comparison.json`(커밋 `e57528c`)에서 재도출된다. 금지 사유는
+> **프레임 불일치**(`WaveSplat.n_frames` 120–220 vs `ETKF`·`GPR-1` 301, 100/100 에피소드
+> ⟹ `84/100` 승패비도 금지) · **기준선 선택** · **프로세스 간 지연 비교**다.
+
+- [ ] **nRMSE**: ⛔RETRACTED — `WS 0.223 / ETKF 0.319 / GPR 0.261 → 30.1% 개선`.
+      ✅검증된 값 = **WS 0.2229 vs LETKF 0.2278, 51/49, p = 0.9204 → 널**
+- [ ] **Runtime**: ⛔RETRACTED — `13.4 ms / 132.6 ms (median 110) / >200 ms → ~10×`.
+      ✅허용 = **동일 프로세스·1스레드 1.5–2.6×**, CPU = **AMD Ryzen 7 7800X3D**
+- [ ] **Skill Score**: ⛔RETRACTED — `+0.034 유일 양수 / −0.702 / −0.140`
+- [ ] **Variance Ratio**: ⛔RETRACTED — `0.66 / 0.90 / 0.065`
+- [ ] **Pearson ρ**: ⛔RETRACTED — `0.45 / 0.11 / 0.19`
+- [ ] **Dir R²**: ⛔RETRACTED — `WS −0.25`
+- [ ] **통계**: ⛔RETRACTED — `Wilcoxon p=1.1×10⁻¹⁵, Cohen's d=1.16 (large)` ·
+            `p=4.7×10⁻⁴, d=0.42`. 재도출 전 인용 불가
+- [ ] **Out-of-sample 승패 (✅유효)**: S13 704런 = 혼잡 **56/64** · 희소 **63/64**
+- [ ] **단위시험 (✅유효)**: **204 passed, 0 failed, 0 skipped** (85 wavesim + 119 wavesplat)
 - [ ] **Dispersion residual (A1)**: R̄=**0.51±0.12** (≈0.10 Hz off) vs Full=0 by construction
 - [ ] **ETKF sweep**: 24 configs, best 0.358 / worst 1.187 (3.3× spread),
             winner = 40×30, **nₑ=100**, α=1.00, σ=0.005
-- [ ] **Raydrop**: 20/20 wins (uniform 10/10 + slope 10/10)
+- [ ] **Raydrop**: ⛔RETRACTED — `20/20 wins` (구버전 12-에피소드 계열)
 - [ ] **Noise**: ±13% nRMSE under σ=0.10 m (5× baseline)
 - [ ] **Sparsity**: < 8% degrade at 20% observation density
 - [ ] **Adaptive N range**: 1 (single swell) ~ 21 (complex sea)
@@ -655,8 +725,11 @@ frame 간 tracking이 무너집니다. 코드는 `scripts/run_q4_dispersion_resi
 
 - [ ] **Noise robustness**: σ 5배 증가에도 nRMSE 변화 **±13% 이내**
 - [ ] **Noise regularization**: σ=0.02에서 BF3 5-comp nRMSE 0.168→0.149 (개선)
-- [ ] **Latency budget 합계**: **14.6 ms** (WaveSplat 13.4 + 전처리 0.5 + 제어 0.6 + 기타 0.1)
-- [ ] **Budget margin**: **85.4%** (100 ms cycle 대비)
+- [ ] **Latency budget 합계**: ⛔RETRACTED (2026-08-13 감사) — `14.6 ms` 는 항목 `WaveSplat
+      13.4` 를 포함하고 있고 그 13.4 ms 가 금지 수치다(커밋 `77b8123` 이후 짝이 안 맞음).
+      추정기 항목을 재측정하기 전 예산 합계와 마진을 인용하지 말 것.
+      근거: `reference_citation_bans.md`
+- [ ] **Budget margin**: ⛔RETRACTED — `85.4%` 는 위 무효 합계에서 파생된 값이다.
 - [ ] **Hyperparameter sensitivity**: 하나를 ±1 decade 변경 시 nRMSE 변화 **±5% 이내**
 
 ### E-7.4. Part D 예상질문 추가 (Q7 ~ Q9)

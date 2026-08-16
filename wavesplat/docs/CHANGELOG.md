@@ -2,6 +2,15 @@
 
 프로젝트 개발 이력을 시간순으로 기록합니다.
 
+> ⛔**2026-08-13 감사 — 이 파일은 이력 문서다. 여기 적힌 수치를 현재 성능으로 인용하지 말 것.**
+> 특히 다음은 **인용 금지**다: `0.211 vs ETKF 0.436 (+51.5%)` · `12/12 episodes wins` ·
+> `13.4 ms/frame` · `ETKF 31.7 ms` · `2.4× faster` · `13.4 vs 14.2 ms`.
+> **검증된 현행 값**: `results/100ep_ws_letkf.json` 재도출 = **WS 0.2229 vs LETKF 0.2278,
+> 51/49, p = 0.9204 → 널**. 지연은 **동일 프로세스·1스레드에서 1.5–2.6×**
+> (CPU = **AMD Ryzen 7 7800X3D**). 과거 항목의 `init_method: v2_konly` 는 당시 사실이나
+> **2026-07-26 flip 이후 출하 기본값은 `auto`** 다.
+> 근거: `reference_citation_bans.md`, `tmp/AUDIT_recheck_2026-08-13/A3_citation_bans.md`
+
 ---
 
 ## [0.8.0] — 2026-04-23
@@ -13,7 +22,8 @@
 - Dir. R²=-0.25 물리 원인 Discussion 섹션 추가 (§ Directional estimation deficit)
   - Forward LiDAR ±θ 방향 모호성 설명, yaw variation 완화 제안
 - Grown components C2F 없음 명시 (재현성)
-- 13.4 vs 14.2ms 불일치: Table caption에 median(13.3ms) 추가로 해명
+- ⛔13.4 vs 14.2ms 불일치: Table caption에 median(13.3ms) 추가로 해명
+  (⛔2026-08-13 감사 — `13.4 ms` 는 인용 금지 수치이므로 이 "해명" 자체가 무효다)
 - 컴파일 에러 수정: L1393 `$\sim$120^\circ$` → `${\sim}120^\circ$`
 
 #### 투고 패키지 완성
@@ -200,9 +210,16 @@ C2F 최적화 후 nRMSE:
 - `results/p1_comparison.json` — Authoritative P1 results
 
 ### Results (P1)
-- P1 avg nRMSE: **0.211** (P0: 0.226, +6.4% | ETKF: 0.436, +51.5%)
-- 12/12 episodes WaveSplat wins
-- Speed: 13.4 ms/frame (ETKF 31.7ms, 2.4× faster)
+
+> ⛔**RETRACTED (2026-08-13 감사)** — 아래 3줄의 수치는 **인용 금지**다.
+> `0.211 vs ETKF 0.436 (+51.5%)` 는 pre-tuning ETKF 대비 구버전 12-에피소드 값이고,
+> `12/12 wins` 는 라우팅 교락이 있으며, `13.4 ms` / `ETKF 31.7 ms` / `2.4× faster` 는
+> 스레드 미고정 지연 아티팩트다. 이력 보존을 위해 원문은 남긴다.
+> 근거: `reference_citation_bans.md`
+
+- ⛔P1 avg nRMSE: **0.211** (P0: 0.226, +6.4% | ETKF: 0.436, +51.5%)
+- ⛔12/12 episodes WaveSplat wins
+- ⛔Speed: 13.4 ms/frame (ETKF 31.7ms, 2.4× faster)
 - Adaptive N: BF4_1comp 15→1, BF3_2comp 15→2, BF5_15comp 15→21
 
 **Commit**: `1564ec8`

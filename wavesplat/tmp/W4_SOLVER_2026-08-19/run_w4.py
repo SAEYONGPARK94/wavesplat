@@ -83,6 +83,7 @@ SEEDS = (1595, 1596, 1597)
 
 # ── VARPRO step budget, FROZEN before any result (PREREG section 2) ──────────
 VP_STEPS = 400
+SHIP_INIT_ITERS = 500      # shipped `learned_init_iters` (sequential_update.py:643)
 
 # ── shells (edges identical to wavesplat/run.py:358) ─────────────────────────
 EDGES = [0.0, 5.0, 10.0, 20.0, 30.0, 50.0, 75.0, 100.0, 150.0, np.inf]
@@ -817,22 +818,46 @@ def posthoc(rows, label, verbose=True):
             p('    ', b)
         ok &= not bad
 
-    # G-2 adam_steps_phase1
+    # G-2 adam_steps_phase1  (AMENDMENT_2 A2-1/A2-2)
+    #
+    # The smoke measured what `learned_init_iters` actually governs.  Phase 1 is NOT one
+    # descent: the learned proposal polishes each of its nsamp=4 posterior samples for
+    # polish_iters=80 gradient steps (`learned_init.py:121,155`) = 320 steps that the
+    # config knob does not reach, and the joint fit adds `learned_init_iters` on top.
+    #     L-SHIP  = 320 + 500 = 820      L-ITER0 = 320 + 0 = 320
+    # So the arm removes the JOINT FIT, not "the Phase-1 descent".  Requiring 0 would fail
+    # a gate the arm does not violate; the honest invariant is the exact 500-step delta,
+    # which is a STRONGER check than ">0 vs ==0" because it is constant per episode.
+    POLISH_STEPS = 320                                  # nsamp 4 x polish_iters 80
     a0 = [r['adam_steps_phase1'] for r in by.get('L-ITER0', [])]
     a1 = [r['adam_steps_phase1'] for r in by.get('L-SHIP', [])]
     if a0 or a1:
-        g2 = ((all(v == 0 for v in a0) if a0 else True)
-              and (all(v > 0 for v in a1) if a1 else True))
-        p('G-2 adam_steps_phase1: L-ITER0 distinct=%s (n=%d, all must be 0) | L-SHIP '
-          'median=%s (n=%d, all must be >0) | L-ITER0 adam_steps_grow median=%s '
-          '(attributed away on purpose) -> %s'
-          % (sorted(set(a0)), len(a0), med('L-SHIP', 'adam_steps_phase1'), len(a1),
+        g2 = ((all(v == POLISH_STEPS for v in a0) if a0 else True)
+              and (all(v == POLISH_STEPS + SHIP_INIT_ITERS for v in a1) if a1 else True))
+        p('G-2 adam_steps_phase1: L-ITER0 distinct=%s (must all be %d = proposal polish) '
+          '| L-SHIP distinct=%s (must all be %d = polish + %d joint fit) | L-ITER0 '
+          'adam_steps_grow median=%s (attributed away on purpose) -> %s'
+          % (sorted(set(a0)), POLISH_STEPS, sorted(set(a1)),
+             POLISH_STEPS + SHIP_INIT_ITERS, SHIP_INIT_ITERS,
              med('L-ITER0', 'adam_steps_grow'), 'PASS' if g2 else 'FAIL'))
         ok &= g2
+        # A2-4: L-VP and L-STEP400 must land on the SAME Phase-1 budget, which is what
+        # makes S-2b a parameterisation-only contrast rather than a budget contrast.
+        bv = sorted({r['adam_steps_phase1'] for r in by.get('L-VP', [])})
+        bs = sorted({r['adam_steps_phase1'] for r in by.get('L-STEP400', [])})
+        if bv and bs:
+            g2c = (bv == bs)
+            p('G-2c budget parity  : L-VP %s vs L-STEP400 %s -> %s   (S-2b is '
+              'parameterisation-only ONLY if these match)'
+              % (bv, bs, 'PASS' if g2c else 'FAIL'))
+            ok &= g2c
 
     # G-3 vp_steps
     vps = {a: sorted({r.get('vp_steps') for r in v}) for a, v in by.items()}
-    g3 = all((s == [VP_STEPS]) if a == 'L-VP' else (s == [0]) for a, s in vps.items())
+    # AMENDMENT_2 A2-3: every arm whose table entry declares vp>0 must show VP_STEPS.
+    # Naming L-VP alone made the newly added L-VP-NW fail a gate it does not violate.
+    g3 = all(s == ([VP_STEPS] if ARMS.get(a, {}).get('vp') else [0])
+             for a, s in vps.items())
     p('G-3 vp_steps        : %s -> %s' % (vps, 'PASS' if g3 else 'FAIL'))
     ok &= g3
 

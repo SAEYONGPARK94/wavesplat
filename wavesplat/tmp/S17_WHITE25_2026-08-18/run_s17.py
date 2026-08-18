@@ -383,10 +383,16 @@ def gates():
     dup = len({e['key'] for e in eps}) != len(eps)
     ship = import_ship()
     keys_s13 = set(ship)
-    g1 = (n_sp == 64 and n_cr == 64 and suff == {'uniform_ra_rf_ds'} and not dup
-          and {e['key'] for e in eps} == keys_s13)
-    print(f'G-1 sample: sparse={n_sp} crowded={n_cr} suffix={suff} dup={dup} '
-          f'keyset==S13:{ {e["key"] for e in eps} == keys_s13 }  -> {"PASS" if g1 else "FAIL"}')
+    # AMENDMENT_1 A-10: the S17 sample is the CROWDED HALF of the S13/S16 corpus.  The
+    # inherited S16 assertion (sparse==64 and keyset==S13 exactly) is therefore replaced by
+    # the amended one: zero sparse, all 64 crowded, and the key set must be a strict SUBSET
+    # of S13's -- i.e. every episode we score is one S13/S16 already scored, no new episode.
+    keys = {e['key'] for e in eps}
+    subset = keys <= keys_s13
+    g1 = (n_sp == 0 and n_cr == 64 and suff == {'uniform_ra_rf_ds'} and not dup and subset)
+    print(f'G-1 sample (A-10 crowded-only): sparse={n_sp} crowded={n_cr} suffix={suff} '
+          f'dup={dup} keyset<=S13:{subset} ({len(keys)}/{len(keys_s13)})  '
+          f'-> {"PASS" if g1 else "FAIL"}')
     ok &= g1
 
     n3 = sum(1 for v in ship.values() if set(v) == {42, 43, 44})

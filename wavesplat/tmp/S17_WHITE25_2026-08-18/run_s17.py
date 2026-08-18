@@ -53,7 +53,10 @@ S13B = os.path.join(ROOT, 'tmp', 'S13b_seed_robust_2026-08-13', 'results_s13b.js
 # ── sample (PREREG section 3): identical to run_s13.py:32-33 ────────────────────
 SPARSE_DIR = ['data_s9_sparse_2026-08-11']
 CROWDED_DIR = ['data_s8_crowded_2026-08-10', 'data_s9_crowded_2026-08-11']
-SMOKE_KEYS = ('BF4_15comp_seed32_uniform_ra_rf_ds', 'BF4_2comp_seed48_uniform_ra_rf_ds')
+# AMENDMENT_3: the S16 smoke pair was one crowded + one SPARSE episode.  A-10 removed the
+# sparse layer, so the sparse key no longer resolves.  Replaced by one episode per crowded
+# ncomp level (15 and 30) -- same count, same stratum as the verdict sample.
+SMOKE_KEYS = ('BF4_15comp_seed32_uniform_ra_rf_ds', 'BF4_30comp_seed32_uniform_ra_rf_ds')
 
 # ── shells: SAME edges as wavesplat/run.py:358, stored with the `obs:` prefix ───
 EDGES = [0.0, 5.0, 10.0, 20.0, 30.0, 50.0, 75.0, 100.0, 150.0, np.inf]
@@ -334,7 +337,15 @@ def run_ship_rerun(path, est_seed=42):
 
 # ── schema check (PREREG G-3 / discipline 2) ───────────────────────────────────
 def check_row(row):
-    miss = [k for k in REQUIRED_LETKF if k not in row or row[k] is None]
+    # AMENDMENT_3: `background_diag` is produced by LETKFGridSpec.background_diagnostics().
+    # The STOCK class has no such method, so the `WHITE50` anchor arm structurally cannot
+    # carry it.  Requiring it of every arm would make D-7 halt the batch on an arm that is
+    # not even a verdict arm.  It stays REQUIRED for every kind='spec' arm -- i.e. for all
+    # four S17 verdict arms -- and is exempted for kind='stock'.
+    req = list(REQUIRED_LETKF)
+    if ARMS.get(row.get('arm'), {}).get('kind') == 'stock':
+        req = [k for k in req if k != 'background_diag']
+    miss = [k for k in req if k not in row or row[k] is None]
     for fld in ('shell_rmse', 'zero_shell', 'shell_frac'):
         d = row.get(fld) or {}
         miss += ['%s[%s]' % (fld, k) for k in SHELL_KEYS if k not in d]
@@ -466,6 +477,15 @@ def gates():
 
 
 # ── smoke ──────────────────────────────────────────────────────────────────────
+def _s16_ref(key, arm, filter_seed):
+    """Stored S16 value for (episode, arm, filter_seed) -- the G-6 bit-reproduction target."""
+    for r in _load_jsonl(S16):
+        if (r.get('episode') == key and r.get('arm') == arm
+                and r.get('filter_seed') == filter_seed and 'error' not in r):
+            return r['avg_nRMSE']
+    return None
+
+
 def smoke(arms=None, skip_g6=False):
     """RESUMABLE: rows already in smoke_results.jsonl and diagnostics already in
     smoke_report.json are skipped, so the smoke can be completed across several calls
@@ -504,7 +524,10 @@ def smoke(arms=None, skip_g6=False):
 
     print('\n=== arms (2 episodes x 5 arms) ===', flush=True)
     with open(SMOKE_OUT, 'a') as fh:
-        for arm in (arms or ARM_ORDER):
+        # AMENDMENT_3 / PREREG section G: the smoke runs the two ANCHOR arms as well as the
+        # four new ones.  WHITER50 anchors this runner against the S16 column (G-6) and
+        # WHITE50 anchors it against the S13 column (G-5).  Neither is a new measurement.
+        for arm in (arms or (('WHITER50', 'WHITE50') + tuple(ARM_ORDER))):
             for e in eps:
                 if (e['key'], arm) in done:
                     print(f'  [cached] {arm:9s} {e["key"]}', flush=True)
@@ -523,6 +546,16 @@ def smoke(arms=None, skip_g6=False):
                 print(f'  {arm:9s} {e["key"]:44s} nRMSE={row["avg_nRMSE"]:.6f} '
                       f'zero={row["zero_nRMSE"]:.6f} ({row["wall_s"]:.0f}s) '
                       f'schema={"OK" if not miss else "MISSING " + str(miss)}')
+                if arm == 'WHITER50':
+                    ref16 = _s16_ref(e['key'], 'WHITER50', 42)
+                    d6 = (abs(row['avg_nRMSE'] - ref16)
+                          if ref16 is not None else float('nan'))
+                    print(f'      G-6 WHITER50 vs S16 stored: {row["avg_nRMSE"]:.12f} '
+                          f'vs {ref16 if ref16 is None else format(ref16, ".12f")}  '
+                          f'|d|={d6:.3e} {"OK" if d6 == 0 else "MISMATCH"}', flush=True)
+                    rep.setdefault('g6_anchor', []).append(
+                        dict(key=e['key'], rerun=row['avg_nRMSE'], stored=ref16, d=d6))
+                    save()
                 if arm == 'WHITE50':
                     ref = s13[e['key']]['avg_nRMSE']
                     d = abs(row['avg_nRMSE'] - ref)

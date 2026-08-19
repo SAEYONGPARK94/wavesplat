@@ -104,6 +104,16 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
     `r2_auto_rest70.py:47` ⟹ **"출하 auto 85/100" 은 `init_method` 단독이 아니라 λ 와의 2요인 묶음.**
   ⚠`sequential_update.py:426`·`:967` 에 **λ=0.001 하드코딩** 잔존 — 배포 후 의미가
   "출하 기본값"에서 "구 기본값"으로 조용히 바뀌었다.
+- ⛔**`amplitude_refit` 위상 부호 결함 — 2026-08-19 수리됨(`b1467bd`).** `sequential_update.py:1335` 가
+  `arctan2(b, a)` 였는데 전방모델이 `w·cos(θ+φ)` 라 `b = −w·sinφ` ⟹ `atan2(-b, a)` 가 옳다.
+  저장소의 다른 LS `(a,b)→φ` 사이트 5곳은 이미 옳았고 이 줄만 이탈했다. **과거 오염 0건**(전수 확인:
+  기본 False · 노출 0 · `git log -S/-G` 0커밋 · 결과 JSON 1,147개에 `refit` 키 0개).
+  ★**왜 안 잡혔나**: 같은 함수의 자기진단 `residual_after` 가 **올바른 계수**로 계산되어 두 규약에서
+  비트 동일하다 — **진단은 통과하고 결과만 틀린다.** 회귀 테스트 `wavesplat/tests/test_phase_convention.py` 추가(204→**207**).
+- ✅**`RMSE_near` 는 이제 저장된다**(2026-08-19, `b1467bd`) — `run.py` 가 `avg_RMSE_near` 를 요약에 집계한다.
+  그전까지 `metrics.py:433` 이 채운 값을 아무도 집계하지 않았고 `main()` 이 `frame_results` 를 삭제한 뒤
+  덤프했다 ⟹ **저장된 모든 결과 파일이 근거리에 구조적으로 눈이 멀어 있었다**(약한 게 아니라 **검출 불가**).
+  ⚠**그 이전 파일들에는 여전히 없다.**
 - Adaptive N: energy-based pruning + residual-triggered growth. ⚠**효과는 NULL 로 측정됨**(08-03).
 - Dispersion hard constraint: `ω = √(g·|k|·tanh(|k|·d))`
 
@@ -114,15 +124,30 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
   (2026-08-15 novelty 탐색이 후보 4개 중 2개를 이 사유로 죽였다 — 누적 21축 사망).
   **`sequential_update._initialize_learned` 가 코스투파인 staging 을 우회한다**(독스트링이 스스로
   *"the coarse-to-fine N-staging is bypassed"* 라 적었다). 라우터가 **혼잡 90.6%** 를 그쪽으로 보낸다.
-  ⟹ **빔포밍 · `MIN_DK` · 성장 분기 · 난수 위상 · `RX2_GROW_FITPHI` 는 배포 혼잡에서 실행되지 않는다.**
+  ⛔**단 "실행되지 않는다" 는 거짓이다(2026-08-19 정정).** 우회되는 것은 **`coarse_to_fine.py` 하나뿐**이고
+  거기서는 진짜 0회다(학습 경로 `coarse_to_fine.py:173` **0/130**, `v2_konly` 14/14). 그러나
+  **같은 기능의 두 번째 구현이 `sequential_update.py:1065-1200` 에 살아 있고 조건절이 `'learned'` 를 포함한다**
+  (`:1111-1116` `MIN_DK`, `:1193` 난수 위상, 호출 지점은 `_initialize_learned` 자신 `:660`).
+  실측: `SHIP` **혼잡 `add_calls>0` = 17/96**(학습 경로만 **8/87 = 9.2%**), 사이트별 `:1188` 14 · `:173` 9.
+  ★**정확한 문장 = "성장은 배포 혼잡 런의 82%에서 발화하지 않고, 발화해도 넣는 원자는 28/1,660 = 1.69% 다."**
+  ⟹ **죽은 축들의 판정은 유지되고, 사유만 바뀐다**: *"도달 불가"* → **"지렛대 부족"**.
+  ⚠**코드 독스트링(`:620-626`)은 원래 옳았다**(*"the same adaptive prune+grow"*) — **문서가 그 문장을 떨어뜨렸다.**
   학습 경로의 실제 분리 문턱은 `learned_dedup_dk=0.03`(`optimizer/learned_init.py:341`)이고
   `w,φ` 는 `:386 ls_fit_wphi(ridge 0.5)` 로 **이미 LS 적합**된다(`learned_konly` 기본 False).
-  ★**축이 죽는 것은 아이디어가 나빠서가 아니라 안 돌아가는 코드를 연구해서다** —
-  S1 의 "출하 팔은 beamform 0회 호출" 이 **네 번째 재발**이다.
+  ★**축이 죽는 진짜 사유는 "안 돌아가는 코드" 가 아니라 "같은 기능이 두 파일에 중복 구현돼 한쪽만 계측한 것" 이다**
+  (λ 3중 기재와 같은 결함 부류). ⚠**2026-08-19 W4 배치에서 이 부류가 하루에 네 번 재현됐다**
+  (개입 기대값 320/820 이 러너 G-2·G-3 · `arms_config.ARM_GATES` · `watchdog.py` 네 곳에 중복)
+  ⟹ ★**처방: 개입 기대값은 단일출처여야 한다.**
   ⟹ **처방: 원자 카운터로 런 0회 확인**(W3 설계가 그렇게 `SHIP-FITPHI` 0/3 개입을 런 전에 잡았다).
 - ⚠**배포 팔의 분리 문턱 0.03 은 측정된 분해능 한계 양쪽보다 작다**(반경 0.042–0.074 · 방위 0.107–0.179)
-  ⟹ 위험은 "바닥이 넓다" 가 아니라 **한 주엽 안 중복 원자**다. 수리 `merge_atoms` 가 **이미 구현·GT-free·
-  끄면 비트 동일**인데 `learned_merge_frac` 기본값이 `None`(no-op)이고 `configs/`·`run.py` 에 **미노출**.
+  ⟹ 위험은 "바닥이 넓다" 가 아니라 **한 주엽 안 중복 원자**다. `merge_atoms` 는 **이미 구현·GT-free·
+  끄면 비트 동일**이고 `learned_merge_frac` 기본값이 `None`(no-op), `configs/`·`run.py` 에 **미노출**이다
+  (`run_estimation(config=…)` 로는 도달 가능, CLI/YAML 은 화이트리스트에 막힌다).
+  ⛔**단 "공짜 티켓" 은 틀린 서술이다(2026-08-19 정정).** 저장소가 **2026-07-26 에 이미 쟀고 혼잡 20셀 0승**,
+  `frac=0.375` 는 `no_harm` **FAIL**(p=0.03125)이었다. W4 가 `frac=0.5` 로 재측정: **9/47 lower, 동점 17,
+  rel median +14.99% = 같은 방향(무익)**. ⚠*"문턱 0.03 보다 크게 올리면 된다"* 는 논증도 끊긴다 —
+  측정 반경 0.0191·0.0287 은 **아직 0.042 미만인데 이미 해쳤고**, 0.042 에 닿으려면 `frac≈0.55` 인데
+  **0.5 에서 이미 셀 45%가 비트동일 no-op, 그리고 상당수가 원자를 잃는다.**
 - **"출하 팔에서도 재라."** 저장소에 "WaveSplat" 이라 불리는 서로 다른 추정기가 **최소 4개** 있다
   (출하 `SequentialUpdater` · `bank_mmse` · `mmse_bank_estimate` · `relax_step`+`tnse`).
   ⚠**`results/direction1/*` 를 뭉뚱그리지 마라** (2026-08-13 정정): `d1_predictable_zone.py` ·

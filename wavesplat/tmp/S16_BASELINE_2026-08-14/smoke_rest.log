@@ -1,0 +1,40 @@
+=== resume: 7 arm rows already present, 2 G-5 SHIP, 0 G-6 ===
+=== G-5 bit reproduction (justifies reusing S13/S13b SHIP columns) ===
+  [cached] SHIP BF4_2comp_seed48_uniform_ra_rf_ds            |d|=0.000e+00
+  [cached] SHIP BF4_15comp_seed32_uniform_ra_rf_ds           |d|=0.000e+00
+
+=== arms (2 episodes x 5 arms) ===
+  [cached] SPEC25    BF4_2comp_seed48_uniform_ra_rf_ds
+  [cached] SPEC25    BF4_15comp_seed32_uniform_ra_rf_ds
+  [cached] SPEC50    BF4_2comp_seed48_uniform_ra_rf_ds
+  [cached] SPEC50    BF4_15comp_seed32_uniform_ra_rf_ds
+  [cached] SPEC100   BF4_2comp_seed48_uniform_ra_rf_ds
+  SPEC100   BF4_15comp_seed32_uniform_ra_rf_ds           nRMSE=0.234662 zero=0.247019 (42s) schema=OK
+  WHITER50  BF4_2comp_seed48_uniform_ra_rf_ds            nRMSE=0.228309 zero=0.250001 (39s) schema=OK
+  WHITER50  BF4_15comp_seed32_uniform_ra_rf_ds           nRMSE=0.211833 zero=0.247019 (39s) schema=OK
+  [cached] WHITE50   BF4_2comp_seed48_uniform_ra_rf_ds
+  [cached] WHITE50   BF4_15comp_seed32_uniform_ra_rf_ds
+  G-5 WHITE50 BF4_2comp_seed48_uniform_ra_rf_ds            |d|=0.000e+00 OK
+  G-5 WHITE50 BF4_15comp_seed32_uniform_ra_rf_ds           |d|=0.000e+00 OK
+
+=== G-9 zero-field identity across arms ===
+  BF4_2comp_seed48_uniform_ra_rf_ds            arms=5 zero spread = 0.000e+00 OK
+  BF4_15comp_seed32_uniform_ra_rf_ds           arms=5 zero spread = 0.000e+00 OK
+
+=== G-7 repair proof (background diagnostics from the object) ===
+  SPEC50    BF4_2comp_seed48_uniform_ra_rf_ds            bg=jonswap  eta_std=0.2997 (target 0.3) lag1_x=0.834 lag1_y=0.815 |mean|max=5.80e-17 std(detadt)/std(eta)=1.0793 w_rms_spec=1.0690 modes=629
+  SPEC50    BF4_15comp_seed32_uniform_ra_rf_ds           bg=jonswap  eta_std=0.2997 (target 0.3) lag1_x=0.834 lag1_y=0.815 |mean|max=5.80e-17 std(detadt)/std(eta)=1.0793 w_rms_spec=1.0690 modes=629
+  WHITER50  BF4_2comp_seed48_uniform_ra_rf_ds            bg=white    eta_std=0.0998 (target 0.3) lag1_x=-0.001 lag1_y=0.000 |mean|max=2.22e-17 std(detadt)/std(eta)=1.0015 w_rms_spec=nan modes=0
+  WHITER50  BF4_15comp_seed32_uniform_ra_rf_ds           bg=white    eta_std=0.0998 (target 0.3) lag1_x=-0.001 lag1_y=0.000 |mean|max=2.22e-17 std(detadt)/std(eta)=1.0015 w_rms_spec=nan modes=0
+
+=== G-6 filter-seed sensitivity (SPEC50 x seeds 42/43/44) ===
+  BF4_2comp_seed48_uniform_ra_rf_ds            ['0.231412', '0.234808', '0.235816'] rel_sd=0.986% single seed OK
+  BF4_15comp_seed32_uniform_ra_rf_ds           ['0.195274', '0.197577', '0.196394'] rel_sd=0.586% single seed OK
+
+-> smoke_results.jsonl, smoke_report.json
+  timing SPEC100   n=2 min=42s median=238s (min-based 128 ep = 1.50 h)
+  timing SPEC25    n=2 min=42s median=42s (min-based 128 ep = 1.48 h)
+  timing SPEC50    n=2 min=43s median=274s (min-based 128 ep = 1.54 h)
+  timing WHITE50   n=2 min=42s median=363s (min-based 128 ep = 1.51 h)
+  timing WHITER50  n=2 min=39s median=39s (min-based 128 ep = 1.37 h)
+  FULL BATCH ESTIMATE (5 arms x 128 ep, sequential, UNCONTENDED) = 7.40 h

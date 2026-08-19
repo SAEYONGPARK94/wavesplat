@@ -1,0 +1,102 @@
+rows=1920  errors=0  episodes=128
+G-8 code_md5 uniqueness: distinct=1 ['5bba1a480cba1ac14c97f237a0b9777d'] files_n=[87] -> PASS
+==============================================================================
+FIELD GATE (PREREG 2.1): rows=1920 SHIP rows=384 violations=0
+    PASS
+arm coverage: {'SPEC100': 128, 'SPEC25': 128, 'SPEC50': 128, 'WHITE50': 128, 'WHITER50': 128} of 128 episodes
+baseline filter seeds per arm (PREREG G-6 escalation -> median-of-3 required): {'SPEC100': {3: 128}, 'SPEC25': {3: 128}, 'SPEC50': {3: 128}, 'WHITE50': {3: 128}, 'WHITER50': {3: 128}}
+arms present: ['SPEC100', 'SPEC25', 'SPEC50', 'WHITE50', 'WHITER50']
+
+PRIMARY stratum=crowded n=64
+
+==============================================================================
+COMPARATOR SELECTION (PREREG 1.1, frozen before any run):
+  r* = argmin_a #{SHIP < a}   i.e. the baseline SHIP beats LEAST OFTEN
+  SPEC25    loc= 25.0  SHIP wins 59/64  med(rel)=-24.4%
+  SPEC50    loc= 50.0  SHIP wins 60/64  med(rel)=-33.6%
+  SPEC100   loc=100.0  SHIP wins 59/64  med(rel)=-33.9%
+  -> r* = SPEC25   (tie-break 1: larger med(rel); tie-break 2: smaller loc)
+  secondary comparator over all arms: {'SPEC25': 59, 'SPEC50': 60, 'SPEC100': 59, 'WHITE50': 61, 'WHITER50': 61}  -> r*_all = SPEC100
+
+==============================================================================
+REPAIR GATES (PREREG 7.1) -- PRIMARY is UNDECIDED unless both pass
+  R-1 necessary condition: repaired baseline beats the ZERO field
+    SPEC25 < ZERO: 64/64  (threshold 41/64, exact alpha at n=64: 0.0163829)  one-sided p=5.421e-20
+    size, 3 conventions (mandatory): med(rel)=-17.7%  rel(med)=-17.6%  rel(mean)=-17.6%
+    zero-field losses: SPEC25=0  WHITE50=0  (PREREG 0.1 measured WHITE50 = 0 in this stratum)
+  R-2 repair effectiveness (AMENDMENT_1: FIXED arm SPEC50, loc-matched):
+      repaired background (JONSWAP structure AND Hs/4 spread) beats the stock defect background (white, 0.1 m)
+    SPEC50 < WHITER50: 28/64  (threshold 41/64, exact alpha at n=64: 0.0163829)  one-sided p=0.8698
+    size, 3 conventions (mandatory): med(rel)=+3.5%  rel(med)=+5.5%  rel(mean)=+9.6%
+    note: r* = SPEC25 != SPEC50; the r*-based version is EXPLORATORY (see E-3) because loc would then be an extra factor.
+  => repair gates FAIL/INCOMPLETE
+
+==============================================================================
+PRIMARY -- SHIP(median-of-3) vs the strongest repaired baseline
+  PRIMARY  SHIP < SPEC25
+    SHIP < SPEC25: 59/64  (threshold 41/64, exact alpha at n=64: 0.0163829)  one-sided p=4.501e-13
+    size, 3 conventions (mandatory): med(rel)=-24.4%  rel(med)=-27.5%  rel(mean)=-26.2%
+  necessary condition  SHIP < ZERO (IUT, outside any family; AMENDMENT_1)
+    SHIP < ZERO: 63/64  (threshold 41/64, exact alpha at n=64: 0.0163829)  one-sided p=3.524e-18
+    size, 3 conventions (mandatory): med(rel)=-38.6%  rel(med)=-40.3%  rel(mean)=-39.2%
+
+  VERDICT = UNDECIDED (repair gate)   (threshold 41/64, exact alpha 0.016383)
+
+==============================================================================
+SECONDARY (Holm-2, one-sided alpha=0.025) -- registered shell obs:150_inf only
+  S-1a  SPEC25 < ZERO at obs:150_inf  (does the repair fix the far field?)
+    SPEC25 < ZERO: 22/64  (threshold 41/64, exact alpha at n=64: 0.0163829)  one-sided p=0.9959
+    size, 3 conventions (mandatory): med(rel)=+3.6%  rel(med)=+4.0%  rel(mean)=+0.7%
+  S-1b  SHIP < SPEC25 at obs:150_inf
+    SHIP < SPEC25: 53/64  (threshold 41/64, exact alpha at n=64: 0.0163829)  one-sided p=5.029e-08
+    size, 3 conventions (mandatory): med(rel)=-19.9%  rel(med)=-20.8%  rel(mean)=-20.5%
+  S-1a: 22/64  p=0.9959 -> p_adj=0.9959  FAIL
+  S-1b: 53/64  p=5.029e-08 -> p_adj=1.006e-07  PASS
+
+==============================================================================
+REPORTING RULE (AMENDMENT_1 B3 -- frozen before the full run)
+  PREREG 8-4 fires (PRIMARY PASS -> re-report the size): False
+  PREREG 8-5 fires (S-1a FAIL -> global nRMSE banned as a headline): True
+  => 8-5 governs on its own: global nRMSE is not a headline for this batch.
+
+==============================================================================
+EXPLORATORY (not pre-registered -- label as such in any report)
+
+[E-1] shells, crowded medians (m) and paired signs
+       shell      area%       SHIP     SPEC25   WHITER50    WHITE50       ZERO     S<best  best<ZERO
+     obs:0_5     2.8560     0.0498     0.0583     0.0873     0.0868     0.3292      46/64      64/64
+    obs:5_10     2.6909     0.0787     0.1035     0.1487     0.1498     0.3469      53/64      64/64
+   obs:10_20     5.1554     0.1114     0.1670     0.2069     0.2069     0.3536      60/64      64/64
+   obs:20_30     5.3830     0.1346     0.2105     0.2463     0.2479     0.3485      60/64      64/64
+   obs:30_50    11.8279     0.1685     0.2562     0.2823     0.2807     0.3400      60/64      64/64
+   obs:50_75    15.7249     0.1928     0.2786     0.3121     0.3121     0.3553      58/64      64/64
+  obs:75_100    12.8228     0.2180     0.2909     0.2989     0.2988     0.3605      58/64      61/64
+  obs:100_150    22.2916     0.2449     0.3151     0.3299     0.3302     0.3565      57/64      56/64
+  obs:150_inf    21.2475     0.2922     0.3689     0.3723     0.3730     0.3546      53/64      22/64
+
+[E-2] localisation dose-response
+  loc= 25.0  SHIP wins 59/64  med(rel)=-24.4%
+  loc= 50.0  SHIP wins 60/64  med(rel)=-33.6%
+  loc=100.0  SHIP wins 59/64  med(rel)=-33.9%
+
+[E-3] repair size and the RNG/inflation-placement confound
+    SPEC_best vs WHITER50 -- EXPLORATORY (AMENDMENT_1 B2: if r* != SPEC50 this
+  bundles loc with structure+spread; the registered R-2 is the SPEC50 row above)
+    SPEC25 < WHITER50: 59/64  (threshold 41/64, exact alpha at n=64: 0.0163829)  one-sided p=4.501e-13
+    size, 3 conventions (mandatory): med(rel)=-4.6%  rel(med)=-3.7%  rel(mean)=-4.5%
+    WHITER50 vs WHITE50 (code-path difference only)
+    WHITER50 < WHITE50: 37/64  (threshold 41/64, exact alpha at n=64: 0.0163829)  one-sided p=0.1302
+    size, 3 conventions (mandatory): med(rel)=-0.1%  rel(med)=-0.1%  rel(mean)=-0.1%
+
+[E-4] sparse stratum mirror -- DESCRIPTIVE ONLY (S13 caveat 1: sparse advantage is a representation artifact)
+  SPEC25    SHIP wins 63/64  med(rel)=-92.7%
+  SPEC50    SHIP wins 64/64  med(rel)=-93.0%
+  SPEC100   SHIP wins 63/64  med(rel)=-94.7%
+
+[E-5] cell decomposition
+  BF4 15comp n=16  SHIP wins 15/16  med(rel)=-41.2%
+  BF4 30comp n=16  SHIP wins 15/16  med(rel)=-18.0%
+  BF5 15comp n=16  SHIP wins 15/16  med(rel)=-38.9%
+  BF5 30comp n=16  SHIP wins 14/16  med(rel)=-16.4%
+
+-> verdict_s16.json

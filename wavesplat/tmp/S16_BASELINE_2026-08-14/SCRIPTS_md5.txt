@@ -1,0 +1,30 @@
+261b10cbcc8ef50b8163916bcaa4860f  letkf_spec.py    (pre-AMENDMENT_1, smoke only -- SUPERSEDED)
+8dc7144f6a23e1061486b9eeb994639b  run_s16.py       (pre-AMENDMENT_1, smoke only -- SUPERSEDED)
+7e19af4fd0be9e83715fa39e93a247e5  analyze_s16.py   (pre-AMENDMENT_1 -- SUPERSEDED)
+scripts_md5_at: 2026-08-14 12:19:42 KST
+
+# --- AMENDMENT_1 (2026-08-14 19:25:16 KST, before the full run) ---
+7991d24a8a4e31580d888ddf766ec1ca  letkf_spec.py       (B1 isotropy fix + 2 new G-7 diagnostics)
+119424cb1b01ed75fb6e159c92d8e07a  run_s16.py          (A-5 deterministic fingerprint, A-7 arm filter,
+                                                       G-7 isotropy gate, `isotropy` subcommand,
+                                                       S16_SMOKE_TAG for the re-verification smoke)
+e4946a50c4028d0091a2e155b919971d  analyze_s16.py      (A-2 R-2 fixed arm, A-3 8-5>8-4 rule,
+                                                       A-5 code_md5 uniqueness, A-8 exact alpha at n)
+a4b30e45d77d3d1b5daa0ab4eb346efa  dryrun_analyzer.py  (synthetic pre-run validation harness; NO evidence)
+scripts_md5_at: 2026-08-14 19:25:16 KST
+# Rule (unchanged): if a script is edited after this stamp, update it here and append the
+# reason to NOTES.md.  PREREG.md is never edited; changes of substance go in an AMENDMENT.
+
+# --- PREREG G-6 escalation FIRED (2026-08-14 19:38 KST, before the full run) ---
+# Re-measured after the AMENDMENT_1 B1 fix: filter-seed rel_sd = 8.216% / 13.549% > 2%
+# => PREREG G-6: "the whole batch goes to a median-of-3 baseline (3x the cost)".
+# This is the execution of a PRE-REGISTERED branch, not a new design choice; the
+# measurement is in NOTES.md (19:38).  Implemented as: run_s16.py takes --seeds=,
+# resume key becomes (episode, arm, filter_seed), rows carry filter_seed; analyze_s16.py
+# aggregates every baseline arm as a median over filter seeds (scalar AND each shell,
+# mirroring ship_med3) and stamps any verdict PROVISIONAL while a seed is missing.
+7991d24a8a4e31580d888ddf766ec1ca  letkf_spec.py       (unchanged since 19:25)
+ae3e2c21321760608108205342a442b9  run_s16.py          (+ BASELINE_SEEDS, --seeds=, seed-major order)
+01bc0fdfd65bd51aa3dfd25291688336  analyze_s16.py      (+ base_med(), seed coverage, PROVISIONAL stamp)
+a4b30e45d77d3d1b5daa0ab4eb346efa  dryrun_analyzer.py  (unchanged)
+scripts_md5_at: 2026-08-14 19:38:52 KST

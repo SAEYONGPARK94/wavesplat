@@ -1,0 +1,69 @@
+==============================================================================
+S13b PRIMARY — S13 판정의 추정기-시드 안정성 (median-of-3: 42/43/44)
+사전등록 PREREG.md 동결: 단측 α=0.025, 문턱 41/64, PRIMARY=혼잡 1개, 판정은 부호
+==============================================================================
+
+에러 런 0개 · median-of-3 미완성 에피소드 0개 []
+
+[crowded]  PRIMARY   n=64
+  SHIP_med3 vs LETKF+
+    SHIP_med3 < LETKF+: 61/64   (문턱 41/64)   단측 p=2.371e-15
+    크기 3규약: med(rel)=-28.2%  rel(med)=-30.3%  rel(mean)=-29.7%
+  필요조건 SHIP_med3 vs ZERO (IUT)
+    SHIP_med3 < ZERO: 63/64   (문턱 41/64)   단측 p=3.524e-18
+    크기 3규약: med(rel)=-38.6%  rel(med)=-40.3%  rel(mean)=-39.2%
+    ⟹ PRIMARY 판정 = PASS   (문턱 41/64, ZERO 통과)
+
+[sparse]  SECONDARY S-2s   n=64
+  SHIP_med3 vs LETKF+
+    SHIP_med3 < LETKF+: 63/64   (문턱 41/64)   단측 p=3.524e-18
+    크기 3규약: med(rel)=-93.2%  rel(med)=-93.2%  rel(mean)=-87.7%
+  필요조건 SHIP_med3 vs ZERO (IUT)
+    SHIP_med3 < ZERO: 64/64   (문턱 41/64)   단측 p=5.421e-20
+    크기 3규약: med(rel)=-94.0%  rel(med)=-94.0%  rel(mean)=-89.2%
+    ⟹ SECONDARY S-2s 판정 = PASS   (문턱 41/64, ZERO 통과)
+
+==============================================================================
+SECONDARY (PRIMARY 에 미기여)
+==============================================================================
+
+[S-2p] 시드별 개별 승패비 vs LETKF+ — ⚠판정에 쓰지 않는다
+  층                    seed42             seed43             seed44               med3
+  crowded        56/64 -28.8%       57/64 -29.6%       56/64 -27.2%       61/64 -28.2%
+  sparse         63/64 -93.2%       64/64 -93.6%       63/64 -92.6%       63/64 -93.2%
+
+[S-2v] 시드 간 변동계수 CV = 100·sd(3,ddof=1)/mean(3)   (저장소 기록 53% = 2026-07-23 트래커수정 *이전* 상한)
+  crowded  n=64  중앙  14.4%  평균  19.2%  p90  39.7%  최대  59.9%  (>10%: 49, >53%: 3)
+  sparse   n=64  중앙  46.5%  평균  54.5%  p90 106.4%  최대 155.1%  (>10%: 60, >53%: 30)
+  성분수별 CV 중앙: 2comp 59.6%  5comp 44.6%  15comp 20.8%  30comp 12.1%
+
+[PREREG §5-5] seed=42 가 체계적으로 유리한 추첨이었나 (2026-07-23 은 n=4 에서 1·1·2·8위)
+  crowded  seed42: 평균순위 1.95 최선 21/64  seed43: 평균순위 1.97 최선 23/64  seed44: 평균순위 2.08 최선 20/64
+  sparse   seed42: 평균순위 1.92 최선 22/64  seed43: 평균순위 2.11 최선 19/64  seed44: 평균순위 1.97 최선 23/64
+
+[S-2e] 사전노출 24 에피소드 제외 민감도 (median-of-3)
+  crowded  미노출 n=52: 49/52  문턱 34/52  단측 p=5.213e-12  통과
+  sparse   미노출 n=52: 51/52  문턱 34/52  단측 p=1.177e-14  통과
+
+[S-2f] 라우터 경로 시드 안정성
+  crowded  routes(42,43,44)=('learned', 'learned', 'learned'): 55
+  crowded  routes(42,43,44)=('learned', 'learned', 'v2_konly'): 4
+  crowded  routes(42,43,44)=('learned', 'v2_konly', 'learned'): 1
+  crowded  routes(42,43,44)=('learned', 'v2_konly', 'v2_konly'): 1
+  crowded  routes(42,43,44)=('v2_konly', 'learned', 'learned'): 2
+  crowded  routes(42,43,44)=('v2_konly', 'learned', 'v2_konly'): 1
+  sparse   routes(42,43,44)=('learned', 'learned', 'learned'): 37
+  sparse   routes(42,43,44)=('learned', 'learned', 'v2_konly'): 13
+  sparse   routes(42,43,44)=('learned', 'v2_konly', 'learned'): 1
+  sparse   routes(42,43,44)=('v2_konly', 'learned', 'learned'): 4
+  sparse   routes(42,43,44)=('v2_konly', 'learned', 'v2_konly'): 4
+  sparse   routes(42,43,44)=('v2_konly', 'v2_konly', 'v2_konly'): 5
+  ⟹ 시드에 따라 경로가 바뀐 에피소드 31/128
+
+[셀별 분해 — 기술통계, median-of-3]
+  ncomp= 2 n=32  med3<LETKF+ 31/32  (S13 seed42 31/32)  med(rel)=  -97.0%  (S13   -97.9%)
+  ncomp= 5 n=32  med3<LETKF+ 32/32  (S13 seed42 32/32)  med(rel)=  -84.5%  (S13   -88.2%)
+  ncomp=15 n=32  med3<LETKF+ 31/32  (S13 seed42 29/32)  med(rel)=  -41.7%  (S13   -41.0%)
+  ncomp=30 n=32  med3<LETKF+ 30/32  (S13 seed42 27/32)  med(rel)=  -20.0%  (S13   -19.8%)
+
+-> verdict_s13b.json

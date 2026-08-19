@@ -1,0 +1,29 @@
+=== resume: 5 arm rows already present, 2 G-5 SHIP, 0 G-6 ===
+=== G-5 bit reproduction (justifies reusing S13/S13b SHIP columns) ===
+  [cached] SHIP BF4_2comp_seed48_uniform_ra_rf_ds            |d|=0.000e+00
+  [cached] SHIP BF4_15comp_seed32_uniform_ra_rf_ds           |d|=0.000e+00
+
+=== arms (2 episodes x 5 arms) ===
+  WHITE50   BF4_2comp_seed48_uniform_ra_rf_ds            nRMSE=0.227893 zero=0.250001 (684s) schema=OK
+      G-5 WHITE50 vs S13 LETKF_PLUS: 0.227893352111 vs 0.227893352111  |d|=0.000e+00 OK
+  WHITE50   BF4_15comp_seed32_uniform_ra_rf_ds           nRMSE=0.212839 zero=0.247019 (42s) schema=OK
+      G-5 WHITE50 vs S13 LETKF_PLUS: 0.212838531503 vs 0.212838531503  |d|=0.000e+00 OK
+  G-5 WHITE50 BF4_2comp_seed48_uniform_ra_rf_ds            |d|=0.000e+00 OK
+  G-5 WHITE50 BF4_15comp_seed32_uniform_ra_rf_ds           |d|=0.000e+00 OK
+
+=== G-9 zero-field identity across arms ===
+  BF4_2comp_seed48_uniform_ra_rf_ds            arms=4 zero spread = 0.000e+00 OK
+  BF4_15comp_seed32_uniform_ra_rf_ds           arms=3 zero spread = 0.000e+00 OK
+
+=== G-7 repair proof (background diagnostics from the object) ===
+  SPEC50    BF4_2comp_seed48_uniform_ra_rf_ds            bg=jonswap  eta_std=0.2997 (target 0.3) lag1_x=0.834 lag1_y=0.815 |mean|max=5.80e-17 std(detadt)/std(eta)=1.0793 w_rms_spec=1.0690 modes=629
+  SPEC50    BF4_15comp_seed32_uniform_ra_rf_ds           bg=jonswap  eta_std=0.2997 (target 0.3) lag1_x=0.834 lag1_y=0.815 |mean|max=5.80e-17 std(detadt)/std(eta)=1.0793 w_rms_spec=1.0690 modes=629
+
+=== G-6 filter-seed sensitivity (SPEC50 x seeds 42/43/44) ===
+
+-> smoke_results.jsonl, smoke_report.json
+  timing SPEC100   n=1 min=433s median=433s (min-based 128 ep = 15.39 h)
+  timing SPEC25    n=2 min=42s median=42s (min-based 128 ep = 1.48 h)
+  timing SPEC50    n=2 min=43s median=274s (min-based 128 ep = 1.54 h)
+  timing WHITE50   n=2 min=42s median=363s (min-based 128 ep = 1.51 h)
+  FULL BATCH ESTIMATE (5 arms x 128 ep, sequential, UNCONTENDED) = 19.92 h

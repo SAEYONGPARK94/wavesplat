@@ -1,0 +1,48 @@
+G-1 sample identity: mine=128 s13_SHIP=128 sparse=64 crowded=64
+    keyset_equal=True meta_equal=True  G-1 PASS
+G-2 config identity (seed reverted to 42): s13 distinct configs=1 keys=21 diff={}
+    G-2 PASS
+G-5 readback wiring: HEAD=5f0846cc lambda_l1=0.0001 init_method=auto seed_default=42
+    G-5 PASS
+
+GATES(G-1,G-2,G-5) PASS -- cleared to smoke
+  sparse   BF4_2comp_seed48_uniform_ra_rf_ds
+    G-3 seed42 rerun=0.010000506557 S13=0.010000506557 |d|=0.000e+00 PASS   route learned vs learned
+    G-4 seed43      =0.006358558433  differs=True  rel=-36.418%
+    readback42 seed=42 torch_initial_seed=42 members=[42] class=MedianEnsembleUpdater
+    readback43 seed=43 torch_initial_seed=43 members=[43]  (40s)
+  crowded  BF4_15comp_seed32_uniform_ra_rf_ds
+    G-3 seed42 rerun=0.110772675408 S13=0.110772675408 |d|=0.000e+00 PASS   route learned vs learned
+    G-4 seed43      =0.113078005185  differs=True  rel=+2.081%
+    readback42 seed=42 torch_initial_seed=42 members=[42] class=MedianEnsembleUpdater
+    readback43 seed=43 torch_initial_seed=43 members=[43]  (37s)
+
+G-3 determinism PASS
+G-4 seed sensitivity: 2/2 episodes moved -> normal branch
+
+--- 실행 중 관측된 이상 (2026-08-13 08:35 KST) ---
+CPU 경합: 이 배치와 무관한 프로세스 2개가 동시에 돌고 있었다.
+  PID 22851  python3 -m pytest wavesim/tests/ wavesplat/tests/   (~979% CPU)
+  PID 19211  python3 <scratchpad>/fair.py                        (~123% CPU)
+load average 23.74 / 16 cores. 그 결과 에피소드당 벽시계가 18-22s -> 38-182s 로 튐.
+=> `wall_s` 열은 S13 과 비교 불가(오염). 수치 결과는 영향 없음(단일 프로세스·고정 시드,
+   G-3 가 |d|=0 로 결정론 증명). 배치 종료 후 G-3b 로 재확인한다.
+
+--- G-3b 사후 결정론 재확인 (배치 종료 후, 다른 부하 조건) ---
+G-3b BF4_15comp_seed32_uniform_ra_rf_ds  rerun=0.113078005185 logged=0.113078005185 |d|=0.000e+00 PASS
+G-3b BF4_2comp_seed48_uniform_ra_rf_ds   rerun=0.006358558433 logged=0.006358558433 |d|=0.000e+00 PASS
+=> CPU 경합은 wall_s 만 오염시켰고 수치는 비트 단위로 재현된다.
+
+--- 배치 중 작업트리 변경 감사 (2026-08-13 10:50 KST) ---
+배치 실행창(08:22-10:40) 안에 다른 세션이 수정한 패키지 파일:
+  09:15:05  wavesplat/tests/test_shipping_defaults.py   (내 임포트 경로 아님)
+  09:15:27  wavesplat/optimizer/sequential_update.py    (docstring 주석만, 실행문 0줄)
+  09:22:39  configs/estimation.yaml                     (주석만; 내 경로는 yaml 미독)
+  09:18:53  tmp/S13_oos_2026-08-12/RESULT.md            (내가 쓴 것 아님 - 타 세션 감사 메모)
+run.py 는 미변경(2026-08-11). S13 results.jsonl 미변경(md5 de8855f503fef684dcd76d32720f264f).
+G-3b 가 이 수정들 *이후*에 수정 *이전* 기록값을 |d|=0 으로 재현 => 수치적으로 불활성 확인.
+  e546e834a414571dfd7d80248d043331  wavesplat/run.py
+  63e6362b7c2f0e66e1a4ea3dd38ed075  wavesplat/optimizer/sequential_update.py
+  29c737f0e5fc7e58451bd8b7f8610b58  wavesplat/optimizer/initializer.py
+  b02042733cac818cb77c09998c3cf9ba  wavesplat/optimizer/coarse_to_fine.py
+  3e4a6fe1b34b84313a33cba443cf7bfe  wavesplat/model/spectral_gaussian.py

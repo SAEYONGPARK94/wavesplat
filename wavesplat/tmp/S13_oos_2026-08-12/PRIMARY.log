@@ -1,0 +1,51 @@
+==============================================================================
+S13 PRIMARY — 출하 구성 vs 튜닝된 LETKF (라우터 out-of-sample)
+사전등록 PREREG.md §4 동결: 단측 α=0.025, Holm-2, 문턱 41/64, 판정은 부호
+==============================================================================
+
+[crowded]  n=64
+  PRIMARY  SHIP vs LETKF+
+    SHIP < LETKF+: 56/64   (문턱 41/64)   단측 p=2.781e-10
+    크기 3규약 의무병기: med(rel)=-28.8%  rel(med)=-30.8%  rel(mean)=-28.8%
+  필요조건 SHIP vs ZERO  (IUT, Holm 족 밖)
+    SHIP < ZERO: 64/64   (문턱 41/64)   단측 p=5.421e-20
+    크기 3규약 의무병기: med(rel)=-38.2%  rel(med)=-40.7%  rel(mean)=-38.5%
+
+[sparse]  n=64
+  PRIMARY  SHIP vs LETKF+
+    SHIP < LETKF+: 63/64   (문턱 41/64)   단측 p=3.524e-18
+    크기 3규약 의무병기: med(rel)=-93.2%  rel(med)=-93.3%  rel(mean)=-86.3%
+  필요조건 SHIP vs ZERO  (IUT, Holm 족 밖)
+    SHIP < ZERO: 64/64   (문턱 41/64)   단측 p=5.421e-20
+    크기 3규약 의무병기: med(rel)=-94.1%  rel(med)=-94.1%  rel(mean)=-88.0%
+
+------------------------------------------------------------------------------
+Holm-2 보정 (PRIMARY 2개)
+  crowded  56/64  p=2.781e-10 -> p_adj=2.781e-10   ZERO필요조건=통과   ⟹ PASS
+  sparse   63/64  p=3.524e-18 -> p_adj=7.047e-18   ZERO필요조건=통과   ⟹ PASS
+
+==============================================================================
+SECONDARY (PRIMARY 에 미기여)
+==============================================================================
+
+[S-2e] 사전노출 24 에피소드 제외 민감도
+  crowded  미노출 n=52: 44/52  단측 p=2.02e-07
+  sparse   미노출 n=52: 51/52  단측 p=1.177e-14
+
+[S-2a] 근거리 고리 `0_5` (사전 지정 1개) — SHIP 절대 RMSE, LETKF+ 는 셸 미기록
+  crowded  n=64  중앙 0.0527 m
+  sparse   n=64  중앙 0.0058 m
+
+[셀별 분해 — 기술통계]
+  ncomp= 2 n=32  SHIP<LETKF+ 31/32  med(rel)=  -97.9%
+  ncomp= 5 n=32  SHIP<LETKF+ 32/32  med(rel)=  -88.2%
+  ncomp=15 n=32  SHIP<LETKF+ 29/32  med(rel)=  -41.0%
+  ncomp=30 n=32  SHIP<LETKF+ 27/32  med(rel)=  -19.8%
+
+[라우터 경로 — G-1 기록]
+  crowded  route=learned: 61
+  crowded  route=v2_konly: 3
+  sparse   route=learned: 51
+  sparse   route=v2_konly: 13
+
+-> verdict_primary.json

@@ -1,0 +1,79 @@
+================================================================================
+HOSGATE — S13 혼잡 우위가 HOS M=3 비선형 GT 에서도 서는가
+PREREG.md §4 동결: 단측 α=0.025, PRIMARY 1개, 문턱 13/16, 판정은 부호
+================================================================================
+
+[HOS 혼잡]  n=1   PRIMARY
+  SHIP vs LETKF_PLUS
+    SHIP < LETKF+: 1/1   문턱 판정불가(n<13)   단측 p=0.5   동점 0
+    크기 3규약: med(rel)=-24.8%  rel(med)=-24.8%  rel(mean)=-24.8%
+  필요조건 N-1  SHIP vs ZERO
+    SHIP < ZERO: 1/1   문턱 판정불가(n<13)   단측 p=0.5   동점 0
+    크기 3규약: med(rel)=-33.0%  rel(med)=-33.0%  rel(mean)=-33.0%
+  필요조건 N-2  LETKF+ vs ZERO
+    LETKF+ < ZERO: 1/1   문턱 판정불가(n<13)   단측 p=0.5   동점 0
+    크기 3규약: med(rel)=-10.9%  rel(med)=-10.9%  rel(mean)=-10.9%
+
+[LIN 혼잡]  n=1   귀속 가드 (PREREG §5)
+  SHIP vs LETKF_PLUS
+    SHIP < LETKF+: 1/1   문턱 판정불가(n<13)   단측 p=0.5   동점 0
+    크기 3규약: med(rel)=-59.2%  rel(med)=-59.2%  rel(mean)=-59.2%
+  필요조건 N-1  SHIP vs ZERO
+    SHIP < ZERO: 1/1   문턱 판정불가(n<13)   단측 p=0.5   동점 0
+    크기 3규약: med(rel)=-63.7%  rel(med)=-63.7%  rel(mean)=-63.7%
+  필요조건 N-2  LETKF+ vs ZERO
+    LETKF+ < ZERO: 1/1   문턱 판정불가(n<13)   단측 p=0.5   동점 0
+    크기 3규약: med(rel)=-11.1%  rel(med)=-11.1%  rel(mean)=-11.1%
+
+--------------------------------------------------------------------------------
+PREREG §5 판정표
+  HOS 혼잡 1/1 (문턱 None, p=0.5)   LIN 혼잡 1/1 (p=0.5)
+  필요조건 N-1 미달 · N-2 미달
+  ⟹ **판정 = INCONCLUSIVE-DEGENERATE**
+     퇴화 런 (한 팔이 제로필드를 못 이김)
+  ⚠검정력 한계 (PREREG §4): π=0.875 -> 0.870, π=0.80 -> 0.598.
+     "문턱 미달" 은 "효과 0" 이 아니다.
+
+================================================================================
+SECONDARY (PRIMARY 에 미기여, α 배분 없음)
+================================================================================
+
+[S-1] 희소 16 쌍
+  HOS  n=1
+    SHIP vs LETKF_PLUS
+      SHIP < LETKF+: 1/1   문턱 판정불가(n<13)   단측 p=0.5   동점 0
+      크기 3규약: med(rel)=-25.9%  rel(med)=-25.9%  rel(mean)=-25.9%
+  LIN  n=1
+    SHIP vs LETKF_PLUS
+      SHIP < LETKF+: 1/1   문턱 판정불가(n<13)   단측 p=0.5   동점 0
+      크기 3규약: med(rel)=-88.7%  rel(med)=-88.7%  rel(mean)=-88.7%
+
+[S-1b] 희소 — BF4x2 제외 12 쌍 (PREREG §2 사전 공개 결함: 2k 절단 99.8%)
+
+[S-2] 짝 델타 — 비선형화가 누구를 더 아프게 하는가  (HOS − LIN, 양수=악화)
+  crowded  SHIP        n= 1  중앙 Δ=+0.07563  중앙 상대=+84.6%  악화 1/1
+  crowded  LETKF_PLUS  n= 1  중앙 Δ=+0.00045  중앙 상대=+0.2%  악화 1/1
+  crowded  ZERO        n= 1  중앙 Δ=+0.00015  중앙 상대=+0.1%  악화 1/1
+  sparse   SHIP        n= 1  중앙 Δ=+0.16256  중앙 상대=+561.0%  악화 1/1
+  sparse   LETKF_PLUS  n= 1  중앙 Δ=+0.00119  중앙 상대=+0.5%  악화 1/1
+  sparse   ZERO        n= 1  중앙 Δ=+0.00382  중앙 상대=+1.5%  악화 1/1
+
+[S-3] 근거리 고리 `0_5` 셸 RMSE (SHIP 만 기록)
+  HOS crowded  n= 1  중앙 0.0680 m
+  HOS sparse   n= 1  중앙 0.0320 m
+  LIN crowded  n= 1  중앙 0.0417 m
+  LIN sparse   n= 1  중앙 0.0228 m
+
+[S-4] 라우터 경로 / n_gaussians
+  HOS crowded  route={'learned': 1}  n_gaussians 중앙=18
+  HOS sparse   route={'v2_konly': 1}  n_gaussians 중앙=15
+  LIN crowded  route={'learned': 1}  n_gaussians 중앙=12
+  LIN sparse   route={'v2_konly': 1}  n_gaussians 중앙=15
+
+[S-5] 셀별 분해 (기술통계, 검정 없음)
+  HOS BF4x 2comp n=1  SHIP<LETKF+ 1/1  med(rel)=  -25.9%
+  HOS BF4x15comp n=1  SHIP<LETKF+ 1/1  med(rel)=  -24.8%
+  LIN BF4x 2comp n=1  SHIP<LETKF+ 1/1  med(rel)=  -88.7%
+  LIN BF4x15comp n=1  SHIP<LETKF+ 1/1  med(rel)=  -59.2%
+
+-> verdict_smoke.json

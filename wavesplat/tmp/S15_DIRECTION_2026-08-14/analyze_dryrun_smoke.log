@@ -1,0 +1,110 @@
+============================================================================================
+S15_DIRECTION 채점 — tmp/S15_DIRECTION_2026-08-14/smoke_results.jsonl
+============================================================================================
+
+[§9 무결성]
+  행 92 (에러 0, 중복 제거 0)
+  code_md5 2종 ['6f81e27c', 'e7d9e85f']
+  import_md5 1종 ['3fa900d6']
+  ⚠지문이 하나가 아니다 — 배치 중 코드가 바뀌었다. 원인을 RESULT.md 에 적을 것.
+  팔별 (의도 lambda_l1, 되읽은 lambda_l1):
+    AUTO-NT-DUP@L4      ['(0.0001, 0.0001)']
+    AUTO-NT@L4          ['(0.0001, 0.0001)']
+    LETKF_PLUS          ['(None, None)']
+    ORA-K-NT@L4         ['(0.0001, 0.0001)']
+    ORA-WPHI-0STEP@L3   ['(0.001, 0.001)']
+    ORA-WPHI-0STEP@L4   ['(0.0001, 0.0001)']
+    ORA-WPHI-NT@L3      ['(0.001, 0.001)']
+    ORA-WPHI-NT@L4      ['(0.0001, 0.0001)']
+    SHIP                ['(0.0001, 0.0001)']
+    ZERO                ['(None, None)']
+  T-5 AUTO-NT vs DUP: 2 짝, worst |Δ| = 0.000e+00 (0 이어야 환경 게이트 누출 없음)
+  G-9 ZERO 채점기 vs 닫힌형 worst |Δ| = 0.000e+00
+  G-4 0STEP avg_nRMSE worst = 7.965e-07 (파라미터 전달 무결성)
+  G-8b 셸 헬퍼 vs run.py 원본 worst |Δ| = 0.000e+00
+
+[시드 산포 / MDE — 배치 내 산출, 사전 동결 아님]
+  AUTO-NT-DUP@L4      시드수 3-3  obs_loss 시드범위: median 1.681e-02  max 2.697e-02
+  AUTO-NT@L4          시드수 3-3  obs_loss 시드범위: median 3.335e-03  max 2.697e-02
+  ORA-K-NT@L4         시드수 3-3  obs_loss 시드범위: median 1.758e-02  max 3.219e-02
+  ORA-WPHI-0STEP@L3   시드수 3-3  obs_loss 시드범위: median 0.000e+00  max 0.000e+00   ⚠산포 0 = median-of-3 퇴화
+  ORA-WPHI-0STEP@L4   시드수 3-3  obs_loss 시드범위: median 0.000e+00  max 0.000e+00   ⚠산포 0 = median-of-3 퇴화
+  ORA-WPHI-NT@L3      시드수 3-3  obs_loss 시드범위: median 0.000e+00  max 0.000e+00   ⚠산포 0 = median-of-3 퇴화
+  ORA-WPHI-NT@L4      시드수 3-3  obs_loss 시드범위: median 0.000e+00  max 0.000e+00   ⚠산포 0 = median-of-3 퇴화
+  SHIP                시드수 3-3  obs_loss 시드범위: median 4.411e-04  max 1.247e-03
+  MDE 대용(0STEP@L3 시드범위 중앙) = 0.000e+00   ⛔산포 0 ⟹ |Δ|/MDE 인용 금지 (PREREG §8.7)
+
+[§4 PRIMARY — dir180 · 혼잡 · lambda=1e-3 · avg_obs_loss]
+  PRIMARY dir180 NT>0STEP (벽이 있는가)               n=1 ties=0  -> UNDECIDED-TIES
+
+[N-1 필요조건 — dir0 · 혼잡 · lambda=1e-3]
+  N-1 dir0 NT>0STEP (벽이 dir0 에 있는가)              n=1 ties=0  -> UNDECIDED-TIES
+
+[§5 판정]
+  ★판정 = **UNDECIDED-TIES**
+  동점 제외 후 n<10. 판정 없음.
+
+[§6 SECONDARY — Holm-4, alpha=0.05]
+  S-1 방향대조: 0/1 양수 (문턱 None) p=n<10 UNDECIDED-TIES  gap 변화 med(rel)=-4.2% abs med=-0.000305
+  S-2 L4 dir180 혼잡                               n=1 ties=0  -> UNDECIDED-TIES
+  S-2 L4 dir0   혼잡                               n=1 ties=0  -> UNDECIDED-TIES
+  S-3 L3 dir180 희소                               n=1 ties=0  -> UNDECIDED-TIES
+  S-3 L3 dir0   희소                               n=1 ties=0  -> UNDECIDED-TIES
+  S-3 L4 dir180 희소                               n=1 ties=0  -> UNDECIDED-TIES
+  S-3 L4 dir0   희소                               n=1 ties=0  -> UNDECIDED-TIES
+
+  S-4 SHIP vs LETKF_PLUS (⛔크기 인용 금지 — 기여 ⑥ 4중 사망)
+    dir180 SHIP<LETKF 1/1 (문턱 None) p=n<10 UNDECIDED-TIES | SHIP<ZERO 1/1 · LETKF<ZERO 0/1   ⟹ INCONCLUSIVE-DEGENERATE
+    dir0   SHIP<LETKF 1/1 (문턱 None) p=n<10 UNDECIDED-TIES | SHIP<ZERO 1/1 · LETKF<ZERO 1/1   ⟹ INCONCLUSIVE-DEGENERATE
+
+  [Holm-4 보정]
+
+[T-1 window_resid — S4 §3 의 이분법 (탐색적, 검정 없음)]
+  dir0   ORA-WPHI-NT@L3      window_resid 중앙 = 0.01528 m  (n=1)
+  dir0   ORA-WPHI-0STEP@L3   window_resid 중앙 = 0.00601 m  (n=1)
+  dir0   AUTO-NT@L4          window_resid 중앙 = 0.03332 m  (n=1)
+  dir180 ORA-WPHI-NT@L3      window_resid 중앙 = 0.01851 m  (n=1)
+  dir180 ORA-WPHI-0STEP@L3   window_resid 중앙 = 0.00651 m  (n=1)
+  dir180 AUTO-NT@L4          window_resid 중앙 = 0.04262 m  (n=1)
+
+[T-2 셸(obs:) / 고리(ship:) — ⚠서로 다른 양이다]
+  dir0   ORA-WPHI-NT@L3 obs:  0_5=0.087 5_10=0.085 10_20=0.085 20_30=0.087 30_50=0.090 50_75=0.095 75_100=0.104 100_150=0.136 150_inf=0.197
+                     ship: 0_25=0.089 25_50=0.091 50_75=0.089 75_100=0.090 100_150=0.093 150_200=0.125 200_inf=0.197
+  dir0   AUTO-NT@L4    obs:  0_5=0.113 5_10=0.113 10_20=0.115 20_30=0.119 30_50=0.130 50_75=0.151 75_100=0.178 100_150=0.217 150_inf=0.227
+                     ship: 0_25=0.119 25_50=0.120 50_75=0.116 75_100=0.131 100_150=0.157 150_200=0.219 200_inf=0.227
+  dir0   SHIP          obs:  0_5=0.067 5_10=0.100 10_20=0.126 20_30=0.142 30_50=0.157 50_75=0.170 75_100=0.185 100_150=0.209 150_inf=0.231
+                     ship: 0_25=0.053 25_50=0.090 50_75=0.139 75_100=0.157 100_150=0.173 150_200=0.204 200_inf=0.234
+  dir0   LETKF_PLUS    obs:  0_5=0.082 5_10=0.132 10_20=0.182 20_30=0.216 30_50=0.244 50_75=0.258 75_100=0.290 100_150=0.316 150_inf=0.320
+                     ship: 0_25=0.072 25_50=0.140 50_75=0.209 75_100=0.232 100_150=0.272 150_200=0.317 200_inf=0.318
+  dir0   ZERO          obs:  0_5=0.250 5_10=0.279 10_20=0.303 20_30=0.308 30_50=0.297 50_75=0.274 75_100=0.284 100_150=0.307 150_inf=0.320
+                     ship: 0_25=0.230 25_50=0.279 50_75=0.315 75_100=0.282 100_150=0.278 150_200=0.307 200_inf=0.318
+  dir180 ORA-WPHI-NT@L3 obs:  0_5=0.097 5_10=0.108 10_20=0.119 20_30=0.127 30_50=0.137 50_75=0.148 75_100=0.155 100_150=0.150 150_inf=0.178
+                     ship: 0_25=0.075 25_50=0.103 50_75=0.123 75_100=0.135 100_150=0.155 150_200=0.147 200_inf=0.176
+  dir180 AUTO-NT@L4    obs:  0_5=0.150 5_10=0.169 10_20=0.182 20_30=0.191 30_50=0.210 50_75=0.228 75_100=0.223 100_150=0.217 150_inf=0.246
+                     ship: 0_25=0.125 25_50=0.164 50_75=0.184 75_100=0.213 100_150=0.229 150_200=0.214 200_inf=0.244
+  dir180 SHIP          obs:  0_5=0.101 5_10=0.161 10_20=0.203 20_30=0.216 30_50=0.234 50_75=0.263 75_100=0.250 100_150=0.252 150_inf=0.270
+                     ship: 0_25=0.035 25_50=0.146 50_75=0.213 75_100=0.234 100_150=0.260 150_200=0.254 200_inf=0.270
+  dir180 LETKF_PLUS    obs:  0_5=0.093 5_10=0.155 10_20=0.217 20_30=0.267 30_50=0.299 50_75=0.304 75_100=0.307 100_150=0.320 150_inf=0.363
+                     ship: 0_25=0.058 25_50=0.129 50_75=0.249 75_100=0.306 100_150=0.304 150_200=0.316 200_inf=0.361
+  dir180 ZERO          obs:  0_5=0.306 5_10=0.314 10_20=0.323 20_30=0.324 30_50=0.319 50_75=0.305 75_100=0.297 100_150=0.284 150_inf=0.294
+                     ship: 0_25=0.293 25_50=0.316 50_75=0.322 75_100=0.319 100_150=0.303 150_200=0.281 200_inf=0.292
+
+[T-3 라우터 (⚠체크포인트는 direction_deg~U(-50,50) 에서만 학습됐다)]
+  dir0   AUTO-NT@L4    route {'v2_konly': 2, 'learned': 4}  n_selected 중앙 11.0
+  dir0   SHIP          route {'v2_konly': 2, 'learned': 4}  n_selected 중앙 11.0
+  dir180 AUTO-NT@L4    route {'v2_konly': 1, 'learned': 5}  n_selected 중앙 19.5
+  dir180 SHIP          route {'v2_konly': 1, 'learned': 5}  n_selected 중앙 19.5
+
+[T-4 ORA-K-NT@L4 — k 오라클 단독]
+  dir0   ORA-K-NT − AUTO-NT (obs_loss) 1/1 p=n<10 UNDECIDED-TIES abs med Δ=+0.000031
+  dir180 ORA-K-NT − AUTO-NT (obs_loss) 0/1 p=n<10 UNDECIDED-TIES abs med Δ=-0.006904
+
+[T-6 셀별 분해 (기술통계, 검정 없음)]
+  dir0   BF4_15comp  gap 중앙 = +0.007213  부호+ 1/1
+  dir0   BF4_ 2comp  gap 중앙 = -0.000007  부호+ 0/1
+  dir180 BF4_15comp  gap 중앙 = +0.006908  부호+ 1/1
+  dir180 BF4_ 2comp  gap 중앙 = -0.000007  부호+ 0/1
+
+============================================================================================
+★판정 = UNDECIDED-TIES
+============================================================================================

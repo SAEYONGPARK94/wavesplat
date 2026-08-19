@@ -48,8 +48,12 @@ ETKF_BEST = {
 
 
 def _metrics_keys():
+    # RMSE_near was missing from this list while RMSE_far and RMSE_unobserved were in it,
+    # so every file this script wrote could report the far field and the unobserved field
+    # but was structurally blind to the near one -- near-range claims were not weak, they
+    # were undetectable.  (2026-08-19: run.py was fixed in b1467bd; this list was not.)
     return ['nRMSE', 'RMSE_z', 'Hs_error', 'Variance_Ratio',
-            'Pearson_rho', 'Skill_Score', 'RMSE_far',
+            'Pearson_rho', 'Skill_Score', 'RMSE_near', 'RMSE_far',
             'RMSE_unobserved', 'Directional_R2']
 
 

@@ -1,0 +1,23 @@
+--- a/wavesplat/wavesplat/optimizer/sequential_update.py
++++ b/wavesplat/wavesplat/optimizer/sequential_update.py
+@@ -1265,7 +1265,10 @@
+         using cos/sin decomposition:
+             z = Σ [a_i cos(θ_i) + b_i sin(θ_i)]
+         where θ_i = kx_i·x + ky_i·y - ω_i·t, then
+-            w_i = sqrt(a_i² + b_i²), phi_i = atan2(b_i, a_i)
++            w_i = sqrt(a_i² + b_i²), phi_i = atan2(-b_i, a_i)
++        The minus sign is required by the shipped forward model
++        w·cos(θ+φ) = (w cosφ)·cosθ − (w sinφ)·sinθ, i.e. b = −w·sinφ.
++        Same convention as model/tnse.py:216 and optimizer/initializer.py:448.
+ 
+         This corrects both amplitude decay and phase drift caused by
+         tracking oscillation in Phase 2.
+@@ -1332,7 +1335,7 @@
+         a = coeffs[0::2]  # cos coefficients
+         b = coeffs[1::2]  # sin coefficients
+         w_refit = np.sqrt(a ** 2 + b ** 2)
+-        phi_refit = np.arctan2(b, a)
++        phi_refit = np.arctan2(-b, a)
+ 
+         # Compute residuals for reporting
+         # Before: use old w, phi

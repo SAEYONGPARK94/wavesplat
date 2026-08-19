@@ -1,0 +1,17 @@
+--- a/wavesplat/wavesplat/run.py
++++ b/wavesplat/wavesplat/run.py
+@@ -469,6 +469,14 @@
+         'avg_RMSE_z': avg_rmse,
+         'avg_nRMSE': avg_nrmse,
+         'avg_Hs_error': avg_hs_err,
++        # (E1 2026-08-19) Near-field aggregate.  evaluation/metrics.py:433 has
++        # been filling RMSE_near on every GT frame all along, and run.py:380
++        # keeps it inside frame_results -- but nothing was ever aggregated out
++        # of it, and main() strips 'frame_results' before json.dump (:626-627).
++        # Every saved result file was therefore structurally blind to the near
++        # field: near-range claims were not weak, they were undetectable.
++        'avg_RMSE_near': (float(np.mean([r['RMSE_near'] for r in frame_results]))
++                          if (frame_results and has_gt) else float('nan')),
+         'avg_inference_ms': avg_ms,
+         # GT-free run-quality signal, for multi-restart selection (see
+         # tmp/ESTIMATOR_VARIANCE_RESULT_2026-07-23.md): mean observation-fit loss.

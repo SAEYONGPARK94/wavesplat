@@ -1,0 +1,831 @@
+{
+  "meta": {
+    "script": "verify_w4.py (D2 independent verifier)",
+    "rules": [
+      "PREREG.md",
+      "AMENDMENT_1.md",
+      "AMENDMENT_2.md"
+    ],
+    "n_rows_in": 1344,
+    "n_rows": 1344,
+    "n_rows_dropped_non_crowded": 0,
+    "n_episodes": 64,
+    "n_effective_pairs": {
+      "P-1": 64,
+      "P-2": 64,
+      "family_min": 64,
+      "min_required": 56
+    },
+    "arms_seen": [
+      "L-ITER0",
+      "L-MERGE",
+      "L-SHIP",
+      "L-SHIP-DUP",
+      "L-STEP400",
+      "L-VP",
+      "L-VP-NW",
+      "ORA-K-CVX",
+      "ZERO"
+    ],
+    "med3_strict": true,
+    "med3_numpy_crosscheck_mismatches": 0,
+    "scipy_available": true,
+    "seed_completeness": {
+      "L-ITER0": {
+        "episodes_with_3_seeds": 64,
+        "episodes_with_fewer": 0,
+        "episodes_absent": 0
+      },
+      "L-MERGE": {
+        "episodes_with_3_seeds": 64,
+        "episodes_with_fewer": 0,
+        "episodes_absent": 0
+      },
+      "L-SHIP": {
+        "episodes_with_3_seeds": 64,
+        "episodes_with_fewer": 0,
+        "episodes_absent": 0
+      },
+      "L-SHIP-DUP": {
+        "episodes_with_3_seeds": 0,
+        "episodes_with_fewer": 64,
+        "episodes_absent": 0
+      },
+      "L-STEP400": {
+        "episodes_with_3_seeds": 64,
+        "episodes_with_fewer": 0,
+        "episodes_absent": 0
+      },
+      "L-VP": {
+        "episodes_with_3_seeds": 64,
+        "episodes_with_fewer": 0,
+        "episodes_absent": 0
+      },
+      "L-VP-NW": {
+        "episodes_with_3_seeds": 64,
+        "episodes_with_fewer": 0,
+        "episodes_absent": 0
+      }
+    },
+    "results_path": "/home/vexit/wavesplat/wavesplat/tmp/W4_SOLVER_2026-08-19/results.jsonl"
+  },
+  "threshold_selftest": {
+    "derived": {
+      "one_0.025": 41,
+      "one_0.05": 40,
+      "two_0.025_hi": 42,
+      "two_0.025_lo": 22,
+      "two_0.05_hi": 41,
+      "two_0.05_lo": 23
+    },
+    "frozen": {
+      "one_0.025": 41,
+      "one_0.05": 40,
+      "two_0.025_hi": 42,
+      "two_0.025_lo": 22,
+      "two_0.05_hi": 41,
+      "two_0.05_lo": 23
+    },
+    "agree": true
+  },
+  "gates": {
+    "G-1": {
+      "kind": "abort",
+      "pass": true,
+      "n_checked": 1216,
+      "bad_route": [],
+      "bad_calls": []
+    },
+    "G-2": {
+      "kind": "abort",
+      "pass": true,
+      "observed": {
+        "L-ITER0": [
+          320
+        ],
+        "L-MERGE": [
+          820
+        ],
+        "L-SHIP": [
+          820
+        ],
+        "L-SHIP-DUP": [
+          820
+        ],
+        "L-STEP400": [
+          1220
+        ],
+        "L-VP": [
+          1220
+        ],
+        "L-VP-NW": [
+          1220
+        ]
+      },
+      "expected": {
+        "L-SHIP": 820,
+        "L-SHIP-DUP": 820,
+        "L-ITER0": 320,
+        "L-VP": 1220,
+        "L-VP-NW": 1220,
+        "L-STEP400": 1220
+      },
+      "violations": {}
+    },
+    "G-2b": {
+      "kind": "record",
+      "pass": true,
+      "n_rows_with_other": 0
+    },
+    "G-2c": {
+      "kind": "abort",
+      "pass": true,
+      "L-VP": [
+        1220
+      ],
+      "L-STEP400": [
+        1220
+      ]
+    },
+    "G-3": {
+      "kind": "abort",
+      "pass": true,
+      "observed": {
+        "L-ITER0": [
+          0
+        ],
+        "L-MERGE": [
+          0
+        ],
+        "L-SHIP": [
+          0
+        ],
+        "L-SHIP-DUP": [
+          0
+        ],
+        "L-STEP400": [
+          0
+        ],
+        "L-VP": [
+          400
+        ],
+        "L-VP-NW": [
+          400
+        ],
+        "ORA-K-CVX": [
+          0
+        ],
+        "ZERO": [
+          0
+        ]
+      },
+      "violations": {}
+    },
+    "G-4": {
+      "kind": "record",
+      "median_merge_removed": 1.0,
+      "n_rows": 192,
+      "leak_rows_other_arms": 0,
+      "pass": true
+    },
+    "G-5": {
+      "kind": "abort",
+      "pass": true,
+      "n_pairs": 64,
+      "max_abs_delta": 0.0,
+      "unmatched_dup_rows": 0
+    },
+    "G-6": {
+      "kind": "terminate",
+      "pass": true,
+      "n_rows_missing": 0,
+      "examples": []
+    },
+    "G-6b": {
+      "kind": "record",
+      "pass": true,
+      "episodes_mismatched": {}
+    },
+    "G-6c": {
+      "kind": "record",
+      "pass": true,
+      "episodes_mismatched": {}
+    },
+    "G-7": {
+      "kind": "abort",
+      "pass": true,
+      "line": "G-7 phase identity: atan2(-b,a) max|d|=4.441e-15 (tol 1e-12) | the sequential_update.py:1335 convention atan2(+b,a) gives 6.071e+00 | varpro.ab_to_wphi max|d|=4.441e-15 -> PASS",
+      "source": "gates.log (pre-run)"
+    },
+    "G-8": {
+      "kind": "abort",
+      "pass": true,
+      "code_md5": [
+        "a29340cee6c1de6b3bc08c089ceb8e61"
+      ],
+      "git_head": [
+        "348d0f2d88475592d26ac663bc3286407e7b08f8"
+      ]
+    },
+    "SAMPLE": {
+      "kind": "record",
+      "n_episodes_seen": 64,
+      "n_episodes_frozen": 64,
+      "not_in_frozen_corpus": [],
+      "frozen_but_absent": 0,
+      "strata_seen": [
+        "crowded"
+      ],
+      "ncomp_seen": [
+        15,
+        30
+      ],
+      "est_seeds_seen": [
+        1595,
+        1596,
+        1597
+      ],
+      "duplicate_cells": [],
+      "pass": true
+    },
+    "A5_CLAMP_READOUT": {
+      "kind": "record",
+      "n_rows": 192,
+      "max_clamp_hits_p1": 0,
+      "reading": "the joint-fit descent",
+      "pass": true
+    }
+  },
+  "IUT": {
+    "label": "IUT L-SHIP < ZERO",
+    "n": 64,
+    "W": 63,
+    "L": 1,
+    "n_ties_dropped": 0,
+    "n_missing_pairs": 0,
+    "median_rel_diff": -0.37230127305767,
+    "median_rel_diff_ci95": [
+      -0.43523590379050103,
+      -0.29690894793025663
+    ],
+    "mean_rel_diff": -0.3785595216649587,
+    "p_one_sided_treat_lower": 3.5236570605778894e-18,
+    "p_two_sided": 7.047314121155779e-18,
+    "scipy_xcheck": {
+      "available": true,
+      "p_one_scipy": 3.5236570605778894e-18,
+      "p_two_scipy": 7.047314121155779e-18,
+      "max_abs_dev": 0.0,
+      "agree_1e_12": true
+    },
+    "threshold_alpha_0.025": 41,
+    "evaluable": true,
+    "pass": true,
+    "status": "PASS"
+  },
+  "PRIMARY": {
+    "P-1": {
+      "label": "P-1  L-VP < L-SHIP  (one-sided)",
+      "n": 64,
+      "W": 52,
+      "L": 12,
+      "n_ties_dropped": 0,
+      "n_missing_pairs": 0,
+      "median_rel_diff": -0.1753477365281061,
+      "median_rel_diff_ci95": [
+        -0.2670974667439292,
+        -0.09454553251996257
+      ],
+      "mean_rel_diff": -0.20809438848939016,
+      "p_one_sided_treat_lower": 2.2833053502227052e-07,
+      "p_two_sided": 4.5666107004454105e-07,
+      "scipy_xcheck": {
+        "available": true,
+        "p_one_scipy": 2.2833053502227052e-07,
+        "p_two_scipy": 4.5666107004454105e-07,
+        "max_abs_dev": 0.0,
+        "agree_1e_12": true
+      },
+      "alpha_spent": 0.05,
+      "critical_value_at_alpha": 40,
+      "reject_by_p": true,
+      "reject_by_threshold": true,
+      "holm_reject": true,
+      "route_agreement": true,
+      "MDE": {
+        "pi_80": 0.6665337951392581,
+        "power_at_observed": 0.9998771959260543
+      }
+    },
+    "P-2": {
+      "label": "OPTIMIZER-EARNS",
+      "n": 64,
+      "W": 7,
+      "L": 57,
+      "n_ties_dropped": 0,
+      "n_missing_pairs": 0,
+      "median_rel_diff": 0.23336436361814739,
+      "median_rel_diff_ci95": [
+        0.17514585322117107,
+        0.2875227261644987
+      ],
+      "mean_rel_diff": 0.27238806280726013,
+      "p_one_sided_treat_lower": 0.9999999999954855,
+      "p_two_sided": 7.638141345540223e-11,
+      "scipy_xcheck": {
+        "available": true,
+        "p_one_scipy": 0.9999999999954855,
+        "p_two_scipy": 7.638141345540223e-11,
+        "max_abs_dev": 0.0,
+        "agree_1e_12": true
+      },
+      "alpha_spent": 0.025,
+      "critical_hi": 42,
+      "critical_lo": 22,
+      "reject_by_p": true,
+      "reject_by_threshold": true,
+      "holm_reject": true,
+      "route_agreement": true,
+      "label_reading": "the joint-fit descent",
+      "MDE": {
+        "evaluable": true,
+        "definition": "smallest per-episode win fraction pi>0.5 with power >= 0.80 over the two-sided rejection region",
+        "n": 64,
+        "alpha": 0.025,
+        "region": {
+          "hi": 42,
+          "lo": 22
+        },
+        "pi_80": 0.6965015770051997,
+        "wins_80": 45,
+        "power_at_observed": 0.999999874243579,
+        "observed_median_rel_diff": 0.23336436361814739,
+        "observed_median_rel_ci95": [
+          0.17514585322117107,
+          0.2875227261644987
+        ],
+        "note": "this is a win-rate MDE; a sign test does not bound the effect magnitude - the CI on the paired median relative difference is the magnitude-side resolution"
+      }
+    },
+    "holm2": {
+      "order": [
+        "P-2",
+        "P-1"
+      ],
+      "alpha_spent": {
+        "P-1": 0.05,
+        "P-2": 0.025
+      },
+      "reject": {
+        "P-1": true,
+        "P-2": true
+      }
+    }
+  },
+  "SECONDARY": {
+    "S-2": {
+      "label": "S-2  L-VP < L-ITER0 (one-sided)",
+      "n": 64,
+      "W": 59,
+      "L": 5,
+      "n_ties_dropped": 0,
+      "n_missing_pairs": 0,
+      "median_rel_diff": -0.3622906608132496,
+      "median_rel_diff_ci95": [
+        -0.43684149625471924,
+        -0.228551717462843
+      ],
+      "mean_rel_diff": -0.35016508505549326,
+      "p_one_sided_treat_lower": 4.5014084690611633e-13,
+      "p_two_sided": 9.002816938122327e-13,
+      "scipy_xcheck": {
+        "available": true,
+        "p_one_scipy": 4.5014084690611633e-13,
+        "p_two_scipy": 9.002816938122327e-13,
+        "max_abs_dev": 0.0,
+        "agree_1e_12": true
+      },
+      "alpha": 0.025,
+      "critical_value": 41,
+      "reject_by_p": true,
+      "reject_by_threshold": true,
+      "route_agreement": true,
+      "verdict": "PASS"
+    },
+    "S-2b": {
+      "label": "S-2b L-VP < L-STEP400 (one-sided)",
+      "n": 64,
+      "W": 48,
+      "L": 16,
+      "n_ties_dropped": 0,
+      "n_missing_pairs": 0,
+      "median_rel_diff": -0.17301177570378462,
+      "median_rel_diff_ci95": [
+        -0.2515676894660388,
+        -0.07275323531302501
+      ],
+      "mean_rel_diff": -0.18564043421067564,
+      "p_one_sided_treat_lower": 3.866538440643513e-05,
+      "p_two_sided": 7.733076881287027e-05,
+      "scipy_xcheck": {
+        "available": true,
+        "p_one_scipy": 3.866538440643513e-05,
+        "p_two_scipy": 7.733076881287027e-05,
+        "max_abs_dev": 0.0,
+        "agree_1e_12": true
+      },
+      "alpha": 0.025,
+      "critical_value": 41,
+      "reject_by_p": true,
+      "reject_by_threshold": true,
+      "route_agreement": true,
+      "verdict": "PASS"
+    },
+    "S-2c": {
+      "label": "S-2c L-VP vs L-VP-NW (two-sided)",
+      "n": 64,
+      "W": 21,
+      "L": 43,
+      "n_ties_dropped": 0,
+      "n_missing_pairs": 0,
+      "median_rel_diff": 0.05952356590334074,
+      "median_rel_diff_ci95": [
+        0.002100112402795037,
+        0.12299640716896731
+      ],
+      "mean_rel_diff": 0.12035425676976634,
+      "p_one_sided_treat_lower": 0.99815501786173,
+      "p_two_sided": 0.008146902228698568,
+      "scipy_xcheck": {
+        "available": true,
+        "p_one_scipy": 0.99815501786173,
+        "p_two_scipy": 0.008146902228698568,
+        "max_abs_dev": 0.0,
+        "agree_1e_12": true
+      },
+      "alpha": 0.025,
+      "critical_hi": 42,
+      "critical_lo": 22,
+      "reject_by_p": true,
+      "reject_by_threshold": true,
+      "route_agreement": true,
+      "verdict": "DIFFERENT (weighting matters)"
+    },
+    "S-3": {
+      "meta": {
+        "prefix_used": "obs:",
+        "n_shells": 9,
+        "all_empty_suspect_key_mismatch": false,
+        "holm9_sensitivity_note": "PREREG fixes no multiplicity rule inside S-3; raw per-shell p reported, Holm-9 added as sensitivity only"
+      },
+      "shells": {
+        "obs:0_5": {
+          "label": "S-3 obs:0_5  L-VP < L-SHIP",
+          "n": 64,
+          "W": 55,
+          "L": 9,
+          "n_ties_dropped": 0,
+          "n_missing_pairs": 0,
+          "median_rel_diff": -0.1749539949081845,
+          "median_rel_diff_ci95": [
+            -0.24578596121312699,
+            -0.10734922612692735
+          ],
+          "mean_rel_diff": -0.21057278968056783,
+          "p_one_sided_treat_lower": 1.771111690087538e-09,
+          "p_two_sided": 3.542223380175076e-09,
+          "scipy_xcheck": {
+            "available": true,
+            "p_one_scipy": 1.771111690087538e-09,
+            "p_two_scipy": 3.542223380175076e-09,
+            "max_abs_dev": 0.0,
+            "agree_1e_12": true
+          },
+          "critical_value": 41,
+          "reject_by_p": true,
+          "verdict": "PASS",
+          "holm9_alpha": 0.003125,
+          "holm9_reject": true
+        },
+        "obs:5_10": {
+          "label": "S-3 obs:5_10  L-VP < L-SHIP",
+          "n": 64,
+          "W": 56,
+          "L": 8,
+          "n_ties_dropped": 0,
+          "n_missing_pairs": 0,
+          "median_rel_diff": -0.19229985755771972,
+          "median_rel_diff_ci95": [
+            -0.22072453954811067,
+            -0.12555981937387198
+          ],
+          "mean_rel_diff": -0.21574824882350624,
+          "p_one_sided_treat_lower": 2.781336121159862e-10,
+          "p_two_sided": 5.562672242319724e-10,
+          "scipy_xcheck": {
+            "available": true,
+            "p_one_scipy": 2.781336121159862e-10,
+            "p_two_scipy": 5.562672242319724e-10,
+            "max_abs_dev": 0.0,
+            "agree_1e_12": true
+          },
+          "critical_value": 41,
+          "reject_by_p": true,
+          "verdict": "PASS",
+          "holm9_alpha": 0.002777777777777778,
+          "holm9_reject": true
+        },
+        "obs:10_20": {
+          "label": "S-3 obs:10_20  L-VP < L-SHIP",
+          "n": 64,
+          "W": 55,
+          "L": 9,
+          "n_ties_dropped": 0,
+          "n_missing_pairs": 0,
+          "median_rel_diff": -0.19489959803718557,
+          "median_rel_diff_ci95": [
+            -0.22914605095081064,
+            -0.10343437343427922
+          ],
+          "mean_rel_diff": -0.21520862968645782,
+          "p_one_sided_treat_lower": 1.771111690087538e-09,
+          "p_two_sided": 3.542223380175076e-09,
+          "scipy_xcheck": {
+            "available": true,
+            "p_one_scipy": 1.771111690087538e-09,
+            "p_two_scipy": 3.542223380175076e-09,
+            "max_abs_dev": 0.0,
+            "agree_1e_12": true
+          },
+          "critical_value": 41,
+          "reject_by_p": true,
+          "verdict": "PASS",
+          "holm9_alpha": 0.0035714285714285718,
+          "holm9_reject": true
+        },
+        "obs:20_30": {
+          "label": "S-3 obs:20_30  L-VP < L-SHIP",
+          "n": 64,
+          "W": 54,
+          "L": 10,
+          "n_ties_dropped": 0,
+          "n_missing_pairs": 0,
+          "median_rel_diff": -0.19436741857865897,
+          "median_rel_diff_ci95": [
+            -0.2416438813922201,
+            -0.11557184291159317
+          ],
+          "mean_rel_diff": -0.21288428148849037,
+          "p_one_sided_treat_lower": 9.982491118931073e-09,
+          "p_two_sided": 1.9964982237862146e-08,
+          "scipy_xcheck": {
+            "available": true,
+            "p_one_scipy": 9.982491118931073e-09,
+            "p_two_scipy": 1.9964982237862146e-08,
+            "max_abs_dev": 0.0,
+            "agree_1e_12": true
+          },
+          "critical_value": 41,
+          "reject_by_p": true,
+          "verdict": "PASS",
+          "holm9_alpha": 0.005,
+          "holm9_reject": true
+        },
+        "obs:30_50": {
+          "label": "S-3 obs:30_50  L-VP < L-SHIP",
+          "n": 64,
+          "W": 55,
+          "L": 9,
+          "n_ties_dropped": 0,
+          "n_missing_pairs": 0,
+          "median_rel_diff": -0.1956455738476982,
+          "median_rel_diff_ci95": [
+            -0.26610403287603807,
+            -0.11517090215927203
+          ],
+          "mean_rel_diff": -0.22154636706188724,
+          "p_one_sided_treat_lower": 1.771111690087538e-09,
+          "p_two_sided": 3.542223380175076e-09,
+          "scipy_xcheck": {
+            "available": true,
+            "p_one_scipy": 1.771111690087538e-09,
+            "p_two_scipy": 3.542223380175076e-09,
+            "max_abs_dev": 0.0,
+            "agree_1e_12": true
+          },
+          "critical_value": 41,
+          "reject_by_p": true,
+          "verdict": "PASS",
+          "holm9_alpha": 0.004166666666666667,
+          "holm9_reject": true
+        },
+        "obs:50_75": {
+          "label": "S-3 obs:50_75  L-VP < L-SHIP",
+          "n": 64,
+          "W": 54,
+          "L": 10,
+          "n_ties_dropped": 0,
+          "n_missing_pairs": 0,
+          "median_rel_diff": -0.23823764450544221,
+          "median_rel_diff_ci95": [
+            -0.2746853778910782,
+            -0.16280032926410626
+          ],
+          "mean_rel_diff": -0.2357424427527945,
+          "p_one_sided_treat_lower": 9.982491118931073e-09,
+          "p_two_sided": 1.9964982237862146e-08,
+          "scipy_xcheck": {
+            "available": true,
+            "p_one_scipy": 9.982491118931073e-09,
+            "p_two_scipy": 1.9964982237862146e-08,
+            "max_abs_dev": 0.0,
+            "agree_1e_12": true
+          },
+          "critical_value": 41,
+          "reject_by_p": true,
+          "verdict": "PASS",
+          "holm9_alpha": 0.00625,
+          "holm9_reject": true
+        },
+        "obs:75_100": {
+          "label": "S-3 obs:75_100  L-VP < L-SHIP",
+          "n": 64,
+          "W": 54,
+          "L": 10,
+          "n_ties_dropped": 0,
+          "n_missing_pairs": 0,
+          "median_rel_diff": -0.22655213362135085,
+          "median_rel_diff_ci95": [
+            -0.2930397178082266,
+            -0.13849591532182848
+          ],
+          "mean_rel_diff": -0.23626074410753167,
+          "p_one_sided_treat_lower": 9.982491118931073e-09,
+          "p_two_sided": 1.9964982237862146e-08,
+          "scipy_xcheck": {
+            "available": true,
+            "p_one_scipy": 9.982491118931073e-09,
+            "p_two_scipy": 1.9964982237862146e-08,
+            "max_abs_dev": 0.0,
+            "agree_1e_12": true
+          },
+          "critical_value": 41,
+          "reject_by_p": true,
+          "verdict": "PASS",
+          "holm9_alpha": 0.008333333333333333,
+          "holm9_reject": true
+        },
+        "obs:100_150": {
+          "label": "S-3 obs:100_150  L-VP < L-SHIP",
+          "n": 64,
+          "W": 51,
+          "L": 13,
+          "n_ties_dropped": 0,
+          "n_missing_pairs": 0,
+          "median_rel_diff": -0.17461647291241383,
+          "median_rel_diff_ci95": [
+            -0.2872640475263662,
+            -0.12046359883586787
+          ],
+          "mean_rel_diff": -0.21383899621179536,
+          "p_one_sided_treat_lower": 9.404810782147007e-07,
+          "p_two_sided": 1.8809621564294015e-06,
+          "scipy_xcheck": {
+            "available": true,
+            "p_one_scipy": 9.404810782147007e-07,
+            "p_two_scipy": 1.8809621564294015e-06,
+            "max_abs_dev": 0.0,
+            "agree_1e_12": true
+          },
+          "critical_value": 41,
+          "reject_by_p": true,
+          "verdict": "PASS",
+          "holm9_alpha": 0.0125,
+          "holm9_reject": true
+        },
+        "obs:150_inf": {
+          "label": "S-3 obs:150_inf  L-VP < L-SHIP",
+          "n": 64,
+          "W": 47,
+          "L": 17,
+          "n_ties_dropped": 0,
+          "n_missing_pairs": 0,
+          "median_rel_diff": -0.14193629568695304,
+          "median_rel_diff_ci95": [
+            -0.24959207536464348,
+            -0.08600796673626748
+          ],
+          "mean_rel_diff": -0.1844807797602186,
+          "p_one_sided_treat_lower": 0.0001134411914416403,
+          "p_two_sided": 0.0002268823828832806,
+          "scipy_xcheck": {
+            "available": true,
+            "p_one_scipy": 0.0001134411914416403,
+            "p_two_scipy": 0.0002268823828832806,
+            "max_abs_dev": 0.0,
+            "agree_1e_12": true
+          },
+          "critical_value": 41,
+          "reject_by_p": true,
+          "verdict": "PASS",
+          "holm9_alpha": 0.025,
+          "holm9_reject": true
+        }
+      }
+    }
+  },
+  "DESCRIPTIVE": {
+    "D-2_wall_s_median": {
+      "L-ITER0": 12.271755695343018,
+      "L-MERGE": 28.89663016796112,
+      "L-SHIP": 29.710779309272766,
+      "L-SHIP-DUP": 30.647032737731934,
+      "L-STEP400": 44.54066252708435,
+      "L-VP": 30.84124982357025,
+      "L-VP-NW": 31.43770730495453,
+      "ORA-K-CVX": 2.0827739238739014,
+      "ZERO": 0.15906596183776855
+    },
+    "D-3_merge_removed_median": {
+      "L-ITER0": 0.0,
+      "L-MERGE": 1.0,
+      "L-SHIP": 0.0,
+      "L-SHIP-DUP": 0.0,
+      "L-STEP400": 0.0,
+      "L-VP": 0.0,
+      "L-VP-NW": 0.0,
+      "ORA-K-CVX": null,
+      "ZERO": null
+    },
+    "n_atoms_final_median": {
+      "L-ITER0": 19.0,
+      "L-MERGE": 13.0,
+      "L-SHIP": 16.0,
+      "L-SHIP-DUP": 17.5,
+      "L-STEP400": 16.0,
+      "L-VP": 16.0,
+      "L-VP-NW": 16.0,
+      "ORA-K-CVX": 22.5,
+      "ZERO": null
+    },
+    "D-1_window_to_field": {
+      "n": 64,
+      "pearson_r_relwindow_vs_relfield": 0.5647355021157647
+    },
+    "D-4_L-MERGE": {
+      "label": "D-4  L-MERGE vs L-SHIP  (DESCRIPTIVE, no hypothesis)",
+      "n": 47,
+      "W": 9,
+      "L": 38,
+      "n_ties_dropped": 17,
+      "n_missing_pairs": 0,
+      "median_rel_diff": 0.1499455766643089,
+      "median_rel_diff_ci95": [
+        0.053516668713413006,
+        0.31317193859330955
+      ],
+      "mean_rel_diff": 0.253763738393414,
+      "p_one_sided_treat_lower": 0.9999972301892015,
+      "p_two_sided": 2.4904030624384177e-05,
+      "scipy_xcheck": {
+        "available": true,
+        "p_one_scipy": 0.9999972301892015,
+        "p_two_scipy": 2.4904030624384174e-05,
+        "max_abs_dev": 3.3881317890172014e-21,
+        "agree_1e_12": true
+      },
+      "status": "DESCRIPTIVE (AMENDMENT_1 A-7: S-1 demoted, no threshold)"
+    },
+    "upper_bound_ratio_SHIP_over_CVX_median": 114.67049920433769,
+    "upper_bound_note": "PREREG §7-2: 6-factor bundle, MUST NOT be cited as a pure solver gain"
+  },
+  "VERDICT": {
+    "verdict": "REMEDY (P-1 PASS) / OPTIMIZER-EARNS",
+    "reason": "Holm-2 applied: {\"P-1\": true, \"P-2\": true}",
+    "P2_label": "OPTIMIZER-EARNS",
+    "stop_solver_axis": false,
+    "priority_trace": [
+      {
+        "step": "1 abort gates",
+        "value": []
+      },
+      {
+        "step": "2 G-6 DCC",
+        "value": true
+      },
+      {
+        "step": "3 IUT",
+        "value": "PASS"
+      },
+      {
+        "step": "4 n>=56",
+        "value": 64
+      },
+      {
+        "step": "5 intervention G-2/G-3",
+        "value": true
+      }
+    ]
+  },
+  "SCOPE": "synthetic corpus; linear GT; direction_deg=0; single checkpoint; CROWDED stratum only; init_method='learned' FIXED (not the shipping router). PREREG §7 bans apply."
+}

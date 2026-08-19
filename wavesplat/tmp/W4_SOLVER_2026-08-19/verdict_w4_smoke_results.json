@@ -1,0 +1,802 @@
+{
+ "batch": "W4_SOLVER_2026-08-19",
+ "analyzer": "analyze_w4.py",
+ "analyzer_frozen_before_rows": true,
+ "input": "/home/vexit/wavesplat/wavesplat/tmp/W4_SOLVER_2026-08-19/smoke_results.jsonl",
+ "n_rows": 42,
+ "n_error_rows": 0,
+ "n_episodes": 2,
+ "arms": {
+  "L-ITER0": 6,
+  "L-MERGE": 6,
+  "L-SHIP": 6,
+  "L-SHIP-DUP": 2,
+  "L-STEP400": 6,
+  "L-VP": 6,
+  "L-VP-NW": 6,
+  "ORA-K-CVX": 2,
+  "ZERO": 2
+ },
+ "run_w4_import_ok": true,
+ "run_w4_import_error": null,
+ "shell_convention": {
+  "L-ITER0": [
+   "obs:"
+  ],
+  "L-MERGE": [
+   "obs:"
+  ],
+  "L-SHIP": [
+   "obs:"
+  ],
+  "L-SHIP-DUP": [
+   "obs:"
+  ],
+  "L-STEP400": [
+   "obs:"
+  ],
+  "L-VP": [
+   "obs:"
+  ],
+  "L-VP-NW": [
+   "obs:"
+  ],
+  "ORA-K-CVX": [
+   "obs:"
+  ],
+  "ZERO": [
+   "obs:"
+  ]
+ },
+ "gates": {
+  "G-1": {
+   "status": "PASS",
+   "detail": "38/38 est rows route==learned AND learned_init_calls==1",
+   "halting": true
+  },
+  "G-2": {
+   "status": "PASS",
+   "detail": "L-ITER0 distinct=[320] (must be [320] = proposal polish only) | L-SHIP distinct=[820] (must be [820] = polish + 500 joint fit)",
+   "halting": true
+  },
+  "G-2c": {
+   "status": "PASS",
+   "detail": "L-VP [1220] vs L-STEP400 [1220] -- S-2b is a parameterisation-only contrast ONLY if these match",
+   "halting": false
+  },
+  "G-2b": {
+   "status": "PASS",
+   "detail": "0 est rows with adam_steps_other>0",
+   "halting": false
+  },
+  "G-3": {
+   "status": "PASS",
+   "detail": "vp_steps {'ZERO': [0], 'L-SHIP': [0], 'L-SHIP-DUP': [0], 'L-VP': [400], 'L-ITER0': [0], 'L-VP-NW': [400], 'L-STEP400': [0], 'L-MERGE': [0], 'ORA-K-CVX': [0]}",
+   "halting": true
+  },
+  "G-4": {
+   "status": "RECORDED",
+   "detail": "L-MERGE merge_removed median=3.5 merge_calls median=1.0 -- record only; D-4 is a descriptive, so this gate cannot downgrade anything (A-7)",
+   "halting": false
+  },
+  "G-5": {
+   "status": "PASS",
+   "detail": "2 pairs, max|delta|=0.000e+00, nonzero=0",
+   "halting": true
+  },
+  "G-6": {
+   "status": "PASS",
+   "detail": "42/42 rows satisfy the per-arm-kind contract",
+   "halting": false
+  },
+  "G-6b": {
+   "status": "PASS",
+   "detail": "0 episodes where arms were scored on different frame counts",
+   "halting": false
+  },
+  "G-6c": {
+   "status": "PASS",
+   "detail": "0 episodes where zero_nRMSE differs across arms",
+   "halting": false
+  },
+  "G-7": {
+   "status": "PASS",
+   "detail": "atan2(-b,a) max|d|=4.441e-15 (tol 1e-12); the sequential_update.py:1335 convention atan2(+b,a) gives 6.071e+00; varpro.ab_to_wphi max|d|=4.441e-15",
+   "halting": true
+  },
+  "G-8": {
+   "status": "PASS",
+   "detail": "1 distinct code_md5 ['92e1330aca85ccefd8782ef9f4463216'] | 1 distinct git_head ['b0ecafe5']",
+   "halting": true
+  },
+  "G-9": {
+   "status": "OUT-OF-SCOPE",
+   "detail": "progress supervision lives in watchdog.py (file state only) and by AMENDMENT_1 A-8 cannot kill the PRIMARY family",
+   "halting": false
+  }
+ },
+ "halting_gates": [
+  "G-1",
+  "G-2",
+  "G-3",
+  "G-5",
+  "G-7",
+  "G-8"
+ ],
+ "halting_failures": [],
+ "dcc_fail": false,
+ "iut": {
+  "treat": "L-SHIP",
+  "ctrl": "ZERO",
+  "n": 2,
+  "wins": 2,
+  "losses": 0,
+  "n_missing": 0,
+  "n_tie": 0,
+  "n_ctrl_zero": 0,
+  "partial_seeds": [
+   [
+    "BF4_15comp_seed32_uniform_ra_rf_ds",
+    3,
+    1
+   ],
+   [
+    "BF5_30comp_seed51_uniform_ra_rf_ds",
+    3,
+    1
+   ]
+  ],
+  "median_rel": -0.3483747041835042,
+  "mean_rel": -0.3483747041835042,
+  "median_rel_ci": [
+   null,
+   null,
+   null
+  ],
+  "episodes_missing": [],
+  "episodes_tie": [],
+  "p": 0.25,
+  "need": 2,
+  "pass": true
+ },
+ "primary": {
+  "rule": "Holm-2 (AMENDMENT_1 A-1; the fixed-threshold sentence is deleted)",
+  "alpha": 0.05,
+  "holm": {
+   "P-1": {
+    "rank": 1,
+    "alpha": 0.025,
+    "p": 0.25,
+    "reject": false
+   },
+   "P-2": {
+    "rank": 2,
+    "alpha": 0.05,
+    "p": 0.5,
+    "reject": false
+   }
+  },
+  "P-1": {
+   "treat": "L-VP",
+   "ctrl": "L-SHIP",
+   "n": 2,
+   "wins": 2,
+   "losses": 0,
+   "n_missing": 0,
+   "n_tie": 0,
+   "n_ctrl_zero": 0,
+   "partial_seeds": [],
+   "median_rel": -0.3141012274285705,
+   "mean_rel": -0.3141012274285705,
+   "median_rel_ci": [
+    null,
+    null,
+    null
+   ],
+   "episodes_missing": [],
+   "episodes_tie": [],
+   "p": 0.25
+  },
+  "P-2": {
+   "treat": "L-ITER0",
+   "ctrl": "L-SHIP",
+   "n": 2,
+   "wins": 0,
+   "losses": 2,
+   "n_missing": 0,
+   "n_tie": 0,
+   "n_ctrl_zero": 0,
+   "partial_seeds": [],
+   "median_rel": 0.19318330579133197,
+   "mean_rel": 0.19318330579133197,
+   "median_rel_ci": [
+    null,
+    null,
+    null
+   ],
+   "episodes_missing": [],
+   "episodes_tie": [],
+   "p": 0.5
+  }
+ },
+ "p2_label": "OPTIMIZER-INERT",
+ "p2_unit": "\uacb0\ud569 \uc801\ud569(joint fit) \ub2e8\uacc4",
+ "p2_clamp_hits_rows": 0,
+ "p2_clamp_rows_total": 6,
+ "p2_mde_pi": null,
+ "verdict": "UNDECIDED (n)",
+ "verdict_reason": "\uc720\ud6a8 \uc9dd n=2 < 56 (PREREG section 5 D-4). P-1 n=2, P-2 n=2.",
+ "n_effective": 2,
+ "n_min": 56,
+ "secondary": {
+  "S-2": {
+   "treat": "L-VP",
+   "ctrl": "L-ITER0",
+   "n": 2,
+   "wins": 2,
+   "losses": 0,
+   "n_missing": 0,
+   "n_tie": 0,
+   "n_ctrl_zero": 0,
+   "partial_seeds": [],
+   "median_rel": -0.4245927603660463,
+   "mean_rel": -0.4245927603660463,
+   "median_rel_ci": [
+    null,
+    null,
+    null
+   ],
+   "episodes_missing": [],
+   "episodes_tie": [],
+   "test": "one-sided",
+   "p": 0.25,
+   "region": [],
+   "thresh": null,
+   "alpha_used": 0.025,
+   "pass": false
+  },
+  "S-2b": {
+   "treat": "L-VP",
+   "ctrl": "L-STEP400",
+   "n": 2,
+   "wins": 2,
+   "losses": 0,
+   "n_missing": 0,
+   "n_tie": 0,
+   "n_ctrl_zero": 0,
+   "partial_seeds": [],
+   "median_rel": -0.2804162861833783,
+   "mean_rel": -0.2804162861833783,
+   "median_rel_ci": [
+    null,
+    null,
+    null
+   ],
+   "episodes_missing": [],
+   "episodes_tie": [],
+   "test": "one-sided",
+   "p": 0.25,
+   "region": [],
+   "thresh": null,
+   "alpha_used": 0.025,
+   "pass": false
+  },
+  "S-2c": {
+   "treat": "L-VP",
+   "ctrl": "L-VP-NW",
+   "n": 2,
+   "wins": 0,
+   "losses": 2,
+   "n_missing": 0,
+   "n_tie": 0,
+   "n_ctrl_zero": 0,
+   "partial_seeds": [],
+   "median_rel": 0.16397161101185503,
+   "mean_rel": 0.16397161101185503,
+   "median_rel_ci": [
+    null,
+    null,
+    null
+   ],
+   "episodes_missing": [],
+   "episodes_tie": [],
+   "test": "two-sided",
+   "p": 0.5,
+   "region": [],
+   "alpha_used": 0.025,
+   "pass": false
+  },
+  "attribution_allowed": false,
+  "S-3": {
+   "obs:0_5": {
+    "treat": "L-VP",
+    "ctrl": "L-SHIP",
+    "n": 2,
+    "wins": 2,
+    "losses": 0,
+    "n_missing": 0,
+    "n_tie": 0,
+    "n_ctrl_zero": 0,
+    "partial_seeds": [],
+    "median_rel": -0.31876963124750785,
+    "mean_rel": -0.31876963124750785,
+    "median_rel_ci": [
+     null,
+     null,
+     null
+    ],
+    "episodes_missing": [],
+    "episodes_tie": [],
+    "test": "one-sided",
+    "p": 0.25,
+    "region": [],
+    "thresh": null,
+    "alpha_used": 0.025,
+    "pass": false
+   },
+   "obs:5_10": {
+    "treat": "L-VP",
+    "ctrl": "L-SHIP",
+    "n": 2,
+    "wins": 2,
+    "losses": 0,
+    "n_missing": 0,
+    "n_tie": 0,
+    "n_ctrl_zero": 0,
+    "partial_seeds": [],
+    "median_rel": -0.3665337853565508,
+    "mean_rel": -0.3665337853565508,
+    "median_rel_ci": [
+     null,
+     null,
+     null
+    ],
+    "episodes_missing": [],
+    "episodes_tie": [],
+    "test": "one-sided",
+    "p": 0.25,
+    "region": [],
+    "thresh": null,
+    "alpha_used": 0.025,
+    "pass": false
+   },
+   "obs:10_20": {
+    "treat": "L-VP",
+    "ctrl": "L-SHIP",
+    "n": 2,
+    "wins": 2,
+    "losses": 0,
+    "n_missing": 0,
+    "n_tie": 0,
+    "n_ctrl_zero": 0,
+    "partial_seeds": [],
+    "median_rel": -0.37925826868786516,
+    "mean_rel": -0.37925826868786516,
+    "median_rel_ci": [
+     null,
+     null,
+     null
+    ],
+    "episodes_missing": [],
+    "episodes_tie": [],
+    "test": "one-sided",
+    "p": 0.25,
+    "region": [],
+    "thresh": null,
+    "alpha_used": 0.025,
+    "pass": false
+   },
+   "obs:20_30": {
+    "treat": "L-VP",
+    "ctrl": "L-SHIP",
+    "n": 2,
+    "wins": 2,
+    "losses": 0,
+    "n_missing": 0,
+    "n_tie": 0,
+    "n_ctrl_zero": 0,
+    "partial_seeds": [],
+    "median_rel": -0.3594124745472886,
+    "mean_rel": -0.3594124745472886,
+    "median_rel_ci": [
+     null,
+     null,
+     null
+    ],
+    "episodes_missing": [],
+    "episodes_tie": [],
+    "test": "one-sided",
+    "p": 0.25,
+    "region": [],
+    "thresh": null,
+    "alpha_used": 0.025,
+    "pass": false
+   },
+   "obs:30_50": {
+    "treat": "L-VP",
+    "ctrl": "L-SHIP",
+    "n": 2,
+    "wins": 2,
+    "losses": 0,
+    "n_missing": 0,
+    "n_tie": 0,
+    "n_ctrl_zero": 0,
+    "partial_seeds": [],
+    "median_rel": -0.3571696098330823,
+    "mean_rel": -0.3571696098330823,
+    "median_rel_ci": [
+     null,
+     null,
+     null
+    ],
+    "episodes_missing": [],
+    "episodes_tie": [],
+    "test": "one-sided",
+    "p": 0.25,
+    "region": [],
+    "thresh": null,
+    "alpha_used": 0.025,
+    "pass": false
+   },
+   "obs:50_75": {
+    "treat": "L-VP",
+    "ctrl": "L-SHIP",
+    "n": 2,
+    "wins": 2,
+    "losses": 0,
+    "n_missing": 0,
+    "n_tie": 0,
+    "n_ctrl_zero": 0,
+    "partial_seeds": [],
+    "median_rel": -0.3732900446088443,
+    "mean_rel": -0.3732900446088443,
+    "median_rel_ci": [
+     null,
+     null,
+     null
+    ],
+    "episodes_missing": [],
+    "episodes_tie": [],
+    "test": "one-sided",
+    "p": 0.25,
+    "region": [],
+    "thresh": null,
+    "alpha_used": 0.025,
+    "pass": false
+   },
+   "obs:75_100": {
+    "treat": "L-VP",
+    "ctrl": "L-SHIP",
+    "n": 2,
+    "wins": 2,
+    "losses": 0,
+    "n_missing": 0,
+    "n_tie": 0,
+    "n_ctrl_zero": 0,
+    "partial_seeds": [],
+    "median_rel": -0.33598817627820327,
+    "mean_rel": -0.33598817627820327,
+    "median_rel_ci": [
+     null,
+     null,
+     null
+    ],
+    "episodes_missing": [],
+    "episodes_tie": [],
+    "test": "one-sided",
+    "p": 0.25,
+    "region": [],
+    "thresh": null,
+    "alpha_used": 0.025,
+    "pass": false
+   },
+   "obs:100_150": {
+    "treat": "L-VP",
+    "ctrl": "L-SHIP",
+    "n": 2,
+    "wins": 2,
+    "losses": 0,
+    "n_missing": 0,
+    "n_tie": 0,
+    "n_ctrl_zero": 0,
+    "partial_seeds": [],
+    "median_rel": -0.29246048625053495,
+    "mean_rel": -0.29246048625053495,
+    "median_rel_ci": [
+     null,
+     null,
+     null
+    ],
+    "episodes_missing": [],
+    "episodes_tie": [],
+    "test": "one-sided",
+    "p": 0.25,
+    "region": [],
+    "thresh": null,
+    "alpha_used": 0.025,
+    "pass": false
+   },
+   "obs:150_inf": {
+    "treat": "L-VP",
+    "ctrl": "L-SHIP",
+    "n": 2,
+    "wins": 2,
+    "losses": 0,
+    "n_missing": 0,
+    "n_tie": 0,
+    "n_ctrl_zero": 0,
+    "partial_seeds": [],
+    "median_rel": -0.2787825099681323,
+    "mean_rel": -0.2787825099681323,
+    "median_rel_ci": [
+     null,
+     null,
+     null
+    ],
+    "episodes_missing": [],
+    "episodes_tie": [],
+    "test": "one-sided",
+    "p": 0.25,
+    "region": [],
+    "thresh": null,
+    "alpha_used": 0.025,
+    "pass": false
+   }
+  }
+ },
+ "descriptives": {
+  "D-1": {
+   "ZERO": {
+    "window_median": 0.3892303556203842,
+    "field_median": 0.24619483686983584,
+    "ratio": 0.63251705144485
+   },
+   "L-SHIP": {
+    "window_median": 0.04283386924605394,
+    "field_median": 0.16935507168527691,
+    "ratio": 3.9537654353016154
+   },
+   "L-SHIP-DUP": {
+    "window_median": 0.02929022919888969,
+    "field_median": 0.15033525606462111,
+    "ratio": 5.132607704903855
+   },
+   "L-VP": {
+    "window_median": 0.03054756949009831,
+    "field_median": 0.12195206257359434,
+    "ratio": 3.992201821919871
+   },
+   "L-ITER0": {
+    "window_median": 0.04993364705002429,
+    "field_median": 0.18999686961372692,
+    "ratio": 3.8049868342960242
+   },
+   "L-VP-NW": {
+    "window_median": 0.02939517677395362,
+    "field_median": 0.114517786167562,
+    "ratio": 3.895801921798053
+   },
+   "L-STEP400": {
+    "window_median": 0.040700059580648415,
+    "field_median": 0.15801240934524685,
+    "ratio": 3.8823630965979405
+   },
+   "L-MERGE": {
+    "window_median": 0.040857300475715036,
+    "field_median": 0.18682444097163778,
+    "ratio": 4.572608537430989
+   },
+   "ORA-K-CVX": {
+    "window_median": 0.005524153314208019,
+    "field_median": 0.0016159436465030897,
+    "ratio": 0.29252331616990296
+   }
+  },
+  "D-2": {
+   "ZERO": {
+    "n": 2,
+    "median": 0.14051318168640137,
+    "iqr": [
+     0.13322460651397705,
+     0.14780175685882568
+    ]
+   },
+   "L-SHIP": {
+    "n": 6,
+    "median": 19.696369647979736,
+    "iqr": [
+     19.097363770008087,
+     22.304130136966705
+    ]
+   },
+   "L-SHIP-DUP": {
+    "n": 2,
+    "median": 18.567315340042114,
+    "iqr": [
+     17.88034212589264,
+     19.25428855419159
+    ]
+   },
+   "L-VP": {
+    "n": 6,
+    "median": 20.526085019111633,
+    "iqr": [
+     19.692476332187653,
+     23.24702078104019
+    ]
+   },
+   "L-ITER0": {
+    "n": 6,
+    "median": 7.787873983383179,
+    "iqr": [
+     7.775989592075348,
+     7.999578297138214
+    ]
+   },
+   "L-VP-NW": {
+    "n": 6,
+    "median": 21.174203991889954,
+    "iqr": [
+     18.797551214694977,
+     23.35718321800232
+    ]
+   },
+   "L-STEP400": {
+    "n": 6,
+    "median": 31.52379047870636,
+    "iqr": [
+     28.109169840812683,
+     33.20131295919418
+    ]
+   },
+   "L-MERGE": {
+    "n": 6,
+    "median": 20.214024782180786,
+    "iqr": [
+     17.702107071876526,
+     23.29515928030014
+    ]
+   },
+   "ORA-K-CVX": {
+    "n": 2,
+    "median": 1.1748052835464478,
+    "iqr": [
+     1.1216499209403992,
+     1.2279606461524963
+    ]
+   }
+  },
+  "D-3": {
+   "n": 6,
+   "merge_removed_median": 3.5,
+   "noop_rows": 2,
+   "n_atoms_final_median": 15.5,
+   "ship_n_atoms_final_median": 18.5
+  },
+  "D-4": {
+   "treat": "L-MERGE",
+   "ctrl": "L-SHIP",
+   "n": 2,
+   "wins": 0,
+   "losses": 2,
+   "n_missing": 0,
+   "n_tie": 0,
+   "n_ctrl_zero": 0,
+   "partial_seeds": [],
+   "median_rel": 0.09898638098735499,
+   "mean_rel": 0.09898638098735499,
+   "median_rel_ci": [
+    null,
+    null,
+    null
+   ],
+   "episodes_missing": [],
+   "episodes_tie": []
+  },
+  "D-CVX": {
+   "n": 2,
+   "wins": 2,
+   "median_ratio": 106.6123347503729,
+   "median_rel": -0.9894473619135324
+  },
+  "D-free": {
+   "decorr_mean": {
+    "L-SHIP": 0.397900124894493,
+    "L-SHIP-DUP": 0.3373721849921517,
+    "L-VP": 0.23891361303137137,
+    "L-ITER0": 0.48974906525439355,
+    "L-VP-NW": 0.21098505895516978,
+    "L-STEP400": 0.35903081640570444,
+    "L-MERGE": 0.4527671881378701
+   },
+   "shrink_mean": {
+    "L-SHIP": 0.06929430043333071,
+    "L-SHIP-DUP": 0.056033310875421585,
+    "L-VP": 0.008942367035158825,
+    "L-ITER0": 0.09387992564307718,
+    "L-VP-NW": 0.006484507127017619,
+    "L-STEP400": 0.06039317919405465,
+    "L-MERGE": 0.07983901908064711
+   },
+   "init_nrmse": {
+    "L-SHIP": 0.1587115228176117,
+    "L-SHIP-DUP": 0.1410444639623165,
+    "L-VP": 0.12159434705972672,
+    "L-ITER0": 0.1775592640042305,
+    "L-VP-NW": 0.11996196582913399,
+    "L-STEP400": 0.1493083400030931,
+    "L-MERGE": 0.1716560274362564
+   },
+   "init_time_s": {
+    "L-SHIP": 17.145530104637146,
+    "L-SHIP-DUP": 15.985101461410522,
+    "L-VP": 17.06982719898224,
+    "L-ITER0": 4.873495101928711,
+    "L-VP-NW": 17.76400852203369,
+    "L-STEP400": 28.96601116657257,
+    "L-MERGE": 17.642452120780945
+   },
+   "obs_resid_rms_mean": {
+    "L-SHIP": 0.041626686012993255,
+    "L-SHIP-DUP": 0.030130016347781445,
+    "L-VP": 0.030042690628518665,
+    "L-ITER0": 0.0475694984352837,
+    "L-VP-NW": 0.029921890283003447,
+    "L-STEP400": 0.03866025813040323,
+    "L-MERGE": 0.0417711448079596
+   },
+   "elapsed_ms_mean": {
+    "L-SHIP": 6.664941708246867,
+    "L-SHIP-DUP": 6.668822467327118,
+    "L-VP": 6.679345667362213,
+    "L-ITER0": 6.701912979284922,
+    "L-VP-NW": 6.668728838364283,
+    "L-STEP400": 6.63418173789978,
+    "L-MERGE": 6.671026845773062
+   },
+   "n_atoms_final": {
+    "L-SHIP": 18.5,
+    "L-SHIP-DUP": 20.5,
+    "L-VP": 18.5,
+    "L-ITER0": 19.5,
+    "L-VP-NW": 18.5,
+    "L-STEP400": 18.5,
+    "L-MERGE": 15.5,
+    "ORA-K-CVX": 22.5
+   },
+   "window_n_obs": {
+    "ZERO": 7954.0,
+    "L-SHIP": 7954.0,
+    "L-SHIP-DUP": 7954.0,
+    "L-VP": 7954.0,
+    "L-ITER0": 7954.0,
+    "L-VP-NW": 7954.0,
+    "L-STEP400": 7954.0,
+    "L-MERGE": 7954.0,
+    "ORA-K-CVX": 7954.0
+   },
+   "vp_diag": {
+    "win_rms_before": 0.042266715678032245,
+    "win_rms_after": 0.030547570870820502,
+    "k_shift_median": 0.024206638266990745
+   }
+  }
+ },
+ "prohibitions": [
+  "1. VARPRO \ub97c '\ubc1c\uba85/\uad6c\ud604\ud588\ub2e4' \ub97c novelty \ub85c \uc778\uc6a9 \uae08\uc9c0 -- Golub-Pereyra 1973, \uadf8\ub9ac\uace0 arXiv:2511.01234(2025-11) \uac00 '\ubcc0\uc218 \uc18c\uac70\uac00 \uc548\uc7a5\uc810\uc744 \ucd95\uc18c \uc9c0\ud615\uc758 \uad6d\uc18c \ucd5c\ub300\ub85c \ubc14\uafbc\ub2e4' \ub97c \uc815\ub9ac\ub85c \uc774\ubbf8 \uc99d\uba85\ud588\ub2e4. \uc0b4 \uc218 \uc788\ub294 \uac83\uc740 \uc601\uc5ed \uc8fc\uc7a5 + \uce21\uc815\ubfd0.",
+  "2. ORA-K-CVX \ub300\ube44 \ube44\ub97c \uc21c\uc218 \uc194\ubc84 \uc774\ub4dd\uc73c\ub85c \uc778\uc6a9 \uae08\uc9c0 -- 6\uc694\uc778 \ubb36\uc74c\uc774\ub2e4.",
+  "3. '\ubcbd\uc744 \ub2eb\uc558\ub2e4' \uae08\uc9c0 -- W2 \uac00 \ucc3d \uc794\ucc28\ub97c \uc7a1\uc74c \ubc14\ub2e5\uae4c\uc9c0 \ub0b4\ub824\ub3c4 \ud544\ub4dc\uac00 x37 \uc784\uc744 \uc774\ubbf8 \uc7c0\ub2e4. \ud63c\uc7a1\uc740 \ucd08\ud574\uc0c1 \uc601\uc5ed(\uc131\ubd84 \ubd84\ub9ac 1.29 Rayleigh vs 250 m \uc678\uc0bd \uc694\uad6c 0.07).",
+  "4. \uc804\uc5ed nRMSE \ud5e4\ub4dc\ub77c\uc778 \uae08\uc9c0 -- \ud310\uc815\uc740 \ud63c\uc7a1 \uce35 \ud55c\uc815.",
+  "5. \ud76c\uc18c \uc8fc\uc7a5 \uae08\uc9c0 -- \ud45c\ud604 \uc544\ud2f0\ud329\ud2b8 \ud655\uc815(HOSGATE).",
+  "6. \ubc30\ud3ec \uad8c\uace0 \uae08\uc9c0 -- \uc774 \ubc30\uce58\ub294 \ud655\uc99d\uc774\uc9c0 \ubc30\ud3ec \uacb0\uc815\uc774 \uc544\ub2c8\ub2e4.",
+  "7. 'k \ud45c\ub958\uac00 \uc6d0\uc778' \uae08\uc9c0 -- \ud45c\ub958-nRMSE \uc0c1\uad00 -0.05, \uadf8\ub9ac\uace0 k_drift_valid \uac00 SHIP 0/144 = \ubc30\ud3ec \ud314\uc758 \ud45c\ub958\ub294 \ubbf8\uce21\uc815\uc774\ub2e4(A-9).",
+  "8. \ubc94\uc704 \ubb38\uad6c \uc758\ubb34: \ud569\uc131 \ucf54\ud37c\uc2a4 - \uc120\ud615 GT - direction_deg=0 - \ub2e8\uc77c \uccb4\ud06c\ud3ec\uc778\ud2b8 - \ud63c\uc7a1 \uce35 - init_method='learned' \uace0\uc815(\ubc30\ud3ec \ub77c\uc6b0\ud130\uac00 \uc544\ub2d8).",
+  "A-4. L-VP \uc758 \uc774\ub4dd\uc744 '\ub9e4\uac1c\ud654 \ub355\ubd84' \uc774\ub77c\uace0 \ub2e8\uc815 \uae08\uc9c0 -- L-VP \ub294 >=4\uc694\uc778 \ubb36\uc74c\uc774\uace0, S-2 - S-2b - S-2c \uac00 \ud568\uaed8 \ud1b5\uacfc\ud560 \ub54c\ub9cc \uadf8 \uadc0\uc18d\uc774 \ud5c8\uc6a9\ub41c\ub2e4.",
+  "A-9. '\uaca9\ucc28\ub294 \uacf1\uc774\ub2e4' \ub294 \ucca0\ud68c\ub410\ub2e4. \ud5c8\uc6a9 \ubb38\uc7a5 = '\ud55c \ud45c\ubcf8 \uc548\uc5d0\uc11c \uaca9\ucc28\ub294 k \ub2e4. (a,b) \ub294 \ub110\uc774\ub2e4.'",
+  "A-7. L-MERGE(D-4)\ub294 \uae30\uc220\ud1b5\uacc4\ub2e4. \ubb38\ud131\ub3c4 \uc8fc\uc7a5\ub3c4 \uc5c6\ub2e4. 2026-07-26 \uc120\ud589 = \ud63c\uc7a1 20\uc140 0\uc2b9.",
+  "A2-1. P-2 \ub97c '\ud558\uac15\uc744 \uc81c\uac70\ud55c\ub2e4' \ub85c \uc4f0\uc9c0 \ub9c8\ub77c. \uc81c\uac70\ub418\ub294 \uac83\uc740 500/820 = 61% \uc758 \uacb0\ud569 \uc801\ud569 \ub2e8\uacc4\uc774\uace0, \uc81c\uc548 \uc790\uc2e0\uc758 320\uc2a4\ud15d \ud3f4\ub9ac\uc2f1\uc740 \ub0a8\ub294\ub2e4.",
+  "PREREG 0.1. \uc0ac\uc804\ub178\ucd9c \uc2e0\uace0: W2 \uac00 \uc0ac\uc804\ub4f1\ub85d \uc5c6\uc774 VARPRO \ub97c \uc774\ubbf8 \uce21\uc815\ud588\ub2e4(\ud63c\uc7a1 -47.3%, 14/16). \ubcf8 \ubc30\uce58\ub294 \ud655\uc778\uc774\uc9c0 \ubc1c\uacac\uc774 \uc544\ub2c8\uba70, p \ub294 \ubb34\uc870\uac74\ubd80 I\uc885 \uc624\ub958\uc728\uc774 \uc544\ub2c8\ub2e4.",
+  "PREREG 8. 'preregistered' \ub300\uc2e0 'self-attested freeze + git-anchored' \ub77c\uace0 \uc4f8 \uac83."
+ ],
+ "scope": "synthetic corpus; linear GT; direction_deg=0; single checkpoint; crowded stratum only (ncomp 15/30); init_method=learned pinned (NOT the shipped router); estimator-seed median-of-3"
+}

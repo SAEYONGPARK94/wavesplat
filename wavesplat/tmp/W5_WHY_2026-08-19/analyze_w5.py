@@ -75,8 +75,9 @@ def main():
         print('  %-13s n=%-3d median=%.6f   adam_p1=%-5s vp=%-4s'
               % (a, len(vals), st.median(vals), A5.expected_adam_p1(a), A5.expected_vp_steps(a)))
 
-    w, n, rel = pair('L-SHIP', 'ZERO')
-    iut = w >= THR1
+    w_iut, n_iut, rel_iut = pair('L-SHIP', 'ZERO')
+    w, n, rel = w_iut, n_iut, rel_iut
+    iut = w_iut >= THR1
     print('\n-- IUT (against us): L-SHIP < ZERO ' + '-' * 58)
     print('  %d/%d  rel median %+.2f%%  p=%.3e  -> %s' % (w, n, 100 * rel, p_one(w, n),
                                                           'PASS' if iut else 'FAIL'))
@@ -164,7 +165,7 @@ def main():
               'A-6: AUDIT_PRO/구현 감사가 세션 한도로 빠졌다 -- 감사 범위가 좁다'):
         print('  - ' + s)
     json.dump(dict(verdict=verdict, label=label, P1=[w1, n1, rel1, pA], P2=[w2, n2, rel2, pB],
-                   iut=[w, n]), open(os.path.join(HERE, 'verdict_w5.json'), 'w'),
+                   iut=[w_iut, n_iut]), open(os.path.join(HERE, 'verdict_w5.json'), 'w'),
               indent=1, default=str)
     print('\n-> verdict_w5.json')
 

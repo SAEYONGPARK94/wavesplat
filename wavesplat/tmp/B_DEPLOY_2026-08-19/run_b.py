@@ -68,7 +68,9 @@ def episodes():
             for p in sorted(glob.glob(os.path.join(d, '*.h5'))):
                 b = os.path.basename(p)
                 m = re.match(r'episode_(BF\d)_(\d+)comp_seed(\d+)_(.+)\.h5', b)
-                out.append(dict(path=p, key=b[len('episode_'):-3], stratum=stratum,
+                # W4.run_zero reads ep['rel'] (path relative to ROOT); ours must match
+                # its contract exactly, since the arm is imported, not reimplemented.
+                out.append(dict(path=p, rel=p, key=b[len('episode_'):-3], stratum=stratum,
                                 bf=m.group(1), ncomp=int(m.group(2)),
                                 ep_seed=int(m.group(3)), corpus=d))
     return out
@@ -111,6 +113,8 @@ def run_one(job):
             undo_u = AC.install_updater_capture()
             if spec['vp']:
                 varpro.install(steps=spec['vp'], weighting='confidence')
+            if hasattr(varpro, 'reset_stats'):
+                varpro.reset_stats()          # counters are per-row, not per-worker
             try:
                 body = W4.run_est_with_config(ep, cfg, counters) \
                     if hasattr(W4, 'run_est_with_config') else _run_est(ep, cfg, counters)
@@ -136,13 +140,25 @@ def _run_est(ep, cfg, counters):
     from wavesplat.run import run_estimation
     s = run_estimation(ep['path'], config=cfg, verbose=False)
     ec = s.get('effective_config') or {}
-    route = (s.get('resolved_route') or ec.get('resolved_route')
-             or ec.get('init_method') or s.get('init_method'))
+    route = (s.get('auto_selected') or ec.get('init_method') or s.get('init_method'))
+    # Shells live per-FRAME (run.py:366) and are aggregated by the caller; reading only the
+    # summary silently yields None.  This is the third time today the repository lost a
+    # measurement to a key list that did not carry it (RMSE_near in run.py, again in
+    # run_b1_full_comparison.py, and now here), so aggregate them explicitly.
+    fr = s.get('frame_results') or []
+    def _mean_shell(key):
+        acc = {}
+        for f in fr:
+            for k, v in (f.get(key) or {}).items():
+                if v is not None and v == v:
+                    acc.setdefault('obs:' + k, []).append(v)
+        return {k: float(np.mean(v)) for k, v in acc.items()} or None
     c = dict(counters) if counters is not None else {}
     return dict(avg_nRMSE=s.get('avg_nRMSE'), zero_nRMSE=s.get('zero_nRMSE'),
                 n_match=s.get('n_frames_scored'), n_all=s.get('n_frames'),
-                shell_rmse=s.get('shell_rmse'), zero_shell=s.get('zero_shell'),
-                shell_frac=s.get('shell_frac'),
+                shell_rmse=_mean_shell('shell_rmse'),
+                zero_shell=_mean_shell('zero_shell'),
+                shell_frac=_mean_shell('shell_frac'),
                 avg_RMSE_near=s.get('avg_RMSE_near'),
                 route=route, effective_config=ec,
                 init_time_s=s.get('init_seconds', s.get('init_time_s')),
@@ -150,8 +166,9 @@ def _run_est(ep, cfg, counters):
                 n_atoms_final=s.get('final_n'),
                 adam_steps_phase1=c.get('adam_steps_phase1'),
                 adam_steps_grow=c.get('adam_steps_grow'),
-                vp_steps=(varpro.stats().get('steps_executed')
-                          if hasattr(varpro, 'stats') else None))
+                auto_real_gate=s.get('auto_real_gate'),
+                vp_steps=varpro.stats().get('vp_steps'),
+                vp_entries=varpro.stats().get('vp_entries'))
 
 
 def build_jobs(arms=None, keys=None):

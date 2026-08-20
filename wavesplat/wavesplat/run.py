@@ -55,6 +55,21 @@ DEFAULT_CONFIG = {
     #   reaches 2x.  The routing decision stands; only the magnitude was inflated.
     #   Do not cite "2x".  (Same correction applied at sequential_update.py:459.)
     'real_estimator': 'bank_mmse',
+    # Rolling re-fit period for the bank_mmse route, in seconds.  None (the shipping
+    # default, unchanged here) fits ONCE and freezes; a float re-fits whenever that much
+    # episode time has passed (sequential_update.py:887).
+    #   Exposed 2026-08-20 (D batch).  The implementation has existed since the
+    # 2026-07-29 port but appeared in NO config surface -- not configs/, not run.py, not
+    # the CLI -- so the only reachable behaviour was the frozen one.  That made it the
+    # second instance of the learned_merge_frac pattern: a measured winner that no
+    # deployed path could reach.  On the 9 frozen real windows of
+    # tmp/bankmmse_port_2026-07-29/rolling_refit.json the frozen arm means 0.9452 and
+    # refit@2s means 0.7932 (8/9 windows, 3/3 records lower), and the pre-run adoption
+    # protocol (PROTOCOL_ROLLING_REFIT.md) selects R*=2s alone.
+    #   That evidence is DESCRIPTIVE, not confirmatory: the real corpus has 5
+    # independent records, so the exact one-sided binomial floor is 0.03125 and needs a
+    # clean sweep.  Hence exposure only -- the default is NOT changed.
+    'bank_refit_every_s': None,
     # Members of the real-domain bank-MMSE pointwise-median field ensemble (seeds
     # {s, s+1000, s+2000}); 1 disables it.
     'real_bank_ensemble_k': 3,
@@ -581,6 +596,9 @@ def main():
                         help='Path to neural corrector checkpoint (.pt)')
     parser.add_argument('--output', type=str, default=None,
                         help='Output JSON path for results')
+    parser.add_argument('--bank_refit_every_s', type=float, default=None,
+                        help='rolling re-fit period (s) for the bank_mmse real-domain '
+                             'route; omit to keep the shipping frozen-fit behaviour')
     parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
 
@@ -595,6 +613,10 @@ def main():
         config['lr'] = args.lr
     if args.lambda_l1 is not None:
         config['lambda_l1'] = args.lambda_l1
+    # Without this merge the flag would parse and then be silently dropped -- a dead CLI
+    # flag, the same defect class as the unexposed key it is here to fix.
+    if args.bank_refit_every_s is not None:
+        config['bank_refit_every_s'] = args.bank_refit_every_s
     if args.lambda_smooth is not None:
         config['lambda_smooth'] = args.lambda_smooth
     if args.tracking_steps is not None:

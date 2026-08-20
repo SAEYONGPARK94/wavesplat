@@ -42,6 +42,16 @@ optimizer:
                                #  'bank_mmse' = ported research estimator, observation-only
                                #  parameters, ~2x better on the frozen real windows;
                                #  'v2_konly' = pre-port single-run fallback (escape hatch).
+
+  # Rolling re-fit period (s) for the bank_mmse route.  null = the shipping behaviour:
+  # fit once, then freeze.  Exposed 2026-08-20 (D batch) -- the implementation has
+  # existed since the 2026-07-29 port but was reachable from NO config surface, so the
+  # measured winner had no deployed path (second instance of the learned_merge_frac
+  # pattern).  On the 9 frozen real windows of rolling_refit.json: frozen 0.9452 vs
+  # refit@2s 0.7932, 8/9 windows and 3/3 records lower, and the pre-run adoption
+  # protocol selects R*=2s alone.  DESCRIPTIVE only -- 5 independent real records give an
+  # exact one-sided binomial floor of 0.03125 -- so the default is left UNCHANGED.
+  bank_refit_every_s: null
   real_bank_ensemble_k: 3     # members of the bank-MMSE pointwise-median field ensemble
                                #  (fit seeds {s, s+1000, s+2000}); 1 = off.
   max_steepness: 0.15         # wave steepness clamp ε = |k|·|w|

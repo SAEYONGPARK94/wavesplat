@@ -82,7 +82,7 @@ def run_zero(ep):
 
 def run_est(ep, cfg):
     from wavesplat.run import run_estimation
-    s = run_estimation(episode_path=ep['path'], config=cfg)
+    s = run_estimation(h5_path=ep['path'], config=cfg)
     return dict(avg_nRMSE=s.get('avg_nRMSE'),
                 avg_RMSE_near=s.get('avg_RMSE_near'),
                 n_frames=s.get('n_frames'),

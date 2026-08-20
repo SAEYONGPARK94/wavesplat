@@ -8,6 +8,7 @@ import os
 import sys
 import time
 
+
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -49,7 +50,11 @@ def one(U, direction, seed, nc, tag):
             raydrop_model='uniform', duration=DURATION, dt=DT, depth=DEPTH,
             output_dir=OUT, verbose=False, cfg=cfg, direction_deg=direction,
             direction_spread_deg=30.0, peak_locked=False, dirs_per_freq=1,
-            random_amplitudes=True, random_frequencies=True, decorrelate_stream=True)
+            random_amplitudes=True, random_frequencies=True, decorrelate_stream=True,
+            # The 245 s/ep baseline (S15 gen.log) is the GPU path; omitting this runs the
+            # CPU raycaster and costs ~10x.  MovingSensor patches BOTH raycast entry
+            # points, so the pose shift applies either way.
+            use_gpu_raycast=True)
     wall = time.time() - t0
     ok, msg = MS.check(U, DURATION, DT)
     s = MS.stats()
@@ -71,6 +76,7 @@ def main():
                       (U_DESIGN, 0.0, 'MOVING following'),
                       (U_DESIGN, 180.0, 'MOVING head')):
         res.append(one(U, d, 1598, 15, tag))
+        sys.stdout.flush()
     walls = [r[0] for r in res if r[1]]
     if walls:
         print('\n  cost: median %.1f s/ep  ->  64 episodes ~ %.1f h'

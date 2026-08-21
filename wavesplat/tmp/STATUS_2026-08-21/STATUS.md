@@ -11,7 +11,8 @@
 |---|---|
 | **미추적 연구기록 커밋** | `033e742` — tmp/ 34배치 **502파일 86 MB**(PREREG·RESULT·FROZEN_md5·results.jsonl·러너). 08-18 §4C 부채 해소 |
 | ⛔**원격 백업이 LFS 로 막혔다** | 브랜치가 요구하는 LFS 객체 **700개 = 30.41 GB** ⟹ GitHub 이 **GH008 (pre-receive hook declined)** 로 거부 |
-| ✅**우회** | `*.h5` 를 벗겨낸 미러 브랜치 **`backup/records-2026-08-21-nodata`** 로 푸시(LFS 객체 요구 **0개**) |
+| ✅**우회** | `*.h5`·`*.gif`·`venv_fowd/` 를 벗겨낸 미러 브랜치 **`backup/records-clean-2026-08-21`** 로 푸시(LFS 객체 요구 **0개**, 8커밋씩 배치 — 한 번에 밀면 SSH 가 17 MB 에서 끊긴다) |
+| ⛔**재생산 가능한 것이 저장소에 있었다** | `tmp/fowd_2026-08-02/venv_fowd/` **465 MB(6,312파일)** = pip 로 재생성 · `results/gifs/` **293 MB(92파일)** = 스크립트로 재생성 ⟹ `bed9c75` 로 **추적 해제**(디스크 유지) + `.gitignore` 등재. 미러 757 → **262 MB** |
 | **테스트** | **211 passed** (`bank_refit_every_s` 회귀 4개 포함) |
 
 ⚠**미러 브랜치는 원본과 커밋 해시가 다르다**(filter-branch 재작성). 원본 `learn-boundwave-retrain`

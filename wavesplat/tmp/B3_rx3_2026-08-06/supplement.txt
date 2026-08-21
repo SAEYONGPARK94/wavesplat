@@ -1,0 +1,52 @@
+=== A. exact boundary check on the CO-PRIMARY verdict ===
+  crowded unfiltered n=4: delta_med=-0.039096  |d|/MDE=1.1883  k=4/4  per-ep=[-0.0329, -0.0497, -0.0228, -0.0453]
+  crowded screened n=3: delta_med=-0.032937  |d|/MDE=1.0011  k=3/3  per-ep=[-0.0329, -0.0228, -0.0453]
+
+=== B. does Phase 2 make the field WORSE than the Phase-1 init? (median over runs) ===
+  block      cell               init    final  final-init
+  crowded    AUTO             0.2022   0.2254     +0.0354
+  crowded    AUTO-NOTRACK     0.2022   0.1907     +0.0015
+  crowded    AUTO-K4          0.2022   0.2011     +0.0127
+  mid        AUTO             0.0348   0.0426     +0.0043
+  mid        AUTO-NOTRACK     0.0348   0.0346     -0.0002
+  mid        AUTO-K4          0.0348   0.0403     +0.0018
+  sparse     AUTO             0.0073   0.0092     +0.0001
+  sparse     AUTO-NOTRACK     0.0073   0.0067     -0.0003
+  sparse     AUTO-K4          0.0073   0.0064     -0.0008
+
+=== C. recovery rate vs the tracker-freeze floor (PREREG: only where |denominator| >= MDE) ===
+  crowded n=4: denominator(NOTRACK)=-0.0391  MDE=0.0329  computable=True
+      AUTO-K4    -0.0282 ->  72.2% of the freeze floor
+      AUTO-K6    -0.0275 ->  70.2% of the freeze floor
+      AUTO-K7    -0.0222 ->  56.7% of the freeze floor
+  crowded n=3 screened: denominator(NOTRACK)=-0.0329  MDE=0.0329  computable=True
+      AUTO-K4    -0.0288 ->  87.3% of the freeze floor
+      AUTO-K6    -0.0257 ->  78.1% of the freeze floor
+      AUTO-K7    -0.0169 ->  51.3% of the freeze floor
+  ALL-12 screened n=11: denominator(NOTRACK)=-0.0045  MDE=0.0134  computable=False
+
+=== D. EXPLORATORY (NOT pre-registered): tracker effect split by ROUTER ARM ===
+  route=learned    n_runs= 17  median delta=-0.0165  k=17/17  strata={'sparse': 0, 'mid': 6, 'crowded': 11}
+  route=v2_konly   n_runs= 19  median delta=-0.0016  k=14/19  strata={'sparse': 15, 'mid': 3, 'crowded': 1}
+  (route is a per-(episode,seed) outcome of the shipped router, NOT a randomised factor:
+   it is confounded with crowding by construction. Descriptive only.)
+
+=== E. AUTO router arm counts per stratum ===
+  sparse   {'v2_konly': 15}  (ensemble_k=3 only on the v2_konly arm)
+  mid      {'learned': 6, 'v2_konly': 3}  (ensemble_k=3 only on the v2_konly arm)
+  crowded  {'learned': 11, 'v2_konly': 1}  (ensemble_k=3 only on the v2_konly arm)
+
+=== F. wall clock (RECORDED, NOT CITABLE for performance) ===
+  AUTO           wall median   77.6s | per-frame update median  19.84 ms
+  AUTO-NOTRACK   wall median   71.1s | per-frame update median  19.54 ms
+  AUTO-K6        wall median   67.0s | per-frame update median   2.16 ms
+  AUTO-K7        wall median   69.5s | per-frame update median  19.50 ms
+  AUTO-K4        wall median   70.7s | per-frame update median  15.13 ms
+
+=== G. AUTO level vs flat-sea null, per stratum (medOfMed) ===
+  sparse   AUTO           nRMSE=0.0092 null=0.2500 m=0.0014 PASS
+  sparse   AUTO-NOTRACK   nRMSE=0.0067 null=0.2500 m=0.0007 PASS
+  mid      AUTO           nRMSE=0.0426 null=0.2501 m=0.0292 PASS
+  mid      AUTO-NOTRACK   nRMSE=0.0346 null=0.2501 m=0.0192 PASS
+  crowded  AUTO           nRMSE=0.2298 null=0.2633 m=0.7671 PASS
+  crowded  AUTO-NOTRACK   nRMSE=0.1907 null=0.2633 m=0.5250 PASS

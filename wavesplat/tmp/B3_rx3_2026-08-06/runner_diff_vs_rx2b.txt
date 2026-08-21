@@ -1,0 +1,96 @@
+--- tmp/rx2_init_2026-08-05/run_rx2b.py	2026-08-06 00:29:13.969510669 +0900
++++ tmp/B3_rx3_2026-08-06/run_b3.py	2026-08-06 14:00:51.784381617 +0900
+@@ -1,4 +1,23 @@
+-"""Rx-2 -- initialisation-gap decomposition driver (PRO arm).
++"""B3 / Rx-3 -- tracker ON/OFF at the ONLY shipping arm that beats the flat-sea null.
++
++VERBATIM COPY of tmp/rx2_init_2026-08-05/run_rx2b.py (md5 cd44d093f161bd04673e131618324e79)
++with exactly four edits, all listed here so the copy can be audited against the original:
++  (E1) this docstring + OUT default -> tmp/B3_rx3_2026-08-06/
++  (E2) six AUTO-* cells appended to CELLS (nothing existing is touched)
++  (E3) RX1_* env keys added to the per-cell reset list.  `_rx1_gate` treats '0' and unset
++       identically ("Unset or '0' == shipped behaviour, bit-for-bit", sequential_update.py:87),
++       so this cannot change any pre-existing cell's numbers.
++  (E4) four extra router fields recorded per run (auto_selected / auto_n_selected /
++       ensemble_k / final_n).  Recording only; no computation is changed.
++The AUTO cell run on seeds 1518/1519/1520 must therefore be BIT-IDENTICAL to
++tmp/rx2_init_2026-08-05/results.jsonl and tmp/B2_g1p1_ext_2026-08-06/results.jsonl.
++That reproduction control is mandatory before any B3 number is read (PREREG sec.5).
++
++Pre-registered in tmp/B3_rx3_2026-08-06/PREREG.md (frozen BEFORE any result was seen).
++Cell definitions are frozen; do not edit them after the first run.
++
++--- original header follows ---
++Rx-2 -- initialisation-gap decomposition driver (PRO arm).
+ 
+ Pre-registered in tmp/rx2_init_2026-08-05/PREREG.md + PREREG_ADDENDUM_PRO.md.
+ Cell definitions are frozen by the addendum; do not edit them after the first run.
+@@ -24,7 +43,7 @@
+ HERE = os.path.dirname(os.path.abspath(__file__))
+ REPO = os.path.abspath(os.path.join(HERE, '..', '..'))
+ DATA = os.path.join(REPO, 'data_finemesh_2026-07-23')
+-OUT = os.path.join(HERE, 'results.jsonl')
++OUT = os.path.join(HERE, 'results.jsonl')   # (E1) HERE is now tmp/B3_rx3_2026-08-06/
+ 
+ # Seed ledger [1518-1818]; this experiment consumes 1518/1519/1520 (median-of-3).
+ # The bit-identity batch alone uses the stored {42,123,456} so it can be compared to
+@@ -108,9 +127,44 @@
+     'AUTO': dict(cfg=dict(init_method='auto', analytic_ensemble_k=3)),
+     'X-BASE5': dict(),
+ }
++
++# ===================== (E2) B3 / Rx-3 CELLS -- appended, nothing above is touched =========
++# All six share the SHIPPED operating point `init_method='auto', analytic_ensemble_k=3`
++# (== run.py DEFAULT_CONFIG) and differ from cell AUTO by EXACTLY ONE knob each.
++# `init_method` is explicit in every one of them (W9 rule).
++#
++# Tracker-off mechanism, inherited verbatim from tmp/rx1_tracker_2026-08-05/run_rx1.py:97-98
++# ("budget 0: Adam lr 0 -> tracker is a no-op").  With tracking_lr=0 every Adam param group
++# in _build_tracking_optimizer has lr 0, and TRACK_PHASE_PREDICT is False by default, so
++# Phase 2 leaves the model bit-frozen; only predict_field's own -w*t term moves the field.
++# MedianEnsembleUpdater hands `dict(self.config)` to every member, so the knob reaches all
++# three ensemble members, not just member 0.
++CELLS.update({
++    # byte-duplicate of AUTO: per-batch worker-leak / env-residue probe (rx2 used X-BASE2-5)
++    'AUTO-DUP':     dict(cfg=dict(init_method='auto', analytic_ensemble_k=3)),
++    # --- axis: displacement budget --------------------------------------------------
++    'AUTO-NOTRACK': dict(cfg=dict(init_method='auto', analytic_ensemble_k=3,
++                                  tracking_lr=0.0)),        # budget 0 == tracker frozen
++    'AUTO-K6':      dict(cfg=dict(init_method='auto', analytic_ensemble_k=3,
++                                  tracking_steps=1)),       # 10 -> 1 step/frame
++    'AUTO-K7':      dict(cfg=dict(init_method='auto', analytic_ensemble_k=3,
++                                  tracking_lr=0.0005)),     # 0.005 -> 0.0005 (x0.1)
++    # --- axis: tracking objective (regularisation channel), rx1 K4 -------------------
++    # RX1_PHASE2_NOREG makes the TRACKING objective the data term alone; Phase 1 keeps its
++    # penalties (sequential_update.py:917).  This is the intervention that was -0.1046 (4/4)
++    # at oracle placement and +0.0007 at the v2_konly arm that never beat the null.
++    'AUTO-K4':      dict(cfg=dict(init_method='auto', analytic_ensemble_k=3),
++                         env={'RX1_PHASE2_NOREG': '1'}),
++})
++B3_CELLS = ['AUTO', 'AUTO-DUP', 'AUTO-NOTRACK', 'AUTO-K6', 'AUTO-K7', 'AUTO-K4']
++# =========================================================================================
++
+ ORACLE_CELLS = {'ORACLE', 'ORACLE-K'}
++# (E3) RX1_* appended.  sequential_update._rx1_gate: "Unset or '0' == shipped behaviour,
++# bit-for-bit", so writing '0' here is a no-op for every pre-existing cell.
+ RX2_ENV_KEYS = ('RX2_GROW_SUBTRACT', 'RX2_GROW_RECOMPUTE',
+-                'RX2_GROW_TIGHT_SUPPRESS', 'RX2_GROW_FITPHI')
++                'RX2_GROW_TIGHT_SUPPRESS', 'RX2_GROW_FITPHI',
++                'RX1_CONF_NORM', 'RX1_PHASE2_NOREG')
+ 
+ 
+ def apply_cell(cell):
+@@ -294,6 +348,13 @@
+                 'N': r.get('n_gaussians', -1),
+                 'init_nrmse': float(r.get('init_nrmse', float('nan'))),
+                 'init_rmse': float(r.get('init_rmse', float('nan'))),
++                # (E4) recording only -- AUTO is a ROUTER, so which arm it picked (and
++                # whether the median-of-3 analytic ensemble was built at all) has to be in
++                # the record or "AUTO" is an unnamed bundle.  No computation changes.
++                'auto_selected': r.get('auto_selected'),
++                'auto_n_selected': r.get('auto_n_selected'),
++                'ensemble_k': r.get('ensemble_k'),
++                'final_n': r.get('final_n'),
+                 'spec': spec,
+                 # discipline #2 from tmp/placement_field_debate_2026-08-05/VERDICT.md:
+                 # dump atom coordinates so the matcher radius can be re-chosen post hoc.

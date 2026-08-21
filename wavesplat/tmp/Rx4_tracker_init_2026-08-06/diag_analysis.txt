@@ -1,0 +1,92 @@
+rows=24 ok=24  errors=0
+
+=== 0. control: probe reproduces B3 AUTO? (per run nRMSE) ===
+  BF4_15comp_seed0_uniform     s1521 route=learned   k=1 N=13 init=0.1591 final=0.2081 d=+0.0490
+  BF4_15comp_seed0_uniform     s1522 route=learned   k=1 N=14 init=0.1863 final=0.1971 d=+0.0108
+  BF4_15comp_seed0_uniform     s1523 route=learned   k=1 N=12 init=0.2168 final=0.2228 d=+0.0061
+  BF4_30comp_seed0_uniform     s1521 route=learned   k=1 N=15 init=0.2829 final=0.2916 d=+0.0087
+  BF4_30comp_seed0_uniform     s1522 route=learned   k=1 N=12 init=0.1727 final=0.2107 d=+0.0379
+  BF4_30comp_seed0_uniform     s1523 route=learned   k=1 N=12 init=0.2133 final=0.2777 d=+0.0645
+  BF5_15comp_seed0_uniform     s1521 route=learned   k=1 N=14 init=0.1330 final=0.1682 d=+0.0352
+  BF5_15comp_seed0_uniform     s1522 route=learned   k=1 N=13 init=0.1123 final=0.1480 d=+0.0356
+  BF5_15comp_seed0_uniform     s1523 route=v2_konly  k=3 N=21 init=0.1995 final=0.2280 d=+0.0285
+  BF5_30comp_seed0_uniform     s1521 route=learned   k=1 N=22 init=0.2656 final=0.2777 d=+0.0121
+  BF5_30comp_seed0_uniform     s1522 route=learned   k=1 N=22 init=0.2056 final=0.2515 d=+0.0459
+  BF5_30comp_seed0_uniform     s1523 route=learned   k=1 N=23 init=0.2050 final=0.2453 d=+0.0403
+  --- NOTRACK ---
+  BF4_15comp_seed0_uniform     s1521 route=learned   k=1 N=13 init=0.1591 final=0.1688 d=+0.0097
+  BF4_15comp_seed0_uniform     s1522 route=learned   k=1 N=14 init=0.1863 final=0.1751 d=-0.0112
+  BF4_15comp_seed0_uniform     s1523 route=learned   k=1 N=12 init=0.2168 final=0.2191 d=+0.0023
+  BF4_30comp_seed0_uniform     s1521 route=learned   k=1 N=15 init=0.2829 final=0.2775 d=-0.0054
+  BF4_30comp_seed0_uniform     s1522 route=learned   k=1 N=12 init=0.1727 final=0.1681 d=-0.0046
+  BF4_30comp_seed0_uniform     s1523 route=learned   k=1 N=12 init=0.2133 final=0.2280 d=+0.0148
+  BF5_15comp_seed0_uniform     s1521 route=learned   k=1 N=14 init=0.1330 final=0.1454 d=+0.0124
+  BF5_15comp_seed0_uniform     s1522 route=learned   k=1 N=13 init=0.1123 final=0.1183 d=+0.0060
+  BF5_15comp_seed0_uniform     s1523 route=v2_konly  k=3 N=21 init=0.1995 final=0.2141 d=+0.0146
+  BF5_30comp_seed0_uniform     s1521 route=learned   k=1 N=22 init=0.2656 final=0.2612 d=-0.0044
+  BF5_30comp_seed0_uniform     s1522 route=learned   k=1 N=22 init=0.2056 final=0.2062 d=+0.0007
+  BF5_30comp_seed0_uniform     s1523 route=learned   k=1 N=23 init=0.2050 final=0.1679 d=-0.0371
+
+=== 1. DISPERSION / WAVENUMBER FREEZE (is the hard constraint ever broken?) ===
+  frames inspected           : 3384
+  max |omega_model - sqrt(g k tanh kd)| over ALL frames/atoms : 4.768e-07
+  max ||dk||_2 (kx,ky drift) over ALL frames                  : 0.000e+00
+  max |omega_t - omega_0|    over ALL frames                  : 0.000e+00
+
+=== 2. TIME STRUCTURE (AUTO): nRMSE vs frame, quartiles of the tracking window ===
+  episode                         init      q1      q2      q3      q4    last  slope/frame
+  BF4_15comp_seed0_uniform  AUTO  0.1863  0.2058  0.2074  0.2013  0.2239  0.2318      1.77e-4
+  BF4_15comp_seed0_uniform  NOTR  0.1863  0.1797  0.1699  0.1703  0.1911  0.2084      0.88e-4
+  BF4_30comp_seed0_uniform  AUTO  0.2133  0.2289  0.2673  0.2922  0.3177  0.3046      3.45e-4
+  BF4_30comp_seed0_uniform  NOTR  0.2133  0.2123  0.2118  0.2270  0.2611  0.2706      0.63e-4
+  BF5_15comp_seed0_uniform  AUTO  0.1330  0.1499  0.1726  0.1733  0.1770  0.1867      3.94e-4
+  BF5_15comp_seed0_uniform  NOTR  0.1330  0.1310  0.1325  0.1471  0.1709  0.1764      4.34e-4
+  BF5_30comp_seed0_uniform  AUTO  0.2056  0.2389  0.2620  0.2559  0.2536  0.2491      1.82e-4
+  BF5_30comp_seed0_uniform  NOTR  0.2056  0.2063  0.1992  0.2028  0.2165  0.2163      1.10e-4
+
+=== 3. CHANNEL (AUTO vs NOTRACK): decorr / shrink, mean over tracking frames ===
+  episode                        cell        m   decorr   shrink     rho      VR
+  BF4_15comp_seed0_uniform  AUTO   0.6765   0.6646   0.0119  0.5748  0.4128
+  BF4_15comp_seed0_uniform  NOTR   0.4779   0.4393   0.0386  0.7485  0.8887
+  BF4_30comp_seed0_uniform  AUTO   1.0447   0.8691   0.1756  0.3204  0.4900
+  BF4_30comp_seed0_uniform  NOTR   0.6939   0.6205   0.0734  0.6128  0.8117
+  BF5_15comp_seed0_uniform  AUTO   0.5063   0.4992   0.0071  0.7026  0.5384
+  BF5_15comp_seed0_uniform  NOTR   0.3824   0.3569   0.0255  0.7988  1.0543
+  BF5_30comp_seed0_uniform  AUTO   0.8577   0.8343   0.0234  0.3806  0.2284
+  BF5_30comp_seed0_uniform  NOTR   0.5722   0.5430   0.0292  0.6746  0.6632
+
+=== 4. COUNTERFACTUAL REPLAY (AUTO runs only) ===
+  nRMSE with (w,phi) taken from: frozen=(w0,phi0)  w_only=(wt,phi0)  phi_only=(w0,phit)  actual=(wt,phit)
+  NOTE: this decomposes the REALISED damage along the ACTUAL joint trajectory.
+        It is NOT a prediction of what a one-channel-frozen RUN would do.
+  episode                    frozen   w_only  phi_only   actual    dmg_w  dmg_phi  dmg_tot  interact
+  BF4_15comp_seed0_uniform   0.1751   0.2073    0.1794   0.2081  +0.0278  +0.0017  +0.0220   -0.0062
+  BF4_30comp_seed0_uniform   0.2280   0.2501    0.2579   0.2777  +0.0220  +0.0299  +0.0425   -0.0022
+  BF5_15comp_seed0_uniform   0.1454   0.1828    0.1553   0.1682  +0.0278  +0.0074  +0.0228   -0.0220
+  BF5_30comp_seed0_uniform   0.2062   0.2532    0.2015   0.2515  +0.0470  +0.0035  +0.0453   -0.0035
+  MEDIAN(4 ep)                                                   +0.0278  +0.0054  +0.0327
+
+=== 5. PARAMETER DRIFT (AUTO): growth of ||dw||/||w0||, RMS dphi, sum|w| ratio ===
+  episode                                         q1                        q4
+                                  dw_rel  dphi  sumw        dw_rel  dphi  sumw
+  BF4_15comp_seed0_uniform  AUTO   0.490  0.177  0.648         0.996  0.893  0.770
+  BF4_15comp_seed0_uniform  NOTR   0.000  0.000  1.000         0.000  0.000  1.000
+  BF4_30comp_seed0_uniform  AUTO   0.475  0.214  0.749         0.963  0.978  0.789
+  BF4_30comp_seed0_uniform  NOTR   0.000  0.000  1.000         0.000  0.000  1.000
+  BF5_15comp_seed0_uniform  AUTO   0.421  0.159  0.719         0.872  0.901  0.578
+  BF5_15comp_seed0_uniform  NOTR   0.000  0.000  1.000         0.000  0.000  1.000
+  BF5_30comp_seed0_uniform  AUTO   0.479  0.120  0.683         1.031  0.710  0.634
+  BF5_30comp_seed0_uniform  NOTR   0.000  0.000  1.000         0.000  0.000  1.000
+
+=== 6. IS dphi A COHERENT RAMP? (r^2 of dphi_rms vs frame index, AUTO) ===
+  BF4_15comp_seed0_uniform r^2(dphi_rms,frame)=0.957  slope=0.0060 rad/frame
+  BF4_30comp_seed0_uniform r^2(dphi_rms,frame)=0.966  slope=0.0064 rad/frame
+  BF5_15comp_seed0_uniform r^2(dphi_rms,frame)=0.954  slope=0.0079 rad/frame
+  BF5_30comp_seed0_uniform r^2(dphi_rms,frame)=0.979  slope=0.0068 rad/frame
+
+=== 7. CONCENTRATION: is the drift on weak atoms or strong atoms? (last frame) ===
+  Spearman-ish: split atoms at the median |w0| and compare drift magnitudes.
+  BF4_15comp_seed0_uniform |dw|/w0 strong= 0.791 weak= 5.599 | |dphi| strong=0.474 weak=0.778 | weak-half share of |dw|=0.19
+  BF4_30comp_seed0_uniform |dw|/w0 strong= 0.700 weak= 1.583 | |dphi| strong=0.826 weak=0.607 | weak-half share of |dw|=0.25
+  BF5_15comp_seed0_uniform |dw|/w0 strong= 0.903 weak= 2.236 | |dphi| strong=0.979 weak=0.555 | weak-half share of |dw|=0.14
+  BF5_30comp_seed0_uniform |dw|/w0 strong= 1.237 weak= 4.517 | |dphi| strong=0.449 weak=0.742 | weak-half share of |dw|=0.15

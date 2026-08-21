@@ -1,0 +1,18 @@
+# G-4 검증 — 미커밋 계측 코드가 추정 결과를 바꾸는가 (2026-08-08)
+
+NEUTRAL 지적: PREREG §4 G-4 가 'wavesplat/ 신규 수정 0건' 이라 적었으나 실제로는
+run.py +86행, evaluation/metrics.py +89행 (E-B/E-C/E-D 계측 잔재) 이 uncommitted 다.
+⟹ S1 이 돌 코드는 rx2/B2 가 돌던 코드와 같지 않다. 논증하지 않고 **측정**했다.
+
+방법: git worktree 를 HEAD(3b88d6a) 에 detach 로 만들고, 같은 에피소드·같은 X-BASE 설정·seed 1548 을
+양쪽에서 돌려 프레임평균 nRMSE 를 12자리로 비교. (작업트리는 건드리지 않음)
+
+에피소드: data_indep2_2026-08-07/episode_BF4_15comp_seed0_uniform_ra_rf_ds.h5
+
+HEAD      nRMSE=0.160269814000 init=0.191302994887 N=15 nframes=160
+WORKTREE  nRMSE=0.160269814000 init=0.191302994887 N=15 nframes=160
+
+⟹ **비트 동일**. 계측 추가분은 torch.no_grad 평가·numpy 읽기뿐이라 추정 경로를 건드리지 않는다.
+✅ nRMSE 비교가능성은 보존된다 (MEASURED, 논증 아님).
+⛔ 단 G-4 **문구는 거짓**이었다 -> AMENDMENT 1 에서 정정한다.
+⛔ elapsed_ms 는 오염된다(프레임당 forward 5회 + 격자 거리계산 추가) -> 지연 인용 금지(§6 이미 명시).

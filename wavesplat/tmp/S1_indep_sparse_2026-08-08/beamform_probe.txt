@@ -1,0 +1,12 @@
+# beamform 호출 프로브 (2026-08-08, S1 §3)
+
+질문: AUTO-G1P1 이 AUTO 와 32개 중 20개서 비트 동일한 이유가 (a) 내 배선 결함인가 (b) 출하 팔이 개입 지점을 안 쓰는가.
+방법: 같은 에피소드/시드에서 I._beamform_coarse 를 카운터로 감싸고 두 팔을 각각 실행.
+에피소드: data_indep_crowded_2026-08-08/episode_BF4_15comp_seed20_uniform_ra_rf_ds.h5, seed 1548
+
+X-BASE (v2_konly)  _beamform_coarse 호출 3회   nRMSE=0.1711
+AUTO   (출하 기본)  _beamform_coarse 호출 0회   nRMSE=0.1430
+
+=> (b). 출하 팔은 beamforming 을 아예 하지 않는다(학습 제안으로 라우팅).
+   G1 = beamform 탐색범위 축소이므로 **좁힐 대상이 없다**.
+   배선은 결백: spawn_check.txt 가 워커에서 env·krange·undo 적용을 사전 측정해 PASS.

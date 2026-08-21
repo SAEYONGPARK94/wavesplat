@@ -1,0 +1,167 @@
+====================================================================================================
+NEUTRAL axis-6 (k placement) — independent re-derivation of "ORACLE-K -0.0105, 11/12, p=0.0063"
+====================================================================================================
+source: /home/vexit/wavesplat/wavesplat/tmp/B2_g1p1_ext_2026-08-06/results.jsonl
+parsed runs: 216   skipped/error lines: 0
+cells x episodes with != 3 seeds: 12   -> ['ORACLE']
+seeds present: [1518, 1519, 1520]
+cells with full 12x3 coverage: ['X-BASE', 'G1', 'P1', 'G1P1', 'ORACLE-K', 'AUTO']
+
+====================================================================================================
+1. EPISODE-UNIT paired sign test vs X-BASE  (seed->episode = median-of-3, frozen rule)
+====================================================================================================
+
+--- ALL12 (n=12, attainable floor p=0.0004883, min wins for a<=0.05: 10) ---
+cell        medOfMed  pairedD_med     wins    signP  wilcoxP    mean d
+X-BASE        0.0254            —        —        —        —         —
+G1            0.0379      +0.0011    6/12    1.0000   0.6772   -0.0126
+P1            0.0246      -0.0006    7/12    0.7744   0.5693   -0.0024
+G1P1          0.0415      +0.0008    6/12    1.0000   0.7334   -0.0148
+ORACLE-K      0.0128      -0.0105   11/12    0.0063   0.0015   -0.0324
+AUTO          0.0381      -0.0007    6/12    1.0000   0.3804   -0.0151
+
+--- NEW8 (n=8, attainable floor p=0.007812, min wins for a<=0.05: 8) ---
+cell        medOfMed  pairedD_med     wins    signP  wilcoxP    mean d
+X-BASE        0.0139            —        —        —        —         —
+G1            0.0202      +0.0073    2/8     0.2891   0.0391   +0.0087
+P1            0.0158      +0.0007    4/8     1.0000   0.6406   +0.0017
+G1P1          0.0248      +0.0105    2/8     0.2891   0.0391   +0.0121
+ORACLE-K      0.0123      -0.0046    7/8     0.0703   0.0234   -0.0069
+AUTO          0.0251      +0.0009    2/8     0.2891   0.2500   +0.0060
+
+--- CROWDED4 (n=4, attainable floor p=0.125, min wins for a<=0.05: None) ---
+cell        medOfMed  pairedD_med     wins    signP  wilcoxP    mean d
+X-BASE        0.2849            —        —        —        —         —
+G1            0.2271      -0.0472    4/4     0.1250   0.1250   -0.0552
+P1            0.2658      -0.0112    3/4     0.6250   0.2500   -0.0105
+G1P1          0.2068      -0.0701    4/4     0.1250   0.1250   -0.0684
+ORACLE-K      0.1967      -0.0789    4/4     0.1250   0.1250   -0.0836
+AUTO          0.2214      -0.0456    4/4     0.1250   0.1250   -0.0573
+
+per-episode ORACLE-K - X-BASE  (median-of-3):
+   BF2_1comp_seed0_uniform          XB= 0.0357  OK= 0.0217  d= -0.0140  win
+   BF3_1comp_seed0_uniform          XB= 0.0109  OK= 0.0071  d= -0.0038  win
+   BF3_2comp_seed0_uniform          XB= 0.0101  OK= 0.0052  d= -0.0049  win
+   BF3_2comp_seed0_slope            XB= 0.0128  OK= 0.0057  d= -0.0071  win
+   BF3_5comp_seed0_uniform          XB= 0.0337  OK= 0.0125  d= -0.0212  win
+   BF3_5comp_seed0_slope            XB= 0.0171  OK= 0.0128  d= -0.0043  win
+   BF4_1comp_seed0_uniform          XB= 0.0096  OK= 0.0127  d= +0.0031  LOSS
+   BF4_5comp_seed0_uniform          XB= 0.0150  OK= 0.0120  d= -0.0030  win
+   BF4_15comp_seed0_uniform         XB= 0.2802  OK= 0.1567  d= -0.1235  win
+   BF4_30comp_seed0_uniform         XB= 0.3198  OK= 0.2412  d= -0.0786  win
+   BF5_15comp_seed0_uniform         XB= 0.2339  OK= 0.1546  d= -0.0793  win
+   BF5_30comp_seed0_uniform         XB= 0.2896  OK= 0.2366  d= -0.0530  win
+
+====================================================================================================
+2. ROBUSTNESS of the ORACLE-K headline to the seed->episode collapse rule (ALL12)
+====================================================================================================
+  median-of-3 (frozen)     pairedD_med  -0.0105  wins 11/12  signP 0.0063
+  mean-of-3                pairedD_med  -0.0118  wins 11/12  signP 0.0063
+  best-of-3 (min)          pairedD_med  -0.0043  wins 12/12  signP 0.0005
+  worst-of-3 (max)         pairedD_med  -0.0189  wins 11/12  signP 0.0063
+  seed-as-unit (36 pairs)  pairedD_med  -0.0100  wins 34/36  signP 1.941e-08   <-- PSEUDO-REPLICATION, not a valid unit
+
+====================================================================================================
+3. CLUSTER-UNIT sign test — clusters derived by me from the HDF5, not from any prior file
+====================================================================================================
+
+--- clustering "truth-field": 10 clusters over 12 episodes (floor p=0.001953, min wins for a<=0.05: 9) ---
+     {BF2_1comp_seed0_uniform}
+     {BF3_1comp_seed0_uniform}
+     {BF3_2comp_seed0_uniform, BF3_2comp_seed0_slope}
+     {BF3_5comp_seed0_uniform, BF3_5comp_seed0_slope}
+     {BF4_1comp_seed0_uniform}
+     {BF4_5comp_seed0_uniform}
+     {BF4_15comp_seed0_uniform}
+     {BF4_30comp_seed0_uniform}
+     {BF5_15comp_seed0_uniform}
+     {BF5_30comp_seed0_uniform}
+  G1         clusterD_med  +0.0011  wins 5/10  signP 1.0000
+  P1         clusterD_med  -0.0006  wins 6/10  signP 0.7539
+  G1P1       clusterD_med  +0.0006  wins 5/10  signP 1.0000
+  ORACLE-K   clusterD_med  -0.0133  wins 9/10  signP 0.0215
+  AUTO       clusterD_med  -0.0029  wins 6/10  signP 0.7539
+
+--- clustering "phase-phi": 5 clusters over 12 episodes (floor p=0.0625, min wins for a<=0.05: None) ---
+     {BF2_1comp_seed0_uniform, BF3_1comp_seed0_uniform, BF4_1comp_seed0_uniform}
+     {BF3_2comp_seed0_uniform, BF3_2comp_seed0_slope}
+     {BF3_5comp_seed0_uniform, BF3_5comp_seed0_slope, BF4_5comp_seed0_uniform}
+     {BF4_15comp_seed0_uniform, BF5_15comp_seed0_uniform}
+     {BF4_30comp_seed0_uniform, BF5_30comp_seed0_uniform}
+  G1         clusterD_med  +0.0029  wins 2/5  signP 1.0000
+  P1         clusterD_med  -0.0004  wins 3/5  signP 1.0000
+  G1P1       clusterD_med  +0.0043  wins 2/5  signP 1.0000
+  ORACLE-K   clusterD_med  -0.0060  wins 5/5  signP 0.0625
+  AUTO       clusterD_med  -0.0003  wins 3/5  signP 1.0000
+
+--- clustering "k-vector": 10 clusters over 12 episodes (floor p=0.001953, min wins for a<=0.05: 9) ---
+     {BF2_1comp_seed0_uniform}
+     {BF3_1comp_seed0_uniform}
+     {BF3_2comp_seed0_uniform, BF3_2comp_seed0_slope}
+     {BF3_5comp_seed0_uniform, BF3_5comp_seed0_slope}
+     {BF4_1comp_seed0_uniform}
+     {BF4_5comp_seed0_uniform}
+     {BF4_15comp_seed0_uniform}
+     {BF4_30comp_seed0_uniform}
+     {BF5_15comp_seed0_uniform}
+     {BF5_30comp_seed0_uniform}
+  G1         clusterD_med  +0.0011  wins 5/10  signP 1.0000
+  P1         clusterD_med  -0.0006  wins 6/10  signP 0.7539
+  G1P1       clusterD_med  +0.0006  wins 5/10  signP 1.0000
+  ORACLE-K   clusterD_med  -0.0133  wins 9/10  signP 0.0215
+  AUTO       clusterD_med  -0.0029  wins 6/10  signP 0.7539
+
+--- clustering "amplitude": 10 clusters over 12 episodes (floor p=0.001953, min wins for a<=0.05: 9) ---
+     {BF2_1comp_seed0_uniform}
+     {BF3_1comp_seed0_uniform}
+     {BF3_2comp_seed0_uniform, BF3_2comp_seed0_slope}
+     {BF3_5comp_seed0_uniform, BF3_5comp_seed0_slope}
+     {BF4_1comp_seed0_uniform}
+     {BF4_5comp_seed0_uniform}
+     {BF4_15comp_seed0_uniform}
+     {BF4_30comp_seed0_uniform}
+     {BF5_15comp_seed0_uniform}
+     {BF5_30comp_seed0_uniform}
+  G1         clusterD_med  +0.0011  wins 5/10  signP 1.0000
+  P1         clusterD_med  -0.0006  wins 6/10  signP 0.7539
+  G1P1       clusterD_med  +0.0006  wins 5/10  signP 1.0000
+  ORACLE-K   clusterD_med  -0.0133  wins 9/10  signP 0.0215
+  AUTO       clusterD_med  -0.0029  wins 6/10  signP 0.7539
+
+====================================================================================================
+4. SPECTRAL k-ERROR descriptives from the same 216 runs (protocol material, descriptive only)
+    matching rule in force: Hungarian on cost = |dk| / max_j|k_j^gt|, accept iff cost < 0.5
+====================================================================================================
+cell        det_rate    E_det  n_est/n_gt    |dk|/k   dir_deg    |dA|/A
+X-BASE         1.000    1.000        3.00    0.0013     0.106     0.448
+G1             1.000    1.000        3.00    0.0025     0.123     0.454
+P1             1.000    1.000        3.00    0.0014     0.120     0.439
+G1P1           1.000    1.000        3.00    0.0019     0.122     0.546
+ORACLE-K       1.000    1.000        1.00    0.0004     0.027     0.082
+AUTO           0.800    0.986        2.00    0.0013     0.139     0.507
+  NOTE: ORACLE-K is handed n_gaussians = n_gt AND the true (kx,ky); its spec row is
+        therefore not an estimate of anything. It is printed as a sanity anchor only.
+
+====================================================================================================
+5. CONFOUND LEDGER — factors that differ between X-BASE and ORACLE-K
+====================================================================================================
+  a. (kx,ky) placement : beamformed  ->  TRUE values                 [the named factor]
+  b. model order N     : ladder [3,8,15] + adaptive_n  ->  exactly n_gt   [CONFOUND]
+  c. stage schedule    : 3 stages [200,200,500]        ->  1 stage [900]  [CONFOUND]
+  d. loss thresholds   : [0.1,0.05,None]               ->  [None]         [CONFOUND]
+  (w, phi) are NOT oracle in either arm (w=0.01, phi~U(0,2pi)) -- verified in
+  wavesplat/optimizer/initializer.py::initialize_oracle docstring + body.
+  => "ORACLE-K measures the k-position ceiling" is a BUNDLE claim, not single-factor.
+  n_gt per episode (drives factor b):
+     BF2_1comp_seed0_uniform          n_gt=  1   X-BASE ladder=[3,8,15]+adaptive
+     BF3_1comp_seed0_uniform          n_gt=  1   X-BASE ladder=[3,8,15]+adaptive
+     BF3_2comp_seed0_uniform          n_gt=  2   X-BASE ladder=[3,8,15]+adaptive
+     BF3_2comp_seed0_slope            n_gt=  2   X-BASE ladder=[3,8,15]+adaptive
+     BF3_5comp_seed0_uniform          n_gt=  5   X-BASE ladder=[3,8,15]+adaptive
+     BF3_5comp_seed0_slope            n_gt=  5   X-BASE ladder=[3,8,15]+adaptive
+     BF4_1comp_seed0_uniform          n_gt=  1   X-BASE ladder=[3,8,15]+adaptive
+     BF4_5comp_seed0_uniform          n_gt=  5   X-BASE ladder=[3,8,15]+adaptive
+     BF4_15comp_seed0_uniform         n_gt= 15   X-BASE ladder=[3,8,15]+adaptive
+     BF4_30comp_seed0_uniform         n_gt= 30   X-BASE ladder=[3,8,15]+adaptive
+     BF5_15comp_seed0_uniform         n_gt= 15   X-BASE ladder=[3,8,15]+adaptive
+     BF5_30comp_seed0_uniform         n_gt= 30   X-BASE ladder=[3,8,15]+adaptive

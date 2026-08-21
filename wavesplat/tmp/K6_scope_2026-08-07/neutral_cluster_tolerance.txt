@@ -1,0 +1,49 @@
+NEUTRAL axis-6 — DRAW-identity vs BYTE-identity independence audit
+the generator stores kx = |k| cos(theta); two episodes sharing the SAME theta draw
+but a different |k| ladder differ in BYTES while sharing the randomness.
+
+================================================================================================
+### P1_12  (the ORACLE-K "11/12" panel)  (12 episodes)
+axis            bit-identical  tol 1e-6  tol 1e-4  tol 1e-2
+direction deg               8         5         5         5
+|k| rad/m                  10        10        10        10
+phase rad                   5         5         5         5
+amplitude m                10        10        10        10
+(kx,ky) raw                10        10        10        10
+
+  DIRECTION clusters at tol 1e-4 deg  ->  5 clusters:
+     {BF2_1comp_seed0_uniform, BF3_1comp_seed0_uniform, BF4_1comp_seed0_uniform}
+     {BF3_2comp_seed0_uniform, BF3_2comp_seed0_slope}
+     {BF3_5comp_seed0_uniform, BF3_5comp_seed0_slope, BF4_5comp_seed0_uniform}
+     {BF4_15comp_seed0_uniform, BF5_15comp_seed0_uniform}
+     {BF4_30comp_seed0_uniform, BF5_30comp_seed0_uniform}
+  PHASE clusters at tol 1e-4 rad      ->  5 clusters
+
+  ★ narrowest DRAW axis at tol 1e-4 = 5 clusters  -> sign-test floor p = 0.0625, wins needed for a<=0.05 = None
+    (bit-identity audit would have said 5 clusters, floor p = 0.0625)
+================================================================================================
+### CROWDED16  (Rx-4 block C)  (16 episodes)
+axis            bit-identical  tol 1e-6  tol 1e-4  tol 1e-2
+direction deg              16         8         8         8
+|k| rad/m                  16         4         4         4
+phase rad                   8         8         8         8
+amplitude m                 4         4         4         4
+(kx,ky) raw                16        16        16        16
+
+  DIRECTION clusters at tol 1e-4 deg  ->  8 clusters:
+     {BF4_15comp_seed0_uniform, BF5_15comp_seed0_uniform}
+     {BF4_15comp_seed1_uniform, BF5_15comp_seed1_uniform}
+     {BF4_15comp_seed2_uniform, BF5_15comp_seed2_uniform}
+     {BF4_15comp_seed3_uniform, BF5_15comp_seed3_uniform}
+     {BF4_30comp_seed0_uniform, BF5_30comp_seed0_uniform}
+     {BF4_30comp_seed1_uniform, BF5_30comp_seed1_uniform}
+     {BF4_30comp_seed2_uniform, BF5_30comp_seed2_uniform}
+     {BF4_30comp_seed3_uniform, BF5_30comp_seed3_uniform}
+  PHASE clusters at tol 1e-4 rad      ->  8 clusters
+
+  ★ narrowest DRAW axis at tol 1e-4 = 4 clusters  -> sign-test floor p = 0.125, wins needed for a<=0.05 = None
+    (bit-identity audit would have said 4 clusters, floor p = 0.125)
+================================================================================================
+SUMMARY
+  P1_12  (the ORACLE-K "11/12" panel)      n=12  draw-clusters= 5  floor p=0.0625  crit=None
+  CROWDED16  (Rx-4 block C)                n=16  draw-clusters= 4  floor p=0.125  crit=None

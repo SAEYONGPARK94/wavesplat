@@ -1,0 +1,62 @@
+========================================================================================================
+NEUTRAL axis-6 — audit of "CRB 0.0285 < oracle 0.0629 => the gap is reachable in principle"
+========================================================================================================
+engine: scripts/d1_crb.py (unmodified import)  device=cpu  sigma=0.02 m  dtype=torch.float64
+gradcheck (analytic Jacobian vs autograd): 3.553e-15
+
+BF4_15comp_seed0_uniform     N= 15 4N=  60 M=  7126 Tp=7.0 t*=14.00 cond(F)=3.00e+08 numrank=60/60
+BF4_30comp_seed0_uniform     N= 30 4N= 120 M=  7144 Tp=7.0 t*=14.00 cond(F)=9.37e+11 numrank=120/120
+BF5_15comp_seed0_uniform     N= 15 4N=  60 M=  9218 Tp=9.0 t*=18.00 cond(F)=1.04e+11 numrank=60/60
+BF5_30comp_seed0_uniform     N= 30 4N= 120 M=  9050 Tp=9.0 t*=18.00 cond(F)=8.53e+13 numrank=119/120
+
+========================================================================================================
+A. RIDGE SENSITIVITY of the field-nRMSE CRB   (ridge_rel = lam / (tr(F)/n))
+========================================================================================================
+episode                            1e-06       1e-08       1e-10       1e-12       1e-14    exact(0)
+BF4_15comp_seed0_uniform          0.0119      0.0125      0.0125      0.0125      0.0125      0.0125
+BF4_30comp_seed0_uniform          0.0428      0.0585      0.0649      0.0679      0.0680      0.0680
+BF5_15comp_seed0_uniform          0.0054      0.0057      0.0058      0.0059      0.0059      0.0059
+BF5_30comp_seed0_uniform          0.0176      0.0261      0.0306      0.0361      0.0380      0.0380
+--------------------------------------------------------------------------------------------------------
+MEAN (CON_crb.py rule)            0.0194      0.0257      0.0285      0.0306      0.0311      0.0311
+MEDIAN (project rule)             0.0148      0.0193      0.0216      0.0243      0.0253      0.0253
+
+  Reading: the ridge is a DOWNWARD bias on tr(F^-1 G). If the column moves as the ridge
+  shrinks, the printed 0.0285 is partly regularisation, not information.
+
+========================================================================================================
+B. AGGREGATION — 0.0285 is a MEAN of 4; the frozen project convention is a MEDIAN
+========================================================================================================
+  per-episode CRB @ridge 1e-10 : ['0.0125', '0.0649', '0.0058', '0.0306']
+  mean   = 0.0285   <- the quoted 0.0285
+  median = 0.0216
+  max    = 0.0649   (BF4_30comp; this single episode is 2.3x the mean)
+  The oracle side (0.0629) is likewise a MEAN of 4 init_nrmse values
+  [0.0279, 0.0918, 0.0290, 0.1029] read from tmp/s1s2_2026-08-05/results.jsonl.
+
+========================================================================================================
+C. WHAT THE BOUND COVERS (read off scripts/d1_crb.py, not from any summary)
+========================================================================================================
+  parameter block : theta_i = (w_i, kx_i, ky_i, phi_i) for i=1..N  -> 4N free params
+                    omega is NOT free (dispersion imposed as a hard constraint)
+  bounded quantity: grid-averaged field reconstruction error at a SINGLE time t*,
+                    normalised by Hs.  crb = sqrt(tr(F^-1 G)) / Hs,  G = <g g^T>_grid
+  noise model     : eps ~ N(0, sigma^2) iid on ELEVATION, sigma = 0.02 m, sigma KNOWN
+  regularity      : local bound evaluated AT THE TRUE theta, with N KNOWN = N_gt
+  estimator class : UNBIASED only
+
+  Therefore the bound does NOT cover, and cannot be used to argue about:
+   - model-order selection (adaptive_n): N is handed to the bound
+   - any biased estimator: WaveSplat has L1 + energy pruning + a component budget
+   - the tracked/forecast field: the bound is at ONE time, the deployed metric is a
+     multi-frame average after tracking
+   - real LiDAR noise: sigma=0.02 iid Gaussian on z, no dropout, no beam geometry
+
+========================================================================================================
+D. DIRECTION-I ALREADY MEASURED THE BOUND TO BE VACUOUS HERE
+========================================================================================================
+  CON_crb.py lines 138-141 quote results/direction1/REPORT.md: at 1 s, 15c and 30c
+  are both "CRB vacuous -- estimator beats the unbiased bound". A bound that the
+  biased estimator already crosses cannot be used to certify that a target is
+  reachable OR unreachable. CON_crb.py states this itself in its own docstring
+  (lines 16-21) -- the limitation was declared, then dropped in the one-line summary.

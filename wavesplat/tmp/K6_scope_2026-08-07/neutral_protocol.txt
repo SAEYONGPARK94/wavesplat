@@ -1,0 +1,104 @@
+========================================================================================================
+NEUTRAL axis-6 — PRESPECIFIED k-position measurement protocol (+ validation on existing data)
+========================================================================================================
+
+I.a  INCUMBENT MATCHER, re-measured (run_rx2b.py:184 match_components)
+     rule: Hungarian on cost=|dk|/max_j|k_j^gt|, ACCEPT iff cost<0.5
+episode                        n_gt  accept R  NNspacing  R/(NN/2)  #gt in one disc
+BF2_1comp_seed0_uniform           1    0.3851          —         —              1.0
+BF3_1comp_seed0_uniform           1    0.2037          —         —              1.0
+BF3_2comp_seed0_uniform           2    0.3752     0.5904      1.27              1.0
+BF3_2comp_seed0_slope             2    0.3752     0.5904      1.27              1.0
+BF3_5comp_seed0_uniform           5    0.5030     0.2068      4.86              3.0
+BF3_5comp_seed0_slope             5    0.5030     0.2068      4.86              3.0
+BF4_1comp_seed0_uniform           1    0.1258          —         —              1.0
+BF4_5comp_seed0_uniform           5    0.3105     0.1277      4.86              3.0
+BF4_15comp_seed0_uniform         15    0.3493     0.0835      8.37             11.0
+BF4_30comp_seed0_uniform         30    0.3594     0.0439     16.36             21.0
+BF5_15comp_seed0_uniform         15    0.2113     0.0505      8.37             11.0
+BF5_30comp_seed0_uniform         30    0.2174     0.0263     16.54             21.0
+  => on the crowded cells one acceptance disc contains ~10-18 true components.
+     Any metric conditioned on this match set is a COVERAGE metric, not a k-position one.
+
+I.b  PROPOSED MATCHING-FREE METRIC, validated on the 216 runs that already exist
+     W1  = exact 1-Wasserstein between normalised ENERGY measures on the k-plane [rad/m]
+     COV = energy-weighted mean distance from each TRUE atom to nearest PLACED atom
+     PREC= energy-weighted mean distance from each PLACED atom to nearest TRUE atom
+     nulls: STACK = every atom at the energy centroid of the true set
+            PRIOR = atoms on the deployed coarse grid, uniform over the search box
+
+                                              W1 [rad/m]               COV [rad/m]              PREC [rad/m]
+arm                                    NEW8     CROWDED4         NEW8     CROWDED4         NEW8     CROWDED4
+X-BASE                               0.0057       0.0648       0.0005       0.0268       0.0008       0.0371
+G1                                   0.0071       0.0456       0.0004       0.0126       0.0010       0.0138
+P1                                   0.0049       0.0604       0.0006       0.0221       0.0010       0.0323
+G1P1                                 0.0212       0.0447       0.0005       0.0124       0.0007       0.0127
+ORACLE-K                             0.0025       0.0370       0.0001       0.0086       0.0001       0.0103
+AUTO                                 0.0137       0.0459       0.0008       0.0129       0.0007       0.0180
+NULL-STACK                           0.0352       0.0548       0.0352       0.0548       0.0182       0.0192
+NULL-PRIOR                           0.6396       0.5850       0.2060       0.1498       0.5992       0.4609
+  READ 1: ORACLE-K STARTS at W1=COV=PREC=0 exactly (its k IS the truth) and its k is
+          TRAINABLE. The numbers above are FINAL k. So they measure how far the optimizer
+          walks the atoms away from the truth over 900 steps. On CROWDED4 that walk is
+          W1=0.0370 rad/m against a true NN spacing of 0.026-0.084 rad/m -- i.e. of the
+          same order as the spacing it is supposed to resolve. ORACLE-K is therefore NOT
+          "the field error you get with correct k"; it is "the field error you get if you
+          are HANDED correct k and then allowed to lose it".
+  READ 2: NULL-PRIOR is far from every arm on all three -> the metric has dynamic range
+          (detection_rate did not).
+  READ 3: ★ on CROWDED4 the shipped fallback X-BASE does NOT beat the one-point STACK null
+          on W1 (0.0648 vs 0.0548) or on PREC (0.0371 vs 0.0192). It beats it only on COV
+          (0.0268 vs 0.0548). Block medians only -- NOT a test. Flagged for the prereg as
+          the first thing the next experiment must settle at cluster level.
+
+I.c  DOES THE PROPOSED METRIC TRACK FIELD nRMSE?  (descriptive, pooled Spearman)
+     [[feedback-control-stratifying-variable]] -- pooled rho is NOT promoted to mechanism;
+     it is reported only to show the metric is not orthogonal to the outcome.
+  ALL12     n= 72  rho(W1,nRMSE)=+0.815  rho(COV,nRMSE)=+0.899  rho(PREC,nRMSE)=+0.841
+  NEW8      n= 48  rho(W1,nRMSE)=+0.555  rho(COV,nRMSE)=+0.693  rho(PREC,nRMSE)=+0.496
+  CROWDED4  n= 24  rho(W1,nRMSE)=+0.415  rho(COV,nRMSE)=+0.863  rho(PREC,nRMSE)=+0.725
+
+========================================================================================================
+II. PRESPECIFICATION TABLE (fill this in the PREREG before any run)
+========================================================================================================
+
+  seed -> episode      : MEDIAN of 3 seeds          [same as B2/rx2, frozen]
+  episode -> cluster   : MEDIAN of episodes sharing a bit-identical truth field
+  cluster -> effect    : PAIRED cluster delta (cell - control), MEDIAN
+  test                 : exact two-sided sign test on CLUSTERS (not episodes)
+  DIRECTION (declare!) : lower is better for nRMSE / W1 / COV / PREC;
+                         a cell "wins" a cluster iff its paired delta < 0
+  mandatory companions : flat-sea null on nRMSE; NULL-STACK + NULL-PRIOR on W1/COV/PREC
+  ties                 : dropped from n before the p is computed
+  reporting            : if the primary is a bundle, the interaction MUST be reported
+                         with convention A (median of per-cluster interactions)
+
+  EXACT SIGN-TEST POWER (alpha=0.05, two-sided). "crit" = wins needed.
+   n clusters  crit   floor p    pwin=0.7    pwin=0.8   pwin=0.85    pwin=0.9   pwin=0.95
+            4     —     0.125       0.000       0.000       0.000       0.000       0.000
+            5     —    0.0625       0.000       0.000       0.000       0.000       0.000
+            6     6   0.03125       0.118       0.262       0.377       0.531       0.735
+            8     8  0.007812       0.058       0.168       0.272       0.430       0.663
+           10     9  0.001953       0.149       0.376       0.544       0.736       0.914
+           12    10 0.0004883       0.253       0.558       0.736       0.889       0.980
+           14    12 0.0001221       0.161       0.448       0.648       0.842       0.970
+           16    13 3.052e-05       0.246       0.598       0.790       0.932       0.993
+           20    15 1.907e-06       0.416       0.804       0.933       0.989       1.000
+           24    18 1.192e-07       0.389       0.811       0.943       0.993       1.000
+           30    21 1.863e-09       0.589       0.939       0.990       1.000       1.000
+
+  MDE READING (80% power):
+    n=  5 clusters -> needs P(a cluster favours the treatment) >= UNREACHABLE (even p=1.0 gives <80% or alpha unreachable)
+    n=  8 clusters -> needs P(a cluster favours the treatment) >= 0.975
+    n= 10 clusters -> needs P(a cluster favours the treatment) >= 0.920
+    n= 12 clusters -> needs P(a cluster favours the treatment) >= 0.870
+    n= 16 clusters -> needs P(a cluster favours the treatment) >= 0.855
+    n= 20 clusters -> needs P(a cluster favours the treatment) >= 0.800
+    n= 24 clusters -> needs P(a cluster favours the treatment) >= 0.800
+    n= 30 clusters -> needs P(a cluster favours the treatment) >= 0.750
+
+  OBSERVED EFFECT SCALE for calibration (ORACLE-K vs X-BASE, truth-field clusters, n=10):
+    per-cluster paired dnRMSE: see neutral_oraclek_rederive.txt section 3
+    -> 9/10 clusters favour ORACLE-K, i.e. observed pwin_hat = 0.90
+    -> at n=10 the sign test needs 9/10; power at pwin=0.90 is 0.736. The ORACLE-K result is therefore RIGHT AT its own MDE:
+       one flipped cluster removes significance. This is the fragility to declare.

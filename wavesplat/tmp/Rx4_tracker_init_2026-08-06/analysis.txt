@@ -1,0 +1,213 @@
+rows=504 ok=504 errors=0
+
+==============================================================================
+=== sec.6.2  PHASE-1 INVARIANCE (init_nrmse / auto_selected / auto_n / k / N) ===
+  mismatches = 0   -> PASS
+
+=== sec.6.3  WORKER-LEAK PROBE: AUTO-DUP vs AUTO, bit-identical? ===
+  comparisons=720  mismatches=0 -> PASS
+
+==============================================================================
+
+=== sec.4 NULL RULES on BLOCK C (CROWDED16) ===
+  episode                       null     AUTO  excluded?
+  BF4_15comp_seed0_uniform    0.2533   0.1818  
+  BF4_15comp_seed1_uniform    0.2555   0.1857  
+  BF4_15comp_seed2_uniform    0.2510   0.1621  
+  BF4_15comp_seed3_uniform    0.2535   0.2222  
+  BF4_30comp_seed0_uniform    0.2736   0.2579  
+  BF4_30comp_seed1_uniform    0.2260   0.2421  EXCLUDED (AUTO >= null)
+  BF4_30comp_seed2_uniform    0.2429   0.2847  EXCLUDED (AUTO >= null)
+  BF4_30comp_seed3_uniform    0.2451   0.1870  
+  BF5_15comp_seed0_uniform    0.2388   0.1684  
+  BF5_15comp_seed1_uniform    0.2372   0.1678  
+  BF5_15comp_seed2_uniform    0.2585   0.1992  
+  BF5_15comp_seed3_uniform    0.2397   0.2090  
+  BF5_30comp_seed0_uniform    0.2732   0.2498  
+  BF5_30comp_seed1_uniform    0.2246   0.2139  
+  BF5_30comp_seed2_uniform    0.2250   0.1967  
+  BF5_30comp_seed3_uniform    0.2209   0.1981  
+  -> excluded 2/16: ['BF4_30comp_seed1_uniform', 'BF4_30comp_seed2_uniform']
+  block null median = 0.2440
+  (b) cell-level NULL-FAILING check (medOfMed nRMSE >= block null median):
+     AUTO           medOfMed=0.1987 
+     AUTO-DUP       medOfMed=0.1987 
+     AUTO-NOTRACK   medOfMed=0.1766 
+     T-PHIONLY      medOfMed=0.2078 
+     T-WONLY        medOfMed=0.2202 
+     T-EARLY20      medOfMed=0.1886 
+     T-K4REF        medOfMed=0.2075 
+
+==============================================================================
+=== BLOCK C (CROWDED16) -- PRIMARY (null-excluded, n=14) ===
+
+--- BLOCK C (CROWDED16) | REF = AUTO | n=14  ---
+  cell            medOfMed      medΔ    Δrel%    wins   p(sign)
+  AUTO-DUP          0.1974   +0.0000    +0.0%   0/14     0.0001
+  AUTO-NOTRACK      0.1762   -0.0205   -10.7%  13/14     0.0018
+  T-PHIONLY         0.1945   +0.0013    +0.7%   5/14     0.4240
+  T-WONLY           0.2153   +0.0106    +5.6%   1/14     0.0018
+  T-EARLY20         0.1860   -0.0123    -6.4%  13/14     0.0018
+  T-K4REF           0.2031   -0.0017    -0.7%   7/14     1.0000
+
+--- BLOCK C (CROWDED16) | REF = AUTO-NOTRACK | n=14  ---
+  cell            medOfMed      medΔ    Δrel%    wins   p(sign)
+  AUTO              0.1974   +0.0205   +10.7%   1/14     0.0018
+  AUTO-DUP          0.1974   +0.0205   +10.7%   1/14     0.0018
+  T-PHIONLY         0.1945   +0.0225   +11.6%   0/14     0.0001
+  T-WONLY           0.2153   +0.0363   +18.9%   0/14     0.0001
+  T-EARLY20         0.1860   +0.0060    +3.3%   4/14     0.1796
+  T-K4REF           0.2031   +0.0177    +8.1%   2/14     0.0129
+
+  recovery R = med(Δcell-AUTO)/med(Δnotrack-AUTO)   [DESCRIPTIVE ONLY]
+     AUTO-NOTRACK   R =  100.0% of the NOTRACK floor
+     T-PHIONLY      R =   -6.4% of the NOTRACK floor
+     T-WONLY        R =  -51.8% of the NOTRACK floor
+     T-EARLY20      R =   60.1% of the NOTRACK floor
+     T-K4REF        R =    8.2% of the NOTRACK floor
+
+  --- transparency: SAME SCORING on the FULL block (n=16, no exclusion) ---
+
+--- BLOCK C (CROWDED16) [unexcluded] | REF = AUTO | n=16  ---
+  cell            medOfMed      medΔ    Δrel%    wins   p(sign)
+  AUTO-DUP          0.1987   +0.0000    +0.0%   0/16     0.0000
+  AUTO-NOTRACK      0.1766   -0.0209   -10.7%  15/16     0.0005
+  T-PHIONLY         0.2078   +0.0013    +0.7%   6/16     0.4545
+  T-WONLY           0.2202   +0.0135    +6.0%   1/16     0.0005
+  T-EARLY20         0.1886   -0.0154    -7.8%  15/16     0.0005
+  T-K4REF           0.2075   +0.0022    +1.2%   7/16     0.8036
+
+--- BLOCK C (CROWDED16) [unexcluded] | REF = AUTO-NOTRACK | n=16  ---
+  cell            medOfMed      medΔ    Δrel%    wins   p(sign)
+  AUTO              0.1987   +0.0209   +10.7%   1/16     0.0005
+  AUTO-DUP          0.1987   +0.0209   +10.7%   1/16     0.0005
+  T-PHIONLY         0.2078   +0.0223   +10.5%   0/16     0.0000
+  T-WONLY           0.2202   +0.0363   +18.9%   0/16     0.0000
+  T-EARLY20         0.1886   +0.0060    +3.2%   4/16     0.0768
+  T-K4REF           0.2075   +0.0216   +11.1%   2/16     0.0042
+
+==============================================================================
+=== BLOCK C -- CONFIG-LEVEL FOLD (n=4).  floor p=0.125 => NO "significant" ===
+  [fold-delta]
+  cell            vs AUTO medΔ   wins |  vs FLOOR medΔ   wins
+  AUTO-DUP             +0.0000   0/4  |        +0.0222   0/4 
+  AUTO-NOTRACK         -0.0222   4/4  |        +0.0000   0/4 
+  T-PHIONLY            +0.0014   2/4  |        +0.0234   0/4 
+  T-WONLY              +0.0095   0/4  |        +0.0348   0/4 
+  T-EARLY20            -0.0135   4/4  |        +0.0077   0/4 
+  T-K4REF              -0.0042   3/4  |        +0.0204   0/4 
+  [fold-level]
+  cell            vs AUTO medΔ   wins |  vs FLOOR medΔ   wins
+  AUTO-DUP             +0.0000   0/4  |        +0.0211   0/4 
+  AUTO-NOTRACK         -0.0211   4/4  |        +0.0000   0/4 
+  T-PHIONLY            +0.0070   1/4  |        +0.0262   0/4 
+  T-WONLY              +0.0130   0/4  |        +0.0337   0/4 
+  T-EARLY20            -0.0124   4/4  |        +0.0086   0/4 
+  T-K4REF              -0.0028   3/4  |        +0.0183   0/4 
+
+==============================================================================
+=== BLOCK C -- PANEL (sec.4.4 directions), REF=AUTO, null-excluded ===
+  [Pearson_rho]  (good = Δ>0)
+     AUTO-DUP       medΔ= +0.0000 wins=  0/14  p=0.0001
+     AUTO-NOTRACK   medΔ= +0.0831 wins= 12/14  p=0.0129
+     T-PHIONLY      medΔ= -0.0076 wins=  7/14  p=1.0000
+     T-WONLY        medΔ= -0.0216 wins=  3/14  p=0.0574
+     T-EARLY20      medΔ= +0.0394 wins= 12/14  p=0.0129
+     T-K4REF        medΔ= +0.0398 wins= 12/14  p=0.0129
+  [absVR_framewise]  (good = Δ<0)
+     AUTO-DUP       medΔ= +0.0000 wins=  0/14  p=0.0001
+     AUTO-NOTRACK   medΔ= -0.0764 wins=  8/14  p=0.7905
+     T-PHIONLY      medΔ= -0.0325 wins=  8/14  p=0.7905
+     T-WONLY        medΔ= -0.0650 wins= 11/14  p=0.0574
+     T-EARLY20      medΔ= +0.0190 wins=  5/14  p=0.4240
+     T-K4REF        medΔ= -0.1923 wins= 12/14  p=0.0129
+  [m_mean]  (good = Δ<0)
+     AUTO-DUP       medΔ= +0.0000 wins=  0/14  p=0.0001
+     AUTO-NOTRACK   medΔ= -0.1402 wins= 13/14  p=0.0018
+     T-PHIONLY      medΔ= +0.0099 wins=  5/14  p=0.4240
+     T-WONLY        medΔ= +0.0904 wins=  0/14  p=0.0001
+     T-EARLY20      medΔ= -0.0754 wins= 13/14  p=0.0018
+     T-K4REF        medΔ= -0.0160 wins=  7/14  p=1.0000
+  [decorr_mean]  (good = Δ<0)
+     AUTO-DUP       medΔ= +0.0000 wins=  0/14  p=0.0001
+     AUTO-NOTRACK   medΔ= -0.1191 wins= 12/14  p=0.0129
+     T-PHIONLY      medΔ= +0.0057 wins=  7/14  p=1.0000
+     T-WONLY        medΔ= +0.0262 wins=  4/14  p=0.1796
+     T-EARLY20      medΔ= -0.0580 wins= 12/14  p=0.0129
+     T-K4REF        medΔ= -0.0477 wins= 12/14  p=0.0129
+  [shrink_mean]  (good = Δ<0)
+     AUTO-DUP       medΔ= +0.0000 wins=  0/14  p=0.0001
+     AUTO-NOTRACK   medΔ= -0.0267 wins= 10/14  p=0.1796
+     T-PHIONLY      medΔ= +0.0093 wins=  6/14  p=0.7905
+     T-WONLY        medΔ= +0.0781 wins=  0/14  p=0.0001
+     T-EARLY20      medΔ= -0.0374 wins= 14/14  p=0.0001
+     T-K4REF        medΔ= +0.0418 wins=  1/14  p=0.0018
+
+==============================================================================
+=== sec.5 VERDICT (frozen rules) ===
+  n=14, wins needed for two-sided p<=0.05 : 12
+  A (beats shipped tracker): medΔ=+0.0013 wins=5/14 p=0.4240 -> False
+  B (reaches the floor)    : medΔ(vs NOTRACK)=+0.0225 wins=0/14 (NOTRACK wins 14) p=0.0001 -> False
+  PRIMARY VERDICT (T-PHIONLY, BLOCK C): **FAIL**
+
+  --- D1 (diagnosis falsification test) ---
+     diagnosis predicted the AMPLITUDE channel carries the damage,
+     i.e. |Δ(T-PHIONLY-AUTO)| > |Δ(T-WONLY-AUTO)|
+     measured: T-PHIONLY +0.0013  vs  T-WONLY +0.0106
+     -> D1 REFUTED
+     paired head-to-head T-PHIONLY vs T-WONLY: medΔ=-0.0110 wins=11/14 p=0.0574
+
+  --- D2 (monotone accumulation) ---
+     T-EARLY20 Δ=-0.0123; AUTO=0.0000, floor=-0.0205
+     between? YES  (R=60.1%)
+
+==============================================================================
+
+=== sec.4 NULL RULES on BLOCK S (SPARSE8) ===
+  episode                       null     AUTO  excluded?
+  BF2_1comp_seed0_uniform     0.2500   0.0225  
+  BF3_1comp_seed0_uniform     0.2500   0.0075  
+  BF3_2comp_seed0_uniform     0.2500   0.0134  
+  BF3_2comp_seed0_slope       0.2500   0.0082  
+  BF3_5comp_seed0_uniform     0.2501   0.0427  
+  BF3_5comp_seed0_slope       0.2501   0.0373  
+  BF4_1comp_seed0_uniform     0.2500   0.0035  
+  BF4_5comp_seed0_uniform     0.2498   0.0339  
+  -> excluded 0/8: []
+  block null median = 0.2500
+  (b) cell-level NULL-FAILING check (medOfMed nRMSE >= block null median):
+     AUTO           medOfMed=0.0180 
+     AUTO-DUP       medOfMed=0.0180 
+     AUTO-NOTRACK   medOfMed=0.0108 
+     T-PHIONLY      medOfMed=0.0124 
+     T-WONLY        medOfMed=0.0138 
+     T-EARLY20      medOfMed=0.0145 
+     T-K4REF        medOfMed=0.0120 
+
+==============================================================================
+=== BLOCK S (SPARSE8) -- PRIMARY (null-excluded, n=8) ===
+
+--- BLOCK S (SPARSE8) | REF = AUTO | n=8  ---
+  cell            medOfMed      medΔ    Δrel%    wins   p(sign)
+  AUTO-DUP          0.0180   +0.0000    +0.0%   0/8      0.0078
+  AUTO-NOTRACK      0.0108   -0.0020    -8.8%   6/8      0.2891
+  T-PHIONLY         0.0124   -0.0013    -6.2%   6/8      0.2891
+  T-WONLY           0.0138   -0.0011    -9.5%   7/8      0.0703
+  T-EARLY20         0.0145   -0.0014    -5.9%   6/8      0.2891
+  T-K4REF           0.0120   -0.0024   -18.8%   8/8      0.0078
+
+--- BLOCK S (SPARSE8) | REF = AUTO-NOTRACK | n=8  ---
+  cell            medOfMed      medΔ    Δrel%    wins   p(sign)
+  AUTO              0.0180   +0.0020    +8.8%   2/8      0.2891
+  AUTO-DUP          0.0180   +0.0020    +8.8%   2/8      0.2891
+  T-PHIONLY         0.0124   +0.0006    +4.7%   2/8      0.2891
+  T-WONLY           0.0138   +0.0004    +3.4%   3/8      0.7266
+  T-EARLY20         0.0145   +0.0002    +2.4%   2/8      0.2891
+  T-K4REF           0.0120   -0.0000    -5.7%   4/8      1.0000
+
+  recovery R = med(Δcell-AUTO)/med(Δnotrack-AUTO)   [DESCRIPTIVE ONLY]
+     AUTO-NOTRACK   R =  100.0% of the NOTRACK floor
+     T-PHIONLY      R =   68.0% of the NOTRACK floor
+     T-WONLY        R =   53.9% of the NOTRACK floor
+     T-EARLY20      R =   71.6% of the NOTRACK floor
+     T-K4REF        R =  123.6% of the NOTRACK floor

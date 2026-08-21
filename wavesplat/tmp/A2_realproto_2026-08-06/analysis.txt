@@ -1,0 +1,79 @@
+================================================================================================
+A2 — real-data comparison protocol hygiene.  Frozen convention: PREREG.md (2026-08-06)
+hand seeds [42, 1042, 2042] (shipping median-of-3), 30 windows, wall 406.1s
+================================================================================================
+
+[0] REPRODUCTION CONTROL — FF_exact vs wp_real.json:hand_now
+  max |delta| over 30 windows = 0.000e+00   (PASS)
+
+[1] FLAT-SEA NULL (obligatory)  null_zero = ||gt0||/sg,  null_mean = ||gt0-mu||/sg
+  null_zero over 30 windows: median 0.9476 range [0.7359,1.2310]
+  null_mean over 30 windows: median 0.9476 range [0.7364,1.2310]
+  FF      fails null:  4/30  (of which in S1: 2)  YS17_w5 AA14_w0 LJ18g_w0 LJ18g_w3
+  BF      fails null:  3/30  (of which in S1: 2)  LJ18g_w0 LJ18g_w1 LJ18g_w3
+  FB      fails null:  4/30  (of which in S1: 2)  YS17_w5 AA14_w0 LJ18g_w0 LJ18g_w3
+  BB      fails null:  5/30  (of which in S1: 4)  YS17_w5 LJ18g_w0 LJ18g_w1 LJ18g_w3 LJ18g_w4
+  BB400   fails null:  3/30  (of which in S1: 2)  LJ18g_w0 LJ18g_w2 LJ18g_w3
+  learned fails null:  7/30  (of which in S1: 6)  YS17_w2 YS17_w4 YS17_w5 AA15a_w0 LJ18g_w0 LJ18g_w3 LJ18g_w4
+  S2 (all arms of all cells beat null_zero, within S1) : n=19
+
+[2] PRIMARY — paired Delta = nRMSE(hand,cell) - nRMSE(learned); + = learned better
+    decision set S1 = 27 normal windows (wp_real frozen exclusion)
+  --- cell FF  (hand median 0.7356 | learned median 0.8361)
+  Delta_FF (S1,n=27)                 median -0.0635  mean -0.0618  learned better 6/27  wilcoxon p=0.003878  sign p=0.005925  rb=-0.619
+  --- cell BF  (hand median 0.7753 | learned median 0.8361)
+  Delta_BF (S1,n=27)                 median -0.0396  mean -0.0445  learned better 7/27  wilcoxon p=0.03621  sign p=0.01916  rb=-0.460
+  --- cell FB  (hand median 0.7348 | learned median 0.8361)
+  Delta_FB (S1,n=27)                 median -0.0565  mean -0.0681  learned better 6/27  wilcoxon p=0.0009199  sign p=0.005925  rb=-0.698
+  --- cell BB  (hand median 0.7779 | learned median 0.8361)
+  Delta_BB (S1,n=27)                 median -0.0338  mean -0.0359  learned better 8/27  wilcoxon p=0.1004  sign p=0.05224  rb=-0.365
+  --- cell BB400  (hand median 0.7505 | learned median 0.8361)
+  Delta_BB400 (S1,n=27)              median -0.0345  mean -0.0522  learned better 10/27  wilcoxon p=0.05208  sign p=0.2478  rb=-0.429
+
+  wp_real published arm cross-check (learned vs wp_real hand_now, S1):
+  Delta_wp_real (S1,n=27)            median -0.0571  mean -0.0611  learned better 6/27  wilcoxon p=0.004613  sign p=0.005925  rb=-0.608
+
+  same on S2 (null-passing subset):
+  Delta_FF (S2,n=19)                 median -0.0566  mean -0.0505  learned better 5/19  wilcoxon p=0.02299  sign p=0.06357  rb=-0.589
+  Delta_BF (S2,n=19)                 median -0.0335  mean -0.0426  learned better 5/19  wilcoxon p=0.04456  sign p=0.06357  rb=-0.526
+  Delta_FB (S2,n=19)                 median -0.0565  mean -0.0500  learned better 5/19  wilcoxon p=0.02299  sign p=0.06357  rb=-0.589
+  Delta_BB (S2,n=19)                 median -0.0338  mean -0.0436  learned better 5/19  wilcoxon p=0.04013  sign p=0.06357  rb=-0.537
+  Delta_BB400 (S2,n=19)              median -0.0219  mean -0.0350  learned better 8/19  wilcoxon p=0.1336  sign p=0.6476  rb=-0.400
+
+  collapse windows (excluded from decision, reported separately):
+    AA14_w0  null0 1.088 | FF 1.268 BF 0.842 FB 1.270 BB 0.843 BB400 0.846 | learned 1.071
+    AA15a_w3  null0 0.897 | FF 0.780 BF 0.845 FB 0.783 BB 0.850 BB400 0.763 | learned 0.791
+    LJ18g_w3  null0 0.736 | FF 2.963 BF 1.226 FB 2.818 BB 1.168 BB400 1.044 | learned 0.961
+
+[3] KNOB SEPARATION (paired per-window, then median). + = WORSE (higher nRMSE)
+    NOTE: FF is a BUNDLED cell (both GT knobs ON simultaneously).
+  E_kp | sigma=GT  (BF-FF)           median +0.0026  mean +0.0173  worse 16/27  wilcoxon p=0.2109  sign p=0.4421  rb=+0.280
+  E_kp | sigma=obs (BB-FB)           median -0.0004  mean +0.0322  worse 13/27  wilcoxon p=0.3361  sign p=1  rb=+0.217
+  E_sigma | kp=GT   (FB-FF)          median +0.0001  mean -0.0063  worse 14/27  wilcoxon p=0.3735  sign p=1  rb=+0.201
+  E_sigma | kp=None (BB-BF)          median +0.0010  mean +0.0086  worse 17/27  wilcoxon p=0.2109  sign p=0.2478  rb=+0.280
+  Interaction (BB-FB)-(BF-FF)        median +0.0002  mean +0.0149  super-add 15/27  wilcoxon p=0.427  sign p=0.7011  rb=+0.180
+  BUNDLE  (BB-FF)                    median +0.0025  mean +0.0259  worse 16/27  wilcoxon p=0.2584  sign p=0.4421  rb=+0.254
+  additive pred (BF-FF)+(FB-FF)      median +0.0061  mean +0.0110  worse 16/27  wilcoxon p=0.3865  sign p=0.4421  rb=+0.196
+  obs budget 600->400 (BB400-BB)     median +0.0004  mean -0.0164  worse 14/27  wilcoxon p=0.8779  sign p=1  rb=-0.037
+
+[4] PER-RECORD (descriptive only; two-sided sign-test floor p: n=5 -> 0.0625, n=6 -> 0.03125)
+  rec      n                FF                BB             BB400
+  YS17     6  med-0.1184(0/6) med-0.1232(0/6) med-0.1172(0/6)
+  AA15a    5  med-0.0067(2/5) med+0.0075(3/5) med+0.0320(4/5)
+  AA14     5  med+0.0123(3/5) med-0.0298(1/5) med-0.0219(2/5)
+  AA15b    6  med-0.0554(0/6) med-0.0287(1/6) med-0.0270(2/6)
+  LJ18g    5  med-0.0635(1/5) med+0.1140(3/5) med-0.0215(2/5)
+
+[5] POWER / MDE
+  n=27: two-sided sign test needs >= 20/27 wins for p<0.05 (floor p = 1.49e-08)
+  n=19: two-sided sign test needs >= 15/19 wins for p<0.05 (floor p = 3.81e-06)
+  MDE (80% power, two-sided Wilcoxon p<0.05, bootstrap of BB paired deltas): +0.0650 nRMSE
+  observed |median Delta_BB| = 0.0338
+
+[6] GAP CLOSURE (secondary, not a decision rule)
+  median gap (learned-hand): FF +0.0635 -> BB +0.0338  closure +46.8%
+  incl. obs budget:          FF +0.0635 -> BB400 +0.0345  closure +45.7%
+
+[7] VERDICT under frozen rule (PREREG section 4), decided on cell BB / S1
+  median Delta_BB = -0.0338, wilcoxon p = 0.1004  ==>  HOLD
+  (BB400 secondary: median -0.0345, p 0.05208 ==> HOLD)

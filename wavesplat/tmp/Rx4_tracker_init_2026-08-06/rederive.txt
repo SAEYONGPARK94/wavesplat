@@ -1,0 +1,82 @@
+records=504  crowded=16  sparse=8
+
+### null exclusion (control cell AUTO, episode median >= episode null) ###
+  kept 14  dropped 2: ['BF4_30comp_seed1', 'BF4_30comp_seed2']
+
+### BLOCK C (crowded, null-excluded): levels and paired deltas ###
+  cell            medOfMed |   vs AUTO     k/n        p |  vs FLOOR     k/n        p
+  AUTO              0.1974 |   +0.0000   0/14    0.0001 |   +0.0205   1/14    0.0018
+  AUTO-DUP          0.1974 |   +0.0000   0/14    0.0001 |   +0.0205   1/14    0.0018
+  AUTO-NOTRACK      0.1762 |   -0.0205  13/14    0.0018 |   +0.0000   0/14    0.0001
+  T-EARLY20         0.1860 |   -0.0123  13/14    0.0018 |   +0.0060   4/14    0.1796
+  T-K4REF           0.2031 |   -0.0017   7/14    1.0000 |   +0.0177   2/14    0.0129
+  T-PHIONLY         0.1945 |   +0.0013   5/14    0.4240 |   +0.0225   0/14    0.0001
+  T-WONLY           0.2153 |   +0.0106   1/14    0.0018 |   +0.0363   0/14    0.0001
+
+### recovery vs the NOTRACK floor (descriptive) ###
+  AUTO-NOTRACK   R =  100.0%
+  T-EARLY20      R =   60.1%
+  T-K4REF        R =    8.2%
+  T-PHIONLY      R =   -6.4%
+  T-WONLY        R =  -51.8%
+
+### D1 head-to-head: T-PHIONLY vs T-WONLY (paired, crowded, null-excluded) ###
+  medΔ=-0.0110  T-PHIONLY wins 11/14  p=0.0574
+
+### BLOCK S (sparse/mid), null exclusion + paired deltas ###
+  kept 8/8; dropped []
+  cell            medOfMed |   vs AUTO     k/n        p
+  AUTO              0.0180 |   +0.0000   0/8     0.0078
+  AUTO-DUP          0.0180 |   +0.0000   0/8     0.0078
+  AUTO-NOTRACK      0.0108 |   -0.0020   6/8     0.2891
+  T-EARLY20         0.0145 |   -0.0014   6/8     0.2891
+  T-K4REF           0.0120 |   -0.0024   8/8     0.0078
+  T-PHIONLY         0.0124 |   -0.0013   6/8     0.2891
+  T-WONLY           0.0138 |   -0.0011   7/8     0.0703
+
+### panel (crowded, null-excluded, vs AUTO) ###
+  [Pearson_rho]
+     AUTO-DUP       medΔ= +0.0000 good=  0/14  p=0.0001
+     AUTO-NOTRACK   medΔ= +0.0831 good= 12/14  p=0.0129
+     T-EARLY20      medΔ= +0.0394 good= 12/14  p=0.0129
+     T-K4REF        medΔ= +0.0398 good= 12/14  p=0.0129
+     T-PHIONLY      medΔ= -0.0076 good=  7/14  p=1.0000
+     T-WONLY        medΔ= -0.0216 good=  3/14  p=0.0574
+  [absVR_framewise]
+     AUTO-DUP       medΔ= +0.0000 good=  0/14  p=0.0001
+     AUTO-NOTRACK   medΔ= -0.0764 good=  8/14  p=0.7905
+     T-EARLY20      medΔ= +0.0190 good=  5/14  p=0.4240
+     T-K4REF        medΔ= -0.1923 good= 12/14  p=0.0129
+     T-PHIONLY      medΔ= -0.0325 good=  8/14  p=0.7905
+     T-WONLY        medΔ= -0.0650 good= 11/14  p=0.0574
+  [m_mean]
+     AUTO-DUP       medΔ= +0.0000 good=  0/14  p=0.0001
+     AUTO-NOTRACK   medΔ= -0.1402 good= 13/14  p=0.0018
+     T-EARLY20      medΔ= -0.0754 good= 13/14  p=0.0018
+     T-K4REF        medΔ= -0.0160 good=  7/14  p=1.0000
+     T-PHIONLY      medΔ= +0.0099 good=  5/14  p=0.4240
+     T-WONLY        medΔ= +0.0904 good=  0/14  p=0.0001
+  [decorr_mean]
+     AUTO-DUP       medΔ= +0.0000 good=  0/14  p=0.0001
+     AUTO-NOTRACK   medΔ= -0.1191 good= 12/14  p=0.0129
+     T-EARLY20      medΔ= -0.0580 good= 12/14  p=0.0129
+     T-K4REF        medΔ= -0.0477 good= 12/14  p=0.0129
+     T-PHIONLY      medΔ= +0.0057 good=  7/14  p=1.0000
+     T-WONLY        medΔ= +0.0262 good=  4/14  p=0.1796
+  [shrink_mean]
+     AUTO-DUP       medΔ= +0.0000 good=  0/14  p=0.0001
+     AUTO-NOTRACK   medΔ= -0.0267 good= 10/14  p=0.1796
+     T-EARLY20      medΔ= -0.0374 good= 14/14  p=0.0001
+     T-K4REF        medΔ= +0.0418 good=  1/14  p=0.0018
+     T-PHIONLY      medΔ= +0.0093 good=  6/14  p=0.7905
+     T-WONLY        medΔ= +0.0781 good=  0/14  p=0.0001
+
+### final-init (does the intervention still degrade the initialisation?) ###
+  cell              med(final-init) crowded
+  AUTO                               0.0139
+  AUTO-DUP                           0.0139
+  AUTO-NOTRACK                      -0.0083
+  T-EARLY20                          0.0003
+  T-K4REF                            0.0135
+  T-PHIONLY                          0.0146
+  T-WONLY                            0.0385

@@ -1,0 +1,163 @@
+== B3 results.jsonl: 216 ok, 0 errors, cells ['AUTO', 'AUTO-DUP', 'AUTO-K4', 'AUTO-K6', 'AUTO-K7', 'AUTO-NOTRACK'], seeds [1521, 1522, 1523]
+
+==============================================================================
+INTEGRITY CHECK (PREREG sec.4): Phase-1 quantities must be IDENTICAL across the
+six cells for the same (episode, seed).  A mismatch VOIDS that cell.
+==============================================================================
+  init_nrmse       mismatches: 0
+  auto_selected    mismatches: 0
+  auto_n_selected  mismatches: 0
+  ensemble_k       mismatches: 0
+  N                mismatches: 0
+  ==> VOIDED cells: NONE (all six agree)
+
+-- AUTO router record (PREREG sec.2: AUTO is a ROUTER, not one estimator) --
+  BF2_1comp_seed0_uniform          route=['v2_konly', 'v2_konly', 'v2_konly'] n_sel=[7, 5, 4] ens_k=[3, 3, 3]
+  BF3_1comp_seed0_uniform          route=['v2_konly', 'v2_konly', 'v2_konly'] n_sel=[4, 4, 2] ens_k=[3, 3, 3]
+  BF3_2comp_seed0_uniform          route=['v2_konly', 'v2_konly', 'v2_konly'] n_sel=[4, 1, 4] ens_k=[3, 3, 3]
+  BF3_2comp_seed0_slope            route=['v2_konly', 'v2_konly', 'v2_konly'] n_sel=[7, 4, 5] ens_k=[3, 3, 3]
+  BF4_1comp_seed0_uniform          route=['v2_konly', 'v2_konly', 'v2_konly'] n_sel=[2, 4, 5] ens_k=[3, 3, 3]
+  BF3_5comp_seed0_uniform          route=['learned', 'v2_konly', 'v2_konly'] n_sel=[9, 7, 6] ens_k=[1, 3, 3]
+  BF3_5comp_seed0_slope            route=['learned', 'learned', 'v2_konly'] n_sel=[13, 10, 7] ens_k=[1, 1, 3]
+  BF4_5comp_seed0_uniform          route=['learned', 'learned', 'learned'] n_sel=[20, 13, 10] ens_k=[1, 1, 1]
+  BF4_15comp_seed0_uniform         route=['learned', 'learned', 'learned'] n_sel=[13, 11, 9] ens_k=[1, 1, 1]
+  BF4_30comp_seed0_uniform         route=['learned', 'learned', 'learned'] n_sel=[12, 12, 12] ens_k=[1, 1, 1]
+  BF5_15comp_seed0_uniform         route=['learned', 'learned', 'v2_konly'] n_sel=[14, 13, 7] ens_k=[1, 1, 3]
+  BF5_30comp_seed0_uniform         route=['learned', 'learned', 'learned'] n_sel=[19, 22, 23] ens_k=[1, 1, 1]
+
+==============================================================================
+FLAT-SEA NULL SCREEN (PREREG sec.4).  (a) episode excluded iff CONTROL AUTO's
+episode-median nRMSE >= that episode's null.  (b) cell flagged NULL-FAILING iff
+its block medOfMed >= the block's median null.
+==============================================================================
+episode                                null     AUTO       m  keep?
+  BF2_1comp_seed0_uniform            0.2500   0.0312   0.016  KEEP
+  BF3_1comp_seed0_uniform            0.2500   0.0094   0.001  KEEP
+  BF3_2comp_seed0_uniform            0.2500   0.0092   0.001  KEEP
+  BF3_2comp_seed0_slope              0.2500   0.0088   0.001  KEEP
+  BF4_1comp_seed0_uniform            0.2500   0.0054   0.000  KEEP
+  BF3_5comp_seed0_uniform            0.2501   0.0408   0.027  KEEP
+  BF3_5comp_seed0_slope              0.2501   0.0426   0.029  KEEP
+  BF4_5comp_seed0_uniform            0.2498   0.0428   0.030  KEEP
+  BF4_15comp_seed0_uniform           0.2533   0.2081   0.676  KEEP
+  BF4_30comp_seed0_uniform           0.2736   0.2777   1.045  *** DROP ***
+  BF5_15comp_seed0_uniform           0.2388   0.1682   0.506  KEEP
+  BF5_30comp_seed0_uniform           0.2732   0.2515   0.858  KEEP
+
+  kept 11/12; dropped: ['BF4_30comp_seed0_uniform']
+
+------------------------------------------------------------------------------
+BLOCK ALL-12  [ALL EPISODES (unfiltered)]  n=12  median flat-sea null = 0.2500   MDE80=0.0134
+------------------------------------------------------------------------------
+cell            medOfMed   vsNULL |    dNRMSE    k/n        p     dRel |     drho   d|VR-1|       dm  ddecorr  dshrink
+AUTO              0.0417     PASS | (control)
+AUTO-DUP          0.0417     PASS |   +0.0000   0/12   0.0005   +0.00% |  +0.0000  +0.0000  +0.0000  +0.0000  +0.0000
+AUTO-NOTRACK      0.0353     PASS |   -0.0064  11/12   0.0063  -17.95% |  +0.0028  -0.0089  -0.0082  -0.0055  -0.0000
+AUTO-K6           0.0350     PASS |   -0.0016   9/12   0.1460  -10.66% |  +0.0012  -0.0079  -0.0009  -0.0023  -0.0000
+AUTO-K7           0.0369     PASS |   -0.0039  12/12   0.0005  -10.75% |  +0.0016  -0.0063  -0.0043  -0.0032  -0.0001
+AUTO-K4           0.0351     PASS |   -0.0032  11/12   0.0063  -13.02% |  +0.0002  -0.0476  -0.0022  -0.0005  -0.0003
+   per-episode Delta(AUTO-NOTRACK - AUTO) nRMSE:
+      BF2_1comp_seed0_uniform          +0.0047
+      BF3_1comp_seed0_uniform          -0.0018
+      BF3_2comp_seed0_uniform          -0.0025
+      BF3_2comp_seed0_slope            -0.0021
+      BF4_1comp_seed0_uniform          -0.0001
+      BF3_5comp_seed0_uniform          -0.0146
+      BF3_5comp_seed0_slope            -0.0045
+      BF4_5comp_seed0_uniform          -0.0082
+      BF4_15comp_seed0_uniform         -0.0329
+      BF4_30comp_seed0_uniform         -0.0497
+      BF5_15comp_seed0_uniform         -0.0228
+      BF5_30comp_seed0_uniform         -0.0453
+
+------------------------------------------------------------------------------
+BLOCK ALL-12  [NULL-SCREENED]  n=11  median flat-sea null = 0.2500   MDE80=0.0134
+------------------------------------------------------------------------------
+cell            medOfMed   vsNULL |    dNRMSE    k/n        p     dRel |     drho   d|VR-1|       dm  ddecorr  dshrink
+AUTO              0.0408     PASS | (control)
+AUTO-DUP          0.0408     PASS |   +0.0000   0/11   0.0010   +0.00% |  +0.0000  +0.0000  +0.0000  +0.0000  +0.0000
+AUTO-NOTRACK      0.0346     PASS |   -0.0045  10/11   0.0117  -18.00% |  +0.0019  -0.0085  -0.0059  -0.0037  +0.0000
+AUTO-K6           0.0319     PASS |   -0.0016   8/11   0.2266  -10.80% |  +0.0003  -0.0044  -0.0005  -0.0005  +0.0000
+AUTO-K7           0.0360     PASS |   -0.0029  11/11   0.0010  -11.61% |  +0.0009  -0.0056  -0.0029  -0.0017  -0.0001
+AUTO-K4           0.0289     PASS |   -0.0030  10/11   0.0117  -15.02% |  +0.0002  -0.0352  -0.0022  -0.0004  -0.0003
+   per-episode Delta(AUTO-NOTRACK - AUTO) nRMSE:
+      BF2_1comp_seed0_uniform          +0.0047
+      BF3_1comp_seed0_uniform          -0.0018
+      BF3_2comp_seed0_uniform          -0.0025
+      BF3_2comp_seed0_slope            -0.0021
+      BF4_1comp_seed0_uniform          -0.0001
+      BF3_5comp_seed0_uniform          -0.0146
+      BF3_5comp_seed0_slope            -0.0045
+      BF4_5comp_seed0_uniform          -0.0082
+      BF4_15comp_seed0_uniform         -0.0329
+      BF5_15comp_seed0_uniform         -0.0228
+      BF5_30comp_seed0_uniform         -0.0453
+
+------------------------------------------------------------------------------
+BLOCK crowded 15-30c  [ALL EPISODES (unfiltered)]  n=4  median flat-sea null = 0.2633   MDE80=0.0329
+------------------------------------------------------------------------------
+cell            medOfMed   vsNULL |    dNRMSE    k/n        p     dRel |     drho   d|VR-1|       dm  ddecorr  dshrink
+AUTO              0.2298     PASS | (control)
+AUTO-DUP          0.2298     PASS |   +0.0000   0/4    0.1250   +0.00% |  +0.0000  +0.0000  +0.0000  +0.0000  +0.0000
+AUTO-NOTRACK      0.1907     PASS |   -0.0391   4/4    0.1250  -16.86% |  +0.2331  -0.4233  -0.2421  -0.2370  +0.0120
+AUTO-K6           0.2014     PASS |   -0.0275   3/4    0.6250  -11.43% |  +0.1489  -0.2465  -0.1776  -0.1505  +0.0085
+AUTO-K7           0.2037     PASS |   -0.0222   4/4    0.1250   -9.00% |  +0.1031  -0.1699  -0.1482  -0.1069  -0.0019
+AUTO-K4           0.2003     PASS |   -0.0282   4/4    0.1250  -13.02% |  +0.1557  -0.3352  -0.1687  -0.2156  +0.0470
+   per-episode Delta(AUTO-NOTRACK - AUTO) nRMSE:
+      BF4_15comp_seed0_uniform         -0.0329
+      BF4_30comp_seed0_uniform         -0.0497
+      BF5_15comp_seed0_uniform         -0.0228
+      BF5_30comp_seed0_uniform         -0.0453
+
+------------------------------------------------------------------------------
+BLOCK crowded 15-30c  [NULL-SCREENED]  n=3  median flat-sea null = 0.2533   MDE80=0.0329
+------------------------------------------------------------------------------
+cell            medOfMed   vsNULL |    dNRMSE    k/n        p     dRel |     drho   d|VR-1|       dm  ddecorr  dshrink
+AUTO              0.2081     PASS | (control)
+AUTO-DUP          0.2081     PASS |   +0.0000   0/3    0.2500   +0.00% |  +0.0000  +0.0000  +0.0000  +0.0000  +0.0000
+AUTO-NOTRACK      0.1751     PASS |   -0.0329   3/3    0.2500  -15.83% |  +0.1737  -0.4347  -0.1986  -0.2253  +0.0183
+AUTO-K6           0.1823     PASS |   -0.0257   2/3    1.0000  -12.34% |  +0.1252  -0.2540  -0.1567  -0.1609  +0.0129
+AUTO-K7           0.1912     PASS |   -0.0169   3/3    0.2500   -8.12% |  +0.0829  -0.2189  -0.1041  -0.1085  +0.0010
+AUTO-K4           0.1768     PASS |   -0.0288   3/3    0.2500  -15.02% |  +0.1761  -0.3841  -0.1794  -0.2290  +0.0504
+   per-episode Delta(AUTO-NOTRACK - AUTO) nRMSE:
+      BF4_15comp_seed0_uniform         -0.0329
+      BF5_15comp_seed0_uniform         -0.0228
+      BF5_30comp_seed0_uniform         -0.0453
+
+------------------------------------------------------------------------------
+BLOCK mid 5c  [ALL EPISODES (unfiltered)]  n=3  median flat-sea null = 0.2501   MDE80=0.0042
+------------------------------------------------------------------------------
+cell            medOfMed   vsNULL |    dNRMSE    k/n        p     dRel |     drho   d|VR-1|       dm  ddecorr  dshrink
+AUTO              0.0426     PASS | (control)
+AUTO-DUP          0.0426     PASS |   +0.0000   0/3    0.2500   +0.00% |  +0.0000  +0.0000  +0.0000  +0.0000  +0.0000
+AUTO-NOTRACK      0.0346     PASS |   -0.0082   3/3    0.2500  -19.18% |  +0.0037  -0.0092  -0.0104  -0.0073  -0.0007
+AUTO-K6           0.0382     PASS |   -0.0046   3/3    0.2500  -10.80% |  +0.0021  -0.0114  -0.0062  -0.0042  -0.0003
+AUTO-K7           0.0379     PASS |   -0.0048   3/3    0.2500  -11.61% |  +0.0024  -0.0056  -0.0058  -0.0047  -0.0003
+AUTO-K4           0.0413     PASS |   -0.0016   3/3    0.2500   -3.62% |  +0.0001  -0.0601  -0.0022  -0.0002  -0.0009
+   per-episode Delta(AUTO-NOTRACK - AUTO) nRMSE:
+      BF3_5comp_seed0_uniform          -0.0146
+      BF3_5comp_seed0_slope            -0.0045
+      BF4_5comp_seed0_uniform          -0.0082
+
+------------------------------------------------------------------------------
+BLOCK sparse 1-2c  [ALL EPISODES (unfiltered)]  n=5  median flat-sea null = 0.2500   MDE80=0.0014
+------------------------------------------------------------------------------
+cell            medOfMed   vsNULL |    dNRMSE    k/n        p     dRel |     drho   d|VR-1|       dm  ddecorr  dshrink
+AUTO              0.0092     PASS | (control)
+AUTO-DUP          0.0092     PASS |   +0.0000   0/5    0.0625   +0.00% |  +0.0000  +0.0000  +0.0000  +0.0000  +0.0000
+AUTO-NOTRACK      0.0067     PASS |   -0.0018   4/5    0.3750  -19.37% |  +0.0002  +0.0011  -0.0005  -0.0005  +0.0000
+AUTO-K6           0.0079     PASS |   -0.0005   3/5    1.0000   -5.45% |  +0.0001  -0.0018  -0.0001  -0.0001  +0.0000
+AUTO-K7           0.0072     PASS |   -0.0013   5/5    0.0625  -13.71% |  +0.0002  -0.0002  -0.0004  -0.0003  -0.0000
+AUTO-K4           0.0061     PASS |   -0.0027   4/5    0.3750  -30.47% |  +0.0001  -0.0226  -0.0007  -0.0002  -0.0003
+   per-episode Delta(AUTO-NOTRACK - AUTO) nRMSE:
+      BF2_1comp_seed0_uniform          +0.0047
+      BF3_1comp_seed0_uniform          -0.0018
+      BF3_2comp_seed0_uniform          -0.0025
+      BF3_2comp_seed0_slope            -0.0021
+      BF4_1comp_seed0_uniform          -0.0001
+
+==============================================================================
+PRE-REGISTERED VERDICT (PREREG sec.7) -- target = AUTO-NOTRACK vs AUTO
+==============================================================================
+  ALL-12           n=11  Delta_med=-0.0045  k=10/11  p=0.0117  MDE80=0.0134  |Delta|/MDE=0.34   ==> ***INCONCLUSIVE***
+  crowded 15-30c   n= 3  Delta_med=-0.0329  k=3/3  p=0.2500  MDE80=0.0329  |Delta|/MDE=1.00   ==> ***MATTERS***

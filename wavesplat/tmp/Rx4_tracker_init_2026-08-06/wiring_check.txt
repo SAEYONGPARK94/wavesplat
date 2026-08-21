@@ -1,0 +1,33 @@
+=== A. episode blocks ===
+  CROWDED16 n=16  ['BF4_15comp_seed0', 'BF4_15comp_seed1', 'BF4_15comp_seed2', 'BF4_15comp_seed3', 'BF4_30comp_seed0', 'BF4_30comp_seed1', 'BF4_30comp_seed2', 'BF4_30comp_seed3', 'BF5_15comp_seed0', 'BF5_15comp_seed1', 'BF5_15comp_seed2', 'BF5_15comp_seed3', 'BF5_30comp_seed0', 'BF5_30comp_seed1', 'BF5_30comp_seed2', 'BF5_30comp_seed3']
+  SPARSE8   n=8    ['BF2_1comp_seed0_uniform', 'BF3_1comp_seed0_uniform', 'BF3_2comp_seed0_uniform', 'BF3_2comp_seed0_slope', 'BF3_5comp_seed0_uniform', 'BF3_5comp_seed0_slope', 'BF4_1comp_seed0_uniform', 'BF4_5comp_seed0_uniform']
+  EPISODES (RX2_EPISODES=c16s8) n=24
+  SEEDS default = [1524, 1525, 1526]
+
+=== B. cell_config diff vs AUTO (must be exactly ONE knob per cell) ===
+  AUTO         cfg-diff={}  env={}  n_changes=0
+  AUTO-DUP     cfg-diff={}  env={}  n_changes=0
+  AUTO-NOTRACK cfg-diff={'tracking_lr': ('<absent>', 0.0)}  env={}  n_changes=1
+  T-PHIONLY    cfg-diff={'tracking_mode': ('<absent>', 'phi_only')}  env={}  n_changes=1
+  T-WONLY      cfg-diff={'tracking_mode': ('<absent>', 'w_only')}  env={}  n_changes=1
+  T-EARLY20    cfg-diff={'rx4_track_frames': ('<absent>', 20)}  env={}  n_changes=1
+  T-K4REF      cfg-diff={}  env={'RX1_PHASE2_NOREG': '1'}  n_changes=1
+
+=== C. _rx4_install: requires_grad per tracking_mode ===
+  tracking_mode=w_phi     requires_grad={'w': True, 'phi': True, 'kx': False, 'ky': False}  n_param_tensors=2 lrs=[0.005]
+  tracking_mode=phi_only  requires_grad={'w': False, 'phi': True, 'kx': False, 'ky': False}  n_param_tensors=1 lrs=[0.005]
+  tracking_mode=w_only    requires_grad={'w': True, 'phi': False, 'kx': False, 'ky': False}  n_param_tensors=1 lrs=[0.005]
+  tracking_mode=all       requires_grad={'w': True, 'phi': True, 'kx': True, 'ky': True}  n_param_tensors=4 lrs=[0.0025, 0.005]
+
+=== D. _rx4_install: rx4_track_frames zeroes the lrs from frame E on ===
+  after update #0: _rx4_n=1 lrs=[0.005]
+  after update #1: _rx4_n=2 lrs=[0.005]
+  after update #2: _rx4_n=3 lrs=[0.005]
+  after update #3: _rx4_n=4 lrs=[0.0]
+  after update #4: _rx4_n=5 lrs=[0.0]
+  after update #5: _rx4_n=6 lrs=[0.0]
+
+=== E. absent key => update() is the ORIGINAL function path ===
+  rx4_track_frames absent -> lrs unchanged: [0.005] -> [0.005]  _rx4_n attr set? False
+
+ALL STRUCTURAL CHECKS PASSED

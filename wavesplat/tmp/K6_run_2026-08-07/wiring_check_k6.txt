@@ -1,0 +1,16 @@
+=== wiring_check_k6 (2026-08-07, 사후 생성) ===
+⚠ PREREG §6.2 가 이 파일을 인용했으나 배치 실행 시점에 저장되지 않았다.
+  검사 자체는 실행 전에 대화형으로 수행했고, 결과 후 3에이전트가
+  results.jsonl 의 cfg 레코드로 각각 독립 재확인했다(전원 PASS).
+  이 파일은 그 기록을 남기기 위한 사후 생성물이며, 사전 증거가 아니다.
+
+  k 배치 요인                ORACLE-K   vs K6-NSCHED   n_changes=1  {'init_method': ('oracle', 'v2_konly')}
+  k 신뢰영역@오라클             ORACLE     vs ORACLE-K    n_changes=1  {'init_k_lr_scale': (0.0, '<absent>')}
+  신뢰영역@출하 0.3            AUTO       vs K6-KLR03    n_changes=1  {'init_k_lr_scale': ('<absent>', 0.3)}
+  신뢰영역@출하 0.1            AUTO       vs K6-KLR01    n_changes=1  {'init_k_lr_scale': ('<absent>', 0.1)}
+  신뢰영역@출하 0.0            AUTO       vs K6-KLR00    n_changes=1  {'init_k_lr_scale': ('<absent>', 0.0)}
+
+  대조 (묶음, 노브 1개 아님 -- 천장 표지 전용):
+    AUTO vs ORACLE: n_changes=6
+    AUTO vs ORACLE-K: n_changes=5
+    AUTO vs K6-NSCHED: n_changes=5

@@ -1,0 +1,33 @@
+AMENDMENT 1 F6 — spawn 워커 경로/셀 적용 측정
+부모 REPO = /home/vexit/wavesplat/wavesplat
+조립 셀 AUTO-G1P1 = {'cfg': {'init_method': 'auto', 'analytic_ensemble_k': 3}, 'krange': (-0.8, 0.8), 'env': {'RX2_GROW_SUBTRACT': '1'}}
+
+[X-BASE] pid=4539
+   워커가 본 R.DATA : /home/vexit/wavesplat/wavesplat  ✅
+   에피소드 열림     : True  ✅  (data_indep2_2026-08-07)
+   셀 안 env        : {'RX2_GROW_SUBTRACT': '0', 'RX2_GROW_RECOMPUTE': '0', 'RX2_GROW_TIGHT_SUPPRESS': '0', 'RX2_GROW_FITPHI': '0'}
+   undo 후 env      : {'RX2_GROW_SUBTRACT': '0', 'RX2_GROW_RECOMPUTE': '0', 'RX2_GROW_TIGHT_SUPPRESS': '0', 'RX2_GROW_FITPHI': '0'}
+   _beamform_coarse : _beamform_coarse
+   cfg init_method  : v2_konly   n_gaussians=[3, 8, 15]
+
+[AUTO-G1P1] pid=4540
+   워커가 본 R.DATA : /home/vexit/wavesplat/wavesplat  ✅
+   에피소드 열림     : True  ✅  (data_indep3_2026-08-07)
+   셀 안 env        : {'RX2_GROW_SUBTRACT': '1', 'RX2_GROW_RECOMPUTE': '0', 'RX2_GROW_TIGHT_SUPPRESS': '0', 'RX2_GROW_FITPHI': '0'}
+   undo 후 env      : {'RX2_GROW_SUBTRACT': '0', 'RX2_GROW_RECOMPUTE': '0', 'RX2_GROW_TIGHT_SUPPRESS': '0', 'RX2_GROW_FITPHI': '0'}
+   _beamform_coarse : bf
+   cfg init_method  : auto   n_gaussians=[3, 8, 15]
+
+[ORACLE-K] pid=4541
+   워커가 본 R.DATA : /home/vexit/wavesplat/wavesplat  ✅
+   에피소드 열림     : True  ✅  (data_indep4_2026-08-07)
+   셀 안 env        : {'RX2_GROW_SUBTRACT': '0', 'RX2_GROW_RECOMPUTE': '0', 'RX2_GROW_TIGHT_SUPPRESS': '0', 'RX2_GROW_FITPHI': '0'}
+   undo 후 env      : {'RX2_GROW_SUBTRACT': '0', 'RX2_GROW_RECOMPUTE': '0', 'RX2_GROW_TIGHT_SUPPRESS': '0', 'RX2_GROW_FITPHI': '0'}
+   _beamform_coarse : _beamform_coarse
+   cfg init_method  : oracle   n_gaussians=[15]
+
+==================================================================
+  X-BASE      init ✅  env ✅  undo ✅  krange ✅
+  AUTO-G1P1   init ✅  env ✅  undo ✅  krange ✅
+  ORACLE-K    init ✅  env ✅  undo ✅  krange ✅
+SPAWN CHECK: PASS ✅ — run_s1.py 그대로 간다

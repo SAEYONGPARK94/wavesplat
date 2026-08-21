@@ -1,0 +1,53 @@
+rows=288 ok=288 err=0
+
+=== §5 무결성 ===
+  워커누출 AUTO-DUP: 432 비교, 불일치 0 -> PASS
+  Phase-1 불변 (6셀): 불일치 0 -> PASS
+
+=== §3.4 널 규칙 ===
+  배제 3개: ['BF4_15comp_seed9_un', 'BF4_30comp_seed11_un', 'BF5_30comp_seed9_un']  -> n=13, 필요 승수 11
+  블록 널 중앙 = 0.2500
+  AUTO           medOfMed=0.1995  널통과 13/13
+  AUTO-DUP       medOfMed=0.1995  널통과 13/13
+  AUTO-LR10      medOfMed=0.1891  널통과 13/13
+  AUTO-LR100     medOfMed=0.1715  널통과 13/13
+  AUTO-LR1000    medOfMed=0.1696  널통과 13/13
+  AUTO-NOTRACK   medOfMed=0.1696  널통과 13/13
+
+=== ★PRIMARY-A: 줄인 lr 이 "끄기"를 이기는가 (인컴번트 = AUTO-NOTRACK) ===
+  AUTO-LR10     medΔ=+0.00984  개선  1/13  p=0.0034
+  AUTO-LR100    medΔ=+0.00077  개선  5/13  p=0.5811
+  AUTO-LR1000   medΔ=-0.00058  개선 11/13  p=0.0225
+
+  Holm 보정 (후보 3개):
+    AUTO-LR10     p=0.0034 vs α=0.0167  fail
+    AUTO-LR1000   p=0.0225 vs α=0.0250  PASS
+    AUTO-LR100    p=0.5811 vs α=0.0500  fail
+
+  ⟹ PRIMARY-A 판정: **KEEP-REDUCED**
+
+=== ★PRIMARY-B: 추적기를 켜면 "보이는 곳"이 나아지는가 ===
+  (판정량 = AUTO − AUTO-NOTRACK. Δ<0 = 추적이 개선)
+  관측영역   medΔ=-0.16340  개선 13/13 p=0.0002
+  미관측영역 medΔ=+0.04004  개선  0/13 p=0.0002
+  ⟹ PRIMARY-B 판정: **OVERFIT**
+
+=== 부차: 전 셀 vs AUTO / vs 바닥 (nRMSE) ===
+  AUTO-DUP       vs AUTO 전부 동점(n=0)                   | vs바닥 +0.0200 ( 0/13 p=0.0002)    
+  AUTO-LR10      vs AUTO -0.0083 (10/13 p=0.0923)     | vs바닥 +0.0098 ( 1/13 p=0.0034)      ≡AUTO
+  AUTO-LR100     vs AUTO -0.0167 (13/13 p=0.0002)     | vs바닥 +0.0008 ( 5/13 p=0.5811)      ≡바닥
+  AUTO-LR1000    vs AUTO -0.0205 (13/13 p=0.0002)     | vs바닥 -0.0006 (11/13 p=0.0225)    
+  AUTO-NOTRACK   vs AUTO -0.0200 (13/13 p=0.0002)     | vs바닥 전부 동점(n=0)                  
+
+=== 부차: 관측/미관측 패널 (각 셀 − 바닥) ===
+  cell                 관측 Δ       승 |      미관측 Δ       승
+  AUTO             -0.16340  13/13  |   +0.04004   0/13 
+  AUTO-LR10        -0.14490  13/13  |   +0.02807   1/13 
+  AUTO-LR100       -0.04663  13/13  |   +0.00386   5/13 
+  AUTO-LR1000      -0.00614  13/13  |   -0.00043   9/13 
+
+=== 부차: 설정 폴드 n=4 (⛔"유의"·효과크기 인용 금지) ===
+  AUTO-LR10      vs바닥 폴드Δ 중앙=+0.0124  개선 0/4
+  AUTO-LR100     vs바닥 폴드Δ 중앙=+0.0010  개선 1/4
+  AUTO-LR1000    vs바닥 폴드Δ 중앙=-0.0005  개선 4/4
+  AUTO           vs바닥 폴드Δ 중앙=+0.0234  개선 0/4

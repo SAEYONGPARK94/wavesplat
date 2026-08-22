@@ -272,3 +272,40 @@ def test_varpro_negative_control_zero_steps_is_identity():
                                             steps=0)
     assert torch.equal(kx0, kx1) and torch.equal(ky0, ky1)
     assert info['k_shift_max'] == 0.0
+
+
+def test_unifying_via_init_method_default_would_lose_the_real_gate():
+    """★2026-08-22 — **통일 방법을 잘못 고르면 실측 게이트가 사라진다**는 것을 고정한다.
+
+    실측 게이트는 `init_method == 'auto'` 안에만 있고, 그것은 의도된 계약이다
+    (명시적 선택 = 연구자의 의도적 override; `test_bank_mmse_port.py` 참조).
+    ⛔따라서 "한 방법으로 통일" 을 `init_method` 기본값 변경으로 하면 실측이 학습 경로로 간다.
+    측정된 결과(W12): 예보 지평에서 제로필드를 **0/5** 로 진다.
+    ✅안전한 통일 = 기본값을 'auto' 로 두고 라우터 임계를 0 으로.
+
+    이 시험은 **현재 거동을 바꾸지 않는다** — 함정이 실재함을 기록하고, 누군가
+    기본값을 바꿨을 때 여기서 걸리게 한다.
+    """
+    import torch
+    from wavesplat.optimizer.sequential_update import SequentialUpdater
+    from wavesplat.data_loader import FrameData
+    from wavesplat.run import DEFAULT_CONFIG
+
+    # (1) 배포 기본값은 'auto' 여야 한다 — 이것이 게이트가 작동하는 유일한 조건이다.
+    assert DEFAULT_CONFIG['init_method'] == 'auto', (
+        "배포 기본값이 'auto' 가 아니면 실측 게이트가 발화하지 않는다. "
+        "통일이 목적이라면 auto_switch_thresh 를 쓰라 (W11/W12 참조).")
+
+    def gt_free(n=3, m=64):
+        g = torch.Generator().manual_seed(0)
+        return [FrameData(t=float(i), x_obs=torch.rand(m, generator=g) * 100 + 10,
+                          y_obs=(torch.rand(m, generator=g) - 0.5) * 100,
+                          z_obs=torch.randn(m, generator=g) * 0.1,
+                          confidence=torch.ones(m),
+                          incidence_angles=torch.zeros(m)) for i in range(n)]
+
+    # (2) 'auto' 에서는 게이트가 실측을 잡는다.
+    u = SequentialUpdater({'init_method': 'auto', 'depth': 50.0})
+    u.initialize(gt_free(), x_range=(10.0, 110.0), y_range=(-50.0, 50.0))
+    assert u._auto_real_gate is True
+    assert u.init_method != 'learned'

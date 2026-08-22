@@ -508,6 +508,17 @@ class SequentialUpdater:
         # entered when init_method=='auto'. It mutates self.init_method to the chosen arm
         # and then falls through to the normal dispatch below. The shipped default
         # (v2_konly) never enters this branch.
+        # ⚠2026-08-22 함정 (읽고 넘어가지 마라). 아래 실측 게이트는 `init_method == 'auto'`
+        # **안에만** 있다. 이것은 의도된 계약이다 — 명시적 `init_method` 는 "연구자가 일부러
+        # 고른 것"으로 존중되고(`tests/test_bank_mmse_port.py::test_explicit_init_method_never_banks`),
+        # 게이트는 **기본 경로**를 지킨다.
+        # ⛔**그러므로 "한 방법으로 통일" 을 `init_method` 기본값을 'learned' 로 바꿔서 하면
+        #    실측 게이트가 조용히 사라진다.** 그 상태가 무엇인지는 측정됐다 —
+        #    `tmp/W12_UNIFY_REAL_2026-08-22`: 실측에 학습을 강제하면 nowcast 가 제로필드를
+        #    2/5 만 이기고 **예보 지평에서는 0/5**(중앙 1.69배 = 아무것도 안 하는 것보다 나쁘다).
+        # ✅**안전한 통일 방법**: 기본값을 `'auto'` 로 **유지**하고 라우터 임계
+        #    (`auto_switch_thresh`)를 0 으로 두어 합성에서 항상 학습을 고르게 한다.
+        #    그러면 실측 게이트는 그대로 작동한다. (근거: `tmp/W11_UNIFY_2026-08-22`)
         if self.init_method == 'auto':
             # REAL-DOMAIN GATE (2026-07-27). The deployment authorisation covers SYNTHETIC
             # inputs only: "실측 경로 별도 게이트 -- 실측 입력에서 auto는 여전히 비활성이어야 함"

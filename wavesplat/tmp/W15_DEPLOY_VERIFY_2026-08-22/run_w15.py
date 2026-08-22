@@ -30,6 +30,11 @@ def run_one(job):
                 'auto_n_selected': r.get('auto_n_selected'),
                 'varpro_fired': bool(r.get('varpro_fired')),
                 'varpro_steps': r.get('varpro_steps'),
+                # ★개정1 — 거리(셸) 분해. 네 배치가 이 키를 버려 근/원 분해가 불가능했다.
+                'avg_shell_rmse': r.get('avg_shell_rmse'),
+                'shell_frac': r.get('shell_frac'),
+                'avg_RMSE_near': r.get('avg_RMSE_near'),
+                'ensemble_k': r.get('ensemble_k'),
                 'init_iters': r.get('init_iters'),
                 'wall_s': time.time() - t0}
     except Exception as e:

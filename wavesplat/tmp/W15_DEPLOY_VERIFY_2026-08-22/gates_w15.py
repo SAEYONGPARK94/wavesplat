@@ -11,13 +11,17 @@ STRATUM = {e: 'crowded' for e in _C['crowded']}
 STRATUM.update({e: 'sparse' for e in _C['sparse']})
 SEEDS = [1626, 1627, 1628]                        # 신선 시드
 
+# ★개정1(2026-08-22): 세 팔 **전부 `init_method='auto'`** 로 두고 임계만 바꾼다.
+# 사유: 명시적 `init_method` 는 median-of-3 앙상블을 **못 받는다**(`make_updater` 독스트링 축자).
+# 그래서 W13/W14 의 강제 해석적 팔은 배포 해석적이 아니었다 = 비교가 편향돼 있었다.
 ARMS = {
-    'POST': {},                                   # 배포 그대로 (thresh 0 = 통일)
-    'PRE':  {'auto_switch_thresh': 8},            # 통일 이전 거동
+    'POST':         {},                              # 배포 그대로 (thresh 0 = 항상 학습)
+    'PRE':          {'auto_switch_thresh': 8},       # 통일 이전 = 혼합 라우팅
+    'ALL-ANALYTIC': {'auto_switch_thresh': 999999},  # ★항상 해석적 + 앙상블 = 진짜 배포 해석적
 }
-ARM_ORDER = ['PRE', 'POST']
+ARM_ORDER = ['PRE', 'POST', 'ALL-ANALYTIC']
 FIELD = 'avg_nRMSE'
-ZERO_REF = 0.25
+ZERO_REF = None   # ★상수 금지 — 에피소드별 실측 zero_nRMSE 를 쓴다(개정1)
 THRESHOLD = 79    # /128, 단측 부호검정 p<0.05 (결과 전 확정)
 
 
@@ -47,8 +51,26 @@ def primary(rows, stratum=None, field=FIELD):
     return {'n': n, 'post_better': w, 'ties': sum(1 for k in ks if a[k] == b[k]),
             'rel_median_pct': st.median([(a[k] - b[k]) / b[k] * 100 for k in ks]) if ks else None,
             'p_one_sided': sign_test_one_sided(w, n) if n else None,
-            'post_beats_zero': sum(1 for k in ks if a[k] < ZERO_REF),
-            'pre_beats_zero': sum(1 for k in ks if b[k] < ZERO_REF)}
+            'post_beats_zero': None, 'pre_beats_zero': None}
+
+
+def zero_ref():
+    """★에피소드별 실측 제로필드 — 손복사 상수(0.25)는 틀렸다(실측 0.180–0.292)."""
+    import json, os
+    z = {}
+    src = os.path.join(HERE, '..', 'B_DEPLOY_2026-08-19', 'results.jsonl')
+    for l in open(src):
+        r = json.loads(l)
+        if 'error' not in r and r.get('zero_nRMSE') is not None:
+            z[r['episode']] = r['zero_nRMSE']
+    return z
+
+
+def beats_zero(rows, arm):
+    z = zero_ref()
+    m = med_by_episode(rows, arm)
+    ks = [k for k in m if k in z]
+    return sum(1 for k in ks if m[k] < z[k]), len(ks)
 
 
 def gates(rows):
@@ -69,6 +91,18 @@ def gates(rows):
     out.append(('G-3 POST 전건 VARPRO 발화',
                 all(r.get('varpro_fired') for r in post),
                 f'{sum(1 for r in post if r.get("varpro_fired"))}/{len(post)}'))
+    # ★G-4(개정1) ALL-ANALYTIC 이 전건 해석적이고 앙상블을 받았나
+    aa = [r for r in ok if r['cell'] == 'ALL-ANALYTIC']
+    out.append(('G-4 ALL-ANALYTIC 전건 v2_konly',
+                all(r.get('auto_selected') == 'v2_konly' for r in aa),
+                f'{sum(1 for r in aa if r.get("auto_selected")=="v2_konly")}/{len(aa)}'))
+    out.append(('G-4b ALL-ANALYTIC 앙상블 k=3 작동',
+                all((r.get('ensemble_k') or 1) == 3 for r in aa),
+                f'{sorted({r.get("ensemble_k") for r in aa})}'))
+    # ★G-5(개정1) 셸 분해가 기록됐나 — 네 배치가 이걸 버렸다
+    out.append(('G-5 셸 분해 기록됨',
+                all(r.get('avg_shell_rmse') for r in ok),
+                f'{sum(1 for r in ok if r.get("avg_shell_rmse"))}/{len(ok)}'))
     return out
 
 

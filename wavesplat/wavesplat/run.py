@@ -532,6 +532,22 @@ def run_estimation(h5_path: str, config: dict = None,
         # field: near-range claims were not weak, they were undetectable.
         'avg_RMSE_near': (float(np.mean([r['RMSE_near'] for r in frame_results]))
                           if (frame_results and has_gt) else float('nan')),
+        # ★2026-08-22 — `shell_rmse`/`shell_frac` 도 **같은 결함**을 앓고 있었다:
+        # :412-413 이 프레임마다 채우는데 요약이 집계하지 않고 main() 이 frame_results 를
+        # 지운 뒤 덤프한다 ⟹ 저장된 결과 파일이 **거리 분해에 구조적으로 눈이 멀어 있었다**
+        # (RMSE_near 가 46일간 당한 것과 정확히 같은 부류; 2026-08-19 에 그것만 고쳤다).
+        # 2026-08-22 검수(V4)가 W11/W13/W14 네 배치에서 shell 키 **0회**를 확인해 재발을 잡았다.
+        # ⚠접두어 주의: 이 셸은 **최근접 관측점까지의 거리**(`obs:`)이지 배-거리가 아니다.
+        #   같은 표본에서 두 양이 1.8-4.1배 갈린다.
+        'avg_shell_rmse': ({k: float(np.nanmean([r['shell_rmse'][k]
+                                                 for r in frame_results
+                                                 if 'shell_rmse' in r]))
+                            for k in frame_results[0]['shell_rmse']}
+                           if (frame_results and has_gt
+                               and 'shell_rmse' in frame_results[0]) else None),
+        'shell_frac': (frame_results[0]['shell_frac']
+                       if (frame_results and has_gt
+                           and 'shell_frac' in frame_results[0]) else None),
         'avg_inference_ms': avg_ms,
         # GT-free run-quality signal, for multi-restart selection (see
         # tmp/ESTIMATOR_VARIANCE_RESULT_2026-07-23.md): mean observation-fit loss.

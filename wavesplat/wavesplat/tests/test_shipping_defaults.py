@@ -355,3 +355,21 @@ def test_unification_did_not_disable_the_real_gate():
     u.initialize(frames, x_range=(10.0, 110.0), y_range=(-50.0, 50.0))
     assert u._auto_real_gate is True, '통일이 실측 게이트를 껐다'
     assert u.init_method != 'learned', '실측이 학습 경로로 갔다'
+
+
+def test_shell_metrics_are_aggregated_into_the_summary():
+    """★2026-08-22 — 거리(셸) 분해가 요약에 남아야 한다.
+
+    `run.py` 가 프레임마다 `shell_rmse`/`shell_frac` 를 채우는데 요약이 집계하지 않아
+    저장된 결과 파일이 **거리 분해에 구조적으로 눈이 멀어 있었다** —
+    `RMSE_near` 가 46일간 당한 것과 같은 결함이고, 2026-08-19 에는 그것만 고쳤다.
+    2026-08-22 검수가 네 배치에서 shell 키 0회를 확인해 재발을 잡았다.
+    ⚠이 셸 접두어는 `obs:`(최근접 관측점 거리)이지 배-거리가 아니다.
+    """
+    import inspect
+    from wavesplat import run as R
+    src = inspect.getsource(R.run_estimation)
+    assert "'avg_shell_rmse'" in src, '요약이 셸 RMSE 를 집계하지 않는다'
+    assert "'shell_frac'" in src, '요약이 셸 격자 비중을 기록하지 않는다'
+    # 집계가 frame_results 를 실제로 읽어야 한다 (공허한 키가 아니어야 한다)
+    assert "r['shell_rmse'][k]" in src

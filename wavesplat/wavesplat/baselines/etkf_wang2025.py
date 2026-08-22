@@ -232,6 +232,49 @@ class ETKFWang2025:
         ensemble_new = x_mean_new[None, :] + X_pert_new
         return ensemble_new, d
 
+    def _etkf_analysis_joint(self, ensemble_full, z_obs, R_diag_vec, n_obs):
+        """★2026-08-22 수리 — **관측되지 않는 속도 상태도 갱신한다.**
+
+        원 구현(`_etkf_analysis_substate`)은 `H = I` 를 전제해 **고도(eta)만** 갱신했다.
+        그런데 `update()` 는 `deta_idx`·`sub_idx` 를 **계산해 놓고 쓰지 않았다** —
+        미사용 변수가 **의도를 증명한다**(설계가 아니라 결함이다).
+        ⟹ 속도 상태가 초기 난수에서 **한 번도 교정되지 않고** 전파되어 고도를 0 쪽으로 끌었다.
+        실측 증상: Wang 팔의 출력이 제로필드에 붙어 있었다(제로 대비 중앙 0.9953).
+
+        수리 = 표준 ETKF. **변환 행렬을 관측된 부분(eta)에서 구하고 전체 상태에 적용**한다.
+        관측 연산자는 `H = [I 0]`(고도만 본다)이고, eta–deta 교차공분산이 속도를 갱신한다.
+
+        `ensemble_full`: (Ne, 2n) = [eta | deta] · `z_obs`/`R_diag_vec`: (n,)
+        """
+        Ne = ensemble_full.shape[0]
+        x_mean = np.mean(ensemble_full, axis=0)
+        X_pert = ensemble_full - x_mean[None, :]
+
+        HX_mean = x_mean[:n_obs]
+        HX_pert = X_pert[:, :n_obs]
+        d = z_obs - HX_mean
+
+        R_inv_sqrt = 1.0 / np.sqrt(R_diag_vec + 1e-12)
+        Y = HX_pert * R_inv_sqrt[None, :]
+        d_norm = d * R_inv_sqrt
+
+        C = (Ne - 1) * np.eye(Ne) + Y @ Y.T
+        try:
+            C_inv = np.linalg.inv(C)
+        except np.linalg.LinAlgError:
+            return ensemble_full, d
+
+        # ★변환은 앙상블 공간에서 구하고 **전체 상태**에 적용한다.
+        w_mean = C_inv @ Y @ d_norm
+        x_mean_new = x_mean + X_pert.T @ w_mean
+
+        eigvals, eigvecs = np.linalg.eigh(C_inv)
+        eigvals = np.maximum(eigvals, 0)
+        W = eigvecs @ np.diag(np.sqrt(eigvals * (Ne - 1))) @ eigvecs.T
+        X_pert_new = W @ X_pert
+
+        return x_mean_new[None, :] + X_pert_new, d
+
     def update(self, obs_x: np.ndarray, obs_y: np.ndarray,
                obs_z: np.ndarray) -> float:
         """One ETKF cycle: forecast + interpolate + fuzzy + localized analysis."""
@@ -288,12 +331,23 @@ class ETKFWang2025:
             z_sub = z_grid[eta_idx]
             R_sub = R_diag[eta_idx]
 
-            # ETKF analysis on sub-state (eta only for obs)
-            ensemble_sub_new, d_sub = self._etkf_analysis_substate(
-                ensemble_sub_eta, z_sub, R_sub)
-
-            # Update eta part of ensemble
-            self.ensemble[:, eta_idx] = ensemble_sub_new
+            # ★2026-08-22 수리: 속도 상태(deta)까지 함께 갱신한다.
+            # 그전에는 deta_idx/sub_idx 를 계산해 놓고 쓰지 않아 속도가 초기 난수에서
+            # 한 번도 교정되지 않았다.
+            # ⚠★**기본값 False** — 수리해도 기술이 살아나지 않았다(G-8 자기검정 2026-08-22:
+            #   수리 전 중앙 0.2502 -> 수리 후 0.2510, 제로필드 0.25 그대로).
+            #   ⟹ `deta` 미갱신은 **실재하는 결함이지만 무기술의 충분조건이 아니다.**
+            #   남은 후보(진단 미완): 팽창 0 · 백색 배경공분산 0.05 m · 볼록껍질 밖 무시.
+            #   기본값을 False 로 두어 과거 결과의 재현성을 지킨다. 연구용은 True.
+            if getattr(self, 'joint_velocity_update', False):
+                ensemble_sub_full = self.ensemble[:, sub_idx].copy()
+                ensemble_sub_new, d_sub = self._etkf_analysis_joint(
+                    ensemble_sub_full, z_sub, R_sub, len(eta_idx))
+                self.ensemble[:, sub_idx] = ensemble_sub_new
+            else:
+                ensemble_sub_new, d_sub = self._etkf_analysis_substate(
+                    ensemble_sub_eta, z_sub, R_sub)
+                self.ensemble[:, eta_idx] = ensemble_sub_new
             all_innovation[eta_idx] = d_sub
 
         # Clamp

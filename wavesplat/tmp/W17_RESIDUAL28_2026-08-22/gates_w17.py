@@ -22,8 +22,13 @@ ARMS = {   # 신규만. 전부 척도불변 ON + smooth 0 (= W10 최선 팔) 위
                             scale_invariant=True),
     'SI-NOSM-LR10X':   dict(extra=dict(_SI, lr=1e-3), scale_invariant=True),
     'SI-NOSM-NOCLAMP': dict(extra=dict(_SI, max_steepness=1e9), scale_invariant=True),
+    # ★개정1 — 교락을 가르는 팔: lr 1/10 + 스텝 10배 = 총 이동 예산 원복.
+    'SI-NOSM-LR10X-STEPS10': dict(
+        extra=dict(_SI, lr=1e-3, max_iters_per_stage=[2000, 2000, 5000]),
+        scale_invariant=True),
 }
-ARM_ORDER = ['SI-NOSM-STEPS10', 'SI-NOSM-LR10X', 'SI-NOSM-NOCLAMP']
+ARM_ORDER = ['SI-NOSM-STEPS10', 'SI-NOSM-LR10X', 'SI-NOSM-NOCLAMP',
+             'SI-NOSM-LR10X-STEPS10']
 REGIME, N_EPISODES, SEEDS = 'crowded', 16, [1632]
 FIELD = 'window_resid'
 R_BASE = None      # ★손복사 금지 — W9/W10 원본에서 재계산한다

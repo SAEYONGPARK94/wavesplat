@@ -81,7 +81,7 @@
   linkcolor=black,
   citecolor=blue,
   urlcolor=blue,
-  pdftitle={선박 탑재 LiDAR 기반 실시간 파랑장 추정과 그 제어 응용},
+  pdftitle={희소 3차원 점군으로부터의 실시간 파랑장 추정},
   pdfauthor={박세용},
 }
 
@@ -151,7 +151,7 @@ from Sparse 3-D Point Clouds}}
 
 \vspace*{2cm}
 
-{\large \textbf{선박 탑재 LiDAR 기반 실시간 파랑장 추정과 그 제어 응용}}
+{\large \textbf{희소 3차원 점군으로부터의 실시간 파랑장 추정}}
 
 \vspace{1cm}
 
@@ -337,13 +337,17 @@ improvement. For a tandem-foil hydrofoil vessel (1700\,kg, 22\,knots),
 adding wave-preview feedforward to PD feedback reduces heave acceleration
 RMS by \textbf{11--41\%} across Beaufort 3--4 scenarios.
 In the end-to-end pipeline, \WS{}-based feedforward achieves
-\textbf{92--96\%} of perfect-knowledge performance in Beaufort 3, improving
-ISO 2631 comfort from ``Slight discomfort'' to ``Comfortable.''
-Sensitivity analysis demonstrates that feedforward remains beneficial up to
-50\% nRMSE and that the optimal preview horizon is 0.1--0.3\,s.
+\textbf{92--96\%} of perfect-knowledge performance in Beaufort 3.
+\emph{[Scope, 2026-08-22]} These control results are \textbf{simulation only};
+no physical validation exists. Subsequent measurements found the wave-information
+contribution to the control input to be small relative to a no-skill reference in
+crowded seas, and the reported optimal preview range (1--3\,m) lies inside the
+near-field boundary of the estimation domain, i.e.\ it was scored in the sensor's
+blind spot. \textbf{This thesis therefore does not claim the control application as
+a contribution}; it is presented as a feasibility illustration only.
 
 \vspace{1em}
-\noindent\textbf{Keywords:} wave field estimation, shipboard LiDAR, spectral
+\noindent\textbf{Keywords:} wave field estimation, sparse 3-D point clouds, spectral
 methods, dispersion relation, grid-free representation, real-time estimation,
 hydrofoil, feedforward control, wave preview
 
@@ -525,17 +529,20 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
 \begin{enumerate}
   \item \textbf{작동 범위의 확정 --- 어디서 되고 어디서 되지 않는가}: \\
         본 방법은 \emph{혼잡한 다성분 해상}에서 무기술 기준(제로필드) 대비 일관되게
-        낮은 오차를 낸다. 이 부호는 서로 독립인 세 표본에서 재현되었다:
-        out-of-sample 코퍼스, 추정기 시드 median-of-3, 그리고 비선형(HOS $M{=}3$) 참값
-        위의 재검정. 반면 \emph{희소 해상}의 큰 상대 이득은 표현 아티팩트로 확정되었다 ---
+        낮은 오차를 낸다. 이 부호는 세 축에서 재현되었다: out-of-sample 코퍼스,
+        추정기 시드 median-of-3, 그리고 비선형(HOS $M{=}3$) 참값 위의 재검정.
+        ⚠\emph{[범위]} 앞의 두 축은 \textbf{같은 에피소드 코퍼스}를 공유하므로 서로
+        독립인 표본이 아니다 --- 독립적으로 신선한 것은 비선형 재검정뿐이다. 반면 \emph{희소 해상}의 큰 상대 이득은 표현 아티팩트로 확정되었다 ---
         참값을 비선형화하면 본 방법의 오차만 크게 증가하고 기준선들은 무감하다.
         \emph{[범위]} 외부 기준선 대비 \textbf{이득의 크기}는 확정되지 않았다
         (\S\ref{sec:contrib-limits}).
 
   \item \textbf{창-안 오차의 원인 분해 --- 기준선과 무관한 진단}: \\
-        참 파수·진폭·위상을 초기값으로 주어도 배포 구성은 그 점에 머무르지 못하고
-        관측 잔차가 더 나쁜 곳으로 이동한다(혼잡 $16/16$, 짝 중앙비 $1.52$,
-        $p = 2\times10^{-5}$). 이 이탈은 정규화 계수에 \emph{용량--반응}한다:
+        참 파수·진폭·위상을 초기값으로 주면(\emph{오라클 초기화 팔}) 최적화가 그 점에
+        머무르지 못하고 관측 잔차가 더 나쁜 곳으로 이동한다(혼잡 $16/16$, 짝 중앙비
+        $1.52$, $p = 2\times10^{-5}$). ⚠\emph{[범위]} 이 진단은 \textbf{오라클 팔에서
+        측정된 것이며} 배포 라우팅 경로 자체의 성질이 아니다 --- 배포 팔은 진실에서
+        출발하지 않는다. 이 이탈은 정규화 계수에 \emph{용량--반응}한다:
         계수가 $0$ 이면 통계적으로 널, 배포값에서 $1.52$, 그 10배에서 $3.66$ 이다.
         추가 절제로 원인을 회계하면 손실함수에서 \textbf{정규화 항의 차원이 데이터 항과
         일치하지 않는 것}이 $47\%$, 두 정규화 항의 \emph{상호작용}이 $16\%$,
@@ -546,7 +553,8 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
         파수를 고정하면 진폭·위상이 선형 파라미터가 되는 구조를 이용하여 이들을
         닫힌형으로 소거하고 파수에서만 하강한다(\S\ref{sec:init-learned}).
         배포 라우터를 그대로 둔 배정 의도(ITT) 비교에서 혼잡 층 오차가 $55/60$ 에서
-        감소했고(짝 중앙 $-25.3\%$), 초기화 벽시계는 $22.5$\,s $\to$ $9.5$\,s 로 줄었다
+        감소했고(짝 중앙 $-25.3\%$; ⚠\emph{그 측정의 라우터는 2026-08-22 경로 통일
+        \textbf{이전} 구성이다}), 초기화 벽시계는 $22.5$\,s $\to$ $9.5$\,s 로 줄었다
         ($60/64$, 처치 비용 포함). 두 팔의 라우팅 판정은 $64/64$ 일치한다.
         \emph{[선행]} 변수 투영은 Golub--Pereyra(1973)의 고전적 방법이다.
         \textbf{본 기여는 방법의 신규성이 아니라 이 문제로의 적용과 배포 구성에서의 측정이다.}
@@ -1250,12 +1258,13 @@ $\cos\theta$의 단조 감소가 역방향으로 대응하여, 높은 입사각�
 여기서 $M$은 프레임당 관측 점 수이다.
 각 정규화 항의 설계 근거를 상세히 기술한다.
 
-\paragraph{L1 희소성 정규화 ($\lambda_1 = 10^{-3}$)}
+\paragraph{L1 희소성 정규화 ($\lambda_1 = 10^{-4}$, 배포값)}
 L1 (LASSO) 정규화는 L2 (Ridge) 대비 자유 파라미터를 정확히 0으로 구동하는
 특성이 있어, 적응형 가지치기(pruning)의 전제 조건이다.
 L2 정규화는 모든 진폭을 작지만 0이 아닌 값으로 축소하여
 명확한 가지치기 기준을 설정하기 어렵다.
-$\lambda_1 = 10^{-3}$은 다음 기준으로 선정하였다:
+⚠\textbf{배포값은 2026-08-11 에 $10^{-3} \to 10^{-4}$ 로 바뀌었다}(사전등록 확증, 두 레짐 모두 개선). 아래는 초판의 $10^{-3}$ 선정 근거이며,
+현 배포값은 그 뒤의 측정으로 정해졌다. $\lambda_1$은 다음 기준으로 선정하였다:
 전형적 파도 진폭 $w_i \sim 0.1$\,m에서 L1 항의 크기가
 $\lambda_1 |w_i| = 10^{-4}$로, 가중 MSE 항($\sim 10^{-2}$)의 1\%에 해당하여
 추정 정확도를 거의 해치지 않으면서 잔여 성분을 0으로 구동한다.
@@ -1322,9 +1331,11 @@ Adam의 모멘텀 갱신과 호환시킨다.
     \emph{bank-MMSE} 경로로 보낸다. 이 경로는 Gaussian 성분을 생성하지 않는다
     (반환되는 성분 수 $=0$). 아래 §\ref{sec:init-bank} \\
 0b. \textbf{혼잡도 라우터} (합성 입력): 학습 제안이 고른 성분 수 $n_\text{sel}$ 를
-    양 팔이 공유하는 동일 초기화 창에서 계산하고, $n_\text{sel} \ge 8$ 이면
+    양 팔이 공유하는 동일 초기화 창에서 계산하고, $n_\text{sel} \ge \tau_\text{route}$ 이면
     \emph{학습 제안} 경로, 아니면 \emph{해석적} 경로를 택한다 \\
-\quad --- 실측 라우팅 비율: 혼잡 코퍼스에서 학습 경로 $173/192 = 90.1\%$ \\
+\quad --- ★\textbf{배포값 $\tau_\text{route} = 0$} (2026-08-22 경로 통일) $\Rightarrow$
+      \textbf{합성 입력은 항상 학습 경로}. 통일 이전 값은 $8$ 이었고 그때의 실측
+      라우팅 비율은 혼잡 $173/192 = 90.1\%$ 였다 \\
 \midrule
 \textbf{Phase 1a: 학습 제안 초기화} (배포 혼잡 경로) \\
 \midrule
@@ -1468,8 +1479,12 @@ $(k_{x,i}, k_{y,i})$로부터 재계산하여 정확히 만족시킨다.
 혼잡 레짐에서 빔포밍 피크 추출은 인접 성분을 분리하지 못한다. 배포 시스템은 이 구간에서
 \S\ref{sec:init} 의 해석적 절차 대신 \emph{학습된 집합 제안}을 사용한다. 라우터는 학습
 제안이 고른 성분 수 $n_\text{sel}$ 을 양 팔이 공유하는 동일 초기화 창에서 계산하고,
-$n_\text{sel} \ge 8$ 일 때 이 경로를 택한다. 혼잡 코퍼스에서 이 경로가 선택되는 비율은
-실측 $173/192 = 90.1\%$ 이다.
+$n_\text{sel} \ge \tau_\text{route}$ 일 때 이 경로를 택한다.
+★\textbf{배포값은 $\tau_\text{route} = 0$ 이므로 합성 입력은 항상 이 경로를 택한다}
+(2026-08-22 경로 통일). 통일 이전 값 $\tau_\text{route}=8$ 에서는 혼잡 코퍼스의
+$173/192 = 90.1\%$ 가 이 경로로 갔다. 통일은 정확도를 바꾸지 않았다 --- 배포 전후
+배정 의도 비교에서 $128$ 에피소드 중 $90$ 개가 정확히 동일하고, 갈린 $38$ 개의 짝
+중앙 상대변화는 $+0.83\%$ 이며 무기술 기준 대비 우위 횟수는 $127/128$ 로 같다.
 
 \paragraph{집합 제안과 중복 제거}
 학습 제안은 coarse-to-fine 단계화가 전제하는 ``적은 수에서 시작해 키운다''를 따르지 않고
@@ -1944,7 +1959,7 @@ $\cos\theta$는 Lambertian 투영, $(d/d_{\text{ref}})^2$는 역제곱 거리 �
         --- 급경사 표면에서 높은 raydrop, 파봉 부근에서 높은 반환율
 \end{itemize}
 
-% CORRECTED 2026-08-14: 낡은 수치 정정 — 39 -> 196 (실측, 2026-08-13 세 에이전트 독립 실행:
+% CORRECTED 2026-08-22: 196 -> 231 (실측). 이전 정정: 39 -> 196 (2026-08-13:
 % 85 wavesim + 111 wavesplat). 여기에 배포 기본값 회귀 테스트 8개가 2026-08-13 에 추가됐다.
 % [범위] -- 2026-08-13 3라운드 감사: 이 테스트들은 배포 기본값을 검사하지 않는다
 %   (lambda_l1 / init_method / tracking_mode 를 동시에 되돌려도 통과했다). 그래서 8개를 신설했다.
@@ -1952,7 +1967,7 @@ $\cos\theta$는 Lambertian 투영, $(d/d_{\text{ref}})^2$는 역제곱 거리 �
 % 파이프라인이 그 함수의 변위 출력을 버리므로 *생성된 데이터가 비선형임을 보증하지 않는다*.
 % (근거: memory/project_audit_recheck_2026-08-13.md §1, §6, §6.5)
 % --- 원문 (이력 보존) --- 시뮬레이션의 물리적 신뢰성은 \textbf{39개의 단위 테스트}로 검증된다:
-시뮬레이션의 물리적 신뢰성은 \textbf{196개의 단위 테스트}로 검증된다
+시뮬레이션의 물리적 신뢰성은 \textbf{231개의 단위 테스트}로 검증된다
 (2026-08-13 실측; 이후 배포 기본값 회귀 테스트 8개 추가).
 \textbf{[범위] (2026-08-14):} 이 테스트들은 구성요소의 수치 정확성을 검사하며,
 \emph{배포 기본값이 지켜지는지}는 검사하지 않는다(그래서 별도의 회귀 테스트를 신설하였다).
@@ -3670,6 +3685,18 @@ $k_x$ 부호 오식별은 feedforward 신호의 부호를 반전시켜
 % 제5장. 수조 실험 검증 (추후 추가)
 % ============================================================================
 \chapter{수조 실험 검증}
+
+\begin{quote}
+⚠★\textbf{[설계 경고, 2026-08-22 추가]} 본 장의 계획을 \emph{그대로} 실행하면
+\S\ref{sec:init-bank} 의 실측 게이트가 발화한다 --- 수조 LiDAR 입력에는 참 파고장이
+없으므로 시스템이 라우터를 우회하여 \emph{bank-MMSE} 경로로 보내고, 그 경로는 본 논문이
+제안하는 격자 비의존 스펙트럼 표현을 \textbf{생성하지 않는다}.
+$\Rightarrow$ \textbf{계획대로 측정하면 제안 방법이 아니라 다른 추정기를 재게 된다.}
+게이트를 의도적으로 우회하려면 별도의 설정 노브가 필요하나, 그 노브는 현재
+명령행·설정 파일 어디에도 노출되어 있지 않다.
+\textbf{본 장은 그 노출과 사전등록이 선행되어야 실행 가능하다.}
+\end{quote}
+
 \label{chap:tank}
 
 시뮬레이션(제3장)에서 검증된 \WS{}를 실제 LiDAR 관측에 적용하여
@@ -4028,7 +4055,7 @@ H1이 기각될 경우 하이퍼파라미터 재튜닝을 수행하고,
 \section{결론}
 \label{sec:conclusion}
 
-본 논문은 희소 선박 탑재 LiDAR 관측으로부터 실시간 파도장을 추정하는
+본 논문은 희소·불균질 3차원 점군 관측으로부터 실시간 파도장을 추정하는
 격자 비의존 스펙트럼 Gaussian 방법 \WS{}를 제안하고,
 이를 하이드로포일 선박의 파랑 예측 기반 feedforward 제어에 응용하였다.
 주요 결론은 다음과 같다:
@@ -4104,9 +4131,16 @@ LiDAR 정밀도가 가장 높은 근거리 영역과 일치한다.
 (BF4에서 WS/GT=37\%, Dir $R^2=-0.25$에 기인).
 이는 \WS{}의 가장 중요한 개선 방향을 제시한다.
 
-전체 파이프라인(LiDAR $\to$ \WS{} $\to$ feedforward)의 지연은
-14.6\,ms/cycle로 100\,ms 실시간 예산의 14.6\%만 소비하여,
-표준 선박 탑재 컴퓨팅 하드웨어에서의 실용적 배치가 가능하다.
+% RETRACTED 2026-08-22: '14.6 ms/cycle' 은 인용금지 수치다(reference_citation_bans).
+% 지연 헤드라인은 2026-08-05 에 프로세스 간 비교로 판정돼 무효화됐고, 실시간 예산
+% 자체도 빌려온 기준이다(Kim 2023 의 T<1.8Tp 는 그들 기하의 유도식 산물이며,
+% 본 연구 개구로 재도출하면 예산이 훨씬 짧다 -- §sec:closest-prior).
+전체 파이프라인의 지연은 본 논문에서 \textbf{확정하지 않는다}.
+초판이 인용한 수치는 서로 다른 프로세스에서 측정된 값이었고, 실시간 예산의 기준
+자체도 다른 관측 기하에서 유도된 것이다(\S\ref{sec:closest-prior}).
+⚠\textbf{실시간성 주장은 본 연구 자신의 관측 기하에서 다시 세워야 하며, 그 작업은
+아직 수행되지 않았다.} 다만 초기화 벽시계가 배포 구성에서 크게 줄었다는 것은
+측정되었다(\S\ref{sec:init-learned}).
 
 \section{향후 연구}
 \label{sec:future_work}

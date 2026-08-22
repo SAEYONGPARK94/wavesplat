@@ -44,7 +44,9 @@ DEFAULT_CONFIG = {
     'tracking_mode': 'w_phi',
     'tracking_lr': 0.005,
     # 'auto' since 2026-07-26 (user decision): GT-free regime router (learned proposal
-    # n_selected, threshold 8) -> 'learned' or 'v2_konly'.
+    # n_selected >= auto_switch_thresh) -> 'learned' or 'v2_konly'.
+    # ⚠임계는 2026-08-22 에 8 -> 0 (합성 경로 통일) ⟹ 합성에서는 항상 'learned'.
+    #   ★'auto' 를 유지하는 이유는 **실측 게이트가 이 분기 안에 있기 때문**이다.
     # Falls back to 'v2_konly' if the diffusion checkpoint is unavailable, and is FORCED
     # to single-run 'v2_konly' on real (GT-free) input by the real-domain gate.
     # Deployed configuration `auto_v1_m3`, authorised on the fresh reserve-seed 40

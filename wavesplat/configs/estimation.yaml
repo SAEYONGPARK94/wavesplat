@@ -42,8 +42,10 @@ optimizer:
   tracking_steps: 10          # gradient steps per tracking frame
   tracking_mode: w_phi         # 'phi_only', 'w_phi', or 'all'
   tracking_lr: 0.005          # learning rate for tracking phase
-  init_method: auto            # 'auto' (GT-free router on the learned proposal's n_selected,
-                               #  threshold 8; beamform guard RETIRED 2026-07-27; routed to
+  init_method: auto            # 'auto' (GT-free router on the learned proposal's n_selected
+                               #  >= auto_switch_thresh; ⚠임계가 2026-08-22 에 8 -> 0 이라
+                               #  합성에서는 항상 learned. 'auto' 를 유지하는 이유는 실측
+                               #  게이트가 이 분기 안에 있어서다; guard RETIRED 2026-07-27; routed to
                                #  real_estimator on real GT-free input), 'v1' (FFT),
                                #  'v2' (beamform+proj), 'v2_konly' (beamform kx/ky),
                                #  'learned' (cond-diffusion set-proposal)

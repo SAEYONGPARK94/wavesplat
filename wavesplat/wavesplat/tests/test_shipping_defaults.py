@@ -48,7 +48,13 @@ SHIPPING_DEFAULTS = {
     # kx/ky frozen during tracking; only w and phi are updated.
     "tracking_mode": "w_phi",
     # 2026-07-27 confirm2: median-of-3 on the analytic fallback.
+    # ⚠2026-08-22: 임계 0 통일로 라우터가 해석적을 안 고르므로 이 앙상블은 합성에서
+    #   구조적으로 죽었다. 값은 유지하나 **작동하지 않는다**(검수 V1/V3 실측 ensemble_k=1).
     "analytic_ensemble_k": 3,
+    # ── 2026-08-22 배포 변경 셋 (배포값 적는 자리는 여기 하나여야 한다) ──
+    "varpro_steps": 400,
+    "learned_init_iters": 0,
+    "auto_switch_thresh": 0,
 }
 
 

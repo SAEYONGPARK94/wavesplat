@@ -64,7 +64,14 @@ LEARNED_INIT_ITERS_PRE_VARPRO = 500
 #   · 전체   학습이 더 좋음 **90/128**, p=4.9e-06, 상대 중앙 **-38.5%**
 #   · 혼잡   63/64, -50.98%  (해석적은 제로필드에 **25/64 패배**; 30성분에선 18/32)
 #   · 희소   27/64 부호 널, +49.2%  (절대값 0.021 vs 0.010, 제로필드 0.25)
-#   · ★제로필드 이김: 학습 **128/128** vs 해석적 100/128 · 벽시계 3.4배 빠름
+#   · ★제로필드 이김: 학습 **128/128** vs 해석적 99/128(에피소드별 실측 기준)
+# ⛔★**위 수치의 범위 단서(2026-08-22 검수)**: 그 비교의 해석적 팔은 `init_method` 를
+#   **명시**해 median-of-3 앙상블을 받지 못했다 = **약해진 비교자**. 배포 해석적(k=3)은
+#   그보다 37/44 · -14.5% 낫고, 그 표본에서 헤드라인이 뒤집힌다(희소 8/33 · +110%).
+#   ⟹ **합산 `90/128`·`-38.5%` 인용 금지**(사전등록에 없는 합산이고 어느 층도 근처가 아니다).
+#   앙상블을 포함한 재측정 = `tmp/W15_DEPLOY_VERIFY_2026-08-22`.
+# ⚠**부수효과**: 임계 0 이면 라우터가 해석적을 안 고르므로 `analytic_ensemble_k` 앙상블이
+#   합성에서 **구조적으로 죽는다**. 그 상태는 배포된 적도 측정된 적도 없다.
 #   · 라우터는 시드에 불안정했다 — 128 중 34(26.6%)에서 시드만 바꿔도 판정이 뒤집혔다
 #   (tmp/W11_UNIFY_2026-08-22 · W13_SPARSE_HEAD2HEAD · W14_CROWDED_HEAD2HEAD)
 # ⛔실측은 통일에서 제외된다 — tmp/W12_UNIFY_REAL_2026-08-22 가 학습 강제 시 예보 지평에서
@@ -810,13 +817,20 @@ class SequentialUpdater:
 
         Computes the learned set-proposal's selected-component count (n_selected) on the
         same init window both arms see, and returns 'learned' when
-        n_selected >= auto_switch_thresh (default 8 -- the Stage-1 crowding signal, frozen
-        from the design regimes, not tuned on nRMSE), else 'v2_konly'. The raw proposal
-        atoms are cached into config['learned_atoms'] so a 'learned' route reuses them
+        n_selected >= auto_switch_thresh, else 'v2_konly'.
+        ⚠**기본값은 2026-08-22 에 8 -> 0 으로 바뀌었다**(합성 경로 통일: 임계 0 이면
+        성분 수와 무관하게 항상 learned). 그전 문구는 8 을 *"nRMSE 로 튜닝하지 않은
+        Stage-1 혼잡 신호"* 라 정당화했는데 **그 정당화는 0 에 대해 성립하지 않는다** —
+        0 은 라우팅을 끄는 값이고 W11/W13/W14 의 정확도 비교로 골랐다.
+        ⛔그 비교의 해석적 팔은 median-of-3 앙상블을 받지 못한 **약해진 비교자**였다
+        (`make_updater` 는 init_method=='auto' 일 때만 앙상블을 준다). 재측정 = W15.
+        ⚠**임계 0 의 부작용**: n_selected==0 도 0>=0 이라 learned 로 간다 = 축퇴 폴백.
+
+        The raw proposal atoms are cached into config['learned_atoms'] so a 'learned' route reuses them
         without re-running the (GPU) diffusion proposal. Purely additive; only called when
         init_method=='auto'. No GT is used -- the decision is made from observations alone.
 
-        Config knobs (all optional): auto_switch_thresh (int, default 8),
+        Config knobs (all optional): auto_switch_thresh (int, 기본 AUTO_SWITCH_THRESH_DEFAULT=0),
         learned_atoms (precomputed raw atoms dict, skips the GPU proposal),
         learned_ckpt / learned_nsamp / learned_diffusion_seed (proposal),
         learned_energy_thresh / learned_dedup_dk / max_n (pooling, must match the

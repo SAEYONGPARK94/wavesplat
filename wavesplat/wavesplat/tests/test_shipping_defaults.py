@@ -205,9 +205,70 @@ def test_varpro_polar_map_matches_forward_model_sign():
     assert torch.allclose(d, torch.zeros_like(d), atol=1e-12)
 
 
-def test_varpro_can_be_disabled_to_pre_deployment_behaviour():
-    """varpro_steps=0 이면 처치가 완전히 꺼져야 한다 (배포 전 거동 복원 경로)."""
-    from wavesplat.optimizer.sequential_update import SequentialUpdater
-    u = SequentialUpdater({'varpro_steps': 0, 'learned_init_iters': 500})
-    assert int(u.config.get('varpro_steps')) == 0
-    assert int(u.config.get('learned_init_iters')) == 500
+def test_pre_varpro_config_flips_both_switches():
+    """★배포를 되돌리는 스위치는 하나가 아니라 둘이다.
+
+    2026-08-22 감사(R2-3)가 잡은 지뢰: `varpro_steps=0` 하나만 끄면 배포 전이 아니라
+    W4 의 `L-ITER0` 팔이 되고, 그것은 배포 전보다 **나쁘다**(7/64, +23.34%).
+    문서 세 곳이 그 거짓을 적고 있었다. 이 시험이 그 재발을 막는다.
+    """
+    from wavesplat.optimizer.sequential_update import (pre_varpro_config,
+                                                       LEARNED_INIT_ITERS_PRE_VARPRO)
+    cfg = pre_varpro_config()
+    assert cfg == {'varpro_steps': 0,
+                   'learned_init_iters': LEARNED_INIT_ITERS_PRE_VARPRO}
+    assert LEARNED_INIT_ITERS_PRE_VARPRO == 500
+    # 되돌림은 두 키를 **함께** 바꿔야 한다.
+    assert len(cfg) == 2
+
+
+def test_varpro_design_matrix_matches_shipped_forward_model():
+    """T1 (원 selftest 에서 이식) — VARPRO 설계행렬이 출하 전방모델과 같은 장을 낸다.
+
+    원본 `tmp/W4_SOLVER_2026-08-19/varpro.py` 의 selftest 8검사는 패키지 이식 때
+    통째로 빠졌다(R2-3 지적). 그중 하중이 가장 큰 둘(T1·T3)을 여기에 되살린다.
+    이 불변식이 깨지면 VARPRO 는 **출하 모델이 아닌 것을 최적화한다**.
+    """
+    import torch
+    from wavesplat.model.spectral_gaussian import SpectralGaussianModel
+    from wavesplat.optimizer import varpro as V
+
+    torch.manual_seed(0)
+    n, depth = 5, 50.0
+    kx = torch.rand(n, dtype=torch.float64) * 0.2 + 0.02
+    ky = (torch.rand(n, dtype=torch.float64) - 0.5) * 0.2
+    w = torch.rand(n, dtype=torch.float64) * 0.5 + 0.1
+    phi = (torch.rand(n, dtype=torch.float64) - 0.5) * 6.0
+    x = torch.rand(40, dtype=torch.float64) * 100.0 + 10.0
+    y = (torch.rand(40, dtype=torch.float64) - 0.5) * 100.0
+    t = 3.25
+
+    model = SpectralGaussianModel(n, depth=depth)
+    with torch.no_grad():
+        model.kx.copy_(kx.float()); model.ky.copy_(ky.float())
+        model.w.copy_(w.float()); model.phi.copy_(phi.float())
+    shipped = model(x.float(), y.float(), t).double()
+
+    Phi, _ = V.design_matrix(kx, ky, x, y, torch.full_like(x, t), depth)
+    a, b = V.wphi_to_ab(w, phi)
+    vp = Phi @ torch.cat([a, b])
+    assert torch.allclose(shipped, vp, atol=2e-5), \
+        f'max|diff| = {float(torch.max(torch.abs(shipped - vp))):.3e}'
+
+
+def test_varpro_negative_control_zero_steps_is_identity():
+    """T3 (이식) — steps=0 이면 VARPRO 가 파라미터를 건드리지 않아야 한다."""
+    import torch
+    from wavesplat.optimizer import varpro as V
+    torch.manual_seed(1)
+    kx0 = torch.rand(4, dtype=torch.float64) * 0.2 + 0.02
+    ky0 = (torch.rand(4, dtype=torch.float64) - 0.5) * 0.2
+    x = torch.rand(30, dtype=torch.float64) * 100 + 10
+    y = (torch.rand(30, dtype=torch.float64) - 0.5) * 100
+    t = torch.zeros(30, dtype=torch.float64)
+    z = torch.randn(30, dtype=torch.float64) * 0.1
+    conf = torch.ones(30, dtype=torch.float64)
+    kx1, ky1, _a, _b, info = V.varpro_refine(kx0, ky0, x, y, t, z, conf, 50.0,
+                                            steps=0)
+    assert torch.equal(kx0, kx1) and torch.equal(ky0, ky1)
+    assert info['k_shift_max'] == 0.0

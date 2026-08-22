@@ -30,8 +30,10 @@ optimizer:
   # VARPRO 배포 2026-08-22 — 유일 정의는 optimizer/sequential_update.py 의
   # VARPRO_STEPS_DEFAULT / LEARNED_INIT_ITERS_DEFAULT 다. 이 두 줄은 미러다.
   # 근거: W4 1,344런 · W5 640런 · B 1,152런(배포 라우터 ITT, 혼잡 -25.28%).
-  varpro_steps: 400           # 0 = 처치 off (2026-08-22 이전 거동)
-  learned_init_iters: 0       # W5 가 결합 경사하강을 잉여로 측정 (이전 500)
+  varpro_steps: 400           # ⛔0 하나로는 배포 전 거동이 아니다 (아래와 함께 바꿀 것)
+  learned_init_iters: 0       # W5 가 결합 경사하강을 잉여로 측정 (이전 500).
+                              # ★배포 전 거동 = varpro_steps:0 AND learned_init_iters:500.
+                              # 한쪽만 끄면 W4 의 L-ITER0 = 배포 전보다 나쁘다(7/64, +23.34%).
   tracking_steps: 10          # gradient steps per tracking frame
   tracking_mode: w_phi         # 'phi_only', 'w_phi', or 'all'
   tracking_lr: 0.005          # learning rate for tracking phase

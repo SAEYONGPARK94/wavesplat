@@ -50,6 +50,21 @@ VARPRO_STEPS_DEFAULT = 400
 # 0 = 학습 초기화 뒤의 결합 경사하강을 돌리지 않는다. W5 P-2 가 그것을 잉여로 측정했고
 # (36/64 널) 벽시계를 29.7 s -> 14.5 s 로 줄였다. 2026-08-22 이전 값은 500 이었다.
 LEARNED_INIT_ITERS_DEFAULT = 0
+# 2026-08-22 이전의 값. ⛔`varpro_steps=0` 하나만으로는 배포 전 거동으로 돌아가지 않는다.
+# 그 조합은 W4 의 `L-ITER0` 팔(VARPRO 없이 결합 적합도 없음)이고 배포 전보다 **나쁘다**
+# (W4 재집계: `L-ITER0` vs `L-SHIP` 7/64, +23.34%). 배포 전 거동은 두 값을 **함께** 준다.
+LEARNED_INIT_ITERS_PRE_VARPRO = 500
+
+
+def pre_varpro_config() -> dict:
+    """2026-08-22 배포 **전** 거동을 그대로 복원하는 설정 조각.
+
+    ★스위치가 하나가 아니라 **둘**이다. 한쪽만 끄면 배포된 적도 측정된 적도 없는
+    제3의 팔이 된다. 되돌릴 때는 반드시 이 함수를 쓰라:
+    `cfg.update(pre_varpro_config())`.
+    """
+    return {'varpro_steps': 0,
+            'learned_init_iters': LEARNED_INIT_ITERS_PRE_VARPRO}
 
 # The PRE-2026-08-11 shipping value of `lambda_l1`, kept ONLY so the S8 probe gates below
 # (`S8_L1_TRACK_ONLY` / `S8_L1_PHASE1_ONLY`, 2026-08-10) reproduce bit-exactly.  It was

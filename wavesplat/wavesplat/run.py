@@ -34,7 +34,9 @@ DEFAULT_CONFIG = {
     'lambda_smooth': 0.0001,
     # VARPRO 배포 2026-08-22. 유일 정의는 sequential_update 이고 여기와
     # configs/estimation.yaml 이 그것을 미러한다 (lambda_l1 과 같은 규약).
-    # 0 이면 처치가 완전히 꺼진다 = 2026-08-22 이전 거동.
+    # ⛔`varpro_steps=0` 하나로는 배포 전 거동이 되지 않는다 (2026-08-22 정정).
+    # 그 조합은 W4 의 `L-ITER0` 팔이고 배포 전보다 나쁘다 (7/64, +23.34%).
+    # 되돌릴 때는 sequential_update.pre_varpro_config() 를 쓸 것 - 스위치는 둘이다.
     'varpro_steps': VARPRO_STEPS_DEFAULT,
     'learned_init_iters': LEARNED_INIT_ITERS_DEFAULT,
     'tracking_steps': 10,
@@ -597,6 +599,8 @@ def main():
     parser.add_argument('--lambda_l1', type=float, default=None)
     parser.add_argument('--lambda_smooth', type=float, default=None)
     parser.add_argument('--varpro_steps', type=int, default=None)
+    parser.add_argument('--learned_init_iters', type=int, default=None,
+                        help='0 = VARPRO deploy default; pre-deploy = 500 with --varpro_steps 0')
     parser.add_argument('--tracking_steps', type=int, default=None)
     parser.add_argument('--tracking_mode', type=str, default=None,
                         choices=['phi_only', 'w_phi', 'all'],
@@ -653,6 +657,8 @@ def main():
         config['lambda_smooth'] = args.lambda_smooth
     if args.varpro_steps is not None:
         config['varpro_steps'] = args.varpro_steps
+    if args.learned_init_iters is not None:
+        config['learned_init_iters'] = args.learned_init_iters
     if args.tracking_steps is not None:
         config['tracking_steps'] = args.tracking_steps
     if args.tracking_mode is not None:

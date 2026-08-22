@@ -40,6 +40,29 @@ SEA_STATE = {
 }
 
 
+def speed_tag(ship_speed_mps: float) -> str:
+    """Filename tag for the platform speed of an episode.
+
+    Returns '' for a stationary platform, so every episode generated before
+    2026-08-21 keeps its exact filename (backward compatible), and '_u<speed>'
+    otherwise, with '.' written as 'p' and a leading '-' as 'm' so the tag stays
+    a single shell-safe token: 11.3 -> '_u11p3', -5.0 -> '_um5'.
+
+    Why this exists (measured defect, C batch 2026-08-20): `run_episode` encoded
+    every factor of an episode in its filename EXCEPT the platform speed, because
+    the pipeline had no speed argument at all.  The C batch varied speed as a
+    factor, so its `U=0, dir=0` and `U=11.3, dir=0` cells collided on one filename
+    and the second overwrote the first -- observed in the smoke run, 3 files
+    written and 2 left (tmp/C_ENCOUNTER_2026-08-20/AMENDMENT_1.md A-3).  That was
+    worked around by writing each cell to its own directory; this is the fix at
+    the source.  Had it not been caught, an entire arm of a 2x2 design would have
+    vanished silently.
+    """
+    if abs(float(ship_speed_mps)) < 1e-9:
+        return ''
+    return '_u' + ('%g' % float(ship_speed_mps)).replace('.', 'p').replace('-', 'm')
+
+
 def run_episode(sea_state: str = 'BF4',
                 n_components: int = 30,
                 n_pts: int = 50,
@@ -59,12 +82,26 @@ def run_episode(sea_state: str = 'BF4',
                 dirs_per_freq: int = 1,
                 random_amplitudes: bool = False,
                 random_frequencies: bool = False,
-                decorrelate_stream: bool = False) -> str:
+                decorrelate_stream: bool = False,
+                ship_speed_mps: float = 0.0) -> str:
     """
     Run one WaveSim episode and save to HDF5.
 
     If cfg is provided, LiDAR/raycast/mesh/GT settings are taken from it.
     Otherwise, defaults are used (backward compatible).
+
+    ship_speed_mps: the platform speed this episode is generated AT, in m/s.
+        ⛔This function does NOT move the sensor.  The raycast origin here is
+        stationary (ship_x = ship_y = 0), and sensor motion is applied by the
+        CALLER wrapping the raycast -- see tmp/C_ENCOUNTER_2026-08-20/moving_sensor.py.
+        This parameter is the caller DECLARING that speed so it reaches the two
+        places that must not lose it: the filename (see `speed_tag`) and the
+        /config attrs of the .h5.  0.0 -- the default, and the only value every
+        episode before 2026-08-21 was generated at -- leaves the filename and the
+        attr set untouched, so nothing already on disk is renamed or invalidated.
+        ⚠It is therefore a LABEL, not a knob: setting it does not by itself make
+        the sensor move.  (Contrast wavesim/config.py ScenarioCfg.ship_speed_kts,
+        which is read by nothing at all and has misled at least one batch.)
 
     Returns:
         filepath: path to saved .h5 file
@@ -265,8 +302,13 @@ def run_episode(sea_state: str = 'BF4',
     rtag = '_ra' if random_amplitudes else ''
     ftag = '_rf' if random_frequencies else ''
     stag = '_ds' if decorrelate_stream else ''
+    # Platform speed is a FACTOR, so it belongs in the name for exactly the reason
+    # the tags above do: a moving-platform episode is a different draw, never a
+    # drop-in replacement for the stationary one of the same (state, N, seed).
+    # Empty at the default 0.0 -> every pre-2026-08-21 filename is unchanged.
+    utag = speed_tag(ship_speed_mps)
     fname = (f"episode_{sea_state}_{n_components}comp_seed{seed}"
-             f"_{raydrop_model}{dtag}{ptag}{mtag}{rtag}{ftag}{stag}.h5")
+             f"_{raydrop_model}{dtag}{utag}{ptag}{mtag}{rtag}{ftag}{stag}.h5")
     filepath = os.path.join(output_dir, fname)
 
     save_episode(
@@ -279,7 +321,9 @@ def run_episode(sea_state: str = 'BF4',
         depth=depth, spectrum_1d=spectrum, mesh_info=mesh_info,
         direction_spread_deg=direction_spread_deg, dirs_per_freq=dirs_per_freq,
         random_amplitudes=random_amplitudes, decorrelate_stream=decorrelate_stream,
-        random_frequencies=random_frequencies
+        random_frequencies=random_frequencies,
+        ship_speed_mps=(None if abs(float(ship_speed_mps)) < 1e-9
+                        else float(ship_speed_mps))
     )
 
     if verbose:

@@ -35,7 +35,8 @@ def save_episode(filepath: str,
                  dirs_per_freq: int = None,
                  random_amplitudes: bool = None,
                  decorrelate_stream: bool = None,
-                 random_frequencies: bool = None):
+                 random_frequencies: bool = None,
+                 ship_speed_mps: float = None):
     """
     Save a full episode to HDF5.
 
@@ -92,6 +93,14 @@ def save_episode(filepath: str,
             cfg.attrs['decorrelate_stream'] = bool(decorrelate_stream)
         if random_frequencies is not None:
             cfg.attrs['random_frequencies'] = bool(random_frequencies)
+        # Platform speed the episode was generated at [m/s].  None -- the case for
+        # every episode written before 2026-08-21 and for every stationary one --
+        # omits the attr rather than asserting a 0 nobody declared, matching the
+        # convention above.  ⛔The writer does not verify it: the pipeline raycasts
+        # from a stationary origin and motion is applied by the caller, so this is
+        # the caller's declaration (see wavesim/pipeline.py run_episode).
+        if ship_speed_mps is not None:
+            cfg.attrs['ship_speed_mps'] = float(ship_speed_mps)
         # Raycast-mesh adequacy, so an episode carries its own provenance and
         # an audit needs only to read the file (see wavesim/mesh_adequacy.py).
         for key, val in (mesh_info or {}).items():

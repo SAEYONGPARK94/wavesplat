@@ -16,7 +16,8 @@ import torch
 
 from wavesplat.data_loader import EpisodeDataLoader
 from wavesplat.optimizer.sequential_update import (SequentialUpdater, make_updater,
-                                                   LAMBDA_L1_DEFAULT)
+                                                   LAMBDA_L1_DEFAULT,
+                                                   INIT_METHOD_DEFAULT)
 from wavesplat.evaluation.metrics import rmse_observed, rmse_unobserved, compute_all_metrics, rmse, nrmse
 
 
@@ -40,7 +41,9 @@ DEFAULT_CONFIG = {
     # (tmp/confirm2_2026-07-27/RESULT_CONFIRM2.md §4): mixed_v1 checkpoint + router th=8
     # + guard RETIRED + median-of-3 analytic fallback. Slice means on that set:
     # all 0.0877 / sparse 0.0175 / 5comp 0.0315 / crowded 0.1860 / 2comp 0.0160.
-    'init_method': 'auto',
+    # Imported from the optimizer so the value has ONE definition (see
+    # sequential_update.INIT_METHOD_DEFAULT).  configs/estimation.yaml mirrors it.
+    'init_method': INIT_METHOD_DEFAULT,
     # Median-of-k field ensemble on the ANALYTIC fallback of the router only (see
     # sequential_update.MedianEnsembleUpdater). 3 = the pre-registered, confirmed value;
     # 1 disables it. Explicit init_method='v2_konly' is unaffected either way.
@@ -111,7 +114,15 @@ def load_yaml_config(yaml_path: str) -> dict:
         cfg['tracking_steps'] = raw['optimizer'].get('tracking_steps', 10)
         cfg['tracking_mode'] = raw['optimizer'].get('tracking_mode', 'w_phi')
         cfg['tracking_lr'] = raw['optimizer'].get('tracking_lr', 0.005)
-        cfg['init_method'] = raw['optimizer'].get('init_method', 'v2')
+        # fallback must track DEFAULT_CONFIG, not a hand-written third value (S9 lesson).
+        # ⚠It used to be a bare 'v2' -- which is neither the shipping default ('auto')
+        # nor the class fallback ('v2_konly') but a THIRD value, so a yaml carrying an
+        # `optimizer:` block without `init_method` would silently downgrade the shipped
+        # router.  MEASURED 2026-08-21: unreachable with every config in this repo --
+        # configs/estimation.yaml is the only file with an `optimizer:` block and it does
+        # set `init_method`, so this change is a no-op on every existing run.
+        cfg['init_method'] = raw['optimizer'].get('init_method',
+                                                  DEFAULT_CONFIG['init_method'])
         if 'analytic_ensemble_k' in raw['optimizer']:
             cfg['analytic_ensemble_k'] = int(raw['optimizer']['analytic_ensemble_k'])
         if 'real_estimator' in raw['optimizer']:

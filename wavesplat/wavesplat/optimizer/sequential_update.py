@@ -39,6 +39,40 @@ from wavesplat.data_loader import FrameData
 # this project three separate incidents; see tmp/S9_lr_x_l1_2026-08-11/PREREG.md §7.)
 LAMBDA_L1_DEFAULT = 1e-4
 
+# The PRE-2026-08-11 shipping value of `lambda_l1`, kept ONLY so the S8 probe gates below
+# (`S8_L1_TRACK_ONLY` / `S8_L1_PHASE1_ONLY`, 2026-08-10) reproduce bit-exactly.  It was
+# written as a bare `0.001` literal at two call sites whose comments claimed it was "the
+# SHIPPED default"; that claim silently became FALSE on 2026-08-11 when S9 deployed 1e-4,
+# so the literal changed meaning from "current default" to "old default" without anyone
+# editing it.  ⛔DO NOT retune this to LAMBDA_L1_DEFAULT -- the recorded S8 batch is only
+# reproducible at 1e-3.  Naming it is the whole fix: the value is now stated once and its
+# meaning is stated with it.
+LAMBDA_L1_PRE_S9 = 1e-3
+
+# ── Shipping default for the initialisation route — SINGLE SOURCE ────────────────
+# 'auto' since 2026-07-26 (user decision): the GT-free regime router.  run.py imports
+# this name into DEFAULT_CONFIG and its yaml-loader fallback reads DEFAULT_CONFIG, so
+# there is exactly one definition and configs/estimation.yaml is a mirror -- the same
+# layout LAMBDA_L1_DEFAULT uses above, for the same reason.
+INIT_METHOD_DEFAULT = 'auto'
+
+# ── Class-level fallback of SequentialUpdater.__init__ — DELIBERATELY NOT THE ABOVE ──
+# ⚠These two constants are NOT duplicates of one another and must not be merged.
+#   * INIT_METHOD_DEFAULT ('auto') is a POLICY that SequentialUpdater cannot execute on
+#     its own: the router's median-of-k analytic ensemble lives in `make_updater` /
+#     `MedianEnsembleUpdater`.  A bare `SequentialUpdater({})` carrying 'auto' would be a
+#     THIRD behaviour -- routed but un-ensembled -- that has never shipped and has never
+#     been measured.
+#   * INIT_METHOD_CLASS_FALLBACK ('v2_konly') is what a directly-constructed updater has
+#     always done, and it is what every research runner that omits the key has recorded.
+# MEASURED 2026-08-21: this fallback is REACHED, i.e. it is NOT a dead default.  Call
+# sites that construct the class with a config lacking 'init_method' and then run it
+# include wavesplat/tests/test_phase_convention.py:125 and eight tmp/ research runners
+# (tmp/G1_waveprior_power/*.py, tmp/tracker_ampdecay_2026-07-25/*.py,
+# tmp/COMPARE_REAL_SYNTH_2026-08-19/real_estimate.py via make_updater).  Changing it
+# would silently re-route those recorded batches.
+INIT_METHOD_CLASS_FALLBACK = 'v2_konly'
+
 
 # `_adaptive_prune_grow` historically compares an ABSOLUTE residual RMS in metres against
 # `grow_residual_threshold` (0.05 m) with no normalisation by sea state. This is the same
@@ -179,7 +213,10 @@ class SequentialUpdater:
         self.max_iters_per_stage = config.get('max_iters_per_stage', None)
         self.tracking_mode = config.get('tracking_mode', 'w_phi')
         self.tracking_lr = config.get('tracking_lr', 0.005)
-        self.init_method = config.get('init_method', 'v2_konly')
+        # NOTE the fallback is INIT_METHOD_CLASS_FALLBACK ('v2_konly'), NOT the shipping
+        # default INIT_METHOD_DEFAULT ('auto') -- see the constants at the top of this
+        # module for why they differ and why merging them would be wrong.
+        self.init_method = config.get('init_method', INIT_METHOD_CLASS_FALLBACK)
         # WavePrior UNIFIED (init_method='auto'): diagnostics of the GT-free regime
         # router, populated only when init_method=='auto' (see _auto_select_init).
         # Default (v2_konly) leaves these None -> no behavioural effect.
@@ -419,12 +456,16 @@ class SequentialUpdater:
         # S8 (2026-08-10) opt-in probe, the mirror image of S8_L1_PHASE1_ONLY (see update()).
         # `lambda_l1` acts in Phase 1 AND in tracking, so decomposing "which locus does the
         # work" from one direction alone is an accounting identity, not evidence. With
-        # S8_L1_TRACK_ONLY=1 PHASE 1 is pinned to the SHIPPED default while tracking keeps
+        # S8_L1_TRACK_ONLY=1 PHASE 1 is pinned to LAMBDA_L1_PRE_S9 while tracking keeps
         # the configured value. Gate unset (the default) touches nothing -- byte-identical.
+        # ⚠CORRECTION 2026-08-21: this comment used to say "pinned to the SHIPPED default".
+        # That was true when S8 ran (2026-08-10) and became FALSE the next day, when S9
+        # deployed lambda_l1=1e-4.  The pin is to the OLD default and must stay there for
+        # S8 to reproduce; only the wording and the bare literal were wrong.
         _l1_p1_saved = None
         if os.environ.get('S8_L1_TRACK_ONLY') == '1':
             _l1_p1_saved = self.lambda_l1
-            self.lambda_l1 = 0.001
+            self.lambda_l1 = LAMBDA_L1_PRE_S9
         try:
             return self._initialize_inner(frames, x_range, y_range, verbose)
         finally:
@@ -959,13 +1000,17 @@ class SequentialUpdater:
         # TWO places: the Phase-1 fit (`_compute_loss` via `initialize`) and this tracking
         # loop.  So "change one line in estimation.yaml" moves two loci at once, and a
         # deployment claim cannot name a single mechanism.  With S8_L1_PHASE1_ONLY=1 the
-        # TRACKING objective is pinned to the SHIPPED default (configs/estimation.yaml:12,
-        # lambda_l1=0.001) while Phase 1 keeps the configured value, which separates them.
-        # Gate unset (the default) touches nothing -- byte-identical to before.
+        # TRACKING objective is pinned to LAMBDA_L1_PRE_S9 while Phase 1 keeps the
+        # configured value, which separates them.  Gate unset (the default) touches
+        # nothing -- byte-identical to before.
+        # ⚠CORRECTION 2026-08-21: this comment used to read "pinned to the SHIPPED default
+        # (configs/estimation.yaml:12, lambda_l1=0.001)".  Both halves are now false --
+        # S9 deployed 1e-4 on 2026-08-11 and that yaml line reads 0.0001 -- but the PIN
+        # itself is correct and deliberate: S8 only reproduces at the pre-S9 value.
         _l1_saved = None
         if os.environ.get('S8_L1_PHASE1_ONLY') == '1':
             _l1_saved = self.lambda_l1
-            self.lambda_l1 = 0.001
+            self.lambda_l1 = LAMBDA_L1_PRE_S9
         try:
             for step in range(self.tracking_steps):
                 opt.zero_grad()

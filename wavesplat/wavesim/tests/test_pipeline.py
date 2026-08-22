@@ -200,5 +200,58 @@ def test_pipeline_hos_basic():
                 f"Frame {i}: mean elevation {np.mean(gt[i]):.3f}m != ~0"
 
 
+def test_speed_tag_is_empty_only_when_stationary():
+    """Regression for the C-batch filename collision (2026-08-20, AMENDMENT_1 A-3).
+
+    `U=0, dir=0` and `U=11.3, dir=0` used to assemble the SAME filename, and the
+    second overwrote the first -- an entire arm of a 2x2 design would have vanished
+    silently.  The tag must be non-empty and DISTINCT for distinct speeds, and empty
+    at 0 so no pre-2026-08-21 filename changes.
+    """
+    from wavesim.pipeline import speed_tag
+
+    assert speed_tag(0.0) == ''
+    assert speed_tag(-0.0) == ''
+    assert speed_tag(11.3) == '_u11p3'
+    assert speed_tag(5.0) == '_u5'
+    assert speed_tag(-5.0) == '_um5'
+    # the actual defect: distinct speeds must not collide with each other or with 0
+    tags = {speed_tag(u) for u in (0.0, 2.5, 5.0, 11.3, 15.0)}
+    assert len(tags) == 5, f"speed tags collide: {tags}"
+    # tags stay single shell-safe tokens (no '.', no '-', no whitespace)
+    for u in (2.5, 11.3, -5.0):
+        assert not (set(speed_tag(u)) & set('.- ')), speed_tag(u)
+
+
+def test_pipeline_filename_and_attr_carry_ship_speed():
+    """A moving-platform episode must not be able to overwrite the stationary one.
+
+    Also pins the backward-compatibility half: at the default speed the filename
+    is exactly what it was before the parameter existed, and no attr is added.
+    """
+    from wavesim.pipeline import run_episode as _run
+    import h5py
+
+    common = dict(sea_state='BF4', n_components=5, n_pts=10, seed=0,
+                  raydrop_model='uniform', duration=0.3, dt=0.1, verbose=False)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fp_still = _run(output_dir=tmpdir, **common)
+        fp_moving = _run(output_dir=tmpdir, ship_speed_mps=11.3, **common)
+
+        assert fp_still != fp_moving, \
+            "moving and stationary episodes collide on one filename (C-batch defect)"
+        assert os.path.exists(fp_still) and os.path.exists(fp_moving)
+        # backward compatible: the stationary name is the historical one
+        assert os.path.basename(fp_still) == 'episode_BF4_5comp_seed0_uniform.h5'
+        assert '_u11p3' in os.path.basename(fp_moving)
+
+        with h5py.File(fp_moving, 'r') as f:
+            assert f['config'].attrs['ship_speed_mps'] == pytest.approx(11.3)
+        with h5py.File(fp_still, 'r') as f:
+            assert 'ship_speed_mps' not in f['config'].attrs, \
+                "stationary episodes must stay attr-identical to pre-existing files"
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

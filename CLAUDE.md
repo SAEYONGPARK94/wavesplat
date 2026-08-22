@@ -19,7 +19,7 @@ wavesplat/                   # Root package directory
 ├── thesis/                  # thesis_main.tex — 학위논문
 ├── results/                 # 96 JSON result files (+ direction1/2/3 하위)
 ├── configs/                 # YAML configs (estimation.yaml, server.yaml, default.yaml)
-├── data/                    # HDF5 episodes (110) + real_bergamasco/ (실측 13 레코드)
+├── data/                    # HDF5 episodes (110) + real_bergamasco/ (실측 **12** 레코드 — 원논문 축자, 고정 구조물 4곳. ⛔"13" 은 낡음)
 ├── tmp/                     # 배치별 사전등록·결과 (S1–S13, B-1/B-3, BLANKSLATE 등) — 연구 기록의 본체
 │                            # ⚠**하위 디렉터리 34개가 git 미추적**(S13·S11·S1–S6·BLANKSLATE·
 │                            # AUDIT_full·B1·B3·K6·EB/EC/ED·Rx4–Rx7 …). `.gitignore` 탓이 아니라
@@ -83,9 +83,14 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
 - `tracking_mode: w_phi` — kx/ky fixed during tracking, only w+φ updated (`estimation.yaml:22`)
 - `init_method: auto` — GT-free 라우터 (`run.py:43`, `estimation.yaml:24`).
   ⛔**"v2_konly" 는 낡음** — 2026-07-26 flip 이후 기본값이 아니다(명시 지정 시에만 사용).
-  ⚠단 `SequentialUpdater({}).init_method == 'v2_konly'`(`sequential_update.py:181`) 이고
-  `run.py:99` 폴백은 `'v2'` 다. **둘 다 실행경로 도달 불가(dead default)** 로 실측됐으나
-  (V3 2026-08-13), λ 와 같은 사고의 씨앗이므로 단일출처화 대기.
+  ⛔**"둘 다 dead default" 는 거짓이다 (2026-08-22 실측 정정).**
+  · `run.py` yaml 폴백 `'v2'` → ✅**dead 확인**(`optimizer:` 블록을 가진 yaml 이 `configs/estimation.yaml` 하나뿐이고 그게 명시한다).
+  · `sequential_update.py` 폴백 `'v2_konly'` → ⛔**LIVE**. `init_method` 없이 생성자를 부르고 **실제로 추정을 돌리는 곳**이 있다:
+    **배포 테스트** `wavesplat/tests/test_phase_convention.py:125` · **실측 경로** `tmp/COMPARE_REAL_SYNTH_2026-08-19/real_estimate.py:107`
+    (→ `:112 initialize` · `:124 update`) 외 다수.
+  ⟹ ★**두 값을 하나로 병합하면 동작이 바뀐다** — 기록 배치가 조용히 재라우팅되고, `make_updater({})` 경로에 `'auto'` 가 들어가면
+  **라우팅은 되는데 median-of-k 앙상블은 없는, 배포된 적도 측정된 적도 없는 제3의 팔**이 생긴다.
+  ⟹ 병합하지 말고 **두 상수를 각각 명명·문서화**할 것(`INIT_METHOD_DEFAULT` / `INIT_METHOD_CLASS_FALLBACK`).
 - `lambda_l1: 1e-4` — **유일 정의 = `optimizer/sequential_update.py:40 LAMBDA_L1_DEFAULT`**;
   `wavesplat/run.py:30` 이 import 하고 `configs/estimation.yaml:12` 이 미러한다.
   ⛔**"세 곳에 중복 기재" 는 낡은 지시** — `5f0846c` 에서 이미 단일출처화됐다.

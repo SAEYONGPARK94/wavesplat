@@ -26,10 +26,13 @@ import pytest
 import yaml
 
 from wavesplat.optimizer.sequential_update import (
+    INIT_METHOD_CLASS_FALLBACK,
+    INIT_METHOD_DEFAULT,
     LAMBDA_L1_DEFAULT,
+    LAMBDA_L1_PRE_S9,
     SequentialUpdater,
 )
-from wavesplat.run import DEFAULT_CONFIG
+from wavesplat.run import DEFAULT_CONFIG, load_yaml_config
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -98,3 +101,58 @@ def test_no_stale_lambda_literal_in_default_config_comment():
         "SequentialUpdater.__init__ docstring still advertises lambda_l1=0.001; "
         f"the deployed value is {su.LAMBDA_L1_DEFAULT}."
     )
+
+
+# ── init_method: one shipping default, one deliberately different class fallback ──
+# Added 2026-08-21.  ``init_method`` had the same three-copy layout that bit
+# ``lambda_l1``: 'auto' in DEFAULT_CONFIG, 'v2_konly' in the SequentialUpdater
+# fallback, and a THIRD value 'v2' in the yaml loader.  Two of those are now
+# imported from one definition each; the third was a plain bug and is gone.
+
+
+def test_init_method_has_exactly_one_definition():
+    """run.py must import the constant, not re-type the literal."""
+    assert INIT_METHOD_DEFAULT == SHIPPING_DEFAULTS["init_method"]
+    assert DEFAULT_CONFIG["init_method"] is INIT_METHOD_DEFAULT
+
+
+def test_yaml_loader_fallback_tracks_default_config(tmp_path):
+    """A yaml with an ``optimizer:`` block but no ``init_method`` must not
+    silently downgrade the shipped router.
+
+    Before 2026-08-21 this fallback was a hand-written ``'v2'`` -- neither the
+    shipping default nor the class fallback -- and because a yaml-loaded config
+    OVERRIDES ``DEFAULT_CONFIG`` in ``run_estimation``, it would have won.
+    """
+    partial = tmp_path / "partial.yaml"
+    partial.write_text("optimizer:\n  lr: 0.01\n")
+    cfg = load_yaml_config(str(partial))
+    assert cfg["init_method"] == DEFAULT_CONFIG["init_method"]
+    # ...and lambda_l1 keeps the property this test's older sibling won in S9
+    assert cfg["lambda_l1"] == DEFAULT_CONFIG["lambda_l1"]
+
+
+def test_class_fallback_is_the_legacy_route_not_the_shipping_default():
+    """``SequentialUpdater({})`` must stay 'v2_konly'.
+
+    This fallback is NOT dead (measured 2026-08-21): the shipped
+    ``test_phase_convention.py`` and eight ``tmp/`` research runners construct
+    the class with a config that omits ``init_method`` and then run it.  It also
+    cannot simply be set to 'auto': the router's median-of-k ensemble lives in
+    ``make_updater``/``MedianEnsembleUpdater``, so a bare updater carrying 'auto'
+    would be a third behaviour that has never shipped and never been measured.
+    """
+    assert INIT_METHOD_CLASS_FALLBACK != INIT_METHOD_DEFAULT
+    assert SequentialUpdater({}).init_method == INIT_METHOD_CLASS_FALLBACK
+
+
+def test_s8_probe_pin_is_the_pre_s9_value_not_the_current_default():
+    """The S8 env-gates pin lambda_l1 to the OLD default, deliberately.
+
+    Two bare ``0.001`` literals sat in those gates under comments calling them
+    "the SHIPPED default".  True on 2026-08-10; false from 2026-08-11, when S9
+    deployed 1e-4.  The pin must stay at 1e-3 for S8 to reproduce -- this test
+    exists so the next reader cannot mistake it for stale drift and "fix" it.
+    """
+    assert LAMBDA_L1_PRE_S9 == 1e-3
+    assert LAMBDA_L1_PRE_S9 != LAMBDA_L1_DEFAULT

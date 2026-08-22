@@ -50,9 +50,6 @@ def main():
     primary = G.ratio_vs_ref(ok, 'ORA-WPHI-SI')
     lab, meaning = G.label(primary)
     print('\n' + '=' * 78)
-    print(f'## PRIMARY = {primary["wins"]}/{primary["n"]} '
-          f'(문턱 {G.THRESHOLD})  ratio {primary["ratio"]:.4f}  '
-          f'p={primary["p_one_sided"]:.5f}')
     print(f'## 판정 = {lab}')
     print(f'##   {meaning}')
     print('=' * 78)
@@ -61,9 +58,9 @@ def main():
                'gates': [{'id': g, 'ok': o, 'msg': m} for g, o, m in gs],
                'arms': {a: G.ratio_vs_ref(ok, a)
                         for a in ('ORA-WPHI-SHIP', 'ORA-WPHI-SI')}},
-              open(os.path.join(HERE, 'verdict_w7.json'), 'w'),
+              open(os.path.join(HERE, 'verdict_w9.json'), 'w'),
               ensure_ascii=False, indent=2)
-    print('\nverdict_w7.json 기록')
+    print('\nverdict_w9.json 기록')
 
 
 if __name__ == '__main__':

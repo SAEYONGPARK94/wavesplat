@@ -80,6 +80,20 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
   게다가 λ 와 2요인 교락). 결론 자체는 S13 이 수정 생성기 위에서 독립 방어한다.
 
 ## Important Design Decisions (출하 기본값 — 코드에서 확인)
+⚠★**2026-08-22 에 출하 기본값이 셋 바뀌었다. 새 배치의 기준선 팔은 이 셋을 명시하라.**
+| 키 | 이전 | 현재 | 근거 |
+|---|---|---|---|
+| `varpro_steps` | (키 없음) | **400** | W4·W5·`B` (VARPRO 배포) |
+| `learned_init_iters` | 500 | **0** | W5 (결합 적합은 잉여) |
+| `auto_switch_thresh` | 8 | **0** | W11·W13·W14 (합성 경로 통일 = 항상 학습) |
+★**되돌리기는 `sequential_update.pre_2026_08_22_config()` — 스위치가 셋이다.**
+⛔한둘만 끄면 배포된 적도 측정된 적도 없는 제3·제4의 팔이 된다.
+⚠**`dict(DEFAULT_CONFIG)` 를 런타임 스냅샷하는 러너는 이 셋을 자동 흡수한다** — 사전등록에
+*"explicitly, no fallback"* 이라 적어도 그 부류는 막지 못한다(S13·S13b·HOSGATE 가 그렇다).
+⚠부수효과: 통일로 **`analytic_ensemble_k` 앙상블이 합성에서 구조적으로 죽었다**(라우터가 해석적을 안 고른다).
+⚠**실측은 통일에서 제외**된다 — 실측 게이트가 `bank_mmse` 로 보낸다(W12: 학습 강제 시 예보 지평 0/5 패배).
+⟹ ★**그래서 통일을 `init_method` 기본값이 아니라 임계로 했다** — 기본값을 바꾸면 게이트가 조용히 사라진다.
+
 - `tracking_mode: w_phi` — kx/ky fixed during tracking, only w+φ updated (`estimation.yaml:22`)
 - `init_method: auto` — GT-free 라우터 (`run.py:43`, `estimation.yaml:24`).
   ⛔**"v2_konly" 는 낡음** — 2026-07-26 flip 이후 기본값이 아니다(명시 지정 시에만 사용).

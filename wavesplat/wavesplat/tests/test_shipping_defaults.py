@@ -218,7 +218,6 @@ def test_pre_varpro_config_flips_both_switches():
     assert cfg == {'varpro_steps': 0,
                    'learned_init_iters': LEARNED_INIT_ITERS_PRE_VARPRO}
     assert LEARNED_INIT_ITERS_PRE_VARPRO == 500
-    # 되돌림은 두 키를 **함께** 바꿔야 한다.
     assert len(cfg) == 2
 
 
@@ -373,3 +372,23 @@ def test_shell_metrics_are_aggregated_into_the_summary():
     assert "'shell_frac'" in src, '요약이 셸 격자 비중을 기록하지 않는다'
     # 집계가 frame_results 를 실제로 읽어야 한다 (공허한 키가 아니어야 한다)
     assert "r['shell_rmse'][k]" in src
+
+
+def test_full_revert_helper_covers_all_three_switches():
+    """★2026-08-22 하루에 배포 기본값이 **셋** 바뀌었다 — 되돌리기도 셋이어야 한다.
+
+    검수 V3 가 잡은 것: `pre_varpro_config()` 독스트링이 *"스위치는 둘"* 이라 단언했는데
+    같은 날 오후에 `auto_switch_thresh` 가 추가로 바뀌었다. 한둘만 끄면 배포된 적도
+    측정된 적도 없는 제3·제4의 팔이 된다.
+    """
+    from wavesplat.optimizer.sequential_update import (
+        pre_2026_08_22_config, LEARNED_INIT_ITERS_PRE_VARPRO,
+        AUTO_SWITCH_THRESH_PRE_UNIFY)
+    from wavesplat.run import DEFAULT_CONFIG
+    cfg = pre_2026_08_22_config()
+    assert cfg == {'varpro_steps': 0,
+                   'learned_init_iters': LEARNED_INIT_ITERS_PRE_VARPRO,
+                   'auto_switch_thresh': AUTO_SWITCH_THRESH_PRE_UNIFY}
+    # 오늘 바뀐 키를 하나도 빠뜨리지 않았는지: 현 기본값과 전부 달라야 한다.
+    for k, v in cfg.items():
+        assert DEFAULT_CONFIG[k] != v, f'{k} 가 되돌림 대상이 아니다 — 목록이 낡았다'

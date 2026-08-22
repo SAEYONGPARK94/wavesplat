@@ -75,14 +75,36 @@ AUTO_SWITCH_THRESH_PRE_UNIFY = 8
 
 
 def pre_varpro_config() -> dict:
-    """2026-08-22 배포 **전** 거동을 그대로 복원하는 설정 조각.
+    """VARPRO 배포(2026-08-22 오전) **직전** 거동. ⚠**부분 복원**이다.
 
-    ★스위치가 하나가 아니라 **둘**이다. 한쪽만 끄면 배포된 적도 측정된 적도 없는
-    제3의 팔이 된다. 되돌릴 때는 반드시 이 함수를 쓰라:
-    `cfg.update(pre_varpro_config())`.
+    ⛔이 함수만으로는 2026-08-22 **이전** 거동이 되지 않는다 — 같은 날 오후에
+    `auto_switch_thresh` 도 8 → 0 으로 바뀌었다(경로 통일). 전체 복원은
+    `pre_2026_08_22_config()` 를 쓰라.
+    (초판 독스트링이 *"스위치는 둘"* 이라 단언했는데 **셋**이다 — 2026-08-22 검수 V3 가 잡았다.)
     """
     return {'varpro_steps': 0,
             'learned_init_iters': LEARNED_INIT_ITERS_PRE_VARPRO}
+
+
+def pre_2026_08_22_config() -> dict:
+    """2026-08-22 **하루 전체**의 배포 변경을 되돌리는 설정 조각 — 스위치 **셋**.
+
+    ★한둘만 끄면 배포된 적도 측정된 적도 없는 제3·제4의 팔이 된다.
+    과거 배치를 재현할 때는 반드시 이 함수를 쓰라: `cfg.update(pre_2026_08_22_config())`.
+
+    | 키 | 이전 | 2026-08-22 |
+    |---|---|---|
+    | `varpro_steps` | (없음=0) | 400 |
+    | `learned_init_iters` | 500 | 0 |
+    | `auto_switch_thresh` | 8 | 0 |
+
+    ⚠**주의**: `dict(DEFAULT_CONFIG)` 를 런타임에 스냅샷하는 러너는 이 셋을 **자동으로 흡수**한다.
+    사전등록에 *"explicitly, no fallback"* 이라 적혀 있어도 그 부류는 막지 못한다
+    (S13·S13b·HOSGATE 가 그렇게 쓰였다 — 2026-08-22 검수 V3).
+    """
+    return {'varpro_steps': 0,
+            'learned_init_iters': LEARNED_INIT_ITERS_PRE_VARPRO,
+            'auto_switch_thresh': AUTO_SWITCH_THRESH_PRE_UNIFY}
 
 # The PRE-2026-08-11 shipping value of `lambda_l1`, kept ONLY so the S8 probe gates below
 # (`S8_L1_TRACK_ONLY` / `S8_L1_PHASE1_ONLY`, 2026-08-10) reproduce bit-exactly.  It was

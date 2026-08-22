@@ -55,6 +55,24 @@ LEARNED_INIT_ITERS_DEFAULT = 0
 # (W4 재집계: `L-ITER0` vs `L-SHIP` 7/64, +23.34%). 배포 전 거동은 두 값을 **함께** 준다.
 LEARNED_INIT_ITERS_PRE_VARPRO = 500
 
+# ── 경로 통일 (2026-08-22) ──────────────────────────────────────────────────
+# 라우터 임계. `_auto_select_init` 이 학습 제안의 `n_selected >= thresh` 일 때 학습 경로를
+# 고른다. **0 = 항상 학습** = 합성 경로 통일. 기본값을 `init_method='learned'` 로 바꾸는
+# 대신 이 값을 0 으로 두는 이유는 ★**실측 게이트가 `init_method=='auto'` 안에 있기 때문**이다
+# (기본값을 바꾸면 게이트가 조용히 사라진다 — `initialize()` 의 ⚠2026-08-22 함정 주석 참조).
+# 근거 (같은 `B` 코퍼스 128 에피소드, 강제 두 팔, median-of-3, 신선 시드):
+#   · 전체   학습이 더 좋음 **90/128**, p=4.9e-06, 상대 중앙 **-38.5%**
+#   · 혼잡   63/64, -50.98%  (해석적은 제로필드에 **25/64 패배**; 30성분에선 18/32)
+#   · 희소   27/64 부호 널, +49.2%  (절대값 0.021 vs 0.010, 제로필드 0.25)
+#   · ★제로필드 이김: 학습 **128/128** vs 해석적 100/128 · 벽시계 3.4배 빠름
+#   · 라우터는 시드에 불안정했다 — 128 중 34(26.6%)에서 시드만 바꿔도 판정이 뒤집혔다
+#   (tmp/W11_UNIFY_2026-08-22 · W13_SPARSE_HEAD2HEAD · W14_CROWDED_HEAD2HEAD)
+# ⛔실측은 통일에서 제외된다 — tmp/W12_UNIFY_REAL_2026-08-22 가 학습 강제 시 예보 지평에서
+#   제로필드에 **0/5** 패배를 측정했다. 실측 게이트가 그것을 막는다.
+# ⚠되돌리기: 8 (2026-08-22 이전 값). 과거 배치 재현 시 명시할 것.
+AUTO_SWITCH_THRESH_DEFAULT = 0
+AUTO_SWITCH_THRESH_PRE_UNIFY = 8
+
 
 def pre_varpro_config() -> dict:
     """2026-08-22 배포 **전** 거동을 그대로 복원하는 설정 조각.
@@ -785,7 +803,7 @@ class SequentialUpdater:
         from wavesplat.optimizer.learned_init import (
             propose_atoms, pool_and_select, DEFAULT_CKPT)
         cfg = self.config
-        thresh = int(cfg.get('auto_switch_thresh', 8))
+        thresh = int(cfg.get('auto_switch_thresh', AUTO_SWITCH_THRESH_DEFAULT))
         cache = cfg.get('learned_atoms')
         if cache is not None:
             rkx = np.asarray(cache['kx'], float)

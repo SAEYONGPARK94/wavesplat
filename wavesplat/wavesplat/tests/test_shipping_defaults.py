@@ -309,3 +309,49 @@ def test_unifying_via_init_method_default_would_lose_the_real_gate():
     u.initialize(gt_free(), x_range=(10.0, 110.0), y_range=(-50.0, 50.0))
     assert u._auto_real_gate is True
     assert u.init_method != 'learned'
+
+
+# ── 경로 통일 회귀 (2026-08-22) ────────────────────────────────────────────────
+
+def test_router_threshold_is_single_sourced_and_unified():
+    """★합성 경로 통일: 라우터 임계 0 = 항상 학습.
+
+    근거(같은 B 코퍼스 128ep, 강제 두 팔, median-of-3):
+    학습 90/128 · p=4.9e-06 · 상대 -38.5% · 제로필드 이김 128/128 vs 100/128.
+    """
+    import yaml, os
+    from wavesplat.optimizer.sequential_update import (AUTO_SWITCH_THRESH_DEFAULT,
+                                                       AUTO_SWITCH_THRESH_PRE_UNIFY)
+    from wavesplat.run import DEFAULT_CONFIG
+    assert DEFAULT_CONFIG['auto_switch_thresh'] is AUTO_SWITCH_THRESH_DEFAULT
+    assert AUTO_SWITCH_THRESH_DEFAULT == 0
+    assert AUTO_SWITCH_THRESH_PRE_UNIFY == 8          # 되돌리기 값 고정
+    here = os.path.dirname(os.path.abspath(__file__))
+    opt = yaml.safe_load(open(os.path.join(here, '..', '..', 'configs',
+                                           'estimation.yaml')))['optimizer']
+    assert opt['auto_switch_thresh'] == AUTO_SWITCH_THRESH_DEFAULT
+
+
+def test_unification_did_not_disable_the_real_gate():
+    """★★통일했어도 실측 게이트는 살아 있어야 한다.
+
+    통일을 `init_method` 기본값 변경으로 했다면 게이트가 사라졌을 것이다.
+    임계로 한 이유가 이것이고, 이 시험이 그 성질을 고정한다.
+    W12 측정: 실측에 학습을 강제하면 예보 지평에서 제로필드에 0/5 패배.
+    """
+    import torch
+    from wavesplat.optimizer.sequential_update import SequentialUpdater
+    from wavesplat.data_loader import FrameData
+    from wavesplat.run import DEFAULT_CONFIG
+
+    assert DEFAULT_CONFIG['init_method'] == 'auto'     # 게이트가 사는 유일한 조건
+    g = torch.Generator().manual_seed(0)
+    frames = [FrameData(t=float(i), x_obs=torch.rand(64, generator=g) * 100 + 10,
+                        y_obs=(torch.rand(64, generator=g) - 0.5) * 100,
+                        z_obs=torch.randn(64, generator=g) * 0.1,
+                        confidence=torch.ones(64),
+                        incidence_angles=torch.zeros(64)) for i in range(3)]
+    u = SequentialUpdater(dict(DEFAULT_CONFIG, depth=50.0))
+    u.initialize(frames, x_range=(10.0, 110.0), y_range=(-50.0, 50.0))
+    assert u._auto_real_gate is True, '통일이 실측 게이트를 껐다'
+    assert u.init_method != 'learned', '실측이 학습 경로로 갔다'

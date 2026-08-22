@@ -83,18 +83,48 @@ def test_router_uses_the_default_checkpoint():
     assert "cfg.get('learned_ckpt', DEFAULT_CKPT)" in src
 
 
-# ── B. router: threshold 8, guard retired ───────────────────────────────────
+# ── B. router: 경로 통일(2026-08-22), guard retired ──────────────────────────
+# ⚠**계약 변경**: 2026-07-26 배포 인가는 임계 8 이었고 이 시험이 그것을 고정했다.
+# 2026-08-22 에 사용자 지시로 **합성 경로를 학습으로 통일**하면서 임계를 0 으로 내렸다.
+# 근거(같은 B 코퍼스 128ep, 강제 두 팔, median-of-3, 신선 시드):
+#   학습 90/128 · p=4.9e-06 · 상대 -38.5% · 제로필드 이김 **128/128 vs 100/128** · 3.4배 빠름
+#   (혼잡 63/64 -51.0%; 해석적은 혼잡에서 제로필드에 25/64 패배)
+#   라우터는 시드에 불안정했다 — 128 중 34(26.6%)에서 시드만 바꿔도 판정이 뒤집혔다.
+#   tmp/{W11_UNIFY,W13_SPARSE_HEAD2HEAD,W14_CROWDED_HEAD2HEAD}_2026-08-22
+# ★임계를 상수에서 읽는다 — 이전처럼 리터럴 8 을 박아 두면 배포와 시험이 다시 어긋난다.
 
-@pytest.mark.parametrize('n_atoms,expected', [(7, 'v2_konly'), (8, 'learned'),
-                                              (20, 'learned')])
-def test_auto_router_threshold_is_8(n_atoms, expected):
-    from wavesplat.optimizer.sequential_update import SequentialUpdater
+def test_auto_router_follows_the_shipped_threshold():
+    from wavesplat.optimizer.sequential_update import (SequentialUpdater,
+                                                       AUTO_SWITCH_THRESH_DEFAULT)
+    for n_atoms in (1, 7, 8, 20):
+        cfg = {'init_method': 'auto', 'depth': 50.0, 'seed': 42,
+               'learned_atoms': _atoms(n_atoms)}
+        upd = SequentialUpdater(cfg)
+        want = 'learned' if n_atoms >= AUTO_SWITCH_THRESH_DEFAULT else 'v2_konly'
+        assert upd._auto_select_init([], verbose=False) == want
+        assert upd._auto_n_selected == n_atoms
 
-    cfg = {'init_method': 'auto', 'depth': 50.0, 'seed': 42,
-           'learned_atoms': _atoms(n_atoms)}
-    upd = SequentialUpdater(cfg)
-    assert upd._auto_select_init([], verbose=False) == expected
-    assert upd._auto_n_selected == n_atoms
+
+def test_unified_router_always_picks_learned_on_synthetic():
+    """★통일의 정의: 임계 0 이면 성분 수와 무관하게 항상 학습."""
+    from wavesplat.optimizer.sequential_update import (SequentialUpdater,
+                                                       AUTO_SWITCH_THRESH_DEFAULT)
+    assert AUTO_SWITCH_THRESH_DEFAULT == 0
+    for n_atoms in (1, 2, 7, 30):
+        upd = SequentialUpdater({'init_method': 'auto', 'depth': 50.0, 'seed': 42,
+                                 'learned_atoms': _atoms(n_atoms)})
+        assert upd._auto_select_init([], verbose=False) == 'learned'
+
+
+def test_pre_unify_threshold_still_reproducible():
+    """되돌리기·과거 배치 재현: 임계 8 을 명시하면 옛 거동이 그대로 나와야 한다."""
+    from wavesplat.optimizer.sequential_update import (SequentialUpdater,
+                                                       AUTO_SWITCH_THRESH_PRE_UNIFY)
+    for n_atoms, want in ((7, 'v2_konly'), (8, 'learned'), (20, 'learned')):
+        upd = SequentialUpdater({'init_method': 'auto', 'depth': 50.0, 'seed': 42,
+                                 'auto_switch_thresh': AUTO_SWITCH_THRESH_PRE_UNIFY,
+                                 'learned_atoms': _atoms(n_atoms)})
+        assert upd._auto_select_init([], verbose=False) == want
 
 
 def test_auto_guard_is_retired_by_default():

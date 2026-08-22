@@ -19,7 +19,8 @@ from wavesplat.optimizer.sequential_update import (SequentialUpdater, make_updat
                                                    LAMBDA_L1_DEFAULT,
                                                    INIT_METHOD_DEFAULT,
                                                   VARPRO_STEPS_DEFAULT,
-                                                  LEARNED_INIT_ITERS_DEFAULT)
+                                                  LEARNED_INIT_ITERS_DEFAULT,
+                                                  AUTO_SWITCH_THRESH_DEFAULT)
 from wavesplat.evaluation.metrics import rmse_observed, rmse_unobserved, compute_all_metrics, rmse, nrmse
 
 
@@ -57,6 +58,10 @@ DEFAULT_CONFIG = {
     # sequential_update.MedianEnsembleUpdater). 3 = the pre-registered, confirmed value;
     # 1 disables it. Explicit init_method='v2_konly' is unaffected either way.
     'analytic_ensemble_k': 3,
+    # 경로 통일 2026-08-22 — 0 = 라우터가 항상 학습을 고른다(합성 한정).
+    # 유일 정의는 sequential_update.AUTO_SWITCH_THRESH_DEFAULT; 여기와 yaml 은 미러다.
+    # ⛔실측은 이 값과 무관하게 실측 게이트가 bank_mmse 로 보낸다(W12).
+    'auto_switch_thresh': AUTO_SWITCH_THRESH_DEFAULT,
     # What the REAL-DOMAIN gate routes to (2026-07-29 port): 'bank_mmse' = the research
     # estimator behind every published real-sea number, under observation-only
     # parameters, measured BETTER than the old single-v2_konly fallback on all 3
@@ -124,6 +129,8 @@ def load_yaml_config(yaml_path: str) -> dict:
             'varpro_steps', DEFAULT_CONFIG['varpro_steps'])
         cfg['learned_init_iters'] = raw['optimizer'].get(
             'learned_init_iters', DEFAULT_CONFIG['learned_init_iters'])
+        cfg['auto_switch_thresh'] = raw['optimizer'].get(
+            'auto_switch_thresh', DEFAULT_CONFIG['auto_switch_thresh'])
         cfg['tracking_steps'] = raw['optimizer'].get('tracking_steps', 10)
         cfg['tracking_mode'] = raw['optimizer'].get('tracking_mode', 'w_phi')
         cfg['tracking_lr'] = raw['optimizer'].get('tracking_lr', 0.005)
@@ -599,6 +606,8 @@ def main():
     parser.add_argument('--lambda_l1', type=float, default=None)
     parser.add_argument('--lambda_smooth', type=float, default=None)
     parser.add_argument('--varpro_steps', type=int, default=None)
+    parser.add_argument('--auto_switch_thresh', type=int, default=None,
+                        help='0 = router always picks learned (2026-08-22 unify); 8 = pre-unify')
     parser.add_argument('--learned_init_iters', type=int, default=None,
                         help='0 = VARPRO deploy default; pre-deploy = 500 with --varpro_steps 0')
     parser.add_argument('--tracking_steps', type=int, default=None)
@@ -657,6 +666,8 @@ def main():
         config['lambda_smooth'] = args.lambda_smooth
     if args.varpro_steps is not None:
         config['varpro_steps'] = args.varpro_steps
+    if args.auto_switch_thresh is not None:
+        config['auto_switch_thresh'] = args.auto_switch_thresh
     if args.learned_init_iters is not None:
         config['learned_init_iters'] = args.learned_init_iters
     if args.tracking_steps is not None:

@@ -30,6 +30,11 @@ optimizer:
   # VARPRO 배포 2026-08-22 — 유일 정의는 optimizer/sequential_update.py 의
   # VARPRO_STEPS_DEFAULT / LEARNED_INIT_ITERS_DEFAULT 다. 이 두 줄은 미러다.
   # 근거: W4 1,344런 · W5 640런 · B 1,152런(배포 라우터 ITT, 혼잡 -25.28%).
+  # 경로 통일 2026-08-22 — 0 = 라우터가 항상 학습을 고른다(합성 한정).
+  # 유일 정의는 optimizer/sequential_update.AUTO_SWITCH_THRESH_DEFAULT (이 줄은 미러).
+  # 근거: 같은 코퍼스 128ep 에서 학습 90/128, -38.5%, 제로필드 128/128 vs 100/128.
+  # ⛔실측은 이 값과 무관 — 실측 게이트가 bank_mmse 로 보낸다(W12: 학습 강제 시 0/5 패배).
+  auto_switch_thresh: 0       # 되돌리기 = 8 (2026-08-22 이전)
   varpro_steps: 400           # ⛔0 하나로는 배포 전 거동이 아니다 (아래와 함께 바꿀 것)
   learned_init_iters: 0       # W5 가 결합 경사하강을 잉여로 측정 (이전 500).
                               # ★배포 전 거동 = varpro_steps:0 AND learned_init_iters:500.

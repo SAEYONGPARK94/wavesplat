@@ -156,3 +156,58 @@ def test_s8_probe_pin_is_the_pre_s9_value_not_the_current_default():
     """
     assert LAMBDA_L1_PRE_S9 == 1e-3
     assert LAMBDA_L1_PRE_S9 != LAMBDA_L1_DEFAULT
+
+
+# ── VARPRO 배포 회귀 (2026-08-22) ──────────────────────────────────────────────
+# 배포 전까지 이 처방은 tmp/ 의 몽키패치로만 존재했다("측정됐는데 배포 안 됨").
+# 아래 시험들은 (1) 값이 단일출처이고 (2) yaml·DEFAULT_CONFIG 가 그것을 미러하며
+# (3) 처치가 실제로 켜져 있는지를 고정한다. 저장소가 반복해 물린 결함 부류의 방벽이다.
+
+def test_varpro_defaults_are_single_sourced():
+    from wavesplat.optimizer.sequential_update import (VARPRO_STEPS_DEFAULT,
+                                                       LEARNED_INIT_ITERS_DEFAULT)
+    from wavesplat.run import DEFAULT_CONFIG
+    assert DEFAULT_CONFIG['varpro_steps'] is VARPRO_STEPS_DEFAULT
+    assert DEFAULT_CONFIG['learned_init_iters'] is LEARNED_INIT_ITERS_DEFAULT
+    # 배포된 구성 = B 배치 A-VP 팔. 값을 바꾸면 W4/W5/B 재현이 끊긴다.
+    assert VARPRO_STEPS_DEFAULT == 400
+    assert LEARNED_INIT_ITERS_DEFAULT == 0
+
+
+def test_estimation_yaml_mirrors_varpro_defaults():
+    import os
+    import yaml
+    from wavesplat.optimizer.sequential_update import (VARPRO_STEPS_DEFAULT,
+                                                       LEARNED_INIT_ITERS_DEFAULT)
+    here = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(here, '..', '..', 'configs', 'estimation.yaml')
+    opt = yaml.safe_load(open(path))['optimizer']
+    assert opt['varpro_steps'] == VARPRO_STEPS_DEFAULT
+    assert opt['learned_init_iters'] == LEARNED_INIT_ITERS_DEFAULT
+
+
+def test_varpro_polar_map_matches_forward_model_sign():
+    """a = w cos phi, b = -w sin phi  (전방모델이 w cos(theta+phi) 이므로).
+
+    2026-08-19 에 sequential_update 의 한 사이트가 atan2(b, a) 로 이탈해 있었다.
+    varpro 의 역변환이 같은 이탈을 하지 않는지 고정한다.
+    """
+    import torch
+    from wavesplat.optimizer import varpro as V
+    w = torch.tensor([0.3, 1.1, 0.7], dtype=torch.float64)
+    phi = torch.tensor([0.4, -2.0, 3.0], dtype=torch.float64)
+    a, b = V.wphi_to_ab(w, phi)
+    assert torch.allclose(a, w * torch.cos(phi))
+    assert torch.allclose(b, -w * torch.sin(phi))
+    w2, phi2 = V.ab_to_wphi(a, b)
+    assert torch.allclose(w, w2)
+    d = torch.remainder(phi2 - phi + torch.pi, 2 * torch.pi) - torch.pi
+    assert torch.allclose(d, torch.zeros_like(d), atol=1e-12)
+
+
+def test_varpro_can_be_disabled_to_pre_deployment_behaviour():
+    """varpro_steps=0 이면 처치가 완전히 꺼져야 한다 (배포 전 거동 복원 경로)."""
+    from wavesplat.optimizer.sequential_update import SequentialUpdater
+    u = SequentialUpdater({'varpro_steps': 0, 'learned_init_iters': 500})
+    assert int(u.config.get('varpro_steps')) == 0
+    assert int(u.config.get('learned_init_iters')) == 500

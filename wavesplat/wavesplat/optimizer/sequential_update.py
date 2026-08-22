@@ -39,6 +39,18 @@ from wavesplat.data_loader import FrameData
 # this project three separate incidents; see tmp/S9_lr_x_l1_2026-08-11/PREREG.md §7.)
 LAMBDA_L1_DEFAULT = 1e-4
 
+# ── VARPRO 배포 (2026-08-22) ────────────────────────────────────────────────
+# 그전까지 이 처방은 `tmp/W4_SOLVER_2026-08-19/varpro.py` 의 **몽키패치로만** 존재했고
+# 패키지에는 없었다 = "측정은 됐는데 배포는 안 된" 상태. 아래 두 상수가 그 배포다.
+# 근거: W4 1,344런(52/64, -17.53%, p=2.28e-07) · W5 640런(결합 적합은 잉여) ·
+#       B 1,152런(배포 라우터 그대로 ITT, 혼잡 55/60 -25.28% p=5.19e-12).
+# B 의 `A-VP` 팔 = {'learned_init_iters': 0} + VARPRO 400 스텝. 그것을 그대로 배포한다.
+# ⚠ 이 값을 바꾸면 그 세 배치의 재현이 끊긴다. 바꿀 때는 기준선 팔이 명시하는지 확인할 것.
+VARPRO_STEPS_DEFAULT = 400
+# 0 = 학습 초기화 뒤의 결합 경사하강을 돌리지 않는다. W5 P-2 가 그것을 잉여로 측정했고
+# (36/64 널) 벽시계를 29.7 s -> 14.5 s 로 줄였다. 2026-08-22 이전 값은 500 이었다.
+LEARNED_INIT_ITERS_DEFAULT = 0
+
 # The PRE-2026-08-11 shipping value of `lambda_l1`, kept ONLY so the S8 probe gates below
 # (`S8_L1_TRACK_ONLY` / `S8_L1_PHASE1_ONLY`, 2026-08-10) reproduce bit-exactly.  It was
 # written as a bare `0.001` literal at two call sites whose comments claimed it was "the
@@ -681,7 +693,7 @@ class SequentialUpdater:
         self._build_optimizer()
 
         # Joint fit at full N (analog of the shipped final-stage polish budget).
-        max_iters = int(self.config.get('learned_init_iters', 500))
+        max_iters = int(self.config.get('learned_init_iters', LEARNED_INIT_ITERS_DEFAULT))
         loss_history = []
         for iteration in range(max_iters):
             self.optimizer.zero_grad()
@@ -702,6 +714,16 @@ class SequentialUpdater:
 
         self._build_tracking_optimizer()
 
+        # ── VARPRO (2026-08-22 배포) ─────────────────────────────────────────
+        # 원 몽키패치(`tmp/W4_SOLVER_2026-08-19/varpro.py:install`)는 `_initialize_learned`
+        # 전체가 끝난 **뒤** 적용했다. 배선 지점을 그대로 맞춘다 = 그 배치들과 같은 순서.
+        vp_steps = int(self.config.get('varpro_steps', VARPRO_STEPS_DEFAULT))
+        vp_rec = None
+        if vp_steps > 0:
+            from wavesplat.optimizer import varpro as _varpro
+            vp_rec = _varpro.apply_varpro(self, frames, steps=vp_steps,
+                                          weighting='confidence', verbose=verbose)
+
         elapsed = time.time() - t0
         if verbose:
             print(f"  [Init/learned complete] {max_iters} iters, "
@@ -713,6 +735,8 @@ class SequentialUpdater:
             'n_iters': max_iters,
             'elapsed_s': elapsed,
             'final_n': self.model.n_gaussians,
+            'varpro_steps': vp_steps,
+            'varpro': vp_rec,
         }
 
     def _auto_select_init(self, frames: List[FrameData], verbose: bool = False) -> str:

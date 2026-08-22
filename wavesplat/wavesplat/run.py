@@ -17,7 +17,9 @@ import torch
 from wavesplat.data_loader import EpisodeDataLoader
 from wavesplat.optimizer.sequential_update import (SequentialUpdater, make_updater,
                                                    LAMBDA_L1_DEFAULT,
-                                                   INIT_METHOD_DEFAULT)
+                                                   INIT_METHOD_DEFAULT,
+                                                  VARPRO_STEPS_DEFAULT,
+                                                  LEARNED_INIT_ITERS_DEFAULT)
 from wavesplat.evaluation.metrics import rmse_observed, rmse_unobserved, compute_all_metrics, rmse, nrmse
 
 
@@ -30,6 +32,11 @@ DEFAULT_CONFIG = {
     # sequential_update.LAMBDA_L1_DEFAULT).  configs/estimation.yaml mirrors it.
     'lambda_l1': LAMBDA_L1_DEFAULT,
     'lambda_smooth': 0.0001,
+    # VARPRO 배포 2026-08-22. 유일 정의는 sequential_update 이고 여기와
+    # configs/estimation.yaml 이 그것을 미러한다 (lambda_l1 과 같은 규약).
+    # 0 이면 처치가 완전히 꺼진다 = 2026-08-22 이전 거동.
+    'varpro_steps': VARPRO_STEPS_DEFAULT,
+    'learned_init_iters': LEARNED_INIT_ITERS_DEFAULT,
     'tracking_steps': 10,
     'tracking_mode': 'w_phi',
     'tracking_lr': 0.005,
@@ -111,6 +118,10 @@ def load_yaml_config(yaml_path: str) -> dict:
         # fallback must track DEFAULT_CONFIG, not a third hand-written copy (S9 lesson)
         cfg['lambda_l1'] = raw['optimizer'].get('lambda_l1', DEFAULT_CONFIG['lambda_l1'])
         cfg['lambda_smooth'] = raw['optimizer'].get('lambda_smooth', 0.0001)
+        cfg['varpro_steps'] = raw['optimizer'].get(
+            'varpro_steps', DEFAULT_CONFIG['varpro_steps'])
+        cfg['learned_init_iters'] = raw['optimizer'].get(
+            'learned_init_iters', DEFAULT_CONFIG['learned_init_iters'])
         cfg['tracking_steps'] = raw['optimizer'].get('tracking_steps', 10)
         cfg['tracking_mode'] = raw['optimizer'].get('tracking_mode', 'w_phi')
         cfg['tracking_lr'] = raw['optimizer'].get('tracking_lr', 0.005)
@@ -485,6 +496,15 @@ def run_estimation(h5_path: str, config: dict = None,
         'bank_members': init_result.get('bank_members'),
         'bank_val_misfit': init_result.get('bank_val_misfit'),
         'init_iters': init_result['n_iters'],
+        # ★VARPRO 배포 2026-08-22 — **처치가 실제로 발화했는지를 결과 행에 남긴다.**
+        # 저장소가 반복해서 물린 결함이 '안 돌아가는 코드를 연구한 것'이었다
+        # (누적 26축). 추론이 아니라 카운터로 확인할 수 있어야 한다.
+        'varpro_steps': init_result.get('varpro_steps'),
+        'varpro_fired': bool(init_result.get('varpro')),
+        'varpro_obj_before': (init_result.get('varpro') or {}).get('vp_obj_before'),
+        'varpro_obj_after': (init_result.get('varpro') or {}).get('vp_obj_after'),
+        'varpro_k_shift': (init_result.get('varpro') or {}).get('vp_k_shift'),
+        'varpro_wall_s': (init_result.get('varpro') or {}).get('vp_wall_s'),
         'init_time_s': init_result['elapsed_s'],
         'init_rmse': init_rmse,
         'init_nrmse': init_nrmse,
@@ -576,6 +596,7 @@ def main():
     parser.add_argument('--lr', type=float, default=None)
     parser.add_argument('--lambda_l1', type=float, default=None)
     parser.add_argument('--lambda_smooth', type=float, default=None)
+    parser.add_argument('--varpro_steps', type=int, default=None)
     parser.add_argument('--tracking_steps', type=int, default=None)
     parser.add_argument('--tracking_mode', type=str, default=None,
                         choices=['phi_only', 'w_phi', 'all'],
@@ -630,6 +651,8 @@ def main():
         config['bank_refit_every_s'] = args.bank_refit_every_s
     if args.lambda_smooth is not None:
         config['lambda_smooth'] = args.lambda_smooth
+    if args.varpro_steps is not None:
+        config['varpro_steps'] = args.varpro_steps
     if args.tracking_steps is not None:
         config['tracking_steps'] = args.tracking_steps
     if args.tracking_mode is not None:

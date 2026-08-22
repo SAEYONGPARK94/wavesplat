@@ -27,6 +27,11 @@ optimizer:
                               # (The old "Keep in sync" note described the pre-5f0846c
                               #  three-copy layout and was retracted 2026-08-13.)
   lambda_smooth: 0.0001       # spectral smoothness weight
+  # VARPRO 배포 2026-08-22 — 유일 정의는 optimizer/sequential_update.py 의
+  # VARPRO_STEPS_DEFAULT / LEARNED_INIT_ITERS_DEFAULT 다. 이 두 줄은 미러다.
+  # 근거: W4 1,344런 · W5 640런 · B 1,152런(배포 라우터 ITT, 혼잡 -25.28%).
+  varpro_steps: 400           # 0 = 처치 off (2026-08-22 이전 거동)
+  learned_init_iters: 0       # W5 가 결합 경사하강을 잉여로 측정 (이전 500)
   tracking_steps: 10          # gradient steps per tracking frame
   tracking_mode: w_phi         # 'phi_only', 'w_phi', or 'all'
   tracking_lr: 0.005          # learning rate for tracking phase

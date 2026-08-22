@@ -398,3 +398,66 @@ def test_full_revert_helper_covers_all_three_switches():
     # 오늘 바뀐 키를 하나도 빠뜨리지 않았는지: 현 기본값과 전부 달라야 한다.
     for k, v in cfg.items():
         assert DEFAULT_CONFIG[k] != v, f'{k} 가 되돌림 대상이 아니다 — 목록이 낡았다'
+
+
+def test_thesis_deploy_constants_are_current():
+    """★논문의 배포 상수가 현 `DEFAULT_CONFIG` 와 일치해야 한다.
+
+    2026-08-22 에 논문의 라우터 서술이 **같은 날 배포로 8시간 46분 만에 낡았고**
+    저녁 편집이 못 잡았다(심사 R3-1). 저장소는 *"같은 값을 여러 곳에 적어 어긋남"* 에
+    여섯 번 물렸고 08-19 에 *"개입 기대값은 단일출처"* 를 처방했다 ---
+    이 시험이 그 처방을 **논문에** 적용한다.
+
+    `thesis/deploy_constants.tex` 는 `scripts/gen_deploy_constants.py` 가 생성한다.
+    배포값을 바꾸면 이 시험이 실패하고, 스크립트를 다시 돌리면 통과한다.
+    """
+    import os
+    import re
+    here = os.path.dirname(os.path.abspath(__file__))
+    tex = os.path.join(here, '..', '..', 'thesis', 'deploy_constants.tex')
+    assert os.path.exists(tex), (
+        'thesis/deploy_constants.tex 가 없다 — scripts/gen_deploy_constants.py 를 돌려라')
+    # ⚠중첩 중괄호(10^{-4})가 있으므로 균형 파서를 쓴다 — 단순 정규식은 잘린다.
+    got = {}
+    for line in open(tex):
+        if not line.startswith('\\newcommand'):
+            continue
+        name = line[line.index('{\\') + 2:line.index('}')]
+        rest = line[line.index('}') + 1:]
+        depth, buf = 0, []
+        for ch in rest:
+            if ch == '{':
+                depth += 1
+                if depth == 1:
+                    continue
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    break
+            if depth >= 1:
+                buf.append(ch)
+        got[name] = ''.join(buf)
+    from wavesplat.run import DEFAULT_CONFIG
+    from wavesplat.optimizer.sequential_update import (AUTO_SWITCH_THRESH_PRE_UNIFY,
+                                                       LEARNED_INIT_ITERS_PRE_VARPRO)
+    assert got['DeployRouterThresh'] == str(DEFAULT_CONFIG['auto_switch_thresh'])
+    assert got['DeployVarproSteps'] == str(DEFAULT_CONFIG['varpro_steps'])
+    assert got['DeployLearnedInitIters'] == str(DEFAULT_CONFIG['learned_init_iters'])
+    assert got['DeployInitMethod'] == str(DEFAULT_CONFIG['init_method'])
+    assert got['DeployTrackingMode'] == str(DEFAULT_CONFIG['tracking_mode'])
+    assert got['PreUnifyRouterThresh'] == str(AUTO_SWITCH_THRESH_PRE_UNIFY)
+    assert got['PreVarproInitIters'] == str(LEARNED_INIT_ITERS_PRE_VARPRO)
+    assert '10^{-4}' in got['DeployLambdaOne']
+
+
+def test_thesis_does_not_hardcode_router_threshold():
+    """★논문 본문이 라우터 임계를 **문자로** 다시 적지 않아야 한다.
+
+    이것이 2026-08-22 재발의 직접 원인이었다(`n_sel >= 8` 이 본문 네 곳에 박혀 있었다).
+    """
+    import os
+    import re
+    here = os.path.dirname(os.path.abspath(__file__))
+    body = open(os.path.join(here, '..', '..', 'thesis', 'thesis_main.tex')).read()
+    body = re.sub(r'(?m)^\s*%.*$', '', body)          # 주석(이력 보존)은 제외
+    assert 'ge 8' not in body, '논문 본문에 라우터 임계가 문자로 박혀 있다'

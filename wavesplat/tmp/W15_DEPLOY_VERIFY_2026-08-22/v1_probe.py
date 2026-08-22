@@ -109,8 +109,8 @@ for n in (7, 20):
         warnings.simplefilter('ignore')
         r = u.initialize(frames(with_gt=True), x_range=(10.0, 110.0),
                          y_range=(-50.0, 50.0))
-    fld = u.predict_field(np.linspace(10, 110, 9), np.linspace(-50, 50, 9), 2.0)
-    fld = np.asarray(fld, dtype=np.float64)
+    fld = u.predict_field(torch.linspace(10., 110., 9), torch.linspace(-50., 50., 9), 2.0)
+    fld = np.asarray(fld.detach().cpu().numpy() if hasattr(fld, "detach") else fld, dtype=np.float64)
     p3[str(n)] = {'route': getattr(u, 'init_method', None),
                   'final_n': r.get('final_n'),
                   'ensemble_k': r.get('ensemble_k'),

@@ -265,7 +265,10 @@ LiDAR 관측 품질의 공간적 불균질성을 직접 모델링한다.
 절대 오차가 비선형 참값에서 약 $3$배 열화하므로 \textbf{크기를 인용하지 않는다}.
 ⛔\textbf{실측 자료(고정 관측소 스테레오 $12$ 레코드)에서는 본 논문이 제안하는 표현이
 기술을 보이지 않는다} --- 논문이 주장하는 순차 추적·전방 예보 프로토콜에서 무기술 기준을
-넘지 못하며, 학습 체크포인트를 제거한 두 가지 다른 초기화로 반복하여도 같다.
+넘지 못하며, 학습 체크포인트를 제거한 두 가지 다른 초기화도 각각 무기술 문턱
+($36$ 창 중 $24$)에 크게 못 미친다($12\cdot14\cdot14$).
+⚠단 이는 \emph{세 초기화의 판정이 같다}는 뜻이지 \emph{결과가 같다}는 뜻이 아니다 ---
+세 초기화의 lead 별 오차 벡터는 $36$ 창에서 비트 동일이 $0$건이다.
 같은 자료에서 격자 기반 앙상블 칼만 기준선 두 종도 무기술 기준을 넘지 못하여
 \textbf{외부 기준선 대비 우열은 주장하지 않는다}.
 ⚠\textbf{본 방법은 ``학습이 필요 없는'' 방법이 아니다} --- 혼잡 해상에서 학습된 초기화를
@@ -361,9 +364,12 @@ In \emph{sparse} seas the sign persists but the absolute error degrades roughly
 threefold under nonlinear ground truth, so \textbf{no magnitude is claimed there}.
 ⛔\textbf{On real data (twelve fixed-station stereo records) the proposed representation
 shows no skill} --- it does not beat a no-skill reference under the sequential
-tracking and forward-forecast protocol this dissertation claims, and the same holds
-when the learned checkpoint is removed and replaced by either of two analytic
-initialisations. On the same data, two independently reproduced grid-based ensemble
+tracking and forward-forecast protocol this dissertation claims; two analytic
+initialisations that remove the learned checkpoint each fall well short of the same
+no-skill threshold ($24$ of $36$ windows; observed $12$, $14$, $14$).
+⚠This states that the three initialisations receive the \emph{same verdict}, not that
+they produce the \emph{same output}: none of the $36$ per-lead error vectors is
+bit-identical between them. On the same data, two independently reproduced grid-based ensemble
 Kalman baselines also fail to beat the no-skill reference, so \textbf{no comparative
 superiority is claimed on real data}.
 ⚠\textbf{This method is not ``learning-free''} --- it uses a learned initialiser in
@@ -4462,9 +4468,13 @@ nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
 \begin{itemize}
   \item \textbf{제안하는 격자 비의존 표현은 실측 입력에서 기술을 보이지 않는다}
         (전방 $1$--$3$\,s $36$ 창 중 $12$). 이는 개입 부재에 의한 것이 아니며
-        (추적 갱신이 전 실행에서 수행되고 성분이 생성되었다), 학습 체크포인트를 제거한
-        \emph{두 가지} 다른 초기화로 반복하여도 동일하다. 즉 \textbf{초기화 선택으로는
-        이 자료에서 결과가 바뀌지 않는다}.
+        (추적 갱신이 전 실행에서 수행되고 성분이 생성되었다). 학습 체크포인트를 제거한
+        \emph{두 가지} 다른 초기화도 각각 같은 문턱($36$ 창 중 $24$)에 크게 못 미쳤다
+        ($12\cdot14\cdot14$).
+        ⛔\textbf{단 ``초기화 선택으로는 결과가 바뀌지 않는다'' 로 읽어서는 안 된다} ---
+        그것은 전칭이고 자료가 부인한다. 세 초기화의 lead 별 오차 벡터는 $36$ 창에서
+        비트 동일이 $0$건이며, 짝 비교도 부호가 갈린다($20/36$, $23/36$; 둘 다 널).
+        \emph{바뀌지 않는 것은 판정이지 결과가 아니다.}
   \item \textbf{실측 게이트가 사용하는 격자 기반 경로}의 전방 시간 전개는
         lead $1$--$3$\,s 에서만 무기술 기준을 넘고 $4$\,s 부터 사라지며, 초기화 적합을
         주기적으로 갱신하면 $4$--$14$\,s 에서도 유지된다.

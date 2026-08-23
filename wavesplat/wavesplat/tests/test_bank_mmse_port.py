@@ -254,8 +254,11 @@ def test_bank_refit_default_freezes_and_recommendation_refits():
     # (2) 권고 설정 = 재적합.  이 절이 없으면 recommended_* 가 죽은 코드가 된다.
     rec = recommended_real_refit_config()
     assert 8 * 2.0 > rec['bank_refit_every_s'], '구동 창이 주기보다 짧다 — 시험이 공허하다'
-    a2, b2 = _drive(rec)
+    # ★권고는 비동기를 포함한다(2026-08-23 B-9b) ⟹ 동기 시험을 위해 그 키만 끈다.
+    a2, b2 = _drive(dict(rec, bank_refit_async=False))
     assert b2 is not a2, 'recommended_real_refit_config() 에서 재적합이 발화하지 않았다'
+    assert rec.get('bank_refit_async') is True, (
+        '권고에 비동기가 빠졌다 — 동기는 프레임 예산을 9–13배 깬다(B-9 음성대조 36/36)')
 
     # (3) pre_2026_08_23_config() 는 이제 항등이지만 여전히 동결을 낸다(기록 호환).
     a3, b3 = _drive(pre_2026_08_23_config())

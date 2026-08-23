@@ -96,15 +96,31 @@ BANK_REFIT_EVERY_S_DEFAULT = None
 
 
 def recommended_real_refit_config() -> dict:
-    """★**측정된 권고**(배포 기본값이 **아니다**) — `bank_refit_every_s=5.0`.
+    """★**측정된 권고**(배포 기본값이 **아니다**) — 재적합 5 s + **비동기**.
 
-    2026-08-23 에 기본값으로 배포했다가 **같은 날 밤 되돌렸다**(사유는 위 상수 주석).
-    정확도 이득은 실재하므로 **명시적으로 켜는 경로**로 남긴다:
+    2026-08-23 에 `bank_refit_every_s=5.0` 을 기본값으로 배포했다가 **같은 날 되돌렸다**:
+    동기 재적합이 프레임 예산을 **9–13배** 깼고(`B-9` 음성대조 36/36, 최악 774–867 ms 대 dt
+    67–100 ms), 내가 근거로 든 예산 판정은 **재적합이 0회인 구성**의 것이었다.
+    그 뒤 **비동기 재적합**(`bank_refit_async`)을 구현하고 **후보 구성 그대로** 다시 쟀다:
+
+    | | 측정 |
+    |---|---|
+    | 최악 프레임 | ★**2.8 ms**(12/12 예산 통과) — 동기 774 ms 대비 **274배** 감소 |
+    | 정확도 vs 동결 | ★**33/36, −10.39%, p=1.0e-07** (**실시간 페이싱**, `B-9b`) |
+    | 비동기의 대가 | 동기 대비 **+5.05%** |
+
+    ⛔**그럼에도 기본값으로 만들지 않는다.  사유는 성능이 아니라 *조용한 조건 의존성* 이다**:
+    ★***비동기의 효과는 호출자의 벽시계 페이싱에 의존한다.***  재생 하네스가 실시간보다 빠르면
+    (실측 **494배**) 적합이 채점 뒤에 착지해 **설정은 켜져 있는데 실질은 꺼진** 상태가 된다.
+    기본값으로 만들면 그 함정이 **모든 배치에 조용히 깔린다** — 이 저장소가 *"개입이 개입하지
+    않았다"* 로 여러 번 대가를 치른 바로 그 부류다.
+    ⟹ **명시적으로 켜고, `bank_refit_health()['effective']` 를 게이트로 검사하라.**
         cfg.update(recommended_real_refit_config())
-    ⚠**실시간 제어 루프에서는 그대로 쓰지 마라** — 재적합이 `update()` 안에서 동기로 돌아
-    프레임 간격의 **약 20배**(1.35–2.53 s) 동안 블로킹한다.  선행 조건 = **비동기 재적합**.
+        ...
+        assert upd.bank_refit_health()['effective'], '비동기 재적합이 실질적으로 안 돌았다'
+    상세: `tmp/B9_ASYNC_2026-08-23/{RESULT_B9.md,RESULT_B9B.md}`
     """
-    return {'bank_refit_every_s': 5.0}
+    return {'bank_refit_every_s': 5.0, 'bank_refit_async': True}
 
 
 def pre_2026_08_23_config() -> dict:
@@ -1108,6 +1124,23 @@ class SequentialUpdater:
         if fut is not None and fut['thread'].is_alive():
             self._bank_async_skipped = getattr(self, '_bank_async_skipped', 0) + 1
             return
+        # ★2026-08-23 진단 (B-9 의 교훈): 비동기의 **효과는 호출자의 벽시계 페이싱에 의존한다.**
+        # 재생 하네스가 14 s 분량을 0.03 s 에 돌리면(실측 **실시간의 494배**) 적합(≈1.7 s)이
+        # **채점이 끝난 뒤에** 착지해 `bank_refit_async=True` 가 **설정상 켜져 있는데 실질은 꺼진**
+        # 상태가 된다.  그것이 `B-9` 에서 정확도를 "다 잃은 것처럼" 보이게 했다(상대중앙 +0.00%).
+        # ⟹ 그 상황을 **조용히 넘기지 않는다**: 두 번째 kick 인데 적용이 0회면 경고한다.
+        if getattr(self, '_bank_async_kicks', 0) >= 1 \
+                and getattr(self, '_bank_async_applied', 0) == 0 \
+                and not getattr(self, '_bank_async_warned', False):
+            import warnings
+            self._bank_async_warned = True
+            warnings.warn(
+                'bank_refit_async is ON but no background fit has been APPLIED yet after '
+                f'{getattr(self, "_bank_async_kicks", 0)} kick(s).  The fit takes ~seconds of '
+                'WALL time; if the caller replays frames faster than real time the refit lands '
+                'after scoring and the flag is effectively a no-op.  Pace the loop to real time '
+                'or call bank_refit_wait().  (measured: tmp/B9_ASYNC_2026-08-23/RESULT_B9.md)',
+                RuntimeWarning)
         P, z = np.array(P, copy=True), np.array(z, copy=True)
         box = {'result': None, 'error': None}
 
@@ -1147,6 +1180,21 @@ class SequentialUpdater:
             self._bank_async_applied = getattr(self, '_bank_async_applied', 0) + 1
             return True
         return False
+
+    def bank_refit_health(self):
+        """비동기 재적합이 **실질적으로 작동했는지** 되읽는다 (배치 게이트용).
+
+        `B-9`/`B-9b` 가 보인 것: 같은 설정이 **호출자의 페이싱에 따라 작동하기도, 하지 않기도** 한다
+        (재생 494배에서는 applied 가 채점 뒤에야 올랐다).  ⟹ 배치는 **의도표가 아니라 이것을** 봐야 한다.
+        """
+        k = getattr(self, '_bank_async_kicks', 0)
+        a = getattr(self, '_bank_async_applied', 0)
+        return {'enabled': bool(self.config.get('bank_refit_async', False)),
+                'kicks': k, 'applied': a,
+                'skipped': getattr(self, '_bank_async_skipped', 0),
+                'in_flight': bool(getattr(self, '_bank_async', None) is not None
+                                  and self._bank_async['thread'].is_alive()),
+                'effective': bool(k > 0 and a > 0)}
 
     def bank_refit_wait(self, timeout=None):
         """시험·배치용: 배경 적합이 끝날 때까지 기다렸다가 교체한다."""

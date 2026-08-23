@@ -152,9 +152,12 @@ def test_bank_refit_default_is_single_sourced():
     # 권고 설정이 **기본값과 다르다**(= 명시적으로 켜야 한다)
     from wavesplat.optimizer.sequential_update import recommended_real_refit_config
     rec = recommended_real_refit_config()
-    assert rec == {'bank_refit_every_s': 5.0}
+    # ★2026-08-23 갱신: 권고에 **비동기가 포함**된다(B-9b). 동기는 프레임 예산을 9–13배 깬다.
+    assert rec == {'bank_refit_every_s': 5.0, 'bank_refit_async': True}
     assert rec['bank_refit_every_s'] != BANK_REFIT_EVERY_S_DEFAULT, (
         '권고가 기본값과 같아지면 recommended_* 가 죽은 코드가 된다')
+    assert rec['bank_refit_async'] != DEFAULT_CONFIG['bank_refit_async'], (
+        '비동기 권고가 기본값과 같아지면 그 절이 죽은 코드가 된다')
     assert pre_2026_08_23_config() == {'bank_refit_every_s': None}   # 이제 항등
 
 

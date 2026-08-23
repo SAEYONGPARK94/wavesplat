@@ -17,7 +17,12 @@ OUT = os.path.join(HERE, 'results_b11b.jsonl')
 
 
 def crowded_episodes():   # ★B-11b: 이름은 유지하되 희소를 고른다(러너 구조 동일)
-    """혼잡 = ncomp >= 15 (HOSGATE 의 정의와 동일)."""
+    """★**희소 = ncomp < 15 그리고 시드 ∈ SPARSE_SEEDS.**
+
+    ⛔2026-08-23 정정(RV-7 K): 함수 이름은 `B-11` 에서 물려받아 `crowded_episodes`
+    이지만 **고르는 것은 희소다**(아래 조건절이 권위). 종전 독스트링이
+    *"혼잡 = ncomp >= 15"* 라 **자기 코드와 반대**로 적혀 있었다.
+    """
     out = []
     import re
     for p in sorted(glob.glob(os.path.join(G.HOS, '*.h5'))):
@@ -65,7 +70,7 @@ def main():
             if 'error' not in r:
                 done.add((r['arm'], r['episode'], r.get('est_seed') or r.get('filter_seed')))
     eps = crowded_episodes()
-    print(f'혼잡 HOS 에피소드 {len(eps)}개')
+    print(f'★희소 HOS 에피소드 {len(eps)}개  (함수명은 crowded_* 이나 희소를 고른다)')
     with open(OUT, 'a') as fh:
         for ep in eps:
             for s in G.EST_SEEDS:

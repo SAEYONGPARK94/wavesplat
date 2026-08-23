@@ -33,6 +33,32 @@
 \usepackage{kotex}                  % 한국어
 \usepackage{times}                  % Times New Roman (영문 명조)
 \usepackage{amsmath,amssymb,amsfonts}
+
+% ── ★조판 차단 해소 (2026-08-23, B2 심사 지적) ─────────────────────────────
+% 본문에 비-한글 기호가 75자 있다(⚠ 43 · ★ 9 · ⛔ 8 · ⟹ 5 · 원문자 8 …).
+% 대부분은 2026-08 감사 과정에서 **경고·금지·강조 표식**으로 내가 넣은 것이다.
+% kotex 만으로는 엔진·폰트에 따라 조판이 **실패하거나 두부(tofu)로 나온다**.
+% ⟹ 여기서 전부 LaTeX 등가물로 사상한다. 뜻이 보존되도록 골랐다:
+%    ⟹·★ 는 수학 기호로 **정확히** 대응하고, ⚠·⛔ 는 **의미 표지**로 옮긴다.
+\usepackage{newunicodechar}
+\newunicodechar{⟹}{\ensuremath{\Longrightarrow}}
+\newunicodechar{⟵}{\ensuremath{\longleftarrow}}
+\newunicodechar{★}{\ensuremath{\bigstar}}
+\newunicodechar{⚠}{\textbf{[주의]}\,}
+\newunicodechar{⛔}{\textbf{[금지]}\,}
+\newunicodechar{✅}{\textbf{[확인]}\,}
+\newunicodechar{ⓘ}{\textbf{[참고]}\,}
+\newunicodechar{①}{\textcircled{\scriptsize 1}}
+\newunicodechar{②}{\textcircled{\scriptsize 2}}
+\newunicodechar{③}{\textcircled{\scriptsize 3}}
+\newunicodechar{④}{\textcircled{\scriptsize 4}}
+\newunicodechar{⑤}{\textcircled{\scriptsize 5}}
+\newunicodechar{⑥}{\textcircled{\scriptsize 6}}
+\newunicodechar{⑦}{\textcircled{\scriptsize 7}}
+\newunicodechar{⑧}{\textcircled{\scriptsize 8}}
+\newunicodechar{·}{\ensuremath{\cdot}}
+% ⚠**남는 위험**: 이 환경에 `pdflatex` 가 없어 **조판을 실제로 돌려보지 못했다**.
+%   `tmp/STATUS_2026-08-23/TYPESETTING_BLOCKER.md` 참조.
 \usepackage{graphicx}
 \usepackage{pgffor}   % \foreach for appendix episode figures
 \usepackage{float}    % [H] placement for appendix figures

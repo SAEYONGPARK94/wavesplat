@@ -42,18 +42,37 @@ def main():
             name, val, rest = m.group('name'), m.group('val'), m.group('rest') or ''
             ctx = '\n'.join(lines[max(0, i - 4):i + 1])
             derived = bool(DERIVED.search(ctx)) or f'def {name.lower()}(' in src
-            hits.append((f, i, name, val, derived, rest.strip()[:60]))
-    bad = [h for h in hits if not h[4]]
+            # ★★**이미 감사돼 자료에서 재도출된 것**을 계속 경고하면 도구가 잡음이 된다
+            # (2026-08-23: 의심 5건이 **전부** AMENDMENT 나 *_amended.py 로 처리돼 있었다).
+            # ⟹ 같은 배치 안에 그 상수 **이름을 명시한** 수정문서/수정분석기가 있으면 내린다.
+            resolved = ''
+            if not derived:
+                for sib in sorted(glob.glob(os.path.join(os.path.dirname(f), '*AMENDMENT*.md'))
+                                  + glob.glob(os.path.join(os.path.dirname(f), '*_amended.py'))):
+                    if name in open(sib).read():
+                        resolved = os.path.basename(sib)
+                        break
+                # ★분석기가 **원본과 `assert` 로 대조**하면 그것이 유래다
+                # (⚠주석이 그렇게 **말하는 것**으로는 부족하다 — 실제 `assert` 줄을 본다).
+                if not resolved:
+                    for sib in sorted(glob.glob(os.path.join(os.path.dirname(f), 'analyze*.py'))):
+                        if re.search(r'assert[^\n]*\b' + name + r'\b', open(sib).read()):
+                            resolved = os.path.basename(sib) + ':assert'
+                            break
+            hits.append((f, i, name, val, derived, rest.strip()[:60], resolved))
+    bad = [h for h in hits if not h[4] and not h[6]]
+    resolved_n = sum(1 for h in hits if not h[4] and h[6])
     rules = []
     for f in sorted(glob.glob('tmp/**/gates*.py', recursive=True)):
         for i, ln in enumerate(open(f).read().splitlines(), 1):
             m = RULE.match(ln)
             if m: rules.append((os.path.relpath(f), i, m.group('name'), m.group('val')))
     print(f"{'파일':46s} {'줄':>5s} {'이름':22s} {'값':>10s}  유래")
-    for f, i, n, v, d, c in hits:
-        print(f"{os.path.relpath(f)[-46:]:46s} {i:5d} {n[:22]:22s} {v:>10s}  "
-              f"{'유래있음' if d else '⚠손복사 의심'}  {c}")
-    print(f"\n손복사 의심(DATA 부류): {len(bad)}/{len(hits)}")
+    for f, i, n, v, d, c, r in hits:
+        tag = '유래있음' if d else (f'✔재도출됨({r})' if r else '⚠손복사 의심')
+        print(f"{os.path.relpath(f)[-46:]:46s} {i:5d} {n[:22]:22s} {v:>10s}  {tag}  {c}")
+    print(f"\n★미처리 손복사(DATA 부류): {len(bad)}/{len(hits)}"
+          f"  · 이미 자료에서 재도출됨: {resolved_n}건")
     print(f"참고 — 사전등록 결정 규칙(RULE 부류, 리터럴이 옳다): {len(rules)}건")
     print("⚠교훈: `gates_b2.py:21` 은 주석에 **'손복사 아님'** 이라 적혀 있었고 **그게 틀렸다.**"
           " 주석은 증거가 아니다 — 자료를 통과시켜라.")

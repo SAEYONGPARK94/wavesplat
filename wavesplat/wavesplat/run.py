@@ -18,9 +18,10 @@ from wavesplat.data_loader import EpisodeDataLoader
 from wavesplat.optimizer.sequential_update import (SequentialUpdater, make_updater,
                                                    LAMBDA_L1_DEFAULT,
                                                    INIT_METHOD_DEFAULT,
-                                                  VARPRO_STEPS_DEFAULT,
-                                                  LEARNED_INIT_ITERS_DEFAULT,
-                                                  AUTO_SWITCH_THRESH_DEFAULT)
+                                                   VARPRO_STEPS_DEFAULT,
+                                                   LEARNED_INIT_ITERS_DEFAULT,
+                                                   AUTO_SWITCH_THRESH_DEFAULT,
+                                                   BANK_REFIT_EVERY_S_DEFAULT)
 from wavesplat.evaluation.metrics import rmse_observed, rmse_unobserved, compute_all_metrics, rmse, nrmse
 
 
@@ -88,7 +89,8 @@ DEFAULT_CONFIG = {
     #   That evidence is DESCRIPTIVE, not confirmatory: the real corpus has 5
     # independent records, so the exact one-sided binomial floor is 0.03125 and needs a
     # clean sweep.  Hence exposure only -- the default is NOT changed.
-    'bank_refit_every_s': None,
+    # ★단일출처: sequential_update.BANK_REFIT_EVERY_S_DEFAULT (2026-08-23 배포, None -> 5.0)
+    'bank_refit_every_s': BANK_REFIT_EVERY_S_DEFAULT,
     # Members of the real-domain bank-MMSE pointwise-median field ensemble (seeds
     # {s, s+1000, s+2000}); 1 disables it.
     'real_bank_ensemble_k': 3,

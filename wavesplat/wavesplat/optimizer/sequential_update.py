@@ -50,6 +50,47 @@ VARPRO_STEPS_DEFAULT = 400
 # 0 = 학습 초기화 뒤의 결합 경사하강을 돌리지 않는다. W5 P-2 가 그것을 잉여로 측정했고
 # (36/64 널) 벽시계를 29.7 s -> 14.5 s 로 줄였다. 2026-08-22 이전 값은 500 이었다.
 LEARNED_INIT_ITERS_DEFAULT = 0
+
+# ── bank-MMSE 재적합 주기 배포 (2026-08-23) — SINGLE SOURCE ──────────────────────
+# `None`(적합 동결) -> **5.0 s**.  실측 전용 경로이므로 합성 결과는 원리적으로 불변이다
+# (`_bank` 는 실측 게이트 안에서만 채워진다; 회귀 시험
+#  `tests/test_config_exposure.py::test_bank_refit_cannot_affect_synthetic_runs` 가 고정).
+#
+# 근거(전부 2026-08-23, 전부 사전등록 · 고정 관측소 12 레코드):
+#   정확도 · B-3   72런  refit@2s 가 동결을 36/36 창에서 이긴다(p=1.5e-11)
+#           · B-3b 108런 주기 1·2·5·10 s **전부** 통과 ⟹ 조율된 상수가 아니다
+#           · B-3c  72런 **한 번도 안 본 창 {0,2,4}** 에서 36/36 복제(-20.4%, 같은 크기)
+#   기술   · 참 제로필드(레코드·lead 별) 대비 tau=5 는 28/36, p=6.0e-04
+#            ⟹ 그날 가족단위 alpha=0.05/10=0.005 를 **통과하는 가장 긴 주기**
+#   예산   · B-6  재적합 단가 중앙 1.714 s ⟹ tau=5 에서 주기의 0.34(최악 0.51)
+#           · B-6b 렌더 137 us/점(R^2=0.9991) ⟹ 0.1 s 프레임에 약 720점
+#           · B-6c 제어 경로 질의(8점, `d3_d17_ctrl_closedloop.build_query` 유래)로
+#                  **12/12 레코드가 프레임 예산 통과, 100 Hz 예산도 통과**,
+#                  14 s 창 점유율 중앙 0.385(최악 0.571)
+#
+# ⛔왜 2 s 가 아닌가: 정확도는 가장 좋지만(32/36, p=9.7e-07) **점유율 중앙 0.997·최악 1.474**
+#   = 실시간이 아니다.  ⛔왜 10 s 가 아닌가: 예산은 좋지만 기술이 **24/36, p=0.033** 으로
+#   가족단위 문턱(0.005)에서 죽는다.  ⟹ **5.0 이 둘을 동시에 만족하는 유일한 측정점.**
+#
+# ⚠범위: 합성 잡음 0.02 m · 4 사이트 · CPU 1코어(7800X3D)에서만 쟀다.  실제 센서 잡음에서는
+#   미측정이고, `B-2b` 가 성능이 관측 잡음에 지배적으로 의존함을 보였다.
+# 되돌림: `bank_refit_every_s=None` (또는 `pre_2026_08_23_config()`).
+BANK_REFIT_EVERY_S_DEFAULT = 5.0
+
+
+def pre_2026_08_23_config() -> dict:
+    """2026-08-23 배포 변경을 되돌린다 (스위치 **하나**).
+
+    | 키 | 이전 | 2026-08-23 |
+    |---|---|---|
+    | `bank_refit_every_s` | `None`(동결) | **5.0** |
+
+    ⚠이 키는 **실측 경로에서만** 의미가 있다.  합성 배치를 재현할 때는 이 함수가 필요 없다
+    (`_bank` 가 `None` 으로 남으므로 값이 무엇이든 도달 불가).
+    2026-08-22 의 세 스위치까지 함께 되돌리려면 `pre_2026_08_22_config()` 를 같이 쓰라.
+    """
+    return {'bank_refit_every_s': None}
+
 # 2026-08-22 이전의 값. ⛔`varpro_steps=0` 하나만으로는 배포 전 거동으로 돌아가지 않는다.
 # 그 조합은 W4 의 `L-ITER0` 팔(VARPRO 없이 결합 적합도 없음)이고 배포 전보다 **나쁘다**
 # (W4 재집계: `L-ITER0` vs `L-SHIP` 7/64, +23.34%). 배포 전 거동은 두 값을 **함께** 준다.
@@ -977,7 +1018,8 @@ class SequentialUpdater:
         self._bank_fit_window(P, z)
         self._bank_obs = (P, z)
         self._bank_memory_s = float(self.config.get('bank_memory_s', 40.0))
-        self._bank_refit_every_s = self.config.get('bank_refit_every_s', None)
+        self._bank_refit_every_s = self.config.get('bank_refit_every_s',
+                                                   BANK_REFIT_EVERY_S_DEFAULT)
         self._bank_last_fit_t = float(np.max(P[:, 2]))
         self._last_t = frames[-1].t
         elapsed = time.time() - t0

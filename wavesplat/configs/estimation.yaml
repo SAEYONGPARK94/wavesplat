@@ -64,8 +64,18 @@ optimizer:
   # pattern).  On the 9 frozen real windows of rolling_refit.json: frozen 0.9452 vs
   # refit@2s 0.7932, 8/9 windows and 3/3 records lower, and the pre-run adoption
   # protocol selects R*=2s alone.  DESCRIPTIVE only -- 5 independent real records give an
-  # exact one-sided binomial floor of 0.03125 -- so the default is left UNCHANGED.
-  bank_refit_every_s: null
+  # exact one-sided binomial floor of 0.03125 -- so the default was left UNCHANGED.
+  #
+  # ★2026-08-23 배포: null -> 5.0.  MIRRORS sequential_update.BANK_REFIT_EVERY_S_DEFAULT
+  # (그 상수 위의 주석이 근거 전체를 담고 있다 -- 여기서는 요약만 적는다).
+  #   · 레코드 상한이 5 -> 12 로 늘었다(전방팬 관측모형을 뺐다) ⟹ 위 "DESCRIPTIVE" 사유 해소
+  #   · B-3/B-3b/B-3c: 재적합이 동결을 이긴다(36/36), 주기 1·2·5·10 전부, 신선 창에서 복제
+  #   · tau=5 는 참 제로필드 대비 28/36 p=6.0e-04 로 그날 가족단위 alpha=0.005 를 통과하는
+  #     **가장 긴 주기**이고, B-6/B-6b/B-6c 에서 실시간 예산을 만족한다(점유율 0.385).
+  #   · tau=2 는 정확도 최고지만 점유율 0.997 = 실시간 아님. tau=10 은 예산은 되나 p=0.033 로
+  #     가족단위에서 죽는다.
+  # 되돌림: sequential_update.pre_2026_08_23_config()  (= {'bank_refit_every_s': None})
+  bank_refit_every_s: 5.0
   real_bank_ensemble_k: 3     # members of the bank-MMSE pointwise-median field ensemble
                                #  (fit seeds {s, s+1000, s+2000}); 1 = off.
   max_steepness: 0.15         # wave steepness clamp ε = |k|·|w|

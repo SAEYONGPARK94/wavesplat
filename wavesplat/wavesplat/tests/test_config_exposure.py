@@ -35,13 +35,21 @@ def _yaml_find(node, key):
     return False, None
 
 
-def test_bank_refit_every_s_default_is_unchanged():
-    """Exposure must not deploy the value.  5 independent real records give an exact
-    one-sided binomial floor of 0.03125, so refit@2s is DESCRIPTIVE evidence only."""
-    assert DEFAULT_CONFIG['bank_refit_every_s'] is None
+def test_bank_refit_every_s_default_is_the_2026_08_23_deploy():
+    """★2026-08-23 배포로 이 시험의 **기대값이 바뀌었다**(None -> 5.0). 이력을 남긴다.
+
+    종전 문언(축자): *"Exposure must not deploy the value. 5 independent real records give
+    an exact one-sided binomial floor of 0.03125, so refit@2s is DESCRIPTIVE evidence only."*
+    ⟹ 그 사유는 **레코드 수 5** 였고, 전방팬 관측모형을 빼면서 **12** 가 됐다
+    (`tmp/B2_REAL_2026-08-23/scene_station.py`).  근거 사슬은
+    `sequential_update.BANK_REFIT_EVERY_S_DEFAULT` 주석에 전부 적혀 있다.
+    ⚠종전 문언의 `0.03125` 는 **옳았다** — 같은 날 내 사전등록이 그 값을 0.0625(양측)로
+    잘못 적었고, 이 파일이 원래 맞았다.
+    """
+    assert DEFAULT_CONFIG['bank_refit_every_s'] == 5.0
     found, val = _yaml_find(yaml.safe_load(open(_YAML)), 'bank_refit_every_s')
     assert found, 'configs/estimation.yaml must mirror the key'
-    assert val is None
+    assert val == 5.0
 
 
 def test_bank_refit_every_s_survives_into_the_updater():
@@ -108,3 +116,44 @@ def test_bank_refit_cannot_affect_synthetic_runs():
     assert getattr(inner, '_bank', None) is None, (
         '합성 입력이 bank 경로에 들어갔다 — bank_refit_every_s 기본값 변경이 '
         '더 이상 합성에 무해하지 않다')
+
+
+def test_bank_refit_default_is_single_sourced_and_deployed():
+    """`bank_refit_every_s` 배포값(2026-08-23) 회귀 시험 — 값 + **단일출처**.
+
+    이 프로젝트는 *"같은 상수를 두 곳에 적어 한쪽이 낡는다"* 로 **네 번** 대가를 치렀다
+    (`lambda_l1` 3중 기재 · `n` 하드코딩 3회 · 개입 기대값 4중 · 손복사 기준선 3회).
+    ⟹ 이 시험은 **값**만이 아니라 **`DEFAULT_CONFIG`·yaml·모듈 상수 셋이 같다**는 것을 고정한다.
+    """
+    import yaml as _yaml
+    from wavesplat.run import DEFAULT_CONFIG
+    from wavesplat.optimizer.sequential_update import (BANK_REFIT_EVERY_S_DEFAULT,
+                                                       pre_2026_08_23_config)
+    assert BANK_REFIT_EVERY_S_DEFAULT == 5.0
+    assert DEFAULT_CONFIG['bank_refit_every_s'] == BANK_REFIT_EVERY_S_DEFAULT
+    found, val = _yaml_find(_yaml.safe_load(open(_YAML)), 'bank_refit_every_s')
+    assert found, 'configs/estimation.yaml 에 bank_refit_every_s 가 없다'
+    assert val == BANK_REFIT_EVERY_S_DEFAULT, (
+        f'yaml({val}) 이 모듈 상수({BANK_REFIT_EVERY_S_DEFAULT}) 와 어긋난다 — 단일출처 위반')
+    # 되돌림이 실제로 이전 거동(동결)을 낸다
+    assert pre_2026_08_23_config() == {'bank_refit_every_s': None}
+
+
+def test_bank_refit_fallback_matches_shipping_default():
+    """설정 키를 **안 준** 추정기도 배포값을 받아야 한다.
+
+    ⚠`lambda_l1` 이 정확히 이 자리에서 깨졌다 — `.get(key, <옛값>)` 폴백이 배포와 갈라져
+    S9 배치 하나를 무효화시켰다. 그 부류를 여기서 막는다.
+    """
+    from wavesplat.optimizer.sequential_update import (SequentialUpdater,
+                                                       BANK_REFIT_EVERY_S_DEFAULT)
+    upd = SequentialUpdater({'device': 'cpu'})
+    assert upd.config.get('bank_refit_every_s', BANK_REFIT_EVERY_S_DEFAULT) \
+        == BANK_REFIT_EVERY_S_DEFAULT
+    import wavesplat.optimizer.sequential_update as SU
+    text = open(SU.__file__).read()
+    assert "self.config.get('bank_refit_every_s'," in text, '폴백 위치가 바뀌었다'
+    idx = text.index("self.config.get('bank_refit_every_s',")
+    tail = text[idx:idx + 200]
+    assert 'BANK_REFIT_EVERY_S_DEFAULT' in tail, (
+        '폴백이 모듈 상수를 쓰지 않는다 — 옛값 하드코딩이 남아 있다')

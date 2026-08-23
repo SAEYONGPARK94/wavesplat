@@ -35,7 +35,10 @@ for lab, arm in cells:
 
 lab, meaning = G.label(res['ORA-WPHI-NOSM'], res['ORA-WPHI-SI-NOSM'])
 print('\n' + '=' * 76); print(f'## 판정 = {lab}'); print(f'##   {meaning}'); print('=' * 76)
+_g = G.gates(rows)   # ★2026-08-23: 게이트 결과가 verdict 에 안 들어가 있었다(RV-2 감사)
 json.dump({'label': lab, 'meaning': meaning, 'R_BASE_recomputed': G.R_BASE,
+           'gates': [[str(a), bool(b), str(c)] for a, b, c in _g],
+           'gates_pass': sum(1 for a, b, c in _g if b), 'gates_total': len(_g),
            'cells': {a: res[a] for _, a in cells},
            'share': {a: G.share(res[a]['ratio']) for _, a in cells}},
           open(os.path.join(HERE, 'verdict_w10.json'), 'w'), ensure_ascii=False, indent=2)

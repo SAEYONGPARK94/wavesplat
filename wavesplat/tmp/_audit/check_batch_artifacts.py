@@ -16,6 +16,11 @@
   G. `analyze_*.py` 가 `results*.jsonl` 보다 **먼저** 쓰였는가 (mtime)
   H. **결과 파일마다 짝이 되는 verdict 이 있는가** (디렉터리 단위가 아니라 **분석 단위**)
   I. **`FROZEN_md5*.txt` 에 적힌 해시가 현재 파일과 일치하는가** (동결 위반 탐지)
+  J. ★**팔이 빈 dict `{}` 로 정의되지 않았는가** (2026-08-23 R2 토론 F-7)
+     `'ARM': {}` 은 **런타임 `DEFAULT_CONFIG` 를 스냅샷**한다 ⟹ 그 배치가 **그날의 기본값에
+     묶이고**, 기본값이 나중에 바뀌면 **결과를 재현할 수도, 무엇을 쟀는지 알 수도 없다.**
+     실제 사고: `gates_b7.py:46` 의 `'SHIP-TRACK': {}` 가 **당일 배포됐다 철회된 값**으로 돌아
+     논문 문안에 들어갈 뻔했다.  ⟹ **팔은 키를 명시하거나 최소한 되읽기를 결과에 남겨야 한다.**
 
 ⚠**RV-5(2026-08-23)가 지적한 이 검사기의 사각지대**를 H·I 로 메웠다:
   · 종전에는 **디렉터리 단위**라 `results_b2b/c/d/e.jsonl` 처럼 **한 디렉터리에 여러 분석**이
@@ -26,10 +31,10 @@
 인자가 없으면 `tmp/` 아래 `results*.jsonl` 을 가진 디렉터리를 전부 검사한다.
 종료코드 1 = D 또는 E 위반이 하나라도 있음(= 인용 불가 배치가 있음).
 """
-import glob, json, os, sys
+import glob, json, os, re, sys
 
 COLS = ['PREREG', 'gates', 'analyze', 'verdict.label', 'verdict.gates', 'FROZEN',
-        'analyzer<results', 'results~verdict', 'md5 OK']
+        'analyzer<results', 'results~verdict', 'md5 OK', 'no-{}-arm']
 
 
 def check(d):
@@ -77,9 +82,15 @@ def check(d):
                 if hashlib.md5(open(tgt, 'rb').read()).hexdigest() != h:
                     md5_ok = False
                     drift.append(os.path.basename(tgt))
+    # J. 빈 dict 팔 탐지
+    empty_arm = True
+    for gf in glob.glob(os.path.join(d, 'gates*.py')):
+        txt = open(gf).read()
+        if re.search(r"['\"][A-Za-z0-9_.+-]+['\"]\s*:\s*\{\s*\}", txt):
+            empty_arm = False
     check.last_drift = sorted(set(drift))
     return [has('PREREG*.md'), has('gates*.py'), bool(an), lab, gts,
-            has('FROZEN*.txt'), order, paired, md5_ok]
+            has('FROZEN*.txt'), order, paired, md5_ok, empty_arm]
 
 
 def main(argv):

@@ -79,6 +79,13 @@ def design_matrix(kx, ky, x, y, t, depth):
     return torch.cat([torch.cos(theta), torch.sin(theta)], dim=1), om
 
 
+# ⚠**이 축약 목적함수에 `lambda_l1` 이 없다**(2026-08-23 A2 심사가 지적; 이 파일에
+# `lambda` 문자열 0회). 선형 부분문제에는 `VP_RIDGE_DEFAULT` 만 걸린다.
+# ★그래서 **관측된 VARPRO 이득의 일부가 "벌점을 잠시 끄는 것"과 식별되지 않는다** ---
+#   `W7` 이 같은 창에서 λ 하나로 널(1.009x)↔벽(1.516x)을 오갔기 때문이다.
+# ⛔**이것은 결함 주장이 아니라 미측정 교락이다**: 분리하려면 `varpro_lambda` 팔이 필요하고
+#   그 실험은 아직 없다. 선행연구도 이 자리를 안다 --- Marmin & Richard 2025 (VARPROX) 가
+#   **벌점 있는 분리형 최소제곱 전용** 알고리즘을 다룬다.
 def reduced_objective(kx, ky, x, y, t, z, sqrt_c, depth, ridge=VP_RIDGE_DEFAULT):
     """f(K) = ||S(Phi c - z)||^2 / M  with c eliminated in closed form.
 

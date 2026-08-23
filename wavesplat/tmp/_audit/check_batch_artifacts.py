@@ -14,6 +14,13 @@
   E. `verdict_*.json` 이 `gates` 키 보유      ← 게이트가 실제로 돌았다는 증거
   F. `FROZEN_md5*.txt` 존재
   G. `analyze_*.py` 가 `results*.jsonl` 보다 **먼저** 쓰였는가 (mtime)
+  H. **결과 파일마다 짝이 되는 verdict 이 있는가** (디렉터리 단위가 아니라 **분석 단위**)
+  I. **`FROZEN_md5*.txt` 에 적힌 해시가 현재 파일과 일치하는가** (동결 위반 탐지)
+
+⚠**RV-5(2026-08-23)가 지적한 이 검사기의 사각지대**를 H·I 로 메웠다:
+  · 종전에는 **디렉터리 단위**라 `results_b2b/c/d/e.jsonl` 처럼 **한 디렉터리에 여러 분석**이
+    있으면 하나만 있어도 OK 로 셌다 ⟹ 라벨만 붙고 분석기가 없는 배치를 못 잡았다.
+  · 종전에는 **동결물 md5 를 전혀 안 봤다** ⟹ `gates_b3b.py` 가 결과 뒤에 바뀐 것을 못 잡았다.
 
 사용:  python3 tmp/_audit/check_batch_artifacts.py [tmp/BATCH_DIR ...]
 인자가 없으면 `tmp/` 아래 `results*.jsonl` 을 가진 디렉터리를 전부 검사한다.
@@ -21,7 +28,8 @@
 """
 import glob, json, os, sys
 
-COLS = ['PREREG', 'gates', 'analyze', 'verdict.label', 'verdict.gates', 'FROZEN', 'analyzer<results']
+COLS = ['PREREG', 'gates', 'analyze', 'verdict.label', 'verdict.gates', 'FROZEN',
+        'analyzer<results', 'results~verdict', 'md5 OK']
 
 
 def check(d):
@@ -39,8 +47,33 @@ def check(d):
     an = sorted(glob.glob(os.path.join(d, 'analyze*.py')))
     rs = sorted(glob.glob(os.path.join(d, 'results*.jsonl')))
     order = bool(an and rs) and min(os.path.getmtime(a) for a in an) < max(os.path.getmtime(r) for r in rs)
+    # H. 결과 파일마다 짝 verdict — `results_b2b.jsonl` ↔ `verdict_b2b.json` 식의 접미사 매칭
+    def _sfx(f, pre):
+        b = os.path.basename(f)
+        b = b[len(pre):] if b.startswith(pre) else b
+        return b.split('.')[0].lstrip('_')
+    rs_sfx = {_sfx(f, 'results') for f in rs}
+    vd_sfx = {_sfx(f, 'verdict') for f in verdicts}
+    # 결과가 하나뿐이면 접미사가 달라도 짝으로 인정한다(`results.jsonl` ↔ `verdict_w17.json`).
+    # 결과가 여럿이면 **각각** 짝이 있어야 한다 — 그게 RV-5 가 지적한 사각지대다.
+    paired = bool(verdicts) if len(rs) <= 1 else (bool(rs_sfx) and rs_sfx <= vd_sfx)
+
+    # I. 동결 해시 대조
+    md5_ok = True
+    for ff in glob.glob(os.path.join(d, 'FROZEN*.txt')):
+        for ln in open(ff):
+            parts = ln.split()
+            if len(parts) != 2 or len(parts[0]) != 32 or ln.startswith('#'):
+                continue
+            h, tgt = parts
+            if not os.path.isabs(tgt):
+                tgt = os.path.join(os.path.dirname(os.path.dirname(d)), tgt)
+            if os.path.exists(tgt):
+                import hashlib
+                if hashlib.md5(open(tgt, 'rb').read()).hexdigest() != h:
+                    md5_ok = False
     return [has('PREREG*.md'), has('gates*.py'), bool(an), lab, gts,
-            has('FROZEN*.txt'), order]
+            has('FROZEN*.txt'), order, paired, md5_ok]
 
 
 def main(argv):
@@ -49,7 +82,7 @@ def main(argv):
     print(f"{'배치':44s} " + ' '.join(f'{c[:9]:>9s}' for c in COLS))
     for d in dirs:
         r = check(d)
-        if not (r[3] and r[4]):
+        if not (r[3] and r[4] and r[7]):
             bad += 1
         print(f"{os.path.basename(d)[:44]:44s} " + ' '.join(f'{"OK" if x else "--":>9s}' for x in r))
     print(f"\n인용 불가(라벨 또는 게이트 증거 없음): {bad}/{len(dirs)}")

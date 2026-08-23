@@ -14,7 +14,7 @@
 # ~~B-4 결과 — `PROPAGATION-EARNS (CONFIRMATORY)`~~ (원문, 36런)
 
 사전등록 `gates_b4.py`(런 전 커밋 `ef467c5`) · 동결 분석기 `analyze_b4.py` · `verdict_b4.json`.
-**게이트 6/6 PASS** — 특히 `G-2`(지속 팔의 예측장이 lead 에 **불변** 36/36) 와
+**게이트 7/7 PASS** — 특히 `G-2`(지속 팔의 예측장이 lead 에 **불변** 36/36) 와
 `G-3`(lead 0 이 `FROZEN` 과 **비트 동일** 36/36) 이 절제가 순수함을 확인한다.
 
 ## 0. PRIMARY

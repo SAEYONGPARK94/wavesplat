@@ -28,7 +28,9 @@ import glob, json, os, re, sys
 COUNT = re.compile(r'(?<![\d./])(\d{1,4})\s*/\s*(\d{1,4})(?![\d/])')
 # ★★**크기(%)도 검사한다** — 인용금지 목록의 상당수가 '카운트'가 아니라 **퍼센트**다
 # (−38.6% · −74.7% · −19.9% …). 카운트만 보면 가장 자주 인용되는 수를 놓친다.
-PCT = re.compile(r'([-+−]?\d{1,3}\.\d)\s*\\?%')
+# ⚠소수 **한 자리만** 받으면 기록의 `−19.92%` 가 논문의 `−19.9%` 와 안 만난다
+# (2026-08-23 실제로 그랬다). ⟹ 1–2 자리를 받고 **비교는 1 자리로 반올림**한다.
+PCT = re.compile(r'([-+−]?\d{1,3}\.\d{1,2})\s*\\?%')
 # 논문에 흔한 비-카운트 분수 (버전·날짜·비율 등)를 거른다
 SKIP_N = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100, 1000}
 
@@ -38,9 +40,11 @@ def collect_verdicts(root='tmp'):
     안에만 갖고 있고, 오래된 배치는 `RESULT*.md` 에만 있다. ⟹ **세 곳 모두** 훑는다."""
     pairs, pcts = {}, {}   # (better, n) -> [출처] · |퍼센트| -> [출처]
     # (c) 판정 파일과 결과 문서의 **본문 텍스트**에 적힌 w/n
+    # ⛔**파일명 패턴을 손으로 고르지 마라** — 2026-08-23 에 헤드라인 수치 `-19.9%` 가
+    # `FINAL_REAL_TIMEAXIS.md` 에 **기록돼 있는데도** "대응 없음" 으로 나왔다.
+    # 패턴 목록이 곧 사각지대다 ⟹ **배치 디렉터리의 모든 `.md`** 를 훑는다.
     for f in sorted(glob.glob(os.path.join(root, '**', 'verdict*.json'), recursive=True)
-                    + glob.glob(os.path.join(root, '**', 'RESULT*.md'), recursive=True)
-                    + glob.glob(os.path.join(root, '**', 'AMENDMENT*.md'), recursive=True)):
+                    + glob.glob(os.path.join(root, '**', '*.md'), recursive=True)):
         try:
             txt = open(f, encoding='utf-8').read()
         except Exception:
@@ -49,6 +53,9 @@ def collect_verdicts(root='tmp'):
             w, n = int(m.group(1)), int(m.group(2))
             if n not in SKIP_N and w <= n:
                 pairs.setdefault((w, n), []).append(os.path.relpath(f) + '(본문)')
+        for m in PCT.finditer(txt):
+            pcts.setdefault(round(abs(float(m.group(1).replace('−', '-'))), 1),
+                            []).append(os.path.relpath(f) + '(본문)')
     for f in sorted(glob.glob(os.path.join(root, '**', 'verdict*.json'), recursive=True)):
         try:
             v = json.load(open(f))

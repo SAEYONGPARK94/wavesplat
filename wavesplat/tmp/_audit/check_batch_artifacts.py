@@ -34,7 +34,7 @@
 import glob, json, os, re, sys
 
 COLS = ['PREREG', 'gates', 'analyze', 'verdict.label', 'verdict.gates', 'FROZEN',
-        'analyzer<results', 'results~verdict', 'md5 OK', 'no-{}-arm']
+        'analyzer<results', 'results~verdict', '★자기동결', 'md5 OK', 'no-{}-arm']
 
 
 def check(d):
@@ -67,14 +67,26 @@ def check(d):
     paired = bool(verdicts) if len(rs) <= 1 else (bool(verdicts) and need <= vd_sfx)
 
     # I. 동결 해시 대조
+    # ★★**두 부류를 가른다**(2026-08-23 전수조사): `md5 OK` 한 열로는
+    #   ⚠*"배포코드가 그 뒤에 바뀐 정상 상태"* 와
+    #   ⛔*"판정 규칙이 사후에 움직인 이상 상태"* 가 **같은 `--`** 로 보인다.
+    # 배치 자신의 `gates_*`·`run_*`·`analyze_*` 가 움직인 것만이 심각하다.
     md5_ok = True
-    drift = []
-    for ff in glob.glob(os.path.join(d, 'FROZEN*.txt')):
+    own_ok = True
+    drift, own_drift = [], []
+    # ★**같은 경로가 뒤에 다시 찍혀 있으면 뒤엣것이 유효하다**(재동결).
+    # 원칙: *드리프트가 있었다는 사실은 지우지 않는다* ⟹ 원본 줄을 지우는 대신
+    # 재동결 줄을 **덧붙인다**. 그러면 이 열이 영원히 `--` 로 남으므로 신호가 죽는다.
+    # ⟹ 검사기가 **마지막 기록**을 현재 동결로 읽는다(앞선 줄은 이력으로 보존).
+    latest = {}
+    for ff in sorted(glob.glob(os.path.join(d, 'FROZEN*.txt'))):
         for ln in open(ff):
             parts = ln.split()
             if len(parts) != 2 or len(parts[0]) != 32 or ln.startswith('#'):
                 continue
-            h, tgt = parts
+            latest[parts[1]] = parts[0]
+    for _tgt0, _h0 in [(None, None)]:
+        for tgt, h in sorted(latest.items()):
             if not os.path.isabs(tgt):
                 tgt = os.path.join(os.path.dirname(os.path.dirname(d)), tgt)
             if os.path.exists(tgt):
@@ -82,6 +94,9 @@ def check(d):
                 if hashlib.md5(open(tgt, 'rb').read()).hexdigest() != h:
                     md5_ok = False
                     drift.append(os.path.basename(tgt))
+                    if os.path.abspath(tgt).startswith(os.path.abspath(d) + os.sep):
+                        own_ok = False
+                        own_drift.append(os.path.basename(tgt))
     # J. 빈 dict 팔 탐지
     empty_arm = True
     for gf in glob.glob(os.path.join(d, 'gates*.py')):
@@ -89,8 +104,9 @@ def check(d):
         if re.search(r"['\"][A-Za-z0-9_.+-]+['\"]\s*:\s*\{\s*\}", txt):
             empty_arm = False
     check.last_drift = sorted(set(drift))
+    check.last_own_drift = sorted(set(own_drift))
     return [has('PREREG*.md'), has('gates*.py'), bool(an), lab, gts,
-            has('FROZEN*.txt'), order, paired, md5_ok, empty_arm]
+            has('FROZEN*.txt'), order, paired, own_ok, md5_ok, empty_arm]
 
 
 def main(argv):
@@ -106,7 +122,10 @@ def main(argv):
             drifted[os.path.basename(d)] = check.last_drift
         print(f"{os.path.basename(d)[:44]:44s} " + ' '.join(f'{"OK" if x else "--":>9s}' for x in r))
     if drifted:
-        print('\n동결 이동(md5 불일치) — ⚠**정상일 수 있다**. 사유가 기록돼 있는지 확인하라:')
+        print('\n동결 이동(md5 불일치). ⛔**`★자기동결` 이 `--` 인 것만이 심각하다** — '
+              '배치 자신의 gates/run/analyze 가 사후에 움직였다는 뜻이다.\n'
+              '⚠배포코드(sequential_update.py·run.py)만 움직인 것은 **정상**이다 '
+              '(런은 옛 코드로 돌았다; 재실행만 무효):')
         for k, v in drifted.items():
             print(f'  {k}: ' + ', '.join(v))
     print(f"\n인용 불가(라벨 또는 게이트 증거 없음): {bad}/{len(dirs)}")

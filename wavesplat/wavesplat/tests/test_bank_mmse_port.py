@@ -389,3 +389,22 @@ def test_async_refit_does_not_block_the_update_call():
     # 배경 적합이 실제로 발화하고 적용됐나 (계수기 되읽기)
     assert getattr(upd, '_bank_async_kicks', 0) > 0, '배경 적합이 한 번도 발화하지 않았다'
     assert getattr(upd, '_bank_async_applied', 0) > 0, '배경 적합 결과가 적용되지 않았다'
+
+
+def test_async_refit_worst_frame_claim_names_its_axis():
+    """★"최악" 이 어느 축의 최악인지를 이름에 넣도록 강제한다 (2026-08-23, R3 응용심사).
+
+    `verdict_b9*.json` 의 `worst_update_ms` 는 **런별 최악 프레임의 *중앙값*** 이었는데,
+    문서와 코드 주석이 그것을 그냥 "최악" 이라 적었다 --- 전 런 최대는 **2.3배** 크다
+    (2.82 ms vs 6.51 ms).  판정은 안 바뀌지만(둘 다 dt 67-100 ms 안) **서술이 부정확했다.**
+    ⟹ 배포 권고 주석이 **두 축을 모두** 말하는지 검사한다.  이 시험이 깨지면
+    누군가 "최악" 을 한 값으로 되돌린 것이다.
+    """
+    import wavesplat.optimizer.sequential_update as SU
+    doc = SU.recommended_real_refit_config.__doc__ or ''
+    assert '런별 최악' in doc and '전 런 최대' in doc, (
+        '권고 주석이 최악값의 축(런별 최악의 중앙 vs 전 런 최대)을 구분하지 않는다')
+    # 두 수가 함께 있어야 한다
+    assert '2.8' in doc and '6.51' in doc, (
+        '권고 주석이 두 축의 값을 모두 적지 않는다'
+    )

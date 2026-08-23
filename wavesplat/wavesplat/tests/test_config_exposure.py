@@ -179,3 +179,27 @@ def test_bank_refit_fallback_matches_shipping_default():
     tail = text[idx:idx + 200]
     assert 'BANK_REFIT_EVERY_S_DEFAULT' in tail, (
         '폴백이 모듈 상수를 쓰지 않는다 — 옛값 하드코딩이 남아 있다')
+
+
+def test_initialisation_loss_history_is_actually_saved():
+    """★세 번째 재발 방지 — *"계산되는데 저장되지 않는다"*.
+
+    `RMSE_near`(46일간 저장 안 됨, 08-19 수리) · `avg_shell_rmse`(08-22 수리) 에 이어
+    2026-08-23 A2 심사가 **`loss_history`** 를 찾았다: `SequentialUpdater.initialize()` 가
+    반환하는데 `run.py` 의 요약 조립부가 읽지 않아 **매 런 버려졌다.**
+    ⟹ *"옵티마이저가 실제로 내려갔는가"* 가 저장된 결과에서 **원리적으로 확인 불가**였다.
+
+    이 시험은 사슬을 고정한다: `initialize()` 가 키를 반환하고 → `run.py` 가 그것을
+    요약 키 넷으로 옮긴다. 한쪽이 이름을 바꾸면 조용히 끊기던 자리다.
+    """
+    import wavesplat.run as R
+    src = open(R.__file__).read()
+    for key in ('init_loss_first', 'init_loss_last', 'init_loss_drop_frac', 'init_loss_n'):
+        assert f"'{key}'" in src, f'{key} 가 요약에서 사라졌다 — 손실 이력이 다시 버려진다'
+    i = src.index("'init_loss_first'")
+    assert "init_result.get('loss_history')" in src[i:i + 400], (
+        '요약 키가 loss_history 를 읽지 않는다 — 이름만 남고 사슬이 끊겼다')
+
+    import wavesplat.optimizer.sequential_update as SU
+    opt = open(SU.__file__).read()
+    assert "'loss_history':" in opt, 'initialize() 가 더 이상 loss_history 를 반환하지 않는다'

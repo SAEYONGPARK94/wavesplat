@@ -530,6 +530,19 @@ def run_estimation(h5_path: str, config: dict = None,
         'varpro_k_shift': (init_result.get('varpro') or {}).get('vp_k_shift'),
         'varpro_wall_s': (init_result.get('varpro') or {}).get('vp_wall_s'),
         'init_time_s': init_result['elapsed_s'],
+        # ★2026-08-23 (A2 심사): `initialize()` 가 `loss_history` 를 **반환하는데 아무도
+        # 읽지 않았다** — `RMSE_near`(08-19) · `avg_shell_rmse`(08-22) 에 이은 **세 번째**
+        # "계산되는데 저장되지 않는" 사례다. 전체 이력은 크므로 **세 요약값**만 싣는다:
+        # 시작·끝·개선비. ⟹ *"옵티마이저가 실제로 내려갔는가"* 가 추론이 아니라 **행의 수**가 된다.
+        # ⚠이 키들은 **초기화 목적함수**이지 장 오차가 아니다(W12 가 그 둘이 갈릴 수 있음을 쟀다).
+        'init_loss_first': (lambda h: float(h[0]) if h else None)(
+            init_result.get('loss_history') or []),
+        'init_loss_last': (lambda h: float(h[-1]) if h else None)(
+            init_result.get('loss_history') or []),
+        'init_loss_drop_frac': (lambda h: (float(h[0]) - float(h[-1])) / float(h[0])
+                                if h and float(h[0]) != 0.0 else None)(
+            init_result.get('loss_history') or []),
+        'init_loss_n': len(init_result.get('loss_history') or []),
         'init_rmse': init_rmse,
         'init_nrmse': init_nrmse,
         # (S5) Phase-1 training-window residual; NaN unless S5_WINDOW=1.

@@ -203,3 +203,37 @@ def test_initialisation_loss_history_is_actually_saved():
     import wavesplat.optimizer.sequential_update as SU
     opt = open(SU.__file__).read()
     assert "'loss_history':" in opt, 'initialize() 가 더 이상 loss_history 를 반환하지 않는다'
+
+
+def test_scoring_window_is_saved_so_frame_alignment_needs_no_rerun():
+    """★`B-13`(2026-08-23) 회귀 — **채점 창이 행에 있어야 한다.**
+
+    옛 헤드라인을 죽인 1순위 사유가 *"두 팔이 같은 프레임에서 채점된 적이 없다"* 인데,
+    새 헤드라인(`B-1`)은 8일 떨어진 두 배치 비교이면서 **양쪽 다 프레임 수를 기록하지 않아**
+    재발 여부를 **기록만으로는 판정할 수 없었다** — 확인하는 데 새 런이 필요했고,
+    ★***그 사실 자체가 계측 결함이다.***
+
+    실측(`B-13`): `tracking_frames=160` · `scored_t_first=14.1` · `scored_t_last=30.0` ·
+    `episode_total_frames=301`, 그리고 기준선 규칙 `t > 2*Tp = 14.0 s` 와 **정확히 일치**.
+    """
+    import wavesplat.run as R
+    src = open(R.__file__).read()
+    for key in ('tracking_frames', 'scored_t_first', 'scored_t_last',
+                'episode_total_frames'):
+        assert f"'{key}'" in src, f'{key} 가 사라졌다 — 프레임 정합이 다시 검증 불가가 된다'
+
+
+def test_shipping_path_loss_history_claim_names_its_limit():
+    """⛔A2 심사의 처방을 그대로 믿지 않는다 — **출하 경로에서는 비어 있다.**
+
+    `learned_init_iters` 가 2026-08-22 에 500 -> 0 으로 배포되어 결합 경사하강이 한 스텝도
+    돌지 않는다 ⟹ `loss_history` 가 빈 리스트다(실측 `init_loss_n == 0`).
+    ⟹ 같은 질문에 답하는 출하 경로의 키는 `varpro_obj_before/after` 이고 **이미 저장된다**.
+    이 시험은 그 두 키가 사라지지 않도록 고정하고, 주석이 이 한계를 계속 말하도록 고정한다.
+    """
+    import wavesplat.run as R
+    src = open(R.__file__).read()
+    assert "'varpro_obj_before'" in src and "'varpro_obj_after'" in src
+    assert 'learned_init_iters' in src[src.index("'init_loss_n'"):
+                                       src.index("'init_loss_n'") + 900], (
+        '출하 경로에서 loss_history 가 비는 사유가 주석에서 사라졌다')

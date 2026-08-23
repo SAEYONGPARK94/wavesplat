@@ -543,12 +543,28 @@ def run_estimation(h5_path: str, config: dict = None,
                                 if h and float(h[0]) != 0.0 else None)(
             init_result.get('loss_history') or []),
         'init_loss_n': len(init_result.get('loss_history') or []),
+        # ⛔**실측(2026-08-23): 출하 경로에서 이 넷은 전부 `None`/`0` 이다.**  08-22 배포가
+        # `learned_init_iters` 를 500 -> **0** 으로 바꿔 결합 경사하강이 **한 스텝도 돌지 않기**
+        # 때문이다 ⟹ 손실 이력이 애초에 비어 있다.  A2 심사의 *"키 세 개면 기여 ④가 추론에서
+        # 측정이 된다"* 는 **출하 경로에는 적용되지 않는다**(pre-2026-08-22 구성에서만 찬다).
+        # ★출하 경로에서 같은 질문("목적함수가 실제로 내려갔는가")에 답하는 것은
+        #   위의 `varpro_obj_before`/`varpro_obj_after` 이고, 그것은 이미 저장된다.
         'init_rmse': init_rmse,
         'init_nrmse': init_nrmse,
         # (S5) Phase-1 training-window residual; NaN unless S5_WINDOW=1.
         'window_resid': window_resid,
         'window_n_obs': window_n_obs,
         'tracking_frames': len(frame_results),
+        # ★2026-08-23 (B-13): **채점 창을 행에 싣는다.**  옛 헤드라인을 죽인 1순위 사유가
+        # *"두 팔이 같은 프레임에서 채점된 적이 없다"* 인데, 새 헤드라인(`B-1`)은 8일 떨어진
+        # 두 배치 비교이면서 **양쪽 다 프레임 수를 기록하지 않아** 재발 여부를 기록만으로는
+        # 판정할 수 없었다(확인하는 데 새 런이 필요했다 — 그 자체가 계측 결함이다).
+        # ⟹ 다음 배치는 이 검증을 **런 없이** 할 수 있어야 한다.
+        'scored_t_first': (float(frame_results[0]['t'])
+                           if frame_results and 't' in frame_results[0] else None),
+        'scored_t_last': (float(frame_results[-1]['t'])
+                          if frame_results and 't' in frame_results[-1] else None),
+        'episode_total_frames': int(getattr(loader, 'n_frames', 0)) or None,
         'avg_RMSE_z': avg_rmse,
         'avg_nRMSE': avg_nrmse,
         'avg_Hs_error': avg_hs_err,

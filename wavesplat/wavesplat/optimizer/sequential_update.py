@@ -1095,6 +1095,66 @@ class SequentialUpdater:
         self._bank = [fit_bank_mmse(P, z, self.depth, sigma0, kp_hint=None,
                                     seed=s) for s in self._bank_seeds]
 
+    # ── 비동기 재적합 (2026-08-23, 기본 OFF) ──────────────────────────────────
+    # 왜: 재적합 단가 중앙 1.714 s 대 프레임 간격 0.067–0.100 s = **약 20배**.  동기로 돌면
+    # 그 프레임이 실시간 예산을 확정적으로 깬다(B-6/RV-6).  적합은 **관측 창의 순수 함수**이고
+    # 결과를 `self._bank` 에 **한 번에** 대입할 뿐이므로 배경 스레드로 옮겨도 의미가 안 바뀐다.
+    # 계약: ①`kick` 은 즉시 반환한다 ②적합이 도는 동안 **현재 앙상블을 계속 쓴다**
+    #      ③`collect` 는 완료된 결과만 원자적으로 교체한다 ④진행 중이면 새 kick 을 **무시**한다
+    #      (큐를 쌓지 않는다 -- 늦은 적합은 어차피 낡은 창이다).
+    def _bank_refit_async_kick(self, P, z):
+        import threading
+        fut = getattr(self, '_bank_async', None)
+        if fut is not None and fut['thread'].is_alive():
+            self._bank_async_skipped = getattr(self, '_bank_async_skipped', 0) + 1
+            return
+        P, z = np.array(P, copy=True), np.array(z, copy=True)
+        box = {'result': None, 'error': None}
+
+        def _work():
+            try:
+                # 임시 인스턴스에 적합해 self 를 건드리지 않는다(스레드 안전).
+                import copy as _copy
+                shim = _copy.copy(self)
+                shim._bank = None
+                type(self)._bank_fit_window(shim, P, z)
+                box['result'] = (shim._bank, getattr(shim, '_bank_Hs_obs', None))
+            except Exception as e:                      # noqa: BLE001
+                box['error'] = e
+
+        th = threading.Thread(target=_work, daemon=True, name='bank_refit')
+        th.start()
+        self._bank_async = {'thread': th, 'box': box}
+        self._bank_async_kicks = getattr(self, '_bank_async_kicks', 0) + 1
+
+    def _bank_refit_async_collect(self):
+        """완료된 배경 적합이 있으면 원자적으로 교체한다. 없으면 no-op."""
+        fut = getattr(self, '_bank_async', None)
+        if fut is None or fut['thread'].is_alive():
+            return False
+        self._bank_async = None
+        if fut['box']['error'] is not None:
+            # ⚠적합 실패는 **조용히 넘어가지 않는다** -- 현재 앙상블을 유지하고 경고한다.
+            import warnings
+            warnings.warn(f'async bank refit failed, keeping current fit: '
+                          f'{fut["box"]["error"]!r}', RuntimeWarning)
+            return False
+        bank, hs = fut['box']['result']
+        if bank is not None:
+            self._bank = bank
+            if hs is not None:
+                self._bank_Hs_obs = hs
+            self._bank_async_applied = getattr(self, '_bank_async_applied', 0) + 1
+            return True
+        return False
+
+    def bank_refit_wait(self, timeout=None):
+        """시험·배치용: 배경 적합이 끝날 때까지 기다렸다가 교체한다."""
+        fut = getattr(self, '_bank_async', None)
+        if fut is not None:
+            fut['thread'].join(timeout)
+        return self._bank_refit_async_collect()
+
     def _bank_update(self, frame: FrameData) -> Dict:
         """Phase 2 on the bank-MMSE route: rolling window + optional refit.
 
@@ -1119,8 +1179,17 @@ class SequentialUpdater:
         if self._bank_refit_every_s is not None and \
                 float(frame.t) - self._bank_last_fit_t \
                 >= float(self._bank_refit_every_s):
-            self._bank_fit_window(*self._bank_obs)
+            # ★2026-08-23: 동기 재적합은 프레임 간격의 **약 20배**(실측 1.35–2.53 s) 동안
+            # 이 호출을 붙잡는다 -- 그것이 배포를 되돌린 사유다(tmp/B6_BUDGET_2026-08-23/
+            # REVERT_2026-08-23.md).  `bank_refit_async=True` 면 **배경 스레드**에서 적합하고
+            # 그동안 **현재 앙상블을 계속 쓴다**; 완료된 다음 프레임에서 원자적으로 교체한다.
+            # ⚠기본값은 False = **비트 동일한 종전 거동**.
+            if self.config.get('bank_refit_async', False):
+                self._bank_refit_async_kick(*self._bank_obs)
+            else:
+                self._bank_fit_window(*self._bank_obs)
             self._bank_last_fit_t = float(frame.t)
+        self._bank_refit_async_collect()
         preds = np.stack([f.render(Pf) for f in self._bank], axis=0)
         med = np.median(preds, axis=0)
         return {'loss': float(np.mean((med - zf) ** 2)),

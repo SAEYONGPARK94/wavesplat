@@ -308,3 +308,81 @@ def test_bad_real_estimator_value_raises():
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
+
+
+# ── E. 비동기 재적합 (2026-08-23, 기본 OFF) ─────────────────────────────────
+
+def test_async_refit_is_off_by_default_and_default_is_bit_identical():
+    """`bank_refit_async` **기본값(False)** 이 거동을 바꾸지 않는다.
+
+    ⛔**내가 처음 쓴 시험은 틀린 계약을 요구했다** — *"비동기가 동기와 비트 동일"*.
+    설계상 **그렇지 않다**: 적합이 **진행 중이면 새 kick 을 건너뛴다**(큐를 쌓지 않는다.
+    늦은 적합은 어차피 낡은 창이니까).  ⟹ 재적합 **횟수가 다를 수 있고** 그것은 **의도된 차이**다.
+    실제 계약은 두 가지이고 이 파일이 그 둘을 나눠 고정한다:
+      (1) **기본값이 종전과 비트 동일**  ← 이 시험
+      (2) **비동기가 `update()` 를 붙잡지 않는다** ← 다음 시험
+    """
+    import numpy as np
+    from wavesplat.optimizer.sequential_update import SequentialUpdater
+
+    def _drive(extra):
+        frames, _, _ = _real_frames(n_frames=5, n_per=40, dt=2.0)
+        cfg = _bank_cfg(bank_refit_every_s=5.0)
+        cfg.update(extra)
+        upd = SequentialUpdater(cfg)
+        with pytest.warns(RuntimeWarning):
+            upd.initialize(frames)
+        for f in _real_frames(n_frames=8, t0=10.0, dt=2.0, seed=33)[0]:
+            upd.update(f)
+        if extra.get('bank_refit_async'):
+            upd.bank_refit_wait(timeout=120)
+        gx, gy = np.linspace(0, 80, 9), np.linspace(0, 80, 7)
+        return upd.predict_field(torch.tensor(gx, dtype=torch.float32),
+                                 torch.tensor(gy, dtype=torch.float32), 30.0).numpy()
+
+    a = _drive({})                              # 키 부재 = 기본값
+    b = _drive({'bank_refit_async': False})     # 명시 False
+    assert np.array_equal(a, b), '기본값이 명시 False 와 다르다 -- 조용한 거동 변경'
+    # 비동기는 **유효한 장**을 내야 한다(비트 동일은 요구하지 않는다, 위 독스트링 참조)
+    c = _drive({'bank_refit_async': True})
+    assert c.shape == a.shape and np.isfinite(c).all()
+    assert float(np.std(c)) > 0, '비동기 경로가 상수장을 냈다'
+    # 그리고 **아주 다르지도** 않아야 한다 -- 같은 자료의 같은 추정기다
+    rel = float(np.sqrt(np.mean((c - a) ** 2)) / (np.std(a) + 1e-12))
+    assert rel < 1.0, f'비동기 장이 동기와 과도하게 다르다 (상대 {rel:.3f})'
+
+
+def test_async_refit_does_not_block_the_update_call():
+    """★핵심 계약: `update()` 가 **적합 시간만큼 붙잡히지 않는다**.
+
+    이것이 배포를 되돌린 사유였다(재적합 단가 1.35–2.53 s 대 프레임 간격 0.067–0.100 s).
+    동기 경로의 **가장 느린 프레임**과 비동기 경로의 **가장 느린 프레임**을 비교한다.
+    """
+    import time
+    from wavesplat.optimizer.sequential_update import SequentialUpdater
+
+    def _worst_frame(extra):
+        frames, _, _ = _real_frames(n_frames=5, n_per=40, dt=2.0)
+        cfg = _bank_cfg(bank_refit_every_s=5.0)
+        cfg.update(extra)
+        upd = SequentialUpdater(cfg)
+        with pytest.warns(RuntimeWarning):
+            upd.initialize(frames)
+        worst = 0.0
+        for f in _real_frames(n_frames=8, t0=10.0, dt=2.0, seed=33)[0]:
+            t0 = time.perf_counter()
+            upd.update(f)
+            worst = max(worst, time.perf_counter() - t0)
+        upd.bank_refit_wait(timeout=120)
+        return worst, upd
+
+    w_sync, _ = _worst_frame({})
+    w_async, upd = _worst_frame({'bank_refit_async': True})
+
+    # 시험이 공허하지 않다는 증거: 동기 경로의 최악 프레임이 실제로 재적합을 포함해야 한다
+    assert w_sync > 0.05, f'동기 최악 프레임이 너무 짧다({w_sync:.4f}s) -- 재적합이 안 걸렸다'
+    assert w_async < w_sync / 2, (
+        f'비동기가 최악 프레임을 줄이지 못했다: {w_async:.4f}s vs 동기 {w_sync:.4f}s')
+    # 배경 적합이 실제로 발화하고 적용됐나 (계수기 되읽기)
+    assert getattr(upd, '_bank_async_kicks', 0) > 0, '배경 적합이 한 번도 발화하지 않았다'
+    assert getattr(upd, '_bank_async_applied', 0) > 0, '배경 적합 결과가 적용되지 않았다'

@@ -63,6 +63,7 @@ def check(d):
 
     # I. 동결 해시 대조
     md5_ok = True
+    drift = []
     for ff in glob.glob(os.path.join(d, 'FROZEN*.txt')):
         for ln in open(ff):
             parts = ln.split()
@@ -75,6 +76,8 @@ def check(d):
                 import hashlib
                 if hashlib.md5(open(tgt, 'rb').read()).hexdigest() != h:
                     md5_ok = False
+                    drift.append(os.path.basename(tgt))
+    check.last_drift = sorted(set(drift))
     return [has('PREREG*.md'), has('gates*.py'), bool(an), lab, gts,
             has('FROZEN*.txt'), order, paired, md5_ok]
 
@@ -83,11 +86,18 @@ def main(argv):
     dirs = argv[1:] or sorted({os.path.dirname(f) for f in glob.glob('tmp/**/results*.jsonl', recursive=True)})
     bad = 0
     print(f"{'배치':44s} " + ' '.join(f'{c[:9]:>9s}' for c in COLS))
+    drifted = {}
     for d in dirs:
         r = check(d)
         if not (r[3] and r[4] and r[7]):
             bad += 1
+        if not r[8] and getattr(check, 'last_drift', None):
+            drifted[os.path.basename(d)] = check.last_drift
         print(f"{os.path.basename(d)[:44]:44s} " + ' '.join(f'{"OK" if x else "--":>9s}' for x in r))
+    if drifted:
+        print('\n동결 이동(md5 불일치) — ⚠**정상일 수 있다**. 사유가 기록돼 있는지 확인하라:')
+        for k, v in drifted.items():
+            print(f'  {k}: ' + ', '.join(v))
     print(f"\n인용 불가(라벨 또는 게이트 증거 없음): {bad}/{len(dirs)}")
     return 1 if bad else 0
 

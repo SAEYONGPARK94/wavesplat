@@ -46,3 +46,20 @@
 `sequential_update.pre_2026_08_23_config()` → `{'bank_refit_every_s': None}`.
 2026-08-22 의 세 스위치까지 되돌리려면 `pre_2026_08_22_config()` 를 **함께** 쓴다.
 ✅양방향 거동을 `test_bank_refit_default_refits_and_revert_freezes` 가 고정한다.
+
+
+## 5. 동결 이동(md5) 중앙 기록 — 2026-08-23 밤
+
+검사기(`tmp/_audit/check_batch_artifacts.py` I열)가 오늘 배치들에서 md5 불일치를 보고한다.
+**전건 사유가 이것이다**: 배포(5.0)와 **같은 날 철회**(None)가 다음 파일들을 바꿨다.
+
+| 파일 | 무엇이 바뀌었나 | 결과 무손상? |
+|---|---|---|
+| `wavesplat/optimizer/sequential_update.py` | `BANK_REFIT_EVERY_S_DEFAULT` 신설 → 5.0 → None · `recommended_real_refit_config()` 추가 · 폴백을 상수로 · 주석 다수 | ✅**팔마다 키를 명시한 배치는 불변** |
+| `wavesplat/run.py` | `DEFAULT_CONFIG` 항목 · yaml 로더가 키를 읽게 · CLI `'none'` 지원 | ✅동일 |
+| `tmp/B3_REFIT_2026-08-23/run_b3.py` | 런 **전** `FrameData` 인자 수리(옛 md5 줄을 안 지웠다) | ✅실행은 새 판으로 |
+
+⟹ ★**md5 witness 가 `--` 인 것은 *정상 동작*이다** — *"HEAD 에서 비트 재현 불가"* 를 말하는 것이
+그 witness 의 일이다. ⛔**재동결로 지우지 않는다.** 사유를 여기에 남긴다.
+⚠**한 가지는 진짜 결함이었다**: `run_b3.py` 는 옛 줄을 **지웠어야** 했다(append 가 거짓 경보를 낸다).
+★**처방(재확인)**: `FROZEN_md5` 는 **append 하지 말고 갱신하되 사유를 남겨라.**

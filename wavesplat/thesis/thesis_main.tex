@@ -254,7 +254,24 @@ LiDAR 관측 품질의 공간적 불균질성을 직접 모델링한다.
 기준선 선택이 결과를 좌우하며(같은 \WS{} 열을 튜닝된 LETKF와 대조하면 차이가 통계적 널이다),
 지연은 서로 다른 프로세스에서 측정됐다.
 검증된 대체값이 없는 항목은 숫자를 제시하지 않는다.
-지연에 대해 인용 가능한 유일한 값은 \emph{동일 프로세스·단일 스레드에서 1.5--2.6배}이다.
+
+% ADDED 2026-08-23: 초록이 철회만 담고 결과를 담지 않아 본문(1·3·6장)과 어긋나 있었다.
+% R3 심사 토론 ML 심사의 요구("초록을 제2장과 정합").
+\textbf{[2026-08-23 재측정]} 검증된 대체 결과는 다음과 같다. \emph{혼잡한 다성분 해상}에서
+본 방법은 보유한 최강 적격 격자 기준선 대비 오차 중앙값을 $38.6\%$ 낮춘다($64$ 중 $62$).
+이 부호는 \emph{같은 기준선}에 대해 비선형(HOS $M{=}3$) 참값과 학습 코퍼스 밖 생성 시드로
+이루어진 표본에서도 유지된다($16$ 중 $14$). ⚠단 \textbf{합성 조건}이며, ``공정하게 강화된''
+기준선이 아니라 \emph{보유한 최강} 기준선이다. \emph{희소} 해상에서는 부호가 유지되나
+절대 오차가 비선형 참값에서 약 $3$배 열화하므로 \textbf{크기를 인용하지 않는다}.
+⛔\textbf{실측 자료(고정 관측소 스테레오 $12$ 레코드)에서는 본 논문이 제안하는 표현이
+기술을 보이지 않는다} --- 논문이 주장하는 순차 추적·전방 예보 프로토콜에서 무기술 기준을
+넘지 못하며, 학습 체크포인트를 제거한 두 가지 다른 초기화로 반복하여도 같다.
+같은 자료에서 격자 기반 앙상블 칼만 기준선 두 종도 무기술 기준을 넘지 못하여
+\textbf{외부 기준선 대비 우열은 주장하지 않는다}.
+⚠\textbf{본 방법은 ``학습이 필요 없는'' 방법이 아니다} --- 혼잡 해상에서 학습된 초기화를
+사용하며(초기값 제안에 한정), 실측 입력에서는 그 학습이 \emph{순손실}로 측정되었다.
+지연에 대해 인용 가능한 유일한 절대 배율은 \emph{동일 프로세스·단일 스레드에서 1.5--2.6배}이며,
+실시간 \emph{예산}은 별도로 측정되었다(질의 렌더 점당 $137\,\mu$s, $10$\,Hz 프레임에서 약 $720$점).
 
 또한 본 논문은 \WS{}의 downstream 응용으로서,
 추정된 파랑 정보를 활용한 하이드로포일 선박의 2자유도 feedforward 제어
@@ -331,8 +348,30 @@ proposed method and the baselines were never scored on the same frames; the verd
 depends on which baseline is chosen (against a tuned LETKF the same column is a
 statistical null); and the latency figures were measured in separate processes.
 No replacement numbers are given where none have been verified.
-The only citable latency statement is \emph{1.5--2.6$\times$ within the same
-process on a single thread}.
+
+% ADDED 2026-08-23: mirror of the Korean abstract update (R3, ML examiner).
+\textbf{[2026-08-23 re-measurement]} The verified replacement results are as follows.
+In \emph{crowded, multi-component seas} the method lowers median error by $38.6\%$
+relative to the strongest eligible grid baseline available to this work ($62$ of $64$
+episodes). The sign persists \emph{against the same baseline} on a sample built from
+nonlinear (HOS $M{=}3$) ground truth and generation seeds outside the training corpus
+($14$ of $16$). ⚠These are \textbf{synthetic} conditions, and the comparator is the
+\emph{strongest baseline available here}, not a deliberately strengthened one.
+In \emph{sparse} seas the sign persists but the absolute error degrades roughly
+threefold under nonlinear ground truth, so \textbf{no magnitude is claimed there}.
+⛔\textbf{On real data (twelve fixed-station stereo records) the proposed representation
+shows no skill} --- it does not beat a no-skill reference under the sequential
+tracking and forward-forecast protocol this dissertation claims, and the same holds
+when the learned checkpoint is removed and replaced by either of two analytic
+initialisations. On the same data, two independently reproduced grid-based ensemble
+Kalman baselines also fail to beat the no-skill reference, so \textbf{no comparative
+superiority is claimed on real data}.
+⚠\textbf{This method is not ``learning-free''} --- it uses a learned initialiser in
+crowded seas (for proposal only), and on real input that learned component is measured
+to be a \emph{net loss}.
+The only citable absolute latency statement is \emph{1.5--2.6$\times$ within the same
+process on a single thread}; the real-time \emph{budget} was measured separately
+($137\,\mu$s per query point; about $720$ points within a $10$\,Hz frame).
 
 This dissertation further presents a downstream application of \WS{}: a
 two-degree-of-freedom feedforward control algorithm for hydrofoil vessels

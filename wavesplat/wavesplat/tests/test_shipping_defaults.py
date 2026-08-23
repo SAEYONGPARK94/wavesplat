@@ -22,6 +22,7 @@ explicitly.
 
 from pathlib import Path
 
+import os
 import pytest
 import yaml
 
@@ -55,6 +56,15 @@ SHIPPING_DEFAULTS = {
     "varpro_steps": 400,
     "learned_init_iters": 0,
     "auto_switch_thresh": 0,
+    # ── 2026-08-23: 실측 전용 경로. 5.0 으로 배포했다가 **같은 날 철회**했다 ──
+    # 정확도 이득은 측정됐으나(참 제로필드 28/36 p=6.0e-04) 재적합이 `update()` 안에서
+    # **동기**로 돌아 프레임 간격의 **약 20배**(1.35–2.53 s) 블로킹한다.  근거로 쓴 예산 판정은
+    # **재적합이 0회인 구성**에서 나온 것이었다.  ⟹ 기본값은 **동결(None)**.
+    # 권고는 `sequential_update.recommended_real_refit_config()` 로 남아 있고,
+    # 선행 조건(비동기 재적합)은 `bank_refit_async=True` 로 구현돼 있다(기본 False).
+    # 상세: tmp/B6_BUDGET_2026-08-23/REVERT_2026-08-23.md
+    "bank_refit_every_s": None,
+    "bank_refit_async": False,
 }
 
 
@@ -461,3 +471,31 @@ def test_thesis_does_not_hardcode_router_threshold():
     body = open(os.path.join(here, '..', '..', 'thesis', 'thesis_main.tex')).read()
     body = re.sub(r'(?m)^\s*%.*$', '', body)          # 주석(이력 보존)은 제외
     assert 'ge 8' not in body, '논문 본문에 라우터 임계가 문자로 박혀 있다'
+
+
+def test_no_stale_frozen_wording_about_bank_refit():
+    """⛔**낡은 서술이 코드에 남아 있는 것**을 막는다 (RV-6 ③, P-7).
+
+    `bank_refit_every_s` 는 하루에 **두 번** 뜻이 바뀌었다(동결 → 5.0 → 동결).
+    그때마다 *"the shipping frozen-fit behaviour"* 같은 문면이 **낡은 채로 남았고**,
+    그중 하나는 **`--help` 로 사용자에게 보이는 문장**이었다.
+
+    이 시험은 **값과 서술이 같은 방향인지**만 검사한다(문면을 통째로 금지하지 않는다):
+      · 기본값이 `None`(동결)이면 → "frozen" 서술은 **옳다**.
+      · 기본값이 숫자면 → `--help` 에 "frozen" 만 있고 그 값이 없으면 **거짓말**이다.
+    ⚠`lambda_l1` 이 정확히 이 부류로 배치 하나를 무효화시켰다.
+    """
+    import re
+    from wavesplat.run import DEFAULT_CONFIG
+    src = open(_RUN).read() if '_RUN' in globals() else open(
+        os.path.join(os.path.dirname(__file__), '..', 'run.py')).read()
+    m = re.search(r"add_argument\('--bank_refit_every_s'.*?\)\n", src, re.S)
+    assert m, '--bank_refit_every_s 플래그를 찾지 못했다'
+    help_text = m.group(0)
+    val = DEFAULT_CONFIG['bank_refit_every_s']
+    if val is None:
+        assert 'frozen' in help_text, (
+            '기본값이 동결인데 --help 가 그렇게 말하지 않는다')
+    else:
+        assert str(val) in help_text or f'{val:g}' in help_text, (
+            f'--help 가 배포값 {val} 을 말하지 않는다 — 낡은 문면일 가능성이 높다')

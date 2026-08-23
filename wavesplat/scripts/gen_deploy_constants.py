@@ -34,6 +34,10 @@ def render() -> str:
         ('DeployInitMethod', str(c['init_method'])),
         ('DeployTrackingMode', str(c['tracking_mode'])),
         ('DeployEnsembleK', str(c['analytic_ensemble_k'])),
+        # 2026-08-23: 실측 전용 경로. 배포했다가 같은 날 철회 ⟹ 값은 'frozen'.
+        ('DeployBankRefit', 'frozen' if c['bank_refit_every_s'] is None
+         else f"{c['bank_refit_every_s']:g}\\,s"),
+        ('DeployBankRefitAsync', 'off' if not c.get('bank_refit_async') else 'on'),
         ('DeployNumTests', str(n_tests)),
         ('PreUnifyRouterThresh', str(AUTO_SWITCH_THRESH_PRE_UNIFY)),
         ('PreVarproInitIters', str(LEARNED_INIT_ITERS_PRE_VARPRO)),

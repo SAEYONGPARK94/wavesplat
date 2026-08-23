@@ -91,6 +91,10 @@ DEFAULT_CONFIG = {
     # clean sweep.  Hence exposure only -- the default is NOT changed.
     # ★단일출처: sequential_update.BANK_REFIT_EVERY_S_DEFAULT (2026-08-23 배포, None -> 5.0)
     'bank_refit_every_s': BANK_REFIT_EVERY_S_DEFAULT,
+    # 2026-08-23: 비동기 재적합. 기본 False = 종전 거동 비트 동일.
+    # True 면 재적합이 배경 스레드로 나가 `update()` 를 붙잡지 않는다
+    # (= tmp/B6_BUDGET_2026-08-23/REVERT_2026-08-23.md 가 지목한 선행 조건).
+    'bank_refit_async': False,
     # Members of the real-domain bank-MMSE pointwise-median field ensemble (seeds
     # {s, s+1000, s+2000}); 1 disables it.
     'real_bank_ensemble_k': 3,

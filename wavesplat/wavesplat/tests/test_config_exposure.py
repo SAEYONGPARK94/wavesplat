@@ -35,7 +35,7 @@ def _yaml_find(node, key):
     return False, None
 
 
-def test_bank_refit_every_s_default_is_the_2026_08_23_deploy():
+def test_bank_refit_every_s_default_is_frozen_after_the_2026_08_23_revert():
     """★2026-08-23 배포로 이 시험의 **기대값이 바뀌었다**(None -> 5.0). 이력을 남긴다.
 
     종전 문언(축자): *"Exposure must not deploy the value. 5 independent real records give
@@ -45,11 +45,17 @@ def test_bank_refit_every_s_default_is_the_2026_08_23_deploy():
     `sequential_update.BANK_REFIT_EVERY_S_DEFAULT` 주석에 전부 적혀 있다.
     ⚠종전 문언의 `0.03125` 는 **옳았다** — 같은 날 내 사전등록이 그 값을 0.0625(양측)로
     잘못 적었고, 이 파일이 원래 맞았다.
+
+    ⛔⛔**같은 날 밤 되돌렸다(5.0 -> None).**  사유는 정확도가 아니라 **예산**이다:
+    재적합이 `update()` 안에서 **동기로** 돌아 프레임 간격의 **약 20배**(1.35–2.53 s) 블로킹하고,
+    내가 근거로 든 `B-6c` 의 `CONTROL-FRAME-OK` 는 **배포 전(재적합 0회) 구성**의 판정이었다.
+    ⟹ 출하 기본값은 자기 증거 위에 서야 한다.  권고는
+    `sequential_update.recommended_real_refit_config()` 로 남았다.
     """
-    assert DEFAULT_CONFIG['bank_refit_every_s'] == 5.0
+    assert DEFAULT_CONFIG['bank_refit_every_s'] is None
     found, val = _yaml_find(yaml.safe_load(open(_YAML)), 'bank_refit_every_s')
     assert found, 'configs/estimation.yaml must mirror the key'
-    assert val == 5.0
+    assert val is None
 
 
 def test_bank_refit_every_s_survives_into_the_updater():
@@ -60,14 +66,22 @@ def test_bank_refit_every_s_survives_into_the_updater():
         assert upd.config.get('bank_refit_every_s', '<dropped>') == value
 
 
-def test_bank_refit_every_s_cli_flag_is_merged_not_just_parsed():
+def test_bank_refit_every_s_cli_flag_is_merged_and_can_express_none():
     """run.py merges CLI args with explicit `if args.X is not None` blocks.  Registering
-    the flag without adding its block yields a dead flag that parses and is discarded."""
+    the flag without adding its block yields a dead flag that parses and is discarded.
+
+    2026-08-23 (RV-6 3): the old form used `type=float`, so there was NO WAY to pass None
+    from the command line -- the refit could not be turned off from the CLI.  It now
+    accepts 'none'.  This test pins both: the merge actually happens, AND None is
+    expressible.
+    """
     src = open(_RUN_PY).read()
     assert "'--bank_refit_every_s'" in src, 'flag not registered with argparse'
-    assert re.search(r"if args\.bank_refit_every_s is not None:\s*\n\s*"
-                     r"config\['bank_refit_every_s'\] = args\.bank_refit_every_s",
-                     src), 'flag parsed but never merged into the config'
+    i = src.find('if args.bank_refit_every_s is not None:')
+    assert i > 0, 'flag parsed but never merged into the config'
+    body = src[i:i + 600]
+    assert "config['bank_refit_every_s']" in body, 'merge block never writes to config'
+    assert "'none'" in body, 'CLI cannot express None -- refit cannot be switched off'
 
 
 def test_optimizer_reads_the_key_by_the_exposed_name():
@@ -118,7 +132,7 @@ def test_bank_refit_cannot_affect_synthetic_runs():
         '더 이상 합성에 무해하지 않다')
 
 
-def test_bank_refit_default_is_single_sourced_and_deployed():
+def test_bank_refit_default_is_single_sourced():
     """`bank_refit_every_s` 배포값(2026-08-23) 회귀 시험 — 값 + **단일출처**.
 
     이 프로젝트는 *"같은 상수를 두 곳에 적어 한쪽이 낡는다"* 로 **네 번** 대가를 치렀다
@@ -129,14 +143,19 @@ def test_bank_refit_default_is_single_sourced_and_deployed():
     from wavesplat.run import DEFAULT_CONFIG
     from wavesplat.optimizer.sequential_update import (BANK_REFIT_EVERY_S_DEFAULT,
                                                        pre_2026_08_23_config)
-    assert BANK_REFIT_EVERY_S_DEFAULT == 5.0
+    assert BANK_REFIT_EVERY_S_DEFAULT is None
     assert DEFAULT_CONFIG['bank_refit_every_s'] == BANK_REFIT_EVERY_S_DEFAULT
     found, val = _yaml_find(_yaml.safe_load(open(_YAML)), 'bank_refit_every_s')
     assert found, 'configs/estimation.yaml 에 bank_refit_every_s 가 없다'
     assert val == BANK_REFIT_EVERY_S_DEFAULT, (
         f'yaml({val}) 이 모듈 상수({BANK_REFIT_EVERY_S_DEFAULT}) 와 어긋난다 — 단일출처 위반')
-    # 되돌림이 실제로 이전 거동(동결)을 낸다
-    assert pre_2026_08_23_config() == {'bank_refit_every_s': None}
+    # 권고 설정이 **기본값과 다르다**(= 명시적으로 켜야 한다)
+    from wavesplat.optimizer.sequential_update import recommended_real_refit_config
+    rec = recommended_real_refit_config()
+    assert rec == {'bank_refit_every_s': 5.0}
+    assert rec['bank_refit_every_s'] != BANK_REFIT_EVERY_S_DEFAULT, (
+        '권고가 기본값과 같아지면 recommended_* 가 죽은 코드가 된다')
+    assert pre_2026_08_23_config() == {'bank_refit_every_s': None}   # 이제 항등
 
 
 def test_bank_refit_fallback_matches_shipping_default():

@@ -153,6 +153,13 @@ def load_yaml_config(yaml_path: str) -> dict:
             cfg['real_estimator'] = str(raw['optimizer']['real_estimator'])
         if 'real_bank_ensemble_k' in raw['optimizer']:
             cfg['real_bank_ensemble_k'] = int(raw['optimizer']['real_bank_ensemble_k'])
+        # ⛔2026-08-23 수리 (RV-6 ③): 이 키는 yaml 에 **쓰여 있었지만 로더가 한 번도 읽지 않았다**
+        # = 죽은 미러.  그 상태에서는 yaml 로 배포도 되돌림도 불가능하고, 그럼에도 회귀 시험이
+        # "yaml 이 미러한다" 를 통과하고 있었다(존재만 봤다).  `None` 을 명시할 수 있어야
+        # 되돌림이 yaml 경로로도 가능하므로 `in` 검사로 읽는다.
+        if 'bank_refit_every_s' in raw['optimizer']:
+            _v = raw['optimizer']['bank_refit_every_s']
+            cfg['bank_refit_every_s'] = None if _v is None else float(_v)
     if 'physics' in raw:
         cfg['use_dispersion'] = raw['physics'].get('use_dispersion', True)
         cfg['use_confidence'] = raw['physics'].get('use_confidence', True)
@@ -661,9 +668,12 @@ def main():
                         help='Path to neural corrector checkpoint (.pt)')
     parser.add_argument('--output', type=str, default=None,
                         help='Output JSON path for results')
-    parser.add_argument('--bank_refit_every_s', type=float, default=None,
-                        help='rolling re-fit period (s) for the bank_mmse real-domain '
-                             'route; omit to keep the shipping frozen-fit behaviour')
+    parser.add_argument('--bank_refit_every_s', type=str, default=None,
+                        help="rolling re-fit period (s) for the bank_mmse real-domain "
+                             "route; 'none' forces the frozen fit, omit to keep the "
+                             "shipping default (frozen as of 2026-08-23).  Measured "
+                             "recommendation is 5.0 -- see "
+                             "sequential_update.recommended_real_refit_config()")
     parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
 
@@ -681,7 +691,11 @@ def main():
     # Without this merge the flag would parse and then be silently dropped -- a dead CLI
     # flag, the same defect class as the unexposed key it is here to fix.
     if args.bank_refit_every_s is not None:
-        config['bank_refit_every_s'] = args.bank_refit_every_s
+        # ⛔2026-08-23 (RV-6 ③): 종전에는 `type=float` 이라 **CLI 로 None 을 줄 방법이 없었다**
+        # = 배포된 값을 명령줄에서 끌 수 없었다.  'none'/'null' 을 받아 그 구멍을 막는다.
+        _raw = str(args.bank_refit_every_s).strip().lower()
+        config['bank_refit_every_s'] = (None if _raw in ('none', 'null', '')
+                                        else float(args.bank_refit_every_s))
     if args.lambda_smooth is not None:
         config['lambda_smooth'] = args.lambda_smooth
     if args.varpro_steps is not None:

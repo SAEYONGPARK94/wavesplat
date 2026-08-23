@@ -214,7 +214,7 @@ def test_bank_rolling_window_and_refit_trigger():
     assert P_buf[:, 2].min() >= 16.0 - 10.0 - 1e-9, "memory window not evicted"
 
 
-def test_bank_refit_default_refits_and_revert_freezes():
+def test_bank_refit_default_freezes_and_recommendation_refits():
     """★2026-08-23 배포로 이 시험의 기대가 **뒤집혔다**(동결 -> 5 s 재적합).
 
     종전 이름은 `test_bank_refit_default_is_frozen` 이었고 *"default must keep the init fit
@@ -222,11 +222,17 @@ def test_bank_refit_default_refits_and_revert_freezes():
     묶여 있었고, 전방팬 관측모형을 빼면서 **12개**가 되어 `B-3`/`B-3b`/`B-3c`/`B-6c` 가
     재적합을 확증했다(`sequential_update.BANK_REFIT_EVERY_S_DEFAULT` 주석 참조).
 
-    ⟹ 이제 **두 방향을 다 고정**한다: 배포 기본값은 **재적합하고**,
-    `pre_2026_08_23_config()` 는 **동결로 되돌린다**.  한쪽만 시험하면 되돌림이 죽은 코드가 된다.
+    ⛔⛔**그 배포는 같은 날 밤 되돌렸다** — 예산 근거(`B-6c` `CONTROL-FRAME-OK`)가 **배포 전
+    구성(재적합 0회)** 에서 나온 판정이었고, 재적합은 `update()` 안에서 **동기로** 돌아
+    프레임 간격의 **약 20배**(1.35–2.53 s) 블로킹한다.
+    ⟹ 기본값은 다시 **동결**이고 `5.0` 은 `recommended_real_refit_config()` 로 **명시 경로**다.
+
+    이제 **두 방향을 다 고정**한다: **기본값은 동결하고**, **권고 설정은 재적합한다**.
+    한쪽만 시험하면 다른 쪽이 죽은 코드가 된다.
     """
     from wavesplat.optimizer.sequential_update import (SequentialUpdater,
                                                        pre_2026_08_23_config,
+                                                       recommended_real_refit_config,
                                                        BANK_REFIT_EVERY_S_DEFAULT)
 
     def _drive(cfg_extra):
@@ -240,15 +246,20 @@ def test_bank_refit_default_refits_and_revert_freezes():
             upd.update(f)
         return fit0, upd._bank[0]
 
-    # (1) 배포 기본값 = 재적합한다.  구동 창이 기본 주기보다 길어야 시험이 공허하지 않다.
-    assert 8 * 2.0 > BANK_REFIT_EVERY_S_DEFAULT, '구동 창이 주기보다 짧다 — 시험이 공허하다'
+    # (1) 배포 기본값 = 동결.
+    assert BANK_REFIT_EVERY_S_DEFAULT is None, '기본값이 더 이상 동결이 아니다'
     a, b = _drive({})
-    assert b is not a, ('배포 기본값(bank_refit_every_s='
-                        f'{BANK_REFIT_EVERY_S_DEFAULT})에서 재적합이 발화하지 않았다')
+    assert b is a, '배포 기본값에서 초기 적합이 동결되지 않았다'
 
-    # (2) 되돌림 = 동결.  이 절이 없으면 `pre_2026_08_23_config()` 가 죽은 코드가 된다.
-    a2, b2 = _drive(pre_2026_08_23_config())
-    assert b2 is a2, 'pre_2026_08_23_config() 가 초기 적합을 동결시키지 못한다'
+    # (2) 권고 설정 = 재적합.  이 절이 없으면 recommended_* 가 죽은 코드가 된다.
+    rec = recommended_real_refit_config()
+    assert 8 * 2.0 > rec['bank_refit_every_s'], '구동 창이 주기보다 짧다 — 시험이 공허하다'
+    a2, b2 = _drive(rec)
+    assert b2 is not a2, 'recommended_real_refit_config() 에서 재적합이 발화하지 않았다'
+
+    # (3) pre_2026_08_23_config() 는 이제 항등이지만 여전히 동결을 낸다(기록 호환).
+    a3, b3 = _drive(pre_2026_08_23_config())
+    assert b3 is a3
 
 
 

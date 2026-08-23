@@ -75,7 +75,12 @@ optimizer:
   #   · tau=2 는 정확도 최고지만 점유율 0.997 = 실시간 아님. tau=10 은 예산은 되나 p=0.033 로
   #     가족단위에서 죽는다.
   # 되돌림: sequential_update.pre_2026_08_23_config()  (= {'bank_refit_every_s': None})
-  bank_refit_every_s: 5.0
+  # ⛔2026-08-23 밤 되돌림: 5.0 -> null.  근거는 유효하나 **예산 판정이 배포 구성을 안 덮는다**
+  # (재적합이 update() 안에서 동기로 돌아 프레임의 ~20배 블로킹; B-6c 는 배포 전 구성에서 쟀다).
+  # ✅권고는 남는다: sequential_update.recommended_real_refit_config() 로 **명시적으로** 켠다.
+  # ⚠이 키는 `load_yaml_config` 가 읽지 않는다(RV-6 ③) — yaml 로는 되돌림도 배포도 안 된다.
+  #   실효 출처는 run.py DEFAULT_CONFIG <- sequential_update.BANK_REFIT_EVERY_S_DEFAULT 뿐이다.
+  bank_refit_every_s: null
   real_bank_ensemble_k: 3     # members of the bank-MMSE pointwise-median field ensemble
                                #  (fit seeds {s, s+1000, s+2000}); 1 = off.
   max_steepness: 0.15         # wave steepness clamp ε = |k|·|w|

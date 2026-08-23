@@ -8,7 +8,7 @@ Target: OCEANS 2026 conference paper submission.
 ```
 wavesplat/                   # Root package directory
 ├── wavesim/                 # Wave simulation + LiDAR
-├── wavesplat/               # Estimation algorithm      (204 tests: 196 + 8 배포기본값 회귀, 2026-08-13)
+├── wavesplat/               # Estimation algorithm      (**245 tests**, 실측 2026-08-23)
 │   ├── model/               # spectral_gaussian, dispersion, confidence
 │   ├── optimizer/            # initializer, coarse_to_fine, sequential_update
 │   ├── baselines/etkf_grid.py
@@ -40,7 +40,8 @@ cd /home/vexit/wavesplat/wavesplat     # ← 아래 전부 이 디렉터리 기�
 # Run estimation  (⛔위치인자 아님. --adaptive_n 은 값을 받는다)
 python3 -m wavesplat.run --episode data/episode_BF4_5comp_seed0_uniform.h5 --adaptive_n true
 
-# Run tests  (실측 2026-08-13: 204 passed, 0 failed, 0 skipped)
+# Run tests  (실측 2026-08-23: **245 passed**, 0 failed, 0 skipped)
+#   ⚠논문의 \DeployNumTests 는 **손으로 고치지 말고** scripts/gen_deploy_constants.py 를 돌려라
 python3 -m pytest wavesim/tests/ wavesplat/tests/ -v
 
 # Generate paper figures/tables
@@ -56,7 +57,8 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
 ## Current State
 ⛔**이 절의 낡은 수치가 2026-08-12 전체 감사에서 BLOCKER 로 잡혔다.**
 **연구 현황의 권위는 이 파일이 아니라 auto-memory (`MEMORY.md`) 와 `tmp/<배치>/RESULT.md` 다.**
-- **204 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-08-13).
+- **245 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-08-23).
+  ⚠이 수는 자주 바뀐다 — **인용 전에 돌려서 확인할 것**(08-23 하루에 231→242→245).
 - ⛔**"WS 0.223 / ETKF 0.319 / 13.4 ms / 132.6 ms" 인용 금지 — 단 사유가 2026-08-13 에 바뀌었다.**
   ⛔**"어느 결과 파일에서도 재현되지 않는다" 는 거짓이었다**(08-12 감사의 오류, 08-13 정정).
   `results/b1_full_comparison.json`(git 추적, 커밋 `e57528c`)을 집계하면 **네 수치가 전부 나온다**:

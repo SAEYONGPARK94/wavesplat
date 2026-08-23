@@ -288,7 +288,7 @@ LiDAR 관측 품질의 공간적 불균질성을 모델링하고, 에너지 기�
 \textbf{[2026-08-23 재측정]} 검증된 대체 결과는 다음과 같다. \emph{혼잡한 다성분 해상}에서
 본 방법은 보유한 최강 적격 격자 기준선 대비 오차 중앙값을 $38.6\%$ 낮춘다($64$ 중 $62$).
 이 부호는 \emph{같은 기준선}에 대해 비선형(HOS $M{=}3$) 참값과 학습 코퍼스 밖 생성 시드로
-이루어진 표본에서도 유지된다($16$ 중 $14$). ⚠단 \textbf{합성 조건}이며, ``공정하게 강화된''
+이루어진 표본에서도 유지된다($48$ 중 $43$). ⚠단 \textbf{합성 조건}이며, ``공정하게 강화된''
 기준선이 아니라 \emph{보유한 최강} 기준선이다. \emph{희소} 해상에서는 부호가 유지되나
 절대 오차가 비선형 참값에서 $3.60$배 열화하므로(같은 배치 안 짝 비교, $14/16$,
 $p = 0.0021$) \textbf{크기를 인용하지 않는다}. ⚠그 층에서는 기준선 자신이 무기술 기준을
@@ -390,7 +390,7 @@ In \emph{crowded, multi-component seas} the method lowers median error by $38.6\
 relative to the strongest eligible grid baseline available to this work ($62$ of $64$
 episodes). The sign persists \emph{against the same baseline} on a sample built from
 nonlinear (HOS $M{=}3$) ground truth and generation seeds outside the training corpus
-($14$ of $16$). ⚠These are \textbf{synthetic} conditions, and the comparator is the
+($43$ of $48$). ⚠These are \textbf{synthetic} conditions, and the comparator is the
 \emph{strongest baseline available here}, not a deliberately strengthened one.
 In \emph{sparse} seas the sign persists but the absolute error degrades roughly
 $3.60$-fold under nonlinear ground truth (within-batch paired, $14/16$,
@@ -619,9 +619,14 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
         % UPDATED 2026-08-23 (B-11): 같은 기준선(SPEC25)으로 비선형+신선 표본에서 재측정했다
         % ⟹ 종전의 "서로 다른 기준선이라 합치지 마라" 단서가 이 문장에서는 해소된다.
         ★\textbf{이 부호는 \emph{같은 기준선}에 대해, 비선형(HOS $M{=}3$) 참값과 학습 코퍼스
-        밖의 생성 시드로 이루어진 표본에서도 유지된다}($16$ 중 $14$, 단측 $p = 2.1\times10^{-3}$;
-        표~\ref{tab:b11_hos}). 그 표본에서 \textbf{기준선 자신도 무기술 기준을 $16/16$ 으로
+        밖의 생성 시드로 이루어진 표본에서도 유지된다}($48$ 중 $43$, 단측 $p = 6.8\times10^{-9}$;
+        표~\ref{tab:b11_hos}). 그 표본에서 \textbf{기준선 자신도 무기술 기준을 $47/48$ 로
         이기므로}, 이 비교는 두 팔 모두 기술이 있는 상태의 비교다.
+        ★\textbf{생성 시드 $8$개를 새로 만들어 표본을 세 배로 늘린 확인}에서, \emph{신규 시드
+        $32$개 단독}으로도 $29/32$($p = 1.3\times10^{-6}$)로 성립한다 --- 즉 결과를 기존
+        $16$개가 끌고 가는 것이 아니다. ⛔\textbf{단 이를 ``더 강해졌다''로 읽지 않는다}:
+        결론은 확장 이전과 같고 **크기 추정의 폭만 좁아진다**(이 읽기는 확장을 돌리기 전에
+        문서로 고정하였다).
         ⚠\emph{[범위, 필수]} ①\textbf{크기를 위 $38.6\%$ 와 직접 비교하지 않는다} --- 다른 표본,
         다른 참값이다. 주장하는 것은 \emph{부호가 같은 방향으로 유지된다}는 것뿐이다.
         ②\textbf{HOS 참값도 여전히 합성}이며, 이 결과는 실측 갭을 닫지 않는다.
@@ -2545,9 +2550,9 @@ $64$개 혼잡 에피소드}를 보았음을 집합 일치로 확인하였다. �
 \caption{혼잡 층($64$ 에피소드) 정확도 --- 배포 구성 대 최강 적격 격자 기준선.
 값은 에피소드별 시드 중앙값의 중앙값. \emph{제로필드}는 무기술 기준(예측 $\equiv 0$)이다.}
 \label{tab:b1_crowded}
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
- & nRMSE (중앙) $\downarrow$ & 기준선 대비 & 무기술 대비 \\
+ & nRMSE (중앙) $\downarrow$ & 기준선 대비 & & 무기술 대비 \\
 \midrule
 배포 구성(\WS{}) & $\mathbf{0.1275}$ & $\mathbf{-38.6\%}$ ($62/64$) & $-49.5\%$ ($64/64$) \\
 최강 적격 기준선  & $0.2063$ & --- & $64/64$ \\
@@ -2594,22 +2599,23 @@ $64$개 혼잡 에피소드}를 보았음을 집합 일치로 확인하였다. �
 
 \begin{table}[htbp]
 \centering
-\caption{혼잡 층, \textbf{비선형(HOS $M{=}3$) 참값 · 학습 코퍼스 밖 생성 시드}, $16$ 에피소드.
-값은 추정기/필터 시드 $3$개의 중앙값. \emph{제로필드}는 무기술 기준이다.}
+\caption{혼잡 층, \textbf{비선형(HOS $M{=}3$) 참값 · 학습 코퍼스 밖 생성 시드}, $48$ 에피소드
+(초판 $16$ + 신규 생성 시드 $8$개에서 $32$). 값은 추정기/필터 시드 $3$개의 중앙값.
+\emph{제로필드}는 무기술 기준이다.}
 \label{tab:b11_hos}
 \begin{tabular}{lccc}
 \toprule
  & nRMSE (중앙) $\downarrow$ & 기준선 대비 & 무기술 대비 \\
 \midrule
-배포 구성(\WS{}) & $\mathbf{0.1244}$ & $\mathbf{-41.1\%}$ ($14/16$) & $-50.9\%$ ($16/16$) \\
-최강 적격 기준선  & $0.2088$ & --- & $16/16$ \\
-제로필드(무기술)  & $0.2499$ & --- & --- \\
+배포 구성(\WS{}) & $\mathbf{0.1346}$ & $\mathbf{-40.2\%}$ ($43/48$) & $48/48$ \\
+최강 적격 기준선  & $0.2051$ & --- & $47/48$ \\
+제로필드(무기술)  & $0.2468$ & --- & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-단측 부호검정으로 $p = 2.1\times10^{-3}$ 이며, 이 절의 다중 비교 보정 수준을 통과한다.
-\textbf{기준선 자신이 무기술 기준을 $16/16$ 으로 이기므로} 이 비교는 두 팔 모두 기술이 있는
+단측 부호검정으로 $p = 6.8\times10^{-9}$ 이며, 이 절의 다중 비교 보정 수준을 통과한다.
+\textbf{기준선 자신이 무기술 기준을 $47/48$ 로 이기므로} 이 비교는 두 팔 모두 기술이 있는
 상태에서의 비교다.
 
 \paragraph{희소 층.} 같은 표본 설계(비선형 참값·코퍼스 밖 시드)로 희소 층 $16$ 에피소드도

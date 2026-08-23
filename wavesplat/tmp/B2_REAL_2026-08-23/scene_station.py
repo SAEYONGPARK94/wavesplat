@@ -66,8 +66,13 @@ RECORDS_12 = {
 
 
 def scene_station(record, win=3, W=40.0, m_scan=12, m_cap=600, noise=0.02,
-                  lead_max=None):
-    """`scene_real` 과 같은 dict 을 반환하되 **부채꼴 없이** 균등 추출한다."""
+                  lead_max=None, with_future_obs=False):
+    """`scene_real` 과 같은 dict 을 반환하되 **부채꼴 없이** 균등 추출한다.
+
+    `with_future_obs=True` 면 **미래 관측 프레임**도 함께 낸다(`P_fut`/`z_fut`, 1 s 간격,
+    과거 프레임과 **완전히 같은 추출·잡음 규약**). 순차 추적(`update()`) 을 재려면 필요하다.
+    ⚠**기본 False 이고 그때는 반환 dict 이 비트 동일**하다 — B-2…B-2f 재현을 깨지 않는다.
+    ⛔미래 관측은 **채점에 쓰지 마라**. 채점은 `maps_gt` 로만 한다."""
     from realdata_analysis import directional_spread
     from d3_sa_multirecord import MRecord
 
@@ -122,7 +127,29 @@ def scene_station(record, win=3, W=40.0, m_scan=12, m_cap=600, noise=0.02,
     Pq = np.vstack([np.column_stack([Xq.ravel(), Yq.ravel(),
                                      np.full(npx, t0 + l_)]) for l_ in leads])
     maps_gt = np.array([Zfut[int(round(l_ / rec.dt))][::sq, ::sq] for l_ in leads])
-    return dict(P=P, z=z, Pq=Pq, npx=npx, leads=leads, Xq=Xq, Yq=Yq,
+    fut = {}
+    if with_future_obs:
+        # ★과거와 같은 규약: 프레임당 m_scan 점, 유효 격자에서 균등, 같은 잡음.
+        # 시드는 과거와 겹치지 않도록 분리한다(`900+win`) — 결과 전 고정.
+        rng_f = np.random.default_rng(900 + win)
+        Pf_all, zf_all = [], []
+        for l_ in leads[1:]:                       # lead 0 은 관측 없음(초기화 시점)
+            j = int(round(l_ / rec.dt))
+            if j >= Zfut.shape[0]:
+                continue
+            t_j = float(rec.t[i0 + j])
+            mfin = np.isfinite(Zfut[j])
+            idx = np.flatnonzero(mfin)
+            if idx.size == 0:
+                continue
+            pick = rng_f.choice(idx, min(m_scan, idx.size), replace=False)
+            iy, ix = np.unravel_index(pick, Zfut[j].shape)
+            Pf_all.append(np.column_stack([rec.gx[ix], rec.gy[iy],
+                                           np.full(len(pick), t_j)]))
+            zf_all.append(Zfut[j][iy, ix] + rng_f.normal(0, noise, len(pick)))
+        fut = dict(P_fut=np.vstack(Pf_all) if Pf_all else np.zeros((0, 3)),
+                   z_fut=np.concatenate(zf_all) if zf_all else np.zeros(0))
+    return dict(**fut, P=P, z=z, Pq=Pq, npx=npx, leads=leads, Xq=Xq, Yq=Yq,
                 gxq=gxq, gyq=gyq, depth=depth, Hs=Hs, kp=kp, seed=i0,
                 maps_gt=maps_gt, dt=rec.dt, t0=t0, sg=float(np.nanstd(Zmem)),
                 label=f'Real WASS surface, fixed station ({record}, win {win})')

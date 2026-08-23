@@ -159,6 +159,17 @@ INIT_METHOD_CLASS_FALLBACK = 'v2_konly'
 # When True, the residual RMS is divided by the observation RMS of the same frames, so the
 # threshold means "fraction of observed signal amplitude still unexplained". That normaliser
 # needs no ground truth and is therefore deployable. False preserves shipped behaviour.
+#
+# MEASURED ON REAL DATA, 2026-08-23 (tmp/B2_REAL_2026-08-23/RESULT_B2F.md, 12 fixed-station
+# stereo records, sigma 0.09-2.51 m).  The synthetic reading above does NOT carry over:
+#   * With the flag False the growth branch fired 0/12 -- the absolute 0.05 m threshold is
+#     never crossed on these records, so shipped `adaptive_n` is PRUNE-ONLY on real input.
+#   * With it True the components that grew were exactly the 7 records pruning had cut below
+#     max_n, and every one returned to exactly 30; the 5 records pruning left alone were
+#     bit-identical.  So on real data this flag's whole effect is "undo the pruning", not
+#     "a better-scaled threshold".  Skill was unchanged (7/12 -> 8/12 beating zero-field,
+#     paired 3/12 better, relative median +0.00%, p=0.98).
+# Do not cite the synthetic "guaranteed to fire" sentence as a statement about real input.
 SCALE_INVARIANT_GROW = False
 
 # The L1 sparsity term adds `lambda_l1 * sum|w|`, a quantity in metres, to a mean-squared
@@ -1206,6 +1217,12 @@ class SequentialUpdater:
                               f"(kept {frac:.1f}% energy)")
 
         # --- Grow: add components if residual energy is high ---
+        # NOTE (2026-08-23): this early return makes `max_n` and any growth-side intervention
+        # NON-ORTHOGONAL.  Lowering max_n to the pooling cap (learned_init.pool_and_select
+        # returns exactly max_n components) disables the whole growth branch, so an arm that
+        # sets both `max_n=10` and SCALE_INVARIANT_GROW=True is bit-identical to `max_n=10`
+        # alone (measured 12/12, tmp/B2_REAL_2026-08-23/RESULT_B2F.md).  A per-call counter on
+        # this function does NOT detect that -- the prune half still runs.  Count the BRANCH.
         if self.model.n_gaussians >= self.max_n:
             return
 

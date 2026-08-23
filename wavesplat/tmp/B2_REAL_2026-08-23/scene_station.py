@@ -6,7 +6,10 @@
 ⟹ ★**5개 상한의 이유는 자료가 아니라 "배 앞쪽 부채꼴" 관측 모형이다.**
 그런데 **보유 실측 13 레코드는 전부 고정 관측소**이고 경쟁 문헌도 정지 플랫폼이다.
 ⟹ 팬을 빼면 **독립 레코드 12개**가 되고, 실측에서 **처음으로 α=0.05 가 가능**해진다
-(부호검정 바닥: n=5 는 p=0.0625 로 불가, n=12 는 10/12 에서 p=0.0386).
+⛔**(2026-08-23 정정) 여기 적었던 *"n=5 는 p=0.0625 로 불가"* 는 양측값 오용이다** —
+`sign_test_one_sided(5,5)=0.03125` 로 **전승이면 α=0.05 를 달성한다**. 정확한 사유는
+*"n=5 는 전승만 유의 = 검정력이 없다"* 이고, n=12 는 10/12·11/12·12/12 세 단계가 유의하다
+(단측 0.0193 · 0.0032 · 0.0002).
 
 ## 무엇을 바꾸고 무엇을 그대로 두는가
 - **바꾼 것**: 관측 선택 마스크만. 부채꼴(`r0..r1`, `cos≥0.5`) → **유효 격자점 균등 추출**.
@@ -31,6 +34,9 @@ G = 9.81
 # ── 12 독립 레코드 (LJ Grid1/Grid2 는 동시각 ⟹ Grid1 만) ──────────────────
 # ⚠BS 7개는 박스가 13–19 m 로 개구/λ≈1 이라 **훨씬 어렵다**. 사후배제 금지.
 # ⚠LJ Grid2 는 클램프 인공물(Hs 26 m)로 제외 — 알려진 결함(2026-08-13 감사).
+# ⛔2026-08-23 수정: BS 7개의 depth 를 17.0(=AA 값을 복사한 오류) → **30.0**(Black Sea ~30 m,
+# reference_bergamasco_stereo_dataset.md:17) 으로 고쳤다. ⚠**B-2…B-2f 는 17.0 으로 돌았다.**
+# 잰 효과는 첨두에서 Δω = 0.0000–0.0012% (kd≫1 심해) ⟹ 수치적으로 무해하다. AMENDMENT_ZEROREF.md §5.
 RECORDS_12 = {
     'AA14':   dict(path='data/real_bergamasco/AA_2014/Surfaces_20140327_091000.nc',
                    depth=17.0, stride=1),
@@ -39,19 +45,19 @@ RECORDS_12 = {
     'AA15b':  dict(path='data/real_bergamasco/AA_2015/Surfaces_20150515_090000.nc',
                    depth=17.0, stride=1),
     'BS11a':  dict(path='data/real_bergamasco/BS_2011/Surfaces_20111001_161800_short.nc',
-                   depth=17.0, stride=1),
+                   depth=30.0, stride=1),
     'BS11b':  dict(path='data/real_bergamasco/BS_2011/Surfaces_20111004_113800_short.nc',
-                   depth=17.0, stride=1),
+                   depth=30.0, stride=1),
     'BS11c':  dict(path='data/real_bergamasco/BS_2011/Surfaces_20111004_130700_short.nc',
-                   depth=17.0, stride=1),
+                   depth=30.0, stride=1),
     'BS11d':  dict(path='data/real_bergamasco/BS_2011/Surfaces_20111004_153000_short.nc',
-                   depth=17.0, stride=1),
+                   depth=30.0, stride=1),
     'BS13a':  dict(path='data/real_bergamasco/BS_2013/Surfaces_20130922_130001_short.nc',
-                   depth=17.0, stride=1),
+                   depth=30.0, stride=1),
     'BS13b':  dict(path='data/real_bergamasco/BS_2013/Surfaces_20130925_121501_short.nc',
-                   depth=17.0, stride=1),
+                   depth=30.0, stride=1),
     'BS13c':  dict(path='data/real_bergamasco/BS_2013/Surfaces_20130930_102001_short.nc',
-                   depth=17.0, stride=1),
+                   depth=30.0, stride=1),
     'LJ18a':  dict(path='data/real_bergamasco/LJ_2018/Surfaces_20180103_093938_Grid1_short.nc',
                    depth=45.0, stride=1),
     'YS17':   dict(path='data/real_bergamasco/YS_2017/Surfaces_20170513_050000.nc',

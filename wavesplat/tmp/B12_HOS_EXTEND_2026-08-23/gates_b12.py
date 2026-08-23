@@ -22,8 +22,12 @@
 **PRIMARY** = `SHIP-NOW` < `SPEC25` 인 에피소드 수:
 - **≥34/48**(p=0.00276 ≤ 가족단위 α=0.05/17=0.00294) ⟹ ★`HEADLINE-SURVIVES (CONFIRMATORY, n=48)`
 - **≥31/48**(p=0.0297) ⟹ ⚠명목 통과
-- **25~30** ⟹ `UNDECIDED-AT-48`
-- **≤24** ⟹ ⛔`HEADLINE-WEAKENS-AT-48`
+- **18~30** ⟹ `UNDECIDED-AT-48`
+- **≤17** ⟹ ⛔`HEADLINE-WEAKENS-AT-48`
+  ⚠**처음 24 로 적었다가 결과 전에 고쳤다.** 24 는 널 중앙값이라 `P(X≤24)=0.557`
+  = **우연의 절반에서 발화하는 결론 라벨**이고, 그것이 바로 오늘 `gates_b10.NOSKILL=18` 에서
+  BLOCKER 로 잡힌 결함 부류다. ⟹ **형제 규약 `n − NOMINAL = 17`**(p=0.0297)로 맞춘다.
+  ★기계 검사기(`tmp/_audit/check_thresholds.py`)가 이것을 **생성이 끝나기 전에** 잡았다.
 
 ★**결과 전 해석 규칙**(이것이 이 배치를 p-hacking 과 가르는 장치다):
 - 통과하면 → ***`B-11` 의 결론은 그대로이고 크기 추정만 좁아진다.*** ⛔**"더 강해졌다" 로 쓰지 마라.**
@@ -45,8 +49,8 @@ OLD_SEEDS = (1581, 1582, 1583, 1584)
 NEW_SEEDS = (1633, 1634, 1635, 1636, 1637, 1638, 1639, 1640)
 ALL_SEEDS = OLD_SEEDS + NEW_SEEDS
 N_EP = 48
-NOMINAL, CONFIRM, WEAK = 31, 34, 24      # /48, 결과 전 정확 계산
-NEG_MIN = 31                             # SPEC25 < ZERO 최소 (같은 문턱)
+NOMINAL, CONFIRM, WEAK = 31, 34, 17      # /48, 결과 전 정확 계산 (WEAK = n-NOMINAL)
+NEG_MIN = 31                             # /48 # SPEC25 < ZERO 최소 (같은 문턱)
 FAMILY_ALPHA = 0.05 / 17
 
 

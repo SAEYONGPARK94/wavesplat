@@ -1,0 +1,51 @@
+{
+ "episode": "episode_BF4_15comp_seed0_uniform.h5",
+ "ship": {
+  "tracking_frames": 160,
+  "avg_nRMSE": 0.07657877348052959,
+  "wall_s": 7.5
+ },
+ "spec25": {
+  "n_frames": null,
+  "tracking_frames": null,
+  "avg_nRMSE": 0.20590884944429938,
+  "wall_s": 47.1,
+  "all_keys": [
+   "Hs",
+   "Tp",
+   "avg_nRMSE",
+   "background",
+   "background_diag",
+   "depth",
+   "effective_config",
+   "filter_class",
+   "filter_seed",
+   "hs_obs4std",
+   "loc_radius",
+   "ms_median",
+   "n_all",
+   "n_ensemble",
+   "n_match",
+   "n_obs_median",
+   "shell_frac",
+   "shell_rmse",
+   "zero_nRMSE",
+   "zero_shell"
+  ]
+ },
+ "label": "FRAMES-UNKNOWN (사전등록) / FRAMES-MATCH (보충 도출)",
+ "note": "★옛 헤드라인을 죽인 프레임 불일치는 **재발하지 않았다** — 두 팔 모두 160/301 프레임, 시작 시각 14.1 s 로 동일. ⚠단 (a) 표본 1 (b) 사전등록 규칙으로는 UNKNOWN 이고 보충 도출로 MATCH 다 (c) ⛔**두 러너 모두 프레임 수를 결과 행에 안 싣는다** — 그 계측 결함은 그대로다.",
+ "prereg_label": "FRAMES-UNKNOWN",
+ "prereg_note": "⚠한쪽이 프레임 수를 내놓지 않는다 — 계측부터 고쳐야 한다",
+ "supplementary": {
+  "why": "사전등록 규칙대로는 FRAMES-UNKNOWN 이다(기준선 러너가 프레임 수를 반환하지 않는다). 그 다음에 **에피소드 자체에서 직접 재도출**했다 — 이것은 사전등록 판정이 아니라 보충 도출이다.",
+  "episode_total_frames": 301,
+  "Tp_true": 7.0,
+  "spec25_rule": "run_s16.py:255  sel = t > 2.0*Tp_true  =>  t > 14.0 s",
+  "spec25_scored_frames": 160,
+  "spec25_first_scored_t": 14.1,
+  "ship_tracking_frames": 160,
+  "derivation": "301 - 141 = 160. 두 팔의 채점 창이 프레임 수와 시작 시각에서 모두 일치한다.",
+  "verdict": "FRAMES-MATCH (보충 도출, 표본 1)"
+ }
+}

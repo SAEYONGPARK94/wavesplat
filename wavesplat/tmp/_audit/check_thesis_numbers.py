@@ -26,6 +26,9 @@
 import glob, json, os, re, sys
 
 COUNT = re.compile(r'(?<![\d./])(\d{1,4})\s*/\s*(\d{1,4})(?![\d/])')
+# ★★**크기(%)도 검사한다** — 인용금지 목록의 상당수가 '카운트'가 아니라 **퍼센트**다
+# (−38.6% · −74.7% · −19.9% …). 카운트만 보면 가장 자주 인용되는 수를 놓친다.
+PCT = re.compile(r'([-+−]?\d{1,3}\.\d)\s*\\?%')
 # 논문에 흔한 비-카운트 분수 (버전·날짜·비율 등)를 거른다
 SKIP_N = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100, 1000}
 
@@ -33,7 +36,7 @@ SKIP_N = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100, 1000}
 def collect_verdicts(root='tmp'):
     """⚠**구조화된 키만 보면 놓친다** — 판정 파일 상당수가 카운트를 `label_text` 문자열
     안에만 갖고 있고, 오래된 배치는 `RESULT*.md` 에만 있다. ⟹ **세 곳 모두** 훑는다."""
-    pairs = {}          # (better, n) -> [출처, ...]
+    pairs, pcts = {}, {}   # (better, n) -> [출처] · |퍼센트| -> [출처]
     # (c) 판정 파일과 결과 문서의 **본문 텍스트**에 적힌 w/n
     for f in sorted(glob.glob(os.path.join(root, '**', 'verdict*.json'), recursive=True)
                     + glob.glob(os.path.join(root, '**', 'RESULT*.md'), recursive=True)
@@ -58,6 +61,9 @@ def collect_verdicts(root='tmp'):
                 b, n = node.get('better'), node.get('n')
                 if isinstance(b, int) and isinstance(n, int):
                     pairs.setdefault((b, n), []).append(src)
+                r = node.get('rel_median_pct')
+                if isinstance(r, (int, float)):
+                    pcts.setdefault(round(abs(r), 1), []).append(src)
                 for k, val in node.items():
                     if isinstance(val, (dict, list)):
                         stack.append((f'{src}:{k}', val))
@@ -65,13 +71,13 @@ def collect_verdicts(root='tmp'):
                 for it in node:
                     if isinstance(it, (dict, list)):
                         stack.append((src, it))
-    return pairs
+    return pairs, pcts
 
 
 def main(argv):
     texs = argv[1:] or sorted(glob.glob('thesis/*.tex') + glob.glob('paper/*.tex'))
-    pairs = collect_verdicts()
-    print(f'판정 파일에서 모은 (승/전체) 쌍: {len(pairs)}개')
+    pairs, pcts = collect_verdicts()
+    print(f'판정 파일에서 모은 (승/전체) 쌍: {len(pairs)}개 · 퍼센트: {len(pcts)}개')
     miss = hit = 0
     for tex in texs:
         if not os.path.exists(tex):
@@ -85,19 +91,24 @@ def main(argv):
                 if n in SKIP_N or w > n:
                     continue
                 src = pairs.get((w, n))
-                rows.append((i, w, n, src))
+                rows.append((i, f'{w}/{n}', src))
+            for m in PCT.finditer(ln):
+                v = abs(float(m.group(1).replace('\u2212', '-')))
+                if v == 0.0:
+                    continue
+                rows.append((i, f'{m.group(1)}%', pcts.get(round(v, 1))))
         if not rows:
             continue
         print(f'\n=== {tex}')
-        for i, w, n, src in rows:
+        for i, claim, src in sorted(rows):
             if src:
                 hit += 1
                 src = sorted(src, key=lambda x: ('(본문)' in x, x))
-                print(f'  {i:5d}  {w:>4d}/{n:<4d} ✔ {src[0]}' +
+                print(f'  {i:5d}  {claim:>10s} ✔ {src[0]}' +
                       (f'  (+{len(src)-1})' if len(src) > 1 else ''))
             else:
                 miss += 1
-                print(f'  {i:5d}  {w:>4d}/{n:<4d} ⚠**대응하는 판정 파일이 없다**')
+                print(f'  {i:5d}  {claim:>10s} ⚠**대응하는 기록이 없다**')
     print(f'\n대응 있음 {hit}건 · ⚠대응 없음 {miss}건')
     print('⛔대응 없음이 곧 오류는 아니다 — 파생 수이거나 집계가 다를 수 있다. '
           '★그러나 **하나하나 유래를 댈 수 있어야 한다.**')

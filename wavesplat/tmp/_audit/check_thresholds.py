@@ -120,35 +120,80 @@ def main(argv):
                       f'(문턱 {sorted(vals)} 은 검사되지 않음)')
                 skipped += 1
                 continue
-            n = max(ns)   # ⚠후보가 여럿이면 최대를 쓴다 — 아래에 후보 전체를 인쇄한다
+            # ⛔**`max(ns)` 는 보수적이지 않다** (RV-7 B.3-1): 같은 `w` 에서 `n` 이 커지면
+            # `p` 가 작아져 **경고를 덜 낸다**. 그리고 이 검사기를 낳은 `F-13` 자체가
+            # `n=12` vs `n=36` 혼동이었다 — 그 두 후보 중 자동으로 한쪽을 고르면
+            # **버그를 만든 바로 그 선택을 검사기가 되풀이한다.**
+            # ⟹ **후보 전수 평가**하고, 후보에 따라 판정이 갈리면 그 자체를 경고한다.
             rows = []
             for k, v in sorted(vals.items()):
-                n = dens.get(k, max(ns))      # ★선언된 분모가 있으면 그쪽이 권위
-                if not (0 < v <= n):
-                    continue
                 # ★이름으로 방향을 **추측하지 마라** — 소스에서 **실제 사용**을 읽는다.
-                # (`PARTIAL_LO` 는 이름이 `_LO` 인데 코드에선 `w >= PARTIAL_LO` 다
-                #  ⟹ 이름 기반 추측이 2026-08-23 에 오탐 2건을 냈다.)
                 ge = len(re.findall(r'[><]?>=?\s*' + k + r'\b', src))
                 le = len(re.findall(r'<=?\s*' + k + r'\b', src))
-                lo = le > ge if (ge or le) else ('NOSKILL' in k or 'WEAK' in k)
-                p = le_p(v, n) if lo else sign_p(v, n)
+                # ⚠`<` 가 **실패 조건**으로 쓰이면 방향이 뒤집혀 읽힌다
+                # (`if neg['better'] < NEG_MIN: 무효` ⟹ 요구는 `≥` 다).
+                # `_MIN`/`_MAX` 접미사는 그 모호함이 없다 ⟹ 접미사가 우선한다.
+                if k.endswith('_MIN') or k.endswith('MIN'):
+                    lo = False
+                elif k.endswith('_MAX') or k.endswith('MAX'):
+                    lo = True
+                else:
+                    lo = le > ge if (ge or le) else ('NOSKILL' in k or 'WEAK' in k)
+                cands = [dens[k]] if k in dens else ns   # 선언 분모가 있으면 그쪽이 권위
+                ps = {}
+                for n in cands:
+                    if 0 < v <= n:
+                        ps[n] = le_p(v, n) if lo else sign_p(v, n)
+                if not ps:
+                    continue
+                n = max(ps, key=lambda x: ps[x])         # ★**가장 보수적인**(p 가 큰) 후보
+                p = ps[n]
                 bad = p > 0.05
-                rows.append((k, v, n, p, bad, '≤' if lo else '≥'))
+                # ⚠후보에 따라 판정이 갈리면 그 자체가 결함이다(F-13 이 그 부류였다)
+                split = len(ps) > 1 and (max(ps.values()) > 0.05) != (min(ps.values()) > 0.05)
+                rows.append((k, v, n, p, bad, '≤' if lo else '≥', split, ps))
             if rows:
                 print(f'{os.path.relpath(gf)}  (n≈{max(ns)}; 후보 {ns}'
                       + (f'; 선언 분모 {sorted(set(dens.values()))}' if dens else '') + ')')
-                for k, v, n_, p, bad, op in rows:
+                lenient, strict = [], []
+                for r_ in rows:
+                    (lenient if r_[0].startswith(('SELFTEST', 'NEG', 'PARTIAL'))
+                     else strict).append(r_)
+                for k, v, n_, p, bad, op, split, ps in strict + lenient:
                     # ⚠자기검정(SELFTEST)·음성대조(NEG) 문턱은 **일부러 관대한 것이 옳다**
                     # (그것은 우월성 시험이 아니라 '바닥' 이다). 그래서 따로 표시한다.
-                    # ⚠`PARTIAL*` 은 **유의 주장이 아니라 중간 띠의 이름**이다 ⟹ 관대해도 옳다.
+                    # ⚠`SELFTEST/NEG/PARTIAL` 은 유의 주장이 아니다(바닥·중간 띠) ⟹ 관대해도 옳다.
+                    # ⛔**단 면제가 아니라 별도 표기다** — RV-7 B.3-2 가 지적했듯 `B-11b` 의
+                    # PRIMARY 유효성을 좌우하는 `NEG_MIN` 이 이름 때문에 **스캔조차 안 되면**
+                    # 관대함의 정도를 아무도 못 본다. 인쇄는 하고 **계수에서만** 뺀다.
                     lenient_ok = k.startswith(('SELFTEST', 'NEG', 'PARTIAL'))
-                    flag = ('  ⓘ의도적으로 관대(유의 주장 아님)' if bad and lenient_ok
+                    flag = ('  ⓘ유의 주장 아님(바닥·중간 띠) — 관대함의 정도를 보라'
+                            if bad and lenient_ok
                             else '  ⚠우연과 구분 안 됨' if bad else '')
-                    if bad and lenient_ok:
-                        bad = False
+                    if split:
+                        flag += f'  ⛔**n 모호 — 후보에 따라 판정이 갈린다** {dict(sorted(ps.items()))}'
                     print(f'   {k:14s} {op}{v:3d}/{n_:<4d}  p={p:.4f}{flag}')
-                    warn += bad
+                    warn += (bad and not lenient_ok) + bool(split)
+                # ★**도달가능성**(RV-7 B.3-4): R3 처방은 `label_reachable_and_significant`
+                # 였는데 구현된 것은 유의성 절반이었다. 사다리가 말이 되는지 본다.
+                #   · 각 문턱이 [1, n] 안에 있는가 (F-13 의 `w ≤ n−NOMINAL` 이 여기서 죽었다)
+                #   · 상·하한 사이 밴드가 비어 있지 않은가 (비면 중간 라벨이 도달 불가)
+                nn = max(ns)
+                lad = {k: vals[k] for k in ('WEAK', 'NOSKILL', 'NOMINAL', 'CONFIRM')
+                       if k in vals}
+                for k, v in lad.items():
+                    if not (1 <= v <= nn):
+                        print(f'   ⛔**{k}={v} 이 [1, {nn}] 밖 — 그 라벨은 도달 불가**')
+                        warn += 1
+                lo_k = lad.get('WEAK', lad.get('NOSKILL'))
+                hi_k = lad.get('NOMINAL')
+                if lo_k is not None and hi_k is not None and lo_k >= hi_k:
+                    print(f'   ⛔**하한({lo_k}) ≥ 상한({hi_k}) — 중간 라벨이 도달 불가**')
+                    warn += 1
+                if 'NOMINAL' in lad and 'CONFIRM' in lad and lad['CONFIRM'] < lad['NOMINAL']:
+                    print(f"   ⛔**CONFIRM({lad['CONFIRM']}) < NOMINAL({lad['NOMINAL']}) "
+                          f"— 사다리가 뒤집혔다**")
+                    warn += 1
                 if 'NOSKILL' in vals and 'NOMINAL' in vals and \
                         dens.get('NOSKILL', max(ns)) == dens.get('NOMINAL', max(ns)):
                     nn = dens.get('NOSKILL', max(ns))

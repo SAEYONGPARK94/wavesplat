@@ -50,7 +50,7 @@ NEW_SEEDS = (1633, 1634, 1635, 1636, 1637, 1638, 1639, 1640)
 ALL_SEEDS = OLD_SEEDS + NEW_SEEDS
 N_EP = 48
 NOMINAL, CONFIRM, WEAK = 31, 34, 17      # /48, 결과 전 정확 계산 (WEAK = n-NOMINAL)
-NEG_MIN = 31                             # /48 # SPEC25 < ZERO 최소 (같은 문턱)
+NEG_MIN = 31                             # /48, SPEC25 < ZERO 최소 (음성 대조)
 FAMILY_ALPHA = 0.05 / 17
 
 

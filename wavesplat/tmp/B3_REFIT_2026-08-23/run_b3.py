@@ -63,11 +63,14 @@ def run(record, win, arm):
             m = np.abs(Pf[:, 2] - tt) < 1e-6
             if m.sum() == 0:
                 continue
+            nq = int(m.sum())
+            # ⚠`frames_from_scene` 과 **같은 형식**으로 만든다(같은 dtype·같은 부가 필드).
             upd.update(FrameData(t=float(l_) + t0,
                                  x_obs=torch.tensor(Pf[m, 0], dtype=torch.float32),
                                  y_obs=torch.tensor(Pf[m, 1], dtype=torch.float32),
                                  z_obs=torch.tensor(zf[m], dtype=torch.float32),
-                                 n_points=int(m.sum())))
+                                 confidence=torch.ones(nq, dtype=torch.float32),
+                                 incidence_angles=torch.zeros(nq, dtype=torch.float32)))
         fc = [v for k, v in per_lead.items() if k >= 2.0]
         return dict(cell=arm, record=record, win=win,
                     lead0=per_lead.get(0.0), fc_mean=float(np.mean(fc)) if fc else None,

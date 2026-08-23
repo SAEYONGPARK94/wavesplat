@@ -45,7 +45,8 @@ def check(d):
             lab |= any(k in v for k in ('label', 'primary_label', 'verdict'))
             gts |= 'gates' in v
     an = sorted(glob.glob(os.path.join(d, 'analyze*.py')))
-    rs = sorted(glob.glob(os.path.join(d, 'results*.jsonl')))
+    rs = sorted(f for f in glob.glob(os.path.join(d, 'results*.jsonl'))
+                if 'ABANDONED' not in os.path.basename(f))   # 폐기 선언된 결과는 짝을 요구하지 않는다
     order = bool(an and rs) and min(os.path.getmtime(a) for a in an) < max(os.path.getmtime(r) for r in rs)
     # H. 결과 파일마다 짝 verdict — `results_b2b.jsonl` ↔ `verdict_b2b.json` 식의 접미사 매칭
     def _sfx(f, pre):
@@ -56,7 +57,9 @@ def check(d):
     vd_sfx = {_sfx(f, 'verdict') for f in verdicts}
     # 결과가 하나뿐이면 접미사가 달라도 짝으로 인정한다(`results.jsonl` ↔ `verdict_w17.json`).
     # 결과가 여럿이면 **각각** 짝이 있어야 한다 — 그게 RV-5 가 지적한 사각지대다.
-    paired = bool(verdicts) if len(rs) <= 1 else (bool(rs_sfx) and rs_sfx <= vd_sfx)
+    # 접미사 없는 `results.jsonl` 은 아무 verdict 과도 짝으로 인정한다(관례상 배치 본 결과).
+    need = {x for x in rs_sfx if x}
+    paired = bool(verdicts) if len(rs) <= 1 else (bool(verdicts) and need <= vd_sfx)
 
     # I. 동결 해시 대조
     md5_ok = True

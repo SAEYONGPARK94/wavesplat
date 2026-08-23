@@ -40,6 +40,13 @@ def run(record, win, arm):
     np.random.seed(G.SEED)
     f = LETKFGrid(lx, ly, depth=float(sc['depth']), n_ensemble=G.N_ENS, dt=dt,
                   obs_noise=G.OBS_NOISE, loc_radius=loc)
+    # ★수정1: 척도-절대 사전(0.1 m)을 **관측 RMS** 로 스케일한다(GT-free ⟹ 배포 가능).
+    prior_amp = 0.1
+    if spec.get('scale'):
+        obs_rms = float(np.sqrt(np.mean(z ** 2)))
+        prior_amp = max(1e-6, obs_rms)
+        f.ensemble = f.ensemble / 0.1 * prior_amp
+        f.add_inflation = f.add_inflation / 0.1 * prior_amp
     for tt in ts:                                    # 스핀업 (기억창)
         m = P[:, 2] == tt
         f.update(P[m, 0], P[m, 1], z[m])
@@ -72,7 +79,8 @@ def run(record, win, arm):
     return dict(cell=arm, record=record, win=win, lead0=per_lead.get(0.0),
                 fc_mean=float(np.mean(fc)) if fc else None,
                 per_lead={str(k): v for k, v in sorted(per_lead.items())},
-                loc_radius=loc, box_diag=box, n_ens=G.N_ENS, obs_noise=G.OBS_NOISE,
+                loc_radius=loc, box_diag=box, prior_amp=prior_amp,
+                add_inflation=float(f.add_inflation), scaled=bool(spec.get('scale')), n_ens=G.N_ENS, obs_noise=G.OBS_NOISE,
                 letkf_grid=[len(ly), len(lx)], dt=dt, future_cycles=fut_cyc,
                 finite=finite, sigma=float(sc['sg']), wall_s=time.time() - t0w)
 

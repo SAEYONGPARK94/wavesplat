@@ -32,7 +32,7 @@
 - **19~23** ⟹ `UNDECIDED-REAL`
 - **≤18/36** ⟹ ⛔`LETKF-BEATS-SHIP-REAL` — **정직한 음성. 그대로 보고한다.**
 
-**SECONDARY** = `FROZEN` vs `LETKF-FC50`(둘 다 순수 예보, 같은 문턱).
+**SECONDARY** = `FROZEN` vs `LETKF-FC-BEST`(둘 다 순수 예보, 같은 문턱).
 ★**부차(서술 전용)**: lead 별 분해, 벽시계.
 """
 import os, sys
@@ -44,10 +44,19 @@ for p in (HERE, B2, B3):
 from gates_b3 import (RECORDS, WINDOWS, SEED, NOISE, FIELD,           # noqa: F401
                       N_PAIRS, sign_test_one_sided, key, paired)
 
-ARMS = {'LETKF-DA50':  dict(loc='fixed50', da=True),
-        'LETKF-DABOX': dict(loc='box',     da=True),
-        'LETKF-FC50':  dict(loc='fixed50', da=False)}
-ARM_ORDER = ['LETKF-DA50', 'LETKF-DABOX', 'LETKF-FC50']
+# ⚠수정1(AMENDMENT_1.md): 척도-절대 사전(`letkf_grid.py:88` = 0.1 m 하드코딩)이 σ 0.088–1.803 m
+# 자료에서 불공정하다. **관측 RMS 로 스케일한 팔 두 개를 추가**한다(GT-free ⟹ 배포 가능).
+# 판정 규칙·문턱·라벨은 한 글자도 바꾸지 않았다.
+ARMS = {'LETKF-DA50':    dict(loc='fixed50', da=True,  scale=False),
+        'LETKF-DABOX':   dict(loc='box',     da=True,  scale=False),
+        'LETKF-DA50-S':  dict(loc='fixed50', da=True,  scale=True),
+        'LETKF-DABOX-S': dict(loc='box',     da=True,  scale=True),
+        'LETKF-FC50':    dict(loc='fixed50', da=False, scale=False),
+        'LETKF-FC50-S':  dict(loc='fixed50', da=False, scale=True)}
+ARM_ORDER = ['LETKF-DA50', 'LETKF-DABOX', 'LETKF-DA50-S', 'LETKF-DABOX-S',
+             'LETKF-FC50', 'LETKF-FC50-S']
+DA_ARMS = ['LETKF-DA50', 'LETKF-DABOX', 'LETKF-DA50-S', 'LETKF-DABOX-S']
+FC_ARMS = ['LETKF-FC50', 'LETKF-FC50-S']
 REUSED = ['FROZEN', 'REFIT2']
 N_ENS, OBS_NOISE, GRID_MAX, GRID_DX = 100, 0.02, 64, 1.0
 SELFTEST_MIN = 8          # /12 레코드, lead 0
@@ -58,7 +67,7 @@ def best_da(rows):
     """레코드-창별로 두 국소화 중 **더 좋은 쪽**을 고른 가상 팔 (기준선에 유리)."""
     out = {}
     for r in rows:
-        if r.get('cell') not in ('LETKF-DA50', 'LETKF-DABOX') or 'error' in r:
+        if r.get('cell') not in DA_ARMS or 'error' in r:
             continue
         k = key(r)
         if k not in out or (r.get(FIELD) is not None and r[FIELD] < out[k][FIELD]):
@@ -90,8 +99,8 @@ def gates(rows, zero_lead0=None):
                 all(r.get('n_ens') == N_ENS and abs(r.get('obs_noise', -1) - OBS_NOISE) < 1e-12
                     and r.get('loc_radius') for r in new), ''))
     # ★G-3 동화 팔은 미래 관측을 실제로 먹었나 / 예보 팔은 안 먹었나 (가지 단위 계수기)
-    da = [r for r in new if r['cell'] in ('LETKF-DA50', 'LETKF-DABOX')]
-    fc = [r for r in new if r['cell'] == 'LETKF-FC50']
+    da = [r for r in new if r['cell'] in DA_ARMS]
+    fc = [r for r in new if r['cell'] in FC_ARMS]
     out.append(('G-3 DA 팔 미래 동화 >0', all((r.get('future_cycles') or 0) > 0 for r in da),
                 str(sorted({r.get('future_cycles') for r in da}))[:50]))
     out.append(('G-3b FC 팔 미래 동화 0', all(r.get('future_cycles') == 0 for r in fc),
@@ -99,7 +108,11 @@ def gates(rows, zero_lead0=None):
     out.append(('G-4 예측장 전건 유한', all(r.get('finite') for r in new), ''))
     out.append(('G-5 두 국소화가 실제로 다르다',
                 len({(r['record'], r['loc_radius']) for r in new
-                     if r['cell'] in ('LETKF-DA50', 'LETKF-DABOX')}) > len(RECORDS), ''))
+                     if r['cell'] in DA_ARMS}) > len(RECORDS), ''))
+    out.append(('G-6 스케일 팔의 사전 진폭이 실제로 다르다',
+                len({round(r.get('prior_amp', -1), 6) for r in new if r['cell'].endswith('-S')}) > 1,
+                str(sorted({round(r.get('prior_amp', -1), 3) for r in new
+                            if r['cell'].endswith('-S')}))[:60]))
     if zero_lead0 is not None:
         w, n = selftest(rows, zero_lead0)
         out.append((f'★G-8 자기검정 (LETKF 가 참 제로필드를 lead0 에서 이김, 문턱 {SELFTEST_MIN})',

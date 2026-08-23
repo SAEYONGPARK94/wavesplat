@@ -16,15 +16,23 @@ passed = st_w >= G.SELFTEST_MIN
 
 pool = ok + G.best_da(rows)
 p1 = G.paired(pool, 'REFIT2', 'LETKF-BEST-DA')
-p2 = G.paired(pool, 'FROZEN', 'LETKF-FC50')
+fc_best = []
+_seen = {}
+for r in ok:
+    if r.get('cell') in G.FC_ARMS and r.get(G.FIELD) is not None:
+        k = G.key(r)
+        if k not in _seen or r[G.FIELD] < _seen[k][G.FIELD]: _seen[k] = r
+fc_best = [dict(v, cell='LETKF-FC-BEST') for v in _seen.values()]
+pool_fc = ok + fc_best
+p2 = G.paired(pool_fc, 'FROZEN', 'LETKF-FC-BEST')
 lab = G.label(passed, p1, p2, st_w, st_n)
 
 leads = sorted({float(k) for r in pool for k in (r.get('per_lead') or {})})
 by_lead = {}
 for l_ in leads:
     d = {}
-    for a in ('REFIT2', 'FROZEN', 'LETKF-BEST-DA', 'LETKF-FC50'):
-        v = {G.key(r): (r.get('per_lead') or {}).get(str(l_)) for r in pool if r['cell'] == a}
+    for a in ('REFIT2', 'FROZEN', 'LETKF-BEST-DA', 'LETKF-FC-BEST'):
+        v = {G.key(r): (r.get('per_lead') or {}).get(str(l_)) for r in (pool + fc_best) if r['cell'] == a}
         d[a] = {k: x for k, x in v.items() if x is not None}
     if d['LETKF-BEST-DA']:
         by_lead[l_] = {a: (st.median(d[a].values()) if d[a] else None) for a in d}
@@ -44,11 +52,11 @@ print(f"\n★G-8 자기검정: {st_w}/{st_n} 레코드 (문턱 {G.SELFTEST_MIN})
 if passed:
     print(f"\n=== PRIMARY ===\n  REFIT2 < LETKF-BEST-DA : {p1['better']}/{p1['n']}  "
           f"{p1['rel_median_pct']:+.2f}%  p={p1['p_one_sided']:.6f}")
-    print(f"  (부차) FROZEN < LETKF-FC50 : {p2['better']}/{p2['n']}  "
+    print(f"  (부차) FROZEN < LETKF-FC-BEST : {p2['better']}/{p2['n']}  "
           f"{p2['rel_median_pct']:+.2f}%  p={p2['p_one_sided']:.6f}")
     print(f"\n=== lead 별 중앙 ===\n  {'lead':>5s} {'REFIT2':>9s} {'FROZEN':>9s} {'LETKF-DA':>9s} {'LETKF-FC':>9s}")
     for l_, d in by_lead.items():
         f_ = lambda x: f'{x:9.4f}' if x is not None else '        -'
-        print(f"  {l_:5.1f} {f_(d['REFIT2'])} {f_(d['FROZEN'])} {f_(d['LETKF-BEST-DA'])} {f_(d['LETKF-FC50'])}")
+        print(f"  {l_:5.1f} {f_(d['REFIT2'])} {f_(d['FROZEN'])} {f_(d['LETKF-BEST-DA'])} {f_(d['LETKF-FC-BEST'])}")
 print(f"\n벽시계 중앙: " + ' · '.join(f'{a} {w:.1f}s' for a, w in wall.items()))
 print(f"\n{lab[0]} — {lab[1]}")

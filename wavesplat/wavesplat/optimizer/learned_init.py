@@ -7,8 +7,11 @@ set-diffusion proposal + Gauss-Newton polish
 (``scripts/d3_beamform_cond_diffusion.py``). The existing joint fit / adaptive-N /
 tracker then run on top unchanged.
 
-Nothing here is imported unless ``init_method == 'learned'``; the shipped default
-path (``v2_konly``) never touches this file.
+⛔**2026-08-24 정정 — 위 문장의 뒷부분은 낡았다.** ``init_method == 'learned'`` 일 때만
+임포트되는 것은 여전히 맞지만, *"the shipped default path (v2_konly) never touches this
+file"* 는 **2026-08-22 경로 통일 이후 거짓**이다: ``AUTO_SWITCH_THRESH_DEFAULT = 0`` 이므로
+출하 기본값(``init_method='auto'``)에서 **합성 입력은 100% 이 파일로 라우팅된다**.
+⟹ ★**이 모듈이 곧 배포된 합성 경로다**(실측은 여전히 ``bank_mmse`` 로 빠진다).
 
 Two entry points, so the GPU proposal and the CPU tracker can be decoupled:
   * ``propose_atoms(frames, depth, ...)`` -- runs the diffusion proposal + polish on

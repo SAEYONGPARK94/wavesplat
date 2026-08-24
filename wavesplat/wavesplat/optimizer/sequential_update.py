@@ -176,6 +176,17 @@ LEARNED_INIT_ITERS_PRE_VARPRO = 500
 #   제로필드에 **0/5** 패배를 측정했다. 실측 게이트가 그것을 막는다.
 # ⚠되돌리기: 8 (2026-08-22 이전 값). 과거 배치 재현 시 명시할 것.
 AUTO_SWITCH_THRESH_DEFAULT = 0
+
+# ── 표현 절제 노브 (2026-08-24, `B-16`) ──────────────────────────────────────
+# ★**기본값 None = 완전한 no-op(비트 동일).**  배포 거동을 바꾸지 않는다.
+# 왜 있는가: 저장소의 헤드라인은 *"격자 비의존 표현"* 을 기여로 말하는데,
+# **표현만 절제한 팔이 저장소에 0건**이었다(2026-08-24 방법론 심사 A2).
+# ⟹ 이 노브는 배포 파이프라인을 그대로 두고 **초기화 끝(VARPRO 직후)에 파수만**
+#    간격 `k_snap_dk` 격자에 스냅하고 (w, φ) 를 LS 로 다시 맞춘다.
+#    추적·가지치기·성장은 그대로다 ⟹ 바뀌는 것은 **파수의 연속성 하나뿐**이다.
+# ⛔이것은 "격자 기반 방법"의 재현이 아니다 — 격자 기준선은 상태·동화 방식이 다르다.
+#   이 노브가 재는 것은 **우리 팔 안에서 파수 연속성이 얼마를 벌어 주는가**이다.
+K_SNAP_DK_DEFAULT = None
 AUTO_SWITCH_THRESH_PRE_UNIFY = 8
 
 
@@ -906,6 +917,9 @@ class SequentialUpdater:
             vp_rec = _varpro.apply_varpro(self, frames, steps=vp_steps,
                                           weighting='confidence', verbose=verbose)
 
+        # ── 표현 절제: 파수 격자 스냅 (기본 None = no-op) ────────────────────
+        snap_rec = self._snap_k_to_grid(frames, verbose)
+
         elapsed = time.time() - t0
         if verbose:
             print(f"  [Init/learned complete] {max_iters} iters, "
@@ -919,7 +933,50 @@ class SequentialUpdater:
             'final_n': self.model.n_gaussians,
             'varpro_steps': vp_steps,
             'varpro': vp_rec,
+            'k_snap': snap_rec,
         }
+
+    def _snap_k_to_grid(self, frames, verbose: bool = False):
+        """파수를 간격 `k_snap_dk` 격자에 스냅하고 (w, φ) 를 LS 로 다시 맞춘다.
+
+        ★`k_snap_dk` 가 None/0 이면 **아무것도 하지 않고 None 을 반환**한다
+        (모델을 건드리지 않으므로 배포 경로는 비트 동일하다).
+        반환 dict 은 **개입 계수기**다 — *"설정을 넣었다 ≠ 설정이 먹었다"* 를 막는다.
+        """
+        dk = self.config.get('k_snap_dk', K_SNAP_DK_DEFAULT)
+        if not dk:
+            return None
+        dk = float(dk)
+        import numpy as _np
+        from wavesplat.optimizer.learned_init import ls_fit_wphi
+        with torch.no_grad():
+            kx0 = self.model.kx.detach().cpu().numpy().astype(float).copy()
+            ky0 = self.model.ky.detach().cpu().numpy().astype(float).copy()
+        kx1 = _np.round(kx0 / dk) * dk
+        ky1 = _np.round(ky0 / dk) * dk
+        w1, p1 = ls_fit_wphi(kx1, ky1, frames, float(self.config.get('depth', 50.0)))
+        with torch.no_grad():
+            self.model.kx.copy_(torch.as_tensor(kx1, dtype=self.model.kx.dtype,
+                                                device=self.model.kx.device))
+            self.model.ky.copy_(torch.as_tensor(ky1, dtype=self.model.ky.dtype,
+                                                device=self.model.ky.device))
+            self.model.w.copy_(torch.as_tensor(_np.asarray(w1, float),
+                                               dtype=self.model.w.dtype,
+                                               device=self.model.w.device))
+            self.model.phi.copy_(torch.as_tensor(_np.asarray(p1, float),
+                                                 dtype=self.model.phi.dtype,
+                                                 device=self.model.phi.device))
+        self._build_tracking_optimizer()      # 파라미터를 바꿨으므로 옵티마이저 재구성
+        shift = _np.hypot(kx1 - kx0, ky1 - ky0)
+        uniq = len({(round(a / dk), round(b / dk)) for a, b in zip(kx1, ky1)})
+        rec = dict(dk=dk, n_atoms=int(len(kx0)), n_unique_cells=int(uniq),
+                   shift_median=float(_np.median(shift)) if len(shift) else 0.0,
+                   shift_max=float(shift.max()) if len(shift) else 0.0,
+                   fired=True)
+        if verbose:
+            print(f"  [k-snap] dk={dk:.4f}  atoms={rec['n_atoms']} -> "
+                  f"{rec['n_unique_cells']} cells, |Δk| med {rec['shift_median']:.4f}")
+        return rec
 
     def _auto_select_init(self, frames: List[FrameData], verbose: bool = False) -> str:
         """WavePrior UNIFIED: GT-free regime router for init_method='auto'.

@@ -21,6 +21,7 @@ from wavesplat.optimizer.sequential_update import (SequentialUpdater, make_updat
                                                    VARPRO_STEPS_DEFAULT,
                                                    LEARNED_INIT_ITERS_DEFAULT,
                                                    AUTO_SWITCH_THRESH_DEFAULT,
+                                                   K_SNAP_DK_DEFAULT,
                                                    BANK_REFIT_EVERY_S_DEFAULT)
 from wavesplat.evaluation.metrics import rmse_observed, rmse_unobserved, compute_all_metrics, rmse, nrmse
 
@@ -65,6 +66,9 @@ DEFAULT_CONFIG = {
     # 유일 정의는 sequential_update.AUTO_SWITCH_THRESH_DEFAULT; 여기와 yaml 은 미러다.
     # ⛔실측은 이 값과 무관하게 실측 게이트가 bank_mmse 로 보낸다(W12).
     'auto_switch_thresh': AUTO_SWITCH_THRESH_DEFAULT,
+    # 표현 절제(B-16) — 유일 정의는 sequential_update.K_SNAP_DK_DEFAULT (이 줄은 미러).
+    # ★None = no-op. 배포 거동을 바꾸지 않는다.
+    'k_snap_dk': K_SNAP_DK_DEFAULT,
     # What the REAL-DOMAIN gate routes to (2026-07-29 port): 'bank_mmse' = the research
     # estimator behind every published real-sea number, under observation-only
     # parameters, measured BETTER than the old single-v2_konly fallback on all 3
@@ -529,6 +533,11 @@ def run_estimation(h5_path: str, config: dict = None,
         'varpro_obj_after': (init_result.get('varpro') or {}).get('vp_obj_after'),
         'varpro_k_shift': (init_result.get('varpro') or {}).get('vp_k_shift'),
         'varpro_wall_s': (init_result.get('varpro') or {}).get('vp_wall_s'),
+        # 표현 절제(B-16) 개입 계수기 — *"설정을 넣었다 ≠ 설정이 먹었다"* 를 행에서 막는다.
+        'k_snap_dk': (init_result.get('k_snap') or {}).get('dk'),
+        'k_snap_fired': bool(init_result.get('k_snap')),
+        'k_snap_cells': (init_result.get('k_snap') or {}).get('n_unique_cells'),
+        'k_snap_shift_median': (init_result.get('k_snap') or {}).get('shift_median'),
         'init_time_s': init_result['elapsed_s'],
         # ★2026-08-23 (A2 심사): `initialize()` 가 `loss_history` 를 **반환하는데 아무도
         # 읽지 않았다** — `RMSE_near`(08-19) · `avg_shell_rmse`(08-22) 에 이은 **세 번째**

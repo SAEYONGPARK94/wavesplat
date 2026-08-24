@@ -15,17 +15,39 @@ thesis/
 └── README.md
 ```
 
-## 컴파일 방법
-```bash
-# kotex (한글) 지원 위해 xelatex 또는 lualatex 사용
-xelatex thesis_main
-bibtex thesis_main
-xelatex thesis_main
-xelatex thesis_main
+## 컴파일 방법 ★2026-08-24 실제로 검증됨
 
-# 또는 latexmk
-latexmk -xelatex thesis_main
+⛔**종전 문안(`xelatex` 권장)은 추측이었다.** 실측: **`pdflatex` 로 조판된다**
+(kotex 이 `nanumtype1` Type1 폰트를 쓴다). 결과 **159쪽 · 오류 0 · 미정의 참조 0 · 미정의 인용 0**.
+
+```bash
+export PATH=$HOME/texlive/2026/bin/x86_64-linux:$PATH   # 이 기계의 TeX Live 위치
+cd wavesplat/thesis
+pdflatex -interaction=nonstopmode thesis_main.tex
+bibtex   thesis_main
+pdflatex -interaction=nonstopmode thesis_main.tex
+pdflatex -interaction=nonstopmode thesis_main.tex       # 상호참조 수렴까지
 ```
+또는 `bash build.sh` (같은 절차 + 오류/미정의 참조 요약을 찍는다).
+
+### 이 기계의 TeX 환경 (2026-08-24 설치)
+- `sudo` 없이 **사용자 영역**에 TeX Live 2026 설치: `~/texlive/2026` (`scheme-medium`).
+- 추가 설치: `collection-langkorean`(kotex) · `newunicodechar` · `elsarticle`(= `elsarticle-harv.bst`).
+- 재설치가 필요하면: `install-tl -profile <profile>` 후 위 세 개를 `tlmgr install`.
+
+### 2026-08-24 에 고친 조판 차단 3건 (그 전까지 **한 번도 조판된 적이 없었다**)
+1. `algorithmic` 의 `\FOR{...}` 뒤에 곧바로 `\COMMENT` → *"missing \item"* 으로 문서가 죽었다.
+   ⟹ 주석을 루프 인자 안으로 옮겼다(뜻 보존).
+2. 부록 C 가 참조하는 `figures_episodes/episode_*_seed0_uniform.png` **10개가 존재하지 않는다**
+   (생성된 적 없음 — git 에도 90개뿐). 파일 부재는 `pdflatex` 을 **치명적으로** 죽인다.
+   ⟹ `\epincl` 이 `\IfFileExists` 로 감싸 **보이는 자리표시자**를 인쇄한다.
+   ⛔자리표시자는 그림을 만들어 주지 않는다 — 필요하면
+   `python3 ../scripts/generate_all_episode_figures.py` 를 돌려라(⚠아래 범위 경고).
+3. 자리표시자가 파일명의 `_` 를 수학모드로 읽어 죽었다 ⟹ `\detokenize`.
+
+⚠**부록 C 의 범위**: 현재 있는 90개 그림은 **2026년 4월** 산출물이라
+**2026-08-22 배포 변경 이전 구성**이다 ⟹ 지금 배포되는 추정기의 출력이 아니다.
+전부 다시 만들려면 100 에피소드 × (WaveSplat·ETKF·GPR) 재실행이 필요하다.
 
 ## 챕터별 작업 현황
 

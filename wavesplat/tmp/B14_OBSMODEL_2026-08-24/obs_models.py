@@ -29,6 +29,8 @@ for p in (B2, ROOT, os.path.join(ROOT, 'scripts')):
 
 from scene_station import RECORDS_12          # noqa: E402  (동결 파일에서 가져온다)
 
+# ⚠**2026-08-24 수정 이력**: `noise=0` 조기 반환이 난수 소비를 건너뛰어
+# 잡음 수준마다 **표본이 달라졌다**(짝 개입이 아니게 됨). `B-14b` 가 수정 후 다시 잰다.
 CORR_LEN = 8.0      # m — 결과 전 고정
 CLUST_R = 5.0       # m
 N_CENTER = 3
@@ -59,8 +61,12 @@ def _sample_frame(Z, gx, gy, rng, model, noise, m_scan):
     iy, ix = np.unravel_index(pick, Z.shape)
     z = Z[iy, ix].astype(float)
 
+    # ⛔**난수 소비 동수 유지가 필수다.**  `scene_station` 은 `noise=0` 에서도
+    # `rng.normal(0, 0.0, n)` 을 호출해 **난수 상태를 전진**시킨다. 여기서 조기 반환하면
+    # 이후 프레임의 `rng.choice` 가 달라져 **잡음만 바꾼 개입이 아니라 표본까지 바뀐다**.
+    # (2026-08-24 `G-1` 양성대조가 이 결함을 잡았다 — B-14 축 A 는 그래서 무효다.)
     if noise <= 0.0:
-        eps = np.zeros(len(pick))
+        eps = rng.normal(0, 0.0, len(pick))      # ★상태 전진을 위해 반드시 호출한다
     elif model == 'CORR':
         w = rng.normal(0.0, 1.0, Z.shape)
         dx = float(np.median(np.diff(gx))) if len(gx) > 1 else 1.0

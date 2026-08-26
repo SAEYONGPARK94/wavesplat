@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""배포 상수 -> `thesis/deploy_constants.tex` 생성.
+"""배포 상수(+ 실측 게이트 상수) -> `thesis/deploy_constants.tex` 생성.
 
 ★저장소가 *"같은 값을 여러 곳에 적어 어긋남"* 에 **여섯 번** 물렸고 2026-08-19 에
 스스로 처방했다: **"개입 기대값은 단일출처여야 한다."**
@@ -18,12 +18,36 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT)
 OUT = os.path.join(ROOT, 'thesis', 'deploy_constants.tex')
 
+# ★2026-08-26: 배포 상수가 아닌 값 하나가 논문에 **손복사**돼 있었다 —
+# 실측 자기검정 게이트 `G-8` 의 문턱 `\ge 8/12`(thesis_main.tex:4884).
+# 유래는 아래 동결 배치 파일이고, 이 손복사가
+# `test_thesis_does_not_hardcode_router_threshold` 를 **오탐으로 실패**시켰다.
+# ⟹ 시험을 좁히는 대신 **값을 정본에서 읽어 매크로로 낸다**(저장소 처방: "단일출처").
+REAL_GATE_SRC = os.path.join(ROOT, 'tmp', 'B5_LETKF_REAL_2026-08-23', 'gates_b5.py')
+
+
+def real_gate_constants():
+    """실측 자기검정 게이트의 `(문턱, 레코드 수)` 를 **동결된 배치 파일에서 읽는다.**
+
+    `SELFTEST_MIN` 은 `gates_b5.py` 가, `RECORDS` 는 그것이 import 하는 `gates_b3.py` 가
+    정의한다 ⟹ **둘 다 코드에서 도출**되고 이 스크립트는 아무것도 손으로 적지 않는다.
+    ⛔파일이 없으면 **조용히 넘기지 않고 실패**한다 — 침묵 스킵이 이 저장소의 반복 결함이다.
+    """
+    import importlib.util
+    if not os.path.exists(REAL_GATE_SRC):
+        raise SystemExit(f'실측 게이트 정본이 없다: {REAL_GATE_SRC}')
+    spec = importlib.util.spec_from_file_location('_gates_b5_for_constants', REAL_GATE_SRC)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.SELFTEST_MIN, len(mod.RECORDS)
+
 
 def render() -> str:
     from wavesplat.run import DEFAULT_CONFIG
     from wavesplat.optimizer.sequential_update import (
         AUTO_SWITCH_THRESH_PRE_UNIFY, LEARNED_INIT_ITERS_PRE_VARPRO)
     n_tests = _count_tests()
+    st_min, n_rec = real_gate_constants()
     c = DEFAULT_CONFIG
     rows = [
         ('DeployLambdaOne', f"10^{{{_exp(c['lambda_l1'])}}}"),
@@ -39,6 +63,9 @@ def render() -> str:
          else f"{c['bank_refit_every_s']:g}\\,s"),
         ('DeployBankRefitAsync', 'off' if not c.get('bank_refit_async') else 'on'),
         ('DeployNumTests', str(n_tests)),
+        # 실측 자기검정 게이트 G-8 — `tmp/B5_LETKF_REAL_2026-08-23/gates_b5.py` 가 정본.
+        ('RealSelfTestMin', str(st_min)),
+        ('RealNumRecords', str(n_rec)),
         ('PreUnifyRouterThresh', str(AUTO_SWITCH_THRESH_PRE_UNIFY)),
         ('PreVarproInitIters', str(LEARNED_INIT_ITERS_PRE_VARPRO)),
     ]

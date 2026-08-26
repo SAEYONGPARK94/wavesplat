@@ -15,7 +15,17 @@ n_base = sum(1 for r in base_rows if G._arm_of(r) == G.BASE_ARM and 'error' not 
 gates = G.gates(ship, base, n_ship, n_base)
 p = G.paired(ship, base)
 lab = G.label(p)
-v = dict(batch='B-1', runs=0, ship_arm=G.SHIP_ARM, baseline_arm=G.BASE_ARM,
+# ★2026-08-26 (V4 F-7): 이 배치는 **자기 결과가 없는 재집계 배치**다(`runs=0`).
+# 검사기가 2026-08-26 에 *"결과 행이 있어야 인용 가능"* 으로 엄격해지면서 이 배치가
+# **오탐으로 인용 불가**가 됐다 — 저장소의 살아있는 헤드라인이 그것이다.
+# ⛔느슨하게 되돌리지 않고 **계보를 선언**한다: 재집계 원천을 저장소 상대경로로 적고,
+# 검사기가 그 파일들이 **존재하고 행이 있는지** 직접 확인한다(엄격함 유지).
+# ⚠판정에 쓰이는 값은 하나도 바뀌지 않는다 — `source_results` 는 **출처 메타데이터**다.
+_SRC = [os.path.relpath(os.path.join(x, 'results.jsonl'),
+                        os.path.abspath(os.path.join(HERE, '..', '..')))
+        for x in (G.W16, G.S16)]
+v = dict(batch='B-1', runs=0, source_results=_SRC,
+         ship_arm=G.SHIP_ARM, baseline_arm=G.BASE_ARM,
          gates=[[g[0], bool(g[1]), str(g[2])] for g in gates],
          gates_pass=sum(1 for g in gates if g[1]), gates_total=len(gates),
          crowded=p, threshold=G.THRESHOLD,

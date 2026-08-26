@@ -423,6 +423,7 @@ def test_thesis_deploy_constants_are_current():
     """
     import os
     import re
+    import sys
     here = os.path.dirname(os.path.abspath(__file__))
     tex = os.path.join(here, '..', '..', 'thesis', 'deploy_constants.tex')
     assert os.path.exists(tex), (
@@ -458,19 +459,70 @@ def test_thesis_deploy_constants_are_current():
     assert got['PreUnifyRouterThresh'] == str(AUTO_SWITCH_THRESH_PRE_UNIFY)
     assert got['PreVarproInitIters'] == str(LEARNED_INIT_ITERS_PRE_VARPRO)
     assert '10^{-4}' in got['DeployLambdaOne']
+    # ★2026-08-26: 배포 상수가 아닌 값 하나(실측 자기검정 게이트 `G-8` 의 `8/12`)가
+    # 논문에 **손복사**돼 있었다. 정본은 동결 배치 파일이다 ⟹ 여기서도 되읽어 대조한다.
+    sys.path.insert(0, os.path.join(here, '..', '..', 'scripts'))
+    from gen_deploy_constants import real_gate_constants
+    st_min, n_rec = real_gate_constants()
+    assert got['RealSelfTestMin'] == str(st_min)
+    assert got['RealNumRecords'] == str(n_rec)
 
 
 def test_thesis_does_not_hardcode_router_threshold():
     """★논문 본문이 라우터 임계를 **문자로** 다시 적지 않아야 한다.
 
     이것이 2026-08-22 재발의 직접 원인이었다(`n_sel >= 8` 이 본문 네 곳에 박혀 있었다).
+
+    ⚠★**2026-08-26: 이 시험이 한 번 오탐으로 실패했다 — 그런데 좁히지 않았다.**
+    걸린 줄은 라우터 임계가 아니라 **실측 자기검정 게이트 비율** `$\ge 8/12$` 였다
+    (유래: `tmp/B5_LETKF_REAL_2026-08-23/gates_b5.py:62 SELFTEST_MIN = 8`,
+     레코드 수는 `tmp/B3_REFIT_2026-08-23/gates_b3.py:30 RECORDS`).
+    `re.search(r'ge 8(?!/)')` 로 **좁히는 수리가 검토됐고 기각됐다**:
+    잡힌 것은 *다른 양*이었지만 **그것도 똑같은 손복사**였고, 좁히면 다음 손복사를 놓친다.
+    ⟹ 근본 수리는 그 값을 **정본에서 읽어 매크로로 내는 것**이다
+    (`\RealSelfTestMin`/`\RealNumRecords`, `scripts/gen_deploy_constants.py:real_gate_constants`).
+    ⟹ **이 시험은 문자 재기재를 전부 금지한 채로 남는다.** 아래 회귀 케이스가
+    "좁히지 않았다" 를 코드로 못박는다 — 다음 사람이 조용히 완화하면 여기서 걸린다.
+
+    ⚠★**2026-08-26 (V4 외부 재반증): 부분문자열 `'ge 8'` 이 세 표기를 놓쳤다.**
+    본문은 `\\geq` 를 **18회** 쓰고 있고(`\\geq 34`·`\\geq 30`·`\\geq 25` …), `\\ge8`(공백 없음)과
+    `\\ge~8`(비분리 공백)도 유효한 LaTeX 다. ⟹ 임계가 그 셋 중 하나로 다시 들어오면
+    이 시험은 **조용히 통과**한다 — 방벽을 붙였다고 믿게 만드는 바로 그 상태다.
+    ⟹ **넓히는 방향으로만** 고쳤다(좁힌 것이 아니다): `\\ge`/`\\geq` + 선택적 공백/`~`/중괄호.
+    ⛔여전히 **`8` 만** 본다 — `\\ge 7`(수조 계획의 자체 문턱, 이 문서가 정본)은 손복사가
+    아니므로 잡지 않는다.
     """
     import os
     import re
+    strip = lambda t: re.sub(r'(?m)^\s*%.*$', '', t)   # 주석(이력 보존)은 제외
+    #  \ge 8 · \geq 8 · \ge8 · \ge~8 · \ge {8} 를 전부 잡는다.
+    PAT = re.compile(r'\\ge(?:q)?\s*~?\s*\{?\s*8(?![0-9])')
+    caught = lambda t: bool(PAT.search(strip(t)))
+
+    # ★회귀 케이스 — 이 검사가 **무엇을 잡고 무엇을 통과시키는지** 시험 안에서 고정한다.
+    assert caught(r'양 팔이 공유하는 창에서 $n_\text{sel} \ge 8$ 이면 학습 경로를 택한다'), (
+        '재발 그 자체(라우터 임계 손복사)를 놓친다 — 검사가 완화됐다')
+    assert caught(r'\item \textbf{문턱은 $\ge 8/12$ 케이스}로 한다'), (
+        '2026-08-26 에 걸린 문면(게이트 비율 손복사)도 여전히 잡아야 한다 — '
+        '이 값도 매크로로 내라. 시험을 좁히지 마라')
+    # ★V4 회귀: 종전 부분문자열 검사를 **통과해 버리던** 세 표기.
+    for evasion in (r'$n_\text{sel} \geq 8$', r'$n \ge8$', r'$n \ge~8$', r'$n \ge {8}$'):
+        assert caught(evasion), f'표기 회피를 놓친다: {evasion!r} — 검사를 좁히지 마라'
+    assert not caught(r'$n_\text{sel} \ge \DeployRouterThresh$ 이면'), (
+        '매크로 형태는 통과해야 한다')
+    assert not caught(r'$\ge \RealSelfTestMin/\RealNumRecords$ 와 같은 비율'), (
+        '매크로 형태는 통과해야 한다')
+    assert not caught('% 이력: 종전에는 $\\ge 8$ 이었다'), '주석은 제외돼야 한다'
+    # ⛔다른 수·다른 양은 잡지 않는다(이 시험의 범위를 코드로 고정한다).
+    for allowed in (r'$\ge 7/10$ 케이스', r'$\geq 34$', r'$\geq 30$', r'$\geq 80$',
+                    r'$\geq 0$'):
+        assert not caught(allowed), f'범위 밖을 잡는다(오탐): {allowed!r}'
+
     here = os.path.dirname(os.path.abspath(__file__))
     body = open(os.path.join(here, '..', '..', 'thesis', 'thesis_main.tex')).read()
-    body = re.sub(r'(?m)^\s*%.*$', '', body)          # 주석(이력 보존)은 제외
-    assert 'ge 8' not in body, '논문 본문에 라우터 임계가 문자로 박혀 있다'
+    assert not caught(body), (
+        '논문 본문에 문턱이 문자로 박혀 있다 — 시험을 좁히지 말고 '
+        'scripts/gen_deploy_constants.py 에 매크로를 추가해 정본에서 읽어라')
 
 
 def test_no_stale_frozen_wording_about_bank_refit():

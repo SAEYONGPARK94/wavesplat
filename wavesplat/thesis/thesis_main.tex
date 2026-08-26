@@ -308,6 +308,16 @@ $x\in[10,250]\times y\in[-100,100]$\,m 격자에서 $t>2T_p$ 구간에 대해 �
 절대 오차가 비선형 참값에서 $3.60$배 열화하므로(같은 배치 안 짝 비교, $14/16$,
 $p = 0.0021$) \textbf{크기를 인용하지 않는다}. ⚠그 층에서는 기준선 자신이 무기술 기준을
 중앙 $12.6\%$ 개선하는 데 그치므로, 이 부호를 혼잡 층의 부호와 같은 무게로 읽지 않는다.
+% ADDED 2026-08-26 (B-16 + B-19): 초록이 기여 ①을 "기준선 대비" 로만 말하고 있었다.
+% 표현 절제가 이제 두 층 모두에서 같은 방향으로 나오므로 초록에 싣는다(제1장·제3장과 정합).
+% 근거: tmp/B16_KGRID_2026-08-24/verdict_b16.json · tmp/B19_KGRID_SPARSE_2026-08-25/verdict_b19.json
+% ⛔두 크기를 서로, 또는 위 기준선 대비 크기와 비교하지 않는다.
+★\textbf{이 이득의 담지자가 \emph{연속 파수 표현}이라는 것은 기준선 비교가 아니라
+\emph{본 방법 내부의 절제}로 지탱된다} --- 배포 파이프라인을 그대로 둔 채 파수의 연속성만
+제거하면 \textbf{혼잡 층 $46/48$}($p = 4.2\times10^{-12}$)과 \textbf{희소 층 $14/16$}
+($p = 0.0021$)에서 모두 나빠지고, 두 층 모두 간격을 두 배로 하면 더 나빠진다.
+⚠\emph{[범위]} 두 층의 크기는 서로 비교하지 않으며, 이것은 \emph{본 방법 내부의 절제}이므로
+``격자 기반 방법이 원리적으로 열등하다''로 확대하지 않는다.
 ⛔\textbf{실측 자료(고정 관측소 스테레오 $12$ 레코드)에서는 본 논문이 제안하는 표현이
 기술을 보이지 않는다} --- 논문이 주장하는 순차 추적·전방 예보 프로토콜에서 무기술 기준을
 넘지 못하며, 학습 체크포인트를 제거한 두 가지 다른 초기화도 각각 무기술 문턱
@@ -328,6 +338,22 @@ $p = 0.0021$) \textbf{크기를 인용하지 않는다}. ⚠그 층에서는 기
 ⚠그 잡음 표준편차와 각 레코드 수면 표준편차의 비는 $0.008$--$0.218$ 로 레코드 간
 $27.4$배 갈리므로, 이 음성의 세기는 \emph{가정된} 신호대잡음비에 의존한다
 (표~\ref{tab:real_noise_ratio}).
+% ADDED 2026-08-26 (B-17): 위 문장이 홀로 서면 독자가 "SNR 이 음성을 만든다" 로 읽는다.
+% 잡음의 *형태* 를 논문 자신의 물리로 바꾼 개입은 전 팔 널이다(수준은 별개).
+% 근거: tmp/B17_REALNOISE_2026-08-25/verdict_b17.json (paired_labels 전 팔 REALNOISE-NULL)
+⚠\textbf{단 그 의존을 만드는 것이 잡음의 \emph{형태}는 아니다} --- 본 논문 자신이 적은
+거리$\cdot$입사각 잡음 곡선으로 갈아 끼워도 짝 비교는 네 팔 전부 널이다(개선 쪽 최대
+$7/12$). \emph{수준}에 대한 의존은 이 개입으로 닫히지 않는다.
+% ADDED 2026-08-26 (B-18): 초록이 실측 음성을 적고 그 원인에 대해 침묵했다. 네 후보를
+% 개입으로 소거했고 마지막 후보("관측의 희소성")도 문턱을 넘지 못했다.
+% 근거: tmp/B18_DENSITY_NOISE_2026-08-25/verdict_b18.json (label = NEITHER-SUFFICIENT)
+% ⛔원인의 지목도, 부재의 증명도 아니다.
+★\textbf{그리고 그 음성의 원인은 개입으로 측정한 네 후보 밖에 있다} --- 잡음의
+\emph{형태}(위 곡선을 포함하여), 표현의 \emph{용량}, \emph{센서 모형}, 그리고 마지막
+후보였던 \emph{관측의 희소성}을 각각 개입으로 시험하였고 어느 것도 문턱을 넘지 못하였다
+(밀도$\times$잡음 완전요인 네 모서리에서 회복 레코드 $8\cdot8\cdot4\cdot8$ / $12$, 문턱
+$10$). ⛔\textbf{이는 원인의 지목도 후보의 부재 증명도 아니며}, 본 논문은
+\textbf{작동 경계의 위치를 보고하고 그 설명은 제시하지 않는다.}
 ⚠\textbf{본 방법은 ``학습이 필요 없는'' 방법이 아니다} --- 혼잡 해상에서 학습된 초기화를
 사용하며(초기값 제안에 한정), 실측 입력에서는 그 학습이 \emph{순손실}로 측정되었다.
 지연에 대해 인용 가능한 유일한 절대 배율은 \emph{동일 프로세스·단일 스레드에서 1.5--2.6배}이며,
@@ -430,6 +456,17 @@ $3.60$-fold under nonlinear ground truth (within-batch paired, $14/16$,
 $p = 0.0021$), so \textbf{no magnitude is claimed there}. ⚠In that stratum the
 baseline itself improves on the no-skill reference by only $12.6\%$ at the median, so
 this sign is not read with the same weight as the crowded-stratum sign.
+% ADDED 2026-08-26 (B-16 + B-19): mirror of the Korean abstract ablation sentence, so the
+% two abstracts do not diverge. Sources: tmp/B16_KGRID_2026-08-24/verdict_b16.json ·
+% tmp/B19_KGRID_SPARSE_2026-08-25/verdict_b19.json
+★\textbf{That this gain is carried by the \emph{continuous-wavenumber representation} is
+supported by an \emph{ablation inside the method itself}, not by baseline comparison}:
+leaving the deployed pipeline untouched and removing only the continuity of the wavenumbers
+degrades performance in \textbf{$46/48$ crowded} ($p = 4.2\times10^{-12}$) and
+\textbf{$14/16$ sparse} ($p = 0.0021$) episodes, and in both strata doubling the grid
+spacing degrades it further. ⚠\emph{[Scope]} The two magnitudes are not compared with each
+other, and because this is an ablation \emph{within the method itself} it is not extended to
+``grid-based methods are inferior in principle''.
 ⛔\textbf{On real data (twelve fixed-station stereo records) the proposed representation
 shows no skill} --- it does not beat a no-skill reference under the sequential
 tracking and forward-forecast protocol this dissertation claims; two analytic
@@ -453,6 +490,22 @@ sampling of a real sea surface}, \textbf{not a real sensor deployed at sea}.
 ⚠The ratio of that noise level to the per-record surface standard deviation spans
 $0.008$--$0.218$, a factor of $27.4$ across records, so the strength of this negative
 depends on the \emph{assumed} signal-to-noise ratio (Table~\ref{tab:real_noise_ratio}).
+% ADDED 2026-08-26 (B-17 + B-18): mirror of the two Korean abstract sentences added today.
+% Sources: tmp/B17_REALNOISE_2026-08-25/verdict_b17.json (all paired arms REALNOISE-NULL) ·
+% tmp/B18_DENSITY_NOISE_2026-08-25/verdict_b18.json (label = NEITHER-SUFFICIENT)
+⚠\textbf{That dependence is not produced by the \emph{shape} of the noise}: substituting the
+range- and incidence-angle-dependent noise curve this dissertation itself states leaves the
+paired comparison null in all four arms (at most $7/12$ improved). Dependence on the noise
+\emph{level} is not closed by that intervention.
+★\textbf{The cause of the negative lies outside the four candidates intervened on}: the
+\emph{shape} of the observation noise (including the curve just mentioned), the
+\emph{capacity} of the representation, the \emph{sensor model}, and the last remaining
+candidate, the \emph{sparsity of the observations}, were each tested by intervention and none
+crossed the threshold (in a full-factorial density $\times$ noise design the four corners
+recover $8\cdot8\cdot4\cdot8$ of $12$ records against a threshold of $10$).
+⛔\textbf{This is neither an identification of the cause nor proof that those candidates are
+absent}; this dissertation \textbf{reports where the operating boundary lies and offers no
+explanation for it}.
 ⚠\textbf{This method is not ``learning-free''} --- it uses a learned initialiser in
 crowded seas (for proposal only), and on real input that learned component is measured
 to be a \emph{net loss}.
@@ -742,6 +795,24 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
         참값·학습 코퍼스 밖 시드에서 최강 적격 기준선을 $16$ 중 $15$ 로 이긴다($-74.7\%$,
         단측 $p = 2.6\times10^{-4}$). ⚠\textbf{단 층간 대비는 검정하면 널이다} --- 그 층의 기준선은 무기술 기준을 중앙 $12.6\%$ 개선하고(단측 $12/16$, $p = 0.038$), 혼잡 층은 $16.7\%$ 개선한다($16/16$, $p = 1.5\times10^{-5}$)이나, \emph{두 층의 차이} 자체는 Fisher $p = 0.10$ · Mann--Whitney $p = 0.08$ · 중앙값 차 $4.1$\,pp (순열 $p = 0.21$)로 어느 검정도 넘지 못한다. ⟹ \textbf{층간 대비를 주장하지 않는다.} 갈리는 것은 중심이 아니라 산포다(표준편차 $5.6 \to 13.1$). ``우리가 잘해서''와
         ``기준선이 그 레짐에서 못 해서''는 이 자료로 분리되지 않는다.
+        % ADDED 2026-08-26 (B-16 + B-19): 기여 ①을 지탱하는 증거가 지금까지 전부
+        % "기준선 대비" 였다. 표현 절제(= 우리 팔 안에서 성질 하나를 뺀 개입)가 이제
+        % 두 층 모두에서 같은 방향으로 나오므로 기여 목록에 싣는다.
+        % 근거: tmp/B16_KGRID_2026-08-24/verdict_b16.json (혼잡) ·
+        %       tmp/B19_KGRID_SPARSE_2026-08-25/verdict_b19.json (희소, 게이트 19/19)
+        ★\textbf{[표현 절제] 이 이득의 담지자가 \emph{연속 파수 표현}이라는 것은
+        기준선 비교가 아니라 \emph{본 방법 내부의 절제}로 지탱된다} --- 배포
+        파이프라인을 그대로 둔 채 파수의 연속성만 제거하면(격자 반올림 $+$ $(w,\phi)$
+        재적합) \textbf{혼잡 층 $46/48$}($-38.61\%$, $p = 4.2\times10^{-12}$)과
+        \textbf{희소 층 $14/16$}($-67.43\%$, $p = 0.0021$)에서 모두 나빠지며,
+        두 층 모두 간격을 두 배로 하면 더 나빠진다(용량--반응 $47/48$ 및 $14/16$).
+        ⟹ \textbf{기여 ①은 두 층 모두에서 절제로 지탱된다}
+        (\S\ref{sec:results_b11} 의 표현 절제 두 문단).
+        ⚠\emph{[범위]} 두 층의 크기는 \textbf{서로 비교하지 않으며}(표본$\cdot$참값$\cdot$
+        비선형성 실현 등급 분포가 다르다) 위 기준선 대비 크기와도 비교하지 않는다.
+        ⚠희소 층에서는 \textbf{절제된 팔이 참 제로필드를 $12/16$ 으로 간신히 넘어}
+        무기술에 가깝다. ⛔또한 이것은 \emph{본 방법 내부의 절제}이므로
+        ``격자 기반 방법이 원리적으로 열등하다''로 확대하지 않는다.
 
   \item \textbf{실측 자료에서의 전방 시간 전개 --- 유효 지평의 측정
         (\emph{격자 기반 실측 경로}에 대한 것이며 제안 표현에 대한 것이 아니다)}: \\
@@ -931,6 +1002,14 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
 
   \item \textbf{실측 자료에서 제안 표현의 우위를 주장하지 않는다.}
         측정 결과가 음성이며(기여 3), 그 음성의 원인이 표현 자체인지 여부는 미결이다.
+        % ADDED 2026-08-26 (B-18): 소거의 마지막 후보였던 "관측의 희소성" 이 밀도×잡음
+        % 완전요인 개입에서 문턱을 넘지 못했다 ⟹ 원인 후보를 하나로 좁히지 않는다.
+        % 근거: tmp/B18_DENSITY_NOISE_2026-08-25/verdict_b18.json (NEITHER-SUFFICIENT)
+        ★\textbf{그리고 그 원인을 \emph{어느 후보로도} 지목하지 않는다} --- 잡음의 형태,
+        표현의 용량, 센서 모형, 관측의 희소성을 각각 개입으로 시험하였으나
+        \textbf{네 후보 모두 문턱을 넘지 못하였다}(\S\ref{sec:init-bank}).
+        ⛔문턱 미달을 \emph{부재의 증명}으로 읽지 않으며, ⛔``더 조밀한 관측이면
+        해결된다''로도 읽지 않는다.
   \item \textbf{분산관계 하드 제약의 정확도 기여}는 측정되지 않았다(파라미터 감소
         $5N \to 4N$ 은 산술적 사실로 유지한다).
   \item 기하 신뢰 가중치와 적응형 성분 수 제어는 정확도 기여로서 \textbf{철회}되었으며,
@@ -2058,6 +2137,65 @@ $\to 0$: $8/12$, $p = 0.194$). ★\textbf{더군다나 정정된 수심에서는
 않는다} --- $\sigma$ 와 $H_s = 4\sigma$ 는 기억창 수면에서 오고 수심이 들어가지 않으며,
 수심 $30$ 으로 다시 돌린 배치에서 열두 레코드의 $\sigma$ 가 비트 동일하다.
 
+% ADDED 2026-08-26 (B-17): 외부 심사 F-2/P-5 는 "실측 음성의 세기가 가정된 SNR 에
+% 지배되는데 논문에 그 분포가 없다" 였다. 위 표가 분포를 실었고, 이 문단은 그 하위
+% 명제 하나 -- 잡음의 *형태*(거리·입사각 구조)가 음성을 매개하는가 -- 에 개입으로 답한다.
+% ⛔"수준" 이 아니라 "형태" 다. 근거: tmp/B17_REALNOISE_2026-08-25/verdict_b17.json
+%   (label = STRATUM-SURVIVES · paired_labels 전 팔 REALNOISE-NULL · 게이트 15/15 PASS)
+% ⛔verdict.meaning 뒤 절반("음성이 방법의 성질로 승격된다")은 채택하지 않는다 --
+%   기준선 구성 CONST 자신의 층 대비가 이미 널이다(Fisher 기술값 0.2475).
+%   그 절제는 배치의 RESULT §4.1-4.2 가 결과와 함께 명시했다(라벨·문턱은 무수정).
+\paragraph{잡음 모형의 \emph{형태}를 논문 자신의 물리로 바꾸면 (2026-08-26)}
+위 잡음이 \emph{등방$\cdot$거리무관$\cdot$입사각무관}이라는 사실이 음성을 만들어 내는지를,
+\textbf{본 논문 자신이 \S\ref{sec:observation}과 \S\ref{sec:geom_confidence}에 적은 곡선}을
+실측 기하에 얹어 판정하였다. 즉 $\mathrm{Var}(\varepsilon_j) = [\sigma_0^2 +
+\sigma_r^2 (r_j/d_{\mathrm{ref}})^2]\,/\,\cos\theta_j$ 로 두었다($\sigma_r$ 과
+$d_{\mathrm{ref}}$ 는 코드 단일출처에서 파싱하고 $\sigma_0$ 는 본문 값을 정규식으로
+대조하였다; 신뢰 가중치를 분산의 역수로 읽어 곱으로 합성한 것이며 이 선택은 결과 이전에
+기록하였다). 팔은 배포 상수(기준) 외에 \emph{수준만} 바꾼 것, \emph{거리만} 넣은 것,
+\emph{거리$+$입사각}(주 팔), 그리고 같은 형태를 평균분산이 배포값과 같도록 재척도한
+\emph{형태만} 팔을 두었다. 모든 팔이 \textbf{같은 관측점}을 받도록 난수 소비를 동수로
+맞추었다($12/12$ 레코드에서 관측점이 비트 동일).
+
+★\textbf{이 곡선은 두 층의 잡음 수준을 반대 방향으로 움직인다} --- 소형 박스는
+$r \ll d_{\mathrm{ref}}$ 라 오히려 조용해지고($\sigma_{\mathrm{rms}}$ 중앙 $0.59\times$),
+대형 박스는 원거리$\cdot$근접입사라 시끄러워진다($1.56\times$). 이 사실도 결과 이전에
+기록하였다.
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+잡음 모형 & 배포 상수 대비 개선 & 상대 중앙 & 단측 $p$ \\
+\midrule
+수준만 ($\sigma_0$ 상수) & $7/12$ & $-12.89\%$ & $0.387$ \\
+거리만 & $6/12$ & $+4.23\%$ & $0.613$ \\
+\textbf{거리$+$입사각 (본문 곡선)} & $\mathbf{7/12}$ & $-4.60\%$ & $0.387$ \\
+형태만 (평균분산 고정) & $3/12$ & $+15.16\%$ & $0.981$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+⟹ ★\textbf{네 팔 전부 짝 비교에서 갈리지 않는다}(가족단위 $\alpha = 0.0125$; 개선 쪽
+최대 $7/12$, 악화 쪽 최대 $9/12$ 로 \emph{명목} 문턱 $10$ 에도 닿지 않는다). 결과 이전에
+고정한 귀속 규칙에 따라 이것은 \textbf{관측 잡음의 거리$\cdot$입사각 \emph{구조}가 실측
+음성을 매개하지 않는다}로 읽힌다. ⚠\textbf{바꾼 것은 잡음의 \emph{형태}이지 \emph{수준}이
+아니다} --- 여기서 잰 수준 개입은 $0.5\times$ 한 점뿐이고 그것도 널이다($7/12$).
+\textbf{실제 센서의 신호대잡음비를 우리가 모른다는 사실은 이 개입으로 닫히지 않으며},
+실제 센서 오차 자료가 있어야 닫힌다.
+
+⚠\textbf{층 패턴은 유지된다.} 대형 박스에서 참 제로필드를 이기는 레코드 \emph{집합}은
+배포 상수 잡음과 \textbf{글자 그대로 동일}하고($4/5$; \texttt{LJ18a} 만 진다), 소형 박스는
+$3/7 \to 0/7$ 로 더 강하게 진다. ⛔\textbf{그러나 이것을 ``실측 음성이 방법의 성질''로
+승격하지 않는다} --- \textbf{기준선 구성 자신의 층 대비가 이미 유의하지 않기 때문이다}
+($4/5$ 대 $3/7$, Fisher \emph{기술값} $0.247$). 이 표본은 층 대비에 $p$ 를 주장하지 않는다.
+즉 확인된 것은 \textbf{범주적 패턴의 유지}이며, ⚠그 ``유지''에는 \emph{``곡선을 바꾸어도
+아무 일도 일어나지 않았다''}가 포함된다. ⚠센서 높이 $h = 12$\,m 는 자료에서 도출되지 않은
+\textbf{선언값}이고, $h = 30$\,m 로 바꾼 가족 밖 민감도 팔은 층을 대형 $3/5\cdot$소형 $2/7$
+로 옮긴다 ⟹ 무해한 선택이 아니다. ⚠본문 곡선은 \textbf{LiDAR 사양}에서 나왔고 이 $12$
+레코드는 \textbf{스테레오}이며, ⛔이 개입은 그 곡선을 실측 스테레오 오차와 대조한 적이 없다
+--- 널은 \emph{``거리$\cdot$입사각이 문제가 아니다''}가 아니라 \emph{``이 곡선이 아니다''}로
+읽는다.
+
 \textbf{2026년 8월 측정.} 위 사실을 구조적 근거로만 두지 않기 위해, 실측 게이트를 우회하여
 제안 표현을 강제 적용한 상태로 측정하였다(12 레코드 $\times$ 3 창, 전방 lead 1--14\,s,
 각 리드에서 예측과 채점을 먼저 하고 그 시각의 관측을 투입하는 정직한 예보 프로토콜).
@@ -2106,6 +2244,71 @@ $4$\,s 부터 기술이 사라지는 반면, $2$\,s 주기 재적합은 $4$--$14
 ⚠고정 관측소 4 개 사이트의 자료이므로 사이트 수준 일반화는 하지 않는다.}
 \label{fig:real_leadcurve}
 \end{figure}
+
+% ADDED 2026-08-26 (B-18): 어제까지 이 절은 실측 음성의 원인을 소거법으로 좁혀
+% "관측의 희소성이 남는다" 고 적을 수 있었다. 밀도×잡음 완전요인 개입이 그 마지막
+% 후보를 문턱 아래로 내렸다 ⟹ 정직한 음성으로 싣는다(사전등록 §7 이 이 라벨에 대해
+% 결과 이전에 정해 둔 처분이 바로 그것이다).
+% 근거: tmp/B18_DENSITY_NOISE_2026-08-25/verdict_b18.json (label = NEITHER-SUFFICIENT,
+%       게이트 15/15 PASS) · 앞 문단의 tmp/B17_REALNOISE_2026-08-25/verdict_b17.json
+%       · tmp/B14_OBSMODEL_2026-08-24 (잡음 형태 4모형 · 축 B 용량) · tmp/B15_RAYDROP_2026-08-24
+% ⛔"더 조밀하면 될 것" 과 "밀도는 원인이 아니다" 를 둘 다 금지한다(같은 사전등록 §10).
+% ⛔B-17 과 합산하거나 교차 층화하지 않는다 -- 다른 축이다.
+\paragraph{그 음성의 원인은 무엇인가 --- 개입으로 소거한 네 후보 (2026-08-26)}
+위 음성의 원인을 지목하기 위해 후보를 하나씩 \textbf{개입}으로 제거하였다. 관측 밀도와
+관측 잡음은 \textbf{완전요인}으로 실험하였다(밀도 $480 \to 12{,}000$ 관측, 잡음
+$\sigma = 0.02 \to 0$; $12$ 레코드 $\times$ 네 모서리). ``회복''은 그 모서리에서
+\textbf{참 제로필드}를 이기는 레코드 수가 명목 문턱 $10$ 이상인 것으로 결과 이전에
+정의하였다 --- 기준은 상수가 아니라 레코드별로 자료에서 산출하며 $0.3375$--$1.1559$
+범위다.
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+모서리 & 관측 수 $\cdot$ 잡음 & 회복 레코드 & 중앙 nRMSE \\
+\midrule
+배포 근사 & $480$ $\cdot$ $\sigma{=}0.02$ & $8/12$ & $0.801$ \\
+\textbf{밀도만} & $12{,}000$ $\cdot$ $\sigma{=}0.02$ & $\mathbf{8/12}$ & $0.777$ \\
+잡음만 & $480$ $\cdot$ $\sigma{=}0$ & $4/12$ & $0.822$ \\
+둘 다 & $12{,}000$ $\cdot$ $\sigma{=}0$ & $8/12$ & $0.777$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+⟹ ★\textbf{네 모서리 어디에서도 문턱에 닿지 않는다.} 앞선 개입들과 합치면 소거의 결과는
+다음과 같다 --- 잡음의 \emph{형태}(등방$\cdot$공간상관$\cdot$군집$\cdot$경사 네 모형, 그리고
+위 문단의 거리$\cdot$입사각 곡선)는 \textbf{매개하지 않고}, 표현의 \emph{용량}(조밀$\cdot$
+무잡음)은 \textbf{아니며}, \emph{센서 모형}은 \textbf{결론을 바꾸지 않고}
+(\S\ref{sec:results_b11}), 마지막 후보였던 \emph{관측의 희소성}은 \textbf{문턱에 미달한다.}
+⟹ \textbf{실측 음성은 본 논문이 개입으로 측정한 네 후보로 설명되지 않는다.}
+
+⚠\textbf{이 문장을 강하게 읽지 않기 위한 단서 넷.} ①\textbf{소거는 원인의 지목이 아니다}
+--- 소거의 끝에 남는 것은 후보 목록이 아니라 \emph{공백}이다. ②\textbf{문턱 미달은 부재의
+증명이 아니다}($n = 12$). 실제로 밀도의 짝 효과는 \emph{방향이 맞다}(개선 $8/12$, 상대 중앙
+$-11.15\%$) ⟹ ⛔따라서 ``밀도는 원인이 아니다''로 쓰지 않는다. ③⛔거꾸로 ``더 조밀한
+관측이면 해결된다''로도 쓰지 않는다 --- $12{,}000$ 관측은 배포 예산의 스무 배인데 거기서도
+$8/12$ 였다. ④\textbf{``둘 다'' 모서리는 경계값이다} --- 글자 그대로 같은 호출의 선행
+측정에서 문턱 정확히 $10/12$ 였고 난수 규약 수리 뒤 $8/12$ 로 내려왔다.
+⟹ \textbf{이 개입에서 가장 단단한 조각은 \emph{밀도만} 모서리($8/12$)이며, 그것이 새로
+측정된 부분이다}(잡음이 $0$ 인 두 열은 선행 배치가 이미 잰 셀의 재추첨이다).
+⚠사전 선언한 상호작용 검정은 널이므로($7/12$, 양측 $p = 0.774$) 이 자료는 ``둘 다 필요''와
+``하나면 충분''을 \textbf{가르지 못한다}.
+
+★\textbf{여기서 남는 것은 결함이 아니라 이 논문의 본론이다.} 본 논문의 주제는 학습된
+스펙트럼 사전이 \emph{언제} 값을 하는가 --- 그 \textbf{작동 경계}이며, 합성 혼잡 해상에서의
+양성(\S\ref{sec:results_b1})과 실측에서의 음성은 그 경계의 양쪽이다. 이번 개입으로 바뀐 것은
+경계의 위치가 아니라 \textbf{경계의 \emph{설명}}이다: 어제까지 남아 있던 단일 후보(``관측이
+너무 희소하다'')가 개입에서 살아남지 못했으므로, 본 논문은 그 설명을 제시하지 않고
+\textbf{경계의 위치만} 보고한다. ⚠\textbf{아직 측정되지 않은 후보}는 \textbf{관측 기하}
+(거리$\cdot$입사각$\cdot$폐색 --- 잡음의 \emph{크기}가 아니라 \emph{어디서 오는가}),
+\textbf{창 길이와 시간축}, \textbf{창 안에서 스펙트럼이 변하지 않는다는 전방모델의 정상성
+가정}, \textbf{스테레오 재구성면 자체의 오차}(참값을 검증할 독립 자료가 없다), 그리고
+\textbf{사이트 기하와 레코드 구성}이다.
+
+⚠\emph{[범위]} 이 개입은 창 $1$개 · 추정기 시드 $1$개 · $12$ 레코드 · $4$
+사이트에서 수행되었고, 관측은 여전히 실측 표면의 \textbf{합성 희소화}다. $\sigma = 0$ 과
+$12{,}000$ 관측은 \emph{용량}의 측정이지 운용 가능성의 측정이 아니다. ⛔외부 기준선 행은
+$0$개이므로 어떤 모서리에서도 경쟁자 대비 우열을 주장하지 않는다.
 
 \subsection{적응형 모델 차수}
 \label{sec:adaptive}
@@ -3062,6 +3265,63 @@ $\Delta k$ 는 기준선 격자에서 도출하였다($2\pi/L_x = 0.02618$\,rad/
 달라 자체 기계로 보상할 수 있다. ⚠스냅은 등방($\Delta k$ 하나)이므로 $y$ 축에서는 기준선보다
 \emph{고운} 격자를 준 셈이고, 그 유리한 조건에서도 손해가 발생하였다.
 ⚠스냅 이후 파수를 다시 최적화하지 않으므로, 재는 것은 \emph{최적화가 끝난 뒤의 연속성}이다.
+
+% ADDED 2026-08-26 (B-19): 위 절제는 혼잡 층에서만 측정되어 있었고 B-16 의 RESULT 가
+% 스스로 "희소 층은 미측정" 이라 적었다. 그 칸을 채운다 -- 기여 ①이 두 층 모두에서
+% 절제로 지탱된다. 근거: tmp/B19_KGRID_SPARSE_2026-08-25/verdict_b19.json
+%   (label = CONTINUOUS-K-EARNS-SPARSE · dose_label = DOSE-RESPONSE · 게이트 19/19 PASS)
+% ⛔크기를 B-16/B-12/B-1 과 직접 비교하지 않는다(그 배치의 사전등록 §9-2).
+% ⛔"희소 크기 인용 금지" 는 이 절제로 풀리지 않는다(같은 사전등록 §9-8).
+\paragraph{표현 절제 --- 희소 층에서의 재측정 (2026-08-26)}
+위 절제는 \emph{혼잡 층}에서만 수행되었다. 같은 개입을 \textbf{희소 층}에 그대로
+적용하였다 --- 배포 파이프라인을 그대로 둔 채 초기화 종료 시점에 파수만 간격 $\Delta k$
+격자에 반올림하고 $(w,\phi)$ 를 최소제곱으로 다시 맞춘다. 학습 제안$\cdot$변수 투영$\cdot$
+추적$\cdot$적응형 차수$\cdot$정규화 계수$\cdot$라우팅은 모두 동일하며, 추적이 w\_phi
+모드라 파수가 고정되므로 절제가 끝까지 유지된다. 표본은 $16$ 에피소드이고 셀마다
+추정기 시드 $3$개의 중앙값을 쓴다. $\Delta k$ 는 앞 문단과 같은 값이다 --- 희소 $16$개와 혼잡 $48$개가 \textbf{같은 채점
+격자}를 쓰므로 $2\pi/L_x = 0.02618$\,rad/m 가 두 층에서 동일하며, 에피소드 $16$개
+전부에서 자료로부터 재도출하여 확인하였다(상대 편차 최대 $2.3\times10^{-6}$).
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+대조 & 우세 에피소드 & 상대 중앙 & 단측 $p$ \\
+\midrule
+연속 파수 $<$ 격자 스냅 ($\Delta k$) & $\mathbf{14/16}$ & $\mathbf{-67.43\%}$ & $\mathbf{0.0021}$ \\
+격자 스냅 ($\Delta k$) $<$ 격자 스냅 ($2\Delta k$) & $14/16$ (동점 $1$) & $-24.62\%$ & $0.0021$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+⟹ ★\textbf{희소 층에서도 격자에 스냅하면 오차가 커지고, 간격을 두 배로 하면 더 커진다}
+--- 두 대조 모두 가족단위 $\alpha = 0.025$(사전 선언된 주장 둘)를 통과한다.
+따라서 \textbf{연속 파수는 두 층 모두에서 이득의 담지자 쪽이며, 기여 ①이 두 층에서
+절제로 지탱된다}(\S\ref{sec:contributions}).
+
+\textbf{음성 대조.} 절제 비교가 뜻을 가지려면 원 팔에 \emph{뺄 기술}이 있어야 한다.
+자료에서 산출한 참 제로필드 기준으로 원 팔은 $15/16$($p = 2.6\times10^{-4}$,
+중앙 $-76.84\%$)로 기술을 보인다. ⚠\textbf{반면 스냅한 팔은 $12/16$ 으로 문턱에 정확히
+걸친다}($p = 0.038$; 이 값은 명목 문턱 $12$ 이지 확증 문턱 $13$ 이 아니다) --- 즉
+\textbf{절제된 팔은 무기술에 가깝다}. 간격을 두 배로 한 팔은 참 제로필드에 $2/16$ 으로
+진다($+27.34\%$). ⟹ 용량--반응은 \emph{순서}(간격이 커지면 더 나빠진다)로만 읽고,
+그 상대 중앙 $-24.62\%$ 를 성능 margin 으로 인용하지 않는다(무기술 팔 대비 크기는
+비교량이 아니다).
+
+\textbf{표본 서술(필수).} ⛔이 표본을 ``HOS $M{=}3$ 비선형 참값''으로 \emph{단일
+서술}하지 않는다. 참값 메시의 분해능 판정이 세 등급으로 갈리기 때문이다 --- 희소
+$16$ = \texttt{ADEQUATE} $11$ $\cdot$ \texttt{DEGRADED} $2$ $\cdot$
+\textbf{\texttt{INADEQUATE} $3$} 이며, \textbf{\texttt{INADEQUATE} 는 앞의 혼잡
+코퍼스($48$ = $31\cdot17\cdot0$)에 한 건도 없는 등급}이다(그 $3$개는 참 파랑 분산의
+$83.6$--$99.8\%$ 가 HOS 메시 아래에 있다). ⛔등급으로 층을 나누어 재검정하지 않는다
+($n = 16$ 을 쪼개면 검정력이 없다) --- \textbf{나누지 말고 적기만 한다.}
+
+⚠\emph{[범위]} ①\textbf{크기를 위 $-38.61\%$ 및 \S\ref{sec:results_b1} 의 크기와
+직접 비교하지 않는다} --- 표본$\cdot$참값$\cdot$비선형성 실현 등급 분포가 모두 다르다.
+주장하는 것은 \emph{같은 방향}이라는 것뿐이다.
+②\textbf{이 배치에 외부 기준선 행은 $0$개다} --- 이것은 \emph{본 방법 내부의 절제}이며,
+``희소 층에서 기준선을 이긴다''는 별개의 측정이고 \textbf{그 층의 크기 인용 금지는 이
+절제로 풀리지 않는다.} ③⛔``격자 기반 방법이 원리적으로 열등하다''로 확대하지 않는다
+--- 위와 같은 이유이며, 스냅은 등방($\Delta k$ 하나)이라 $y$ 축에서는 오히려 고운 격자다.
 
 \paragraph{센서 모형에 대한 견고성 (2026-08-24)}
 제\ref{sec:obs_model}절이 지적한 대로 본 논문의 코퍼스는 반환 확률의 입사각 의존성이
@@ -5327,7 +5587,10 @@ nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
 \paragraph{실측 자료 (2026년 8월)}
 % NEW 2026-08-23: 6장에 '실측' 이 한 번도 등장하지 않았다. 제1장·제3장과 어긋난다.
 보유 실측 자료(고정 관측소 스테레오 $12$ 레코드)에 대해, 본 논문이 주장하는 순차 추적·
-전방 예보 프로토콜로 측정하였다. 결론은 셋이다.
+전방 예보 프로토콜로 측정하였다.
+% CORRECTED 2026-08-26 (B-18/B-17): 아래 항목이 셋에서 넷이 되었다. 개수 표기가
+% 목록과 어긋나는 것은 이 저장소가 반복해서 대가를 치른 "문서가 절반만 따라왔다" 부류다.
+결론은 넷이다.
 \begin{itemize}
   \item \textbf{제안하는 격자 비의존 표현은 실측 입력에서 기술을 보이지 않는다}
         (전방 $1$--$3$\,s $36$ 창 중 $12$). 이는 개입 부재에 의한 것이 아니며
@@ -5344,6 +5607,18 @@ nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
   \item \textbf{실측에서는 외부 기준선 대비 우열을 주장하지 않으며, 그 부재가 측정된
         한계다} --- 격자 기반 앙상블 칼만 기준선 두 종을 독립적으로 재현하였고 둘 다
         무기술 기준을 넘지 못하였다.
+  % ADDED 2026-08-26 (B-18/B-17): 제3장이 소거 결과를 실었으므로 결론도 같은 지위를
+  % 말해야 한다("문서가 절반만 따라왔다" 부류의 재발 방지).
+  % 근거: tmp/B18_DENSITY_NOISE_2026-08-25/verdict_b18.json (NEITHER-SUFFICIENT) ·
+  %       tmp/B17_REALNOISE_2026-08-25/verdict_b17.json (전 팔 REALNOISE-NULL)
+  \item \textbf{그 음성의 원인은 개입으로 측정한 네 후보 밖에 있다.} 잡음의 \emph{형태}
+        (본 논문 자신의 거리$\cdot$입사각 곡선을 포함하여), 표현의 \emph{용량},
+        \emph{센서 모형}, 그리고 마지막 후보였던 \emph{관측의 희소성}을 각각 개입으로
+        시험하였고 \textbf{어느 것도 문턱을 넘지 못하였다} --- 밀도와 잡음을 완전요인으로
+        준 네 모서리에서 회복 레코드가 $8\cdot8\cdot4\cdot8$ / $12$ 이다(문턱 $10$).
+        ⛔\textbf{이는 원인의 지목도 후보의 부재 증명도 아니다}($n = 12$이고 밀도의
+        방향은 맞다, 상대 중앙 $-11.15\%$). ⟹ 본 논문은 \textbf{작동 경계의 위치를
+        보고하고 그 설명은 제시하지 않는다}(\S\ref{sec:init-bank}).
 \end{itemize}
 ⚠\textbf{[범위]} 사이트가 $4$곳뿐이므로 사이트 수준으로 일반화하지 않는다. 또한 보유
 실측 자료는 전부 고정 관측소이므로, 이동 플랫폼에서의 조우 예보 갭은 이 자료로 닫히지 않는다.

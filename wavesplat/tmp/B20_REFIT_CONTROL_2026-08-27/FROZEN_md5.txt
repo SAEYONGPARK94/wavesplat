@@ -1,0 +1,40 @@
+# B-20 동결 — **재적합 교락 통제** (2026-08-27). ★**결과 0행**에서 작성됐다.
+# (배선 확인용 1 셀 스모크는 돌렸고 본 것 전부를 PREREG §10 에 공개했다. 결과 파일은 지웠다.)
+#
+# ⚠경로는 **저장소 상대**다 — `tmp/_audit/check_batch_artifacts.py` 는 동결 목록의 경로를
+#   배치 기준 → 부모 기준 → **저장소 기준** 순으로 푼다. B-16·B-15 처럼 맨 파일명만 적으면
+#   그 경로가 존재하지 않아 md5 열이 조용히 건너뛰어진다(2026-08-25 실측). 여기서는 검사가 돈다.
+#
+# ── 1. 이 배치의 판정 코드 (검사기의 ★자기동결 열이 이 넷을 요구한다) ────────────
+46e669c08650dd27325414596ade3dfb  tmp/B20_REFIT_CONTROL_2026-08-27/PREREG.md
+6d826c9db9c2535329cdfce8b56a4d5d  tmp/B20_REFIT_CONTROL_2026-08-27/gates_b20.py
+c77e2298cce9d76e9fa8e4347dc873e5  tmp/B20_REFIT_CONTROL_2026-08-27/run_b20.py
+56f47dace1686e57736eab72b00f94c5  tmp/B20_REFIT_CONTROL_2026-08-27/analyze_b20.py
+
+# ── 2. ★이 배치가 **import 하는 판정 코드** ─────────────────────────────────────
+#   그 파일이 바뀌면 이 배치의 팔(DK1)·표본(HOS·SPARSE_SEEDS)·시드(EST_SEEDS)·되읽기 규약이
+#   조용히 바뀐다. ⛔이 넷은 **이미 돌아간 배치의 동결물**이므로 **건드리지 않고** 대조만 한다.
+43c2573651d1a7998df89ee0a58ec091  tmp/B19_KGRID_SPARSE_2026-08-25/gates_b19.py
+5f731dfdc56a292ea139b3b40be9348d  tmp/B16_KGRID_2026-08-24/gates_b16.py
+37d0ddd3aca03118ae41d52c8324e0b5  tmp/B11_HOS_BASELINE_2026-08-23/gates_b11.py
+e4e25c95408aa30001cb8c6f64589b4c  tmp/B11_HOS_BASELINE_2026-08-23/gates_b11b.py
+
+# ── 3. ★판정이 **읽는 자료** ───────────────────────────────────────────────────
+#   results_b19_*.jsonl = 양성대조(G-11·G-11b) · ZERO 교차검증(G-12) · MAG_MAIN 의 기준.
+#   verdict_b12.json    = PP_BAND(§7.3) 의 단일출처.
+a0d43382420f134297fa25547552cd38  tmp/B19_KGRID_SPARSE_2026-08-25/results_b19_0.jsonl
+8beeec241a0d3073f255922759b8b3f5  tmp/B19_KGRID_SPARSE_2026-08-25/results_b19_1.jsonl
+0609dfe7387e90e9c796ea152b0f9096  tmp/B19_KGRID_SPARSE_2026-08-25/results_b19_2.jsonl
+e323a3d91e08aadc737c3eaf82702838  tmp/B19_KGRID_SPARSE_2026-08-25/results_b19_3.jsonl
+867b96f62d1a6ef9790c24c36ea599cf  tmp/B12_HOS_EXTEND_2026-08-23/verdict_b12.json
+
+# ── 4. 패키지 임포트 경로 (행의 `import_md5` 와 대조 가능) ──────────────────────
+#   ⚠이 일곱이 **뒤에** 바뀌는 것은 정상이다 — 런은 그 시점 코드로 돌았다.
+#   심각한 신호는 검사기의 `★자기동결` 열뿐이다.
+10e407348291e0438a94f459f4757c27  wavesplat/run.py
+dedb685a6735517d21285ddc5d36075d  wavesplat/optimizer/sequential_update.py
+5ebcf5a3d6c11d44f41eec920e38594f  wavesplat/optimizer/learned_init.py
+039e2273264893629c0288de92b8903b  wavesplat/optimizer/varpro.py
+5f9e1117609b98879d042fef98cad526  wavesplat/model/tnse.py
+88fe53a8b8564813a33681fd100e0169  wavesplat/model/dispersion.py
+f620548a3413bc0eedf84caea8d9cbaa  wavesplat/evaluation/metrics.py

@@ -1,0 +1,201 @@
+{
+ "b16_vs_true_zero": {
+  "SHIP-NOW": {
+   "n": 48,
+   "better": 48,
+   "n_tie": 0,
+   "rel_median_pct": -48.657612739556,
+   "p_one_sided": 3.552713678800501e-15
+  },
+  "KGRID1": {
+   "n": 48,
+   "better": 38,
+   "n_tie": 0,
+   "rel_median_pct": -11.472168908696297,
+   "p_one_sided": 3.0848203888211856e-05
+  },
+  "KGRID2": {
+   "n": 48,
+   "better": 6,
+   "n_tie": 0,
+   "rel_median_pct": 20.073906219152782,
+   "p_one_sided": 0.9999999931597578
+  }
+ },
+ "b16_median_zero_nRMSE": 0.2467623190955,
+ "b16_primary_rederived": {
+  "n": 48,
+  "better": 46,
+  "n_tie": 0,
+  "rel_median_pct": -38.6069561633153,
+  "p_one_sided": 4.1815439999481896e-12
+ },
+ "b16_dose_rederived": {
+  "n": 48,
+  "better": 47,
+  "n_tie": 0,
+  "rel_median_pct": -26.276993312258668,
+  "p_one_sided": 1.7408297026122455e-13
+ },
+ "vs_spec25": {
+  "S13 계열 (median-of-3, 2026-08-12~13)": {
+   "n": 64,
+   "better": 59,
+   "n_tie": 0,
+   "rel_median_pct": -24.39923160819943,
+   "p_one_sided": 4.5014084690611633e-13
+  },
+  "W15 PRE (배포 전, 시드 1626-1628)": {
+   "n": 64,
+   "better": 58,
+   "n_tie": 0,
+   "rel_median_pct": -41.04126731372462,
+   "p_one_sided": 4.5145094802225005e-12
+  },
+  "W15 POST (배포 후, 시드 1626-1628)": {
+   "n": 64,
+   "better": 58,
+   "n_tie": 0,
+   "rel_median_pct": -43.49796077904935,
+   "p_one_sided": 4.5145094802225005e-12
+  },
+  "W16 = B-1 헤드라인 (배포 후, 시드 1629-1631)": {
+   "n": 64,
+   "better": 62,
+   "n_tie": 0,
+   "rel_median_pct": -38.57956311704989,
+   "p_one_sided": 1.1281123604711674e-16
+  }
+ },
+ "arm_vs_arm": {
+  "W15 POST (배포 후, 시드 1626-1628)  <  W15 PRE (배포 전, 시드 1626-1628)": {
+   "n": 64,
+   "better": 4,
+   "n_tie": 54,
+   "rel_median_pct": 0.0,
+   "p_one_sided": 0.9999999999999977
+  },
+  "W16 = B-1 헤드라인 (배포 후, 시드 1629-1631)  <  W15 POST (배포 후, 시드 1626-1628)": {
+   "n": 64,
+   "better": 32,
+   "n_tie": 0,
+   "rel_median_pct": -0.7324937676072367,
+   "p_one_sided": 0.5496733768739834
+  },
+  "W16 = B-1 헤드라인 (배포 후, 시드 1629-1631)  <  W15 PRE (배포 전, 시드 1626-1628)": {
+   "n": 64,
+   "better": 34,
+   "n_tie": 0,
+   "rel_median_pct": -4.068730664309836,
+   "p_one_sided": 0.353990377067382
+  }
+ },
+ "spread_pp": {
+  "min": -43.49796077904935,
+  "max": -24.39923160819943,
+  "range_pp": 19.09872917084992,
+  "seed_only_pp": 4.918397661999464
+ },
+ "deploy_readback": {
+  "W15 POST": {
+   "varpro_steps": [
+    400
+   ],
+   "init_iters": [
+    0
+   ],
+   "ensemble_k": [
+    1
+   ],
+   "seeds": [
+    1626,
+    1627,
+    1628
+   ]
+  },
+  "W16": {
+   "varpro_steps": [
+    400
+   ],
+   "init_iters": [
+    0
+   ],
+   "ensemble_k": [
+    1
+   ],
+   "seeds": [
+    1629,
+    1630,
+    1631
+   ]
+  }
+ },
+ "panel_metric_keys_in_citable_batches": {
+  "B-1/W16": [],
+  "B-1/S16": [],
+  "B-12": [],
+  "B-15": [],
+  "B-16": [],
+  "B-19": []
+ },
+ "thesis_provenance_rows": 9,
+ "gates": [
+  [
+   "★A-0 양성대조: B-16 `SHIP-NOW` 가 B-12 동결 행과 비트 동일",
+   true,
+   "144/144 일치 · 불일치 0"
+  ],
+  [
+   "A-1 참 제로필드가 에피소드 안에서 불변 · 48 에피소드",
+   true,
+   "48 에피소드 · 값 개수 [1]"
+  ],
+  [
+   "A-2 에피소드 집합 완전 일치 (B-16 팔 3개 ∩ 제로필드)",
+   true,
+   "교집합 48 / 합집합 48"
+  ],
+  [
+   "★A-3 동결 `verdict_b16.json` 재현 (primary·dose)",
+   true,
+   "primary 46/48 -38.61% · dose 47/48 -26.28%"
+  ],
+  [
+   "B-0 네 팔이 모두 SPEC25 와 같은 64 혼잡 에피소드",
+   true,
+   "S13:64 · W15:64 · W15:64 · W16:64"
+  ],
+  [
+   "★B-1 W15 POST 와 W16 은 배포 상수 동일 · 추정기 시드만 다르다",
+   true,
+   "{\"W15 POST\": {\"varpro_steps\": [400], \"init_iters\": [0], \"ensemble_k\": [1], \"seeds\": [1626, 1627, 1628]}, \"W16\": {\"varpro_steps\": [400], \"init_iters\": [0], \"ensemble_k\": [1], \"seeds\": [1629, 1630, 1631]}}"
+  ],
+  [
+   "C-0 인용 가능 08월 배치에 6-지표 패널 채점 열이 0개",
+   true,
+   "{\"B-1/W16\": [], \"B-1/S16\": [], \"B-12\": [], \"B-15\": [], \"B-16\": [], \"B-19\": []}"
+  ],
+  [
+   "★D-0 원고 주석 유래표의 정확값·반올림이 출처와 일치",
+   true,
+   "9 행 검사 · 이탈 0"
+  ]
+ ],
+ "gates_pass": 8,
+ "gates_total": 8,
+ "batch": "T2-RECHECK",
+ "runs": 0,
+ "source_results": [
+  "tmp/B16_KGRID_2026-08-24/results_b16_0.jsonl",
+  "tmp/B16_KGRID_2026-08-24/results_b16_1.jsonl",
+  "tmp/B16_KGRID_2026-08-24/results_b16_2.jsonl",
+  "tmp/B16_KGRID_2026-08-24/results_b16_3.jsonl",
+  "tmp/B12_HOS_EXTEND_2026-08-23/results_b12.jsonl",
+  "tmp/S16_BASELINE_2026-08-14/results.jsonl",
+  "tmp/W16_REBASELINE_2026-08-22/results.jsonl",
+  "tmp/W15_DEPLOY_VERIFY_2026-08-22/results.jsonl",
+  "tmp/S13_oos_2026-08-12/results.jsonl",
+  "tmp/S13b_seed_robust_2026-08-13/results_s13b.jsonl"
+ ],
+ "_honesty": "사후 재집계다 — `B-16` 사전등록에 음성 대조가 없었다. 방향이 **주장을 빼는 쪽**이라 허용하되, 그 사실을 원고에 적는다."
+}

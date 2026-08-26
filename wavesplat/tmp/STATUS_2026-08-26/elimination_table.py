@@ -20,13 +20,37 @@
   2. 인용하는 배치의 게이트가 전건 통과다 (⛔`B-14` 는 예외 — `G-1` FAIL 이라
      **축 A 를 읽지 않는다**. 이 표는 `B-14` 에서 **축 B(`h2`) 만** 읽는다)
   3. 각 행이 읽는 라벨이 verdict 의 라벨과 글자 그대로 일치한다
+  4. *"`B-17` 짝 전 팔 널"* · *"`B-18` 전 모서리 미달"* 두 **전칭 주장**이 자료에서 참이다
+  5. ★**한 칸이 두 후보를 정반대로 읽지 않는다** (2026-08-27 신설 — 아래)
+  6. ★**판정 규칙이 런 전 동결본이다** (`gates_b14.py` md5 대조)
+
+★★**2026-08-27 강등: `표현의 용량` = `⛔아니다` → `⚠미결`.**
+   이 표의 **용량** 행과 **둘의 조합** 행이 ***글자 그대로 같은 설계 칸***
+   (`m=300` · `σ=0` · 관측 $12{,}000$)을 읽고 있었고, 서로 **정반대 방향**으로 썼다:
+     · 용량 행   — `B-14` 축 B 에서 **10/12** ⟹ *"표현은 충분하다"* ⟹ 용량 **소거**
+     · 조합 행   — `B-18` `D_BOTH` 에서 **8/12** ⟹ *"둘 다 줘도 회복 못 한다"* ⟹ 희소성 **소거**
+   한 칸이 두 후보를 겸직할 수 없다. 게다가 **8/12 가 수리 후 값**이다
+   (난수 규약 결함 = *"σ=0 에서 `rng.normal` 을 건너뛴다"*, `B-14` 축 B 는 **48/48 이 σ=0**).
+   ⟹ 용량을 소거한 유일한 근거는 **결함 있는 선행 측정**이므로 행을 **미결**로 내린다.
+   ⛔이것은 *"표현이 벽이다"* 로 뒤집히지도 않는다 — 동결 라벨 규칙에서 8 은 `≤6`(벽)도 아니다.
+   자기검증 (4) 가 이 부류의 재발을 **기계로** 막는다.
 """
+import hashlib
+import io
 import json
 import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TMP = os.path.dirname(HERE)
+
+# ★`B-14` 의 **런 전 동결** 판정 규칙을 그대로 불러 쓴다(⛔문턱을 손으로 옮기지 않는다).
+#   `gates_b14.py` 는 2026-08-24 22:22 결과 0행에서 동결됐고 지금도 그 해시다
+#   (`FROZEN_md5.txt` 첫 블록 `e2d2e34e6d679f9a49e28efdd178eccf`) — 자기검증 (5) 가 대조한다.
+B14_DIR = os.path.join(TMP, "B14_OBSMODEL_2026-08-24")
+if B14_DIR not in sys.path:
+    sys.path.insert(0, B14_DIR)
+import gates_b14 as G14                                          # noqa: E402
 
 V = {
     "B-14":  os.path.join(TMP, "B14_OBSMODEL_2026-08-24",   "verdict_b14.json"),
@@ -74,17 +98,51 @@ def row_noise_shape(d):
              ("B-17-paired", sorted(labels)[0] if len(labels) == 1 else "MIXED")])
 
 
+def capacity_cells(d):
+    """용량 행이 읽는 **하나의 설계 칸**을 선행/수리후 두 측정으로 돌려준다.
+
+    `B-14` 축 B 의 최상단 칸(`m=300` · σ=0 · 관측 12,000)과 `B-18` 의 `D_BOTH` 는
+    **같은 칸**이다. `B-18` 이 결과 안에 대조를 직접 실어 두었다
+    (`sigma0_vs_b14_axisB`, 게이트 `G-1c` 가 48/48 셀 구조 일치를 확인).
+    """
+    top_m = max(d["B-14"]["h2"], key=int)                 # '300'
+    cmp_ = d["B-18"]["sigma0_vs_b14_axisB"]["m%s" % top_m]
+    return top_m, cmp_["b14_axisB_beats"], cmp_["b18_beats"], d["B-14"]["h2"][top_m]["n"]
+
+
 def row_capacity(d):
-    """표현의 **용량** — `B-14` 축 B(밀도 사다리, 전부 σ=0)."""
+    """표현의 **용량** — ⚠**2026-08-27 `⛔아니다` → `⚠미결` 로 강등.**
+
+    ⛔**강등 사유 둘, 둘 다 기계로 확인된다.**
+    ① ★`RESULT_B14.md:36` 의 면제 문장(*"축 B 는 ②(난수 결함)의 영향을 받지 않는다"*)이
+       **거짓**이다 — 축 B 는 `PREREG.md:46` 이 적은 대로 **σ=0 고정**이고 실제 결과에서도
+       **48/48 행이 σ=0** 인데, 결함 ②가 정확히 *"σ=0 에서 `rng.normal` 을 건너뛴다"* 였다.
+       면제 사유가 아니라 **영향권 그 자체**다. `B-14b` 는 **축 A 만**(144행 전부 축 A)
+       다시 쟀으므로 축 B 는 그 배치에서 재측정된 적이 **없다**.
+    ② 수리 후 **같은 칸**을 다시 잰 것이 `B-18` 의 σ=0 열이고 **10/12 → 8/12** 다.
+       `B-14` 자신의 **런 전 동결** 규칙(`gates_b14.label_h2`)에 8 을 넣으면
+       `REPRESENTATION-UNDECIDED`(*문턱 사이*)가 나온다.
+    ⟹ 용량을 소거한 유일한 근거는 **결함 있는 선행 측정**이다.
+    ⛔단 반대쪽으로도 뒤집히지 않는다: 8 은 `REPRESENTATION-IS-THE-WALL` 문턱(≤6)도 아니다.
+    """
     h2 = d["B-14"]["h2"]
-    top = max(h2.items(), key=lambda kv: int(kv[0]))
-    ev = ("`B-14` 축 B: 관측 %d 개(m=%s)에서 참 제로필드를 **%d/%d** 로 이기고 "
-          "오차가 밀도에 단조 감소 (%s), p=%.5f"
-          % (int(top[1]["median_obs"]), top[0], top[1]["beats_zero"], top[1]["n"],
-             "→".join("%.3f" % h2[k]["median_nrmse"] for k in sorted(h2, key=int)),
-             d["B-14"]["h2_p_one_sided"]))
-    note = "⚠**명목만**(가족단위 미달) + 배포의 25배 관측 ⟹ `EXPLORATORY`. ⛔운용 가능성 주장 아님"
-    return ("표현의 **용량**", "⛔아니다", ev, note, [("B-14/h2", d["B-14"]["h2_label"])])
+    top_m, was, now, n = capacity_cells(d)
+    lab_was, _ = G14.label_h2(was)
+    lab_now, txt_now = G14.label_h2(now)
+    ev = ("★**같은 칸이 두 번 측정됐다** (m=%s · σ=0 · 관측 %d) — 선행 `B-14` 축 B **%d/%d** "
+          "(`%s`, p=%.5f) → ★난수 규약 수리 후 `B-18` σ=0 열 **%d/%d** (p=%.4f). "
+          "동결 규칙 `gates_b14.label_h2(%d)` = **`%s`** (%s; 충분 ≥%d · 벽 ≤%d)"
+          % (top_m, int(h2[top_m]["median_obs"]), was, n, lab_was,
+             d["B-14"]["h2_p_one_sided"], now, n, G14.sign_test_one_sided(now),
+             now, lab_now, txt_now, G14.NOMINAL, G14.FLOOR_FAIL))
+    note = ("⛔★**`RESULT_B14.md:36` 의 면제 문장은 철회됐다** — 축 B 는 48/48 이 σ=0 이고 "
+            "결함이 바로 σ=0 가지였다(`B-14b` 는 **축 A 만** 재측정). "
+            "⛔*\"표현이 벽\"* 으로도 읽지 마라(8 > %d). "
+            "⚠소거표의 **둘의 조합** 행과 ***같은 칸***이다 — 한 칸을 두 후보에 겸직시키지 않는다."
+            % G14.FLOOR_FAIL)
+    return ("표현의 **용량**", "⚠**미결**", ev, note,
+            [("B-14/h2(선행·결함)", d["B-14"]["h2_label"]),
+             ("B-14/h2(수리후·파생)", lab_now)])
 
 
 def row_sensor(d):
@@ -138,9 +196,12 @@ def row_both(d):
           "상호작용 %s (I<0 %d/%d, 양측 p=%.4f)"
           % (D["m_scan"], D["noise"], D["beats_zero"], D["n"], th["nominal"],
              it["label"], it["synergy_count"], it["n"], it["p_two_sided"]))
-    note = ("⚠★**라벨을 가른 칸이 여기다** — 이 셀은 `B-14` 축 B 에서 문턱 **정확히 10/12** 였고 "
-            "난수 규약 수리 뒤 **%d/%d** 다 ⟹ *\"둘 다 줘도 회복 못 한다\"* 를 **강하게 읽지 마라**"
-            % (D["beats_zero"], D["n"]))
+    _, was, now, _ = capacity_cells(d)
+    note = ("⚠★**라벨을 가른 칸이 여기다** — 이 셀은 `B-14` 축 B 에서 문턱 **정확히 %d/%d** 였고 "
+            "난수 규약 수리 뒤 **%d/%d** 다 ⟹ *\"둘 다 줘도 회복 못 한다\"* 를 **강하게 읽지 마라**. "
+            "★**그리고 이 칸은 위 \"표현의 용량\" 행이 읽는 칸과 동일하다** — 그래서 그 행을 "
+            "2026-08-27 에 **미결로 내렸다**(한 칸은 두 후보를 겸직할 수 없다)"
+            % (was, D["n"], now, D["n"]))
     return ("**둘의 조합**", "⛔아니다", ev, note, [("B-18/interaction", it["label"])])
 
 
@@ -206,6 +267,48 @@ def check(d):
     for a, c in d["B-18"]["primary"].items():
         if c["beats_zero"] >= nom18:
             errs.append("B-18 모서리 %s 가 문턱 %d 이상 — '전 모서리 미달' 이 거짓" % (a, nom18))
+
+    # ── (5) ★한 칸이 두 후보를 정반대로 읽지 않는가 (2026-08-27 신설) ────────
+    # ⛔공허한 통과 금지: 아래는 **낡은 표(용량=⛔아니다)에서 실제로 FAIL 한다.**
+    D = d["B-18"]["primary"]["D_BOTH"]
+    top_m, was, now, n = capacity_cells(d)
+    if int(top_m) != D["m_scan"] or float(D["noise"]) != 0.0:
+        errs.append("용량 행의 칸(m=%s·σ=0)과 D_BOTH(m=%d·σ=%s)가 다르다 — "
+                    "이 자기검증의 전제가 낡았다"
+                    % (top_m, D["m_scan"], D["noise"]))
+    elif now != D["beats_zero"]:
+        errs.append("같은 칸인데 수치가 다르다: sigma0_vs_b14_axisB=%d · D_BOTH=%d"
+                    % (now, D["beats_zero"]))
+    cap_verdict = row_capacity(d)[1]
+    both_verdict = row_both(d)[1]
+    # 같은 칸을 근거로 한쪽은 '소거', 다른 쪽도 '소거' 로 나가면 겸직이다.
+    if now < nom18 and "미결" not in cap_verdict:
+        errs.append("★겸직: 용량 행이 %r 인데 그 칸의 수리 후 값은 %d/%d 로 문턱 %d 미달이다 "
+                    "(선행 결함 측정 %d/%d 를 근거로 소거할 수 없다)"
+                    % (cap_verdict, now, n, nom18, was, n))
+    if "미결" not in cap_verdict and "아니다" in both_verdict:
+        errs.append("★겸직: 같은 칸이 '용량 소거'(%r)와 '희소성 소거'(%r)를 동시에 지탱한다"
+                    % (cap_verdict, both_verdict))
+    # 수리 후 값이 동결 규칙의 '문턱 사이' 대역인지 (강등의 근거)
+    if not (G14.FLOOR_FAIL < now < G14.NOMINAL):
+        errs.append("수리 후 %d 가 더는 '문턱 사이'(%d<w<%d)가 아니다 — 용량 행 문구를 다시 써라"
+                    % (now, G14.FLOOR_FAIL, G14.NOMINAL))
+
+    # ── (6) 동결 판정 규칙을 읽고 있는가 (md5 대조) ──────────────────────────
+    fz = os.path.join(TMP, "B14_OBSMODEL_2026-08-24", "FROZEN_md5.txt")
+    with open(G14.__file__.replace(".pyc", ".py"), "rb") as f:
+        got = hashlib.md5(f.read()).hexdigest()
+    want = None
+    for ln in io.open(fz, encoding="utf-8"):
+        p = ln.split()
+        if len(p) == 2 and p[1] == "gates_b14.py":
+            want = p[0]                      # 첫 등장 = 런 **전** 동결
+            break
+    if want is None:
+        errs.append("FROZEN_md5.txt 에 gates_b14.py 행이 없다")
+    elif got != want:
+        errs.append("gates_b14.py 가 런 전 동결과 다르다: %s != %s — 판정 규칙이 이동했다"
+                    % (got, want))
     return errs
 
 
@@ -215,27 +318,50 @@ def main():
     if "--check" in sys.argv:
         for e in errs:
             print("FAIL:", e)
-        print("OK — 6 verdict · 게이트 · 라벨 · 두 전칭 주장 전건 확인" if not errs
-              else "FAILED (%d)" % len(errs))
+        print("OK — 6 verdict · 게이트 · 라벨 · 두 전칭 주장 · ★겸직 · ★동결 md5, "
+              "여섯 항목 전건 확인" if not errs else "FAILED (%d)" % len(errs))
         return 1 if errs else 0
     if errs:
         for e in errs:
             print("⛔ SELF-CHECK FAIL:", e)
         print()
 
-    print("# 소거표 — 실측 12 레코드의 음성은 무엇으로 설명되는가 (2026-08-26)")
+    print("# 소거표 — 실측 12 레코드의 음성은 무엇으로 설명되는가 "
+          "(2026-08-26 · ★**용량 행 강등 2026-08-27**)")
     print()
     print("⛔**소거법이다.** 각 행은 *\"이 후보가 문턱을 넘지 못했다\"* 이지 "
           "*\"이 후보가 원인이 아님이 증명됐다\"* 가 아니다 — 문턱 미달은 부재의 증명이 아니다.")
+    print()
+    print("★**이 표는 세 가지를 구분한다** — 섞어 읽으면 안 된다:")
+    print()
+    print("| 지위 | 뜻 | 이 표에서 |")
+    print("|---|---|---|")
+    print("| ⛔**개입이 널** | 그 후보를 바꾸는 개입을 했고 기술이 **회복되지 않았다**. "
+          "⛔*원인이 아님의 증명이 아니다*(n=12) | 잡음의 형태 · 잡음의 수준 · "
+          "관측의 희소성 · 둘의 조합 (센서 모형은 **합성 층**의 교락이라 지위가 다르다) |")
+    print("| ⚠**미결** | 판정을 낼 측정이 **철회**됐거나 동결 문턱 **사이**에 떨어졌다 | "
+          "★**표현의 용량** (2026-08-27 강등) |")
+    print("| ⚠**미측정** | 개입을 **한 적이 없다** | 아래 다섯 |")
+    print()
+    _, cap_v, _, _, _ = row_capacity(d)
+    _, _, cap_was, cap_now, cap_n = ("",) + capacity_cells(d)
+    print("⚠★**중요** — 용량 행과 \"둘의 조합\" 행은 ***같은 설계 칸***(m=%s · σ=0)을 읽는다. "
+          "선행 측정 **%d/%d** 는 *\"용량 충분\"*, 수리 후 **%d/%d** 는 *\"둘 다 줘도 회복 못 함\"* "
+          "으로 **정반대로** 쓰였다. 한 칸은 두 후보를 겸직할 수 없으므로 "
+          "**결함 있는 선행 측정에 기댄 용량 소거를 철회**했다(현재 판정 %s)."
+          % (max(d["B-14"]["h2"], key=int), cap_was, cap_n, cap_now, cap_n, cap_v))
     print()
     print("| 후보 | 판정 | 근거 (verdict 에서 읽음) |")
     print("|---|---|---|")
     for b in BUILDERS:
         name, ver, ev, note, _ = b(d)
         print("| %s | %s | %s<br>%s |" % (name, ver, ev, note))
-    print("| ★**남은 것** | **측정된 것 밖** | 아래 목록 — ⛔**어느 것도 측정되지 않았다** |")
+    print("| ★**남은 것** | **측정된 것 밖 + 미결 1건** | 아래 목록(⛔전부 미측정) "
+          "**과 위 \"표현의 용량\"** |")
     print()
     print("### ★남은 후보 (⛔전부 미측정 · 소거의 끝에는 후보 목록이 아니라 **공백**이 남는다)")
+    print()
+    print("⚠**여기에 더해 `표현의 용량` 이 미결로 되돌아와 있다** — 소거된 후보가 아니다.")
     print()
     print("| 남은 후보 | 상태 |")
     print("|---|---|")

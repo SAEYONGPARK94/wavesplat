@@ -1,0 +1,39 @@
+# B-22 동결 (2026-08-27). ⛔**결과 0행**에서 동결한다 — 배치는 아직 돌지 않았다.
+# ⚠경로는 **저장소 상대**다: tmp/_audit/check_batch_artifacts.py 는 동결 목록의 경로를
+#   배치기준 → 부모 → 저장소기준 순으로 푼다. B-16·B-15 처럼 맨 파일명만 적으면 md5 열이
+#   **조용히 건너뛰어진다**(2026-08-25 실측) ⟹ 여기서는 검사가 실제로 돌게 적는다.
+#
+# ── ① 이 배치의 판정 코드 (검사기의 ★자기동결 열이 이 넷을 요구한다) ──────────
+81d35500294edc70b4a9c7fddc089f0b  tmp/B22_PRIOR_ABLATION_2026-08-27/PREREG.md
+71a56dc60e6d2cfb0795ec9c2343bca8  tmp/B22_PRIOR_ABLATION_2026-08-27/gates_b22.py
+a0c669b01f8e104b4f26ac851e6c79db  tmp/B22_PRIOR_ABLATION_2026-08-27/run_b22.py
+e2d5462e9c1cee4b231db672962d7717  tmp/B22_PRIOR_ABLATION_2026-08-27/analyze_b22.py
+#
+# ── ② ★**이 배치가 import 하는 다른 배치의 동결 파일** ────────────────────────
+#   그 파일이 바뀌면 이 배치의 **팔·표본·시드·되읽기 규약이 조용히 바뀐다**.
+#     gates_b12  = 표본(ALL_SEEDS·N_EP=48)          gates_b11 = 코퍼스 경로·EST_SEEDS
+#     gates_b19  = ZERO·되읽기·비교 함수(중복 구현 0)  gates_b16/b11b = gates_b19 의 임포트
+#     gates_w15  = ★`ANA-SHIP` 의 임계 999999 (+ corpus.json 을 import 시 읽는다)
+2186b01913559f9205653c86950ecdc8  tmp/B12_HOS_EXTEND_2026-08-23/gates_b12.py
+37d0ddd3aca03118ae41d52c8324e0b5  tmp/B11_HOS_BASELINE_2026-08-23/gates_b11.py
+e4e25c95408aa30001cb8c6f64589b4c  tmp/B11_HOS_BASELINE_2026-08-23/gates_b11b.py
+43c2573651d1a7998df89ee0a58ec091  tmp/B19_KGRID_SPARSE_2026-08-25/gates_b19.py
+5f731dfdc56a292ea139b3b40be9348d  tmp/B16_KGRID_2026-08-24/gates_b16.py
+18d12ceb5478b276049b8c63ecd431ee  tmp/W15_DEPLOY_VERIFY_2026-08-22/gates_w15.py
+b26deaaaf89bba202c23c95606fcea4d  tmp/W15_DEPLOY_VERIFY_2026-08-22/corpus.json
+#
+# ── ③ ★양성대조·교차검증의 기준 파일 (G-10 · G-11) ───────────────────────────
+#   이 배치의 SHIP 144행이 여기와 **비트 동일**해야 하고, 독립 계산한 ZERO 가
+#   여기의 SPEC25 행 기록과 rtol 1e-5 안이어야 한다.
+ad4bd4168e031f90d4b82287dd518be2  tmp/B12_HOS_EXTEND_2026-08-23/results_b12.jsonl
+#
+# ── ④ 임포트 경로(패키지) — 행의 `import_md5` 와 대조 가능 ────────────────────
+#   ⚠이 여섯이 **뒤에** 바뀌는 것은 정상이다(런은 그때 코드로 돈다). 심각한 신호는
+#   검사기의 ★자기동결 열뿐이다. ⛔이 배치는 `wavesplat/**` 를 **고치지 않는다**
+#   (개입은 이미 노출된 노브 `learned_atoms` 하나 + `varpro_steps` 다).
+10e407348291e0438a94f459f4757c27  wavesplat/run.py
+dedb685a6735517d21285ddc5d36075d  wavesplat/optimizer/sequential_update.py
+5ebcf5a3d6c11d44f41eec920e38594f  wavesplat/optimizer/learned_init.py
+29c737f0e5fc7e58451bd8b7f8610b58  wavesplat/optimizer/initializer.py
+039e2273264893629c0288de92b8903b  wavesplat/optimizer/varpro.py
+f620548a3413bc0eedf84caea8d9cbaa  wavesplat/evaluation/metrics.py

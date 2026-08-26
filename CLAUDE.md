@@ -130,7 +130,9 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
   저장소의 다른 LS `(a,b)→φ` 사이트 5곳은 이미 옳았고 이 줄만 이탈했다. **과거 오염 0건**(전수 확인:
   기본 False · 노출 0 · `git log -S/-G` 0커밋 · 결과 JSON 1,147개에 `refit` 키 0개).
   ★**왜 안 잡혔나**: 같은 함수의 자기진단 `residual_after` 가 **올바른 계수**로 계산되어 두 규약에서
-  비트 동일하다 — **진단은 통과하고 결과만 틀린다.** 회귀 테스트 `wavesplat/tests/test_phase_convention.py` 추가(204→**207**).
+  비트 동일하다 — **진단은 통과하고 결과만 틀린다.**
+  회귀 테스트 `wavesplat/tests/test_phase_convention.py` 추가(204→**207**).
+  ⟹ 일반 규율은 「측정 규율」의 **자기진단** 항목(같은 부류가 `B-2` 수심에서 재발).
 - ✅**`RMSE_near` 는 이제 저장된다**(2026-08-19, `b1467bd`) — `run.py` 가 `avg_RMSE_near` 를 요약에 집계한다.
   그전까지 `metrics.py:433` 이 채운 값을 아무도 집계하지 않았고 `main()` 이 `frame_results` 를 삭제한 뒤
   덤프했다 ⟹ **저장된 모든 결과 파일이 근거리에 구조적으로 눈이 멀어 있었다**(약한 게 아니라 **검출 불가**).
@@ -229,6 +231,25 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
 - ⚠**`effective_config` 를 입력 dict 복사로 만들지 마라(= 의도표)** — S13b 가 **객체 되읽기**로
   `analytic_ensemble_k` 앙상블이 실제로는 **런의 14%(36/256)에서만 작동**함을 드러냈다.
   의도표 방식으로는 보이지 않던 값이다.
+- ★★★**자기진단이 통과하는 것은 판정이 불변이라는 뜻이 아니다.** 같은 부류가 두 번 나왔다:
+  · `amplitude_refit` 위상 부호(위 「Important Design Decisions」 항목) — 같은 함수의 자기진단
+    `residual_after` 가 **올바른 계수**로 계산돼 두 규약에서 **비트 동일**했다
+    ⟹ *"진단은 통과하고 결과만 틀린다."*
+  · ★**`B-2` 수심 `17.0`→`30.0`**(2026-08-26 발견, ⛔`B-2`…`B-2f` 는 **전부 17 로 돌았다**).
+    당시 주석은 효과를 **분산관계에서** 재고 *"Δω = 0.0000–0.0012% ⟹ 수치적으로 무해"* 라 결론했다.
+    **분산관계에는 옳았다.** 그런데 **하류 판정**에서 여럿이 널로 뒤집혔다 —
+    층 분해 Fisher **p 0.0265→0.1591**(참 기준 0.0455→0.2475) ·
+    `B-2b` σ 개입 **10/12 p=0.0193 → 7/12 p=0.3872**. (판정 라벨과 짝 비교의 **부호**는 견뎠다.)
+  ⟹ ★★★**처방: 개입·오류의 효과를 그것이 들어가는 양에서 재지 말고 판정에서 재라.**
+  값이 바뀌면 **그 값을 쓰는 판정을 재실행해 verdict 을 diff** 할 것.
+  본보기 = `tmp/B2_REAL_2026-08-23/depth_recheck.py` — 두 구성을 **나란히 재집계**하고
+  문서와 어긋나면 `AssertionError`(런 0회, 동결 결과 파일만 읽는다).
+- ★**동결 목록은 배치의 모든 판정코드와 그 임포트를 덮어야 한다.** 검사기는 *"동결 뒤에 움직였다"* 만
+  막았고 ***"동결한 적이 없다"*** 는 안 막았다 — ★**후자가 더 나쁘다**: 기준선이 없으면 `md5` 열이
+  영원히 `OK` 를 찍어 **구조적으로 탐지 불가**다(전자는 최소한 탐지된다).
+  2026-08-26 부터 `tmp/_audit/check_batch_artifacts.py` 의 `_judge_files()` 가 이를 강제한다 —
+  배치 안의 `gates*`·`run*`·`analyze*` 와 **그것들이 임포트하는 배치-내 모듈**을 요구하고
+  (`scene_station.py`·`zero_ref.py` 처럼 이름이 규약 밖이어도 잡힌다), 빠지면 `⚠미동결N` 이다.
 
 ## Language
 User prefers Korean for discussion, English for code/technical terms.

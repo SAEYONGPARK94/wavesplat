@@ -1,0 +1,302 @@
+{
+ "batch": "B-18",
+ "n_rows": 180,
+ "n_ok": 180,
+ "shards": [
+  "results_b18_0.jsonl",
+  "results_b18_1.jsonl",
+  "results_b18_2.jsonl",
+  "results_b18_3.jsonl",
+  "results_b18_4.jsonl",
+  "results_b18_5.jsonl"
+ ],
+ "gates": [
+  [
+   "G-5 오류 0행",
+   true,
+   "0 행 오류 / 전체 180"
+  ],
+  [
+   "G-0 표본 수",
+   true,
+   "GRID 144/144 · PC 36/36"
+  ],
+  [
+   "G-1 ★양성대조: PC 팔 = B-14b IID (ABORT)",
+   true,
+   "36/36 비트 동일 (최대 Δ=0.000e+00)"
+  ],
+  [
+   "G-1b 사슬: PC σ=0.02 = B-2b (비-BS 5개)",
+   true,
+   "5/5 비트 동일 (BS 7 은 수심 정정으로 원리적 불가)"
+  ],
+  [
+   "G-1c σ=0 열 = B-14 축 B 구조 일치 + rng 수리 발화(⛔비트 동일 아님)",
+   true,
+   "48/48 셀 대조 · n_obs 일치 48 · z_hash 상이 48"
+  ],
+  [
+   "G-2 ★난수 소비 동수(σ 축에서 P 비트 동일)",
+   true,
+   "60/60 군 동일"
+  ],
+  [
+   "G-3 밀도 개입 발화 + 예산 되읽기",
+   true,
+   "밀도별 P 상이 12/12 · n_obs_used==m_cap True · 캡 규칙 True"
+  ],
+  [
+   "G-3b 잡음 개입 발화(σ 축에서 z 상이)",
+   true,
+   "60/60 군"
+  ],
+  [
+   "G-4 채점 기준 = zero_ref.py 단일출처 (⛔1.0 금지)",
+   true,
+   "최대 Δ=0.000e+00 · 기준 12 종 (범위 0.3375–1.1559)"
+  ],
+  [
+   "G-6 파생 속성 일치(⛔config 되읽기 아님 — sequential_update.py:402/:413)",
+   true,
+   "180/180 행 · upd.lambda_l1=0.0001 · upd.init_method=learned"
+  ],
+  [
+   "G-6b ★개입 계수기(실행된 VARPRO 스텝 · 결합적합 반복수)",
+   true,
+   "180/180 행 일치 · VARPRO 건너뜀 0 · n_iters==0 · varpro_steps==400 · vp_steps_exec==400"
+  ],
+  [
+   "G-6c ★라우터 미발화 확인 ⟹ 팔의 도달 불가 키 2종은 문서용",
+   true,
+   "180/180 행에서 ('_auto_selected', '_auto_n_selected', '_auto_real_gate') 전부 None · real_domain_gate: `:706` 이 `if self.init_method == 'auto':`(`:689`) 블록 **안**에서만 읽는다 ⟹ 명시 `init_method='learned'` 에서는 읽히지 않는다 · auto_switch_thresh: `:1008 _auto_select_init` 안에서만 읽고 그 함수는 auto 경로(`:757`)에서만 불린다 ⟹ 같은 이유로 읽히지 않는다"
+  ],
+  [
+   "G-7 팔 정의 비어있지 않음(⛔`{}` 금지)",
+   true,
+   "{'real_domain_gate': False, 'init_method': 'learned', 'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001}"
+  ],
+  [
+   "G-7b 명시 배포 상수 == DEFAULT_CONFIG",
+   true,
+   "{'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001} vs {'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001}"
+  ],
+  [
+   "G-8 채점 창 동일(레코드별 1종)",
+   true,
+   "12/12 레코드"
+  ]
+ ],
+ "gates_pass": 15,
+ "gates_total": 15,
+ "label": "NEITHER-SUFFICIENT",
+ "label_text": "어느 조합도 회복하지 못한다 (밀도 8/12 · 잡음 4/12 · 둘 다 8/12) ⟹ ★실측 음성의 원인은 **측정된 네 후보 밖**에 있다",
+ "primary": {
+  "A_DEPLOY": {
+   "m_scan": 12,
+   "noise": 0.02,
+   "n": 12,
+   "beats_zero": 8,
+   "p_one_sided": 0.19384765625,
+   "median_nrmse": 0.8011212722953589
+  },
+  "B_DENSE": {
+   "m_scan": 300,
+   "noise": 0.02,
+   "n": 12,
+   "beats_zero": 8,
+   "p_one_sided": 0.19384765625,
+   "median_nrmse": 0.7765894912836167
+  },
+  "C_QUIET": {
+   "m_scan": 12,
+   "noise": 0.0,
+   "n": 12,
+   "beats_zero": 4,
+   "p_one_sided": 0.927001953125,
+   "median_nrmse": 0.8221816996279857
+  },
+  "D_BOTH": {
+   "m_scan": 300,
+   "noise": 0.0,
+   "n": 12,
+   "beats_zero": 8,
+   "p_one_sided": 0.19384765625,
+   "median_nrmse": 0.7767007397900098
+  }
+ },
+ "corner_wins": {
+  "A_DEPLOY": 8,
+  "B_DENSE": 8,
+  "C_QUIET": 4,
+  "D_BOTH": 8
+ },
+ "secondary": {
+  "density_dose": {
+   "n": 12,
+   "better": 8,
+   "p_one_sided": 0.19384765625,
+   "rel_median_pct": -11.146607361008183,
+   "label": "DENSITY-DOSE@shipnoise-NULL",
+   "text": "8/12, p=0.1938"
+  },
+  "noise_dose": {
+   "n": 12,
+   "better": 2,
+   "p_one_sided": 0.996826171875,
+   "rel_median_pct": 13.406050934486913,
+   "label": "NOISE-DOSE@shipdensity-NULL",
+   "text": "2/12, p=0.9968"
+  },
+  "both_dose": {
+   "n": 12,
+   "better": 7,
+   "p_one_sided": 0.38720703125,
+   "rel_median_pct": -1.1864113298105672,
+   "label": "BOTH-DOSE-NULL",
+   "text": "7/12, p=0.3872"
+  },
+  "interaction": {
+   "n": 12,
+   "synergy_count": 7,
+   "p_two_sided": 0.7744140625,
+   "median_contrast": -0.09089649727645821,
+   "label": "ADDITIVE-NO-INTERACTION",
+   "text": "I<0 7/12, 양측 p=0.7744"
+  }
+ },
+ "grid_table": {
+  "m12|s0.02": {
+   "n": 12,
+   "beats_zero": 8,
+   "median_nrmse": 0.8011212722953589,
+   "n_obs": 480
+  },
+  "m12|s0.005": {
+   "n": 12,
+   "beats_zero": 4,
+   "median_nrmse": 0.9955824436275826,
+   "n_obs": 480
+  },
+  "m12|s0.0": {
+   "n": 12,
+   "beats_zero": 4,
+   "median_nrmse": 0.8221816996279857,
+   "n_obs": 480
+  },
+  "m48|s0.02": {
+   "n": 12,
+   "beats_zero": 8,
+   "median_nrmse": 0.6725575080161107,
+   "n_obs": 1920
+  },
+  "m48|s0.005": {
+   "n": 12,
+   "beats_zero": 7,
+   "median_nrmse": 0.7386015623641127,
+   "n_obs": 1920
+  },
+  "m48|s0.0": {
+   "n": 12,
+   "beats_zero": 6,
+   "median_nrmse": 0.7775976814758176,
+   "n_obs": 1920
+  },
+  "m150|s0.02": {
+   "n": 12,
+   "beats_zero": 7,
+   "median_nrmse": 0.7328145432183353,
+   "n_obs": 6000
+  },
+  "m150|s0.005": {
+   "n": 12,
+   "beats_zero": 8,
+   "median_nrmse": 0.6855966860204779,
+   "n_obs": 6000
+  },
+  "m150|s0.0": {
+   "n": 12,
+   "beats_zero": 8,
+   "median_nrmse": 0.6665429684367004,
+   "n_obs": 6000
+  },
+  "m300|s0.02": {
+   "n": 12,
+   "beats_zero": 8,
+   "median_nrmse": 0.7765894912836167,
+   "n_obs": 12000
+  },
+  "m300|s0.005": {
+   "n": 12,
+   "beats_zero": 7,
+   "median_nrmse": 0.7764223264056156,
+   "n_obs": 12000
+  },
+  "m300|s0.0": {
+   "n": 12,
+   "beats_zero": 8,
+   "median_nrmse": 0.7767007397900098,
+   "n_obs": 12000
+  }
+ },
+ "positive_control_cells": {
+  "s0.02": {
+   "n": 12,
+   "beats_zero": 7,
+   "median_nrmse": 0.8033215336341895,
+   "n_obs": 600
+  },
+  "s0.005": {
+   "n": 12,
+   "beats_zero": 5,
+   "median_nrmse": 0.9289654063896922,
+   "n_obs": 600
+  },
+  "s0.0": {
+   "n": 12,
+   "beats_zero": 6,
+   "median_nrmse": 0.8872437862084394,
+   "n_obs": 600
+  }
+ },
+ "sigma0_vs_b14_axisB": {
+  "m12": {
+   "n_obs": 480,
+   "b18_beats": 4,
+   "b18_n": 12,
+   "b14_axisB_beats": 4,
+   "b14_axisB_n": 12
+  },
+  "m48": {
+   "n_obs": 1920,
+   "b18_beats": 6,
+   "b18_n": 12,
+   "b14_axisB_beats": 5,
+   "b14_axisB_n": 12
+  },
+  "m150": {
+   "n_obs": 6000,
+   "b18_beats": 8,
+   "b18_n": 12,
+   "b14_axisB_beats": 9,
+   "b14_axisB_n": 12
+  },
+  "m300": {
+   "n_obs": 12000,
+   "b18_beats": 8,
+   "b18_n": 12,
+   "b14_axisB_beats": 10,
+   "b14_axisB_n": 12
+  }
+ },
+ "labels_practically_unreachable": [
+  "NOISE-IS-THE-BINDING-CONSTRAINT",
+  "EITHER-SUFFICIENT"
+ ],
+ "thresholds": {
+  "nominal": 10,
+  "confirm": 11,
+  "family_alpha": 0.0125,
+  "n": 12
+ }
+}

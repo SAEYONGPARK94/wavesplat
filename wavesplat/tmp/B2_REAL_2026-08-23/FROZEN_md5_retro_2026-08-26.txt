@@ -64,3 +64,38 @@ a92b8a0289b20442b68efa7756f29aaf  analyze_b2.py
 5ca2defc15778bf6b447b203fa784dbc  run_b2d.py
 0f4fab4ca3779ee98e6e1a1bb6f7cc34  run_b2e.py
 9d3dada84a71722dc81089bcd7fe3f80  zero_ref.py
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ★2차 독립 재검 (2026-08-26, 임무 V-E — **다른 세션**) — 해시는 한 줄도 바꾸지 않는다.
+#
+# 위 소급 동결이 *"판정 불변"* 을 근거로 삼았으므로, 그 근거 자체를 **한 번 더, 이 파일을
+# 쓴 세션이 아닌 곳에서** 재현했다. ⛔소급이라는 사실은 그대로다 — 이 절이 덮지 못한다.
+#
+# 절차: ①동결 분석기 3종 재실행 전에 현재 verdict 6개를 스냅샷 ②재실행 ③네 기준선 대조.
+#   python3 tmp/B2_REAL_2026-08-23/analyze_b2.py
+#   python3 tmp/B2_REAL_2026-08-23/analyze_b2bcde.py
+#   python3 tmp/B2_REAL_2026-08-23/analyze_b2f.py
+#
+# 결과 — verdict_b2{,b,c,d,e,f}.json **6/6 이 네 기준선 전부에 비트 동일**:
+#   (1) 재실행 직전 스냅샷  (2) 앞 라운드 백업  (3) git HEAD 블롭  (4) 재실행 후 md5
+#   03d09de83eef381b714ebcabf5b57ba5  verdict_b2.json
+#   0544208e4f0d09a2e87d2915457cd21b  verdict_b2b.json
+#   0d161a46a5bd4bb2285b2254e9d90ab9  verdict_b2c.json
+#   ce94bf634071620bd7429baf707af761  verdict_b2d.json
+#   85099f46271bf257d67dbc8269c42b96  verdict_b2e.json
+#   4474cabe2b6642fcc9c91a81fc8c7125  verdict_b2f.json
+#   (판정코드 9개 analyze_b2/b2bcde/b2f · run_b2b–e · zero_ref · gates_b2 도 working tree == HEAD)
+#
+# ★그리고 **동결 범위 자체를 기계로 확인**했다 — 검사기의 `_judge_files()` 를 직접 호출해
+#   요구 집합을 열거하니 **12개**이고 전부 동결돼 있다(`unfrozen = NONE`):
+#     analyze_b2 · analyze_b2bcde · analyze_b2f · gates_b2 · run_b2 · run_b2b · run_b2c ·
+#     run_b2d · run_b2e · run_b2f · scene_station · zero_ref
+#   ⟹ 임포트 추적으로 끌려오는 규약 밖 이름(`scene_station.py`·`zero_ref.py`)도 덮였다.
+#   ⚠세 파일은 앞 FROZEN 파일에 있다(`run_b2`·`gates_b2`·`PREREG` = FROZEN_md5.txt,
+#     `run_b2f`·`analyze_b2f` = FROZEN_md5_b2f.txt). **여기 다시 적지 않는다** — 정렬 규약상
+#     마지막 파일에 없는 항목은 앞 파일의 마지막 기록이 유효하다.
+#
+# ⚠**패키지 코드 4개는 여전히 드리프트 상태다** — `sequential_update.py` · `run.py` ·
+#   `learned_init.py` · `varpro.py`. 이것은 차단 사유가 **아니다** — 런은 옛 코드로 돌았고
+#   무효가 되는 것은 **재실행뿐**이다. 검사기가 그 구분을 이미 옳게 인쇄한다.
+#   ✅드리프트하지 않은 패키지 동결물 = `etkf_wang2025.py` · `coarse_to_fine.py` · `initializer.py`.

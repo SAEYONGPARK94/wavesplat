@@ -1,0 +1,214 @@
+{
+ "batch": "B-19",
+ "n_rows": 144,
+ "n_ok": 144,
+ "n_episodes": 16,
+ "n_used": 16,
+ "excluded": [],
+ "thresholds": {
+  "n": 16,
+  "nominal": 12,
+  "confirm": 13,
+  "not_earn": 4,
+  "family_alpha": 0.025
+ },
+ "dk": {
+  "DK1": 0.02618,
+  "DK2": 0.05236
+ },
+ "gates": [
+  [
+   "G-0 오류 0행",
+   true,
+   "0 행 오류 / 144 행"
+  ],
+  [
+   "G-1 표본 = 3팔 × 16 에피소드",
+   true,
+   "48/48 셀 · 에피소드 16/16"
+  ],
+  [
+   "G-2 셀마다 추정기 시드 3개 전건",
+   true,
+   "48/48 셀 정상"
+  ],
+  [
+   "G-3 개입 발화 (스냅 팔 전건 · SHIP 0건)",
+   true,
+   "SHIP-NOW 0/48 · KGRID1 48/48 · KGRID2 48/48"
+  ],
+  [
+   "G-4 dk 되읽기 (계수기 `init_result.k_snap.dk`)",
+   true,
+   "{'SHIP-NOW': [None], 'KGRID1': [0.02618], 'KGRID2': [0.05236]}"
+  ],
+  [
+   "G-5 ★객체 파생 속성 일치 (⛔cfg 항등식 아님) + 시드·클래스·환경",
+   true,
+   "기대 {'lambda_l1': 0.0001, 'tracking_mode': 'w_phi', 'tracking_lr': 0.005, 'real_estimator': 'bank_mmse'} · 이탈 키 [] · 키존재 True · seed 일치 True · 클래스 True · 포착수 1 True · S8/S5 환경변수 미설정 True"
+  ],
+  [
+   "G-5b 행동 지문 init_loss_n == 0 (⛔None 은 통과 아님)",
+   true,
+   "None 0/144 · 값 [0]"
+  ],
+  [
+   "G-5c 계수기 되읽기 + ★VARPRO 실집행 증거 (⛔echo/truthy 아님)",
+   true,
+   "기대 {'varpro_steps': 400, 'varpro_fired': True} · 이탈 키 [] · steps [400] · obj 미기록(=건너뜀) 0/144"
+  ],
+  [
+   "G-5d 배포 상수 트립와이어 (패키지 단일출처 == 이 배치의 핀)",
+   true,
+   "{'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001, 'init_method': 'auto'} vs {'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001, 'init_method': 'auto'}"
+  ],
+  [
+   "G-6 라우터 learned 전건 · ensemble_k == 1 · 파생 init_method == 경로 · 실측게이트 미발화",
+   true,
+   "auto_real_gate≠False 0/144 · auto_selected ['learned'] · 파생 init_method ['learned'] · ensemble_k [1] · auto_n_selected 최소 2 ⟹ 임계 0 vs 배포전 8 판별됨(최소 n_selected < 8 인데 learned 경로)"
+  ],
+  [
+   "G-7 원자 수 기록 (n_gaussians > 0 — ⛔0·None 통과 아님)",
+   true,
+   "None 0 · 0 0 / 144 · 값 [1, 10, 12, 14, 15, 16, 18, 19, 2, 20, 21, 23, 25, 27, 28, 3, 30, 4, 5, 6, 7, 8, 9]"
+  ],
+  [
+   "G-8 채점 창이 에피소드 안에서 9행 전부 동일 (⛔전 행 None 통과 아님)",
+   true,
+   "16/16 에피소드 일치 · 창 미기록 0/144"
+  ],
+  [
+   "G-9 ZERO 창 일치 · 에피소드 내 불변 · None 0행",
+   true,
+   "창 일치 True · 분산 에피소드 0 · None 0"
+  ],
+  [
+   "G-10 격자 재도출 (|2π/Lx − DK1| < 1e-5 · 2π/Ly > DK1 = 등방 선택이 유리)",
+   true,
+   "에피소드 16/16 · 이탈 0 · ★DK1 반올림 편차 최대 6.122e-08 (상대 2.338e-06, 허용오차의 0.0061배)"
+  ],
+  [
+   "★G-11 양성대조: SHIP-NOW 가 B-11b 동결 행과 비트 동일",
+   true,
+   "대조 48/48 행 · 불일치 0"
+  ],
+  [
+   "★G-12 ZERO 교차검증 (독립 계산 vs B-11b 기록)",
+   true,
+   "16/16 일치 (rtol 1e-05)"
+  ],
+  [
+   "★G-13 mesh_verdict 3-분할 = 사전등록 핀 (⛔표본을 \"HOS M=3\" 로 단일 서술 금지)",
+   true,
+   "{'INADEQUATE': 3, 'DEGRADED': 2, 'ADEQUATE': 11} vs 핀 {'ADEQUATE': 11, 'DEGRADED': 2, 'INADEQUATE': 3} (n=16/16)"
+  ],
+  [
+   "N-1 음성대조 SHIP-NOW < ZERO ≥ 12/16 (미달 ⟹ PRIMARY 무효)",
+   true,
+   "15/16 p=0.0002593994140625"
+  ],
+  [
+   "N-2 음성대조 KGRID1 < ZERO ≥ 12/16 (미달 ⟹ 라벨 전환)",
+   true,
+   "12/16 p=0.0384063720703125"
+  ]
+ ],
+ "gates_pass": 19,
+ "gates_total": 19,
+ "primary": {
+  "n": 16,
+  "better": 14,
+  "n_tie": 0,
+  "p_one_sided": 0.0020904541015625,
+  "rel_median_pct": -67.43404310240334,
+  "median_a": 0.057852344880423824,
+  "median_b": 0.22066314723342656
+ },
+ "dose": {
+  "n": 16,
+  "better": 14,
+  "n_tie": 1,
+  "p_one_sided": 0.0020904541015625,
+  "rel_median_pct": -24.615765872102653,
+  "median_a": 0.22066314723342656,
+  "median_b": 0.3189750380348414
+ },
+ "neg_ship_vs_zero": {
+  "n": 16,
+  "better": 15,
+  "p_one_sided": 0.0002593994140625,
+  "rel_median_pct": -76.84379756449434
+ },
+ "neg_kgrid1_vs_zero": {
+  "n": 16,
+  "better": 12,
+  "p_one_sided": 0.0384063720703125,
+  "rel_median_pct": -11.291883736226339
+ },
+ "neg_kgrid2_vs_zero": {
+  "n": 16,
+  "better": 2,
+  "p_one_sided": 0.9997406005859375,
+  "rel_median_pct": 27.33704753492001
+ },
+ "median_zero_nRMSE": 0.24995654704980552,
+ "median_unique_cells": {
+  "SHIP-NOW": null,
+  "KGRID1": 10.0,
+  "KGRID2": 9.5
+ },
+ "median_n_atoms": {
+  "SHIP-NOW": 10.0,
+  "KGRID1": 10.0,
+  "KGRID2": 10.0
+ },
+ "median_k_shift": {
+  "SHIP-NOW": null,
+  "KGRID1": 0.010147632013638472,
+  "KGRID2": 0.02027197276080616
+ },
+ "mesh_verdict_counts": {
+  "INADEQUATE": 3,
+  "DEGRADED": 2,
+  "ADEQUATE": 11
+ },
+ "mesh_verdict_per_episode": {
+  "BF4_2comp_seed1585_uniform_ra_rf_ds": "INADEQUATE",
+  "BF4_2comp_seed1586_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_2comp_seed1587_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_2comp_seed1588_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_5comp_seed1585_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_5comp_seed1586_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_5comp_seed1587_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_5comp_seed1588_uniform_ra_rf_ds": "DEGRADED",
+  "BF5_2comp_seed1585_uniform_ra_rf_ds": "INADEQUATE",
+  "BF5_2comp_seed1586_uniform_ra_rf_ds": "INADEQUATE",
+  "BF5_2comp_seed1587_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_2comp_seed1588_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_5comp_seed1585_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_5comp_seed1586_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_5comp_seed1587_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_5comp_seed1588_uniform_ra_rf_ds": "ADEQUATE"
+ },
+ "readback": {
+  "derived_expected": {
+   "lambda_l1": 0.0001,
+   "tracking_mode": "w_phi",
+   "tracking_lr": 0.005,
+   "real_estimator": "bank_mmse"
+  },
+  "counter_expected": {
+   "varpro_steps": 400,
+   "varpro_fired": true
+  },
+  "route_expected": "learned",
+  "no_derived_evidence": [
+   "auto_switch_thresh",
+   "learned_init_iters"
+  ]
+ },
+ "label": "CONTINUOUS-K-EARNS-SPARSE",
+ "label_text": "★14/16, p=0.00209 — 희소 층에서도 격자에 스냅하면 나빠진다 ⟹ 연속 파수가 **두 층 모두에서** 이득의 담지자 쪽이다",
+ "dose_label": "DOSE-RESPONSE",
+ "dose_text": "14/16(동점 1), p=0.00209 — 간격을 2배로 하면 더 나빠진다"
+}

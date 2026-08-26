@@ -1,0 +1,57 @@
+# B-18 동결 (재계산) 2026-08-26T11:17:06+09:00 — ⛔여전히 **결과 0행 시점**이다.
+# ★재동결 사유(정직한 기록): 2026-08-26 외부 감사가 **런 전에** 결함 5건을 잡았고 그것을 고쳤다.
+#   ①초판 `G-6` 이 항등식이라 실패할 수 없었다(→ `G-6`/`G-6b`/`G-6c`) ②모서리 둘이 이미
+#   측정돼 있다는 사실 미공시(→ PREREG §12b) ③σ=0 열 공짜 대조 신설(→ `G-1c`)
+#   ④분석기가 0행에서 verdict 을 쓰지 않는다 ⑤`B-14b` 인용 각주.
+#   ⛔**문턱·모서리·라벨 집합·팔은 손대지 않았다.** 런 전이므로 동결 재작성이 정당하다.
+#   변경된 것은 아래 **B-18 자체 4파일뿐**이고 의존 파일 해시는 전부 그대로다(대조 확인).
+# ★경로는 **저장소 루트 상대**로 적는다 — 배치 산출물 검사기가 그때만 실제로 대조한다.
+#   (B-14 는 bare basename 이라 md5 열이 조용히 아무것도 검사하지 않았다: check_batch_artifacts.py:91)
+1477c15ccbaee222f4b1503517e94953  tmp/B18_DENSITY_NOISE_2026-08-25/PREREG.md
+f869d6f6fa3547c6b350ff8aecedce51  tmp/B18_DENSITY_NOISE_2026-08-25/gates_b18.py
+3401a0e47b527884da220e495a513c89  tmp/B18_DENSITY_NOISE_2026-08-25/run_b18.py
+7c09e72187675c6143cc5203ac9ae12c  tmp/B18_DENSITY_NOISE_2026-08-25/analyze_b18.py
+# 의존 — 다른 배치의 동결물(장면 빌더·채점 기준·양성대조 참조)
+7a479176483262eb81338008c47e8a23  tmp/B14_OBSMODEL_2026-08-24/obs_models.py
+e2d2e34e6d679f9a49e28efdd178eccf  tmp/B14_OBSMODEL_2026-08-24/gates_b14.py
+9febfa5278ca06ab627e0b6b16ec72a0  tmp/B14_OBSMODEL_2026-08-24/results_b14.jsonl
+f0558f42ecd5631a92762193d4c25773  tmp/B14_OBSMODEL_2026-08-24/results_b14b_0.jsonl
+5bf2d8b2107b17afb3bdcd0ad8966a23  tmp/B14_OBSMODEL_2026-08-24/results_b14b_1.jsonl
+18183f898008d239db002a3634f19686  tmp/B2_REAL_2026-08-23/scene_station.py
+9d3dada84a71722dc81089bcd7fe3f80  tmp/B2_REAL_2026-08-23/zero_ref.py
+5fa495e7e281d8036b73e3ea6297e35d  tmp/B2_REAL_2026-08-23/true_zero_field.json
+e0d100e8ca3574b465b05a56cbe6d544  tmp/B2_REAL_2026-08-23/results_b2b.jsonl
+# ⚠tmp/B14_OBSMODEL_2026-08-24/obs_models.py 는 그 배치의 FROZEN_md5(bb33fcb7…)와 다르다 —
+#   2026-08-24 난수 소비 결함 수리본이고 **B-14b 가 돈 판**이다(RESULT_B14B.md). 그 판을 동결한다.
+# ★2026-08-26 추가: results_b14.jsonl (원조 B-14). 새 게이트 `G-1c` 가 **축 B**(IID·σ=0·밀도
+#   사다리) 48행을 읽고, PREREG §12b 의 사전 노출 수(4/12 · 5/12 · 9/12 · 10/12)를
+#   `gates_b18.prior_exposure_axisB()` 가 이 파일에서 **도출**한다(⛔손복사 아님).
+#   ⚠그 판은 obs_models.py **수리 전**(64de8fa)이라 σ=0 점 집합이 다르다 ⟹ `G-1c` 는
+#   비트 동일이 아니라 **구조 일치 + z_hash 전건 상이**를 요구한다(PREREG §5b).
+# 임포트 경로 (2026-08-26 추가 — 드리프트하면 결과가 조용히 바뀌는 것들)
+97f8d2cbe3f355251eb8afe146176d65  tmp/bankmmse_port_2026-07-29/make_gif_bank_deployed.py
+0e26f90bcc5b7d168bac9610d9e3ca16  scripts/d3_sa_multirecord.py
+1961647626c8602cbe67c4af32fa260a  scripts/realdata_analysis.py
+# 패키지
+10e407348291e0438a94f459f4757c27  wavesplat/run.py
+dedb685a6735517d21285ddc5d36075d  wavesplat/optimizer/sequential_update.py
+5ebcf5a3d6c11d44f41eec920e38594f  wavesplat/optimizer/learned_init.py
+039e2273264893629c0288de92b8903b  wavesplat/optimizer/varpro.py
+# git_head: d020324078bca95dc85d395bc5119c259b5e3ba8
+# ⛔**git_dirty_files: 0 은 거짓이었다** (2026-08-26 실측 정정 — m-1).
+#   작업트리는 더럽고, `git_head` 만으로는 재현이 고정되지 않는다(CLAUDE.md 의 반복 경고).
+#   아래는 **재동결 시각의 스냅샷**이며 ⚠**같은 세션의 다른 에이전트가 동시에 편집 중**이라
+#   수가 움직인다. 재계산 명령을 함께 적는다(저장소 루트 = /home/vexit/wavesplat 에서):
+#     git diff --name-only | wc -l                    # 추적 변경
+#     git diff --cached --name-only | wc -l           # 스테이징
+#     git ls-files --others --exclude-standard | wc -l  # 미추적 파일
+#     git status --porcelain | wc -l                  # 항목(미추적 디렉터리는 접힌다)
+#   2026-08-26T11:17 실측: 추적 변경 **5** · 스테이징 **0** · 미추적 파일 **384** ·
+#   porcelain 항목 **372**.
+#   (같은 날 10:10 초판 동결 시점에는 추적 변경이 **1**건이었다: wavesplat/thesis/thesis_main.tex.
+#    11:17 의 5건 = thesis_main.tex + gen_deploy_constants.py + deploy_constants.tex +
+#    tmp/_audit/check_batch_artifacts.py + wavesplat/tests/test_shipping_defaults.py.)
+# ★그러나 **이 배치의 임포트 경로 파일은 하나도 더럽지 않다** — 위 md5 목록이 그것을 검사한다.
+#   더러운 5건은 전부 논문/검사기/테스트이고 `run_b18.py` 의 임포트 경로에 없다.
+# ⚠**B-18 자체 4파일은 재동결 시점에 git 미추적이다** ⟹ `git_head` 가 그것들을 앵커하지 못한다.
+#   앵커는 오케스트레이터의 커밋이고, 그때까지의 증거는 이 md5 목록뿐이다.

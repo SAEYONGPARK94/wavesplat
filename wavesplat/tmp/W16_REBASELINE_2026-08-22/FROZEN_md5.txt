@@ -8,3 +8,21 @@ b26deaaaf89bba202c23c95606fcea4d  corpus.json
 cafb080f66247dd4d5b69edb0cdfa972  ../../wavesplat/run.py
 c23bd51c532ff3faab91b11e84f6d86d  ../../wavesplat/optimizer/sequential_update.py
 # git_head: ec970524aa333224a9f5930c8e06cae9a65ed2a9
+
+# ── 소급 동결 2026-08-26 ──────────────────────────────────────────────────────
+# 사유: 검사기가 2026-08-26 에 *"동결한 적이 없다"* 를 차단 사유로 승격했다(위 W15 와 동일 부류).
+#   `analyze_w16.py` 는 2026-08-23 RV-2 감사 때 **결과(08-22 20:41) 뒤에** 쓰였고
+#   동결 목록에 오른 적이 없다.
+# ⚠**판정 규칙은 이 파일에 없다.** 문턱(THRESHOLD_CROWDED/SPARSE=41)·`primary()`·
+#   `zero_ref()`·`label()` 은 전부 `gates_w16.py` 에 있고 런 전(20:29)에 동결됐으며
+#   **오늘 md5 가 그대로다**(88cbc2b0d9c75abd2304f2d993b9e845).
+# ✅**재현 확인(2026-08-26)**: 재실행 ⟹ `verdict_w16.json` **바이트 동일**
+#   (md5 513024109ec1867fd1c1fb27d51ff97a). 게이트 5/5 PASS, `HEADLINE-HOLDS-BOTH`,
+#   혼잡 64/64 −49.46684019692435%, 희소 64/64 −91.88969528901478% 전부 불변.
+# ★**B-1 원천 무결성 대조**: 이 배치의 `results.jsonl` md5 = a436a715e95693f2e185437298ba1b66
+#   = `tmp/B1_BASELINE_2026-08-22/FROZEN_md5.txt` 가 기록한 해시와 **일치**.
+#   ⟹ B-1 헤드라인의 `SHIP` 원천은 손상되지 않았다.
+# ⚠외부 의존: `zero_ref()` 가 `../B_DEPLOY_2026-08-19/results.jsonl` 을 읽는다(제로필드 기준).
+#   그 파일은 이 배치 FROZEN 에 등재된 적이 없다 — 2026-08-26 현재 존재하고 G-3 이 통과한다.
+# ⚠원본 줄은 지우지 않는다. 검사기는 마지막 줄을 유효로 읽는다.
+43aedd5da514780d5d2ec914edfc0494  analyze_w16.py

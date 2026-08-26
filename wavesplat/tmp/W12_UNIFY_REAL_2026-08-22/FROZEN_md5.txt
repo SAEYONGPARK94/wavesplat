@@ -6,3 +6,30 @@ e7d5643477e7edbac18474196473d1f1  PREREG.md
 14bd161c620dc46d0cd29a9bc19e419c  ../../scripts/d3_compare_gifs.py
 97f8d2cbe3f355251eb8afe146176d65  ../bankmmse_port_2026-07-29/make_gif_bank_deployed.py
 # git_head: a098900d4ff7635abbed87427d6ab626a242da0b
+
+# ── 소급 동결 2026-08-26 ──────────────────────────────────────────────────────
+# 사유: 검사기가 2026-08-26 에 *"동결한 적이 없다"* 를 차단 사유로 승격했다.
+#   `analyze_w12.py` 는 2026-08-23 RV-2 감사 때 **결과(08-22 12:23) 뒤에** 쓰였고
+#   (파일 독스트링이 스스로 그렇게 적었다) 동결 목록에 오른 적이 없다.
+# ⚠**판정 규칙은 이 파일에 없다.** `ZERO_FIELD`·`summarize()`·`paired()`·`label()` 은
+#   전부 `gates_w12.py` 에 있고 런 전(12:03)에 동결됐으며 **오늘 md5 가 그대로다**
+#   (a5d496d403897ab03ffeb41d911d8afe).
+# ✅**재현 확인(2026-08-26)**: 재실행 ⟹ `verdict_w12.json` **바이트 동일**
+#   (md5 15756c14b199b62e4265dafc86d44631). 게이트 3 PASS / 2 FAIL(G-1·G-3, `AMENDMENT_1`
+#   가 계측 키 오류로 규명), label `REAL-UNIFY-LOSES-SKILL`, 세 팔 중앙·per_record 전부 불변.
+#
+# ⛔**단 동결과 별개로, 이 배치의 채점 기준이 2026-08-23 에 철회된 상수다**(기록만 남긴다).
+#   `gates_w12.py:22 ZERO_FIELD = 1.0` 은 `B2_REAL_2026-08-23/AMENDMENT_ZEROREF.md` 가
+#   *"정의상 참이 아니다"* 로 죽인 바로 그 상수다(참 제로필드는 레코드별 0.3375–1.1559).
+#   `true_zero_field.json` 으로 재채점하면(W12 5레코드 중 4개가 그 표에 있다; `LJ18g` 없음):
+#     · `FORCE-LEARNED` 2/5 → **2/4 (불변)**
+#     · `DEPLOYED`      4/5 → ⛔**3/4** — `AA15a` 0.7234 가 참 기준 0.6724 에 **진다**(뒤집힘)
+#     · `FORCE-V2K`     2/5 → 2/4  (`AA14` 1.0089 가 참 기준 1.0616 을 이겨 뒤집힘)
+#   ✅**라벨은 견딘다** — `label()` 은 `FORCE-LEARNED beats_zero < n` 으로만 발화하고
+#     2<5 는 양쪽 기준에서 참이다. ⟹ `REAL-UNIFY-LOSES-SKILL` 자체는 무손상.
+#   ⛔**철회 대상은 `RESULT.md` 의 "제로필드 이김" 행이다**: `DEPLOYED` **4/5 인용 금지**,
+#     그리고 *"`DEPLOYED` 도 LJ18g 에서 (만) 진다"* 는 문장은 `AA15a` 를 빠뜨렸다.
+#   ✅CLAUDE.md:96 의 *"예보 지평 0/5 패배"* 는 `FORCE-LEARNED` lead-mean 중앙 1.6887 이
+#     참 기준 최대 1.1559 보다도 크므로 방향이 유지된다(단 그 표는 별도 재채점 대상).
+# ⚠원본 줄은 지우지 않는다. 검사기는 마지막 줄을 유효로 읽는다.
+b6a26740949ca346553659dd9764ad77  analyze_w12.py

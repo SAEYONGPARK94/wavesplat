@@ -1,0 +1,66 @@
+# ⛔⛔소급 동결 (2026-08-26) — **이 7개 파일은 동결된 적이 없었다.**
+#
+# ★숨기지 않고 적는다: 아래 해시는 **런 시점(2026-08-23)에 기록된 것이 아니라
+#   2026-08-26 에 사후로 찍은 것**이다. 따라서 이 파일은 *"런 당시와 같다"* 를
+#   증명하지 못한다 — 증명하는 것은 *"2026-08-26 이후로는 움직이면 잡힌다"* 뿐이다.
+#
+# ## 무엇이 빠져 있었나
+# `B-2` 배치는 `FROZEN_md5.txt`(gates_b2 · run_b2 · scene_station · PREREG)와
+# `FROZEN_md5_b2f.txt`(run_b2f · analyze_b2f + 패키지)만 동결했다. 그래서
+# **`verdict_b2` · `b2b` · `b2c` · `b2d` · `b2e` 다섯 판정을 낸 코드에 기준선이 없었다.**
+# 검사기(`tmp/_audit/check_batch_artifacts.py`)가 2026-08-26 에 `_judge_files()` 로
+# 이 구멍을 막으며 드러났다(`⚠미동결7`). ⚠**"동결 뒤에 움직였다" 보다 나쁘다** —
+# 기준선이 없으면 `md5` 열이 영원히 `OK` 를 찍어 **구조적으로 탐지 불가**였다.
+#
+# ## 소급 동결의 근거 — 판정이 불변임을 기계로 확인했다 (2026-08-26)
+# 동결 분석기 3종을 재실행해 `verdict_b2{,b,c,d,e,f}.json` **6/6 이 비트 동일**함을
+# **세 개의 독립 기준선**에 대해 확인했다:
+#   (1) 재실행 직전 스냅샷           (2) 앞 라운드 백업(scratchpad/verdict_backup/)
+#   (3) ★**git HEAD 블롭** — 6개 전부 2026-08-23 커밋(ec2a266 / daee7b7 / 563d747)이고
+#       working tree == HEAD 다. 이것이 가장 강한 기준선이다.
+# 재현 명령 (배치 루트 = /home/vexit/wavesplat/wavesplat):
+#   python3 tmp/B2_REAL_2026-08-23/analyze_b2.py
+#   python3 tmp/B2_REAL_2026-08-23/analyze_b2bcde.py
+#   python3 tmp/B2_REAL_2026-08-23/analyze_b2f.py
+#   for f in b2 b2b b2c b2d b2e b2f; do p=wavesplat/tmp/B2_REAL_2026-08-23/verdict_$f.json; \
+#     [ "$(git hash-object $p)" = "$(git rev-parse HEAD:$p)" ] && echo "$f SAME" || echo "$f DIFF"; done
+#
+# ## ★git 이 사실상의 동결 기록 노릇을 했다 (사후 확인, 2026-08-26)
+# 아래 7개는 전부 **커밋 1회 · 이후 무변경 · working tree == HEAD** 다:
+#   analyze_b2.py      ec2a266  2026-08-23 06:53
+#   run_b2b.py         9d9facc  2026-08-23 07:01
+#   run_b2c.py         faf0ee8  2026-08-23 07:07
+#   run_b2d.py         e15a37a  2026-08-23 13:00
+#   run_b2e.py         0f4bd5b  2026-08-23 13:04
+#   zero_ref.py        fcb18cd  2026-08-23 14:06
+#   analyze_b2bcde.py  daee7b7  2026-08-23 15:04
+# ⟹ *"동결 뒤에 판정 규칙이 이동했다" 는 배제된다.* ⚠**단 이것은 운이지 절차가 아니다** —
+#   git 은 `tmp/` 를 강제하지 않고, 이 저장소는 미추적 배치가 34개였던 전력이 있다.
+#
+# ## ⚠소급 동결이 **덮지 못하는 것** (읽는 사람이 알아야 한다)
+# 1. ⛔`analyze_b2bcde.py`(15:04)는 **자기 결과보다 뒤에 쓰였다**(results_b2b 07:00 … b2e 13:03).
+#    분석기 자신의 독스트링이 그 결함을 축자로 적어 뒀고, 완화책은 *"라벨 규칙을 각 러너의
+#    결과 전 독스트링에서 축자 이식"* 이다. 실측 대조 결과 `b2c`(≥10/7-9/≤6) ·
+#    `b2d`(≥10/8-9/≤7) · `b2e`(≥10/8-9/≤7) 는 러너 독스트링과 **축자 일치**한다.
+#    ⚠**`b2b` 만 예외** — `run_b2b.py` 독스트링에는 **숫자 문턱이 없고**(질적 규칙뿐)
+#    분석기가 쓴 `>=10 / >=8` 은 배치 PRIMARY 문턱(`gates_b2.THRESHOLD=10`)에서 왔다.
+#    라벨은 두 규칙에서 같지만 **출처 표기는 부정확하다.**
+# 2. ⛔`zero_ref.py`(14:06)와 `analyze_b2bcde.py` 는 **사후 재채점**의 산물이다
+#    (`AMENDMENT_ZEROREF.md`). 그 사실 자체는 문서화돼 있다.
+# 3. ⛔`scene_station.py` 의 수심 드리프트는 이 파일이 고치지 않는다 —
+#    `FROZEN_DRIFT.md` · `RESULT.md` 「수정 2」·「부록 D」 · `depth_recheck.py` 를 볼 것.
+#
+# ## ⚠정렬 규약
+# 검사기는 `FROZEN*.txt` 를 **파일명 정렬**해 읽고 **마지막 기록**을 유효로 본다.
+# 2026-08-26 현재 정렬 순서 = FROZEN_md5.txt < FROZEN_md5_b2f.txt < **FROZEN_md5_retro_2026-08-26.txt**
+# ⟹ **앞으로의 재동결은 이 파일에 적는다.** 여기에 없는 항목은 앞 파일의 마지막 기록이 유효하다
+#    (`scene_station.py` 가 그렇다 — 일부러 재기재하지 않는다).
+#
+# 경로 = 배치 디렉터리 기준.
+a92b8a0289b20442b68efa7756f29aaf  analyze_b2.py
+44cfbb8a4436bfa0457b19d2e17138af  analyze_b2bcde.py
+5cc30072c4f2de0920fa2d656a62c51e  run_b2b.py
+1f5de2d3e59219fca2f88f0f21d2fc9d  run_b2c.py
+5ca2defc15778bf6b447b203fa784dbc  run_b2d.py
+0f4fab4ca3779ee98e6e1a1bb6f7cc34  run_b2e.py
+9d3dada84a71722dc81089bcd7fe3f80  zero_ref.py

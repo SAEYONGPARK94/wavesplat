@@ -68,12 +68,47 @@
 인자가 없으면 `tmp/` 아래 `results*.jsonl` **또는** `PREREG*.md` 를 가진 디렉터리를 전부 검사한다.
 종료코드 1 = D 또는 E 또는 H 위반이 하나라도 있음(= 인용 불가 배치가 있음).
 """
-import glob, hashlib, json, os, re, sys
+import ast, glob, hashlib, json, os, re, sys
 
 COLS = ['PREREG', 'gates', 'analyze', 'results', 'verdict.label', 'verdict.gates',
         'FROZEN', 'analyzer<results', 'results~verdict', '★자기동결', 'md5', 'no-{}-arm']
 
 SHARD = re.compile(r'_\d+$')          # `results_b15_3.jsonl` 의 샤드 인덱스
+JUDGE = re.compile(r'^(gates|run|analyze).*\.py$')   # 판정을 낳는 배치-자체 코드
+
+
+def _judge_files(d):
+    """이 배치에서 **동결돼 있어야 하는 자기 파일**의 절대경로 집합.
+
+    ★2026-08-26 V5 우회 시험이 뚫은 구멍이다. 종전 `own_cell` 은 자기 파일이
+    **한 건이라도** 대조되면 `OK` 였다 ⟹ 두 가지가 그대로 통과했다:
+      (b2) `gates_x.py` 를 동결 목록에서 빼고 **없는 경로**(`gates_GHOST.py`)를 적은 뒤
+           `PREREG.md` 하나만 동결 ⟹ `⚠1/2` 경고만 뜨고 **인용 가능**.
+      (d)  판정 코드를 아예 동결 목록에 **적지 않으면** 경고조차 없다.
+    ⟹ *"동결 뒤에 움직였다"* 만 막고 *"동결한 적이 없다"* 는 안 막았다. 후자가 더 나쁘다 —
+      전자는 최소한 탐지되지만 후자는 **구조적으로 탐지 불가**다.
+    ⟹ 배치 안의 `gates*`·`run*`·`analyze*` 와 **그것들이 임포트하는 배치-내 모듈**을 요구한다
+      (`scene_station.py`·`noise_models.py`·`zero_ref.py` 처럼 이름이 규약 밖이어도 잡힌다).
+    ⚠사후 포렌식 스크립트(`depth_recheck.py`·`audit_replay_*.py`)는 판정을 낳지 않으므로 제외다.
+    """
+    need = {p for p in glob.glob(os.path.join(d, '*.py')) if JUDGE.match(os.path.basename(p))}
+    for p in sorted(need):
+        try:
+            tree = ast.parse(open(p, encoding='utf-8', errors='replace').read())
+        except Exception:
+            continue
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Import):
+                mods = [a.name for a in n.names]
+            elif isinstance(n, ast.ImportFrom) and n.module and not n.level:
+                mods = [n.module]
+            else:
+                continue
+            for mod in mods:
+                q = os.path.join(d, mod.split('.')[0] + '.py')
+                if os.path.exists(q):
+                    need.add(q)
+    return {os.path.realpath(p) for p in need}
 
 
 def _resolve(d, tgt):
@@ -190,14 +225,21 @@ def check(d):
     # 원칙: *드리프트가 있었다는 사실은 지우지 않는다* ⟹ 원본 줄을 지우는 대신
     # 재동결 줄을 **덧붙인다**. 그러면 이 열이 영원히 `--` 로 남으므로 신호가 죽는다.
     # ⟹ 검사기가 **마지막 기록**을 현재 동결로 읽는다(앞선 줄은 이력으로 보존).
-    latest = {}
+    # ⚠V5: 재동결하면 이 열이 `OK` 로 돌아간다 ⟹ **표에서 드리프트 사실이 사라진다**
+    #   (규약은 원본 줄을 보존하라고 하지만 그건 *산문*이고 검사기는 마지막 줄만 읽는다).
+    #   ⟹ 같은 경로가 **다른 해시로** 두 번 이상 적힌 것을 세어 `재동결` 로 계속 드러낸다.
+    latest, seen = {}, {}
     for ff in sorted(glob.glob(os.path.join(d, 'FROZEN*.txt'))):
         for ln in open(ff):
             parts = ln.split()
             if len(parts) != 2 or len(parts[0]) != 32 or ln.startswith('#'):
                 continue
+            key = os.path.basename(parts[1])
+            seen.setdefault(key, set()).add(parts[0])
             latest[parts[1]] = parts[0]
+    refrozen = sorted(k for k, v in seen.items() if len(v) > 1)
     drift, own_drift, skipped = [], [], []
+    own_frozen = set()
     n_cmp = n_own_cmp = 0
     for tgt, h in sorted(latest.items()):
         p = _resolve(d, tgt)
@@ -207,10 +249,14 @@ def check(d):
         n_cmp += 1
         own = os.path.abspath(p).startswith(os.path.abspath(d) + os.sep)
         n_own_cmp += own
+        if own:
+            own_frozen.add(os.path.realpath(p))
         if hashlib.md5(open(p, 'rb').read()).hexdigest() != h:
             drift.append(os.path.basename(p))
             if own:
                 own_drift.append(os.path.basename(p))
+    # ★V5: **동결 목록에서 빠진 자기 판정코드** — "움직였다" 가 아니라 "적은 적이 없다".
+    unfrozen = sorted(os.path.basename(q) for q in _judge_files(d) if q not in own_frozen)
 
     # ★② "0건 대조" 와 "부분 스킵" 은 `OK` 가 아니라 **경고**다.
     if not latest:
@@ -228,6 +274,9 @@ def check(d):
     else:
         md5_cell = 'OK'
         own_cell = 'OK' if n_own_cmp else '⚠0건'
+    # ⚠자기 파일이 몇 건 대조됐든, **판정을 낳는 자기 코드가 동결 목록에 없으면** OK 가 아니다.
+    if own_cell == 'OK' and unfrozen:
+        own_cell = f'⚠미동결{len(unfrozen)}'
 
     # J. 빈 dict 팔 탐지
     empty_arm = True
@@ -253,12 +302,29 @@ def check(d):
     # ④ 경고는 **규약 라벨이 아예 없을 때만** 낸다. `label` 을 이미 낸 배치의
     #    부차 라벨(`secondary_label`·`dose_label`)까지 경고하면 신호가 잡음에 묻힌다.
     info = dict(drift=sorted(set(drift) - set(own_drift)), own_drift=sorted(set(own_drift)),
+                unfrozen=unfrozen, refrozen=refrozen,
                 skipped=skipped, n_cmp=n_cmp, n_frozen=len(latest),
                 axis_labels=[] if lab else sorted(axis_labels), offspec=[os.path.basename(f) for f in offspec],
                 no_results=not has_rs, has_verdict=bool(verdicts))
     cells = [has('PREREG*.md'), has('gates*.py'), bool(an), rs_cell, lab_cell, gts_cell,
              has('FROZEN*.txt'), order, paired, own_cell, md5_cell, empty_arm]
-    ok = lab_ok and gts_ok and paired
+    # ★★2026-08-26 (사용자 결정: "막고 다시 하자") — **동결 증거를 판정에 넣는다.**
+    # ⛔종전: `ok = lab_ok and gts_ok and paired` 뿐이라, 이 검사기가 스스로
+    #   *"판정 규칙이 사후에 이동했다 — 가장 심각하다"* 고 인쇄한 배치가 **인용 가능**으로
+    #   통과했다(V3 가 `W9_PENALTY_BUDGET_2026-08-22` 로 직접 확인). 최상위 경고가
+    #   종료코드에 안 걸리는 것은 **경고를 인쇄만 하는 방벽** = 저장소가 반복해서 대가를
+    #   치른 부류다(08-23 "침묵을 경고로 승격하라" 가 여기엔 적용되지 않았다).
+    # ⟹ 두 가지를 **차단 사유**로 승격한다:
+    #   (a) `own_drift` = 배치 **자신의** gates/run/analyze 가 동결 뒤에 움직였다.
+    #       판정 규칙이 결과를 보고 이동했을 수 있다 ⟹ 그 판정은 인용할 수 없다.
+    #   (b) 자기 파일을 **한 건도 대조하지 못했다**(`⚠0건`/`⚠0줄`/`⚠0/n`).
+    #       "위반 없음" 이 아니라 **"검사한 적 없음"** 이다.
+    # ⚠배포코드만 움직인 `drift` 는 **차단하지 않는다** — 런은 옛 코드로 돌았고
+    #   무효가 되는 것은 재실행뿐이다(그 구분은 이 파일이 이미 옳게 적어 두었다).
+    # ⚠재집계 배치는 자기 결과가 없을 뿐 자기 동결은 똑같이 요구된다.
+    frozen_ok = (not own_drift) and own_cell == 'OK'
+    ok = lab_ok and gts_ok and paired and frozen_ok
+    info['frozen_block'] = (not frozen_ok) and lab_ok and gts_ok and paired
     return cells, ok, info
 
 
@@ -276,6 +342,7 @@ def main(argv):
     bad = no_res = 0
     print(f"{'배치':44s} " + ' '.join(f'{c[:9]:>9s}' for c in COLS))
     drifted, own_drifted, skips, axes, offspecs, unrun = {}, {}, {}, {}, {}, []
+    frozen_blocked, unfrozen_own, refroze = [], {}, {}
     for d in dirs:
         cells, ok, info = check(d)
         name = os.path.basename(d)
@@ -288,6 +355,12 @@ def main(argv):
             drifted[name] = info['drift']
         if info['own_drift']:
             own_drifted[name] = info['own_drift']
+        if info.get('unfrozen'):
+            unfrozen_own[name] = info['unfrozen']
+        if info.get('refrozen'):
+            refroze[name] = info['refrozen']
+        if info.get('frozen_block'):
+            frozen_blocked.append(name)
         if info['skipped']:
             skips[name] = (info['n_cmp'], info['n_frozen'], info['skipped'])
         if info['axis_labels']:
@@ -297,7 +370,9 @@ def main(argv):
         print(f"{name[:44]:44s} " + ' '.join(_fmt(x) for x in cells))
 
     if own_drifted:
-        print('\n⛔**★자기동결 위반 — 배치 자신의 gates/run/analyze 가 동결 뒤에 움직였다.**\n'
+        print('\n⛔**★자기동결 위반 — 배치 자신의 파일이 동결 뒤에 움직였다.**\n'
+              '   ⚠판정은 **이름이 아니라 경로**로 한다 — 배치 디렉터리 안이면\n'
+              '   `obs_models.py`·`scene_station.py` 처럼 규약 밖 이름도 포함된다.\n'
               '   판정 규칙이 사후에 이동했다는 뜻이므로 **가장 심각하다**:')
         for k, v in own_drifted.items():
             print(f'  {k}: ' + ', '.join(v))
@@ -320,12 +395,35 @@ def main(argv):
         print('\n⚠**결과 파일 이름이 규약(`results*.jsonl`) 밖**이라 이 검사기가 못 본다:')
         for k, v in offspecs.items():
             print(f'  {k}: ' + ', '.join(v[:5]) + (' …' if len(v) > 5 else ''))
+    if refroze:
+        print('\n⚠**재동결 이력 — 드리프트가 있었고 사후에 다시 동결됐다.**\n'
+              '   ★자기동결/md5 열은 `OK` 로 돌아가지만 **사실은 지워지지 않는다.**\n'
+              '   재동결 사유가 해당 `FROZEN*.txt` 헤더에 적혀 있어야 하고, 판정 불변이\n'
+              '   기계적으로 확인됐을 때만 인용 가능하다(동결 갱신 자체는 증거가 아니다):')
+        for k, v in sorted(refroze.items()):
+            print(f'  {k}: ' + ', '.join(v))
+    if unfrozen_own:
+        print('\n⛔**★동결 목록 누락 — 판정을 낳는 배치 자체 코드가 동결된 적이 없다.**\n'
+              '   ★자기동결 위반(움직였다)보다 **탐지가 더 어렵다** — 기준선이 없으므로\n'
+              '   md5 열은 영원히 `OK` 를 찍는다. 대상 = `gates*`·`run*`·`analyze*` 와\n'
+              '   그것들이 임포트하는 배치-내 모듈(`scene_station.py` 부류):')
+        for k, v in sorted(unfrozen_own.items()):
+            print(f'  {k}: ' + ', '.join(v))
     if unrun:
         print(f'\n⚠**결과 0개(미실행 또는 결과가 다른 배치에 있음) — {len(unrun)}개.**\n'
               '   ★`verdict 있음!` 은 **결과 없이 라벨이 붙었다**는 뜻이다(M-4 부류):')
         for k in unrun:
             print(f'  {k}')
-    print(f"\n인용 불가(라벨·게이트·짝 증거 없음): {bad}/{len(dirs)}   (그중 결과 0개: {no_res})")
+    if frozen_blocked:
+        print(f'\n⛔**동결 증거 부재/이동으로 인용 불가 — {len(frozen_blocked)}개.**\n'
+              '   라벨·게이트·짝은 갖췄으나 배치 **자신의** 파일이 동결 뒤에\n'
+              '   움직였거나(★자기동결 위반), **한 건도 대조되지 않았다**(⚠0건), 또는\n'
+              '   **판정 코드를 동결 목록에 적은 적이 없다**(⚠미동결n = V5 우회 시험이 뚫은 구멍).\n'
+              '   ⟹ 판정 규칙이 결과를 보고 이동했을 가능성을 배제할 수 없다:')
+        for k in frozen_blocked:
+            print(f'  {k}')
+    print(f"\n인용 불가(라벨·게이트·짝·동결 증거 없음): {bad}/{len(dirs)}   "
+          f"(그중 결과 0개: {no_res} · 동결 사유만: {len(frozen_blocked)})")
     return 1 if bad else 0
 
 

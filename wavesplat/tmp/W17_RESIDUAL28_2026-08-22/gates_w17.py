@@ -22,13 +22,24 @@ ARMS = {   # 신규만. 전부 척도불변 ON + smooth 0 (= W10 최선 팔) 위
                             scale_invariant=True),
     'SI-NOSM-LR10X':   dict(extra=dict(_SI, lr=1e-3), scale_invariant=True),
     'SI-NOSM-NOCLAMP': dict(extra=dict(_SI, max_steepness=1e9), scale_invariant=True),
-    # ★개정1 — 교락을 가르는 팔: lr 1/10 + 스텝 10배 = 총 이동 예산 원복.
+    # ★★개정1 — ⚠**사후 추가 팔 · 탐색적(EXPLORATORY) · 사전등록 아님.**
+    # 교락을 가르는 팔: lr 1/10 + 스텝 10배 = 총 이동 예산 원복.
+    # 추가 시각 = 커밋 `00aaf7e`(2026-08-22 21:04), **앞의 세 팔 48행이 이미 나온 뒤**다
+    # (그 커밋의 `results.jsonl` 은 48행이고 그때 이미 `RESIDUAL-PARTIAL` 이 확정돼 있었다).
+    # ⟹ ⛔**이 팔의 수(1.0833 · 14/16 · p=0.0021)를 확증적 결과로 인용하지 마라.**
+    #    사유·판정 불변 논증은 `AMENDMENT_1.md`, 감사 재현은 `AMENDMENT_3.md`.
+    # ⚠**구조적 취약점(2026-08-26 감사)**: 아래 `label()` 의 `best` 는 `ARMS` 전체에 대한
+    #    argmin 이라 **사후 팔이 라벨을 움직일 수 있다**. 이 배치에서는 움직이지 않았다
+    #    (뒤집기 문턱 ratio ≤ 1.0291, 실측 1.0833). ⛔그러나 그것은 운이지 설계가 아니다.
     'SI-NOSM-LR10X-STEPS10': dict(
         extra=dict(_SI, lr=1e-3, max_iters_per_stage=[2000, 2000, 5000]),
         scale_invariant=True),
 }
+# 앞 셋 = 사전등록(`PREREG.md`, 커밋 `e64eea1`). 넷째 = ⚠사후 추가 · 탐색적.
 ARM_ORDER = ['SI-NOSM-STEPS10', 'SI-NOSM-LR10X', 'SI-NOSM-NOCLAMP',
              'SI-NOSM-LR10X-STEPS10']
+PREREG_ARMS = ['SI-NOSM-STEPS10', 'SI-NOSM-LR10X', 'SI-NOSM-NOCLAMP']
+POSTHOC_ARMS = ['SI-NOSM-LR10X-STEPS10']
 REGIME, N_EPISODES, SEEDS = 'crowded', 16, [1632]
 FIELD = 'window_resid'
 R_BASE = None      # ★손복사 금지 — W9/W10 원본에서 재계산한다

@@ -1,0 +1,540 @@
+{
+ "batch": "B-22",
+ "n_rows": 1152,
+ "n_ok": 1152,
+ "n_episodes": 48,
+ "n_used": 48,
+ "excluded": [],
+ "arms": [
+  "SHIP",
+  "LEARN",
+  "ANA",
+  "ANA-N",
+  "LEARN-NOVP",
+  "ANA-NOVP",
+  "ANA-N-NOVP",
+  "ANA-SHIP"
+ ],
+ "arm_defs": {
+  "SHIP": {
+   "atoms": null,
+   "cfg": {
+    "varpro_steps": "VP",
+    "auto_switch_thresh": "TH_L",
+    "learned_energy_thresh": "E_SHIP",
+    "learned_init_iters": null,
+    "lambda_l1": null,
+    "init_method": null,
+    "analytic_ensemble_k": null
+   }
+  },
+  "LEARN": {
+   "atoms": "learned",
+   "cfg": {
+    "varpro_steps": "VP",
+    "auto_switch_thresh": "TH_L",
+    "learned_energy_thresh": "E_SHIP",
+    "learned_init_iters": null,
+    "lambda_l1": null,
+    "init_method": null,
+    "analytic_ensemble_k": null
+   }
+  },
+  "ANA": {
+   "atoms": "analytic",
+   "cfg": {
+    "varpro_steps": "VP",
+    "auto_switch_thresh": "TH_L",
+    "learned_energy_thresh": "E_SHIP",
+    "learned_init_iters": null,
+    "lambda_l1": null,
+    "init_method": null,
+    "analytic_ensemble_k": null
+   }
+  },
+  "ANA-N": {
+   "atoms": "analytic_n",
+   "cfg": {
+    "varpro_steps": "VP",
+    "auto_switch_thresh": "TH_L",
+    "learned_energy_thresh": 0.0,
+    "learned_init_iters": null,
+    "lambda_l1": null,
+    "init_method": null,
+    "analytic_ensemble_k": null
+   }
+  },
+  "LEARN-NOVP": {
+   "atoms": "learned",
+   "cfg": {
+    "varpro_steps": 0,
+    "auto_switch_thresh": "TH_L",
+    "learned_energy_thresh": "E_SHIP",
+    "learned_init_iters": null,
+    "lambda_l1": null,
+    "init_method": null,
+    "analytic_ensemble_k": null
+   }
+  },
+  "ANA-NOVP": {
+   "atoms": "analytic",
+   "cfg": {
+    "varpro_steps": 0,
+    "auto_switch_thresh": "TH_L",
+    "learned_energy_thresh": "E_SHIP",
+    "learned_init_iters": null,
+    "lambda_l1": null,
+    "init_method": null,
+    "analytic_ensemble_k": null
+   }
+  },
+  "ANA-N-NOVP": {
+   "atoms": "analytic_n",
+   "cfg": {
+    "varpro_steps": 0,
+    "auto_switch_thresh": "TH_L",
+    "learned_energy_thresh": 0.0,
+    "learned_init_iters": null,
+    "lambda_l1": null,
+    "init_method": null,
+    "analytic_ensemble_k": null
+   }
+  },
+  "ANA-SHIP": {
+   "atoms": null,
+   "cfg": {
+    "varpro_steps": "VP",
+    "auto_switch_thresh": 999999,
+    "learned_energy_thresh": "E_SHIP",
+    "learned_init_iters": null,
+    "lambda_l1": null,
+    "init_method": null,
+    "analytic_ensemble_k": null
+   }
+  }
+ },
+ "deploy_constants_seen": {
+  "varpro_steps": 400,
+  "learned_init_iters": 0,
+  "auto_switch_thresh": 0,
+  "lambda_l1": 0.0001,
+  "init_method": "auto",
+  "analytic_ensemble_k": 3,
+  "learned_energy_thresh": 0.03,
+  "learned_dedup_dk": 0.03,
+  "max_n": 30
+ },
+ "thresholds": {
+  "n": 48,
+  "nominal": 31,
+  "confirm": 32,
+  "not_earn": 17,
+  "family_alpha": 0.025
+ },
+ "gates": [
+  [
+   "G-0 오류 0행",
+   true,
+   "0 행 오류 / 1152 행"
+  ],
+  [
+   "G-1 표본 = 8팔 × 48 에피소드",
+   true,
+   "384/384 셀 · 에피소드 48/48"
+  ],
+  [
+   "G-2 셀마다 추정기 시드 3개 전건",
+   true,
+   "384/384 셀 정상"
+  ],
+  [
+   "G-3 ★원자 주입 발화 (팔별 출처 · md5 존재)",
+   true,
+   "{'SHIP': [None], 'LEARN': ['learned'], 'ANA': ['analytic'], 'ANA-N': ['analytic_n'], 'LEARN-NOVP': ['learned'], 'ANA-NOVP': ['analytic'], 'ANA-N-NOVP': ['analytic_n'], 'ANA-SHIP': [None]} · md5 규약 True"
+  ],
+  [
+   "G-4 ★주입 원자가 실제로 설치됨 (auto_n_selected == 러너 도출 기대값)",
+   true,
+   "864/864 행 일치"
+  ],
+  [
+   "G-4b ★ANA-N 원자 수 == min(LEARN 원자 수, 해석적이 실제로 준 수) — 셀마다",
+   true,
+   "이탈 0/144 셀 · 해석적이 모자란 셀 0 · 패딩 제거 총 0 원자 · LEARN n 중앙 19.0 · ANA n 중앙 3.0"
+  ],
+  [
+   "G-5 ★객체 파생 속성 일치 + 시드·클래스·환경",
+   true,
+   "기대 {'lambda_l1': 0.0001, 'tracking_mode': 'w_phi', 'tracking_lr': 0.005, 'real_estimator': 'bank_mmse'} · 이탈 키 [] · 키존재 True · seed True · 클래스 True · 포착수1 True · 환경변수 미설정 True"
+  ],
+  [
+   "G-5b 행동 지문 init_loss_n/init_iters == 팔별 기대 (⛔None 통과 아님)",
+   true,
+   "기대 {'SHIP': 0, 'LEARN': 0, 'ANA': 0, 'ANA-N': 0, 'LEARN-NOVP': 0, 'ANA-NOVP': 0, 'ANA-N-NOVP': 0, 'ANA-SHIP': 900} · 이탈 0/1152"
+  ],
+  [
+   "G-5c ★VARPRO 실집행/부재 (팔별 · obj 존재로 판정, ⛔echo 아님)",
+   true,
+   "발화 기대 ('SHIP', 'LEARN', 'ANA', 'ANA-N') · 침묵 기대 ('LEARN-NOVP', 'ANA-NOVP', 'ANA-N-NOVP')+ANA-SHIP · 이탈 0/1152"
+  ],
+  [
+   "G-5d 배포 상수 트립와이어 (패키지 단일출처 == 이 배치의 핀)",
+   true,
+   "{'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001, 'init_method': 'auto', 'analytic_ensemble_k': 3, 'learned_energy_thresh': 0.03, 'learned_dedup_dk': 0.03, 'max_n': 30} vs {'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001, 'init_method': 'auto', 'analytic_ensemble_k': 3, 'learned_energy_thresh': 0.03, 'learned_dedup_dk': 0.03, 'max_n': 30}"
+  ],
+  [
+   "G-5e ★energy_thresh 미러 일치 (서명 기본값 == 두 곳의 .get 리터럴)",
+   true,
+   "서명 0.03 · 소스 리터럴 [0.03]"
+  ],
+  [
+   "G-6 ★라우팅·앙상블 팔별 기대 (learned/k=1 vs v2_konly/k=3) · 실측게이트 미발화",
+   true,
+   "이탈 0/1152"
+  ],
+  [
+   "G-7 원자 수 기록 (n_gaussians > 0 — ⛔0·None 통과 아님)",
+   true,
+   "None 0 · 0 0 / 1152"
+  ],
+  [
+   "G-8 채점 창이 에피소드 안 24행 전부 동일 (⛔전 행 None 통과 아님)",
+   true,
+   "48/48 일치 · 창 미기록 0/1152"
+  ],
+  [
+   "G-9 ZERO 창 일치 · 에피소드 내 불변 · None 0행",
+   true,
+   "창 일치 True · 분산 에피소드 0 · None 0"
+  ],
+  [
+   "★G-10 양성대조: SHIP 이 B-12 동결 행과 비트 동일",
+   true,
+   "대조 144/144 행 · 불일치 0"
+  ],
+  [
+   "★G-11 ZERO 교차검증 (독립 계산 vs B-12 SPEC25 기록)",
+   true,
+   "48/48 일치 (rtol 1e-05)"
+  ],
+  [
+   "★G-12 mesh_verdict 분할 = 사전등록 핀 (⛔\"HOS M=3\" 단일 서술 금지)",
+   true,
+   "{'DEGRADED': 17, 'ADEQUATE': 31} vs 핀 {'ADEQUATE': 31, 'DEGRADED': 17} (n=48/48)"
+  ],
+  [
+   "G-13 ★주입 충실도: LEARN↔SHIP 치환에도 PRIMARY 라벨 불변",
+   true,
+   "비트 동일 셀 48/48 · 라벨(LEARN) PRIOR-EARNS · 라벨(SHIP 치환) PRIOR-EARNS"
+  ],
+  [
+   "G-14 ★★확산 제안 호출 계수 (주입 팔 0회 · 비주입 1회 — 주입의 직접 증거)",
+   true,
+   "기대 {'SHIP': 1, 'LEARN': 0, 'ANA': 0, 'ANA-N': 0, 'LEARN-NOVP': 0, 'ANA-NOVP': 0, 'ANA-N-NOVP': 0, 'ANA-SHIP': 1} · 이탈 0/1152"
+  ],
+  [
+   "N[SHIP] SHIP < ZERO ≥ 31/48 (미달 ⟹ PRIMARY 무효)",
+   true,
+   "48/48 p=3.552713678800501e-15"
+  ],
+  [
+   "N[LEARN] LEARN < ZERO ≥ 31/48 (미달 ⟹ PRIMARY 무효)",
+   true,
+   "48/48 p=3.552713678800501e-15"
+  ],
+  [
+   "N[ANA] ANA < ZERO — **측정 여부**가 통과 조건 (미달 ⟹ 라벨 수식어 COLLAPSE)",
+   true,
+   "15/48 p=0.9972423992572494  ⚠**무기술** ⟹ 수식어 COLLAPSE"
+  ],
+  [
+   "N[ANA-N] ANA-N < ZERO — **측정 여부**가 통과 조건 (미달 ⟹ 라벨 수식어 COLLAPSE)",
+   true,
+   "13/48 p=0.9996413651633027  ⚠**무기술** ⟹ 수식어 COLLAPSE"
+  ],
+  [
+   "N[LEARN-NOVP] LEARN-NOVP < ZERO — **측정 여부**가 통과 조건 (미달 ⟹ 라벨 수식어 COLLAPSE)",
+   true,
+   "41/48 p=3.1202042194422575e-07"
+  ],
+  [
+   "N[ANA-NOVP] ANA-NOVP < ZERO — **측정 여부**가 통과 조건 (미달 ⟹ 라벨 수식어 COLLAPSE)",
+   true,
+   "8/48 p=0.9999996879795781  ⚠**무기술** ⟹ 수식어 COLLAPSE"
+  ],
+  [
+   "N[ANA-N-NOVP] ANA-N-NOVP < ZERO — **측정 여부**가 통과 조건 (미달 ⟹ 라벨 수식어 COLLAPSE)",
+   true,
+   "9/48 p=0.9999983473666454  ⚠**무기술** ⟹ 수식어 COLLAPSE"
+  ],
+  [
+   "N[ANA-SHIP] ANA-SHIP < ZERO — **측정 여부**가 통과 조건 (미달 ⟹ 라벨 수식어 COLLAPSE)",
+   true,
+   "32/48 p=0.01465247336026465"
+  ]
+ ],
+ "gates_pass": 28,
+ "gates_total": 28,
+ "comparisons": {
+  "L1a": {
+   "n": 48,
+   "better": 48,
+   "n_tie": 0,
+   "p_one_sided": 3.552713678800501e-15,
+   "rel_median_pct": -47.486641719989095,
+   "median_a": 0.13460042881779372,
+   "median_b": 0.2813557173746327
+  },
+  "L1b": {
+   "n": 48,
+   "better": 48,
+   "n_tie": 0,
+   "p_one_sided": 3.552713678800501e-15,
+   "rel_median_pct": -48.58617755575922,
+   "median_a": 0.13460042881779372,
+   "median_b": 0.281622900084282
+  },
+  "L2": {
+   "n": 48,
+   "better": 45,
+   "n_tie": 0,
+   "p_one_sided": 6.562927978848165e-11,
+   "rel_median_pct": -36.335186067394545,
+   "median_a": 0.13460042881779372,
+   "median_b": 0.2159356136806309
+  },
+  "S2a": {
+   "n": 48,
+   "better": 48,
+   "n_tie": 0,
+   "p_one_sided": 3.552713678800501e-15,
+   "rel_median_pct": -27.997929936659958,
+   "median_a": 0.2070363573341941,
+   "median_b": 0.3013850500186284
+  },
+  "S2b": {
+   "n": 48,
+   "better": 48,
+   "n_tie": 0,
+   "p_one_sided": 3.552713678800501e-15,
+   "rel_median_pct": -27.07378926683274,
+   "median_a": 0.2070363573341941,
+   "median_b": 0.29510169238783424
+  },
+  "VP_LEARN": {
+   "n": 48,
+   "better": 46,
+   "n_tie": 0,
+   "p_one_sided": 4.1815439999481896e-12,
+   "rel_median_pct": -37.582934857981584,
+   "median_a": 0.13460042881779372,
+   "median_b": 0.2070363573341941
+  },
+  "VP_ANA": {
+   "n": 48,
+   "better": 33,
+   "n_tie": 0,
+   "p_one_sided": 0.006641640781122504,
+   "rel_median_pct": -4.332552366017028,
+   "median_a": 0.281622900084282,
+   "median_b": 0.29510169238783424
+  },
+  "SHIP_vs_ANA": {
+   "n": 48,
+   "better": 48,
+   "n_tie": 0,
+   "p_one_sided": 3.552713678800501e-15,
+   "rel_median_pct": -47.486641719989095,
+   "median_a": 0.13460042881779372,
+   "median_b": 0.2813557173746327
+  },
+  "SHIP_vs_ANA_N": {
+   "n": 48,
+   "better": 48,
+   "n_tie": 0,
+   "p_one_sided": 3.552713678800501e-15,
+   "rel_median_pct": -48.58617755575922,
+   "median_a": 0.13460042881779372,
+   "median_b": 0.281622900084282
+  }
+ },
+ "neg_vs_zero": {
+  "SHIP": {
+   "n": 48,
+   "better": 48,
+   "p_one_sided": 3.552713678800501e-15,
+   "rel_median_pct": -48.657612739565735
+  },
+  "LEARN": {
+   "n": 48,
+   "better": 48,
+   "p_one_sided": 3.552713678800501e-15,
+   "rel_median_pct": -48.657612739565735
+  },
+  "ANA": {
+   "n": 48,
+   "better": 15,
+   "p_one_sided": 0.9972423992572494,
+   "rel_median_pct": 14.280443169935129
+  },
+  "ANA-N": {
+   "n": 48,
+   "better": 13,
+   "p_one_sided": 0.9996413651633027,
+   "rel_median_pct": 15.90339054524504
+  },
+  "LEARN-NOVP": {
+   "n": 48,
+   "better": 41,
+   "p_one_sided": 3.1202042194422575e-07,
+   "rel_median_pct": -14.048837601643736
+  },
+  "ANA-NOVP": {
+   "n": 48,
+   "better": 8,
+   "p_one_sided": 0.9999996879795781,
+   "rel_median_pct": 22.037688053569056
+  },
+  "ANA-N-NOVP": {
+   "n": 48,
+   "better": 9,
+   "p_one_sided": 0.9999983473666454,
+   "rel_median_pct": 21.234327537138775
+  },
+  "ANA-SHIP": {
+   "n": 48,
+   "better": 32,
+   "p_one_sided": 0.01465247336026465,
+   "rel_median_pct": -11.926501763327249
+  }
+ },
+ "median_zero_nRMSE": 0.24676232427979508,
+ "median_nRMSE": {
+  "SHIP": 0.13584316950291395,
+  "LEARN": 0.13584316950291395,
+  "ANA": 0.2802722428614895,
+  "ANA-N": 0.27634912757202984,
+  "LEARN-NOVP": 0.2054386798059568,
+  "ANA-NOVP": 0.29913836492535967,
+  "ANA-N-NOVP": 0.29707029174702865,
+  "ANA-SHIP": 0.21876622525354228
+ },
+ "median_n_atoms": {
+  "SHIP": 22.0,
+  "LEARN": 22.0,
+  "ANA": 13.5,
+  "ANA-N": 13.5,
+  "LEARN-NOVP": 22.0,
+  "ANA-NOVP": 13.5,
+  "ANA-N-NOVP": 13.5,
+  "ANA-SHIP": 19.0
+ },
+ "median_n_selected": {
+  "SHIP": 19.0,
+  "LEARN": 19.0,
+  "ANA": 3.0,
+  "ANA-N": 19.0,
+  "LEARN-NOVP": 19.0,
+  "ANA-NOVP": 3.0,
+  "ANA-N-NOVP": 19.0,
+  "ANA-SHIP": 19.0
+ },
+ "median_init_time_s": {
+  "SHIP": 5.303819537162781,
+  "LEARN": 5.222626805305481,
+  "ANA": 7.578178763389587,
+  "ANA-N": 7.519863486289978,
+  "LEARN-NOVP": 3.1042250394821167,
+  "ANA-NOVP": 5.877693057060242,
+  "ANA-N-NOVP": 5.5734652280807495,
+  "ANA-SHIP": 117.31531894207001
+ },
+ "median_wall_s": {
+  "SHIP": 11.972790956497192,
+  "LEARN": 8.552652478218079,
+  "ANA": 10.297563910484314,
+  "ANA-N": 10.446496963500977,
+  "LEARN-NOVP": 6.319845080375671,
+  "ANA-NOVP": 8.53433358669281,
+  "ANA-N-NOVP": 8.440202236175537,
+  "ANA-SHIP": 136.91556978225708
+ },
+ "mesh_verdict_counts": {
+  "DEGRADED": 17,
+  "ADEQUATE": 31
+ },
+ "mesh_verdict_per_episode": {
+  "BF4_15comp_seed1581_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_15comp_seed1582_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_15comp_seed1583_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_15comp_seed1584_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_15comp_seed1633_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_15comp_seed1634_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_15comp_seed1635_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_15comp_seed1636_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_15comp_seed1637_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_15comp_seed1638_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_15comp_seed1639_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_15comp_seed1640_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_30comp_seed1581_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_30comp_seed1582_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_30comp_seed1583_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_30comp_seed1584_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_30comp_seed1633_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_30comp_seed1634_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_30comp_seed1635_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_30comp_seed1636_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_30comp_seed1637_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_30comp_seed1638_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_30comp_seed1639_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_30comp_seed1640_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_15comp_seed1581_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_15comp_seed1582_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_15comp_seed1583_uniform_ra_rf_ds": "DEGRADED",
+  "BF5_15comp_seed1584_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_15comp_seed1633_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_15comp_seed1634_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_15comp_seed1635_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_15comp_seed1636_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_15comp_seed1637_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_15comp_seed1638_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_15comp_seed1639_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_15comp_seed1640_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1581_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1582_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1583_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1584_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1633_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1634_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1635_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1636_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1637_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1638_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1639_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_30comp_seed1640_uniform_ra_rf_ds": "ADEQUATE"
+ },
+ "readback": {
+  "derived_expected": {
+   "lambda_l1": 0.0001,
+   "tracking_mode": "w_phi",
+   "tracking_lr": 0.005,
+   "real_estimator": "bank_mmse"
+  },
+  "deploy_pin": {
+   "varpro_steps": 400,
+   "learned_init_iters": 0,
+   "auto_switch_thresh": 0,
+   "lambda_l1": 0.0001,
+   "init_method": "auto",
+   "analytic_ensemble_k": 3,
+   "learned_energy_thresh": 0.03,
+   "learned_dedup_dk": 0.03,
+   "max_n": 30
+  }
+ },
+ "label": "PRIOR-EARNS",
+ "label_text": "★L1a 48/48(p=3.553e-15,CONFIRM) · L1b 48/48(p=3.553e-15,CONFIRM) · L2 45/48(p=6.563e-11,CONFIRM) — 노브 하나(제안원)와 패키지 수준이 **둘 다** 학습 쪽이다.  ⚠수식어 COLLAPSE[ANA,ANA-N] — 그 팔은 참 제로필드조차 못 이긴다 ⟹ ⛔상대 중앙 %를 margin 으로 인용 금지, 그리고 그 비교는 *\"두 작동 팔의 차\"* 가 아니라 *\"제안원 교체 시 기술의 소멸\"* 이다",
+ "title_decision": "현행 제목 유지 — 주어 「학습된 스펙트럼 사전」 이 절제로 지탱된다",
+ "secondary_label": "PRIOR-EARNS-WITHOUT-VARPRO",
+ "secondary_text": "★S2a 48/48(p=3.553e-15,CONFIRM) · S2b 48/48(p=3.553e-15,CONFIRM) — 사전의 이득이 VARPRO 에 **의존하지 않는다**"
+}

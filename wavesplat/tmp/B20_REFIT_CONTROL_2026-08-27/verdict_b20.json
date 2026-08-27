@@ -1,0 +1,318 @@
+{
+ "batch": "B-20",
+ "n_rows": 144,
+ "n_ok": 144,
+ "n_episodes": 16,
+ "n_used": 16,
+ "excluded": [],
+ "thresholds": {
+  "n": 16,
+  "nominal": 12,
+  "confirm": 13,
+  "not_earn": 4,
+  "family_alpha": 0.025,
+  "note": "A 의 검출은 NOMINAL(α=0.05, 무보정) · A 의 HELPS 가지와 B 는 CONFIRM(가족단위)"
+ },
+ "dk": {
+  "DK0": 1e-10,
+  "DK1": 0.02618,
+  "phase_bound": 1.1920928955078125e-07,
+  "derivation": {
+   "xmax": 250.0,
+   "ymax": 100.0,
+   "tmax": 30.0,
+   "depth": 50.0,
+   "cg_max": 19.70354091261734,
+   "lever": 1185.9504435618978,
+   "bound": 2.0103586991838653e-10,
+   "dk0": 1e-10
+  }
+ },
+ "gates": [
+  [
+   "G-0 오류 0행",
+   true,
+   "0 행 오류 / 144 행"
+  ],
+  [
+   "G-1 표본 = 3팔 × 16 에피소드",
+   true,
+   "48/48 셀 · 에피소드 16/16"
+  ],
+  [
+   "G-2 셀마다 추정기 시드 3개 전건",
+   true,
+   "48/48 셀 정상"
+  ],
+  [
+   "G-3 개입 발화 (스냅 팔 전건 · SHIP 0건)",
+   true,
+   "SHIP-NOW 0/48 · NOOP-REFIT 48/48 · KGRID1 48/48"
+  ],
+  [
+   "G-3b 스냅 호출 계수 == 1 전 행 (통제 팔 포함 · 앙상블 중복호출 아님)",
+   true,
+   "snap_calls [1]"
+  ],
+  [
+   "G-4 dk 되읽기 (계수기 `init_result.k_snap.dk`)",
+   true,
+   "{'SHIP-NOW': [None], 'NOOP-REFIT': [1e-10], 'KGRID1': [0.02618]}"
+  ],
+  [
+   "G-5 ★객체 파생 속성 일치 (⛔cfg 항등식 아님) + 시드·클래스·환경",
+   true,
+   "기대 {'lambda_l1': 0.0001, 'tracking_mode': 'w_phi', 'tracking_lr': 0.005, 'real_estimator': 'bank_mmse'} · 이탈 키 [] · 키존재 True · seed 일치 True · 클래스 True · 포착수 1 True · S8/S5 환경변수 미설정 True"
+  ],
+  [
+   "G-5b 행동 지문 init_loss_n == 0 (⛔None 은 통과 아님)",
+   true,
+   "None 0/144 · 값 [0]"
+  ],
+  [
+   "G-5c 계수기 되읽기 + ★VARPRO 실집행 증거 (⛔echo/truthy 아님)",
+   true,
+   "기대 {'varpro_steps': 400, 'varpro_fired': True} · 이탈 키 [] · steps [400] · obj 미기록(=건너뜀) 0/144"
+  ],
+  [
+   "G-5d 배포 상수 트립와이어 (패키지 단일출처 == 이 배치의 핀)",
+   true,
+   "{'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001, 'init_method': 'auto'} vs {'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001, 'init_method': 'auto'}"
+  ],
+  [
+   "G-6 라우터 learned 전건 · ensemble_k == 1 · 파생 init_method == 경로 · 실측게이트 미발화",
+   true,
+   "auto_real_gate≠False 0/144 · auto_selected ['learned'] · 파생 init_method ['learned'] · ensemble_k [1] · auto_n_selected 최소 2"
+  ],
+  [
+   "G-7 원자 수 > 0 · 스냅 계수기 n_atoms == n_gaussians (⛔0·None 통과 아님)",
+   true,
+   "n_gaussians 불량 0/144 · 계수기 불일치 0 · 값 [1, 10, 12, 14, 15, 16, 18, 19, 2, 20, 21, 23, 25, 27, 28, 3, 30, 4, 5, 6, 7, 8, 9]"
+  ],
+  [
+   "G-8 채점 창이 에피소드 안에서 9행 전부 동일 (⛔전 행 None 통과 아님)",
+   true,
+   "16/16 에피소드 일치 · 창 미기록 0/144"
+  ],
+  [
+   "G-9 ZERO 창 일치 · 에피소드 내 불변 · None 0행",
+   true,
+   "창 일치 True · 분산 에피소드 0 · None 0"
+  ],
+  [
+   "G-10 격자 재도출 (|2π/Lx − DK1| < 1e-5 · 2π/Ly > DK1)",
+   true,
+   "에피소드 16/16 · 이탈 0 · DK1 반올림 편차 최대 6.122e-08"
+  ],
+  [
+   "★G-11 양성대조: SHIP-NOW 가 B-19 동결 행과 비트 동일",
+   true,
+   "대조 48/48 행 · 불일치 0"
+  ],
+  [
+   "★G-11b 양성대조: KGRID1 가 B-19 동결 행과 비트 동일",
+   true,
+   "대조 48/48 행 · 불일치 0"
+  ],
+  [
+   "★G-12 ZERO 교차검증 (같은 함수 ⟹ B-19 기록과 비트 동일)",
+   true,
+   "16/16 일치 (rtol 0.0)"
+  ],
+  [
+   "★G-13 mesh_verdict 3-분할 = 사전등록 핀 (⛔표본을 \"HOS M=3\" 로 단일 서술 금지)",
+   true,
+   "{'INADEQUATE': 3, 'DEGRADED': 2, 'ADEQUATE': 11} vs 핀 {'ADEQUATE': 11, 'DEGRADED': 2, 'INADEQUATE': 3} (n=16/16)"
+  ],
+  [
+   "★G-14 개입 격리(파라미터): SHIP no-op · 두 스냅 팔에서 (w,φ) 재적합 발화",
+   true,
+   "SHIP 이탈 0/48 · 스냅 팔 (w,φ) 미변화 0/96 · NOOP dw_max 중앙 0.007104 · dphi_max 중앙 0.145433"
+  ],
+  [
+   "★G-15 NOOP-REFIT 파수 섭동 ≤ float32 장 정밀도 (Δψ_max ≤ 2⁻²³) · 반올림 상한 준수",
+   true,
+   "Δψ_max 최대 3.731529203687689e-08 (허용 1.1921e-07) · 위반 0/48 · 반올림 상한 위반 0 · 최소 |k| 0.000936105509095818"
+  ],
+  [
+   "★G-15b (강한 형태, 무효화 아님) NOOP-REFIT 파수가 float32 파라미터에서 비트 동일",
+   false,
+   "비동일 행 7/48 · 비율 최소 0.6666666666666666"
+  ],
+  [
+   "★G-16 NOOP-REFIT ≠ SHIP-NOW (동점 셀 0 — 재적합이 결과를 실제로 바꾼다)",
+   true,
+   "동점 0/16 에피소드"
+  ],
+  [
+   "★G-17 DK0 자료 재도출 == 핀 (⛔손으로 고른 값 아님)",
+   true,
+   "재도출 dk0=1e-10 bound=2.010359e-10 lever=1185.950444 cg_max=19.7035 (x,y,t)=(250.0,100.0,30.0) depth=50.0 · 핀 dk0=1e-10 · Δψ_max(DK0)=5.9298e-08 rad = 0.4974×eps32 · Δψ_max(DK1)=15.5241 rad"
+  ],
+  [
+   "★G-17b PP_BAND 재도출 == 핀 (B-12 동결 verdict 에서)",
+   true,
+   "2.3596978918107183 vs 핀 2.3596978918107183"
+  ],
+  [
+   "★G-18 문턱 == 핀 (12/13/4) 이고 형제 배치(B-19)와 같다",
+   true,
+   "(12, 13, 4) vs 핀 (12, 13, 4) vs B-19 (12, 13, 4) · family_alpha 0.025"
+  ],
+  [
+   "N-1 음성대조 SHIP-NOW < ZERO ≥ 12/16 (미달 ⟹ A·B 무효)",
+   true,
+   "15/16 p=0.0002593994140625"
+  ],
+  [
+   "N-2 음성대조 NOOP-REFIT < ZERO ≥ 12/16 (미달 ⟹ B 라벨 전환)",
+   true,
+   "15/16 p=0.0002593994140625"
+  ]
+ ],
+ "gates_pass": 27,
+ "gates_total": 28,
+ "primary_a": {
+  "n": 16,
+  "better": 4,
+  "n_tie": 0,
+  "p_one_sided": 0.9893646240234375,
+  "rel_median_pct": 0.06796841459885766,
+  "median_a": 0.057852344880423824,
+  "median_b": 0.057550362117278084
+ },
+ "primary_b": {
+  "n": 16,
+  "better": 14,
+  "n_tie": 0,
+  "p_one_sided": 0.0020904541015625,
+  "rel_median_pct": -67.5750052863194,
+  "median_a": 0.057550362117278084,
+  "median_b": 0.22066314723342656
+ },
+ "total_effect_reproduction": {
+  "n": 16,
+  "better": 14,
+  "n_tie": 0,
+  "p_one_sided": 0.0020904541015625,
+  "rel_median_pct": -67.43404310240334,
+  "median_a": 0.057852344880423824,
+  "median_b": 0.22066314723342656
+ },
+ "magnitudes": {
+  "mag_main": -67.43404310240334,
+  "mag_clean": -67.5750052863194,
+  "shift_pp": 0.1409621839160593,
+  "pp_band": 2.3596978918107183,
+  "magnitude_unmoved": true,
+  "pp_band_relative_variant": 3.958891681082533
+ },
+ "log_decomposition": {
+  "n": 16,
+  "median_d_total": 1.123359312773537,
+  "median_d_refit": -0.0006794431472709453,
+  "median_d_quant": 1.127954378781329,
+  "additivity_max_abs_err": 2.220446049250313e-16,
+  "share_of_medians": -0.0006048315436967559,
+  "median_of_shares": -0.0008668255545349415,
+  "n_guard_dropped": 0
+ },
+ "neg_ship_vs_zero": {
+  "n": 16,
+  "better": 15,
+  "p_one_sided": 0.0002593994140625,
+  "rel_median_pct": -76.84379756449434
+ },
+ "neg_noop_vs_zero": {
+  "n": 16,
+  "better": 15,
+  "p_one_sided": 0.0002593994140625,
+  "rel_median_pct": -76.96470439776874
+ },
+ "neg_kgrid1_vs_zero": {
+  "n": 16,
+  "better": 12,
+  "p_one_sided": 0.0384063720703125,
+  "rel_median_pct": -11.291883736226339
+ },
+ "median_zero_nRMSE": 0.24995654704980552,
+ "median_n_atoms": {
+  "SHIP-NOW": 10.0,
+  "NOOP-REFIT": 10.0,
+  "KGRID1": 10.0
+ },
+ "median_unique_cells": {
+  "SHIP-NOW": null,
+  "NOOP-REFIT": 10.0,
+  "KGRID1": 10.0
+ },
+ "median_k_shift": {
+  "SHIP-NOW": null,
+  "NOOP-REFIT": 4.216636303513742e-11,
+  "KGRID1": 0.010147632013638472
+ },
+ "median_k_dpsi_max": {
+  "SHIP-NOW": 0.0,
+  "NOOP-REFIT": 0.0,
+  "KGRID1": 4.841931287727103
+ },
+ "min_k_bit_identical_frac": {
+  "SHIP-NOW": 1.0,
+  "NOOP-REFIT": 1.0,
+  "KGRID1": 0.0
+ },
+ "median_w_abs_change_max": {
+  "SHIP-NOW": 0.0,
+  "NOOP-REFIT": 0.0071041034534573555,
+  "KGRID1": 0.11248007067479193
+ },
+ "median_phi_abs_change_max": {
+  "SHIP-NOW": 0.0,
+  "NOOP-REFIT": 0.14543256163597107,
+  "KGRID1": 2.3290601819753647
+ },
+ "mesh_verdict_counts": {
+  "INADEQUATE": 3,
+  "DEGRADED": 2,
+  "ADEQUATE": 11
+ },
+ "mesh_verdict_per_episode": {
+  "BF4_2comp_seed1585_uniform_ra_rf_ds": "INADEQUATE",
+  "BF4_2comp_seed1586_uniform_ra_rf_ds": "DEGRADED",
+  "BF4_2comp_seed1587_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_2comp_seed1588_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_5comp_seed1585_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_5comp_seed1586_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_5comp_seed1587_uniform_ra_rf_ds": "ADEQUATE",
+  "BF4_5comp_seed1588_uniform_ra_rf_ds": "DEGRADED",
+  "BF5_2comp_seed1585_uniform_ra_rf_ds": "INADEQUATE",
+  "BF5_2comp_seed1586_uniform_ra_rf_ds": "INADEQUATE",
+  "BF5_2comp_seed1587_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_2comp_seed1588_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_5comp_seed1585_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_5comp_seed1586_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_5comp_seed1587_uniform_ra_rf_ds": "ADEQUATE",
+  "BF5_5comp_seed1588_uniform_ra_rf_ds": "ADEQUATE"
+ },
+ "readback": {
+  "derived_expected": {
+   "lambda_l1": 0.0001,
+   "tracking_mode": "w_phi",
+   "tracking_lr": 0.005,
+   "real_estimator": "bank_mmse"
+  },
+  "counter_expected": {
+   "varpro_steps": 400,
+   "varpro_fired": true
+  },
+  "route_expected": "learned",
+  "no_derived_evidence": [
+   "auto_switch_thresh",
+   "learned_init_iters"
+  ]
+ },
+ "label": "REFIT-IS-NOT-THE-CARRIER",
+ "label_text": "★4/16(동점 0), p=0.9894, 크기 이동 밴드 안 — 재적합 단독은 느슨한 문턱(α=0.05)에서도 검출되지 않고 인용값도 밴드 안이다 ⟹ `B-16`/`B-19` 의 **크기까지 인용 가능**하고 절제 논증이 온전하다.",
+ "label_b": "QUANTIZATION-EARNS-INDEPENDENTLY",
+ "label_b_text": "★14/16(동점 0), p=0.00209 — **적합 절차를 고정한 채로도** 파수를 격자에 스냅하면 나빠진다 ⟹ 교락 없는 절제로 기여 ①이 지탱된다."
+}

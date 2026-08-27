@@ -1,0 +1,374 @@
+{
+ "batch": "B-21",
+ "n_rows": 960,
+ "n_ok": 960,
+ "gates": [
+  {
+   "name": "G-0 오류 0행",
+   "passed": true,
+   "detail": "0 행 오류 / 960 행"
+  },
+  {
+   "name": "G-1 표본 = 5팔 × (16+48) = 320 셀",
+   "passed": true,
+   "detail": "320/320 셀 · 에피소드 sparse 16/16 · crowded 48/48"
+  },
+  {
+   "name": "G-2 셀마다 시드 3개 전건 (ablation=est · SPEC25=filter)",
+   "passed": true,
+   "detail": "320/320 셀 정상"
+  },
+  {
+   "name": "G-3 개입 발화 (SHIP 0건 · 나머지 셋 전건)",
+   "passed": true,
+   "detail": "SHIP 0/192 · KGRID1 192/192 · KGRID2 192/192 · FITSWAP 192/192"
+  },
+  {
+   "name": "G-4 dk 되읽기 (계수기 `init_result.k_snap.dk`)",
+   "passed": true,
+   "detail": "{'SHIP': [None], 'KGRID1': [0.02618], 'KGRID2': [0.05236], 'FITSWAP': [1e-12]}"
+  },
+  {
+   "name": "★G-4b 개입 크기: KGRID1/2 는 파수를 옮기고 (≥1e-4) FITSWAP 은 옮기지 않는다 (≤1e-9)",
+   "passed": true,
+   "detail": "FITSWAP |Δk| 중앙 최대 5.203292645691958e-13 (허용 1e-09) · KGRID 이탈 0 · FITSWAP 이탈 0"
+  },
+  {
+   "name": "G-5 ★객체 파생 속성 일치 (⛔cfg 항등식 아님) + 시드·클래스·환경",
+   "passed": true,
+   "detail": "기대 {'lambda_l1': 0.0001, 'tracking_mode': 'w_phi', 'tracking_lr': 0.005, 'real_estimator': 'bank_mmse'} · 이탈 키 [] · 키존재 True · seed 일치 True · 클래스 True · 포착수 1 True · S8/S5 환경변수 미설정 True"
+  },
+  {
+   "name": "G-5b 행동 지문 init_loss_n == 0 (⛔None 은 통과 아님)",
+   "passed": true,
+   "detail": "None 0/768 · 값 [0]"
+  },
+  {
+   "name": "G-5c 계수기 되읽기 + ★VARPRO 실집행 증거 (⛔echo/truthy 아님)",
+   "passed": true,
+   "detail": "기대 {'varpro_steps': 400, 'varpro_fired': True} · 이탈 키 [] · steps [400] · obj 미기록(=건너뜀) 0/768"
+  },
+  {
+   "name": "G-5d 배포 상수 트립와이어 (패키지 단일출처 == 이 배치의 핀)",
+   "passed": true,
+   "detail": "{'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001, 'init_method': 'auto'} vs {'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001, 'init_method': 'auto'}"
+  },
+  {
+   "name": "G-6 라우터 learned 전건 · ensemble_k == 1 · 파생 init_method == 경로 · 실측게이트 미발화",
+   "passed": true,
+   "detail": "auto_real_gate≠False 0/768 · auto_selected ['learned'] · 파생 init_method ['learned'] · ensemble_k [1] · auto_n_selected 최소 2 ⟹ 임계 0 vs 배포전 8 판별됨"
+  },
+  {
+   "name": "G-7 원자 수 기록 (n_gaussians > 0 — ⛔0·None 통과 아님)",
+   "passed": true,
+   "detail": "None 0 · 0 0 / 768"
+  },
+  {
+   "name": "★G-8 채점 창이 **다섯 팔 전부** 에피소드 안에서 동일 + ZERO 창과도 동일",
+   "passed": true,
+   "detail": "64/64 에피소드 일치 · 창 미기록 0 · ZERO 창 불일치 0"
+  },
+  {
+   "name": "G-9 ZERO 에피소드 내 불변 · None 0행 (⛔상수 1.0 아님)",
+   "passed": true,
+   "detail": "분산 에피소드 0/64 · None 0"
+  },
+  {
+   "name": "G-10 격자 재도출 (|2π/Lx − DK1| < 1e-5 · 2π/Ly > DK1)",
+   "passed": true,
+   "detail": "에피소드 64/64 · 이탈 0 · ★DK1 반올림 편차 최대 6.122e-08 (허용오차의 0.0061배)"
+  },
+  {
+   "name": "★G-11 양성대조: 재실행 4팔이 동결 행(B-19·B-16·B-11b·B-12)과 비트 동일",
+   "passed": true,
+   "detail": "대조 768/768 행 · 불일치 0 · 기준 없음 0 · 허용 ablation 0.0 / SPEC25 1e-12 · ★실측 최대 상대편차 ablation 0.0 / SPEC25 1.665659574491845e-15 · ⚠`FITSWAP` 은 **신규 팔이라 동결 기준이 존재하지 않는다**(대조 0행, 결과 전 선언)"
+  },
+  {
+   "name": "★G-12 ZERO 교차검증 (독립 계산 vs 동결 기준선 행)",
+   "passed": true,
+   "detail": "64/64 일치 (rtol 1e-05)"
+  },
+  {
+   "name": "★G-13 SPEC25 되읽기 (객체 유래: loc 25 · ens 600 · jonswap · 40×30 · LETKFGridSpec)",
+   "passed": true,
+   "detail": "192/192 행 정상 · 기대 {'loc_radius': 25.0, 'n_ensemble': 600, 'background': 'jonswap', 'filter_class': 'LETKFGridSpec', 'nx': 40, 'ny': 30}"
+  },
+  {
+   "name": "N-1[sparse] 음성대조 ≥ 12/16 (마진이 존재해야 매개를 잴 수 있다)",
+   "passed": true,
+   "detail": "15/16 p=0.0002593994140625"
+  },
+  {
+   "name": "N-2[sparse] 음성대조 ≥ 12/16 (기준선이 무기술이면 우열 비교가 뜻을 잃는다)",
+   "passed": true,
+   "detail": "12/16 p=0.0384063720703125"
+  },
+  {
+   "name": "N-3[sparse] 음성대조 ≥ 12/16 (우리 팔이 무기술이면 절제가 뜻을 잃는다)",
+   "passed": true,
+   "detail": "15/16 p=0.0002593994140625"
+  },
+  {
+   "name": "N-1[crowded] 음성대조 ≥ 31/48 (마진이 존재해야 매개를 잴 수 있다)",
+   "passed": true,
+   "detail": "43/48 p=6.840242150474296e-09"
+  },
+  {
+   "name": "N-2[crowded] 음성대조 ≥ 31/48 (기준선이 무기술이면 우열 비교가 뜻을 잃는다)",
+   "passed": true,
+   "detail": "47/48 p=1.7408297026122455e-13"
+  },
+  {
+   "name": "N-3[crowded] 음성대조 ≥ 31/48 (우리 팔이 무기술이면 절제가 뜻을 잃는다)",
+   "passed": true,
+   "detail": "48/48 p=3.552713678800501e-15"
+  }
+ ],
+ "n_gate_pass": 24,
+ "n_gates": 24,
+ "family_alpha": 0.008333333333333333,
+ "n_claims": 6,
+ "tost_delta_pct": 10.0,
+ "tost_delta_conf_pct": 5.0,
+ "arms": [
+  "SHIP",
+  "KGRID1",
+  "KGRID2",
+  "FITSWAP",
+  "SPEC25"
+ ],
+ "strata": {
+  "sparse": {
+   "n_used": 16,
+   "thresholds": [
+    12,
+    14
+   ],
+   "primary": {
+    "n": 16,
+    "better": 8,
+    "worse": 8,
+    "n_tie": 0,
+    "p_one_sided": 0.5981903076171875,
+    "p_other_tail": 0.5981903076171875,
+    "rel_median_pct": 0.14571488717091086,
+    "median_a": 0.22066314723342656,
+    "median_b": 0.2175280999405717
+   },
+   "primary_tost": {
+    "n": 16,
+    "delta": 10.0,
+    "k": 12,
+    "below_hi": 11,
+    "above_lo": 10,
+    "p_hi": 0.1050567626953125,
+    "p_lo": 0.2272491455078125,
+    "n_inside": 5,
+    "passed": false
+   },
+   "primary_label": "MEDIATION-UNDECIDED",
+   "primary_note": "8/16 부호검정 널 + TOST(Δ=10.0%) 실패 (밴드 안 5/16) ⟹ **등가를 세울 수 없다**. ⛔*\"차이가 없다\"*·*\"마진이 사라진다\"* 로 쓰지 마라(결과 전 규칙 3).",
+   "dose": {
+    "n": 16,
+    "better": 2,
+    "worse": 14,
+    "n_tie": 0,
+    "p_one_sided": 0.9997406005859375,
+    "p_other_tail": 0.0020904541015625,
+    "rel_median_pct": 43.403591157816365,
+    "median_a": 0.3189750380348414,
+    "median_b": 0.2175280999405717
+   },
+   "dose_label": "DOSE-CROSSES-BASELINE",
+   "dose_note": "★2/16 (진 에피소드 14, 동점 0), 반대꼬리 p=0.00209 — 간격을 2배로 하면 기준선 **아래로** 내려간다 ⟹ 공통 바닥 그림의 방향성 예측이 맞았다.",
+   "confound": {
+    "n": 16,
+    "better": 12,
+    "worse": 4,
+    "n_tie": 0,
+    "p_one_sided": 0.0384063720703125,
+    "p_other_tail": 0.9893646240234375,
+    "rel_median_pct": -0.06792022668560549,
+    "median_a": 0.05755031483713538,
+    "median_b": 0.057852344880423824
+   },
+   "confound_tost": {
+    "n": 16,
+    "delta": 5.0,
+    "k": 12,
+    "below_hi": 16,
+    "above_lo": 16,
+    "p_hi": 1.52587890625e-05,
+    "p_lo": 1.52587890625e-05,
+    "n_inside": 16,
+    "passed": true
+   },
+   "confound_label": "CONFOUND-NEGLIGIBLE",
+   "confound_note": "★재적합 단독 효과가 ±5.0% 안에 있다 (밴드 안 16/16, 상대 중앙 -0.068%, 절제 효과 중 몫 -0.00024812750850505274) ⟹ `KGRID1` 의 효과는 **양자화에 귀속 가능**하다. ⛔단 분해능 이하 섭동(0.0104 vs 0.042–0.074)의 수수께끼는 남는다.",
+   "attribution_share": {
+    "n": 16,
+    "num": -3.432860467001038e-05,
+    "den": 0.13835066041986768,
+    "share": -0.00024812750850505274
+   },
+   "ablation_ref": {
+    "n": 16,
+    "better": 14,
+    "worse": 2,
+    "n_tie": 0,
+    "p_one_sided": 0.0020904541015625,
+    "p_other_tail": 0.9997406005859375,
+    "rel_median_pct": -67.43404310240334,
+    "median_a": 0.057852344880423824,
+    "median_b": 0.22066314723342656
+   },
+   "negative": {
+    "n1": true,
+    "n2": true,
+    "n3": true,
+    "detail": {
+     "n1": {
+      "n": 16,
+      "better": 15,
+      "worse": 1,
+      "n_tie": 0,
+      "p_one_sided": 0.0002593994140625,
+      "p_other_tail": 0.9999847412109375,
+      "rel_median_pct": -74.6943840768053,
+      "median_a": 0.057852344880423824,
+      "median_b": 0.2175280999405717
+     },
+     "n2": {
+      "n": 16,
+      "better": 12,
+      "p_one_sided": 0.0384063720703125,
+      "rel_median_pct": -12.622284051424383
+     },
+     "n3": {
+      "n": 16,
+      "better": 15,
+      "p_one_sided": 0.0002593994140625,
+      "rel_median_pct": -76.84379756449434
+     }
+    }
+   }
+  },
+  "crowded": {
+   "n_used": 48,
+   "thresholds": [
+    31,
+    33
+   ],
+   "primary": {
+    "n": 48,
+    "better": 21,
+    "worse": 27,
+    "n_tie": 0,
+    "p_one_sided": 0.8438365962633654,
+    "p_other_tail": 0.2354395068108559,
+    "rel_median_pct": 1.0818346858708938,
+    "median_a": 0.21357410510536284,
+    "median_b": 0.20509472314220928
+   },
+   "primary_tost": {
+    "n": 48,
+    "delta": 10.0,
+    "k": 31,
+    "below_hi": 30,
+    "above_lo": 37,
+    "p_hi": 0.055701445530509375,
+    "p_lo": 0.00011112248131084357,
+    "n_inside": 19,
+    "passed": false
+   },
+   "primary_label": "MEDIATION-UNDECIDED",
+   "primary_note": "21/48 부호검정 널 + TOST(Δ=10.0%) 실패 (밴드 안 19/48) ⟹ **등가를 세울 수 없다**. ⛔*\"차이가 없다\"*·*\"마진이 사라진다\"* 로 쓰지 마라(결과 전 규칙 3).",
+   "dose": {
+    "n": 48,
+    "better": 0,
+    "worse": 48,
+    "n_tie": 0,
+    "p_one_sided": 1.0,
+    "p_other_tail": 3.552713678800501e-15,
+    "rel_median_pct": 40.87323256216057,
+    "median_a": 0.2939321017513673,
+    "median_b": 0.20509472314220928
+   },
+   "dose_label": "DOSE-CROSSES-BASELINE",
+   "dose_note": "★0/48 (진 에피소드 48, 동점 0), 반대꼬리 p=3.553e-15 — 간격을 2배로 하면 기준선 **아래로** 내려간다 ⟹ 공통 바닥 그림의 방향성 예측이 맞았다.",
+   "confound": {
+    "n": 48,
+    "better": 31,
+    "worse": 17,
+    "n_tie": 0,
+    "p_one_sided": 0.02973168762688516,
+    "p_other_tail": 0.9853475266397353,
+    "rel_median_pct": -0.26112104545982184,
+    "median_a": 0.1341854461080705,
+    "median_b": 0.13460042881779372
+   },
+   "confound_tost": {
+    "n": 48,
+    "delta": 5.0,
+    "k": 31,
+    "below_hi": 48,
+    "above_lo": 45,
+    "p_hi": 3.552713678800501e-15,
+    "p_lo": 6.562927978848165e-11,
+    "n_inside": 45,
+    "passed": true
+   },
+   "confound_label": "CONFOUND-NEGLIGIBLE",
+   "confound_note": "★재적합 단독 효과가 ±5.0% 안에 있다 (밴드 안 45/48, 상대 중앙 -0.261%, 절제 효과 중 몫 -0.0034452678216651367) ⟹ `KGRID1` 의 효과는 **양자화에 귀속 가능**하다. ⛔단 분해능 이하 섭동(0.0104 vs 0.042–0.074)의 수수께끼는 남는다.",
+   "attribution_share": {
+    "n": 48,
+    "num": -0.0002776109807503743,
+    "den": 0.08057747470447793,
+    "share": -0.0034452678216651367
+   },
+   "ablation_ref": {
+    "n": 48,
+    "better": 46,
+    "worse": 2,
+    "n_tie": 0,
+    "p_one_sided": 4.1815439999481896e-12,
+    "p_other_tail": 0.9999999999998259,
+    "rel_median_pct": -38.6069561633153,
+    "median_a": 0.13460042881779372,
+    "median_b": 0.21357410510536284
+   },
+   "negative": {
+    "n1": true,
+    "n2": true,
+    "n3": true,
+    "detail": {
+     "n1": {
+      "n": 48,
+      "better": 43,
+      "worse": 5,
+      "n_tie": 0,
+      "p_one_sided": 6.840242150474296e-09,
+      "p_other_tail": 0.9999999992430837,
+      "rel_median_pct": -40.19406999827358,
+      "median_a": 0.13460042881779372,
+      "median_b": 0.20509472314220928
+     },
+     "n2": {
+      "n": 48,
+      "better": 47,
+      "p_one_sided": 1.7408297026122455e-13,
+      "rel_median_pct": -16.04464863309667
+     },
+     "n3": {
+      "n": 48,
+      "better": 48,
+      "p_one_sided": 3.552713678800501e-15,
+      "rel_median_pct": -48.657612739565735
+     }
+    }
+   }
+  }
+ },
+ "label": "sparse:MEDIATION-UNDECIDED | crowded:MEDIATION-UNDECIDED",
+ "gates_all_pass": true
+}

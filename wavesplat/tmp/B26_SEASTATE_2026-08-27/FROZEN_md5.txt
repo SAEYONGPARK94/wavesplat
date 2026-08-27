@@ -1,0 +1,88 @@
+# B-26 동결 (2026-08-27). ⛔**결과 0행**에서 동결한다 — 배치는 아직 돌지 않았다.
+# ⚠경로는 **저장소 상대**다(`/home/vexit/wavesplat/wavesplat` 기준).
+#   `tmp/_audit/check_batch_artifacts.py` 는 배치기준 → 부모 → 저장소기준 순으로 푼다.
+#   맨 파일명만 적으면 md5 열이 **조용히 건너뛰어진다**(2026-08-25 실측) ⟹ 검사가 돌게 적는다.
+# ★재검사:  python3 tmp/_audit/check_batch_artifacts.py tmp/B26_SEASTATE_2026-08-27
+#
+# ── ⚠★재동결 2026-08-27 저녁 (결과 **0행** — 그래서 재동결이 정당하다) ─────────────────────
+# 사유: 런 전 적대적 검증이 `B-26` 을 HOLD 했다. 막은 것은 과학이 아니라 **검증 장치**였다 —
+#       ***게이트가 실제로 발화하는지 아무도 확인하지 않았다.*** 네 건을 고쳤다(PREREG §2.7):
+#         ① `gates_b26.selftest()` + 변형 하네스 신설 (픽스처 20/20 · 변형 21/21 + 런0회 9/9 발화 ·
+#            공허한 통과 0 · 코너 라벨 5종 전부 도달)
+#         ② `analyze_b26.py` 0행 가드 — 유효 0행이면 verdict 을 **쓰지 않고** exit 1
+#         ③ `ROWLESS_OK=('G-11','G-18')` 선언 + 자가진단이 공허한 통과를 센다
+#         ④ `run_b26.py smoke` 1회 실행으로 shim 3종·`bf` 인계 확인 (PREREG §2.8; 산출물은 삭제)
+#       ★부수로 자가진단이 **진짜 결함 하나**를 잡았다: `G-0` 이 **이 배치 자신의 산출물**을
+#         충돌로 세어 생성 직후 반드시 FAIL 하게 돼 있었다 ⟹ 배치 디렉터리 제외.
+#         ⑤ 해석 규칙 `HOLDS (CONFIRMATORY)`/`(NOMINAL)` 문안에 **선형 GT 단서** 한 문장 추가.
+# ⛔**판정 라벨·문턱·팔·표본·2×2 설계는 한 글자도 바뀌지 않았다.**
+# 바뀐 파일은 **넷뿐**이고 이전 md5 는 PREREG §2.7 의 표에 남겼다:
+#   PREREG.md      d1843066213d352e1e162a14d161abf7 -> (아래)
+#   gates_b26.py   a04bd44bb6d7b78ebb2ed70b21423417 -> (아래)
+#   run_b26.py     9778147bddcd78482a556fed20cd59c5 -> (아래)
+#   analyze_b26.py b20fcb2ea7a1f50a2e6729ace22ff907 -> (아래)
+# 나머지 ②③④⑤⑥⑦ 항목은 **전건 불변**(재계산 대조에서 변동 0).
+
+#
+# ── ① 이 배치의 판정 코드 (검사기의 ★자기동결 열이 이것을 요구한다) ────────────────────────────────
+d4095a706b321ca71847530ecd48b20d  tmp/B26_SEASTATE_2026-08-27/PREREG.md
+e6047c3d8f9fd4558566ea967cb678a1  tmp/B26_SEASTATE_2026-08-27/gates_b26.py
+e8cdc3bf83bb6c5265c29ee272d25173  tmp/B26_SEASTATE_2026-08-27/gen_b26.py
+d9dedb12448b6a2b05d324da851862f8  tmp/B26_SEASTATE_2026-08-27/run_b26.py
+777ee32dd82d6128e5bb248281e3af78  tmp/B26_SEASTATE_2026-08-27/analyze_b26.py
+0561010fc52a84754db45381f8b7f684  tmp/B26_SEASTATE_2026-08-27/premise_b26.py
+#
+# ── ② ★이 배치가 import 하는 **다른 배치의** 코드 — 팔·표본·시드·되읽기 규약이 여기 있다
+#   gates_b11 = EST/FILTER_SEEDS·SPEC·부호검정·med_by_episode·paired
+#   run_b12   = ★SHIP-NOW / SPEC25 **팔 정의 그 자체** (손복사 0의 근거)
+#   gates_b12 = run_b12 의 임포트원        run_s16/letkf_spec = SPEC25 의 정의 ──────────────
+37d0ddd3aca03118ae41d52c8324e0b5  tmp/B11_HOS_BASELINE_2026-08-23/gates_b11.py
+2186b01913559f9205653c86950ecdc8  tmp/B12_HOS_EXTEND_2026-08-23/gates_b12.py
+09e7b03b1b5ac098cfce2fddacffd482  tmp/B12_HOS_EXTEND_2026-08-23/run_b12.py
+ae3e2c21321760608108205342a442b9  tmp/S16_BASELINE_2026-08-14/run_s16.py
+7991d24a8a4e31580d888ddf766ec1ca  tmp/S16_BASELINE_2026-08-14/letkf_spec.py
+#
+# ── ③ ★전제(§1)를 낳는 코드 — 이것이 바뀌면 사전등록의 수가 바뀐다
+#   gen_s8    = 생성 호출의 원본(PC-1 이 비트로 대조한다)
+#   gen_hos   = 전제 1.3 의 HOS 격자 상수     gen_mixed = 전제 1.4 의 학습 분포 상수
+#   scene_station/realdata_analysis/d3_sa_multirecord = 전제 1.2 실측 해상상태 규약 ───────────────────────────────
+632bc431f723ae3ffd46b69d207d4103  tmp/S8_deploy_confirm_2026-08-10/gen_s8.py
+664e798bc74cda2be468cc5f1f2d3f0f  tmp/HOSGATE_2026-08-13/gen_hos.py
+a64be4101242f500f4d6bcf491ba2af4  tmp/mixed_retrain_2026-07-26/gen_mixed.py
+18183f898008d239db002a3634f19686  tmp/B2_REAL_2026-08-23/scene_station.py
+1961647626c8602cbe67c4af32fa260a  scripts/realdata_analysis.py
+0e26f90bcc5b7d168bac9610d9e3ca16  scripts/d3_sa_multirecord.py
+#
+# ── ④ 팔이 실제로 실행하는 패키지 코드 (배포 상수·추정기·기준선·전방모델) ─────────────────────────────
+10e407348291e0438a94f459f4757c27  wavesplat/run.py
+dedb685a6735517d21285ddc5d36075d  wavesplat/optimizer/sequential_update.py
+5ebcf5a3d6c11d44f41eec920e38594f  wavesplat/optimizer/learned_init.py
+039e2273264893629c0288de92b8903b  wavesplat/optimizer/varpro.py
+b02042733cac818cb77c09998c3cf9ba  wavesplat/optimizer/coarse_to_fine.py
+29c737f0e5fc7e58451bd8b7f8610b58  wavesplat/optimizer/initializer.py
+3e4a6fe1b34b84313a33cba443cf7bfe  wavesplat/model/spectral_gaussian.py
+9a70c6cfec79a3a776820953ba03e581  wavesplat/baselines/letkf_grid.py
+e36249f8eb900d981e2c4d43ae1d9b51  wavesplat/data_loader.py
+f620548a3413bc0eedf84caea8d9cbaa  wavesplat/evaluation/metrics.py
+6384f02a0cce03c28aca6e77ba72721f  configs/estimation.yaml
+#
+# ── ⑤ 생성 경로 (⛔`wavesim/**` 은 이 배치에서 **무수정**이다 — 그 사실을 md5 로 고정한다) ─────────
+d84a29f55c553f06cf00c707516cd2ea  wavesim/pipeline.py
+7036fd343e1645d0176c2231760c1dc3  wavesim/wave_generator.py
+33e3753bf0ace11a15e73e17a9a7d97a  wavesim/gt_generator.py
+ceeea0fb26cbf6248c856a7408e382ed  wavesim/mesh_adequacy.py
+46cfb2637fa1a37713ba9ec0a870c5ea  wavesim/noise_model.py
+5d7df7e11aa995444cd9a64dd48f7874  wavesim/config.py
+43372f943a8051eb173b48a66198d195  wavesim/data_writer.py
+f92212d98c9e73157cac6bae9827aa41  wavesim/lidar_simulator.py
+ab69c409a1bddd16145a965bda3eb06a  wavesim/lidar_gpu.py
+690490f42b5c4413321fe2783e2a1609  wavesim/raydrop_uniform.py
+7e7b2d7b3be42b425ade50bd22d0289b  wavesim/hos_simulator.py
+#
+# ── ⑥ ★자료 동결 — PC-1 의 대조 대상과 생성 파라미터의 원본 (.h5 자체) ─────────────────────────
+6bd21a3c14693b3bff8feac50afb8a52  data_s8_crowded_2026-08-10/episode_BF4_15comp_seed32_uniform_ra_rf_ds.h5
+33ace690d9669fb695cdf19ea487d87e  data_finemesh_2026-07-23/episode_BF4_15comp_seed0_uniform.h5
+#
+# ── ⑦ ★양성대조 산출물 — PC-1 이 실제로 통과한 기록 ───────────────────────────────────────
+15ca18b9892880098288a07e7a976b53  tmp/B26_SEASTATE_2026-08-27/pc1_b26.json
+c465e77e56673686641f470f6f4a4116  tmp/B26_SEASTATE_2026-08-27/premise_b26.json

@@ -1,0 +1,69 @@
+# B-20b 동결 (2026-08-27). ★**신규 런 0개** — 이 배치는 `B-21` 동결 자료를 재분석한다.
+#
+# ★★**재동결 2회 (2026-08-27, 결과 0행 유지)** — 바뀐 항목은 `PREREG.md` 와 `analyze_b20b.py` 다.
+#   (1회차 16:45 = `PREREG.md` 만 · 2회차 16:5x = `PREREG.md` + `analyze_b20b.py`)
+#   사유 = **§7.1 의 blind 주장 범위 축소**(런 전 적대적 검증 선행조건).
+#   §7.1 의 닫는 문장 *"저자·검토자 누구도 이 대조를 계산한 적이 없다"* 가 같은 문서 §7.2·§7.3
+#   (*"⛔「예측 불가」는 거짓이다"* · 하한 `w ≥ 29` · 구간 `[29, 48]`)보다 **넓었다** ⟹
+#   **`이 통계량의 *값*`** 하나로 좁히고, ⛔*"방향을 모른다"* 는 주장하지 않는다고 명시했다.
+#   덧붙여 H-2·H-3·H-3b 의 **검사 범위**(코드·산출물이지 사람의 손계산이 아니다)를 적었다.
+#   ⛔**문턱·팔·표본·라벨·게이트는 한 글자도 바뀌지 않았다** — **`gates_b20b.py` md5 불변**
+#     `0de549b81a9fad04589a144d7516f48a`. 그 파일의 blind 독스트링(`:26`)은 **이미 옳게
+#     좁혀져 있었다** — 넓었던 것은 사전등록 산문 한 곳뿐이다.
+#
+# ⚠**2회차 사유 = 노출 사고 수습**(PREREG §7.6). `analyze_b20b.py --selftest` 가
+#   **인자를 파싱하지 않아** 조용히 무시되고 **진짜 재분석이 돌았다**(산출물 2개 생성 →
+#   즉시 삭제, 배치는 결과 0행 회복). 바뀐 것은 **`main()` 머리의 인자 방벽뿐**이고
+#   ⛔게이트·문턱·라벨·팔·표본은 건드리지 않았다(그 전부는 `gates_b20b.py` 에 있고 불변이다).
+#   PREREG 는 §7.6 신설 + §7.1·§6.1 정정.
+#   ⚠재동결은 **런 전이므로 정당**하다. 결과가 한 행이라도 생긴 뒤에는 이 절차를 쓰지 마라.
+#
+# ⛔★**이 파일에서는 재동결 줄을 덧붙이면 안 된다 — 실측으로 확인했다.**
+#   `check_batch_artifacts.py:230-240` 은 같은 경로의 **마지막 줄**을 현재 동결로 읽으므로
+#   덧붙이기가 옳지만, **이 배치의 하드 게이트 `H-1`(`gates_b20b.frozen_check`)은 줄을 전부
+#   대조**한다(`:279-297`) ⟹ 옛 해시 줄이 남으면 `H-1` 이 **FAIL** 하고 `hard_pass` 가 깨진다.
+#   (2026-08-27 에 실제로 그렇게 만들었다가 `T3_hard_gate_failed=True` 로 잡혔다.)
+#   ⟹ ①의 줄은 **교체**하고, 드리프트 사실은 `FROZEN_md5_REFREEZE_LOG.txt` 가 보존한다
+#      (검사기는 `FROZEN*.txt` 를 전부 읽으므로 `재동결` 신호가 산문이 아니라 **기계로** 남는다).
+#   ★**두 검증 장치의 규약이 갈린다** — 저장소의 반복 결함 부류다. 여기 적어 둔다.
+# ⚠경로는 **`wavesplat/wavesplat` 기준**(= `tmp/…`)이다. 이 저장소에서 "저장소 상대" 는 그 뜻이고,
+#   tmp/_audit/check_batch_artifacts.py:114 `_resolve` 가 배치 → 부모(`tmp/`) → dirname(dirname(배치))
+#   순으로만 푼다. ⛔`wavesplat/tmp/…` 로 적으면 **0/26 전부 미해결**이 된다(2026-08-27 실측).
+#   맨 파일명만 적어도 **조용히 SKIP** 된다(2026-08-25 실측) ⟹ 여기서는 검사가 실제로 돌게 적었다.
+# ⛔`H-1` 이 이 목록 전건을 대조하고, `H-15` 가 ①의 세 파일이 등재됐는지 본다.
+# ⚠`B-21/PREREG.md` 는 **일부러 뺐다** — 검사기가 basename 으로 키를 잡아(`:232`) 이 배치의
+#   `PREREG.md` 와 충돌해 **"재동결 이력" 을 오탐**한다(실측). 판정을 낳는 B-21 파일 넷
+#   (gates·analyze·결과 6샤드·verdict)은 전부 아래에 있다. 사유는 PREREG §12.1.
+#
+# ── ① 이 배치의 판정 코드 (검사기의 ★자기동결 열이 요구한다) ────────────────────────
+cc62aae23fb7bd9838de0102a10101dc  tmp/B20b_QUANT_CROWDED_2026-08-27/PREREG.md
+0de549b81a9fad04589a144d7516f48a  tmp/B20b_QUANT_CROWDED_2026-08-27/gates_b20b.py
+669203b60e6591905d0390fb870e40f5  tmp/B20b_QUANT_CROWDED_2026-08-27/analyze_b20b.py
+#
+# ── ② ★동결 **입력** — B-21 의 결과·판정코드·산출물 (이 배치가 재분석하는 자료 그 자체) ───
+f4659f54a316b67d1b4ef936ff438d2b  tmp/B21_MEDIATION_2026-08-27/results_b21_0.jsonl
+6490b27ca2dc2027a77b38bfc7f6d1da  tmp/B21_MEDIATION_2026-08-27/results_b21_1.jsonl
+edd42a0a9f479e1b624b19815aa8f252  tmp/B21_MEDIATION_2026-08-27/results_b21_2.jsonl
+09c8fdf4aa1eeb262b02a54d2648262b  tmp/B21_MEDIATION_2026-08-27/results_b21_3.jsonl
+fcd3aad4fa96b5b334a3ab53e6f79652  tmp/B21_MEDIATION_2026-08-27/results_b21_4.jsonl
+6d8caa16edb637a3aa5449c10a2f65ad  tmp/B21_MEDIATION_2026-08-27/results_b21_5.jsonl
+493a0d69e340bf16df503f5d665dd00c  tmp/B21_MEDIATION_2026-08-27/gates_b21.py
+26ef808fcc06053c87e425f228946cfe  tmp/B21_MEDIATION_2026-08-27/analyze_b21.py
+d7107cb42dd96729fbc6f3af8e166153  tmp/B21_MEDIATION_2026-08-27/verdict_b21.json
+#
+# ── ③ ★임포트 사슬 — 이 파일들이 바뀌면 팔·표본·시드·비교함수·문턱이 조용히 바뀐다 ───────────
+6d826c9db9c2535329cdfce8b56a4d5d  tmp/B20_REFIT_CONTROL_2026-08-27/gates_b20.py
+43c2573651d1a7998df89ee0a58ec091  tmp/B19_KGRID_SPARSE_2026-08-25/gates_b19.py
+5f731dfdc56a292ea139b3b40be9348d  tmp/B16_KGRID_2026-08-24/gates_b16.py
+37d0ddd3aca03118ae41d52c8324e0b5  tmp/B11_HOS_BASELINE_2026-08-23/gates_b11.py
+e4e25c95408aa30001cb8c6f64589b4c  tmp/B11_HOS_BASELINE_2026-08-23/gates_b11b.py
+2186b01913559f9205653c86950ecdc8  tmp/B12_HOS_EXTEND_2026-08-23/gates_b12.py
+#
+# ── ④ ★게이트가 **대조하는** 동결 산출물 (H-3b · H-11 · PP_BAND 재도출 · H-17) 
+300290fa1d5e98501855bb9dad6c0fb2  tmp/B20_REFIT_CONTROL_2026-08-27/results_b20_0.jsonl
+f6c0e1b65a6725447afda2699ab953e3  tmp/B20_REFIT_CONTROL_2026-08-27/results_b20_1.jsonl
+2bf4ac41566f977b9f60053ab8d043b1  tmp/B20_REFIT_CONTROL_2026-08-27/results_b20_2.jsonl
+53d7c83313e38ab9bca99fa3f30c5c1e  tmp/B20_REFIT_CONTROL_2026-08-27/results_b20_3.jsonl
+5c90592c69f340ab8dca30fe8166b982  tmp/B20_REFIT_CONTROL_2026-08-27/verdict_b20.json
+867b96f62d1a6ef9790c24c36ea599cf  tmp/B12_HOS_EXTEND_2026-08-23/verdict_b12.json
+24ccc1e8fc0d3896c3ffcc7eac4cad0c  tmp/B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json

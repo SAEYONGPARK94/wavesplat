@@ -1,0 +1,66 @@
+# B-25 동결 (2026-08-27). ⛔**결과 0행**에서 동결한다 — 배치는 아직 돌지 않았다.
+#
+# ★★**재동결 1회 (2026-08-27 16:44, 결과 0행 유지)** — 바뀐 항목은 `PREREG.md` **하나**다.
+#   사유 = **§12 노출 공시 신설**(+ §9.3 끝의 포인터 3줄 + §13 재동결 기록).
+#   런 전 적대적 검증자가 이 러너를 `SMOKE=1` **1셀**로 돌려 계수기를 눈으로 확인했고
+#   (결과 파일은 삭제), 그 셀이 **사전 노출**이므로 *"누가·언제·무엇을 보았는가"* 를 적었다.
+#   ⛔**판정 라벨·문턱·팔·표본은 한 글자도 바뀌지 않았다** — §1–§11 무수정.
+#   ✅**같은 시각 대조에서 `gates_b25.py`·`run_b25.py`·`analyze_b25.py` 는 md5 불변**
+#     ⟹ 노출이 판정 코드로 흘러가지 않았다는 것이 추론이 아니라 해시로 확인된다.
+#   ⚠재동결은 **런 전이므로 정당**하다. 결과가 한 행이라도 생긴 뒤에는 이 절차를 쓰지 마라.
+# ⚠경로는 **저장소 상대**다: tmp/_audit/check_batch_artifacts.py 가 배치기준 → 부모 →
+#   저장소기준 순으로 푼다. 맨 파일명만 적으면 md5 열이 **조용히 건너뛰어진다**(2026-08-25 실측).
+#
+# ── ① 이 배치의 판정 코드 (검사기의 ★자기동결 열이 이 넷을 요구한다) ──────────
+e781ddad149cb1c5a2299396b04bedf0  tmp/B25_CONFWEIGHT_2026-08-27/PREREG.md
+367c670cef567476c38996a3d1f57bf2  tmp/B25_CONFWEIGHT_2026-08-27/gates_b25.py
+e674d5bf8322c95fc071c9dac3c65599  tmp/B25_CONFWEIGHT_2026-08-27/run_b25.py
+2919aafb480b5b2ef0e80d4290c46168  tmp/B25_CONFWEIGHT_2026-08-27/analyze_b25.py
+#
+# ── ② ★**이 배치가 import 하는 다른 배치의 동결 파일** ────────────────────────
+#   그 파일이 바뀌면 이 배치의 **팔·표본·시드·되읽기 규약이 조용히 바뀐다**.
+#     gates_b22 = ★**`SHIP` 팔 정의 + 표본 `episodes()` + 배포상수**를 통째로 물려받는다
+#                 ⟹ 이 파일이 바뀌면 세 팔이 전부 바뀐다 (가장 중요한 항목)
+#     gates_b12 = 표본(ALL_SEEDS·N_EP=48)        gates_b11 = 코퍼스 경로·EST_SEEDS
+#     gates_b19 = ZERO·되읽기·비교 함수(중복 구현 0)   gates_b16/b11b = 위 둘의 임포트
+#     gates_w15 = gates_b22 가 임계 999999 를 읽는다 (+ corpus.json)
+71a56dc60e6d2cfb0795ec9c2343bca8  tmp/B22_PRIOR_ABLATION_2026-08-27/gates_b22.py
+2186b01913559f9205653c86950ecdc8  tmp/B12_HOS_EXTEND_2026-08-23/gates_b12.py
+37d0ddd3aca03118ae41d52c8324e0b5  tmp/B11_HOS_BASELINE_2026-08-23/gates_b11.py
+e4e25c95408aa30001cb8c6f64589b4c  tmp/B11_HOS_BASELINE_2026-08-23/gates_b11b.py
+43c2573651d1a7998df89ee0a58ec091  tmp/B19_KGRID_SPARSE_2026-08-25/gates_b19.py
+5f731dfdc56a292ea139b3b40be9348d  tmp/B16_KGRID_2026-08-24/gates_b16.py
+18d12ceb5478b276049b8c63ecd431ee  tmp/W15_DEPLOY_VERIFY_2026-08-22/gates_w15.py
+b26deaaaf89bba202c23c95606fcea4d  tmp/W15_DEPLOY_VERIFY_2026-08-22/corpus.json
+#
+# ── ③ ★양성대조의 기준 파일 (G-5) ────────────────────────────────────────────
+#   이 배치의 `SHIP` 144행이 여기의 `SHIP` 행과 **비트 동일**해야 한다.
+#   ⚠샤드 8개 전부가 기준이다 — 하나만 적으면 `b22_ship()` 이 읽는 범위와 어긋난다.
+c1b035e02a76208d89aca67cf6a9b37f  tmp/B22_PRIOR_ABLATION_2026-08-27/results_b22_0.jsonl
+1e8ebc951fc55211827a13a7ba60084e  tmp/B22_PRIOR_ABLATION_2026-08-27/results_b22_1.jsonl
+f755b539223bc4644c131bf7ea87f63f  tmp/B22_PRIOR_ABLATION_2026-08-27/results_b22_2.jsonl
+508319ccc148ce5ae5ee1f180bfac4b5  tmp/B22_PRIOR_ABLATION_2026-08-27/results_b22_3.jsonl
+13a4e98bdfb2eaa71d418a7269f0ede9  tmp/B22_PRIOR_ABLATION_2026-08-27/results_b22_4.jsonl
+0be398d320b79bed75c3f54ac2e75b8c  tmp/B22_PRIOR_ABLATION_2026-08-27/results_b22_5.jsonl
+d637183c2e6d511388bffb3bc6200d46  tmp/B22_PRIOR_ABLATION_2026-08-27/results_b22_6.jsonl
+6b7cd6dd3517bbaeee2fbf5f71ba7645  tmp/B22_PRIOR_ABLATION_2026-08-27/results_b22_7.jsonl
+#
+# ── ④ 임포트 경로(패키지) — 행의 `import_md5` 와 대조 가능 ────────────────────
+#   ⛔**이 배치는 `wavesplat/**` 를 한 줄도 고치지 않는다.** 개입은 이미 노출된 노브
+#   `use_confidence` 하나 + 러너의 자료 훅(`EpisodeDataLoader.__getitem__`)이다.
+#   ⚠`data_loader.py`·`model/confidence.py` 가 이 목록에 **새로 들어간다** — 개입 대상이므로.
+10e407348291e0438a94f459f4757c27  wavesplat/run.py
+e36249f8eb900d981e2c4d43ae1d9b51  wavesplat/data_loader.py
+dedb685a6735517d21285ddc5d36075d  wavesplat/optimizer/sequential_update.py
+5ebcf5a3d6c11d44f41eec920e38594f  wavesplat/optimizer/learned_init.py
+29c737f0e5fc7e58451bd8b7f8610b58  wavesplat/optimizer/initializer.py
+039e2273264893629c0288de92b8903b  wavesplat/optimizer/varpro.py
+902ba5375b88dc1bf17edb153f42cb05  wavesplat/model/confidence.py
+f620548a3413bc0eedf84caea8d9cbaa  wavesplat/evaluation/metrics.py
+#
+# ── ④ ★**재동결 줄 (2026-08-27, 헤더의 사유)** ────────────────────────────────
+#   ⛔①의 원본 줄을 **지우지 않는다** — 드리프트 사실을 지우지 않는 것이 규약이고,
+#   검사기는 같은 경로의 **마지막 줄**을 현재 동결로 읽으며 해시가 둘이면 `재동결` 로 드러낸다
+#   (`check_batch_artifacts.py:225-240`). ⚠인라인 주석은 금지다 — `len(parts)!=2` 라
+#   그 줄이 **조용히 건너뛰어진다**(이 파일에서 실제로 한 번 그렇게 쓸 뻔했다).
+7d3b4f2be07ff3250a72b38bc533e267  tmp/B25_CONFWEIGHT_2026-08-27/PREREG.md

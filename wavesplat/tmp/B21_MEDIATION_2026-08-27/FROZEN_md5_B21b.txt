@@ -1,0 +1,36 @@
+# B-21b 동결 해시 — **사후 공시**(2026-08-27, 런 0회)
+#
+# ★**사후 공시다. `B-21` 의 판정은 불변이고, 이 목록은 공시 자체를 핀한다.**
+#   `B-21` 의 동결(`FROZEN_md5.txt`)은 **결과 0행 시점**에 작성됐다 ⟹ 그 뒤에 쓰인
+#   공시 2파일(`AMENDMENT_DELTA_2026-08-27.md`·`delta_sensitivity.py`)이 **어느 동결
+#   목록에도 없었다.** 그 스크립트가 나중에 조용히 바뀌면 아무도 못 잡는다 —
+#   저장소가 이름 붙인 **「동결한 적이 없다」 부류**(`check_batch_artifacts.py:_judge_files`
+#   독스트링 (d) 항: *"전자는 최소한 탐지되지만 후자는 구조적으로 탐지 불가"*)다.
+#   ⚠`delta_sensitivity.py` 는 `^(gates|run|analyze)` 규약 밖 이름이라 검사기의
+#   `★자기동결` 열이 **요구하지 않는다** ⟹ 여기에 명시하지 않으면 영영 미동결이다.
+#
+# ⛔**이 파일은 `B-21` 의 판정 라벨·문턱·팔·표본을 바꾸지 않는다.**
+#   `sparse:MEDIATION-UNDECIDED | crowded:MEDIATION-UNDECIDED` 그대로다.
+# ⛔`FROZEN_md5.txt`(판정 동결)를 **대체하지 않는다** — 둘 다 유효하고, 검사기는
+#   `FROZEN*.txt` 를 전부 읽는다(`check_batch_artifacts.py:232`).
+#
+# ⚠경로는 **저장소 상대**다 (`/home/vexit/wavesplat/wavesplat` 기준) — 사유는
+#   `FROZEN_md5.txt` 헤더와 같다(맨 파일명만 적으면 md5 열이 조용히 건너뛰어진다).
+
+# ── ① 공시 2파일 (이 목록이 존재하는 이유) ─────────────────────────────
+f54ef293fdeb15ddf20da02fe4186947  tmp/B21_MEDIATION_2026-08-27/AMENDMENT_DELTA_2026-08-27.md
+6a1bb0cd02a40a1bd5f1d7a4bb237f9e  tmp/B21_MEDIATION_2026-08-27/delta_sensitivity.py
+
+# ── ② 그 스크립트가 읽는 결과 jsonl (D-1 이 스크립트 안에서도 같은 값으로 핀한다) ──
+#    ⟹ **이중 핀**이다: 스크립트가 바뀌어 자기 핀을 지워도 이 목록이 남는다.
+f4659f54a316b67d1b4ef936ff438d2b  tmp/B21_MEDIATION_2026-08-27/results_b21_0.jsonl
+6490b27ca2dc2027a77b38bfc7f6d1da  tmp/B21_MEDIATION_2026-08-27/results_b21_1.jsonl
+edd42a0a9f479e1b624b19815aa8f252  tmp/B21_MEDIATION_2026-08-27/results_b21_2.jsonl
+09c8fdf4aa1eeb262b02a54d2648262b  tmp/B21_MEDIATION_2026-08-27/results_b21_3.jsonl
+fcd3aad4fa96b5b334a3ab53e6f79652  tmp/B21_MEDIATION_2026-08-27/results_b21_4.jsonl
+6d8caa16edb637a3aa5449c10a2f65ad  tmp/B21_MEDIATION_2026-08-27/results_b21_5.jsonl
+
+# ── ③ 판정 무손상의 증인 (D-2 가 대조용으로 **읽기만** 한다) ─────────────
+#    ⚠적대적 검증자가 2026-08-27 에 이 해시가 `B-21` 결과 시점과 **UNCHANGED** 임을 확인했다.
+#    ⛔이 파일은 **수정 대상이 아니다** — 여기 적는 것은 수정이 아니라 못박기다.
+d7107cb42dd96729fbc6f3af8e166153  tmp/B21_MEDIATION_2026-08-27/verdict_b21.json

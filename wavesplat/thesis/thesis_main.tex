@@ -254,7 +254,13 @@ $\mathcal{O}(M^3)$ 계산 복잡도와 시간 모델의 부재로 인해
 실시간 추적에 한계가 있으며, 6-지표 패널 평가에서 near-zero predictor로 진단된다.
 
 본 논문은 격자를 사용하지 않는(grid-free) 스펙트럼 Gaussian 파면 표현에 기반한
-실시간 파도장 추정 알고리즘 \WS{}를 제안한다.
+% CORRECTED 2026-08-27 (T3 MAJOR-구조): 제목의 주어(학습된 스펙트럼 사전 = WavePrior)가
+% 초록 2종에 **0회**였고, 초록의 제안 문장이 여전히 "알고리즘 WaveSplat 를 제안한다" 였다
+% ⟹ 초록만 읽는 심사위원에게 이 논문의 주어는 WaveSplat 이 된다(제목·제1장과 불일치).
+% 척추를 「학습된 사전과 그 작동 경계」로 맞춘다.
+희소 3차원 점군으로부터의 실시간 파도장 추정에서, \textbf{학습된 스펙트럼 사전}
+(\emph{WavePrior})이 \textbf{언제 값을 하고 언제 하지 않는가}를 개입으로 측정한다.
+그 사전이 초기값을 제안하는 격자 비의존 추정 알고리즘 \WS{}를 방법론으로 쓴다.
 파도장을 $N$개의 평면파(plane wave) 집합으로 직접 파라미터화하고,
 각주파수를 선형 분산관계
 $\omega_i = \sqrt{g|k_i|\tanh(|k_i|d)}$로 구속함으로써
@@ -332,8 +338,8 @@ $p = 0.0021$) \textbf{크기를 인용하지 않는다}. ⚠그 층에서는 기
 %       tmp/B21_MEDIATION_2026-08-27/verdict_b21.json ·
 %       tmp/B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json
 ★\textbf{위 절제의 크기는 교락을 닫은 뒤의 값이다} --- 그 개입은 격자 반올림과
-$(w,\phi)$ 재적합의 \emph{두 부분}인데, 같은 재적합을 돌리되 파수를 옮기지 않는 통제
-팔에서 재적합 단독의 몫이 \textbf{희소 $-0.06\%$ $\cdot$ 혼잡 $-0.34\%$} 로 측정되었다
+$(w,\phi)$ 재적합의 \emph{두 부분}인데, 같은 재적합을 돌리되 파수를 옮기지 않는
+\textbf{각 층의 통제 팔}(두 배치의 서로 다른 팔이다)에서 재적합 단독의 몫이 \textbf{희소 $-0.06\%$ $\cdot$ 혼잡 $-0.34\%$} 로 측정되었다
 (혼잡은 결과 이전에 지정한 동등성 검정을 통과한다). 적합 절차를 고정한 채로도 양자화
 단독이 희소 층에서 $14/16$ 으로 해친다.
 ⛔\textbf{단 이 절제가 기준선 대비 마진을 \emph{매개}하는지는 미결이다} --- 짝
@@ -527,7 +533,8 @@ other, and because this is an ablation \emph{within the method itself} it is not
 ★\textbf{Those ablation magnitudes are quoted only after their confound was closed}: the
 intervention has \emph{two} parts (rounding the wavenumbers onto a grid, and re-fitting
 $(w,\phi)$ by least squares), and a control arm that runs the same re-fit while leaving the
-wavenumbers in place attributes only \textbf{$-0.06\%$ (sparse) and $-0.34\%$ (crowded)} to
+wavenumbers in place --- \emph{one such arm per stratum, from two different batches} ---
+attributes only \textbf{$-0.06\%$ (sparse) and $-0.34\%$ (crowded)} to
 the re-fit alone (the crowded stratum passes an equivalence test specified before the
 results). With the fitting procedure held fixed, quantisation alone still degrades $14/16$
 sparse episodes.
@@ -3542,10 +3549,16 @@ $+k_x$ 와 $-k_x$ 를 구별하지 못하는 데 돌렸다. \textbf{세 가지 �
 인용 대상이 아니다} --- 여기 적는 이유는 오직 \textbf{하나의 평균을 한계로 승격시킨 것이
 잘못이었음}을 보이기 위해서다.
 
-\paragraph{★긴장: 파수 연속성은 마진을 매개하는데 방향 성분은 chance 미만이라는 진술.}
+% CORRECTED 2026-08-27 (T3 적대적 독자 MAJOR): 이 표제는 `e7ec391`(B-21 결과 **이전**)에
+% 쓰였고 `a3620f4` 가 :4845 만 수리하며 **놓쳤다**. ⛔"매개" 는 B21/PREREG 결과 전 해석 규칙 3 이
+% 금지한 어휘이고 판정은 양 층 MEDIATION-UNDECIDED 다. 게다가 이 표제는 **TOC 에 인쇄**된다.
+% 허용 어휘 = "절제가 파수 연속성의 **필요**를 보인다"(담지자 아님, 매개 아님).
+\paragraph{★긴장: 절제는 파수 연속성의 필요를 보이는데 방향 성분은 chance 미만이라는 진술.}
 본 논문은 기여 ① 을 \textbf{표현 절제}로 지탱한다 --- 파수를 격자에 스냅하는 것만으로
 혼잡 층에서 $46/48$, 희소 층에서 $14/16$ 의 열화가 나타나고, 격자 간격을 두 배로 하면
-더 나빠진다(용량--반응). 즉 \emph{파수를 연속으로 두는 것}이 마진을 실어 나른다.
+더 나빠진다(용량--반응). 즉 \emph{파수를 연속으로 두는 것}이 \textbf{이 성능에 필요하다.}
+⛔\textbf{그러나 그것이 기준선 대비 마진을 \emph{매개}한다고는 주장하지 않는다} ---
+그 물음은 \S\ref{sec:mediation}에서 정식으로 측정됐고 판정은 \textbf{미결}이다.
 그런데 종전 판은 같은 파수 평면의 \emph{방향} 성분이 chance 미만이라고 적었다.
 두 진술이 나란히 서면 논문은 자기와 모순되는 것처럼 읽힌다. 이 긴장을 정면으로 정리한다.
 
@@ -4091,7 +4104,8 @@ $p = 3.6\times10^{-15}$) $\cdot$ 희소 $2/16$(반대꼬리 $p = 0.0021$)로 \em
 
 ★\textbf{셋째 행이 유일하게 크기를 사는 비교다.} 그 우변은 \emph{배포 해석적 패키지}
 --- 라우터가 해석적 경로를 고르고 결합 적합 반복 $900$회와 $3$중 앙상블을 받는, 이
-저장소가 실제로 배포했던 구성 --- 이며, \textbf{두 팔 모두 참 제로필드를 문턱만큼
+저장소의 \textbf{배포 해석적 패키지} --- ⚠단 배포 라우터(구 임계 $8$)에서 혼잡 입력이
+이 경로를 받은 적은 없다 --- 이며, \textbf{두 팔 모두 참 제로필드를 문턱만큼
 이긴다}(학습 $48/48$ $\cdot$ 해석적 $32/48$, $p = 0.0147$). ⚠\textbf{단 우변의 기술은
 얇다}: $32$ 는 확증 문턱과 정확히 같고 개선폭이 중앙 $-11.9\%$ 로, 좌변의 $-48.7\%$ 와
 나란히 놓기 어렵다. 문턱은 결과 이전에 정해졌고 넘었으므로 판정은 유효하나,
@@ -6382,9 +6396,14 @@ $\Rightarrow$ \textbf{본 장은 sim-to-real gap의 ``크기''를 산출물로 �
 \section{결론}
 \label{sec:conclusion}
 
-본 논문은 희소·불균질 3차원 점군 관측으로부터 실시간 파도장을 추정하는
-격자 비의존 스펙트럼 Gaussian 방법 \WS{}를 제안하고,
-이를 하이드로포일 선박의 파랑 예측 기반 feedforward 제어에 응용하였다.
+% CORRECTED 2026-08-27 (T3 MAJOR-구조): 이 도입이 원고에서 가장 낡은 척추였다 ---
+% "제안하고 … 응용하였다" 인데 **응용(제4장)은 기여에서 명시 제외**돼 있고, 결론 장에
+% WavePrior 가 0회였다. 제1장·제목과 같은 척추로 맞춘다.
+본 논문은 희소 3차원 점군으로부터의 실시간 파도장 추정에서
+\textbf{학습된 스펙트럼 사전}(\emph{WavePrior})의 \textbf{작동 경계}를 개입으로 측정하였다.
+그 사전이 초기값을 제안하는 격자 비의존 방법 \WS{}가 측정의 매개체이며,
+하이드로포일 제어 응용(제\ref{chap:hydrofoil}장)은 \textbf{기여로 주장하지 않고}
+가능성의 예시로만 남긴다.
 주요 결론은 다음과 같다:
 
 \paragraph{파도장 추정 (\WS{})}

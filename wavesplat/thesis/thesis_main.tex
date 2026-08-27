@@ -425,7 +425,34 @@ $7/12$). \emph{수준}에 대한 의존은 이 개입으로 닫히지 않는다.
 소거하였던 선행 측정이 난수 소비 규약의 결함으로 철회되었고, 수리 후 같은 칸을 다시 잰 값
 ($8/12$)은 결과 \emph{이전에} 동결한 두 문턱(충분 $\geq 10$ $\cdot$ 표현이 벽 $\leq 6$)
 \emph{사이}에 떨어지기 때문이다. ⛔\textbf{이는 원인의 지목도 후보의 부재 증명도 아니며},
-본 논문은 \textbf{작동 경계의 위치를 보고하고 그 설명은 제시하지 않는다.}
+본 논문은 \textbf{작동 경계의 위치를 보고하고, \emph{파랑 조건} 축을 배제하되,
+그 경계가 놓인 축과 그 축 위의 원인은 제시하지 않는다.}
+% ADDED 2026-08-28 (B-26): 초록의 소거 문단이 **부정형**으로만 끝나 있었다. 헤드라인
+% 코퍼스(BF4/BF5)와 실측 레코드의 해상상태가 다르다는 **교락**이 목록에 없었고 저장소가
+% 그 둘을 가른 적이 없었다. 그 칸을 채웠으므로 초록에 싣고, 처음으로 **긍정형 축 진술**을
+% 적는다. ★영문 초록에 같은 문단을 동시에 반영한다.
+% ⛔"해상상태가 무관하다" 금지(사전 지정 교차 대비는 널일 뿐) · ⛔크기를 위 배치들과
+%   직접 비교 금지 · ⚠선형 참값 단서 필수.
+% 근거: tmp/B26_SEASTATE_2026-08-27/verdict_b26.json
+%       (decomposition = hold/hold/hold · SS-REAL 24/24 p=6.0e-8 · 게이트 29/29)
+★★\textbf{그러나 \emph{배제된 축}이 하나 있다 --- \emph{파랑 조건}이다.} 두 표본은
+\textbf{바다 자체가 달랐다}(합성 헤드라인은 BF4/BF5, 실측 $12$ 레코드는 중앙
+$H_s = 0.725$\,m $\cdot$ $T_p = 3.49$\,s) ⟹ 지금까지 \emph{``sim-to-real''}과
+\emph{``해상상태''}가 교락돼 있었다. 실측 레코드의 $(H_s, T_p)$ 를 참값이 있는 합성
+위로 옮긴 $2\times2$ 요인 개입에서 \textbf{네 칸이 모두 유지}되며 실측 해상상태 칸의
+\emph{승수}가 가장 높다($24/24$, $p = 6.0\times10^{-8}$; 배치 \texttt{B-26}).
+% CORRECTED 2026-08-28 (F-1): 종전 문안은 "그 칸이 가장 강하다" 였다. 그것은 **승수
+% 한 척도에서만** 참이고 나머지 두 척도에서는 반대다(576행 재집계). ⟹ 순위 주장 삭제.
+% 근거: tmp/B26_SEASTATE_2026-08-27/results_b26_*.jsonl (576행) · verdict_b26.json
+⛔\textbf{단 코너 사이의 \emph{순위}는 주장하지 않는다} --- 상대 크기는 네 칸 중 세 칸이
+서로 $0.25$\,pp 안에 들고, \textbf{무기술 기준}으로 재면 순위가 뒤집히며(헤드라인 칸
+$-53\%$ 대 실측 해상상태 칸 $-45\%$), 그 칸의 \textbf{절대 오차는 헤드라인 칸보다 약
+$16\%$ \emph{높다}}.
+⚠\textbf{그 코퍼스의 참값은 \emph{선형}}이며, ⛔사전 지정한 교차 대비(실측 해상상태 칸
+대 헤드라인 칸)가 갈리지 않은 것을 \emph{``해상상태가 무관하다''}로 읽지 않는다.
+⟹ ★\textbf{따라서 본 논문은 작동 경계의 위치를 보고하고, \emph{파랑 조건} 축을
+배제하되, 그 경계가 놓인 축과 그 축 위의 원인은 제시하지 않는다}
+(\S\ref{sec:boundary}). ⚠\textbf{배제는 지목이 아니다.}
 ⚠\textbf{본 방법은 ``학습이 필요 없는'' 방법이 아니다} --- 혼잡 해상에서 학습된 초기화를
 사용하며(초기값 제안에 한정), 실측 입력에서는 그 학습이 \emph{순손실}로 측정되었다.
 지연에 대해 인용 가능한 유일한 절대 배율은 \emph{동일 프로세스·단일 스레드에서 1.5--2.6배}이며,
@@ -474,8 +501,16 @@ Gaussian Process Regression (GPR) avoids gridding but has $\mathcal{O}(M^3)$
 complexity and lacks a temporal propagation model, functioning as a near-zero
 predictor in multi-metric evaluation.
 
-This dissertation proposes \WS{}, a real-time ocean wave field estimation
-algorithm based on a grid-free spectral Gaussian wave field representation.
+% CORRECTED 2026-08-28 (T3 mirror): the Korean abstract was rewritten on 2026-08-27 so
+% that its subject is the learned spectral prior named in the title (WavePrior); the
+% English abstract was not, and still opened with "proposes WaveSplat". That is the
+% repository's most frequent defect class ("N-1 of N sites fixed"). Mirrored here so
+% the two abstracts state the same subject as the title and Chapter 1.
+This dissertation measures, by intervention, \textbf{when a learned spectral prior}
+(\emph{WavePrior}) \textbf{does and does not pay off} in real-time ocean wave field
+estimation from sparse three-dimensional point clouds. The instrument of that
+measurement is \WS{}, a grid-free spectral estimation algorithm for which the prior
+proposes the initial values.
 The wave field is directly parameterized as a superposition of $N$ plane
 waves, with angular frequency constrained by the linear dispersion relation
 $\omega_i = \sqrt{g|k_i|\tanh(|k_i|d)}$, reducing free parameters from $5N$
@@ -645,8 +680,35 @@ it has been retracted for a random-number-consumption defect, and re-measuring t
 cell after the repair gives $8/12$, which falls \emph{between} the two thresholds frozen
 \emph{before} results (adequate $\geq 10$; representation-is-the-wall $\leq 6$).
 ⛔\textbf{This is neither an identification of the cause nor proof that those candidates are
-absent}; this dissertation \textbf{reports where the operating boundary lies and offers no
-explanation for it}.
+absent}; this dissertation \textbf{reports where the operating boundary lies and excludes
+the wave-condition axis, while identifying neither the axis it lies along nor any cause
+along it}.
+% ADDED 2026-08-28 (B-26): mirror of the Korean abstract paragraph added on the same day,
+% so the two abstracts do not diverge. Same prohibitions: no "sea state is irrelevant"
+% reading (the pre-specified cross-contrast is merely null), no magnitude comparison with
+% B-1/B-11/B-12/B-22, and the linear-ground-truth caveat is mandatory.
+% Source: tmp/B26_SEASTATE_2026-08-27/verdict_b26.json (hold/hold/hold; 29/29 gates)
+★★\textbf{One axis, however, \emph{has} been excluded --- the wave conditions}. The two
+samples differed in the sea state itself (the synthetic headline is BF4/BF5, whereas the
+twelve real records have median $H_s = 0.725$\,m and $T_p = 3.49$\,s), so
+\emph{``sim-to-real''} and \emph{``sea state''} were until now confounded. Moving the real
+records' $(H_s, T_p)$ onto synthetic scenes that \emph{have} ground truth, in a $2\times2$
+factorial intervention, leaves \textbf{all four cells holding}, with the real-sea-state cell
+carrying the highest \emph{win count} ($24/24$, $p = 6.0\times10^{-8}$; batch \texttt{B-26}).
+% CORRECTED 2026-08-28 (F-1): mirrors the Korean abstract. "The strongest" held on the
+% win-count scale only; on the other two scales the ordering is the opposite.
+⛔\textbf{No ranking among the cells is claimed}: three of the four relative magnitudes fall
+within $0.25$\,pp of one another, the ordering \emph{reverses} when measured against the
+no-skill reference ($-53\%$ for the headline cell vs.\ $-45\%$ for the real-sea-state cell),
+and that cell's \textbf{absolute error is about $16\%$ \emph{higher} than the headline cell's}.
+⚠\textbf{The ground truth of that corpus is \emph{linear}}, and ⛔the fact that the
+pre-specified cross-contrast (real-sea-state cell vs.\ headline cell) does not separate is
+\textbf{not} read as \emph{``sea state is irrelevant''}.
+⟹ ★\textbf{This dissertation therefore reports where the operating boundary lies and
+excludes the wave-condition axis, while identifying neither the axis it lies along nor any
+cause along it} (\S\ref{sec:boundary}). ⚠\textbf{Exclusion is not identification}:
+\emph{where the data come from and how observations are drawn on top of them} is what
+elimination \emph{leaves}, not an axis that has been measured.
 ⚠\textbf{This method is not ``learning-free''} --- it uses a learned initialiser in
 crowded seas (for proposal only), and on real input that learned component is measured
 to be a \emph{net loss}.
@@ -883,6 +945,77 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
 ⟹ \emph{``학습된 사전이 더 낫다''}는 문장은 본 논문의 자료가 지지하지 않는다.
 \textbf{지지되는 문장은 ``어디까지 값을 하는가''이며, 그것이 이 논문의 주제다.}
 
+% ============================================================================
+% ADDED 2026-08-28 (B-26): ★**논문 제목이 「그 작동 경계」인데 그 경계가 어디인지를
+% 한 곳에서 말하는 문단이 없었다.** 초록·§sec:init-bank 말미·제6장 결론이 각각 조각을
+% 말하고 있었고 그 조각들은 전부 **부정형**("어느 후보로도 설명되지 않는다")이었다.
+% `B-26` 이 파랑 조건 축을 개입으로 닫으면서 처음으로 **긍정형 축 진술**이 가능해졌다
+% ⟹ 단일 진술을 여기에 두고 다른 지점이 전부 이것을 가리키게 한다.
+% ⛔측정이 지탱하는 만큼만 쓴다: **축**을 이름 붙일 뿐 **원인**을 지목하지 않는다.
+% ⛔"해상상태가 무관하다" 로 쓰지 않는다(B-26 §6 교차 대비 규칙 축자).
+% 근거: tmp/B26_SEASTATE_2026-08-27/verdict_b26.json (decomposition = hold/hold/hold,
+%       SS-REAL 24/24 p=6.0e-8, 게이트 29/29) · tmp/B12_HOS_EXTEND_2026-08-23/verdict_b12.json
+%       · tmp/B15_RAYDROP_2026-08-24/verdict_b15.json · tmp/B18_DENSITY_NOISE_2026-08-25/
+%       verdict_b18.json · tmp/B17_REALNOISE_2026-08-25/verdict_b17.json
+% ============================================================================
+\subsection*{작동 경계 --- 본 논문의 단일 진술}
+\addcontentsline{toc}{subsection}{작동 경계 --- 본 논문의 단일 진술}
+\label{sec:boundary}
+
+제목이 지시하는 \textbf{작동 경계}가 어디에 있는지를 본 논문은 아래 한 문단으로
+진술한다. 초록$\cdot$제\ref{chap:wavesplat}장$\cdot$제\ref{chap:conclusion}장의 관련
+서술은 전부 이 진술을 가리킨다.
+
+% CANONICAL 2026-08-28 (F-1 척추 정정): 이 문장은 **다섯 지점에서 축자 동일**하다
+% (초록 KR 2곳 · §sec:boundary · 제3장 · 제6장 결론; 영문 초록 2곳이 이를 미러한다).
+% ⛔종전 문안 *"경계가 놓인 축을 보고한다"* 는 **지목**이었다. `B-26` 이 지탱하는 것은
+% **배제**까지다 --- 파랑 조건 축 하나가 개입으로 빠졌을 뿐, 남은 영역은 소거의
+% **잔여**이지 개입으로 측정된 축이 아니다. 한 곳만 고치면 저장소 누적 1위 결함
+% (같은 문장이 N곳, 한 곳만 수정)의 재발이므로 **다섯 곳을 함께** 고친다.
+★★\textbf{본 논문이 측정한 범위에서, 경계는 \emph{파랑 조건}의 축을 따라 놓여 있지
+않다.} 합성 우주 안에서 \textbf{(i)}~참값의 \textbf{비선형성}(HOS $M{=}3$),
+\textbf{(ii)}~\textbf{센서 반환 모형}, \textbf{(iii)}~관측의 \textbf{성분 수}
+(혼잡$\cdot$희소), \textbf{(iv)}~\textbf{학습 코퍼스 밖의 생성 시드}, 그리고
+\textbf{(v)}~\textbf{바다 자체의 유의파고와 첨두주기}를 각각 \emph{개입}으로 바꾸어도
+최강 적격 격자 기준선 대비 부호는 유지된다. 특히 \textbf{(v)} 는 \textbf{실측 $12$ 레코드의
+해상상태 중앙값}($H_s = 0.725$\,m, $T_p = 3.49$\,s)에서 측정되었고 그 칸의 \emph{승수}가
+가장 높다($24/24$; \S\ref{sec:results_b26}) --- ⛔단 \textbf{코너 사이의 순위는 주장하지
+않는다}(그 칸의 \emph{절대} 오차는 헤드라인 칸보다 약 $16\%$ \emph{높다};
+표~\ref{tab:b26_absolute}). 그럼에도 \textbf{같은 표현이 실측 입력에서는
+무기술이다}(\S\ref{sec:init-bank}). ⟹ ★\textbf{본 논문은 작동 경계의 위치를 보고하고,
+\emph{파랑 조건} 축을 배제하되, 그 경계가 놓인 축과 그 축 위의 원인은 제시하지 않는다.}
+⚠\textbf{배제는 지목이 아니다} --- \emph{자료가 어디서 오고 그 위에서 관측이 어떻게
+취해지는가}는 소거 뒤에 \emph{남은} 영역일 뿐 개입으로 측정된 축이 아니며, 그 안의
+후보들은 아래 ③ 이 적는 대로 문턱을 넘지 못했거나 \textbf{미결}이다.
+
+⚠\textbf{이 진술이 사는 범위 다섯.}
+①\textbf{(v) 는 \emph{선형} 참값 코퍼스에서 측정되었다} --- 비선형 축은 (i) 이 따로
+답하며, 두 축이 \emph{동시에} 걸린 칸은 측정되지 않았다.
+②\textbf{(iii) 의 희소 층은 같은 무게로 읽지 않는다} --- 그 층에서는 기준선 자신이
+무기술 기준을 중앙 $12.6\%$ 개선하는 데 그친다.
+% CORRECTED 2026-08-28 (F-1 ③): 종전 문안 *"경계의 축을 이름 붙였을 뿐"* 은 위 정정과
+% 어긋난다 --- 이제 이름 붙인 것은 **배제된** 축(파랑 조건)뿐이다. 같은 문단의
+% *"용량은 미결"* 과 글자 그대로 정합시킨다.
+③\textbf{\emph{배제된} 축 하나를 이름 붙였을 뿐, 경계가 \emph{놓인} 축도 그 위의
+\emph{원인}도 지목하지 않는다} --- 소거 뒤에 남는 영역(잡음의 \emph{형태}와
+\emph{수준}, 센서 모형, 관측의 희소성)을 실측 쪽에서 각각 개입으로 시험했으나
+어느 것도 회복 문턱을 넘지 못하였고, 표현의 \emph{용량}은 \textbf{미결}이다
+(\S\ref{sec:init-bank}). ⟹ \textbf{남는 것은 후보 목록이 아니라 \emph{공백}이다.}
+④\textbf{그 축 위에 아직 측정되지 않은 후보가 남아 있다} --- 관측 기하(개구$\cdot$
+입사각$\cdot$폐색), 창 길이와 시간축, 전방모델의 정상성 가정, 스테레오 재구성면 자체의
+오차, 사이트 기하와 레코드 구성.
+⑤\textbf{두 쪽은 대칭이 아니다} --- 합성 쪽에는 기준선 대비 부호가 있으나 실측 쪽에는
+\textbf{외부 기준선 행이 $0$개}이고, 그 부재 자체가 측정된 한계다(기여 ⑥).
+
+⛔\textbf{읽지 말아야 할 셋.}
+⛔\emph{``해상상태는 무관하다''} --- 사전 지정한 교차 대비(실측 해상상태 코너 대 헤드라인
+코너)는 갈리지 않았으나 \textbf{널은 무관함의 증명이 아니다}.
+⛔\emph{``합성이면 무엇이든 된다''} --- 위 (i)--(v) 는 다섯 개의 축이지 전칭이 아니다.
+⛔\emph{``체크포인트가 평가와 같은 분포라는 단서가 닫혔다''} --- (v) 가 닫은 것은
+$(H_s, T_p)$ \textbf{주변부 하나}이며, 파랑 성분 추첨$\cdot$방향 확산$\cdot$관측 모형은
+학습 때와 같다.
+
+
 % UPDATED 2026-08-27 (B-22): 종전 문안은 "제목의 주어는 합성 조건에서 아직 절제된 적이
 % 없다" 는 **상태 서술**이었다. 그 사전등록 배치가 완주했고(1,152 런, 게이트 28/28) 라벨은
 % PRIOR-EARNS 다 ⟹ 상태 서술을 결과로 교체한다.
@@ -955,6 +1088,22 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
         ⑤\textbf{센서 모형 교락은 선형 참값에서만 닫혔다}(\texttt{slope} 모형으로 바꾼 짝
         개입에서 $20$ 중 $17$, 약 $-43\%$, 음성 대조 $20/20$; 배치 \texttt{B-15})
         --- \textbf{비선형 참값과 \texttt{slope} 의 조합은 미측정}이다.
+        % ADDED 2026-08-28 (B-26): 이 목록의 ⑤ 가 "센서 모형 교락" 을 적었는데, 그보다
+        % 더 큰 교락 -- **헤드라인 코퍼스의 해상상태(BF4/BF5)가 실측 레코드의 해상상태와
+        % 다르다** -- 는 목록에 없었다. 저장소가 그 둘을 가른 적이 한 번도 없었다.
+        % ⛔"해상상태가 무관하다" 로 넓히지 않는다 · ⛔크기를 위 크기들과 비교하지 않는다.
+        % 근거: tmp/B26_SEASTATE_2026-08-27/verdict_b26.json (decomposition hold/hold/hold,
+        %       SS-REAL 24/24 p=6.0e-8, 게이트 29/29, 96 에피소드 · 576 런)
+        ⑥★\textbf{해상상태 교락도 닫혔다 --- 단 \emph{선형} 참값에서다.} 실측 $12$
+        레코드의 해상상태($H_s = 0.725$\,m, $T_p = 3.49$\,s)를 참값이 있는 합성 위에
+        재현한 $2\times2$ 요인 개입에서 네 칸이 \textbf{모두 유지}되며 실측 해상상태 칸의
+        \emph{승수}가 가장 높다($24/24$, $p = 6.0\times10^{-8}$; 배치 \texttt{B-26},
+        \S\ref{sec:results_b26}) --- ⛔단 \textbf{코너 순위는 주장하지 않는다}
+        (표~\ref{tab:b26_absolute}: 그 칸의 절대 오차는 헤드라인 칸보다 약 $16\%$ 높고,
+        무기술 기준으로 재면 순위가 뒤집힌다). ⟹ \textbf{합성 양성과 실측 음성의 갈림을 \emph{파랑
+        조건}으로 귀속할 수 없다}(\S\ref{sec:boundary}). ⛔단 \emph{``해상상태가
+        무관하다''}로 넓히지 않으며(사전 지정 교차 대비는 갈리지 않았을 뿐이다),
+        ⛔그 크기를 위 두 크기와 직접 비교하지 않는다.
         % NARROWED 2026-08-23 (B-11b): "희소는 아티팩트" 판정이 두 명제를 묶고 있었다.
         % (1) 우리 오차가 선형 GT 에서 인위적으로 작다 -> 참(비선형화 시 3.60배 열화, 배치 안 짝 14/16)
         % (2) 따라서 기준선 대비 우위도 인위적이다 -> 반증(열화 후에도 15/16, -74.7%)
@@ -1268,6 +1417,15 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
         문턱 \emph{사이}에 떨어진다(\S\ref{sec:init-bank}).
         ⛔문턱 미달을 \emph{부재의 증명}으로 읽지 않으며, ⛔``더 조밀한 관측이면
         해결된다''로도 읽지 않는다.
+        % ADDED 2026-08-28 (B-26): 이 항목이 "원인을 어느 후보로도 지목하지 않는다" 로
+        % 끝나 독자에게 **아무것도 배제되지 않았다** 로 읽혔다. 파랑 조건 축은 이제
+        % 개입으로 배제됐다 -- 그것은 원인의 지목이 아니라 **축의 배제**다.
+        % 근거: tmp/B26_SEASTATE_2026-08-27/verdict_b26.json
+        ★\textbf{다만 \emph{배제된} 축은 하나 있다 --- \emph{파랑 조건}이다.} 실측
+        레코드의 해상상태를 참값이 있는 합성에서 재현해도 기준선 대비 부호가 유지되므로
+        (\S\ref{sec:results_b26}), 실측 음성을 \emph{어떤 바다인가}로 귀속하지 않는다.
+        ⚠이는 \textbf{축의 배제이지 원인의 지목이 아니며}, \emph{선형} 참값에서
+        측정되었다. 경계에 대한 본 논문의 단일 진술은 \S\ref{sec:boundary}이다.
   % ADDED 2026-08-27 (B-22 + B-21): 두 배치가 사는 문장은 좁고, 그 옆 문장들이 넓게
   % 읽히기 쉽다. 결과 전 해석 규칙이 금지한 두 확장을 목록에 명시적으로 올린다.
   % 근거: tmp/B22_PRIOR_ABLATION_2026-08-27/PREREG.md 7절·9절 ·
@@ -1326,12 +1484,24 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
 \section{논문 구성}
 \label{sec:organization}
 
-본 논문의 구성은 다음과 같다.
-제2장에서는 해양 파도장 추정과 하이드로포일 제어에 관한 관련 연구를 검토한다.
-제3장에서는 \WS{} 알고리즘의 방법론, 시뮬레이션 환경, 실험 설계, 및
-실험 결과를 상세히 기술한다.
+% REWRITTEN 2026-08-28 (F-1 ⑤): ★**이 절과 바로 아래 제2장 머리에 옛 척추가 남아
+% 있었다** --- `WavePrior` 0회 · `작동 경계` 0회 · 제4장을 나머지 장과 같은 지위로 적어
+% **기여인 것처럼** 읽히고, 제2장 머리는 *"두 가지 핵심 주제"* 라 하여 제어를 주제의
+% 절반으로 세웠다. §sec:contributions 의 「주장하지 않는 것」이 제4장을 기여에서
+% 이미 뺐으므로(같은 취지를 제4장 머리와 §sec:conclusion 이 말한다) **자기모순**이다.
+% ⟹ 척추(학습된 스펙트럼 사전 = WavePrior, 그 작동 경계)에 맞추고 제4장의 지위를 명시.
+본 논문의 구성은 다음과 같다. 척추는 \textbf{학습된 스펙트럼 사전}(\emph{WavePrior})과
+\textbf{그 작동 경계}이며, 경계에 대한 단일 진술은 \S\ref{sec:boundary}에 있다.
+제2장에서는 해양 파도장 추정에 관한 관련 연구를 검토한다(하이드로포일 제어 문헌은
+제4장의 배경으로 함께 정리한다).
+제3장에서는 \WS{} --- 사전을 실제로 운반하는 추정기 --- 의 방법론, 시뮬레이션 환경,
+실험 설계, 및 합성$\cdot$실측 양쪽의 실험 결과를 상세히 기술하며, \textbf{작동 경계를
+개입으로 좁혀 간 배치들이 이 장에 있다.}
 제4장에서는 하이드로포일 동역학 모델, feedforward 제어 알고리즘, 민감도 분석,
-및 end-to-end 검증 결과를 제시한다.
+및 end-to-end 검증 결과를 제시한다. ⚠\textbf{제4장은 기여로 주장하지 않는다} ---
+결과가 전부 시뮬레이션이고 최적 미리보기 거리가 센서 사각지대 안에서 채점되었다
+(\S\ref{sec:contributions}의 「주장하지 않는 것」$\cdot$제\ref{chap:hydrofoil}장 머리
+$\cdot$\S\ref{sec:conclusion}이 같은 지위를 말한다).
 제5장에서는 수조 실험 검증 계획을 다룬다.
 제6장에서는 결론과 향후 연구 방향을 논한다.
 
@@ -1341,9 +1511,11 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
 \chapter{관련 연구}
 \label{chap:related}
 
-본 장에서는 본 논문의 두 가지 핵심 주제 --- 해수면 파도장 추정과
-하이드로포일 선박 제어 --- 에 관한 선행 연구를 검토한다.
-관측 센서, 추정 알고리즘, 하이드로포일 동역학 및 제어의 세 축으로 정리한다.
+본 장에서는 본 논문의 핵심 주제 --- \textbf{희소 3차원 점군으로부터의 해수면 파도장
+추정}, 그리고 그것을 \textbf{학습된 스펙트럼 사전}(\emph{WavePrior})으로 푸는 접근
+--- 에 관한 선행 연구를 검토한다. 관측 센서와 추정 알고리즘의 두 축이 본론이며,
+하이드로포일 동역학 및 제어는 \textbf{제\ref{chap:hydrofoil}장의 배경}으로 함께
+정리한다(⚠그 장은 기여로 주장하지 않는다 --- \S\ref{sec:contributions}).
 
 \section{선박 탑재 파랑 관측 센서}
 \label{sec:wave_sensing}
@@ -2797,10 +2969,34 @@ $\sigma = 0.02 \to 0$; $12$ 레코드 $\times$ 네 모서리). ``회복''은 그
 ⟹ ★\textbf{네 모서리 어디에서도 문턱에 닿지 않는다.} 앞선 개입들과 합치면 소거의 결과는
 다음과 같다 --- 잡음의 \emph{형태}(등방$\cdot$공간상관$\cdot$군집$\cdot$경사 네 모형, 그리고
 위 문단의 거리$\cdot$입사각 곡선)는 \textbf{매개하지 않고}, \emph{센서 모형}은
-\textbf{결론을 바꾸지 않으며}(\S\ref{sec:results_b11}), 마지막 후보였던 \emph{관측의
+\textbf{결론을 바꾸지 않으며}(\S\ref{sec:results_b11}),
+% ADDED 2026-08-28 (B-26): 소거 목록에 **해상상태(파랑 조건)** 행을 추가한다.
+% 이 행은 `센서 모형` 행과 같은 부류다 -- 합성 층의 교락을 닫아 실측 음성의 원인
+% 후보에서 그 축을 빼는 것이지, 실측 회복을 측정한 것이 아니다.
+% ⛔"해상상태가 무관하다" 로 넓히지 않는다 · ⚠선형 참값 단서를 함께 적는다.
+% 근거: tmp/B26_SEASTATE_2026-08-27/verdict_b26.json (hold/hold/hold, 게이트 29/29)
+★\emph{해상상태}(바다의 유의파고와 첨두주기) 역시 \textbf{매개하지 않으며}
+(\S\ref{sec:results_b26}; ⚠\emph{선형} 참값), 마지막 후보였던 \emph{관측의
 희소성}은 \textbf{문턱에 미달한다.} ⚠\textbf{표현의 \emph{용량}만은 소거되지 않고
 \emph{미결}로 남으며}, 그 사유는 바로 아래 문단이다.
 ⟹ \textbf{실측 음성은 본 논문이 개입으로 측정한 어느 후보로도 설명되지 않는다.}
+
+% ADDED 2026-08-28 (B-26): 위 문단은 **부정형**으로만 끝났다("어느 후보로도 설명되지
+% 않는다"). 파랑 조건 축이 닫히면서 처음으로 **긍정형 축 진술**이 가능해졌다 ⟹ 여기서
+% 그 진술을 요약하고 제1장의 단일 진술(§sec:boundary)로 보낸다.
+% ⛔축을 이름 붙일 뿐 그 축 위의 원인을 지목하지 않는다.
+★\textbf{그러나 어제와 달리 \emph{배제된 축}이 하나 생겼다 --- \emph{파랑 조건}이다
+(2026-08-28).} 위 목록의 개입들은 전부 \emph{실측 쪽}에서 무엇을 주면 회복하는가를
+물었다. 그와 별개로, \textbf{합성 쪽에서 바다의 $(H_s, T_p)$ 두 수를 실측 레코드의
+중앙값으로 옮기는} 개입이 수행되었고 헤드라인은 네 칸 모두에서 유지되었다
+(\S\ref{sec:results_b26}, 표~\ref{tab:b26_seastate}). ⟹ ★\textbf{합성 양성과 실측
+음성의 갈림은 \emph{어떤 바다인가}로 설명되지 않는다} --- 남는 축은 \textbf{자료가
+어디서 오고 그 위에서 관측이 어떻게 취해지는가}이다. ⚠\textbf{이것은 축의 배제이지
+원인의 지목이 아니다} --- 바로 그 축 안의 후보들(잡음의 형태와 수준, 센서 모형, 관측의
+희소성)이 위 표에서 회복 문턱을 넘지 못했고 표현의 \emph{용량}은 미결이다.
+⚠그 개입의 참값은 \emph{선형}이며, 사전 지정한 교차 대비가 갈리지 않았다는 것을
+⛔\emph{``해상상태가 무관하다''}로 읽지 않는다. 경계에 대한 본 논문의 단일 진술은
+\S\ref{sec:boundary}이다.
 
 ⚠★\textbf{표현의 \emph{용량}은 왜 소거가 아니라 미결인가 --- 한 칸이 두 후보를 겸직하고
 있었다 (2026-08-27 정정).} 위 표의 \textbf{둘 다} 모서리($12{,}000$ 관측 $\cdot$
@@ -2836,7 +3032,14 @@ $8/12$ 였다. ④\textbf{``둘 다'' 모서리는 경계값이다} --- 글자 �
 양성(\S\ref{sec:results_b1})과 실측에서의 음성은 그 경계의 양쪽이다. 이번 개입으로 바뀐 것은
 경계의 위치가 아니라 \textbf{경계의 \emph{설명}}이다: 어제까지 남아 있던 단일 후보(``관측이
 너무 희소하다'')가 개입에서 살아남지 못했으므로, 본 논문은 그 설명을 제시하지 않고
-\textbf{경계의 위치만} 보고한다. ⚠\textbf{여기에 더해 표현의 \emph{용량}이 \emph{미결}로
+\textbf{경계의 위치만} 보고한다.
+% ADDED 2026-08-28 (B-26): ''위치만'' 에 한 겹을 더한다 -- 이제 **경계가 놓인 축**까지는
+% 말할 수 있다(파랑 조건 축이 아니다). ⛔여전히 그 축 위의 원인은 지목하지 않는다.
+★\textbf{다만 2026-08-28 이후로는 한 겹을 더 말할 수 있다} --- 경계가 놓인
+\emph{축}이다. 파랑 조건 축은 개입으로 배제되었으므로(\S\ref{sec:results_b26}),
+본 논문은 \textbf{작동 경계의 위치를 보고하고, \emph{파랑 조건} 축을 배제하되, 그
+경계가 놓인 축과 그 축 위의 원인은 제시하지 않는다}(단일 진술: \S\ref{sec:boundary}).
+⚠\textbf{배제는 지목이 아니다} --- 아래 \emph{남는 축} 서술은 소거의 잔여이다. ⚠\textbf{여기에 더해 표현의 \emph{용량}이 \emph{미결}로
 되돌아와 있다}(위 정정) --- 소거된 후보가 아니므로 남은 목록과 함께 읽어야 한다.
 ⚠\textbf{아직 측정되지 않은 후보}는 \textbf{관측 기하}
 (거리$\cdot$입사각$\cdot$폐색 --- 잡음의 \emph{크기}가 아니라 \emph{어디서 오는가}),
@@ -4421,6 +4624,249 @@ $-39\%$(\texttt{B-1})와 \textbf{직접 비교하지 않는다}
 ②\textbf{비선형(HOS $M{=}3$) 참값과 \texttt{slope} 센서 모형의 조합은 측정되지 않았다}
 --- 비선형 코퍼스에는 \texttt{slope} 짝이 존재하지 않는다.
 ⟹ ⛔따라서 ``센서 모형 축이 \emph{전부} 닫혔다''로 쓰지 않는다.
+
+% ============================================================================
+% ADDED 2026-08-28 (B-26): **기존 절의 확장이 아니라 새 절**로 싣는다. 사유 둘.
+%  (1) 바로 위 소절의 표제가 "비선형 참값·신선 시드" 이고 그 소절의 모든 문단이 그
+%      코퍼스 위에서 측정됐다. `B-26` 의 코퍼스는 **선형** 참값이다 -- 사전등록 §1.3 이
+%      런 0회로 잰 대로 `B-12` 의 HOS 생성기가 실측 주기를 담지 못한다(성분이 HOS 빈에
+%      스냅되면서 축별 나이퀴스트 1.0053 rad/m 를 넘는 성분이 15comp 에서 6--8개,
+%      `SS-REAL` 에서 M=3 메시 판정이 23/24 INADEQUATE). 그 소절 안에 넣으면 참값
+%      클래스가 조용히 잘못 붙는다 = 이 저장소의 누적 1위 결함 부류.
+%  (2) 이 배치가 닫는 것은 표현의 절제가 아니라 **해상상태 교락**이라는 다른 축이다.
+% ⛔크기를 B-1·B-11·B-12·B-22 와 직접 비교하지 않는다(사전등록 §3 항목 4).
+% ⛔희소성 축이 아니다(성분수 {15,30} 고정, 같은 절 항목 2).
+% ⛔실측을 재현하는 배치가 아니다 -- 관측 모형·기하·센서·잡음은 전부 합성 그대로이고
+%   바뀌는 것은 바다의 (Hs, Tp) 두 수뿐이다(같은 절 항목 3).
+% 근거: tmp/B26_SEASTATE_2026-08-27/{PREREG.md, verdict_b26.json, premise_b26.json,
+%       gen_manifest_b26.json} -- 96 에피소드 · 576 런 · error 0행 · 게이트 29/29.
+% ============================================================================
+\subsection{실측 해상상태에서의 재측정 --- 해상상태 교락의 폐쇄 (2026-08-27)}
+\label{sec:results_b26}
+
+\paragraph{닫으려는 교락 --- 두 코퍼스는 \emph{바다}가 다르다}
+본 논문의 서사는 \emph{``합성에서 벌고 실측에서 못 번다''}이고, 그 경계를
+\S\ref{sec:init-bank}이 실측 음성으로, \S\ref{sec:results_b1}이 합성 양성으로 적는다.
+그런데 두 코퍼스는 \textbf{해상상태 자체가 다르다} --- 합성 헤드라인은 BF4/BF5
+(\S\ref{sec:results_b1} 말미의 코퍼스 문단)이고, 실측 $12$ 레코드의 해상상태는
+같은 규약으로 재계산하면 중앙 $H_s = 0.725$\,m $\cdot$ $T_p = 3.49$\,s
+($\lambda_p = 19.0$\,m)다.
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+ & $H_s$ [m] & $T_p$ [s] & $\lambda_p$ [m] & $H_s/\lambda_p$ \\
+\midrule
+합성 헤드라인 (BF4 / BF5) & $1.2$ / $2.0$ & $7.0$ / $9.0$ & $76.5$ / $126.5$ & $0.0157$ / $0.0158$ \\
+\textbf{실측 $12$ 레코드 (중앙)} & $\mathbf{0.725}$ & $\mathbf{3.49}$ & $\mathbf{19.0}$ & $\mathbf{0.0389}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+⟹ ★\textbf{종전까지 \emph{``sim-to-real''}과 \emph{``BF4$\cdot$BF5 대 실측 해상상태''}가
+완전히 교락돼 있었다.} 실측 바다는 어느 합성 프리셋보다 $2.4$--$3.2$배 가파르고,
+$\lambda_p$ 는 헤드라인 코퍼스의 $1/4$ 이하다.
+⚠\textbf{그리고 그 교락은 \emph{이중}이었다} --- 배포된 사전을 만든 학습 장면의
+$(H_s, T_p)$ 앵커가 시뮬레이터의 해상상태 프리셋과 \textbf{축자 동일}하므로
+(게이트가 프로그램으로 대조한다), 해상상태 축은 \textbf{학습 분포 축과도} 얽혀 있었다.
+학습 장면의 주기 분포에서 $T_p$ 의 최소값은 $3.40$\,s 이고
+$P(T_p \leq 3.49) = 0.93\%$ 다 --- 즉 실측 주기는 그 분포의 \textbf{극단 꼬리}다.
+⚠저장소에는 성분 수 $\geq 15$ 인 BF2$\cdot$BF3 에피소드가 \textbf{$0$개}이므로
+(게이트가 매 실행 재확인), 이 칸을 채우려면 \textbf{생성이 선행}해야 했다.
+
+\paragraph{설계 --- BF 사다리가 아니라 $2\times2$ 직교 요인}
+BF2$\to$BF5 사다리는 $H_s$ 와 $T_p$ 를 \emph{함께} 올리므로 무엇이 매개하는지 가르지
+못한다. 따라서 파고 축과 주기 축을 직교시켜 네 코너를 만들고, 각 코너를 성분 수
+$\{15, 30\}$ $\times$ 시드 $12$ 개 $=$ $24$ 에피소드로 채웠다(총 $96$ 에피소드,
+$576$ 런, 오류 $0$행).
+
+\begin{center}
+\begin{tabular}{lccl}
+\toprule
+코너 & $H_s$ [m] & $T_p$ [s] & 뜻 \\
+\midrule
+\texttt{SS-BF4}   & $1.200$ & $7.00$ & 헤드라인의 해상상태(= BF4, 학습 앵커) --- \textbf{내부 기준 칸} \\
+\texttt{SS-LOWH}  & $0.725$ & $7.00$ & 실측 \emph{파고}, 합성 \emph{주기} \\
+\texttt{SS-SHORT} & $1.200$ & $3.49$ & 합성 \emph{파고}, 실측 \emph{주기} \\
+\textbf{\texttt{SS-REAL}} & $\mathbf{0.725}$ & $\mathbf{3.49}$ & ★\textbf{실측 $12$ 레코드의 해상상태} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+팔은 \S\ref{sec:results_b11}과 같다 --- 배포 구성 그대로의 본 방법(추정기 시드
+$3$개의 중앙)과 최강 적격 격자 기준선(필터 시드 $3$개의 중앙), 그리고 \emph{자료에서
+산출한} 참 제로필드다. 생성 호출은 \S\ref{sec:results_b1}의 혼잡 코퍼스를 만든 것과
+같은 호출이며, \textbf{동결된 그 코퍼스의 한 에피소드를 이 배치의 생성기로 재생성하여
+참 파랑장$\cdot$관측점$\cdot$유효 마스크가 비트 동일임을 확인한 뒤}에 생성을 시작하였다
+(최대 차 $0$). ★\textbf{기준선은 각 코너의 \emph{참} $(H_s, T_p)$ 를 배경으로 받는다}
+($288$행 전건 확인) ⟹ \emph{``기준선이 낯선 바다라 졌다''}는 반박이 닫힌다.
+라우터는 네 코너 \emph{전부}에서 학습 경로를 선택했고 변수 투영이 $288/288$ 발화하였다
+⟹ \textbf{새 해상상태에서도 배포되는 사전이 실제로 시험되었다}(계수기로 확인).
+
+\paragraph{결과 --- 네 칸 모두 유지}
+판정 단위는 코너별 \emph{본 방법 $<$ 기준선}인 에피소드 수(단측 짝 부호검정)이고,
+주장 가족이 코너 $4$개이므로 가족단위 $\alpha = 0.0125$ 를 결과 이전에 고정하였다
+(확증 $\geq 18/24$, 명목 $17/24$). 음성 대조는 \emph{기준선 $<$ 참 제로필드}
+$\geq 17/24$ 이며, 미달 시 그 코너에서는 우열을 말하지 않도록 사전에 정해 두었다.
+
+\begin{table}[htbp]
+\centering
+\caption{실측 해상상태 $2\times2$ 요인에서의 재측정 (배치 \texttt{B-26}).
+코너당 $24$ 에피소드, 에피소드당 시드 $3$개의 중앙값. 상대 중앙은 기준선 대비이며
+\textbf{정수 자리로만} 읽는다(\S\ref{sec:results_b1}의 크기 인용 규율).
+⛔이 크기를 표~\ref{tab:b1_crowded}$\cdot$표~\ref{tab:b11_hos}의 크기와 직접 비교하지
+않는다 --- 표본$\cdot$시드$\cdot$코퍼스가 다르다.}
+\label{tab:b26_seastate}
+\begin{tabular}{lccccc}
+\toprule
+코너 & $(H_s, T_p)$ & 본 방법 $<$ 기준선 & 상대 중앙 & 기준선 $<$ 무기술 & 판정 \\
+\midrule
+\texttt{SS-BF4}   & $(1.200, 7.00)$ & $19/24$ ($p = 3.3\times10^{-3}$) & 약 $-42\%$ & $24/24$ & 유지 (확증) \\
+\texttt{SS-LOWH}  & $(0.725, 7.00)$ & $17/24$ ($p = 3.2\times10^{-2}$) & 약 $-15\%$ & $24/24$ & 유지 (\emph{명목}) \\
+\texttt{SS-SHORT} & $(1.200, 3.49)$ & $21/24$ ($p = 1.4\times10^{-4}$) & 약 $-42\%$ & $22/24$ & 유지 (확증) \\
+\textbf{\texttt{SS-REAL}} & $\mathbf{(0.725, 3.49)}$ & $\mathbf{24/24}$ ($p = 6.0\times10^{-8}$) & 약 $\mathbf{-42\%}$ & $23/24$ & \textbf{유지 (확증)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ADDED 2026-08-28 (F-1): ★**위 표는 승수와 상대 크기만 싣는다.** 그 두 척도에서
+% `SS-REAL` 이 가장 높아 본문 다섯 곳이 *"그 칸이 가장 강하다"* 로 읽혔는데,
+% **절대 정확도로는 정확히 반대**다. 절대값을 싣지 않으면 그 오독을 막을 수 없으므로
+% 표를 신설한다. 수치는 손으로 만들지 않고 **576행 재집계**로 얻었다(에피소드별
+% median-of-3 → 코너별 중앙). 근거: tmp/B26_SEASTATE_2026-08-27/results_b26_*.jsonl
+%       (576행, 8샤드) · verdict_b26.json `corners[*].medians`
+\begin{table}[htbp]
+\centering
+\caption{같은 배치의 \textbf{절대} 오차 (배치 \texttt{B-26}). 값은 코너별 nRMSE 중앙값
+(에피소드당 시드 $3$개의 중앙값을 코너 $24$ 에피소드에 대해 다시 중앙).
+★\textbf{이 표가 표~\ref{tab:b26_seastate}의 승수를 순위로 읽지 못하게 한다} ---
+\texttt{SS-REAL} 의 $24/24$ 는 \textbf{본 방법이 더 정확해서가 아니라 기준선이 더 빨리
+무너져서} 생긴다. 무기술(참 제로필드)은 네 칸에서 사실상 불변인데
+($0.2499$--$0.2505$) 기준선만 $0.207 \to 0.240$ 으로 무너지고, 본 방법도
+$0.118 \to 0.137$ 로 \emph{함께} 나빠진다.}
+\label{tab:b26_absolute}
+\begin{tabular}{lccccc}
+\toprule
+ & \multicolumn{3}{c}{절대 nRMSE 중앙} & \multicolumn{2}{c}{무기술 대비 상대 중앙} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-6}
+코너 & 본 방법 & 기준선 & 무기술 & 기준선 & 본 방법 \\
+\midrule
+\texttt{SS-BF4}   & $\mathbf{0.1176}$ & $0.2067$ & $0.2505$ & $-16.2\%$ & $\mathbf{-53.3\%}$ \\
+\texttt{SS-LOWH}  & $0.1731$ & $0.2060$ & $0.2499$ & $-17.0\%$ & $-29.0\%$ \\
+\texttt{SS-SHORT} & $0.1370$ & $0.2406$ & $0.2500$ & $-4.0\%$  & $-45.4\%$ \\
+\textbf{\texttt{SS-REAL}} & $0.1366$ & $0.2404$ & $0.2500$ & $\mathbf{-4.0\%}$ & $-45.5\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+★★\textbf{따라서 코너 사이의 순위를 주장하지 않는다 --- 세 척도가 서로 다른 칸을
+가리킨다.} \textbf{(i)}~\emph{승수}로는 \texttt{SS-REAL}이 최고다($24/24$).
+\textbf{(ii)}~\emph{상대 크기}로는 네 칸 중 세 칸이 서로 $0.25$\,pp 안에 들어
+($-42.37\%$, $-42.17\%$, $-42.42\%$) \textbf{사실상 구분되지 않는다}.
+\textbf{(iii)}~\emph{절대 정확도}로는 순서가 \textbf{정확히 반대}이며
+\texttt{SS-REAL} 의 오차는 헤드라인 칸보다 $16.1\%$ \emph{높다}
+(\texttt{SS-LOWH} $+47.2\%$, \texttt{SS-SHORT} $+16.5\%$).
+\textbf{(iv)}~\emph{무기술 기준}으로 재면 순위가 또 뒤집힌다(\texttt{SS-BF4} $-53.3\%$
+대 \texttt{SS-REAL} $-45.5\%$). ⟹ ⛔\textbf{``실측 해상상태 칸이 가장 강하다''로 읽지
+않는다} --- 사는 문장은 \emph{``네 칸이 모두 유지된다''}까지이고, 그것이 결과 이전에
+동결한 판정 단위이기도 하다(라벨뿐, 추가 검정 $0$개).
+
+결과 이전에 동결한 $2\times2$ 분해에서 (\texttt{SS-LOWH}, \texttt{SS-SHORT},
+\texttt{SS-REAL}) $=$ (유지, 유지, 유지)이고, 그 조합에 대해 사전등록이 지정해 둔 읽기는
+\textbf{``해상상태 축은 매개하지 않는다''} 하나다(추가 검정 $0$개).
+⟹ ★★\textbf{실측 레코드의 해상상태를 \emph{참값이 있는} 합성 위에서 재현해도 헤드라인이
+산다.} 따라서 \textbf{실측 음성을 \emph{파랑 조건}으로 귀속할 수 없고}, 본 논문의
+\S\ref{sec:boundary}가 처음으로 \textbf{해상상태 교락 없이} 선다.
+
+⚠\textbf{그리고 이 문장에는 \emph{선형 참값}이라는 단서가 붙는다} --- 이 코퍼스의 참값은
+선형 중첩이다(비선형 축은 \S\ref{sec:results_b11}이 따로 답한다). 네 칸이 \emph{같은}
+참값 클래스이므로 \textbf{코너끼리의 대비는 무손상}이지만, \emph{``헤드라인이 산다''}는
+문장은 항상 \textbf{선형 참값을 명시하여} 인용한다.
+
+⚠\texttt{SS-LOWH}는 \textbf{명목 문턱만} 넘었다($p = 0.032$, 가족단위 $0.0125$ 미달)
+⟹ 그 칸은 \textbf{탐색적}이다. 다만 $2\times2$ 분해가 요구하는 것은 네 칸의 \emph{라벨}이고
+그 라벨은 유지이므로, 위 분해는 성립한다.
+
+⚠\textbf{사전 지정한 교차 대비는 하나뿐이다} --- \texttt{SS-REAL} 대 \texttt{SS-BF4}.
+분석기가 결과 이전에 동결한 판정 기준은 Mann--Whitney(양측)이며 그 값은
+$p = 0.877$ 로 \textbf{갈리지 않는다}(함께 보고하는 Fisher 정확검정은
+$p = 0.0496$ 으로 명목 문턱에 걸친다). ⛔\textbf{이 널을 \emph{``해상상태가 무관하다''}로
+읽지 않는다} --- 사는 문장은 \emph{``두 코너가 갈린다는 증거가 없다''}까지다.
+
+★\textbf{부수적으로, 결과 이전에 동결한 판정표는 반대 결과에 대해 대안 서사를 지정해
+두었다} --- 만약 \texttt{SS-REAL}이 깨졌다면 경계를 \emph{``학습된 앵커 근방''}으로
+재정의하고 재학습을 처방으로 승격하도록 적혀 있었다. \textbf{그 분기는 발동하지 않았다.}
+⚠단 이것으로 \emph{``체크포인트가 평가와 같은 분포''}라는 단서가 닫히지는 않는다 ---
+닫힌 것은 $(H_s, T_p)$ \textbf{주변부 하나}이고, 파랑 성분 추첨$\cdot$방향 확산$\cdot$
+관측 모형은 학습 때와 같다.
+
+\paragraph{범위와 공시된 교락 (결과 이전에 적은 것)}
+\begin{itemize}
+  \item ⛔\textbf{희소성 축이 아니다} --- 성분 수는 혼잡 $\{15, 30\}$ 으로 고정하였다.
+  \item ⛔\textbf{실측을 재현하지 않는다} --- 관측 모형$\cdot$기하$\cdot$센서$\cdot$잡음은
+        전부 합성 그대로이고, 바뀌는 것은 바다의 $(H_s, T_p)$ \textbf{두 수}뿐이다.
+  \item ⚠\textbf{파고 축은 곧 신호대잡음비 축이다} --- 시뮬레이터의 광선 방향 거리 잡음
+        $2$\,cm 는 \textbf{절대 상수}이므로 $H_s$ 를 $1.2 \to 0.725$ 로 내리면 잡음/$H_s$ 가
+        $1.66$배가 된다. 이 배치는 그 둘을 가르지 못한다. ⚠단 그것은 \emph{실측에서도 참}
+        이므로 결함이 아니라 범위다.
+  % CORRECTED 2026-08-28: 사전등록 §3.1 은 짧은 주기 코너의 λ_min 을 "3.3--4.4 m" 로
+  % 적었으나, **생성된 96 에피소드의 매니페스트를 되읽으면** 그것은 중앙값 근처이고
+  % 실제 범위는 더 넓다(SS-REAL 2.27--8.13 · SS-SHORT 2.36--8.53, 중앙 3.87 · 3.79).
+  % 산문이 아니라 자료를 싣는다. 근거: tmp/B26_SEASTATE_2026-08-27/gen_manifest_b26.json
+  \item ⚠\textbf{채점 격자 대 파장} --- 채점 격자 간격은 $3.04$\,m 인데 짧은 주기 두 코너의
+        에피소드별 \emph{최소} 파장은 중앙 $3.8$--$3.9$\,m(범위 $2.3$--$8.5$\,m)로
+        그 격자의 나이퀴스트 근처이거나 그 아래다. \textbf{두 팔이 같은 격자에서
+        채점되므로 비교는 공정}하나, \emph{``장 재구성''}의 의미는 $\lambda \gtrsim 6$\,m 까지다.
+        같은 이유로 짧은 주기 코너의 메시 판정은 \texttt{DEGRADED} 가 다수다
+        (\texttt{SS-SHORT} $23/24$ $\cdot$ \texttt{SS-REAL} $21/24$; 나머지 두 코너는
+        \textbf{전건} \texttt{ADEQUATE}). ⚠\textbf{여기서 공시한다} --- \texttt{DEGRADED} 는
+        본 저장소 규약상 \emph{``사용 가능하되 공시할 것''}이다.
+  \item ⚠\textbf{중첩 모델의 타당범위} --- \texttt{SS-SHORT} 의 $k H_s = 0.397$ 은
+        선형 중첩의 선언된 타당범위 밖이다(\texttt{SS-REAL} $0.240$, BF4 $0.099$).
+        ⚠실측 $12$ 레코드의 $k H_s$ 중앙이 $0.244$ 이므로 \texttt{SS-REAL} 은
+        \emph{실측만큼} 가파르다. ⟹ \texttt{SS-SHORT} 는
+        \emph{``실측의 스펙트럼 규모를 가진 합성 바다''}로 읽고
+        ⛔\emph{``물리적으로 충실한 가파른 바다''}로 읽지 않는다.
+  \item ⚠\textbf{에피소드 선택 규칙의 방향} --- 시드를 순서대로 걸으며 메시 판정이
+        \texttt{INADEQUATE} 가 아닌 앞의 $12$개를 취했다(거부는 전체에서 $1$건).
+        이 규칙은 짧은 주기 코너에서 \emph{가장 어려운} 에피소드를 뺀다 ⟹ 만약 음성이
+        나왔다면 그 음성은 과소평가된 것이었다. \textbf{양성이 나온 방향으로는 이 규칙이
+        보수적이지 않다.}
+  \item ⛔\textbf{코너 사이의 \emph{크기} 차이는 해석하지 않는다} --- 결과 이전에 정한 읽기는
+        네 칸의 \emph{라벨}뿐이고 추가 검정은 $0$개다(표~\ref{tab:b26_absolute}).
+  % ADDED 2026-08-28 (F-2): ★**이 항목은 결과 이후에 적는다 --- 사전등록 §3.1 의 공시
+  % 목록 4건에 없었다.** 게이트 G-17 이 확인한 것은 기준선의 **배경 스펙트럼**이 코너를
+  % 따라갔다는 것뿐이고(gates_b26.py:591-596), G-16(:588-590)은 오히려 `loc_radius = 25`
+  % 가 **네 코너 전부 고정**임을 확인한다. 그 값은 미터 단위 Gaspari--Cohn 반경이고
+  % (S16/PREREG.md:28), {25,50,100} 스윕에서 골랐는데 그 스윕 코퍼스는 BF4/BF5 다
+  % (S16 results.jsonl 의 에피소드 접두어 = {BF4, BF5}; S17 이 SPEC25 를 BEST 로 확정).
+  % ⛔**판정은 무효가 아니다** -- 2×2 분해는 라벨만 읽고 SHIP<ZERO 24/24 는 기준선과
+  % 무관하다. 공시가 빠졌을 뿐이므로 **공시를 추가**한다.
+  % 근거: results_b26_*.jsonl 재집계 cap_loc_radius = {25.0} × 4코너 ·
+  %       λ_p = g T_p^2/2π = 76.50 m (T_p 7.00) / 19.02 m (T_p 3.49) · S17/PREREG.md:43
+  \item ⚠★\textbf{[결과 이후 공시] 기준선의 \emph{길이척도}는 코너를 따라가지 않았다.}
+        게이트가 확인한 것은 기준선의 \textbf{배경 스펙트럼}이 코너의 $(H_s, T_p)$ 를
+        따라갔다는 것이고, \textbf{국소화 반경은 네 코너 전부 $25$\,m 로 고정}이다.
+        그 값은 \emph{미터} 단위 Gaspari--Cohn 반경이며 $\{25, 50, 100\}$ 스윕에서
+        골랐는데, \textbf{그 스윕 코퍼스는 BF4/BF5}($\lambda_p = 76.5$$\cdot$$126.5$\,m)
+        다. \texttt{SS-REAL}$\cdot$\texttt{SS-SHORT} 의 $\lambda_p$ 는 $19.0$\,m 이므로
+        \textbf{$\mathrm{loc}/\lambda_p$ 가 $0.33 \to 1.32$ 로 약 $4$배 변한다}.
+        선행 배치가 \emph{같은} 축에서 $\mathrm{loc}\,50 \to 25$ 가 $-12.9\%$ 라는
+        \textbf{단조 개선}을 이미 측정했으므로, $\lambda_p$ 가 $4$배 짧은 코너의 최적
+        반경은 $25$\,m 보다 \emph{훨씬 작을} 것으로 예측된다. ★\textbf{자료가 그 서명을
+        보인다} --- 기준선의 기술이 긴 주기 두 칸에서 $-16.2\%$$\cdot$$-17.0\%$ 인데
+        짧은 주기 두 칸에서 $-4.0\%$$\cdot$$-4.0\%$ 로 무너진다
+        (표~\ref{tab:b26_absolute}). ⟹ \textbf{짧은 주기 코너에서 관찰되는 마진의
+        일부는 기준선의 \emph{미조율} 몫이다.}
+        ⛔\textbf{단 이것은 판정을 무효화하지 않는다} --- 결과 이전에 동결한 $2\times2$
+        분해는 네 칸의 \emph{라벨}만 읽고, 본 방법 대 \emph{무기술}의 $24/24$
+        (상대 중앙 $-45.5\%$)는 기준선의 조율과 \textbf{무관}하다. 영향을 받는 것은
+        \emph{코너 사이의 크기 비교}뿐이며 그것은 바로 위 항목에서 이미 금지되어 있다.
+        ⚠\textbf{이 항목은 결과 이후에 적혔다} --- 사전등록 \S3.1 의 공시 목록에
+        없었으므로 그 사실을 함께 남긴다.
+  \item ⛔\textbf{사이트 수준$\cdot$자료 수준으로 일반화하지 않는다} --- 코너를 정한
+        $(H_s, T_p)$ 는 \textbf{$4$ 사이트 $12$ 레코드의 중앙}이다.
+\end{itemize}
 
 \subsection{에피소드별 상세 결과}
 \label{sec:per_episode}
@@ -6655,6 +7101,16 @@ $\Rightarrow$ \textbf{본 장은 sim-to-real gap의 ``크기''를 산출물로 �
 % WavePrior 가 0회였다. 제1장·제목과 같은 척추로 맞춘다.
 본 논문은 희소 3차원 점군으로부터의 실시간 파도장 추정에서
 \textbf{학습된 스펙트럼 사전}(\emph{WavePrior})의 \textbf{작동 경계}를 개입으로 측정하였다.
+% ADDED 2026-08-28 (B-26): 결론 장이 "작동 경계를 측정하였다" 라고만 말하고 **그 경계가
+% 어디인지** 를 말하지 않았다. 제1장에 신설한 단일 진술로 보내고 요지를 한 문장으로 적는다.
+% ⛔축을 이름 붙일 뿐 원인을 지목하지 않는다 · ⚠선형 참값 단서 병기.
+% 근거: tmp/B26_SEASTATE_2026-08-27/verdict_b26.json (게이트 29/29)
+★\textbf{그 경계에 대한 본 논문의 단일 진술은 \S\ref{sec:boundary}이며, 요지는
+\emph{``경계는 파랑 조건의 축을 따라 놓여 있지 않다''}이다} --- 참값의 비선형성,
+센서 반환 모형, 성분 수, 학습 코퍼스 밖의 생성 시드, 그리고 \textbf{바다 자체의
+유의파고와 첨두주기}(⚠\emph{선형} 참값에서, 실측 $12$ 레코드의 중앙값으로)를
+각각 개입으로 바꾸어도 합성에서의 부호는 유지되는데, 같은 표현이 실측 입력에서는
+무기술이다. ⛔\textbf{축을 이름 붙였을 뿐 그 축 위의 원인은 지목하지 않는다.}
 그 사전이 초기값을 제안하는 격자 비의존 방법 \WS{}가 측정의 매개체이며,
 하이드로포일 제어 응용(제\ref{chap:hydrofoil}장)은 \textbf{기여로 주장하지 않고}
 가능성의 예시로만 남긴다.
@@ -6764,8 +7220,21 @@ nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
         난수 규약 결함을 수리한 뒤 그 칸은 결과 이전에 동결한 두 문턱 \emph{사이}
         ($8/12$; 충분 $\geq 10$ $\cdot$ 표현이 벽 $\leq 6$)에 떨어진다.
         ⛔\textbf{이는 원인의 지목도 후보의 부재 증명도 아니다}($n = 12$이고 밀도의
-        방향은 맞다, 상대 중앙 $-11.15\%$). ⟹ 본 논문은 \textbf{작동 경계의 위치를
-        보고하고 그 설명은 제시하지 않는다}(\S\ref{sec:init-bank}).
+        방향은 맞다, 상대 중앙 $-11.15\%$).
+        % ADDED 2026-08-28 (B-26): 제3장 소거 문단과 같은 지위를 말한다
+        % ("문서가 절반만 따라왔다" 부류의 재발 방지). 항목 수는 넷 그대로다 --
+        % 이것은 새 결론이 아니라 이 항목의 **축 배제**다.
+        % 근거: tmp/B26_SEASTATE_2026-08-27/verdict_b26.json
+        ★\textbf{다만 \emph{배제된 축}이 하나 있다 --- \emph{파랑 조건}이다.}
+        실측 $12$ 레코드의 해상상태($H_s = 0.725$\,m, $T_p = 3.49$\,s)를 참값이 있는
+        합성 위에 재현한 $2\times2$ 요인 개입에서 네 칸이 모두 유지되며 실측 해상상태
+        칸의 \emph{승수}가 가장 높다($24/24$; \S\ref{sec:results_b26}) --- ⛔단
+        \textbf{코너 순위는 주장하지 않는다}(표~\ref{tab:b26_absolute}).
+        ⚠\emph{선형} 참값이고,
+        ⛔\emph{``해상상태가 무관하다''}로 넓히지 않는다.
+        ⟹ 본 논문은 \textbf{작동 경계의 위치를 보고하고, \emph{파랑 조건} 축을
+        배제하되, 그 경계가 놓인 축과 그 축 위의 원인은 제시하지 않는다}
+        (\S\ref{sec:boundary}, \S\ref{sec:init-bank}).
 \end{itemize}
 ⚠\textbf{[범위]} 사이트가 $4$곳뿐이므로 사이트 수준으로 일반화하지 않는다. 또한 보유
 실측 자료는 전부 고정 관측소이므로, 이동 플랫폼에서의 조우 예보 갭은 이 자료로 닫히지 않는다.

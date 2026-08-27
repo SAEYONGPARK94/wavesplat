@@ -59,6 +59,9 @@ V = {
     "B-17":  os.path.join(TMP, "B17_REALNOISE_2026-08-25",  "verdict_b17.json"),
     "B-18":  os.path.join(TMP, "B18_DENSITY_NOISE_2026-08-25", "verdict_b18.json"),
     "B-19":  os.path.join(TMP, "B19_KGRID_SPARSE_2026-08-25",  "verdict_b19.json"),
+    # ADDED 2026-08-28: 해상상태 축. `B-15`(센서 모형)와 같은 지위 -- **합성 층의
+    # 교락을 닫아 실측 음성의 원인 후보에서 그 축을 뺀다**. 실측 회복의 측정이 아니다.
+    "B-26":  os.path.join(TMP, "B26_SEASTATE_2026-08-27",      "verdict_b26.json"),
 }
 
 
@@ -159,6 +162,38 @@ def row_sensor(d):
             [("B-15", d["B-15"]["label"]), ("B-15/2nd", d["B-15"]["secondary_label"])])
 
 
+def row_seastate(d):
+    """해상상태(파랑 조건) — `B-26`(실측 12 레코드의 (Hs,Tp) 를 합성 위로 옮긴 2x2 요인).
+
+    ★`B-15` 행과 **같은 지위**다: 합성 층의 교락을 닫아 *실측 음성의 원인 후보*에서
+    그 축을 뺀다. ⛔실측 회복을 측정한 것이 아니고, ⛔*"해상상태가 무관하다"* 도 아니다
+    (사전 지정 교차 대비는 Mann-Whitney 널일 뿐이다).
+    ⚠이 코퍼스의 참값은 **선형**이다(사전등록 3절 항목 1) -- 행 문구에 그대로 싣는다.
+    """
+    c = d["B-26"]["corners"]
+    R, A = c["SS-REAL"], c["SS-BF4"]
+    dec = d["B-26"]["decomposition"]
+    x = d["B-26"]["cross_test"]
+    ev = ("`B-26` 2x2 요인(96 에피소드 · 코너당 24): 실측 해상상태 칸 `SS-REAL`"
+          "(Hs=%.3f · Tp=%.2f) **%d/%d** (p=%.2g, 상대 중앙 %.2f%%) · "
+          "내부 기준 칸 `SS-BF4` %d/%d · 음성대조 %d/%d 및 %d/%d · "
+          "★2x2 분해 %s = **%s**"
+          % (R["Hs"], R["Tp"], R["ship_vs_spec"]["better"], R["ship_vs_spec"]["n"],
+             R["ship_vs_spec"]["p_one_sided"], R["ship_vs_spec"]["rel_median_pct"],
+             A["ship_vs_spec"]["better"], A["ship_vs_spec"]["n"],
+             R["spec_vs_zero"]["better"], R["spec_vs_zero"]["n"],
+             A["spec_vs_zero"]["better"], A["spec_vs_zero"]["n"],
+             tuple(dec["key"]), dec["text"]))
+    note = ("⚠**참값은 선형이다** ⟹ *\"헤드라인이 산다\"* 는 **선형 GT 를 명시해** 인용한다. "
+            "⛔*\"해상상태가 무관하다\"* 로 읽지 마라 — 사전 지정 교차 대비 `SS-REAL` vs "
+            "`SS-BF4` 는 MW p=%.3f (판정 기준) · Fisher p=%.4f 로 **갈리지 않을 뿐**이다. "
+            "⛔크기를 `B-1`·`B-11`·`B-12`·`B-22` 와 직접 비교 금지 · "
+            "⛔희소성 축 아님(성분수 {15,30} 고정)"
+            % (x["mw_p"], x["fisher_p"]))
+    return ("★**해상상태**(파랑 조건)", "⛔매개하지 않는다 (⚠선형 GT)", ev, note,
+            [("B-26", d["B-26"]["label"])])
+
+
 def row_sparsity(d):
     c = d["B-18"]["primary"]
     th = d["B-18"]["thresholds"]
@@ -215,7 +250,7 @@ REMAINING = [
     ("**사이트 기하 · 레코드 구성** (12 = 10 일자 · 4 사이트, 58%가 한 사이트)", "⚠**미측정**"),
 ]
 
-BUILDERS = [row_noise_shape, row_capacity, row_sensor,
+BUILDERS = [row_noise_shape, row_capacity, row_sensor, row_seastate,
             row_sparsity, row_noise_level, row_both]
 
 
@@ -228,7 +263,7 @@ def check(d):
             return v["gates_pass"], v["gates_total"]
         g = v["verdict"]
         return g["gates_pass"], g["gates_total"]
-    for k in ("B-14b", "B-15", "B-17", "B-18", "B-19"):
+    for k in ("B-14b", "B-15", "B-17", "B-18", "B-19", "B-26"):
         p, t = gp(d[k])
         if p != t:
             errs.append("%s 게이트 %d/%d — 전건 통과 아님" % (k, p, t))
@@ -243,6 +278,7 @@ def check(d):
         "B-17":     "STRATUM-SURVIVES",
         "B-18":     "NEITHER-SUFFICIENT",
         "B-19":     "CONTINUOUS-K-EARNS-SPARSE",
+        "B-26":     "SEASTATE :: SS-REAL = HOLDS (CONFIRMATORY)",
     }
     got = {
         "B-14/h2":  d["B-14"]["h2_label"],
@@ -251,6 +287,7 @@ def check(d):
         "B-17":     d["B-17"]["label"],
         "B-18":     d["B-18"]["label"],
         "B-19":     d["B-19"]["label"],
+        "B-26":     d["B-26"]["label"],
     }
     for k, e in expect.items():
         if got[k] != e:
@@ -267,6 +304,19 @@ def check(d):
     for a, c in d["B-18"]["primary"].items():
         if c["beats_zero"] >= nom18:
             errs.append("B-18 모서리 %s 가 문턱 %d 이상 — '전 모서리 미달' 이 거짓" % (a, nom18))
+    # ★B-26: 이 표의 해상상태 행이 세우는 두 전칭 주장이 자료에서 참인가
+    #   (a) 네 칸이 전부 '유지' 다  (b) 사전 지정 교차 대비가 갈리지 않았다
+    b26 = d["B-26"]
+    for cname, c in b26["corners"].items():
+        if not c["label"].startswith("HOLDS"):
+            errs.append("B-26 코너 %s 라벨이 %r — '네 칸 전부 유지' 가 거짓" % (cname, c["label"]))
+    if tuple(b26["decomposition"]["key"]) != ("hold", "hold", "hold"):
+        errs.append("B-26 2x2 분해가 %r — 해상상태 행의 문구가 낡았다"
+                    % (b26["decomposition"]["key"],))
+    if b26["cross_test"]["differs"]:
+        errs.append("B-26 교차 대비가 갈린다 — '갈리지 않을 뿐' 이라는 행 주석이 거짓")
+    if not b26.get("anchor_ok", False):
+        errs.append("B-26 내부 기준 칸(SS-BF4)이 죽었다 — 다른 칸의 해석 금지(BATCH-VOID)")
 
     # ── (5) ★한 칸이 두 후보를 정반대로 읽지 않는가 (2026-08-27 신설) ────────
     # ⛔공허한 통과 금지: 아래는 **낡은 표(용량=⛔아니다)에서 실제로 FAIL 한다.**
@@ -318,7 +368,7 @@ def main():
     if "--check" in sys.argv:
         for e in errs:
             print("FAIL:", e)
-        print("OK — 6 verdict · 게이트 · 라벨 · 두 전칭 주장 · ★겸직 · ★동결 md5, "
+        print("OK — 7 verdict · 게이트 · 라벨 · 네 전칭 주장 · ★겸직 · ★동결 md5, "
               "여섯 항목 전건 확인" if not errs else "FAILED (%d)" % len(errs))
         return 1 if errs else 0
     if errs:
@@ -338,7 +388,8 @@ def main():
     print("|---|---|---|")
     print("| ⛔**개입이 널** | 그 후보를 바꾸는 개입을 했고 기술이 **회복되지 않았다**. "
           "⛔*원인이 아님의 증명이 아니다*(n=12) | 잡음의 형태 · 잡음의 수준 · "
-          "관측의 희소성 · 둘의 조합 (센서 모형은 **합성 층**의 교락이라 지위가 다르다) |")
+          "관측의 희소성 · 둘의 조합 (★**센서 모형**과 ★**해상상태**는 **합성 층**의 "
+          "교락이라 지위가 다르다 — 실측 회복이 아니라 *원인 후보에서 그 축을 뺀다*) |")
     print("| ⚠**미결** | 판정을 낼 측정이 **철회**됐거나 동결 문턱 **사이**에 떨어졌다 | "
           "★**표현의 용량** (2026-08-27 강등) |")
     print("| ⚠**미측정** | 개입을 **한 적이 없다** | 아래 다섯 |")

@@ -8,7 +8,7 @@ Target: OCEANS 2026 conference paper submission.
 ```
 wavesplat/                   # Root package directory
 ├── wavesim/                 # Wave simulation + LiDAR
-├── wavesplat/               # Estimation algorithm      (**245 tests**, 실측 2026-08-23)
+├── wavesplat/               # Estimation algorithm      (**250 tests**, 실측 2026-08-27)
 │   ├── model/               # spectral_gaussian, dispersion, confidence
 │   ├── optimizer/            # initializer, coarse_to_fine, sequential_update
 │   ├── baselines/etkf_grid.py
@@ -20,11 +20,11 @@ wavesplat/                   # Root package directory
 ├── results/                 # 96 JSON result files (+ direction1/2/3 하위)
 ├── configs/                 # YAML configs (estimation.yaml, server.yaml, default.yaml)
 ├── data/                    # HDF5 episodes (110) + real_bergamasco/ (실측 **12** 레코드 — 원논문 축자, 고정 구조물 4곳. ⛔"13" 은 낡음)
-├── tmp/                     # 배치별 사전등록·결과 (S1–S13, B-1/B-3, BLANKSLATE 등) — 연구 기록의 본체
-│                            # ⚠**하위 디렉터리 34개가 git 미추적**(S13·S11·S1–S6·BLANKSLATE·
-│                            # AUDIT_full·B1·B3·K6·EB/EC/ED·Rx4–Rx7 …). `.gitignore` 탓이 아니라
-│                            # add 된 적이 없다 ⟹ 동결 증거가 mtime 뿐이고 clean checkout 시 소멸.
-│                            # (S7·S8·S9 는 정상 커밋됐고 FROZEN_md5 도 2026-08-13 전건 OK.)
+├── tmp/                     # 배치별 사전등록·결과 (S1–S13, B-1~B-22, BLANKSLATE 등) — 연구 기록의 본체
+│                            # ⛔**"하위 디렉터리 34개가 git 미추적" 은 낡았다(2026-08-27 실측 정정)** —
+│                            # 08-21 커밋 `033e742` 가 34배치 502파일을 추적에 넣었다. 현재 미추적은
+│                            # **4개뿐**(c2_cache·critic_v2·frf_lidar_2026-08-01/ws·m2m7, 전부 비-판정물).
+│                            # 확인 = `git ls-files --others --exclude-standard --directory wavesplat/tmp/`.
 ├── docs/PRESENTATION_SUMMARY.md  # 발표 요약 (⛔줄 수를 인용하지 마라 — 편집마다 바뀐다.
 │                            #  08-13 에만 562(HEAD)→640→683 으로 세 값이 돌아다녔다.)
 └── requirements.txt
@@ -40,7 +40,7 @@ cd /home/vexit/wavesplat/wavesplat     # ← 아래 전부 이 디렉터리 기�
 # Run estimation  (⛔위치인자 아님. --adaptive_n 은 값을 받는다)
 python3 -m wavesplat.run --episode data/episode_BF4_5comp_seed0_uniform.h5 --adaptive_n true
 
-# Run tests  (실측 2026-08-23: **245 passed**, 0 failed, 0 skipped)
+# Run tests  (실측 2026-08-27: **250 passed**, 0 failed, 0 skipped, 55.2 s)
 #   ⚠논문의 \DeployNumTests 는 **손으로 고치지 말고** scripts/gen_deploy_constants.py 를 돌려라
 python3 -m pytest wavesim/tests/ wavesplat/tests/ -v
 
@@ -57,8 +57,9 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
 ## Current State
 ⛔**이 절의 낡은 수치가 2026-08-12 전체 감사에서 BLOCKER 로 잡혔다.**
 **연구 현황의 권위는 이 파일이 아니라 auto-memory (`MEMORY.md`) 와 `tmp/<배치>/RESULT.md` 다.**
-- **245 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-08-23).
+- **250 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-08-27).
   ⚠이 수는 자주 바뀐다 — **인용 전에 돌려서 확인할 것**(08-23 하루에 231→242→245).
+  ⛔**"245" 는 낡았다**(08-23 값이 08-27 까지 이 파일에 남아 있었다).
 - ⛔**"WS 0.223 / ETKF 0.319 / 13.4 ms / 132.6 ms" 인용 금지 — 단 사유가 2026-08-13 에 바뀌었다.**
   ⛔**"어느 결과 파일에서도 재현되지 않는다" 는 거짓이었다**(08-12 감사의 오류, 08-13 정정).
   `results/b1_full_comparison.json`(git 추적, 커밋 `e57528c`)을 집계하면 **네 수치가 전부 나온다**:

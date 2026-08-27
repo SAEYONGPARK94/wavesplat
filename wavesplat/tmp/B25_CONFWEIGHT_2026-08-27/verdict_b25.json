@@ -1,0 +1,181 @@
+{
+ "batch": "B-25",
+ "question": "use_confidence (GT 표면법선 유래 관측가중) 절제",
+ "label": "GT-WEIGHT-HURTS",
+ "tier": "CONFIRMATORY",
+ "gates": [
+  [
+   "G-0 오류 0행",
+   true,
+   "0 행 오류 / 432 행"
+  ],
+  [
+   "G-1 표본 = 3팔 × 48 에피소드",
+   true,
+   "144/144 셀 · 에피소드 48/48"
+  ],
+  [
+   "G-2 셀마다 추정기 시드 3개 전건",
+   true,
+   "144/144 셀 정상"
+  ],
+  [
+   "G-3 ★객체 되읽기: updater.use_confidence 가 팔 정의와 일치",
+   true,
+   "{'SHIP': [True], 'NOCONF': [False], 'FLATCONF': [True]} (기대 {'SHIP': [True], 'NOCONF': [False], 'FLATCONF': [True]})"
+  ],
+  [
+   "G-4 ★소비처 증언: varpro 가 실제로 쓴 가중 (vp_weighting / fallback)",
+   true,
+   "weighting {'SHIP': ['confidence'], 'NOCONF': ['none'], 'FLATCONF': ['confidence']} · fallback {'SHIP': [None], 'NOCONF': ['use_confidence=False'], 'FLATCONF': [None]}"
+  ],
+  [
+   "G-4b ★자료 훅 발화: FLATCONF std≡0 + 질량보존 · RAW std>0",
+   true,
+   "flat 이탈 0 · raw 이탈 0"
+  ],
+  [
+   "G-4c ★훅 적용 범위: FLATCONF 는 전 프레임 치환 · RAW 는 0 프레임",
+   true,
+   "이탈 0/432 행"
+  ],
+  [
+   "G-5 ★양성대조: SHIP == B-22 동결 SHIP (비트 동일)",
+   true,
+   "대조 144/144 행 · 이탈 0 · 참조없음 0"
+  ],
+  [
+   "G-5b ★반-no-op: NOCONF·FLATCONF 가 SHIP 과 비트 동일한 셀 0개",
+   true,
+   "{'NOCONF': 0, 'FLATCONF': 0} (기대 전부 0)"
+  ],
+  [
+   "G-5c 배포 구성 불변 (λ·추적·라우팅·VARPRO·앙상블·반복)",
+   true,
+   "파생이탈 {} · route ['learned'] · varpro [400]/[True] · ens [1] · iters [0]"
+  ],
+  [
+   "G-5d 배포 상수 == 사전등록이 전제한 값",
+   true,
+   "이탈 없음"
+  ],
+  [
+   "G-6 채점 창이 팔 사이에서 동일",
+   true,
+   "48/48 에피소드 일치"
+  ],
+  [
+   "G-7 연구 환경변수 전부 unset",
+   true,
+   "{'S8_L1_TRACK_ONLY': [None], 'S8_L1_PHASE1_ONLY': [None], 'S5_WINDOW': [None]}"
+  ],
+  [
+   "G-8 ZERO = 참 제로필드 (상수 1.0 아님)",
+   true,
+   "432/432 행 · 고유값 48 · 범위 [0.1852, 0.2921]"
+  ],
+  [
+   "G-9 ZERO 가 팔 사이에서 동일 (자료 훅이 채점을 오염시키지 않았다)",
+   true,
+   "48/48 에피소드 일치"
+  ],
+  [
+   "G-10 임포트 경로 md5 불변",
+   true,
+   "고유 md5 묶음 1"
+  ],
+  [
+   "G-11 유효 에피소드 >= 44",
+   true,
+   "48/48"
+  ],
+  [
+   "G-12 표본 비선형성 실현률 == 핀",
+   true,
+   "{'DEGRADED': 17, 'ADEQUATE': 31} (핀 {'ADEQUATE': 31, 'DEGRADED': 17})"
+  ],
+  [
+   "G-13 코퍼스 c̄·std 가 핀 안에 (개입할 대상이 실재)",
+   true,
+   "c̄ [0.8652, 0.8787] (핀 (0.86, 0.89)) · std min 0.2274 (핀 >= 0.15)"
+  ],
+  [
+   "N[SHIP] SHIP < ZERO (참 제로필드)",
+   true,
+   "48/48 · p=3.552713678800501e-15 · rel -48.657612739565735"
+  ],
+  [
+   "N[NOCONF] NOCONF < ZERO (참 제로필드)",
+   true,
+   "47/48 · p=1.7408297026122455e-13 · rel -52.67331268502373"
+  ],
+  [
+   "N[FLATCONF] FLATCONF < ZERO (참 제로필드)",
+   true,
+   "46/48 · p=4.1815439999481896e-12 · rel -51.80760748087526"
+  ]
+ ],
+ "gates_pass": 22,
+ "gates_total": 22,
+ "n_used": 48,
+ "n_rows": 432,
+ "n_ok": 432,
+ "thresholds": {
+  "nominal_hi": 32,
+  "confirm_hi": 33,
+  "nominal_lo": 16,
+  "confirm_lo": 15
+ },
+ "comparisons": {
+  "P": {
+   "n": 48,
+   "better": 13,
+   "n_tie": 0,
+   "p_one_sided": 0.9996413651633027,
+   "rel_median_pct": 18.228840077227737,
+   "median_a": 0.13460042881779372,
+   "median_b": 0.12000104465987534
+  },
+  "S1": {
+   "n": 48,
+   "better": 11,
+   "n_tie": 0,
+   "p_one_sided": 0.9999691517961118,
+   "rel_median_pct": 17.21687774247995,
+   "median_a": 0.13460042881779372,
+   "median_b": 0.11905524077204366
+  },
+  "S2": {
+   "n": 48,
+   "better": 21,
+   "n_tie": 0,
+   "p_one_sided": 0.8438365962633654,
+   "rel_median_pct": 0.5655483356199168,
+   "median_a": 0.12000104465987534,
+   "median_b": 0.11905524077204366
+  }
+ },
+ "negatives": {
+  "SHIP": {
+   "n": 48,
+   "better": 48,
+   "p_one_sided": 3.552713678800501e-15,
+   "rel_median_pct": -48.657612739565735
+  },
+  "NOCONF": {
+   "n": 48,
+   "better": 47,
+   "p_one_sided": 1.7408297026122455e-13,
+   "rel_median_pct": -52.67331268502373
+  },
+  "FLATCONF": {
+   "n": 48,
+   "better": 46,
+   "p_one_sided": 4.1815439999481896e-12,
+   "rel_median_pct": -51.80760748087526
+  }
+ },
+ "mde_note": "n=48 부호검정(양측). NOMINAL 은 승수 ≥32 또는 ≤16, CONFIRM 은 ≥33 또는 ≤15. ⟹ **검출 가능한 최소 효과는 승률 32/48=0.667** 이고, 그보다 작은 일관된 효과는 이 표본에서 **검출되지 않는다**. ⛔널을 \"효과 없음\" 으로 읽지 마라 — \"이 MDE 위에서 검출 안 됨\" 이다.",
+ "action": "★*\"기하 신뢰가중은 오히려 해친다\"* — 헤드라인은 무손상(오히려 과소평가).\n  ⟹ ① 논문에서 **\"기하 인식 신뢰 가중\" 을 기여·설계 결정에서 완전히 내린다**.\n  ⟹ ② `B-18` 잔여 후보에서 뺀다(GT 누출이 이득을 만들지 않았다).\n  ⟹ ③ ⛔배포 기본값을 이 배치로 바꾸지 않는다(별도 사전등록이 필요하다).",
+ "all_gates_pass": true
+}

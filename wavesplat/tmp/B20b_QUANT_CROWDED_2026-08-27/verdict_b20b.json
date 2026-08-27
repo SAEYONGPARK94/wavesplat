@@ -1,0 +1,472 @@
+{
+ "batch": "B-20b",
+ "kind": "REANALYSIS-OF-FROZEN-DATA",
+ "new_runs": 0,
+ "source": {
+  "batch": "B-21",
+  "results": "/home/vexit/wavesplat/wavesplat/tmp/B21_MEDIATION_2026-08-27/results_b21_*.jsonl",
+  "verdict": "/home/vexit/wavesplat/wavesplat/tmp/B21_MEDIATION_2026-08-27/verdict_b21.json",
+  "n_rows": 960,
+  "n_ok": 960
+ },
+ "frozen": {
+  "listed": 25,
+  "checked": 25,
+  "ok": 25,
+  "missing": [],
+  "bad": []
+ },
+ "blind_evidence": {
+  "analyze_sites": 4,
+  "gates_sites": 4,
+  "analyze_pairs": [
+   [
+    "KGRID1",
+    "SPEC25"
+   ],
+   [
+    "KGRID2",
+    "SPEC25"
+   ],
+   [
+    "FITSWAP",
+    "SHIP"
+   ],
+   [
+    "SHIP",
+    "KGRID1"
+   ]
+  ],
+  "analyze_pairs_match": true,
+  "gates_sites_match": true,
+  "violations": []
+ },
+ "stratum": "crowded",
+ "arms": {
+  "base": "FITSWAP",
+  "treat": "KGRID1",
+  "ship": "SHIP"
+ },
+ "arm_defs": {
+  "FITSWAP": {
+   "k_snap_dk": 1e-12
+  },
+  "KGRID1": {
+   "k_snap_dk": 0.02618
+  },
+  "SHIP": {
+   "k_snap_dk": null
+  }
+ },
+ "alpha": 0.05,
+ "family_alpha": 0.025,
+ "n_claims": 1,
+ "thresholds": {
+  "n": 48,
+  "nominal": 31,
+  "confirm": 32,
+  "not_earn": 17,
+  "deducible_lower_bound": 29
+ },
+ "n_used": 48,
+ "inherited_gates": [
+  {
+   "name": "G-0 오류 0행",
+   "passed": true,
+   "detail": "0 행 오류 / 960 행"
+  },
+  {
+   "name": "G-1 표본 = 5팔 × (16+48) = 320 셀",
+   "passed": true,
+   "detail": "320/320 셀 · 에피소드 sparse 16/16 · crowded 48/48"
+  },
+  {
+   "name": "G-2 셀마다 시드 3개 전건 (ablation=est · SPEC25=filter)",
+   "passed": true,
+   "detail": "320/320 셀 정상"
+  },
+  {
+   "name": "G-3 개입 발화 (SHIP 0건 · 나머지 셋 전건)",
+   "passed": true,
+   "detail": "SHIP 0/192 · KGRID1 192/192 · KGRID2 192/192 · FITSWAP 192/192"
+  },
+  {
+   "name": "G-4 dk 되읽기 (계수기 `init_result.k_snap.dk`)",
+   "passed": true,
+   "detail": "{'SHIP': [None], 'KGRID1': [0.02618], 'KGRID2': [0.05236], 'FITSWAP': [1e-12]}"
+  },
+  {
+   "name": "★G-4b 개입 크기: KGRID1/2 는 파수를 옮기고 (≥1e-4) FITSWAP 은 옮기지 않는다 (≤1e-9)",
+   "passed": true,
+   "detail": "FITSWAP |Δk| 중앙 최대 5.203292645691958e-13 (허용 1e-09) · KGRID 이탈 0 · FITSWAP 이탈 0"
+  },
+  {
+   "name": "G-5 ★객체 파생 속성 일치 (⛔cfg 항등식 아님) + 시드·클래스·환경",
+   "passed": true,
+   "detail": "기대 {'lambda_l1': 0.0001, 'tracking_mode': 'w_phi', 'tracking_lr': 0.005, 'real_estimator': 'bank_mmse'} · 이탈 키 [] · 키존재 True · seed 일치 True · 클래스 True · 포착수 1 True · S8/S5 환경변수 미설정 True"
+  },
+  {
+   "name": "G-5b 행동 지문 init_loss_n == 0 (⛔None 은 통과 아님)",
+   "passed": true,
+   "detail": "None 0/768 · 값 [0]"
+  },
+  {
+   "name": "G-5c 계수기 되읽기 + ★VARPRO 실집행 증거 (⛔echo/truthy 아님)",
+   "passed": true,
+   "detail": "기대 {'varpro_steps': 400, 'varpro_fired': True} · 이탈 키 [] · steps [400] · obj 미기록(=건너뜀) 0/768"
+  },
+  {
+   "name": "G-5d 배포 상수 트립와이어 (패키지 단일출처 == 이 배치의 핀)",
+   "passed": true,
+   "detail": "{'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001, 'init_method': 'auto'} vs {'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001, 'init_method': 'auto'}"
+  },
+  {
+   "name": "G-6 라우터 learned 전건 · ensemble_k == 1 · 파생 init_method == 경로 · 실측게이트 미발화",
+   "passed": true,
+   "detail": "auto_real_gate≠False 0/768 · auto_selected ['learned'] · 파생 init_method ['learned'] · ensemble_k [1] · auto_n_selected 최소 2 ⟹ 임계 0 vs 배포전 8 판별됨"
+  },
+  {
+   "name": "G-7 원자 수 기록 (n_gaussians > 0 — ⛔0·None 통과 아님)",
+   "passed": true,
+   "detail": "None 0 · 0 0 / 768"
+  },
+  {
+   "name": "★G-8 채점 창이 **다섯 팔 전부** 에피소드 안에서 동일 + ZERO 창과도 동일",
+   "passed": true,
+   "detail": "64/64 에피소드 일치 · 창 미기록 0 · ZERO 창 불일치 0"
+  },
+  {
+   "name": "G-9 ZERO 에피소드 내 불변 · None 0행 (⛔상수 1.0 아님)",
+   "passed": true,
+   "detail": "분산 에피소드 0/64 · None 0"
+  },
+  {
+   "name": "G-10 격자 재도출 (|2π/Lx − DK1| < 1e-5 · 2π/Ly > DK1)",
+   "passed": true,
+   "detail": "에피소드 64/64 · 이탈 0 · ★DK1 반올림 편차 최대 6.122e-08 (허용오차의 0.0061배)"
+  },
+  {
+   "name": "★G-11 양성대조: 재실행 4팔이 동결 행(B-19·B-16·B-11b·B-12)과 비트 동일",
+   "passed": true,
+   "detail": "대조 768/768 행 · 불일치 0 · 기준 없음 0 · 허용 ablation 0.0 / SPEC25 1e-12 · ★실측 최대 상대편차 ablation 0.0 / SPEC25 1.665659574491845e-15 · ⚠`FITSWAP` 은 **신규 팔이라 동결 기준이 존재하지 않는다**(대조 0행, 결과 전 선언)"
+  },
+  {
+   "name": "★G-12 ZERO 교차검증 (독립 계산 vs 동결 기준선 행)",
+   "passed": true,
+   "detail": "64/64 일치 (rtol 1e-05)"
+  },
+  {
+   "name": "★G-13 SPEC25 되읽기 (객체 유래: loc 25 · ens 600 · jonswap · 40×30 · LETKFGridSpec)",
+   "passed": true,
+   "detail": "192/192 행 정상 · 기대 {'loc_radius': 25.0, 'n_ensemble': 600, 'background': 'jonswap', 'filter_class': 'LETKFGridSpec', 'nx': 40, 'ny': 30}"
+  },
+  {
+   "name": "N-1[sparse] 음성대조 ≥ 12/16 (마진이 존재해야 매개를 잴 수 있다)",
+   "passed": true,
+   "detail": "15/16 p=0.0002593994140625"
+  },
+  {
+   "name": "N-2[sparse] 음성대조 ≥ 12/16 (기준선이 무기술이면 우열 비교가 뜻을 잃는다)",
+   "passed": true,
+   "detail": "12/16 p=0.0384063720703125"
+  },
+  {
+   "name": "N-3[sparse] 음성대조 ≥ 12/16 (우리 팔이 무기술이면 절제가 뜻을 잃는다)",
+   "passed": true,
+   "detail": "15/16 p=0.0002593994140625"
+  },
+  {
+   "name": "N-1[crowded] 음성대조 ≥ 31/48 (마진이 존재해야 매개를 잴 수 있다)",
+   "passed": true,
+   "detail": "43/48 p=6.840242150474296e-09"
+  },
+  {
+   "name": "N-2[crowded] 음성대조 ≥ 31/48 (기준선이 무기술이면 우열 비교가 뜻을 잃는다)",
+   "passed": true,
+   "detail": "47/48 p=1.7408297026122455e-13"
+  },
+  {
+   "name": "N-3[crowded] 음성대조 ≥ 31/48 (우리 팔이 무기술이면 절제가 뜻을 잃는다)",
+   "passed": true,
+   "detail": "48/48 p=3.552713678800501e-15"
+  }
+ ],
+ "gates": [
+  {
+   "name": "H-0 상속 게이트 (`gates_b21.gates`) 전건 통과",
+   "passed": true,
+   "detail": "24/24 (핀 24) 실패=[]"
+  },
+  {
+   "name": "H-1 동결 입력 md5 (판정코드 + 임포트 + 동결 산출물)",
+   "passed": true,
+   "detail": "목록 25 · 대조 25 · 일치 25 · 불일치 [] · 부재 []"
+  },
+  {
+   "name": "H-2 ★blind 코드 증거: 동결 판정 코드가 이 짝을 형성한 적 없다",
+   "passed": true,
+   "detail": "analyze 짝 [['KGRID1', 'SPEC25'], ['KGRID2', 'SPEC25'], ['FITSWAP', 'SHIP'], ['SHIP', 'KGRID1']] (핀 일치 True) · gates 호출지점 4/4 · KGRID1×FITSWAP 동반 호출 0건 []"
+  },
+  {
+   "name": "H-3 ★blind 산출물 증거: `verdict_b21.json` 키 집합 == 핀 (이 짝의 통계량 없음)",
+   "passed": true,
+   "detail": "최상위 Δ=[] · 층 Δ={'sparse': [], 'crowded': []}"
+  },
+  {
+   "name": "H-3b ★`B-20` 행은 전건 희소 (혼잡 직접 대조가 다른 배치에도 없다)",
+   "passed": true,
+   "detail": "행 144 · ncomp ≥ 15 인 행 0"
+  },
+  {
+   "name": "H-4 표본 = `gates_b21.aggregate().good[crowded]` (재선정 0)",
+   "passed": true,
+   "detail": "n_used=48 (핀 48) · verdict_b21 n_used=48 · 짝 행이 덮는 에피소드 48"
+  },
+  {
+   "name": "H-5 짝 완전성 48ep × 2팔 × 3시드 = 288행 · error 0",
+   "passed": true,
+   "detail": "행 288/288 · 에피소드 48/48 · error 0 · 시드집합 [42, 43, 44] 전건 True"
+  },
+  {
+   "name": "H-6 ★양성대조: `B-21` 여덟 대조를 이 파이프라인이 비트 동일 재현",
+   "passed": true,
+   "detail": "대조 64개 · 불일치 0 []"
+  },
+  {
+   "name": "H-7 개입 분리: KGRID1 ≥ 1e-4 · FITSWAP ≤ 1e-9 · ★중앙 이동량 비 ≥ 1e6",
+   "passed": true,
+   "detail": "fired 전건 True · KGRID1 중앙 0.010401135568952159 · FITSWAP 중앙 3.943321027840589e-13 · 비 26376588402.309074"
+  },
+  {
+   "name": "H-8 채점 창: 에피소드 안 6행이 동일 · ZERO 창 == 추적 창",
+   "passed": true,
+   "detail": "불일치 0 []"
+  },
+  {
+   "name": "H-9 코드 상태 동일: `git_head` 1종 · `import_md5` 1종 (더러운 트리 탐지)",
+   "passed": true,
+   "detail": "git_head 1종 ['e7ec39126ba984c4d8883bea8e0f369b2d970e16'] · import_md5 1종"
+  },
+  {
+   "name": "H-10 라우팅 `learned` 전건 · 실측게이트 미발화 · VARPRO 실집행(obj 존재)",
+   "passed": true,
+   "detail": "위반 행 0 []"
+  },
+  {
+   "name": "H-11 문턱 재도출 (comb) == 핀 == 형제 `B-22` 동결 문턱",
+   "passed": true,
+   "detail": "재도출 (31, 32, 17) · 핀 (31, 32, 17) · B-22 (31, 32, 17) (family_alpha 0.025 vs 0.025)"
+  },
+  {
+   "name": "H-12 ★계수기 부재 기록: `B-20` 충실도 계수기 6종이 행에 0회 (한계 서술이 참)",
+   "passed": true,
+   "detail": "발견된 계수기 [] (기대: 없음) · 스냅 키 결손 [] · ⟹ `B-20` G-14/G-15 상당의 증거는 이 재분석에 **없다**"
+  },
+  {
+   "name": "H-13 음성대조 `SHIP` < 참 제로필드 ≥ 31 — 실패 시 무효",
+   "passed": true,
+   "detail": "48/48 p=3.552713678800501e-15 rel=-48.657612739565735"
+  },
+  {
+   "name": "H-13b 음성대조 `FITSWAP` < 참 제로필드 ≥ 31 — 실패 시 무효",
+   "passed": true,
+   "detail": "48/48 p=3.552713678800501e-15 rel=-48.676732050562954"
+  },
+  {
+   "name": "H-14 음성대조 `KGRID1` < 참 제로필드 ≥ 31 — ⚠실패해도 무효화하지 않는다(라벨 접미)",
+   "passed": true,
+   "detail": "38/48 p=3.0848203888211856e-05 rel=-11.472170726678787"
+  },
+  {
+   "name": "H-15 자기동결: 이 배치의 PREREG·게이트·분석기가 FROZEN 에 있고 일치",
+   "passed": true,
+   "detail": "FROZEN 미등재 []"
+  },
+  {
+   "name": "H-17 (보고전용) 희소 교차확인 vs `B-20` PRIMARY-B — ⛔판정에 쓰지 않는다",
+   "passed": true,
+   "detail": "여기(B-21 희소, dk=1e-12) 14/16 rel=-67.57502838187852 · B-20(dk=1e-10) 14/16 — ⚠교차배치·교차팔·같은 16 에피소드 ⟹ 독립 확인이 아니다"
+  }
+ ],
+ "n_gate_pass": 19,
+ "n_gates": 19,
+ "hard_pass": true,
+ "primary": {
+  "n": 48,
+  "better": 48,
+  "worse": 0,
+  "n_tie": 0,
+  "p_one_sided": 3.552713678800501e-15,
+  "p_other_tail": 1.0,
+  "rel_median_pct": -38.84021221254607,
+  "median_a": 0.1341854461080705,
+  "median_b": 0.21357410510536284
+ },
+ "magnitudes": {
+  "mag_clean": -38.84021221254607,
+  "mag_main": -38.6069561633153,
+  "mag_main_pin": -38.6069561633153,
+  "shift_pp": 0.23325604923076781,
+  "pp_band": 2.3596978918107183,
+  "pp_band_pin": 2.3596978918107183,
+  "band_lo": -40.96665405512602,
+  "band_hi": -36.247258271504585,
+  "magnitude_unmoved": true
+ },
+ "negative": {
+  "n1": {
+   "n": 48,
+   "better": 48,
+   "p_one_sided": 3.552713678800501e-15,
+   "rel_median_pct": -48.657612739565735
+  },
+  "n1b": {
+   "n": 48,
+   "better": 48,
+   "p_one_sided": 3.552713678800501e-15,
+   "rel_median_pct": -48.676732050562954
+  },
+  "n2": {
+   "n": 48,
+   "better": 38,
+   "p_one_sided": 3.0848203888211856e-05,
+   "rel_median_pct": -11.472170726678787
+  }
+ },
+ "positive_control_repro": {
+  "sparse:primary": {
+   "n": 16,
+   "better": 8,
+   "worse": 8,
+   "n_tie": 0,
+   "p_one_sided": 0.5981903076171875,
+   "p_other_tail": 0.5981903076171875,
+   "rel_median_pct": 0.14571488717091086,
+   "median_a": 0.22066314723342656,
+   "median_b": 0.2175280999405717
+  },
+  "sparse:dose": {
+   "n": 16,
+   "better": 2,
+   "worse": 14,
+   "n_tie": 0,
+   "p_one_sided": 0.9997406005859375,
+   "p_other_tail": 0.0020904541015625,
+   "rel_median_pct": 43.403591157816365,
+   "median_a": 0.3189750380348414,
+   "median_b": 0.2175280999405717
+  },
+  "sparse:confound": {
+   "n": 16,
+   "better": 12,
+   "worse": 4,
+   "n_tie": 0,
+   "p_one_sided": 0.0384063720703125,
+   "p_other_tail": 0.9893646240234375,
+   "rel_median_pct": -0.06792022668560549,
+   "median_a": 0.05755031483713538,
+   "median_b": 0.057852344880423824
+  },
+  "sparse:ablation_ref": {
+   "n": 16,
+   "better": 14,
+   "worse": 2,
+   "n_tie": 0,
+   "p_one_sided": 0.0020904541015625,
+   "p_other_tail": 0.9997406005859375,
+   "rel_median_pct": -67.43404310240334,
+   "median_a": 0.057852344880423824,
+   "median_b": 0.22066314723342656
+  },
+  "crowded:primary": {
+   "n": 48,
+   "better": 21,
+   "worse": 27,
+   "n_tie": 0,
+   "p_one_sided": 0.8438365962633654,
+   "p_other_tail": 0.2354395068108559,
+   "rel_median_pct": 1.0818346858708938,
+   "median_a": 0.21357410510536284,
+   "median_b": 0.20509472314220928
+  },
+  "crowded:dose": {
+   "n": 48,
+   "better": 0,
+   "worse": 48,
+   "n_tie": 0,
+   "p_one_sided": 1.0,
+   "p_other_tail": 3.552713678800501e-15,
+   "rel_median_pct": 40.87323256216057,
+   "median_a": 0.2939321017513673,
+   "median_b": 0.20509472314220928
+  },
+  "crowded:confound": {
+   "n": 48,
+   "better": 31,
+   "worse": 17,
+   "n_tie": 0,
+   "p_one_sided": 0.02973168762688516,
+   "p_other_tail": 0.9853475266397353,
+   "rel_median_pct": -0.26112104545982184,
+   "median_a": 0.1341854461080705,
+   "median_b": 0.13460042881779372
+  },
+  "crowded:ablation_ref": {
+   "n": 48,
+   "better": 46,
+   "worse": 2,
+   "n_tie": 0,
+   "p_one_sided": 4.1815439999481896e-12,
+   "p_other_tail": 0.9999999999998259,
+   "rel_median_pct": -38.6069561633153,
+   "median_a": 0.13460042881779372,
+   "median_b": 0.21357410510536284
+  }
+ },
+ "sparse_crosscheck_report_only": {
+  "here": {
+   "n": 16,
+   "better": 14,
+   "worse": 2,
+   "n_tie": 0,
+   "p_one_sided": 0.0020904541015625,
+   "p_other_tail": 0.9997406005859375,
+   "rel_median_pct": -67.57502838187852,
+   "median_a": 0.05755031483713538,
+   "median_b": 0.22066314723342656
+  },
+  "b20_primary_b": {
+   "n": 16,
+   "better": 14,
+   "n_tie": 0,
+   "p_one_sided": 0.0020904541015625,
+   "rel_median_pct": -67.5750052863194,
+   "median_a": 0.057550362117278084,
+   "median_b": 0.22066314723342656
+  },
+  "same_direction": true
+ },
+ "counters_absent": [
+  "k_dpsi_max",
+  "k_bit_identical_frac",
+  "w_abs_change_max",
+  "phi_abs_change_max",
+  "snap_calls",
+  "k_dk_max"
+ ],
+ "counters_present": [
+  "k_snap_fired",
+  "k_snap_dk",
+  "k_snap_shift_median",
+  "k_snap_cells"
+ ],
+ "followup": {
+  "T1_direct_contrast_not_confirmed": false,
+  "T2_clean_magnitude_left_band": false,
+  "T3_hard_gate_failed": false,
+  "fire": false,
+  "note": "T1 ⟹ *\"혼잡에서 정말 안 해치는가\"* 와 *\"섭동이 혼잡 원자에서 너무 작았는가\"* 를 가르려면 Δψ·비트동일 비율이 필요하다. T2 ⟹ 통제 팔이 실제로 얼마나 움직였는지(|Δw|·|Δφ|)를 알아야 크기를 귀속한다. T3 ⟹ 전제가 무너졌으므로 재측정한다."
+ },
+ "label": "QUANTIZATION-EARNS-INDEPENDENTLY-CROWDED",
+ "label_text": "★48/48(동점 0), p=3.553e-15, 상대 중앙 -38.840% — **적합 절차를 고정한 채로도** 파수를 격자에 스냅하면 혼잡 층에서 나빠진다 ⟹ 혼잡의 양자화 귀속이 **뺄셈에서 직접 측정으로** 바뀐다. ⛔*\"독립 확증 하나 추가\"* 로 세지 마라 (결과 전 규칙 1: 인접 통계량이 이 방향을 거의 강제한다). ⛔`B-20` 희소 14/16 과 합산하지 마라(다른 층·다른 dk)."
+}

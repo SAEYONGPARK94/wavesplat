@@ -268,9 +268,23 @@ $\omega_i = \sqrt{g|k_i|\tanh(|k_i|d)}$로 구속함으로써
 입사각과 거리에 의존하는 기하 신뢰 가중치를 도입하여
 LiDAR 관측 품질의 공간적 불균질성을 모델링하고, 에너지 기반 가지치기(pruning)와
 잔차 기반 성장(growth)으로 파도 성분 수 $N$을 자동 적응시킨다.
+% CORRECTED 2026-08-27 (B-25): 종전 문안은 "기하 가중치는 독립 효과가 확인되지 않았다"
+% 라는 **미확인** 서술이었다. 사전등록 배치(432런, 게이트 22/22)가 확증 문턱을 넘겨
+% **해친다**로 측정했으므로 상태 서술을 결과로 교체한다.
+% ⛔결과 전 동결 처분 ①("기여·설계 결정에서 완전히 내린다")의 초록 이행분.
+% ⛔"보정된 크기"(FLATCONF vs 기준선)를 합성해 인용하지 않는다 -- 재지 않았다.
+% ★영문 초록에 같은 문장을 동시에 반영한다.
+% 근거: tmp/B25_CONFWEIGHT_2026-08-27/verdict_b25.json (label = GT-WEIGHT-HURTS)
 ⛔\textbf{단 이 두 요소는 구현이며 기여가 아니다} --- 정확도 기여로서는 각각
-\textbf{철회되었다}(\S\ref{sec:contrib-limits}; 적응형 $N$ 은 널로 측정되었고,
-기하 가중치는 독립 효과가 확인되지 않았다).
+\textbf{철회되었다}(\S\ref{sec:contrib-limits}; 적응형 $N$ 은 널로 측정되었다).
+★\textbf{기하 신뢰 가중치는 ``확인되지 않은 것''이 아니라 \emph{해치는 것}으로
+측정되었다} --- 합성 참값의 표면 법선에서 유래하는 그 가중을 \emph{질량을 보존한 채}
+평탄화하여 기울기 정보만 제거하면 배포 팔이 $48$ 중 $13$ 에서만 이기고(상대 중앙
+$+18.2\%$ 더 나쁘다, 확증 문턱 통과; 배치 \texttt{B-25}), 질량$\cdot$유효 정규화
+채널 단독은 $21/48$ 로 널이므로 이 손실은 \textbf{참 파면 기울기 정보 그 자체}에서
+온다. ⟹ ★\textbf{따라서 \emph{아래}의 합성 헤드라인은 참값 누출로 \emph{부풀려진}
+것이 아니라 오히려 \emph{과소평가}돼 있었다.} ⚠이것은 방향 진술이며 \textbf{보정된 크기를 주장하지
+않는다}(그 조합은 재지 않았다). ⚠\textbf{배포 기본값은 이 측정으로 바꾸지 않는다.}
 
 % RETRACTED 2026-08-14: 아래 원문의 헤드라인 수치 전체가 인용금지다. 사유는 "출처 부재"가
 % 아니라 (i) 프레임 불일치 — 근거 파일 results/b1_full_comparison.json 에서 WaveSplat 은
@@ -340,8 +354,15 @@ $p = 0.0021$) \textbf{크기를 인용하지 않는다}. ⚠그 층에서는 기
 ★\textbf{위 절제의 크기는 교락을 닫은 뒤의 값이다} --- 그 개입은 격자 반올림과
 $(w,\phi)$ 재적합의 \emph{두 부분}인데, 같은 재적합을 돌리되 파수를 옮기지 않는
 \textbf{각 층의 통제 팔}(두 배치의 서로 다른 팔이다)에서 재적합 단독의 몫이 \textbf{희소 $-0.06\%$ $\cdot$ 혼잡 $-0.34\%$} 로 측정되었다
-(혼잡은 결과 이전에 지정한 동등성 검정을 통과한다). 적합 절차를 고정한 채로도 양자화
-단독이 희소 층에서 $14/16$ 으로 해친다.
+(혼잡은 결과 이전에 지정한 동등성 검정을 통과한다).
+% UPDATED 2026-08-27 (B-20b): 종전 문장은 "희소 층에서 14/16" 뿐이었다. 혼잡판 직접
+% 대조가 측정되어 두 층으로 넓어진다. ⛔합산 금지 · ⛔"독립 확증" 금지(결과 전 규칙 1).
+% ★영문 초록에 같은 문장을 동시에 반영한다. 근거: verdict_b20b.json
+★\textbf{적합 절차를 고정한 채로도 양자화 단독이 \emph{두 층 모두에서} 해친다}
+--- 희소 $14/16$ $\cdot$ 혼잡 $48/48$($p = 3.6\times10^{-15}$, 상대 중앙 $-38.84\%$;
+배치 \texttt{B-20b}).
+⛔두 수를 합산하지 않으며, 혼잡의 이 값은 \emph{독립 확증}이 아니라 \emph{뺄셈 논증을
+직접 측정으로 교체}한 것이다(\S\ref{sec:ablation_confound}).
 ⛔\textbf{단 이 절제가 기준선 대비 마진을 \emph{매개}하는지는 미결이다} --- 짝
 부호검정은 널이나 결과 이전에 지정한 동등성 검정이 두 층 모두에서 실패하며, 혼잡 층의
 $18$ 에피소드는 여전히 기준선보다 $10\%$ 넘게 나쁘다. ⟹ \emph{``스냅하면 마진이
@@ -462,9 +483,26 @@ to $4N$. A geometry-aware confidence weighting scheme explicitly models the
 spatially heterogeneous quality of LiDAR observations as a function of
 incidence angle and range. An energy-based pruning and residual-triggered
 growth mechanism adapts the number of wave components $N$ to the observed
-sea state complexity. ⛔\textbf{Both are implementation, not contribution}: as
-accuracy contributions they have been \textbf{retracted} (adaptive $N$ measured
-null; the confidence weighting has no confirmed independent effect).
+sea state complexity.
+% CORRECTED 2026-08-27 (B-25): mirror of the Korean abstract correction made on the same
+% day, so the two abstracts do not diverge. The previous clause said the confidence
+% weighting had "no confirmed independent effect" (a not-yet-measured statement); a
+% preregistered batch (432 runs, 22/22 gates) crossed the confirmation threshold in the
+% HURTS direction, so the status statement is replaced by the result. ⛔No "corrected"
+% magnitude against any baseline is quoted -- that combination was never measured.
+% Source: tmp/B25_CONFWEIGHT_2026-08-27/verdict_b25.json (label = GT-WEIGHT-HURTS)
+⛔\textbf{Both are implementation, not contribution}: as
+accuracy contributions they have been \textbf{retracted} (adaptive $N$ measured null).
+★\textbf{The geometric confidence weighting is not ``unconfirmed'' but \emph{measured to
+hurt}}: flattening it \emph{while conserving its total mass}, so that only the wavefront-slope
+information carried by the true surface normals is removed, leaves the deployed arm ahead in
+only $13$ of $48$ episodes (median relative $+18.2\%$ worse; confirmation threshold crossed;
+batch \texttt{B-25}), while the mass/effective-regularisation channel on its own is null
+($21/48$). The loss therefore comes from the \textbf{ground-truth slope information itself}.
+⟹ ★\textbf{The synthetic headline stated \emph{below} is therefore not \emph{inflated} by
+ground-truth leakage --- it was, if anything, \emph{understated}.} ⚠This is a statement of direction and
+\textbf{claims no corrected magnitude} (that combination was not measured).
+⚠\textbf{The deployed default is not changed by this measurement.}
 
 % RETRACTED 2026-08-14: 국문초록과 동일 사유 (프레임 불일치 · 기준선 선택 · 프로세스 간 지연).
 % (근거: memory/reference_citation_bans.md (08-13 3라운드) · results/b1_full_comparison.json 재도출)
@@ -536,8 +574,17 @@ $(w,\phi)$ by least squares), and a control arm that runs the same re-fit while 
 wavenumbers in place --- \emph{one such arm per stratum, from two different batches} ---
 attributes only \textbf{$-0.06\%$ (sparse) and $-0.34\%$ (crowded)} to
 the re-fit alone (the crowded stratum passes an equivalence test specified before the
-results). With the fitting procedure held fixed, quantisation alone still degrades $14/16$
-sparse episodes.
+results).
+% UPDATED 2026-08-27 (B-20b): mirror of the Korean abstract sentence widened on the same
+% day. The crowded-stratum direct contrast has now been measured, so the claim covers both
+% strata. Same prohibitions: no pooling of the two counts, and this is NOT an independent
+% confirmation (pre-result rule 1). Source: verdict_b20b.json (19/19 gates + 24/24 inherited)
+★\textbf{With the fitting procedure held fixed, quantisation alone degrades \emph{both}
+strata}: $14/16$ sparse and $48/48$ crowded ($p = 3.6\times10^{-15}$, median relative
+$-38.84\%$; batch \texttt{B-20b}). ⛔The two counts are not pooled (different strata,
+different grid spacing), and the crowded figure is \textbf{not} an independent
+confirmation --- it \emph{replaces a subtraction argument with a direct measurement}
+(\S\ref{sec:ablation_confound}).
 ⛔\textbf{Whether that ablation \emph{mediates} the margin against the baseline is
 undecided}: the paired sign tests are null, but the equivalence test specified before the
 results fails in both strata, and in the crowded stratum $18$ episodes remain more than
@@ -947,8 +994,18 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
         재적합 기계를 돌리되 파수를 옮기지 않는 통제 팔을 두 층에 각각 두었고, 재적합
         단독의 몫은 \textbf{희소 $-0.06\%$}(중앙값 기준 몫) $\cdot$ \textbf{혼잡
         $-0.34\%$}(동등성 검정 통과, $48$ 중 $45$ 가 $\pm 5\%$ 밴드 안)로 측정되었다.
-        \textbf{적합 절차를 고정한 채로도 양자화 단독이 희소 층에서 $14/16$ 으로
-        해친다}($p = 0.0021$). ⚠\textbf{층별 귀속}: 희소 크기의 교락은 \texttt{B-20} 이,
+        % UPDATED 2026-08-27 (B-20b): 종전 문장은 "희소 층에서 14/16" 뿐이었고, 바로 아래
+        % 절이 "혼잡에는 직접 대조가 없다(뺄셈)" 라고 적고 있었다. 그 대조가 측정되어
+        % **두 층**으로 넓어진다. ⛔합산 금지(다른 층·다른 dk) — 병기만 한다.
+        % ⛔"독립 확증 하나 추가" 로 세지 않는다(결과 전 규칙 1 축자, sec:ablation_confound).
+        % 근거: tmp/B20b_QUANT_CROWDED_2026-08-27/verdict_b20b.json (게이트 19/19 + 상속 24/24)
+        ★\textbf{적합 절차를 고정한 채로도 양자화 단독이 \emph{두 층 모두에서} 해친다}
+        --- \textbf{희소 $14/16$}($p = 0.0021$) $\cdot$ \textbf{혼잡 $48/48$}
+        ($p = 3.6\times10^{-15}$, 상대 중앙 $-38.84\%$; 배치 \texttt{B-20b}).
+        ⛔\textbf{두 수를 합산하지 않는다}(다른 층 $\cdot$ 다른 격자 간격)
+        --- 병기할 뿐이다. ⛔그리고 혼잡 층의 이 값은 \emph{``독립 확증 하나 추가''}가
+        아니라 \emph{``뺄셈 논증을 직접 측정으로 교체''}다(사유와 blind 의 실제 범위는
+        \S\ref{sec:ablation_confound}). ⚠\textbf{층별 귀속}: 희소 크기의 교락은 \texttt{B-20} 이,
         혼잡 크기의 교락은 \texttt{B-21} 이 닫는다. ⚠두 배치의 \emph{희소} 결과는 같은
         표본 $\cdot$ 같은 시드 $\cdot$ 거의 같은 개입이므로 \textbf{독립 확인이 아니다}
         (\S\ref{sec:ablation_confound}).
@@ -1235,8 +1292,35 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
 
   \item \textbf{분산관계 하드 제약의 정확도 기여}는 측정되지 않았다(파라미터 감소
         $5N \to 4N$ 은 산술적 사실로 유지한다).
-  \item 기하 신뢰 가중치와 적응형 성분 수 제어는 정확도 기여로서 \textbf{철회}되었으며,
+  % CORRECTED 2026-08-27 (B-25): 종전 한 줄은 두 항목을 묶어 "철회 · 음성 결과로 재배치"
+  % 라 적었고, 기하 가중치 쪽은 사실상 **미확인**이었다. 사전등록 배치가 확증 문턱을 넘겨
+  % **해친다**로 측정했으므로 항목을 갈라 결과를 적는다. 결과 전 동결 처분 ① 의 이행이다:
+  %   "논문에서 '기하 인식 신뢰 가중' 을 기여·설계 결정에서 완전히 내린다".
+  % ⛔"보정된 크기" 합성 인용 금지 · ⛔널(S2)은 MDE 문언 동반 · ⛔배포 기본값 불변.
+  % 근거: tmp/B25_CONFWEIGHT_2026-08-27/verdict_b25.json (게이트 22/22, 432행 error 0)
+  \item \textbf{적응형 성분 수 제어}는 정확도 기여로서 \textbf{철회}되었으며(널로 측정),
         음성 결과로 재배치하였다.
+  \item ★\textbf{기하 신뢰 가중치는 기여도, 정확도를 사는 설계 결정도 아니다 --- 빼는
+        쪽이 낫다는 것이 확증 수준에서 측정되었다.} 합성 참값의 표면 법선에서 유래하는
+        그 가중을 \emph{질량을 보존한 채} 평탄화하면(= 자료항 규모와 유효 정규화를 고정한
+        채 기울기 정보만 제거) 배포 팔이 $48$ 중 $13$ 에서만 이기고, 상대 중앙
+        $+18.2\%$ 로 더 나쁘다(배치 \texttt{B-25}, \S\ref{sec:ablation_conf}).
+        \textbf{질량$\cdot$유효 정규화 채널 단독은 $21/48$ 로 널}이므로, 이 손실은
+        \textbf{관측 가중에 실린 참 파면 기울기 정보 그 자체}에서 온다.
+        ⟹ ★\textbf{제3장의 합성 헤드라인은 참값 누출로 \emph{부풀려진} 것이 아니라
+        오히려 \emph{과소평가}돼 있었다} --- ⚠단 이것은 \emph{방향} 진술이며
+        \textbf{보정된 크기를 주장하지 않는다}(그 조합은 재지 않았다).
+        ⚠\textbf{널 인용 규율}: 위 $21/48$ 은 \emph{``질량 채널의 효과가 없다''}가 아니라
+        \emph{``이 표본의 최소검출효과(승률 $32/48 = 0.667$) 위에서 검출되지 않는다''}
+        이다. ⚠\textbf{배포 기본값은 바꾸지 않았다} --- 끄는 결정에는 별도 사전등록이
+        필요하다. ⚠\textbf{이 판정은 합성 혼잡 층 $48$ 에피소드에 한정}되며(희소 층
+        무언급, 외부 기준선 행 $0$개), \textbf{실측 판정과는 무관하다} --- 실측의
+        같은 이름 가중은 파면 기울기 정보를 담을 수 없는 \emph{다른 양}이다.
+        ⚠\textbf{그리고 이 배치는 blind 가 아니었다} --- 설계 셀 하나($48$ 중 $1$)를
+        저자를 포함한 세 사람이 런 전에 보았고 그 셀의 방향이 최종 판정과 같았다.
+        문턱$\cdot$팔$\cdot$해석 규칙은 그 노출 이전에 코드로 고정되었고 노출된 $1$표는
+        어느 라벨도 만들지 못하나, \textbf{결과가 그 방향과 일치했다는 사실이 노출을
+        소급 정당화하지 않으므로 공시를 남긴다}(\S\ref{sec:ablation_conf}).
 \end{itemize}
 
 \section{논문 구성}
@@ -1375,6 +1459,13 @@ forward 모델에 직접 반영하여 이 smearing을 자연스럽게 처리한�
 
 본 논문에서 이러한 물리적 특이성을 기하 신뢰 가중치(제3장)로
 직접 모델링한다.
+% CORRECTED 2026-08-27 (B-25): 이 문장은 설계 서술이므로 남기되, 그것이 정확도 이득으로
+% 읽히지 않도록 측정 결과를 붙인다(결과 전 동결 처분 ①: 기여·설계 결정에서 내린다).
+% 근거: tmp/B25_CONFWEIGHT_2026-08-27/verdict_b25.json (label = GT-WEIGHT-HURTS)
+⚠\textbf{이것은 \emph{설계 서술}이며 정확도 주장이 아니다} --- 그 가중이 합성 조건에서
+정확도를 사는지는 이후에 개입으로 측정되었고, 결과는 \textbf{오히려 해친다}는 것이다
+(\S\ref{sec:ablation_conf}). 아래 절들은 이 모델링의 \emph{물리적 동기}를 기술하며,
+그 동기가 정확도로 환금되지 않았다는 사실을 함께 읽어야 한다.
 
 \section{격자 기반 파도장 추정}
 \label{sec:grid_methods}
@@ -1948,6 +2039,23 @@ $R(\theta)$가 $\theta$에 대해 단조 증가(신호 손실 증가)하는 것�
 $\cos\theta$의 단조 감소가 역방향으로 대응하여, 높은 입사각의
 관측에 낮은 가중치를 부여하는 의도된 효과를 달성한다.
 가까이 있고 수직에 가까운 관측에 높은 가중치를 부여한다.
+
+% ADDED 2026-08-27 (B-25): 이 절은 설계·물리 동기를 기술한다. 배포 코드가 그렇게 되어
+% 있으므로 서술은 남기되, 그 설계가 정확도를 사지 **못한다**는 측정을 절 안에 붙인다
+% (결과 전 동결 처분 ①: 기여·설계 결정에서 내린다). ⛔이 절을 삭제하지 않는다 --
+% 삭제하면 목적함수 (eq:loss) 의 c_j 가 정의 없이 남는다.
+% 근거: tmp/B25_CONFWEIGHT_2026-08-27/verdict_b25.json
+⚠⚠\textbf{[이 설계는 정확도를 사지 못한다 --- 오히려 해친다]} 위 동기는 \emph{물리}에서
+왔고 배포 코드도 그대로이나, \textbf{이 가중이 합성 조건에서 정확도를 사는지는 개입으로
+측정되었고 답은 음성이다}(\S\ref{sec:ablation_conf}, 배치 \texttt{B-25}). 특히 위
+문단이 적은 대로 \emph{시뮬레이션에서는 $\mathbf{n}_{\text{true}}$ 를 쓰므로} $c_j$ 는
+\textbf{참 파면 기울기장의 함수}인데, 그 정보를 목적함수 가중에서 제거해도 오차는
+\emph{줄어든다}. ⟹ ★\textbf{본 논문은 이 가중을 기여로도, 정확도를 사는 설계 결정으로도
+주장하지 않는다} --- 남는 것은 \emph{배포 구성의 서술}과 \emph{그 물리적 동기}뿐이다.
+⚠\textbf{배포 기본값은 이 측정으로 바꾸지 않았다}(끄는 결정에는 별도 사전등록이 필요하다).
+⚠\textbf{실측은 이 판정의 범위 밖이다} --- 위에서 적은 대로 실측에서는
+$\mathbf{n} \approx \hat{\mathbf{z}}$ 로 근사하므로, 같은 이름의 실측 가중은 파면 기울기
+정보를 담을 수 없는 \emph{다른 양}이다.
 
 \subsection{손실 함수}
 \label{sec:loss}
@@ -4016,10 +4124,61 @@ $16$ 에피소드, 같은 시드, 거의 같은 개입($\Delta k = 10^{-10}$ 대
 ⚠\textbf{[범위]} 이 통제가 재는 것은 재적합 단독이 아니라
 \textbf{(재적합 $+$ 옵티마이저 재구성)의 상한}이다(사전등록이 결과 전에 그렇게 규정했다).
 방향은 보수적이다 --- \emph{상한}이 무시 가능하면 그 성분도 무시 가능하므로 결론에 충분하다.
-⚠그리고 \textbf{혼잡 층에는 ``양자화 단독'' 의 직접 대조가 없다} ---
-희소에서는 적합 절차를 고정한 절제가 직접 측정됐으나($14/16$, $p = 0.00209$),
-혼잡의 양자화 귀속은 \emph{재적합 몫이 무시 가능하다}는 이 통제로부터 \textbf{뺄셈}으로 선다.
-그 직접 대조(사전등록된 혼잡판)는 \textbf{아직 측정되지 않았다.}
+% CORRECTED 2026-08-27 (B-20b): 여기 있던 문단은 "혼잡 층에는 '양자화 단독' 의 직접
+% 대조가 없다 … 아직 측정되지 않았다" 라는 **상태 서술**이었다. 그 대조가 측정되었으므로
+% 상태 서술을 결과로 교체한다. B-20 의 사전등록이 결과 0행에서 "돌린다" 고 못박은 약속의
+% 이행이다(tmp/B20_REFIT_CONTROL_2026-08-27/PREREG.md:60).
+% ⛔결과 전 해석 규칙 1 축자: "쓸 수 있는 문장은 **뺄셈 논증을 직접 측정으로 교체했다**
+%   이지 '독립 확증' 이 아니다" · ⛔B-20 희소 14/16 과 합산 금지 · ⛔이 값을 B-16 −38.61%
+%   나 B-12 −40.19% 와 직접 비교 금지.
+% 근거: tmp/B20b_QUANT_CROWDED_2026-08-27/verdict_b20b.json (게이트 19/19 + 상속 24/24)
+★\textbf{[혼잡 층의 직접 대조 --- 뺄셈에서 직접 측정으로]} 위 혼잡 층 문단이 세운
+양자화 귀속은 \emph{재적합 몫이 무시 가능하다}는 통제로부터 \textbf{뺄셈}으로 서 있었다.
+그 대조를 직접 측정하였다(배치 \texttt{B-20b}) --- \textbf{같은 재적합을 돌리되 파수를
+옮기지 않는 통제 팔}(\,$\Delta k = 10^{-12}$\,)과 \textbf{같은 재적합을 돌리며 파수를
+격자에 스냅하는 팔}(\,$\Delta k = 0.02618$\,rad/m\,)을 혼잡 $48$ 에피소드에서 짝지으면,
+\textbf{$48/48$}(진 $0$ $\cdot$ 동점 $0$, 단측 $p = 3.6\times10^{-15}$, 상대 중앙
+$-38.84\%$; 중앙 nRMSE $0.1342$ 대 $0.2136$)이다.
+⟹ \textbf{적합 절차를 고정한 채로도 파수 양자화가 혼잡 층에서 해친다} --- 즉
+\textbf{혼잡의 양자화 귀속은 이제 뺄셈 논증이 아니라 직접 측정이다.}
+음성 대조는 셋 모두 통과한다(통제 팔 $\cdot$ 배포 팔이 각각 참 제로필드를 $48/48$ 로
+이기고, 처치된 팔조차 $38/48$ 로 이긴다) ⟹ 두 팔 모두 뺄 기술이 있는 상태의 비교다.
+⚠\textbf{크기 인용값은 움직이지 않는다} --- 이 통제 팔 기준의 크기($-38.84\%$)와 배포 팔
+기준의 크기($-38.61\%$)의 차이 $0.23$\,pp 는 결과 이전에 동결한 시드 재추첨 밴드
+($2.36$\,pp) 안이다.
+
+⛔\emph{[이 문단으로 못 하는 것 --- 결과 이전에 동결된 규칙]}
+①\textbf{``독립 확증 하나 추가''로 세지 않는다.} 그 배치의 결과 전 해석 규칙이
+축자로 그렇게 못박았다: \emph{``쓸 수 있는 문장은 \textbf{뺄셈 논증을 직접 측정으로
+교체했다}이지 \textbf{독립 확증}이 아니다.''} 사유는 \textbf{인접 통계량이 방향을 거의
+강제하기 때문}이다 --- 사전등록 이전에 통제 팔과 배포 팔이 $31/48$($-0.26\%$)로 같고
+배포 팔이 처치 팔을 $46/48$ 로 이긴다는 두 값이 \emph{이미 공개되어 있었다}.
+②\textbf{희소 층의 $14/16$ 과 합산하지 않는다} --- 다른 층 $\cdot$ 다른 $\Delta k$ 다.
+③\textbf{이 $-38.84\%$ 를 \S\ref{sec:results_b11} 및 \S\ref{sec:results_b1} 의 크기와
+직접 비교하지 않는다} --- 다른 대조다.
+
+⚠\emph{[blind 의 실제 범위 --- 이 문단과 함께 읽는다]} 이 대조는 새 런을 돌린 것이
+아니라 \textbf{앞 배치(\texttt{B-21})의 동결 자료에 대한 사전등록 재분석}이다($960$ 행
+중 이 짝에 해당하는 $288$ 행, 신규 런 $0$개). \textbf{blind 였던 것은 이 통계량의
+\emph{값} 하나}이며(동결 분석기가 이 짝을 형성한 적이 없다는 것을 구문 수준에서, 동결
+판정 파일이 이 통계량을 담지 않았다는 것을 키 수준에서 각각 기계가 검사하였다),
+⛔\textbf{\emph{방향}은 blind 가 아니었다}(위 ①). ⚠부호 개수는 이행적이지 않으므로
+공개된 두 값에서 연역 가능한 것은 하한 $29$ 뿐이었고 그것이 명목 문턱 $31$ 보다
+낮았다 --- 즉 \textbf{판정은 자료가 정했다}. ⛔그러나 대칭적으로 \emph{반대 라벨은
+산술적으로 도달 불가}였으므로 ``양쪽을 다 열어 두었다''고 쓰지 않는다.
+⛔★\textbf{그리고 \emph{크기 결정}은 blind 가 아니었다} --- 런 전 점검 중 분석기가
+무시된 플래그로 한 번 실행되어, \textbf{크기가 밴드 안이라는 사실}이 결과 이전에
+노출되었다(노출된 것은 \emph{밴드 포함 여부}이지 값이 아니며, 밴드 자체는 그 이전에
+다른 배치에서 재도출되어 고정돼 있었다). 위 $48/48$ 은 이 사고와 무관하다.
+
+⚠\emph{[이 재분석이 세울 수 \emph{없는} 증거]} 새 런을 돌리지 않았으므로 희소 층에서
+쓴 충실도 계수기 여섯 종이 이 $288$ 행에 \textbf{$0$회} 들어 있다(기계가 확인하였다).
+⟹ ⛔\textbf{``통제 팔이 파라미터를 움직이고도 오차를 못 옮겼다''는 희소 층에서만 할 수
+있는 말}이고, ⛔\textbf{``통제 팔의 파수 이동이 렌더 장에서 float32 정밀도 아래''도
+혼잡에서는 \emph{직접} 말할 수 없다}(간접 증거는 $\Delta k = 10^{-12}$ 가 희소 층이
+자료에서 도출한 상한보다 $200$배 작다는 것과 칸 병합이 $0$이라는 것뿐이며,
+\textbf{간접이라고 적는다}). 이 공백을 메울 후속 배치는 결과 이전에 정한 세 발화
+조건이 모두 거짓이어서 \textbf{돌리지 않았다}.
 
 % NEW 2026-08-27 (B-21 P/S): 위원장이 서로 다른 두 배치의 수를 나란히 놓아 계산한
 % 매개 서사를, 같은 배치 안의 정식 측정으로 교체한다. ⛔결과는 미결이고 미결로 적는다.
@@ -4143,6 +4302,89 @@ $31$ $\cdot$ 열화 $17$ 로 갈리므로 ``HOS $M{=}3$ 비선형''으로 \emph{
 이전의 배선 탐색 $1$ 셀에서 방향이 이미 보였고, 그 셀을 표본에서 제외하지 않고 그대로
 포함하였다. 문턱과 라벨 집합은 형제 배치의 규약에서 기계적으로 산출하여 여섯 결과에
 대칭으로 배정하였다.
+
+% NEW 2026-08-27 (B-25): 심사가 반드시 묻는 질문 -- "합성 헤드라인이 참값 누출에
+% 기대는가" -- 에 대한 직접 개입. 가장 나쁜 경우(누출이 이득을 만든다)를 재러 갔고
+% 나온 것은 그 반대다. 결과 전 동결 처분 ①·③ 을 그대로 이행한다:
+%   ① 논문에서 "기하 인식 신뢰 가중" 을 기여·설계 결정에서 완전히 내린다
+%   ③ ⛔배포 기본값을 이 배치로 바꾸지 않는다(별도 사전등록 필요)
+% ⛔"보정된 크기"(FLATCONF vs 외부 기준선) 합성 인용 금지 -- 재지 않았다.
+% ⛔S2 널은 MDE 문언(승률 32/48 = 0.667) 동반 필수 · ⚠blind 아님(노출 공시 계승).
+% 근거: tmp/B25_CONFWEIGHT_2026-08-27/verdict_b25.json (게이트 22/22 · 432행 error 0)
+\paragraph{참값 누출 --- 기하 신뢰 가중이 헤드라인을 지탱하는가 (2026-08-27)}
+\label{sec:ablation_conf}
+\S\ref{sec:geom_confidence} 의 신뢰 가중 $c_j$ 는 \emph{합성에서} 참 표면 법선의
+함수다(같은 절이 축자로 그렇게 적었다: \emph{``시뮬레이션에서는 Gerstner 메시로부터
+계산된 정확한 표면 법선을 사용한다''}). ⟹ 추정기가 알 수 없어야 할 양이 목적함수
+가중과 변수 투영 하강에 들어간다. \textbf{심사가 반드시 묻는 물음 --- ``위 합성
+헤드라인이 이 누출에 기대는가'' --- 을 개입으로 판정하였다}(배치 \texttt{B-25};
+$3$ 팔 $\times$ 혼잡 $48$ 에피소드 $\times$ 추정기 시드 $3$ = $432$ 런, 오류 $0$행,
+게이트 $22/22$).
+
+\textbf{왜 두 팔로는 답할 수 없는가.} 배포 스위치를 그냥 끄면(\,$c_j \equiv 1$\,)
+정보만 사라지는 것이 아니다 --- 손실의 자료항이 \emph{가중합을 무가중 개수로 나누는}
+형태라, 스위치를 끄면 자료항의 규모가 $1/\bar{c}$ 배(이 코퍼스 실측
+$1.14$--$1.16$)로 커져 \textbf{유효 정규화 세기가 함께 약해진다} --- $2$요인 개입이다.
+정규화 축은 살아 있으므로(제\ref{chap:intro}장 기여 목록의 \emph{용량--반응}: 계수 $0$
+에서 널, 배포값에서 $1.52$, 그 $10$배에서 $3.66$) 이 팔만으로는
+``정보가 해쳤는가, 정규화 약화가 도왔는가''를 가를 수 없다.
+⟹ ★\textbf{질량보존 절제 팔}을 두었다: 프레임마다 $c_j$ 를 \emph{그 프레임의 자기
+평균}으로 치환하면 $\sum_j \bar{c}_f = \sum_j c_j$ 가 \textbf{정확히} 성립하므로
+(질량 오차 $\le 10^{-5}$, 게이트로 검사) 자료항 규모와 유효 정규화가 \emph{구성상}
+불변이고 \textbf{점별 편차 = 기울기 정보만} $0$이 된다. 지울 정보가 실재한다는 것도
+결과 이전에 핀으로 확인하였다(전 에피소드에서 $\mathrm{std}(c) \ge 0.227$, 핀 $0.15$).
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+대조 & 배포 팔 우세 & 상대 중앙 & 성격 \\
+\midrule
+★\textbf{주} 배포 $<$ 질량보존 평탄화 & $\mathbf{13/48}$ & $\mathbf{+18.23\%}$ & 정보만 ($1$요인) \\
+\textsc{(s1)} 배포 $<$ 가중 제거 & $11/48$ & $+17.22\%$ & 배포 스위치 ($2$요인) \\
+\textsc{(s2)} 질량보존 평탄화 $<$ 가중 제거 & $21/48$ & $+0.57\%$ & 질량$\cdot$정규화 단독 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{판정 = \texttt{GT-WEIGHT-HURTS}(확증).} 주 대조에서 배포 팔이 $48$ 중 $13$ 에서만
+이긴다(동점 $0$) --- 결과 이전에 동결한 양측 확증 문턱($\le 15$)을 넘는다. 상대 중앙
+$+18.23\%$ 는 \emph{배포 팔이 그만큼 더 나쁘다}는 뜻이다(중앙 nRMSE: 배포 $0.1346$ 대
+평탄화 $0.1200$). 그리고 \textsc{(s2)} 즉 \textbf{질량$\cdot$정규화 채널 단독은 널}이므로,
+\textsc{(s1)} 의 손실까지 사실상 정보 채널이 전담한다.
+⟹ ★\textbf{이 손실은 관측 가중에 실린 \emph{참 파면 기울기 정보 그 자체}에서 온다.}
+세 팔 모두 참 제로필드를 이기므로(배포 $48/48$ $\cdot$ 가중 제거 $47/48$ $\cdot$
+질량보존 평탄화 $46/48$) 이 짝 비교들은 전부 기술이 있는 상태의 비교다.
+
+⟹ ★★\textbf{참값 누출 의혹은 \emph{반대 방향}으로 닫힌다.} 가장 나쁜 경우 --- 헤드라인
+크기의 일부가 누출 몫이라는 것 --- 을 재러 갔는데, 측정된 것은 그 반대다: 배포 팔은
+이 가중을 \textbf{지고} 있었다. ⟹ \textbf{\S\ref{sec:results_b1} $\cdot$
+\S\ref{sec:results_b11} $\cdot$ \S\ref{sec:ablation_prior} 의 헤드라인은 참값 누출로
+\emph{부풀려진} 것이 아니라 오히려 \emph{과소평가}돼 있었다.}
+⟹ 그리고 \textbf{``기하 인식 신뢰 가중''은 본 논문의 기여에서도, 정확도를 사는 설계
+결정에서도 내려간다}(\S\ref{sec:contrib-limits}) --- 결과 이전에 동결해 둔 처분이다.
+
+⛔\emph{[이 문단이 주장하지 \emph{않는} 것 --- 결과 이전에 동결된 목록]}
+①\textbf{보정된 크기를 합성해 인용하지 않는다} --- 평탄화 팔과 외부 기준선의 비교는
+\emph{재지 않았다}. 위 ``과소평가''는 \textbf{방향} 진술이며 헤드라인의 수를 바꾸지도
+수정하지도 않는다. ②\textbf{배포 기본값은 바꾸지 않았다} --- 끄는 결정에는 별도
+사전등록이 필요하다. ③\textbf{널 인용 규율}: \textsc{(s2)} 의 $21/48$ 은
+\emph{``질량$\cdot$정규화 채널의 효과가 없다''}가 아니라 \emph{``이 표본의 최소검출효과
+(승률 $32/48 = 0.667$) 위에서 검출되지 않는다''}이다 --- 주 대조의 $1$요인 자격은 이
+널이 아니라 \emph{질량 보존이 구성상 성립}한다는 데 있다. ④\textbf{외부 기준선 행이
+$0$개}이며 \textbf{희소 층은 무언급}이다(표본은 혼잡 $48$뿐). ⑤\textbf{실측 판정과
+무관하다} --- 실측의 같은 이름 가중은 센서--점 기하만 담고 파면 기울기 정보를 담을 수
+없는 \emph{다른 양}이다. ⑥\textbf{왜 해치는지는 재지 않았다} --- 기제는 미확인이며,
+사전등록에 없는 사후 추측은 적지 않는다. ⑦표본의 참값 메시 판정이 적정 $31$ $\cdot$
+열화 $17$ 로 갈리므로 ``HOS $M{=}3$ 비선형''으로 \emph{단일 서술}하지 않는다.
+⑧\textbf{체크포인트가 평가와 같은 분포}라는 단서는 그대로다.
+
+⚠\emph{[노출 공시 --- 이 배치는 blind 가 아니다]} 배선 점검 중 설계 셀 하나
+($48$ 중 $1$)를 저자를 포함한 \textbf{세 사람}이 런 전에 보았고, 그 셀의 짝차가
+\textbf{주 대조의 최종 방향과 같았다}. 문턱$\cdot$팔$\cdot$라벨$\cdot$해석 규칙은 그
+노출 이전에 코드로 고정되었고 노출된 $1$표는 $48$셀 문턱($\le 15$)의 어느 라벨도
+만들지 못하나, ⛔\textbf{결과가 그 방향과 일치했다는 사실이 노출을 소급 정당화하지
+않으므로 공시를 남긴다} --- 따라서 이 배치를 \emph{``blind''} 또는 \emph{``결과 전에는
+방향을 몰랐다''}로 서술하지 않는다.
 
 \paragraph{센서 모형에 대한 견고성 (2026-08-24)}
 제\ref{sec:obs_model}절이 지적한 대로 본 논문의 코퍼스는 반환 확률의 입사각 의존성이
@@ -4545,6 +4787,18 @@ A2 팔이 Full 보다 좋다. 따라서 ``거리·입사각 의존 노이즈 모
 결론을 철회하며, 기하 신뢰 가중치는 제1장 기여에서도 철회되었다.
 이 절제는 손실 가중치 한 곳만 건드리므로 대칭적이며, 그 점에서 이 음성 결과는
 해석 가능한 음성이다.
+% ADDED 2026-08-27 (B-25): 2026-08-14 철회는 "부호가 반대로 보인다" 까지였고, 그 절제는
+% 자료항 규모(유효 λ)까지 함께 바꾸는 2요인 개입이라 **정보의 몫**을 가르지 못했다.
+% 사전등록 배치가 질량보존 팔로 그것을 갈랐다 ⟹ 철회를 확증 측정으로 승격한다.
+% 근거: tmp/B25_CONFWEIGHT_2026-08-27/verdict_b25.json (게이트 22/22)
+★\textbf{[2026-08-27 갱신]} 위 철회는 그 뒤 \textbf{사전등록된 확증 측정으로
+승격되었다} --- 이 A2 절제(가중 제거)는 정보만 없애는 것이 아니라 자료항의 규모와
+\emph{유효 정규화 세기}까지 함께 바꾸는 $2$요인 개입이었다. \textbf{질량을 보존한 채
+기울기 정보만 제거하는 $1$요인 팔}을 추가하여 다시 재면, 배포 팔이 혼잡 $48$ 중 $13$
+에서만 이기고(상대 중앙 $+18.23\%$ 더 나쁘다) 질량$\cdot$정규화 채널 단독은 널이다
+(\S\ref{sec:ablation_conf}, 배치 \texttt{B-25}). ⟹ 이 절의 음성은 이제
+\emph{``확인되지 않았다''}가 아니라 \emph{``해친다''}이며, 그 손실의 담지자는
+\textbf{참 파면 기울기 정보}다.
 
 \subsection{Raydrop 모델 강건성}
 \label{sec:raydrop}

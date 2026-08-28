@@ -125,7 +125,17 @@ CHECKS = [
  ("M-8b 끝점 크기",          M8B, "endpoint.rel_median_pct",           lambda v: pct(v,1)),
  ("M-8b PRIMARY 승수",       M8B, "primary.better",                    lambda v: cnt(v,12)),
  ("M-8b PRIMARY 크기",       M8B, "primary.rel_median_pct",            lambda v: pct(v)),
- ("M-8b MDE q80",            M8B, "thresholds.q80_primary",            lambda v: f"{v:.3f}"),
+ ("M-8b MDE q80(단일검정)",    M8B, "thresholds.q80_primary",            lambda v: f"{v:.3f}"),
+ # ── 2026-08-29 추가 (AMENDMENT_2): 가족 MDE 와 가법성 두 수. ⛔손복사 금지 —
+ #   기대 문자열은 verdict 에서 계산한다. 재유도 단일출처는
+ #   tmp/M8b_LADDER_2026-08-28/factorization_check.py (동결 /chain·/endpoint 에서 다시 만든다).
+ ("M-8b MDE q80(가족 Holm)",   M8B, "thresholds.q80_family",             lambda v: f"{v:.3f}"),
+ ("M-8b 가족 최소 승수",        M8B, "thresholds.holm_first_min_wins",    lambda v: cnt(v,12)),
+ ("M-8b ΣΔ_k",               M8B, "amendment_2.factorization.sum_delta_log",      lambda v: f"{v:.6f}"),
+ ("M-8b 끝점 Δlog",           M8B, "amendment_2.factorization.endpoint_delta_log", lambda v: f"{v:.6f}"),
+ ("M-8b 승수 곱",             M8B, "amendment_2.factorization.mult_sum",           lambda v: f"{v:.5f}"),
+ ("M-8b 끝점 승수",           M8B, "amendment_2.factorization.mult_endpoint",      lambda v: f"{v:.5f}"),
+ ("M-8b 가법성 격차 %",        M8B, "amendment_2.factorization.gap_pct",            lambda v: f"{v:.3f}"),
  ("M-8b L1 승수",            M8B, "chain.0.worse",                     lambda v: cnt(v,12)),
  ("M-8b L2 승수",            M8B, "chain.1.worse",                     lambda v: cnt(v,12)),
  ("M-8b L6 승수",            M8B, "chain.5.worse",                     lambda v: cnt(v,12)),

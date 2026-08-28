@@ -32,8 +32,8 @@
   ],
   "link": "L3"
  },
- "chain_label": "GAP-NOT-FACTORIZABLE",
- "chain_why": "끝점은 갈리는데(G-END 통과) 어느 단일 고리도 Holm 문턱을 못 넘었다 ⟹ **상호작용**. 다음 설계는 **2요인 팔**이거나 **레코드 증설**이다. ⛔*\"차이 없다\"* 금지.",
+ "chain_label": "NO-SINGLE-LINK-DETECTED (n=12, q80=0.931)",
+ "chain_why": "끝점은 갈리는데(G-END 통과) 6고리 Holm 생존집합이 ∅ 이다. ★그러나 이 설계에서 첫 Holm 유의수준은 α=0.05/6=0.008333 이고 n=12 단측 부호검정이 그 아래로 낼 수 있는 값은 11/12(p=0.003174)와 12/12(p=0.000244) 뿐이다 ⟹ **10/12 이하의 고리는 어떤 자료에서도 기각될 수 없다**. 따라서 S=∅ 은 **어느 고리도 12 중 11 을 뒤집지 못했다**는 진술이고 그 이상이 아니다. ⛔*\"상호작용\"* 으로 읽지 마라 · ⛔*\"인수분해되지 않는다\"* 로 읽지 마라 (같은 자료에서 6고리 로그비 합 0.419195 가 끝점 0.421363 과 승수 기준 0.217% 차이다) · ⛔*\"차이 없다\"* 도 금지(등가검정 안 했다). 다음 설계는 **2요인 팔**이거나 **레코드 증설**이다. 가족 주장에는 **가족 MDE q80=0.9307** 을 병기하라(⛔단일검정 0.8693 아님).",
  "chain": [
   {
    "a": "BANK",
@@ -296,7 +296,10 @@
    10,
    10
   ],
-  "floor_p": 0.000244140625
+  "floor_p": 0.000244140625,
+  "q80_family": 0.9307,
+  "holm_first_min_wins": 11,
+  "mde_note": "★MDE 는 **두 개**다. PRIMARY(L3, 단일검정, 문턱 10/12) = q80_primary 0.8693 · 사슬 가족(Holm 1~4번째, 문턱 11/12) = q80_family 0.9307. `M8/PREREG.md §7` 이 결과 **전에** 두 값을 구분해 적었는데 이 산출물이 앞의 것만 실었고 논문·금지목록이 **가족 주장에 단일검정 값을 붙였다** ⟹ 2026-08-29 개정으로 복원. ⛔가족 주장(‘어느 고리도 넘지 못했다’)에 0.869 를 붙이지 마라 — 과소 보고다."
  },
  "magnitude": {
   "per_rung": [
@@ -532,7 +535,7 @@
   "G-ANCHOR-B1",
   "G-ANCHOR-B2"
  ],
- "label": "GAP-NOT-FACTORIZABLE",
+ "label": "NO-SINGLE-LINK-DETECTED (n=12, q80=0.931)",
  "scoped_out": [],
  "source_results": [
   "M8_LADDER_2026-08-28/results_m8_0.jsonl",
@@ -1442,5 +1445,43 @@
     }
    ]
   }
+ },
+ "chain_label_as_generated": "GAP-NOT-FACTORIZABLE",
+ "amendment_2": {
+  "file": "tmp/M8b_LADDER_2026-08-28/AMENDMENT_2.md",
+  "date": "2026-08-29",
+  "runs": 0,
+  "what_changed": "라벨 이름과 해석 문언 · 가족 MDE 추가. ⛔판정 수치·게이트·결과 행은 한 바이트도 바뀌지 않았다.",
+  "renamed_from": "GAP-NOT-FACTORIZABLE",
+  "renamed_to": "NO-SINGLE-LINK-DETECTED (n=12, q80=0.931)",
+  "what_was_removed": "구 chain_why 축자(⛔더 이상 살아 있는 읽기가 아니다): 끝점은 갈리는데(G-END 통과) 어느 단일 고리도 Holm 문턱을 못 넘었다 ⟹ **상호작용**. 다음 설계는 **2요인 팔**이거나 **레코드 증설**이다. ⛔*\"차이 없다\"* 금지.",
+  "why_renamed": "★근거는 **결과가 아니라 설계의 성질**이다: n=12 · 가족 6 · α=0.05 에서 첫 Holm 문턱이 11/12 이므로 10/12 는 원리적으로 기각 불가다. 따라서 S=∅ 은 \"어느 고리도 11 을 못 뒤집었다\" 이며, 여섯 개의 **가법적** 중간 효과가 정확히 이 표를 만든다. 이 명제는 자료를 보기 전에도 참이다.",
+  "post_hoc_disclosure": "⚠**그럼에도 이것은 결과를 본 뒤의 개명이다.** 사전등록은 이 조합에 `GAP-NOT-FACTORIZABLE` 을 배정했고 그 배정은 결과 전에 이뤄졌다. 개명의 *계기* 는 적대적 심사가 자료에서 ΣΔ_k≈끝점을 집계해 보인 것이다(= 결과 의존). ⟹ 두 사실을 다 적는다: **계기는 사후, 근거는 결과 무관.** ⛔한쪽만 인용하지 마라. 판정 수치·게이트·라벨 배정 규칙은 바뀌지 않았다.",
+  "factorization": {
+   "sum_delta_log": 0.419195,
+   "endpoint_delta_log": 0.421363,
+   "mult_sum": 1.52074,
+   "mult_endpoint": 1.52404,
+   "gap_pct": 0.217,
+   "caveat": "⛔이것을 *\"가법성의 증거\"* 로도 *\"상호작용의 증거\"* 로도 읽지 마라. 레코드별 로그비의 **중앙값은 가법이 아니므로**(RESULT §2 가 결과 전 규약대로 적었다) ΣΔ_k 와 끝점이 같아야 할 이유도 달라야 할 이유도 없다. 적을 수 있는 것은 **\"이 배치에서 두 수가 0.217% 차이다\"** 라는 사실 하나뿐이고, 그 사실이 무너뜨리는 것은 *\"인수분해되지 않는다\"* 라는 **강한 문언**이다."
+  },
+  "single_source": "tmp/M8b_LADDER_2026-08-28/factorization_check.py (런 0회, 문서와 어긋나면 AssertionError)",
+  "unchanged": [
+   "primary",
+   "chain",
+   "holm",
+   "holm_survivors",
+   "endpoint",
+   "magnitude",
+   "secondary",
+   "gates",
+   "coverage",
+   "seed_spread",
+   "reading",
+   "n_rows",
+   "n_error",
+   "source_results"
+  ],
+  "reading_note": "⚠`reading.CHAIN` 은 **동결 gates_m8.py 의 결과-전 문언 축자**라 그대로 둔다 — 거기 남은 `GAP-NOT-FACTORIZABLE` 은 *분기 이름의 역사적 기록*이고 인용 대상이 아니다. 인용은 `label`/`chain_label` 의 새 이름으로만."
  }
 }

@@ -47,8 +47,11 @@ CANON = {
   # ── 2026-08-28 추가 (M-4 · M-5b · M-8b) ────────────────────────────────
   "CAP-KR (용량 부호 반대)": "용량이모자라서지는것이아니다",
   "WIN-NOGAIN-KR (창 규약 무관 문장)": "창을줄여서제안표현이좋아진다는증거는어느읽기에서도없다",
-  "LADDER-KR (인수분해 불가)": "단일요인으로인수분해되지않",
-  "LADDER-EN": "doesnotfactorise",
+  # ★2026-08-29 개명(M-8b AMENDMENT_2): "인수분해 불가" → "검출되지 않음".
+  #   옛 앵커는 FORBIDDEN 으로 내려갔다(정정 문안이 금지 대상으로 *인용* 하므로 ⛔표지 앞뒤 확인).
+  "LADDER-KR (원리적 검출 불가)": "가족mdeq=0.931",
+  "LADDER-EN (family MDE)":      "family-wisemdeq=0.931",
+  "LADDER-ADD (가법성 승수)":      "1.52074",
 }
 
 # ★2026-08-28 신설: **되감김 형태**를 보고가 아니라 실패로 승격한다.
@@ -62,6 +65,17 @@ FORBIDDEN = {
   "⛔되감김 '경계가 놓인 축을 보고한다' (지목)":   "경계가놓인축을보고한다",
   "⛔지목형 '경계는 …축을 따라 놓여 있다'":        "축을따라놓여있다",
 }
+# ★2026-08-29 신설(M-8b AMENDMENT_2): 개명으로 폐기된 문안. ⚠정정 문안이 이것을 **금지 대상으로
+#   인용** 하므로 단순 부재 검사는 오탐이다 ⟹ `GUARDED` 는 앞뒤 60/80자에 ⛔·"철회" 표지가
+#   없을 때만 FAIL 한다. (표지 없이 나오면 그것이 되감김이다.)
+GUARDED = {
+  "⛔개명 전 '단일 요인으로 인수분해되지 않' (M-8b)": "단일요인으로인수분해되지않",
+  "⛔개명 전 '격차가 인수분해되지 않' (M-8b)":        "격차가인수분해되지않",
+  "⛔개명 전 'does not factorise' (M-8b)":           "doesnotfactorise",
+}
+# ⚠`⟹ 상호작용`(M-8b 철회) 은 **여기서 검사하지 않는다** — `strip_tex` 가 `⟹` 를 지우므로
+#   `B-18` 의 **사전 선언된 상호작용 검정**(thesis_main.tex 제3장, 정당한 용법)과 구별할 수 없다.
+#   그 검사는 원문을 그대로 읽는 `tmp/M8b_LADDER_2026-08-28/factorization_check.py` 가 한다.
 
 # ★2026-08-28 신설: **"같은 주장이 N곳이면 N곳 전부"** 를 기계로 강제한다.
 #   사유 = 오늘 낸 판정 넷이 논문에 **0회** 였던 것이 위원장 사유 ④("문서의 지연")의
@@ -89,6 +103,10 @@ COVERAGE = {
   "M-4 용량 (합성 0/48)":      "0/48",
   "M-5b 창 (제안 팔 2/12)":    "2/12",
   "M-8b 사다리 (끝점 11/12)":  "11/12",
+  # ★2026-08-29(AMENDMENT_2): 가족 MDE 와 가법성 두 수도 **여섯 지점 전부** 에 있어야 한다.
+  #   사유 = 이 두 가지가 빠지면 널이 다시 "인수분해 불가" 로 읽힌다(그 오독이 5곳에 복제됐다).
+  "M-8b 가족 MDE (q=0.931)":   "0.931",
+  "M-8b 가법성 격차 (0.217%)": "0.217",
 }
 
 def find_all(hay, needle):
@@ -121,6 +139,24 @@ for name, needle in FORBIDDEN.items():
         print(f"⛔FAIL {name}: {len(pos)}회 → 줄 {[idx[p] for p in pos]}")
     else:
         print(f"  ok  {name}")
+# --- GUARDED (2026-08-29) — 표지 없는 되감김만 FAIL ---------------------------
+print("\n--- GUARDED: 폐기 문안이 ⛔/철회 표지 없이 살아 있는가 ---")
+_mark = re.compile(r"[⛔]|철회|retract", re.I)
+for name, needle in GUARDED.items():
+    pos = find_all(flow, needle)
+    # ⚠flow 는 ⛔ 를 제거한 뒤의 문자열이다 ⟹ 원문 줄에서 표지를 본다.
+    unguarded = []
+    for p_ in pos:
+        ln = idx[p_]
+        win = "".join(lines[max(0, ln - 3):min(len(lines), ln + 3)])
+        if not _mark.search(win):
+            unguarded.append(ln)
+    if unguarded:
+        bad += len(unguarded)
+        print(f"⛔FAIL {name}: 표지 없는 출현 {len(unguarded)}회 → 줄 {unguarded}")
+    else:
+        print(f"  ok  {name}: 출현 {len(pos)}회, 전부 표지 동반")
+
 # --- COVERAGE (2026-08-28) --------------------------------------------------
 print("\n--- COVERAGE: 같은 주장이 여섯 지점에 전부 있는가 ---")
 def body_between(a, b):

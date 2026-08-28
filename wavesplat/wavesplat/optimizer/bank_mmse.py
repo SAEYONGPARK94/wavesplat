@@ -119,7 +119,8 @@ class BankMMSEFit:
 
 
 def fit_bank_mmse(P, z, depth, sigma0, kp_hint=None, dk_c=None, val_frac=0.25,
-                  seed=0, max_em=6, band=(0.35, 2.5)):
+                  seed=0, max_em=6, band=(0.35, 2.5),
+                  dk_frac=None, k_set=None):
     """Fit the spectrum-weighted linear MMSE over the fine continuous bank.
 
     Verbatim transcription of scripts/d3_sa_nomp.mmse_bank_estimate (default
@@ -132,6 +133,18 @@ def fit_bank_mmse(P, z, depth, sigma0, kp_hint=None, dk_c=None, val_frac=0.25,
     val-selected multiplier grid {1,3,10} absorbs misspecification.
     kp_hint: peak wavenumber if known; None (deployment) = two-stage beamform
     zoom on the observations.  dk_c: bank spacing, default kp/10.
+
+    RESEARCH-ONLY, additive 2026-08-28 (tmp/M8_LADDER_2026-08-28/PATCH.md); both
+    default to None and the None/None path is BIT-IDENTICAL to the pre-patch
+    source (regression: tmp/M8_LADDER_2026-08-28/regress_bank_mmse.py L1/L2).
+    Neither is on the deployment surface (run.py DEFAULT_CONFIG unchanged), so
+    they are reachable only through an explicit config= call.
+      dk_frac: bank spacing as a FRACTION of kp (dk_c = dk_frac*kp).  The
+        shipped spacing is kp/10, i.e. dk_frac=0.1.  Lets the candidate
+        cardinality B be moved without touching anything else (M-8 ladder L2).
+      k_set: (kx, ky) arrays used VERBATIM as the candidate bank, replacing the
+        rule-based grid entirely (M-8 ladder L3 = rule grid vs learned
+        continuous k).  dk_c then has no meaning and is recorded as NaN.
     """
     P = np.asarray(P, float)
     z = np.asarray(z, float)
@@ -152,13 +165,26 @@ def fit_bank_mmse(P, z, depth, sigma0, kp_hint=None, dk_c=None, val_frac=0.25,
     else:
         kp = float(kp_hint)
     if dk_c is None:
-        dk_c = kp / 10.0
-    b_lo, b_hi = band
-    ax = np.arange(-b_hi * kp, b_hi * kp + dk_c / 2, dk_c)
-    KX, KY = np.meshgrid(ax, ax)
-    kk = np.hypot(KX, KY)
-    sel = (kk > b_lo * kp) & (kk < b_hi * kp)
-    kxb, kyb = KX[sel].astype(float), KY[sel].astype(float)
+        dk_c = kp / 10.0 if dk_frac is None else float(dk_frac) * kp
+    elif dk_frac is not None:
+        raise ValueError('pass dk_c or dk_frac, not both')
+    if k_set is not None:
+        # 격자 대신 주어진 후보. dk_c 는 의미를 잃으므로 NaN 으로 적어 둔다(⛔0.0 금지 --
+        # 0.0 은 "간격이 0" 처럼 읽힌다). 나머지 파이프라인은 kxb/kyb 만 본다.
+        if dk_frac is not None:
+            raise ValueError('k_set and dk_frac are mutually exclusive')
+        kxb = np.asarray(k_set[0], float).ravel()
+        kyb = np.asarray(k_set[1], float).ravel()
+        if len(kxb) == 0 or len(kxb) != len(kyb):
+            raise ValueError('k_set must be a non-empty (kx, ky) pair of equal length')
+        dk_c = float('nan')
+    else:
+        b_lo, b_hi = band
+        ax = np.arange(-b_hi * kp, b_hi * kp + dk_c / 2, dk_c)
+        KX, KY = np.meshgrid(ax, ax)
+        kk = np.hypot(KX, KY)
+        sel = (kk > b_lo * kp) & (kk < b_hi * kp)
+        kxb, kyb = KX[sel].astype(float), KY[sel].astype(float)
     om = _omega(np.hypot(kxb, kyb) + 1e-12, depth)
     B = len(kxb)
 

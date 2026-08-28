@@ -1,0 +1,1446 @@
+{
+ "batch": "M8b_LADDER_2026-08-28",
+ "direction": "LOCATION-OR-DECOMPOSITION",
+ "field": "nowcast",
+ "primary_label": "PRIOR-ATOMS-UNDECIDED",
+ "primary_why": "8 better / 4 worse / 12 (문턱 10). ⛔*\"차이 없다\"* 금지(등가검정 안 했다). MDE: 80% 검정력이 요구하는 승률 q=0.8693, 부호검정 바닥 p=2.44e-04.",
+ "primary": {
+  "a": "BANK-B30",
+  "b": "MMSE-PROP",
+  "field": "nowcast",
+  "n": 12,
+  "worse": 4,
+  "better": 8,
+  "ties": 0,
+  "rel_median_pct": -3.11320488051662,
+  "log_ratio_median": -0.03165123564943032,
+  "p_worse": 0.927001953125,
+  "p_better": 0.19384765625,
+  "records": [
+   "AA14",
+   "AA15a",
+   "AA15b",
+   "BS11a",
+   "BS11b",
+   "BS11c",
+   "BS11d",
+   "BS13a",
+   "BS13b",
+   "BS13c",
+   "LJ18a",
+   "YS17"
+  ],
+  "link": "L3"
+ },
+ "chain_label": "GAP-NOT-FACTORIZABLE",
+ "chain_why": "끝점은 갈리는데(G-END 통과) 어느 단일 고리도 Holm 문턱을 못 넘었다 ⟹ **상호작용**. 다음 설계는 **2요인 팔**이거나 **레코드 증설**이다. ⛔*\"차이 없다\"* 금지.",
+ "chain": [
+  {
+   "a": "BANK",
+   "b": "BANK-K1",
+   "field": "nowcast",
+   "n": 12,
+   "worse": 5,
+   "better": 2,
+   "ties": 5,
+   "rel_median_pct": 0.0,
+   "log_ratio_median": 0.0,
+   "p_worse": 0.80615234375,
+   "p_better": 0.996826171875,
+   "records": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ],
+   "link": "L1",
+   "why": "앙상블 (median-of-3 → 단일)"
+  },
+  {
+   "a": "BANK-K1",
+   "b": "BANK-B30",
+   "field": "nowcast",
+   "n": 12,
+   "worse": 10,
+   "better": 2,
+   "ties": 0,
+   "rel_median_pct": 33.734156264687016,
+   "log_ratio_median": 0.29031081426683875,
+   "p_worse": 0.019287109375,
+   "p_better": 0.996826171875,
+   "records": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ],
+   "link": "L2",
+   "why": "후보 기수 1904–1918 → 30"
+  },
+  {
+   "a": "BANK-B30",
+   "b": "MMSE-PROP",
+   "field": "nowcast",
+   "n": 12,
+   "worse": 4,
+   "better": 8,
+   "ties": 0,
+   "rel_median_pct": -3.11320488051662,
+   "log_ratio_median": -0.03165123564943032,
+   "p_worse": 0.927001953125,
+   "p_better": 0.19384765625,
+   "records": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ],
+   "link": "L3",
+   "why": "★파수 배치 — 규칙 격자 vs 학습된 연속"
+  },
+  {
+   "a": "MMSE-PROP",
+   "b": "PROP-LS",
+   "field": "nowcast",
+   "n": 12,
+   "worse": 10,
+   "better": 2,
+   "ties": 0,
+   "rel_median_pct": 8.341513767623063,
+   "log_ratio_median": 0.0801166377291919,
+   "p_worse": 0.019287109375,
+   "p_better": 0.996826171875,
+   "records": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ],
+   "link": "L4",
+   "why": "결합기 — MMSE(사전γ+val σ+EM) vs LS ridge 0.5"
+  },
+  {
+   "a": "PROP-LS",
+   "b": "PROP-LS-APG",
+   "field": "nowcast",
+   "n": 12,
+   "worse": 4,
+   "better": 7,
+   "ties": 1,
+   "rel_median_pct": -2.2589516863783574,
+   "log_ratio_median": -0.0230122780507859,
+   "p_worse": 0.927001953125,
+   "p_better": 0.38720703125,
+   "records": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ],
+   "link": "L5",
+   "why": "적응 N (prune+grow)"
+  },
+  {
+   "a": "PROP-LS-APG",
+   "b": "PROP",
+   "field": "nowcast",
+   "n": 12,
+   "worse": 9,
+   "better": 3,
+   "ties": 0,
+   "rel_median_pct": 10.900725788940782,
+   "log_ratio_median": 0.10343142102240893,
+   "p_worse": 0.072998046875,
+   "p_better": 0.980712890625,
+   "records": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ],
+   "link": "L6",
+   "why": "VARPRO 400 스텝 (비볼록 k 정련)"
+  }
+ ],
+ "holm": [
+  {
+   "link": "L2",
+   "p": 0.019287109375,
+   "alpha": 0.008333333333333333,
+   "rejected": false
+  },
+  {
+   "link": "L4",
+   "p": 0.019287109375,
+   "alpha": 0.01,
+   "rejected": false
+  },
+  {
+   "link": "L6",
+   "p": 0.072998046875,
+   "alpha": 0.0125,
+   "rejected": false
+  },
+  {
+   "link": "L1",
+   "p": 0.80615234375,
+   "alpha": 0.016666666666666666,
+   "rejected": false
+  },
+  {
+   "link": "L3",
+   "p": 0.927001953125,
+   "alpha": 0.025,
+   "rejected": false
+  },
+  {
+   "link": "L5",
+   "p": 0.927001953125,
+   "alpha": 0.05,
+   "rejected": false
+  }
+ ],
+ "holm_survivors": [],
+ "endpoint": {
+  "a": "BANK",
+  "b": "PROP",
+  "field": "nowcast",
+  "n": 12,
+  "worse": 11,
+  "better": 1,
+  "ties": 0,
+  "rel_median_pct": 52.701000970743536,
+  "log_ratio_median": 0.4213634246985352,
+  "p_worse": 0.003173828125,
+  "p_better": 0.999755859375,
+  "records": [
+   "AA14",
+   "AA15a",
+   "AA15b",
+   "BS11a",
+   "BS11b",
+   "BS11c",
+   "BS11d",
+   "BS13a",
+   "BS13b",
+   "BS13c",
+   "LJ18a",
+   "YS17"
+  ]
+ },
+ "thresholds": {
+  "primary": 10,
+  "alpha_primary": 0.019287109375,
+  "q80_primary": 0.8693,
+  "holm_alphas": [
+   0.008333333333333333,
+   0.01,
+   0.0125,
+   0.016666666666666666,
+   0.025,
+   0.05
+  ],
+  "holm_min_wins": [
+   11,
+   11,
+   11,
+   11,
+   10,
+   10
+  ],
+  "floor_p": 0.000244140625
+ },
+ "magnitude": {
+  "per_rung": [
+   {
+    "arm": "BANK",
+    "rung": 0,
+    "n": 12,
+    "abs_nrmse_median": 0.639582,
+    "vs_true_zero_median": 0.769338
+   },
+   {
+    "arm": "BANK-K1",
+    "rung": 1,
+    "n": 12,
+    "abs_nrmse_median": 0.645086,
+    "vs_true_zero_median": 0.773576
+   },
+   {
+    "arm": "BANK-B472",
+    "rung": 2,
+    "n": 12,
+    "abs_nrmse_median": 0.688654,
+    "vs_true_zero_median": 0.826874
+   },
+   {
+    "arm": "BANK-B118",
+    "rung": 3,
+    "n": 12,
+    "abs_nrmse_median": 0.836246,
+    "vs_true_zero_median": 0.943884
+   },
+   {
+    "arm": "BANK-B30",
+    "rung": 4,
+    "n": 12,
+    "abs_nrmse_median": 0.898483,
+    "vs_true_zero_median": 1.014429
+   },
+   {
+    "arm": "MMSE-PROP",
+    "rung": 5,
+    "n": 12,
+    "abs_nrmse_median": 0.773894,
+    "vs_true_zero_median": 0.961043
+   },
+   {
+    "arm": "PROP-LS",
+    "rung": 6,
+    "n": 12,
+    "abs_nrmse_median": 0.869711,
+    "vs_true_zero_median": 1.023011
+   },
+   {
+    "arm": "PROP-LS-APG",
+    "rung": 7,
+    "n": 12,
+    "abs_nrmse_median": 0.809075,
+    "vs_true_zero_median": 1.026094
+   },
+   {
+    "arm": "PROP",
+    "rung": 8,
+    "n": 12,
+    "abs_nrmse_median": 0.991129,
+    "vs_true_zero_median": 1.189019
+   }
+  ],
+  "per_link": [
+   {
+    "link": "L1",
+    "a": "BANK",
+    "b": "BANK-K1",
+    "delta_log": 0.0,
+    "mult_median": 1.0,
+    "rel_median_pct": 0.0
+   },
+   {
+    "link": "L2",
+    "a": "BANK-K1",
+    "b": "BANK-B30",
+    "delta_log": 0.290311,
+    "mult_median": 1.336843,
+    "rel_median_pct": 33.7342
+   },
+   {
+    "link": "L3",
+    "a": "BANK-B30",
+    "b": "MMSE-PROP",
+    "delta_log": -0.031651,
+    "mult_median": 0.968844,
+    "rel_median_pct": -3.1132
+   },
+   {
+    "link": "L4",
+    "a": "MMSE-PROP",
+    "b": "PROP-LS",
+    "delta_log": 0.080117,
+    "mult_median": 1.083413,
+    "rel_median_pct": 8.3415
+   },
+   {
+    "link": "L5",
+    "a": "PROP-LS",
+    "b": "PROP-LS-APG",
+    "delta_log": -0.023012,
+    "mult_median": 0.97725,
+    "rel_median_pct": -2.259
+   },
+   {
+    "link": "L6",
+    "a": "PROP-LS-APG",
+    "b": "PROP",
+    "delta_log": 0.103431,
+    "mult_median": 1.10897,
+    "rel_median_pct": 10.9007
+   }
+  ],
+  "sum_delta_log": 0.419195,
+  "endpoint_delta_log": 0.421363,
+  "caveat": "★크기 서술은 **로그비 분해로만**(서술 전용, 검정 아님): Δ_k = median_records log(x_{k+1}/x_k), ΣΔ_k vs log(R8/R0). ⛔`F1` 교훈대로 **척도를 셋 병기**한다 — 짝 승수 · 절대 nRMSE · 참 제로필드 대비."
+ },
+ "seed_spread": [
+  {
+   "arm": "BANK",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 1.036,
+   "cv_max_pct": 5.678
+  },
+  {
+   "arm": "BANK-K1",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 1.962,
+   "cv_max_pct": 7.722
+  },
+  {
+   "arm": "BANK-B472",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 1.81,
+   "cv_max_pct": 7.472
+  },
+  {
+   "arm": "BANK-B118",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 2.782,
+   "cv_max_pct": 29.769
+  },
+  {
+   "arm": "BANK-B30",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 0.878,
+   "cv_max_pct": 15.8
+  },
+  {
+   "arm": "MMSE-PROP",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 5.858,
+   "cv_max_pct": 31.229
+  },
+  {
+   "arm": "PROP-LS",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 5.798,
+   "cv_max_pct": 30.339
+  },
+  {
+   "arm": "PROP-LS-APG",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 9.205,
+   "cv_max_pct": 23.444
+  },
+  {
+   "arm": "PROP",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 13.571,
+   "cv_max_pct": 67.267
+  },
+  {
+   "arm": "MMSE-PROP-BAND",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 5.411,
+   "cv_max_pct": 24.979
+  },
+  {
+   "arm": "PROP-SNAP",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 8.705,
+   "cv_max_pct": 24.141
+  },
+  {
+   "arm": "PROP-LS-SNAP",
+   "field": "nowcast",
+   "n_records": 12,
+   "cv_median_pct": 6.704,
+   "cv_max_pct": 32.241
+  }
+ ],
+ "reading": {
+  "DIRECTION": "LOCATION-OR-DECOMPOSITION",
+  "PRIMARY": "L3 = MMSE-PROP vs BANK-B30, nowcast, n=12(median-of-3), 단측 부호검정, 문턱 10/12 (α=0.019287, 80% 검정력 요구 승률 q=0.8693). ★라벨은 **양방향 대칭**이다 — 본 방향이 라벨을 만들지 않는다.",
+  "CHAIN": "6 고리 Holm(α=0.05). 생존집합 |S|=1 → SKILL-DIES-AT-<Lk> (Lk==L3 이면 CONFIRMATORY, 아니면 EXPLORATORY) · |S|>=2 → SKILL-DIES-DISTRIBUTED · S=∅ 이고 G-END 통과 → GAP-NOT-FACTORIZABLE · G-END 실패 → LADDER-VOID (판정 없음).",
+  "S_EMPTY_ORDER": "⛔S=∅ 이면 판정 전에 **개입 되읽기**(G-INT-*)가 통과했는지부터 본다. 하나라도 실패하면 라벨은 LADDER-VOID 다. ⛔사후에 이 순서를 바꾸지 않는다.",
+  "MAGNITUDE": "★크기 서술은 **로그비 분해로만**(서술 전용, 검정 아님): Δ_k = median_records log(x_{k+1}/x_k), ΣΔ_k vs log(R8/R0). ⛔`F1` 교훈대로 **척도를 셋 병기**한다 — 짝 승수 · 절대 nRMSE · 참 제로필드 대비.",
+  "NOT_CLAIMED": [
+   "⛔기제 지목 금지 — DIRECTION = LOCATION-OR-DECOMPOSITION.",
+   "⛔배포 권고 금지 (어느 고리가 이겨도 \"bank 를 배포에\" · \"max_n 을 올리자\" 로 올리지 않는다. 별도 사전등록 몫. ⚠M4 가 제안 팔의 용량 증가를 12/12 로 죽였다).",
+   "⛔크기·순위 주장 금지(F1) — 고리 간 크기 비교는 이 검정력으로 불가. 척도 셋 병기 의무.",
+   "⛔`B-16` 합성 결론의 실측 전이 금지 — PROP-SNAP 은 **사후 양자화**이지 격자 적합이 아니다.",
+   "⛔사이트 수준 일반화 금지(사이트 4개) · ⛔외부 기준선 추가 금지(S17+B-5+B2_WANGFIX) · ⛔세 번째 LETKF 수리 금지.",
+   "⛔ZERO_REF = 1.0 금지. 짝 비교만 판정에 쓴다.",
+   "⛔M5b·M4 의 계수와 이 배치의 계수를 직접 비교 금지(장면 규약·팔이 다르다).",
+   "⛔A7(신뢰 가중)·A1 제안쪽 앙상블을 \"측정했다\" 고 쓰지 않는다 — **도달 불가**로 공시한다.",
+   "⛔L4 를 \"MMSE 가 낫다/못하다\" 로 분해하지 않는다 — 사전 γ·val σ·EM 이 한 덩어리다.",
+   "⚠이 설계는 blind 가 아니다 — `PREREG §13` 의 노출 공시를 결과 문서에서 지우지 마라."
+  ],
+  "RNG_DISCLOSURE": "⛔행의 `rng_*`·`apg_*`·`n_sel` 계측은 **판정에 쓰지 않는다** — 공시·게이트 전용이다(`PREREG §6.1.4`)."
+ },
+ "source_batch": "M8_LADDER_2026-08-28",
+ "reanalysis_of": "M8_LADDER_2026-08-28",
+ "replaced_gate": "G-ANCHOR-B",
+ "new_gates": [
+  "G-ANCHOR-SCENE",
+  "G-ANCHOR-B1",
+  "G-ANCHOR-B2"
+ ],
+ "label": "GAP-NOT-FACTORIZABLE",
+ "scoped_out": [],
+ "source_results": [
+  "M8_LADDER_2026-08-28/results_m8_0.jsonl",
+  "M8_LADDER_2026-08-28/results_m8_1.jsonl",
+  "M8_LADDER_2026-08-28/results_m8_2.jsonl",
+  "M8_LADDER_2026-08-28/results_m8_3.jsonl",
+  "M8_LADDER_2026-08-28/results_m8_4.jsonl",
+  "M8_LADDER_2026-08-28/results_m8_5.jsonl",
+  "M8b_LADDER_2026-08-28/anchor_b2depth.jsonl"
+ ],
+ "n_rows": 432,
+ "n_error": 0,
+ "coverage": {
+  "G-0": 432,
+  "G-0b": 324,
+  "G-0b2": 108,
+  "G-0c": 432,
+  "G-0e": 432,
+  "G-0d": 324,
+  "G-0d2": 108,
+  "G-DEV": 432,
+  "G-INT": 432,
+  "G-INT-N": 432,
+  "G-INT-B": 108,
+  "G-INT-B2": 36,
+  "G-INT-KSET": 72,
+  "G-INT-KSET2": 180,
+  "G-INT-ENS": 252,
+  "G-INT-VP": 180,
+  "G-INT-APG": 180,
+  "G-INT-SNAP": 180,
+  "G-ATOM": 36,
+  "G-RNG": 432,
+  "G-RNG2": 36,
+  "G-SCENE": 12,
+  "G-SCENE-B2": 432,
+  "G-ANCHOR-P": 12,
+  "G-END": 12,
+  "G-PATCH-SIG": 3,
+  "G-PATCH-REG": 4,
+  "G-PATCH-OFF": 252,
+  "G-DEFAULT": 432,
+  "G-DEFAULT2": 180,
+  "G-DEFAULT3": 12,
+  "G-ZERO": 432,
+  "G-KP": 252,
+  "G-SEED": 144,
+  "G-BAND": 36,
+  "G-LEAD": 12,
+  "G-ANCHOR-SCENE": 864,
+  "G-ANCHOR-B1": 12,
+  "G-ANCHOR-B2": 432,
+  "G-COV": 39
+ },
+ "gates": [
+  [
+   "G-0 런 수",
+   true,
+   "432/432"
+  ],
+  [
+   "G-0b 사다리 9계단 에러 0",
+   true,
+   "[]"
+  ],
+  [
+   "G-0b2 부차 3팔 에러 0 (SCOPING)",
+   true,
+   "[]"
+  ],
+  [
+   "G-0c 셀 중복 0",
+   true,
+   "0 중복"
+  ],
+  [
+   "G-0e 작업목록 == expected_jobs() 전건",
+   true,
+   "누락 0 잉여 0"
+  ],
+  [
+   "G-0d 사다리 nowcast·leadmean 전 행 유한",
+   true,
+   "[]"
+  ],
+  [
+   "G-0d2 부차 유한 (SCOPING)",
+   true,
+   "[]"
+  ],
+  [
+   "G-DEV ★전 행 cuda_available == False (디바이스 누출 방지)",
+   true,
+   "432/432 기록 · True=0"
+  ],
+  [
+   "G-INT ★경로·라우팅 되읽기 (객체에서)",
+   true,
+   "[]"
+  ],
+  [
+   "G-INT-N ★성분 수 되읽기: bank 0 · PROP-LS/PROP-LS-SNAP == n_sel · 적응 팔 > 0",
+   true,
+   "[]"
+  ],
+  [
+   "G-INT-B ★BANK-B472/BANK-B118/BANK-B30 의 bank_B 가 전제 P2 와 12/12 일치",
+   true,
+   "108 행 · []"
+  ],
+  [
+   "G-INT-B2 ★후보 기수가 L2 사다리에서 강한 단조 감소 (1904–1918 > 472 > 118 > 30)",
+   true,
+   "[]"
+  ],
+  [
+   "G-INT-KSET ★주입 원자가 BankMMSEFit.kxb/kyb 로 되읽힌다 (dk_c 는 NaN)",
+   true,
+   "[]"
+  ],
+  [
+   "G-INT-KSET2 격자 팔은 후보 != 제안 원자이고 dk_c 가 유한",
+   true,
+   "[]"
+  ],
+  [
+   "G-INT-ENS ★BANK 는 median-of-3 · 나머지 bank 계단은 단일 (L1 개입 되읽기)",
+   true,
+   "[]"
+  ],
+  [
+   "G-INT-VP ★VARPRO 실행 스텝을 varpro info 에서 되읽는다 (0 또는 400)",
+   true,
+   "[]"
+  ],
+  [
+   "G-INT-APG ★적응 N 이 가지 단위로 되읽힌다 (off 팔은 정확히 0회)",
+   true,
+   "[]"
+  ],
+  [
+   "G-INT-SNAP ★k_snap 이 PROP-SNAP·PROP-LS-SNAP 에서만 발화 (k_snap.fired 되읽기)",
+   true,
+   "[]"
+  ],
+  [
+   "G-ATOM ★제안 원자 md5 가 (record, seed) 안에서 전 팔 일치 (인라인 제안의 정합)",
+   true,
+   "36 셀 · []"
+  ],
+  [
+   "G-RNG RNG 상태 해시가 전 행에 비어있지 않게 기록됐다 (⛔공시 전용)",
+   true,
+   "[]"
+  ],
+  [
+   "G-RNG2 ★PROP-LS·PROP-LS-APG·PROP 의 n_sel 이 (record, seed) 안에서 일치 (전역 스트림 정렬의 필요조건)",
+   true,
+   "[]"
+  ],
+  [
+   "G-SCENE 관측·질의·참값·σ·kp 가 12팔 × 3시드에 걸쳐 비트동일 (단일요인)",
+   true,
+   "[]"
+  ],
+  [
+   "G-SCENE-B2 ★장면이 B-2 동결 장면과 비트동일 (obs_hash·q_hash·n_obs)",
+   true,
+   "ref=12/12 · []"
+  ],
+  [
+   "G-ANCHOR-SCENE ★앵커는 값 비교 **전에** 장면 상수 일치를 검사한다 (상수=['depth']; 안 싣는 원천은 무조건 앵커 불가)",
+   true,
+   "배치 미스탬프=0 · B-2 SHIP: 스탬프X ⟹ 무조건 앵커 불가 · 조건부 앵커=있음 | M4 SHIP-K-INL: 스탬프O 일치"
+  ],
+  [
+   "G-ANCHOR-B1 ★조건부 앵커 — (a) B-2 수심 복원 시 B-2 동결과 비트 12/12 · (b) 정정 수심에서 M8 배치와 비트 12/12 · (c) 수심 동일 레코드는 두 재현이 비트동일",
+   true,
+   "재현=24행 · git=ca19192:blob=0f7c6053affb 사본=0f7c6053affb 기대=0f7c6053affb · []"
+  ],
+  [
+   "G-ANCHOR-B2 ★432행의 depth 가 **정정값**이고 팔·시드에 걸쳐 레코드당 유일 (그리고 정정이 실제로 일부 레코드를 움직였다)",
+   true,
+   "정정된 레코드=['BS11a', 'BS11b', 'BS11c', 'BS11d', 'BS13a', 'BS13b', 'BS13c'] · []"
+  ],
+  [
+   "G-ANCHOR-P ★R8(PROP, seed 42) == M4 동결 SHIP-K-INL **비트** 12/12 (⛔B-2 PROP 은 앵커가 아니다)",
+   true,
+   "ref=12/12 · []"
+  ],
+  [
+   "G-END ★BANK < PROP 이 >= 10/12 (끝점이 알려진 대비를 재현) — 실패 시 LADDER-VOID",
+   true,
+   "11/12 p=0.003173828125"
+  ],
+  [
+   "G-PATCH-SIG ★가산 2키가 실제로 배선됐다 (시그니처·배선·무시방지 가드 되읽기)",
+   true,
+   "fit_bank_mmse(dk_frac=None, k_set=None) + _bank_fit_window 배선 + 가드"
+  ],
+  [
+   "G-PATCH-REG ★기본값 경로 비트동일 회귀 4겹이 통과했다 (regress_bank_mmse.json)",
+   true,
+   "out verdict=True layers=True fresh"
+  ],
+  [
+   "G-PATCH-OFF 두 새 키가 R0·R1 에서 **꺼져 있다**(None) 그리고 처치 팔에서만 켜진다",
+   true,
+   "[]"
+  ],
+  [
+   "G-DEFAULT 배포 상수(객체 되읽기)가 전 런 고정 — 조용한 흡수 없음",
+   true,
+   "{}"
+  ],
+  [
+   "G-DEFAULT2 learned_init_iters=0 을 **결과 객체**에서 되읽는다 (n_iters == 0)",
+   true,
+   "0 위반"
+  ],
+  [
+   "G-DEFAULT3 ⛔빈 dict `{}` 로 정의된 팔이 없다",
+   true,
+   "[]"
+  ],
+  [
+   "G-ZERO ★참 제로필드가 zero_ref.py 에서 오고 어느 레코드도 정확히 1.0 이 아니다",
+   true,
+   "[]"
+  ],
+  [
+   "G-KP bank 의 2단 beamform kp 가 전제 P2 와 일치 + 하네스 재현과 비트 동일",
+   true,
+   "[]"
+  ],
+  [
+   "G-SEED 팔×레코드마다 시드 (42, 43, 44) 전건 (median-of-3 의 전제)",
+   true,
+   "[]"
+  ],
+  [
+   "G-BAND (SCOPING) MMSE-PROP-BAND 가 frac_in_band 를 싣고 원자가 남았다",
+   true,
+   "[]"
+  ],
+  [
+   "G-LEAD (SCOPING) curve 길이가 레코드별 lead 수와 일치하고 팔에 걸쳐 같다",
+   true,
+   "[]"
+  ],
+  [
+   "G-COV ★커버리지 0 게이트 없음 (항등적으로 참/거짓인 검사 금지)",
+   true,
+   "[]"
+  ]
+ ],
+ "secondary": {
+  "primary_leadmean": {
+   "a": "BANK-B30",
+   "b": "MMSE-PROP",
+   "field": "leadmean",
+   "n": 12,
+   "worse": 6,
+   "better": 6,
+   "ties": 0,
+   "rel_median_pct": -0.5908789627170956,
+   "log_ratio_median": -0.006150653857008064,
+   "p_worse": 0.61279296875,
+   "p_better": 0.61279296875,
+   "records": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ]
+  },
+  "chain_leadmean": [
+   {
+    "a": "BANK",
+    "b": "BANK-K1",
+    "field": "leadmean",
+    "n": 12,
+    "worse": 3,
+    "better": 5,
+    "ties": 4,
+    "rel_median_pct": 0.0,
+    "log_ratio_median": 0.0,
+    "p_worse": 0.980712890625,
+    "p_better": 0.80615234375,
+    "records": [
+     "AA14",
+     "AA15a",
+     "AA15b",
+     "BS11a",
+     "BS11b",
+     "BS11c",
+     "BS11d",
+     "BS13a",
+     "BS13b",
+     "BS13c",
+     "LJ18a",
+     "YS17"
+    ],
+    "link": "L1",
+    "why": "앙상블 (median-of-3 → 단일)"
+   },
+   {
+    "a": "BANK-K1",
+    "b": "BANK-B30",
+    "field": "leadmean",
+    "n": 12,
+    "worse": 9,
+    "better": 3,
+    "ties": 0,
+    "rel_median_pct": 16.21526344182839,
+    "log_ratio_median": 0.1502735626247767,
+    "p_worse": 0.072998046875,
+    "p_better": 0.980712890625,
+    "records": [
+     "AA14",
+     "AA15a",
+     "AA15b",
+     "BS11a",
+     "BS11b",
+     "BS11c",
+     "BS11d",
+     "BS13a",
+     "BS13b",
+     "BS13c",
+     "LJ18a",
+     "YS17"
+    ],
+    "link": "L2",
+    "why": "후보 기수 1904–1918 → 30"
+   },
+   {
+    "a": "BANK-B30",
+    "b": "MMSE-PROP",
+    "field": "leadmean",
+    "n": 12,
+    "worse": 6,
+    "better": 6,
+    "ties": 0,
+    "rel_median_pct": -0.5908789627170956,
+    "log_ratio_median": -0.006150653857008064,
+    "p_worse": 0.61279296875,
+    "p_better": 0.61279296875,
+    "records": [
+     "AA14",
+     "AA15a",
+     "AA15b",
+     "BS11a",
+     "BS11b",
+     "BS11c",
+     "BS11d",
+     "BS13a",
+     "BS13b",
+     "BS13c",
+     "LJ18a",
+     "YS17"
+    ],
+    "link": "L3",
+    "why": "★파수 배치 — 규칙 격자 vs 학습된 연속"
+   },
+   {
+    "a": "MMSE-PROP",
+    "b": "PROP-LS",
+    "field": "leadmean",
+    "n": 12,
+    "worse": 11,
+    "better": 1,
+    "ties": 0,
+    "rel_median_pct": 11.896784788893013,
+    "log_ratio_median": 0.1115881309919099,
+    "p_worse": 0.003173828125,
+    "p_better": 0.999755859375,
+    "records": [
+     "AA14",
+     "AA15a",
+     "AA15b",
+     "BS11a",
+     "BS11b",
+     "BS11c",
+     "BS11d",
+     "BS13a",
+     "BS13b",
+     "BS13c",
+     "LJ18a",
+     "YS17"
+    ],
+    "link": "L4",
+    "why": "결합기 — MMSE(사전γ+val σ+EM) vs LS ridge 0.5"
+   },
+   {
+    "a": "PROP-LS",
+    "b": "PROP-LS-APG",
+    "field": "leadmean",
+    "n": 12,
+    "worse": 4,
+    "better": 8,
+    "ties": 0,
+    "rel_median_pct": -3.382325441859197,
+    "log_ratio_median": -0.03440855602984698,
+    "p_worse": 0.927001953125,
+    "p_better": 0.19384765625,
+    "records": [
+     "AA14",
+     "AA15a",
+     "AA15b",
+     "BS11a",
+     "BS11b",
+     "BS11c",
+     "BS11d",
+     "BS13a",
+     "BS13b",
+     "BS13c",
+     "LJ18a",
+     "YS17"
+    ],
+    "link": "L5",
+    "why": "적응 N (prune+grow)"
+   },
+   {
+    "a": "PROP-LS-APG",
+    "b": "PROP",
+    "field": "leadmean",
+    "n": 12,
+    "worse": 10,
+    "better": 2,
+    "ties": 0,
+    "rel_median_pct": 28.122564214858254,
+    "log_ratio_median": 0.24778974690203487,
+    "p_worse": 0.019287109375,
+    "p_better": 0.996826171875,
+    "records": [
+     "AA14",
+     "AA15a",
+     "AA15b",
+     "BS11a",
+     "BS11b",
+     "BS11c",
+     "BS11d",
+     "BS13a",
+     "BS13b",
+     "BS13c",
+     "LJ18a",
+     "YS17"
+    ],
+    "link": "L6",
+    "why": "VARPRO 400 스텝 (비볼록 k 정련)"
+   }
+  ],
+  "endpoint_leadmean": {
+   "a": "BANK",
+   "b": "PROP",
+   "field": "leadmean",
+   "n": 12,
+   "worse": 11,
+   "better": 1,
+   "ties": 0,
+   "rel_median_pct": 56.88028711578698,
+   "log_ratio_median": 0.44737911004056297,
+   "p_worse": 0.003173828125,
+   "p_better": 0.999755859375,
+   "records": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ]
+  },
+  "dose_L2": [
+   {
+    "a": "BANK-K1",
+    "b": "BANK-B472",
+    "field": "nowcast",
+    "n": 12,
+    "worse": 8,
+    "better": 4,
+    "ties": 0,
+    "rel_median_pct": 0.7898800135911476,
+    "log_ratio_median": 0.007852652613485278,
+    "p_worse": 0.19384765625,
+    "p_better": 0.927001953125,
+    "records": [
+     "AA14",
+     "AA15a",
+     "AA15b",
+     "BS11a",
+     "BS11b",
+     "BS11c",
+     "BS11d",
+     "BS13a",
+     "BS13b",
+     "BS13c",
+     "LJ18a",
+     "YS17"
+    ]
+   },
+   {
+    "a": "BANK-K1",
+    "b": "BANK-B118",
+    "field": "nowcast",
+    "n": 12,
+    "worse": 11,
+    "better": 1,
+    "ties": 0,
+    "rel_median_pct": 25.75629636060205,
+    "log_ratio_median": 0.2289762990709292,
+    "p_worse": 0.003173828125,
+    "p_better": 0.999755859375,
+    "records": [
+     "AA14",
+     "AA15a",
+     "AA15b",
+     "BS11a",
+     "BS11b",
+     "BS11c",
+     "BS11d",
+     "BS13a",
+     "BS13b",
+     "BS13c",
+     "LJ18a",
+     "YS17"
+    ]
+   },
+   {
+    "a": "BANK-K1",
+    "b": "BANK-B30",
+    "field": "nowcast",
+    "n": 12,
+    "worse": 10,
+    "better": 2,
+    "ties": 0,
+    "rel_median_pct": 33.734156264687016,
+    "log_ratio_median": 0.29031081426683875,
+    "p_worse": 0.019287109375,
+    "p_better": 0.996826171875,
+    "records": [
+     "AA14",
+     "AA15a",
+     "AA15b",
+     "BS11a",
+     "BS11b",
+     "BS11c",
+     "BS11d",
+     "BS13a",
+     "BS13b",
+     "BS13c",
+     "LJ18a",
+     "YS17"
+    ]
+   }
+  ],
+  "band": {
+   "a": "MMSE-PROP",
+   "b": "MMSE-PROP-BAND",
+   "field": "nowcast",
+   "n": 12,
+   "worse": 7,
+   "better": 5,
+   "ties": 0,
+   "rel_median_pct": 0.08966552472322695,
+   "log_ratio_median": 0.0008960540394101477,
+   "p_worse": 0.38720703125,
+   "p_better": 0.80615234375,
+   "records": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ]
+  },
+  "snap_on_prop": {
+   "a": "PROP",
+   "b": "PROP-SNAP",
+   "field": "nowcast",
+   "n": 12,
+   "worse": 4,
+   "better": 8,
+   "ties": 0,
+   "rel_median_pct": -6.36554815825315,
+   "log_ratio_median": -0.06582416825100429,
+   "p_worse": 0.927001953125,
+   "p_better": 0.19384765625,
+   "records": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ]
+  },
+  "snap_on_prop_ls": {
+   "a": "PROP-LS",
+   "b": "PROP-LS-SNAP",
+   "field": "nowcast",
+   "n": 12,
+   "worse": 5,
+   "better": 7,
+   "ties": 0,
+   "rel_median_pct": -1.3089123690404982,
+   "log_ratio_median": -0.013249120572170888,
+   "p_worse": 0.80615234375,
+   "p_better": 0.38720703125,
+   "records": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ]
+  },
+  "by_box": {
+   "large": [
+    {
+     "a": "BANK",
+     "b": "BANK-K1",
+     "field": "nowcast",
+     "n": 5,
+     "worse": 1,
+     "better": 2,
+     "ties": 2,
+     "rel_median_pct": 0.0,
+     "log_ratio_median": 0.0,
+     "p_worse": 0.96875,
+     "p_better": 0.8125,
+     "records": [
+      "AA14",
+      "AA15a",
+      "AA15b",
+      "LJ18a",
+      "YS17"
+     ]
+    },
+    {
+     "a": "BANK-K1",
+     "b": "BANK-B30",
+     "field": "nowcast",
+     "n": 5,
+     "worse": 4,
+     "better": 1,
+     "ties": 0,
+     "rel_median_pct": 38.98249144141432,
+     "log_ratio_median": 0.32917777835573153,
+     "p_worse": 0.1875,
+     "p_better": 0.96875,
+     "records": [
+      "AA14",
+      "AA15a",
+      "AA15b",
+      "LJ18a",
+      "YS17"
+     ]
+    },
+    {
+     "a": "BANK-B30",
+     "b": "MMSE-PROP",
+     "field": "nowcast",
+     "n": 5,
+     "worse": 2,
+     "better": 3,
+     "ties": 0,
+     "rel_median_pct": -6.0337998306671885,
+     "log_ratio_median": -0.062235041046511834,
+     "p_worse": 0.8125,
+     "p_better": 0.5,
+     "records": [
+      "AA14",
+      "AA15a",
+      "AA15b",
+      "LJ18a",
+      "YS17"
+     ]
+    },
+    {
+     "a": "MMSE-PROP",
+     "b": "PROP-LS",
+     "field": "nowcast",
+     "n": 5,
+     "worse": 3,
+     "better": 2,
+     "ties": 0,
+     "rel_median_pct": 5.649026438709312,
+     "log_ratio_median": 0.05495234306425932,
+     "p_worse": 0.5,
+     "p_better": 0.8125,
+     "records": [
+      "AA14",
+      "AA15a",
+      "AA15b",
+      "LJ18a",
+      "YS17"
+     ]
+    },
+    {
+     "a": "PROP-LS",
+     "b": "PROP-LS-APG",
+     "field": "nowcast",
+     "n": 5,
+     "worse": 3,
+     "better": 2,
+     "ties": 0,
+     "rel_median_pct": 3.6372197006619924,
+     "log_ratio_median": 0.03572634283750899,
+     "p_worse": 0.5,
+     "p_better": 0.8125,
+     "records": [
+      "AA14",
+      "AA15a",
+      "AA15b",
+      "LJ18a",
+      "YS17"
+     ]
+    },
+    {
+     "a": "PROP-LS-APG",
+     "b": "PROP",
+     "field": "nowcast",
+     "n": 5,
+     "worse": 2,
+     "better": 3,
+     "ties": 0,
+     "rel_median_pct": -5.0035934544177,
+     "log_ratio_median": -0.05133112093894128,
+     "p_worse": 0.8125,
+     "p_better": 0.5,
+     "records": [
+      "AA14",
+      "AA15a",
+      "AA15b",
+      "LJ18a",
+      "YS17"
+     ]
+    }
+   ],
+   "small": [
+    {
+     "a": "BANK",
+     "b": "BANK-K1",
+     "field": "nowcast",
+     "n": 7,
+     "worse": 4,
+     "better": 0,
+     "ties": 3,
+     "rel_median_pct": 0.042721604310225654,
+     "log_ratio_median": 0.00042712481231109027,
+     "p_worse": 0.5,
+     "p_better": 1.0,
+     "records": [
+      "BS11a",
+      "BS11b",
+      "BS11c",
+      "BS11d",
+      "BS13a",
+      "BS13b",
+      "BS13c"
+     ]
+    },
+    {
+     "a": "BANK-K1",
+     "b": "BANK-B30",
+     "field": "nowcast",
+     "n": 7,
+     "worse": 6,
+     "better": 1,
+     "ties": 0,
+     "rel_median_pct": 30.082544527271253,
+     "log_ratio_median": 0.26299902086910065,
+     "p_worse": 0.0625,
+     "p_better": 0.9921875,
+     "records": [
+      "BS11a",
+      "BS11b",
+      "BS11c",
+      "BS11d",
+      "BS13a",
+      "BS13b",
+      "BS13c"
+     ]
+    },
+    {
+     "a": "BANK-B30",
+     "b": "MMSE-PROP",
+     "field": "nowcast",
+     "n": 7,
+     "worse": 2,
+     "better": 5,
+     "ties": 0,
+     "rel_median_pct": -2.437974043922883,
+     "log_ratio_median": -0.02468184659853458,
+     "p_worse": 0.9375,
+     "p_better": 0.2265625,
+     "records": [
+      "BS11a",
+      "BS11b",
+      "BS11c",
+      "BS11d",
+      "BS13a",
+      "BS13b",
+      "BS13c"
+     ]
+    },
+    {
+     "a": "MMSE-PROP",
+     "b": "PROP-LS",
+     "field": "nowcast",
+     "n": 7,
+     "worse": 7,
+     "better": 0,
+     "ties": 0,
+     "rel_median_pct": 11.825294121069199,
+     "log_ratio_median": 0.11176759351800945,
+     "p_worse": 0.0078125,
+     "p_better": 1.0,
+     "records": [
+      "BS11a",
+      "BS11b",
+      "BS11c",
+      "BS11d",
+      "BS13a",
+      "BS13b",
+      "BS13c"
+     ]
+    },
+    {
+     "a": "PROP-LS",
+     "b": "PROP-LS-APG",
+     "field": "nowcast",
+     "n": 7,
+     "worse": 1,
+     "better": 5,
+     "ties": 1,
+     "rel_median_pct": -4.027403476341681,
+     "log_ratio_median": -0.04110748814824216,
+     "p_worse": 0.9921875,
+     "p_better": 0.2265625,
+     "records": [
+      "BS11a",
+      "BS11b",
+      "BS11c",
+      "BS11d",
+      "BS13a",
+      "BS13b",
+      "BS13c"
+     ]
+    },
+    {
+     "a": "PROP-LS-APG",
+     "b": "PROP",
+     "field": "nowcast",
+     "n": 7,
+     "worse": 7,
+     "better": 0,
+     "ties": 0,
+     "rel_median_pct": 13.902113891467453,
+     "log_ratio_median": 0.13016924348042383,
+     "p_worse": 0.0078125,
+     "p_better": 1.0,
+     "records": [
+      "BS11a",
+      "BS11b",
+      "BS11c",
+      "BS11d",
+      "BS13a",
+      "BS13b",
+      "BS13c"
+     ]
+    }
+   ]
+  }
+ }
+}

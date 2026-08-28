@@ -430,6 +430,14 @@ class SequentialUpdater:
         # real windows (see _initialize_bank); 'v2_konly' = the pre-port 2026-07-27
         # behaviour, kept as an escape hatch for reproducing the older real-data runs.
         self.real_estimator = str(config.get('real_estimator', 'bank_mmse'))
+        # RESEARCH-ONLY bank knobs (2026-08-28, tmp/M8_LADDER_2026-08-28/PATCH.md).
+        # ⛔"설정을 넣었다 != 설정이 먹었다" -- these two are read ONLY by
+        # _bank_fit_window, so any other real_estimator would swallow them silently.
+        if (config.get('bank_dk_frac') is not None
+                or config.get('bank_k_set') is not None) and \
+                str(config.get('real_estimator', 'bank_mmse')) != 'bank_mmse':
+            raise ValueError("bank_dk_frac / bank_k_set require "
+                             "real_estimator='bank_mmse'")
         self._bank = None   # list[BankMMSEFit] once _initialize_bank has run
         self.use_dispersion = config.get('use_dispersion', True)
         self.use_confidence = config.get('use_confidence', True)
@@ -1172,8 +1180,16 @@ class SequentialUpdater:
             P, z = P[ii], z[ii]
         self._bank_Hs_obs = 4.0 * float(np.std(z))
         sigma0 = 0.05 * self._bank_Hs_obs
+        # RESEARCH-ONLY (2026-08-28, tmp/M8_LADDER_2026-08-28/PATCH.md): both keys
+        # default to None = the pre-patch call, BIT-IDENTICAL (regression
+        # tmp/M8_LADDER_2026-08-28/regress_bank_mmse.py).  Not on the deployment
+        # surface (run.py DEFAULT_CONFIG unchanged); the guard in __init__ refuses
+        # them on a route that would silently ignore them.
         self._bank = [fit_bank_mmse(P, z, self.depth, sigma0, kp_hint=None,
-                                    seed=s) for s in self._bank_seeds]
+                                    seed=s,
+                                    dk_frac=self.config.get('bank_dk_frac'),
+                                    k_set=self.config.get('bank_k_set'))
+                      for s in self._bank_seeds]
 
     # ── 비동기 재적합 (2026-08-23, 기본 OFF) ──────────────────────────────────
     # 왜: 재적합 단가 중앙 1.714 s 대 프레임 간격 0.067–0.100 s = **약 20배**.  동기로 돌면

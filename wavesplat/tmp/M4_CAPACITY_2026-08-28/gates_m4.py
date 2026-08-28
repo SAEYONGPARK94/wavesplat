@@ -109,7 +109,8 @@ LADDER = ['K-8', 'K-15', 'SHIP-K', 'K-60', 'K-128', 'K-128-D15', 'K-128-D0', 'K-
 BASE = 'SHIP-K'
 PRIMARY_ARM = 'K-MAX'
 TWOBYTWO = [('SHIP-K', 'SHIP-K-LSC'), ('K-MAX', 'K-MAX-LSC')]
-REAL_ARMS = LADDER + ['SHIP-K-LSC', 'K-MAX-LSC', 'K-8-NOGROW', 'SHIP-K-INL']
+REAL_ARMS = LADDER + ['SHIP-K-LSC', 'K-MAX-LSC', 'K-8-NOGROW']   # ⛔pc 팔은 여기 없다
+PC_ARMS = ['SHIP-K-INL']          # ★러너가 `pc=True` 로 찍는 팔 (run_m4.py:224,256)
 SYN_ARMS = ['SHIP-K', 'K-60', 'K-128-D0', 'K-MAX']      # 합성은 4점 용량-반응만
 SYN_IMPORTED_BASE = 'SHIP-K'      # ★B-22 `LEARN` 동결 행을 수입한다(재실행 0)
 INLINE_SEEDS = (42,)              # 양성대조는 시드 42 한 개(예산)
@@ -185,6 +186,33 @@ def real_zero_ref(record):
     """실측 채점 기준 = **참 제로필드**(레코드별). ⛔`1.0` 상수 금지(08-23 사고)."""
     from zero_ref import zero_ref_nowcast
     return float(zero_ref_nowcast(record, win=WIN))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3b. ★AMENDMENT 1 (A-3) — 작업 목록과 행 스탬프의 **단일출처**
+#     ⛔러너와 게이트가 각자 알고 있으면 그것이 `G-13` 항등 실패를 낳은 결함이다.
+# ─────────────────────────────────────────────────────────────────────────────
+def expected_jobs(stratum):
+    """★러너의 작업 목록 **단일출처**. `run_m4.jobs()` 가 이 함수를 부른다."""
+    if stratum == 'real':
+        return [(a, rec, s) for a in REAL_ARMS for rec in RECORDS for s in EST_SEEDS]
+    if stratum == 'syn':
+        eps = sorted(e['episode'] for e in syn_episodes())
+        return [(a, e, s) for a in SYN_ARMS if a != SYN_IMPORTED_BASE
+                for e in eps for s in EST_SEEDS]
+    if stratum == 'pc':
+        return [(a, rec, s) for a in PC_ARMS for rec in RECORDS for s in INLINE_SEEDS]
+    raise ValueError(stratum)
+
+
+def row_identity(stratum, arm, unit, seed):
+    """★행의 **식별 스탬프** 단일출처 — `pc` 는 여기서만 붙는다.
+    ⛔러너와 게이트가 각자 알고 있으면 그것이 `G-13` 을 낳은 결함이다."""
+    row = dict(stratum=('real' if stratum == 'pc' else stratum), arm=arm,
+               unit=unit, est_seed=int(seed))
+    if stratum == 'pc':
+        row['pc'] = True
+    return row
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -347,6 +375,10 @@ B22_DIR = os.path.join(ROOT, 'tmp/B22_PRIOR_ABLATION_2026-08-27')
 B2_DIR = os.path.join(ROOT, 'tmp/B2_REAL_2026-08-23')
 ATOMS_REAL = os.path.join(HERE, 'atoms_real')
 PREMISE = os.path.join(HERE, 'premise_m4.json')
+# ★AMENDMENT 1 — 개정 **전** 증거 (⛔덮어쓰기 금지, FROZEN_md5_amend1.txt 가 묶는다)
+PC_FROZEN = os.path.join(HERE, 'frozen_pc_pre_amend1.jsonl')   # 개정 전 pc 12행
+PRE_AMEND_VERDICT = os.path.join(HERE, 'verdict_m4_pre_amend1.json')
+AMEND_INVARIANT_KEYS = ('n', 'better', 'tie', 'rel_median_pct', 'p_one_sided')
 
 
 def _b22_learned_atom_files():
@@ -479,12 +511,17 @@ def gates_run(rows):
     out.append(('G-12 0행 가드', len(ok) > 0, f'{len(ok)}'))
     real = [r for r in ok if r.get('stratum') == 'real' and not r.get('pc')]
     syn = [r for r in ok if r.get('stratum') == 'syn' and not r.get('pc')]
-    # G-13 팔별 행 수
+    pc = [r for r in ok if r.get('pc')]        # ★양성대조는 **다른 집합**이다
+    # G-13 팔별 행 수 — ⛔`real` 은 pc 행을 배제하므로 인라인 팔을 여기서 세면 항등 실패다
     for a in REAL_ARMS:
-        want = len(RECORDS) * (len(INLINE_SEEDS) if arm_knobs(a)['inline']
-                               else len(EST_SEEDS))
+        want = len(RECORDS) * len(EST_SEEDS)
         n = sum(1 for r in real if r['arm'] == a)
         out.append((f'G-13 real {a}', n == want, f'{n}/{want}'))
+    # ★G-13pc — 세는 집합이 러너의 스탬프와 **같은 쪽**이다
+    for a in PC_ARMS:
+        want = len(RECORDS) * len(INLINE_SEEDS)
+        n = sum(1 for r in pc if r['arm'] == a)
+        out.append((f'G-13pc {a}', n == want, f'{n}/{want}'))
     for a in SYN_ARMS:
         want = len(syn_episodes()) * len(EST_SEEDS)
         n = sum(1 for r in syn if r['arm'] == a)
@@ -517,13 +554,41 @@ def gates_run(rows):
     nprim = sum(1 for r in ok if r['arm'] == PRIMARY_ARM and not r.get('pc'))
     out.append((f'G-14b {PRIMARY_ARM} 이 전 셀에서 K 를 늘렸다',
                 nprim > 0 and len(grew) == nprim, f'{len(grew)}/{nprim}'))
-    # ★G-15 캐시 양성대조 — 비트동일
-    inl = {(r['unit'], r['est_seed']): r for r in ok if r['arm'] == 'SHIP-K-INL'}
-    base = {(r['unit'], r['est_seed']): r for r in ok if r['arm'] == BASE}
-    same = [k for k in inl if k in base
-            and repr(inl[k].get(FIELD_REAL)) == repr(base[k].get(FIELD_REAL))]
-    out.append(('G-15 원자 캐시 = 인라인 제안 (비트동일)',
-                len(inl) > 0 and len(same) == len(inl), f'{len(same)}/{len(inl)}'))
+    # ★G-15 캐시 양성대조 — **원자 배열** 비교 (PREREG:175 의 의도)
+    inl = [r for r in ok if r['arm'] in PC_ARMS and r.get('pc')]
+    want = len(RECORDS) * len(INLINE_SEEDS)
+    same = [r for r in inl
+            if r.get('atoms_maxabs_diff') == 0.0
+            and r.get('atoms_md5_inline') is not None
+            and r['atoms_md5_inline'] == r.get('atoms_md5_cached')
+            and r.get('n_atoms_proposed') == r.get('n_atoms_cached')]
+    out.append(('G-15 캐시 원자 == 인라인 제안 원자 (비트동일)',
+                len(inl) == want and len(same) == want,
+                f'{len(same)}/{len(inl)} (기대 {want})'))
+    # ★G-15x 공시(판정 아님) — **끝단** nowcast 는 비트동일하지 **않다**.
+    #   추정기 성장 가지가 전역 torch RNG 를 쓴다(sequential_update.py:1617) ⟹
+    #   인라인 팔은 확산 체인을 소모한 상태로 그 지점에 도착한다. 이 수를 지우지 마라.
+    basem = {(r['unit'], r['est_seed']): r for r in ok
+             if r['arm'] == BASE and not r.get('pc')}
+    same_e = [r for r in inl
+              if (r['unit'], r['est_seed']) in basem
+              and repr(r.get(FIELD_REAL))
+              == repr(basem[(r['unit'], r['est_seed'])].get(FIELD_REAL))]
+    out.append(('G-15x 공시: 끝단 nowcast 가 기준선과 동일한 셀 (판정 아님)',
+                True, f'{len(same_e)}/{len(inl)} — ⛔이 배치는 끝단 동일성을 주장하지 않는다'))
+    # ★G-13pc-repro — 개정 전 행과 비트동일 (⛔실패 시 패치 금지, AMENDMENT_1_PREREG §7)
+    old = {}
+    if os.path.exists(PC_FROZEN):
+        for line in open(PC_FROZEN):
+            if line.strip():
+                r0 = json.loads(line)
+                old[(r0['arm'], r0['unit'], r0['est_seed'])] = r0
+    rep = [r for r in inl
+           if (r['arm'], r['unit'], r['est_seed']) in old
+           and repr(r.get(FIELD_REAL))
+           == repr(old[(r['arm'], r['unit'], r['est_seed'])].get(FIELD_REAL))]
+    out.append(('G-13pc-repro 재실행이 개정 전 pc 행을 비트 재현',
+                bool(old) and len(rep) == want, f'{len(rep)}/{len(old)} (기대 {want})'))
     # ★G-16 성장 **가지** 계수기 (B-2f 교훈: 함수가 아니라 가지를 센다)
     ng = {(r['unit'], r['est_seed']): r for r in ok if r['arm'] == 'K-8-NOGROW'}
     k8 = {(r['unit'], r['est_seed']): r for r in ok if r['arm'] == 'K-8'}
@@ -574,6 +639,78 @@ def gates_run(rows):
 
 def _gid(name):
     return name.split()[0]
+
+
+def gate_amend_invariance(label, primary, label_syn, syn_primary):
+    """★개정 전/후 판정이 **비트 동일**한가. 개정이 통계를 건드렸다면 여기서 죽는다."""
+    if not os.path.exists(PRE_AMEND_VERDICT):
+        return ('G-A1 개정 전 판정과 비트 동일', False, '개정 전 verdict 사본이 없다')
+    v0 = json.load(open(PRE_AMEND_VERDICT))
+    bad = [k for k in AMEND_INVARIANT_KEYS
+           if repr(v0['primary'].get(k)) != repr(primary.get(k))]
+    bad += [f'syn:{k}' for k in AMEND_INVARIANT_KEYS
+            if repr((v0['syn'].get(PRIMARY_ARM) or {}).get(k))
+            != repr((syn_primary or {}).get(k))]
+    ok = (not bad and v0['label'] == label and v0['label_secondary'] == label_syn)
+    return ('G-A1 개정 전 판정과 비트 동일', ok,
+            f"{v0['label']}/{v0['label_secondary']} vs {label}/{label_syn} · 이탈 {bad}")
+
+
+def synthetic_rows():
+    """★러너의 **작업 목록·스탬프**에서 만든 '정상 세계' — 자가진단 [11]/[12] 용.
+
+    ⛔손으로 적은 의도표가 아니다(그것이 `PREREG §8` 하네스의 결함이었다 —
+    러너가 아니라 **게이트를 모형**했다). 식별자는 `expected_jobs`·`row_identity`
+    (러너가 부르는 **그 함수**)가 내고, 게이트가 읽는 값 필드만 여기서 일관되게 채운다.
+    `pc` 행의 끝단은 `PC_FROZEN` 에서 읽는다 ⟹ `G-13pc-repro` 도 이 세계에서
+    시험된다(**면제 게이트 0개**).
+    """
+    pcf = {}
+    if os.path.exists(PC_FROZEN):
+        for line in open(PC_FROZEN):
+            if line.strip():
+                r0 = json.loads(line)
+                pcf[(r0['arm'], r0['unit'], r0['est_seed'])] = r0
+
+    def fake_K(arm):
+        k = arm_knobs(arm)
+        if k['e_th'] == 0.0 and k['ddk'] == 0.0:
+            return RAW_ATOMS_LEN                 # K-MAX 계열 = 제안 원자 전부
+        return min(k['max_n'], 19)               # 배포 선택의 전형값(premise 중앙 19)
+
+    rows = []
+    for stratum in ('real', 'syn', 'pc'):
+        for arm, unit, s in expected_jobs(stratum):
+            kk = fake_K(arm)
+            r = row_identity(stratum, arm, unit, s)
+            r.update(K_expected=kk, n_gaussians=kk, apg_calls=1, apg_dn=[0],
+                     atoms_md5=f'pool-{unit}-{s}', n_atoms_injected=RAW_ATOMS_LEN,
+                     propose_calls=(1 if arm_knobs(arm)['inline'] else 0),
+                     si_l1_readback=bool(arm_knobs(arm)['si_l1']),
+                     cuda_available=False)
+            if stratum == 'syn':
+                r[FIELD_SYN] = 0.10
+            else:
+                r.update(depth=30.0, real_gate=False,
+                         obs_hash=f'o-{unit}', q_hash=f'q-{unit}')
+                r[FIELD_REAL] = 0.5
+            if stratum == 'pc':
+                r.update(atoms_md5=None, atoms_md5_inline='same',
+                         atoms_md5_cached='same', atoms_maxabs_diff=0.0,
+                         n_atoms_proposed=RAW_ATOMS_LEN,
+                         n_atoms_cached=RAW_ATOMS_LEN)
+                r[FIELD_REAL] = (pcf.get((arm, unit, s)) or {}).get(FIELD_REAL)
+            rows.append(r)
+    # ★합성 기준선은 `B-22` 동결 행 **수입**이다 — `analyze_m4.load_rows()` 와 같은 모양
+    for e in sorted(x['episode'] for x in syn_episodes()):
+        for s in EST_SEEDS:
+            rows.append({'stratum': 'syn', 'arm': SYN_IMPORTED_BASE, 'unit': e,
+                         'est_seed': int(s), 'K_expected': fake_K(SYN_IMPORTED_BASE),
+                         'n_gaussians': fake_K(SYN_IMPORTED_BASE),
+                         'atoms_md5': f'pool-{e}-{s}', 'propose_calls': 0,
+                         'si_l1_readback': False, 'cuda_available': False,
+                         'imported_from': 'B22:LEARN', FIELD_SYN: 0.12})
+    return rows
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -627,6 +764,16 @@ def selftest():
     from zero_ref import selftest as zr_selftest
     z = zr_selftest()
     chk(z['n'] == 12 and z['n_far_from_one'] >= 1, f'zero_ref {z}')
+    # [11] ★런타임 게이트 만족가능성 — 정상 세계에서 **전 게이트가 통과**해야 한다
+    #      (⛔종전 자가진단은 gates_runfree() 와 0행 가드만 봤다 = M2 교훈 미적용)
+    srows = synthetic_rows()
+    gr = gates_run(srows)
+    chk(all(okv for _, okv, _ in gr),
+        '합성 정상 세계에서 FAIL: ' + str([n for n, o, m in gr if not o]))
+    # [12] ★그 시험이 공허하지 않은가 — 팔 하나를 지우면 **반드시** 누가 FAIL 해야 한다
+    for a in ('SHIP-K-INL', 'K-MAX', 'K-8', 'SHIP-K'):
+        g2 = gates_run([r for r in srows if r['arm'] != a])
+        chk(any(not okv for _, okv, _ in g2), f'{a} 를 지웠는데 전 게이트 통과 = 공허')
     return fails
 
 

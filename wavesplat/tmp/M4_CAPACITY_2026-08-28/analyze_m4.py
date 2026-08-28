@@ -94,6 +94,9 @@ def main():
     slab, swhy = (G.label_syn(syn[G.PRIMARY_ARM]) if G.PRIMARY_ARM in syn
                   else ('SYN-NOT-RUN', '합성 층 행 0개'))
 
+    # ★AMENDMENT 1 — 개정이 PRIMARY 를 움직이지 않았음을 **논증이 아니라 비트로**
+    gates.append(list(G.gate_amend_invariance(lab, prim, slab, syn.get(G.PRIMARY_ARM))))
+
     # 용량-반응표 (사다리 K 의 실제 중앙값)
     dose = {}
     for a in G.LADDER:

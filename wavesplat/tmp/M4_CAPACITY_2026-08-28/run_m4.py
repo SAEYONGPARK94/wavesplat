@@ -45,20 +45,32 @@ import make_gif_bank_deployed as M          # noqa: E402
 ATOMS_REAL = os.path.join(HERE, 'atoms_real')
 ATOMS_SYN = os.path.join(ROOT, 'tmp/B22_PRIOR_ABLATION_2026-08-27/atoms')
 _PROPOSE = [0]
+_LAST_PROPOSAL = [None]        # ★인라인 제안 원자 (양성대조 A-2)
 
 
 def _install_propose_counter():
-    """확산 제안 호출 수를 센다 — *"주입했다"* 의 **직접 증거**(B-22 규약 승계)."""
+    """확산 제안 호출 수를 센다 — *"주입했다"* 의 **직접 증거**(B-22 규약 승계).
+
+    ★AMENDMENT 1 (A-2): 제안 **원자 자체**를 포착해 행에 증거를 남긴다.
+    종전에는 인라인 팔이 `atoms_md5=None` 이라 원자 대조가 **불가능**했다(`:146`).
+    """
     import wavesplat.optimizer.learned_init as LI
-    if getattr(LI.propose_atoms, '_m4_count', False):
+    if getattr(LI.propose_atoms, '_m4_count2', False):
         return
     real = LI.propose_atoms
 
     def counting(*a, **kw):
         _PROPOSE[0] += 1
-        return real(*a, **kw)
+        r = real(*a, **kw)
+        try:                    # ⛔포착 실패가 추정을 죽이면 안 된다
+            _LAST_PROPOSAL[0] = dict(kx=np.asarray(r[0], float).tolist(),
+                                     ky=np.asarray(r[1], float).tolist(),
+                                     energy=np.asarray(r[2], float).tolist())
+        except Exception:       # noqa: BLE001
+            _LAST_PROPOSAL[0] = None
+        return r
 
-    counting._m4_count = True
+    counting._m4_count2 = True
     LI.propose_atoms = counting
 
 
@@ -93,6 +105,7 @@ def run_real(record, arm, seed):
     cfg = G.arm_config(arm, atoms, depth=float(sc['depth']), seed=seed, real=True)
     _install_propose_counter()
     _PROPOSE[0] = 0
+    _LAST_PROPOSAL[0] = None
     old_si = SU.SCALE_INVARIANT_L1
     SU.SCALE_INVARIANT_L1 = bool(k['si_l1'])
     # 성장 **가지** 계수기 (B-2f 교훈: 함수가 아니라 가지를 센다)
@@ -134,6 +147,20 @@ def run_real(record, arm, seed):
     finally:
         SU.SCALE_INVARIANT_L1 = old_si
         SU.SequentialUpdater._adaptive_prune_grow = orig
+    # ★AMENDMENT 1 (A-2) — 인라인 제안 원자 vs 동결 캐시 원자. ⛔채점이 끝난 뒤에 읽는다:
+    #   인라인 팔이 캐시를 *쓴* 것이 아니라 *대조한* 것임을 **순서로** 보장한다.
+    cmp_inline = {}
+    if k['inline'] and _LAST_PROPOSAL[0] is not None:
+        cached = json.load(open(os.path.join(ATOMS_REAL,
+                                             f'{record}__s{seed}.json')))['atoms']
+        ia = _LAST_PROPOSAL[0]
+        d = (max(float(np.max(np.abs(np.asarray(ia[f], float)
+                                     - np.asarray(cached[f], float))))
+                 for f in ('kx', 'ky', 'energy'))
+             if len(cached['kx']) == len(ia['kx']) else None)
+        cmp_inline = dict(atoms_md5_inline=_md5(ia), atoms_md5_cached=_md5(cached),
+                          atoms_maxabs_diff=d, n_atoms_proposed=len(ia['kx']),
+                          n_atoms_cached=len(cached['kx']))
     return dict(
         stratum='real', arm=arm, unit=record, est_seed=int(seed), win=G.WIN,
         depth=float(sc['depth']), n_obs=int(len(sc['z'])), npx=int(sc['npx']),
@@ -154,7 +181,8 @@ def run_real(record, arm, seed):
         varpro_fired=bool((res or {}).get('varpro')),
         varpro_steps=(res or {}).get('varpro_steps'),
         cuda_available=bool(torch.cuda.is_available()),
-        Hs=float(sc['Hs']), sigma=float(sc['sg']), wall_s=time.time() - t0w)
+        Hs=float(sc['Hs']), sigma=float(sc['sg']), wall_s=time.time() - t0w,
+        **cmp_inline)
 
 
 # ── Phase C: 합성 대조 ───────────────────────────────────────────────────────
@@ -207,25 +235,12 @@ def run_syn(ep, arm, seed):
 
 # ── 작업 목록 ────────────────────────────────────────────────────────────────
 def jobs(stratum):
-    out = []
-    if stratum == 'real':
-        for a in G.LADDER + ['SHIP-K-LSC', 'K-MAX-LSC', 'K-8-NOGROW']:
-            for rec in G.RECORDS:
-                for s in G.EST_SEEDS:
-                    out.append((a, rec, s))
-    elif stratum == 'syn':
-        eps = {e['episode']: e for e in G.syn_episodes()}
-        for a in G.SYN_ARMS:
-            if a == G.SYN_IMPORTED_BASE:
-                continue                     # ★B-22 `LEARN` 동결 행을 수입한다(재실행 0)
-            for e in sorted(eps):
-                for s in G.EST_SEEDS:
-                    out.append((a, e, s))
-    elif stratum == 'pc':
-        for rec in G.RECORDS:                # 캐시 양성대조 = 인라인 제안(시드 42)
-            for s in G.INLINE_SEEDS:
-                out.append(('SHIP-K-INL', rec, s))
-    return out
+    """★AMENDMENT 1 (A-3): 작업 목록의 **단일출처는 게이트**다.
+
+    ⛔러너와 게이트가 각자 알고 있으면 그것이 `G-13` 항등 실패를 낳은 결함이다.
+    (순서·구성은 종전과 같다: real 11팔×12×3=396 · syn 3팔×48×3=432 · pc 12.)
+    """
+    return G.expected_jobs(stratum)
 
 
 def main():
@@ -253,8 +268,7 @@ def main():
             try:
                 row = (run_syn(eps[unit], arm, s) if stratum == 'syn'
                        else run_real(unit, arm, s))
-                if stratum == 'pc':
-                    row['pc'] = True
+                row.update(G.row_identity(stratum, arm, unit, s))
             except Exception as e:            # noqa: BLE001
                 import traceback
                 row = dict(stratum=stratum, arm=arm, unit=unit, est_seed=int(s),

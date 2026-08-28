@@ -1,0 +1,581 @@
+{
+ "batch": "M2",
+ "question": "B-26 짧은 주기 코너 마진 중 기준선 미조율 몫",
+ "direction": "BASELINE-STRENGTHENING-ONLY :: 이 배치는 기준선을 **강하게만** 만든다. ① 개입은 `loc_radius` 하나이고 그 후보 격자는 **S17 이 동결한 사다리**에서 **자료(λ_p)로 도출**된다 — 사후 자유도 0. ② 선택은 `BEST = argmin_a W_a`(현행 `SPEC25` 를 **후보 풀에 포함**)이므로 `W_BEST ≤ W_SPEC25` 가 **항등적으로** 성립한다 = 부호 마진은 커질 수 없다. ③ 인용 크기는 `MAGNITUDE_FLOOR`(= 두 med(rel) 중 **덜 유리한** 쪽)로 막는다 = 크기 마진도 커질 수 없다. ⟹ ★**어느 분기로 가도 M2 는 마진을 줄이거나·지우거나·그대로 두며, 절대 키우지 못한다.**",
+ "corners": [
+  "SS-REAL",
+  "SS-SHORT",
+  "SS-BF4"
+ ],
+ "n_per_corner": 24,
+ "thresholds": {
+  "n": 24,
+  "source": "gates_b26 (import, 손복사 0)",
+  "p_nominal": 0.03195732831954956,
+  "p_confirm": 0.011327922344207764,
+  "p_weak_le": 0.03195732831954956,
+  "family_alpha": 0.0125,
+  "confirm_within_family": true,
+  "weak_is_sibling": true,
+  "d2_thresh": 17,
+  "p_d2": 0.03195732831954956
+ },
+ "ladder": [
+  6.25,
+  12.5,
+  25.0,
+  50.0,
+  100.0
+ ],
+ "candidates": {
+  "SS-REAL": [
+   6.25,
+   12.5,
+   25.0
+  ],
+  "SS-SHORT": [
+   6.25,
+   12.5,
+   25.0
+  ],
+  "SS-BF4": [
+   25.0
+  ]
+ },
+ "loc_star": {
+  "SS-REAL": 4.723724568580874,
+  "SS-SHORT": 4.723724568580874,
+  "SS-BF4": 18.993076756040377
+ },
+ "sweep_corpus": {
+  "n": 64,
+  "composition": {
+   "BF4": 32,
+   "BF5": 32
+  },
+  "median": 100.64574867878969,
+  "by_bf": {
+   "BF4": 76.46289719301608,
+   "BF5": 124.82860016456328
+  }
+ },
+ "s17_rules": {
+  "zero_loss_max": 0.1,
+  "skill_max": -0.05,
+  "tiebreak_in_source": true
+ },
+ "gates": [
+  [
+   "G-L1 loc 사다리 == S17 팔 정의",
+   true,
+   "(6.25, 12.5, 25.0, 50.0, 100.0)"
+  ],
+  [
+   "G-L1b 스윕 코퍼스 = S16 혼잡 64 (BF4 32 + BF5 32)",
+   true,
+   "n=64 {'BF4': 32, 'BF5': 32} λ_median=100.6457"
+  ],
+  [
+   "★G-L2 후보 격자 재도출 == 동결",
+   true,
+   "SS-REAL: loc*=4.7237 → (6.25, 12.5, 25.0) · SS-SHORT: loc*=4.7237 → (6.25, 12.5, 25.0) · SS-BF4: loc*=18.9931 → (25.0,)"
+  ],
+  [
+   "★G-L3 GC 지지폭 == S17 A-6 표 (2c/dx = 8.12·4.06·2.03)",
+   true,
+   "dx=6.1538 dy=6.8966 SPEC25:8.12dx SPEC12:4.06dx SPEC6:2.03dx"
+  ],
+  [
+   "★G-L5 S17 적격성 상수·동점규칙을 소스에서 파싱",
+   true,
+   "zero_loss≤0.1 skill≤-0.05 tiebreak_in_source=True"
+  ],
+  [
+   "★G-L6 선택규칙 양성대조: S17 동결 판정 재현 (BEST=SPEC25)",
+   true,
+   "verdict_s17.json 의 W/rel/elig → SPEC25"
+  ],
+  [
+   "G-19 문턱 산술 (B-26 에서 import)",
+   true,
+   "NOMINAL 17 p=0.03196 · CONFIRM 18 p=0.01133 ≤ 0.0125 · D-2 17 p=0.03196"
+  ],
+  [
+   "G-20 배포 상수 == 패키지 단일출처 == 사전등록값",
+   true,
+   "{'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001}"
+  ],
+  [
+   "G-1 표본 == B-26 세 코너 72 에피소드 (코너 집합도 동결과 대조)",
+   true,
+   "72/72 ('SS-REAL', 'SS-SHORT', 'SS-BF4')"
+  ],
+  [
+   "★G-L4 도달성: loc 은 ARMS 로 도달 · 격자 40×30 은 **도달 불가**",
+   true,
+   "{\"loc_reachable\": true, \"loc_sites\": 2, \"grid_reachable\": false, \"grid_literal\": true, \"readback\": true}"
+  ],
+  [
+   "G-6 72 에피소드 파일 존재 (생성 0회)",
+   true,
+   "결측 0"
+  ],
+  [
+   "★G-F1 B-26 동결 행 수입: SHIP 72 · SPEC25 72 에피소드",
+   true,
+   "72 / 72"
+  ],
+  [
+   "G-11 에러 0행",
+   true,
+   "0"
+  ],
+  [
+   "G-12 SPEC12 216행",
+   true,
+   "216/216"
+  ],
+  [
+   "G-12 SPEC6 216행",
+   true,
+   "216/216"
+  ],
+  [
+   "★G-16 개입 되읽기: `f.loc_radius` **와** `readback(f)` 둘 다 == 팔의 loc (+ 배경 jonswap · 앙상블 600 · LETKFGridSpec)",
+   true,
+   "위반 0"
+  ],
+  [
+   "★G-16b 개입이 no-op 이 아니다 (팔이 SPEC25 와 비트 동일한 런의 비율 < 50%)",
+   true,
+   "SPEC12:0/216 SPEC6:0/216"
+  ],
+  [
+   "★G-13 단일요인: `loc_radius` 외 필터 설정 차이 0",
+   false,
+   "ref=없음 차이=[]"
+  ],
+  [
+   "★G-Z zero_nRMSE 가 팔 간 **비트 동일** (GT 만의 함수)",
+   true,
+   "불일치 0"
+  ],
+  [
+   "★G-PC1 SPEC25 재실행 == B-26 동결 행 (비트 동일)",
+   true,
+   "18행 불일치 0 max|Δ|=0.0"
+  ],
+  [
+   "★G-PC2 SHIP-NOW 재실행 == B-26 동결 행 (비트 동일)",
+   true,
+   "18행 불일치 0 max|Δ|=0.0"
+  ],
+  [
+   "★G-18 계측 투명: `cap_avg_nRMSE` == `avg_nRMSE` 비트 동일",
+   true,
+   "432행"
+  ]
+ ],
+ "gates_pass": 21,
+ "gates_total": 22,
+ "results": {
+  "SS-REAL": {
+   "corner": "SS-REAL",
+   "Hs": 0.725,
+   "Tp": 3.49,
+   "lam_p": 19.016911830288596,
+   "loc_star": 4.723724568580874,
+   "candidates": [
+    6.25,
+    12.5,
+    25.0
+   ],
+   "stats": {
+    "SPEC25": {
+     "n": 24,
+     "W": 24,
+     "rel": -42.41711706035177,
+     "p": 5.960464477539063e-08,
+     "mean": 0.23911316059373863,
+     "median": 0.24043587373192749,
+     "a_lt_zero": 23,
+     "a_lt_zero_n": 24,
+     "skill": -0.03958137835187377,
+     "zero_loss": 0.041666666666666664,
+     "zero_loss_raw": [
+      3,
+      72
+     ]
+    },
+    "SPEC12": {
+     "n": 24,
+     "W": 24,
+     "rel": -42.9389738487871,
+     "p": 5.960464477539063e-08,
+     "mean": 0.24045995112750665,
+     "median": 0.2408331059762468,
+     "a_lt_zero": 23,
+     "a_lt_zero_n": 24,
+     "skill": -0.03432715202972561,
+     "zero_loss": 0.041666666666666664,
+     "zero_loss_raw": [
+      3,
+      72
+     ]
+    },
+    "SPEC6": {
+     "n": 24,
+     "W": 24,
+     "rel": -43.0716008274009,
+     "p": 5.960464477539063e-08,
+     "mean": 0.24055055786699717,
+     "median": 0.24034782586392278,
+     "a_lt_zero": 24,
+     "a_lt_zero_n": 24,
+     "skill": -0.03661780675436403,
+     "zero_loss": 0.0,
+     "zero_loss_raw": [
+      0,
+      72
+     ]
+    }
+   },
+   "elig": {
+    "SPEC25": {
+     "arm": "SPEC25",
+     "b26": true,
+     "s17": false,
+     "zero_loss_max": 0.1,
+     "skill_max": -0.05
+    },
+    "SPEC12": {
+     "arm": "SPEC12",
+     "b26": true,
+     "s17": false,
+     "zero_loss_max": 0.1,
+     "skill_max": -0.05
+    },
+    "SPEC6": {
+     "arm": "SPEC6",
+     "b26": true,
+     "s17": false,
+     "zero_loss_max": 0.1,
+     "skill_max": -0.05
+    }
+   },
+   "best": "SPEC25",
+   "best_s17": null,
+   "d2": {
+    "SPEC12": {
+     "n": 24,
+     "better": 6,
+     "rel_median_pct": 0.5765134544799552,
+     "p_one_sided": 0.9966946244239807
+    },
+    "SPEC6": {
+     "n": 24,
+     "better": 6,
+     "rel_median_pct": 0.3325469121786105,
+     "p_one_sided": 0.9966946244239807
+    }
+   },
+   "d2_best_better": false,
+   "d2_any_better": false,
+   "d2_any_worse": true,
+   "b26_label_frozen": "HOLDS (CONFIRMATORY)",
+   "b26_label_new": "HOLDS (CONFIRMATORY)",
+   "b26_label_new_msg": "24/24 p=0.000000",
+   "cited_rel_pct": -42.41711706035177,
+   "cited_from": "SPEC25",
+   "mde": {
+    "n": 24,
+    "f_below_confirm": 0.7372226387633048,
+    "f_below_nominal": 0.6848163727235416,
+    "f_to_weak": 0.3782599616464703,
+    "pct_below_confirm": 26.277736123669516,
+    "pct_below_nominal": 31.518362727645844,
+    "pct_to_weak": 62.17400383535296
+   },
+   "ship_vs_zero": {
+    "n": 24,
+    "better": 24,
+    "rel_median_pct": -45.45749061112373,
+    "p_one_sided": 5.960464477539063e-08
+   },
+   "verdict": "TUNING-HURTS",
+   "reading": "★**F2 가 강한 형태로 닫힌다** — 사다리를 아래로 내리면 기준선이 **나빠진다** ⟹ `loc=25` 는 이 코너들에서 **이미 최적점 이하**다. `−42.42%` 인용 가능. ★`S17` 의 백색 배경 결과(`loc 25→12.5` 0/64, `12.5→6.25` 0/64)가 **스펙트럼 배경·짧은 주기 코너로 확장**된다. MDE 병기 의무는 동일.",
+   "d2_p": {
+    "SPEC12": 0.9966946244239807,
+    "SPEC6": 0.9966946244239807
+   },
+   "d2_holm_sig": false
+  },
+  "SS-SHORT": {
+   "corner": "SS-SHORT",
+   "Hs": 1.2,
+   "Tp": 3.49,
+   "lam_p": 19.016911830288596,
+   "loc_star": 4.723724568580874,
+   "candidates": [
+    6.25,
+    12.5,
+    25.0
+   ],
+   "stats": {
+    "SPEC25": {
+     "n": 24,
+     "W": 21,
+     "rel": -42.169210848455705,
+     "p": 0.0001385807991027832,
+     "mean": 0.2407247803645029,
+     "median": 0.2405535393675044,
+     "a_lt_zero": 22,
+     "a_lt_zero_n": 24,
+     "skill": -0.040444279378134704,
+     "zero_loss": 0.09722222222222222,
+     "zero_loss_raw": [
+      7,
+      72
+     ]
+    },
+    "SPEC12": {
+     "n": 24,
+     "W": 21,
+     "rel": -43.21607631240239,
+     "p": 0.0001385807991027832,
+     "mean": 0.24405925165861556,
+     "median": 0.2425035034115791,
+     "a_lt_zero": 20,
+     "a_lt_zero_n": 24,
+     "skill": -0.030368043837050808,
+     "zero_loss": 0.19444444444444445,
+     "zero_loss_raw": [
+      14,
+      72
+     ]
+    },
+    "SPEC6": {
+     "n": 24,
+     "W": 20,
+     "rel": -42.88894492536345,
+     "p": 0.000771939754486084,
+     "mean": 0.24008617128921983,
+     "median": 0.2397571145526171,
+     "a_lt_zero": 24,
+     "a_lt_zero_n": 24,
+     "skill": -0.04045764398966751,
+     "zero_loss": 0.0,
+     "zero_loss_raw": [
+      0,
+      72
+     ]
+    }
+   },
+   "elig": {
+    "SPEC25": {
+     "arm": "SPEC25",
+     "b26": true,
+     "s17": false,
+     "zero_loss_max": 0.1,
+     "skill_max": -0.05
+    },
+    "SPEC12": {
+     "arm": "SPEC12",
+     "b26": true,
+     "s17": false,
+     "zero_loss_max": 0.1,
+     "skill_max": -0.05
+    },
+    "SPEC6": {
+     "arm": "SPEC6",
+     "b26": true,
+     "s17": false,
+     "zero_loss_max": 0.1,
+     "skill_max": -0.05
+    }
+   },
+   "best": "SPEC6",
+   "best_s17": null,
+   "d2": {
+    "SPEC12": {
+     "n": 24,
+     "better": 2,
+     "rel_median_pct": 1.2299127889463097,
+     "p_one_sided": 0.9999985098838806
+    },
+    "SPEC6": {
+     "n": 24,
+     "better": 13,
+     "rel_median_pct": -0.15893846578442875,
+     "p_one_sided": 0.4194098711013794
+    }
+   },
+   "d2_best_better": false,
+   "d2_any_better": false,
+   "d2_any_worse": false,
+   "b26_label_frozen": "HOLDS (CONFIRMATORY)",
+   "b26_label_new": "HOLDS (CONFIRMATORY)",
+   "b26_label_new_msg": "20/24 p=0.000772",
+   "cited_rel_pct": -42.169210848455705,
+   "cited_from": "SPEC25",
+   "mde": {
+    "n": 24,
+    "f_below_confirm": 0.8410261067481813,
+    "f_below_nominal": 0.8114421393619253,
+    "f_to_weak": 0.4111875779882369,
+    "pct_below_confirm": 15.897389325181866,
+    "pct_below_nominal": 18.855786063807468,
+    "pct_to_weak": 58.881242201176306
+   },
+   "ship_vs_zero": {
+    "n": 24,
+    "better": 21,
+    "rel_median_pct": -45.39876782249617,
+    "p_one_sided": 0.0001385807991027832
+   },
+   "verdict": "TUNING-NULL",
+   "reading": "★**F2 가 닫힌다** — `loc/λ_p` 4.02배 불일치가 짧은 주기 코너의 마진을 설명하지 못한다 ⟹ `−42.42%` 를 **크기로 인용할 수 있다**. ⛔단 *\"loc 이 무관하다\"* 로 쓰지 마라 — **MDE 를 반드시 병기**한다 (`mde` 필드: 라벨이 떨어지려면 기준선이 몇 % 좋아져야 하는가). ⚠그리고 이 널은 **loc 축 한정**이다 — 필터 격자 40×30 은 이 배치가 건드리지 않았고(도달 불가, §도달성) 배경·팽창·앙상블도 마찬가지다.",
+   "d2_p": {
+    "SPEC12": 0.9999985098838806,
+    "SPEC6": 0.4194098711013794
+   },
+   "d2_holm_sig": false
+  },
+  "SS-BF4": {
+   "corner": "SS-BF4",
+   "Hs": 1.2,
+   "Tp": 7.0,
+   "lam_p": 76.46289719301608,
+   "loc_star": 18.993076756040377,
+   "candidates": [
+    25.0
+   ],
+   "stats": {
+    "SPEC25": {
+     "n": 24,
+     "W": 19,
+     "rel": -42.37084988061457,
+     "p": 0.003305375576019287,
+     "mean": 0.20878648473124575,
+     "median": 0.2067404188950151,
+     "a_lt_zero": 24,
+     "a_lt_zero_n": 24,
+     "skill": -0.16174222495842663,
+     "zero_loss": 0.0,
+     "zero_loss_raw": [
+      0,
+      72
+     ]
+    },
+    "SPEC12": {
+     "n": 24,
+     "W": 21,
+     "rel": -44.551763346043444,
+     "p": 0.0001385807991027832,
+     "mean": 0.21405297668192425,
+     "median": 0.21376991213906885,
+     "a_lt_zero": 24,
+     "a_lt_zero_n": 24,
+     "skill": -0.14116065488572277,
+     "zero_loss": 0.0,
+     "zero_loss_raw": [
+      0,
+      72
+     ]
+    },
+    "SPEC6": {
+     "n": 24,
+     "W": 22,
+     "rel": -47.074092855959684,
+     "p": 1.7940998077392578e-05,
+     "mean": 0.22381690920376002,
+     "median": 0.22286205352676852,
+     "a_lt_zero": 24,
+     "a_lt_zero_n": 24,
+     "skill": -0.10722861593981989,
+     "zero_loss": 0.0,
+     "zero_loss_raw": [
+      0,
+      72
+     ]
+    }
+   },
+   "elig": {
+    "SPEC25": {
+     "arm": "SPEC25",
+     "b26": true,
+     "s17": true,
+     "zero_loss_max": 0.1,
+     "skill_max": -0.05
+    },
+    "SPEC12": {
+     "arm": "SPEC12",
+     "b26": true,
+     "s17": true,
+     "zero_loss_max": 0.1,
+     "skill_max": -0.05
+    },
+    "SPEC6": {
+     "arm": "SPEC6",
+     "b26": true,
+     "s17": true,
+     "zero_loss_max": 0.1,
+     "skill_max": -0.05
+    }
+   },
+   "best": "SPEC25",
+   "best_s17": "SPEC25",
+   "d2": {
+    "SPEC12": {
+     "n": 24,
+     "better": 5,
+     "rel_median_pct": 3.139630741098796,
+     "p_one_sided": 0.9992280602455139
+    },
+    "SPEC6": {
+     "n": 24,
+     "better": 2,
+     "rel_median_pct": 7.81527074644138,
+     "p_one_sided": 0.9999985098838806
+    }
+   },
+   "d2_best_better": false,
+   "d2_any_better": false,
+   "d2_any_worse": true,
+   "b26_label_frozen": "HOLDS (CONFIRMATORY)",
+   "b26_label_new": "HOLDS (CONFIRMATORY)",
+   "b26_label_new_msg": "19/24 p=0.003305",
+   "cited_rel_pct": -42.37084988061457,
+   "cited_from": "SPEC25",
+   "mde": {
+    "n": 24,
+    "f_below_confirm": 0.9440461672639548,
+    "f_below_nominal": 0.9301114525785791,
+    "f_to_weak": 0.3033341816062382,
+    "pct_below_confirm": 5.595383273604515,
+    "pct_below_nominal": 6.988854742142092,
+    "pct_to_weak": 69.66658183937618
+   },
+   "ship_vs_zero": {
+    "n": 24,
+    "better": 24,
+    "rel_median_pct": -53.309740617235235,
+    "p_one_sided": 5.960464477539063e-08
+   },
+   "verdict": "TUNING-HURTS",
+   "reading": "★**F2 가 강한 형태로 닫힌다** — 사다리를 아래로 내리면 기준선이 **나빠진다** ⟹ `loc=25` 는 이 코너들에서 **이미 최적점 이하**다. `−42.42%` 인용 가능. ★`S17` 의 백색 배경 결과(`loc 25→12.5` 0/64, `12.5→6.25` 0/64)가 **스펙트럼 배경·짧은 주기 코너로 확장**된다. MDE 병기 의무는 동일.",
+   "d2_p": {
+    "SPEC12": 0.9992280602455139,
+    "SPEC6": 0.9999985098838806
+   },
+   "d2_holm_sig": false
+  }
+ },
+ "disclosures": {
+  "s17_fails": "⚠**공시 의무**: 선택된 비교자가 `S17` 의 기술점수 크기 게이트 `R-1b′` (제로필드 대비 중앙 ≥5% 개선)를 **통과하지 못한다**. 마진을 인용할 때 *\"비교자는 부호검정은 통과하나 동결 조율 프로토콜의 5% 기술 바닥은 넘지 못한다\"* 를 **함께** 적는다. (런 0회 실측: `SPEC25` 는 `SS-REAL` −3.96% · `SS-SHORT` −4.04% 로 **둘 다 미달**, `SS-BF4` 는 −16.17% 로 통과.)",
+  "grid_floor": "⚠**공시 의무**: `BEST` 의 loc 이 사다리 바닥 6.25 m 다. 이 격자(40×30, dx 6.1538 m)에서 GC 지지폭 `2c` = **2.03 dx** 이므로 **국소화 최적점은 이 격자에서 정의 가능한 하한**이고 **loc 은 격자 해상도와 교락**된다 (`S17 AMENDMENT_1 A-6`·`RESULT §6.5` 승계).",
+  "derivation_off": "⚠**공시 의무**: 도출은 `SS-BF4` 에 `{25.0}` 만 준다(loc* = 18.99 m ⟹ 사다리에서 25 가 최근접). 그 칸에서 6.25·12.5 를 돌린 것은 **도출 밖 대조**다."
+ },
+ "label": "LOCTUNE :: SS-REAL = TUNING-HURTS",
+ "label_text": "★**F2 가 강한 형태로 닫힌다** — 사다리를 아래로 내리면 기준선이 **나빠진다** ⟹ `loc=25` 는 이 코너들에서 **이미 최적점 이하**다. `−42.42%` 인용 가능. ★`S17` 의 백색 배경 결과(`loc 25→12.5` 0/64, `12.5→6.25` 0/64)가 **스펙트럼 배경·짧은 주기 코너로 확장**된다. MDE 병기 의무는 동일."
+}

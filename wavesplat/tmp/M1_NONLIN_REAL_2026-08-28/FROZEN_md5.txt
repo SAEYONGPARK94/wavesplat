@@ -1,0 +1,104 @@
+# M1 동결 (2026-08-28). ⛔**결과 0행**에서 동결한다 — 배치는 아직 돌지 않았다.
+# ⚠경로는 **저장소 상대**다(`/home/vexit/wavesplat/wavesplat` 기준).
+#   `tmp/_audit/check_batch_artifacts.py` 는 배치기준 → 부모 → 저장소기준 순으로 푼다.
+# ★재검사:  python3 tmp/_audit/check_batch_artifacts.py tmp/M1_NONLIN_REAL_2026-08-28
+#
+# ═══ ★재기록 사유 = **「누락 보완」** (⛔*"규칙 변경"* 이 아니다) ═══════════════════════
+#   2026-08-28 10:1x · **결과 0행**(`results_m1_*.jsonl` 0 · `verdict_m1.json` 0 ·
+#   `data_m1/` 없음 · `gen_manifest_m1.json` 0). 원문 = `AMENDMENT_1.md`.
+#
+#   종전 이 목록은 **자기 7파일뿐**이었다. 대조: `B-26` 29줄 · `M2` 107줄 · `M3` 23줄 —
+#   ★**M1 만 이탈이었고 하필 21.6 h 짜리 배치다**(`S13`·`S13b` 가 배치 중 다른 세션의
+#   임포트 경로 수정으로 물린 바로 그 창. `git_head` 로는 더러운 작업트리를 못 잡는다).
+#   ⟹ M1 이 **판정에 쓰는 외부 파일 전부**를 덧붙였다: **해시 줄 7 → 42**.
+#   ★교차검증: 새로 적은 외부 해시가 `B-26`·`M2`·`M3` 의 독립 동결값과 **58/58 일치**한다.
+#
+#   ⛔**판정 규칙 변경 0**: 문턱(17/18/7/17, α=.05, 가족 .025) · 표본(N_EP 24 ·
+#   FROZEN_SEEDS · SEEDS_CONSUMED 1681–1694) · 팔(`run_b12` import) · 라벨 5종 ·
+#   PAIR_READING 4조합 · 해석 규칙 · 격자 576×384 · 메시 598×499 — **한 글자도 안 바뀌었다.**
+#   ★검증: 재기록 전후 `--selftest` PASS(0 결함) · 런 0회 게이트 **12/12** 로 동일.
+#
+#   ⚠경로 규약도 **배치 기준 → 저장소 기준**으로 통일했다(⛔한 파일에 두 규약이 공존하면
+#   반드시 사고가 난다. `B-26` 헤더가 *"맨 파일명만 적으면 md5 열이 조용히 건너뛰어진다"* 고
+#   경고한 것과 같은 부류다).
+#
+#   ── 재기록 **전**의 7줄 (이력 보존. 바뀐 것은 `*` 셋뿐이고 사유는 AMENDMENT_1 §2·§3·§4) ──
+#     * 02b1ce4b61e7f6c9df168fa88d97b750  gates_m1.py    (MINOR-4: 자가진단의 `{}` 리터럴 표기)
+#     * b861a25d42a132ac2d1b24d2764ac994  gen_m1.py      (MINOR-5: `gen_hos` 가드 assert 2개 복원)
+#     * 71ded1cfdd9221ad2271b32f6bbc52c7  PREREG.md      (MINOR-6: §1.1a 나이퀴스트 공시 + §3-8)
+#       5466629e7d4481a813ab5197c3c788d8  run_m1.py      (불변)
+#       33e9e3eea651c6c193253daec12f3669  analyze_m1.py  (불변)
+#       5b4acf87cc789a640a33e3eb82e9fa72  premise_m1.py  (불변)
+#       e6d94f47745520c30dea79f3b3dad1b5  probe_cost.py  (불변)
+#
+#   ⚠**이력(그 이전)** — 08:43 에 한 번, 08:52 에 다시 기록했다. 그 사이 바뀐 것은
+#     `gates_m1.py` 한 파일이고 변경은 **문턱을 리터럴로 적고 assert 로 `B-26` 원본과 대조**한
+#     것뿐이었다(`check_thresholds.py` 가 이항 p 를 재계산하려면 리터럴이 필요했다).
+#     ⛔그때도 값은 하나도 바뀌지 않았다: NOMINAL 17 · CONFIRM 18 · WEAK 7 · NEG_MIN 17 · N_EP 24.
+#     08:43 기록의 `gates_m1.py` = 76dfd5f4d2da56d5594266da872a82a8 (형식이 3필드라 검사기가 못 읽었다).
+# ═══════════════════════════════════════════════════════════════════════════════════
+#
+# ── ① 이 배치의 판정 코드 (검사기의 ★자기동결 열이 이것을 요구한다) ────────────────────────────────────────
+93272cd665512751630de28a9d983294  tmp/M1_NONLIN_REAL_2026-08-28/PREREG.md
+d63a2cb9d4528006840bc8d25ff4ac1d  tmp/M1_NONLIN_REAL_2026-08-28/AMENDMENT_1.md
+0803e5d9a75d65f1eb38cf07ef559f15  tmp/M1_NONLIN_REAL_2026-08-28/gates_m1.py
+1b583b9cfac1d3c85884fd6d0babce77  tmp/M1_NONLIN_REAL_2026-08-28/gen_m1.py
+5466629e7d4481a813ab5197c3c788d8  tmp/M1_NONLIN_REAL_2026-08-28/run_m1.py
+33e9e3eea651c6c193253daec12f3669  tmp/M1_NONLIN_REAL_2026-08-28/analyze_m1.py
+5b4acf87cc789a640a33e3eb82e9fa72  tmp/M1_NONLIN_REAL_2026-08-28/premise_m1.py
+e6d94f47745520c30dea79f3b3dad1b5  tmp/M1_NONLIN_REAL_2026-08-28/probe_cost.py
+#
+# ── ② ★이 배치가 import·**파싱**하는 다른 배치의 코드 — 문턱·팔·표본·HOS 상수가 여기 있다 ────────────────────
+#   gates_b26 = 문턱·코너·표본·`gen_params`·배포 상수·라벨기계   premise_b26 = §1.5 k·Hs 0.2445 의 출처
+#   gates_b11 = EST/FILTER_SEEDS·부호검정·med_by_episode·paired
+#   run_b12   = ★SHIP-NOW / SPEC25 **팔 정의 그 자체**   gates_b12 = run_b12 의 임포트원
+#   run_s16 / letkf_spec = SPEC25(기준선) 정의 + loc 주입점
+#   ★gen_hos  = `gates_m1.py:64-70` 이 **본문을 정규식으로 파싱**해 M·Lx·Ly·dt 를 읽는다.
+#              ⛔임포트가 아니라 **파싱**이라 이 파일이 움직여도 파이썬이 경고하지 않는다 —
+#              움직이면 격자 사유 `G-22c` 의 의미가 **조용히** 바뀐다. 그래서 여기 있다.
+e6047c3d8f9fd4558566ea967cb678a1  tmp/B26_SEASTATE_2026-08-27/gates_b26.py
+c465e77e56673686641f470f6f4a4116  tmp/B26_SEASTATE_2026-08-27/premise_b26.json
+37d0ddd3aca03118ae41d52c8324e0b5  tmp/B11_HOS_BASELINE_2026-08-23/gates_b11.py
+09e7b03b1b5ac098cfce2fddacffd482  tmp/B12_HOS_EXTEND_2026-08-23/run_b12.py
+2186b01913559f9205653c86950ecdc8  tmp/B12_HOS_EXTEND_2026-08-23/gates_b12.py
+ae3e2c21321760608108205342a442b9  tmp/S16_BASELINE_2026-08-14/run_s16.py
+7991d24a8a4e31580d888ddf766ec1ca  tmp/S16_BASELINE_2026-08-14/letkf_spec.py
+664e798bc74cda2be468cc5f1f2d3f0f  tmp/HOSGATE_2026-08-13/gen_hos.py
+#
+# ── ③ 팔이 실제로 실행하는 배포 패키지 코드 (⛔이 배치는 전부 **무수정**이다) ─────────────────────────────────
+10e407348291e0438a94f459f4757c27  wavesplat/run.py
+dedb685a6735517d21285ddc5d36075d  wavesplat/optimizer/sequential_update.py
+5ebcf5a3d6c11d44f41eec920e38594f  wavesplat/optimizer/learned_init.py
+039e2273264893629c0288de92b8903b  wavesplat/optimizer/varpro.py
+b02042733cac818cb77c09998c3cf9ba  wavesplat/optimizer/coarse_to_fine.py
+29c737f0e5fc7e58451bd8b7f8610b58  wavesplat/optimizer/initializer.py
+3e4a6fe1b34b84313a33cba443cf7bfe  wavesplat/model/spectral_gaussian.py
+9a70c6cfec79a3a776820953ba03e581  wavesplat/baselines/letkf_grid.py
+e36249f8eb900d981e2c4d43ae1d9b51  wavesplat/data_loader.py
+f620548a3413bc0eedf84caea8d9cbaa  wavesplat/evaluation/metrics.py
+6384f02a0cce03c28aca6e77ba72721f  configs/estimation.yaml
+#
+# ── ④ 생성 경로 (⛔`wavesim/**` 은 이 배치에서 **무수정**이다 — 그 사실을 md5 로 고정한다) ─────────────────
+#   ★hos_simulator = 이 배치가 **측정하는 대상 그 자체**(M=3 전개). `gen_m1.PairedHOS` 가
+#              이것을 상속하고, `_to_spectral` 의 절단이 §1.1a 공시의 근거다.
+#   mesh_adequacy = `G-23`(3·d_M1 == d_B26 비트 등가)의 판정기
+#   wave_generator = `jonswap_components`(3·omega_p 상단) + `check_q_constraint`(`G-3`)
+d84a29f55c553f06cf00c707516cd2ea  wavesim/pipeline.py
+7036fd343e1645d0176c2231760c1dc3  wavesim/wave_generator.py
+33e3753bf0ace11a15e73e17a9a7d97a  wavesim/gt_generator.py
+ceeea0fb26cbf6248c856a7408e382ed  wavesim/mesh_adequacy.py
+7e7b2d7b3be42b425ade50bd22d0289b  wavesim/hos_simulator.py
+46cfb2637fa1a37713ba9ec0a870c5ea  wavesim/noise_model.py
+5d7df7e11aa995444cd9a64dd48f7874  wavesim/config.py
+43372f943a8051eb173b48a66198d195  wavesim/data_writer.py
+f92212d98c9e73157cac6bae9827aa41  wavesim/lidar_simulator.py
+ab69c409a1bddd16145a965bda3eb06a  wavesim/lidar_gpu.py
+690490f42b5c4413321fe2783e2a1609  wavesim/raydrop_uniform.py
+#
+# ── ⑤ ★PC-1 대조 대상 + 런 전 산출물 (사전등록의 수가 여기서 온다) ─────────────────────────────────────
+#   ⛔`B-26` 의 **자료 72행·결과 8행은 넣지 않는다** — M1 은 그것들을 읽지 않는다.
+#     넣는 `.h5` 는 `G-16b`(PC-1)가 **비트로 대조하는 한 개**뿐이다.
+7eee1d4916e60c70d5f95e70b7c2f144  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1641_uniform_ra_rf_ds.h5
+aa2e99930bc2dbb71395bf559fbc191d  tmp/M1_NONLIN_REAL_2026-08-28/pc1_m1.json
+61b83f4821b701220de0daa6a39283c9  tmp/M1_NONLIN_REAL_2026-08-28/premise_m1.json
+20565d9433ef39a0bd402368260d5e5a  tmp/M1_NONLIN_REAL_2026-08-28/probe_cost.jsonl

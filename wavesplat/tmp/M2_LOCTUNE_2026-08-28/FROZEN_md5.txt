@@ -1,0 +1,136 @@
+# M2 동결 (2026-08-28). ⛔**결과 0행**에서 동결한다 — 배치는 아직 돌지 않았다.
+# ⚠경로는 **저장소 상대**다(`/home/vexit/wavesplat/wavesplat` 기준).
+# ★재검사:  python3 tmp/_audit/check_batch_artifacts.py tmp/M2_LOCTUNE_2026-08-28
+#
+# ★재기록 사유 (AMENDMENT_1, 2026-08-28, 결과 0행 — ⛔"규칙 변경" 아님, run_md5 1건 갱신뿐):
+#   [MAJOR] `run_m2.py` PC 출력 파일명 `results_m2_pc.jsonl` → `results_m2_9.jsonl` —
+#   검사기 `_sfx()` 가 끝의 `_<숫자>` 만 벗겨 접미사 `m2_pc` 가 되고 `verdict_m2_pc.json`
+#   부재로 paired=False = 인용 불가(관문이 가짜 배치로 실제 재현). 9 는 본배치 샤드 0–7 밖.
+#   ⛔판정 코드(`gates_m2.py`)·문턱·팔·표본·라벨·해석 규칙 무변 — 자가진단 PASS ·
+#   런0회 게이트 12/12 재확인. 상세 = tmp/M2_LOCTUNE_2026-08-28/AMENDMENT_1.md
+#
+# ⚠스모크 1회(§7)는 이 동결 **이전**에 돌았고 산출물은 삭제했다. 스모크 이후 바뀐 판정 코드는
+#   `gates_m2.py` 의 `G-16b`(개입이 no-op 이면 FAIL) **하나뿐**이고 더 엄격한 방향이다.
+#   ⛔문턱·팔·표본·라벨·해석 규칙은 불변.
+#
+# ── ① 이 배치의 판정 코드 (검사기의 ★자기동결 열이 이것을 요구한다) ─────────────
+
+1dbc3da60eed07f5abb216e2dad36b01  tmp/M2_LOCTUNE_2026-08-28/PREREG.md
+86b0f4eb7f8389f8cb2574c1cacc6cad  tmp/M2_LOCTUNE_2026-08-28/gates_m2.py
+12353f651892b5ed2cb0f2e89d7490c4  tmp/M2_LOCTUNE_2026-08-28/run_m2.py
+284aca9e7cb2391cfec67e2d47621c09  tmp/M2_LOCTUNE_2026-08-28/analyze_m2.py
+c40ccec78bcb0fb4971ed513e6f1a5de  tmp/M2_LOCTUNE_2026-08-28/premise_m2.py
+83d790fe6e0b1b16a02bff66cde6aa3b  tmp/M2_LOCTUNE_2026-08-28/premise_m2.json
+#
+# ── ② ★이 배치가 import 하는 다른 배치의 코드 — 팔·표본·문턱·조율 프로토콜이 여기 있다
+#   gates_b26 = 문턱·코너·표본·라벨기계   gates_b11 = 시드·부호검정·집계
+#   run_b12   = SHIP 팔 정의             run_s16/letkf_spec = SPEC25 정의 + loc 주입점
+#   run_s17   = ★loc 사다리의 출처        analyze_s17 = ★적격성 상수·동점규칙의 출처
+#   verdict_s17.json = ★G-L6 교차 양성대조의 입력
+#   verdict_b26.json = 재현 대상(§4.1)   AMENDMENT_1 = R-1a'/R-1b'/A-6 의 원문
+e6047c3d8f9fd4558566ea967cb678a1  tmp/B26_SEASTATE_2026-08-27/gates_b26.py
+777ee32dd82d6128e5bb248281e3af78  tmp/B26_SEASTATE_2026-08-27/analyze_b26.py
+98f88ee4f5fafd7b7ffa3de2bea4e3e3  tmp/B26_SEASTATE_2026-08-27/verdict_b26.json
+37d0ddd3aca03118ae41d52c8324e0b5  tmp/B11_HOS_BASELINE_2026-08-23/gates_b11.py
+09e7b03b1b5ac098cfce2fddacffd482  tmp/B12_HOS_EXTEND_2026-08-23/run_b12.py
+ae3e2c21321760608108205342a442b9  tmp/S16_BASELINE_2026-08-14/run_s16.py
+7991d24a8a4e31580d888ddf766ec1ca  tmp/S16_BASELINE_2026-08-14/letkf_spec.py
+d362d138ec2fa9e4fdb82a00981c39d5  tmp/S17_WHITE25_2026-08-18/run_s17.py
+324d323bd6a87380da96f5c32262061d  tmp/S17_WHITE25_2026-08-18/analyze_s17.py
+ee5176dba72741db442b15c23aeee816  tmp/S17_WHITE25_2026-08-18/verdict_s17.json
+7e5f9b0162f3635640862e5db1deadaa  tmp/S17_WHITE25_2026-08-18/AMENDMENT_1.md
+#
+# ── ③ 팔이 실제로 실행하는 패키지 코드 (⛔이 배치는 전부 **무수정**이다)
+10e407348291e0438a94f459f4757c27  wavesplat/run.py
+dedb685a6735517d21285ddc5d36075d  wavesplat/optimizer/sequential_update.py
+9a70c6cfec79a3a776820953ba03e581  wavesplat/baselines/letkf_grid.py
+e36249f8eb900d981e2c4d43ae1d9b51  wavesplat/data_loader.py
+f620548a3413bc0eedf84caea8d9cbaa  wavesplat/evaluation/metrics.py
+6384f02a0cce03c28aca6e77ba72721f  configs/estimation.yaml
+7036fd343e1645d0176c2231760c1dc3  wavesim/wave_generator.py
+d84a29f55c553f06cf00c707516cd2ea  wavesim/pipeline.py
+ceeea0fb26cbf6248c856a7408e382ed  wavesim/mesh_adequacy.py
+#
+# ── ④ ★수입하는 동결 결과 행 — `SHIP-NOW`·`SPEC25`·`ZERO` 가 여기서 온다
+5bb2e638d3466e81cf83fbd4719e5a46  tmp/B26_SEASTATE_2026-08-27/results_b26_0.jsonl
+074c02dfc87f0a31c59cce2d694059d7  tmp/B26_SEASTATE_2026-08-27/results_b26_1.jsonl
+f81b0fc91296faa14e5e38ea85e72146  tmp/B26_SEASTATE_2026-08-27/results_b26_2.jsonl
+c0061362809a1c3f8841509e6e0e16bf  tmp/B26_SEASTATE_2026-08-27/results_b26_3.jsonl
+3e2d3845fcebc2f723d23565d6c97f76  tmp/B26_SEASTATE_2026-08-27/results_b26_4.jsonl
+eb5e8e6333b59a0ef25bc7bb41534f0a  tmp/B26_SEASTATE_2026-08-27/results_b26_5.jsonl
+8d01af37050487882e0e7e102ea442ac  tmp/B26_SEASTATE_2026-08-27/results_b26_6.jsonl
+522190f1be3ebdbc5c60eb931a34d13c  tmp/B26_SEASTATE_2026-08-27/results_b26_7.jsonl
+#
+# ── ⑤ ★표본 자료 72개 (.h5) — 생성 0회, 이 파일들을 그대로 쓴다
+cdefaaf4313e0f5dd3baa386884d8585  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1641_uniform_ra_rf_ds.h5
+7e530eae573ced0c3e23b77997328c33  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1642_uniform_ra_rf_ds.h5
+12178814a7da381b5d231b9d9379f00a  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1643_uniform_ra_rf_ds.h5
+4b54910e32918e0db1b3517cee4ac351  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1644_uniform_ra_rf_ds.h5
+721905a852fa42dd5cd4b8b1446d5a19  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1645_uniform_ra_rf_ds.h5
+3a541145899fdc7a5a2e672834bbe663  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1646_uniform_ra_rf_ds.h5
+ee88ac5ec814a4eea001978c57a06777  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1647_uniform_ra_rf_ds.h5
+a67220f8244e908ac04e1fd2f21c485c  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1648_uniform_ra_rf_ds.h5
+8ec2984c902457e93fdbd718dc9ab460  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1649_uniform_ra_rf_ds.h5
+e757511b75ef98add68258e07562db34  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1650_uniform_ra_rf_ds.h5
+d2b85b0f5e737354fe7ed01be61c80b9  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1651_uniform_ra_rf_ds.h5
+7735e49f48675c19950dd4ad43385d1b  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_15comp_seed1652_uniform_ra_rf_ds.h5
+4a18003122f38942258d22279dad6e31  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1641_uniform_ra_rf_ds.h5
+4c99d9cadd720ff9ea80b2ac9cea58b2  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1642_uniform_ra_rf_ds.h5
+f08a68ae8ce6dd67c6aa444273e267d5  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1643_uniform_ra_rf_ds.h5
+5e1cfb533c39923e825f21bdf155d8f6  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1644_uniform_ra_rf_ds.h5
+8fee52cf4965a4e2e200765453b52e44  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1645_uniform_ra_rf_ds.h5
+b90fde00ed5bddcbd53c9bf6db22dafa  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1646_uniform_ra_rf_ds.h5
+db3bdad1d6edea2ddecdce844920453d  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1647_uniform_ra_rf_ds.h5
+daf4b1254e852b0bfabbe53d03fc11cd  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1648_uniform_ra_rf_ds.h5
+3436ceb1f64d1aa04db4627c7f8dd64d  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1649_uniform_ra_rf_ds.h5
+535fa04acdcbb29dc567797535d0e531  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1650_uniform_ra_rf_ds.h5
+2a9b0b83e1a970e2e27d88676e6d4e46  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1651_uniform_ra_rf_ds.h5
+9ad8546adc7b09c308d02804b65abc86  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-BF4_30comp_seed1652_uniform_ra_rf_ds.h5
+7eee1d4916e60c70d5f95e70b7c2f144  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1641_uniform_ra_rf_ds.h5
+d85739aaef190721b46d597cd2c3c425  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1642_uniform_ra_rf_ds.h5
+e6ef0d597fe2cefb3b008a96b79466c4  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1643_uniform_ra_rf_ds.h5
+5aac3df972b1219db735a33db81c4693  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1645_uniform_ra_rf_ds.h5
+b269a9080e1a50b1948570cb981a64f9  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1646_uniform_ra_rf_ds.h5
+417e306c622cf7e3234c11250e452ab9  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1647_uniform_ra_rf_ds.h5
+ca5c921863052d4ad01a8af572b3294c  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1648_uniform_ra_rf_ds.h5
+a246464c04d9870a734fd3a97b8fb175  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1649_uniform_ra_rf_ds.h5
+a0de45506f76b3b661b8970ba135ab51  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1650_uniform_ra_rf_ds.h5
+49b20c522d84ea763c9809d29dfd76db  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1651_uniform_ra_rf_ds.h5
+36a35bd2ec4e2940efd7615c21235169  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1652_uniform_ra_rf_ds.h5
+462ae0c8293fc01db0ae5730aabedaa1  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_15comp_seed1653_uniform_ra_rf_ds.h5
+f23e093af5831003c4c0e00d296110ba  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1641_uniform_ra_rf_ds.h5
+40a7035f53e3c5da58a5e84ac81bb4a2  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1642_uniform_ra_rf_ds.h5
+9ae9a65e287f2d1233d0e790e42b7b6c  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1643_uniform_ra_rf_ds.h5
+37c93e107f3bd596f933180cd948665f  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1644_uniform_ra_rf_ds.h5
+45dd5b9fc6b744ce118e924c60b000e2  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1645_uniform_ra_rf_ds.h5
+3607ce32f670d79a113f8767990a53e5  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1646_uniform_ra_rf_ds.h5
+453541c80fffc67e67d5507fe7f75368  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1647_uniform_ra_rf_ds.h5
+31c8402eb31effa67c7b8ac87bc108fe  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1648_uniform_ra_rf_ds.h5
+64a3188bac6d748cacb58a403109aa15  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1649_uniform_ra_rf_ds.h5
+fe155d520500fb1d8485162390d31fb9  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1650_uniform_ra_rf_ds.h5
+efc31d68073f03a5728a9faa80a54f43  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1651_uniform_ra_rf_ds.h5
+5a6e55925c4ffc53c912203ed713477c  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-REAL_30comp_seed1652_uniform_ra_rf_ds.h5
+99e64de1bb1b648fb043097ea2ff1b89  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1641_uniform_ra_rf_ds.h5
+fb4b1ce5c0cfed7a8c8724057c1874f9  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1642_uniform_ra_rf_ds.h5
+7fb52df1458ed26a721a20e52bb0e0d3  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1643_uniform_ra_rf_ds.h5
+6608452b621cc2c623bc545b3450d2f4  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1644_uniform_ra_rf_ds.h5
+aa798d2b84069625960c494a89f61e46  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1645_uniform_ra_rf_ds.h5
+23536a0d7a512005df1a159895d04d43  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1646_uniform_ra_rf_ds.h5
+e21984b4d81a90d495e16e389f63b900  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1647_uniform_ra_rf_ds.h5
+81ac01fbd2d218fabf35cf95167c103b  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1648_uniform_ra_rf_ds.h5
+f1b5fafc218a13a09bdf076b667b4eb6  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1649_uniform_ra_rf_ds.h5
+f4c64bae2cdae37dde45393b55b889d3  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1650_uniform_ra_rf_ds.h5
+afefcafbd60bafe67ee6ad97f08d4472  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1651_uniform_ra_rf_ds.h5
+1264824185d154ad336a1f619c693066  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_15comp_seed1652_uniform_ra_rf_ds.h5
+8ef6be07f8fb9b0446e5c668757cffa3  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1641_uniform_ra_rf_ds.h5
+73340d36ecd284edcbe2acb7bf591ac7  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1642_uniform_ra_rf_ds.h5
+a9c87860f9b4868fced5f3a9bf442f3c  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1643_uniform_ra_rf_ds.h5
+6f0bb74467cc486280e992c35d41cc58  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1644_uniform_ra_rf_ds.h5
+0e34c8a43021b3eb504f578770546454  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1645_uniform_ra_rf_ds.h5
+71ffbc095cc4ccd288bd87aae75cb892  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1646_uniform_ra_rf_ds.h5
+6de53f4e7a2bf29a0438ada3a3a27eab  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1647_uniform_ra_rf_ds.h5
+c7c25da67613535e72d511c170ffe370  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1648_uniform_ra_rf_ds.h5
+66549b2e06308d0d2b56d478a42a7d3f  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1649_uniform_ra_rf_ds.h5
+053f09193bb0d0194c03d4a579cd0a5f  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1650_uniform_ra_rf_ds.h5
+bb58cace24716d821e84c26d183a672d  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1651_uniform_ra_rf_ds.h5
+ba1b48b4e4c722cf73601ebd65f1bcfb  tmp/B26_SEASTATE_2026-08-27/data_b26/episode_SS-SHORT_30comp_seed1652_uniform_ra_rf_ds.h5

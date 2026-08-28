@@ -74,7 +74,10 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
   3. **지연은 프로세스 간 비교** — 동일프로세스 1스레드 정직값은 **1.5–2.6×**, CPU 는 **AMD Ryzen 7 7800X3D**.
   (GPR 0.276 은 재현됨.)
 - ⛔**"All phases complete" 금지** — 연구는 진행 중이고, 학위논문 제1장 기여 중 다수가 이후
-  측정에서 무효화됐다. **논문 편집은 사용자 지시로 정지 중.**
+  측정에서 무효화됐다. ✅**논문 편집 정지는 2026-08-28 에 전면 해제됐다**(사용자 축자 *"논문작업 전부 승인이야"*,
+  08-22~28 의 46커밋 **사후 추인 포함**). ⚠단 `paper/` 의 **파기·개명 처분은 별개 결정**이다.
+  상세 = `memory/feedback_no_paper_edits_until_research_done.md` · `tmp/STATUS_2026-08-28/STANDING_ORDER_AUDIT.md`.
+  ★**교훈: 해제는 받은 그 자리에서 축자로 기록한다** — 08-22 커밋이 해제를 주장했으나 근거가 저장소에 없었다.
 - 배포 상태·살아있는 판정·인용금지는 **`MEMORY.md` 와 `reference_citation_bans.md`** 를 볼 것.
 - **2026-08-13 멀티에이전트 재감사** (7축 + 적대적 반증 3건):
   `wavesplat/tmp/AUDIT_recheck_2026-08-13/` — S13 판정 자체는 두 독립 재집계에서 전건 재현되나,

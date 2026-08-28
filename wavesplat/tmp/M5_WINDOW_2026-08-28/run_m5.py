@@ -46,6 +46,22 @@ CAP = {}
 _SCENES = {}
 
 
+def assert_shipping_defaults():
+    """★런 0회에서 죽는다 — 팔이 **선언한** 배포 3키가 배포 단일출처와 다르면 예외.
+
+    ⛔조용한 흡수 금지(`gates_b7.py:46` 의 `{}` BLOCKER, 2026-08-23). 동시에 다른 세션이
+    기본값을 바꿔도 이 배치는 **선언한 값으로 돈다**(팔이 명시하므로) — 이 단언은 그
+    사실을 **드러내기** 위한 것이지 막기 위한 것이 아니다."""
+    from wavesplat.run import DEFAULT_CONFIG
+    diff = {k: (DEFAULT_CONFIG.get(k), v) for k, v in G.SHIPPED_2026_08_22.items()
+            if DEFAULT_CONFIG.get(k) != v}
+    if diff:
+        raise SystemExit(
+            '⛔배포 기본값이 사전등록 선언과 다르다 (shipped, declared) = '
+            f'{diff}\n   ⟹ 이 배치를 돌리기 전에 사전등록을 개정하라(AMENDMENT).')
+    return True
+
+
 # ── 투명 계측 shim (값을 바꾸지 않는다) ─────────────────────────────────────
 def install_shims():
     from wavesplat.optimizer import sequential_update as SU
@@ -194,6 +210,7 @@ def cells():
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else 'smoke'
     shard, nshard = (int(sys.argv[2]), int(sys.argv[3])) if len(sys.argv) > 3 else (0, 1)
+    assert_shipping_defaults()
     install_shims()
     todo = cells()
     assert len(todo) == G.N_RUNS, f'{len(todo)} != {G.N_RUNS}'

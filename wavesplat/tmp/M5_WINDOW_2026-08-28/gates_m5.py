@@ -171,9 +171,18 @@ NOOP_SPEC = dict(kind='noop', value=1e9, origin='min',
                  why='W 배관이 작동하지 않아야 할 때 정말 작동하지 않는가.')
 NOOP_WIN = 3
 
+# ★⛔**빈 dict `{}` 로 팔을 정의하지 않는다** — `gates_b7.py:46` 의 `{}` 가 런타임 기본값을
+# 스냅샷해 당일 철회된 값으로 팔이 돈 BLOCKER 가 있었다(2026-08-23). `B-2` 는 `SHIP: {}` 였다.
+# ⟹ 2026-08-22 배포 3키를 **명시**하고, `run_m5.py` 가 시작할 때 **배포 단일출처와 대조**해
+#    어긋나면 런 0회에서 **예외로 죽는다**(조용한 흡수 금지). 값은 행마다 되읽어 기록한다(G-6c).
+SHIPPED_2026_08_22 = dict(varpro_steps=400, learned_init_iters=0, auto_switch_thresh=0)
 ARMS = {
-    'SHIP': {},                                                     # 실측 게이트 → bank_mmse
-    'PROP': {'real_domain_gate': False, 'init_method': 'learned'},   # ★제안 표현 강제
+    # 실측 게이트 → bank_mmse. `init_method` 는 배포 기본값 `auto` 를 **그대로 둔다**
+    # (명시하면 게이트가 사라진다 — `sequential_update.py:690` 계약).
+    'SHIP': dict(SHIPPED_2026_08_22, real_domain_gate=True,
+                 real_estimator='bank_mmse'),
+    # ★제안 표현 강제 (`B-2` 의 PROP 축자 + 배포 3키 명시)
+    'PROP': dict(SHIPPED_2026_08_22, real_domain_gate=False, init_method='learned'),
 }
 ARM_ORDER = ['SHIP', 'PROP']
 PRIMARY_ARM = 'PROP'
@@ -226,6 +235,9 @@ def b2_scene_ref():
     ⛔`bool(ref) and …` 로만 쓴다 — 참조가 비면 게이트는 **FAIL** 이어야 한다."""
     ref = {}
     for r in _load_jsonl(FROZEN_B2):
+        # ⚠`'error' in r` 는 이 파일에서 **현재 한 번도 참이 아니다**(에러 행 0개;
+        #   `check_gate_refs.py` 가 no-op 필터라고 정확히 지적한다). 방어용으로 남긴다 —
+        #   B-2 가 나중에 에러 행을 얻으면 그때 작동한다. **하는 일이 있는 필터는 아래 `win`.**
         if 'error' in r or r.get('win') != FROZEN_B2_WIN:
             continue
         h = r.get('obs_hash')
@@ -364,6 +376,14 @@ def gates(rows):
     A(('G-6 PROP 의 init_method 를 **객체**에서 되읽으면 learned', not bad, str(bad[:3])))
     lam = {r.get('cap_lambda_l1') for r in ok}
     A(('G-6b lambda_l1 이 전 런에서 하나', len(lam) == 1, str(lam)))
+    # G-6c ★배포 3키가 (a) 배치 내내 하나이고 (b) 팔이 **선언한 값**과 같다
+    #      ⟹ 동시 작업 중인 다른 세션이 기본값을 바꿔도 조용히 흡수되지 않는다.
+    drift = {}
+    for k, v in SHIPPED_2026_08_22.items():
+        seen = {r.get('cap_' + k) for r in ok}
+        if seen != {v}:
+            drift[k] = sorted(str(x) for x in seen)
+    A(('G-6c 배포 3키가 선언값으로 전 런 고정 (조용한 흡수 없음)', not drift, str(drift)))
 
     # ── G-7 ORIG2 의 bank-팔 불변 대조 (위상 자유도가 흡수해야 한다) ─────────
     a = _pick(rows, 'ORIG2', 'SHIP')
@@ -476,7 +496,8 @@ def _fixture(prop_better, ship_better, n_rec=None, seed=0):
                         varpro_fired=(arm == 'PROP'),
                         real_gate=(True if arm == 'SHIP' else None),
                         cap_init_method=('learned' if arm == 'PROP' else 'bank_mmse'),
-                        cap_lambda_l1=1e-4))
+                        cap_lambda_l1=1e-4,
+                        **{'cap_' + k: v for k, v in SHIPPED_2026_08_22.items()}))
     # ★ANCHOR(win=3) 의 장면 해시는 **실제 B-2 동결 행**에서 가져온다 — 그래야 픽스처가
     # `G-5b`(외부 참조 비트동일)를 진짜로 통과/실패시킨다(가짜 통과 금지).
     _ref = b2_scene_ref()
@@ -570,6 +591,9 @@ def selftest():
                        if r['cell'] == 'PROP'][:1], 'G-6')
     mutate(lambda rs: [r.__setitem__('nowcast', 9.0) for r in rs
                        if r['level'] == 'ORIG2' and r['cell'] == 'SHIP'][:1], 'G-7')
+    mutate(lambda rs: rs[0].__setitem__('cap_varpro_steps', 0), 'G-6c')
+    mutate(lambda rs: [r.__setitem__('cap_auto_switch_thresh', 8) for r in rs][:1],
+           'G-6c')
 
     # ⑤ ★공허 참조 방어 — 참조가 비면 G-5/G-5b 는 **FAIL** 이어야 한다(PASS 아님)
     global FROZEN_B2

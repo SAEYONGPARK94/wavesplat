@@ -66,13 +66,37 @@ RECORDS_12 = {
 
 
 def scene_station(record, win=3, W=40.0, m_scan=12, m_cap=600, noise=0.02,
-                  lead_max=None, with_future_obs=False):
+                  lead_max=None, with_future_obs=False, cap_mode='uniform'):
     """`scene_real` 과 같은 dict 을 반환하되 **부채꼴 없이** 균등 추출한다.
 
     `with_future_obs=True` 면 **미래 관측 프레임**도 함께 낸다(`P_fut`/`z_fut`, 1 s 간격,
     과거 프레임과 **완전히 같은 추출·잡음 규약**). 순차 추적(`update()`) 을 재려면 필요하다.
     ⚠**기본 False 이고 그때는 반환 dict 이 비트 동일**하다 — B-2…B-2f 재현을 깨지 않는다.
-    ⛔미래 관측은 **채점에 쓰지 마라**. 채점은 `maps_gt` 로만 한다."""
+    ⛔미래 관측은 **채점에 쓰지 마라**. 채점은 `maps_gt` 로만 한다.
+
+    ★`cap_mode` (2026-08-28 신설, `M5` 진단 `AMENDMENT_1.md §2` 의 처방) —
+    `m_cap` 추첨 규약. **기본 `'uniform'` 은 2026-08-28 이전 동작과 비트 동일**하다
+    (선례 = 위 `with_future_obs`). 회귀 시험 =
+    `tmp/M5b_WINDOW_2026-08-28/regress_scene_station.py`.
+
+      · `'uniform'`      — 잘라낸 뒤 후보 **전체**에서 `default_rng(0)` 균등추첨(현행).
+      · `'end_anchored'` — ***가장 최신의 비어있지 않은 스캔은 언제나 통째로 남기고***,
+                           남은 예산 `m_cap − k` 만 나머지에서 같은 난수로 균등추첨한다.
+
+    ⛔**왜 필요한가** — `'uniform'` 에서 `W` 는 `m = P_all[:,2] >= t0 - W` **한 줄**로만
+    들어가는 것처럼 보이지만, 잘라낸 뒤의 후보 수 `len(z) = N(W)` 가 **곧 추첨의 모집단
+    크기**다. `default_rng(0).choice(N, m_cap, replace=False)` 는 `N` 이 바뀌면 인덱스
+    집합이 통째로 바뀌므로, 배열 꼬리(=가장 최신 프레임)를 통째로 놓치면
+    **관측 끝 시각이 `W` 에 따라 뒤로 밀린다**(실측: `dt=1/15` 레코드에서 마지막 3프레임
+    탈락, Δ=0.2 s). ⟹ ★***`W` 에 미공시 두 번째 경로가 있었다.*** `'end_anchored'` 는
+    끝 시각을 **구조적 불변식**으로 만들고, `n_obs` 는 `k + (m_cap − k) = m_cap` 으로
+    여전히 정확히 `m_cap` 이다(개수 교락 없음).
+    ⚠`'end_anchored'` 의 장면은 `B-2`…`B-10` 동결 장면과 **비트동일하지 않다**
+    (588-of-(N−k) 추첨은 600-of-N 과 다른 집합이다) — *"`B-2` 와 같은 장면"* 이라 쓰지 마라."""
+    if cap_mode not in ('uniform', 'end_anchored'):
+        # ⛔조용한 no-op 금지: 오타난 규약이 기본 동작으로 흘러 들어가면 그 배치는
+        #    "처치를 안 걸고 걸었다고 적는" 상태가 된다(오늘 `M4 G-13` 과 같은 부류).
+        raise ValueError(f"cap_mode={cap_mode!r} — 'uniform' 또는 'end_anchored'")
     from realdata_analysis import directional_spread
     from d3_sa_multirecord import MRecord
 
@@ -116,7 +140,17 @@ def scene_station(record, win=3, W=40.0, m_scan=12, m_cap=600, noise=0.02,
     m = P_all[:, 2] >= t0 - W
     P, z = P_all[m], z_all[m]
     if len(z) > m_cap:
-        ii = np.random.default_rng(0).choice(len(z), m_cap, replace=False)
+        if cap_mode == 'end_anchored':
+            # 최신 스캔을 통째로 확보하고 **남은 예산만** 균등추첨한다.
+            last = np.flatnonzero(P[:, 2] >= P[:, 2].max() - 1e-9)
+            if len(last) >= m_cap:                     # 구조적으로 불가(m_scan ≪ m_cap)
+                raise RuntimeError(f'{record}: 최신 스캔 {len(last)} ≥ m_cap {m_cap}')
+            rest = np.setdiff1d(np.arange(len(z)), last)
+            ii = np.concatenate([last,
+                                 np.random.default_rng(0).choice(
+                                     rest, m_cap - len(last), replace=False)])
+        else:                                          # 'uniform' = 2026-08-28 이전 현행
+            ii = np.random.default_rng(0).choice(len(z), m_cap, replace=False)
         P, z = P[ii], z[ii]
 
     leads = np.arange(0.0, lm + 1e-9, 1.0)

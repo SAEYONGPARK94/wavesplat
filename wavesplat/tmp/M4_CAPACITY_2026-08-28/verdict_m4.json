@@ -1,0 +1,736 @@
+{
+ "label": "CAPACITY-HURTS",
+ "why": "배포 용량이 K-MAX 를 12/12 에서 이긴다 (p=0.0002441).",
+ "label_secondary": "SYN-CAPACITY-HURTS",
+ "why_secondary": "48/48",
+ "direction": "ELIMINATION-ONLY. 이 배치는 \"경계가 용량 축을 따라 놓여 있는가\" 만 묻는다. 어느 분기로 가도 산출은 **소거표의 한 칸**이고, ⛔\"경계의 원인은 X 다\" 라는 지목으로 올리지 않는다. PRIMARY 처치(K-MAX)는 배포 기본값이 **아니며**, 이 배치는 ⛔배포 변경을 제안하지 않는다(별도 사전등록 사항).",
+ "reading": "실측에서 용량을 늘리면 **나빠진다**(SHIP-K < K-MAX, >=T/12). ⟹ 소거표의 ★미결 칸이 ⛔\"아니다 — 방향이 반대\"로 닫힌다. 정직한 문장 = *\"제안 표현은 실측에서 용량이 모자라서 지는 것이 아니다\"*. 2×2(척도맞춤 벌점)가 회복시키면 결핍은 **용량이 아니라 정칙화**이고, 회복시키지 못하면 **용량 축 자체가 지렛대가 아니다**.",
+ "disclosure": {
+  "forced_arm": "⛔이 배치의 실측 팔은 배포 거동이 아니다. 배포 실측 게이트는 bank_mmse 로 보내며 (sequential_update.py:715), 제안 표현은 real_domain_gate=False 로 **강제**했다.",
+  "other_representation": "⚠배포 실측 팔의 용량은 B=1908 원자(3816 계수, 척도 무관; premise_m4.json:P4)이고 제안 표현은 최대 128 이다. 두 팔의 용량 비는 **교락**이며 이 배치는 그것을 풀지 않는다.",
+  "sparse_untouched": "⛔희소 합성층에 대해 아무 말도 하지 않는다(합성 표본은 혼잡 HOS 48 고정).",
+  "nsamp_untouched": "⛔제안 **자체**의 용량(learned_nsamp=4, M=32 ⟹ 원자 128)은 고정이다. 풀을 키우는 축은 미측정이고, 이 배치의 상한은 그 128 이다.",
+  "window_site": "⚠실측은 고정 관측소 4 사이트·12 레코드·창 1개(win=3). 사이트 수준 일반화 금지.",
+  "b2d_rerun": "✅부수효과: `B-2d`(max_n 30→10→4)의 처치 팔은 **오기 수심 17 에서만** 돌았고 정정 수심 30 에서 재실행된 적이 없다. K-8/K-15 가 그 칸을 정정 수심에서 채운다. ⛔단 값이 다르므로 B-2d 수치의 \"재현\"이 아니다."
+ },
+ "prediction_recorded_before": "런0 전제(premise_m4.json)가 이미 말해 주는 것: 헤드라인 합성 코퍼스에서 배포 K 는 중앙 19(상한 30 이 무는 비율 20/144=13.9%)이고, 실측 PROP 은 12 중 5 가 상한 30 에 붙어 있다(B-2). ⟹ **상한이 무는 비율이 합성보다 실측에서 높다**. 그러나 그것은 \"용량이 부족하다\"의 증거가 아니라 **가설의 근거**일 뿐이다. 나는 실측에서 CAPACITY-HURTS 또는 CAPACITY-NULL 이 나올 확률이 더 높다고 본다 — 사유: (i) B-2d 가 차수를 3배 낮춰도 짝 널이었고(p=0.77), (ii) 실측 소형 박스는 질의점이 16–25 개인데 600 관측에 128 원자(256 자유도)는 과하다. ⛔이 문단은 판정에 아무 힘이 없다.",
+ "primary": {
+  "arm": "K-MAX",
+  "ref": "SHIP-K",
+  "n": 12,
+  "better": 0,
+  "tie": 0,
+  "rel_median_pct": 1527.8437198939414,
+  "p_one_sided": 1.0,
+  "p_other_tail": 0.000244140625
+ },
+ "thresholds": {
+  "real": {
+   "n": 12,
+   "T_alpha": 10,
+   "p_at_T": 0.019287109375,
+   "T_family": 10,
+   "p_at_Tf": 0.019287109375
+  },
+  "syn": {
+   "n": 48,
+   "T_alpha": 31,
+   "p_at_T": 0.02973168762688516,
+   "T_family": 32,
+   "p_at_Tf": 0.01465247336026465
+  },
+  "alpha": 0.05,
+  "family_alpha": 0.025
+ },
+ "dose_response_real": {
+  "K-8": {
+   "K_median": 8.0,
+   "n_gaussians_median": 8.0,
+   "n": 36
+  },
+  "K-15": {
+   "K_median": 15.0,
+   "n_gaussians_median": 15.0,
+   "n": 36
+  },
+  "SHIP-K": {
+   "K_median": 30.0,
+   "n_gaussians_median": 24.5,
+   "n": 36
+  },
+  "K-60": {
+   "K_median": 50.5,
+   "n_gaussians_median": 39.0,
+   "n": 36
+  },
+  "K-128": {
+   "K_median": 50.5,
+   "n_gaussians_median": 42.0,
+   "n": 36
+  },
+  "K-128-D15": {
+   "K_median": 69.5,
+   "n_gaussians_median": 70.0,
+   "n": 36
+  },
+  "K-128-D0": {
+   "K_median": 88.0,
+   "n_gaussians_median": 94.0,
+   "n": 36
+  },
+  "K-MAX": {
+   "K_median": 128.0,
+   "n_gaussians_median": 128.0,
+   "n": 36
+  }
+ },
+ "real": {
+  "field": "nowcast",
+  "zero_ref": {
+   "AA14": 1.0616257112549037,
+   "AA15a": 0.6724175139127565,
+   "AA15b": 0.9997115999828557,
+   "BS11a": 0.9498874647766234,
+   "BS11b": 1.0421622654691334,
+   "BS11c": 0.7493281262427716,
+   "BS11d": 0.9363445080188225,
+   "BS13a": 0.7017187098187924,
+   "BS13b": 0.7599726213436054,
+   "BS13c": 1.1558806443240048,
+   "LJ18a": 0.3374667784153119,
+   "YS17": 0.9861388353552925
+  },
+  "K-8": {
+   "arm": "K-8",
+   "ref": "SHIP-K",
+   "n": 12,
+   "better": 10,
+   "tie": 0,
+   "rel_median_pct": -11.908346323885514,
+   "p_one_sided": 0.019287109375,
+   "p_other_tail": 0.996826171875
+  },
+  "K-15": {
+   "arm": "K-15",
+   "ref": "SHIP-K",
+   "n": 12,
+   "better": 10,
+   "tie": 0,
+   "rel_median_pct": -8.677358106606752,
+   "p_one_sided": 0.019287109375,
+   "p_other_tail": 0.996826171875
+  },
+  "K-60": {
+   "arm": "K-60",
+   "ref": "SHIP-K",
+   "n": 12,
+   "better": 2,
+   "tie": 1,
+   "rel_median_pct": 24.1555825571478,
+   "p_one_sided": 0.996826171875,
+   "p_other_tail": 0.019287109375
+  },
+  "K-128": {
+   "arm": "K-128",
+   "ref": "SHIP-K",
+   "n": 12,
+   "better": 2,
+   "tie": 1,
+   "rel_median_pct": 53.33523112523731,
+   "p_one_sided": 0.996826171875,
+   "p_other_tail": 0.019287109375
+  },
+  "K-128-D15": {
+   "arm": "K-128-D15",
+   "ref": "SHIP-K",
+   "n": 12,
+   "better": 1,
+   "tie": 0,
+   "rel_median_pct": 479.7872326314092,
+   "p_one_sided": 0.999755859375,
+   "p_other_tail": 0.003173828125
+  },
+  "K-128-D0": {
+   "arm": "K-128-D0",
+   "ref": "SHIP-K",
+   "n": 12,
+   "better": 1,
+   "tie": 0,
+   "rel_median_pct": 639.0844468858409,
+   "p_one_sided": 0.999755859375,
+   "p_other_tail": 0.003173828125
+  },
+  "K-MAX": {
+   "arm": "K-MAX",
+   "ref": "SHIP-K",
+   "n": 12,
+   "better": 0,
+   "tie": 0,
+   "rel_median_pct": 1527.8437198939414,
+   "p_one_sided": 1.0,
+   "p_other_tail": 0.000244140625
+  },
+  "SHIP-K-LSC|SHIP-K": {
+   "arm": "SHIP-K-LSC",
+   "ref": "SHIP-K",
+   "n": 12,
+   "better": 6,
+   "tie": 3,
+   "rel_median_pct": -0.17385968032221022,
+   "p_one_sided": 0.61279296875,
+   "p_other_tail": 0.61279296875
+  },
+  "K-MAX-LSC|K-MAX": {
+   "arm": "K-MAX-LSC",
+   "ref": "K-MAX",
+   "n": 12,
+   "better": 0,
+   "tie": 12,
+   "rel_median_pct": 0.0,
+   "p_one_sided": 1.0,
+   "p_other_tail": 0.000244140625
+  },
+  "skill": {
+   "K-8": {
+    "arm": "K-8",
+    "n": 12,
+    "beats_zero": 6,
+    "p_one_sided": 0.61279296875,
+    "median": 0.859768430373534
+   },
+   "K-15": {
+    "arm": "K-15",
+    "n": 12,
+    "beats_zero": 5,
+    "p_one_sided": 0.80615234375,
+    "median": 0.8743407648760027
+   },
+   "SHIP-K": {
+    "arm": "SHIP-K",
+    "n": 12,
+    "beats_zero": 5,
+    "p_one_sided": 0.80615234375,
+    "median": 0.9763934538469119
+   },
+   "K-60": {
+    "arm": "K-60",
+    "n": 12,
+    "beats_zero": 3,
+    "p_one_sided": 0.980712890625,
+    "median": 1.4814404672175434
+   },
+   "K-128": {
+    "arm": "K-128",
+    "n": 12,
+    "beats_zero": 3,
+    "p_one_sided": 0.980712890625,
+    "median": 1.7216714574008534
+   },
+   "K-128-D15": {
+    "arm": "K-128-D15",
+    "n": 12,
+    "beats_zero": 1,
+    "p_one_sided": 0.999755859375,
+    "median": 5.579801237188614
+   },
+   "K-128-D0": {
+    "arm": "K-128-D0",
+    "n": 12,
+    "beats_zero": 1,
+    "p_one_sided": 0.999755859375,
+    "median": 7.1223693099939975
+   },
+   "K-MAX": {
+    "arm": "K-MAX",
+    "n": 12,
+    "beats_zero": 0,
+    "p_one_sided": 1.0,
+    "median": 15.425289456851456
+   }
+  },
+  "strata": {
+   "small_box": {
+    "K-8": {
+     "arm": "K-8",
+     "ref": "SHIP-K",
+     "n": 7,
+     "better": 6,
+     "tie": 0,
+     "rel_median_pct": -11.30320292854221,
+     "p_one_sided": 0.0625,
+     "p_other_tail": 0.9921875
+    },
+    "K-15": {
+     "arm": "K-15",
+     "ref": "SHIP-K",
+     "n": 7,
+     "better": 6,
+     "tie": 0,
+     "rel_median_pct": -12.971521308138753,
+     "p_one_sided": 0.0625,
+     "p_other_tail": 0.9921875
+    },
+    "K-60": {
+     "arm": "K-60",
+     "ref": "SHIP-K",
+     "n": 7,
+     "better": 0,
+     "tie": 0,
+     "rel_median_pct": 143.20198293768627,
+     "p_one_sided": 1.0,
+     "p_other_tail": 0.0078125
+    },
+    "K-128": {
+     "arm": "K-128",
+     "ref": "SHIP-K",
+     "n": 7,
+     "better": 0,
+     "tie": 0,
+     "rel_median_pct": 234.91932989839458,
+     "p_one_sided": 1.0,
+     "p_other_tail": 0.0078125
+    },
+    "K-128-D15": {
+     "arm": "K-128-D15",
+     "ref": "SHIP-K",
+     "n": 7,
+     "better": 0,
+     "tie": 0,
+     "rel_median_pct": 844.1961705469585,
+     "p_one_sided": 1.0,
+     "p_other_tail": 0.0078125
+    },
+    "K-128-D0": {
+     "arm": "K-128-D0",
+     "ref": "SHIP-K",
+     "n": 7,
+     "better": 0,
+     "tie": 0,
+     "rel_median_pct": 1328.2621079326946,
+     "p_one_sided": 1.0,
+     "p_other_tail": 0.0078125
+    },
+    "K-MAX": {
+     "arm": "K-MAX",
+     "ref": "SHIP-K",
+     "n": 7,
+     "better": 0,
+     "tie": 0,
+     "rel_median_pct": 2379.7270814924223,
+     "p_one_sided": 1.0,
+     "p_other_tail": 0.0078125
+    }
+   },
+   "large_box": {
+    "K-8": {
+     "arm": "K-8",
+     "ref": "SHIP-K",
+     "n": 5,
+     "better": 4,
+     "tie": 0,
+     "rel_median_pct": -18.278956352881437,
+     "p_one_sided": 0.1875,
+     "p_other_tail": 0.96875
+    },
+    "K-15": {
+     "arm": "K-15",
+     "ref": "SHIP-K",
+     "n": 5,
+     "better": 4,
+     "tie": 0,
+     "rel_median_pct": -4.383194905074752,
+     "p_one_sided": 0.1875,
+     "p_other_tail": 0.96875
+    },
+    "K-60": {
+     "arm": "K-60",
+     "ref": "SHIP-K",
+     "n": 5,
+     "better": 2,
+     "tie": 1,
+     "rel_median_pct": 0.0,
+     "p_one_sided": 0.8125,
+     "p_other_tail": 0.5
+    },
+    "K-128": {
+     "arm": "K-128",
+     "ref": "SHIP-K",
+     "n": 5,
+     "better": 2,
+     "tie": 1,
+     "rel_median_pct": 0.0,
+     "p_one_sided": 0.8125,
+     "p_other_tail": 0.5
+    },
+    "K-128-D15": {
+     "arm": "K-128-D15",
+     "ref": "SHIP-K",
+     "n": 5,
+     "better": 1,
+     "tie": 0,
+     "rel_median_pct": 226.06801027987856,
+     "p_one_sided": 0.96875,
+     "p_other_tail": 0.1875
+    },
+    "K-128-D0": {
+     "arm": "K-128-D0",
+     "ref": "SHIP-K",
+     "n": 5,
+     "better": 1,
+     "tie": 0,
+     "rel_median_pct": 481.59507922487217,
+     "p_one_sided": 0.96875,
+     "p_other_tail": 0.1875
+    },
+    "K-MAX": {
+     "arm": "K-MAX",
+     "ref": "SHIP-K",
+     "n": 5,
+     "better": 0,
+     "tie": 0,
+     "rel_median_pct": 572.6016609105781,
+     "p_one_sided": 1.0,
+     "p_other_tail": 0.03125
+    }
+   }
+  },
+  "holm_family": [
+   {
+    "name": "K-MAX",
+    "p": 0.00048828125,
+    "thr": 0.005555555555555556,
+    "reject": true
+   },
+   {
+    "name": "K-MAX-LSC|K-MAX",
+    "p": 0.00048828125,
+    "thr": 0.00625,
+    "reject": true
+   },
+   {
+    "name": "K-128-D15",
+    "p": 0.00634765625,
+    "thr": 0.0071428571428571435,
+    "reject": true
+   },
+   {
+    "name": "K-128-D0",
+    "p": 0.00634765625,
+    "thr": 0.008333333333333333,
+    "reject": true
+   },
+   {
+    "name": "K-8",
+    "p": 0.03857421875,
+    "thr": 0.01,
+    "reject": false
+   },
+   {
+    "name": "K-15",
+    "p": 0.03857421875,
+    "thr": 0.0125,
+    "reject": false
+   },
+   {
+    "name": "K-60",
+    "p": 0.03857421875,
+    "thr": 0.016666666666666666,
+    "reject": false
+   },
+   {
+    "name": "K-128",
+    "p": 0.03857421875,
+    "thr": 0.025,
+    "reject": false
+   },
+   {
+    "name": "SHIP-K-LSC|SHIP-K",
+    "p": 1.2255859375,
+    "thr": 0.05,
+    "reject": false
+   }
+  ]
+ },
+ "syn": {
+  "field": "avg_nRMSE",
+  "imported_base_rows": 144,
+  "K-60": {
+   "arm": "K-60",
+   "ref": "SHIP-K",
+   "n": 48,
+   "better": 4,
+   "tie": 39,
+   "rel_median_pct": 0.0,
+   "p_one_sided": 0.9999999999343707,
+   "p_other_tail": 7.569163074094831e-10
+  },
+  "K-128-D0": {
+   "arm": "K-128-D0",
+   "ref": "SHIP-K",
+   "n": 48,
+   "better": 0,
+   "tie": 0,
+   "rel_median_pct": 612.8535091204301,
+   "p_one_sided": 1.0,
+   "p_other_tail": 3.552713678800501e-15
+  },
+  "K-MAX": {
+   "arm": "K-MAX",
+   "ref": "SHIP-K",
+   "n": 48,
+   "better": 0,
+   "tie": 0,
+   "rel_median_pct": 2614.525401171868,
+   "p_one_sided": 1.0,
+   "p_other_tail": 3.552713678800501e-15
+  }
+ },
+ "gates": [
+  [
+   "G-01 배포 상수 핀",
+   true,
+   "{'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'lambda_l1': 0.0001, 'init_method': 'auto', 'ana"
+  ],
+  [
+   "G-02 SHIP-K == 배포 선택 노브",
+   true,
+   "(0.03, 0.03, 30) vs (0.03, 0.03, 30)"
+  ],
+  [
+   "G-03 사슬 단일요인",
+   true,
+   "[]"
+  ],
+  [
+   "G-03b 2x2 세로변 단일요인",
+   true,
+   "[['si_l1'], ['si_l1']]"
+  ],
+  [
+   "G-04 실측 12 레코드 (gates_b2 단일출처)",
+   true,
+   "12"
+  ],
+  [
+   "G-04b 합성 48 에피소드 (gates_b22 단일출처)",
+   true,
+   "48"
+  ],
+  [
+   "G-05a 참 제로필드 키 == RECORDS",
+   true,
+   "12 keys, 차집합 []"
+  ],
+  [
+   "G-05b B-22 학습 원자 파일 144개",
+   true,
+   "144"
+  ],
+  [
+   "G-05c 원자 배열 길이 == 128 (nsamp4 × M32)",
+   true,
+   "[128]"
+  ],
+  [
+   "G-05d B-22 LEARN 동결 행 144개 (합성 기준선 수입원)",
+   true,
+   "144"
+  ],
+  [
+   "G-06 합성: K-MAX K > SHIP-K K 가 전건",
+   true,
+   "144/144"
+  ],
+  [
+   "G-06b 합성: K-MAX 는 항상 원자 전부(128)",
+   true,
+   "[128]"
+  ],
+  [
+   "G-06c 합성 상한 포화율(공시용, 판정 아님)",
+   true,
+   "23/144"
+  ],
+  [
+   "G-07 문턱 산술 (n=12)",
+   true,
+   "{'n': 12, 'T_alpha': 10, 'p_at_T': 0.019287109375, 'T_family': 10, 'p_at_Tf': 0.019287109375}"
+  ],
+  [
+   "G-07b 문턱 산술 (n=48)",
+   true,
+   "{'n': 48, 'T_alpha': 31, 'p_at_T': 0.02973168762688516, 'T_family': 32, 'p_at_Tf': 0.01465247336026465}"
+  ],
+  [
+   "G-08 premise 의 배포 노브 == 패키지",
+   true,
+   "{'dedup_dk': 0.03, 'energy_thresh': 0.03, 'max_n': 30}"
+  ],
+  [
+   "G-09 BS 7 레코드 depth == 30.0 (08-23 정정)",
+   true,
+   "{'BS11a': 30.0, 'BS11b': 30.0, 'BS11c': 30.0, 'BS11d': 30.0, 'BS13a': 30.0, 'BS13b': 30.0, 'BS13c': 30.0}"
+  ],
+  [
+   "G-11 에러 0행",
+   true,
+   "0"
+  ],
+  [
+   "G-12 0행 가드",
+   true,
+   "984"
+  ],
+  [
+   "G-13 real K-8",
+   true,
+   "36/36"
+  ],
+  [
+   "G-13 real K-15",
+   true,
+   "36/36"
+  ],
+  [
+   "G-13 real SHIP-K",
+   true,
+   "36/36"
+  ],
+  [
+   "G-13 real K-60",
+   true,
+   "36/36"
+  ],
+  [
+   "G-13 real K-128",
+   true,
+   "36/36"
+  ],
+  [
+   "G-13 real K-128-D15",
+   true,
+   "36/36"
+  ],
+  [
+   "G-13 real K-128-D0",
+   true,
+   "36/36"
+  ],
+  [
+   "G-13 real K-MAX",
+   true,
+   "36/36"
+  ],
+  [
+   "G-13 real SHIP-K-LSC",
+   true,
+   "36/36"
+  ],
+  [
+   "G-13 real K-MAX-LSC",
+   true,
+   "36/36"
+  ],
+  [
+   "G-13 real K-8-NOGROW",
+   true,
+   "36/36"
+  ],
+  [
+   "G-13 real SHIP-K-INL",
+   false,
+   "0/12"
+  ],
+  [
+   "G-13s syn SHIP-K",
+   true,
+   "144/144"
+  ],
+  [
+   "G-13s syn K-60",
+   true,
+   "144/144"
+  ],
+  [
+   "G-13s syn K-128-D0",
+   true,
+   "144/144"
+  ],
+  [
+   "G-13s syn K-MAX",
+   true,
+   "144/144"
+  ],
+  [
+   "G-14 n_gaussians == K_expected + Σapg_dn (세 출처 항등)",
+   true,
+   "[]"
+  ],
+  [
+   "G-14a 0 < n_gaussians <= max_n (계수기 없는 행)",
+   true,
+   "[]"
+  ],
+  [
+   "G-14b K-MAX 이 전 셀에서 K 를 늘렸다",
+   true,
+   "180/180"
+  ],
+  [
+   "G-15 원자 캐시 = 인라인 제안 (비트동일)",
+   false,
+   "2/12"
+  ],
+  [
+   "G-16 성장 가지 불활성? (비트동일 셀 수 — 공시용, 판정 아님)",
+   true,
+   "0/36"
+  ],
+  [
+   "G-17 캐시 팔에서 확산 호출 0",
+   true,
+   "[]"
+  ],
+  [
+   "G-18 GPU 미사용 (cuda_available False 전건)",
+   true,
+   "0 행"
+  ],
+  [
+   "G-19 셀당 원자 풀 1개",
+   true,
+   "[]"
+  ],
+  [
+   "G-20 실측 팔 간 관측·질의 해시 일치",
+   true,
+   "[]"
+  ],
+  [
+   "G-21 실측 팔이 bank 경로로 새지 않았다",
+   true,
+   "[]"
+  ],
+  [
+   "G-21b 실측 팔 전건 n_gaussians>0 (bank 는 0개다)",
+   true,
+   "[2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 14, 15, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33"
+  ],
+  [
+   "G-22 소형 박스 수심 30.0 되읽기",
+   true,
+   "[]"
+  ],
+  [
+   "G-23 SCALE_INVARIANT_L1 되읽기 == 팔 정의",
+   true,
+   "[]"
+  ]
+ ],
+ "n_rows": {
+  "total": 984,
+  "own": 840,
+  "imported": 144,
+  "errors": 0
+ }
+}

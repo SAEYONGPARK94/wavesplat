@@ -40,6 +40,9 @@ B22 = "B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json"
 B25 = "B25_CONFWEIGHT_2026-08-27/verdict_b25.json"
 B26 = "B26_SEASTATE_2026-08-27/verdict_b26.json"
 M2  = "M2_LOCTUNE_2026-08-28/verdict_m2.json"
+M4  = "M4_CAPACITY_2026-08-28/verdict_m4.json"
+M5B = "M5b_WINDOW_2026-08-28/verdict_m5b.json"
+M8B = "M8b_LADDER_2026-08-28/verdict_m8b.json"
 
 def pct(v, n=2):  return f"{v:.{n}f}"
 def cnt(v, tot):  return f"{v}/{tot}"
@@ -97,6 +100,40 @@ CHECKS = [
  ("M2 skill SS-SHORT",       M2,  "results.SS-SHORT.stats.SPEC25.skill",      lambda v: pct(v*100)),
  ("M2 skill SS-BF4",         M2,  "results.SS-BF4.stats.SPEC25.skill",        lambda v: pct(v*100)),
  ("M2 SS-REAL vs 제로 크기",  M2,  "results.SS-REAL.ship_vs_zero.rel_median_pct", lambda v: pct(v,1)),
+ # ── 2026-08-28 추가: M-4(용량) · M-5b(창) · M-8b(사다리) ──────────────────
+ # ⛔손복사 금지. 기대 문자열은 전부 verdict 에서 계산한다.
+ ("M-4 실측 K-MAX 승수",     M4,  "primary.better",                    lambda v: cnt(v,12)),
+ ("M-4 실측 K-MAX 크기",     M4,  "primary.rel_median_pct",            lambda v: f"{v:.0f}"),
+ ("M-4 합성 K-MAX 승수",     M4,  "syn.K-MAX.better",                  lambda v: cnt(v,48)),
+ ("M-4 K-8 승수(탐색적)",     M4,  "real.K-8.better",                   lambda v: cnt(v,12)),
+ ("M-4 기준선 vs 제로",      M4,  "real.skill.SHIP-K.beats_zero",      lambda v: cnt(v,12)),
+ ("M-4 K-MAX vs 제로",      M4,  "real.skill.K-MAX.beats_zero",       lambda v: cnt(v,12)),
+ ("M-4 게이트",              M4,  "gates",                             lambda v: cnt(len(v),len(v))),
+ ("M-5b PROP 승수",          M5B, "primary.better",                    lambda v: cnt(v,12)),
+ ("M-5b PROP 크기",          M5B, "primary.rel_median_pct",            lambda v: pct(v,1)),
+ ("M-5b 판별자 승수",         M5B, "discriminator.better",              lambda v: cnt(v,12)),
+ ("M-5b 판별자 크기",         M5B, "discriminator.rel_median_pct",      lambda v: pct(v,1)),
+ ("M-5b 용량반응 TP6",        M5B, "dose_response.0.better",            lambda v: cnt(v,12)),
+ ("M-5b 용량반응 TP4",        M5B, "dose_response.1.better",            lambda v: cnt(v,12)),
+ ("M-5b SEC8 판별자 크기",    M5B, "extra.sec8_ship.rel_median_pct",    lambda v: pct(v,1)),
+ ("M-5b ORIG2 승수",         M5B, "extra.orig2_prop.better",           lambda v: cnt(v,12)),
+ ("M-5b ORIG2 크기",         M5B, "extra.orig2_prop.rel_median_pct",   lambda v: "+"+pct(v,1)),
+ ("M-5b 밀도 ANCHOR",        M5B, "density_disclosure.0.dens_per_s",   lambda v: f"{v:.1f}"),
+ ("M-5b 밀도 TP2",           M5B, "density_disclosure.3.dens_per_s",   lambda v: f"{v:.1f}"),
+ ("M-5b 게이트",             M5B, "gates",                             lambda v: cnt(len(v),len(v))),
+ ("M-8b 끝점 승수",          M8B, "endpoint.worse",                    lambda v: cnt(v,12)),
+ ("M-8b 끝점 크기",          M8B, "endpoint.rel_median_pct",           lambda v: pct(v,1)),
+ ("M-8b PRIMARY 승수",       M8B, "primary.better",                    lambda v: cnt(v,12)),
+ ("M-8b PRIMARY 크기",       M8B, "primary.rel_median_pct",            lambda v: pct(v)),
+ ("M-8b MDE q80",            M8B, "thresholds.q80_primary",            lambda v: f"{v:.3f}"),
+ ("M-8b L1 승수",            M8B, "chain.0.worse",                     lambda v: cnt(v,12)),
+ ("M-8b L2 승수",            M8B, "chain.1.worse",                     lambda v: cnt(v,12)),
+ ("M-8b L6 승수",            M8B, "chain.5.worse",                     lambda v: cnt(v,12)),
+ ("M-8b BANK 절대 중앙",      M8B, "magnitude.per_rung.0.abs_nrmse_median",  lambda v: f"{v:.3f}"),
+ ("M-8b PROP 절대 중앙",      M8B, "magnitude.per_rung.8.abs_nrmse_median",  lambda v: f"{v:.3f}"),
+ ("M-8b BANK vs 참제로",      M8B, "magnitude.per_rung.0.vs_true_zero_median", lambda v: f"{v:.3f}"),
+ ("M-8b PROP vs 참제로",      M8B, "magnitude.per_rung.8.vs_true_zero_median", lambda v: f"{v:.3f}"),
+ ("M-8b 게이트",             M8B, "gates",                             lambda v: cnt(len(v),len(v))),
 ]
 
 bad = []

@@ -44,6 +44,11 @@ CANON = {
   "NAMED-AXIS-NEW (신 문안)": "배제된축하나를이름붙였을뿐",
   "EXCL-SENTENCE (배제 축자)": "경계는파랑조건의축을따라놓여있지않다",
   "M2-DISCLOSE (공시 축자)": "그승수에는공시둘이동반된다",
+  # ── 2026-08-28 추가 (M-4 · M-5b · M-8b) ────────────────────────────────
+  "CAP-KR (용량 부호 반대)": "용량이모자라서지는것이아니다",
+  "WIN-NOGAIN-KR (창 규약 무관 문장)": "창을줄여서제안표현이좋아진다는증거는어느읽기에서도없다",
+  "LADDER-KR (인수분해 불가)": "단일요인으로인수분해되지않",
+  "LADDER-EN": "doesnotfactorise",
 }
 
 # ★2026-08-28 신설: **되감김 형태**를 보고가 아니라 실패로 승격한다.
@@ -56,6 +61,34 @@ FORBIDDEN = {
   "⛔되감김 '한 겹 = 경계가 놓인 축이다' (지목)":  "경계가놓인축이다",
   "⛔되감김 '경계가 놓인 축을 보고한다' (지목)":   "경계가놓인축을보고한다",
   "⛔지목형 '경계는 …축을 따라 놓여 있다'":        "축을따라놓여있다",
+}
+
+# ★2026-08-28 신설: **"같은 주장이 N곳이면 N곳 전부"** 를 기계로 강제한다.
+#   사유 = 오늘 낸 판정 넷이 논문에 **0회** 였던 것이 위원장 사유 ④("문서의 지연")의
+#   재발이었다. 한 곳만 고치는 결함은 canonical 근사일치로 잡히지만, **아예 빠진 곳**은
+#   그 방식으로 안 잡힌다 ⟹ 여섯 지점(초록 국/영·기여·경계·제3장·결론)을 직접 센다.
+#   ⛔여기 넣는 앵커는 **verdict 에서 나온 계수 원자**만 쓴다(문면은 바뀌어도 수는 남는다).
+import bisect
+def _line_span(startpat, endpat, after=0):
+    s = e = None
+    for i, l in enumerate(lines, 1):
+        if i <= after: continue
+        if s is None and re.search(startpat, l): s = i
+        elif s is not None and re.search(endpat, l): e = i; break
+    return s, (e or len(lines))
+
+SPANS = {}
+SPANS["초록KR"]   = _line_span(r'\\chapter\*\{초\\quad 록\}', r'\\chapter\*\{Abstract\}')
+SPANS["초록EN"]   = _line_span(r'\\chapter\*\{Abstract\}', r'^\\newpage\s*$|tableofcontents')
+SPANS["§boundary"] = _line_span(r'\\label\{sec:boundary\}', r'본 논문의 주요 기여는')
+SPANS["기여"]     = _line_span(r'본 논문의 주요 기여는', r'\\section\{논문 구성\}')
+SPANS["제3장"]    = _line_span(r'\\label\{chap:wavesplat\}', r'\\label\{chap:hydrofoil\}')
+SPANS["결론"]     = _line_span(r'\\label\{sec:conclusion\}', r'\\section\{향후 연구\}')
+
+COVERAGE = {
+  "M-4 용량 (합성 0/48)":      "0/48",
+  "M-5b 창 (제안 팔 2/12)":    "2/12",
+  "M-8b 사다리 (끝점 11/12)":  "11/12",
 }
 
 def find_all(hay, needle):
@@ -88,6 +121,24 @@ for name, needle in FORBIDDEN.items():
         print(f"⛔FAIL {name}: {len(pos)}회 → 줄 {[idx[p] for p in pos]}")
     else:
         print(f"  ok  {name}")
+# --- COVERAGE (2026-08-28) --------------------------------------------------
+print("\n--- COVERAGE: 같은 주장이 여섯 지점에 전부 있는가 ---")
+def body_between(a, b):
+    out = []
+    for i in range(a, b + 1):
+        l = lines[i-1]
+        if l.lstrip().startswith('%'): continue
+        out.append(re.sub(r'(?<!\\)%.*$', '', l))
+    return re.sub(r'[{}$\\]|\s+', '', "".join(out))
+
+for name, atom in COVERAGE.items():
+    missing = [k for k, (a, b) in SPANS.items() if a is None or atom not in body_between(a, b)]
+    if missing:
+        bad += len(missing)
+        print(f"⛔FAIL {name}: 빠진 지점 {missing}")
+    else:
+        print(f"  ok  {name}: 여섯 지점 전부")
+
 n_spine = len(find_all(flow, CANON["SPINE-KR (단일 진술 축자)"]))
 if n_spine < 5:
     print(f"⚠경고 SPINE-KR 이 {n_spine}회다(동결 시점 5회) --- "

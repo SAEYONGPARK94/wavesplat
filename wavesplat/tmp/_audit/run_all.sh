@@ -9,6 +9,14 @@ set -u
 fail=0
 run() { echo; echo "════════ $1"; shift; "$@"; local rc=$?; [ $rc -ne 0 ] && fail=1; return 0; }
 
+# ★0 신설(2026-08-29) — **검사기 자신의 회귀 시험**을 먼저 돌린다.
+#   사유: 08-29 에 검사기 결함 2건이 동시에 드러났다 — `check_batch_artifacts` 의
+#   `재동결` **오탐**(동결 키를 basename 으로 잡아 `M8b/PREREG.md` ↔ `M8/PREREG.md` 충돌)과
+#   `check_gate_refs` 의 **사각지대**(jsonl 읽기를 공유 헬퍼로 단일출처화한 배치를 못 봄).
+#   ★전자는 실제로 규약을 비틀게 만들었다(`B-20b` 가 오탐을 피하려 동결 목록에서 파일을 뺐다).
+#   ⟹ 방벽이 스스로 틀리는 것을 막는 유일한 수단은 **회귀 픽스처**다. 맨 앞에 둔다.
+run "0. 검사기 자가진단 (F-1 오탐 · F-2 사각지대 회귀)" bash -c 'python3 tmp/_audit/check_batch_artifacts.py --selftest && python3 tmp/_audit/check_gate_refs.py --selftest && python3 tmp/_audit/check_gate_blindspots.py --selftest'
+
 run "1. 배치 산출물 (PREREG·게이트·판정·동결·순서)" python3 tmp/_audit/check_batch_artifacts.py
 run "2. 판정 문턱 (우연과 구분되는가 · 도달 가능한가)" python3 tmp/_audit/check_thresholds.py
 run "3. 손복사 기준 상수 (자료에서 재도출되는가)" python3 tmp/_audit/find_handcopied_refs.py

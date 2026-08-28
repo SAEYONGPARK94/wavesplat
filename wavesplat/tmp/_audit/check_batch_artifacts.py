@@ -65,10 +65,11 @@
     ⟹ 구조적으로 검사되지 않았다. **`PREREG*.md` 를 가진 디렉터리도 목록에 넣고 `미실행` 표시.**
 
 사용:  python3 tmp/_audit/check_batch_artifacts.py [tmp/BATCH_DIR ...]
+       python3 tmp/_audit/check_batch_artifacts.py --selftest   # 일부러 깨진 픽스처
 인자가 없으면 `tmp/` 아래 `results*.jsonl` **또는** `PREREG*.md` 를 가진 디렉터리를 전부 검사한다.
 종료코드 1 = D 또는 E 또는 H 위반이 하나라도 있음(= 인용 불가 배치가 있음).
 """
-import ast, glob, hashlib, json, os, re, sys
+import ast, glob, hashlib, io, json, os, re, sys
 
 COLS = ['PREREG', 'gates', 'analyze', 'results', 'verdict.label', 'verdict.gates',
         'FROZEN', 'analyzer<results', 'results~verdict', '★자기동결', 'md5', 'no-{}-arm']
@@ -228,16 +229,30 @@ def check(d):
     # ⚠V5: 재동결하면 이 열이 `OK` 로 돌아간다 ⟹ **표에서 드리프트 사실이 사라진다**
     #   (규약은 원본 줄을 보존하라고 하지만 그건 *산문*이고 검사기는 마지막 줄만 읽는다).
     #   ⟹ 같은 경로가 **다른 해시로** 두 번 이상 적힌 것을 세어 `재동결` 로 계속 드러낸다.
+    # ⛔**F-1 수리 (2026-08-29)** — 종전 키가 `os.path.basename(parts[1])` 이었다.
+    #   ⟹ **서로 다른 파일이 이름만 같으면 충돌**해 *"재동결 이력"* 을 **오탐**했다.
+    #   승계 배치가 원천 배치의 동봉물을 동결하면 반드시 터진다(`M8b/PREREG.md` ↔ `M8/PREREG.md`,
+    #   `B1/results.jsonl` ↔ `B12/results.jsonl`, `W8/varpro.py` ↔ 배포 `optimizer/varpro.py`).
+    #   ★그리고 이 오탐이 실제로 **규약을 비틀게 만들었다** — `B-20b` 는 오탐을 피하려고
+    #   `B-21/PREREG.md` 를 **동결 목록에서 뺐다**(그 `FROZEN_md5.txt` 헤더에 축자로 적혀 있다).
+    #   ⟹ *"검사기의 오탐이 동결 범위를 좁혔다"* = 방벽이 자기가 지키려던 것을 깎은 사례.
+    #   키를 **경로**로 바꾼다. `_resolve` 로 실파일까지 풀어 **같은 파일의 두 철자**
+    #   (`scene_station.py` ↔ `tmp/B2_REAL_.../scene_station.py`)는 하나로 본다.
     latest, seen = {}, {}
     for ff in sorted(glob.glob(os.path.join(d, 'FROZEN*.txt'))):
         for ln in open(ff):
             parts = ln.split()
             if len(parts) != 2 or len(parts[0]) != 32 or ln.startswith('#'):
                 continue
-            key = os.path.basename(parts[1])
+            key = os.path.realpath(_resolve(d, parts[1]) or parts[1])
             seen.setdefault(key, set()).add(parts[0])
             latest[parts[1]] = parts[0]
-    refrozen = sorted(k for k, v in seen.items() if len(v) > 1)
+    # 표시는 종전대로 basename. 같은 basename 이 둘 이상 남으면 **부모 디렉터리까지** 붙여
+    # 어느 파일인지 드러낸다(오탐을 없앴으므로 여기 남는 것은 전부 진짜 재동결이다).
+    _rf = [k for k, v in seen.items() if len(v) > 1]
+    _dup = {b for b in map(os.path.basename, _rf) if list(map(os.path.basename, _rf)).count(b) > 1}
+    refrozen = sorted(os.path.join(os.path.basename(os.path.dirname(k)), os.path.basename(k))
+                      if os.path.basename(k) in _dup else os.path.basename(k) for k in _rf)
     drift, own_drift, skipped = [], [], []
     own_frozen = set()
     n_cmp = n_own_cmp = 0
@@ -332,7 +347,82 @@ def _fmt(x):
     return f'{("OK" if x else "--") if isinstance(x, bool) else x:>9s}'
 
 
+def _selftest(verbose=True):
+    """★F-1 회귀 (2026-08-29) — **`재동결` 이 이름 충돌로 오탐하지 않는가.**
+
+    종전 키가 `os.path.basename(parts[1])` 이라, 승계 배치가 원천 배치의 동봉물을
+    동결하기만 해도(`M8b/PREREG.md` + `M8/PREREG.md`) *"재동결 이력"* 이 찍혔다.
+    ★그 오탐이 실제로 규약을 비틀게 만들었다 — `B-20b` 는 오탐을 피하려고
+    `B-21/PREREG.md` 를 **동결 목록에서 뺐다**(그 FROZEN 헤더에 축자로 적혀 있다).
+    ⟹ 검사기의 오탐이 **동결 범위를 좁혔다**. 그래서 두 방향을 다 고정한다:
+      [1] 이름만 같은 **서로 다른 파일** = 재동결이 **아니다**(오탐 금지).
+      [2] 같은 파일이 **다른 해시로** 두 번 = 재동결이 **맞다**(탐지 유지 — 더 중요하다).
+    """
+    import shutil
+    import tempfile
+    base = tempfile.mkdtemp(prefix='cba_selftest_')
+    ok = True
+
+    def say(x):
+        if verbose:
+            print(x)
+
+    def chk(tag, cond, detail=''):
+        nonlocal ok
+        ok = ok and bool(cond)
+        say(f'  {"✅" if cond else "⛔"} {tag}' + (f'  — {detail}' if detail else ''))
+
+    def md5(q):
+        return hashlib.md5(open(q, 'rb').read()).hexdigest()
+
+    def batch(name, prereg_text):
+        b = os.path.join(base, name)
+        os.makedirs(b, exist_ok=True)
+        io.open(os.path.join(b, 'PREREG.md'), 'w').write(prereg_text)
+        io.open(os.path.join(b, 'gates_x.py'), 'w').write('def gates(rows):\n    return []\n')
+        io.open(os.path.join(b, 'analyze_x.py'), 'w').write('print(1)\n')
+        io.open(os.path.join(b, 'results_x.jsonl'), 'w').write('{"arm": "A"}\n')
+        json.dump({'label': 'L', 'gates': []}, io.open(os.path.join(b, 'verdict_x.json'), 'w'))
+        return b
+
+    try:
+        src = batch('SRC', '# 원천 배치의 사전등록\n')
+        heir = batch('HEIR', '# 승계 배치의 사전등록 — 내용이 다르다\n')
+        own = [os.path.join(heir, q) for q in ('PREREG.md', 'gates_x.py', 'analyze_x.py')]
+        lines = [f'{md5(q)}  {os.path.basename(q)}' for q in own]
+        # 승계 = **원천 배치의 PREREG 를 동결한다.** basename 은 같고 파일은 다르다.
+        lines.append(f'{md5(os.path.join(src, "PREREG.md"))}  ../SRC/PREREG.md')
+        io.open(os.path.join(heir, 'FROZEN_md5.txt'), 'w').write('\n'.join(lines) + '\n')
+
+        say('[1] ★F-1 — 이름만 같은 **서로 다른 파일**은 재동결이 아니다')
+        _, ok1, info1 = check(heir)
+        chk('`재동결` 오탐 없음', not info1['refrozen'], str(info1['refrozen']))
+        chk('그래도 동결 대조는 실제로 일어났다(침묵 아님)',
+            info1['n_cmp'] == 4 and not info1['skipped'],
+            f"대조 {info1['n_cmp']}/{info1['n_frozen']} · 미해결 {info1['skipped']}")
+        chk('자기 판정코드 누락 없음 · 인용 가능', ok1 and not info1['unfrozen'],
+            f"ok={ok1} 미동결={info1['unfrozen']}")
+
+        say('[2] ★진짜 재동결(같은 파일 · 다른 해시)은 **여전히 잡는다**')
+        io.open(os.path.join(heir, 'FROZEN_md5_LOG.txt'), 'w').write(
+            f'0{md5(os.path.join(heir, "PREREG.md"))[1:]}  PREREG.md\n')
+        _, _, info2 = check(heir)
+        chk('`재동결` 로 드러난다', info2['refrozen'] == ['PREREG.md'], str(info2['refrozen']))
+
+        say('[3] ★같은 파일의 **두 철자**(`X.py` ↔ `../HEIR/X.py`)는 하나로 본다')
+        io.open(os.path.join(heir, 'FROZEN_md5_LOG.txt'), 'w').write(
+            f'{md5(os.path.join(heir, "gates_x.py"))}  ../HEIR/gates_x.py\n')
+        _, _, info3 = check(heir)
+        chk('철자만 다른 같은 해시 = 재동결 아님', not info3['refrozen'], str(info3['refrozen']))
+    finally:
+        shutil.rmtree(base, ignore_errors=True)
+    say('\n' + ('✅자가진단 통과' if ok else '⛔자가진단 실패'))
+    return 0 if ok else 1
+
+
 def main(argv):
+    if '--selftest' in argv:
+        return _selftest()
     if argv[1:]:
         dirs = [a.rstrip(os.sep) for a in argv[1:]]
     else:

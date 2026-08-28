@@ -67,7 +67,16 @@
   · **팔 단위 부재** — 키가 *어떤* 행에는 있고 필터가 고르는 행에는 없는 경우.
     합집합 대조는 이것을 놓친다(**안전한 방향**: 침묵이지 오탐이 아니다).
   · 다른 모듈(`gates_b11.med_by_episode` 등)로 넘어간 뒤의 접근. 한 모듈 안에서만 추적한다.
+    ⚠**로더 *발견* 은 2026-08-29 부터 모듈을 넘어간다**(F-2 수리, `_reads_data` 폐포).
+    넘어가지 못하는 것은 4단계의 **키 추적**뿐이다 — 둘을 섞어 읽지 마라.
   · 키가 **변수**인 접근(`r.get(k)`). 리터럴만 본다.
+  · ★**픽스처 제조기**(`_fixture*`·`synthetic_rows`)가 여는 파일. **일부러 안 본다** —
+    반환 행이 합성물이라 그 키 집합을 「외부 키 우주」로 삼으면 오탐이 쏟아진다(실측 17건).
+    ⟹ 어떤 배치의 **유일한** 외부 읽기가 픽스처 함수 안에 있으면 이 검사기는 침묵한다.
+  · **호출 그래프 폐포의 한계** — 깊이 `CLOSURE_DEPTH`(=3)까지 · `fn.__globals__` 로 이름이
+    풀리는 호출만(동적 디스패치 `getattr(mod, name)()`·함수 표는 못 따라간다) ·
+    stdlib/site-packages 안으로는 들어가지 않는다.
+  · **인자가 필요한 로더**(`load(path)`)는 호출하지 않는다 — 무인자 함수만 부른다.
   · `⚠원천미식별` 로 찍힌 배치 — 외부 경로는 찾았는데 그것을 행으로 읽는 지점을 못 짚었다.
     ★`OK` 가 아니다(M3 가 그 상태였다). 실측 잔여 4건은 손으로 확인했다:
     설정 문서(`corpus_router_targets.json`) · `sys.path` 디렉터리 · 저장소 전체 `**` 센서스.
@@ -92,12 +101,15 @@ import ast
 import builtins
 import glob as globmod
 import importlib.util
+import inspect
 import io
 import json
 import os
 import re
 import signal
 import sys
+import sysconfig
+import textwrap
 import traceback
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -110,7 +122,16 @@ CONTAINER_DEPTH = 3          # 전역 컨테이너 하강 깊이
 
 # 호출해도 되는 무인자 함수에서 **제외**할 이름 접두어.
 # ⛔`gates*`/`selftest`/`main` 은 게이트 전체를 돌리므로 부작용·비용이 크다.
-NO_CALL = ('gates', 'selftest', '_selftest', 'main', 'report', 'run', 'label', 'print')
+# ⛔**픽스처 제조기는 로더가 아니다 (2026-08-29, F-2 수리에 딸린 필수 항목).**
+#   `_fixture*`·`synthetic_rows` 는 **합성 행을 만든다**(`gates_m8.py:1241` 이 스스로
+#   *"⛔판정 자료가 아니다"* 라 적었다). 앵커 값을 싣느라 외부 동결 파일을 **읽기는 하지만**
+#   반환하는 행은 제조물이므로, 그 키 집합을 「외부 키 우주」로 삼으면 **없는 키가 아닌 것을
+#   없다고 보고**한다. F-2 폐포를 넣자 이 부류가 후보로 들어와 오탐 **17건**(B19·B21·B22·M8)이
+#   났고, 전건이 배치 자신의 실제 결과 행에는 **존재하는 키**였다(실측 확인).
+#   ★같은 이유로 `selftest` 는 처음부터 이 목록에 있었다 — `_fixture` 는 그 짝이다.
+#   실측 근거: 저장소의 픽스처 제조기 이름은 `_fixture*`(7종)·`synthetic_rows` 뿐이다.
+NO_CALL = ('gates', 'selftest', '_selftest', 'main', 'report', 'run', 'label', 'print',
+           'fixture', '_fixture', 'synthetic')
 
 # 행 변수에서 파생된 컬렉션으로 인정하는 호출(순서/형만 바꾸는 것들)
 PASSTHRU = {'sorted', 'list', 'tuple', 'reversed', 'filter', 'set'}
@@ -295,6 +316,87 @@ def _static_joins(tree, consts, batchdir):
     return files, empty
 
 
+# ★F-2 수리 (2026-08-29) — 「자료를 읽는가」의 증거 패턴.
+#   ⛔종전 정규식은 `glob\.glob\s*\(` 로 **수신자 이름까지** 박아 놨다 ⟹ `_g.glob(` 를 놓쳤다.
+#   수신자를 풀어 `\bglob\s*\(` 로 바꾼다(`glob.glob(`·`_g.glob(`·`Path.glob(` 전부 매치).
+#   ⛔`open(` 은 **일부러 넣지 않는다** — 쓰기(`open(p,'w')`) 함수까지 호출 대상이 되어
+#     검사기가 자료를 **덮어쓸** 수 있다. 읽기 증거만 쓴다.
+_READ_SRC = re.compile(r'json\.loads?\s*\(|\.jsonl|\bglob\s*\(')
+CLOSURE_DEPTH = 3            # 호출 그래프를 따라가는 깊이 상한
+
+
+# stdlib·site-packages 경로 — 폐포가 여기로 넘어가면 안 된다(`json.load` 안까지 파는 짓).
+_LIBDIRS = tuple(sorted({os.path.realpath(q) + os.sep
+                         for q in (sysconfig.get_paths().get(k) for k in
+                                   ('stdlib', 'platstdlib', 'purelib', 'platlib'))
+                         if q}))
+
+
+def _fn_src(fn):
+    """**제1자 코드**(저장소·배치)에 정의된 함수의 소스. stdlib·site-packages 면 `None`.
+
+    ⛔경계를 `ROOT` 로 잡으면 안 된다 — 그러면 **자가진단 픽스처(tempdir)가 폐포를 못 타서**
+      회귀 시험이 조용히 무력해진다(2026-08-29 에 실제로 그렇게 만들었다가 잡았다).
+      막아야 하는 것은 *"저장소 밖"* 이 아니라 *"제3자 라이브러리"* 다.
+    """
+    try:
+        f = inspect.getsourcefile(fn)
+        if not f:
+            return None
+        r = os.path.realpath(f)
+        if any(r.startswith(q) for q in _LIBDIRS):
+            return None
+        return inspect.getsource(fn)
+    except Exception:
+        return None
+
+
+def _reads_data(fn, depth=0, seen=None):
+    """`fn` **또는 그것이 부르는** 저장소-내 함수가 자료를 읽는가 (호출 그래프 폐포).
+
+    ⛔**F-2 = 이 검사기의 사각지대였다 (2026-08-29 수리).**
+      종전 후보 선정은 함수 **자기 본문의 문자 매칭**뿐이었다
+      (`json.load(` · `.jsonl` · `glob.glob(`). ⟹ jsonl 읽기를 **공유 헬퍼로
+      단일출처화한 배치가 통째로 안 보였다**: `gates_m8b.source_rows()` 는
+      `G8._load_jsonl(p)` 와 별칭 `_g.glob(...)` 을 쓰므로 셋 중 어느 것도 매치하지 않아
+      **후보에 들지도 못했고**, 그 배치는 `⚠원천미식별` 로 조용히 빠졌다.
+      ★***저장소가 권장하는 규율(단일출처)과 탐지 규칙이 정면으로 어긋나 있었다*** —
+      **잘 짤수록 안 보이는 검사기**는 방벽으로서 치명적이다.
+    ⟹ 이름을 따라가지 말고 **호출 그래프**를 따라간다. 이름 해석은 `fn.__globals__`
+      기준이라 `G8._load_jsonl` 처럼 **다른 모듈로 넘어간** 호출도 정확히 풀린다.
+    ⚠**좁음은 유지한다** — 저장소 밖 함수(stdlib·numpy)는 따라가지 않고, 깊이는
+      `CLOSURE_DEPTH` 로 막고, `NO_CALL` 접두어 배제는 그대로다. 그래서 후보가
+      폭증하지 않는다(실측: 100배치에서 새 로더 **1개**, 벽시계 +0.4 s).
+    """
+    seen = set() if seen is None else seen
+    if not callable(fn) or id(fn) in seen or depth > CLOSURE_DEPTH:
+        return False
+    seen.add(id(fn))
+    src = _fn_src(fn)
+    if src is None:
+        return False
+    if _READ_SRC.search(src):
+        return True
+    try:
+        sub = ast.parse(textwrap.dedent(src))
+    except Exception:
+        return False
+    g = getattr(fn, '__globals__', {})
+    for n in ast.walk(sub):
+        if not isinstance(n, ast.Call):
+            continue
+        if isinstance(n.func, ast.Name):
+            tgt = g.get(n.func.id)
+        elif isinstance(n.func, ast.Attribute) and isinstance(n.func.value, ast.Name):
+            base = g.get(n.func.value.id)
+            tgt = getattr(base, n.func.attr, None) if base is not None else None
+        else:
+            continue
+        if _reads_data(tgt, depth + 1, seen):
+            return True
+    return False
+
+
 def _call_loaders(mod, tree, batchdir, module_src='', verbose=False):
     """(c) **무인자 로더를 실제로 호출**하고 연 파일을 계측한다.
 
@@ -315,8 +417,11 @@ def _call_loaders(mod, tree, batchdir, module_src='', verbose=False):
         # ★호출 대상을 **좁게** 고른다. `ast.dump` 부분문자열 매칭은 `h5py.File` 을 읽는
         #   `mesh_census()` 같은 **무거운 함수**까지 끌어들였다(M1 이 GPU 를 쓰는 중이라
         #   무거운 CPU/디스크 작업은 금지다). `json`/`jsonl`/`glob` 을 실제로 쓰는 것만.
+        # ⛔**F-2 수리**: 그 좁힘을 **자기 본문 문자 매칭**으로 했더니 읽기를 공유 헬퍼로
+        #   단일출처화한 로더가 통째로 안 보였다 ⟹ `_reads_data` 의 **호출 그래프 폐포**로
+        #   바꾼다(자기 본문 매칭은 그 안의 첫 조건으로 그대로 남는다).
         seg = ast.get_source_segment(module_src, node) or ''
-        if not re.search(r'json\.loads?\s*\(|\.jsonl|glob\.glob\s*\(', seg):
+        if not (_READ_SRC.search(seg) or _reads_data(getattr(mod, node.name, None))):
             continue
         cands.append(node.name)
 
@@ -1036,6 +1141,69 @@ def gates_run(rows, frozen=None):
 '''
 
 
+# ★F-2 회귀 픽스처 (2026-08-29) — **jsonl 읽기를 공유 헬퍼로 단일출처화한 배치**.
+#   `gates_singlesrc.frozen_rows()` 는 `SIO.load_jsonl` 과 별칭 `_g.glob` 만 쓴다 ⟹
+#   종전의 문자 매칭(`json.load(`·`.jsonl`·`glob.glob(`)에 **하나도 걸리지 않는다**.
+#   ⟹ 로더 0개 = `⚠원천미식별` = **공허 참조 `cap_ghost_key` 를 놓친다**.
+#   ★그리고 같은 파일의 `_fixture_rows()` 는 **로더로 세면 안 된다**(합성 행 제조기).
+_FX_SHARED_IO = """\
+import glob
+import json
+
+
+def find(pattern):
+    return sorted(glob.glob(pattern))
+
+
+def load_jsonl(path):
+    return [json.loads(x) for x in open(path) if x.strip()]
+"""
+
+_FX_SINGLESRC = """\
+import os
+
+import shared_io as SIO
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+EXT = os.path.join(HERE, "..", "EXTB", "results_ext_*.jsonl")
+
+
+def frozen_rows():
+    rows = []
+    for q in SIO.find(EXT):
+        rows += SIO.load_jsonl(q)
+    return rows
+
+
+def alias_glob_rows():
+    import glob as _g
+    out = []
+    for q in sorted(_g.glob(EXT)):
+        for x in open(q):
+            if x.strip():
+                out.append({"arm": x[8:14]})
+    return out
+
+
+def _fixture_rows():
+    return [dict(arm="SHIP", episode=r.get("episode")) for r in frozen_rows()]
+
+
+def gates_run(rows, frozen=None):
+    fr = frozen_rows() if frozen is None else frozen
+    ref = {}
+    for r in fr:
+        if r.get("arm") == "SPEC25" and r.get("cap_ghost_key"):
+            ref = r["cap_ghost_key"]
+            break
+    out = [("G-1", bool(ref), "")]
+    for r in fr:
+        if r.get("cap_loc_radius"):
+            out.append(("G-2", True, ""))
+    return out
+"""
+
+
 _FX_RUNNER_GATES = '''\
 import os
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -1205,6 +1373,31 @@ def selftest(verbose=True):
               any(m['key'] == 'error' and m['kind'] == 'in' for m in r5['missing']),
               str([(m['key'], m['kind']) for m in r5['missing']]))
 
+        say('[7] ★F-2 회귀 — **읽기를 단일출처화한 배치가 보이는가**')
+        d7 = os.path.join(base, 'SINGLESRC')
+        os.makedirs(d7)
+        with open(os.path.join(d7, 'shared_io.py'), 'w') as fh:
+            fh.write(_FX_SHARED_IO)
+        with open(os.path.join(d7, 'gates_singlesrc.py'), 'w') as fh:
+            fh.write(_FX_SINGLESRC)
+        r7 = check_batch(d7)
+        k7 = {m['key'] for m in r7['missing'] if m['kind'] == 'val'}
+        check('★**폐포** — 본문에 `json`·`glob`·`.jsonl` 이 한 글자도 없고 공유 헬퍼'
+              '(`SIO.find`/`SIO.load_jsonl`)만 부르는 로더를 본다 (종전 = `⚠원천미식별`)',
+              'frozen_rows' in r7['readers'], str(sorted(r7['readers'])))
+        check('★**별칭** — `import glob as _g` 뒤 `_g.glob(` 도 본다 '
+              '(종전 정규식은 `glob.glob(` 로 수신자까지 박아 놨다)',
+              'alias_glob_rows' in r7['readers'], str(sorted(r7['readers'])))
+        check('그래서 외부 파일·행을 실제로 읽었다(침묵 아님)',
+              r7['ext_files'] == 1 and r7['ext_keys'], f"파일 {r7['ext_files']} · 키 {len(r7['ext_keys'])}개")
+        check('★그 덕에 공허 참조(`cap_ghost_key`) 를 잡는다 — 종전에는 놓쳤다',
+              'cap_ghost_key' in k7, str(sorted(k7)))
+        check('⛔오탐 없음: 있는 키(`cap_loc_radius`)는 잡지 않는다',
+              'cap_loc_radius' not in k7, str(sorted(k7)))
+        check('★⛔**픽스처 제조기(`_fixture_rows`)는 로더로 세지 않는다** '
+              '— 세면 합성 키 우주로 오탐 17건이 난다(B19·B21·B22·M8 실측)',
+              '_fixture_rows' not in r7['readers'], str(sorted(r7['readers'])))
+
         say('[4] ★M2 실물에 대고 — `G-13` 의 두 키를 실제로 잡는가')
         m2 = os.path.join(TMP, 'M2_LOCTUNE_2026-08-28')
         if os.path.isdir(m2):
@@ -1361,7 +1554,10 @@ def main(argv):
           f'외부참조 없어 대상 밖: {len(silent)}  ·  ⚠원천미식별: {len(unmapped)}  ·  '
           f'대조0 경고: {len(warned)}  ·  실패: {len(errs)}')
     print('⛔이 검사기가 **보지 않는 것**: 배치 자신의 `results*.jsonl` · 팔 단위 키 부재 ·\n'
-          '   다른 모듈로 넘어간 뒤의 접근 · 변수 키(`r.get(k)`). 「검사했다」의 범위를 넘지 마라.')
+          '   다른 모듈로 넘어간 뒤의 **키 추적**(로더 *발견* 은 2026-08-29 부터 넘어간다) ·\n'
+          '   변수 키(`r.get(k)`) · **픽스처 제조기가 여는 파일**(`_fixture*`·`synthetic_rows`,\n'
+          '   일부러 제외 — 합성 행이라 우주로 쓰면 오탐 17건) · 인자 있는 로더 ·\n'
+          '   동적 디스패치와 깊이 %d 넘는 호출 사슬. 「검사했다」의 범위를 넘지 마라.' % CLOSURE_DEPTH)
     return 1 if bad else 0
 
 

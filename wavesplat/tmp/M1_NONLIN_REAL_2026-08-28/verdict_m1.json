@@ -1,0 +1,271 @@
+{
+ "batch": "M1_NONLIN_REAL_2026-08-28",
+ "question": "실측 해상상태(SS-REAL)에서 참값이 비선형(HOS M=3)이어도 헤드라인이 사는가",
+ "n_rows": 288,
+ "n_ok": 288,
+ "thresholds": {
+  "n": 24,
+  "p_nominal": 0.03195732831954956,
+  "p_confirm": 0.011327922344207764,
+  "p_weak_le": 0.03195732831954956,
+  "family_alpha": 0.025,
+  "family_alpha_b26": 0.0125,
+  "confirm_within_family": true,
+  "confirm_within_b26_family": true,
+  "weak_is_sibling": true
+ },
+ "arms": {
+  "LIN": {
+   "label": "HOLDS (CONFIRMATORY)",
+   "label_msg": "22/24 p=0.000018",
+   "reading": "★★**해양 심사의 최대 할인이 닫힌다.** 비선형 참값과 실측 해상상태가 **한 칸에서** 만나도 헤드라인이 산다 ⟹ §「작동 경계」의 *\"경계는 파랑 조건 축을 따라 놓여 있지 않다\"* 가 **선형 GT 단서 없이** 설 수 있다(`B-26` 은 선형에서, `B-11`/`B-12` 는 순한 바다에서만 답했다). 논문에 **비선형 × 실측 해상상태 교호 표**를 신설하고 해양 심사 `PASS` 를 청구한다. ⚠범위는 그대로다: 합성·정지 기하·`k·Hs`≈0.24·`mesh_verdict` 3분할 공시.",
+   "ship_vs_spec": {
+    "n": 24,
+    "better": 22,
+    "rel_median_pct": -43.75629952716031,
+    "p_one_sided": 1.7940998077392578e-05
+   },
+   "spec_vs_zero": {
+    "n": 24,
+    "better": 24,
+    "rel_median_pct": -5.158126270617259,
+    "p_one_sided": 5.960464477539063e-08
+   },
+   "ship_vs_zero": {
+    "n": 24,
+    "better": 22,
+    "rel_median_pct": -46.017129774895764,
+    "p_one_sided": 1.7940998077392578e-05
+   },
+   "medians": {
+    "ship": 0.13521150255011058,
+    "spec": 0.23648963731643868,
+    "zero": 0.2499217690972539
+   }
+  },
+  "HOS": {
+   "label": "HOLDS (CONFIRMATORY)",
+   "label_msg": "21/24 p=0.000139",
+   "reading": "★★**해양 심사의 최대 할인이 닫힌다.** 비선형 참값과 실측 해상상태가 **한 칸에서** 만나도 헤드라인이 산다 ⟹ §「작동 경계」의 *\"경계는 파랑 조건 축을 따라 놓여 있지 않다\"* 가 **선형 GT 단서 없이** 설 수 있다(`B-26` 은 선형에서, `B-11`/`B-12` 는 순한 바다에서만 답했다). 논문에 **비선형 × 실측 해상상태 교호 표**를 신설하고 해양 심사 `PASS` 를 청구한다. ⚠범위는 그대로다: 합성·정지 기하·`k·Hs`≈0.24·`mesh_verdict` 3분할 공시.",
+   "ship_vs_spec": {
+    "n": 24,
+    "better": 21,
+    "rel_median_pct": -33.65370927725767,
+    "p_one_sided": 0.0001385807991027832
+   },
+   "spec_vs_zero": {
+    "n": 24,
+    "better": 24,
+    "rel_median_pct": -5.302137199170108,
+    "p_one_sided": 5.960464477539063e-08
+   },
+   "ship_vs_zero": {
+    "n": 24,
+    "better": 22,
+    "rel_median_pct": -39.020670943623045,
+    "p_one_sided": 1.7940998077392578e-05
+   },
+   "medians": {
+    "ship": 0.1538119582226604,
+    "spec": 0.23588780875153614,
+    "zero": 0.24979827646569255
+   }
+  }
+ },
+ "pair_key": [
+  "hold",
+  "hold"
+ ],
+ "pair_reading": "두 GT 클래스 모두 유지 ⟹ ★비선형성은 매개하지 않는다. 덤으로 `B-26` 의 `SS-REAL` 판정이 **3배 조밀한 메시 · 신선 시드**에서 독립 재현된다(메시 정련 대조).",
+ "paired_contrast": {
+  "n": 24,
+  "hos_worse": 19,
+  "rel_median_pct": 31.084305180116967,
+  "note": "탐색적 — 사전등록의 PRIMARY 가 아니다"
+ },
+ "label": "NONLIN-REAL :: HOS = HOLDS (CONFIRMATORY) · LIN = HOLDS (CONFIRMATORY)",
+ "gates": [
+  {
+   "name": "G-0 시드 원장 충돌 0",
+   "pass": true,
+   "msg": "소모 1681–1694 · 충돌 []"
+  },
+  {
+   "name": "G-1 select() == FROZEN_SEEDS",
+   "pass": true,
+   "msg": "{\"15\": [1681, 1683, 1684, 1685, 1686, 1687, 1688, 1689, 1690, 1692, 1693, 1694], \"30\": [1681, 1682, 1683, 1684, 1685, 1686, 1687, 1688, 1689, 1690, 1691, 1692]}"
+  },
+  {
+   "name": "G-1b GT 팔마다 24 에피소드",
+   "pass": true,
+   "msg": "48 / 48"
+  },
+  {
+   "name": "G-1c 두 GT 팔이 같은 (ncomp,seed) 짝",
+   "pass": true,
+   "msg": ""
+  },
+  {
+   "name": "G-2 선택분 INADEQUATE 0 · 거부목록 동결",
+   "pass": true,
+   "msg": "거부 [(15, 1682, 'INADEQUATE', 0.439), (15, 1691, 'INADEQUATE', 0.418)]"
+  },
+  {
+   "name": "G-3 Q 제약 전건",
+   "pass": true,
+   "msg": "48/48"
+  },
+  {
+   "name": "★G-22 M1 격자가 이론 상한을 담는다 (nyq >= 3·omega_p 의 k)",
+   "pass": true,
+   "msg": "k_max(이론)=2.9736 · nyq_M1=3.0159/3.0159 · 실측 |kx|max=2.8799 |ky|max=2.6761"
+  },
+  {
+   "name": "★G-22b B-12 격자로는 담기지 **않는다**(격자를 올린 사유)",
+   "pass": true,
+   "msg": "nyq_B12=1.0053 < k_max=2.9736 (배수 2.96)"
+  },
+  {
+   "name": "★G-22c M · Lx · Ly · dt 는 B-12 계보 그대로",
+   "pass": true,
+   "msg": "M=3 L=(600,400) dt=0.02 · 격자 192×128 -> 576×384"
+  },
+  {
+   "name": "★G-23 3·d_M1 == d_B26 (메시 화면 비트 등가)",
+   "pass": true,
+   "msg": "d_M1=0.402010050 · 3·d_M1=1.206030151 · d_B26=1.206030151 · 불일치 []"
+  },
+  {
+   "name": "★G-19 문턱 산술",
+   "pass": true,
+   "msg": "{\"n\": 24, \"p_nominal\": 0.03195733, \"p_confirm\": 0.01132792, \"p_weak_le\": 0.03195733, \"family_alpha\": 0.025, \"family_alpha_b26\": 0.0125, \"confirm_within_family\": true, \"confirm_within_b26_family\": true, \"weak_is_sibling\": true}"
+  },
+  {
+   "name": "★G-20 배포 상수 == 패키지 단일출처 == 사전등록값",
+   "pass": true,
+   "msg": "{\"DEFAULT_CONFIG.varpro_steps\": 400, \"DEFAULT_CONFIG.learned_init_iters\": 0, \"DEFAULT_CONFIG.auto_switch_thresh\": 0, \"DEFAULT_CONFIG.lambda_l1\": 0.0001, \"DEFAULT_CONFIG.init_method\": \"auto\", \"SU.VARPRO_STEPS_DEFAULT\": 400, \"SU.LEARNED_INIT_ITERS_DEFAULT\": 0, \"SU.AUTO_SWITCH_THRESH_DEFAULT\": 0, \"SU.LAMBDA_L1_DEFAULT\": 0.0001}"
+  },
+  {
+   "name": "G-6 48 에피소드 생성됨",
+   "pass": true,
+   "msg": "48/48"
+  },
+  {
+   "name": "★G-7 저장된 .h5 의 (Hs,Tp) == 코너",
+   "pass": true,
+   "msg": "48 파일"
+  },
+  {
+   "name": "★G-8 개입의 파생 측정: 평균 4·std(gt)/Hs == 1 (±5%)",
+   "pass": true,
+   "msg": "0.9990"
+  },
+  {
+   "name": "★G-8c 에피소드별 |4·std/Hs − 1| <= 0.25",
+   "pass": true,
+   "msg": "max 0.016"
+  },
+  {
+   "name": "G-9 메타 되읽기 (mesh_dx · depth · ra/rf/ds)",
+   "pass": true,
+   "msg": "48 파일"
+  },
+  {
+   "name": "G-10 프레임 수 단일 == B-26 과 같다",
+   "pass": true,
+   "msg": "{301}"
+  },
+  {
+   "name": "★G-24 나이퀴스트 되감기 0 · 스냅 이동 <= 반빈",
+   "pass": true,
+   "msg": "48 행 · max_snap_dk=0.009346506282493677 · 반빈=0.009439"
+  },
+  {
+   "name": "★G-25 짝 무결성: LIN·HOS 성분 해시 동일",
+   "pass": true,
+   "msg": "24 짝 · 불일치 []"
+  },
+  {
+   "name": "★G-26 HOS 팔의 장이 **양의 왜도**로 갈린다 (>= CONFIRM/24)",
+   "pass": true,
+   "msg": "24/24 · 중앙 LIN -0.0001 HOS 0.1485"
+  },
+  {
+   "name": "★G-26b HOS 장이 LIN 장과 실제로 다르다 (max|Δ| > 0 전건)",
+   "pass": true,
+   "msg": "24 행 · min max|Δ|=0.3347"
+  },
+  {
+   "name": "★G-27 스냅 성분의 메시 판정도 INADEQUATE 아님",
+   "pass": true,
+   "msg": "['ADEQUATE', 'DEGRADED']"
+  },
+  {
+   "name": "G-11 에러 0행",
+   "pass": true,
+   "msg": "0 에러"
+  },
+  {
+   "name": "G-12 SHIP-NOW 144행",
+   "pass": true,
+   "msg": "144/144"
+  },
+  {
+   "name": "G-12 SPEC25 144행",
+   "pass": true,
+   "msg": "144/144"
+  },
+  {
+   "name": "★G-13 LIN: 두 팔 에피소드 집합 완전 일치 · 24",
+   "pass": true,
+   "msg": "SHIP 24 · SPEC 24"
+  },
+  {
+   "name": "★G-13 HOS: 두 팔 에피소드 집합 완전 일치 · 24",
+   "pass": true,
+   "msg": "SHIP 24 · SPEC 24"
+  },
+  {
+   "name": "★G-14 SHIP 배포값 되읽기 (400·0·0·λ=1e-4, λ 는 객체 속성)",
+   "pass": true,
+   "msg": "144행"
+  },
+  {
+   "name": "★G-15 라우터가 두 GT 팔 전건에서 learned",
+   "pass": true,
+   "msg": "['learned']"
+  },
+  {
+   "name": "★G-15b VARPRO 발화 전건",
+   "pass": true,
+   "msg": "144/144"
+  },
+  {
+   "name": "★G-16 SPEC25 되읽기 (loc 25 · ens 600 · jonswap)",
+   "pass": true,
+   "msg": "144행"
+  },
+  {
+   "name": "★G-17 기준선 배경이 코너를 따라갔다 (cap_Hs/cap_Tp)",
+   "pass": true,
+   "msg": "[(0.725, 3.49)]"
+  },
+  {
+   "name": "★G-18 계측 shim 투명 (cap_avg_nRMSE == avg_nRMSE 비트동일)",
+   "pass": true,
+   "msg": "288행 대조"
+  },
+  {
+   "name": "G-18b ZERO 48 에피소드",
+   "pass": true,
+   "msg": "48/48"
+  },
+  {
+   "name": "★G-16b PC-1 생성기 비트동일 (B-26 SS-REAL 선형 에피소드 재생성)",
+   "pass": true,
+   "msg": "{\"gt_wave_field\": 0.0, \"lidar_points\": 0.0, \"lidar_valid_mask\": 0.0}"
+  }
+ ],
+ "gates_pass": 36,
+ "gates_total": 36
+}

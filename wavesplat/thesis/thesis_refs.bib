@@ -350,19 +350,28 @@
   volume  = {197},
   pages   = {104690},
   year    = {2025},
+  doi     = {10.1016/j.coastaleng.2024.104690},
   note    = {최근접 경쟁 연구. 원문 PDF 보유(ref\_paper/feng\_wang\_2025.pdf).
              정지 유지 선박(``vessel on position keeping'')의 희소 3D 점군 동화.
-             결론에서 스펙트럼-공간 변환에 의한 직접 희소 동화를 향후 과제로 지목한다}
+             결론에서 스펙트럼-공간 변환에 의한 직접 희소 동화를 향후 과제로 지목한다.
+             ★2026-08-28 전문 열람으로 확인: (1) 상태는 평탄화된 고도 격자이고 예측은
+             WASSfast 의 스펙트럼 전파를 채택하며 프레임 재귀 필터다(⛔따라서
+             ``순차 추적''은 우리 차별점이 아니다), (2) 희소 관측의 \emph{직접} 동화를
+             이미 시험해 ``limited improvement at original sparse locations'' 로
+             보고한다, (3) 공개 자료 평가는 Guimar\~{a}es 2020 의 AA 03 레코드
+             --- 본 논문 실측 12 레코드 중 하나와 같은 자료다,
+             (4) 공개 저장소(fengHEU/Wave-ETKF)에 필터 핵심이 없다}
 }
 
 @article{DSGPNet2026,
-  author  = {Wang, Feng and others},
+  author  = {Wang, Feng and Wang, Xiaoyu and Zhu, Qidan},
   title   = {{DSGP}-{N}et: A dual-space guided propagation network for ocean wave
              height estimation from sparse stereo measurements},
   journal = {Ocean Engineering},
   volume  = {356},
   pages   = {125086},
   year    = {2026},
+  doi     = {10.1016/j.oceaneng.2026.125086},
   note    = {★2026-08-23 정정: 종전 제목 ``A deep spatio-temporal Gaussian process
              network for sea surface reconstruction from stereo imagery'' 는 **약어를
              잘못 푼 것**이었다(DSGP = dual-space guided propagation). 원문 확인 완료.
@@ -408,9 +417,13 @@
   volume  = {147},
   pages   = {104666},
   year    = {2021},
-  note    = {WASSfast. 스테레오 \emph{희소} 매칭 집합에서 파랑 스펙트럼을 연속 추정하며
-             기존 WASS 대비 약 10배 빠르다. 본 논문의 입력 설정(희소 3-D 점군)과
-             가장 가까운 선행이다}
+  note    = {WASSfast = \textbf{방법} 논문이다. ⛔\textbf{실측 자료의 출처가 아니다}
+             --- 자료는 Guimaraes2020Dataset 이며 Bergamasco 는 그 논문의 3저자다
+             (디렉터리명 data/real\_bergamasco/ 가 이 오독을 재생산한다).
+             스테레오 \emph{희소} 매칭 집합에서 파랑 스펙트럼을 연속 추정하며 기존 WASS
+             대비 ``more than an order of magnitude'' 빠르다(초록 축자, 2026-08-28).
+             ★같은 초록이 ``continuously update'' 를 명시하므로 \emph{순차성}은 본 연구의
+             대비축이 될 수 없다. 본 논문의 입력 설정(희소 3-D 점군)과 가장 가까운 선행이다}
 }
 
 @article{Guimaraes2020Dataset,
@@ -423,7 +436,11 @@
   pages   = {145},
   year    = {2020},
   doi     = {10.1038/s41597-020-0492-9},
-  note    = {본 논문이 사용하는 실측 12 레코드의 출처(Acqua Alta 관측탑 외 고정 관측소)}
+  note    = {★본 논문이 사용하는 실측 12 레코드의 \textbf{자료 출처}(⛔Bergamasco 2021 이
+             아니다). 원문 축자 구성 = Black Sea 7 + Acqua Alta 3 + Yellow Sea 1 +
+             La Jument 1 = 12 레코드, 관측소 4곳 전부 \textbf{고정 구조물}, 센서는
+             스테레오(JAI BM-500GE 2대), 이동 플랫폼 0건 (2026-08-28 PMC 전문 확인).
+             ⚠AA 03 레코드는 Wang2025PointsToWaves 의 공개 자료 평가와 겹친다}
 }
 
 @article{WangPan2021,
@@ -437,4 +454,45 @@
   note    = {EnKF--HOS 결합. 파랑 재구성에서 앙상블 칼만 동화의 실제 계보이며
              예측가능영역과 관측영역의 불일치를 분석식 수정으로 다룬다.
              원문 PDF 보유(ref\_paper/wang\_pan\_2021\_jfm.pdf)}
+}
+
+
+% ── 2026-08-28 추가: 문헌 실사(tmp/LITREVIEW_2026-08-28/FINDINGS.md)가 찾은 선행 ──
+% ⛔이 세 항목은 "novelty 를 올리는" 것이 아니라 **닫는** 것이다.
+@inproceedings{Charnotskii2011SparseSpectrum,
+  author    = {Charnotskii, Mikhail},
+  title     = {Sparse Spectrum Model of the Sea Surface},
+  booktitle = {Proceedings of the ASME 30th International Conference on Ocean,
+               Offshore and Arctic Engineering (OMAE 2011)},
+  pages     = {773--780},
+  year      = {2011},
+  address   = {Rotterdam, The Netherlands},
+  note      = {⚠\textbf{열람 범위: 초록만}(2026-08-28). 각 실현이 무작위 주파수·위상·진폭을
+               갖는 유한 개 사인 성분으로 이루어지는 해면 모형 --- 성분 수가 격자가 아니라
+               해상상태로 정해진다. 시뮬레이션·통계 모형이지 추정기가 아니므로 본 논문의
+               측정을 무효화하지 않으나,
+               ⛔\textbf{``연속 파수 희소 표현 자체가 신규''라는 문장을 막는다}}
+}
+
+@misc{Patent10677891,
+  author       = {{Applied Physical Sciences Corp.}},
+  title        = {Systems and methods for wave sensing and ship motion forecasting
+                  using multiple radars},
+  howpublished = {U.S. Patent 10,677,891 B2},
+  year         = {2020},
+  note         = {우선일 2016-09-16(양수인 = Applied Physical Sciences Corp., FutureWaves).
+                  선박 레이더에서 주파수·방향별 파 성분의 진폭과 위상을 회귀 추정하여
+                  위상 분해 해면을 만들고 1--3\,s 주기로 갱신하며 선체 운동을 예보한다.
+                  ⚠열람 범위 = 대응 유럽 공개공보 EP3512768A2 와 특허 서지 페이지
+                  (2026-08-28); 청구항 전문 대조는 하지 않았다.
+                  ⛔학습된 사전·연속 파수·희소 점군 동화 청구는 없다}
+}
+
+@misc{Patent10684353,
+  author       = {{Applied Physical Sciences Corp.}},
+  title        = {Systems and methods for wave sensing and ship motion forecasting
+                  with scrolling forecast displays},
+  howpublished = {U.S. Patent 10,684,353 B2},
+  year         = {2020},
+  note         = {위 특허의 동일 계열(같은 우선일). 함께 인용한다}
 }

@@ -6,7 +6,7 @@
 BAN_NUM 은 "본문에 이 수가 있으면 반드시 동반돼야 할 단서" 를 함께 검사한다.
 사용: python3 tmp/STATUS_2026-08-28/audit_thesis_bans.py
 """
-import re, hashlib, pathlib
+import re, sys, hashlib, pathlib
 
 TEX  = pathlib.Path("/home/vexit/wavesplat/wavesplat/thesis/thesis_main.tex")
 BANS = pathlib.Path("/home/vexit/.claude/projects/-home-vexit-wavesplat/memory/reference_citation_bans.md")
@@ -46,6 +46,10 @@ PHRASE = [
  ("⛔'−23.96%' 정확도 크기", r'-?23\.96'),
  ("⛔'PROPAGATION-EARNS'/'DISPERSION-EARNS'", r'PROPAGATION-EARNS|DISPERSION-EARNS'),
  ("⛔'US 12,054,225' 를 파도장 특허로", r'12,?054,?225'),
+ # ── 2026-08-28 (밤) 문헌 실사 묶음 (금지목록 "2026-08-28 (밤)" 절) ──
+ ("⛔'순차 추적이 문헌의 틈' (08-28 §1-c)", r'유일한틈|순차추적이문헌의틈|축은열려있다'),
+ ("⛔'Bergamasco 2021 = 자료 출처' (08-28 §2-a)", r'Bergamasco[^,\n]{0,20}자료(출처|집합)'),
+ ("⛔'연속 파수 표현 자체가 신규' (08-28 §3-c)", r'연속파수[^,\n]{0,12}자체가신규|표현자체가신규'),
  ("⛔'ZERO_REF=1.0' 기준 실측 계수", r'ZERO_?REF.{0,4}1\.0'),
 ]
 for name, pat in PHRASE:
@@ -59,8 +63,10 @@ for name, pat in PHRASE:
 # --- (B) 단서 동반 의무: 수치 → 같은 절 안에 반드시 있어야 할 앵커 ------------
 print("\n--- (B) 단서 동반 의무 (수치가 나오는 곳의 ±60줄 창) ---")
 DUTY = [
+ # ⚠`게이트 24/24`(B-21·B-22 의 게이트 통과 수)는 SS-REAL 승수가 아니다 --- 등록 전
+ #   실측에서 DUTY 13행 중 이 2행만이 오탐이었으므로 lookbehind 로 뺀다(2026-08-28).
  ("SS-REAL 승수 24/24 ⟹ F2(국소화 반경 고정) 공시 동반 의무",
-  r'24/24', r'국소화반경|loc_radius|loc/|Gaspari'),
+  r'(?<!게이트)24/24', r'국소화반경|loc_radius|loc/|Gaspari'),
  ("−42.42% ⟹ F2 공시 동반 의무", r'-42\.42', r'국소화반경|loc_radius|Gaspari'),
  ("'네 칸 유지/헤드라인이 산다' ⟹ 선형 참값 단서 동반 의무",
   r'네칸이모두유지|네칸이유지|allfourcellsholding', r'선형|linear'),
@@ -68,11 +74,19 @@ DUTY = [
   r'-38\.84', r'blind|독립|사고|공백|계수기|replaces'),
  ("SS-LOWH 17/24 ⟹ EXPLORATORY/명목 병기", r'17/24', r'명목|탐색적|EXPLORATORY|nominal'),
  ("★M2 공시(1) 5% 기술 바닥 미달 ⟹ 헤드라인 승수 24/24 에 동반 의무 (본문 :4903-4905 축자 '헤드라인에 직접 붙는다')",
-  r'승수.{0,8}가장높|highestwincount|24/24', r'기술바닥|5\\%기술|skillfloor|SPEC25가SS-REAL'),
+  r'승수.{0,8}가장높|highestwincount|(?<!게이트)24/24', r'기술바닥|5\\%기술|skillfloor|SPEC25가SS-REAL'),
  ("★M2 국소화 개입 종결 ⟹ -42.4% 급 크기 인용에 동반 의무 (본문 :4778-4780)",
   r'-42\.4|-42\.42', r'M2|국소화'),
+ ("Charnotskii 인용 ⟹ 열람 범위(초록) 단서 동반 의무 (08-28 §3-c)",
+  r'Charnotskii', r'열람범위|초록'),
+ ("선행 특허 인용 ⟹ 청구항 전문 미대조 단서 동반 의무 (08-28 §4)",
+  r'10,?677,?891|Patent10677891', r'청구항전문|열람범위'),
 
 ]
+# ★(A) PHRASE 는 **자문**이다 --- 논문이 금지 자체를 축자로 인용하므로 정상 HIT 가 많다
+#   (2026-08-28 실측: HIT 8종 전부가 "이렇게 쓰지 마라" 문장이거나 철회 표시 이력이었다).
+#   ⟹ exit code 는 **(B) 단서 동반 의무**만 본다. 그쪽은 같은 날 오탐 2건을 제거해 0이다.
+n_duty_fail = 0
 for name, npat, apat in DUTY:
     rn, ra = re.compile(npat, re.I), re.compile(apat, re.I)
     print(f"\n== {name}")
@@ -81,5 +95,9 @@ for name, npat, apat in DUTY:
             continue
         lo, hi = max(1, i - 60), min(len(lines), i + 60)
         win = "".join(norm(x) for x in lines[lo-1:hi])
-        ok = "✅" if ra.search(win) else "⛔없음"
-        print(f"   {ok} :{i:<5} {b.strip()[:110]}")
+        hit = bool(ra.search(win))
+        n_duty_fail += (not hit)
+        print(f"   {'✅' if hit else '⛔없음'} :{i:<5} {b.strip()[:110]}")
+
+print(f"\n단서 동반 의무 위반 {n_duty_fail}건 (PHRASE 절은 자문이므로 exit code 에 넣지 않는다)")
+sys.exit(1 if n_duty_fail else 0)

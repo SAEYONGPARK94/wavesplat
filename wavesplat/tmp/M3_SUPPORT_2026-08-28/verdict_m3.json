@@ -1,0 +1,309 @@
+{
+ "batch": "M3",
+ "n_episodes": 48,
+ "n_per_cell": 16,
+ "thresholds": {
+  "n": 16,
+  "p_nominal": 0.0384063720703125,
+  "p_confirm": 0.0106353759765625,
+  "p_weak_le": 0.0384063720703125,
+  "family_alpha": 0.016666666666666666,
+  "confirm_within_family": true,
+  "weak_is_sibling": true
+ },
+ "seeds_consumed": [
+  1695,
+  1696,
+  1697,
+  1698,
+  1699,
+  1700,
+  1701,
+  1702,
+  1703
+ ],
+ "gates": [
+  [
+   "G-1 표본 재도출 = 동결 목록",
+   true,
+   "48/48 에피소드"
+  ],
+  [
+   "G-1b 셀당 16",
+   true,
+   "[8]"
+  ],
+  [
+   "G-2 선택분 INADEQUATE 0 · 거부목록 일치",
+   true,
+   "거부 [('SPR5', 30, 1702)]"
+  ],
+  [
+   "G-3 Q 제약 48/48",
+   true,
+   "48/48"
+  ],
+  [
+   "G-0 시드 원장 충돌 0 (B-26/B-12 겹침 금지 포함)",
+   true,
+   "충돌 []"
+  ],
+  [
+   "★G-4 지지집합: 학습 경계 소스 재도출 · 평가=안 · 처치 3셀=밖",
+   true,
+   "dir(-50.0, 50.0) spr(12.0, 40.0) dep50.0/50.0 eval{'direction_deg': 0.0, 'spread_deg': 30.0, 'depth': 50.0}"
+  ],
+  [
+   "★G-19 문턱 산술",
+   true,
+   "NOMINAL 12 p=0.03841 · CONFIRM 13 p=0.01064 ≤ 0.01667 · WEAK 4=n-NOMINAL"
+  ],
+  [
+   "★G-20 배포 상수 = 단일출처 = 사전등록값",
+   true,
+   "{'DEFAULT_CONFIG.varpro_steps': 400, 'DEFAULT_CONFIG.learned_init_iters': 0, 'DEFAULT_CONFIG.auto_switch_thresh': 0, 'DEFAULT_CONFIG.lambda_l1': 0.000"
+  ],
+  [
+   "G-6 에피소드 48개 생성됨",
+   true,
+   "48/48"
+  ],
+  [
+   "★G-7a 방향 파생측정: DIR180 mean_cos ≤ −0.8 · 그 외 ≥ +0.8",
+   true,
+   "DIR180 max -0.873 · others min 0.873"
+  ],
+  [
+   "★G-7b 방향폭 파생측정: SPR5 ≤ 9.5° · 공칭30° 셀 ∈ [10,55]°",
+   true,
+   "SPR5 max 8.29° · 30° 대역 [15.9,51.6]°"
+  ],
+  [
+   "★G-7c **실현 방향폭 분리**: max(SPR5) < min(공칭30°) (겹침 0)",
+   true,
+   ""
+  ],
+  [
+   "★G-7d 분산관계 파생측정: 참 수심 잔차 ≤ 1e-6 전건 · DEP12 의 d=50 잔차 ≥ 0.10",
+   true,
+   "true max 9.88e-15 · DEP12 d50 min 0.631"
+  ],
+  [
+   "★G-8 에피소드별 |4·std/Hs − 1| ≤ 0.25 (B-26 실측 여유 계승)",
+   true,
+   "max 0.1217"
+  ],
+  [
+   "G-9 메타 되읽기(mesh 200×167 · ra/rf/ds · BF4 (Hs,Tp) · 셀별 depth/spread attr)",
+   true,
+   ""
+  ],
+  [
+   "G-10 프레임 수 단일",
+   true,
+   "{301}"
+  ],
+  [
+   "G-11 에러 0행",
+   true,
+   "0"
+  ],
+  [
+   "G-12 SHIP 144행",
+   true,
+   "144/144"
+  ],
+  [
+   "G-12b SPEC25 144행",
+   true,
+   "144/144"
+  ],
+  [
+   "★G-13 두 팔 에피소드 집합 완전 일치",
+   true,
+   "48∩48=48"
+  ],
+  [
+   "★G-14 SHIP 배포값 되읽기(400·0·0·1e-4)",
+   true,
+   "[(400, 0, 0)]"
+  ],
+  [
+   "★G-15 라우터가 전 셀에서 학습 경로 (배포 사전이 실제로 시험됐다)",
+   true,
+   "[('DEP12', 'learned'), ('DIR180', 'learned'), ('SPR5', 'learned')]"
+  ],
+  [
+   "★G-15b VARPRO 발화 전건",
+   true,
+   "144/144"
+  ],
+  [
+   "★G-16 SPEC25 되읽기(loc 25 · ens 600 · jonswap)",
+   true,
+   ""
+  ],
+  [
+   "★G-17 기준선 배경 (Hs,Tp)=BF4 · depth=셀 참값 (비교자 불리 반박 차단)",
+   false,
+   "[('DEP12', 1.2, 50.0), ('DIR180', 1.2, 50.0), ('SPR5', 1.2, 50.0)]"
+  ],
+  [
+   "★G-18 계측 shim 투명 (잡은 avg_nRMSE == 행의 avg_nRMSE, 비트)",
+   true,
+   "288/288"
+  ],
+  [
+   "G-18b ZERO 48 에피소드",
+   true,
+   "48"
+  ],
+  [
+   "★G-21 ZERO 셀중앙 대역 + 셀 간 ±10% 불변",
+   true,
+   "{'DIR180': 0.25, 'SPR5': 0.2524, 'DEP12': 0.2486}"
+  ],
+  [
+   "★G-22 PC-1 생성기 비트동일 (좌표=배포값 ⟹ 동결 B-1 코퍼스 재생성)",
+   true,
+   "{'gt_wave_field': True, 'lidar_points': True, 'lidar_valid_mask': True} {'gt_wave_field': 0.0, 'lidar_points': 0.0, 'lidar_valid_mas"
+  ],
+  [
+   "★G-23 PC-2 러너 비트동일 (동결 B-26 SS-BF4 행 재현)",
+   true,
+   "4행 전건 비트동일"
+  ]
+ ],
+ "gates_pass": 29,
+ "gates_total": 30,
+ "cells": {
+  "DIR180": {
+   "label": "BASELINE-NO-SKILL/SHIP-EARNS",
+   "label_msg": "기준선 무기술 11/16, SHIP<ZERO 13/16",
+   "reading": "⛔비교자가 무기술 ⟹ 우열 주장 금지. 보고는 `SHIP<ZERO` 로 한정: *\"사전은 그 좌표 밖에서도 무기술 대비 기술을 유지한다(기준선 비교 불가)\"*.",
+   "coords": {
+    "direction_deg": 180.0,
+    "spread_deg": 30.0,
+    "depth": 50.0
+   },
+   "ship_vs_spec": {
+    "n": 16,
+    "better": 13,
+    "rel_median_pct": -28.325986486353216,
+    "p_one_sided": 0.0106353759765625
+   },
+   "spec_vs_zero": {
+    "n": 16,
+    "better": 11,
+    "rel_median_pct": -4.951515447482096,
+    "p_one_sided": 0.1050567626953125
+   },
+   "ship_vs_zero": {
+    "n": 16,
+    "better": 13,
+    "rel_median_pct": -32.205369417261494,
+    "p_one_sided": 0.0106353759765625
+   },
+   "medians": {
+    "ship": 0.17785592970903963,
+    "spec": 0.24186218754436217,
+    "zero": 0.2499702324625105
+   }
+  },
+  "SPR5": {
+   "label": "UNDECIDED",
+   "label_msg": "10/16 — 부호로 갈리지 않는다",
+   "reading": "그 좌표의 지지집합-밖 수익은 n=16 으로 갈리지 않았다 — **이 라벨도 결과다**: ML 사유 ③은 그 좌표에서 미결로 남고, MDE(참 승률 0.80 에서 검정력 ≈0.80)를 공시한다. ⛔결과를 보고 n 을 늘리지 않는다(B-8b 정지규칙) — 증축은 새 사전등록으로만.",
+   "coords": {
+    "direction_deg": 0.0,
+    "spread_deg": 5.0,
+    "depth": 50.0
+   },
+   "ship_vs_spec": {
+    "n": 16,
+    "better": 10,
+    "rel_median_pct": -8.081270767993324,
+    "p_one_sided": 0.2272491455078125
+   },
+   "spec_vs_zero": {
+    "n": 16,
+    "better": 16,
+    "rel_median_pct": -20.657493527990532,
+    "p_one_sided": 1.52587890625e-05
+   },
+   "ship_vs_zero": {
+    "n": 16,
+    "better": 14,
+    "rel_median_pct": -26.278992527307132,
+    "p_one_sided": 0.0020904541015625
+   },
+   "medians": {
+    "ship": 0.1759375735418871,
+    "spec": 0.19929619857745123,
+    "zero": 0.2524424787145108
+   }
+  },
+  "DEP12": {
+   "label": "NO-SKILL-CELL",
+   "label_msg": "기준선 6/16 · SHIP<ZERO 6/16 — 전원 무기술",
+   "reading": "전원 무기술 — 그 셀은 지지집합 질문에 **답하지 못한다**(레짐 자체가 관측 불능일 수 있다). 지지집합 귀속 금지. 후속은 새 사전등록으로만.",
+   "coords": {
+    "direction_deg": 0.0,
+    "spread_deg": 30.0,
+    "depth": 12.0
+   },
+   "ship_vs_spec": {
+    "n": 16,
+    "better": 5,
+    "rel_median_pct": 4.627785703241379,
+    "p_one_sided": 0.9615936279296875
+   },
+   "spec_vs_zero": {
+    "n": 16,
+    "better": 6,
+    "rel_median_pct": 2.632539615764412,
+    "p_one_sided": 0.8949432373046875
+   },
+   "ship_vs_zero": {
+    "n": 16,
+    "better": 6,
+    "rel_median_pct": 5.678156858684328,
+    "p_one_sided": 0.8949432373046875
+   },
+   "medians": {
+    "ship": 0.2764794439232598,
+    "spec": 0.25133596108997613,
+    "zero": 0.2485702175181359
+   }
+  }
+ },
+ "primary_cell": "DIR180",
+ "pc_ok": true,
+ "decomposition": {
+  "key": [
+   "undecided",
+   "undecided",
+   "undecided"
+  ],
+  "text": "조합이 표에 없다 ⟹ 단일 축 귀속 금지, 세 라벨을 그대로 보고한다."
+ },
+ "pc1": {
+  "frozen": "/home/vexit/wavesplat/wavesplat/data_s8_crowded_2026-08-10/episode_BF4_15comp_seed32_uniform_ra_rf_ds.h5",
+  "regenerated": "/home/vexit/wavesplat/wavesplat/tmp/M3_SUPPORT_2026-08-28/pc1/episode_BF4_15comp_seed32_uniform_ra_rf_ds.h5",
+  "identical": {
+   "gt_wave_field": true,
+   "lidar_points": true,
+   "lidar_valid_mask": true
+  },
+  "maxabs": {
+   "gt_wave_field": 0.0,
+   "lidar_points": 0.0,
+   "lidar_valid_mask": 0.0
+  }
+ },
+ "pc2": {
+  "n_rows": 4
+ },
+ "label": "SUPPORT :: DIR180 = BASELINE-NO-SKILL/SHIP-EARNS",
+ "label_text": "⛔비교자가 무기술 ⟹ 우열 주장 금지. 보고는 `SHIP<ZERO` 로 한정: *\"사전은 그 좌표 밖에서도 무기술 대비 기술을 유지한다(기준선 비교 불가)\"*."
+}

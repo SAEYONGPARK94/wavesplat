@@ -130,6 +130,12 @@ NOMINAL, CONFIRM, WEAK = 12, 13, 4    # /16  (0.03841 · 0.01064 ≤ 0.01667 · 
 NEG_MIN = 12                          # /16  SPEC25 < ZERO 최소 (음성 대조)
 SZ_MIN = 12                           # /16  SHIP < ZERO 최소 (무기술 대비 기술)
 MESH_BAD = 'INADEQUATE'
+# ★선별 술어 ③ 의 상수 (AMENDMENT_1 부록 B, 2026-08-29 — 사용자 승인).
+#   ⚠**값은 종전 `G-8` 의 인라인 `0.25` 를 그대로 승격한 것**이고 움직이지 않았다.
+#   ⛔손복사 금지 규율: `gates_data` 의 `G-8` 과 `screen()` 이 **이 심볼 하나**를 읽는다
+#   (적격성이 두 곳에 정의돼 한쪽만 행동할 수 있던 결함의 단일출처화 — `AMENDMENT_1.md` §A5).
+#   ⛔이 상수를 움직이는 것은 처방 (나) = **기각된 처방**이다(§A3: 이 값은 채점 눈금을 지킨다).
+HS4STD_MAX_DEV = 0.25
 
 
 def threshold_table(n=N_PER_CELL):
@@ -223,18 +229,104 @@ def _cfg():
     return cfg
 
 
+# ── ★선별 술어 ③ 의 계산 (AMENDMENT_1 부록 B) — **생성 전**에 `G-8` 의 피검량을 낸다 ──
+# η = Σ Aᵢ cos(kᵢ·x − ωᵢ t + φᵢ) 를 GT 창(균일격자 nx×ny × 균일시각 n_frames)에서 적분하면
+#     var(η) = ΣAᵢ²/2 + V_diff + V_sum − mean²
+# 이고 세 항 전부가 Dirichlet 인자 D(a) = sin(N·a·h/2)/(N·sin(a·h/2)) 의 곱으로 닫힌다.
+# ⟹ **레이캐스트 0회 · GT 파일 0개 · 추정 0회**로 4·std(GT) 를 정확히 예측한다.
+# 실측 대조(생성된 48 에피소드 전건): |해석 − 실측 4·std| ≤ 4.44e-16
+#   — `diag_g8_2026-08-29.py` `[B]` 가 **이 함수를 import 해서** 매 실행 재확인한다
+#     (⛔중복 구현 금지: 진단기가 자기 사본을 갖고 있던 것을 부록 B 에서 제거했다).
+_GT_WINDOW = None
+
+
+def _gt_window():
+    """GT 채점 창 (x 격자, y 격자, 시각). (셀·시드와 무관한) 순함수라 캐시한다."""
+    global _GT_WINDOW
+    if _GT_WINDOW is None:
+        import numpy as np
+        cfg, p = _cfg(), gen_params()
+        _GT_WINDOW = (np.linspace(*cfg.gt_grid.x_range, cfg.gt_grid.nx),
+                      np.linspace(*cfg.gt_grid.y_range, cfg.gt_grid.ny),
+                      np.arange(p['n_frames']) * p['dt'])
+    return _GT_WINDOW
+
+
+def _dirichlet(a, h, N):
+    """균일 표본 N개·간격 h 에서 ⟨cos(a·s + ψ)⟩ 의 감쇠 인자."""
+    import numpy as np
+    a = np.asarray(a, float)
+    num, den = np.sin(N * a * h / 2.0), N * np.sin(a * h / 2.0)
+    return np.where(np.abs(den) < 1e-14, 1.0, num / np.where(den == 0, 1, den))
+
+
+def hs4std_decompose(A, om, kx, ky, phi, win=None):
+    """4·std(η) 를 성분과 창만으로 정확히 낸다 (+ 항별 분해와 창 평균 인자)."""
+    import numpy as np
+    gx, gy, ts = win or _gt_window()
+    hx, hy, ht = gx[1] - gx[0], gy[1] - gy[0], ts[1] - ts[0]
+    Nx, Ny, Nt = len(gx), len(gy), len(ts)
+    xb, yb, tb = gx.mean(), gy.mean(), ts.mean()
+
+    def M(a, b, c, d):
+        return (_dirichlet(a, hx, Nx) * _dirichlet(b, hy, Ny) * _dirichlet(c, ht, Nt)
+                * np.cos(a * xb + b * yb + c * tb + d))
+
+    A = np.asarray(A, float)
+    om, kx, ky = np.asarray(om, float), np.asarray(kx, float), np.asarray(ky, float)
+    phi = np.asarray(phi, float)
+    m1 = float((A * M(kx, ky, -om, phi)).sum())
+    n = len(A)
+    I, J = np.meshgrid(np.arange(n), np.arange(n), indexing='ij')
+    AA = A[I] * A[J]
+    off = I != J
+    dif = M(kx[I] - kx[J], ky[I] - ky[J], -(om[I] - om[J]), phi[I] - phi[J])
+    smm = M(kx[I] + kx[J], ky[I] + ky[J], -(om[I] + om[J]), phi[I] + phi[J])
+    V_diag = float((AA * dif * (~off)).sum()) / 2.0
+    V_diff = float((AA * dif * off).sum()) / 2.0
+    V_sum = float((AA * smm).sum()) / 2.0
+    var = V_diag + V_diff + V_sum - m1 ** 2
+    Dx = np.abs(_dirichlet(kx[I] - kx[J], hx, Nx))
+    Dy = np.abs(_dirichlet(ky[I] - ky[J], hy, Ny))
+    Dt = np.abs(_dirichlet(-(om[I] - om[J]), ht, Nt))
+    w = AA * off
+    import math
+    return dict(s4=4 * math.sqrt(max(var, 0.0)), V_diag=V_diag, V_diff=V_diff,
+                V_sum=V_sum, mean=m1,
+                Dy=float((w * Dy).sum() / w.sum()),
+                DxDyDt=float((w * Dx * Dy * Dt).sum() / w.sum()))
+
+
+def hs4std_ratio(cell, ncomp, seed, comp=None, win=None):
+    """★`4·std(GT) / Hs` — `G-8` 이 저장 파일에서 재는 바로 그 비를 **생성 전에** 낸다."""
+    c = components(cell, ncomp, seed) if comp is None else comp
+    d = hs4std_decompose([x.A for x in c], [x.omega for x in c], [x.kx for x in c],
+                         [x.ky for x in c], [x.phi for x in c], win)
+    return d['s4'] / bf4_seastate()[0]
+
+
 def screen(cell, ncomp, seed):
-    """생성 전 선별 — **GT 무관·결과 무관**."""
+    """생성 전 선별 — **GT 무관·결과 무관**.
+
+    ★AMENDMENT_1 부록 B (2026-08-29, 사용자 승인): 세 번째 술어 `hs4std_ok` 편입.
+    ⛔상수는 `G-8` 과 **같은 심볼** `HS4STD_MAX_DEV`(=0.25) 이고 **움직이지 않았다** —
+    바뀐 것은 술어가 평가되는 **시점**뿐이다(생성 후 = 배치 중단밖에 못 함 →
+    생성 전 = 시드 교체 가능). ★**이 술어는 어느 에피소드가 걸리는지 본 뒤에 쓰였다**
+    (소급 공시 = `AMENDMENT_1.md` §B1; 묶는 근거 다섯 = §B2; 잃는 것 = §B3;
+    사전등록 문안 = `PREREG.md §3`).
+    """
     from wavesim import mesh_adequacy
     from wavesim.wave_generator import check_q_constraint
     comp = components(cell, ncomp, seed)
     q_ok, q_val = check_q_constraint(comp)
     info = mesh_adequacy.check(comp, _cfg(), hos_order=None)
+    dev = abs(hs4std_ratio(cell, ncomp, seed, comp=comp) - 1.0)
     return dict(mesh_verdict=info['mesh_verdict'],
                 var_under=float(info['var_under_resolved']),
                 lambda_min=float(info['lambda_min']),
                 lambda_peak=float(info['lambda_peak']),
-                q_ok=bool(q_ok), q_val=float(q_val))
+                q_ok=bool(q_ok), q_val=float(q_val),
+                hs4std_dev=float(dev), hs4std_ok=bool(dev <= HS4STD_MAX_DEV))
 
 
 def fname(cell, ncomp, seed):
@@ -249,14 +341,17 @@ def cell_dir(cell, base=None):
 
 
 def select():
-    """동결 선택 규칙: (셀, ncomp) 마다 풀을 순서대로 걸어 mesh/Q 통과 앞의 8개."""
+    """동결 선택 규칙: (셀, ncomp) 마다 풀을 순서대로 걸어 **mesh/Q/파고** 통과 앞의 8개.
+
+    ★부록 B 이전에는 술어가 mesh·Q 둘뿐이었다(`PREREG.md §3` 에 취소선으로 남겼다)."""
     eps, rej = [], []
     for cell in CELL_ORDER:
         for ncomp in NCOMPS:
             got = 0
             for seed in SEED_POOL:
                 s = screen(cell, ncomp, seed)
-                if s['mesh_verdict'] == MESH_BAD or not s['q_ok']:
+                if (s['mesh_verdict'] == MESH_BAD or not s['q_ok']
+                        or not s['hs4std_ok']):
                     rej.append(dict(cell=cell, ncomp=ncomp, seed=seed, **s))
                     continue
                 eps.append(dict(cell=cell, ncomp=ncomp, seed=seed,
@@ -274,13 +369,19 @@ def select():
 # ★동결 기대값 — `select()` 를 결과 0행에서 돌려 얻었다. G-1 이 매 실행 재대조한다.
 # ★AMENDMENT_1 (2026-08-28, 결과 0행): 1690–1697 → **1695–1702** (풀 시작 이동의 귀결;
 #   `freeze` 재실행 산출 그대로 — 거부 0건, 6칸 공유는 종전과 같은 모양).
+# ★★AMENDMENT_1 **부록 B** (2026-08-29, 결과 0행·추정 0회 — 사용자 승인): `screen()` 에
+#   세 번째 술어(`hs4std_ok`, 상수 `HS4STD_MAX_DEV` **불변**)를 편입한 귀결로
+#   **`SPR5|30` 의 8번째가 1702 → 1703**. 풀 순서가 불변이라 **유일하게 결정**된다.
+#   ⛔종전 서술 *"6칸 전부 1695–1702 공유"* 는 폐기 — `SPR5|30` 만 다르다(G-1 은 칸별 dict).
+#   전수 census(378 후보, 거부 1개 = 0.26%) = `census_g8_2026-08-29.txt`.
+#   ★**소급 공시**: 이 술어는 어느 에피소드가 걸리는지 **본 뒤에** 쓰였다 — `AMENDMENT_1.md` §B1.
 FROZEN_SEEDS = {
     'DIR180|15': tuple(range(1695, 1703)), 'DIR180|30': tuple(range(1695, 1703)),
-    'SPR5|15': tuple(range(1695, 1703)), 'SPR5|30': tuple(range(1695, 1703)),
+    'SPR5|15': tuple(range(1695, 1703)), 'SPR5|30': tuple(range(1695, 1702)) + (1703,),
     'DEP12|15': tuple(range(1695, 1703)), 'DEP12|30': tuple(range(1695, 1703)),
 }
-FROZEN_REJECTED = ()
-SEEDS_CONSUMED = tuple(range(1695, 1703))
+FROZEN_REJECTED = (('SPR5', 30, 1702),)
+SEEDS_CONSUMED = tuple(range(1695, 1704))
 
 
 # ── 배포 상수 되읽기 (B-26 G-20 규약 그대로) ─────────────────────────────────
@@ -316,6 +417,9 @@ SPR5_MAX = 9.5            # SPR5: 실현 방향폭(에너지가중 원형 std, d
 # 런 0회로 전산 가능). ★AMENDMENT_1 시드 이동(1695–1702) 후 재전산: 30° 셀 [15.86, 51.58]°,
 # SPR5 [2.66, 8.29]° — 대역·문턱은 **무변**이고 여유가 종전(1690–1697 의 [10.69, 55.05]° /
 # [1.79, 8.69]°)보다 넓다. 분리(G-7c)는 정확값 8.29 < 15.86 으로 성립한다.
+# ★부록 B(1702→1703) 후 재전산: **네 값이 전부 그대로다** — 30° 셀 [15.86, 51.58]° ·
+# SPR5 [2.66, 8.29]° · 분리 8.29 < 15.86. (1702 의 실현폭 5.03° 도 1703 의 4.93° 도
+# 대역 내부라 양 끝이 움직이지 않는다.) 상수는 **무변**.
 # (종전 표본에서의 정정 이력: (10,55) 는 상한이 실현 최대 55.05 를 0.05° 차로 잘랐다 ⟹ (9.6,60).)
 SPR30_BAND = (9.6, 60.0)
 DISP_TRUE_MAX = 1e-6      # 참 수심 분산관계 잔차(상대 |ω²−gk·tanh(kd)|/ω²) 최대
@@ -480,8 +584,10 @@ def gates_data(read=None, exists=None):
                 and all(max(d50[c]) <= DISP_TRUE_MAX for c in ('DIR180', 'SPR5') if d50[c]),
                 f"true max {max(max(dtr[c]) for c in CELL_ORDER if dtr[c]):.2e} · "
                 f"DEP12 d50 min {min(d50['DEP12']):.3f}" if d50['DEP12'] else ''))
-    out.append(('★G-8 에피소드별 |4·std/Hs − 1| ≤ 0.25 (B-26 실측 여유 계승)',
-                bool(rel) and max(abs(r - 1) for r in rel) <= 0.25,
+    # ★부록 B: 상수는 `HS4STD_MAX_DEV` 단일 심볼 — `screen()` 이 **같은 값으로 생성 전에**
+    # 강제하므로, 이 게이트는 이제 저장 파일에서 그 술어를 **되재는** 확인이다(단일출처화).
+    out.append((f'★G-8 에피소드별 |4·std/Hs − 1| ≤ {HS4STD_MAX_DEV} (B-26 실측 여유 계승)',
+                bool(rel) and max(abs(r - 1) for r in rel) <= HS4STD_MAX_DEV,
                 f'max {max(abs(r-1) for r in rel):.4f}' if rel else ''))
     out.append(('G-9 메타 되읽기(mesh 200×167 · ra/rf/ds · BF4 (Hs,Tp) · 셀별 depth/spread attr)',
                 meta_ok, ''))

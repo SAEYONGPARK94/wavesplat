@@ -15,7 +15,7 @@ run() { echo; echo "════════ $1"; shift; "$@"; local rc=$?; [ $r
 #   `check_gate_refs` 의 **사각지대**(jsonl 읽기를 공유 헬퍼로 단일출처화한 배치를 못 봄).
 #   ★전자는 실제로 규약을 비틀게 만들었다(`B-20b` 가 오탐을 피하려 동결 목록에서 파일을 뺐다).
 #   ⟹ 방벽이 스스로 틀리는 것을 막는 유일한 수단은 **회귀 픽스처**다. 맨 앞에 둔다.
-run "0. 검사기 자가진단 (F-1 오탐 · F-2 사각지대 회귀)" bash -c 'python3 tmp/_audit/check_batch_artifacts.py --selftest && python3 tmp/_audit/check_gate_refs.py --selftest && python3 tmp/_audit/check_gate_blindspots.py --selftest'
+run "0. 검사기 자가진단 (F-1 오탐 · F-2 사각지대 회귀)" bash -c 'python3 tmp/_audit/check_batch_artifacts.py --selftest && python3 tmp/_audit/check_gate_refs.py --selftest && python3 tmp/_audit/check_gate_blindspots.py --selftest && python3 tmp/_audit/check_gen_vs_gates.py --selftest'
 
 run "1. 배치 산출물 (PREREG·게이트·판정·동결·순서)" python3 tmp/_audit/check_batch_artifacts.py
 run "2. 판정 문턱 (우연과 구분되는가 · 도달 가능한가)" python3 tmp/_audit/check_thresholds.py
@@ -35,6 +35,12 @@ run "5. 게이트 외부 참조 키 (공허한 FAIL/PASS)" python3 tmp/_audit/ch
 #   지금 자료에서는 무해). ⟹ 종료코드는 **⛔에만** 반응한다.
 # ⛔**13개는 검사되지 않았다**(행 0개이거나 `gates(rows)` 로 못 부른다) — 출력의 목록을 읽어라.
 run "5b. 게이트 부분집합 눈멂 (필터 항진)" python3 tmp/_audit/check_gate_blindspots.py
+# ★5c 신설(2026-08-29) — **"위반 위에서 완주한 생성"** (반복 결함 *"계산되는데 검사되지
+#   않는다"* 5번째 사례 = M3 `G-8`: 생성기가 위반값을 로그에 찍고도 46분을 더 돌았다).
+#   술어는 전부 **배치 자신의 동결 gates_data** 다(이 검사기는 문턱을 소유하지 않는다).
+#   소급 census(08-29): 저장소 전 gen 로그에서 사건은 M3|1702 **1건이 유일**(검사기 헤더에 동결).
+#   오탐 실측: 규약 3배치(B-26·M1·M3)에서 ⛔0 ⚠0 · 비용 ≈8 s. 종료코드는 ⛔(위반-완주)에만.
+run "5c. 생성-게이트 지연 (위반 위 완주 · 배제 원장)" python3 tmp/_audit/check_gen_vs_gates.py
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ★2026-08-28 신설 — **논문 문안 검사기 6종**을 상시화한다.

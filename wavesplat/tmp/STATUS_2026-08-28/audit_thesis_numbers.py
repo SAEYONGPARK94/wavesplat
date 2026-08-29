@@ -43,6 +43,8 @@ M2  = "M2_LOCTUNE_2026-08-28/verdict_m2.json"
 M4  = "M4_CAPACITY_2026-08-28/verdict_m4.json"
 M5B = "M5b_WINDOW_2026-08-28/verdict_m5b.json"
 M8B = "M8b_LADDER_2026-08-28/verdict_m8b.json"
+M1  = "M1_NONLIN_REAL_2026-08-28/verdict_m1.json"
+M3  = "M3_SUPPORT_2026-08-28/verdict_m3.json"
 
 def pct(v, n=2):  return f"{v:.{n}f}"
 def cnt(v, tot):  return f"{v}/{tot}"
@@ -144,6 +146,33 @@ CHECKS = [
  ("M-8b BANK vs 참제로",      M8B, "magnitude.per_rung.0.vs_true_zero_median", lambda v: f"{v:.3f}"),
  ("M-8b PROP vs 참제로",      M8B, "magnitude.per_rung.8.vs_true_zero_median", lambda v: f"{v:.3f}"),
  ("M-8b 게이트",             M8B, "gates",                             lambda v: cnt(len(v),len(v))),
+ # ── 2026-08-29 추가: M-1(비선형 × 실측 해상상태) · M-3(학습 지지집합 구조 좌표) ──────
+ # ⛔손복사 금지. 기대 문자열은 전부 verdict 에서 계산한다.
+ # ⚠M-3 의 `DEP12` 는 **처치 미집행(판정 무효)** 이므로 그 셀의 수는 **핀을 걸지 않는다** —
+ #   논문에 인용되어서도 안 되는 수다(AMENDMENT_2 §8.3).
+ ("M-1 LIN 승수",            M1,  "arms.LIN.ship_vs_spec.better",      lambda v: cnt(v,24)),
+ ("M-1 LIN 크기",            M1,  "arms.LIN.ship_vs_spec.rel_median_pct", lambda v: pct(v)),
+ ("M-1 HOS 승수",            M1,  "arms.HOS.ship_vs_spec.better",      lambda v: cnt(v,24)),
+ ("M-1 HOS 크기",            M1,  "arms.HOS.ship_vs_spec.rel_median_pct", lambda v: pct(v)),
+ ("M-1 LIN 음성대조",         M1,  "arms.LIN.spec_vs_zero.better",      lambda v: cnt(v,24)),
+ ("M-1 HOS 음성대조",         M1,  "arms.HOS.spec_vs_zero.better",      lambda v: cnt(v,24)),
+ ("M-1 LIN 기준선 기술",       M1,  "arms.LIN.spec_vs_zero.rel_median_pct", lambda v: pct(v)),
+ ("M-1 HOS 기준선 기술",       M1,  "arms.HOS.spec_vs_zero.rel_median_pct", lambda v: pct(v)),
+ ("M-1 LIN vs 제로 크기",     M1,  "arms.LIN.ship_vs_zero.rel_median_pct", lambda v: pct(v)),
+ ("M-1 HOS vs 제로 크기",     M1,  "arms.HOS.ship_vs_zero.rel_median_pct", lambda v: pct(v)),
+ ("M-1 짝대비 승수(탐색적)",    M1,  "paired_contrast.hos_worse",         lambda v: cnt(v,24)),
+ ("M-1 짝대비 크기(탐색적)",    M1,  "paired_contrast.rel_median_pct",    lambda v: "+"+pct(v)),
+ ("M-1 확증 문턱 p",          M1,  "thresholds.p_confirm",              lambda v: f"{v:.6f}"),
+ ("M-1 게이트",              M1,  "gates_pass",                        lambda v: cnt(v,36)),
+ ("M-3 DIR180 승수",         M3,  "cells.DIR180.ship_vs_zero.better",  lambda v: cnt(v,16)),
+ ("M-3 DIR180 크기",         M3,  "cells.DIR180.ship_vs_zero.rel_median_pct", lambda v: pct(v)),
+ ("M-3 DIR180 음성대조",      M3,  "cells.DIR180.spec_vs_zero.better",  lambda v: cnt(v,16)),
+ ("M-3 SPR5 승수",           M3,  "cells.SPR5.ship_vs_spec.better",    lambda v: cnt(v,16)),
+ ("M-3 SPR5 p",              M3,  "cells.SPR5.ship_vs_spec.p_one_sided", lambda v: f"{v:.2f}"),
+ ("M-3 SPR5 음성대조",        M3,  "cells.SPR5.spec_vs_zero.better",    lambda v: cnt(v,16)),
+ ("M-3 SPR5 vs 제로",        M3,  "cells.SPR5.ship_vs_zero.better",    lambda v: cnt(v,16)),
+ ("M-3 확증 문턱 p",          M3,  "thresholds.p_confirm",              lambda v: f"{v:.6f}"),
+ ("M-3 게이트",              M3,  "gates_pass",                        lambda v: cnt(v,30)),
 ]
 
 bad = []

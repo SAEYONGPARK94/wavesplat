@@ -1,0 +1,240 @@
+{
+ "label": "T2-STAT :: PROP-SKILL-UNDECIDED",
+ "why": "부호로 갈리지 않는다(14/36, p=0.9338). ⛔승격 금지 · MDE(0.742) 병기.",
+ "label_secondary": "T2-STAT :: PROP-REFIT-UNDECIDED",
+ "why_secondary": "13/36.",
+ "blocked_by": [],
+ "direction": "LOCATE-OR-ELIMINATE. 이 배치는 \"실측 예보 기술의 담지자가 표현인가 시간축 갱신인가\" 만 묻는다. ⛔\"경계의 원인은 X 다\" 로 넘겨 읽지 않는다 — 양성이어도 주장은 *\"기술 담지자가 시간축에 있다\"* 까지이고 나우캐스트 결손은 미해결로 남는다.",
+ "reading": {
+  "PRIMARY+": "★소거표 최초 양성 행. 척추 = 위치지음. 기여 ②c 가 제안 표현으로 확장. ⛔배포 권고 아님(§7-3) · ⛔예산 주장 아님(§7-4).",
+  "PRIMARY- & SEC_A+": "★정확한 문장 = *\"재적합은 두 표현이 공유하는 시간축의 성질이지만, 이 코퍼스에서 제안 표현이 기술에 도달하기에는 충분하지 않다.\"* 남는 결손은 **재적합이 구조적으로 무관한 lead 0–1** 에 있다 ⟹ 다음 개입의 표적은 예보 지평이 아니라 **나우캐스트**다.",
+  "PRIMARY- & SEC_A-": "★가장 강한 소거 문장(위 label_primary 참조). 시간축 축 전체가 닫힌다.",
+  "UNDECIDED": "⛔승격 금지. MDE 를 병기하고 소거표에 *\"검출 불가\"* 로 적는다 (⛔*\"차이 없다\"* 금지 — `M8b` 개명 사건의 교훈)."
+ },
+ "primary": {
+  "arm": "PROP-REFIT2",
+  "n": 36,
+  "better": 14,
+  "ratio_median": 1.2043195874929737,
+  "p_one_sided": 0.9337509180186316
+ },
+ "secondary_a": {
+  "arm": "PROP-REFIT2",
+  "ref": "PROP-FROZEN",
+  "n": 36,
+  "better": 13,
+  "ties": 0,
+  "rel_median_pct": 4.037419829593797,
+  "median_arm": 1.0427924932106962,
+  "median_ref": 1.0619201360845305,
+  "p_one_sided": 0.9673773323884234
+ },
+ "secondary_b": {
+  "n": 36,
+  "prop_more": 2,
+  "p_one_sided": 0.9999999994615791,
+  "g_prop_median": 0.039525815040872964,
+  "g_ship_median": -0.2739605887878036,
+  "grade": "EXPLORATORY",
+  "mde": {
+   "n": 36,
+   "thresh": 25,
+   "power": 0.8,
+   "q80": 0.742
+  }
+ },
+ "thresholds": {
+  "n": 36,
+  "NOMINAL": 24,
+  "CONFIRM": 25,
+  "NOT_EARN": 12,
+  "p_nominal": 0.03262266761157662,
+  "p_confirm": 0.014408359827939421,
+  "alpha": 0.05,
+  "family_alpha": 0.025
+ },
+ "mde": {
+  "n": 36,
+  "thresh": 25,
+  "power": 0.8,
+  "q80": 0.742
+ },
+ "descriptive_nowcast": {
+  "SHIP-FROZEN": {
+   "arm": "SHIP-FROZEN",
+   "n": 36,
+   "better": 33,
+   "ratio_median": 0.7794232470429727,
+   "p_one_sided": 1.1360680218786001e-07
+  },
+  "SHIP-REFIT2": {
+   "arm": "SHIP-REFIT2",
+   "n": 36,
+   "better": 33,
+   "ratio_median": 0.7794232470429727,
+   "p_one_sided": 1.1360680218786001e-07
+  },
+  "PROP-FROZEN": {
+   "arm": "PROP-FROZEN",
+   "n": 36,
+   "better": 15,
+   "ratio_median": 1.0490841712391412,
+   "p_one_sided": 0.8785075229825452
+  },
+  "PROP-REFIT2": {
+   "arm": "PROP-REFIT2",
+   "n": 36,
+   "better": 15,
+   "ratio_median": 1.0490841712391412,
+   "p_one_sided": 0.8785075229825452
+  }
+ },
+ "gates": [
+  {
+   "name": "G-0  런 수",
+   "pass": true,
+   "detail": "144/144"
+  },
+  {
+   "name": "G-0b 에러 0",
+   "pass": true,
+   "detail": "0"
+  },
+  {
+   "name": "G-0c 0행 가드",
+   "pass": true,
+   "detail": "{'SHIP-FROZEN': 36, 'SHIP-REFIT2': 36, 'PROP-FROZEN': 36, 'PROP-REFIT2': 36}"
+  },
+  {
+   "name": "G-0d 셀 전건",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "G-1a bank 팔이 bank 경로",
+   "pass": true,
+   "detail": "[(0, True, 'bank_mmse')]"
+  },
+  {
+   "name": "G-1b prop 팔이 learned 경로",
+   "pass": true,
+   "detail": "[(False, 'learned')]"
+  },
+  {
+   "name": "G-2 SHIP-FROZEN refit_calls==0",
+   "pass": true,
+   "detail": "[0]"
+  },
+  {
+   "name": "G-2 SHIP-REFIT2 refit_calls==7",
+   "pass": true,
+   "detail": "[7]"
+  },
+  {
+   "name": "G-2 PROP-FROZEN reinit_calls==0",
+   "pass": true,
+   "detail": "[0]"
+  },
+  {
+   "name": "G-2 PROP-REFIT2 reinit_calls==7",
+   "pass": true,
+   "detail": "[7]"
+  },
+  {
+   "name": "G-2x 교차 무개입",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "G-3 음성대조 lead0-2 비트동일 [SHIP-FROZEN|SHIP-REFIT2]",
+   "pass": true,
+   "detail": "36/36"
+  },
+  {
+   "name": "G-3 음성대조 lead0-2 비트동일 [PROP-FROZEN|PROP-REFIT2]",
+   "pass": true,
+   "detail": "36/36"
+  },
+  {
+   "name": "G-MIRROR 재적합 창 해시 일치",
+   "pass": true,
+   "detail": "36/36"
+  },
+  {
+   "name": "G-CAP 재적합 창 <= OBS_CAP",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "G-ANCHOR SHIP-FROZEN 비트 36/36",
+   "pass": true,
+   "detail": "36/36"
+  },
+  {
+   "name": "G-ANCHOR SHIP-REFIT2 비트 36/36",
+   "pass": true,
+   "detail": "36/36"
+  },
+  {
+   "name": "G-ANCHOR PROP-FROZEN 비트 36/36",
+   "pass": true,
+   "detail": "36/36"
+  },
+  {
+   "name": "G-5 refit 되읽기",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "G-5b prop_refit 되읽기(하네스)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "G-5c 출하 기본값 핀",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "G-8 장치/스레드 단일 스탬프",
+   "pass": true,
+   "detail": "[('cpu', True, '1')]"
+  },
+  {
+   "name": "G-7 참 제로필드 전건 존재",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "G-7b 고정상수 채점 부재(ZERO_REF)",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "G-PC SHIP-FROZEN vs 제로 == 동결 16",
+   "pass": true,
+   "detail": "16"
+  },
+  {
+   "name": "G-PC SHIP-REFIT2 vs 제로 == 동결 32",
+   "pass": true,
+   "detail": "32"
+  },
+  {
+   "name": "G-PC PROP-FROZEN vs 제로 == 동결 16",
+   "pass": true,
+   "detail": "16"
+  },
+  {
+   "name": "G-PC 짝 재적합 이득 == 동결 36",
+   "pass": true,
+   "detail": "36"
+  },
+  {
+   "name": "G-9 필터 비항진",
+   "pass": true,
+   "detail": ""
+  }
+ ],
+ "n_rows": 144
+}

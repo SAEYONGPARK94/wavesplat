@@ -137,6 +137,32 @@ def fc_zero(record, win, lo=None, hi=None):
     return _win_mean(zero_perlead(record, win), lo, hi)
 
 
+# ★`G-7b` 의 구현 — ⛔**문자열 검색으로 짜면 안 된다.**
+#   금지문 자신이 그 토큰을 담기 때문에 `'<토큰>' in src` 는 **구조적으로 항상 실패**한다
+#   (= 라벨이 영원히 `None`). 2026-08-30 자가진단이 동결 **전에** 이것을 잡았다 —
+#   `AMENDMENT_0_PREFREEZE.md`.  ⟹ **`ast` 로 「코드에서 그 이름을 쓰는가」를 본다**:
+#   독스트링·주석의 산문은 통과시키고 **실제 사용만** 잡는다.
+_FLAT_NAME = 'ZERO' + '_REF'          # ⛔소스에 리터럴로 쓰지 않는다(위 사유)
+
+
+def _no_flat_ref_constant():
+    """배치의 어느 `.py` 도 고정 기준상수를 **코드로** 쓰지 않는가."""
+    import ast
+    hits = []
+    for f in sorted(os.listdir(HERE)):
+        if not f.endswith('.py'):
+            continue
+        try:
+            tree = ast.parse(open(os.path.join(HERE, f), encoding='utf-8').read())
+        except SyntaxError as e:
+            return False, f'{f}: 파싱 실패 {e}'
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Name) and node.id == _FLAT_NAME) or \
+                    (isinstance(node, ast.Attribute) and node.attr == _FLAT_NAME):
+                hits.append(f'{f}:{getattr(node, "lineno", "?")}')
+    return not hits, str(hits)[:80]
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. 문턱 — `math.comb` 이 직접 낸다. ⛔손복사 0건.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -406,9 +432,7 @@ def gates(rows, premise=None):
     # ── 채점 기준 (⛔`ZERO_REF=1.0` 금지)
     A(('G-7 참 제로필드 전건 존재', all(
         fc_zero(r['record'], r['win']) not in (None, 0) for r in ok), ''))
-    A(('G-7b ZERO_REF 상수 부재', not any(
-        'ZERO_REF' in open(os.path.join(HERE, f), encoding='utf-8', errors='replace').read()
-        for f in os.listdir(HERE) if f.endswith('.py')), ''))
+    A((f'G-7b 고정상수 채점 부재({_FLAT_NAME})', *_no_flat_ref_constant()))
 
     # ── ★양성대조: 동결 자료가 낸 세 수를 이 배치가 재현하는가
     if premise is None and os.path.exists(PREMISE):
@@ -462,6 +486,18 @@ def selftest():
         assert 'prop_refit_s' in ARMS[a]['HARN']
     assert ARMS['PROP-REFIT2']['HARN']['prop_refit_s'] == PROP_REFIT_S
     assert set(READING) == {'PRIMARY+', 'PRIMARY- & SEC_A+', 'PRIMARY- & SEC_A-', 'UNDECIDED'}
+    # ★`G-7b` 항진 검사 — ⛔"통과했다" 가 "검사했다" 를 뜻하지 않는다.
+    #   ①현 상태에서 통과하고 ②위조 파일을 넣으면 **반드시 실패**해야 한다.
+    ok0, _ = _no_flat_ref_constant()
+    _probe = os.path.join(HERE, '_g7b_probe.py')
+    try:
+        open(_probe, 'w').write(_FLAT_NAME + ' = 1.0\nx = ' + _FLAT_NAME + '\n')
+        ok1, det = _no_flat_ref_constant()
+    finally:
+        os.path.exists(_probe) and os.remove(_probe)
+    assert ok0 and not ok1, f'G-7b 가 항진한다: 현상태={ok0} 위조탐지={not ok1} {det}'
+    # ⚠산문 전용(독스트링/주석)은 통과해야 한다 — 금지문 자신이 그 부류다.
+    assert ok0, 'G-7b 가 자기 금지문에 걸린다(2026-08-30 결함 부류)'
     print(f'gates_t2 selftest: PASS  n={t["n"]} CONFIRM={t["CONFIRM"]} '
           f'NOMINAL={t["NOMINAL"]} NOT_EARN={t["NOT_EARN"]} '
           f'family_alpha={FAMILY_ALPHA} refits={N_REFIT_EXPECTED} q80={mde()["q80"]}')

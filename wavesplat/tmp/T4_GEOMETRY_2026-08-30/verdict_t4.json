@@ -1,0 +1,319 @@
+{
+ "batch": "T4-GEOM",
+ "axis": "LEADTIME",
+ "prefix": "lead:",
+ "n_rows": 288,
+ "n_good": 288,
+ "screen": {
+  "go": [
+   "LEADTIME"
+  ],
+  "no_go": {
+   "APERTURE": [
+    "unmeasured",
+    "single_factor"
+   ],
+   "COVERAGE": [
+    "unmeasured"
+   ],
+   "INCIDENCE": [
+    "single_factor",
+    "in_budget",
+    "real_counterpart"
+   ],
+   "OCCLUSION": [
+    "single_factor",
+    "in_budget",
+    "real_counterpart"
+   ],
+   "RAYPATTERN": [
+    "in_budget",
+    "real_counterpart"
+   ],
+   "SENSORMOTION": [
+    "unmeasured",
+    "in_budget",
+    "real_counterpart"
+   ],
+   "DENSITY": [
+    "unmeasured"
+   ],
+   "TIMEWINDOW": [
+    "unmeasured",
+    "single_factor"
+   ],
+   "SENSORMODEL": [
+    "unmeasured"
+   ]
+  }
+ },
+ "gates": [
+  {
+   "name": "G-1 표본 SHIP/SPEC25 각 144행 · 에피소드 48",
+   "pass": true,
+   "detail": "SHIP 144 · SPEC25 144 · ep 48",
+   "blocking": true
+  },
+  {
+   "name": "G-2 에러 0",
+   "pass": true,
+   "detail": "0",
+   "blocking": true
+  },
+  {
+   "name": "G-3 팔 되읽기(객체 속성) + ⛔빈 dict 팔 0",
+   "pass": true,
+   "detail": "144행",
+   "blocking": true
+  },
+  {
+   "name": "G-4 동결 재현(전 창 동화) rel Δ ≤ 1e-06 (288짝)",
+   "pass": true,
+   "detail": "위반 0",
+   "blocking": true
+  },
+  {
+   "name": "G-5 같은 채점 창·같은 원점 집합(에피소드 안 팔·시드 전건 동일)",
+   "pass": true,
+   "detail": "불일치 0",
+   "blocking": true
+  },
+  {
+   "name": "G-6 ★음성대조: lead 0 예보경로 == 동화경로 **비트 동일**",
+   "pass": true,
+   "detail": "288/288",
+   "blocking": true
+  },
+  {
+   "name": "G-7 ★양성대조: 전파 연산자 합성 F(a+b)==F(a)∘F(b) rel ≤ 1e-09",
+   "pass": true,
+   "detail": "위반 0/144",
+   "blocking": true
+  },
+  {
+   "name": "G-8 커버리지 0 금지(rung 전건 · 원점 ≥ 5 · stride == 0.5 s · 열람0 게이트 0)",
+   "pass": true,
+   "detail": "rung/원점 위반 0 · 열람0 []",
+   "blocking": true
+  },
+  {
+   "name": "G-9 lead 프레임 산술 정확(러너가 gates_t4.lead_frames 를 썼다)",
+   "pass": true,
+   "detail": "위반 0",
+   "blocking": true
+  },
+  {
+   "name": "G-10 장치·스레드·code_md5 단일 (⚠cuda_available 은 단일성만 — M-10 개정 1 승계)",
+   "pass": true,
+   "detail": "[\"('cpu', True, '1', 'a876258d9d8e6084e546f2496331864f')\"]",
+   "blocking": true
+  },
+  {
+   "name": "G-11 단일출처(셸 경계 임포트) + 고정 기준상수 부재(ZERO_REF)",
+   "pass": true,
+   "detail": "[]",
+   "blocking": true
+  },
+  {
+   "name": "G-12 개입 계수기(가지 단위) == 프로토콜 도출값",
+   "pass": true,
+   "detail": "위반 0",
+   "blocking": true
+  },
+  {
+   "name": "G-13 원점 집합이 lead 와 무관한 하나(용량-반응의 전제)",
+   "pass": true,
+   "detail": "위반 0",
+   "blocking": true
+  },
+  {
+   "name": "G-CMP 비교자 유효성 SPEC25<ZERO @ lead 1.00 Tp (≥32)",
+   "pass": true,
+   "detail": "34/48",
+   "blocking": true
+  },
+  {
+   "name": "G-14 동결값 비트 일치 수 (0이어도 유효)",
+   "pass": true,
+   "detail": "181/288",
+   "blocking": false
+  },
+  {
+   "name": "G-15 mesh_verdict 분할 보고 (⛔\"HOS M=3\" 단일 서술 금지)",
+   "pass": true,
+   "detail": "{'DEGRADED': 102, 'ADEQUATE': 186}",
+   "blocking": false
+  },
+  {
+   "name": "G-16 층별 원점 수 (⚠BF4/BF5 불균형 공시 의무)",
+   "pass": true,
+   "detail": "{'BF4': [18], 'BF5': [6]}",
+   "blocking": false
+  }
+ ],
+ "blocked_by": [],
+ "comparator_ok": true,
+ "thresholds": {
+  "n": 48,
+  "NOMINAL": 31,
+  "CONFIRM": 32,
+  "NOT_EARN": 17,
+  "q80": 0.710878573084721,
+  "floor_p": 3.552713678800501e-15,
+  "alpha": 0.05,
+  "family_alpha": 0.025
+ },
+ "mde": {
+  "q80": 0.7109,
+  "n": 48
+ },
+ "primary_lead_tp": 1.0,
+ "leads_tp": [
+  0.0,
+  0.2,
+  0.5,
+  1.0
+ ],
+ "band_lead_tp": [
+  0.5,
+  1.0
+ ],
+ "primary": {
+  "better": 47,
+  "n": 48,
+  "rel_median_pct": -46.299,
+  "p_one_sided": 1.7408297026122455e-13
+ },
+ "comparator": {
+  "better": 34,
+  "n": 48,
+  "rel_median_pct": -8.017,
+  "p_one_sided": 0.0027576007427505544
+ },
+ "existence": {
+  "better": 46,
+  "n": 48,
+  "rel_median_pct": -49.249,
+  "p_one_sided": 4.1815439999481896e-12
+ },
+ "band_sensitivity": {
+  "better": 46,
+  "n": 48,
+  "rel_median_pct": -45.524,
+  "p_one_sided": 4.1815439999481896e-12
+ },
+ "secondary_b_decay": {
+  "more": 12,
+  "n": 48,
+  "p_one_sided": 0.9998888775186892,
+  "r_lead0_median": 0.58554,
+  "r_primary_median": 0.53701
+ },
+ "ladder": {
+  "0.0": {
+   "ship_vs_spec": {
+    "better": 43,
+    "n": 48,
+    "rel_median_pct": -41.446,
+    "p_one_sided": 6.840242150474296e-09
+   },
+   "ship_vs_zero": {
+    "better": 46,
+    "n": 48,
+    "rel_median_pct": -51.68,
+    "p_one_sided": 4.1815439999481896e-12
+   },
+   "spec_vs_zero": {
+    "better": 47,
+    "n": 48,
+    "rel_median_pct": -14.484,
+    "p_one_sided": 1.7408297026122455e-13
+   },
+   "ship_median": 0.12159,
+   "spec_median": 0.20666,
+   "zero_median": 0.24733
+  },
+  "0.2": {
+   "ship_vs_spec": {
+    "better": 44,
+    "n": 48,
+    "rel_median_pct": -46.095,
+    "p_one_sided": 7.569163074094831e-10
+   },
+   "ship_vs_zero": {
+    "better": 46,
+    "n": 48,
+    "rel_median_pct": -52.366,
+    "p_one_sided": 4.1815439999481896e-12
+   },
+   "spec_vs_zero": {
+    "better": 47,
+    "n": 48,
+    "rel_median_pct": -14.238,
+    "p_one_sided": 1.7408297026122455e-13
+   },
+   "ship_median": 0.12045,
+   "spec_median": 0.21127,
+   "zero_median": 0.2473
+  },
+  "0.5": {
+   "ship_vs_spec": {
+    "better": 46,
+    "n": 48,
+    "rel_median_pct": -46.511,
+    "p_one_sided": 4.1815439999481896e-12
+   },
+   "ship_vs_zero": {
+    "better": 46,
+    "n": 48,
+    "rel_median_pct": -52.641,
+    "p_one_sided": 4.1815439999481896e-12
+   },
+   "spec_vs_zero": {
+    "better": 43,
+    "n": 48,
+    "rel_median_pct": -11.67,
+    "p_one_sided": 6.840242150474296e-09
+   },
+   "ship_median": 0.12425,
+   "spec_median": 0.21395,
+   "zero_median": 0.24615
+  },
+  "1.0": {
+   "ship_vs_spec": {
+    "better": 47,
+    "n": 48,
+    "rel_median_pct": -46.299,
+    "p_one_sided": 1.7408297026122455e-13
+   },
+   "ship_vs_zero": {
+    "better": 46,
+    "n": 48,
+    "rel_median_pct": -49.249,
+    "p_one_sided": 4.1815439999481896e-12
+   },
+   "spec_vs_zero": {
+    "better": 34,
+    "n": 48,
+    "rel_median_pct": -8.017,
+    "p_one_sided": 0.0027576007427505544
+   },
+   "ship_median": 0.13012,
+   "spec_median": 0.22352,
+   "zero_median": 0.24812
+  }
+ },
+ "label": "LEADFIELD-HOLDS",
+ "fold": "hold",
+ "reading": "합성 이득은 실측 코퍼스가 실제로 채점되는 **시간 기하**(관측 시각보다 lead 만큼 뒤) 안에서도 있다 ⟹ 「관측 기하」 행에서 **시간** 성분이 배제된다. M-10(공간)과 합쳐 ***\"두 하네스가 서로 다른 문제를 풀고 있어서 생긴 차이다\" 는 반론이 닫힌다***. ★척추 문장 무수정(배제 ≠ 지목). ⛔\"관측 기하가 무관하다\" 금지(등가검정 없음). ⛔\"예보 능력을 검증했다\" 금지(합성 · 혼잡 층 · 단일 체크포인트 · lead ≤ 1.0 Tp).",
+ "disclosures": [
+  "⚠blind 아님 — 결과 전 예측은 `LEADFIELD-HOLDS` 였다(PREREG §6-1).",
+  "⚠접두어 `lead:` — `obs:`(공간, M-10) · `ship:`(배-거리)와 **다른 양**이다.",
+  "⚠PRIMARY rung 1.0 Tp 는 실측 밴드(0.327–7.152 Tp)의 **아래쪽**이다.",
+  "⚠혼잡 층 한정(ncomp ≥ 15) · 같은 48 에피소드를 보는 여섯 번째.",
+  "⚠동결 재현은 비트가 아니라 rel Δ ≤ 1e-6 (G-14 가 비트 일치 수를 보고).",
+  "⚠재현 통화 = 스레드 고정 · GPU 허용(M-10 AMENDMENT_1) ⟹ prior_device 병기.",
+  "⛔사다리는 서술 전용 — rung 순위 지목 금지(F1 교훈).",
+  "⛔기제·인과 지목 금지(재채점은 기제를 재지 않는다)."
+ ]
+}

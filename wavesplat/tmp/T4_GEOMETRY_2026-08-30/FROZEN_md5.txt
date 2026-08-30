@@ -1,0 +1,57 @@
+# 동결 2026-08-30T14:51:02Z — 결과 0행 · 추정기 0회 시점. HEAD=507858e1
+9b6203986e5805aa444be8ecdeb6c70e  PREREG.md
+66bfba0dbf290fbfe444c806d8290682  gates_t4.py
+5d709492524769451e29d94b7a03e250  premise_t4.py
+85e645e6c735cdd0d0dd319c0635b136  premise_t4.json
+37d0ddd3aca03118ae41d52c8324e0b5  ../B11_HOS_BASELINE_2026-08-23/gates_b11.py
+2186b01913559f9205653c86950ecdc8  ../B12_HOS_EXTEND_2026-08-23/gates_b12.py
+09e7b03b1b5ac098cfce2fddacffd482  ../B12_HOS_EXTEND_2026-08-23/run_b12.py
+ad4bd4168e031f90d4b82287dd518be2  ../B12_HOS_EXTEND_2026-08-23/results_b12.jsonl
+69272726ecb80da533e7c58c4fcb7b67  ../B3_REFIT_2026-08-23/gates_b3.py
+459466bc3be745f3f0e9b0508583ff5e  ../B3_REFIT_2026-08-23/results_b3.jsonl
+ae3e2c21321760608108205342a442b9  ../S16_BASELINE_2026-08-14/run_s16.py
+7991d24a8a4e31580d888ddf766ec1ca  ../S16_BASELINE_2026-08-14/letkf_spec.py
+68dcd2073c4ec60897645faa29b16172  ../B2_REAL_2026-08-23/scene_station.py
+304a8785238a28a266d5fa6b9c7df4fb  ../M10_GEOMETRY_2026-08-30/premise_m10.json
+09b99e6cfc690620309e6261b8695190  ../M10_GEOMETRY_2026-08-30/verdict_m10.json
+10e407348291e0438a94f459f4757c27  ../../wavesplat/run.py
+f620548a3413bc0eedf84caea8d9cbaa  ../../wavesplat/evaluation/metrics.py
+1b473e066cb02e43f39a9887a090c7d4  ../../wavesplat/optimizer/sequential_update.py
+5ebcf5a3d6c11d44f41eec920e38594f  ../../wavesplat/optimizer/learned_init.py
+9a70c6cfec79a3a776820953ba03e581  ../../wavesplat/baselines/letkf_grid.py
+e36249f8eb900d981e2c4d43ae1d9b51  ../../wavesplat/data_loader.py
+5d7df7e11aa995444cd9a64dd48f7874  ../../wavesim/config.py
+f92212d98c9e73157cac6bae9827aa41  ../../wavesim/lidar_simulator.py
+# 재동결 2026-08-30T15:13:08Z — `run_t4.py`·`analyze_t4.py` 추가.  ⛔덮어쓰기 아니라 **덧붙이기**(위 24행 무수정).
+#   사유 = 두 파일은 이 배치의 판정 경로다(`tmp/_audit/check_batch_artifacts.py:_judge_files()` 가
+#   `gates*`·`run*`·`analyze*` 를 요구한다).  시점 = **결과 0행 · 추정기 0회**
+#   (`results_t4_*.jsonl` 0개 · `smoke_t4.jsonl` 미생성).  HEAD=507858e1
+#   자가진단 = `gates_t4.py` 59/59 · `premise_t4.py` 29/29 · `run_t4.py selftest` PASS.
+#   ⛔팔·문턱·라벨·해석 규칙 무수정 — `gates_t4.py`·`PREREG.md`·`premise_t4.py` 는 위 해시 그대로다.
+b0ed50dd3fc32b42894752b5eba39189  run_t4.py
+c70ff280f76f2d895241ef24e170d773  analyze_t4.py
+# 재동결 2026-08-30T15:18:15Z — `run_t4.py` **수리 1** (⛔결과 0행 유지: `results_t4_*.jsonl` 0개).
+#   증상 = 스모크가 `SPEC25` 두 셀에서 `KeyError(n_match)`.  원인 = `run_b12.run_spec` 이
+#   `run_s16.run_letkf` 의 반환 키 `n_match`(기준선 자신의 채점 창 계수)를 **떨어뜨린다**.
+#   수리 = `run_s16.run_letkf` 에 투명 shim 을 하나 더 걸어 **원천에서** 잡는다
+#   (⛔`sel.sum()` 을 러너가 다시 계산하지 않는다 — 그러면 `G-5` 가 항등식이 된다).
+#   + 자가진단 [12b] 신설(런 0회로 같은 부류를 288런 전에 잡는다) · [10] 복원 검사 6객체로 확장.
+#   ⛔팔·문턱·라벨·해석 규칙·프로토콜 무수정.  사전 스모크 기록 = `smoke_t4_prefix1.jsonl`(보존).
+69e41f8dc048a10f1afbb04fa3cc3a41  run_t4.py
+# 재동결 2026-08-30T15:25:01Z — `analyze_t4.py` **수리 1** (⛔결과 0행 유지: `results_t4_*.jsonl` 0개).
+#   ①`safe_gates()` 신설 — 스모크가 잡았다: `gates_t4.gates()` 의 `G-CMP` 가 `thresholds(nc)`
+#     를 부르는데 그 함수는 n≥5 에서만 정의된다(바닥 p=2^-n ≤ 0.05) ⟹ 짝 5개 미만이면
+#     `StopIteration` **으로 죽는다**(= `M-10 m-2` 「게이트가 FAIL 이 아니라 크래시」 부류).
+#     ★본런 n=48 에는 영향 없음. ⛔`gates_t4.py` 무수정 — 분석기가 크래시를 차단 FAIL 로 강등한다.
+#   ②스모크에 「게이트 발화 근거」표(행 필드 그대로) 추가 · ③본런 경로에 **0행 가드**(선례 `M-4`).
+#   ⛔팔·문턱·라벨·해석 규칙 무수정.
+8c43bb6972965481ebab62b86cb3edac  analyze_t4.py
+# 정정 2026-08-30T15:28:38Z (해시 무변 — 위 15:25:01Z 항목의 **사실 기술**만 고친다).
+#   ⛔*"`results_t4_*.jsonl` 0개"* 는 부정확하다: 형이 그 직전(≈15:24:50Z)에 본런 4샤드를
+#   띄워 **파일 4개는 이미 존재**했다. 정확한 문장 = ***"그 시점에 결과 행이 0행이었다"***
+#   (`analyze_t4.py` 의 0행 가드가 그 자리에서 exit 2 로 증명했고, 직후
+#   `check_batch_artifacts.py` 도 `4⚠빈4`(파일 4 · 전부 빈 파일)로 같은 상태를 찍었다).
+#   ★판정 무영향: `analyze_t4.py` 는 **`code_md5` 에 들어가지 않고**(단일출처 =
+#   `run_s16.code_fingerprint` + `gates_t4.py`·`run_t4.py`·`run_b12.py`) 러너가 부르지도
+#   않는다 ⟹ 본런 288행의 `code_md5` 는 `a876258d…` 하나로 유지된다(`G-10` 단일성).
+#   ⛔본런이 도는 동안 `run_t4.py` 를 고치면 `code_md5` 가 갈려 **G-10 이 FAIL** 한다 — 금지.

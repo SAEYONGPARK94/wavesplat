@@ -266,3 +266,38 @@
    불일치) 수리를 착지시키지 않고 이 문서의 §3 재생 규칙부터 고쳐 재동결한다 — 게이트가
    먼저 죽는 설계다. RG-0 이 깨지면(비트 불일치) 수리가 관측성 범위를 벗어난 것 = 중지·
    원인 규명이 우선이다.
+
+---
+
+## 7. 실행 절차 (2026-08-30 하네스 작성 시 부기 — §1–§6 본문 불변)
+
+⚠하네스 4종 + 시험 이식본이 작성·동결됐다. 판정 규약의 단일출처 = **`gates_m9.py`**
+(예상표·계약·라벨·RG-0 셀 정의 전부). 스레드 고정은 **러너가 스스로** 한다 —
+`regress_m9.py`/`mutate_m9.py`/`analyze_m9.py` 가 import 전에
+`OMP/MKL/OPENBLAS/NUMEXPR_NUM_THREADS=1` 을 세운다(본보기 `run_m3.py:19-21`). 샤드 없음
+(전 단계 직렬 1프로세스; RG-0 은 벽시계 민감이라 병렬화 금지).
+
+순서 (cwd = `/home/vexit/wavesplat/wavesplat`):
+1. **수리 전**: `python3 tmp/M9_ALARM_2026-08-29/regress_m9.py selftest`
+   → `... regress_m9.py rg1` (pre 모드 = 예상표 재확인, 런 0회)
+   → `... mutate_m9.py` (변형 14종 전건 포착 요구)
+   → `... regress_m9.py rg0 pre` (라이브 4셀 수리-전 스냅샷, ~20 s)
+   → `... analyze_m9.py` = **`HARNESS-READY (PRE-REPAIR)`** 여야 착지 가능.
+2. **수리 착지** (`sequential_update.py`): §2 선택 ①+② — 술어는 모듈 수준 순수 함수
+   `noop_alarm_due(n_triggers, n_applied)` (이번 사건 **포함** 계수; 계약 프로브 =
+   `gates_m9.PREDICATE_PROBES`), 검사를 조기 반환 앞으로, health 새 키 2개
+   (`first_apply_data_t`·`last_fit_wall_s`), 경고 문안은 토큰 `bank_refit_async` 포함
+   (동결 인터페이스 = `gates_m9.ALARM_WARN_TOKEN`). `rg2_tests_snippet_e.py` 를
+   `wavesplat/tests/test_bank_mmse_port.py` E절로 이동. `FROZEN_md5.txt` 에
+   수리 후 `sequential_update.py` md5 **줄을 덧붙인다**(덮어쓰기 금지).
+3. **수리 후**: `rg1`(post 모드 — 발화 열이 제품 임포트로 바뀐다) → `rg0 post`
+   (pre 와 비트 대조) → `python3 -m pytest wavesplat/tests/ wavesim/tests/` (§5-3:
+   기존 시험 깨짐 0 재확인, 2026-08-30 전수 재검 — `simplefilter('error')` 2곳 모두
+   비동기 도달 불가 경로, health 키 집합 고정 0건, `pytest.ini` filterwarnings 없음)
+   → `analyze_m9.py` = **`ALARM-FIXED (CONFIRMATORY)`**.
+4. **배포 커밋**에 3의 출력 전부(rg1/rg0 post/analyze/pytest)를 첨부한다(08-23 교훈).
+
+스모크 실측 (2026-08-30, 산출물 삭제 완료): rg1 pre **14게이트 전건**(M-2 재구성 검증
+288/288 · 예상표 131/131·0/72·185·54 전부 재유도 일치) · mutate **14/14 포착** ·
+rg0 pre **4셀 전부 동결 기대와 일치**(SYNC5 0발화 · NOLAND skip 무경고 = 구 결함 재현 ·
+LAND10 (2,0) 구 경보 1발화 + 완료-미수집 덮어쓰기 applied=0 · LAND6 착지 lead 6 침묵).

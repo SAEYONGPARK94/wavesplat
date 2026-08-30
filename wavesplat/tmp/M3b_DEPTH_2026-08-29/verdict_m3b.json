@@ -1,0 +1,465 @@
+{
+ "batch": "M3b",
+ "cell": "DEP12",
+ "n_episodes": 16,
+ "n_per_cell": 16,
+ "thresholds": {
+  "n": 16,
+  "p_nominal": 0.0384063720703125,
+  "p_confirm": 0.0106353759765625,
+  "family_alpha": 0.016666666666666666,
+  "n_family": 3,
+  "confirm_within_family": true,
+  "nominal_outside_family": true,
+  "weak_is_complement": true,
+  "power_at_0_80": 0.7982454417653762,
+  "power_confirm_at_0_80": 0.5981343255101441
+ },
+ "seeds_consumed": [],
+ "expect": {
+  "CKPT50-RT50": 48,
+  "CKPT50-RT12": 48,
+  "CKPT50-RT12-C12": 48,
+  "SPEC25-RT50": 48,
+  "SPEC25-RT12": 48
+ },
+ "n_rows": 240,
+ "n_ok": 240,
+ "gates": [
+  [
+   "★G-A 결함 재도출: `load_episode` 가 depth 를 **아직 안 읽는다** (= `RT50` 팔이 오늘의 배포다)",
+   true,
+   "reads_depth=False"
+  ],
+  [
+   "★G-B 폴백 상수 = 50.0 (`data_loader.py:46`)",
+   true,
+   "50.0"
+  ],
+  [
+   "G-C `run.py:216` 무조건 덮어쓰기 존재 (정책 = 무변, RUNPY_POLICY)",
+   true,
+   "True"
+  ],
+  [
+   "★G-D 조건자 상수 = 50.0 (`d3_beamform_net.py:30`) — 팔 이름 `CKPT50` 의 근거",
+   true,
+   "50.0"
+  ],
+  [
+   "★G-E 문턱 산술 (M3 와 동일 · 사후 완화 불가)",
+   true,
+   "NOMINAL 12 p=0.03841 · CONFIRM 13 p=0.01064 ≤ 0.01667 · 검정력@0.80 0.798"
+  ],
+  [
+   "★G-F 배포 상수 = 단일출처 = 사전등록값",
+   true,
+   "{'DEFAULT_CONFIG.varpro_steps': 400, 'DEFAULT_CONFIG.learned_init_iters': 0, 'DEFAULT_CONFIG.auto_switch_thresh': 0, 'DEFAULT_CONFIG.lambda_l1': 0.0001, 'SU.VARPRO_STEPS_DEFAULT': 400, 'SU.LEARNED_INIT_ITERS_DEFAULT': 0, 'SU.AUTO_SWITCH_THRESH_DEFAULT': 0, 'SU.LAMBDA_L1_DEFAULT': 0.0001}"
+  ],
+  [
+   "★G-G 신규 시드 소모 0 · 신규 생성 0",
+   true,
+   "SEEDS_CONSUMED=()"
+  ],
+  [
+   "★G-H 팔 정의에 빈 dict 0개 · ship 팔 이름은 전부 `CKPT50` 접두",
+   true,
+   "('CKPT50-RT50', 'CKPT50-RT12', 'CKPT50-RT12-C12', 'SPEC25-RT50', 'SPEC25-RT12')"
+  ],
+  [
+   "★G-SMOKE-COVER 스모크 계획이 전 팔·전 셀을 덮는다 (M3 `G-17` 결함의 처방)",
+   true,
+   "{'cells': ('DEP12',), 'arms': ('CKPT50-RT50', 'CKPT50-RT12', 'CKPT50-RT12-C12', 'SPEC25-RT50', 'SPEC25-RT12'), 'n_episodes': 1, 'n_seeds': 1}"
+  ],
+  [
+   "G-1 동결 코퍼스 16 에피소드 존재 (M3 재사용)",
+   true,
+   "16/16"
+  ],
+  [
+   "★G-2 attrs depth 되읽기 = 12.0 전건 (⛔파일명 아님)",
+   true,
+   "[12.0]"
+  ],
+  [
+   "★G-3 분산관계 파생측정: 참 수심 잔차 ≤ 1e-6 전건 (코퍼스가 진짜 d=12)",
+   true,
+   "max 9.88e-15"
+  ],
+  [
+   "★G-4 d=50 가정 잔차 ≥ 0.10 전건 (오지정이 실재 = 처치에 지렛대가 있다)",
+   true,
+   "min 0.631"
+  ],
+  [
+   "G-5 에러 0",
+   true,
+   "0"
+  ],
+  [
+   "G-6a CKPT50-RT50 행수",
+   true,
+   "48/48"
+  ],
+  [
+   "G-6b CKPT50-RT12 행수",
+   true,
+   "48/48"
+  ],
+  [
+   "G-6c CKPT50-RT12-C12 행수",
+   true,
+   "48/48"
+  ],
+  [
+   "G-6d SPEC25-RT50 행수",
+   true,
+   "48/48"
+  ],
+  [
+   "G-6e SPEC25-RT12 행수",
+   true,
+   "48/48"
+  ],
+  [
+   "★G-7 다섯 팔의 에피소드 집합 완전 일치",
+   true,
+   "{'CKPT50-RT50': 16, 'CKPT50-RT12': 16, 'CKPT50-RT12-C12': 16, 'SPEC25-RT50': 16, 'SPEC25-RT12': 16}"
+  ],
+  [
+   "★★G-8 (PC-C) 실효 수심 되읽기 == 팔의 선언 RT — **양 팔 전건** (M3 `G-17` 이 기준선에만 걸렸던 결함의 대칭 수리)",
+   true,
+   "위반 0"
+  ],
+  [
+   "★G-9 (PC-D) `zero_nRMSE` 가 RT50/RT12 에서 **비트 동일** (RT shim 이 채점 대상에 새지 않았다)",
+   true,
+   "16/16"
+  ],
+  [
+   "G-10 라우터가 전건 learned (ITT)",
+   true,
+   "['learned']"
+  ],
+  [
+   "G-11 varpro 전건 발화 · steps = 배포값",
+   true,
+   "[(True, 400)]"
+  ],
+  [
+   "★G-12 셸이 행에 실렸다 — spec `shell_rmse` 9키 · ship `avg_shell_rmse` 9키",
+   true,
+   "spec 96 · ship 144"
+  ],
+  [
+   "G-13 `SPEC25` 되읽기: loc 25 · ens 600 · jonswap 전건",
+   true,
+   "[(25.0, 600, 'jonswap')]"
+  ],
+  [
+   "★G-14 조건자 되읽기: C12 팔만 `cap_cond_depth`==12.0, 나머지 ship 팔은 50.0",
+   true,
+   "C12 [12.0] · 기타 [50.0]"
+  ],
+  [
+   "★★G-PCA (PC-A) `load_episode` 수리가 비트불변 — shim off/on 이 `avg_nRMSE` 비트 동일 (⛔FAIL ⟹ BATCH-VOID)",
+   true,
+   "4/4 짝 비트동일 · 8/8 행"
+  ],
+  [
+   "G-PCA2 (PC-A) shim 이 참 수심 50 을 실제로 주입했다 (되읽기)",
+   true,
+   "[50.0]"
+  ],
+  [
+   "★G-PCB (PC-B) `RT50` 96행이 동결 M3 DEP12 행과 비트 동일 (⚠FAIL 은 VOID 아님 — READING_PCB)",
+   true,
+   "96/96 비트동일 · 동결 96행"
+  ]
+ ],
+ "gates_pass": 30,
+ "gates_total": 30,
+ "blocking_failed": [],
+ "incomplete_failed": [],
+ "claims": {
+  "C1-BASELINE-DEPTH": {
+   "label": "HOLDS (CONFIRMATORY)",
+   "label_msg": "16/16 p=0.000015",
+   "paired": {
+    "n": 16,
+    "better": 16,
+    "rel_median_pct": -16.742367596720747,
+    "p_one_sided": 1.52587890625e-05
+   },
+   "a": "SPEC25-RT12",
+   "b": "SPEC25-RT50",
+   "question": "기준선의 DEP12 붕괴 중 얼마가 **수심 오지정**이 만든 것인가?",
+   "single_factor": "★단일요인. LETKF 에서 수심은 순수 런타임 인자이므로 이 대조는 **완전히 깨끗하다**(배경 스펙트럼·예보 연산자가 같은 값을 받는다).",
+   "reading": "★기준선의 얕은-물 붕괴는 **수심 오지정이 상당 부분 만들었다**. ⟹ `AMENDMENT_2` 의 `TREATMENT-NOT-DELIVERED` 가 **추론에서 측정이 된다**. ⛔단 이것은 *장치* 에 대한 진술이고, 여전히 *레짐* 에 대한 진술이 아니다."
+  },
+  "C2-CKPT50-DEPTH": {
+   "label": "HOLDS (CONFIRMATORY)",
+   "label_msg": "16/16 p=0.000015",
+   "paired": {
+    "n": 16,
+    "better": 16,
+    "rel_median_pct": -60.15384289132394,
+    "p_one_sided": 1.52587890625e-05
+   },
+   "a": "CKPT50-RT12",
+   "b": "CKPT50-RT50",
+   "question": "사전을 d=50 에 **고정한 채** 런타임 수심만 참값으로 주면 배포 계열이 회복하는가?",
+   "single_factor": "★단일요인. 조건자·체크포인트가 **두 팔에서 동일하게 d=50** 이므로 움직이는 것은 런타임 수심 하나다. ⟹ 사전이 50 에 갇혀 있다는 사실은 이 대조를 **오염시키지 않는다**(그것이 상수이기 때문).",
+   "reading": "★사전을 d=50 에 둔 채 **런타임 물리만 고쳐도** 배포 계열이 회복한다 ⟹ `load_episode` 수리는 얕은 물에서 **실효가 있다**. ⛔단 *\"사전이 지지집합 밖에서 번다\"* 로 읽지 마라 — 사전은 이 배치에서 **한 번도 지지집합을 떠나지 않았다**."
+  },
+  "C3-SHALLOW-COMPARE": {
+   "label": "HOLDS (CONFIRMATORY)",
+   "label_msg": "15/16 p=0.000259",
+   "paired": {
+    "n": 16,
+    "better": 15,
+    "rel_median_pct": -49.8909128883716,
+    "p_one_sided": 0.0002593994140625
+   },
+   "a": "CKPT50-RT12",
+   "b": "SPEC25-RT12",
+   "question": "수심을 양 팔에 집행한 뒤에도 배포 계열이 기준선을 이기는가?",
+   "single_factor": "⛔**비대칭 대조**: `SPEC25-RT12` 는 **완전 수리**, `CKPT50-RT12` 는 **부분 수리**(사전 d=50 잔존) ⟹ 이 비교는 **배포 계열에 불리한 쪽으로 편향**돼 있다. 그래서 읽기가 비대칭이다(§READING_C3).",
+   "reading": "★**보수적으로 읽을 수 있다** — 배포 계열은 부분 수리만 받고도 완전 수리된 기준선을 이겼다. 허용 문장: *\"얕은 물(12 m) 코퍼스에서, 수심을 양 팔에 집행한 뒤에도 배포 계열이 `SPEC25` 를 이긴다.\"* ⛔**금지**: *\"사전이 수심 지지집합 밖에서 번다\"* · *\"경계는 수심 축에 없다\"* · ⛔크기를 `B-1`/`B-12`/`B-16`/`B-26`/`M1` 과 직접 비교 금지."
+  }
+ },
+ "skill_gate": {
+  "gate_text": "★먼저 기술 게이트를 읽는다. `SPEC25-RT12 < ZERO` < 12 이면 **비교자 무기술** ⟹ `C3` 는 **읽을 수 없다**(우열 금지). 양 팔 모두 ZERO 를 못 이기면 `STILL-NO-SKILL` ⟹ `C1`·`C2` 의 개선은 ***무기술 영역 안에서의 개선***이고 ⛔**기술로 읽지 않는다**.",
+  "neg_min": 12,
+  "sz_min": 12,
+  "spec_rt12_vs_zero": {
+   "n": 16,
+   "better": 16,
+   "rel_median_pct": -15.278656334550396,
+   "p_one_sided": 1.52587890625e-05
+  },
+  "spec_rt50_vs_zero": {
+   "n": 16,
+   "better": 6,
+   "rel_median_pct": 2.632539615764412,
+   "p_one_sided": 0.8949432373046875
+  },
+  "ckpt_rt12_vs_zero": {
+   "n": 16,
+   "better": 16,
+   "rel_median_pct": -59.54973728709032,
+   "p_one_sided": 1.52587890625e-05
+  },
+  "ckpt_rt50_vs_zero": {
+   "n": 16,
+   "better": 6,
+   "rel_median_pct": 5.678156858684328,
+   "p_one_sided": 0.8949432373046875
+  },
+  "comparator_has_skill": true,
+  "treatment_has_skill": true,
+  "still_no_skill": false
+ },
+ "decomposition": {
+  "key": [
+   "hold",
+   "hold"
+  ],
+  "text": "★`DEPTH-MISSPEC-CARRIED-BOTH` — 두 팔 모두에서 수심 오지정이 하중을 졌다. M3 `DEP12` VOID 의 사유가 측정으로 확인된다. 남은 지지집합 질문은 **미측정**이고 `B-23`(수심 인자화)이 유일한 경로다."
+ },
+ "secondary": {
+  "S1-SHELL": {
+   "declared": "수심은 **예보 연산자**에 들어간다(`letkf_grid.py:80` → `:98` 상태 전이; ship 은 `spectral_gaussian.py:97-101` 의 ω(k;d)). ⟹ 수심 수리의 이득은 **관측에서 먼 셸에서 커야 한다**(가까운 셸은 관측이 직접 구속). 결과 전 선언: C1/C2 가 유지되면 상대 이득이 셸 거리에 대해 **바깥 절반 > 안쪽 절반** 이어야 한다. Spearman ρ(셸 index, 이득)와 안/바깥 중앙값을 보고한다. ⛔승격 금지 · ⛔`shell_frac` 팔 간 비교 금지.",
+   "C1": {
+    "per_shell": {
+     "0_5": {
+      "n": 16,
+      "better": 12,
+      "rel_median_pct": -3.4054686440409396,
+      "gain_pct": 3.4054686440409396
+     },
+     "5_10": {
+      "n": 16,
+      "better": 13,
+      "rel_median_pct": -4.848760431266471,
+      "gain_pct": 4.848760431266471
+     },
+     "10_20": {
+      "n": 16,
+      "better": 13,
+      "rel_median_pct": -8.173341141056671,
+      "gain_pct": 8.173341141056671
+     },
+     "20_30": {
+      "n": 16,
+      "better": 14,
+      "rel_median_pct": -9.46237615196551,
+      "gain_pct": 9.46237615196551
+     },
+     "30_50": {
+      "n": 16,
+      "better": 14,
+      "rel_median_pct": -14.583581214414277,
+      "gain_pct": 14.583581214414277
+     },
+     "50_75": {
+      "n": 16,
+      "better": 16,
+      "rel_median_pct": -19.033419331118324,
+      "gain_pct": 19.033419331118324
+     },
+     "75_100": {
+      "n": 16,
+      "better": 15,
+      "rel_median_pct": -26.146957841880436,
+      "gain_pct": 26.146957841880436
+     },
+     "100_150": {
+      "n": 16,
+      "better": 16,
+      "rel_median_pct": -18.584325723977408,
+      "gain_pct": 18.584325723977408
+     },
+     "150_inf": {
+      "n": 16,
+      "better": 16,
+      "rel_median_pct": -7.679892118249189,
+      "gain_pct": 7.679892118249189
+     }
+    },
+    "rho_shellindex_gain": 0.6,
+    "inner_median_gain": 6.5110507861615705,
+    "mid_gain": 14.583581214414277,
+    "outer_median_gain": 18.808872527547866,
+    "inner_shells": [
+     "0_5",
+     "5_10",
+     "10_20",
+     "20_30"
+    ],
+    "mid_shell": "30_50",
+    "outer_shells": [
+     "50_75",
+     "75_100",
+     "100_150",
+     "150_inf"
+    ],
+    "direction_declared": "바깥 절반 > 안쪽 절반 (수심은 예보 연산자에 들어간다)",
+    "promotion": "⛔승격 금지 — 등록 부차. 어긋나면 어긋난 대로 보고한다."
+   },
+   "C2": {
+    "per_shell": {
+     "0_5": {
+      "n": 16,
+      "better": 14,
+      "rel_median_pct": -34.95965870330599,
+      "gain_pct": 34.95965870330599
+     },
+     "5_10": {
+      "n": 16,
+      "better": 16,
+      "rel_median_pct": -46.30529062717618,
+      "gain_pct": 46.30529062717618
+     },
+     "10_20": {
+      "n": 16,
+      "better": 16,
+      "rel_median_pct": -51.618463408577554,
+      "gain_pct": 51.618463408577554
+     },
+     "20_30": {
+      "n": 16,
+      "better": 16,
+      "rel_median_pct": -53.13307883281894,
+      "gain_pct": 53.13307883281894
+     },
+     "30_50": {
+      "n": 16,
+      "better": 16,
+      "rel_median_pct": -54.017366741272554,
+      "gain_pct": 54.017366741272554
+     },
+     "50_75": {
+      "n": 16,
+      "better": 16,
+      "rel_median_pct": -55.52791281746965,
+      "gain_pct": 55.52791281746965
+     },
+     "75_100": {
+      "n": 16,
+      "better": 16,
+      "rel_median_pct": -55.00585289727125,
+      "gain_pct": 55.00585289727125
+     },
+     "100_150": {
+      "n": 16,
+      "better": 16,
+      "rel_median_pct": -62.549090003217,
+      "gain_pct": 62.549090003217
+     },
+     "150_inf": {
+      "n": 16,
+      "better": 16,
+      "rel_median_pct": -59.96396640603912,
+      "gain_pct": 59.96396640603912
+     }
+    },
+    "rho_shellindex_gain": 0.9666666666666666,
+    "inner_median_gain": 48.961877017876866,
+    "mid_gain": 54.017366741272554,
+    "outer_median_gain": 57.74593961175438,
+    "inner_shells": [
+     "0_5",
+     "5_10",
+     "10_20",
+     "20_30"
+    ],
+    "mid_shell": "30_50",
+    "outer_shells": [
+     "50_75",
+     "75_100",
+     "100_150",
+     "150_inf"
+    ],
+    "direction_declared": "바깥 절반 > 안쪽 절반 (수심은 예보 연산자에 들어간다)",
+    "promotion": "⛔승격 금지 — 등록 부차. 어긋나면 어긋난 대로 보고한다."
+   }
+  }
+ },
+ "exploratory": {
+  "E1-COND": {
+   "declared": "⚠**EXPLORATORY. 어느 방향이든 승격 금지.** 이 대조는 조건자를 분리하지 **못한다**(오지정을 맞바꾼다). ★유일하게 유익한 결과는 **널**이다: 두 팔이 갈리지 않고 상대차 중앙이 작으면 *\"조건자 상수는 이 수심에서 하중을 받지 않는다\"* 로 잔차를 {체크포인트 사전, 얕은-물 레짐} 으로 좁힌다. 비-널이면 ⛔귀속 없이 수만 보고한다.",
+   "paired": {
+    "n": 16,
+    "better": 8,
+    "rel_median_pct": -0.5403289233542445,
+    "p_one_sided": 0.5981903076171875
+   },
+   "a": "CKPT50-RT12-C12",
+   "b": "CKPT50-RT12"
+  }
+ },
+ "medians": {
+  "CKPT50-RT50": 0.2764794439232598,
+  "CKPT50-RT12": 0.1038352589433392,
+  "CKPT50-RT12-C12": 0.10194926670131585,
+  "SPEC25-RT50": 0.25133596108997613,
+  "SPEC25-RT12": 0.2132560258380769
+ },
+ "zero_median": 0.2485702175181359,
+ "pca": {
+  "n_rows": 8
+ },
+ "pcb": {
+  "n_rows": 96,
+  "n_frozen": 96,
+  "reading": "★`PC-B` 의 판정은 **결과 전에** 정한다. **PASS** ⟹ 이 나무가 M3 를 재현한다 — 그리고 ★`AMENDMENT_1` 이 `sequential_update.py` 드리프트에 대해 *\"영향 = 구조적 도달 불가\"* 를 **정적 논증으로만** 세우고 스스로 *\"실행 대조가 아니다\"* 라 적어 둔 구멍이 **닫힌다**. **FAIL** ⟹ (a) ⛔그 정적 논증이 **반증**된다 — 즉시 공시 (b) M3 의 DEP12 수치는 재현 불가로 표시된다 (c) ★그러나 **M3b 의 내부 짝 비교는 무손상**이다: RT50·RT12 가 **같은 나무·같은 세션**에서 돌았기 때문이다 ⟹ `C1`·`C2`·`C3` 는 그대로 읽는다. ⛔FAIL 을 본 뒤 문턱·팔·읽기를 바꾸지 않는다."
+ },
+ "limits": {
+  "L1": "★처치. ⛔**오늘의 배포가 아니다** — `load_episode` 수리를 **선행 조건**으로 가정한 조건부 배포다. ⛔사전은 여전히 d=50 ⟹ 지지집합 질문에 답하지 못한다.",
+  "void": "★★M3 `DEP12` 의 `UNMEASURABLE (TREATMENT-NOT-DELIVERED)` 는 **이 배치의 결과와 논리적으로 독립**이다. 그 판정은 *\"96런이 d=12 를 받지 않았다\"* 는 소스·되읽기 사실에 근거하고, M3b 가 무엇을 재든 그 사실은 바뀌지 않는다. ⛔따라서 M3b 의 어떤 결과도 M3 의 `DEP12` 수치(5/16 · +4.63% · 음성대조 6/16)를 인용 가능하게 만들지 않는다.",
+  "fix_policy": "★`wavesim/data_writer.load_episode` 에 `data[\"depth\"] = f[\"config\"].attrs[\"depth\"]` 를 **추가한다**. 근거 둘 다 결과 독립이다: (a) 파일에 있는 값을 읽지 않는 것은 결함이다 (b) `PC-A` 가 비트불변을 **증명**한다(저장소 1,496개 episode h5 전건이 `depth` attr 을 가지고, 그 중 1,480개가 정확히 `50.0` = 폴백과 같은 값). ⟹ 오늘 존재하는 어떤 코퍼스에서도 거동이 바뀌지 않는다. ★결과가 정하는 것은 **수리 여부가 아니라 동반 문구**뿐이다: `C2` 가 `REVERSES` 면 *\"얕은 물은 사전이 인자화될 때까지 미지원\"* 이라는 배포 주의를 함께 넣는다.",
+  "runpy_policy": "★`wavesplat/run.py:216 cfg[\"depth\"] = loader.depth` 는 **고치지 않는다**(결과 전 확정). ① M3b 가 필요로 하지 않는다 — RT 인자는 상류 `load_episode` 한 곳에서 전달되고, 양 팔이 모두 `EpisodeDataLoader` 를 통과하므로 **비대칭이 구조적으로 불가능**하다. `run.py:216` 을 호출자 우선으로 바꾸면 ship 팔에만 있는 노브가 되어 정확히 `AMENDMENT_2` §4 가 경고한 비대칭을 **새로 만든다**. ② 배포 거동 변경이며 측정 필요가 0 이다(저장소 규칙: 배포 변경은 자기 사전등록 + 배포-후 게이트 출력을 요구한다). ③ `load_episode` 수리 후에는 `loader.depth` 가 **참값**이므로 이 덮어쓰기는 결함이 아니라 **우선순위 정책**이 된다: *\"에피소드의 참값이 호출자 의도를 이긴다\"*. ⚠⛔*\"죽은 키\"* 는 정확하지 않다 — **경로 의존 키**다: 실측 경로(`SequentialUpdater` 를 직접 구성해 `load_episode` 를 타지 않는 `tmp/B2_REAL_2026-08-23/scene_station.py` 등)에서 `cfg[\"depth\"]` 는 **살아 있다**. ⟹ 처방은 (i) `run.py:216` 에 정책 주석 (ii) 회귀 테스트 `test_depth_precedence`(합성 h5 에서 호출자 `config={\"depth\": X}` 가 무시되고 에피소드 참값이 이긴다 — 현 거동을 못박는다) (iii) 매 런 `PC-C` 되읽기."
+ },
+ "label": "DEPTH-ENFORCED :: C1=HOLDS (CONFIRMATORY) · C2=HOLDS (CONFIRMATORY) · C3=HOLDS (CONFIRMATORY)"
+}

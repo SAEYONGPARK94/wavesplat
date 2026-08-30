@@ -45,6 +45,10 @@ M5B = "M5b_WINDOW_2026-08-28/verdict_m5b.json"
 M8B = "M8b_LADDER_2026-08-28/verdict_m8b.json"
 M1  = "M1_NONLIN_REAL_2026-08-28/verdict_m1.json"
 M3  = "M3_SUPPORT_2026-08-28/verdict_m3.json"
+# ── 2026-08-30 추가 (M-7): 감독 축 + 분포 이동 검사. 판정 파일이 셋으로 갈린다.
+M7  = "M7_SUPERVISION_2026-08-28/verdict_m7.json"
+M7A = "M7_SUPERVISION_2026-08-28/verdict_m7_e1.json"
+M7B = "M7_SUPERVISION_2026-08-28/verdict_m7_e2.json"
 
 def pct(v, n=2):  return f"{v:.{n}f}"
 def cnt(v, tot):  return f"{v}/{tot}"
@@ -173,6 +177,47 @@ CHECKS = [
  ("M-3 SPR5 vs 제로",        M3,  "cells.SPR5.ship_vs_zero.better",    lambda v: cnt(v,16)),
  ("M-3 확증 문턱 p",          M3,  "thresholds.p_confirm",              lambda v: f"{v:.6f}"),
  ("M-3 게이트",              M3,  "gates_pass",                        lambda v: cnt(v,30)),
+ # ── 2026-08-30 추가 (M-7): 감독 축(E1) + 분포 이동 검사(E2). ⛔손복사 금지 —
+ #   기대 문자열은 전부 verdict 에서 계산한다.
+ #   ⚠E3(가파른·비선형)는 **바 없는 보고 전용** 이므로 핀을 걸지 않는다 —
+ #     그 수는 논문이 확증으로 인용해서도 안 된다(PREREG §3 E3: HARD 팔에게 in-family).
+ #   ⚠학습 시드 편차(9.14% 등)는 verdict 에 없다(레코드별 상대 크기는 판정 대상이 아니었다)
+ #     ⟹ 그 수의 단일출처는 tmp/M7_SUPERVISION_2026-08-28/result_recheck.py 이고,
+ #     그 스크립트가 동결 jsonl 에서 다시 만들어 **논문 본문과 직접 대조** 한다.
+ ("M-7 손실 주효과 승수",     M7A, "primary.contrasts.T-1_loss.wins_negative",   lambda v: cnt(v,12)),
+ ("M-7 손실 주효과 p",        M7A, "primary.contrasts.T-1_loss.p",               lambda v: f"{v:.3f}"),
+ ("M-7 분포 주효과 승수",     M7A, "primary.contrasts.T-2_data.wins_negative",   lambda v: cnt(v,12)),
+ ("M-7 분포 주효과 p",        M7A, "primary.contrasts.T-2_data.p",               lambda v: f"{v:.4f}"),
+ ("M-7 교호 승수",           M7A, "primary.contrasts.T-3_interaction.wins_negative", lambda v: cnt(v,12)),
+ ("M-7 음성대조 승수",        M7A, "primary.neg_control.wins",                   lambda v: cnt(v,12)),
+ ("M-7 음성대조 p",          M7A, "primary.neg_control.p",                      lambda v: f"{v:.3f}"),
+ ("M-7 중단 문턱",           M7A, "primary.neg_control.max_side",               lambda v: str(v)),
+ ("M-7 MDE 최소 승수",       M7A, "primary.mde.min_wins",                       lambda v: cnt(v,12)),
+ ("M-7 MDE p(11/12)",        M7A, "primary.mde.p_at_min",                       lambda v: f"{v:.6f}"),
+ ("M-7 MDE p(10/12)",        M7A, "primary.mde.p_at_min_minus_1",               lambda v: f"{v:.6f}"),
+ ("M-7 실측기술 BASE",        M7A, "primary.skill_vs_true_zero.BASE.beats_true_zero",   lambda v: cnt(v,12)),
+ ("M-7 실측기술 BASE-B",      M7A, "primary.skill_vs_true_zero.BASE-B.beats_true_zero", lambda v: cnt(v,12)),
+ ("M-7 실측기술 BANK",        M7A, "primary.skill_vs_true_zero.BANK.beats_true_zero",   lambda v: cnt(v,12)),
+ ("M-7 E2 BASE 승수",        M7B, "s1.detail.per_cell.BASE.better",             lambda v: cnt(v,48)),
+ ("M-7 E2 LOSS 승수",        M7B, "s1.detail.per_cell.LOSS.better",             lambda v: cnt(v,48)),
+ ("M-7 E2 DATA 승수",        M7B, "s1.detail.per_cell.DATA.better",             lambda v: cnt(v,48)),
+ ("M-7 E2 BOTH 승수",        M7B, "s1.detail.per_cell.BOTH.better",             lambda v: cnt(v,48)),
+ ("M-7 E2 BASE-B 승수",      M7B, "s1.detail.per_cell.BASE-B.better",           lambda v: cnt(v,48)),
+ ("M-7 E2 음성대조",         M7B, "s1.detail.neg_control.better",               lambda v: cnt(v,48)),
+ ("M-7 R1 기준(SHIPPED)",    M7B, "s1.r1_hard_bar.shipped_mean",                lambda v: f"{v:.4f}"),
+ ("M-7 R1 바",              M7B, "s1.r1_hard_bar.per_cell.BASE.bar",           lambda v: f"{v:.4f}"),
+ ("M-7 E2 평균 BASE",        M7B, "s1.r1_hard_bar.per_cell.BASE.mean",          lambda v: f"{v:.4f}"),
+ ("M-7 E2 평균 LOSS",        M7B, "s1.r1_hard_bar.per_cell.LOSS.mean",          lambda v: f"{v:.4f}"),
+ ("M-7 E2 평균 DATA",        M7B, "s1.r1_hard_bar.per_cell.DATA.mean",          lambda v: f"{v:.4f}"),
+ ("M-7 E2 평균 BOTH",        M7B, "s1.r1_hard_bar.per_cell.BOTH.mean",          lambda v: f"{v:.4f}"),
+ ("M-7 E2 평균 BASE-B",      M7B, "s1.r1_hard_bar.per_cell.BASE-B.mean",        lambda v: f"{v:.4f}"),
+ ("M-7 HARD k·Hs 중앙",      M7,  "manifest.hard_kHs_median",                   lambda v: f"{v:.4f}"),
+ ("M-7 현행 k·Hs 중앙",      M7,  "manifest.base_kHs_median",                   lambda v: f"{v:.4f}"),
+ ("M-7 미세조정 스텝",        M7,  "manifest.lam0_finetune_steps",               lambda v: f"{v:,}"),
+ ("M-7 프로브 n",            M7,  "manifest.hard_probe.n_scored",               lambda v: str(v)),
+ ("M-7 프로브 p10",          M7,  "manifest.hard_probe.p10",                    lambda v: f"{v:.3f}"),
+ ("M-7 프로브 최소",          M7,  "manifest.hard_probe.min",                    lambda v: f"{v:.3f}"),
+ ("M-7 게이트",              M7,  "gates_pass",                                 lambda v: cnt(v,16)),
 ]
 
 bad = []

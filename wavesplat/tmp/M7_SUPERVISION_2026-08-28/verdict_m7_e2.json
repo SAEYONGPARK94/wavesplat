@@ -1,0 +1,294 @@
+{
+ "batch": "M7_SUPERVISION_2026-08-28",
+ "experiment": "e2",
+ "label": "DISTRIBUTION-SHIFT-SURVIVES · 등급 PREREGISTERED",
+ "excess_disclosure": "\"이 배치는 결과 전에 동결된 분기표를 넘어서 실행됐다. `DATA_ARM_REVIEW.md §2` 는 `M1 (hold, hold)` 에서 `DATA` 팔의 우선순위 강등을 지시했고, `M1` 은 실제로 `(hold, hold)` 로 나왔다. 실행 사유는 그 분기표가 다룬 「고장 수리(인과 사유)」가 아니라 사용자가 지시한 「탐색적 방향 탐지」이며, 그러므로 `DATA` 축의 결과는 확증으로 승격되지 않는다.\"",
+ "gates": [
+  {
+   "name": "G-1 학습 3회·미세조정 5회만",
+   "passed": true,
+   "msg": "3/5"
+  },
+  {
+   "name": "G-2 체크포인트 5개 sha256 상이",
+   "passed": true,
+   "msg": "['BASE', 'BASE-B', 'BOTH', 'DATA', 'LOSS']"
+  },
+  {
+   "name": "★G-3 배포 체크포인트 무손상",
+   "passed": true,
+   "msg": "636c72a797ee6d0b"
+  },
+  {
+   "name": "★G-4 팔이 실제로 그 체크포인트를 실었나(행별 되읽기)",
+   "passed": true,
+   "msg": "0"
+  },
+  {
+   "name": "★G-5 실측 팔이 실제로 learned 로 갔나",
+   "passed": true,
+   "msg": "0"
+  },
+  {
+   "name": "G-5b BANK 팔은 bank_mmse 로 갔나",
+   "passed": true,
+   "msg": "0"
+  },
+  {
+   "name": "★G-6 표현 필터 항진 없음(HARD 학습 스트림)",
+   "passed": true,
+   "msg": "0/1280000"
+  },
+  {
+   "name": "★G-7 HARD 가 실제로 더 가파른가(학습 스트림 실측)",
+   "passed": true,
+   "msg": "0.17106108695321856 vs 0.0936613040578604"
+  },
+  {
+   "name": "★G-8 앵커 물리 스크린 적용(k_p·Hs>0.44 제외, 평가에서는 미제외)",
+   "passed": true,
+   "msg": "['LJ18a']"
+  },
+  {
+   "name": "G-9 학습 시드가 평가 시드와 분리",
+   "passed": true,
+   "msg": "[2000357848, 2000518786, 2001102202]"
+  },
+  {
+   "name": "★G-10 복제 하네스 = 원본 장면 생성기 비트 동일",
+   "passed": true,
+   "msg": "0.0"
+  },
+  {
+   "name": "★G-11 λ_field=0 팔이 진짜 no-op 아님(스텝 수 대조 확인)",
+   "passed": true,
+   "msg": "4000"
+  },
+  {
+   "name": "G-12 전역 RNG 결합 계측(성장 발화 수 기록)",
+   "passed": true,
+   "msg": "0"
+  },
+  {
+   "name": "G-13 참 제로필드 기준 사용(ZERO_REF=1.0 아님)",
+   "passed": true,
+   "msg": "tmp/B2_REAL_2026-08-23/zero_ref.py"
+  },
+  {
+   "name": "G-14 E3 는 M1 판정 동결 후",
+   "passed": true,
+   "msg": "True"
+  },
+  {
+   "name": "G-15 동결 md5 대조",
+   "passed": true,
+   "msg": "0"
+  }
+ ],
+ "prechecks": [
+  {
+   "name": "P-1 [F-1] 학습 시드 표본 ≥1 (없으면 G-9 가 공허 PASS)",
+   "passed": true,
+   "msg": "256개",
+   "blocks": [
+    "e1",
+    "s1"
+   ]
+  },
+  {
+   "name": "P-2 [F-2] 세 대비 전부 n == 12 (MDE 는 n=12 에서 동결)",
+   "passed": true,
+   "msg": "{'T-1_loss': 12, 'T-2_data': 12, 'T-3_interaction': 12}",
+   "blocks": [
+    "e1"
+   ]
+  },
+  {
+   "name": "P-3 [F-3] E2 음성대조 n == 48 (SPEC25 · ZERO 합성 확인)",
+   "passed": true,
+   "msg": "n=48 better=47",
+   "blocks": [
+    "s1"
+   ]
+  },
+  {
+   "name": "P-3b [F-3 부류] 음성대조 BASE vs BASE-B 가 n == 12 (0행이면 중단 규칙이 공허하게 만족된다)",
+   "passed": true,
+   "msg": "n=12",
+   "blocks": [
+    "e1"
+   ]
+  },
+  {
+   "name": "P-3c [F-3 부류] R1 바의 기준(SHIPPED)이 실측됐다 n == 48 (0행이면 바가 깨진 것이 아니라 없는 것이다)",
+   "passed": true,
+   "msg": "n_ep=48 mean=0.1373135513679396",
+   "blocks": [
+    "e1"
+   ]
+  },
+  {
+   "name": "P-4 [F-4] 기제 부차 측정됨(varpro 목적함수) — ⚠바 없음, 공시 전용",
+   "passed": true,
+   "msg": "['BASE', 'BASE-B', 'BOTH', 'DATA', 'LOSS', 'SHIPPED']",
+   "blocks": []
+  },
+  {
+   "name": "P-5 커버리지: 러너 작업 목록과 행이 일치",
+   "passed": true,
+   "msg": "{\"e1\": {\"n_rows\": 229, \"missing\": 0, \"extra\": 0, \"complete\": true}, \"e2\": {\"n_rows\": 1008, \"missing\": 0, \"extra\": 0, \"complete\": true}, \"e3\": {\"n_rows\": 1008, \"missing\": 0, \"extra\": 0, \"complete\": true}}",
+   "blocks": []
+  },
+  {
+   "name": "P-5a E1 커버리지 완전",
+   "passed": true,
+   "msg": "{'n_rows': 229, 'n_expected': 228, 'missing': 0, 'extra': 0, 'complete': True}",
+   "blocks": [
+    "e1"
+   ]
+  },
+  {
+   "name": "P-5b E2 커버리지 완전",
+   "passed": true,
+   "msg": "{'n_rows': 1008, 'n_expected': 1008, 'missing': 0, 'extra': 0, 'complete': True}",
+   "blocks": [
+    "s1"
+   ]
+  },
+  {
+   "name": "P-6 커버리지 0 계수기 없음(있으면 그 게이트는 자료 없이 통과한다)",
+   "passed": true,
+   "msg": "없음",
+   "blocks": [
+    "e1"
+   ]
+  },
+  {
+   "name": "P-7 분기표 초과 공시 문언 확보(AMENDMENT_1 §1.3, 손복사 0)",
+   "passed": true,
+   "msg": "AMENDMENT_1.md §1.3 에서 추출 (md5 9970ee91)",
+   "blocks": [
+    "e1",
+    "s1"
+   ]
+  },
+  {
+   "name": "P-8 학습 원장의 주장 == 체크포인트 파일 되읽기 (두 독립 유도)",
+   "passed": true,
+   "msg": "n_pre=3 n_ft=5 sha 일치",
+   "blocks": [
+    "e1",
+    "s1"
+   ]
+  },
+  {
+   "name": "P-9 표현 필터의 **정직한 분모**(probe) 존재 — ⚠공시 전용, 차단 아님",
+   "passed": true,
+   "msg": "HARD probe n=388 below=1 frac_below_min=0.002577319587628866 p10=0.832002859356623",
+   "blocks": []
+  }
+ ],
+ "coverage": {
+  "n_rows": 1008,
+  "n_expected": 1008,
+  "missing": 0,
+  "extra": 0,
+  "complete": true
+ },
+ "s1": {
+  "status": "LABELED",
+  "label": "DISTRIBUTION-SHIFT-SURVIVES",
+  "label_text": "★의도적으로 이동시킨 학습 분포에서도 동결 코퍼스의 헤드라인이 유지된다 ⟹ *\"체크포인트가 평가와 같은 분포\"* 단서가 **약해진다**. ⛔단 시드 축은 여전히 신선하지 않고, 크기 비교는 금지.",
+  "grade": "PREREGISTERED",
+  "detail": {
+   "neg_control": {
+    "better": 47,
+    "n": 48,
+    "ok": true
+   },
+   "per_cell": {
+    "BASE": {
+     "n": 48,
+     "better": 48,
+     "p": 3.552713678800501e-15,
+     "confirmatory": true,
+     "nominal": true
+    },
+    "LOSS": {
+     "n": 48,
+     "better": 46,
+     "p": 4.1815439999481896e-12,
+     "confirmatory": true,
+     "nominal": true
+    },
+    "DATA": {
+     "n": 48,
+     "better": 43,
+     "p": 6.840242150474296e-09,
+     "confirmatory": true,
+     "nominal": true
+    },
+    "BOTH": {
+     "n": 48,
+     "better": 43,
+     "p": 6.840242150474296e-09,
+     "confirmatory": true,
+     "nominal": true
+    },
+    "BASE-B": {
+     "n": 48,
+     "better": 45,
+     "p": 6.562927978848165e-11,
+     "confirmatory": true,
+     "nominal": true
+    },
+    "SHIPPED": {
+     "n": 48,
+     "better": 43,
+     "p": 6.840242150474296e-09,
+     "confirmatory": true,
+     "nominal": true
+    }
+   },
+   "threshold_parity_with_B12": true
+  },
+  "r1_hard_bar": {
+   "shipped_mean": 0.1373135513679396,
+   "shipped_n_ep": 48,
+   "per_cell": {
+    "BASE": {
+     "mean": 0.13393539269099064,
+     "n_ep": 48,
+     "bar": 0.1473135513679396,
+     "passed": true
+    },
+    "LOSS": {
+     "mean": 0.14207286806130368,
+     "n_ep": 48,
+     "bar": 0.1473135513679396,
+     "passed": true
+    },
+    "DATA": {
+     "mean": 0.13752701981057827,
+     "n_ep": 48,
+     "bar": 0.1473135513679396,
+     "passed": true
+    },
+    "BOTH": {
+     "mean": 0.14548084872367326,
+     "n_ep": 48,
+     "bar": 0.1473135513679396,
+     "passed": true
+    },
+    "BASE-B": {
+     "mean": 0.13463561651652628,
+     "n_ep": 48,
+     "bar": 0.1473135513679396,
+     "passed": true
+    }
+   },
+   "all_pass": true
+  },
+  "n_zero_rows": 144
+ }
+}

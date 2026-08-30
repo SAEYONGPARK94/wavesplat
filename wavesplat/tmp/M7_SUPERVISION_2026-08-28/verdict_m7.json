@@ -1,0 +1,1185 @@
+{
+ "batch": "M7_SUPERVISION_2026-08-28",
+ "question": "넷이 실측에서 자신 있게 틀리는 것은 학습 *분포* 때문인가 *손실* 때문인가",
+ "n_rows": 2245,
+ "n_ok": 2245,
+ "n_by_exp": {
+  "e1": 229,
+  "e2": 1008,
+  "e3": 1008
+ },
+ "coverage": {
+  "e1": {
+   "n_rows": 229,
+   "n_expected": 228,
+   "missing": 0,
+   "extra": 0,
+   "complete": true
+  },
+  "e2": {
+   "n_rows": 1008,
+   "n_expected": 1008,
+   "missing": 0,
+   "extra": 0,
+   "complete": true
+  },
+  "e3": {
+   "n_rows": 1008,
+   "n_expected": 1008,
+   "missing": 0,
+   "extra": 0,
+   "complete": true
+  }
+ },
+ "label": "NEITHER-MOVES-REAL · DATA 축 = EXPLORATORY",
+ "excess_disclosure": "\"이 배치는 결과 전에 동결된 분기표를 넘어서 실행됐다. `DATA_ARM_REVIEW.md §2` 는 `M1 (hold, hold)` 에서 `DATA` 팔의 우선순위 강등을 지시했고, `M1` 은 실제로 `(hold, hold)` 로 나왔다. 실행 사유는 그 분기표가 다룬 「고장 수리(인과 사유)」가 아니라 사용자가 지시한 「탐색적 방향 탐지」이며, 그러므로 `DATA` 축의 결과는 확증으로 승격되지 않는다.\"",
+ "excess_disclosure_ok": true,
+ "excess_disclosure_note": "AMENDMENT_1.md §1.3 에서 추출 (md5 9970ee91)",
+ "grades": {
+  "T-1_loss": "PREREGISTERED",
+  "T-2_data": "EXPLORATORY",
+  "T-3_interaction": "EXPLORATORY",
+  "neg_control(BASE vs BASE-B)": "PREREGISTERED",
+  "abort_rule": "PREREGISTERED",
+  "S-1": "PREREGISTERED",
+  "E2_hard_bar(R1)": "PREREGISTERED"
+ },
+ "data_axis_bans": [
+  "⛔확증(CONFIRMATORY) 승격 금지",
+  "⛔논문 기여 목록 승격 금지",
+  "⛔후속 배치의 우선순위 근거로 인용 금지(`B-23` 금지 항목과 같은 규율)",
+  "허용 최대치 = \"탐색적으로 방향이 잡혔다. 확증은 신선 시드·새 사전등록으로만.\""
+ ],
+ "prechecks": [
+  {
+   "name": "P-1 [F-1] 학습 시드 표본 ≥1 (없으면 G-9 가 공허 PASS)",
+   "passed": true,
+   "msg": "256개",
+   "blocks": [
+    "e1",
+    "s1"
+   ]
+  },
+  {
+   "name": "P-2 [F-2] 세 대비 전부 n == 12 (MDE 는 n=12 에서 동결)",
+   "passed": true,
+   "msg": "{'T-1_loss': 12, 'T-2_data': 12, 'T-3_interaction': 12}",
+   "blocks": [
+    "e1"
+   ]
+  },
+  {
+   "name": "P-3 [F-3] E2 음성대조 n == 48 (SPEC25 · ZERO 합성 확인)",
+   "passed": true,
+   "msg": "n=48 better=47",
+   "blocks": [
+    "s1"
+   ]
+  },
+  {
+   "name": "P-3b [F-3 부류] 음성대조 BASE vs BASE-B 가 n == 12 (0행이면 중단 규칙이 공허하게 만족된다)",
+   "passed": true,
+   "msg": "n=12",
+   "blocks": [
+    "e1"
+   ]
+  },
+  {
+   "name": "P-3c [F-3 부류] R1 바의 기준(SHIPPED)이 실측됐다 n == 48 (0행이면 바가 깨진 것이 아니라 없는 것이다)",
+   "passed": true,
+   "msg": "n_ep=48 mean=0.1373135513679396",
+   "blocks": [
+    "e1"
+   ]
+  },
+  {
+   "name": "P-4 [F-4] 기제 부차 측정됨(varpro 목적함수) — ⚠바 없음, 공시 전용",
+   "passed": true,
+   "msg": "['BASE', 'BASE-B', 'BOTH', 'DATA', 'LOSS', 'SHIPPED']",
+   "blocks": []
+  },
+  {
+   "name": "P-5 커버리지: 러너 작업 목록과 행이 일치",
+   "passed": true,
+   "msg": "{\"e1\": {\"n_rows\": 229, \"missing\": 0, \"extra\": 0, \"complete\": true}, \"e2\": {\"n_rows\": 1008, \"missing\": 0, \"extra\": 0, \"complete\": true}, \"e3\": {\"n_rows\": 1008, \"missing\": 0, \"extra\": 0, \"complete\": true}}",
+   "blocks": []
+  },
+  {
+   "name": "P-5a E1 커버리지 완전",
+   "passed": true,
+   "msg": "{'n_rows': 229, 'n_expected': 228, 'missing': 0, 'extra': 0, 'complete': True}",
+   "blocks": [
+    "e1"
+   ]
+  },
+  {
+   "name": "P-5b E2 커버리지 완전",
+   "passed": true,
+   "msg": "{'n_rows': 1008, 'n_expected': 1008, 'missing': 0, 'extra': 0, 'complete': True}",
+   "blocks": [
+    "s1"
+   ]
+  },
+  {
+   "name": "P-6 커버리지 0 계수기 없음(있으면 그 게이트는 자료 없이 통과한다)",
+   "passed": true,
+   "msg": "없음",
+   "blocks": [
+    "e1"
+   ]
+  },
+  {
+   "name": "P-7 분기표 초과 공시 문언 확보(AMENDMENT_1 §1.3, 손복사 0)",
+   "passed": true,
+   "msg": "AMENDMENT_1.md §1.3 에서 추출 (md5 9970ee91)",
+   "blocks": [
+    "e1",
+    "s1"
+   ]
+  },
+  {
+   "name": "P-8 학습 원장의 주장 == 체크포인트 파일 되읽기 (두 독립 유도)",
+   "passed": true,
+   "msg": "n_pre=3 n_ft=5 sha 일치",
+   "blocks": [
+    "e1",
+    "s1"
+   ]
+  },
+  {
+   "name": "P-9 표현 필터의 **정직한 분모**(probe) 존재 — ⚠공시 전용, 차단 아님",
+   "passed": true,
+   "msg": "HARD probe n=388 below=1 frac_below_min=0.002577319587628866 p10=0.832002859356623",
+   "blocks": []
+  }
+ ],
+ "prechecks_pass": 13,
+ "gates": [
+  {
+   "name": "G-1 학습 3회·미세조정 5회만",
+   "passed": true,
+   "msg": "3/5"
+  },
+  {
+   "name": "G-2 체크포인트 5개 sha256 상이",
+   "passed": true,
+   "msg": "['BASE', 'BASE-B', 'BOTH', 'DATA', 'LOSS']"
+  },
+  {
+   "name": "★G-3 배포 체크포인트 무손상",
+   "passed": true,
+   "msg": "636c72a797ee6d0b"
+  },
+  {
+   "name": "★G-4 팔이 실제로 그 체크포인트를 실었나(행별 되읽기)",
+   "passed": true,
+   "msg": "0"
+  },
+  {
+   "name": "★G-5 실측 팔이 실제로 learned 로 갔나",
+   "passed": true,
+   "msg": "0"
+  },
+  {
+   "name": "G-5b BANK 팔은 bank_mmse 로 갔나",
+   "passed": true,
+   "msg": "0"
+  },
+  {
+   "name": "★G-6 표현 필터 항진 없음(HARD 학습 스트림)",
+   "passed": true,
+   "msg": "0/1280000"
+  },
+  {
+   "name": "★G-7 HARD 가 실제로 더 가파른가(학습 스트림 실측)",
+   "passed": true,
+   "msg": "0.17106108695321856 vs 0.0936613040578604"
+  },
+  {
+   "name": "★G-8 앵커 물리 스크린 적용(k_p·Hs>0.44 제외, 평가에서는 미제외)",
+   "passed": true,
+   "msg": "['LJ18a']"
+  },
+  {
+   "name": "G-9 학습 시드가 평가 시드와 분리",
+   "passed": true,
+   "msg": "[2000357848, 2000518786, 2001102202]"
+  },
+  {
+   "name": "★G-10 복제 하네스 = 원본 장면 생성기 비트 동일",
+   "passed": true,
+   "msg": "0.0"
+  },
+  {
+   "name": "★G-11 λ_field=0 팔이 진짜 no-op 아님(스텝 수 대조 확인)",
+   "passed": true,
+   "msg": "4000"
+  },
+  {
+   "name": "G-12 전역 RNG 결합 계측(성장 발화 수 기록)",
+   "passed": true,
+   "msg": "0"
+  },
+  {
+   "name": "G-13 참 제로필드 기준 사용(ZERO_REF=1.0 아님)",
+   "passed": true,
+   "msg": "tmp/B2_REAL_2026-08-23/zero_ref.py"
+  },
+  {
+   "name": "G-14 E3 는 M1 판정 동결 후",
+   "passed": true,
+   "msg": "True"
+  },
+  {
+   "name": "G-15 동결 md5 대조",
+   "passed": true,
+   "msg": "0"
+  }
+ ],
+ "gates_pass": 16,
+ "gates_total": 16,
+ "blocking": {
+  "E1": [
+   "G-1",
+   "G-2",
+   "★G-3",
+   "★G-4",
+   "★G-5",
+   "G-5b",
+   "★G-6",
+   "★G-7",
+   "★G-8",
+   "G-9",
+   "★G-10",
+   "★G-11",
+   "G-12",
+   "G-13",
+   "G-15"
+  ],
+  "S1": [
+   "G-1",
+   "G-2",
+   "★G-3",
+   "★G-4",
+   "★G-6",
+   "★G-7",
+   "G-9",
+   "★G-10",
+   "★G-11",
+   "G-15"
+  ],
+  "E3": [
+   "G-2",
+   "★G-3",
+   "G-14",
+   "G-15"
+  ]
+ },
+ "manifest": {
+  "hard_scenes_n": 1280000,
+  "hard_scenes_below_repr": 0,
+  "hard_kHs_median": 0.17106108695321856,
+  "base_kHs_median": 0.0936613040578604,
+  "anchors_excluded": [
+   "LJ18a"
+  ],
+  "eval_records": [
+   "AA14",
+   "AA15a",
+   "AA15b",
+   "BS11a",
+   "BS11b",
+   "BS11c",
+   "BS11d",
+   "BS13a",
+   "BS13b",
+   "BS13c",
+   "LJ18a",
+   "YS17"
+  ],
+  "train_scene_seeds_sample": [
+   2000357848,
+   2000518786,
+   2001102202,
+   2002320618,
+   2003606290,
+   2004484093,
+   2004996395,
+   2005059289,
+   2005358890,
+   2005403474,
+   2005728913,
+   2006042924,
+   2006588207,
+   2006683458,
+   2006864722,
+   2007476057,
+   2007806838,
+   2007920852,
+   2008216530,
+   2008385437,
+   2008535927,
+   2008876360,
+   2009068382,
+   2009296889,
+   2009462093,
+   2009527675,
+   2010321815,
+   2010910692,
+   2011221704,
+   2011871739,
+   2012867587,
+   2014120723,
+   2014518314,
+   2015607271,
+   2016700382,
+   2016993085,
+   2017019622,
+   2017437019,
+   2017498894,
+   2017787034,
+   2018239686,
+   2019140976,
+   2019146841,
+   2019639921,
+   2019927962,
+   2020259370,
+   2020620958,
+   2020879156,
+   2021531302,
+   2021772643,
+   2021901161,
+   2022796726,
+   2022836890,
+   2023024150,
+   2023115621,
+   2023210059,
+   2023302806,
+   2023753968,
+   2023769688,
+   2024232900,
+   2024467224,
+   2024694405,
+   2024704991,
+   2025175888,
+   2025317244,
+   2025411575,
+   2025417109,
+   2025794820,
+   2026107517,
+   2028508658,
+   2028688442,
+   2032200490,
+   2032400256,
+   2032688433,
+   2032725729,
+   2033205377,
+   2033271298,
+   2033453219,
+   2034030710,
+   2035204177,
+   2036315941,
+   2036454217,
+   2037056127,
+   2037068800,
+   2037139983,
+   2037485190,
+   2038681514,
+   2039130691,
+   2039196295,
+   2039482036,
+   2039657530,
+   2039888133,
+   2040049177,
+   2040319135,
+   2040408660,
+   2040488133,
+   2040651360,
+   2040917498,
+   2041036941,
+   2041357208,
+   2042214476,
+   2042237195,
+   2042499552,
+   2042544658,
+   2042643325,
+   2043052865,
+   2043453772,
+   2044100855,
+   2044280503,
+   2044529336,
+   2045269098,
+   2046026324,
+   2046870630,
+   2047505382,
+   2047573522,
+   2048548886,
+   2048898223,
+   2048907181,
+   2049821163,
+   2050517393,
+   2051033009,
+   2051443658,
+   2052005212,
+   2052852698,
+   2053339285,
+   2053572672,
+   2053962856,
+   2054121679,
+   2054150870,
+   2055042881,
+   2055879533,
+   2055956451,
+   2056834447,
+   2057282421,
+   2057330840,
+   2057715185,
+   2058045866,
+   2059267942,
+   2059308861,
+   2059741087,
+   2059753785,
+   2060595007,
+   2060758814,
+   2060998268,
+   2062564811,
+   2062983385,
+   2063472026,
+   2063653111,
+   2064068214,
+   2064316778,
+   2064869023,
+   2065294246,
+   2066467213,
+   2066721559,
+   2066787187,
+   2067007414,
+   2067025980,
+   2067147406,
+   2067193273,
+   2067309527,
+   2067807753,
+   2068095753,
+   2068252917,
+   2069039072,
+   2069582410,
+   2070568484,
+   2070912259,
+   2072660331,
+   2072937549,
+   2073237265,
+   2073697394,
+   2074320978,
+   2074554774,
+   2075324371,
+   2076400962,
+   2076657225,
+   2077704573,
+   2078147610,
+   2078416163,
+   2078936629,
+   2079420474,
+   2079584784,
+   2079867382,
+   2079891548,
+   2080605505,
+   2080731941,
+   2081475859,
+   2081682568,
+   2082427503,
+   2083603097,
+   2083622961,
+   2084091465,
+   2085172055,
+   2085239937,
+   2086575444,
+   2087140386,
+   2087814671,
+   2088121895,
+   2088388870,
+   2089018751,
+   2089555752,
+   2090313265,
+   2090488998,
+   2090653436,
+   2092208684,
+   2092355913,
+   2092513456,
+   2093597781,
+   2094244135,
+   2094342291,
+   2094931360,
+   2095306078,
+   2095334798,
+   2095348047,
+   2095693612,
+   2095729710,
+   2096064419,
+   2096307804,
+   2096408525,
+   2096606125,
+   2096642814,
+   2096776493,
+   2096809330,
+   2097041636,
+   2097090834,
+   2097277829,
+   2097531889,
+   2097917376,
+   2097996331,
+   2098642594,
+   2099811386,
+   2099970537,
+   2099986766,
+   2100830069,
+   2101475862,
+   2101792431,
+   2102340438,
+   2102789993,
+   2103063064,
+   2105979325,
+   2106036856,
+   2107455228,
+   2107495285,
+   2108302168,
+   2109738520,
+   2110479406,
+   2110556553,
+   2110604609,
+   2110658959,
+   2112275205,
+   2112647566,
+   2113323250,
+   2113565748,
+   2116365828,
+   2116677725,
+   2117055486
+  ],
+  "lam0_finetune_steps": 4000,
+  "ckpt_sha256": {
+   "BASE": "3a9e8a62b84ff0b23916c777465693b692af9abfeb019d2f126e0874c7a76afc",
+   "LOSS": "6c1c7b0c5463c01a78065b3af8a02e8e50dc6384807ddd80f59e72da27e4226e",
+   "DATA": "c874c4ccb23905fe5680c8f6c40d77afc210c6689526f3ddbef810266801629f",
+   "BOTH": "45f1965a4ccaa4daf03d80090995018ebd9132b87b32b05866a13a268553e2fe",
+   "BASE-B": "d9ef690db631f63c7afa65991f8e2895c2c4987c3d6e043fe80127fce50a348b"
+  },
+  "shipped_sha256": "636c72a797ee6d0b725449293d5cd230dbd64c8eb03e345da4561b0c265239d9",
+  "n_pretrain": 3,
+  "n_finetune": 5,
+  "pretrain_sha256": {
+   "PRE-BASE-1": "8f0c7c016a63d25f83cc0c191f0a229d8c0fac6f70e63e7038076abdbc0c7751",
+   "PRE-BASE-2": "60cc9654356d417091de22a7cb77341e5d02ed8443028684d4ee4d8b61f8d49f",
+   "PRE-HARD-1": "a67c9552da354855bcf0f6fbaa97665cc5f907c958665e6b831e59249600ae7c"
+  },
+  "base_probe": {
+   "data": "BASE",
+   "n": 400,
+   "n_none": 0,
+   "n_scored": 400,
+   "below": 0,
+   "frac_below_min": 0.0,
+   "median": 1.0,
+   "p10": 0.9721870511202608,
+   "min": 0.9256674784483724
+  },
+  "hard_probe": {
+   "data": "HARD",
+   "n": 400,
+   "n_none": 12,
+   "n_scored": 388,
+   "below": 1,
+   "frac_below_min": 0.002577319587628866,
+   "median": 0.9967542684706604,
+   "p10": 0.832002859356623,
+   "min": 0.22733107353910142
+  },
+  "census_runs": {
+   "PRE-BASE-1": {
+    "phase": "A",
+    "cell": null,
+    "data": "BASE",
+    "seed": 20260828,
+    "lambda_field": null,
+    "steps": 40000,
+    "ckpt_sha256": "8f0c7c016a63d25f83cc0c191f0a229d8c0fac6f70e63e7038076abdbc0c7751",
+    "out": "results/direction3/m7_PRE-BASE-1.pt"
+   },
+   "PRE-BASE-2": {
+    "phase": "A",
+    "cell": null,
+    "data": "BASE",
+    "seed": 20260829,
+    "lambda_field": null,
+    "steps": 40000,
+    "ckpt_sha256": "60cc9654356d417091de22a7cb77341e5d02ed8443028684d4ee4d8b61f8d49f",
+    "out": "results/direction3/m7_PRE-BASE-2.pt"
+   },
+   "PRE-HARD-1": {
+    "phase": "A",
+    "cell": null,
+    "data": "HARD",
+    "seed": 20260828,
+    "lambda_field": null,
+    "steps": 40000,
+    "ckpt_sha256": "a67c9552da354855bcf0f6fbaa97665cc5f907c958665e6b831e59249600ae7c",
+    "out": "results/direction3/m7_PRE-HARD-1.pt"
+   },
+   "BASE": {
+    "phase": "B",
+    "cell": "BASE",
+    "data": "BASE",
+    "seed": 0,
+    "lambda_field": 0.0,
+    "steps": 4000,
+    "ckpt_sha256": "3a9e8a62b84ff0b23916c777465693b692af9abfeb019d2f126e0874c7a76afc",
+    "out": "results/direction3/m7_BASE.pt"
+   },
+   "LOSS": {
+    "phase": "B",
+    "cell": "LOSS",
+    "data": "BASE",
+    "seed": 0,
+    "lambda_field": 1.0,
+    "steps": 4000,
+    "ckpt_sha256": "6c1c7b0c5463c01a78065b3af8a02e8e50dc6384807ddd80f59e72da27e4226e",
+    "out": "results/direction3/m7_LOSS.pt"
+   },
+   "DATA": {
+    "phase": "B",
+    "cell": "DATA",
+    "data": "HARD",
+    "seed": 0,
+    "lambda_field": 0.0,
+    "steps": 4000,
+    "ckpt_sha256": "c874c4ccb23905fe5680c8f6c40d77afc210c6689526f3ddbef810266801629f",
+    "out": "results/direction3/m7_DATA.pt"
+   },
+   "BOTH": {
+    "phase": "B",
+    "cell": "BOTH",
+    "data": "HARD",
+    "seed": 0,
+    "lambda_field": 1.0,
+    "steps": 4000,
+    "ckpt_sha256": "45f1965a4ccaa4daf03d80090995018ebd9132b87b32b05866a13a268553e2fe",
+    "out": "results/direction3/m7_BOTH.pt"
+   },
+   "BASE-B": {
+    "phase": "B",
+    "cell": "BASE-B",
+    "data": "BASE",
+    "seed": 0,
+    "lambda_field": 0.0,
+    "steps": 4000,
+    "ckpt_sha256": "d9ef690db631f63c7afa65991f8e2895c2c4987c3d6e043fe80127fce50a348b",
+    "out": "results/direction3/m7_BASE-B.pt"
+   }
+  },
+  "gen_parity_maxabs": 0.0,
+  "n_scenes": 64,
+  "seed": 20260829,
+  "detail": [
+   {
+    "target_mode": "replicate",
+    "n": 64,
+    "max_abs_delta": 0.0,
+    "rng_state_identical": true
+   },
+   {
+    "target_mode": "graded",
+    "n": 64,
+    "max_abs_delta": 0.0,
+    "rng_state_identical": true
+   },
+   {
+    "target_mode": "graded2",
+    "n": 64,
+    "max_abs_delta": 0.0,
+    "rng_state_identical": true
+   }
+  ],
+  "anchors_kept": 11,
+  "anchor_screen_threshold": 0.44,
+  "originals_imported": [
+   "GeometryBank",
+   "replicate_to_M",
+   "energy_graded_to_M",
+   "energy_graded2_to_M",
+   "quantise_to_M",
+   "_expand_parents",
+   "batch_from_scenes"
+  ],
+  "gen_mixed_file": "tmp/mixed_retrain_2026-07-26/gen_mixed.py",
+  "gen_mixed_md5": "a64be4101242f500f4d6bcf491ba2af4",
+  "gen_m7_md5": "fb8fa22bc8b8eec492469c8f91ef0900",
+  "written_utc": "2026-08-29T05:17:07Z",
+  "train_manifest_source": "tmp/M7_SUPERVISION_2026-08-28/stream_census.json",
+  "train_manifest_written_utc": "2026-08-29T10:10:41Z",
+  "_census_claim": {
+   "n_pretrain": 3,
+   "n_finetune": 5,
+   "shipped_sha256": "636c72a797ee6d0b725449293d5cd230dbd64c8eb03e345da4561b0c265239d9",
+   "ckpt_sha256": {
+    "BASE": "3a9e8a62b84ff0b23916c777465693b692af9abfeb019d2f126e0874c7a76afc",
+    "LOSS": "6c1c7b0c5463c01a78065b3af8a02e8e50dc6384807ddd80f59e72da27e4226e",
+    "DATA": "c874c4ccb23905fe5680c8f6c40d77afc210c6689526f3ddbef810266801629f",
+    "BOTH": "45f1965a4ccaa4daf03d80090995018ebd9132b87b32b05866a13a268553e2fe",
+    "BASE-B": "d9ef690db631f63c7afa65991f8e2895c2c4987c3d6e043fe80127fce50a348b"
+   }
+  },
+  "frozen_drift": 0,
+  "frozen_n": 12,
+  "m1_verdict_frozen": true,
+  "m1_pair_key": [
+   "hold",
+   "hold"
+  ],
+  "rows_ckpt_mismatch": 0,
+  "rows_route_not_learned": 0,
+  "bank_rows_wrong_route": 0,
+  "rows_missing_add_calls": 0,
+  "zero_ref_source": "tmp/B2_REAL_2026-08-23/zero_ref.py"
+ },
+ "frozen_detail": [],
+ "primary": {
+  "status": "LABELED",
+  "label_text": "⛔*\"재학습이 무익\"* 으로 쓰지 마라. 정확한 문장 = **\"이 두 개입(분포 실측 앵커, 감독 λ_field=1.0)으로는 실측 경계가 움직이지 않았고, 이 설계의 MDE 는 12개 중 11개 일치다\"**. 소거표의 한 줄이며, 합성 바를 통과했으므로 *넷이 망가져서 생긴 널이 아니다*.",
+  "label": "NEITHER-MOVES-REAL",
+  "reported_label": "NEITHER-MOVES-REAL · DATA 축 = EXPLORATORY",
+  "grade": "PREREGISTERED (LOSS 축) + EXPLORATORY (DATA 축)",
+  "data_axis_is_load_bearing": false,
+  "per_test": {
+   "T-1_loss": "PREREGISTERED",
+   "T-2_data": "EXPLORATORY",
+   "T-3_interaction": "EXPLORATORY",
+   "neg_control(BASE vs BASE-B)": "PREREGISTERED",
+   "abort_rule": "PREREGISTERED",
+   "S-1": "PREREGISTERED",
+   "E2_hard_bar(R1)": "PREREGISTERED"
+  },
+  "bans": [
+   "⛔확증(CONFIRMATORY) 승격 금지",
+   "⛔논문 기여 목록 승격 금지",
+   "⛔후속 배치의 우선순위 근거로 인용 금지(`B-23` 금지 항목과 같은 규율)",
+   "허용 최대치 = \"탐색적으로 방향이 잡혔다. 확증은 신선 시드·새 사전등록으로만.\""
+  ],
+  "contrasts": {
+   "T-1_loss": {
+    "n": 12,
+    "wins_negative": 7,
+    "p": 0.38720703125,
+    "median_delta": -0.013296156513602303
+   },
+   "T-2_data": {
+    "n": 12,
+    "wins_negative": 9,
+    "p": 0.072998046875,
+    "median_delta": -0.036802967477088736
+   },
+   "T-3_interaction": {
+    "n": 12,
+    "wins_negative": 6,
+    "p": 1.0,
+    "median_delta": 0.01708848478456723
+   }
+  },
+  "per_record": {
+   "T-1_loss": {
+    "AA14": 0.08436643447791192,
+    "AA15a": -0.07481684199942462,
+    "AA15b": -0.026606417919688374,
+    "BS11a": -0.1001774341493693,
+    "BS11b": -0.02283980733184643,
+    "BS11c": -0.0367704478426078,
+    "BS11d": 0.03006703240241404,
+    "BS13a": -0.003752505695358177,
+    "BS13b": 0.702033616682195,
+    "BS13c": 0.17147279596941334,
+    "LJ18a": 0.11770039657246342,
+    "YS17": -0.023023813293173434
+   },
+   "T-2_data": {
+    "AA14": -0.10941830706444267,
+    "AA15a": -0.08146526617504157,
+    "AA15b": -0.01888973500637653,
+    "BS11a": 0.03792489134991062,
+    "BS11b": 0.14577527204619412,
+    "BS11c": 0.2742886369949293,
+    "BS11d": -0.06633615297664286,
+    "BS13a": -0.017655588410947887,
+    "BS13b": -0.03125110958137234,
+    "BS13c": -0.15976105725134304,
+    "LJ18a": -0.04235482537280513,
+    "YS17": -0.06095458465977471
+   },
+   "T-3_interaction": {
+    "AA14": -0.23656817096405724,
+    "AA15a": 0.11519837611663108,
+    "AA15b": 0.13304040413812024,
+    "BS11a": -1.7105318693380376,
+    "BS11b": 0.35616167273806076,
+    "BS11c": -0.23563120027160955,
+    "BS11d": -0.06725295061453296,
+    "BS13a": 0.04638111179406279,
+    "BS13b": 0.46344587324017184,
+    "BS13c": 0.047430240577590155,
+    "LJ18a": -0.012204142224928327,
+    "YS17": -0.13897457202130437
+   }
+  },
+  "holm": {
+   "T-2_data": {
+    "p": 0.072998046875,
+    "threshold": 0.016666666666666666,
+    "reject": false
+   },
+   "T-1_loss": {
+    "p": 0.38720703125,
+    "threshold": 0.025,
+    "reject": false
+   },
+   "T-3_interaction": {
+    "p": 1.0,
+    "threshold": 0.05,
+    "reject": false
+   }
+  },
+  "neg_control": {
+   "n": 12,
+   "wins": 9,
+   "max_side": 9,
+   "p": 0.14599609375,
+   "aborts_inference": false,
+   "median_delta": -0.033061914222126565,
+   "per_record": {
+    "AA14": -0.004509908836775933,
+    "AA15a": -0.12924754555204576,
+    "AA15b": -0.09010430828604266,
+    "BS11a": -0.043353643114510954,
+    "BS11b": -0.07771036539245513,
+    "BS11c": 0.17406219475183793,
+    "BS11d": 0.04411184884620656,
+    "BS13a": -0.022770185329742176,
+    "BS13b": -0.28781192200231454,
+    "BS13c": 0.849783770843102,
+    "LJ18a": -0.05758346644666712,
+    "YS17": -0.007228007378877077
+   }
+  },
+  "mde": {
+   "n": 12,
+   "holm_first_alpha": 0.016666666666666666,
+   "min_wins": 11,
+   "p_at_min": 0.003173828125,
+   "p_at_min_minus_1": 0.019287109375
+  },
+  "skill_vs_true_zero": {
+   "BASE": {
+    "beats_true_zero": 4,
+    "n": 12,
+    "records": [
+     "AA14",
+     "AA15b",
+     "BS11d",
+     "YS17"
+    ]
+   },
+   "LOSS": {
+    "beats_true_zero": 4,
+    "n": 12,
+    "records": [
+     "AA14",
+     "AA15b",
+     "BS11b",
+     "BS11d"
+    ]
+   },
+   "DATA": {
+    "beats_true_zero": 4,
+    "n": 12,
+    "records": [
+     "AA14",
+     "AA15b",
+     "BS11d",
+     "YS17"
+    ]
+   },
+   "BOTH": {
+    "beats_true_zero": 4,
+    "n": 12,
+    "records": [
+     "AA14",
+     "AA15b",
+     "BS11d",
+     "YS17"
+    ]
+   },
+   "BASE-B": {
+    "beats_true_zero": 5,
+    "n": 12,
+    "records": [
+     "AA14",
+     "AA15b",
+     "BS11d",
+     "BS13b",
+     "YS17"
+    ]
+   },
+   "SHIPPED": {
+    "beats_true_zero": 5,
+    "n": 12,
+    "records": [
+     "AA14",
+     "AA15b",
+     "BS11d",
+     "BS13b",
+     "YS17"
+    ]
+   },
+   "BANK": {
+    "beats_true_zero": 10,
+    "n": 12,
+    "records": [
+     "AA14",
+     "AA15a",
+     "AA15b",
+     "BS11a",
+     "BS11b",
+     "BS11c",
+     "BS11d",
+     "BS13b",
+     "BS13c",
+     "YS17"
+    ]
+   },
+   "_note": "⛔DESCRIPTIVE — 귀무가 0.5 라는 근거가 없다. ⛔`ZERO_REF=1.0` 금지(참값 레코드별 0.3375–1.1559).",
+   "_zero_ref": {
+    "AA14": 1.0616257112549037,
+    "AA15a": 0.6724175139127565,
+    "AA15b": 0.9997115999828557,
+    "BS11a": 0.9498874647766234,
+    "BS11b": 1.0421622654691334,
+    "BS11c": 0.7493281262427716,
+    "BS11d": 0.9363445080188225,
+    "BS13a": 0.7017187098187924,
+    "BS13b": 0.7599726213436054,
+    "BS13c": 1.1558806443240048,
+    "LJ18a": 0.3374667784153119,
+    "YS17": 0.9861388353552925
+   }
+  },
+  "mechanism": {
+   "BASE": {
+    "n": 36,
+    "obs_obj_drop_median": 0.16619201154628876,
+    "nowcast_median": 0.8815889033857056
+   },
+   "LOSS": {
+    "n": 36,
+    "obs_obj_drop_median": 0.15500555385123105,
+    "nowcast_median": 0.8622325862666462
+   },
+   "DATA": {
+    "n": 37,
+    "obs_obj_drop_median": 0.18840352514644687,
+    "nowcast_median": 0.8249472403534258
+   },
+   "BOTH": {
+    "n": 36,
+    "obs_obj_drop_median": 0.1824701229701473,
+    "nowcast_median": 0.8529882717154249
+   },
+   "BASE-B": {
+    "n": 36,
+    "obs_obj_drop_median": 0.15806624840295058,
+    "nowcast_median": 0.8254242861640204
+   },
+   "SHIPPED": {
+    "n": 36,
+    "obs_obj_drop_median": 0.1809024203294335,
+    "nowcast_median": 0.8338729065500059
+   }
+  },
+  "mechanism_measured": true
+ },
+ "s1": {
+  "status": "LABELED",
+  "label": "DISTRIBUTION-SHIFT-SURVIVES",
+  "label_text": "★의도적으로 이동시킨 학습 분포에서도 동결 코퍼스의 헤드라인이 유지된다 ⟹ *\"체크포인트가 평가와 같은 분포\"* 단서가 **약해진다**. ⛔단 시드 축은 여전히 신선하지 않고, 크기 비교는 금지.",
+  "grade": "PREREGISTERED",
+  "detail": {
+   "neg_control": {
+    "better": 47,
+    "n": 48,
+    "ok": true
+   },
+   "per_cell": {
+    "BASE": {
+     "n": 48,
+     "better": 48,
+     "p": 3.552713678800501e-15,
+     "confirmatory": true,
+     "nominal": true
+    },
+    "LOSS": {
+     "n": 48,
+     "better": 46,
+     "p": 4.1815439999481896e-12,
+     "confirmatory": true,
+     "nominal": true
+    },
+    "DATA": {
+     "n": 48,
+     "better": 43,
+     "p": 6.840242150474296e-09,
+     "confirmatory": true,
+     "nominal": true
+    },
+    "BOTH": {
+     "n": 48,
+     "better": 43,
+     "p": 6.840242150474296e-09,
+     "confirmatory": true,
+     "nominal": true
+    },
+    "BASE-B": {
+     "n": 48,
+     "better": 45,
+     "p": 6.562927978848165e-11,
+     "confirmatory": true,
+     "nominal": true
+    },
+    "SHIPPED": {
+     "n": 48,
+     "better": 43,
+     "p": 6.840242150474296e-09,
+     "confirmatory": true,
+     "nominal": true
+    }
+   },
+   "threshold_parity_with_B12": true
+  },
+  "r1_hard_bar": {
+   "shipped_mean": 0.1373135513679396,
+   "shipped_n_ep": 48,
+   "per_cell": {
+    "BASE": {
+     "mean": 0.13393539269099064,
+     "n_ep": 48,
+     "bar": 0.1473135513679396,
+     "passed": true
+    },
+    "LOSS": {
+     "mean": 0.14207286806130368,
+     "n_ep": 48,
+     "bar": 0.1473135513679396,
+     "passed": true
+    },
+    "DATA": {
+     "mean": 0.13752701981057827,
+     "n_ep": 48,
+     "bar": 0.1473135513679396,
+     "passed": true
+    },
+    "BOTH": {
+     "mean": 0.14548084872367326,
+     "n_ep": 48,
+     "bar": 0.1473135513679396,
+     "passed": true
+    },
+    "BASE-B": {
+     "mean": 0.13463561651652628,
+     "n_ep": 48,
+     "bar": 0.1473135513679396,
+     "passed": true
+    }
+   },
+   "all_pass": true
+  },
+  "n_zero_rows": 144
+ },
+ "e3": {
+  "status": "REPORTED",
+  "LIN": {
+   "n_ep": 24,
+   "spec_median": 0.23620664569773062,
+   "per_cell": {
+    "BASE": {
+     "n": 24,
+     "better": 23,
+     "median": 0.13127274763443558
+    },
+    "LOSS": {
+     "n": 24,
+     "better": 22,
+     "median": 0.12381698608683159
+    },
+    "DATA": {
+     "n": 24,
+     "better": 24,
+     "median": 0.11714197218124503
+    },
+    "BOTH": {
+     "n": 24,
+     "better": 22,
+     "median": 0.1290413469480995
+    },
+    "BASE-B": {
+     "n": 24,
+     "better": 22,
+     "median": 0.14259129960619882
+    },
+    "SHIPPED": {
+     "n": 24,
+     "better": 22,
+     "median": 0.13391957901488277
+    }
+   }
+  },
+  "HOS": {
+   "n_ep": 24,
+   "spec_median": 0.23572576544920812,
+   "per_cell": {
+    "BASE": {
+     "n": 24,
+     "better": 22,
+     "median": 0.1582487638423044
+    },
+    "LOSS": {
+     "n": 24,
+     "better": 19,
+     "median": 0.16717442884821024
+    },
+    "DATA": {
+     "n": 24,
+     "better": 23,
+     "median": 0.16124099893416197
+    },
+    "BOTH": {
+     "n": 24,
+     "better": 23,
+     "median": 0.1643221019355018
+    },
+    "BASE-B": {
+     "n": 24,
+     "better": 18,
+     "median": 0.15569847194467623
+    },
+    "SHIPPED": {
+     "n": 24,
+     "better": 21,
+     "median": 0.15238251985854434
+    }
+   }
+  },
+  "note": "⛔보고 전용 — 바 없음. HARD 로 학습한 칸에게 이 코너는 **in-family** (학습 앵커가 실측 중앙값이고 M1 이 그 코너다). 확증에 쓰지 마라."
+ },
+ "disclosures": [
+  "⚠기제 부차 일부 미측정: ['BANK'] (F-4 공시).",
+  "HARD 학습 스트림 표현 필터: 1280000 장면 중 미달 0건(G-6). ⚠**그 0 은 재시도 경로의 항등식에 가깝다** — 분모가 살아 있는 측정은 `gen_m7.probe_repr_filter` 이고 그 값은 n=388 below=1 frac_below_min=0.002577319587628866 이다.",
+  "⚠공시(PREREG §8-3): HARD 장면의 약 10%는 목표 에너지의 40%가 빔포밍 조건자 대역(|k|≤0.6) **밖**이다 — 결함이 아니라 표현의 상한.",
+  "⚠공시(PREREG §8-1): HARD 앵커는 E1 이 평가하는 바로 그 12 레코드의 스칼라 2개(중앙 Hs, Tp_disp)에서 유도됐다. 누출에서 자유로운 검사는 **E2** 다.",
+  "⚠공시(PREREG §8-2): `DATA` 요인은 **묶음**(해상상태 + 2차 비선형 관측)이다 — 양성이어도 어느 쪽인지 말할 수 없다.",
+  "⚠공시(PREREG §8-10): 이 배치는 **제안 단계만** 개입한다. 실측 과적합의 측정된 발생 지점은 **시험 시점**(VARPRO·추적기)이다(`W12`)."
+ ]
+}

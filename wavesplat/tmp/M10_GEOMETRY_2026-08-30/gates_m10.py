@@ -9,6 +9,26 @@
 
 ★검사기 규약(`M8b F-2` 처방 (b)): 무인자 로더 `load_rows()` 를 `glob.glob` **무별칭** +
 `json.loads` 로 노출해 `check_gate_refs._call_loaders` 가 행 원천을 짚을 수 있게 한다.
+
+═══════════════════════════════════════════════════════════════════════════════
+★**AMENDMENT_1 (2026-08-30, ⛔결과 0행 · 판정 표면 불변) — `BLOCKER-D1` 반영.**
+
+이 파일에서 **바뀐 것은 `G-10` 의 절 하나**다: `cuda_available is False` 요구를 뺐다.
+사유 = `G-10`(CPU 고정)과 `G-4`(`B-12` 동결 재현)가 **동시에 성립하지 않는다**(양방향 실측,
+`AMENDMENT_1.md §2`). `B-12` 동결 자료가 GPU 가 보이는 환경의 산물이고
+`learned_init.propose_atoms` 는 `config['device']` 를 **받지 않고** 스스로 cuda 를 고른다.
+
+⛔**빠지지 않은 것**(= 완화가 새지 않는다):
+  · `device == 'cpu'` · `omp_threads == '1'` · 단일 `code_md5` — **그대로**.
+  · `cuda_available` 은 **스탬프 튜플 안에 남아 있다** ⟹ `len(stamps) == 1` 요구가
+    *"배치 중간에 GPU 가시성이 바뀌었다"* 를 **여전히 차단**한다. 뺀 것은 **값의 고정**뿐이다.
+★**대신 하나를 더 본다**(`G-15`, 범위축소): `device` 스탬프는 `DEFAULT_CONFIG['device']` 의
+  **의도표**이고 확산 사전이 실제로 쓴 장치가 아니다(저장소가 반복해 물린 부류).
+  `G-15` 는 `learned_init._CACHE` **되읽기**를 요구한다 — 재도출이 아니라 callee 자신의 상태다.
+
+⛔**문턱·밴드·라벨·해석 규칙·팔·코퍼스·시드는 한 글자도 바뀌지 않았다.**
+   기계 증명 = `amend1_surface.py`(판정 표면 비트 대조 + 완화 누수 시험).
+═══════════════════════════════════════════════════════════════════════════════
 """
 import glob
 import json
@@ -307,12 +327,15 @@ def gates(rows, frozen=None):
     g('G-9 zero_nRMSE 팔 간 동일', bool(byep) and zbad == 0, '불일치 %d' % zbad,
       n_seen=len(byep))
 
+    # ★AMENDMENT_1(BLOCKER-D1): `s[1] is False`(= `cuda_available` 고정) 절을 **뺐다**.
+    #   ⛔`cuda_available` 은 튜플에 **남는다** — `len(stamps) == 1` 이 배치 중간의
+    #   가시성 변화를 계속 차단한다. 뺀 것은 *값의 고정*이지 *관측*이 아니다.
     stamps = {(r.get('device'), r.get('cuda_available'), r.get('omp_threads'),
                r.get('code_md5')) for r in good}
-    g('G-10 장치·스레드·code_md5 단일',
-      len(stamps) == 1 and all(s[0] == 'cpu' and s[1] is False and str(s[2]) == '1'
+    g('G-10 장치·스레드·code_md5 단일 (⚠cuda_available 은 단일성만 · AMENDMENT_1)',
+      len(stamps) == 1 and all(s[0] == 'cpu' and str(s[2]) == '1'
                                for s in stamps),
-      '%r' % (sorted(stamps)[:1],), n_seen=len(good))
+      '%r' % (sorted(map(repr, stamps))[:1],), n_seen=len(good))
 
     src = open(os.path.abspath(__file__)).read()
     g('G-11 셸 경계 단일출처(리터럴 손복사 0)',
@@ -333,6 +356,16 @@ def gates(rows, frozen=None):
     mv = sorted({r.get('mesh_verdict') for r in good})
     g('G-14 mesh_verdict 분할 보고 (⛔"HOS M=3" 단일 서술 금지)', True, '%r' % (mv,),
       blocking=False, n_seen=len(good))
+    # ★AMENDMENT_1 신설 (범위축소) — **의도표가 아니라 되읽기**.
+    #   `device` 스탬프는 `DEFAULT_CONFIG['device']`(= 'cpu' 리터럴)의 복사이고, 확산 사전이
+    #   실제로 올라간 장치가 아니다. `learned_init._CACHE` 의 키 `(ckpt, str(device))` 를
+    #   러너가 되읽어 행에 싣는다(`run_m10._effective_prior_device`).
+    #   ⛔차단이 아니다 — `G-10` 의 단일 스탬프가 이미 가시성 변화를 막는다. 이것은
+    #   *"추론(스탬프가 cuda 를 함의한다)"* 을 *"관측(사전 자신이 그렇게 말한다)"* 으로 바꾼다.
+    pdev = sorted({str(r.get('prior_device')) for r in dep})
+    g('G-15 학습 사전이 **실제로** 쓴 장치 단일 (되읽기, ⛔선언 device 아님)',
+      bool(dep) and len(pdev) == 1 and pdev[0] not in ('None', ''),
+      '%r' % (pdev,), blocking=False, n_seen=len(dep))
     return out
 
 
@@ -418,6 +451,34 @@ def _selftest():
     chk('⑤f 값이 동결에서 벗어나면 G-4 FAIL',
         any((not o) for n, o, d, b in g5 if n.startswith('G-4')))
 
+    # ★⑤g AMENDMENT_1 — `G-10` 완화가 **새지 않는가**(BLOCKER-D1 의 회귀 시험)
+    def _g10(**over):
+        rs = [dict(r, **over) for r in fx['rows']]
+        return [o for n, o, d, b in gates(rs, fx['frozen']) if n.startswith('G-10')][0]
+    chk('⑤g G-10: cuda_available=True 가 이제 통과한다 (AMENDMENT_1 의 의도된 유일 변화)',
+        _g10(cuda_available=True))
+    chk('⑤h G-10: device="cuda" 는 ⛔여전히 FAIL', not _g10(device='cuda'))
+    chk('⑤i G-10: omp_threads="8" 은 ⛔여전히 FAIL', not _g10(omp_threads='8'))
+    chk('⑤j G-10: code_md5 분열은 ⛔여전히 FAIL',
+        not [o for n, o, d, b in gates(
+            [dict(r, code_md5=('a' if i % 2 else 'b')) for i, r in enumerate(fx['rows'])],
+            fx['frozen']) if n.startswith('G-10')][0])
+    chk('⑤k ★G-10: cuda_available 이 **행마다 다르면** ⛔FAIL '
+        '(완화는 값의 고정만 뺐고 단일성은 남았다)',
+        not [o for n, o, d, b in gates(
+            [dict(r, cuda_available=(i % 2 == 0)) for i, r in enumerate(fx['rows'])],
+            fx['frozen']) if n.startswith('G-10')][0])
+    g15 = lambda rs: [o for n, o, d, b in gates(rs, fx['frozen']) if n.startswith('G-15')][0]
+    chk('⑤l G-15: 되읽기 스탬프가 있으면 PASS', g15(fx['rows']))
+    chk('⑤m G-15: 되읽기 스탬프가 없으면 FAIL (⛔부재를 통과로 찍지 않는다)',
+        not g15([{k: v for k, v in r.items() if k != 'prior_device'} for r in fx['rows']]))
+    chk('⑤n G-15: 사전 장치가 행마다 갈리면 FAIL',
+        not g15([dict(r, prior_device=('cuda' if i % 2 else 'cpu'))
+                 if r['arm'] == 'SHIP' else r for i, r in enumerate(fx['rows'])]))
+    chk('⑤o G-15 는 **범위축소**다 (판정을 막지 않는다)',
+        all(b is False for n, o, d, b in gates(fx['rows'], fx['frozen'])
+            if n.startswith('G-15')))
+
     # ⑥ 공허 참조 방어 — 외부 원천을 비우면 해당 게이트가 FAIL(항진 금지)
     g6 = gates(fx['rows'], {})
     chk('⑥ 동결 원천이 비면 G-4 FAIL(0짝을 OK 로 찍지 않는다)',
@@ -477,6 +538,10 @@ def _fixture():
                     cap_varpro_steps=400, arm_cfg_nonempty=True,
                     mesh_verdict='DEGRADED', device='cpu', cuda_available=False,
                     omp_threads='1', code_md5='fixture'))
+                # ★AMENDMENT_1: `prior_device` 는 **SHIP 행에만** 있다 —
+                #   `SPEC25`(LETKF)는 확산 사전을 부르지 않는다. 러너와 같은 모양이다.
+                if arm == 'SHIP':
+                    rows[-1]['prior_device'] = 'cuda'
     return dict(rows=rows, frozen=frozen)
 
 

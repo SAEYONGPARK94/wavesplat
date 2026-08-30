@@ -1,0 +1,90 @@
+4caf72fc5bc505045880cbc55ee30389  PREREG.md
+5e244eed1b69873d4dae178faabcc12b  gates_m10.py
+9287bf6aa5c5b44ae234103986842434  jobs_m10.py
+8c4f1c4e760c7d7c5ae529d8602ac284  run_m10.py
+bea318bff79235bdfe3cd67630855929  analyze_m10.py
+9aab8b66ba924b89357581e229b316d1  mutate_m10.py
+7678e6a49063aab80ad74eb200d47f0d  premise_m10.py
+37d0ddd3aca03118ae41d52c8324e0b5  ../B11_HOS_BASELINE_2026-08-23/gates_b11.py
+2186b01913559f9205653c86950ecdc8  ../B12_HOS_EXTEND_2026-08-23/gates_b12.py
+09e7b03b1b5ac098cfce2fddacffd482  ../B12_HOS_EXTEND_2026-08-23/run_b12.py
+ad4bd4168e031f90d4b82287dd518be2  ../B12_HOS_EXTEND_2026-08-23/results_b12.jsonl
+ae3e2c21321760608108205342a442b9  ../S16_BASELINE_2026-08-14/run_s16.py
+7991d24a8a4e31580d888ddf766ec1ca  ../S16_BASELINE_2026-08-14/letkf_spec.py
+10e407348291e0438a94f459f4757c27  ../../wavesplat/run.py
+f620548a3413bc0eedf84caea8d9cbaa  ../../wavesplat/evaluation/metrics.py
+1b473e066cb02e43f39a9887a090c7d4  ../../wavesplat/optimizer/sequential_update.py
+5ebcf5a3d6c11d44f41eec920e38594f  ../../wavesplat/optimizer/learned_init.py
+039e2273264893629c0288de92b8903b  ../../wavesplat/optimizer/varpro.py
+e36249f8eb900d981e2c4d43ae1d9b51  ../../wavesplat/data_loader.py
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ★★재기록 #1 — `AMENDMENT_1.md` (2026-08-30, ⛔**결과 0행 · 본 배치 실행 0회**)
+#
+#   BLOCKER 2건을 고쳤다:
+#     D1 (장치) — `PREREG §8` 의 `CUDA_VISIBLE_DEVICES=''` 지시 + `gates_m10 G-10` 의
+#                 `cuda_available is False` 절이 `G-4`(B-12 동결 재현)와 **동시에 성립 불가**.
+#                 양방향 실측: CPU 고정 rel Δ 3.171e-01 · GPU 허용 **비트 일치**.
+#                 ⟹ (a) §8 지시 삭제 (b) G-10 완화 (c) `run_m10.CUDA_OFF = False`.
+#     P1 (λ)    — `§1.2`·`§1.3` 이 코퍼스를 "HOS, BF4" 라 적고 **BF4 전용 λ_p** 로 정규화.
+#                 코퍼스는 BF4 24 + BF5 24 ⟹ 1.15 λ_p → **0.868** · 25–30배 → **17.9배**.
+#
+#   ⛔**판정 표면은 비트 불변**: 문턱·밴드·라벨·접기·READING·코퍼스·시드·셸 경계·
+#      밴드 합성 규약이 전부 동일. 기계 증명 = `amend1_surface.py`
+#      (본체 md5 전 26a5e64988eab6af3b42d396255023c0 == 후 26a5e64988eab6af3b42d396255023c0).
+#   ★그리고 같은 스모크 16셀을 개정 전후로 돌려 **704필드 비트 동일 · 차이 0**.
+#
+#   변경 파일 = PREREG.md · gates_m10.py · run_m10.py · premise_m10.py · analyze_m10.py ·
+#               mutate_m10.py  (+ 신설 AMENDMENT_1.md · amend1_surface.py)
+#   불변 파일 = jobs_m10.py · 배치-외 판정코드 전부(아래 해시가 초판과 같다)
+#
+#   ⚠**동결 규약**(`tmp/_audit/check_batch_artifacts.py:225-231` 축자): *"원본 줄을 지우는 대신
+#     재동결 줄을 덧붙인다"* — 검사기는 **마지막 줄**을 현재 동결로 읽고, 같은 경로가 다른
+#     해시로 두 번 이상 적힌 것을 `재동결` 로 계속 드러낸다.
+#     ⟹ **위 블록이 이력, 아래 블록이 현재 유효한 동결**이다.
+#     ⛔`md5sum -c` 는 위 이력 줄에서 FAIL 을 찍는다 — 그것이 규약이 의도한 모습이다
+#       (선례 = `tmp/M3_SUPPORT_2026-08-28/FROZEN_md5.txt:42-53`).
+#     ⟹ 대조는 **아래 블록만** 잘라서 하라:
+#        sed -n '/현재 유효한 동결/,$p' FROZEN_md5.txt | grep -E '^[0-9a-f]{32}  ' | md5sum -c -
+#
+# ★**현재 유효한 동결 (2026-08-30, AMENDMENT_1 적용 후)** — 아래 21줄이 유효값이다.
+# ═════════════════════════════════════════════════════════════════════════════
+cc9b2412d2497068f2bbd951c82baa5f  PREREG.md
+829606e07f4d404b44580997b4f76050  AMENDMENT_1.md
+68f6f8ca5c0e010045ae31c502237dce  gates_m10.py
+9287bf6aa5c5b44ae234103986842434  jobs_m10.py
+42a091ee92422a533bbe3142e57d54f6  run_m10.py
+8be76f4b9ce266a4246e7191ad531597  analyze_m10.py
+855cb4351df4b66a367371742eeb3e1b  mutate_m10.py
+fb0b2c5d98c76827edc96959dfa7d6c5  premise_m10.py
+fa644c7c3f951346658f2ebf06bfd705  amend1_surface.py
+37d0ddd3aca03118ae41d52c8324e0b5  ../B11_HOS_BASELINE_2026-08-23/gates_b11.py
+2186b01913559f9205653c86950ecdc8  ../B12_HOS_EXTEND_2026-08-23/gates_b12.py
+09e7b03b1b5ac098cfce2fddacffd482  ../B12_HOS_EXTEND_2026-08-23/run_b12.py
+ad4bd4168e031f90d4b82287dd518be2  ../B12_HOS_EXTEND_2026-08-23/results_b12.jsonl
+ae3e2c21321760608108205342a442b9  ../S16_BASELINE_2026-08-14/run_s16.py
+7991d24a8a4e31580d888ddf766ec1ca  ../S16_BASELINE_2026-08-14/letkf_spec.py
+10e407348291e0438a94f459f4757c27  ../../wavesplat/run.py
+f620548a3413bc0eedf84caea8d9cbaa  ../../wavesplat/evaluation/metrics.py
+1b473e066cb02e43f39a9887a090c7d4  ../../wavesplat/optimizer/sequential_update.py
+5ebcf5a3d6c11d44f41eec920e38594f  ../../wavesplat/optimizer/learned_init.py
+039e2273264893629c0288de92b8903b  ../../wavesplat/optimizer/varpro.py
+e36249f8eb900d981e2c4d43ae1d9b51  ../../wavesplat/data_loader.py
+# git_head: (⛔commit 금지 상태로 실행 — 배치 디렉터리는 git 미추적)
+#   ⚠git_head 만으로는 더러운 작업트리를 못 잡는다(CLAUDE.md) — 위 md5 열이 그 몫이다.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ★재기록 #1b — **개정 1 집필 중의 마지막 문안 수정** (2026-08-30, 같은 개정 · 결과 0행)
+#   ⛔규약대로 위 블록의 줄을 **고치지 않고 덧붙인다**(검사기는 마지막 줄을 읽는다).
+#   변경 = `PREREG.md`(§8 의 `--smoke`→`smoke` 오기 · `>`→`>>` · 동결 대조 명령 정정) ·
+#          `AMENDMENT_1.md`(§8b 방벽 4종 출력 · §8c 부수 결함 2건 추가).
+#   ⛔판정 표면·게이트·러너·전제는 이 재기록에서 **한 글자도 바뀌지 않았다**
+#     (아래 두 줄 외의 모든 경로는 위 블록의 해시가 그대로 유효하다).
+# ─────────────────────────────────────────────────────────────────────────────
+0d87eecc3398c5ac83b583f6708a51dd  PREREG.md
+f68368ccf4df72e320b4ac0655ef28e7  AMENDMENT_1.md
+
+# ★재기록 #1c — `AMENDMENT_1.md` §8b-1 을 **자기참조 종결형**으로 고쳤다(내용 변경 없음,
+#   재동결 목록을 수가 아니라 목록으로 적어 이 항을 다시 고칠 필요가 없게 했다).
+#   ⛔다른 파일은 재기록 #1/#1b 의 해시가 그대로 유효하다.
+331d0988efd23cc65c2f5cb9019e5b1f  AMENDMENT_1.md

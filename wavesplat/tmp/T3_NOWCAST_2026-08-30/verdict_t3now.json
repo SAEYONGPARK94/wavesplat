@@ -1,0 +1,433 @@
+{
+ "batch": "T3_NOWCAST_2026-08-30",
+ "name": "T3-NOW",
+ "label": "T3-NOW :: PROP-ENSEMBLE-EARNS (CONFIRMATORY)",
+ "why": "29/36 (p=0.00016) — ★실측 나우캐스트 결손의 일부가 **제안 추첨의 분산**이고, 배포 경로가 이미 가진 장치(median-of-3)로 걷힌다. ⟹ 저장소의 모든 실측 `SHIP` vs `PROP` 수치에 앉아 있던 **앙상블 비대칭 교락이 크기를 갖는다**. ⛔배포 권고 아님 · ⛔예산 주장 아님.",
+ "label_c2": "T3-NOW :: VARPRO-UNDECIDED",
+ "why_c2": "23/36 (p=0.0662). ⛔승격 금지 · 「검출 불가」 · MDE(가족 q80=0.742)",
+ "label_c3": "T3-NOW :: PROP-NOWCAST-UNDECIDED",
+ "why_c3": "21/36 (p=0.2025). ⛔승격 금지 · 「검출 불가」 · MDE(가족 q80=0.742)",
+ "blocked_by": [],
+ "direction": "LOCATE-OR-ELIMINATE. 이 배치는 \"실측 나우캐스트 결손의 담지자가 **제안 추첨의 분산**인가 **배포된 VARPRO 정련**인가\" 만 묻는다. ⛔어느 분기에서도 \"경계의 원인은 X 다\" 로 승격하지 않는다 — 양성이어도 주장은 *\"이 노브가 결손의 일부를 나른다\"* 까지다.",
+ "reading": {
+  "C1+": "★소거표에 **양성 행**: *\"실측 나우캐스트 결손의 일부는 제안 추첨의 분산이고, 배포 경로가 이미 가진 median-of-k 로 걷힌다.\"* ⟹ 저장소의 **모든** 실측 SHIP vs PROP 계수에 앙상블 비대칭 공시가 붙는다(크기 포함). ⛔배포 권고 아님.",
+  "C1-": "★소거표에 **배제 행**: *\"결손은 추첨을 가로질러 공통이다.\"* 분산 축이 닫히고 앙상블 비대칭이 교락 목록에서 **측정으로** 내려간다 ⟹ 이후 배치는 그것을 공시 한 줄로 처리한다. 남는 후보는 **적합 통계**(D5·D6)와 **지지집합**이다.",
+  "C2+": "★*\"배포된 마지막 정련(VARPRO 400)이 실측 나우캐스트를 해친다.\"* `M8` L6 가 n=12 에서 판정 불가였던 칸이 갈린다. ⛔배포 변경 권고 아님(별도 사전등록) · ⛔합성 경로 판정(W4·W5)을 뒤집는다고 읽지 마라 — 층이 다르다.",
+  "C2-": "★*\"VARPRO 는 실측 나우캐스트 결손의 담지자가 아니다.\"* `M8` L6 의 9/12 는 검정력이 커진 표본에서 재현되지 않았다 ⟹ 소거표 한 줄, 그리고 `M8` 사다리의 마지막 고리가 **닫힌다**.",
+  "C1+ & C2+": "⚠두 요인이 **함께** 나오면 크기 합산 금지 — 상호작용(E1)은 EXPLORATORY 이고 로그비 가법성은 이 배치가 검정하지 않는다(`M8b §2.1` 의 교훈: 중앙값 비는 가법이 아니다).",
+  "C1- & C2-": "★가장 강한 소거: **두 노브 모두 아니다.** 남는 후보는 `DIFF_INVENTORY §4` 의 1위 축(**적합 통계** = 명시 관측잡음 · beamform 사전 · held-out val 게이팅 · SBL-EM)과 지지집합이다 ⟹ 조건부 후속 `T3-FIT` 의 트리거가 참이 된다.",
+  "C3+": "★실측에서 제안 표현의 **첫 양성 끝점**. ⛔그래도 배포 권고 아님(단가·게이트).",
+  "C3-": "기존 서술 유지: *\"제안 표현은 실측 12 레코드에서 기술이 없다\"* — 이번에는 **배포 경로의 앙상블을 준 뒤에도** 그렇다.",
+  "UNDECIDED": "⛔승격 금지. **가족 MDE 를 병기**하고 소거표에 **「검출 불가」** 로 적는다 (⛔*\"차이 없다\"* 금지 — `M8b` 개명 사건). ⛔단일검정 MDE 로 바꿔 적지 마라.",
+  "NOT_CLAIMED": "⛔①배포 권고 금지(실측 게이트는 `bank_mmse` 로 보낸다) · ⛔②예산·실시간 주장 금지(멤버 3개 = 단가 3배, 비동기 경로는 bank 전용) · ⛔③크기를 `B-1`·`M8`·`T2`·`M5b` 계수와 **직접 비교 금지**(다른 팔·다른 기저·다른 지표) · ⛔④사이트(4개)·레코드(12개)·시드(기준 42) 일반화 금지 · ⛔⑤고정 기준상수 채점 금지(`G-Z`·`G-FLAT`) · ⛔⑥E1(상호작용)·E2(bank 앙상블)·E3(분산/공통) 를 **확증으로 승격 금지** · ⛔⑦`premise` 의 장치 민감도 관찰을 *\"GPU 가 나쁘다\"* 로 읽지 마라 — 측정된 것은 **불변성의 부재**이지 우열이 아니다 · ⛔⑧`M8` 의 사다리 계수를 이 배치의 팔에 전이 금지(장치 스탬프가 다르다) · ⛔⑨*\"경계의 원인은 X 다\"* 금지(DIRECTION)."
+ },
+ "protocol": "① 장면 = `scene_station(record, win=win, noise=NOISE)` (⛔`with_future_obs` 불필요 —\n   그 인자는 `P/z/Pq/maps_gt` 를 **비트로 바꾸지 않는다**, `scene_station.py:74` 축자).\n② `t_shift = P[:,2].min()` · `t0 = Pq[0,2] - t_shift` ·\n   `frames = make_gif_bank_deployed.frames_from_scene(sc, t_shift, dtype=torch.float32)`.\n③ 멤버마다: `set_seed(SEED)` → `cfg = dict(DEFAULT_CONFIG)` +\n   {depth, device} + `arm_config(arm)` + `member_overrides(arm, off)` →\n   `make_updater(cfg)` → `initialize(frames, x_range, y_range, verbose=False)` →\n   `tx = torch.tensor(sc['gxq'], dtype=torch.float32)` · `ty = 같은 식으로 gyq` →\n   `Z = upd.predict_field(tx, ty, t0).cpu().numpy().reshape(len(gyq), len(gxq))`.\n   `x_range=(float(gxq.min()), float(gxq.max()))`, `y_range=(gyq 로 같은 식)`.\n   ⛔**여기 세 줄은 `T2 run_t2.py:run()` 의 축자다** — 인자 형(torch float32)을 바꾸면\n   앵커가 깨진다.\n④ 채점: `mm = isfinite(maps_gt[0])`; `e = sqrt(mean((Z[mm]-g[mm])**2)) / sc['sg']`.\n⑤ 멤버 장을 쌓아 **점별 median** → 같은 식으로 `e_med3`.  ⛔`update()` 는 **0회**다\n   (lead 0 은 초기화 창 이후 관측이 들어오기 **전** 이다).\n⛔②–④ 는 `T2 run_t2.py` 의 lead-0 경로와 **글자 그대로 같다** — 그래서 앵커가 비트로 성립한다.\n",
+ "primary": {
+  "arm": "PROP-V400M3.e_med3",
+  "ref": "PROP-V400M3.e_m0",
+  "n": 36,
+  "better": 29,
+  "ties": 0,
+  "rel_median_pct": -8.650908967789142,
+  "median_arm": 0.8279339002313244,
+  "median_ref": 0.8937314350400904,
+  "p_one_sided": 0.00015627557877451181
+ },
+ "c2": {
+  "arm": "PROP-V0M3.e_m0",
+  "ref": "PROP-V400M3.e_m0",
+  "n": 36,
+  "better": 23,
+  "ties": 0,
+  "rel_median_pct": -5.432832772474126,
+  "median_arm": 0.8654085633668622,
+  "median_ref": 0.8937314350400904,
+  "p_one_sided": 0.06624908198136836
+ },
+ "c3": {
+  "arm": "PROP-V400M3.e_med3",
+  "ref": "true-zero-field",
+  "n": 36,
+  "better": 21,
+  "ties": null,
+  "rel_median_pct": null,
+  "median_arm": 0.8279339002313244,
+  "median_ref": null,
+  "ratio_median": 0.8481622145592855,
+  "p_one_sided": 0.20251612307038158
+ },
+ "holm_survivors": {
+  "C1": true,
+  "C2": false,
+  "C3": false
+ },
+ "thresholds": {
+  "n": 36,
+  "NOMINAL": 24,
+  "NOT_EARN": 12,
+  "HOLM_MIN_WINS": [
+   25,
+   25,
+   24
+  ],
+  "HOLM_FIRST": 25,
+  "p_nominal": 0.03262266761157662,
+  "p_holm_first": 0.014408359827939421,
+  "alpha": 0.05,
+  "n_family": 3,
+  "family_alpha_first": 0.016666666666666666
+ },
+ "mde": {
+  "n": 36,
+  "thresh": 25,
+  "power": 0.8,
+  "q80": 0.742,
+  "grade": "family(Holm-1)"
+ },
+ "mde_single": {
+  "n": 36,
+  "thresh": 24,
+  "power": 0.8,
+  "q80": 0.716,
+  "grade": "single-test(⛔가족 주장에 쓰지 마라)"
+ },
+ "exploratory": {
+  "interaction": {
+   "n": 36,
+   "v400_gains_more": 20,
+   "p_one_sided": 0.308859658514848,
+   "g_v400_median": -0.09048757651620942,
+   "g_v0_median": -0.06548345240223846,
+   "grade": "EXPLORATORY",
+   "mde": {
+    "n": 36,
+    "thresh": 25,
+    "power": 0.8,
+    "q80": 0.742,
+    "grade": "family(Holm-1)"
+   }
+  },
+  "bank_ensemble": {
+   "arm": "SHIP-K3.e_m0",
+   "ref": "SHIP-K1M3.e_m0",
+   "n": 36,
+   "better": 15,
+   "ties": 17,
+   "rel_median_pct": 0.0,
+   "median_arm": 0.6785330123414202,
+   "median_ref": 0.6802653029242921,
+   "p_one_sided": 0.8785075229825452
+  },
+  "spread": {
+   "SHIP-K1M3": {
+    "n": 36,
+    "spread_median": 0.03115038323627315,
+    "e_m0_median": 0.6802653029242921,
+    "R_median": 0.0426073886192139
+   },
+   "PROP-V400M3": {
+    "n": 36,
+    "spread_median": 0.49257957544323283,
+    "e_m0_median": 0.8937314350400904,
+    "R_median": 0.5593652940484592
+   },
+   "PROP-V0M3": {
+    "n": 36,
+    "spread_median": 0.35357622469232264,
+    "e_m0_median": 0.8654085633668622,
+    "R_median": 0.4072641173829692
+   }
+  }
+ },
+ "descriptive": {
+  "vs_zero": {
+   "SHIP-K3": {
+    "arm": "SHIP-K3.e_m0",
+    "ref": "true-zero-field",
+    "n": 36,
+    "better": 33,
+    "ties": null,
+    "rel_median_pct": null,
+    "median_arm": 0.6785330123414202,
+    "median_ref": null,
+    "ratio_median": 0.728782637719784,
+    "p_one_sided": 1.1360680218786001e-07
+   },
+   "SHIP-K1M3": {
+    "arm": "SHIP-K1M3.e_med3",
+    "ref": "true-zero-field",
+    "n": 36,
+    "better": 33,
+    "ties": null,
+    "rel_median_pct": null,
+    "median_arm": 0.6785330123414202,
+    "median_ref": null,
+    "ratio_median": 0.728782637719784,
+    "p_one_sided": 1.1360680218786001e-07
+   },
+   "PROP-V400M3": {
+    "arm": "PROP-V400M3.e_med3",
+    "ref": "true-zero-field",
+    "n": 36,
+    "better": 21,
+    "ties": null,
+    "rel_median_pct": null,
+    "median_arm": 0.8279339002313244,
+    "median_ref": null,
+    "ratio_median": 0.8481622145592855,
+    "p_one_sided": 0.20251612307038158
+   },
+   "PROP-V0M3": {
+    "arm": "PROP-V0M3.e_med3",
+    "ref": "true-zero-field",
+    "n": 36,
+    "better": 27,
+    "ties": null,
+    "rel_median_pct": null,
+    "median_arm": 0.8048625157026588,
+    "median_ref": null,
+    "ratio_median": 0.8382511864850118,
+    "p_one_sided": 0.001966586511116475
+   }
+  },
+  "wall_s_median": 13.973814725875854
+ },
+ "gates": [
+  {
+   "name": "G-0  행 수",
+   "pass": true,
+   "detail": "144/144"
+  },
+  {
+   "name": "G-0b 에러 0",
+   "pass": true,
+   "detail": "0"
+  },
+  {
+   "name": "G-0c 0행 가드(팔마다 36셀)",
+   "pass": true,
+   "detail": "{'SHIP-K3': 36, 'SHIP-K1M3': 36, 'PROP-V400M3': 36, 'PROP-V0M3': 36}"
+  },
+  {
+   "name": "G-0d 셀 전건",
+   "pass": true,
+   "detail": "36/36"
+  },
+  {
+   "name": "G-0e 추정기 런 수 == 프로토콜 도출값",
+   "pass": true,
+   "detail": "360/360"
+  },
+  {
+   "name": "G-0f 행 계약 전건 충족",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "G-1 SHIP-K3 멤버 수 == 1",
+   "pass": true,
+   "detail": "36 rows, offsets=[(0,)]"
+  },
+  {
+   "name": "G-2 SHIP-K3 vp_steps_executed == 0 (멤버 전건)",
+   "pass": true,
+   "detail": "[(0,)]"
+  },
+  {
+   "name": "G-2b SHIP-K3 vp_fired == False",
+   "pass": true,
+   "detail": "[(False,)]"
+  },
+  {
+   "name": "G-3 SHIP-K3 bank_members == 3",
+   "pass": true,
+   "detail": "[(3,)]"
+  },
+  {
+   "name": "G-1 SHIP-K1M3 멤버 수 == 3",
+   "pass": true,
+   "detail": "36 rows, offsets=[(0, 1000, 2000)]"
+  },
+  {
+   "name": "G-2 SHIP-K1M3 vp_steps_executed == 0 (멤버 전건)",
+   "pass": true,
+   "detail": "[(0, 0, 0)]"
+  },
+  {
+   "name": "G-2b SHIP-K1M3 vp_fired == False",
+   "pass": true,
+   "detail": "[(False, False, False)]"
+  },
+  {
+   "name": "G-3 SHIP-K1M3 bank_members == 1",
+   "pass": true,
+   "detail": "[(1, 1, 1)]"
+  },
+  {
+   "name": "G-1 PROP-V400M3 멤버 수 == 3",
+   "pass": true,
+   "detail": "36 rows, offsets=[(0, 1000, 2000)]"
+  },
+  {
+   "name": "G-2 PROP-V400M3 vp_steps_executed == 400 (멤버 전건)",
+   "pass": true,
+   "detail": "[(400, 400, 400)]"
+  },
+  {
+   "name": "G-2b PROP-V400M3 vp_fired == True",
+   "pass": true,
+   "detail": "[(True, True, True)]"
+  },
+  {
+   "name": "G-3 PROP-V400M3 bank_members == None",
+   "pass": true,
+   "detail": "[(None, None, None)]"
+  },
+  {
+   "name": "G-1 PROP-V0M3 멤버 수 == 3",
+   "pass": true,
+   "detail": "36 rows, offsets=[(0, 1000, 2000)]"
+  },
+  {
+   "name": "G-2 PROP-V0M3 vp_steps_executed == 0 (멤버 전건)",
+   "pass": true,
+   "detail": "[(0, 0, 0)]"
+  },
+  {
+   "name": "G-2b PROP-V0M3 vp_fired == False",
+   "pass": true,
+   "detail": "[(False, False, False)]"
+  },
+  {
+   "name": "G-3 PROP-V0M3 bank_members == None",
+   "pass": true,
+   "detail": "[(None, None, None)]"
+  },
+  {
+   "name": "G-4a bank 팔이 bank 경로",
+   "pass": true,
+   "detail": "n=72 [((0, 0, 0), (True, True, True)), ((0,), (True,))]"
+  },
+  {
+   "name": "G-4b prop 팔이 learned 경로",
+   "pass": true,
+   "detail": "n=72 [('learned', 'learned', 'learned')]"
+  },
+  {
+   "name": "G-5 SHIP-K3 멤버 시드 규약 (None)",
+   "pass": true,
+   "detail": "want seed=[42] dseed=[None]"
+  },
+  {
+   "name": "G-5 SHIP-K1M3 멤버 시드 규약 (seed)",
+   "pass": true,
+   "detail": "want seed=[42, 1042, 2042] dseed=[None, None, None]"
+  },
+  {
+   "name": "G-5 PROP-V400M3 멤버 시드 규약 (learned_diffusion_seed)",
+   "pass": true,
+   "detail": "want seed=[42, 42, 42] dseed=[42, 1042, 2042]"
+  },
+  {
+   "name": "G-5 PROP-V0M3 멤버 시드 규약 (learned_diffusion_seed)",
+   "pass": true,
+   "detail": "want seed=[42, 42, 42] dseed=[42, 1042, 2042]"
+  },
+  {
+   "name": "G-5b bank 팔 `_bank_seeds` 가 오프셋 규약과 일치",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "G-MIRROR 하네스 median == 패키지 k=3 (해시+값 비트)",
+   "pass": true,
+   "detail": "36/36"
+  },
+  {
+   "name": "G-MIRROR-b 거울이 공허하지 않다(PROP 전건 · bank ≥1셀)",
+   "pass": true,
+   "detail": "전-distinct 셀 {'SHIP-K1M3': '16/36', 'PROP-V400M3': '36/36', 'PROP-V0M3': '36/36'}"
+  },
+  {
+   "name": "G-ANCHOR SHIP-K3 비트 36/36",
+   "pass": true,
+   "detail": "36/36"
+  },
+  {
+   "name": "G-ANCHOR PROP-V400M3 비트 36/36",
+   "pass": true,
+   "detail": "36/36"
+  },
+  {
+   "name": "G-ANCHOR-N 앵커 없는 팔은 None 을 싣는다(공허 PASS 방지)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "G-6 ENS-BANK 단일요인 == ['real_bank_ensemble_k']",
+   "pass": true,
+   "detail": "['real_bank_ensemble_k']"
+  },
+  {
+   "name": "G-6 VARPRO 단일요인 == ['varpro_steps']",
+   "pass": true,
+   "detail": "['varpro_steps']"
+  },
+  {
+   "name": "G-6b 개입이 실제로 장을 움직였다(항진 아님)",
+   "pass": true,
+   "detail": "{'ENS-BANK': 19, 'VARPRO': 36}"
+  },
+  {
+   "name": "G-Z 행의 참 제로필드 == zero_ref.py (전건)",
+   "pass": true,
+   "detail": "0 불일치"
+  },
+  {
+   "name": "G-FLAT 고정 기준상수 부재(ZERO_REF)",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "G-7 장치/스레드 단일 스탬프",
+   "pass": true,
+   "detail": "[('cpu', True, '1')]"
+  },
+  {
+   "name": "G-7b 출하 기본값 핀",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "G-7c 승인 스탬프 전건",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "name": "G-PC SHIP-K3 vs 제로 == 동결 33",
+   "pass": true,
+   "detail": "33"
+  },
+  {
+   "name": "G-PC PROP-V400M3 vs 제로 == 동결 17",
+   "pass": true,
+   "detail": "17"
+  },
+  {
+   "name": "G-PC 짝 SHIP<PROP == 동결 33",
+   "pass": true,
+   "detail": "33"
+  },
+  {
+   "name": "G-8 필터 비항진",
+   "pass": true,
+   "detail": "['PROP-V0M3', 'PROP-V400M3', 'SHIP-K1M3', 'SHIP-K3']"
+  },
+  {
+   "name": "G-9 비용 스탬프 전건",
+   "pass": true,
+   "detail": ""
+  }
+ ],
+ "n_rows": 144
+}

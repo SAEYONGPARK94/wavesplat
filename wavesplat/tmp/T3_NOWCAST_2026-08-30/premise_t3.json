@@ -1,0 +1,217 @@
+{
+ "_what": "T3-NOW 전제 — 동결 자료 재도출. 추정기 0회 · GPU 0회.",
+ "_sources": {
+  "t2": "tmp/T2_STATIONARITY_2026-08-30/results_t2.jsonl",
+  "m8": "tmp/M8_LADDER_2026-08-28/results_m8_*.jsonl",
+  "zero_ref": "tmp/B3_REFIT_2026-08-23/true_zero_perlead.json"
+ },
+ "n_records": 12,
+ "n_windows": 3,
+ "n_pairs": 36,
+ "lead": 0.0,
+ "seed_base": 42,
+ "noise": 0.02,
+ "thresholds": {
+  "n": 36,
+  "NOMINAL": 24,
+  "NOT_EARN": 12,
+  "HOLM_MIN_WINS": [
+   25,
+   25,
+   24
+  ],
+  "HOLM_FIRST": 25,
+  "p_nominal": 0.03262266761157662,
+  "p_holm_first": 0.014408359827939421,
+  "alpha": 0.05,
+  "n_family": 3,
+  "family_alpha_first": 0.016666666666666666
+ },
+ "mde": {
+  "n": 36,
+  "thresh": 25,
+  "power": 0.8,
+  "q80": 0.742,
+  "grade": "family(Holm-1)"
+ },
+ "mde_single": {
+  "n": 36,
+  "thresh": 24,
+  "power": 0.8,
+  "q80": 0.716,
+  "grade": "single-test(⛔가족 주장에 쓰지 마라)"
+ },
+ "expected_runs": 360,
+ "expected_rows": 144,
+ "offsets": [
+  0,
+  1000,
+  2000
+ ],
+ "ens_k": 3,
+ "ship_lead0_vs_zero": {
+  "n": 36,
+  "better": 33,
+  "ratio_median": 0.7288,
+  "p_one_sided": 1.1360680218786001e-07
+ },
+ "prop_lead0_vs_zero": {
+  "n": 36,
+  "better": 17,
+  "ratio_median": 1.0365,
+  "p_one_sided": 0.691140341485152
+ },
+ "ship_lt_prop_lead0": {
+  "n": 36,
+  "better": 33,
+  "p_one_sided": 1.1360680218786001e-07,
+  "rel_median_pct": -25.751
+ },
+ "t2_nowcast_0_1": {
+  "ship": {
+   "n": 36,
+   "better": 33,
+   "ratio_median": 0.7794,
+   "p_one_sided": 1.1360680218786001e-07
+  },
+  "prop": {
+   "n": 36,
+   "better": 15,
+   "ratio_median": 1.0491,
+   "p_one_sided": 0.8785075229825452
+  },
+  "note": "⛔`T2 RESULT §5`(33/36 · 15/36)는 lead 0–1 평균이다. 이 배치는 lead 0 **단독**(33/36 · 17/36)이고 두 수를 섞으면 안 된다."
+ },
+ "device_sensitivity": {
+  "t2_cuda_available": [
+   true
+  ],
+  "m8_cuda_available": [
+   false
+  ],
+  "bank_bit_equal": 12,
+  "prop_bit_equal": 0,
+  "n": 12,
+  "prop_max_abs_rel_pct": 245.1,
+  "note": "★`BANK` 는 두 환경에서 **비트 동일**하고(`_beamform_top` 이 argmax 만 장치 경계를 넘고 나머지는 CPU float64) `PROP` 은 **한 셀도 일치하지 않는다**(diffusion 표집이 장치에 민감). ⟹ ①이 배치는 **한 환경**에서 돌아야 하고 그 환경은 `T2` 앵커가 정한다 ②`M8` 의 사다리 계수는 이 배치의 팔에 **전이되지 않는다** ⟹ `M8` 은 앵커가 아니다."
+ },
+ "seed_cv": {
+  "BANK": {
+   "cv_median_pct": 1.04,
+   "cv_max_pct": 5.7,
+   "n": 12
+  },
+  "BANK-K1": {
+   "cv_median_pct": 1.96,
+   "cv_max_pct": 7.7,
+   "n": 12
+  },
+  "MMSE-PROP": {
+   "cv_median_pct": 5.86,
+   "cv_max_pct": 31.2,
+   "n": 12
+  },
+  "PROP-LS": {
+   "cv_median_pct": 5.8,
+   "cv_max_pct": 30.3,
+   "n": 12
+  },
+  "PROP-LS-APG": {
+   "cv_median_pct": 9.21,
+   "cv_max_pct": 23.4,
+   "n": 12
+  },
+  "PROP": {
+   "cv_median_pct": 13.57,
+   "cv_max_pct": 67.3,
+   "n": 12
+  }
+ },
+ "seed_cv_note": "★`M8b RESULT §1` 이 공표한 값의 재도출(모집단 std/평균). bank 1.04% vs PROP 13.57% ⟹ **분산 축소 장치의 값어치가 약 13배 갈린다**. ⛔이것은 기제 근거이지 결과 예측이 아니다.",
+ "m8_l1_ensemble": {
+  "n": 12,
+  "worse": 5,
+  "p_one_sided": 0.806152,
+  "rel_median_pct": 0.0
+ },
+ "m8_l6_varpro": {
+  "n": 12,
+  "worse": 9,
+  "p_one_sided": 0.072998,
+  "rel_median_pct": 10.9
+ },
+ "m8_holm_floor_n12": {
+  "n": 12,
+  "family": 6,
+  "alpha_first": 0.008333,
+  "min_wins": 11,
+  "note": "★n=12·6고리 Holm 의 첫 문턱이 11/12 ⟹ ***10/12 이하는 어떤 자료에서도 기각 불가*** 였다(`M8b/AMENDMENT_2.md`). 이 배치의 n=36·가족3 Holm 첫 문턱은 25/36 이고 `M8` 이 본 크기(9/12=0.75 · 10/12=0.83)는 그 설계의 MDE(q80=0.742) **안**에 있다."
+ },
+ "cost": {
+  "t2_with_update_loop": {
+   "SHIP-FROZEN": {
+    "n": 36,
+    "median_s": 3.71,
+    "min_s": 2.01,
+    "max_s": 13.3,
+    "total_min": 2.5
+   },
+   "PROP-FROZEN": {
+    "n": 36,
+    "median_s": 9.97,
+    "min_s": 5.62,
+    "max_s": 13.33,
+    "total_min": 5.9
+   }
+  },
+  "m8_init_only": {
+   "BANK": {
+    "n": 36,
+    "median_s": 2.83,
+    "min_s": 1.73,
+    "max_s": 12.35,
+    "total_min": 2.1
+   },
+   "BANK-K1": {
+    "n": 36,
+    "median_s": 0.97,
+    "min_s": 0.56,
+    "max_s": 5.69,
+    "total_min": 0.8
+   },
+   "PROP": {
+    "n": 36,
+    "median_s": 9.47,
+    "min_s": 4.54,
+    "max_s": 11.96,
+    "total_min": 5.5
+   },
+   "PROP-LS-APG": {
+    "n": 36,
+    "median_s": 9.03,
+    "min_s": 4.18,
+    "max_s": 11.43,
+    "total_min": 5.2
+   }
+  },
+  "note": "⚠`T2` 단가는 lead 1–14 `update()` 루프 + 6샤드 경합을 포함하고, `M8` 단가는 `initialize`+`predict_field` 만이지만 **CPU 전용 환경**이다. 이 배치는 `update()` 0회 · CUDA 가용 환경 ⟹ 두 값 사이가 기대 범위이고 ★**스모크가 실측한다**(⛔이 표를 최종 비용으로 인용하지 마라)."
+ },
+ "anchor_cells": {
+  "SHIP-FROZEN": 36,
+  "PROP-FROZEN": 36,
+  "SHIP-REFIT2": 36,
+  "PROP-REFIT2": 36
+ },
+ "anchor_note": "★`T2` 는 `B-3 FROZEN`·`B-7b PROP-B7B` 를 36/36 비트 재현했다(`T2 RESULT §4 G-ANCHOR`) ⟹ 이 배치가 `T2` 를 재현하면 **세 배치 사슬이 닫힌다**. ⛔`M8` 은 장치 스탬프가 달라 앵커가 아니다(P2).",
+ "not_computed": [
+  "⛔`PROP` 계열의 **장 median-of-3**(= `e_med3`) 을 어떤 형태로도 계산하지 않았다 — 그것이 이 배치의 신규 측정이다.",
+  "⛔`M8` 의 시드-**지표** median 을 `PROP` 단일 런과 비교하지 않았다(C1 의 대용물).",
+  "⛔`PROP-V0`(= varpro 0, adaptive_n True) 를 이 환경에서 한 번도 돌리지 않았다.",
+  "⛔멤버 간 점별 분산(`spread_rms`)은 동결 자료에 존재하지 않는다(장을 저장한 배치가 없다) ⟹ E3 은 전적으로 새 측정이다."
+ ],
+ "exposed_before_freeze": [
+  "✅`PROP-V400M3.e_m0` 는 **완전히 사전 노출**돼 있다 — 그것이 `T2 PROP-FROZEN` lead0 이고 위 P1 이 그 집계(17/36 · 비 1.0365)를 싣는다. ⟹ C1 의 **기준 팔**은 알려져 있고 **처치 팔**은 알려져 있지 않다.",
+  "✅`SHIP-K3.e_m0` 도 사전 노출(33/36 · 비 0.7288).",
+  "✅`M8` 의 사다리 계수(L1 5/12 · L6 9/12 · 시드 CV)를 읽었고, **C2 의 방향은 거기서 왔다**(⚠다른 장치 환경 = 다른 양)."
+ ]
+}

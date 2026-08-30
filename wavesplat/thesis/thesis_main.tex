@@ -56,6 +56,10 @@
 \newunicodechar{⑥}{\textcircled{\scriptsize 6}}
 \newunicodechar{⑦}{\textcircled{\scriptsize 7}}
 \newunicodechar{⑧}{\textcircled{\scriptsize 8}}
+% ★ADDED 2026-08-30: ⑨ 는 2026-08-30 M-7 편집이 본문에 넣었는데 **정의가 없었다** ---
+%   pdflatex 에서 "Unicode character not set up" 으로 **조판이 죽는다**(미조판 상태로 발견).
+\newunicodechar{⑨}{\textcircled{\scriptsize 9}}
+\newunicodechar{⑩}{\textcircled{\scriptsize 10}}
 \newunicodechar{·}{\ensuremath{\cdot}}
 % ✅**2026-08-24: 조판을 실제로 돌렸다** (TeX Live 2026 을 `~/texlive` 에 설치).
 %   `pdflatex x1 -> bibtex -> pdflatex x3` = **158쪽, 오류 0, 미정의 참조 0, 미정의 인용 0**.
@@ -121,6 +125,44 @@
 \newcommand{\disp}{\mathrm{disp}}
 \newcommand{\WS}{\textsc{WaveSplat}}
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+% ============================================================================
+% ★2026-08-30 공시 매크로 4종 — **단일출처**(16인 심사 BLOCKER B-2·B-3, 권고 C-5).
+% ⛔개별 인용 지점에 문면을 손으로 다시 적지 마라 --- 이 저장소가 반복해서 낸
+%   "N곳 중 N-1곳" 결함을 **정의를 한 곳에 두는 것**으로 구조적으로 막는다.
+%   \MOneDriftFN : M-1 동결 드리프트 **전문 각주**(문서 전체에서 정확히 한 번)
+%   \MOneDrift   : 같은 공시의 짧은 형태 --- ★표(tabular) 안에서도 안전하다(각주가 아니다)
+%   \MFourGate   : M-4 게이트가 **결과를 본 뒤에** 개정되었다는 공시
+%   \CmpSkill    : 헤드라인 마진의 **비교자 강도** 공시(셸 분해로 보낸다)
+% ⚠report 클래스는 각주 번호를 장마다 초기화하므로 **각주 번호로 상호참조하지 않는다** ---
+%   짧은 형태는 공시 내용을 스스로 싣고 절 번호로만 보낸다.
+% 근거: tmp/M1_NONLIN_REAL_2026-08-28/AMENDMENT_1.md ·
+%       tmp/M4_CAPACITY_2026-08-28/AMENDMENT_1_PREREG.md §1.2 ·
+%       tmp/STATUS_2026-08-30/shell_recount.py (동결 행 재집계, 새 런 0회)
+% ============================================================================
+\newcommand{\MOneDriftFN}{\footnote{\label{fn:m1-drift}%
+⚠\textbf{[동결 드리프트 공시 --- 배치 \texttt{M-1}]} 이 배치의 코퍼스 생성이 도는 동안
+다른 배치의 패치가 추정기 파일 \emph{하나}에 착지하여 동결 해시 하나가 어긋났다.
+무해 논증(배포 기본값 되읽기 통과 $\cdot$ 패치 지점이 \emph{실측 전용} 분기 $\cdot$
+기본값 경로 비트 동일 회귀)은 \textbf{추정 실행 이전에} 문서로 고정되었고, 동결 해시는
+\textbf{덮어쓰지 않았다}. ⛔\textbf{따라서 본 논문은 이 배치에 대해 ``동결한 그 파일로
+돌았다''라고 쓰지 않는다} --- 그 논증은 \textbf{도달 불가} 논증이지 실행 대조가 아니다.
+전문은 \S\ref{sec:results_m1}\,(7).}}
+\newcommand{\MOneDrift}{\,(⚠\emph{동결 드리프트 공시}: 동결 해시 하나가 이 배치가 도는
+동안 어긋났고 무해 논증은 \emph{도달 불가} 논증이다 ⟹ ⛔\emph{``동결한 그 파일로
+돌았다''}로 읽지 않는다; \S\ref{sec:results_m1}\,(7))}
+\newcommand{\MOneDriftEN}{\,(⚠\emph{frozen-hash drift disclosure}: one frozen hash moved
+while this batch was running, and the no-harm argument is an \emph{unreachability} argument,
+not an execution comparison ⟹ ⛔this thesis does not write ``it ran on the file we froze'';
+\S\ref{sec:results_m1}\,(7))}
+\newcommand{\MFourGate}{\,(⚠\emph{게이트 개정 공시}: 이 배치의 양성대조 게이트는
+\textbf{결과를 본 뒤에} 끝단에서 원자 수준으로 완화되었고 실패한 측정은 판정문에 남아
+있다 ⟹ ⛔\emph{``사전등록된 게이트를 그대로 통과했다''}로 읽지 않는다;
+\S\ref{sec:cite-status-m4})}
+\newcommand{\CmpSkill}{\,(⚠\emph{비교자 강도 공시}: 동결 혼잡 HOS 코퍼스($48$ 에피소드)에서
+\textbf{외부 격자 기준선}의 전역 기술은 무기술 대비 $16.9\%$ 다 --- ⛔단 마진이 그 낮은
+기술 때문에 생긴 것은 아니다: 기준선이 \emph{강한} 셸만 남겨도 마진은 오히려 커진다.
+\S\ref{sec:results_m10}, 표~\ref{tab:shell_recount})}
 
 % ============================================================================
 % ★배포 상수 단일출처 — scripts/gen_deploy_constants.py 가 DEFAULT_CONFIG 에서 생성한다.
@@ -239,11 +281,20 @@ and Its Operating Boundary}}
 \chapter*{초\quad 록}
 \addcontentsline{toc}{chapter}{초\quad 록}
 
-선박 탑재 스캐닝 LiDAR는 전방 해수면을 10\,Hz로 스캔하여 프레임당 약 50--200개의
-3차원 관측점을 생성한다. 이러한 희소하고 불균질한 관측으로부터
+% CORRECTED 2026-08-30 (16인 심사 MINOR ②): 초록 동기 문단이 2026-08-22 제목 변경에서
+% 뺀 프레이밍("선박 탑재 스캐닝 LiDAR")으로 시작하고 있었다 — '선박 탑재'·'LiDAR' 는 각각
+% 실증 0건이고(표지 주석의 제목 변경 사유와 동일), 보유 실측 12 레코드는 전부 고정 관측소
+% 스테레오다. 동기의 주어를 제목의 주어(희소 3차원 점군)로 바꾸고, 동기 센서와 실증 자료를
+% 문단 안에서 구분한다. ★영문 초록에 같은 문단을 동시에 반영한다.
+해수면을 원격으로 관측하는 센서 --- 선박 탑재 스캐닝 LiDAR, 고정 관측소의 스테레오
+영상 등 --- 는 프레임당 약 50--200개의 희소하고 불균질한 3차원 관측점을 생성한다.
+이러한 \textbf{희소 3차원 점군}으로부터
 연속적이고 물리적으로 타당한 파도장을 실시간으로 복원하는 것은,
 자율운항 선박의 안전·승차감·에너지 효율 향상과
 파랑 예측 기반 제어 응용을 위한 핵심 기술 과제이다.
+⚠선박 탑재 LiDAR는 본 논문의 \emph{동기이자 합성 관측 모형}이며 \emph{실증된 플랫폼이
+아니다} --- 본 논문이 실측으로 검증하는 자료는 전부 \textbf{고정 관측소 스테레오 재구성면}
+$12$ 레코드다(제목이 그 사실을 반영한다).
 
 기존의 격자 기반 방법(Ensemble Transform Kalman Filter, ETKF)은
 희소 관측을 공간 격자에 보간하는 과정에서 aliasing이 발생하고,
@@ -286,30 +337,13 @@ $+18.2\%$ 더 나쁘다, 확증 문턱 통과; 배치 \texttt{B-25}), 질량$\cd
 것이 아니라 오히려 \emph{과소평가}돼 있었다.} ⚠이것은 방향 진술이며 \textbf{보정된 크기를 주장하지
 않는다}(그 조합은 재지 않았다). ⚠\textbf{배포 기본값은 이 측정으로 바꾸지 않는다.}
 
-% RETRACTED 2026-08-14: 아래 원문의 헤드라인 수치 전체가 인용금지다. 사유는 "출처 부재"가
-% 아니라 (i) 프레임 불일치 — 근거 파일 results/b1_full_comparison.json 에서 WaveSplat 은
-% 평균 167 프레임(120--220), ETKF·GPR-1 은 301 프레임에서 채점됐고 100/100 에피소드 전부에서
-% WS 가 더 적다 ⟹ 두 팔이 같은 프레임에서 채점된 적이 없다 (ii) 기준선 선택 — 그 ETKF 는
-% grid 40x30 / ne=100 / mult_inflation 1.0 이고, 같은 WS 열을 튜닝 LETKF 와 붙이면
-% results/100ep_ws_letkf.json 에서 0.2229 vs 0.2278, 51/100, p=0.9204 = 널
-% (iii) 지연은 프로세스 간 비교다. Skill Score 열과 Wilcoxon p / Cohen's d 도 같은 파일 계열이다.
-% (근거: memory/reference_citation_bans.md (08-13 3라운드) · 직접 재도출 2026-08-14)
-% --- 원문 (이력 보존) ---
-% 100개 에피소드(Beaufort 2--5 해상, 성분 수 1--30, 5개 시드, 2가지 raydrop 모델)에
-% 걸친 평가에서, \WS{}는 하이퍼파라미터를 최적화한 ETKF 대비 평균 nRMSE를
-% \textbf{30.1\%} 낮추고 (\textbf{0.223} vs.\ \textbf{0.319}),
-% 처리 속도는 약 \textbf{10배} 빠른 \textbf{13.4\,ms/프레임}을 달성한다.
-% 사전 지정된 6개 지표 평가 패널에서 \WS{}는 zero-predictor 대비 양수의
-% 점추정 Skill Score를 기록한 유일한 방법임을 보인다
-% (전체 95\% bootstrap CI는 0을 포함하나, $\leq$5-성분 해상에서는 유의).
-% 100회 대응 검증을 통한 Wilcoxon signed-rank 검정 결과
-% ($p = 1.1\times10^{-15}$, Cohen's $d = 1.16$)는 이 차이가
-% 통계적으로 유의한 large effect임을 확인한다.
-\textbf{[철회] (2026-08-14):} 본 초록이 원래 제시하던 100 에피소드 정확도·지연 헤드라인
-수치는 철회한다. 근거 파일에서 \WS{}와 기준선이 서로 다른 프레임 수에서 채점됐고,
-기준선 선택이 결과를 좌우하며(같은 \WS{} 열을 튜닝된 LETKF와 대조하면 차이가 통계적 널이다),
-지연은 서로 다른 프로세스에서 측정됐다.
-검증된 대체값이 없는 항목은 숫자를 제시하지 않는다.
+% MOVED 2026-08-30 (16인 심사 MINOR ①): 2026-08-14 철회 블록(LaTeX 주석으로 보존된
+% 초판 원문 포함)을 부록~\ref{app:abstract_ledger} 로 옮겼다 — 외부 심사가 "초록이 원장
+% 형태(~4쪽)" 라 지적했고 종합자가 동의했다. ⛔철회 내용은 지우지 않고 옮긴다.
+⚠\textbf{[철회 고지]} 본 초록의 초판이 제시하던 $100$ 에피소드 정확도$\cdot$지연 헤드라인
+수치는 2026년 8월 14일 \textbf{철회}되었다 --- 철회 전문과 사유(프레임 불일치 $\cdot$ 기준선
+선택 $\cdot$ 프로세스 간 지연), 그리고 보존된 초판 원문은 부록~\ref{app:abstract_ledger}에
+있다. 검증된 대체값이 없는 항목은 숫자를 제시하지 않으며, 아래에는 검증된 대체 결과만 온다.
 
 % ADDED 2026-08-23: 초록이 철회만 담고 결과를 담지 않아 본문(1·3·6장)과 어긋나 있었다.
 % R3 심사 토론 ML 심사의 요구("초록을 제2장과 정합").
@@ -509,7 +543,7 @@ $25$\,m) 고정 교락은 \textbf{개입으로 종결}되었다(배치 \texttt{M
 참값의 시간전개만 $3$차 비선형($M{=}3$)으로 바꾼 짝 개입에서 \textbf{두 GT 팔이 모두
 확증 문턱을 넘는다}(비선형 $\mathbf{21/24}$, 상대 중앙 $\mathbf{-33.65\%}$; 같은
 성분$\cdot$같은 메시$\cdot$같은 광선의 선형 짝 $\mathbf{22/24}$, $-43.76\%$; 음성 대조는
-양 팔 $24/24$) ⟹ ★\textbf{비선형성은 매개하지 않는다.} ⚠단 이 코퍼스의 $3$차 속박
+양 팔 $24/24$) ⟹ ★\textbf{비선형성은 매개하지 않는다.}\MOneDriftFN{} ⚠단 이 코퍼스의 $3$차 속박
 조화는 성분의 $50.0\%$ 에서 격자 나이퀴스트 위로 절단되므로 \textbf{``절단된 $M{=}3$''}이고
 (⚠방향은 보수적이다), ⛔그 크기를 앞의 배치들과 직접 비교하지 않는다.
 ★\textbf{같은 날 \emph{학습 지지집합}의 구조 좌표도 처음으로 밀렸으나 답은
@@ -538,6 +572,18 @@ $16/16$ --- \emph{비교자에 기술이 있는 상태에서의} 미결), 수심
 ⚠★\textbf{학습 시드만 다른 두 체크포인트가 이미 $\mathbf{9/12}$ 로 갈리며}(중단 문턱 $10$ 을
 한 칸 차이로 면했다) 그 편차의 크기 $\mathbf{9.14\%}$ 는 재려던 두 요인 효과와 같거나 그보다
 크다 ⟹ ★\textbf{이 축의 어떤 주장도 그 편차보다 커야 한다.}
+% ADDED 2026-08-30 (M-10): ★소거표의 "관측 기하" 행에서 **피복** 성분이 배제된다.
+% 영문 초록에 같은 원자(45/48 · 31.69)를 미러한다.
+% ⛔"관측 기하가 무관하다" 금지(등가검정 없음) · ⛔기제 지목 금지(재채점) ·
+% ⚠혼잡 층 한정 · ⚠이 배치의 수는 GPU 산물이다.
+% 근거: tmp/M10_GEOMETRY_2026-08-30/verdict_m10.json (288행, 게이트 15종 전건)
+★\textbf{그리고 같은 날 \emph{관측 기하}의 한 성분이 배제되었다.} 합성 헤드라인의 이득이
+\emph{실측 코퍼스가 실제로 점유하는} 피복 대역(최근접 관측점까지 $5$\,m 이내) 안에도
+있는지를 동결 자료의 재채점으로 물었더니 \textbf{확증 문턱을 넘는다}($\mathbf{45/48}$,
+상대 중앙 $\mathbf{-31.69\%}$; 두 팔 모두 무기술 기준을 $48/48$ 로 이긴다)
+⟹ ★\textbf{합성 이득은 실측이 서 있는 곳 밖에만 있는 것이 아니다.}
+⛔\emph{``관측 기하가 무관하다''}로 넓히지 않으며(등가 검정을 하지 않았다), 배제된 것은
+\emph{피복} 성분 하나이고 개구$\cdot$입사각$\cdot$폐색은 그대로 미측정이다.
 ⟹ ★\textbf{따라서 본 논문은 작동 경계의 위치를 보고하고, \emph{파랑 조건} 축을
 배제하되, 그 경계가 놓인 축과 그 축 위의 원인은 제시하지 않는다}
 (\S\ref{sec:boundary}). ⚠\textbf{배제는 지목이 아니다.}
@@ -574,12 +620,22 @@ Beaufort 3에서 \textbf{92--96\%}의 성능을 달성한다.
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-Shipboard scanning LiDAR generates approximately 50--200 three-dimensional
-observation points per frame by scanning the forward ocean surface at 10\,Hz.
-Recovering a continuous, physically valid wave field from these sparse and
-heterogeneous observations in real time is a critical enabling technology for
+% CORRECTED 2026-08-30 (MINOR ② mirror): the English abstract still opened with the
+% ship-mounted-LiDAR framing that the 2026-08-22 title change removed ('ship-mounted'
+% and 'LiDAR' each have zero real-data validation; all 12 real records are fixed-station
+% stereo). The subject of the motivation is changed to the subject of the title (sparse
+% 3-D point clouds), and the motivating sensor is separated from the validated data.
+Remote sensors that scan the ocean surface --- shipboard scanning LiDAR, or
+fixed-station stereo imaging --- produce on the order of 50--200 sparse, heterogeneous
+three-dimensional observation points per frame.
+Recovering a continuous, physically valid wave field from such \textbf{sparse
+three-dimensional point clouds} in real time is a critical enabling technology for
 autonomous vessel safety, ride comfort, and energy efficiency, as well as for
 wave-preview control applications.
+⚠Shipboard LiDAR is the \emph{motivating sensor and the synthetic observation model} of
+this dissertation, \emph{not a validated platform}: the data on which its real-data
+measurements are made are $12$ \textbf{fixed-station stereo-reconstruction} records
+(the title reflects this).
 
 Existing grid-based methods such as the Ensemble Transform Kalman Filter
 (ETKF) suffer from aliasing introduced by interpolating sparse observations
@@ -627,27 +683,15 @@ ground-truth leakage --- it was, if anything, \emph{understated}.} ⚠This is a 
 \textbf{claims no corrected magnitude} (that combination was not measured).
 ⚠\textbf{The deployed default is not changed by this measurement.}
 
-% RETRACTED 2026-08-14: 국문초록과 동일 사유 (프레임 불일치 · 기준선 선택 · 프로세스 간 지연).
-% (근거: memory/reference_citation_bans.md (08-13 3라운드) · results/b1_full_comparison.json 재도출)
-% --- 원문 (이력 보존) ---
-% On a dataset of 100 episodes spanning Beaufort 2--5 sea states
-% (1--30 wave components, 5 random seeds, 2 raydrop models), \WS{} achieves a
-% \textbf{30.1\%} lower average nRMSE than a hyperparameter-tuned ETKF-grid
-% baseline (\textbf{0.223} vs.\ \textbf{0.319}) while running approximately
-% \textbf{10$\times$} faster (\textbf{13.4\,ms/frame}).
-% A pre-specified six-metric evaluation panel shows that \WS{} is the only
-% method with a positive Skill Score against a zero predictor (full-dataset
-% 95\% CI: $-0.08$ to $+0.15$; statistically significant only for
-% $\leq$5-component seas, 95\% CI: $+0.25$ to $+0.48$).
-% A 100-paired-run statistical validation confirms this improvement is
-% statistically significant ($p = 1.1\times10^{-15}$, Wilcoxon signed-rank;
-% Cohen's $d = 1.16$, large effect; Holm-corrected $p = 2.2\times10^{-15}$).
-\textbf{[RETRACTED] (2026-08-14):} the 100-episode accuracy and latency headline
-figures previously stated here are withdrawn. In the underlying result file the
-proposed method and the baselines were never scored on the same frames; the verdict
-depends on which baseline is chosen (against a tuned LETKF the same column is a
-statistical null); and the latency figures were measured in separate processes.
-No replacement numbers are given where none have been verified.
+% MOVED 2026-08-30 (MINOR ① mirror): the 2026-08-14 retraction block (with the first
+% edition's original text preserved as LaTeX comments) moved to
+% Appendix~\ref{app:abstract_ledger}; only the retraction notice pointer remains here.
+⚠\textbf{[Retraction notice]} The 100-episode accuracy and latency headline figures
+stated in the first edition of this abstract were \textbf{retracted} on 2026-08-14; the
+full retraction notice, its reasons (frame mismatch $\cdot$ baseline selection $\cdot$
+cross-process latency), and the preserved first-edition text are in
+Appendix~\ref{app:abstract_ledger}. No replacement numbers are given where none have
+been verified; only verified replacement results follow.
 
 % ADDED 2026-08-23: mirror of the Korean abstract update (R3, ML examiner).
 \textbf{[2026-08-23 re-measurement]} The verified replacement results are as follows.
@@ -855,7 +899,7 @@ state, a paired intervention that changes only the time evolution of the ground 
 third-order nonlinear ($M{=}3$) leaves \textbf{both ground-truth arms above the confirmatory
 threshold} (nonlinear $\mathbf{21/24}$, median relative $\mathbf{-33.65\%}$; the linear twin
 --- identical components, mesh and rays --- $\mathbf{22/24}$, $-43.76\%$; the negative
-control is $24/24$ in both arms) ⟹ ★\textbf{nonlinearity is not a mediator}. ⚠Third-order
+control is $24/24$ in both arms) ⟹ ★\textbf{nonlinearity is not a mediator}.\MOneDriftEN{} ⚠Third-order
 bound harmonics are truncated above the grid Nyquist for $50.0\%$ of the components, so this
 is a \textbf{``truncated $M{=}3$''} (⚠the direction of that bias is conservative), and
 ⛔its magnitude is not compared directly with the earlier batches.
@@ -891,6 +935,17 @@ $\mathbf{11/12}$. ⛔This is \emph{not} \emph{``retraining is futile''} but
 only in their pre-training seed already split $\mathbf{9/12}$} (the abort threshold was
 $10$), and the size of that spread, $\mathbf{9.14\%}$, is as large as or larger than the
 two factor effects being measured ⟹ ★\textbf{any claim on this axis must exceed it.}
+% ADDED 2026-08-30 (M-10): mirror of the Korean sentence added the same day.
+% Identical atoms: 45/48, 31.69. Forbidden here as in Korean: "observation geometry is
+% irrelevant" (no equivalence test); mechanism attribution (this is a re-scoring).
+★\textbf{On the same day one component of the \emph{observation geometry} was excluded.}
+Re-scoring the frozen corpus inside the coverage band that the real records actually occupy
+(within $5$\,m of the nearest observed point) leaves the synthetic margin \textbf{above the
+confirmatory threshold} ($\mathbf{45/48}$, median relative $\mathbf{-31.69\%}$; both arms
+beat the no-skill reference $48/48$) ⟹ ★\textbf{the synthetic gain does not live only
+outside the region the real data occupy.} ⛔This is not \emph{``observation geometry is
+irrelevant''} (no equivalence test was run): what is excluded is the \emph{coverage}
+component alone, while aperture, incidence angle and occlusion remain unmeasured.
 ⟹ ★\textbf{This dissertation therefore reports where the operating boundary lies and
 excludes the wave-condition axis, while identifying neither the axis it lies along nor any
 cause along it} (\S\ref{sec:boundary}). ⚠\textbf{Exclusion is not identification}:
@@ -1207,7 +1262,7 @@ $-16.17\%$ 로 통과) --- 이것은 표~\ref{tab:b26_absolute}의 기준선 $-4
 해상상태 위에서 참값을 $3$차 비선형($M{=}3$)으로 바꾼 짝 개입에서 \textbf{두 GT 팔이 모두
 유지}된다(비선형 $\mathbf{21/24}$, 상대 중앙 $\mathbf{-33.65\%}$; 같은 성분$\cdot$같은
 메시$\cdot$같은 광선의 선형 짝 $\mathbf{22/24}$; 음성 대조는 양 팔 $24/24$;
-\S\ref{sec:results_m1}) ⟹ ★\textbf{비선형성은 매개하지 않는다.}
+\S\ref{sec:results_m1}) ⟹ ★\textbf{비선형성은 매개하지 않는다.}\MOneDrift{}
 ⚠\textbf{동반 공시 둘} --- 이 코퍼스의 $3$차 속박 조화는 성분의 $50.0\%$ 에서 격자
 나이퀴스트 위로 잘리므로 \textbf{``절단된 $M{=}3$''}이고(방향은 보수적이다),
 ⛔그 크기를 다른 배치의 크기와 직접 비교하지 않는다.
@@ -1227,14 +1282,28 @@ $-16.17\%$ 로 통과) --- 이것은 표~\ref{tab:b26_absolute}의 기준선 $-4
 어느 것도 회복 문턱을 넘지 못하였고, ★\textbf{두 후보는 개입의 \emph{부호가 반대}로
 나와 닫혔다} --- \textbf{관측 창의 길이와 시간축}(학습 지지집합 쪽으로 줄일수록 제안
 표현 팔이 나빠진다: $2/12$, 용량--반응 단조)과 \textbf{표현의 \emph{용량}}(늘릴수록
-나빠진다: 최대 용량이 배포 용량에 실측 $0/12$$\cdot$합성 $0/48$) 이다
+나빠진다: 최대 용량이 배포 용량에 실측 $0/12$$\cdot$합성 $0/48$)\MFourGate{} 이다
 (\S\ref{sec:init-bank}). ⟹ \textbf{남는 것은 후보 목록이 아니라 \emph{공백}이다.}
 ④\textbf{그 축 위에 남은 후보는 넷인데, 그중 셋은 ``아직 안 쟀다''가 아니다} ---
-개입이 설계 가능한데 착수되지 않은 것은 \textbf{관측 기하}(개구$\cdot$입사각$\cdot$폐색)
-\emph{하나}이고, \textbf{전방모델의 정상성 가정}은 위 창 개입이 함께 건드렸으나 지지집합
+% NARROWED 2026-08-30 (M-10): "관측 기하" 는 성분의 **묶음**이었고 그중 **피복** 이
+% 이 날 배제되었다. 행 이름을 그대로 두면 배제된 성분까지 "미측정" 으로 읽힌다.
+개입이 설계 가능한데 착수되지 않은 것은 \textbf{관측 기하 중 \emph{피복}을 제외한 성분}
+(개구$\cdot$입사각$\cdot$폐색) \emph{하나}이고(★\emph{피복} 성분은 아래 문단이 적는 대로
+2026년 8월 30일에 배제되었다), \textbf{전방모델의 정상성 가정}은 위 창 개입이 함께 건드렸으나 지지집합
 접근과 \textbf{분리되지 않으며}, \textbf{스테레오 재구성면 자체의 오차}는 검증할 독립
 자료가 없어 \textbf{도달 불가}이고, \textbf{사이트 기하와 레코드 구성}은 보유 자료가
 $4$ 사이트 $12$ 레코드로 \textbf{고정이라 그 답이 곧 본 논문의 한계 문장}이다.
+% ADDED 2026-08-30 (M-10): ★"관측 기하" 행의 **피복** 성분이 배제된다.
+% ⛔"관측 기하가 무관하다" 금지(등가검정 없음) · ⛔기제 지목 금지(재채점) · ⚠혼잡 층 한정.
+% 근거: tmp/M10_GEOMETRY_2026-08-30/verdict_m10.json (게이트 15종 전건, 288행)
+★\textbf{그리고 그 행에서 \emph{피복} 성분이 2026년 8월 30일에 배제되었다} --- 합성
+혼잡 코퍼스의 관측점 간격은 실측 $12$ 레코드보다 \textbf{$17.9$--$39.0$배} 성기므로
+\emph{``합성의 이득은 실측이 서 있는 곳에는 없는 것 아닌가''}가 물을 수 있는 질문이었는데,
+동결 자료를 최근접 관측점까지의 거리로 분해해 재채점하면 \textbf{실측이 점유하는 대역
+($5$\,m 이내) 안에서도 확증 문턱을 넘는다}($\mathbf{45/48}$, 상대 중앙
+$\mathbf{-31.69\%}$; 비교자 유효성 $48/48$; \S\ref{sec:results_m10}).
+⛔\textbf{이것은 \emph{배제}이지 지목이 아니며}, ⛔\emph{``관측 기하가 무관하다''}로
+넓히지 않는다(등가 검정을 하지 않았다) --- 개구$\cdot$입사각$\cdot$폐색은 미측정이다.
 ⑤\textbf{두 쪽은 대칭이 아니다} --- 합성 쪽에는 기준선 대비 부호가 있으나 실측 쪽에는
 \textbf{외부 기준선 행이 $0$개}이고, 그 부재 자체가 측정된 한계다(기여 ⑥).
 
@@ -1436,7 +1505,7 @@ $16/16$ 이므로 \emph{비교자에 기술이 있는 상태에서} 갈리지 �
         확증 문턱을 넘는다}(비선형 $\mathbf{21/24}$, 상대 중앙 $\mathbf{-33.65\%}$,
         $p = 1.4\times10^{-4}$; 선형 짝 $\mathbf{22/24}$, $-43.76\%$; 음성 대조는 양 팔
         $24/24$; 배치 \texttt{M-1}, \S\ref{sec:results_m1}) ⟹ ★\textbf{비선형성은 매개하지
-        않는다.} ⚠\textbf{범위 셋}: ①이 코퍼스의 $3$차 속박 조화는 성분의 $50.0\%$ 에서
+        않는다.}\MOneDrift{} ⚠\textbf{범위 셋}: ①이 코퍼스의 $3$차 속박 조화는 성분의 $50.0\%$ 에서
         격자 나이퀴스트 위로 절단되므로 \textbf{``절단된 $M{=}3$''}이고 ⛔\emph{``완전한
         $M{=}3$ 에서도 유지된다''}로 일반화하지 않는다(⚠방향은 보수적이다) ②표본 서술은
         \texttt{mesh\_verdict} 삼분할이다($\text{HOS}$ 팔 \textsc{degraded} $23$
@@ -1493,6 +1562,24 @@ $16/16$ 이므로 \emph{비교자에 기술이 있는 상태에서} 갈리지 �
         ③⚠\textbf{학습 시드만 다른 두 체크포인트가 이미 $\mathbf{9/12}$ 로 갈린다}
         (중단 문턱 $10$ 을 한 칸 차이로 면했다) ⟹ ★이 축의 어떤 주장도 그 편차($9.14\%$)보다
         커야 한다(\S\ref{sec:limitations}).
+        % ADDED 2026-08-30 (M-10): ⑩ = 소거표의 "관측 기하" 행에서 **피복** 성분의 배제.
+        % ⛔"관측 기하가 무관하다" 금지(등가검정 없음) · ⛔기제 지목 금지(재채점이다) ·
+        % ⚠혼잡 층 한정 · ⚠GPU 산물 공시 · ⚠λ_p 층 병기.
+        % 근거: tmp/M10_GEOMETRY_2026-08-30/verdict_m10.json (288행, 게이트 15종 전건)
+        ⑩★\textbf{그리고 \emph{관측 기하} 행에서 \emph{피복} 성분이 배제되었다.} 이 논문의
+        두 코퍼스를 가장 크게 가르는 좌표는 관측의 촘촘함이고(합성 혼잡의 관측점 간격이
+        실측 $12$ 레코드보다 \textbf{$17.9$--$39.0$배} 성기다), 그래서 \emph{``합성의
+        이득은 실측이 서 있는 곳에는 없다''}가 가능한 반론이었다. 동결 혼잡 코퍼스를
+        최근접 관측점까지의 거리 셸로 분해해 재채점하면 \textbf{실측이 점유하는 대역
+        안에서도 확증 문턱을 넘는다}($\mathbf{45/48}$, 상대 중앙 $\mathbf{-31.69\%}$,
+        $p = 6.6\times10^{-11}$; 비교자 유효성 $48/48$; 배치 \texttt{M-10},
+        \S\ref{sec:results_m10}) ⟹ ★\textbf{그 반론이 닫힌다.}
+        ⛔\textbf{단 이것은 \emph{배제}다} --- ⛔\emph{``관측 기하가 무관하다''}로 넓히지
+        않으며(등가 검정을 하지 않았다) 개구$\cdot$입사각$\cdot$폐색은 미측정이다.
+        ⚠\textbf{공시 셋}: ①이 배치의 수는 \textbf{GPU 산물}이다(동결 앵커가 그 환경의
+        산물이라 CPU 고정과 동결 재현이 동시에 성립하지 않는다) ②$\lambda_p$ 는 층을
+        병기한다(BF4 $76.5$\,m $\cdot$ BF5 $126.5$\,m) ③재채점이므로 ⛔기제 지목과 인과
+        귀속은 하지 않는다 --- 최대 주장은 \emph{``이득의 위치''}까지다.
         % NARROWED 2026-08-23 (B-11b): "희소는 아티팩트" 판정이 두 명제를 묶고 있었다.
         % (1) 우리 오차가 선형 GT 에서 인위적으로 작다 -> 참(비선형화 시 3.60배 열화, 배치 안 짝 14/16)
         % (2) 따라서 기준선 대비 우위도 인위적이다 -> 반증(열화 후에도 15/16, -74.7%)
@@ -1511,7 +1598,7 @@ $16/16$ 이므로 \emph{비교자에 기술이 있는 상태에서} 갈리지 �
         ★\textbf{[표현 절제] 이 이득의 담지자가 \emph{연속 파수 표현}이라는 것은
         기준선 비교가 아니라 \emph{본 방법 내부의 절제}로 지탱된다} --- 배포
         파이프라인을 그대로 둔 채 파수의 연속성만 제거하면(격자 반올림 $+$ $(w,\phi)$
-        재적합) \textbf{혼잡 층 $46/48$}($-38.61\%$, $p = 4.2\times10^{-12}$)과
+        재적합) \textbf{혼잡 층 $46/48$}($-38.61\%$, $p = 4.2\times10^{-12}$)\CmpSkill{} 과
         \textbf{희소 층 $14/16$}($-67.43\%$, $p = 0.0021$)에서 모두 나빠지며,
         두 층 모두 간격을 두 배로 하면 더 나빠진다(용량--반응 $47/48$ 및 $14/16$).
         ⟹ \textbf{기여 ①은 두 층 모두에서 절제로 지탱된다}
@@ -1859,11 +1946,25 @@ $16/16$ 이므로 \emph{비교자에 기술이 있는 상태에서} 갈리지 �
 
   \item \textbf{주기적 재적합을 출하 기본값으로 채택하지 않았다.}
         % NEW 2026-08-23: 배포했다 같은 날 철회한 이력과 그 사유를 명시한다.
-        정확도 이득과 실시간 예산은 모두 측정되었으나(재적합을 비동기로 옮기면
+        % UPDATED 2026-08-30 (16인 심사 권고 ⑤, M-6): 종전 문안 "실시간 페이싱에서 이득이
+        % 유지된다" 를 철회한다 — 그 문장의 출처는 시드 1개의 선행 배치(B-9b)였고, 재생
+        % 배속을 처치로 건 전용 배치 M-6 에서 이득은 0.5배속에서만 가족단위로 생존한다.
+        % 실시간(1배속)은 25/36, 비보정 p=0.0144 = **명목**(Holm 실패)이고, 게이트 2건
+        % FAIL(G-2·G-8)로 라벨 자체가 EXPLORATORY 다. ⛔"비동기가 실시간에서 작동한다" 금지
+        % (금지 목록 08-30 묶음). ⚠단 "B-9b 재현 실패" 서술도 금지 — 사전등록의 그 갈래는
+        % 전 배속 사망이었고 0.5배속 생존 + 1배속 명목은 해당하지 않는다.
+        % 근거: tmp/M6_PACING_2026-08-28/verdict_m6.json (EFFECT-ALIVE-UPTO-0.5x [EXPLORATORY])
+        실시간 \emph{예산}은 측정되었다(재적합을 비동기로 옮기면
         \emph{런별 최악의 중앙값}이 $2.8$\,ms, \emph{전 런 최대}가 $6.51$\,ms 로 둘 다
-        예산 안에 들고, 실시간 페이싱에서 이득이 유지된다),
-        \textbf{비동기 재적합의 효과가 호출자의 벽시계 페이싱에 의존}하여 재생 속도가
-        실시간보다 빠른 실행에서는 설정이 켜져 있어도 실질적으로 동작하지 않는다.
+        예산 안에 든다). ⚠그러나 \textbf{``실시간 페이싱에서 이득이 유지된다''고는 쓰지
+        않는다} --- 재생 배속을 처치로 건 전용 배치에서 비동기 재적합의 이득은
+        \textbf{$0.5\times$ 배속에서만} 가족단위로 생존하고($31/36$, $p = 6.5\times10^{-6}$),
+        \textbf{실시간($1\times$)은 $25/36$($p = 0.0144$)로 \emph{명목}에 그치며}(Holm 실패),
+        $2\times$ 부터는 널이다(탐색적 등급; 게이트 $9/11$).
+        \textbf{비동기 재적합의 효과가 호출자의 벽시계 페이싱에 의존}하는 것은 이제 추론이
+        아니라 용량--반응 측정이다 --- 배속을 올리면 첫 착지가 늦어지고($7 \to 12$), 채점
+        지평을 넘겨 전면 무적용 런이 늘며($0/36 \to 33/36$), 그 죽음의 $88.5\%$ 는 제품의
+        자기 경보가 잡지 못했다.
         이 조용한 조건 의존성 때문에 기본값이 아니라 \emph{명시적으로 켜고 상태를 검사하는
         경로}로 제공한다.
 
@@ -2521,11 +2622,33 @@ $12$ 레코드는 전부 스테레오다}(제6장). 나아가 그들은 \emph{�
 $0$건} 열람하였다 --- 따라서 본 논문은 실험 설계 그 자체(예: \S\ref{sec:ladder} 의
 성분 사다리)에 대해서는 문헌 대비 신규성을 어느 방향으로도 주장하지 않으며, 그 절들은
 전부 \emph{논문 내부 대비}다.
+% ⛔RETRACTED 2026-08-30 (16인 심사 BLOCKER B-1): 종전 (ii) 는 이 자리에서
+%   *"그 경계를 만드는 원인을 목적함수 수준까지 분해한 것"* 이라 적었다. 그것은 본 논문의
+%   **단일 진술**(§sec:boundary)과 정면으로 충돌한다 -- 척추는 여섯 곳에서 **"그 축 위의
+%   원인은 제시하지 않는다"** 고 적는다. 게다가 (ii) 가 근거로 삼던 삼분 귀속(47%/16%/9%)은
+%   2026-08-22 에 이미 철회돼 있었다(§sec:contrib-limits).
+%   ★이 문단은 심사위원이 novelty 를 찾으러 여는 곳이므로 지우기만 하지 않고, **척추가
+%   허락하는 범위 안에서** 무엇을 더하는지 다시 적는다(허용 = "어디까지 되고 어디서
+%   안 되는지를 개입으로 확정" + "그 확정을 절제로 지탱").
+%   ⛔"원인"·"분해" 를 (i)(ii) 의 **주장**으로 쓰지 않는다 ·
+%   ⛔윗 문단들(WASSfast·Wang 2025 위치지음)은 한 글자도 건드리지 않았다.
+% 근거: tmp/B16_KGRID_2026-08-24/verdict_b16.json · tmp/B19_KGRID_SPARSE_2026-08-25/
+%       verdict_b19.json · tmp/B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json ·
+%       tmp/M10_GEOMETRY_2026-08-30/verdict_m10.json
 본 연구가 더하는 것은
 \textbf{(i) 격자 비의존 스펙트럼 표현을 이 문제에 적용했을 때 어디까지 되고 어디서
-안 되는지를 개입 실험으로 확정한 것}과 \textbf{(ii) 그 경계를 만드는 원인을
-목적함수 수준까지 분해한 것}이다. \S\ref{sec:contributions} 및
-\S\ref{sec:contrib-limits}를 보라.
+안 되는지를 개입 실험으로 확정한 것}과, \textbf{(ii) 그 확정을 \emph{절제}로 지탱한
+것}이다 --- 제안하는 성질을 하나씩 빼면 이득이 실제로 사라지는지를 같은 코퍼스에서
+재고(\S\ref{sec:ablation_k}), 그 이득이 \emph{실측 코퍼스가 점유하는 관측 기하} 안에도
+있는지를 동결 자료의 재채점으로 확인하였다(\S\ref{sec:results_m10}).
+⛔\textbf{[철회 2026-08-30]} 종전 문안은 (ii) 자리에서 \emph{경계를 만드는 기제를
+목적함수 수준까지 귀속하였다}고 적었다. \textbf{그 문장은 철회한다} --- 그것이 근거로
+삼았던 삼분 귀속($47\%/16\%/9\%$)은 2026년 8월 22일에 이미 철회되었고
+(\S\ref{sec:contrib-limits}), 무엇보다 본 논문의 단일 진술과 충돌한다:
+★\textbf{본 논문은 작동 경계의 위치를 보고하고, \emph{파랑 조건} 축을 배제하되, 그 경계가
+놓인 축과 그 축 위의 원인은 제시하지 않는다}(\S\ref{sec:boundary}).
+⚠\textbf{배제는 지목이 아니다.}
+\S\ref{sec:contributions} 및 \S\ref{sec:contrib-limits}를 보라.
 
 \chapter{격자 비의존 스펙트럼 파면 추정: \WS{}}
 \label{chap:wavesplat}
@@ -3597,15 +3720,15 @@ $\sigma = 0.02 \to 0$; $12$ 레코드 $\times$ 네 모서리). ``회복''은 그
 센서 반환 모형 & ⛔아니다 (결론 불변) & \texttt{slope} 모형 개입, \S\ref{sec:results_b11} \\
 관측의 희소성 & ⛔아니다 (문턱 미달) & 밀도$\times$잡음 완전요인 네 모서리 $8\cdot8\cdot4\cdot8$ / $12$ \\
 파랑 조건 $(H_s, T_p)$ & ⛔아니다 (\textbf{축의 배제}) & $2\times2$ 요인, 네 칸 유지, \S\ref{sec:results_b26} (⚠\emph{선형} 참값) \\
-★관측 창 길이$\cdot$시간축 & ⛔아니다 (★\textbf{부호가 반대}) & 창을 $2.0\,T_p$ 로 줄이면 제안 표현 팔이 $2/12$ 로 \emph{악화}, 용량--반응 단조 \\
-★표현의 \emph{용량} & ⛔아니다 (★\textbf{부호가 반대}) & 용량 사다리 $8$점, 최대 용량이 배포 용량에 실측 $0/12$$\cdot$합성 $0/48$ \\
+★관측 창 길이$\cdot$시간축 & ⛔아니다 (★\textbf{부호가 반대}) & 창을 $2.0\,T_p$ 로 줄이면 제안 표현 팔이 $2/12$ 로 \emph{악화}, 용량--반응 단조; ★같은 처치가 배포 실측 경로에는 \emph{이득} $11/12$ = \textbf{양성 판별 관찰}(⚠밀도 공변 동반, 아래 문단) \\
+★표현의 \emph{용량} & ⛔아니다 (★\textbf{부호가 반대}) & 용량 사다리 $8$점, 최대 용량이 배포 용량에 실측 $0/12$$\cdot$합성 $0/48$\MFourGate{} \\
 % ADDED 2026-08-29 (M-1 + M-3): 소거표에 **두 행**이 더해진다. 지위가 서로 다르다 --
 % 앞의 것은 "축의 배제"(파랑 조건 행과 같은 부류), 뒤의 것은 ★**부분 답**(저장소 최초로
 % 이 표에 들어온 형태)이다 ⟹ 판정 열의 문면을 다르게 쓴다.
 % ⛔"비선형성이 원인이 아니다" 로 넓히지 않는다(문턱 미달 ≠ 부재는 이 행에도 걸린다) ·
 % ⛔지지집합 행을 "닫혔다" 로 읽지 않는다 · ⛔수심 좌표는 어느 방향으로도 귀속 금지.
 % 근거: tmp/M1_NONLIN_REAL_2026-08-28/verdict_m1.json · tmp/M3_SUPPORT_2026-08-28/verdict_m3.json
-★참값의 \emph{비선형성} & ⛔아니다 (\textbf{축의 배제}) & 실측 해상상태 위 $2$ GT 팔 짝, 비선형 $\mathbf{21/24}$ ($-33.65\%$) $\cdot$ 선형 $\mathbf{22/24}$, \S\ref{sec:results_m1} (⚠\emph{절단된} $M{=}3$) \\
+★참값의 \emph{비선형성} & ⛔아니다 (\textbf{축의 배제}) & 실측 해상상태 위 $2$ GT 팔 짝, 비선형 $\mathbf{21/24}$ ($-33.65\%$) $\cdot$ 선형 $\mathbf{22/24}$, \S\ref{sec:results_m1} (⚠\emph{절단된} $M{=}3$)\MOneDrift{} \\
 ★학습 지지집합 (구조 좌표) & ⚠\textbf{부분 답} (⛔소거 아님) & 구조 좌표 $3$ 중 $2$ 측정: 방향폭 \textbf{미결} $\mathbf{10/16}$ $\cdot$ 방향 $\mathbf{13/16}$ 이나 비교자 무기술 $\cdot$ 수심은 \textbf{처치 미집행}, \S\ref{sec:results_m3} \\
 % ADDED 2026-08-30 (M-7): ★이 표의 **첫 학습-측 행**이다(앞 행들은 전부 평가-측 개입).
 % ⛔판정 열의 문면을 "재학습이 무익" 으로 넓히지 마라 — 결과 전 라벨 규칙 축자는
@@ -3695,6 +3818,7 @@ $0/7$ $\cdot$ 대형 박스 $0/5$)도 같은 방향이다. 결과 \emph{이전�
 ⟹ 소거표의 그 행은 \textbf{미결에서 ``아니다(부호가 반대)''로 닫힌다}: \emph{제안 표현은
 실측에서 용량이 모자라서 지는 것이 아니다.}
 
+\label{sec:cite-status-m4}%
 ⚠★\textbf{이 결과의 인용 지위 --- 어디까지 쓸 수 있는가.} 이 배치의 게이트는 개정 뒤
 \textbf{$51/51$} 이고 개정이 판정을 움직이지 않았음이 \textbf{비트로} 확인되었다(개정
 전후 판정 블록 전체가 동일). ⚠\textbf{그러나 게이트 전건 통과가 곧 무제한 인용이 아니며,
@@ -3754,6 +3878,21 @@ $11/12$ $\cdot$ $-16.5\%$ 로 재현된다). 같은 관측$\cdot$같은 채점$\
 ⛔\textbf{단 무엇을 쓰는지는 지목하지 않는다} --- 이 개입은 \emph{왜}를 재지 않았고
 (재적합$\cdot$기억 가중$\cdot$비정상성 노출$\cdot$밀도 중 무엇인지 분리되지 않았다),
 ⛔따라서 \emph{``배포 경로의 창 규약을 줄이자''}는 권고로도 올리지 않는다.
+% ADDED 2026-08-30 (16인 심사 권고 ④ — 판별자 승격 검토, 결정 = 제한 승격): 이 갈림을
+% 소거의 부산물이 아니라 **양성 관찰**로 명시한다. 승격 근거 = ①배포 경로 팔과 10/12
+% 문턱이 결과 이전에 동결된 라벨 표에 존재(사후 채굴 아님) ②용량--반응 전 수준 유의
+% (10/12·10/12·11/12) ③참값을 쓰지 않는 거울(고정 8초)에서 재현(11/12, −16.5%).
+% 승격 상한 = **사전등록 부차 위의 관찰** — 이 배치의 PRIMARY 는 제안 표현 팔이었고
+% "배포 경로가 이득" 은 등록된 가설이 아니었다("요약은 사전등록보다 넓게 나가지 마라")
+% ⟹ ⛔확증(CONFIRMATORY) 아님 · ⛔기여 목록 승격 금지 · ⛔기제 지목·배포 권고 금지 ·
+% ⚠밀도 공변 공시(아래 문단) 동반 의무 · ⚠SHIP 은 부분 판별자(지지집합·정상성 동시 변화).
+% 근거: tmp/M5b_WINDOW_2026-08-28/verdict_m5b.json (게이트 27/27) · RESULT.md §2·§7-2
+★\textbf{[지위, 2026-08-30]} 이 갈림은 소거표의 부산물이 아니라 이 배치의 \textbf{양성
+관찰}이다 --- 배포 실측 경로 팔과 그 $10/12$ 문턱은 결과 이전에 동결된 라벨 표에 있었고,
+용량--반응의 세 수준 전부에서 유의하며, 참값을 쓰지 않는 거울에서 재현되었다.
+⛔단 그 지위의 상한은 \emph{사전등록된 부차 위의 관찰}이다 --- 이 배치의 일차 가설은 제안
+표현 팔에 대한 것이었고 배포 경로의 이득은 등록된 가설이 아니었으므로, ⛔확증으로도
+⛔기여로도 올리지 않으며, 인용은 아래 밀도 공변 공시를 \textbf{반드시} 동반한다.
 
 ⚠\textbf{[밀도 공변 --- 이 결과를 인용할 때 반드시 함께 읽는다]} 이 배치의 처치 정의는
 \textbf{관측 수를 $600$으로 고정}하는 것이므로, 창을 줄이면 관측 시각의 \emph{밀도}가
@@ -4893,6 +5032,12 @@ $64$개 혼잡 에피소드}를 보았음을 집합 일치로 확인하였다. �
 부호검정(단측)으로 $p = 1.13\times10^{-16}$ 이다(양측 $2.3\times10^{-16}$).
 \textbf{기준선도 무기술 기준을 $64/64$ 로 이긴다} --- 즉 이 비교는 \emph{두 팔 모두 기술이 있는}
 상태에서의 비교이며, 무기술 기준을 못 넘는 팔과의 대조가 아니다.
+% ADDED 2026-08-30 (권고 C-5): "이겼다" 는 **부호**이지 **강도**가 아니다. 강도를 셸로
+% 분해한 자료가 §sec:results_m10 에 있고, 그것이 적대적 축의 최강 반론("비교자가 면적
+% 대부분에서 기술 바닥이다")을 닫는다 ⟹ 헤드라인 크기를 적는 자리마다 병기한다.
+⚠★\textbf{그러나 ``이긴다''는 \emph{부호}이지 \emph{강도}가 아니다} --- 기준선의 전역
+기술이 얼마이고 그 강도가 셸에 따라 어떻게 달라지는지는 \S\ref{sec:results_m10} 이
+분해한다.\CmpSkill{}
 
 % ADDED 2026-08-27 (T2, 크기 인용 규율): 원고가 이 마진을 소수 둘째 자리까지(-38.58%)
 % 인용하고 있었는데, 같은 SPEC25 열에 우리 팔만 갈아 끼우면 -24.4 / -41.0 / -43.5 / -38.6
@@ -5194,7 +5339,7 @@ $16$ = \texttt{ADEQUATE} $11$ $\cdot$ \texttt{DEGRADED} $2$ $\cdot$
 $83.6$--$99.8\%$ 가 HOS 메시 아래에 있다). ⛔등급으로 층을 나누어 재검정하지 않는다
 ($n = 16$ 을 쪼개면 검정력이 없다) --- \textbf{나누지 말고 적기만 한다.}
 
-⚠\emph{[범위]} ①\textbf{크기를 위 $-38.61\%$ 및 \S\ref{sec:results_b1} 의 크기와
+⚠\emph{[범위]} ①\textbf{크기를 위 $-38.61\%$\CmpSkill{} 및 \S\ref{sec:results_b1} 의 크기와
 직접 비교하지 않는다} --- 표본$\cdot$참값$\cdot$비선형성 실현 등급 분포가 모두 다르다.
 주장하는 것은 \emph{같은 방향}이라는 것뿐이다.
 ②\textbf{이 배치에 외부 기준선 행은 $0$개다} --- 이것은 \emph{본 방법 내부의 절제}이며,
@@ -5268,7 +5413,7 @@ $\pm 5\%$ 밴드 안에 들고(TOST 통과), 상대 중앙은 $-0.26\%$, 절제 
 
 ⟹ ★\textbf{두 층 모두에서 절제의 담지자는 파수 양자화이지 재적합이 아니다. 따라서 위
 두 절제의 \emph{크기}는 이제 교락이 닫힌 값이다} --- 희소 층 $-67.43\%$ 의 교락은
-\texttt{B-20} 이, 혼잡 층 $-38.61\%$ 의 교락은 \texttt{B-21} 이 닫는다(\textbf{층별로
+\texttt{B-20} 이, 혼잡 층 $-38.61\%$\CmpSkill{} 의 교락은 \texttt{B-21} 이 닫는다(\textbf{층별로
 서로 다른 배치가 닫으며, 한 배치의 판정을 다른 층에 옮기지 않는다}).
 
 ⚠\emph{[범위]} ①\textbf{두 배치의 \emph{희소} 결과는 독립 확인이 아니다} --- 같은
@@ -5303,7 +5448,7 @@ $-38.84\%$; 중앙 nRMSE $0.1342$ 대 $0.2136$)이다.
 음성 대조는 셋 모두 통과한다(통제 팔 $\cdot$ 배포 팔이 각각 참 제로필드를 $48/48$ 로
 이기고, 처치된 팔조차 $38/48$ 로 이긴다) ⟹ 두 팔 모두 뺄 기술이 있는 상태의 비교다.
 ⚠\textbf{크기 인용값은 움직이지 않는다} --- 이 통제 팔 기준의 크기($-38.84\%$)와 배포 팔
-기준의 크기($-38.61\%$)의 차이 $0.23$\,pp 는 결과 이전에 동결한 시드 재추첨 밴드
+기준의 크기($-38.61\%$)\CmpSkill{} 의 차이 $0.23$\,pp 는 결과 이전에 동결한 시드 재추첨 밴드
 ($2.36$\,pp) 안이다.
 
 ⛔\emph{[이 문단으로 못 하는 것 --- 결과 이전에 동결된 규칙]}
@@ -5729,7 +5874,7 @@ $0.118 \to 0.137$ 로 \emph{함께} 나빠진다.}
 ★★\textbf{따라서 코너 사이의 순위를 주장하지 않는다 --- 세 척도가 서로 다른 칸을
 가리킨다.} \textbf{(i)}~\emph{승수}로는 \texttt{SS-REAL}이 최고다($24/24$).
 \textbf{(ii)}~\emph{상대 크기}로는 네 칸 중 세 칸이 서로 $0.25$\,pp 안에 들어
-($-42.37\%$, $-42.17\%$, $-42.42\%$) \textbf{사실상 구분되지 않는다}.
+($-42.37\%$, $-42.17\%$, $-42.42\%$) \textbf{사실상 구분되지 않는다}.\CmpSkill{}
 \textbf{(iii)}~\emph{절대 정확도}로는 순서가 \textbf{정확히 반대}이며
 \texttt{SS-REAL} 의 오차는 헤드라인 칸보다 $16.1\%$ \emph{높다}
 (\texttt{SS-LOWH} $+47.2\%$, \texttt{SS-SHORT} $+16.5\%$).
@@ -6243,6 +6388,119 @@ $0$건은 그 스트림이 재시도 경로를 타므로 \textbf{항등식에 �
 그것을 한 번 더 소모했다.} 실측에 학습 경로를 강제하는 것은 비승인 정책이며 별도 승인으로
 풀렸다. ⛔그 승인은 배포 기본값을 바꾸지 않는다 --- 배포 실측 경로의 도메인 게이트는
 \textbf{그대로 켜져 있고} 이 강제는 \textbf{측정 전용}이다.
+
+% ============================================================================
+% ADDED 2026-08-30 (M-10): ★소거표의 "관측 기하" 행에서 **피복** 성분이 배제된다 --
+%   합성 이득이 실측 코퍼스가 실제로 점유하는 피복 대역 안에도 있다.
+%   ★그리고 **같은 동결 행**이 적대적 축의 최강 공격("면적의 대부분에서 비교자가 기술
+%   바닥 근처인데 어느 게이트도 그것을 본 적이 없다")을 재집계로 닫는다.
+%   ⚠그 재집계는 **사전등록 밖**이므로 EXPLORATORY 이고 라벨을 만들지 않는다.
+% ⛔"관측 기하가 무관하다" 금지(등가검정 없음) · ⛔기제 지목·인과 귀속 금지(재채점이다) ·
+% ⛔"CPU 에서 검증했다" 금지(이 배치의 수는 GPU 산물) · ⚠λ_p 는 층을 병기 ·
+% ⚠혼잡 층 한정 · ⚠"절단된 M=3" 공시 · ⚠셸 집계 규약이 배포 코드와 다르다.
+% 근거: tmp/M10_GEOMETRY_2026-08-30/verdict_m10.json (288행, 게이트 15종 전건) ·
+%       같은 배치 AMENDMENT_1.md (BLOCKER-D1 장치 · BLOCKER-P1 λ 정규화) ·
+%       재집계 단일출처 = tmp/STATUS_2026-08-30/shell_recount.py
+%       (새 런 0회. 그 스크립트가 동결 288행에서 표를 **다시 만들고** 이 절의 수와
+%        어긋나면 AssertionError 로 죽는다 = 손복사 방지 장치)
+% ============================================================================
+\subsection{합성 이득은 실측이 점유하는 관측 기하 안에도 있는가 (2026-08-30)}
+\label{sec:results_m10}
+
+\S\ref{sec:boundary} 의 소거표에서 \textbf{관측 기하}는 \emph{``개입이 설계 가능한데
+착수되지 않은''} 유일한 행이었다. 그 행은 사실 여러 성분의 묶음이고, 그중 \emph{피복}
+--- 관측점이 장을 얼마나 촘촘히 덮는가 --- 은 본 논문의 두 코퍼스를 가장 크게 가르는
+좌표다. 합성 혼잡 코퍼스의 관측점 간격 중앙값은 $88.1$\,m 이고 첨두 파장으로 정규화하면
+BF4 층 $1.152\,\lambda_p$ $\cdot$ BF5 층 $0.697\,\lambda_p$ 인데, 실측 $12$ 레코드의
+중앙 간격은 $0.0223$--$0.0485\,\lambda_p$ 로 \textbf{$17.9$--$39.0$배} 조밀하다.
+⟹ \emph{``합성의 이득은 실측이 서 있는 곳에는 없는 것 아닌가''}가 답해야 할 질문이다.
+
+\paragraph{설계}
+새 팔을 정의하지 않는다. \S\ref{sec:results_b11} 의 동결 혼잡 코퍼스($48$ 에피소드,
+HOS $M{=}3$)를 같은 두 팔(제안 표현 $\cdot$ 격자 기준선)로 다시 돌리되 \textbf{채점만}
+최근접 관측점까지의 거리 셸로 분해한다($288$행 $=48 \times 2$ 팔 $\times 3$ 시드).
+결과 \emph{이전에} 밴드 셋을 고정했다 --- \texttt{BAND\_REAL} $=$ \texttt{obs:0\_5}
+(실측이 점유하는 대역), \texttt{BAND\_WIDE} $\le 20$\,m, \texttt{BAND\_FAR} $\ge 50$\,m
+--- 그리고 \textbf{비교자 유효성}을 차단 게이트로 걸었다(기준선이 무기술 기준을 확증
+문턱 이상으로 이기지 못하면 판정 자체가 무효다).
+
+\paragraph{결과}
+\texttt{BAND\_REAL} 에서 \textbf{$45/48$}, 상대 중앙 \textbf{$-31.69\%$}
+($p = 6.6\times10^{-11}$)로 \textbf{확증 문턱을 넘는다}.
+두 팔 모두 무기술 기준을 $48/48$ 로 이기므로 이 비교는 \textbf{양쪽 다 기술이 있는}
+상태에서의 비교다. 민감도 대역($\le 20$\,m)은 $46/48$($-40.07\%$), 먼바다($\ge 50$\,m)는
+$43/48$($-37.00\%$)이고, 결과 이전에 등록한 이차 주장(\emph{``가까운 대역에서는 이득이
+작다''})은 $24/48$($p = 0.56$)로 \textbf{널}이다.
+⟹ ★\textbf{소거표의 \emph{관측 기하} 행에서 \emph{피복} 성분이 배제된다.}
+⛔\textbf{그러나 이것은 \emph{배제}이지 지목이 아니다} --- ⛔\emph{``관측 기하가
+무관하다''}로 넓히지 않는다(등가 검정을 하지 않았다). 개구$\cdot$입사각$\cdot$폐색은
+그대로 미측정이다.
+
+\paragraph{★같은 동결 행이 답하는 두 번째 질문 --- 비교자는 어디에서 강한가}
+심사에서 나온 가장 날카로운 반론은 \emph{``면적의 대부분에서 비교자가 기술 바닥 근처인데
+어느 게이트도 그것을 본 적이 없다''}였다. 위 $288$행이 셸별 무기술 기준을 함께 싣기
+때문에 그 반론은 \textbf{새 추정 없이} 검사된다.
+★\textbf{먼저 반론이 옳은 부분}: 이 코퍼스에서 격자 기준선의 \textbf{전역} 기술은
+무기술 대비 $\mathbf{16.9\%}$ 에 그치고(제안 표현은 $49.2\%$), \textbf{최외곽 셸(면적
+$21.11\%$)에서는 기준선이 무기술 기준보다 오히려 나쁘다}(비 $\mathbf{1.054}$).
+★\textbf{그러나 결론은 반대로 나온다} --- 기준선이 기술을 가진 셀만 남겨 면적 가중으로
+다시 집계하면 마진이 \emph{줄지 않고 커진다}(표~\ref{tab:shell_recount})
+⟹ ★\textbf{마진은 비교자의 붕괴가 만든 것이 아니다.}
+
+\begin{table}[htbp]
+\centering
+\caption{셸 면적가중 재집계 --- 마진은 비교자가 \emph{강한} 곳에서 오히려 커진다.
+⚠\textbf{EXPLORATORY}(사전등록 밖의 재집계, 라벨을 만들지 않는다). 자료 $=$ 배치
+\texttt{M-10} 의 동결 $288$행, 새 추정 $0$회. 단일출처 $=$
+\texttt{tmp/STATUS\_2026-08-30/shell\_recount.py}}
+\label{tab:shell_recount}
+\begin{tabular}{lrrr}
+\hline
+재집계 대상 (셸 = 최근접 관측점까지의 거리) & 면적 & 제안 표현 승 & 상대 중앙 \\
+\hline
+전체 $9$ 셸 & $100.0\%$ & $44/48$ & $-41.65\%$ \\
+비교자 기술 $\ge 5\%$ 인 셀 & $78.0\%$ & $\mathbf{47/48}$ & $\mathbf{-45.15\%}$ \\
+비교자 기술 $\ge 20\%$ 인 셀 & $41.9\%$ & $\mathbf{48/48}$ & $-42.87\%$ \\
+비교자 기술 $< 5\%$ 인 셀 & $22.0\%$ & $38/48$ & $-31.29\%$ \\
+\hline
+\end{tabular}
+\end{table}
+
+⚠\textbf{이 재집계에 붙는 공시 둘.}
+①\textbf{사전등록에 없다} ⟹ \texttt{EXPLORATORY} 이고 라벨을 만들지 않으며 소거표의
+어느 행도 바꾸지 않는다. 마스크는 \emph{셀}(에피소드 $\times$ 셸) 단위이고, 마지막 행에서
+마스크가 빈 에피소드 둘은 상대차 $0$ $\cdot$ 면적 $0$ 으로 남겼다(그 에피소드에는
+기술 $<5\%$ 인 영역이 존재하지 않는다 $=$ 승리가 아니다).
+②★\textbf{집계 규약이 다르다} --- 면적 가중 RMS 는 추정기 자신의 전역 집계와 \emph{같은
+수가 아니다}. 같은 $48$ 에피소드에서 전자는 $44/48$($-41.65\%$), 후자는 $43/48$
+($-40.19\%$)로 \textbf{$1$승 $\cdot$ $1.45$\,pp} 어긋난다.
+⛔두 규약의 수를 섞어 인용하지 않는다.
+
+⚠\textbf{이 절을 인용할 때 반드시 동반해야 하는 공시 다섯.}
+\textbf{(1)}~★\textbf{이 배치의 수는 GPU 산물이다.} 사전등록 초판은 장치를 CPU 로
+고정하라고 적었는데, 그렇게 하면 동결 재현 게이트가 전건 실패한다(상대 차
+$3.2\times10^{-1}$) --- 앵커인 동결 자료 자체가 GPU 가 보이는 환경의 산물이기 때문이다.
+개정으로 재현 통화를 \emph{``스레드 고정 $\cdot$ GPU 허용''}으로 바꾸었고
+⛔\emph{``CPU 에서 검증했다''}는 이 절에 대해 \textbf{거짓}이다. ★일반 규율로 적어 둔다:
+\textbf{동결값을 되맞추는 배치는 환경을 자기 취향대로 고를 수 없다 --- 환경도 앵커의
+일부다.}
+\textbf{(2)}~⚠\textbf{$\lambda_p$ 는 층을 병기한다.} 코퍼스는 BF4 $24$ $+$ BF5 $24$ 이고
+$\lambda_p$ 가 $76.5$\,m 대 $126.5$\,m 다. 사전등록 초판이 BF4 전용값으로 전 코퍼스를
+정규화한 것을 개정이 정정했고, 그래서 위 피복 격차는 \emph{``$25$--$30$배''}가 아니라
+\textbf{$17.9$--$39.0$배}다.
+\textbf{(3)}~⛔★\textbf{``밴드가 실측보다 넓다''를 층 없이 쓰지 않는다} ---
+\texttt{obs:0\_5} 의 상한은 BF4 층에서 $0.0654\,\lambda_p$ 이나 BF5 층에서는
+$0.0395\,\lambda_p$ 이고, 실측 $12$ 레코드 중 \textbf{둘}(\texttt{BS\,11a} $\cdot$
+\texttt{YS\,17})은 그보다 멀다. ✅그럼에도 밴드는 바꾸지 않았다 --- 사후 밴드 교체는 이
+저장소가 이미 물린 이탈이다. 이것은 밴드를 고르는 근거가 아니라 \textbf{밴드의 한계
+공시}다.
+\textbf{(4)}~⚠접두어는 \texttt{obs:}(최근접 \emph{관측점}까지의 거리)이지 배까지의
+거리가 아니다 --- 같은 표본에서 두 양이 $1.8$--$4.1$배 갈린다. 그리고 이 배치는 셸 집계
+규약을 기준선 쪽으로 통일했으므로 배포 코드가 내는 셸 값과 \textbf{같은 수가 아니다}.
+\textbf{(5)}~⚠혼잡 층 한정이고, 참값은 \textbf{``절단된 $M{=}3$''}이며 메시 판정이
+시드별로 갈린다(적정 $\cdot$ 열화 둘 다 나온다). ⛔\textbf{재채점이므로 기제 지목과 인과
+귀속은 하지 않는다} --- 최대 주장은 \emph{``이득의 위치''}까지다. ⚠체크포인트가 평가와
+같은 분포라는 단서는 이 절에서 그대로다.
 
 \subsection{에피소드별 상세 결과}
 \label{sec:per_episode}
@@ -8730,7 +8988,7 @@ nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
         위에서 참값의 시간전개만 $3$차 비선형($M{=}3$)으로 바꾼 짝 개입에서 \textbf{두
         GT 팔이 모두 확증 문턱을 넘는다}(비선형 $\mathbf{21/24}$, 상대 중앙
         $\mathbf{-33.65\%}$; 선형 짝 $\mathbf{22/24}$; 음성 대조는 양 팔 $24/24$;
-        \S\ref{sec:results_m1}) ⟹ ★\textbf{비선형성은 매개하지 않는다.} ⚠이 코퍼스의
+        \S\ref{sec:results_m1}) ⟹ ★\textbf{비선형성은 매개하지 않는다.}\MOneDrift{} ⚠이 코퍼스의
         $3$차 속박 조화는 성분의 $50.0\%$ 에서 절단되므로 \textbf{``절단된 $M{=}3$''}이고
         (방향은 보수적이다), ⛔크기를 다른 배치와 직접 비교하지 않는다.
         ★\textbf{같은 날 \emph{학습 지지집합}의 구조 좌표도 처음 밀렸으나 답은
@@ -8759,6 +9017,16 @@ nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
         같거나 그보다 크다 ⟹ ★\textbf{이 축의 어떤 주장도 그 편차보다 커야 한다.}
         ⚠지지집합 \emph{안}인 코너 하나가 위 네 칸 중 가장 약했으므로
         ⛔\emph{``지지집합 소속이 성능을 예측한다''}도 쓸 수 없다.
+        % ADDED 2026-08-30 (M-10): 제3장에 신설한 절과 같은 지위를 결론도 말해야 한다
+        % ("문서가 절반만 따라왔다" 부류의 재발 방지 -- 위원장 사유 ④).
+        % ⛔"관측 기하가 무관하다" 금지 · ⛔기제 지목 금지 · ⚠GPU 산물 공시.
+        % 근거: tmp/M10_GEOMETRY_2026-08-30/verdict_m10.json (게이트 15종 전건)
+        ★\textbf{그리고 소거표의 \emph{관측 기하} 행에서 \emph{피복} 성분이 배제되었다}
+        --- 동결 혼잡 코퍼스를 최근접 관측점까지의 거리로 분해해 재채점하면 \textbf{실측
+        $12$ 레코드가 점유하는 대역 안에서도 확증 문턱을 넘는다}($\mathbf{45/48}$, 상대
+        중앙 $\mathbf{-31.69\%}$; 비교자 유효성 $48/48$; \S\ref{sec:results_m10}).
+        ⛔\emph{``관측 기하가 무관하다''}로 넓히지 않으며(등가 검정을 하지 않았다),
+        ⚠이 배치의 수는 \textbf{GPU 산물}이고 ⛔재채점이므로 기제를 지목하지 않는다.
         ⟹ 본 논문은 \textbf{작동 경계의 위치를 보고하고, \emph{파랑 조건} 축을
         배제하되, 그 경계가 놓인 축과 그 축 위의 원인은 제시하지 않는다}
         (\S\ref{sec:boundary}, \S\ref{sec:init-bank}).
@@ -9380,5 +9648,74 @@ GT, \WS{}, ETKF, GPR 4열 비교로 제시하며,
 \section{Beaufort 5, 30 성분}
 \epfour{BF5_30comp}{BF5 30-comp}{bf5_30comp}
 \eprest{BF5_30comp}{BF5 30-comp}{bf5_30comp}
+
+
+%% ============================================================================
+%% ADDED 2026-08-30 (16인 심사 MINOR ①): 초록(국/영)이 원장 형태(~4쪽)로 자라 요약 기능을
+%% 잃었다는 외부 심사 지적(종합자 동의). 철회 블록을 삭제하지 않고 이 부록으로 옮긴다.
+%% ⚠나머지 초록 문단들은 옮기지 않았다 — 그 길이는 원장이 아니라 **의무**다: 인용 수치마다
+%% 붙는 동반 공시(밀도 공변·M2 국소화·관측 모형·크기 반올림 등)와, "같은 주장이 N곳이면
+%% N곳 전부" 를 기계로 강제하는 커버리지 검사(tmp/STATUS_2026-08-28/audit_thesis_canonical.py
+%% 의 COVERAGE 가 초록 국/영 스팬 안에 해당 원자를 요구한다)가 그 문단들을 초록 안에 묶는다.
+%% 추가 압축은 그 검사 규약의 재설계(별도 결정)와 함께만 가능하다.
+\chapter{초록 철회 원장}
+\label{app:abstract_ledger}
+
+본 부록은 초록(국문$\cdot$영문)에서 옮겨 온 2026-08-14 철회 블록을 \textbf{원문 그대로}
+보존한다. 철회는 삭제가 아니라 이동이며, 각 블록이 철회한 초판 문안(수치 포함)은 이 문서
+소스의 LaTeX 주석으로 함께 보존되어 있다. ⛔여기 보존된 초판 수치는 \textbf{인용
+금지}다(철회 사유가 그 수치 자체에 있다).
+
+\section{국문 초록의 철회 블록 (2026-08-14 철회, 2026-08-30 이동)}
+
+% RETRACTED 2026-08-14: 아래 원문의 헤드라인 수치 전체가 인용금지다. 사유는 "출처 부재"가
+% 아니라 (i) 프레임 불일치 — 근거 파일 results/b1_full_comparison.json 에서 WaveSplat 은
+% 평균 167 프레임(120--220), ETKF·GPR-1 은 301 프레임에서 채점됐고 100/100 에피소드 전부에서
+% WS 가 더 적다 ⟹ 두 팔이 같은 프레임에서 채점된 적이 없다 (ii) 기준선 선택 — 그 ETKF 는
+% grid 40x30 / ne=100 / mult_inflation 1.0 이고, 같은 WS 열을 튜닝 LETKF 와 붙이면
+% results/100ep_ws_letkf.json 에서 0.2229 vs 0.2278, 51/100, p=0.9204 = 널
+% (iii) 지연은 프로세스 간 비교다. Skill Score 열과 Wilcoxon p / Cohen's d 도 같은 파일 계열이다.
+% (근거: memory/reference_citation_bans.md (08-13 3라운드) · 직접 재도출 2026-08-14)
+% --- 원문 (이력 보존) ---
+% 100개 에피소드(Beaufort 2--5 해상, 성분 수 1--30, 5개 시드, 2가지 raydrop 모델)에
+% 걸친 평가에서, \WS{}는 하이퍼파라미터를 최적화한 ETKF 대비 평균 nRMSE를
+% \textbf{30.1\%} 낮추고 (\textbf{0.223} vs.\ \textbf{0.319}),
+% 처리 속도는 약 \textbf{10배} 빠른 \textbf{13.4\,ms/프레임}을 달성한다.
+% 사전 지정된 6개 지표 평가 패널에서 \WS{}는 zero-predictor 대비 양수의
+% 점추정 Skill Score를 기록한 유일한 방법임을 보인다
+% (전체 95\% bootstrap CI는 0을 포함하나, $\leq$5-성분 해상에서는 유의).
+% 100회 대응 검증을 통한 Wilcoxon signed-rank 검정 결과
+% ($p = 1.1\times10^{-15}$, Cohen's $d = 1.16$)는 이 차이가
+% 통계적으로 유의한 large effect임을 확인한다.
+\textbf{[철회] (2026-08-14):} 본 초록이 원래 제시하던 100 에피소드 정확도·지연 헤드라인
+수치는 철회한다. 근거 파일에서 \WS{}와 기준선이 서로 다른 프레임 수에서 채점됐고,
+기준선 선택이 결과를 좌우하며(같은 \WS{} 열을 튜닝된 LETKF와 대조하면 차이가 통계적 널이다),
+지연은 서로 다른 프로세스에서 측정됐다.
+검증된 대체값이 없는 항목은 숫자를 제시하지 않는다.
+
+\section{영문 초록의 철회 블록 (2026-08-14 철회, 2026-08-30 이동)}
+
+% RETRACTED 2026-08-14: 국문초록과 동일 사유 (프레임 불일치 · 기준선 선택 · 프로세스 간 지연).
+% (근거: memory/reference_citation_bans.md (08-13 3라운드) · results/b1_full_comparison.json 재도출)
+% --- 원문 (이력 보존) ---
+% On a dataset of 100 episodes spanning Beaufort 2--5 sea states
+% (1--30 wave components, 5 random seeds, 2 raydrop models), \WS{} achieves a
+% \textbf{30.1\%} lower average nRMSE than a hyperparameter-tuned ETKF-grid
+% baseline (\textbf{0.223} vs.\ \textbf{0.319}) while running approximately
+% \textbf{10$\times$} faster (\textbf{13.4\,ms/frame}).
+% A pre-specified six-metric evaluation panel shows that \WS{} is the only
+% method with a positive Skill Score against a zero predictor (full-dataset
+% 95\% CI: $-0.08$ to $+0.15$; statistically significant only for
+% $\leq$5-component seas, 95\% CI: $+0.25$ to $+0.48$).
+% A 100-paired-run statistical validation confirms this improvement is
+% statistically significant ($p = 1.1\times10^{-15}$, Wilcoxon signed-rank;
+% Cohen's $d = 1.16$, large effect; Holm-corrected $p = 2.2\times10^{-15}$).
+\textbf{[RETRACTED] (2026-08-14):} the 100-episode accuracy and latency headline
+figures previously stated here are withdrawn. In the underlying result file the
+proposed method and the baselines were never scored on the same frames; the verdict
+depends on which baseline is chosen (against a tuned LETKF the same column is a
+statistical null); and the latency figures were measured in separate processes.
+No replacement numbers are given where none have been verified.
+
 
 \end{document}

@@ -140,7 +140,7 @@ CHECKS = [
  ("M-8b ΣΔ_k",               M8B, "amendment_2.factorization.sum_delta_log",      lambda v: f"{v:.6f}"),
  ("M-8b 끝점 Δlog",           M8B, "amendment_2.factorization.endpoint_delta_log", lambda v: f"{v:.6f}"),
  ("M-8b 승수 곱",             M8B, "amendment_2.factorization.mult_sum",           lambda v: f"{v:.5f}"),
- ("M-8b 끝점 승수",           M8B, "amendment_2.factorization.mult_endpoint",      lambda v: f"{v:.5f}"),
+ ("M-8b 끝점 승수곱",         M8B, "amendment_2.factorization.mult_endpoint",      lambda v: f"{v:.5f}"),
  ("M-8b 가법성 격차 %",        M8B, "amendment_2.factorization.gap_pct",            lambda v: f"{v:.3f}"),
  ("M-8b L1 승수",            M8B, "chain.0.worse",                     lambda v: cnt(v,12)),
  ("M-8b L2 승수",            M8B, "chain.1.worse",                     lambda v: cnt(v,12)),
@@ -220,21 +220,149 @@ CHECKS = [
  ("M-7 게이트",              M7,  "gates_pass",                                 lambda v: cnt(v,16)),
 ]
 
-bad = []
+# ═══════════════════════════════════════════════════════════════════════════
+# ★★★2026-08-30 — **앵커 동결**. 그전까지 판정은 `needle in b` (본문 어딘가에
+#   그 문자열이 부분문자열로 있는가) 하나였다. 돌연변이 시험이 그것을 반쯤 무력화했다:
+#
+#     verdict 값을 마지막 자리 ±1 로 흔들어도 그대로 통과 = **71/148 = 48.0%**
+#     (예: `M-1 LIN 승수 22/24` 를 21/24 로 흔들면 **같은 문단의 HOS 21/24** 에 붙어 통과)
+#
+#   ⟹ ★***이 검사기가 지키겠다고 선언한 시나리오("verdict 가 바뀌면 먼저 깨진다")가
+#      절반의 핀에서 성립하지 않았다.*** 사유는 4번 검사기와 **같은 부류** —
+#      ***대조가 위치를 모른다.*** 9,384줄 어디든 같은 수가 있으면 통과한다.
+#
+# ★수리 = **핀마다 "그 수가 사는 문장의 골격 + 슬롯" 을 동결**한다(`ANCHORS`).
+#   골격 = 그 줄의 모든 수를 `#` 로 가린 것. 슬롯 = 그 줄에서 몇 번째 수인가.
+#   골격이 일치하면 슬롯 수도 반드시 일치하므로(가린 개수가 곧 슬롯 개수) 슬롯 비교는 안전하다.
+#   ⟹ verdict 가 바뀌면 **동결된 그 문장의 그 자리**에 옛 값이 남아 있으므로 **잡힌다**.
+#   실측(2026-08-30): 돌연변이 죽임 **146/148 = 98.6%**, 오늘 원고 기준 **오탐 0건**.
+#   (생존 2건은 맨숫자 `29`·`9` 로, 문장 골격까지 같은 자리에 이웃값이 실재한다.)
+#
+# ⚠**래칫 아님 · 종료코드는 오늘보다 엄해지지 않는다.** 세 갈래로 나눈다:
+#   ⛔FAIL  — 동결 골격이 본문에 **있는데** 그 슬롯 값이 기대와 다르다 (= 진짜 불일치)
+#             · 또는 값이 본문 어디에도 없다 (종전 규칙 그대로)
+#   ⚠WARN  — 동결 골격이 **사라졌다**(문장을 개작했다) ⟹ 종전 규칙으로 판정하고 경고만.
+#             ★사유: 원고가 여러 세션에서 동시에 개작되는 동안 빨간불을 켜 두면
+#             **경고가 항상 켜져 있어 신호가 죽는다**(저장소가 반복해 대가를 치른 부류).
+#   ⚠미동결 — 앵커가 없다. ★저장소 규율상 ***"동결한 적이 없다" 가 "동결 뒤 움직였다" 보다
+#             나쁘다***(기준선이 없으면 영원히 OK 를 찍는다) ⟹ 반드시 세어서 보고한다.
+#   재동결 = `python3 …/audit_thesis_numbers.py --refreeze` (문장을 의도적으로 고친 뒤).
+# ═══════════════════════════════════════════════════════════════════════════
+# ---8<--- CHECKS_TABLE_END : 여기까지가 '기대값 계산'이고 아래가 '판정'이다.
+#           ⛔이 줄을 지우지 마라 — tmp/_audit/check_thesis_numbers.py 가 이 표만
+#           떼어 쓰려고 여기서 자른다(2026-08-30, 그 marker 가 깨져 조용히 죽은 적이 있다).
+ANCHOR_FILE = ROOT / "tmp/STATUS_2026-08-28/thesis_number_anchors.json"
+NUM = re.compile(r'\d[\d,]*(?:\.\d+)?(?:\s*/\s*\d+)?')
+
+def _norm(t):    return re.sub(r'[+\-−\s,]', '', t)
+def _skel(s):    return NUM.sub('#', s)
+def _slots(s):   return [_norm(m.group(0)) for m in NUM.finditer(s)]
+
+def _anchors_for(needle):
+    """본문에서 needle 이 **온전한 수 토큰**으로 앉은 자리 전부를 동결한다.
+    앵커 = (문장 골격, 핀 슬롯, **그 줄의 나머지 수들**).
+    ⚠**나머지 수까지 넣는 이유**: 골격만으로는 표 행처럼 문면이 같은 딴 문장과 충돌한다
+      (실측: 골격만 쓰면 9개 핀이 엉뚱한 줄과 만났다 → 나머지 수를 넣으면 **0건**).
+      충돌이 사라지므로 아래 판정을 ***"동결된 앵커 전부가 그 값을 갖고 있어야 한다"***
+      로 **엄격화**할 수 있고, 그래야 **원고 쪽 손편집**(verdict 는 그대로인데 논문의 수만
+      바뀐 경우)까지 잡힌다. 느슨한 규칙(하나라도 맞으면 통과)은 그것을 놓쳤다."""
+    out = []
+    for i, b in BODY:
+        sl = _slots(b)
+        for j, t in enumerate(sl):
+            if t == needle:
+                out.append({"skeleton": _skel(b), "slot": j, "line_at_freeze": i,
+                            "others": [None if k == j else v for k, v in enumerate(sl)]})
+    return out
+
+
+def _matched(anch):
+    """동결된 그 문장이 **지금** 어디에 있고, 핀 자리에 무엇이 들어 있는가."""
+    res = []
+    for i, b in BODY:
+        sk, sl = _skel(b), _slots(b)
+        for a in anch:
+            others = a.get("others")
+            if a["skeleton"] != sk:
+                continue
+            if others is not None:
+                if len(sl) != len(others):
+                    continue
+                if not all(o is None or o == sl[k] for k, o in enumerate(others)):
+                    continue
+            elif a["slot"] >= len(sl):
+                continue
+            res.append((i, sl[a["slot"]]))
+    return res
+
+if "--refreeze" in sys.argv:
+    frozen = {}
+    for label, rel, path, fmt in CHECKS:
+        try:
+            a = _anchors_for(_norm(fmt(jget(rel, path))))
+        except Exception:
+            continue
+        if a:
+            frozen[f"{label}|{rel}|{path}"] = a
+    ANCHOR_FILE.write_text(json.dumps(frozen, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"★재동결 완료: {len(frozen)}/{len(CHECKS)} 핀 → {ANCHOR_FILE}")
+    sys.exit(0)
+
+try:
+    ANCHORS = json.loads(ANCHOR_FILE.read_text(encoding="utf-8"))
+except Exception:
+    ANCHORS = {}
+    print(f"⚠앵커 파일이 없다({ANCHOR_FILE.name}) — 전 핀이 **미동결**로 돈다. "
+          f"`--refreeze` 로 만들어라.")
+
+bad, moved, unfrozen, split = [], [], [], []
 for label, rel, path, fmt in CHECKS:
     try:
         exp = fmt(jget(rel, path))
     except Exception as e:
         bad.append((label, f"verdict 경로 실패 {rel}:{path} {e}")); continue
-    needle = exp.lstrip('+')
-    where = [i for i, b in BODY if needle in b]
-    if where:
-        print(f"✅ {label:26s} {exp:>10s}  ← {rel.split('/')[-1]}:{path}   줄 {where[:6]}")
-    else:
-        print(f"⛔ {label:26s} {exp:>10s}  ← {rel.split('/')[-1]}:{path}   ★논문에서 못 찾음")
-        bad.append((label, f"기대 '{exp}' 가 본문에 없다 ({rel}:{path})"))
+    needle = _norm(exp)
+    tok_where = [i for i, b in BODY if needle in _slots(b)]
+    sub_where = [i for i, b in BODY if exp.lstrip('+') in b]
+    where = tok_where or sub_where
+    src = f"{rel.split('/')[-1]}:{path}"
+    anch = ANCHORS.get(f"{label}|{rel}|{path}")
 
-print(f"\n대조 {len(CHECKS)}건 · 불일치 {len(bad)}건")
+    if anch:
+        seen = _matched(anch)      # 동결 문장이 실재하는 지점에서 읽은 핀 자리 값
+        if not seen:
+            moved.append(label)
+            tag = "⚠앵커이동" if where else "⛔"
+            print(f"{tag} {label:26s} {exp:>10s}  ← {src}   "
+                  f"{'동결 문장이 개작됐다 (종전 규칙으로 판정)  줄 ' + str(where[:6]) if where else '★논문에서 못 찾음'}")
+            if not where:
+                bad.append((label, f"기대 '{exp}' 가 본문에 없다 ({src})"))
+            continue
+        hit = [i for i, v in seen if v == needle]
+        off = [(i, v) for i, v in seen if v != needle]
+        # ★엄격 규칙: **동결 앵커 전부**가 그 값을 갖고 있어야 한다.
+        #   (느슨한 "하나라도 맞으면 통과" 는 원고 쪽 손편집을 놓쳤다 — 같은 값이 여러 문장에
+        #    살면 한 곳을 틀리게 고쳐도 다른 곳이 통과시켜 준다. 실측 오탐 0건이라 엄격화했다.)
+        if off:
+            print(f"⛔ {label:26s} {exp:>10s}  ← {src}   "
+                  f"★**동결 앵커의 값이 다르다** {off[:4]}")
+            bad.append((label, f"앵커 불일치: 기대 '{exp}' 인데 동결 문장에는 {off[:4]} ({src})"))
+        else:
+            print(f"✅ {label:26s} {exp:>10s}  ← {src}   줄 {hit[:6]}  (앵커 {len(seen)}곳 전부 일치)")
+    else:
+        unfrozen.append(label)
+        if where:
+            print(f"⚠미동결 {label:24s} {exp:>10s}  ← {src}   줄 {where[:6]}")
+        else:
+            print(f"⛔ {label:26s} {exp:>10s}  ← {src}   ★논문에서 못 찾음")
+            bad.append((label, f"기대 '{exp}' 가 본문에 없다 ({src})"))
+
+print(f"\n대조 {len(CHECKS)}건 · ⛔불일치 {len(bad)}건 · ⚠앵커이동 {len(moved)}건 "
+      f"· ⚠미동결 {len(unfrozen)}건 · ⚠문장 내 값 갈림 {len(split)}건")
 for l, m in bad:
     print(f"   ⛔ {l}: {m}")
+if moved:
+    print(f"   ⚠앵커이동(문장 개작 ⟹ 확인 후 --refreeze): {moved}")
+if unfrozen:
+    print(f"   ⚠미동결(★기준선이 없으면 영원히 통과한다): {unfrozen}")
 sys.exit(1 if bad else 0)

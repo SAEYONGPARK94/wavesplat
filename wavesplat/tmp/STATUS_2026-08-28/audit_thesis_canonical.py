@@ -70,6 +70,10 @@ FORBIDDEN = {
   "⛔되감김 '한 겹 = 경계가 놓인 축이다' (지목)":  "경계가놓인축이다",
   "⛔되감김 '경계가 놓인 축을 보고한다' (지목)":   "경계가놓인축을보고한다",
   "⛔지목형 '경계는 …축을 따라 놓여 있다'":        "축을따라놓여있다",
+  # ★2026-08-30 (16인 심사 BLOCKER B-1): 제2장 "본 연구의 위치" 의 (ii) 가 척추와 정면
+  #   충돌했다(*"그 경계를 만드는 원인을 목적함수 수준까지 분해한 것"*). 철회 문안은
+  #   그 축자를 **재현하지 않으므로**(패러프레이즈로 적었다) 단순 부재 검사로 충분하다.
+  "⛔철회 '경계를 만드는 원인을 … 분해' (B-1)":    "경계를만드는원인을목적함수수준까지분해",
 }
 # ★2026-08-29 신설(M-8b AMENDMENT_2): 개명으로 폐기된 문안. ⚠정정 문안이 이것을 **금지 대상으로
 #   인용** 하므로 단순 부재 검사는 오탐이다 ⟹ `GUARDED` 는 앞뒤 60/80자에 ⛔·"철회" 표지가
@@ -139,6 +143,14 @@ COVERAGE = {
   "M-7 분포 이동 (DATA·BOTH 43/48)": "43/48",
   "M-7 실측 널 (분포 p=0.0730)":     "0.0730",
   "M-7 학습 시드 편차 (9.14%)":      "9.14",
+  # ★2026-08-30 (M-10): 소거표의 "관측 기하" 행에서 **피복** 성분이 배제됐다.
+  #   ⚠"45/48" 은 단독으로 구별되지 않는다(B-22 의 L2 가 같은 승수다) ⟹ 고유 크기를 쓴다.
+  "M-10 피복 (obs:0_5 상대 중앙 -31.69%)": "31.69",
+  # ★2026-08-30 (BLOCKER B-2): M-1 동결 드리프트 공시는 **인용 지점 전부**에 있어야 한다.
+  #   문면은 preamble 매크로 하나가 정의하므로(= 단일출처) 여기서는 **매크로의 존재**를 센다.
+  #   ⚠본문 정규화가 백슬래시와 중괄호만 지우므로 \MOneDrift{} 는 "MOneDrift" 로 남는다.
+  #   ⟹ \MOneDriftFN / \MOneDrift / \MOneDriftEN 세 형태 전부가 이 접두어로 잡힌다.
+  "M-1 동결 드리프트 공시 (매크로)": "MOneDrift",
 }
 
 def find_all(hay, needle):
@@ -149,8 +161,10 @@ def find_all(hay, needle):
         out.append(k); start = k + 1
     return out
 
+_counts = {}
 for name, needle in CANON.items():
     pos = find_all(flow, needle)
+    _counts[name] = len(pos)
     print(f"\n== {name}\n   패턴({len(needle)}자) 완전일치 {len(pos)}회 → 줄 "
           f"{[idx[p] for p in pos]}")
     # 근사 일치: 같은 앵커 토큰을 가지나 문면이 다른 곳
@@ -160,6 +174,43 @@ for name, needle in CANON.items():
         seg = flow[p:p+len(needle)+40]
         r = difflib.SequenceMatcher(None, needle, seg[:len(needle)]).ratio()
         print(f"   ⚠근사 :{idx[p]:<5} ratio={r:.2f}  …{seg[:110]}…")
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ★2026-08-30 신설 — **출현 횟수 동결**. 돌연변이 시험이 구멍을 보였다:
+#   척추 문장 `EXCL-SENTENCE` 를 **한 곳만** 개작하자 이 검사기는 `완전일치 3회 → 2회` 를
+#   정확히 **찍었는데 exit 0** 이었다. ⟹ ★***"N곳 중 N-1곳" — 이 저장소가 스스로 누적 1위라
+#   부르는 결함 — 을 검사기가 보고도 판정하지 않는다.*** run_all.sh:50 이 08-28 에 적어 둔
+#   *"돌려도 전부 exit 0 이라 판정하지 않았다"* 가 같은 자리에서 재발한 것이다.
+#   ★더 나쁜 것은 **기준선이 없다는 점**이다 — `2회` 라는 출력만 보고는 그것이 옳은지
+#   알 수 없다(저장소 규율: *"동결한 적이 없으면 md5 열이 영원히 OK 를 찍는다"*).
+# ⚠**판정으로 올리지 않고 자문으로 둔다(exit 0 유지).** 사유는 검출력이 아니라 **오탐**이다 —
+#   2026-08-30 현재 척추 문안 자체가 개정 중이라(B-1·B-2 가 6곳·5곳을 의도적으로 고친다)
+#   지금 실패로 올리면 **빨간불이 상시화돼 신호가 죽는다**. 개정이 끝난 뒤
+#   `--refreeze` 하고, 그때 판정으로 승격할지 결정하라.
+# ═════════════════════════════════════════════════════════════════════════════
+import json
+COUNTS_FILE = pathlib.Path("/home/vexit/wavesplat/wavesplat/tmp/STATUS_2026-08-28/thesis_canon_counts.json")
+if "--refreeze" in sys.argv:
+    COUNTS_FILE.write_text(json.dumps(_counts, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"\n★출현 횟수 재동결: {len(_counts)}항목 → {COUNTS_FILE}")
+    sys.exit(0)
+print("\n--- 출현 횟수 대 동결 기준선 [자문] ---")
+try:
+    _frozen = json.loads(COUNTS_FILE.read_text(encoding="utf-8"))
+except Exception:
+    _frozen = None
+    print("⚠기준선 파일이 없다 — `--refreeze` 로 만들어라. "
+          "★기준선이 없으면 이 검사는 **영원히 통과**한다.")
+if _frozen is not None:
+    drift = [(n, _frozen.get(n), c) for n, c in _counts.items() if _frozen.get(n) != c]
+    newly = [n for n in _counts if n not in _frozen]
+    if not drift:
+        print(f"  ok  {len(_counts)}항목 전부 동결값과 일치")
+    for n, was, now in drift:
+        arrow = "줄었다 ★N곳 중 N-1곳 결함 의심" if (was or 0) > now else "늘었다"
+        print(f"  ⚠**{n}**: 동결 {was}회 → 현재 {now}회 ({arrow})")
+    for n in newly:
+        print(f"  ⚠미동결 항목(새로 추가됨): {n} = {_counts[n]}회")
 
 # --- 판정 -------------------------------------------------------------------
 bad = 0

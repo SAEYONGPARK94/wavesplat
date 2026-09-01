@@ -78,12 +78,11 @@ SLOW = [
     #   냈다 --- 오늘 내가 넣은 오타 라벨 둘이 조용히 통과했다. 이제 차단하고,
     #   그 차단이 **셸로 전파**되는지 위조로 확인했다(위조 rc=1 · 원복 rc=0).
     ('학위논문 조판', ['bash', 'thesis/build.sh']),
-    # ★[2026-09-02] 학위논문 감사 축자: *"`tmp/_audit/run_all.sh`, which **today
-    #   nothing runs**"*. ⚠이 도구는 **판정하지 않고 경고만** 한다(rc=0 이 정상) ---
-    #   그래서 방벽에 넣어도 빨간불이 되지 않는다. 넣는 목적은 **출력이 사람 눈에
-    #   들어오게** 하는 것이다. 오늘 그 §3 이 학위논문 그림 **안**의 금지 수치를
-    #   세고 있었고 아무도 안 보고 있었다.
-    ('감사 도구 묶음(경고만)', ['bash', 'tmp/_audit/run_all.sh']),
+    # ⛔[2026-09-02] 위 줄의 종전 주석 *"rc=0 이 정상"* 은 **틀렸다** --- 내가 rc 를
+    #   파이프 뒤 `$?` 로 쟀다(오늘 `build.sh` 에서 저지른 것과 **같은 실수**).
+    #   실제 rc=1 이고 경고 34건인데 **대부분 역사적**이라 소급 수리가 불가능하다.
+    #   ⟹ 실패로 두면 상시 빨간불이 되고, 빼면 아무도 안 본다
+    #   ⟹ **경고 개수를 래칫**한다(아래 `check_audit_suite`).
     ('pytest', [PY, '-m', 'pytest', 'wavesim/tests/', 'wavesplat/tests/', '-q']),
 ]
 
@@ -107,6 +106,29 @@ FROZEN_EVIDENCE_KNOWN = {
 #   ⟹ 배치 검사기와 같은 규약: **이름 집합 래칫**(새 이름이 들어오거나 기지 이름이
 #   사라지면 실패). ⛔침묵시키지 않는다.
 SHA256_KNOWN_FAIL = {'confirm40_2026-07-27', 'mixed_retrain_2026-07-26'}
+
+
+AUDIT_WARN_BASELINE = 34   # ★2026-09-02 실측. 늘어나면 실패, 줄어도 실패(기록 강제).
+
+
+def check_audit_suite():
+    """`tmp/_audit/run_all.sh` --- **판정 도구가 아니라 경고 도구**다.
+
+    ⛔학위논문 감사 축자: *"`run_all.sh`, which **today nothing runs**"*.
+    실제로 그 §3 이 **학위논문 그림 안의 금지 수치**를 세고 있었는데 아무도 안 봤다.
+    ⚠rc=1 이 정상 상태(경고 34건, 대부분 역사적) ⟹ 실패로 두면 상시 빨간불이 되고
+    빼면 다시 아무도 안 본다. ⟹ **개수를 래칫**한다: 늘어도 줄어도 실패한다.
+    """
+    r = subprocess.run(['bash', 'tmp/_audit/run_all.sh'], cwd=ROOT,
+                       capture_output=True, text=True)
+    n = sum(1 for l in (r.stdout + r.stderr).split('\n')
+            if l.lstrip().startswith('⚠') or 'WARN' in l)
+    if n != AUDIT_WARN_BASELINE:
+        print(f'  [FAIL] 감사 도구 묶음 (래칫)  경고 {n} != 기준 {AUDIT_WARN_BASELINE}')
+        print('         ⚠늘었으면 새 경고를 읽어라. 줄었으면 **의도적으로** 기준을 내려라.')
+        return False
+    print(f'  [OK  ] 감사 도구 묶음 (래칫: 경고 {n}건 그대로)')
+    return True
 
 
 def check_frozen_sha256():
@@ -193,13 +215,15 @@ def main():
         bad.append('배치 산출물')
     if not check_frozen_sha256():
         bad.append('FROZEN.sha256')
+    if not check_audit_suite():
+        bad.append('감사 도구 묶음')
     print('────────────────────────────────────────────────────────')
     if bad:
         print(f'⛔실패 {len(bad)}: ' + ', '.join(bad))
         print('⚠래칫이 「개선」으로 실패했다면 기준선을 **의도적으로** 내려라 --- '
               '침묵시키지 마라.')
         return 1
-    print(f'✅{len(checks) + 2}종 전부 통과'
+    print(f'✅{len(checks) + 3}종 전부 통과'
           + (' (pytest 건너뜀)' if a.fast else ''))
     return 0
 

@@ -48,6 +48,38 @@ def _count_tests():
     return m.group(1) if m else '0'
 
 
+def _prior_arch():
+    """★학습 사전의 **아키텍처를 체크포인트 가중치에서** 읽는다.
+
+    5차 감사(2026-09-02) REJECT 경계 지적:
+
+    > *"제목이 파는 학습 사전을 논문이 두 문장으로 정의한다. 아키텍처.학습 자료.학습
+    >  절차가 없다. 심사자는 재현도 과적합 판단도 할 수 없다."*
+
+    ⛔손으로 적으면 체크포인트를 갈 때 조용히 낡는다 --- 그래서 **가중치에서 센다**.
+    ⚠학습 절차(스텝 수.혼합비)는 가중치에 없다: 그것은 배치 문서에서 오고,
+      그 파일이 동결 후 움직였다는 사실을 논문이 **공시**한다.
+    """
+    import re as _re
+    import torch
+    from wavesplat.optimizer.learned_init import DEFAULT_CKPT
+    sd = torch.load(DEFAULT_CKPT, map_location='cpu', weights_only=False)
+    blocks = len({int(m.group(1)) for k in sd
+                  for m in [_re.match(r'blocks\.(\d+)\.', k)] if m})
+    return {
+        'PriorParams': f"{sum(v.numel() for v in sd.values()):,}",
+        'PriorDim': str(sd['enc.pos'].shape[-1]),
+        'PriorTokens': str(sd['enc.pos'].shape[1]),
+        'PriorBlocks': str(blocks),
+    }
+
+
+def _ckpt_sha():
+    """배포 체크포인트의 **코드에 핀된** SHA256 앞 12자리."""
+    from wavesplat.optimizer.learned_init import DEFAULT_CKPT_SHA256
+    return DEFAULT_CKPT_SHA256[:12]
+
+
 def _k_lim():
     """학습 사전의 파수 지지 상한 --- `setdiff_prior.pt` 의 `stats['K_LIM']`.
 
@@ -309,9 +341,11 @@ def main():
         #   코드 감사 D8: 논문에 이 상한이 한 번도 적혀 있지 않았고, 손으로 적으면
         #   체크포인트를 갈 때 조용히 낡는다(H2 가 이미 열려 있는 축이다).
         ('DepKLim', _k_lim()),
+        ('CkptSha', _ckpt_sha()),
         # ── 해석적 대안의 탐색 범위(대비용). 함수 서명의 기본값에서 읽는다.
         ('DepAnaKMax', _ana_kmax()),
     ]
+    dep += list(_prior_arch().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]
 
     body = ['% ⛔자동 생성 — 손으로 고치지 마라.',

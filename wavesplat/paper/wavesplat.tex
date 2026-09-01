@@ -726,6 +726,54 @@ $N$ atoms in the $(k_x, k_y)$ plane and fit their amplitude and phase. Two
 procedures do this in our system, and \emph{which one runs is the subject of one of
 our ablations}, so we describe both.
 
+\paragraph{The learned prior: architecture, training data, and what we cannot certify}
+% ============================================================================
+% ★2026-09-02 (P10) --- 5차 감사의 **reject 경계** 지적:
+%   *"제목이 파는 학습 사전을 논문이 두 문장으로 정의한다. 아키텍처.학습 자료.학습 절차가
+%    없다 ⟹ 심사자는 재현도 과적합 판단도 할 수 없다. 이것만으로 reject 사유가 된다."*
+%   ★아키텍처 수치는 **체크포인트 가중치에서 센다**(손으로 적으면 낡는다).
+%   ⚠학습 절차는 배치 문서에서 오고, 그 파일이 **동결 후 움직였다**는 사실을 함께 적는다.
+% ============================================================================
+The prior is a conditional denoising diffusion model over \emph{sets} of atoms. Its
+conditioning branch is a small convolutional encoder that reduces the
+$64 \times 64$ beamform map to \PriorTokens{} tokens of width \PriorDim{}
+(3$\times$3 convolutions, group normalisation, GELU, with a learned positional
+embedding). Its denoiser is a stack of \PriorBlocks{} pre-norm transformer blocks
+of the same width: within each block, self-attention over the $32$ atom slots,
+cross-attention into the conditioning tokens, and a two-layer feed-forward network.
+Atoms enter and leave as three normalised numbers --- two wavenumber components and
+a log-energy --- through linear projections, so the model is permutation-equivariant
+over the set by construction and has no notion of atom ordering. It has
+\PriorParams{} parameters. Sampling is ancestral DDPM with a cosine noise schedule
+over $500$ steps, and training is the standard $\epsilon$-prediction mean-squared
+error under AdamW (learning rate $2\times 10^{-4}$, weight decay $10^{-4}$, cosine
+annealing, batch $32$).
+
+Training scenes are synthetic and are drawn from a deliberately stratified mixture
+rather than from the evaluation distribution: discrete crowded ($15$ and $30$
+components) at $0.30$, discrete sparse ($1$ and $2$) at $0.20$, five-component at
+$0.10$, two continuum strata at $0.10$ and $0.15$, and an intermediate-spreading
+stratum at $0.15$, with sea states covering Beaufort~2--5 anchors and a jittered
+box around them. The observation geometry used in training replays frame-structured
+sweep windows rather than drawing observation times independently. \emph{Scene seeds
+for training are drawn from a band disjoint from every seed used by any evaluation
+generator in this paper}, so no evaluation episode was seen during training,
+although the generator family is the same --- which is the sense in which
+Section~\ref{sec:res_summary} says only the seed axis is out of sample. The shipped
+checkpoint was trained for $40{,}000$ steps from scratch, and the estimator refuses
+to load a checkpoint whose SHA-256 does not begin \texttt{\CkptSha{}}.
+
+Two things about this we cannot certify and will not claim. First, the six training
+strata were measured only as a bundle: no ablation isolates what each contributes,
+so we cannot say which part of the mixture the prior's behaviour comes from.
+Second, the batch that produced this checkpoint recorded checksums for its own
+training script and preregistration, and those files have since been modified --- the
+recorded hashes no longer match. The architecture and the checkpoint identity above
+are read directly from the shipped weights and are therefore certain; the training
+recipe is transcribed from that batch's report and is \emph{not} independently
+verifiable from the repository as it stands. A reader reproducing this work should
+treat the training procedure as documentation rather than as a frozen artefact.
+
 \paragraph{A dependency we disclose rather than describe away}
 % ============================================================================
 % ★2026-09-02 (P9) BLOCKER 수리. 초판은 T_p 를 "관측 시계열의 우세 주파수에서 추정"
@@ -1574,7 +1622,8 @@ boundary, including why the transfer fails, is the subject of a companion thesis
 % ============================================================================
 
 Table~\ref{tab:earns} and Table~\ref{tab:boundary} collect every comparison this
-paper relies on. Each row is one batch, and the number is read out of that batch's
+paper relies on, and Fig.~\ref{fig:results} plots the first of them with exact
+confidence intervals alongside each comparator's own skill. Each row is one batch, and the number is read out of that batch's
 frozen verdict file rather than transcribed by hand.
 % ============================================================================
 % ★2026-09-02 (P9) --- 내 전칭 주장 수리. 초판(오늘 아침)은 *"Each row is one
@@ -1591,7 +1640,8 @@ recorded in the batch's design note. We state this rather than let the word
 ``pre-registered'' cover it.
 Table~\ref{tab:earns} is what the representation earns on synthetic corpora,
 where ground truth exists; Table~\ref{tab:boundary} is where it stops, on the
-$12$ measured records.
+$12$ measured records. Fig.~\ref{fig:qualitative} shows one reconstruction in full, as an
+illustration rather than as evidence.
 
 % [2026-09-02 P9] 4차 감사 B7 후속: `table*` 은 별표 float 이라 `[h]`/`[b]` 가 없다
 %   ⟹ 한 번 못 앉으면 **문서 끝까지 밀린다**(표 5 가 참고문헌 뒤로 갔다).
@@ -2001,13 +2051,25 @@ covering dispersion, Gerstner kinematics, Fresnel optics, and
 raydrop statistics --- \emph{[SCOPE 2026-08-14]} the Gerstner test exercises
 the kinematics \emph{function}, which the generation pipeline does not use for
 horizontal displacement, so it does not certify that the generated data is
-nonlinear; moreover, the 100-episode evaluation across
-5 seeds, 10 configurations, and 2 observation models provides a
-level of statistical rigour that would be difficult to achieve with
-physical experiments alone, following the methodology validation
-approach of prior LiDAR-based wave estimation studies that initially
-established algorithms in simulation before progressing to wave tank
-trials~\citep{desmars2020, desmars2023jfm}.
+nonlinear.
+% ============================================================================
+% ★2026-09-02 (P10) 5차 감사 REJECT 급. 이 자리에 있던 문장은
+%   *"the 100-episode evaluation across 5 seeds, 10 configurations, and 2 observation
+%   models provides a level of statistical rigour…"* 였다.
+%   ⛔**그 설계가 바로 철회된 코퍼스다** --- §4.1 이 *"belongs to the retracted corpus and
+%   is not used here"* 라 적고, Data availability 가 *"The headline results were not"*
+%   그 코퍼스에서 나왔다고 적는다. ⟹ ★**논문의 엄밀성 주장이 자기가 철회한 것에
+%   기대고 있었다.** 삭제하고, 실제로 가진 근거로 대체한다.
+% ============================================================================
+What the protocol does provide instead is narrower and checkable: each comparison
+in Section~\ref{sec:results} is paired per episode, its direction and decision
+threshold fixed before results existed, its analysis code checksum-frozen (with the
+one exception noted there), and its number read from the resulting verdict file
+rather than transcribed. Like the LiDAR-based wave estimation studies that preceded
+us, we establish the algorithm in simulation before any tank
+trial~\citep{desmars2020, desmars2023jfm}; unlike a tank trial, simulation cannot
+tell us whether the result transfers, which is what
+Table~\ref{tab:boundary} is for.
 % RETRACTED 2026-08-14: this fairness argument is FALSE and was the single most
 % load-bearing false statement in the manuscript.
 % wavesim/gt_generator.py:38 reads
@@ -2084,11 +2146,14 @@ $0.009 \to 0.08$ collapse on the calmest episodes were properties of the
 uncorrected tracker and do not reproduce---but that it holds the
 initialization roughly in place at a fraction of the per-frame cost.
 Tracking is a compute mechanism, not an accuracy mechanism.
-\emph{Residual amplitude under-estimation}: the aggregate variance ratio is
-$0.916$, i.e.\ ${\sim}8\%$ amplitude under-estimation, and it is
-regime-independent (VR~$=0.910$ for $\leq$5-component and $0.925$ for
-$\geq$15-component episodes) even though nRMSE and $\rho$ differ sharply
-across the same split.  We previously attributed this deficit to Adam
+% ★2026-09-02 (P10) 5차 감사 MAJOR: §4.3 이 *"네 부차 지표는 재측정되지 않았다"* 라
+%   적었는데 이 문단이 VR 값 셋(0.916/0.910/0.925)을 **현재형으로** 인용했다.
+%   ⟹ 값을 빼고 **방향**만 남긴다(그 방향은 철회 대상이 아니다).
+\emph{Residual amplitude under-estimation}: the estimator recovers less variance
+than the true field, and on the retracted corpus that deficit did not differ between
+the sparse and crowded halves even though nRMSE did. The levels are not restated
+here: variance ratio was part of the secondary panel that was not re-measured for
+the batches reported in Section~\ref{sec:results}.  We previously attributed this deficit to Adam
 momentum accumulating oscillating gradients from an inaccurate phase
 prediction $\phi_i \mathrel{+}= \omega_i \Delta t$.  That attribution is
 withdrawn: the specific inaccuracy it named was a double application of
@@ -2279,8 +2344,14 @@ the work reported in this paper.
 
 \section*{Data availability}
 
-Code, simulation data, and experiment scripts will be deposited on a
-public repository upon acceptance.
+% [2026-09-02 P10] 5차 감사: ①**체크포인트가 배포 목록에 없었다**(제목이 파는 것이다)
+%   ②*"the frozen corpora **named in** Section 5.1"* --- §5.1 은 아무것도 명명하지 않는다.
+Code, simulation data, experiment scripts, \emph{and the trained prior checkpoint}
+will be deposited on a public repository upon acceptance. Every result in
+Section~\ref{sec:results} carries a batch identifier (B-1, B-12, \dots); each names
+a directory in that repository holding its preregistration, its checksum-frozen
+analysis code, its raw result rows, and the verdict file from which this paper's
+numbers are read.
 % [2026-09-02 P9] 4차 감사 M17: 본문이 "supplementary archive" 를 **다섯 번** 가리키는데
 %   그것이 무엇인지 어디에도 없었다. 실체는 저장소 안의 이동 대상 파일이다.
 The ``supplementary archive'' referred to in Sections~\ref{sec:res_summary}
@@ -2292,7 +2363,7 @@ The complete 100-episode dataset can be regenerated from the released
 simulator with the provided configuration files and fixed random
 seeds, ensuring end-to-end reproducibility of the tables and figures that were
 computed on it. The headline results of this paper were not: they come from the
-frozen corpora named in Section~\ref{sec:res_headline} and its ablations.
+frozen corpora of the batches identified in Table~\ref{tab:earns}.
 
 The buoy directional-spread statistics used for the external-validity
 stratification of the retracted corpus (archived) are third-party

@@ -83,6 +83,12 @@ fig, (axA, axB) = plt.subplots(1, 2, figsize=(7.4, 4.0),
                                gridspec_kw={'width_ratios': [1.65, 1.0]})
 
 # ── 패널 A
+# ⚠[2026-09-02] 5차 감사: 표 5 는 세 그룹으로 나뉘고 캡션이 *"크기를 더하거나 빼면 정의된
+#   뜻이 없다"* 고 적는다. 초판 그림은 그 구분을 **버리고** 11행을 한 축에 세워
+#   본문이 금지한 행간 비교를 초대했다. ⟹ 구분선과 그룹 이름을 넣는다.
+GROUPS = {0: 'against an external baseline',
+          4: 'ablations of the representation itself',
+          9: 'where the gain sits'}
 ys, labels = [], []
 for i, (name, rel, pb, pn, pc) in enumerate(ROWS):
     d = V(rel)
@@ -94,14 +100,24 @@ for i, (name, rel, pb, pn, pc) in enumerate(ROWS):
     axA.plot([lo, hi], [y, y], color=INK, lw=1.1, solid_capstyle='butt', zorder=2)
     axA.plot([k / n], [y], 'o', ms=5.0, color=ACC, zorder=3)
     if pc is not None:
+        # ⚠5차 감사: 빈 마커에 CI 가 없어 **비교자만 점추정처럼** 보였다(의도와 반대).
         kc = int(get(d, pc))
-        axA.plot([kc / n], [y], 'o', ms=5.0, mfc='none', mec=MUTE, mew=1.1, zorder=3)
+        clo, chi = ci(kc, n)
+        axA.plot([clo, chi], [y - 0.24, y - 0.24], color=MUTE, lw=0.9, alpha=0.85, zorder=2)
+        axA.plot([kc / n], [y - 0.24], 'o', ms=4.5, mfc='none', mec=MUTE, mew=1.1,
+                 zorder=3)
 
+for gi, gname in GROUPS.items():
+    yv = len(ROWS) - gi + 0.55
+    if gi:
+        axA.axhline(yv, color='#ccc', lw=0.7)
+    axA.text(1.03, yv - 0.05, gname, fontsize=6.0, color=MUTE, style='italic',
+             ha='right', va='top')
 axA.axvline(0.5, color=MUTE, lw=0.8, ls=':')
 axA.set_yticks(ys)
 axA.set_yticklabels(labels, fontsize=6.6)
-axA.set_xlim(0.30, 1.03)
-axA.set_ylim(0.3, len(ROWS) + 0.7)
+axA.set_xlim(0.20, 1.05)
+axA.set_ylim(0.1, len(ROWS) + 0.95)
 axA.set_xlabel('fraction of episodes won (95% Clopper-Pearson)', fontsize=7.2)
 axA.tick_params(axis='x', labelsize=7)
 for sp in ('top', 'right'):
@@ -121,7 +137,6 @@ spec = [t4[r]['spec_vs_zero']['better'] / t4[r]['spec_vs_zero']['n'] for r in ru
 axB.plot(x, ship, 'o-', color=ACC, ms=4.5, lw=1.3, label='our arm')
 axB.plot(x, spec, 'o--', color=WARN, ms=4.5, lw=1.3, mfc='none', label='comparator')
 axB.axhline(0.5, color=MUTE, lw=0.8, ls=':')
-axB.set_xlabel('forecast lead  ($T_p$)', fontsize=7.2)
 axB.set_ylabel('fraction beating a zero field', fontsize=7.2)
 axB.set_ylim(0.35, 1.03)
 axB.tick_params(labelsize=7)
@@ -129,6 +144,9 @@ for sp in ('top', 'right'):
     axB.spines[sp].set_visible(False)
 axB.legend(fontsize=6.6, frameon=False, loc='lower left')
 axB.set_title('(b) why the growing margin is not a gain', fontsize=8, loc='left')
+# ⚠주석이 범례와 겹쳐 둘 다 못 읽혔다 --- 축 아래 여백으로 내린다.
+axB.set_xlabel('forecast lead  ($T_p$)\n'
+               'our own absolute error worsens across this range', fontsize=7.2)
 
 fig.tight_layout(pad=0.6)
 out = os.path.join(ROOT, 'paper', 'figures', 'fig_results.pdf')

@@ -91,14 +91,16 @@ def main():
         a.set_aspect('equal')
         fig.colorbar(im, ax=a, fraction=0.046, pad=0.03).ax.tick_params(labelsize=6)
     ax[0, 0].plot(xo, yo, '.', ms=1.6, color='k', alpha=0.85)
-    ax[0, 0].set_title(f'true field + {len(xo)} observations', fontsize=8)
+    ax[0, 0].set_title(f"true field + this frame's {len(xo)} observations",
+                       fontsize=8)
 
     elim = float(np.nanmax(np.abs(err)))
     im = ax[0, 2].pcolormesh(XX, YY, err, cmap='PuOr',
                              norm=TwoSlopeNorm(vmin=-elim, vcenter=0.0, vmax=elim),
                              shading='auto')
     ax[0, 2].plot(xo, yo, '.', ms=1.6, color='k', alpha=0.6)
-    ax[0, 2].set_title('estimate $-$ truth', fontsize=8)
+    ax[0, 2].set_title('estimate $-$ truth  (colour scale '
+                       f'$\\times${lim / elim:.1f} finer)', fontsize=8)
     ax[0, 2].set_aspect('equal')
     fig.colorbar(im, ax=ax[0, 2], fraction=0.046, pad=0.03).ax.tick_params(labelsize=6)
     for a in ax[0]:
@@ -118,6 +120,8 @@ def main():
         cnt.append(int(m.sum()))
     ax[1, 0].plot(mid, rms, 'o-', ms=4, lw=1.2, color='#0b5394')
     ax[1, 0].axvline(5.0, color='#8a8a8a', ls=':', lw=0.9)
+    ax[1, 0].annotate('5 m band', xy=(5.4, max(rms)), fontsize=6,
+                      color='#8a8a8a', va='top')
     ax[1, 0].set_xscale('log')
     ax[1, 0].set_xlabel('distance to nearest observation [m]', fontsize=7)
     ax[1, 0].set_ylabel('RMS error [m]', fontsize=7)
@@ -128,8 +132,11 @@ def main():
 
     # ── 파수 평면
     a = ax[1, 1]
-    a.scatter(tkx, tky, s=8 + 700 * tA, facecolor='none', edgecolor='#a33', lw=1.0)
-    a.scatter(ekx, eky, s=8 + 700 * ew, color='#0b5394', alpha=0.75)
+    # ⚠[2026-09-02] 5차 감사: 참 성분(빈 원)이 추정 원자(채운 원)에 **가려** 캡션의
+    #   'most are recovered' 를 그림에서 확인할 수 없었다. ⟹ 참 성분을 **위로** 올린다.
+    a.scatter(ekx, eky, s=8 + 700 * ew, color='#0b5394', alpha=0.45, zorder=2)
+    a.scatter(tkx, tky, s=8 + 700 * tA, facecolor='none', edgecolor='#a33', lw=1.4,
+              zorder=4)
     a.scatter([], [], s=30, facecolor='none', edgecolor='#a33', lw=1.0,
               label='true components')
     a.scatter([], [], s=30, color='#0b5394', alpha=0.75, label='estimated atoms')

@@ -732,6 +732,30 @@ same way. It does mean that a deployment would need to supply $T_p$ from another
 source, and that no experiment here measures the sensitivity of the method to
 getting it wrong.
 
+\paragraph{What ``the shipped configuration'' selects, and when}
+% ============================================================================
+% ★2026-09-02 (P9) BLOCKER 수리 --- 논문에 **실측 게이트가 0회** 등장했다.
+%   `sequential_update.py:775-812`: `init_method='auto'` 는 프레임에 비퇴화 GT 필드가
+%   없으면(`_frames_have_gt`, `:411-427`) `real_estimator`(출하 `bank_mmse`, `run.py:81`)
+%   로 **경로를 통째로 갈아탄다** --- `_initialize_learned` 에 들어가지도 않는다.
+%   ⟹ 표 3 캡션의 *"the deployed estimation pipeline"* 은 **합성 입력에서만** 참이었다.
+%   ⚠경계 표(Table 6)의 행들은 학습 팔을 **명시 강제**해서 잰 것이다(동결 행 되읽기:
+%   B-17 `init_method='learned'` 18/18 · B-18 30/30). ⟹ 그 사실을 적어야 한다.
+% ============================================================================
+The router that selects an initialisation procedure is not purely a quality
+heuristic: it also branches on whether the input carries a ground-truth field.
+When none is present --- which is the case for every measured record --- the
+shipped configuration switches to a separate estimator built around a bank of
+candidate spectra, and the learned path described above is not entered at all.
+Table~\ref{alg:wavesplat} therefore describes what runs on the synthetic corpora.
+The measurements that report no skill on the measured records
+(Section~\ref{sec:res_scope} and Table~\ref{tab:boundary}) were obtained by
+\emph{overriding} that router and forcing the learned path, because the question those batches ask is what the learned prior does
+on real data, not what the shipped default does. The bank estimator is outside the
+scope of this paper and none of its results are reported here; we state its
+existence because a reader reproducing ``the shipped configuration'' on a real
+record would otherwise get a different algorithm than the one we describe.
+
 \paragraph{Deployed path: a learned set-valued prior}
 The configuration evaluated in Section~\ref{sec:results} places the atoms with a
 learned prior over wavenumber--energy \emph{sets}. A conditional diffusion model,
@@ -909,31 +933,35 @@ $\tau_R = 0.05$~m has been held fixed in every batch reported here.
 
 \subsubsection{Phase 2: Tracking}
 
-For each subsequent LiDAR frame, we perform a predict--update cycle:
-\begin{enumerate}
-  \item \textbf{Predict}: advance phases using the dispersion-derived
-    angular frequency, $\varphi_i \mathrel{+}= \omega_i \, \Delta t$,
-    where $\Delta t = 0.1$~s (10~Hz LiDAR frame rate).
-    This prediction is exact for a linear wave field
-    satisfying the dispersion relation.
-  \item \textbf{Update}: perform $K=10$ Adam steps
-    (lr$=5\times 10^{-3}$) on the weighted MSE loss over a
-    sliding window of $K_w=3$ recent frames, updating only
-    amplitudes $w_i$ and phases $\varphi_i$ while freezing
-    wavenumbers $(k_{x,i}, k_{y,i})$ (\texttt{w\_phi} tracking mode).
-\end{enumerate}
+% ============================================================================
+% ★2026-09-02 (P9) BLOCKER 수리 --- 이 절이 **같은 논문의 표 3 과 모순**이었다.
+%   초판은 "Predict: phi += omega*dt … This prediction is exact" 를 배포 사이클의
+%   1단계로 적었는데, `sequential_update.py:351 TRACK_PHASE_PREDICT = False` 이고
+%   `:1429` 가 그 상수로 막혀 있다 ⟹ **그 단계는 돌지 않는다**(2026-07-26 에 꺼졌다).
+%   표 3 은 세 문단 뒤에서 "no explicit phase advance" 라 정확히 적고 있었다.
+%   ★코드 대조 감사가 잡았다. ⟹ 또 하나의 「철회가 N-1 에서 멈춘」 사례.
+% ============================================================================
+For each subsequent LiDAR frame we perform a single update step. There is no
+explicit predict step: an earlier version advanced the phases by
+$\varphi_i \mathrel{+}= \omega_i \Delta t$ before each update, but that path is
+switched off in the shipped configuration and the forward model's own
+$-\omega_i t$ term carries the propagation instead, with $t$ the absolute frame
+time. The update performs $K=\DepTrackingSteps{}$ Adam steps
+(lr~$=\DepTrackingLr{}$) on the weighted MSE loss over a sliding window of
+$K_w=3$ recent frames, updating only amplitudes $w_i$ and phases $\varphi_i$ while
+freezing wavenumbers $(k_{x,i}, k_{y,i})$ (\texttt{w\_phi} tracking mode).
 
-Freezing wavenumbers during tracking is motivated by two considerations:
-(1)~wavenumber estimation from a single frame is ill-conditioned due
-to spatial aliasing in sparse observations---the LiDAR's irregular
-sampling pattern does not provide sufficient constraint to resolve
-wavenumber from a single snapshot, while the multi-frame
-initialization averages over $\sim$20 frames to obtain robust
-wavenumber estimates; and
-(2)~with fixed wavenumbers, the dispersion constraint provides a
-strong phase prediction ($\omega \cdot \Delta t$) that serves as a
-warm start, reducing the gradient steps needed per frame from
-$\sim$200 (full optimization) to 10.
+Freezing wavenumbers during tracking is motivated by two considerations.
+First, wavenumber estimation from a single frame is ill-conditioned: the LiDAR's
+irregular sampling does not constrain the wavenumber from one snapshot, whereas
+the initialisation window spans $2T_p$, which at $10$~Hz and the peak periods used
+here is on the order of one to two hundred frames.
+% [2026-09-02] 초판은 여기에 "~20 frames" 라 적었다. 2*Tp/0.1s 는 Tp=4-9s 에서
+%   80-180 프레임이다 --- 4-9배 어긋난다. 코드 대조 감사가 잡았다.
+Second, with the wavenumbers fixed the per-frame problem is linear in a small
+number of parameters, so a short optimiser budget suffices.
+% [2026-09-02] 초판의 "~200 (full optimization) to 10" 은 **해석적 팔**의 단계별
+%   반복 예산이었다. 배포 경로의 Phase 1 은 결합 적합이 0 회이므로 비교 대상이 없다.
 
 The sliding window ($K_w = 3$) uses the three most recent frames
 for gradient computation.  This provides temporal averaging that
@@ -957,10 +985,26 @@ size $K_w$, the per-frame tracking cost is $O(K \cdot K_w \cdot M \cdot N)$.
 % --- original (kept for history) ---
 % In practice, $K{=}10$, $K_w{=}3$, $N \leq 30$, yielding 13.4~ms/frame
 % on CPU (single-threaded, Intel i7-12700H).
-In practice, $K{=}10$, $K_w{=}3$, $N \leq 30$, measured on CPU
-(single-threaded, \textbf{AMD Ryzen 7 7800X3D}).
+In practice, $K{=}\DepTrackingSteps{}$, $K_w{=}3$, $N \leq \DepMaxN{}$, measured on
+CPU (single-threaded, \textbf{AMD Ryzen 7 7800X3D}).
 \textbf{[RETRACTED 2026-08-14]} The absolute per-frame latency previously
 quoted here is withdrawn (separate-process timing).
+
+% ============================================================================
+% ★2026-09-02 (P9) --- 코드 대조 감사 (c). 이 절은 **Phase 2 만** 특성화한다.
+%   그것은 초판부터 그랬고 그때는 Phase 1 이 격자 탐색 + Adam 이라 큰 문제가 아니었다.
+%   지금 배포 Phase 1 은 500스텝 역확산 x4 + 폴리시 80x4 + VARPRO 400 이다
+%   ⟹ **지배적 비용이 특성화되지 않은 채 남아 있다.** ⛔대체 수치가 0개라 만들지 않는다.
+% ============================================================================
+\emph{This analysis covers the tracking phase only.} It is unchanged by which
+initialisation ran, because the tracking loop does not branch on the initialiser.
+The initialisation cost of the deployed path is \emph{not} characterised here and
+we do not have a measurement of it: it now runs a $500$-step reverse diffusion
+sampler four times, $80$ optimiser steps of likelihood polish per draw, and
+$\DepVarproSteps{}$ steps of variable projection, none of which the expression
+above describes. Initialisation is a one-off cost paid once per deployment rather
+than per frame, but a reader planning a deployment should not read the per-frame
+expression as the cost of the system.
 
 \textbf{ETKF-grid}: The Ensemble Transform Kalman Filter maintains
 $N_e$ ensemble members on a $G_x \times G_y$ spatial grid.

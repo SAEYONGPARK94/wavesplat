@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# ★방벽 훅 (2026-09-02).
+# ⛔사유: 방벽이 여섯 종인데 전부 **수동 실행**이었다. 이 저장소가 반복해 배운 것:
+#   「검사기는 사람이 기억해야 하면 안 돈다」.
+# ⚠pytest 는 뺀다(54초) --- 커밋을 막을 만큼 느리면 사람이 --no-verify 로 우회한다.
+#   ⟹ **빠른 방벽만** 걸고, 느린 것은 사람이 돌린다.
+# 우회: git commit --no-verify (의도적일 때만).
+set -u
+cd "$(git rev-parse --show-toplevel)/wavesplat" || exit 0
+[ -f scripts/check_all.py ] || exit 0
+if ! python3 scripts/check_all.py --fast; then
+  echo ""
+  echo "⛔방벽이 막았다. 고치거나, 개선이라면 기준선을 **의도적으로** 갱신하라."
+  echo "   ⚠침묵시키지 마라 --- 그게 이 훅이 존재하는 이유다."
+  echo "   의도적 우회: git commit --no-verify"
+  exit 1
+fi

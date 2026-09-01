@@ -268,10 +268,13 @@ def _est_seeds():
     """
     import glob as _g
     counts = {}
-    for tag, pat in (('main', ('W16_REBASELINE_2026-08-22', 'B12_HOS_EXTEND_2026-08-23',
+    # ⚠[2026-09-02] 검증 감사 22: 표 행 셋(B-15·B-26·B-1 의 기준선 팔 S16)이 목록에서
+    #   빠져 있었다 --- 매크로가 참이긴 했으나 **셋은 검사되지 않은 채** 인쇄됐다.
+    for tag, pat in (('main', ('W16_REBASELINE_2026-08-22', 'S16_BASELINE_2026-08-14',
+                               'B12_HOS_EXTEND_2026-08-23', 'B15_RAYDROP_2026-08-24',
                                'B16_KGRID_2026-08-24', 'B19_KGRID_SPARSE_2026-08-25',
-                               'B22_PRIOR_ABLATION_2026-08-27', 'M10_GEOMETRY_2026-08-30',
-                               'T4_GEOMETRY_2026-08-30')),
+                               'B22_PRIOR_ABLATION_2026-08-27', 'B26_SEASTATE_2026-08-27',
+                               'M10_GEOMETRY_2026-08-30', 'T4_GEOMETRY_2026-08-30')),
                      ('sens', ('S_ENS_2026-09-01',))):
         per = {}
         for d in pat:
@@ -283,7 +286,7 @@ def _est_seeds():
                     r = json.loads(line)
                     # ⚠열 이름이 배치마다 다르다: `est_seed` 또는 `seed`.
                     #   ⛔`gen_seed`(장면 시드)는 **절대** 세지 마라.
-                    v = r.get('est_seed', r.get('seed'))
+                    v = r.get('est_seed', r.get('filter_seed', r.get('seed')))
                     if v is not None:
                         seeds.add(v)
             assert seeds, f'⛔추정기 시드 열이 없다: {d}'
@@ -395,7 +398,95 @@ def _donor_disjoint():
     return {'CitedBatchFiles': str(len(files))}
 
 
-def _prior_ckpt_sha():
+def _corpus_identity():
+    """★표 5 각 행이 **어느 코퍼스를 쓰는지**를 동결 행에서 판정한다.
+
+    ⛔[2026-09-02] 검증 감사 BLOCKER: 표 주 (i) 가 *"세 행(B-12·B-16·B-19)이 HOS 코퍼스를
+      공유하고 나머지는 선형 참값"* 이라 적었다. **틀렸다** --- `B-22`·`M-10`·`T-4` 도
+      같은 `HOSGATE_2026-08-13/data_hos` 를 읽고, 게다가 `B-12`·`B-16`·`B-22`·`M-10`·`T-4`
+      다섯 행은 **완전히 같은 48 에피소드**다(∩ = 48/48). `B-19` 만 같은 디렉터리의
+      **서로소인 희소 16개**다.
+    ★그래서 이 함수는 자구를 고치는 것이 아니라 **구조를 센다**: 손으로 적으면 다음 배치에서
+      또 틀린다. 논문은 이 매크로들을 쓴다.
+    """
+    import glob as _g
+    import h5py
+    hos = {os.path.basename(f)[len('episode_'):-3]
+           for f in _g.glob(os.path.join(TMP, 'HOSGATE_2026-08-13', 'data_hos', '*.h5'))}
+    assert hos, '⛔HOS 코퍼스를 찾지 못했다'
+
+    def eps(pat):
+        out = set()
+        for f in _g.glob(os.path.join(TMP, pat)):
+            for line in open(f):
+                e = json.loads(line).get('episode')
+                if e:
+                    out.add(os.path.basename(str(e)).replace('episode_', '').replace('.h5', ''))
+        return out
+
+    ROWS = [('B-1', 'W16_REBASELINE_2026-08-22/results*.jsonl'),
+            ('B-12', 'B12_HOS_EXTEND_2026-08-23/results*.jsonl'),
+            ('B-15', 'B15_RAYDROP_2026-08-24/results*.jsonl'),
+            ('B-16', 'B16_KGRID_2026-08-24/results*.jsonl'),
+            ('B-19', 'B19_KGRID_SPARSE_2026-08-25/results*.jsonl'),
+            ('B-22', 'B22_PRIOR_ABLATION_2026-08-27/results*.jsonl'),
+            ('B-26', 'B26_SEASTATE_2026-08-27/results*.jsonl'),
+            ('M-10', 'M10_GEOMETRY_2026-08-30/results*.jsonl'),
+            ('T-4', 'T4_GEOMETRY_2026-08-30/results*.jsonl'),
+            ('S-ENS', 'S_ENS_2026-09-01/results*.jsonl')]
+    sets = {n: eps(p) for n, p in ROWS}
+    missing = [n for n, e in sets.items() if not e]
+    assert not missing, f'⛔결과 행을 찾지 못한 배치: {missing}'
+    in_hos = [n for n, e in sets.items() if e <= hos]
+    lin = [n for n, e in sets.items() if not (e & hos)]
+    assert set(in_hos) | set(lin) == set(sets), '⛔HOS 를 부분적으로만 쓰는 배치가 있다'
+    ref = sets['B-12']
+    same = sorted(n for n in in_hos if sets[n] == ref)
+    disj = sorted(n for n in in_hos if sets[n] != ref and not (sets[n] & ref))
+    assert len(same) + len(disj) == len(in_hos), '⛔부분 겹침 배치가 있다'
+    return {
+        'HosRows': ', '.join(sorted(in_hos, key=lambda x: in_hos.index(x))),
+        'HosSameRows': ', '.join(same),
+        'HosSameN': str(len(same)),
+        'HosDisjointRows': ', '.join(disj),
+        'LinearRows': ', '.join(lin),
+        'LinearN': str(len(lin)),
+    }
+
+
+def _w15_reagg():
+    """★§5.6 의 *"희소는 배포 해석적 패키지 상대로 분리되지 않는다"* 를 **재집계로 낸다**.
+
+    ⛔[2026-09-02] 검증 감사 MAJOR: 그 주장이 논문에 **배치 이름도 수치도 없이** 있었고
+      *"we cite it as such"* 라 적었는데 **아무것도 인용하지 않았다**. 게다가 Data
+      availability 는 *"Every result in Section 5 carries a batch identifier"* 라 적는다.
+    ★출처는 `W15_DEPLOY_VERIFY_2026-08-22` 의 `AMENDMENT_1` 팔(진짜 배포 해석적,
+      앙상블 k=3) 대 학습 팔이다. ⚠**그 수는 동결 `verdict_w15.json` 에 없다**
+      (그 파일의 `sparse` 는 PRE/POST 대조 14/64 로 **다른 양**이다) ⟹ 여기서 동결 행을
+      다시 집계하고, 논문은 그것을 **재집계로 명시**해 인용한다.
+    """
+    import statistics as _st
+    rows = [json.loads(x) for x in
+            open(os.path.join(TMP, 'W15_DEPLOY_VERIFY_2026-08-22', 'results.jsonl'))]
+    by = {}
+    for r in rows:
+        if r.get('avg_nRMSE') is None:
+            continue
+        by.setdefault((r['cell'], r['stratum'], r['episode']), []).append(r['avg_nRMSE'])
+    med = {k: _st.median(v) for k, v in by.items()}
+    out = {}
+    for stratum, tag in (('crowded', 'Crowded'), ('sparse', 'Sparse')):
+        eps = sorted({k[2] for k in med if k[1] == stratum and k[0] == 'POST'})
+        pairs = [(med[('POST', stratum, e)], med[('ALL-ANALYTIC', stratum, e)])
+                 for e in eps if ('ALL-ANALYTIC', stratum, e) in med]
+        assert pairs, f'⛔W-15 재집계 실패: {stratum}'
+        out[f'WFifteen{tag}Better'] = str(sum(1 for a, b in pairs if a < b))
+        out[f'WFifteen{tag}N'] = str(len(pairs))
+        out[f'WFifteen{tag}Rel'] = f"{_st.median([(a - b) / b * 100 for a, b in pairs]):+.1f}"
+    return out
+
+
+def _prior_ckpt_sha(n=12):
     """★두 번째 체크포인트(`setdiff_prior.pt`)의 SHA256 앞 12자리.
 
     ⛔[2026-09-02] 6차 감사 MAJOR: 논문이 정규화 상수를 *"a constant stored in **the**
@@ -409,7 +500,7 @@ def _prior_ckpt_sha():
     with open(ck, 'rb') as f:
         for c in iter(lambda: f.read(1 << 20), b''):
             h.update(c)
-    return h.hexdigest()[:12]
+    return h.hexdigest()[:n] if n else h.hexdigest()
 
 
 def _k_lim():
@@ -707,6 +798,9 @@ def main():
         #   ⟹ 8자마다 `\allowbreak` 를 넣어 **내용은 그대로** 두고 줄바꿈만 허용한다.
         ('CkptShaFull', _breakable(_ckpt_sha(0))),
         ('PriorCkptSha', _prior_ckpt_sha()),
+        # ⚠[2026-09-02] 검증 감사 25: Data availability 가 *"독자가 검증할 수 있게"*
+        #   라 적으면서 이쪽만 12자였다. 전체 다이제스트도 낸다.
+        ('PriorCkptShaFull', _breakable(_prior_ckpt_sha(0))),
         ('EvalSeedMax', _eval_seed_max()),
         # ── 해석적 대안의 탐색 범위(대비용). 함수 서명의 기본값에서 읽는다.
         ('DepAnaKMax', _ana_kmax()),
@@ -720,6 +814,8 @@ def main():
     dep += list(_qualitative().items())
     dep += list(_b12_seeds().items())
     dep += list(_donor_disjoint().items())
+    dep += list(_corpus_identity().items())
+    dep += list(_w15_reagg().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]
 

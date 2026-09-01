@@ -79,7 +79,8 @@ and refined by variable projection before per-frame updating.
 %   **모든 배치에 참**이라 B-12 를 구별하지 못한다(학습 대역 2e9 이상 vs 평가 최대 시드).
 %   B-12 가 실제로 더하는 것은 **이 저장소의 앞선 배치가 쓰지 않은 시드**다. 자구를 좁힌다.
 On crowded multi-component synthetic seas with a higher-order spectral reference
-field, it lowers median normalised
+field (\HosCrowdedDegraded{} of the \HosCrowdedN{} episodes realise it at second
+rather than third order), it lowers median normalised
 RMSE by \BTwelveRel{} against the strongest eligible grid baseline we possess
 (\BTwelveBetter{}/\BTwelveN{} episodes), in a comparison where that baseline itself
 retains skill against a zero predictor (\BTwelveCmpBetter{}/\BTwelveCmpN{}). The claim is carried by ablation rather than
@@ -91,7 +92,7 @@ removing only the continuity of the wavenumber
 The gains are synthetic; the comparison against a grid baseline is on the crowded
 stratum only, and in the sparse stratum the evidence is split --- the ablation
 reproduces there (\BNineteenBetter{}/\BNineteenN{}) while the deployed analytic
-package is not separated from. The checkpoint was trained on the
+package is not separated from it. The checkpoint was trained on the
 same distribution family so ``out of sample'' means on the seed axis alone, and on
 $12$ measured fixed-station records the prior does not reach the pre-registered
 decision threshold against a per-record zero-field reference.
@@ -113,7 +114,7 @@ dispersion relation \sep data assimilation \sep sequential estimation
 %   (Elsevier 관례: 3-5 항목, 항당 85자.)
 \item Grid-free wave estimation: continuous-wavenumber atoms with a learned prior.
 \item Beats the strongest eligible grid baseline on crowded synthetic seas.
-\item Survives a non-linear reference field and seeds outside the training corpus.
+\item Survives a non-linear reference field and scene seeds no earlier batch had used.
 \item Ablations attribute the gain to the prior and to wavenumber continuity.
 \item On measured records it does not reach the pre-registered decision threshold.
 \end{highlights}
@@ -779,8 +780,9 @@ mechanically over all \CitedBatchFiles{} such files).
 \emph{Scene seeds for training are drawn from the band
 $[\,\TrainSeedLo{},\; \TrainSeedHi{}\,)$, which is disjoint from every seed used by any
 evaluation generator in this paper.} The largest evaluation seed appearing in any
-frozen result row of this project is \EvalSeedMax{}. No evaluation episode was
-therefore seen during training, although the generator family is the same --- which
+frozen result row of this project is \EvalSeedMax{}. No evaluation episode of any
+batch cited in this paper was therefore seen during training, although the generator
+family is the same --- which
 is the sense in which Section~\ref{sec:res_summary} says only the seed axis is out
 of sample.
 
@@ -788,9 +790,20 @@ The shipped checkpoint was trained from scratch for \TrainSteps{} steps at batch
 \TrainBatch{} --- \TrainScenes{} scene draws --- against a held-out validation set of
 \TrainValScenes{} scenes generated from a separate seed and scored every
 \TrainValEvery{} steps. The final losses are \TrainLossFinal{} (training) against
-\TrainValLossFinal{} (validation), and the whole curve is in the repository; the gap
-is small but we did not use it to select a stopping point, and no early stopping was
-applied. The checkpoint's SHA-256 is \texttt{\CkptShaFull{}}. We are precise about
+\TrainValLossFinal{} (validation), and the whole curve is in the repository. Two
+qualifications belong with that pair. The training figure is a \emph{single
+minibatch}, not an average, and neighbouring evaluations straddle it in both
+directions, so the apparent gap is not a stable quantity; the validation figure is
+stable because it is scored on frozen noise. And ``held out'' here means an
+independent random stream --- a separate seed drawing from the same generator, the
+same donor bank and the same seed band --- not a set constructed to be disjoint. We
+did not use the curve to select a stopping point and no early stopping was applied.
+% ⛔[2026-09-02] 검증 감사 MAJOR: 앞 판은 *"the gap is small"* 이라 적었다. `train_mixed.py:129`
+%   가 `float(loss)` 를 **한 미니배치**에서 낸다 --- 이웃 평가가 0.0652(38k)·0.0380(39k) 로
+%   양쪽에 걸쳐 있어 같은 "gap" 이 2배 넘게도 나온다. 그리고 `make_val` 은 **같은 대역·
+%   같은 도너 은행**에서 다른 시드로 뽑으므로 서로소가 **보장되지 않는다**.
+% ⛔[2026-09-02] **주석이 본문을 삼켰다** — 아래 한 줄이 그 복구분이다.
+The checkpoint's SHA-256 is \texttt{\CkptShaFull{}}. We are precise about
 what that digest does: it is recorded in the estimator source and a unit test asserts
 that the shipped file matches it, but the loader does \emph{not} check it at run
 time, so a reader who substitutes a different checkpoint will not be stopped by the
@@ -842,7 +855,8 @@ away.
 %     모든 팔이 같은 프레임을 본다(채점 프레임도 같은 get_tracking_frames).
 %     그러나 **배포 현실성**의 문제이고, 숨기면 그것이 결함이 된다.
 % ============================================================================
-The length of this window is set by the true peak period of the episode, read from
+The length of the initialisation window is set by the true peak period of the
+episode, read from
 the scene metadata, rather than estimated from the observations; on the measured
 records it is read from the record's own reported spectrum. This is a property of
 the harness and not of any arm: the window is computed once, before an
@@ -880,16 +894,19 @@ record would otherwise get a different algorithm than the one we describe.
 The configuration evaluated in Section~\ref{sec:results} places the atoms with a
 learned prior over wavenumber--energy \emph{sets}. A conditional diffusion model,
 trained on synthetic scenes, is conditioned on the initialisation-window
-observations and draws several posterior samples of an atom set; the pooled draws
-are then % [2026-09-01] 2차 감사: 코드는 merge 가 아니라 **drop** 이다(learned_init.py:184).
-% ⛔[2026-09-02] 6차 감사 N2: 4차 감사가 **순서**를 고치면서 새 절을 아래에 덧붙이고
-%   낡은 "deduplicated in wavenumber" 를 **지우지 않았다** ⟹ 인쇄면에 같은 절이 두 번
-%   나오는 비문이 됐다. ★"고쳐 쓴 문장을 넣었으면 낡은 것을 지워라"(N-1 부류).
+% [2026-09-01] 2차 감사: 코드는 merge 가 아니라 **drop** 이다(learned_init.py:184).
 %   merge_atoms 는 별도 기능이고 기본 no-op 이며 W-4 가 무익을 측정했다.
 % [2026-09-02 P9] 4차 감사 MINOR 둘: ①코드 순서는 **에너지 문턱이 먼저**이고
 %   dedup 이 나중이다(`learned_init.py:179-184`) --- 표 3 은 옳게 적었고 이 산문만 뒤집혔다.
 %   ②판정은 유클리드 거리가 아니라 **축별 상자**다(`abs(dkx)<dk and abs(dky)<dk`).
-thresholded on energy, then deduplicated in wavenumber (an atom is dropped when a
+% ⛔[2026-09-02] 6차 감사 N2: 4차 감사가 **순서**를 고치면서 새 절을 아래에 덧붙이고
+%   낡은 "deduplicated in wavenumber" 를 **지우지 않았다** ⟹ 인쇄면에 같은 절이 두 번
+%   나오는 비문이 됐다. ★"고쳐 쓴 문장을 넣었으면 낡은 것을 지워라"(N-1 부류).
+% ⚠[2026-09-02] 주석 블록을 **문장 중간에서 위로** 옮겼다 --- `check_comment_swallow.py`
+%   가 문장 중간 주석과 「주석이 삼킨 본문」을 구별하지 못하기 때문이다.
+%   ★가드가 잡을 수 있게 쓰는 것이 가드를 느슨하게 하는 것보다 낫다.
+observations and draws several posterior samples of an atom set; the pooled draws
+are then thresholded on energy, then deduplicated in wavenumber (an atom is dropped when a
 higher-energy atom lies within $\Delta k = 0.03$~rad/m of it \emph{on both axes}),
 and truncated at $N_{\max}$. Given the resulting
 wavenumbers, the amplitude and phase of every atom are obtained in closed form by
@@ -937,9 +954,16 @@ A third value in the shipped configuration is worth naming because it is
 \emph{inert}: the configuration sets an analytic-path ensemble of
 \DepAnalyticEnsK{}, but the router resolves to the learned path and the ensemble
 size is then re-read for the resolved route, which ships at \DepLearnedEnsK{}. No
-median-of-$k$ ensemble therefore runs in any synthetic result reported here. We say
+median-of-$k$ ensemble therefore runs in the shipped configuration, and no synthetic
+result reported here uses one except the two S-ENS rows of
+Table~\ref{tab:earns}, which switch it on deliberately in order to measure it. We say
 so because a reader inspecting the configuration file would reasonably conclude
-otherwise. We note this because it is easy to reason about either switch alone and be
+otherwise.
+% ⛔[2026-09-02] 검증 감사 BLOCKER: 이 문장은 *"any synthetic result reported here"* 라는
+%   **전칭**이었고 **표 5 의 S-ENS 두 행이 반증**한다(그 행이 바로 앙상블을 켠 대조다).
+%   ★오늘 전칭으로 틀린 것이 네 번째다.
+% ⛔[2026-09-02] **주석이 본문을 삼켰다** — 아래 한 줄이 그 복구분이다.
+We note this because it is easy to reason about either switch alone and be
 wrong about the resulting system.
 
 \paragraph{Alternative path: dispersion-aware beamforming}
@@ -1538,7 +1562,7 @@ therefore not measured in the encounter geometry of the stated application.
 
 We organize the results around the frozen corpora on which each claim was
 measured, not around a single dataset. Section~\ref{sec:res_headline} reports the headline on the
-crowded stratum, Section~\ref{sec:res_hos} the non-linear and unseen-seed
+crowded stratum, Section~\ref{sec:res_hos} the non-linear and previously-unused-seed
 replication, Section~\ref{sec:res_ablation} the two ablations that attribute
 the gain, Section~\ref{sec:res_where} where the gain sits in space and time,
 and Section~\ref{sec:res_scope} the scope, including the measured negative.
@@ -1598,14 +1622,17 @@ This section reports the earlier and larger corpus first because the rest of
 Section~\ref{sec:results} is built on it, not because it is the better measurement,
 and we report its two weaknesses in the same breath.
 
-\subsection{Does it survive a non-linear reference and unseen seeds?}
+\subsection{Does it survive a non-linear reference and scene seeds this project had not used?}
 \label{sec:res_hos}
 
 The two most load-bearing confounds in the B-1 result are the linear reference field
 and the reuse of one corpus across many of this project's batches. We removed the
 first outright by regenerating with a higher-order spectral (HOS, $M{=}3$) reference,
 and weakened the second by drawing \BTwelveFreshSeeds{} of the \BTwelveSeeds{} scene
-seeds from a range no earlier batch had used. We are careful about what the second
+seeds from a range no earlier batch had used. ``Higher-order'' names what was
+requested of the generator: \HosCrowdedDegraded{} of the \HosCrowdedN{} episodes
+realise it at second rather than third order (Table~\ref{tab:earns}, note~(i)), which
+is one reason we do not compare magnitudes across corpora. We are careful about what the second
 does \emph{not} address: no evaluation seed anywhere in this paper falls in the
 checkpoint's training band, so ``unseen by the checkpoint'' was already true of B-1
 and is not what distinguishes this batch. What is new here is that these scenes had
@@ -1672,12 +1699,21 @@ every other component of the pipeline untouched --- removes a margin of \BSixtee
 (\BNineteenBetter{}/\BNineteenN{}, \BNineteenRel{}).
 
 \paragraph{What these two magnitudes are not}
-They are not additive, and they are not shares of any baseline margin. Each was measured on
-its own corpus against its own comparison arm, so subtracting one from the other --- or
-from the baseline margin --- has no defined meaning. In particular, the B-1
-margin and the wavenumber-continuity ablation happen to round to the same figure;
-that is a coincidence of two independent measurements, not evidence that the ablation
-removes the whole gain. We also checked the grid-snapping ablation separately for
+They are not additive, and they are not shares of any baseline margin. The reason is
+\emph{not} that they come from different corpora --- the two ablations run the same
+\AblationEps{} episodes --- but that each removes a different property and is scored
+against a different comparison arm, so subtracting one from the other, or from the
+baseline margin, has no defined meaning. In particular, the B-1 margin and the
+wavenumber-continuity ablation happen to round to the same figure; those two are
+measured on different corpora, and the coincidence is arithmetic rather than evidence
+that the ablation removes the whole gain.
+% ⛔[2026-09-02] 검증 감사 MAJOR: *"Each was measured on **its own corpus**"* 는 **거짓**이다
+%   --- `B-16` 과 `B-22` 는 **같은 48 에피소드**다(실측 ∩ = 48/48). 비가법 결론은 옳지만
+%   **사유가 틀렸고**, 그 틀린 사유가 「다섯 행이 한 코퍼스의 재채점」이라는 사실을 가렸다.
+% ⛔⛔[2026-09-02] **위 주석이 또 본문을 삼켰다**(오늘 세 번째: 국문 초록·영문 초록·여기).
+%   ★공시 검사기 `B16-교락폐쇄` 가 잡았다 --- 요구 자구가 사라졌으니 FAIL 이 났다.
+%   ⟹ 기계 가드를 신설한다(`check_comment_swallow.py`).
+We also checked the grid-snapping ablation separately for
 confounding with the amplitude-and-phase refit it necessarily performs, and found the
 contribution of that refit negligible.
 
@@ -1690,7 +1726,10 @@ inside our own arm, not only by a comparison against someone else's.
 A margin measured on a synthetic corpus can be an artefact of \emph{where} the
 corpus places its observations and \emph{when} it scores them. Both coordinates
 differ sharply between our synthetic and measured data, so we re-scored the frozen
-crowded corpus along each.
+crowded corpus along each. Both quantities in this subsection are therefore
+re-scorings of one corpus --- the same \AblationEps{} episodes that carry the
+ablations --- under different questions, not independent experiments, and they use
+different comparison arms.
 
 \paragraph{Space}
 Decomposing the score by distance to the nearest observation, the gain persists
@@ -1734,11 +1773,21 @@ any baseline margin.
 \label{sec:res_scope}
 
 \textbf{Against the deployed analytic package, the sparse stratum does not
-separate.} With that package's ensemble intact, the crowded stratum favours the
-learned package while the sparse stratum does not; we therefore do not write
-\emph{``the learned prior wins in every regime''}. (The sparse figure is a
-re-aggregation of the frozen deployment-verification corpus rather than a
-pre-registered contrast, and we cite it as such.) This is a statement about one
+separate.} With that package's ensemble intact, the learned package wins
+\WFifteenCrowdedBetter{}/\WFifteenCrowdedN{} crowded episodes
+(\WFifteenCrowdedRel{}\%) but only \WFifteenSparseBetter{}/\WFifteenSparseN{} sparse
+ones (\WFifteenSparseRel{}\%, not distinguishable from chance); we therefore do not
+write \emph{``the learned prior wins in every regime''}.
+\textbf{Disclosure:} these two figures come from a re-aggregation of the frozen rows
+of the deployment-verification batch W-15, not from a pre-registered contrast, and
+they do not appear in that batch's verdict file --- the \texttt{sparse} entry there
+records a different comparison. We recompute them from the frozen rows and mark them
+as a re-aggregation.
+% ⛔[2026-09-02] 검증 감사 MAJOR: 여기 있던 문장은 *"and we cite it as such"* 라 적고
+%   **배치 이름도 수치도 인용하지 않았다** --- 게다가 Data availability 는 *"§5 의 모든
+%   결과는 배치 식별자를 갖는다"* 는 **전칭**이다. ⟹ 출처를 밝히고 수치를 낸다.
+%   재현: `_w15_reagg()` 가 `results.jsonl` 에서 다시 집계한다(혼잡 55/64 · 희소 28/64).
+This is a statement about one
 comparator and does not transfer: against the wavenumber-grid ablation the same
 stratum \emph{does} separate (B-19, \BNineteenBetter{}/\BNineteenN{},
 Section~\ref{sec:res_ablation}). We report both and collapse neither.
@@ -1771,12 +1820,15 @@ boundary, including why the transfer fails, is the subject of a companion thesis
 
 Table~\ref{tab:earns} and Table~\ref{tab:boundary} collect every comparison this
 paper relies on for its accuracy claims, and Fig.~\ref{fig:results} plots the first
-of them with exact confidence intervals alongside each comparator's own skill. Two
+of them with exact confidence intervals alongside each comparator's own skill. Three
 contrasts are reported outside them and are marked where they appear: the
 spectral-domain measurement of Section~\ref{sec:res_spectral}, which is graded
-exploratory, and the ensemble contrast on measured records in
-Section~\ref{sec:res_summary}, which moves an endpoint without crossing a
-threshold.
+exploratory; the ensemble contrast on measured records later in this section, which
+moves an endpoint without crossing a threshold; and the sparse-stratum figure in
+Section~\ref{sec:res_scope}, which is a re-aggregation of a frozen deployment
+corpus rather than a pre-registered contrast.
+% ⛔[2026-09-02] 검증 감사 MAJOR: *"Two contrasts"* 도 여전히 **부족**했다 --- 초록이 기대는
+%   §5.6 의 희소 재집계가 셋째다. ★전칭을 좁힐 때 **한 칸만 좁히면 다시 틀린다**.
 % ⛔[2026-09-02] 6차 감사 N13: *"collect **every** comparison"* 은 **전칭이고 거짓**이었다.
 %   ★전칭을 쓸 때마다 이 저장소가 대가를 치렀다(오늘 두 번째).
  Each row is one batch, and the number is read out of that batch's
@@ -1813,9 +1865,10 @@ is not the same measurement as a large margin against one that does, which is wh
 the ``cmp.'' column is printed rather than described: it counts the episodes on
 which the \emph{comparator} beats a zero predictor, i.e.\ how much skill the thing
 we beat had, and a dash means that control was not part of that batch's design.
-These are separate
-experiments on different corpora and their magnitudes have no defined meaning when
-added or subtracted --- they should not be combined arithmetically.}
+These rows are separate
+\emph{contrasts}, not separate corpora --- \HosSameN{} of them re-score the same
+\AblationEps{} episodes under different arms (note~(i)) --- and their magnitudes have
+no defined meaning when added or subtracted.}
 \label{tab:earns}
 % [2026-09-02 P9] 4차 감사 M4: 이 tabular 가 본문 폭을 81.9pt(약 2.9 cm) 넘었다.
 %   `[review]` 의 넉넉한 여백 때문에 눈에 안 띄었을 뿐, 저널 판형에서는 잘린다.
@@ -1827,7 +1880,7 @@ Question & Batch & $n$ & better & rel.\ median & $p$ & cmp. \\
 \midrule
 \multicolumn{7}{l}{\emph{Against an external baseline}} \\
 Strongest eligible baseline & B-1  & \BOneN{}    & \BOneBetter{}    & \BOneRel{}    & $\BOneP{}$ & --- \\
-Non-linear reference, fresh seeds & B-12 & \BTwelveN{} & \BTwelveBetter{} & \BTwelveRel{} & $\BTwelveP{}$ & \BTwelveCmpBetter{}/\BTwelveCmpN{} \\
+Non-linear ref., \BTwelveFreshSeeds{}/\BTwelveSeeds{} new seeds & B-12 & \BTwelveN{} & \BTwelveBetter{} & \BTwelveRel{} & $\BTwelveP{}$ & \BTwelveCmpBetter{}/\BTwelveCmpN{} \\
 Physically correct sensor model & B-15 & \BFifteenN{} & \BFifteenBetter{} & \BFifteenRel{} & $\BFifteenP{}$ & \BFifteenCmp{}/\BFifteenN{} \\
 Sea state matched to records & B-26 & \BTwentySixN{} & \BTwentySixBetter{} & \BTwentySixRel{} & --- & \BTwentySixCmpBetter{}/\BTwentySixN{} \\
 \midrule
@@ -1908,9 +1961,21 @@ them on the strength of $p$ alone would be over-reading.
 
 \paragraph{How the rows of Table~\ref{tab:earns} must be read}
 Four qualifications apply to the table as a whole and are not repeatable per row.
-\emph{(i)} Every corpus in it is synthetic. Three rows --- B-12, B-16 and B-19 ---
-share the higher-order (HOS) reference corpus; the remaining rows use a linear
-ground-truth field. ``Higher-order'' names what was \emph{requested} of the
+\emph{(i)} Every corpus in it is synthetic, and the rows are less independent of one
+another than a table of separate batch identifiers suggests. Six of them
+(\HosRows{}) draw on the higher-order (HOS) reference corpus, and \HosSameN{} of
+those (\HosSameRows{}) run the \emph{identical} \AblationEps{} episodes --- they are
+re-scorings of one corpus under different arms, not independent experiments.
+\HosDisjointRows{} uses a disjoint \BNineteenN{}-episode subset of the same
+directory. The remaining \LinearN{} rows (\LinearRows{}) use a linear ground-truth
+field.
+% ⛔[2026-09-02] 검증 감사 BLOCKER: 이 자리에 있던 *"세 행이 HOS 를 공유"* 는 **틀렸다**
+%   --- `B-22`·`M-10`·`T-4` 도 `gates_b11.HOS` 를 임포트한다(파일:줄 = `gates_b22.py:70` ·
+%   `gates_m10.py:50` · `gates_t4.py:50`). 실측 교집합: 다섯 행이 **48/48 동일**.
+%   ★그래서 이제 이 문장의 수치는 `_corpus_identity()` 가 **행에서 센다** --- 다음 배치가
+%   같은 코퍼스를 쓰면 매크로가 저절로 따라간다.
+% ⛔[2026-09-02] **주석이 본문을 삼켰다** — 아래 한 줄이 그 복구분이다.
+``Higher-order'' names what was \emph{requested} of the
 generator, not what every episode realised: of the \HosCrowdedN{} crowded episodes,
 \HosCrowdedAdequate{} carry an adequate mesh and \HosCrowdedDegraded{} a degraded
 one; of the \HosSparseN{} sparse episodes, \HosSparseAdequate{} are adequate,
@@ -2088,8 +2153,11 @@ Generated from the frozen verdict files by \texttt{scripts/gen\_fig\_results.py}
 \label{fig:results}
 \end{figure}
 
-\paragraph{A spectral-domain metric, and what it took to get one}
+\subsection{A spectral-domain metric, and what it took to get one}
 \label{sec:res_spectral}
+% ⛔[2026-09-02] 검증 감사 MAJOR: 이것이 `\paragraph` 였고 `\label` 이 **소절 번호를
+%   잡아** `\ref{sec:res_spectral}` 과 `\ref{sec:res_summary}` 가 **둘 다 5.7 로 인쇄**됐다
+%   --- 그 절 안에서 그 절을 가리키니 독자가 예외를 찾을 수 없다. ⟹ 소절로 올린다.
 % ============================================================================
 % ★2026-09-02 (P10) --- 5차 감사 MAJOR #5 에 대한 최종 답.
 %   첫 배치(`T7`)는 **자기 음성 대조가 막아** 라벨을 못 냈다. ⛔그 자료 위에서 게이트를
@@ -2469,7 +2537,9 @@ whose named cause no longer exists.
 % ⛔[2026-09-02] 6차 감사 N17: 이 문단은 세 문장 위에서 *"The levels are not restated
 %   here"* 라 적고 세 문장 뒤에 **0.66 / 0.83 / 0.916 / 8\%** 를 다시 적었다.
 %   5차 감사가 같은 결함을 이웃 문단에서 잡았고 **처방이 이 문단에 적용되지 않았다**
-%   (N-1 부류, 오늘 여덟 번째). ⟹ 값 넷을 빼고 방향만 남긴다.  Post-hoc
+%   (N-1 부류, 오늘 여덟 번째). ⟹ 값 넷을 빼고 방향만 남긴다.
+% ⛔[2026-09-02] **주석이 본문을 삼켰다** — 아래 한 줄이 그 복구분이다.
+Post-hoc
 least-squares amplitude calibration is effective when dense observations
 are available but does not improve with sparse LiDAR ($\sim$50~pts/frame)
 due to insufficient spatial coverage; isolating the residual mechanism
@@ -2618,7 +2688,9 @@ set of continuous-wavenumber spectral atoms under a dispersion constraint, with 
 initial configuration proposed by a learned set-valued prior.
 % ★2026-09-02 (P10) 5차 감사 권고 2d --- 초록과 같은 이유로 결론도 `B-12` 를 앞세운다:
 %   *"the paper states a mandatory control, then leads with the row that lacks it."*
-On crowded multi-component seas with a non-linear reference field and out-of-corpus
+On crowded multi-component seas with a higher-order reference field
+(\HosCrowdedDegraded{} of \HosCrowdedN{} episodes realise it at second rather than
+third order) and previously unused
 seeds, this lowers median normalised RMSE by \BTwelveRel{} against the strongest
 eligible grid baseline we possess (\BTwelveBetter{}/\BTwelveN{} episodes), in a
 comparison where that baseline itself retains skill against a zero predictor
@@ -2640,8 +2712,8 @@ growing advantage.
 Neither re-scoring was blind --- the expected direction was known before the runs,
 so they are not blind replications --- and that rung sits at the lower end of the
 measured lead band rather than spanning it. The two ablation magnitudes are \emph{not
-additive} with each other or with the baseline margin --- different corpora,
-different comparison arms --- and we verified separately that the grid-snapping
+additive} with each other or with the baseline margin --- different comparison arms,
+and in the baseline's case a different corpus as well --- and we verified separately that the grid-snapping
 ablation is not confounded with the refit it necessarily performs.
 
 \paragraph{What we did not obtain}
@@ -2692,7 +2764,10 @@ will be deposited on a public repository upon acceptance. Every result in
 Section~\ref{sec:results} carries a batch identifier (B-1, B-12, \dots); each names
 a directory in that repository holding its preregistration, its checksum-frozen
 analysis code, its raw result rows, and the verdict file from which this paper's
-numbers are read.
+numbers are read. Two figures are exceptions and are marked where they appear: the
+sparse re-aggregation of Section~\ref{sec:res_scope}, which is recomputed from
+W-15's frozen rows rather than read from its verdict, and the illustrative frame of
+Fig.~\ref{fig:qualitative}, which carries its own provenance record instead.
 % [2026-09-02 P9] 4차 감사 M17: 본문이 "supplementary archive" 를 **다섯 번** 가리키는데
 %   그것이 무엇인지 어디에도 없었다. 실체는 저장소 안의 이동 대상 파일이다.
 The ``supplementary archive'' referred to in Sections~\ref{sec:res_summary}
@@ -2708,7 +2783,7 @@ dataset: they come from the frozen corpora of the batches identified in
 Table~\ref{tab:earns}. The two checkpoints the deployed learned path loads are in the
 same repository and are identified here by digest --- the conditional denoiser
 (\texttt{\CkptShaFull{}}) and the normalisation prior
-\texttt{setdiff\_prior.pt} (\texttt{\PriorCkptSha{}}\dots) --- so a reader can verify
+\texttt{setdiff\_prior.pt} (\texttt{\PriorCkptShaFull{}}) --- so a reader can verify
 that the released weights are the ones these numbers came from.
 
 The buoy directional-spread statistics used for the external-validity

@@ -108,7 +108,12 @@ def main():
               r'agree across rows. B-12 and B-16 score their arms on the same '
               r'\AblationEps{}-episode corpus, so their \texttt{SHIP-NOW} cell is one '
               r'cell, not two; it is listed once, under B-12, and the generator '
-              r'cross-checks the two aggregations and fails if they disagree.}',
+              r'cross-checks the two aggregations and fails if they disagree. '
+              r'\emph{These are per-arm medians.} Dividing one row by another does '
+              r'not reproduce the relative margins in Table~\ref{tab:earns}, which '
+              r'are medians of \emph{per-episode paired} relative differences; the '
+              r'two estimators answer different questions and neither is derivable '
+              r'from the other.}',
               r'\label{tab:absolute}',
               r'\setlength{\tabcolsep}{4pt}',
               r'\begin{tabular}{lcrrrr}', r'\toprule',
@@ -139,10 +144,16 @@ def main():
     lines += [r'\end{tabular}', r'\end{table}']
     # ★공짜로 붙는 교차 검증: `SHIP-NOW` 는 두 배치에서 **같은 팔.같은 코퍼스**다
     #   ⟹ 값이 어긋나면 어느 한쪽의 집계가 틀린 것이다. 침묵시키지 말고 죽인다.
+    # ⛔[2026-09-02] 검증 감사 21: `if a and b and …` 는 **핀이 사라지면 조용히 통과**했다
+    #   --- 캡션은 *"the generator cross-checks … and fails if they disagree"* 라 약속한다.
+    #   ⟹ 존재 자체를 요구한다(팔 이름이 바뀌면 죽는다).
     for bf in ('BF4', 'BF5'):
         a = pins.get(f'B12|SHIP-NOW|{bf}')
         b = pins.get(f'B16|SHIP-NOW|{bf}')
-        if a and b and a != b:
+        if a is None or b is None:
+            raise SystemExit(f'⛔교차 검증 불가 {bf}: SHIP-NOW 핀이 없다 '
+                             f'(B-12={a}, B-16={b}) — 팔 이름이 바뀌었나?')
+        if a != b:
             raise SystemExit(f'⛔교차 검증 실패 {bf}: B-12 {a} vs B-16 {b} — '
                              '같은 팔.같은 코퍼스인데 값이 다르다')
     out = os.path.join(ROOT, 'paper', 'abs_table.tex')

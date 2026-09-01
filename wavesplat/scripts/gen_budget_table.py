@@ -34,6 +34,22 @@ def main():
     cells = v['cells']
     assert set(cells) == {'|'.join(k) for k in ORDER}, '⛔칸 집합이 바뀌었다'
     assert v['gates_pass'] == '10/10', f"⛔게이트가 통과 상태가 아니다: {v['gates_pass']}"
+    # ★[2026-09-02] 검증 감사 17: 논문의 공시 규칙이 *"fastest of the eight"* 라는 **자구**를
+    #   요구하는데 그 자구의 **참임**을 아무도 붙들지 않았다(어제 고친 결함과 같은 부류다).
+    #   ⟹ 여기서 붙든다. 보고 칸이 최속이 아니게 되면 이 생성기가 죽고 논문이 못 나온다.
+    # ⚠[2026-09-02] 검증 감사 23: 캡션이 *"one estimator seed"* 라 적으므로 확인한다.
+    import glob as _g
+    seeds = set()
+    for f in _g.glob(os.path.join(ROOT, 'tmp', 'T6_BUDGET_2026-09-02', 'results*.jsonl')):
+        for line in open(f):
+            sd = json.loads(line).get('seed')
+            if sd is not None:
+                seeds.add(sd)
+    assert len(seeds) == 1, f'⛔T-6 의 추정기 시드가 하나가 아니다: {sorted(seeds)}'
+    ms = {k: c['frame_ms_median'] for k, c in cells.items()}
+    assert min(ms, key=ms.get) == 'CPU|LEARN|crowded', (
+        f'⛔보고 칸이 더는 최속이 아니다 --- 논문의 "fastest of the eight" 를 고쳐라: '
+        f'{sorted(ms.items(), key=lambda x: x[1])[:2]}')
 
     L = ['% ⛔자동 생성 — 손으로 고치지 마라.',
          '%    생성: python3 scripts/gen_budget_table.py   (런 0회, T6 동결 verdict 재인쇄)',
@@ -49,7 +65,8 @@ def main():
           r'commensurable with the cross-process figures withdrawn in \ref{app:changes}, '
           r'R3. Pre-registered as T-6; all ten gates pass, including a per-run '
           r'read-back that the thread count was one and that the shipping constants '
-          r'were in force.}',
+          r'were in force. This batch runs one estimator seed, unlike the accuracy '
+          r'batches, which use three; timing is not averaged over seeds.}',
           r'\label{tab:budget}',
           r'\setlength{\tabcolsep}{5pt}',
           r'\begin{tabular}{lllrrr}', r'\toprule',
@@ -77,8 +94,7 @@ def main():
                'values': vals},
               open(os.path.join(ROOT, 'paper', 'budget_table.values.json'), 'w'),
               indent=1, ensure_ascii=False)
-    ms = [c['frame_ms_median'] for c in cells.values()]
-    print(f"✅8 칸 → {OUT}\n   프레임 중앙값 범위 {min(ms):.2f}–{max(ms):.2f} ms "
+    print(f"✅8 칸 → {OUT}\n   프레임 중앙값 범위 {min(ms.values()):.2f}–{max(ms.values()):.2f} ms "
           f"(보고 칸 CPU|LEARN|crowded = {cells['CPU|LEARN|crowded']['frame_ms_median']:.2f})")
     return 0
 

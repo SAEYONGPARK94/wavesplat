@@ -53,7 +53,7 @@ def ci(k, n, conf=0.95):
 ROWS = [
     ('B-1  strongest eligible baseline', 'B1_BASELINE_2026-08-22/verdict_b1.json',
      'crowded.better', 'crowded.n', None),
-    ('B-12 non-linear ref., fresh seeds', 'B12_HOS_EXTEND_2026-08-23/verdict_b12.json',
+    ('B-12 non-linear ref., new seeds', 'B12_HOS_EXTEND_2026-08-23/verdict_b12.json',
      'ship_vs_spec.better', 'ship_vs_spec.n', 'spec_vs_zero.better'),
     ('B-15 physically correct sensor', 'B15_RAYDROP_2026-08-24/verdict_b15.json',
      'by_raydrop.slope.ship_beats_spec', 'by_raydrop.slope.n',
@@ -129,7 +129,10 @@ axA.plot([], [], 'o', ms=5, color=ACC, label='our arm vs. its comparator')
 axA.plot([], [], 'o', ms=5, mfc='none', mec=MUTE, mew=1.1,
          label='comparator vs. a zero field')
 axA.legend(fontsize=6.4, loc='lower left', frameon=False, handletextpad=0.3)
-axA.set_title('(a) every comparison this paper rests on', fontsize=8, loc='left')
+# ⛔[2026-09-02] 검증 감사: 캡션의 전칭은 좁혔는데 **그림 안 제목**이 그대로였다
+#   (N−1 부류 --- 그림을 재생성하면서 이 문자열을 안 봤다).
+#   ⚠표 번호는 조판마다 바뀔 수 있다 --- 그림 안에 번호를 박지 않는다.
+axA.set_title('(a) every comparison in the results table', fontsize=8, loc='left')
 
 # ── 패널 B --- T-4 사다리
 t4 = V('T4_GEOMETRY_2026-08-30/verdict_t4.json')['ladder']

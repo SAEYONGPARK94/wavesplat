@@ -56,6 +56,12 @@ RULES = [
     ('B1-최강아님', r'\\BOneRel|\\BOneBetter',
      [r'strongest .*we possess', r'strongest eligible', r'not the same claim as'],
      '"최강 적격" 이지 "강화된" 이 아니다'),
+    # ★★[2026-09-02] 검증 감사 18: `\BOneRel` 에는 규칙이 여섯인데 **헤드라인이 옮겨간
+    #   `\BTwelveRel` 에는 하나도 없었다** --- 그래서 초록이 HOS 등급 단서 없이 나갔다.
+    #   ⟹ 헤드라인이 옮겨가면 **공시 의무도 함께 옮겨야 한다**.
+    ('B12-실현등급', r'\\BTwelveRel|\\BTwelveBetter',
+     [r'\\HosCrowdedDegraded', r'second\s+(?:rather than|order)', r'requested. of the generator'],
+     'B-12 의 "HOS M=3" 은 **요청한 것** — 실현 등급(저하 17/48) 병기 의무'),
     ('B22-우변얇음', r'\\BTwentyTwoRel|\\BTwentyTwoBetter',
      [r'\\BTwentyTwoAnaZero', r'right-hand side of this contrast is',
       r'comparators are themselves weak'],
@@ -81,8 +87,13 @@ RULES = [
     #   ★항진 검사가 「미검증」으로 보고했고, 확인해 보니 **새로 쓴 전칭 문장이 거짓**이었다
     #   (*"Each row is one pre-registered batch … frozen by checksum"*; B-1 은 사후 작성).
     #   ⟹ 사전등록을 **총괄해 서술하는 문형 전반**으로 넓힌다.
+    # ⚠[2026-09-02] 검증 감사 중 이 트리거가 **부정문에 오발동**했다: §5.6 이
+    #   *"**not** from a pre-registered contrast"* 라 적었는데(= 규칙이 원하는 정직함
+    #   그 자체) 병기 누락으로 잡혔다. ★규칙이 늑대를 외치면 사람이 무시한다.
+    #   ⟹ 트리거를 **전칭 한정사**가 붙은 문형으로 좁힌다. 두 번째·세 번째 대안은 그대로.
     ('사전등록-전칭금지',
-     r'(?:comparison|batch|row|experiment)s? .{0,60}pre-?registered|'
+     r'(?:[Ee]very|[Ee]ach|[Aa]ll|[Bb]oth)\s+(?:comparison|batch|row|experiment)s?\s'
+     r'.{0,60}pre-?registered|'
      r'pre-?registration before the runs|analysis code was frozen',
      [r'written after the (?:runs|results)', r'were written after',
       r'[Tt]he exception is', r'two limits of that procedure'],
@@ -138,7 +149,9 @@ RULES = [
      '⛔그 칸은 **가장 느린 칸이 아니다** — 보수적 칸으로 읽히지 않게 병기해야 한다'),
     ('예산-실행조건', r'\\FrameMsLearn|\\FramePctLearn',
      [r'CPU-only'],
-     '실행 조건(CPU 전용·1스레드·1프로세스)을 병기해야 한다'),
+     # ⚠[2026-09-02] 사유가 코드보다 넓었다(패턴은 `CPU-only` 하나뿐이다).
+     #   1스레드·1프로세스는 표 캡션이 지고, 이 규칙은 **본문 절**만 본다.
+     '실행 조건 중 CPU 전용을 본문 절에 병기해야 한다(스레드·프로세스는 표 캡션)'),
     ('예산-초기화별도', r'\\FrameMsLearn',
      [r'one-off', r'not part of the per-frame'],
      '초기화는 프레임 수치에 포함되지 않는다 — 병기 의무'),
@@ -178,6 +191,15 @@ MULTI_RULES = [
      [r'not additive', r'should not add or subtract', r'no defined meaning',
       r'should not be combined arithmetically'],
      '서로 다른 배치의 크기가 같은 절에 둘 이상 있으면 결합 금지 병기 의무'),
+    # ★★[2026-09-02] 검증 감사 19: **코퍼스 동일성**을 검사하는 규칙이 하나도 없었고,
+    #   그 사각지대가 표 주 (i) 의 거짓("세 행")과 §5.4 의 거짓("각자 자기 코퍼스")을
+    #   동시에 통과시켰다. ⚠단 **한 크기만 말하는 절**은 오해할 것이 없으므로
+    #   `MULTI_RULES`(둘 이상 동거) 로 둔다 --- 초록까지 요구하면 늑대가 된다.
+    ('코퍼스-동일성', [r'\\BTwelveRel', r'\\BSixteenRel', r'\\BTwentyTwoRel',
+                 r'\\MTenRel', r'\\TFourRel'], 2,
+     [r'\\HosSameRows', r'\\AblationEps\{\} episodes', r're-scorings of one corpus',
+      r'run the same', r'different comparison arms'],
+     '⛔다섯 행이 **같은 48 에피소드**의 재채점이다 — 독립 실험처럼 읽히지 않게 병기'),
 ]
 
 

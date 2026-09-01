@@ -290,6 +290,16 @@ ATOMS = [
     ('SEnsSparseN', 'S_ENS_2026-09-01/verdict_sens.json', 'contrasts.SEC-A.n', 'int', 64),
     ('SEnsNominal', 'S_ENS_2026-09-01/verdict_sens.json', 'thresholds.NOMINAL', 'int', 40),
 
+    # ── ★[2026-09-02] `T7b-SPECTRAL` --- 스펙트럼 영역 지표(등급 EXPLORATORY 고정).
+    #   ⚠`G-5c`(비교자>제로장 21/32)는 **동반 공시 의무**다: 우변이 얇다(F1 부류).
+    ('SpecBetter', 'T7b_SPECTRAL_2026-09-02/verdict_t7b.json',
+     'contrasts.A_learn_better', 'int', 25),
+    ('SpecN', 'T7b_SPECTRAL_2026-09-02/verdict_t7b.json', 'contrasts.n', 'int', 32),
+    ('SpecP', 'T7b_SPECTRAL_2026-09-02/verdict_t7b.json',
+     'contrasts.A_p_one_sided', 'p', 1.05e-03),
+    ('SpecHs', 'T7b_SPECTRAL_2026-09-02/verdict_t7b.json',
+     'contrasts.B_learn_better', 'int', 20),
+
     ('TFiveBetter', 'T5_ENS_2026-09-01/verdict_t5.json', 'contrasts.PRIMARY.better', 'int', 28),
     ('TFiveN', 'T5_ENS_2026-09-01/verdict_t5.json', 'contrasts.PRIMARY.n', 'int', 36),
     ('TFiveRel', 'T5_ENS_2026-09-01/verdict_t5.json',

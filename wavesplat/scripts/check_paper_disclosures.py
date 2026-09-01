@@ -136,6 +136,19 @@ RULES = [
       r'no comparative timing claim'],
      '⛔철회된 프로세스간 수치·기준선 지연과 비교 금지 — 병기 의무'),
 
+    # ★[2026-09-02] `T7b` --- 셋 다 사전등록이 요구한 병기다.
+    ('스펙트럼-비교자얇음', r'\\SpecBetter|\\SpecP',
+     [r'only \$?21\$? of', r'comparator beats a zero field on only',
+      r"comparator's weakness"],
+     'T7b 는 비교자가 21/32 에서만 제로장을 이긴다 — 병기 의무(F1 부류)'),
+    ('스펙트럼-탐색적', r'\\SpecBetter|\\SpecP',
+     [r'exploratory and not confirmatory', r'grade this exploratory'],
+     'T7b 는 노출 때문에 EXPLORATORY 고정 — 병기 의무'),
+    ('스펙트럼-위상없음', r'\\SpecBetter|\\SpecP',
+     [r'does not distinguish propagation direction',
+      r'symmetric under \$?\\mathbf\{k\}'],
+     'directional_r2 는 위상을 보지 않는다 — "스펙트럼 정확도" 일반화 금지 병기'),
+
     ('실측음성-팔간아님', r'\\BSeventeenBeats|\\BEighteenBeats|\\BFourteenBBeats',
      [r'[Nn]ot a comparison between arms', r'whether the arm has any skill'],
      'B-17/B-18/B-14b 는 제로필드 대비 승수 — 팔간 비교로 읽히면 안 된다'),

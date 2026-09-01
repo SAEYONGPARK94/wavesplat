@@ -184,6 +184,31 @@ FALSE_POSITIVE = {
                                       4178, 5045, 6271, 6456)
 }
 
+# ★[2026-09-02] **내용 키 오탐 대장.**
+#   ⛔설계 약점: 위 좌표 대장은 `(파일, 줄번호)` 다. 조판 산출 PDF 는 **재조판할 때마다
+#   줄번호가 밀리므로** 그 항목들이 조용히 낡고, 래칫이 내용과 무관하게 위아래로 흔들린다
+#   (2026-09-02 에 그림 하나를 추가했더니 26 -> 28 로 "악화" 를 찍었는데,
+#   실제 원인은 축 눈금 `0.020` 과 밀린 좌표였다).
+#   ⟹ 생성 산출물에는 **줄번호가 아니라 그 줄의 내용**으로 키를 잡는다.
+#   ⚠엄격하게: 정규화된 **전체 줄**이 일치해야 하고, 사유를 반드시 적는다.
+FALSE_POSITIVE_TEXT = {
+    # COLL --- 오차-거리 패널의 y축 눈금. 금지된 "희소 층 극단값 0.020" 과
+    #          자릿수만 같고 **다른 양**이다(그림에는 팔간 비교가 없다).
+    "0.020": "COLL: fig_qualitative 의 축 눈금 (RMS error [m])",
+    # COLL --- Delta k_min 사전등록 스윕의 5성분 셀 손해. 희소 극단값이 아니다.
+    "on0/5seeds(+0.029nRMSE),becauseasmallerradiusletsthegreedysearch":
+        "COLL: Delta k_min 스윕의 셀 손해",
+    "caseon0/5seeds($+0.029$~nRMSE),becauseasmallerradiusletsthegreedy":
+        "COLL: Delta k_min 스윕의 셀 손해 (tex)",
+}
+
+
+def is_fp(rel, ln, txt):
+    if (rel, ln) in FALSE_POSITIVE:
+        return True
+    return norm(txt).strip() in FALSE_POSITIVE_TEXT
+
+
 def norm(s):
     s = re.sub(r"\\(?:textbf|emph|texttt|mathbf|textit|text)\s*\{", "{", s)
     s = re.sub(r"[{}$\\,]", "", s)
@@ -202,8 +227,8 @@ for name, pat, basis in BANS:
             probe = txt if name in NUMERIC else norm(txt)
             if rx.search(probe):
                 hits.append((rel, kind, ln, txt))
-    tp = [h for h in hits if (h[0], h[2]) not in FALSE_POSITIVE]
-    fp = [h for h in hits if (h[0], h[2]) in FALSE_POSITIVE]
+    tp = [h for h in hits if not is_fp(h[0], h[2], h[3])]
+    fp = [h for h in hits if is_fp(h[0], h[2], h[3])]
     total += len(tp); n_fp += len(fp); n_raw += len(hits)
     tag = "⛔HIT" if tp else ("  fp " if fp else "  ok ")
     print(f"{tag} {name}: 정탐 {len(tp)}건 / 오탐 {len(fp)}건   [근거: {basis}]")

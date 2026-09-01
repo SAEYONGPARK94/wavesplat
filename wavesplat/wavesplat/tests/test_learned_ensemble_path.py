@@ -32,13 +32,42 @@ def test_plain_learned_is_not_wrapped():
     assert type(upd) is SequentialUpdater
 
 
-def test_explicit_knob_reaches_the_wrapper():
-    cfg = {'init_method': 'learned'}
-    cfg.update(recommended_learned_ensemble_config())
+def test_recommended_config_keeps_the_real_domain_gate():
+    """★권고 구성은 `auto` 를 유지한다 --- 그래야 실측 게이트가 살아 있다.
+
+    ⛔초판은 `init_method='learned'` 를 돌려줬고, 명시 `learned` 는 실측 게이트 분기를
+    **아예 통과하지 않는다** ⟹ 권고를 실측에 쓰면 **게이트 없이** 학습 멤버가 돌았다
+    (`W-12` 가 금지한 팔). 독립 감사가 잡았다.
+    """
+    from wavesplat.run import DEFAULT_CONFIG
+
+    rec = recommended_learned_ensemble_config()
+    assert rec['init_method'] == 'auto', '권고가 실측 게이트를 우회한다'
+
+    cfg = dict(DEFAULT_CONFIG)
+    cfg.update(rec)
     upd = make_updater(cfg)
     assert isinstance(upd, MedianEnsembleUpdater)
-    assert upd.k_requested == 3
-    assert upd.k_key == 'learned_ensemble_k'
+    # 합성(게이트 미발동)에서는 켜지고
+    assert upd._effective_k('learned', real_gate=False) == 3
+    # ★실측(게이트 발동)에서는 꺼진다
+    assert upd._effective_k('learned', real_gate=True) == 1
+
+
+def test_knob_is_validated_wherever_it_is_read():
+    """★결정을 한 곳으로 모았으면 **검증도 거기** 있어야 한다.
+
+    ⛔초판은 `__init__` 에서만 검증해서, `auto` 로 들어온 `learned_ensemble_k=99` 가
+    **어디서도 검증되지 않고** 조용히 5 로 잘렸다(요청 99 · 실제 5 · 경고 0).
+    """
+    import pytest
+    from wavesplat.run import DEFAULT_CONFIG
+
+    for bad in (99, 0, -1, None, 'three'):
+        cfg = dict(DEFAULT_CONFIG)
+        cfg['learned_ensemble_k'] = bad
+        with pytest.raises(ValueError):
+            MedianEnsembleUpdater(cfg)._effective_k('learned', real_gate=False)
 
 
 def test_the_two_ensemble_knobs_do_not_leak_into_each_other():
@@ -96,13 +125,9 @@ def test_initialize_delegates_k_to_the_single_resolver():
         'initialize 가 노브를 다시 읽는다 = 같은 기능 두 곳 구현'
 
 
-def test_real_domain_gate_still_suppresses_the_learned_ensemble():
-    """실측 게이트는 여전히 두 앙상블을 모두 누른다 — bank 가 자체 k=3 을 돌린다.
-
-    ⛔`T3`/`T5` 는 `real_domain_gate=False` 로 쟀다. 그 구성은 **연구 팔**이지 배포가 아니다.
-    """
-    src = inspect.getsource(MedianEnsembleUpdater._effective_k)
-    assert 'real_gate' in src, '실측 게이트가 결정자에서 빠졌다'
+# ⛔초판의 `assert 'real_gate' in getsource(_effective_k)` 는 **항진이었다** —
+#   그 이름은 시그니처에 있으므로 본문의 게이트 분기를 통째로 지워도 통과한다.
+#   독립 감사가 돌연변이로 확인했다. ⟹ 문자열이 아니라 **행동**으로 검사한다.
 
 
 # ─────────────────────────────────────────────────────────────────────────────

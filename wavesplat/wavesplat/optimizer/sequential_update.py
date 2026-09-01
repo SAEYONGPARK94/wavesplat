@@ -215,9 +215,19 @@ def recommended_learned_ensemble_config(k: int = 3) -> dict:
 
         cfg.update(recommended_learned_ensemble_config())
         upd = make_updater(cfg)
-        assert getattr(upd, 'k_requested', 1) == 3
+        assert upd._effective_k('learned', real_gate=False) == 3
+
+    ⛔★**초판(2026-09-01)이 `init_method='learned'` 를 돌려줬다 — 그것이 결함이었다.**
+    실측 도메인 게이트는 `init_method == 'auto'` **분기 안에만** 있으므로(`initialize()`),
+    명시 `learned` 는 게이트를 **아예 통과하지 않는다**. ⟹ 초판 권고를 실측에 쓰면
+    **게이트 없이 학습 멤버 3개**가 돌았다 --- `W-12` 가 측정으로 금지한 그 팔이다
+    (실측 학습 강제 = 예보 지평 0/5 패배). 이 파일의 `:742` 주석이 이미 축자로
+    *"`init_method` 를 'learned' 로 바꾸면 실측 게이트가 조용히 사라진다"* 고 경고해 뒀는데도
+    같은 함정에 빠졌다. 독립 감사가 잡았다.
+    ⟹ **권고는 `auto` 를 유지한다.** 라우터가 합성에서 학습으로 해소하고, 실측에서는
+    게이트가 여전히 bank-MMSE 로 보낸다(그쪽은 자체 장 앙상블을 돈다).
     """
-    return {'init_method': 'learned', 'learned_ensemble_k': int(k)}
+    return {'init_method': 'auto', 'learned_ensemble_k': int(k)}
 
 
 def pre_varpro_config() -> dict:
@@ -2006,10 +2016,25 @@ class MedianEnsembleUpdater:
         """
         if real_gate or route not in self.ENSEMBLED_ROUTES:
             return 1
+        # ⛔★결정을 여기로 모았으면 **검증도 여기 있어야 한다**(독립 감사 지적).
+        #   `__init__` 은 *요청된* init_method 로 고른 노브 하나만 검증한다 ⟹ `auto` 로
+        #   들어오면 `learned_ensemble_k` 는 **어디서도 검증되지 않았고**, `k=99` 가
+        #   조용히 5 로 잘렸다(요청 99 · 실제 5 · 경고 0). 「같은 기능 두 곳」이 절반만
+        #   닫힌 상태였다.
         if route == 'learned':
-            return int(self.config.get('learned_ensemble_k',
-                                       DEFAULT_LEARNED_ENSEMBLE_K))
-        return self.k_requested
+            k = self.config.get('learned_ensemble_k', DEFAULT_LEARNED_ENSEMBLE_K)
+            name = 'learned_ensemble_k'
+        else:
+            k = self.config.get('analytic_ensemble_k', DEFAULT_ANALYTIC_ENSEMBLE_K)
+            name = 'analytic_ensemble_k'
+        try:
+            k = int(k)
+        except (TypeError, ValueError):
+            raise ValueError(f'{name} must be an int 1..{len(self.MEMBER_OFFSETS)}, '
+                             f'got {k!r}')
+        if k < 1 or k > len(self.MEMBER_OFFSETS):
+            raise ValueError(f'{name} must be 1..{len(self.MEMBER_OFFSETS)}, got {k}')
+        return k
 
     # ── phase 1 ─────────────────────────────────────────────────────────────
     def initialize(self, frames: List[FrameData],
@@ -2054,7 +2079,14 @@ class MedianEnsembleUpdater:
             s = base + off
             cfg = dict(self.config)
             if route == 'learned':
-                # ★Learned members differ ONLY in the diffusion draw. `seed` stays at
+                # ★Learned members are split by the diffusion draw **and by the global
+                #   torch stream that draw reseeds** -- `scripts/d3_beamform_cond_diffusion.py`
+                #   calls `torch.manual_seed(seed)` inside `sample()`, so every later torch
+                #   draw (growth phase, ...) differs too. Only the numpy stream is shared.
+                #   ⛔초판 주석의 *"ONLY in the diffusion draw"* 는 거짓이었다(독립 감사).
+                #   ⚠팔 자체는 `T3`/`T5` 하네스 규약과 같으므로 **판정은 무효가 아니다** —
+                #   틀린 것은 서술이다.
+                #   `seed` stays at
                 #   `base` (so the ambient RNG stream is the same for every member) and
                 #   `learned_diffusion_seed` carries the offset -- this is the convention
                 #   the confirmations were measured under (`T3 gates_t3.member_overrides`,

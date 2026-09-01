@@ -94,7 +94,7 @@ run "11. 주장 원자 다중 출현 [자문]"                 python3 tmp/STATU
 #       학위논문이 쓰는 `thesis/figures_ws/` 8개가 `paper/figures/` 의 **바이트 동일 사본**이고
 #       그중 둘이 금지 수를 인쇄한다(`fig8_qualitative` 0.332/0.319 · `fig1_comparison` 0.211).
 # ⚠래칫 의미론: `paper/` 는 동결 원고라 "히트 0" 을 요구하면 방벽이 영구히 빨간불이 되고
-#   사람이 무시하기 시작한다 ⟹ **오늘 수(188)보다 늘어날 때만 실패**한다.
+#   사람이 무시하기 시작한다 ⟹ **오늘 수(188)보다 늘어나도 줄어도 실패(양방향 래칫, 2026-09-01)**한다.
 #   처분(`tmp/STATUS_2026-08-28/PAPER_DISPOSITION.md`)이 집행되면 기준선을 내릴 것.
 # ⚠오탐률 **16.1%(36/224)** 를 실측해 스크립트 안 `FALSE_POSITIVE` 대장에 좌표로 적어 두었다.
 run "12. paper/ 인용금지 (PDF·그림 포함, 래칫)"      python3 tmp/STATUS_2026-08-28/audit_paper_bans.py

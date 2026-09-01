@@ -156,6 +156,19 @@ ATOMS = [
     #   **초기화 이후 정상 상태**만 포괄한다(제안 단계 불포함).
     ('BudgetUsPerPoint', 'B6_BUDGET_2026-08-23/verdict_b6b.json',
      'pooled.per_point_s', 'us', 137.0),
+    # ── ★[2026-09-02] `T6-BUDGET` --- **배포 학습 경로**의 프레임 예산.
+    #   ⛔이 배치 전까지 학습 경로의 지연은 **0건 측정**이었고 논문이 그렇게 적고 있었다.
+    #   결정표가 결과 전에 지정한 **가장 보수적인 칸** = 혼잡 · CPU 전용 · 1 스레드.
+    ('FrameMsLearn', 'T6_BUDGET_2026-09-02/verdict_t6.json',
+     ('cells', 'CPU|LEARN|crowded', 'frame_ms_median'), 'ms2', 5.91),
+    ('FramePctLearn', 'T6_BUDGET_2026-09-02/verdict_t6.json',
+     ('cells', 'CPU|LEARN|crowded', 'budget_frac_at_10hz'), 'pct100', 5.9),
+    ('InitSLearn', 'T6_BUDGET_2026-09-02/verdict_t6.json',
+     ('cells', 'CPU|LEARN|crowded', 'init_s_median'), 'ms2', 5.18),
+    ('InitSAna', 'T6_BUDGET_2026-09-02/verdict_t6.json',
+     ('cells', 'CPU|ANA|crowded', 'init_s_median'), 'ms2', 26.61),
+    ('InitSLearnGpu', 'T6_BUDGET_2026-09-02/verdict_t6.json',
+     ('cells', 'GPU|LEARN|crowded', 'init_s_median'), 'ms2', 4.86),
     ('BudgetFrameS', 'B6_BUDGET_2026-08-23/verdict_b6b.json', 'frame_budget_s', 'sec', 0.1),
     ('BFifteenN',   'B15_RAYDROP_2026-08-24/verdict_b15.json', 'by_raydrop.slope.n', 'int', 20),
     ('BFifteenRel', 'B15_RAYDROP_2026-08-24/verdict_b15.json', 'by_raydrop.slope.rel_median_pct', 'pct', -42.6),
@@ -263,6 +276,8 @@ FMT = {
     'abs3': lambda x: f'{x:.3f}',
     'us': lambda x: f'{x * 1e6:.0f}',
     'sec': lambda x: f'{x:g}',
+    'ms2': lambda x: f'{x:.2f}',
+    'pct100': lambda x: f'{x * 100:.1f}',
 }
 
 
@@ -302,6 +317,10 @@ def main():
             ok = abs(round(raw * 1e6) - pin) < 1e-9
         elif kind == 'sec':
             ok = abs(raw - pin) < 1e-12
+        elif kind == 'ms2':
+            ok = abs(round(raw, 2) - pin) < 1e-9
+        elif kind == 'pct100':
+            ok = abs(round(raw * 100, 1) - pin) < 1e-9
         else:
             ok = abs(raw - pin) / abs(pin) < 0.005
         if not ok:

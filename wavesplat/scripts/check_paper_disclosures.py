@@ -113,6 +113,18 @@ RULES = [
      [r'steady state after initialisation', r'proposal stage .{0,30}not in it'],
      '렌더 단가는 **초기화 이후**만 포괄 — 제안 단계 불포함 병기 의무'),
 
+    # ★[2026-09-02] `T6-BUDGET` --- 시간 수치는 쉽게 오독된다. 세 가지를 강제한다.
+    ('예산-보수적칸', r'\\FrameMsLearn|\\FramePctLearn',
+     [r'most conservative cell', r'CPU-only', r'single thread'],
+     '프레임 예산은 **가장 보수적인 칸**(혼잡·CPU·1스레드) 임을 병기해야 한다'),
+    ('예산-초기화별도', r'\\FrameMsLearn',
+     [r'one-off', r'not part of the per-frame'],
+     '초기화는 프레임 수치에 포함되지 않는다 — 병기 의무'),
+    ('예산-비교금지', r'\\InitSAna|\\FrameMsLearn',
+     [r'separate processes', r'did not run a baseline arm',
+      r'no comparative timing claim'],
+     '⛔철회된 프로세스간 수치·기준선 지연과 비교 금지 — 병기 의무'),
+
     ('실측음성-팔간아님', r'\\BSeventeenBeats|\\BEighteenBeats|\\BFourteenBBeats',
      [r'[Nn]ot a comparison between arms', r'whether the arm has any skill'],
      'B-17/B-18/B-14b 는 제로필드 대비 승수 — 팔간 비교로 읽히면 안 된다'),

@@ -1,0 +1,192 @@
+{
+  "batch": "T6-BUDGET",
+  "n_rows": 64,
+  "gates": [
+    [
+      "G-1 스레드=1",
+      true,
+      "64/64"
+    ],
+    [
+      "G-2 장치 일치",
+      true,
+      "64/64"
+    ],
+    [
+      "G-3 경로 되읽기",
+      true,
+      "64/64"
+    ],
+    [
+      "G-4 샤드당 1 PID",
+      true,
+      "{'CPU': 1, 'GPU': 1}"
+    ],
+    [
+      "G-5 시계 교정",
+      true,
+      "{'CPU': 0.05, 'GPU': 0.05}"
+    ],
+    [
+      "G-6 프레임 수 일치",
+      true,
+      "32/32 짝"
+    ],
+    [
+      "G-7 배포 상수",
+      true,
+      "64/64"
+    ],
+    [
+      "G-8 행 수",
+      true,
+      "64/64"
+    ],
+    [
+      "G-9 값 유효",
+      true,
+      "64/64"
+    ],
+    [
+      "G-10 부하 상한",
+      true,
+      "max p95/med = 1.14"
+    ]
+  ],
+  "gates_pass": "10/10",
+  "blocked_by": [],
+  "label": "FRAME-BUDGET-AMPLE",
+  "label_metric_ms": 5.913820001296699,
+  "cells": {
+    "CPU|ANA|crowded": {
+      "n_episodes": 8,
+      "frame_ms_median": 6.055,
+      "frame_ms_iqr": [
+        5.874,
+        6.076
+      ],
+      "init_s_median": 26.613,
+      "init_s_min_max": [
+        26.348,
+        29.46
+      ],
+      "final_n_median": 15,
+      "budget_frac_at_10hz": 0.0605
+    },
+    "CPU|ANA|sparse": {
+      "n_episodes": 8,
+      "frame_ms_median": 5.969,
+      "frame_ms_iqr": [
+        5.907,
+        5.987
+      ],
+      "init_s_median": 17.08,
+      "init_s_min_max": [
+        15.749,
+        21.4
+      ],
+      "final_n_median": 11,
+      "budget_frac_at_10hz": 0.0597
+    },
+    "CPU|LEARN|crowded": {
+      "n_episodes": 8,
+      "frame_ms_median": 5.914,
+      "frame_ms_iqr": [
+        5.854,
+        6.066
+      ],
+      "init_s_median": 5.183,
+      "init_s_min_max": [
+        4.469,
+        8.187
+      ],
+      "final_n_median": 16,
+      "budget_frac_at_10hz": 0.0591
+    },
+    "CPU|LEARN|sparse": {
+      "n_episodes": 8,
+      "frame_ms_median": 5.945,
+      "frame_ms_iqr": [
+        4.924,
+        6.006
+      ],
+      "init_s_median": 5.894,
+      "init_s_min_max": [
+        3.897,
+        6.091
+      ],
+      "final_n_median": 14,
+      "budget_frac_at_10hz": 0.0594
+    },
+    "GPU|ANA|crowded": {
+      "n_episodes": 8,
+      "frame_ms_median": 6.261,
+      "frame_ms_iqr": [
+        6.167,
+        6.28
+      ],
+      "init_s_median": 27.573,
+      "init_s_min_max": [
+        26.936,
+        30.024
+      ],
+      "final_n_median": 15,
+      "budget_frac_at_10hz": 0.0626
+    },
+    "GPU|ANA|sparse": {
+      "n_episodes": 8,
+      "frame_ms_median": 6.125,
+      "frame_ms_iqr": [
+        6.048,
+        6.148
+      ],
+      "init_s_median": 17.477,
+      "init_s_min_max": [
+        16.083,
+        21.937
+      ],
+      "final_n_median": 11,
+      "budget_frac_at_10hz": 0.0613
+    },
+    "GPU|LEARN|crowded": {
+      "n_episodes": 8,
+      "frame_ms_median": 6.199,
+      "frame_ms_iqr": [
+        6.119,
+        6.236
+      ],
+      "init_s_median": 4.86,
+      "init_s_min_max": [
+        2.968,
+        6.307
+      ],
+      "final_n_median": 15,
+      "budget_frac_at_10hz": 0.062
+    },
+    "GPU|LEARN|sparse": {
+      "n_episodes": 8,
+      "frame_ms_median": 6.056,
+      "frame_ms_iqr": [
+        5.076,
+        6.154
+      ],
+      "init_s_median": 4.302,
+      "init_s_min_max": [
+        2.481,
+        4.598
+      ],
+      "final_n_median": 10,
+      "budget_frac_at_10hz": 0.0606
+    }
+  },
+  "prereg": "PREREG.md",
+  "disclosure": [
+    "blind 아님 — 스모크 2셀을 동결 전에 보았고 세 방향을 알고 있었다(PREREG §3).",
+    "⛔정확도 주장 0건. 이 배치의 어떤 수도 정확도 비교에 쓰지 않는다.",
+    "⛔철회된 프로세스간 수치(13.4/132.6 ms)와 비교 금지 — 다른 양이다.",
+    "⛔기준선 지연과 비교 금지 — 이 배치는 기준선을 돌리지 않는다.",
+    "⛔렌더 단가(B-6b 137 us/점)와 합산 금지 — 질의 쪽이고 팔이 다르다.",
+    "⛔실측 전이 금지 — 실측은 다른 경로(bank_mmse)로 간다.",
+    "⚠라벨은 추적만 서술한다. 초기화는 어느 라벨에도 들어가지 않는다."
+  ]
+}

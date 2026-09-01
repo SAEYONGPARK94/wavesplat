@@ -114,6 +114,16 @@ coincidence that two of them round to the same figure as an identity.}
 We also locate the gain rather than only asserting it: it persists inside the
 observation-density band that our measured records actually occupy
 (\MTenBetter{}/\MTenN{}, \MTenRel{}) and at a forecast rung that $11$ of the $12$ measured records cover (\TFourBetter{}/\TFourN{}, \TFourRel{}).
+% [2026-09-01] 공시 검사기가 초록에서 세 누락을 잡았다: T4 비교자 붕괴 ·
+%   B-1 체크포인트 분포 겹침 · B-22 우변 얇음. 기계가 요구한 대로 메운다.
+Neither re-scoring is blind, and in the forecast case the comparator degrades across
+the same interval (from \TFourCmpAtZero{}/\TFourN{} to only \TFourCmp{}/\TFourN{}
+against a zero predictor), so the growing ratio is not a growing advantage. The
+learned checkpoint was moreover trained on the same distribution family as the
+synthetic evaluation, so ``out of sample'' there means on the seed axis only; and the
+prior ablation above is measured against an analytic package that itself clears a
+zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes --- the prior is
+what makes that arm work, not a margin added to a working one.
 
 \textbf{Scope, stated as measured.} The gains above are synthetic and confined to
 the crowded stratum: against the deployed analytic package the sparse stratum does
@@ -737,7 +747,9 @@ The system also contains a purely analytic initialiser, which is what runs when 
 learned prior is not used. It is described next both because it is the fallback and
 because it is the \emph{comparison arm} of the prior ablation in
 Section~\ref{sec:res_ablation}: replacing the learned proposal with this procedure,
-changing nothing else, is what costs \BTwentyTwoRel{}.
+changing nothing else, is what costs \BTwentyTwoRel{} --- against an analytic
+package that itself clears a zero predictor on only
+\BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes.
 
 \textbf{Dispersion-aware beamforming.}
 Initial wavenumber estimates are obtained by scanning a Cartesian
@@ -1819,6 +1831,10 @@ structural argument for the representation, and the ablations in
 Section~\ref{sec:res_ablation} are what turn it from an argument into a measurement:
 removing only the continuity of the wavenumber --- keeping every other component of
 the pipeline --- costs \BSixteenRel{}, and the cost grows when the grid is coarsened.
+We checked separately that this ablation is not confounded with the
+amplitude-and-phase refit it necessarily performs, and the magnitudes here are
+\emph{not additive} with the baseline margin: they were measured on different
+corpora against different comparison arms.
 
 \paragraph{Where it stops helping, stated as measured}
 The advantage is not uniform across regimes, and we no longer characterise its
@@ -2243,13 +2259,21 @@ skill (\BTwelveCmpBetter{}/\BTwelveCmpN{}).
 What we regard as the substantive contribution is not the margin but the
 \emph{attribution}. Holding the deployed pipeline fixed and removing one property at
 a time, the learned prior accounts for \BTwentyTwoRel{}
-(\BTwentyTwoBetter{}/\BTwentyTwoN{}) and the continuity of the wavenumber for
+(\BTwentyTwoBetter{}/\BTwentyTwoN{}) --- measured against an analytic package that itself
+clears a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes and the continuity of the wavenumber for
 \BSixteenRel{} (\BSixteenBetter{}/\BSixteenN{}, dose-responsive, and reproducing in
 the sparse stratum at \BNineteenBetter{}/\BNineteenN{}). The gain also survives
 re-scoring inside the observation-density band our measured records occupy
 (\MTenBetter{}/\MTenN{}) and at a forecast rung that $11$ of those $12$ records cover (\TFourBetter{}/\TFourN{}) --- though in the latter case the comparator
 degrades across the same interval, so the growing ratio must not be read as a
 growing advantage.
+% [2026-09-01] 공시 검사기 요구: rung 범위 · blind 아님 · B-16 교락 · 비가법.
+Neither re-scoring was blind --- the expected direction was known before the runs,
+so they are not blind replications --- and that rung sits at the lower end of the
+measured lead band rather than spanning it. The two ablation magnitudes are \emph{not
+additive} with each other or with the baseline margin --- different corpora,
+different comparison arms --- and we verified separately that the grid-snapping
+ablation is not confounded with the refit it necessarily performs.
 
 \paragraph{What we did not obtain}
 On $12$ fixed-station stereo records the learned prior does not reach the

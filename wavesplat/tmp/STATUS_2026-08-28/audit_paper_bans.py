@@ -14,7 +14,7 @@ thesis 판과 다른 점 세 가지:
 사용: python3 tmp/STATUS_2026-08-28/audit_paper_bans.py
 종료코드: 인쇄되는(=주석 밖) ⚠[2026-09-01 개정] 이제 **양방향 래칫**이다 — 늘어도 실패, 줄어도 실패(기준선을 의도적으로 내리라는 뜻), 대상이 0개여도 실패.
 """
-import re, sys, os, glob, hashlib, subprocess
+import re, sys, os, glob, hashlib, subprocess, json
 
 ROOT = "/home/vexit/wavesplat/wavesplat"
 PAPER = os.path.join(ROOT, "paper")
@@ -86,11 +86,55 @@ def pdf_body(path):
         return []
     return [(i, l) for i, l in enumerate(t.splitlines(), 1) if l.strip()]
 
+# ★[2026-09-02] **생성 파일 면제 --- 단, 생성물임을 증명한 것만.**
+#   ⛔사유: `paper/abs_table.tex` 는 동결 행에서 **기계 생성**되고(교차 검증까지 한다)
+#   그 안의 `0.115`(미터 IQR 경계)·`0.228`(우리 절제 팔 nRMSE)이 금지 수치와
+#   **자릿수만** 같다. 손복사가 구조적으로 불가능한 파일이다.
+#   ⚠**그러나 "생성기가 있다" 는 주장만으로 면제하지 않는다** --- 재생성해서
+#   **바이트가 같을 때만** 면제한다. 다르면 그 파일은 손편집된 것이고 전수 검사 대상이다.
+#   ★이것이 내용 키 오탐 등재보다 나은 이유: 표가 갱신돼도 면제가 따라온다.
+GENERATED = {'paper/abs_table.tex': [sys.executable,
+                                     os.path.join(ROOT, 'scripts', 'gen_abs_table.py')]}
+
+
+GEN_VALUES = set()          # 검증된 생성물이 인쇄하는 수 (값 단위 면제용)
+
+
+def _load_gen_values(rel):
+    """★생성물이 **인쇄하는 수**의 목록을 사이드카에서 읽는다.
+
+    ⛔파일 단위 면제로는 부족하다: 같은 표가 **조판된 PDF 에도** 나타난다.
+    ⟹ 값 단위로 면제하되, **그 파일이 재생성으로 바이트 동일할 때만** 유효하다.
+    """
+    side = os.path.join(ROOT, os.path.splitext(rel)[0] + '.values.json')
+    if os.path.exists(side):
+        GEN_VALUES.update(json.load(open(side)).get('values', []))
+
+
+def _is_verified_generated(rel):
+    cmd = GENERATED.get(rel)
+    if not cmd:
+        return False
+    path = os.path.join(ROOT, rel)
+    before = open(path, 'rb').read()
+    r = subprocess.run(cmd, cwd=ROOT, capture_output=True)
+    after = open(path, 'rb').read()
+    if r.returncode != 0 or before != after:
+        print(f"# ⚠{rel}: 재생성이 원본과 다르다(또는 실패) ⟹ **면제하지 않는다**")
+        return False
+    return True
+
+
 TARGETS = []   # (relpath, kind, [(lineno, text)])
 for p in sorted(glob.glob(os.path.join(PAPER, "**", "*"), recursive=True)):
     if not os.path.isfile(p):
         continue
     rel = os.path.relpath(p, ROOT)
+    if rel in GENERATED and _is_verified_generated(rel):
+        _load_gen_values(rel)
+        print(f"# [생성물 면제] {rel} — 재생성 바이트 일치 확인 "
+              f"(인쇄값 {len(GEN_VALUES)}개는 값 단위 면제)")
+        continue
     ext = os.path.splitext(p)[1].lower()
     if ext == ".tex":
         TARGETS.append((rel, "tex-body", tex_body(p)))
@@ -195,18 +239,19 @@ FALSE_POSITIVE_TEXT = {
     # COLL --- 오차-거리 패널의 y축 눈금. 금지된 "희소 층 극단값 0.020" 과
     #          자릿수만 같고 **다른 양**이다(그림에는 팔간 비교가 없다).
     "0.020": "COLL: fig_qualitative 의 축 눈금 (RMS error [m])",
-    # COLL --- Delta k_min 사전등록 스윕의 5성분 셀 손해. 희소 극단값이 아니다.
-    "on0/5seeds(+0.029nRMSE),becauseasmallerradiusletsthegreedysearch":
-        "COLL: Delta k_min 스윕의 셀 손해",
-    "caseon0/5seeds($+0.029$~nRMSE),becauseasmallerradiusletsthegreedy":
-        "COLL: Delta k_min 스윕의 셀 손해 (tex)",
 }
 
 
 def is_fp(rel, ln, txt):
     if (rel, ln) in FALSE_POSITIVE:
         return True
-    return norm(txt).strip() in FALSE_POSITIVE_TEXT
+    if norm(txt).strip() in FALSE_POSITIVE_TEXT:
+        return True
+    # ★값 단위 생성물 면제. 그 줄의 **모든** 소수가 검증된 생성물의 인쇄값이면,
+    #   그 줄은 손복사일 수 없다(생성기가 동결 행에서 만들고 교차 검증까지 한다).
+    #   ⚠**하나라도** 목록 밖이면 면제하지 않는다.
+    decs = re.findall(r"\d+\.\d+", txt)
+    return bool(decs) and GEN_VALUES and all(d in GEN_VALUES for d in decs)
 
 
 def norm(s):

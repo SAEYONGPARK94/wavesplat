@@ -1,0 +1,27 @@
+% ⛔자동 생성 — 손으로 고치지 마라.
+%    생성: python3 scripts/gen_abs_table.py   (런 0회, 동결 행 재집계)
+%    변환: RMSE[m] = nRMSE x Hs  (metrics.py:32-50)
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\caption{Absolute accuracy, in the units the measurement is made in and in metres. The synthetic harness normalises by significant wave height, so metres follow from $\text{RMSE} = \text{nRMSE}\times H_s$ with no new measurement; this table is a re-aggregation of the same frozen rows that produce Table~\ref{tab:earns}. Each cell is the median over episodes of the per-episode median over estimator seeds, with the interquartile range. \emph{Read within a sea state, not across:} $H_s$ differs between the two, so the ordering in metres and the ordering in nRMSE need not agree across rows.}
+\label{tab:absolute}
+\begin{tabular}{llcrrrr}
+\toprule
+Batch & Arm & sea state & $H_s$ [m] & $n$ & nRMSE & RMSE [m] \\
+\midrule
+B-12  non-linear reference & \texttt{SHIP-NOW} & BF4 & 1.2 & 24 & 0.137 {\scriptsize[0.096,0.203]} & 0.164 {\scriptsize[0.115,0.244]} \\
+ & \texttt{SHIP-NOW} & BF5 & 2.0 & 24 & 0.130 {\scriptsize[0.096,0.158]} & 0.259 {\scriptsize[0.191,0.315]} \\
+ & \texttt{SPEC25} & BF4 & 1.2 & 24 & 0.209 {\scriptsize[0.201,0.218]} & 0.251 {\scriptsize[0.241,0.261]} \\
+ & \texttt{SPEC25} & BF5 & 2.0 & 24 & 0.199 {\scriptsize[0.191,0.213]} & 0.399 {\scriptsize[0.381,0.425]} \\
+\midrule
+B-16  wavenumber ablation & \texttt{KGRID1} & BF4 & 1.2 & 24 & 0.228 {\scriptsize[0.202,0.244]} & 0.273 {\scriptsize[0.243,0.292]} \\
+ & \texttt{KGRID1} & BF5 & 2.0 & 24 & 0.204 {\scriptsize[0.176,0.228]} & 0.408 {\scriptsize[0.353,0.457]} \\
+ & \texttt{KGRID2} & BF4 & 1.2 & 24 & 0.302 {\scriptsize[0.278,0.316]} & 0.363 {\scriptsize[0.334,0.379]} \\
+ & \texttt{KGRID2} & BF5 & 2.0 & 24 & 0.278 {\scriptsize[0.247,0.318]} & 0.556 {\scriptsize[0.494,0.635]} \\
+ & \texttt{SHIP-NOW} & BF4 & 1.2 & 24 & 0.137 {\scriptsize[0.096,0.203]} & 0.164 {\scriptsize[0.115,0.244]} \\
+ & \texttt{SHIP-NOW} & BF5 & 2.0 & 24 & 0.130 {\scriptsize[0.096,0.158]} & 0.259 {\scriptsize[0.191,0.315]} \\
+\bottomrule
+\end{tabular}
+\end{table}

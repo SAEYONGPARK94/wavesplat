@@ -1,0 +1,221 @@
+{
+ "batch": "T5-ENS",
+ "n_rows": 72,
+ "n_ok_rows": 72,
+ "gates": [
+  [
+   "G-APPROVAL 승인 스탬프 전건",
+   true,
+   "rows=72"
+  ],
+  [
+   "G-ARM 팔 config 비어있지 않음 · 되읽기 일치",
+   true,
+   ""
+  ],
+  [
+   "G-DEPLOY-PIN 출하 기본값 트립와이어(추적 3키 포함)",
+   true,
+   ""
+  ],
+  [
+   "G-MEMBER 멤버 시드 규약 == member_overrides()",
+   true,
+   ""
+  ],
+  [
+   "G-MEDIAN-RULE 장 median 후 채점 (≠ 점수 median)",
+   true,
+   "differs=36/36"
+  ],
+  [
+   "G-ANCHOR-CURVE 멤버0 15-lead 곡선 == 동결 B-7 (비트)",
+   true,
+   "compared=540 bad=[]"
+  ],
+  [
+   "G-ANCHOR-BANK BANK lead0 == 동결 T3 SHIP-K3 (비트)",
+   true,
+   "36/36"
+  ],
+  [
+   "G-SCENE 장면 상수 (행: sigma·npx / 원천: depth·n_obs)",
+   true,
+   "row_bad=[] source_identity=True"
+  ],
+  [
+   "G-ROUTE 라우팅 되읽기 == 의도 (v2_konly 누출 0)",
+   true,
+   ""
+  ],
+  [
+   "G-DEVICE 장치·스레드·체크포인트 단일 스탬프",
+   true,
+   "device={'\"cpu\"'} cuda={'true'} omp={'1'}"
+  ],
+  [
+   "G-REFIT0 재적합 호출 0 전건",
+   true,
+   "max=0"
+  ],
+  [
+   "G-INTERVENTION PROP 추적 스텝 > 0 (멤버별 전건)",
+   true,
+   "n_prop=36"
+  ],
+  [
+   "G-FLAT 고정 기준상수 사용 0건 (ast · .py · 동결목록만)",
+   true,
+   "[]"
+  ],
+  [
+   "G-ROWS 팔별 셀 커버리지 전건",
+   true,
+   "{'PROP-M3': 36, 'BANK-K3': 36} rows=72/72"
+  ],
+  [
+   "H-DEGEN 멤버 퇴화 셀 공시",
+   true,
+   "degenerate=0/36"
+  ],
+  [
+   "H-LEADCOV 밴드 lead 커버리지",
+   true,
+   "want=15"
+  ],
+  [
+   "H-SEED 새 에피소드 시드 청구 0 (설계상)",
+   true,
+   "SEED=42 고정 · 실측 레코드"
+  ]
+ ],
+ "gates_pass": "17/17",
+ "blocked_by": [],
+ "thresholds": {
+  "n": 36,
+  "NOMINAL": 24,
+  "HOLM_MIN_WINS": [
+   25,
+   24
+  ],
+  "HOLM_FIRST": 25,
+  "NOT_EARN": 11,
+  "p_nominal": 0.03262266761157662,
+  "p_holm_first": 0.014408359827939421,
+  "alpha": 0.05,
+  "n_family": 2,
+  "family_alpha_first": 0.025
+ },
+ "mde": {
+  "n": 36,
+  "thresh": 25,
+  "power": 0.8,
+  "q80": 0.742
+ },
+ "disclosure": [
+  "연구 팔 — 패키지에 학습 앙상블 경로 없음(PREREG §1 P1)",
+  "blind 아님 — 결과 전 예측 + 검정력 표를 PREREG §3 에 실었다",
+  "노출 — 나우캐스트 답을 사전등록 전에 봤고, 그것이 NEAR 밴드를 81~89% 결정한다(§2.3)",
+  "BANK-K3 는 출하 기본값이고 B-7 의 bank 팔과 다른 팔이다",
+  "MDE q80 = 0.742 병기 의무",
+  "config[\"device\"] 는 제안 경로에 도달하지 않는다(§1 P7) ⟹ 앵커가 장치를 정한다",
+  "사이트 4곳 · 레코드 12개 ⟹ 사이트 수준 일반화 금지"
+ ],
+ "prereg": "PREREG.md (v2)",
+ "amendment": "AMENDMENT_0_PREFREEZE.md",
+ "approval": "APPROVAL_T5_2026-09-01.md",
+ "contrasts": {
+  "PRIMARY": {
+   "arm": "PROP-M3.band_near_med3",
+   "ref": "PROP-M3.band_near_m0",
+   "n": 36,
+   "better": 28,
+   "ties": 0,
+   "rel_median_pct": -8.52818940716789,
+   "p_one_sided": 0.0005966214812360704
+  },
+  "SEC-A": {
+   "arm": "PROP-M3.band_far_med3",
+   "ref": "PROP-M3.band_far_m0",
+   "n": 36,
+   "better": 35,
+   "ties": 0,
+   "rel_median_pct": -11.097724822237495,
+   "p_one_sided": 5.384208634495735e-10
+  }
+ },
+ "holm": {
+  "SEC-A": true,
+  "PRIMARY": true
+ },
+ "labels": {
+  "PRIMARY": "T5-ENS :: ENSEMBLE-TRANSFERS (CONFIRMATORY)",
+  "SEC-A": "T5-ENS :: ENSEMBLE-TRANSFERS-FAR (CONFIRMATORY)"
+ },
+ "grades": {
+  "PRIMARY": "CONFIRMATORY",
+  "SEC-A": "CONFIRMATORY"
+ },
+ "exploratory": {
+  "EX-1-NEAR": {
+   "arm": "BANK-K3.band_near_med3",
+   "ref": "PROP-M3.band_near_med3",
+   "n": 36,
+   "better": 33,
+   "ties": 0,
+   "rel_median_pct": -19.140029894251434,
+   "p_one_sided": 1.1360680218786001e-07
+  },
+  "EX-1-FAR": {
+   "arm": "BANK-K3.band_far_med3",
+   "ref": "PROP-M3.band_far_med3",
+   "n": 36,
+   "better": 12,
+   "ties": 0,
+   "rel_median_pct": 6.314497512630988,
+   "p_one_sided": 0.9855916401720606
+  },
+  "EX-2-NEAR": {
+   "arm": "PROP-M3.band_near_med3",
+   "ref": "TRUE-ZERO",
+   "n": 36,
+   "better": 17,
+   "ties": 0,
+   "rel_median_pct": 0.8334315583836418,
+   "p_one_sided": 0.691140341485152
+  },
+  "EX-2-FAR": {
+   "arm": "PROP-M3.band_far_med3",
+   "ref": "TRUE-ZERO",
+   "n": 36,
+   "better": 21,
+   "ties": 0,
+   "rel_median_pct": -8.40688843255474,
+   "p_one_sided": 0.20251612307038158
+  },
+  "EX-3-NEAR": {
+   "arm": "BANK-K3.band_near_med3",
+   "ref": "TRUE-ZERO",
+   "n": 36,
+   "better": 29,
+   "ties": 0,
+   "rel_median_pct": -19.045602520897603,
+   "p_one_sided": 0.00015627557877451181
+  },
+  "EX-3-FAR": {
+   "arm": "BANK-K3.band_far_med3",
+   "ref": "TRUE-ZERO",
+   "n": 36,
+   "better": 15,
+   "ties": 0,
+   "rel_median_pct": 3.497802638593825,
+   "p_one_sided": 0.8785075229825452
+  }
+ },
+ "reading": {
+  "PRIMARY": "앙상블 이득이 예보로 전이된다 ⟹ 교락에 이빨이 있다. EX-1/EX-2 는 **탐색적으로만** 읽고 확증은 새 사전등록으로.",
+  "SEC-A": "앙상블 이득이 예보로 전이된다 ⟹ 교락에 이빨이 있다. EX-1/EX-2 는 **탐색적으로만** 읽고 확증은 새 사전등록으로."
+ },
+ "label": "T5-ENS :: ENSEMBLE-TRANSFERS (CONFIRMATORY)",
+ "primary_label": "T5-ENS :: ENSEMBLE-TRANSFERS (CONFIRMATORY)"
+}

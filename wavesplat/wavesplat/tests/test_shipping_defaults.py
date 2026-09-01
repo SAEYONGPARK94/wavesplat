@@ -67,6 +67,43 @@ SHIPPING_DEFAULTS = {
     "bank_refit_async": False,
 }
 
+# ★[2026-09-02] `learned_ensemble_k` 는 위 dict 에 **넣을 수 없다** --- 저 dict 는
+#   `run.py DEFAULT_CONFIG` 의 핀이고, 이 값은 거기 없다.  코드 감사가 그것을 결함으로
+#   지목했다(2026-09-02, D2): 9월 1일에 배포 상수를 만들면서 **회귀 보호를 빠뜨렸다**.
+#   ⟹ 아래에서 **모듈 상수 자체**를 핀한다(설정 표면은 건드리지 않는다 --- 표면을 바꾸면
+#   CLI/YAML 화이트리스트와 `dict(DEFAULT_CONFIG)` 스냅샷 규약이 같이 바뀌고,
+#   그것은 사전등록 없이 일요일에 할 일이 아니다).
+#   ⚠남는 비대칭은 기록해 둔다: `analytic_ensemble_k` 는 `DEFAULT_CONFIG` 에 있고
+#   이것은 없다.  런의 실효 k 는 **객체 되읽기**로만 확인된다(`S-ENS` 의 `G-ENSK`).
+LEARNED_ENSEMBLE_K_SHIPPED = 1
+
+
+def test_learned_ensemble_k_ships_off():
+    """⛔1 에서 올리려면 별도 사전등록이 필요하다.
+
+    `S-ENS/PREREG.md` §5 가 결과 **전에** 남은 조건 셋을 고정했다:
+    희소 층 `UNDECIDED` · 단가 2.6배 · ★**학습 경로 프레임 예산이 한 번도 측정된 적 없다**.
+    `S-ENS` 는 그중 **필요조건 하나**만 충족했다.
+    """
+    from wavesplat.optimizer.sequential_update import DEFAULT_LEARNED_ENSEMBLE_K
+    assert DEFAULT_LEARNED_ENSEMBLE_K == LEARNED_ENSEMBLE_K_SHIPPED, (
+        "학습 경로 앙상블 기본값이 바뀌었다.  이것은 배포 동작 변경이다 --- "
+        "별도 사전등록 배치 없이 바꾸지 마라(S-ENS PREREG §5)."
+    )
+
+
+def test_learned_ensemble_k_is_absent_from_default_config():
+    """★비대칭을 **의도적으로** 고정한다.
+
+    이 시험이 없으면 누군가 `DEFAULT_CONFIG` 에 이 키를 조용히 넣을 수 있고, 그러면
+    CLI/YAML 화이트리스트와 스냅샷 규약이 같이 바뀐다.  넣는 것 자체가 나쁘다는 뜻이
+    아니라, **그것이 결정이라는 뜻**이다 --- 결정을 하려면 이 시험을 먼저 지워야 한다.
+    """
+    assert "learned_ensemble_k" not in DEFAULT_CONFIG, (
+        "설정 표면이 바뀌었다.  의도한 것이라면 이 시험을 지우고 "
+        "configs/estimation.yaml 미러와 사전등록을 함께 갱신하라."
+    )
+
 
 @pytest.mark.parametrize("key,expected", sorted(SHIPPING_DEFAULTS.items()))
 def test_default_config_pins_shipping_value(key, expected):

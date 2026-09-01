@@ -48,6 +48,30 @@ def _count_tests():
     return m.group(1) if m else '0'
 
 
+def _k_lim():
+    """학습 사전의 파수 지지 상한 --- `setdiff_prior.pt` 의 `stats['K_LIM']`.
+
+    샘플러가 정규화 좌표를 `clamp(-1,1)` 하므로(`d3_beamform_cond_diffusion.py`)
+    `|kx|,|ky| <= K_LIM` 이 **구조적** 상한이다.  ⛔손으로 적지 마라 --- 체크포인트를
+    갈면 조용히 낡는다.
+    """
+    import torch
+    ck = os.path.join(ROOT, 'results', 'direction3', 'setdiff_prior.pt')
+    if not os.path.exists(ck):
+        raise SystemExit(f'⛔체크포인트가 없다: {ck} — 지지 상한을 셀 수 없다')
+    d = torch.load(ck, map_location='cpu', weights_only=False)
+    st = d.get('stats', d)
+    return f"{float(st['K_LIM']):g}"
+
+
+def _ana_kmax():
+    """해석적 빔포밍의 탐색 상한 --- 함수 서명 기본값에서 읽는다."""
+    import inspect
+    from wavesplat.optimizer import initializer as _init
+    hi = inspect.signature(_init.initialize_from_frames_v2).parameters['kx_range'].default[1]
+    return f"{float(hi):g}"
+
+
 def load(rel):
     p = os.path.join(TMP, rel)
     if not os.path.exists(p):
@@ -65,6 +89,7 @@ ATOMS = [
     ('BOneBetter',  'B1_BASELINE_2026-08-22/verdict_b1.json', 'crowded.better', 'int', 62),
     ('BOneN',       'B1_BASELINE_2026-08-22/verdict_b1.json', 'crowded.n', 'int', 64),
     ('BOneRel',     'B1_BASELINE_2026-08-22/verdict_b1.json', 'crowded.rel_median_pct', 'pct', -38.6),
+    ('BOneP',       'B1_BASELINE_2026-08-22/verdict_b1.json', 'crowded.p_one_sided', 'p', 1.13e-16),
     # ── 비선형 참값 · 신선 시드 확장 (확증)
     ('BTwelveBetter', 'B12_HOS_EXTEND_2026-08-23/verdict_b12.json', 'ship_vs_spec.better', 'int', 43),
     ('BTwelveN',      'B12_HOS_EXTEND_2026-08-23/verdict_b12.json', 'ship_vs_spec.n', 'int', 48),
@@ -83,6 +108,7 @@ ATOMS = [
     ('BNineteenBetter', 'B19_KGRID_SPARSE_2026-08-25/verdict_b19.json', 'primary.better', 'int', 14),
     ('BNineteenN',      'B19_KGRID_SPARSE_2026-08-25/verdict_b19.json', 'primary.n', 'int', 16),
     ('BNineteenRel',    'B19_KGRID_SPARSE_2026-08-25/verdict_b19.json', 'primary.rel_median_pct', 'pct', -67.4),
+    ('BNineteenP',      'B19_KGRID_SPARSE_2026-08-25/verdict_b19.json', 'primary.p_one_sided', 'p', 2.09e-03),
     # ── 사전 절제: 학습 패키지 < 해석적 패키지 (L2) ★%를 margin 으로 쓸 수 있는 성분
     ('BTwentyTwoBetter', 'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'comparisons.L2.better', 'int', 45),
     ('BTwentyTwoN',      'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'comparisons.L2.n', 'int', 48),
@@ -94,11 +120,19 @@ ATOMS = [
     # ── 센서 모형(raydrop) 강건성
     ('BFifteenN',   'B15_RAYDROP_2026-08-24/verdict_b15.json', 'by_raydrop.slope.n', 'int', 20),
     ('BFifteenRel', 'B15_RAYDROP_2026-08-24/verdict_b15.json', 'by_raydrop.slope.rel_median_pct', 'pct', -42.6),
+    ('BFifteenBetter', 'B15_RAYDROP_2026-08-24/verdict_b15.json',
+     'by_raydrop.slope.ship_beats_spec', 'int', 17),
+    ('BFifteenP', 'B15_RAYDROP_2026-08-24/verdict_b15.json',
+     'by_raydrop.slope.p_one_sided', 'p', 1.29e-03),
+    # ★음성대조: 이 코너에서 **비교자에게도 기술이 있다**(F1 부류 방지)
+    ('BFifteenCmp', 'B15_RAYDROP_2026-08-24/verdict_b15.json',
+     'by_raydrop.slope.spec_beats_zero', 'int', 20),
     # ── 이득의 위치: 공간(M-10) ⚠rel_median 이 **분수**다(다른 배치와 단위가 다르다)
     ('MTenBetter', 'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.primary.better', 'int', 45),
     ('MTenN',      'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.primary.n', 'int', 48),
     ('MTenRel',    'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.primary.rel_median', 'frac', -31.7),
     ('MTenCmp',    'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.spec_vs_zero.better', 'int', 48),
+    ('MTenP',      'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.primary.p_one_sided', 'p', 6.56e-11),
     # ── 이득의 위치: 시간(T-4) ⚠비교자 붕괴를 **함께** 싣는다(F1 부류 방지)
     ('TFourBetter', 'T4_GEOMETRY_2026-08-30/verdict_t4.json', 'primary.better', 'int', 47),
     ('TFourN',      'T4_GEOMETRY_2026-08-30/verdict_t4.json', 'primary.n', 'int', 48),
@@ -106,6 +140,73 @@ ATOMS = [
     ('TFourCmp',    'T4_GEOMETRY_2026-08-30/verdict_t4.json', 'comparator.better', 'int', 34),
     ('TFourCmpAtZero', 'T4_GEOMETRY_2026-08-30/verdict_t4.json',
      ('ladder', '0.0', 'spec_vs_zero', 'better'), 'int', 47),
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # ★[2026-09-02 P9] 레거시 표·그림 처분에 필요한 원자.
+    #   사유: 논문의 절제·강건성 표 다섯 개와 그림 넷이 **철회된 코퍼스** 산물이라
+    #   옮긴다. 그 자리에 들어가는 대체 표는 **전부 동결 verdict 에서만** 나와야 한다.
+    #   ⛔손으로 옮겨 적으면 이 저장소가 반복해 대가를 치른 결함으로 되돌아간다.
+    # ═════════════════════════════════════════════════════════════════════════
+
+    # ── 해상상태 2x2 (B-26). ⚠F1: 승수 한 척도에서만 "최강" 이다 --- **절대 정확도는 반대**.
+    #    ⟹ 절대 중앙값 두 개를 **함께** 낸다(코너 순위 주장을 문면에서 불가능하게 만든다).
+    ('BTwentySixBetter', 'B26_SEASTATE_2026-08-27/verdict_b26.json',
+     'corners.SS-REAL.ship_vs_spec.better', 'int', 24),
+    ('BTwentySixN', 'B26_SEASTATE_2026-08-27/verdict_b26.json',
+     'corners.SS-REAL.ship_vs_spec.n', 'int', 24),
+    ('BTwentySixRel', 'B26_SEASTATE_2026-08-27/verdict_b26.json',
+     'corners.SS-REAL.ship_vs_spec.rel_median_pct', 'pct', -42.4),
+    # ★F1 병기 원자 --- 비교자의 기술이 이 코너에서 붕괴한다(-16.2% -> -4.0%)
+    ('BTwentySixCmpRel', 'B26_SEASTATE_2026-08-27/verdict_b26.json',
+     'corners.SS-REAL.spec_vs_zero.rel_median_pct', 'pct', -4.0),
+    ('BTwentySixAnchorCmpRel', 'B26_SEASTATE_2026-08-27/verdict_b26.json',
+     'corners.SS-BF4.spec_vs_zero.rel_median_pct', 'pct', -16.2),
+    # ★F1 병기 원자 --- 절대 정확도는 **반대 방향**(0.1366 vs 0.1176)
+    ('BTwentySixAbs', 'B26_SEASTATE_2026-08-27/verdict_b26.json',
+     'corners.SS-REAL.medians.ship', 'abs3', 0.137),
+    ('BTwentySixAnchorAbs', 'B26_SEASTATE_2026-08-27/verdict_b26.json',
+     'corners.SS-BF4.medians.ship', 'abs3', 0.118),
+    ('BTwentySixCmpBetter', 'B26_SEASTATE_2026-08-27/verdict_b26.json',
+     'corners.SS-REAL.spec_vs_zero.better', 'int', 23),
+
+    # ── 실측 음성 셋 (경계 표). ⛔전부 **참 제로필드 대비 승수**이지 팔간 비교가 아니다.
+    ('BSeventeenBeats', 'B17_REALNOISE_2026-08-25/verdict_b17.json',
+     'beats_zero.RANGEANG.wins', 'int', 4),
+    ('BSeventeenN', 'B17_REALNOISE_2026-08-25/verdict_b17.json',
+     'beats_zero.RANGEANG.n', 'int', 12),
+    ('BEighteenBeats', 'B18_DENSITY_NOISE_2026-08-25/verdict_b18.json',
+     'primary.D_BOTH.beats_zero', 'int', 8),
+    ('BEighteenN', 'B18_DENSITY_NOISE_2026-08-25/verdict_b18.json',
+     'primary.D_BOTH.n', 'int', 12),
+    ('BEighteenConfirm', 'B18_DENSITY_NOISE_2026-08-25/verdict_b18.json',
+     'thresholds.confirm', 'int', 11),
+    ('BFourteenBBeats', 'B14_OBSMODEL_2026-08-24/verdict_b14b.json',
+     'h1.IID.zero_better', 'int', 8),
+    ('BFourteenBN', 'B14_OBSMODEL_2026-08-24/verdict_b14b.json',
+     'h1.IID.n', 'int', 12),
+
+    # ── 앙상블 대칭 (2026-09-01 두 배치)
+    ('SEnsBetter', 'S_ENS_2026-09-01/verdict_sens.json', 'contrasts.PRIMARY.better', 'int', 55),
+    ('SEnsN', 'S_ENS_2026-09-01/verdict_sens.json', 'contrasts.PRIMARY.n', 'int', 64),
+    ('SEnsRel', 'S_ENS_2026-09-01/verdict_sens.json',
+     'contrasts.PRIMARY.rel_median_pct', 'pct', -17.9),
+    ('SEnsP', 'S_ENS_2026-09-01/verdict_sens.json',
+     'contrasts.PRIMARY.p_one_sided', 'p', 1.77e-09),
+    # ⚠희소는 `UNDECIDED` --- **혼잡만 인용하면 층 한정이 사라진다** ⟹ 함께 낸다.
+    ('SEnsSparseBetter', 'S_ENS_2026-09-01/verdict_sens.json',
+     'contrasts.SEC-A.better', 'int', 35),
+    ('SEnsSparseN', 'S_ENS_2026-09-01/verdict_sens.json', 'contrasts.SEC-A.n', 'int', 64),
+    ('SEnsNominal', 'S_ENS_2026-09-01/verdict_sens.json', 'thresholds.NOMINAL', 'int', 40),
+
+    ('TFiveBetter', 'T5_ENS_2026-09-01/verdict_t5.json', 'contrasts.PRIMARY.better', 'int', 28),
+    ('TFiveN', 'T5_ENS_2026-09-01/verdict_t5.json', 'contrasts.PRIMARY.n', 'int', 36),
+    ('TFiveRel', 'T5_ENS_2026-09-01/verdict_t5.json',
+     'contrasts.PRIMARY.rel_median_pct', 'pct', -8.5),
+    ('TFiveP', 'T5_ENS_2026-09-01/verdict_t5.json',
+     'contrasts.PRIMARY.p_one_sided', 'p', 5.97e-04),
+    ('TFiveFarBetter', 'T5_ENS_2026-09-01/verdict_t5.json', 'contrasts.SEC-A.better', 'int', 35),
+    ('TFiveFarRel', 'T5_ENS_2026-09-01/verdict_t5.json',
+     'contrasts.SEC-A.rel_median_pct', 'pct', -11.1),
 ]
 
 FMT = {
@@ -114,6 +215,8 @@ FMT = {
     'p': lambda x: _sci(x),
     # ⚠`M-10` 은 rel 을 **분수**로 저장한다 — 단위를 여기서 흡수한다(⛔논문에서 곱하지 마라).
     'frac': lambda x: f'{x*100:+.1f}\\%'.replace('+', '') if x < 0 else f'{x*100:+.1f}\\%',
+    # ⚠**절대** nRMSE --- 퍼센트가 아니다. F1 이 가르친 것: 승수와 절대는 순위를 뒤집는다.
+    'abs3': lambda x: f'{x:.3f}',
 }
 
 
@@ -147,6 +250,8 @@ def main():
         elif kind in ('pct', 'frac'):
             val = raw * 100 if kind == 'frac' else raw
             ok = abs(round(val, 1) - pin) < 1e-9
+        elif kind == 'abs3':
+            ok = abs(round(raw, 3) - pin) < 1e-9
         else:
             ok = abs(raw - pin) / abs(pin) < 0.005
         if not ok:
@@ -182,6 +287,12 @@ def main():
         ('DepMaxN', str(_DC['max_n'])),
         # ★테스트 수는 자주 바뀐다 — 손으로 적으면 반드시 낡는다(3차 감사: 196 vs 실측 261).
         ('DeployNumTestsPaper', _count_tests()),
+        # ── ★[2026-09-02] 학습 제안의 **지지 상한**. 체크포인트 안에 있다.
+        #   코드 감사 D8: 논문에 이 상한이 한 번도 적혀 있지 않았고, 손으로 적으면
+        #   체크포인트를 갈 때 조용히 낡는다(H2 가 이미 열려 있는 축이다).
+        ('DepKLim', _k_lim()),
+        # ── 해석적 대안의 탐색 범위(대비용). 함수 서명의 기본값에서 읽는다.
+        ('DepAnaKMax', _ana_kmax()),
     ]
     rows += [(k, v, 'DEPLOY') for k, v in dep]
 

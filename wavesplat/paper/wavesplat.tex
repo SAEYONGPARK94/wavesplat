@@ -623,45 +623,78 @@ by a per-frame tracking phase that maintains the model with
 minimal computation.  Table~\ref{alg:wavesplat} and Fig.~\ref{fig:pipeline} summarize
 the complete pipeline.
 
+% ============================================================================
+% ★2026-09-02 (P9) BLOCKER 수리 --- 이 표는 **돌지 않는 경로**를 그리고 있었다.
+%   초판 표는 빔포밍 -> 41x41 미세정련 -> N=3->8->15 coarse-to-fine 를 적었는데
+%   배포 기본값(init_method='auto', auto_switch_thresh=0)에서 라우터가 'learned' 로
+%   해소되면 `sequential_update.py:832` 의 return 아래가 **전부 도달 불가**다
+%   (CoarseToFineSchedule 생성은 `:840`, 해석적 빔포밍 초기화는 `:859`).
+%   아래는 코드 전건 추적(파일:줄)에서 옮겨 적은 것이고, 상수는 전부 소스 값이다.
+%   ⚠D1: `analytic_ensemble_k=3` 이 배포돼 있으나 라우터가 learned 를 고르면
+%        `_effective_k` 가 `learned_ensemble_k=1` 을 읽는다 ⟹ **median-of-k 는 안 돈다.**
+%        ⛔"median-of-3" 를 표에 적지 마라.
+% ============================================================================
 \begin{table}[t]
 \centering
-\caption{Algorithm: WaveSplat estimation pipeline.}
+\caption{Algorithm: the deployed estimation pipeline, transcribed from the
+shipped configuration ($\texttt{init\_method}{=}\texttt{auto}$,
+$\texttt{auto\_switch\_thresh}{=}\DepJointFitIters{}$). Constants are the
+values in the source, not targets. \emph{This replaces an earlier listing that
+described the analytic initialiser}: under the shipped configuration the router
+resolves to the learned path, and the analytic beamforming initialiser and its
+$N{=}3\to8\to15$ staging are not reached. The analytic procedure is still
+described in Section~\ref{sec:init} because it is the comparison arm of the prior
+ablation.}
 \label{alg:wavesplat}
 \begin{tabular}{p{0.92\columnwidth}}
 \toprule
-\textbf{Phase 1: Initialization} (frames $1$ to $T_\text{init}/\Delta t$) \\
+\textbf{Phase 1: Initialization} (frames with $t \le 2T_p$; see the note on $T_p$
+in Section~\ref{sec:init}) \\
 \midrule
-1. Accumulate multi-frame observations $\{(x_j, y_j, z_j, t_j)\}$ \\
-2. Compute beamforming power $P(k_x, k_y)$ on Cartesian grid \\
-3. Extract top-$N$ wavenumber peaks with greedy suppression \\
-3.5. Fine-refine each peak on $41\!\times\!41$ local grid ($\Delta k\!=\!0.01$~rad/m, $\pm0.2$~rad/m) \\
-4. Estimate amplitudes/phases via linear least-squares \\
-5. Coarse-to-fine refinement: $N$=3 $\to$ 8 $\to$ 15 \\
-\quad --- Adam steps per stage: 200/200/500, lr=$1\times 10^{-2}$ \\
-6. Energy-based pruning (retain 90\% energy) \\
-7. Safety check: if $\Delta\text{RMSE} > 30\%$, rollback \\
-8. Residual growth: if RMSE $> 0.05$~m, add via beamforming \\
+1. Accumulate the window's observations $\{(x_j, y_j, z_j, t_j)\}$ \\
+2. Subsample to at most 400 points, fixed seed --- \emph{for the proposal only} \\
+3. Conditioning map: $64\!\times\!64$ beamform power over $k_x, k_y \in [-0.6, 0.6]$~rad/m, $\omega$ from the dispersion relation \\
+4. Conditional diffusion: 4 draws $\times$ 32 atoms, 500 reverse steps \\
+5. Per-draw polish: 80 Adam steps on the phase-marginalised likelihood \\
+6. Pool: keep energy $> 0.03\,e_{\max}$; \emph{drop} any atom within $\Delta k{=}0.03$~rad/m of a stronger one; cap at $N_{\max}{=}\DepMaxN{}$ \\
+7. Amplitude and phase in closed form: ridge least squares ($\lambda{=}0.5$) \\
+8. Joint non-linear fit: \emph{disabled} ($\DepJointFitIters{}$ iterations) \\
+9. Adaptive order: prune to 90\% energy (roll back if residual RMS rises $>$30\%); if residual RMS $>0.05$~m, add via a $61\!\times\!61$ scan with $31\!\times\!31$ refinement, random initial phase, then 50 Adam steps \\
+10. Variable projection: $\DepVarproSteps{}$ Adam steps on $(k_{x}, k_{y})$ with the linear coefficients eliminated in closed form; steepness clamp 0.15 \\
 \midrule
 \textbf{Phase 2: Tracking} (each subsequent frame) \\
 \midrule
-1. \textbf{Predict}: $\varphi_i \mathrel{+}= \omega_i \cdot \Delta t$ \\
-2. \textbf{Update}: $K$=10 Adam steps on sliding window ($K_w$=3 frames) \\
-\quad --- Update only $(w_i, \varphi_i)$; freeze $(k_{x,i}, k_{y,i})$ \\
-\quad --- Learning rate: $5\times 10^{-3}$, no scheduling \\
+1. Slide a $K_w{=}3$ frame window \\
+2. Freeze $(k_{x,i}, k_{y,i})$; $\DepTrackingSteps{}$ Adam steps at lr~$\DepTrackingLr{}$ on $(w_i, \varphi_i)$ over the window \\
+\quad --- loss: confidence-weighted MSE $+\ \lambda_1\|w\|_1$ ($\lambda_1{=}\DepLambdaOne{}$) $+$ spectral smoothness \\
+3. Steepness clamp 0.15 \\
+\quad --- \emph{no explicit phase advance}: the forward model's $-\omega_i t$ term carries the propagation \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{figure}[t]
+% ============================================================================
+% ★2026-09-02 (P9) --- 그림 교체. 초판 fig_pipeline.pdf 는 캡션이 스스로
+%   "applies dispersion-aware beamforming with fine refinement, and optimises via
+%   coarse-to-fine with adaptive N" 라 적었는데 **배포 경로에서 그 셋이 안 돈다.**
+%   새 그림은 scripts/gen_fig_pipeline.py 가 **소스 상수에서** 그린다
+%   (상수가 바뀌면 assert 로 죽는다). 옛 그림 파일은 지우지 않았다.
+% ============================================================================
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/fig_pipeline.pdf}
-\caption{WaveSplat two-phase pipeline.  Phase~1 (left) accumulates
-10~LiDAR frames, applies dispersion-aware beamforming with fine
-refinement, and optimises via coarse-to-fine with adaptive~$N$.
-Phase~2 (right) predicts phases via $\varphi_i \mathrel{+}= \omega_i\Delta t$
-and updates only $(w_i, \varphi_i)$ with 10~Adam steps per frame.}
+\includegraphics[width=\textwidth]{figures/fig_pipeline_deployed.pdf}
+\caption{The deployed pipeline. Phase~1 conditions a diffusion prior on a
+coarse beamform map of the initialisation window, draws and polishes candidate
+atom sets, pools them into at most $\DepMaxN{}$ atoms, fits amplitude and phase in
+closed form, and refines the wavenumbers by variable projection; the adaptive
+prune-and-grow step runs before variable projection, on a model that has had no
+joint refinement. Phase~2 freezes the wavenumbers and updates $(w_i,\varphi_i)$
+over a three-frame window. Blue marks the two learned components. The dashed box
+is a stage that exists in the code and is switched off in the shipped
+configuration. This figure is generated from the source constants by
+\texttt{scripts/gen\_fig\_pipeline.py}, which fails if they change.}
 \label{fig:pipeline}
-\end{figure}
+\end{figure*}
 
 \subsubsection{Phase 1: Initialization}
 \label{sec:init}
@@ -674,11 +707,30 @@ and updates only $(w_i, \varphi_i)$ with 10~Adam steps per frame.}
 %   ⛔삭제하지 않는다 --- 그 절차가 Results 의 절제 대조군(ANA)이기 때문이다.
 % ============================================================================
 
-Given the first $T_{\text{init}} = 2 T_p$ seconds of observations (where $T_p$ is the
-expected peak period, estimated from the dominant frequency in the observation time
-series), we must place $N$ atoms in the $(k_x, k_y)$ plane and fit their amplitude
-and phase. Two procedures do this in our system, and \emph{which one runs is the
-subject of one of our ablations}, so we describe both.
+Given the first $T_{\text{init}} = 2 T_p$ seconds of observations, we must place
+$N$ atoms in the $(k_x, k_y)$ plane and fit their amplitude and phase. Two
+procedures do this in our system, and \emph{which one runs is the subject of one of
+our ablations}, so we describe both.
+
+\paragraph{A dependency we disclose rather than describe away}
+% ============================================================================
+% ★2026-09-02 (P9) BLOCKER 수리. 초판은 T_p 를 "관측 시계열의 우세 주파수에서 추정"
+%   이라 적었다. **거짓이다** --- data_loader.py:45 가 에피소드 HDF5 의 `Tp_true` 를
+%   그대로 읽고 run.py:226 이 그 값으로 창을 자른다(get_init_window, tp_factor=2.0).
+%   ⟹ 합성 실험에서 초기화 창의 길이는 **참** 첨두주기가 정한다.
+%   ⚠판정은 무손상이다: 창은 run.py:226 에서 **팔을 고르기 전에** 한 번 계산돼
+%     모든 팔이 같은 프레임을 본다(채점 프레임도 같은 get_tracking_frames).
+%     그러나 **배포 현실성**의 문제이고, 숨기면 그것이 결함이 된다.
+% ============================================================================
+The length of this window is set by the true peak period of the episode, read from
+the scene metadata, rather than estimated from the observations; on the measured
+records it is read from the record's own reported spectrum. This is a property of
+the harness and not of any arm: the window is computed once, before an
+initialisation procedure is selected, so every arm in every paired comparison
+reported here sees exactly the same frames, and the scoring frames are chosen the
+same way. It does mean that a deployment would need to supply $T_p$ from another
+source, and that no experiment here measures the sensitivity of the method to
+getting it wrong.
 
 \paragraph{Deployed path: a learned set-valued prior}
 The configuration evaluated in Section~\ref{sec:results} places the atoms with a
@@ -694,6 +746,19 @@ ridge-regularised least squares, and the whole set is refined by \emph{variable
 projection}: because the model is linear in $(a_j, b_j)$ once $(k_{x,j}, k_{y,j})$
 are fixed, the linear coefficients can be eliminated analytically and only the
 wavenumbers are iterated.
+
+% [2026-09-02 P9] 코드 감사 D8. 체크포인트에서 직접 읽었다: stats['K_LIM'] = 1.1.
+%   샘플러가 마지막에 clamp(-1,1) 하므로 |kx|,|ky| <= K_LIM 이 **구조적 상한**이다.
+%   ⚠논문에 이 상한이 한 번도 적혀 있지 않았다.
+The learned proposal cannot place an atom outside a bounded region: the network
+emits normalised coordinates that are clipped to $[-1,1]$ and rescaled by a
+constant stored in the checkpoint, giving $|k_x|, |k_y| \le \DepKLim{}$~rad/m. For
+the sea states evaluated here the largest true wavenumber is near $1.0$~rad/m, so
+the bound is satisfied with little margin, and it is a property of the checkpoint
+rather than of the representation --- the analytic alternative searches
+$\pm \DepAnaKMax{}$~rad/m. Any application to shorter waves would need the prior retrained,
+and we have not measured what happens when a true component lies outside the
+bound.
 
 Two deployment choices matter for reproducing the numbers in this paper. Variable
 projection is enabled ($\DepVarproSteps{}$ steps); and the joint non-linear fit that
@@ -833,25 +898,14 @@ varies with $H_s$; a scale-invariant form that normalizes the residual by
 the observed signal RMS is implemented but not enabled by default.
 A sensitivity sweep over $\tau_R \in \{0.02, 0.05, 0.08, 0.10, 0.15\}$~m
 on 12 representative episodes confirms robustness: values in
-$[0.05,\,0.15]$~m differ by at most 1.6\% in average nRMSE
-(0.2114 at $\tau_R{=}0.05$ vs.\ 0.2148 at $\tau_R{=}0.15$; measured before
-the tracker phase-advance correction, so the levels are those of the
-earlier run while the flatness across $\tau_R$---the point of the
-sweep---is a within-sweep property),
-while $\tau_R = 0.02$~m causes over-growth in multi-component seas
-($+$3.3\% average; up to 75\% increase on BF3~2-component
-slope-distributed observations), validating the chosen value
-(Fig.~\ref{fig:tau}).
+$[0.05,\,0.15]$~m produced indistinguishable average error, while
+$\tau_R = 0.02$~m caused over-growth in multi-component seas. The per-value levels
+from that sweep are not quoted: it was run on the retracted corpus and before the
+tracker phase-advance correction, and no re-measured substitute exists. The value
+$\tau_R = 0.05$~m has been held fixed in every batch reported here.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.85\columnwidth]{figures/fig_tau_sensitivity.pdf}
-\caption{$\tau_R$ sensitivity sweep on 12~representative episodes.
-$\tau_R \in [0.05,\,0.15]$~m yields nearly identical performance
-(max 1.6\% difference).  $\tau_R{=}0.02$~m triggers over-growth,
-adding spurious components from noise.}
-\label{fig:tau}
-\end{figure}
+% [2026-09-02 P9] fig:tau 를 아카이브로 옮겼다 --- 12에피소드 스윕이 철회된 코퍼스다.
+%   ⛔대체 없음 ⟹ 그림을 옮기고 그 자리에 수치를 다시 적지 않는다.
 
 \subsubsection{Phase 2: Tracking}
 
@@ -1152,40 +1206,21 @@ and bound per-frame computational cost.  To avoid penalizing the baseline by an 
 choice, we performed a 24-configuration hyperparameter sweep over grid
 resolution \{40$\times$30, 80$\times$60\}, ensemble size \{50, 100\},
 and inflation pairs ($\alpha$, $\sigma$) covering the standard ranges
-recommended by~\citet{desmars2020}; we report the best configuration
-($g$=40$\times$30, $n_{\text{ens}}$=100, $\alpha$=1.0,
-$\sigma$=0.005, mean nRMSE=0.358 across 12 sweep episodes) for all
-subsequent comparisons.  The full sweep ranking shows that all top-10
-configurations share $\sigma$=0.005, that the coarser 40$\times$30
-grid consistently outperforms 80$\times$60 (the finer grid leaves the
-ensemble undersized for the available observations), and that minimal
-multiplicative inflation ($\alpha$=1.0) wins given the additive
-inflation already present.  Table~\ref{tab:etkf_sweep} gives the
-top-3 and worst-3 configurations from the sweep so the reader can
-see the full range of ETKF performance under the search grid.
+recommended by~\citet{desmars2020}; the winning configuration
+($g$=40$\times$30, $n_{\text{ens}}$=100, $\alpha$=1.0, $\sigma$=0.005) is used as
+``ETKF (tuned)'' wherever an ETKF arm appears. The qualitative structure of the
+sweep was that the coarser 40$\times$30 grid outperformed 80$\times$60, the finer
+grid leaving the ensemble undersized for the available observations, and that
+minimal multiplicative inflation won given the additive inflation already
+present.
 
-\begin{table}[t]
-\centering
-\caption{ETKF hyperparameter sweep: best and worst 3 of 24
-configurations, mean nRMSE over the 12 sweep episodes.
-$g$=grid resolution, $n_e$=ensemble size, $\alpha$=multiplicative
-inflation, $\sigma$=additive inflation. The winning row is used
-throughout the paper as ``ETKF (tuned)''.}
-\label{tab:etkf_sweep}
-\begin{tabular}{lccccc}
-\toprule
-& $g$ & $n_e$ & $\alpha$ & $\sigma$ & mean nRMSE \\
-\midrule
-\textbf{Best (tuned)} & $40\times30$ & 100 & 1.00 & 0.005 & \textbf{0.358} \\
-2nd                   & $40\times30$ & 100 & 1.02 & 0.005 & 0.403 \\
-3rd                   & $40\times30$ &  50 & 1.00 & 0.005 & 0.416 \\
-\midrule
-22nd & $80\times60$ &  50 & 1.00 & 0.020 & 0.986 \\
-23rd & $80\times60$ &  50 & 1.02 & 0.020 & 1.066 \\
-Worst & $80\times60$ &  50 & 1.05 & 0.020 & 1.187 \\
-\bottomrule
-\end{tabular}
-\end{table}
+% [2026-09-02 P9] tab:etkf_sweep 을 아카이브로 옮겼다.
+%   ⛔사유: 24구성 스윕의 nRMSE 열이 철회된 코퍼스(프레임 불일치)에서 나왔다.
+%   ⛔대체 없음 --- 그래서 **표를 옮기고 수치를 다시 적지 않는다**(부재가 정직하다).
+The sweep selected the configuration used as ``ETKF (tuned)'' wherever an ETKF arm
+appears. The per-configuration error levels from that sweep are not quoted here:
+they were measured on the corpus whose cross-arm comparisons are retracted, and no
+re-measured substitute exists. The sweep table is in the supplementary archive.
 
 The 3.3$\times$ spread between best and worst ETKF configurations
 (0.358 vs.\ 1.187) confirms that fair ETKF evaluation requires
@@ -1372,406 +1407,155 @@ threshold. We report this rather than omit it; a full treatment of the operating
 boundary, including why the transfer fails, is the subject of a companion thesis.
 
 
-\subsection{Ablation study}
+\subsection{Summary of the measurements this paper rests on}
+\label{sec:res_summary}
 
-We ablate two key design choices on 6 BF3 episodes
-(Table~\ref{tab:ablation}, Fig.~\ref{fig:ablation}).  Following the
-reporting convention used throughout this paper, each cell is the median
-over seeds with its standard deviation; a third column reports the effect
-of the initialization method, which turns out to dominate both ablated
-factors.  The table was re-measured on 2026-08-03 under the corrected
-tracker with the initialization method pinned explicitly in every arm.
+% ============================================================================
+% ★2026-09-02 (P9) --- 표.그림 처분.
+%   이 자리에 있던 세 절(Ablation study / Raydrop model sensitivity /
+%   Robustness: sparsity, noise, and sea state)과 그 표 넷.그림 넷은
+%   **철회된 코퍼스**(두 팔이 같은 프레임에서 채점된 적이 없는 100ep 코퍼스, 그리고
+%   추적기 위상전개 수정 **이전**의 실행) 산물이다.
+%   ⟹ tmp/PAPER_LEGACY_2026-09-01/retracted_tables_2026-09-02.tex 로 **옮겼다**(삭제 아님).
+%   그 자리에 들어가는 아래 두 표는 **전부 사전등록.동결된 verdict_*.json 원자**이고
+%   paper_constants.tex 를 거친다 --- 손으로 적힌 수가 한 개도 없다.
+%   ⚠이 처분은 논문을 **얇게** 만든다. 그것을 본문에서 **말한다**(아래 마지막 문단).
+% ============================================================================
+
+Table~\ref{tab:earns} and Table~\ref{tab:boundary} collect every comparison this
+paper relies on. Each row is one pre-registered batch: the decision rule, the
+comparison, and the reading were fixed in a preregistration before the runs
+produced a single result row, the analysis code was frozen by checksum, and the
+row below is read out of the resulting verdict file rather than transcribed.
+Table~\ref{tab:earns} is what the representation earns on synthetic corpora,
+where ground truth exists; Table~\ref{tab:boundary} is where it stops, on the
+$12$ measured records.
+
+\begin{table*}[t]
+\centering
+\caption{What the representation earns. All contrasts are paired per episode and
+one-sided in the pre-registered direction; ``better'' counts episodes on which the
+first arm has lower nRMSE, and the relative median is the median of the paired
+relative differences. Crowded stratum unless noted. \emph{Read the third column
+with the fourth}: a large margin against a comparator that itself has little skill
+is not the same measurement as a large margin against one that does, which is why
+the ``cmp.'' column is printed rather than described: it counts the episodes on
+which the \emph{comparator} beats a zero predictor, i.e.\ how much skill the thing
+we beat had, and a dash means that control was not part of that batch's design.
+These are separate
+experiments on different corpora and their magnitudes have no defined meaning when
+added or subtracted --- they should not be combined arithmetically.}
+\label{tab:earns}
+\begin{tabular}{llccrrc}
+\toprule
+Question & Batch & $n$ & better & rel.\ median & $p$ & cmp. \\
+\midrule
+\multicolumn{7}{l}{\emph{Against an external baseline}} \\
+Strongest eligible grid baseline & B-1  & \BOneN{}    & \BOneBetter{}    & \BOneRel{}    & $\BOneP{}$ & --- \\
+Non-linear reference, unseen seeds & B-12 & \BTwelveN{} & \BTwelveBetter{} & \BTwelveRel{} & $\BTwelveP{}$ & \BTwelveCmpBetter{}/\BTwelveCmpN{} \\
+Physically correct sensor model & B-15 & \BFifteenN{} & \BFifteenBetter{} & \BFifteenRel{} & $\BFifteenP{}$ & \BFifteenCmp{}/\BFifteenN{} \\
+Sea state matched to the records & B-26 & \BTwentySixN{} & \BTwentySixBetter{} & \BTwentySixRel{} & --- & \BTwentySixCmpBetter{}/\BTwentySixN{} \\
+\midrule
+\multicolumn{7}{l}{\emph{Ablations of the representation itself}} \\
+Continuity of the wavenumber & B-16 & \BSixteenN{} & \BSixteenBetter{} & \BSixteenRel{} & $\BSixteenP{}$ & --- \\
+\quad --- sparse stratum & B-19 & \BNineteenN{} & \BNineteenBetter{} & \BNineteenRel{} & $\BNineteenP{}$ & --- \\
+The learned prior & B-22 & \BTwentyTwoN{} & \BTwentyTwoBetter{} & \BTwentyTwoRel{} & $\BTwentyTwoP{}$ & \BTwentyTwoAnaZero{}/\BTwentyTwoN{} \\
+Ensemble on the learned path & S-ENS & \SEnsN{} & \SEnsBetter{} & \SEnsRel{} & $\SEnsP{}$ & --- \\
+\quad --- sparse stratum & S-ENS & \SEnsSparseN{} & \SEnsSparseBetter{} & \emph{undecided} & --- & --- \\
+\midrule
+\multicolumn{7}{l}{\emph{Where the gain sits}} \\
+In space (outside the support) & M-10 & \MTenN{} & \MTenBetter{} & \MTenRel{} & $\MTenP{}$ & \MTenCmp{}/\MTenN{} \\
+In time (lead $1.0\,T_p$) & T-4 & \TFourN{} & \TFourBetter{} & \TFourRel{} & --- & \TFourCmp{}/\TFourN{} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\paragraph{How the rows of Table~\ref{tab:earns} must be read}
+Four qualifications apply to the table as a whole and are not repeatable per row.
+\emph{(i)} Every corpus in it is synthetic, and all but the B-12 row use a linear
+ground-truth field; the gains are synthetic gains, and the non-linear check is the
+B-12 row alone. \emph{(ii)} The learned checkpoint was trained on scenes from the
+same distribution family as these corpora. Only the seed axis is out of sample:
+B-12 adds unseen seeds, and no row tests a shift of the distribution itself.
+\emph{(iii)} The comparator in the first block is the strongest eligible grid
+baseline we possess, which is not the same claim as a baseline strengthened for
+this comparison; the ``cmp.'' column is there so the reader can judge how much
+skill that comparator actually had in each corpus, which is the negative control
+for every row that has one. \emph{(iv)} The B-16 and
+B-19 magnitudes are not attributable by subtraction from anything else in the
+table: a separate batch checked that experiment for confounding and found it
+negligible, which is what licenses reading them as sizes rather than as directions.
+The B-26 and M-10 rows were not blind; the others were analysed with the decision
+rule frozen before any result row existed.
+
+Two rows of Table~\ref{tab:earns} carry a caveat that the table itself makes
+visible, and we state it rather than let the reader find it. In the B-26 row the
+margin is the largest in the table, but the comparator degrades in that corner:
+its own margin over a zero predictor falls to \BTwentySixCmpRel{} there from
+\BTwentySixAnchorCmpRel{} in the anchor corner, and our own absolute error is
+\emph{worse} in the corner with the larger margin (\BTwentySixAbs{} against
+\BTwentySixAnchorAbs{}). The ranking of the four corners therefore reverses
+between the ratio scale and the absolute scale, and no claim about which sea state
+suits the method best is available from this experiment; what is available is the
+exclusion statement that the boundary does not lie along the sea-state axis, on a
+linear-ground-truth corpus. The T-4 row has the same shape: the comparator falls
+from \TFourCmpAtZero{}/\TFourN{} at zero lead to \TFourCmp{}/\TFourN{} at the
+pre-registered rung, so the growth of the margin with lead time is not evidence
+that the method improves with lead time. The T-4 rung is at the lower end of the
+measured lead band, $11$ of the $12$ records, not at the horizon the real-data
+section reports. 
 
 \begin{table}[t]
 \centering
-\caption{Ablation study on BF3 episodes: median nRMSE $\pm$ std over
-3 estimator seeds (42/123/456), on the Nyquist-adequate dataset
-(Section~\ref{sec:regen}), corrected tracker.
-A1: dispersion constraint removed ($\omega$ as free parameter).
-\emph{Provenance}: this diagnostic was measured on the earlier ``Nyquist-adequate'' corpus, i.e.\ the corpus whose headline comparison is retracted (the compared arms were never scored on the same frames). It is retained as a diagnostic of the estimator's own behaviour, which is a within-arm property and does not depend on that defect. The claim it was originally used to support is now carried by the ablations of Section~\ref{sec:res_ablation}.
-A2: confidence weighting removed (uniform weights).
-Full, A1 and A2 all use the v1 initializer; the last column changes
-\emph{only} the initializer (v1 $\to$ v2), holding both ablated
-components in place.
-\emph{Note}: neither ablation reaches significance at $n=6$---%
-the two-sided sign-test floor for 6 episodes is $p=0.031$, attainable
-only at 6/6 (see text).}
-\label{tab:ablation}
-\begin{tabular}{lcccc}
+\caption{Where it stops. Every row is a measurement on the $12$ fixed-station
+stereo records, scored against the per-record true zero-field reference. ``beats''
+counts records on which the arm has lower error than that reference; the
+pre-registered decision threshold for a confirmatory reading was
+\BEighteenConfirm{}/\BEighteenN{}. \emph{None of these rows is a comparison
+between arms} --- each asks only whether the arm has any skill at all.}
+\label{tab:boundary}
+\begin{tabular}{llcc}
 \toprule
-Episode & Full & w/o Disp.\ (A1) & w/o Conf.\ (A2) & v2 init \\
+What was varied & Batch & beats & reading \\
 \midrule
-1comp (S) & $0.009{\scriptstyle\pm.001}$ & $0.139{\scriptstyle\pm.135}$ & $\mathbf{0.007}{\scriptstyle\pm.135}$ & $0.008{\scriptstyle\pm.003}$ \\
-% ⚠[2026-09-01] 이 행의 `0.115` 는 **철회된 헤드라인이 아니다** --- 단일 성분
-%   에피소드의 팔별 nRMSE 이고 우연히 같은 문자열이다. 인용금지 검사기가
-%   문자열로 세므로 여기 표지를 남긴다.
-1comp (U) & $0.015{\scriptstyle\pm.003}$ & $0.115{\scriptstyle\pm.095}$ & $0.012{\scriptstyle\pm.006}$ & $\mathbf{0.011}{\scriptstyle\pm.003}$ \\
-2comp (S) & $0.047{\scriptstyle\pm.019}$ & $0.046{\scriptstyle\pm.000}$ & $0.045{\scriptstyle\pm.000}$ & $\mathbf{0.008}{\scriptstyle\pm.010}$ \\
-2comp (U) & $0.050{\scriptstyle\pm.003}$ & $0.048{\scriptstyle\pm.028}$ & $0.050{\scriptstyle\pm.004}$ & $\mathbf{0.012}{\scriptstyle\pm.003}$ \\
-5comp (S) & $0.041{\scriptstyle\pm.051}$ & $0.145{\scriptstyle\pm.041}$ & $0.126{\scriptstyle\pm.071}$ & $\mathbf{0.015}{\scriptstyle\pm.000}$ \\
-5comp (U) & $0.047{\scriptstyle\pm.061}$ & $0.129{\scriptstyle\pm.046}$ & $0.041{\scriptstyle\pm.001}$ & $\mathbf{0.019}{\scriptstyle\pm.003}$ \\
-\midrule
-\textbf{Median} & 0.044 & 0.122 & 0.043 & \textbf{0.012} \\
+Noise model (range- and angle-dependent) & B-17 & \BSeventeenBeats{}/\BSeventeenN{} & no skill \\
+Observation density and noise, best corner & B-18 & \BEighteenBeats{}/\BEighteenN{} & below threshold \\
+Noise \emph{shape}, best of four models & B-14b & \BFourteenBBeats{}/\BFourteenBN{} & below threshold \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Read as paired per-episode differences against Full ($n=6$):
-removing the dispersion constraint costs $+0.091$~nRMSE on the median
-episode and is worse on 4 of 6, but at $n=6$ that is $p=0.69$;
-removing confidence weighting changes it by $-0.002$---marginally
-\emph{lower} without---and is worse on only 1 of 6 ($p=0.22$).  Changing the initializer moves the same metric by
-$-0.027$ and is better on \textbf{6 of 6} ($p=0.031$)---the only
-comparison in this re-measurement that reaches $\alpha=0.05$, and it does
-so exactly at the sign-test floor, so no stronger claim is available from
-it either.  We report this rather than suppress it: on these episodes the
-initializer, not the ablated components, is what carries accuracy, and an
-ablation whose baseline is not the production initializer measures the
-wrong thing.  Note also that this design was underpowered by
-construction: with 6 paired episodes no effect, however large, could have
-been resolved below $p=0.031$.  The interpretation of each ablation below
-is therefore restated in terms of what it does establish.
+Table~\ref{tab:boundary} is the paper's central negative and the reason its title
+speaks of an operating boundary. Four candidate explanations for it were measured
+and none accounts for it: the shape of the noise (B-14b), the density of the
+observations and the noise level together (B-18), a realistic range- and
+angle-dependent noise model (B-17), and the sea state (B-26, in
+Table~\ref{tab:earns}). The learned prior does not reach the pre-registered
+decision threshold on the measured records under any arm configuration we ran, and
+we report that as the measurement it is rather than as a limitation to be
+addressed later. One positive does exist on the measured records and it is not a
+skill claim: giving the proposal an ensemble lowers its forecast error at the
+$1$--$3$~s horizon (\TFiveBetter{}/\TFiveN{}, \TFiveRel{}, $p=\TFiveP{}$), and the
+same operator gives \TFiveFarBetter{}/\TFiveN{} (\TFiveFarRel{}) on the far
+band; this is a within-arm contrast, and the endpoint against a zero predictor
+remains undetected.
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/fig4_ablation.pdf}
-\caption{Ablation study: contribution of dispersion constraint and
-confidence weighting.  Error bars show $\pm$1 std across seeds.
-The confidence ablation is null; the dispersion ablation shows a large
-effect that does not reach significance at $n=6$ episodes.
-\emph{Provenance}: this diagnostic was measured on the earlier ``Nyquist-adequate'' corpus, i.e.\ the corpus whose headline comparison is retracted (the compared arms were never scored on the same frames). It is retained as a diagnostic of the estimator's own behaviour, which is a within-arm property and does not depend on that defect. The claim it was originally used to support is now carried by the ablations of Section~\ref{sec:res_ablation}.
-\emph{Provenance}: drawn from the earlier pre-correction run and retained
-for the qualitative pattern only---the per-episode levels are superseded
-by Table~\ref{tab:ablation}, and the earlier run's regime split
-(A1 better at $N_{\text{true}}\geq 2$) does not reproduce.}
-\label{fig:ablation}
-\end{figure*}
-
-\textbf{A1 (no dispersion constraint)}: Removing the dispersion constraint
-allows $\omega$ as a free parameter ($5N$ total parameters).
-Under the corrected tracker the unconstrained optimizer is
-\emph{worse} on 4 of the 6 episodes and by a large margin where it differs
-at all --- on the single-component and 5-component pairs,
-against a near-tie on the 2-component pair ($-0.001$ and $-0.002$, both
-inside the seed spread).  The median cost of removing the constraint is
-$+0.091$~nRMSE, roughly twice the Full arm's own median error.
-Two cautions attach to this.  First, an effect this large still does not
-reach significance here: 4/6 is $p=0.69$, and the design could not have
-produced better than $p=0.031$ (see above).  The defensible statement is
-\emph{large effect size, insufficient power}---not that the constraint is
-demonstrated to contribute.
-Second, this reverses the direction reported in the earlier
-pre-correction run, which found A1 \emph{better} on the 2- and
-5-component episodes; that regime split does not reproduce, and since
-tracker, mesh and seed protocol all changed between the runs, the reversal
-cannot be attributed to any single one of them.
-The physical argument for retaining the constraint is independent of
-either measurement, and we give it because a lower nRMSE for A1---%
-observed in the earlier run, and still present on the 2-component
-pair---should not be mistaken as evidence that the dispersion constraint
-is physically too restrictive.  For BF3--5
-deep-water gravity waves, $>99\%$ of wave energy lies on the linear
-dispersion shell~\citep{holthuijsen2007}; bound harmonic
-contributions from second-order Stokes theory scale as
-$\epsilon^2/4 < 0.15\%$ at BF4.  The observed $\bar R = 0.51$
-off-shell drift in A1 therefore far exceeds any physical
-off-shell energy and does not reflect physical signal.
-Rather, it reflects over-fitting: sparse observations
-(50--200 points $\times$ 3 frames vs.\ $5N = 75$ free
-parameters for $N = 15$) underconstrain the unconstrained model,
-which absorbs noise and model mismatch by letting $\omega$ drift
-off the dispersion manifold, trading \emph{physical correctness}
-for nRMSE.  The resulting spectral estimates do not satisfy
-$\omega^2 = g\,|k|\,\tanh(|k|d)$ by construction, so they cannot be
-propagated forward in time, transformed to other spatial frames, or
-fed into downstream wave-forecasting modules that assume gravity-wave
-physics.
-%
-We quantify this drift directly on a BF4--BF5 subset
-(5 episodes $\times$ 2 seeds): for each A1 run we extract the learned
-components $(k_{x,i}, k_{y,i}, \omega_i)$, compute the expected
-dispersion frequency $\omega_i^\text{disp} = \sqrt{g\,|k_i|\,\tanh(|k_i|d)}$,
-and report the amplitude-weighted relative residual
-$\bar R = \sum_i |w_i|\,|\omega_i - \omega_i^\text{disp}|
-        / (\omega_i^\text{disp} \sum_j |w_j|)$.
-Across these runs A1 exhibits $\bar R = 0.51 \pm 0.12$
-(absolute mean $\approx 0.10$\,Hz off the dispersion curve),
-whereas Full has $\bar R \equiv 0$ by construction.
-A component that is $\sim$50\% off the dispersion frequency cannot
-be re-used one second later: predicting the phase at $t+\Delta t$ via
-$\Delta\varphi = \omega\,\Delta t$ with the \emph{wrong} $\omega$ will
-de-cohere from the true field within one dominant period.
-
-The dispersion constraint also serves a critical role
-\emph{during tracking} (Phase~2) rather than initialization: it
-provides the phase prediction
-$\Delta\varphi_i = \omega_i \cdot \Delta t$ that enables stable
-temporal tracking without re-estimating all $5N$ parameters per frame
-(physics-locked tracking reduces the per-frame state to $2N$).
-Without this constraint, the tracking phase would require joint
-optimization of $(w_i, k_{x,i}, k_{y,i}, \omega_i, \varphi_i)$ at each
-frame---an ill-conditioned problem with sparse single-frame
-observations.  Under the earlier measurement this ablation appeared to
-price physical validity---an nRMSE penalty accepted in exchange for
-spectral estimates that respect the linear gravity-wave dispersion
-relation and remain usable downstream, e.g.\ by the hydrofoil preview
-controller of our companion work~\citep{park2026hydrofoil}.  Under the
-corrected measurement no such trade is visible: the constrained arm is
-both physically valid and equal or better in nRMSE on 4 of 6 episodes.
-We state the weaker of the two readings, which is the one common to both
-runs: the dispersion constraint is justified by the downstream
-requirement independently of its nRMSE effect, and the nRMSE effect on
-these six episodes is a large-looking difference this design lacked the
-power to certify.
-
-\textbf{A2 (no confidence weighting)}: this ablation is \emph{null}, and
-the null now has two independent measurements behind it.  Under the
-corrected tracker, removing the geometry-aware confidence weighting moves
-the median episode by $-0.002$~nRMSE---marginally in favour of removing
-it---and is worse on only 1 of 6 episodes ($p=0.22$); on four of the six
-the two arms agree to within $0.003$.  An independent re-measurement one
-month earlier, on the same dataset with a different seed set and the
-pre-correction tracker, returned the same verdict (paired $+0.001$,
-$t=0.08$, $p=0.94$, 17 of 30 runs lower without it).  A null that
-survives a change of tracker, seed protocol and analyst pass is the one
-result in this ablation table we regard as settled.
-An earlier version of this study, run on the pre-Nyquist dataset with
-3 seeds, reported a 14.5\% average degradation and a
-$0.088 \to 0.204$ ($2.3\times$) increase on the BF3 2-component
-slope episode.  That specific case now measures
-$0.047 \to 0.045$, a ratio of $0.96$.  We could not reproduce the
-effect, and we report the null rather than the earlier number.
-One caveat bounds what this does and does not settle.  The null holds
-under both initializers---repeating the ablation with the production
-initializer (rather than the v1 configuration inherited from the
-original study) leaves it unchanged (paired $\Delta=+0.005$, $t=0.52$,
-$p=0.61$ over 30 runs)---so it is not an artifact of the ablation's
-initialization.  But a null on BF3 episodes with a well-resolved
-reference field is not evidence that observation weighting is
-unnecessary in general---in particular, the weighting encodes a real
-property of grazing-incidence LiDAR returns that this simulator's
-return model does not fully reproduce (Section~\ref{sec:regen}).  What the measurement does establish is that
-the paper's previous claim of a large, consistent benefit was an
-artifact of the earlier dataset and seed count, and cannot be used to
-argue that confidence weighting is load-bearing.
-
-A four-way comparison on 10 uniform-raydrop episodes corroborates the
-null from the other side: the confidence weighting changes our own arm by less
-than a percent, and applying the same weighting to the comparison method changes
-it by nothing at all. We do not quote the four levels: they come from the
-retracted corpus, in which our arm and the comparison arm were never scored on
-the same frames, so a level-to-level comparison between them is not defined.
-Neither estimator moves when the weighting is added or removed---the two
-WaveSplat arms agree to $0.001$ and the two GPR arms to within $0.01\%$.
-Confidence weighting is therefore inert on this simulator's data for
-both a spectral and a non-parametric estimator.  We caution against
-reading this as a statement about real LiDAR: the weights encode the
-range- and incidence-dependent reliability of grazing returns, which
-this simulator's return model does not fully reproduce
-(Section~\ref{sec:regen}), so the component may still matter on
-measured data even though it is measurably inert here.
-
-\subsection{Raydrop model sensitivity}
-\label{sec:raydrop-results}
-
-To evaluate robustness to different LiDAR return-sampling patterns, we
-compare performance on 10 paired episodes using the \emph{geometry-weighted}
-(``uniform'', $P\propto R_{\text{Fresnel}}(\theta)\cos\theta/d^2$) vs.\
-\emph{unweighted} (``slope'') raydrop models
-(Table~\ref{tab:raydrop}, Fig.~\ref{fig:raydrop}).
-The unweighted model is the adversarial case for any estimator that relies
-on downweighting unreliable returns, because it removes the correlation
-between return density and observation quality.
-
-\begin{table}[t]
-\centering
-\caption{Raydrop model comparison on the Nyquist-adequate dataset:
-geometry-weighted (U) vs.\ unweighted (S) return sampling, seed-0
-episodes. $\Delta$\%: relative nRMSE change from weighted to unweighted
-(negative = unweighted is better).
-\emph{Provenance}: this diagnostic was measured on the earlier ``Nyquist-adequate'' corpus, i.e.\ the corpus whose headline comparison is retracted (the compared arms were never scored on the same frames). It is retained as a diagnostic of the estimator's own behaviour, which is a within-arm property and does not depend on that defect. The sensor-model robustness claim is now carried by Section~\ref{sec:res_sensor}.
-WaveSplat columns are the median over 3 estimator seeds (42/123/456) under
-the corrected tracker, re-measured 2026-08-03.
-ETKF uses the default configuration ($n_{\text{ens}}{=}50$) and is carried
-over from the earlier pass on the same dataset (the tracker correction
-affects only the WaveSplat arm); its nRMSE
-values are near the zero-predictor level and are variance-dominated
-(retracted corpus; archived), so the relative
-sensitivity ($\Delta$\%) is the quantity of interest, not the level---and
-that sensitivity is itself configuration-dependent, shrinking under an
-honestly re-tuned baseline (Section~\ref{sec:raydrop-results}).}
-\label{tab:raydrop}
-\begin{tabular}{lccc}
-\toprule
-& \multicolumn{3}{c}{WaveSplat} \\
-\cmidrule(lr){2-4}
-Episode & U & S & $\Delta$\% \\
-\midrule
-BF2 1c  & 0.063 & \textbf{0.025} & $-$60.3 \\
-BF3 1c  & 0.009 & \textbf{0.008} & $-$4.4  \\
-BF3 2c  & \textbf{0.007} & 0.009 & +19.5 \\
-BF3 5c  & 0.024 & \textbf{0.019} & $-$21.9 \\
-BF4 1c  & 0.004 & \textbf{0.003} & $-$17.1 \\
-BF4 5c  & 0.017 & \textbf{0.012} & $-$32.7 \\
-BF4 15c & 0.272 & \textbf{0.198} & $-$27.2 \\
-BF4 30c & 0.333 & \textbf{0.269} & $-$19.2 \\
-BF5 15c & \textbf{0.216} & 0.247 & +14.6 \\
-BF5 30c & 0.246 & \textbf{0.220} & $-$10.6 \\
-\midrule
-\textbf{Avg} & 0.119 & \textbf{0.101} & $-$15.2 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/fig5_raydrop.pdf}
-\caption{Raydrop model comparison: geometry-weighted (``uniform'') vs.\
-unweighted (``slope'') LiDAR return-sampling models. WaveSplat (blue shades)
-shows the within-arm effect of the two raydrop models. The comparison against ETKF that this figure originally carried is withdrawn: it comes from a corpus in which the two arms were never scored on the same frames.}
-\label{fig:raydrop}
-\end{figure*}
-
-The within-arm effect of the two raydrop models is small under both. We withdraw
-the episode-count comparison against the grid baseline that this paragraph
-originally reported: it is a cross-arm claim on the retracted corpus. The
-sensor-model robustness claim of this paper is the one in
-Section~\ref{sec:res_sensor}.
-Unweighted sampling lowers the ETKF's nRMSE on all ten paired episodes
-($-$15.9\% at the default configuration, paired $t(9){=}-7.6$), against
-$-$15.2\% for WaveSplat, which at the default configuration would read as
-the two methods benefiting about equally.
-That reading does not survive an honest re-tuning of the baseline and is
-\emph{not} an established effect: the ETKF's raydrop sensitivity is a
-variance-amplification artifact, not a reconstruction gain.  Re-measuring
-the same ten pairs under the tuned ETKF of
-the retracted corpus (archived) ($n_{\text{ens}}{=}100$) already
-shrinks it to $-$11.7\%, and under an nRMSE-honest hold-out re-tuning
-(analysis grid $160\times120$, additive inflation off, larger observation
-error) the comparison arm degenerates toward a near-zero predictor under both
-raydrop models, so the difference between the two models is not informative about
-it. We withdraw the levels and the cross-arm sensitivity comparison this paragraph
-originally reported: they come from the retracted corpus, where the two arms were
-never scored on the same frames. What survives is the within-arm statement --- the
-direction of the raydrop effect is consistent across configurations, and its
-magnitude tracks how much variance the
-grid filter injects into the now-unattenuated observations, not any gain
-in reconstruction skill ($\rho$ never exceeds $0.11$).  We therefore
-report the sensitivity as an artifact of the un-tuned baseline rather
-than as evidence that the observation model favors one method.
-For WaveSplat the direction is stable but not significant: unweighted
-sampling is better on 8 of 10 episodes, the same 8/10 the earlier
-pre-correction pass reported, but at $n=10$ that is a sign-test
-$p=0.109$ (Wilcoxon $p=0.084$)---below $\alpha=0.05$ in neither test.
-The defensible statement is that the direction reproduces across two
-measurement regimes while the effect remains uncertified; we do not claim
-that unweighted return sampling helps WaveSplat.
-The two exceptions are not confined to the sparse episodes
-(BF3~2comp $+19.5\%$ and BF5~15comp $+14.6\%$), so the earlier reading
-that the crowded $\geq$15-component episodes improve consistently does
-not hold either: three of those four improve ($-$11 to $-$27\%) and one
-degrades.
-
-\subsection{Robustness: sparsity, noise, and sea state}
-
-To quantify sensitivity to observation density, we subsample LiDAR
-points to 20--100\% of the original count on 5 representative episodes
-(Table~\ref{tab:sparsity}, Fig.~\ref{fig:sparsity}).
-
-\begin{table}[t]
-\centering
-\caption{Sparsity robustness: nRMSE at varying observation fractions.
-Average points $\approx$ 50 at 100\%.
-\emph{Provenance}: produced before the tracker phase-advance correction;
-pending re-run and not directly comparable with the corrected
-full-dataset figures of the retracted corpus (archived).}
-\label{tab:sparsity}
-\begin{tabular}{lccccc}
-\toprule
-Episode & 20\% & 40\% & 60\% & 80\% & 100\% \\
-\midrule
-BF3 2c  & 0.170 & 0.168 & 0.168 & 0.167 & \textbf{0.052} \\
-BF3 5c  & 0.204 & 0.194 & 0.195 & 0.193 & \textbf{0.167} \\
-BF4 5c  & 0.199 & 0.198 & 0.199 & 0.199 & 0.200 \\
-BF4 15c & 0.302 & \textbf{0.283} & 0.294 & 0.278 & 0.302 \\
-BF5 15c & \textbf{0.274} & 0.276 & 0.260 & 0.289 & 0.297 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/fig7_sparsity.pdf}
-\caption{Observation sparsity robustness. For BF4--5 episodes,
-nRMSE remains nearly flat down to 20\% observation density
-($\sim$10 points/frame). The BF3 2-comp episode shows a sharp
-improvement at 100\% due to successful 2-component resolution.}
-\label{fig:sparsity}
-\end{figure}
-
-For moderate-to-high complexity (BF4--5), performance degrades by less
-than 8\% even at 20\% observation density ($\sim$10 points/frame):
-with only $4N \leq 120$ parameters to estimate, even 10 observations
-per frame over-determine the optimization.  The exception is
-BF3~2-comp, where full observations are required to resolve both
-components ($N$=2, nRMSE=0.052); subsampled versions fall back to a
-single-component fit ($N$=1, nRMSE $\sim$0.17).
-
-\paragraph{Noise robustness.}
-\label{sec:noise}
-Real shipboard LiDAR is subject to noise beyond the baseline
-simulator model (spray, vibration, scintillation).
-We inject additive Gaussian noise
-$\sigma\in\{0, 0.02, 0.05, 0.10\}$~m---up to 5$\times$ baseline---into
-the LiDAR observations (Table~\ref{tab:noise}, Fig.~\ref{fig:noise}).
-
-\begin{table}[t]
-\centering
-\caption{Noise robustness: nRMSE under additive Gaussian noise
-$\mathcal{N}(0,\sigma^2)$ on LiDAR elevation observations.
-$N_a$: adaptively selected component count.
-Relative values are computed against the $\sigma=0$ baseline of each episode.
-\emph{Provenance}: this diagnostic was measured on the earlier ``Nyquist-adequate'' corpus, i.e.\ the corpus whose headline comparison is retracted (the compared arms were never scored on the same frames). It is retained as a diagnostic of the estimator's own behaviour, which is a within-arm property and does not depend on that defect. The noise-robustness claim is now scoped by Section~\ref{sec:res_scope}.}
-\label{tab:noise}
-\begin{tabular}{lccccc}
-\toprule
-Episode & $\sigma{=}0$ & $\sigma{=}0.02$ & $\sigma{=}0.05$ & $\sigma{=}0.10$ & $\Delta$\%$_{\max}$ \\
-\midrule
-BF3 5c  & 0.168 ($N_a$=4)  & \textbf{0.149} ($N_a$=4)  & 0.160 ($N_a$=7)  & 0.190 ($N_a$=10) & +13.3 \\
-BF4 5c  & 0.200 ($N_a$=3)  & 0.200 ($N_a$=3)  & 0.201 ($N_a$=6)  & \textbf{0.198} ($N_a$=9)  & +0.7 \\
-BF4 15c & 0.302 ($N_a$=19) & 0.303 ($N_a$=19) & \textbf{0.276} ($N_a$=20) & 0.294 ($N_a$=11) & +0.4 \\
-\midrule
-% ⚠[2026-09-01] 이 행의 `0.223` 은 **철회된 `WaveSplat.avg_nRMSE` 가 아니다** ---
-%   적응형 성분수 절제의 네 팔 평균이고 우연히 같은 문자열이다.
-\textbf{Avg} & 0.223 & 0.217 & 0.212 & 0.227 & --- \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/fig9_noise.pdf}
-\caption{Noise robustness: nRMSE under additive Gaussian noise
-$\sigma\in\{0, 0.02, 0.05, 0.10\}$~m. All episodes remain within
-$\pm$13\% of the noise-free baseline, demonstrating the spectral
-parameterization's inherent noise averaging.}
-\label{fig:noise}
-\end{figure}
-
-Across all three episodes nRMSE remains within $\pm$13\% of baseline
-even at $\sigma$=0.10~m (5$\times$ baseline), as the spectral
-parameterization averages zero-mean noise across $M\sim 50$
-observations and $4N\leq 120$ parameters, and adaptive $N_a$ absorbs
-excess noise into prunable low-energy components.
-
-% [2026-09-01] 2차 감사 BLOCKER: 이 문단은 철회 코퍼스의 **팔간 수치**
-%   (BF3 61%, 0.138 vs 0.353 / BF5 11%)를 인쇄했다. 바로 위 절이 그 코퍼스의
-%   regime dependence 를 "철회하고 재진술하지 않는다" 고 선언한 자리다 = 자기모순.
-%   ⟹ PAPER_LEGACY 로 이동(삭제 아님).
-
-% [2026-09-01] 2차 감사 BLOCKER: fig:qualitative 은 \ref 0회인 **고아 float** 이고,
-%   캡션이 "fewer artifacts than ETKF or GPR" 로 **팔간 우위**를 주장한다.
-%   그 비교는 두 팔이 같은 프레임에서 채점된 적이 없는 코퍼스의 것이다. ⟹ 이동.
+\paragraph{What was removed, and what that costs}
+The three subsections that previously stood here --- an ablation of the dispersion
+constraint and the confidence weighting, a raydrop-model sensitivity study, and a
+sparsity/noise/sea-state robustness study --- together with four tables and four
+figures, have been moved to the supplementary archive rather than deleted. Their
+corpus is the one whose headline comparison is retracted, and two of them were
+additionally produced before a correction to the tracker's phase advance. Where a
+pre-registered replacement exists it appears in the two tables above. Where none
+exists, the quantity is simply absent from this paper and we do not restate it
+from the archived run: this applies to the five-metric evaluation panel, the
+stratification against wave buoys, the twelve-episode comparison against tuned
+grid baselines, the spectral-accuracy comparison, and the absolute per-frame
+latency, which has never been measured on the deployed learned initialisation path
+at all. The paper is thinner for this, and a reader comparing it against the
+earlier version will find fewer numbers rather than more. That is the intended
+direction: every number that remains is one a frozen verdict file will reproduce.
 
 % ============================================================================
 \section{Discussion}
@@ -1813,50 +1597,33 @@ measured records the representation does not reach the decision threshold at all
 
 \subsection{Effect of observation model}
 
-The corresponding cross-arm count is withdrawn for the same reason
-(retracted corpus, frames not matched).
-Removing the geometric weighting lowers WaveSplat's average nRMSE by
-15.2\% (unweighted better on 8 of 10 episodes, sign-test $p=0.109$---%
-a stable direction, not a certified effect) and lowers the default
-ETKF's by 15.9\%.  The ETKF
-figure is a variance-amplification artifact of the un-tuned grid
-baseline rather than a reconstruction gain: it shrinks to 11.7\% under
-the tuned ETKF and to 0.9\% under an nRMSE-honest re-tuning, so it is
-not attributed to the observation model
-(Section~\ref{sec:raydrop-results}).
-The online model order responds to the observation model as well:
-unweighted raydrop triggers the safety rollback on low-complexity scenes
-(e.g., BF3-2comp: $N$=2$\to$15) but prunes more aggressively on complex
-seas (BF4-15comp: $N$=19$\to$10).  Since the mechanism carries no
-measured accuracy benefit (retracted corpus; archived), we record this as
-a behavioural observation and not as evidence that stronger observations
-improve model selection.
-
+% [2026-09-02 P9] 초판의 이 절은 철회된 코퍼스의 팔간 수치(15.2\% / 15.9\% / 11.7\%)를
+%   실었다. 대체가 있다(B-14b, B-15) ⟹ 아카이브로 옮기고 측정된 것만 남긴다.
+Two questions about the observation model have been measured on frozen batches
+rather than argued. First, whether the geometric return-sampling model changes the
+conclusion: it does not, and the physically correct slope model is in fact the
+more favourable of the two (B-15, Table~\ref{tab:earns}), with the comparator
+retaining skill in both. Second, whether the \emph{shape} of the observation
+noise explains the negative on the measured records: it does not, and the best of
+four noise models still reaches only \BFourteenBBeats{}/\BFourteenBN{}
+(B-14b, Table~\ref{tab:boundary}). The earlier cross-arm sensitivity figures are
+withdrawn with the corpus they came from and are in the supplementary archive.
 \subsection{Hyperparameter sensitivity}
 \label{sec:hyper}
 
-WaveSplat's four hyperparameters ($\text{lr}{=}0.01$,
+% [2026-09-02 P9] 초판은 개발 중 스윕("100 paired runs")을 근거로 저민감을 주장했는데
+%   그 100런이 철회된 코퍼스다. ⛔대체 없음 ⟹ **주장을 옮기지 않고 범위를 좁힌다.**
+The four hyperparameters of the analytic path ($\text{lr}{=}0.01$,
 $\lambda_1{=}\DepLambdaOne{}$, $\tau_{\text{prune}}{=}0.10$,
-$\tau_{\text{grow}}{=}0.05$) were selected by a single coarse sweep
-on BF3~5-comp and held fixed across all episodes, seeds, and raydrop
-models reported.  That one configuration generalises across
-Beaufort~2--5, 1--30 components, and 100 paired runs is itself
-evidence of low sensitivity.
-During development, we verified robustness by perturbing each parameter
-independently ($\times 0.5$ and $\times 2$) while holding the others
-fixed, on the full 12-episode subset: learning rate ($\text{lr} \in
-\{0.005, 0.02\}$: nRMSE $\Delta < 3\%$), L1 penalty
-($\lambda_1 \in \{5\!\times\!10^{-4}, 2\!\times\!10^{-3}\}$, i.e.\ $5\times$ and
-$20\times$ the current default rather than the $0.5\times$/$2\times$ the surrounding
-text once described --- the sweep predates the change of $\lambda_1$ to
-$\DepLambdaOne{}$ and was not re-run:
-$\Delta < 2\%$), prune threshold ($\tau_{\text{prune}} \in \{0.05,
-0.20\}$: $\Delta < 5\%$, with 0.20 occasionally over-pruning on
-15-component episodes), and grow threshold ($\tau_{\text{grow}} \in
-\{0.025, 0.10\}$: $\Delta < 4\%$).
-No perturbation changed the sign of the within-arm effects reported here. We do not restate the ranking against the baselines: that ranking was computed on the retracted corpus.  Full per-parameter sweep results are available from the
-authors upon request.
-
+$\tau_{\text{grow}}{=}0.05$) were selected by a single coarse sweep during
+development and then held fixed across every batch reported here --- across
+Beaufort~2--5, $1$--$30$ components, several ground-truth classes, and both
+strata. That one configuration was never re-tuned per experiment is a property of
+the protocol and can be checked in the preregistrations; it is the only
+sensitivity statement we make. The development-time perturbation sweep that the
+earlier version of this section reported is not restated: it was run on the
+retracted corpus and, for $\lambda_1$, at values that predate the change of the
+shipped default to $\DepLambdaOne{}$. It is in the supplementary archive.
 \subsection{Practical deployment considerations}
 
 % RETRACTED 2026-08-14: 13.4 ms/frame is a banned figure (cross-process timing).
@@ -1891,62 +1658,21 @@ introducing additional error and latency.
 % ============================================================================
 
 \subsection{Temporal extrapolation as validation of spectral fidelity}
-\label{sec:forecast}
 
-A natural consistency check for any spectral representation is whether
-the estimated parameters produce accurate predictions at \emph{unseen}
-future times.  Because WaveSplat's parameters satisfy the dispersion
-relation by construction, the forward model~\eqref{eq:forward} can be
-evaluated at any future $t$ without re-estimation---effectively a
-zero-cost deterministic forecast.  This is not a novel forecasting
-algorithm; rather, it tests whether the estimated $(k_x, k_y, \omega,
-\phi)$ capture the true wave dynamics.
-We estimate on the first 20\,s of each episode and evaluate on the
-remaining 10\,s (Table~\ref{tab:forecast}).
-
-\begin{table}[t]
-\centering
-\caption{Deterministic forecast accuracy: average metrics over 5 episodes
-(BF3~1c/2c, BF4~1c/5c/15c) at increasing forecast horizons $\Delta t$.
-Estimation uses $t \in [0, 20]$\,s; forecast into $t \in [20, 30]$\,s.
-\emph{Provenance}: measured before the tracker phase-advance correction
-and not re-measured.  That correction improved the nowcast nRMSE, so the levels
-here should be read as conservative; the horizon-invariance, which is the point of
-the table, is a within-row property and is unaffected.
-The levels of that improvement are not quoted --- they come from the retracted
-corpus (\S\ref{sec:res_headline} provenance note).}
-\label{tab:forecast}
-\begin{tabular}{rcccc}
-\toprule
-$\Delta t$ & nRMSE & SS & $\rho$ & VR \\
-\midrule
-$+$0.5\,s  & 0.218 & $+$0.141 & 0.323 & 0.325 \\
-$+$1.0\,s  & 0.218 & $+$0.140 & 0.322 & 0.327 \\
-$+$2.0\,s  & 0.219 & $+$0.138 & 0.323 & 0.330 \\
-$+$5.0\,s  & 0.218 & $+$0.135 & 0.328 & 0.342 \\
-$+$10.0\,s & 0.219 & $+$0.128 & 0.316 & 0.331 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The forecast nRMSE remains essentially constant (0.218--0.219) out to
-10\,s, with Skill Score remaining positive throughout.
-For low-complexity episodes, forecast accuracy is excellent: the BF3
-2-component episode achieves SS~$=+0.953$ and $\rho=0.983$ even at
-$\Delta t = 10$\,s.  The constant forecast error reflects that the
-spectral representation reproduces the within-arm horizon behaviour we expected. We do not read these levels as skill: Section~\ref{sec:metrics} fixes a zero-predictor reference near $0.25$ for this corpus, and the values in the table sit at or above it, so the correct statement is that the estimate degrades slowly with horizon, not that it forecasts well:
-once the correct $(k_x, k_y, \omega, \phi)$ are known, the forward
-model provides a physically exact prediction for linear waves.
-The Skill Score does decline slightly with horizon
-($+0.141 \to +0.128$); we do not attribute this to a specific mechanism,
-having withdrawn the amplitude-decay attribution
-(Section~\ref{sec:limitations}), and note that the decline is small
-relative to the seed spread this table does not report.
-
-This forecast capability is directly relevant for wave-preview
-feedforward control~\citep{park2026hydrofoil}, where 5--10\,s advance
-wave prediction is needed to compute proactive control commands.
-
+% [2026-09-02 P9] 이 절의 표(tab:forecast)는 추적기 위상전개 수정 **이전** 실행이었다.
+%   대체가 있다(T-4, 사전등록.동결) ⟹ 표는 아카이브로 옮기고 주장은 T-4 로 옮긴다.
+Because the estimated parameters satisfy the dispersion relation by
+construction, the forward model~\eqref{eq:forward} can be evaluated at any future
+time without re-estimation. Whether that extrapolation is accurate is therefore a
+test of the estimated $(k_x, k_y, \omega, \phi)$ rather than a forecasting
+contribution, and it is reported in Section~\ref{sec:res_where} as the T-4 row of
+Table~\ref{tab:earns}: at a lead of $1.0\,T_p$ the deployed path is ahead on
+\TFourBetter{} of \TFourN{} episodes. That row must be read with its
+negative control, because the comparator's own skill falls from
+\TFourCmpAtZero{}/\TFourN{} at zero lead to \TFourCmp{}/\TFourN{} at that rung;
+the rung sits at the lower end of the measured lead band, $11$ of the $12$
+records. The earlier five-episode horizon table, produced before the tracker
+phase-advance correction, is in the supplementary archive.
 \subsection{Limitations and future work}
 \label{sec:limitations}
 

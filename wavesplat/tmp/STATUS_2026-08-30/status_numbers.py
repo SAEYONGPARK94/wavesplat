@@ -244,7 +244,12 @@ CLAIMS = [
     ('t4.nogo_count', '9', str(len(_nogo))),
     ('t4.premise_runs', '0', str(T4P['runs'])),
     ('t4.premise_est_calls', '0', str(T4P['estimator_calls'])),
-    ('t4.verdict_absent', 'YES', 'YES' if not _t4_verdicts else 'NO:' + ','.join(_t4_verdicts)),
+    # ⚠[2026-09-02 갱신] 이 줄은 **사전등록 동결 시점**(08-30)의 사실을 적었다:
+    #   그때 T-4 는 결과 0행이었고 verdict 파일이 없었다. 08-31 커밋 `f2b4f783` 이
+    #   288런을 돌려 `verdict_t4.json` 을 만들었으므로 **뒤집히는 것이 정상**이다.
+    #   ⛔침묵시키지 않는다 --- 기대값을 바꾸고 사유를 여기 적는다(래칫과 같은 규약).
+    ('t4.verdict_absent', 'NO:verdict_t4.json',
+     'YES' if not _t4_verdicts else 'NO:' + ','.join(_t4_verdicts)),
 
     # ---- B-26 게이트 사후 반전
     ('b26.gates', '28/29', gates_of(B26)),

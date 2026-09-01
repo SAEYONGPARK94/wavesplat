@@ -127,8 +127,11 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
     (`v2_konly_100ep` 팔이 "100ep_ws_letkf.json 이 돌린 것"이라 주석하나 원본은 λ=1e-3),
     `tmp/DEBATE_blankslate_2026-08-12/r2_phase_attrib.py:31`(공개 컬럼 대비 비트일치 **0/30**),
     `r2_auto_rest70.py:47` ⟹ **"출하 auto 85/100" 은 `init_method` 단독이 아니라 λ 와의 2요인 묶음.**
-  ⚠`sequential_update.py:426`·`:967` 에 **λ=0.001 하드코딩** 잔존 — 배포 후 의미가
-  "출하 기본값"에서 "구 기본값"으로 조용히 바뀌었다.
+  ⛔**~~`sequential_update.py:426`·`:967` 에 λ=0.001 하드코딩 잔존~~ — 2026-09-02 정정: 낡았다.**
+  실측: 그 파일의 유일한 `1e-3` 은 **명명된** `LAMBDA_L1_PRE_S9`(`:273`)뿐이고,
+  `:1457` 이 *"Both halves are now false"* 라 스스로 적었다. **줄번호도 낡았다**
+  (`:426`=`continue` · `:967`=verbose print). ★이 항목이 살아남은 방식이 교훈이다 —
+  **코드는 고쳐졌는데 원장의 문장이 그대로 남아** 감사 에이전트가 다시 지적했다.
 - ⛔**`amplitude_refit` 위상 부호 결함 — 2026-08-19 수리됨(`b1467bd`).** `sequential_update.py:1335` 가
   `arctan2(b, a)` 였는데 전방모델이 `w·cos(θ+φ)` 라 `b = −w·sinφ` ⟹ `atan2(-b, a)` 가 옳다.
   저장소의 다른 LS `(a,b)→φ` 사이트 5곳은 이미 옳았고 이 줄만 이탈했다. **과거 오염 0건**(전수 확인:

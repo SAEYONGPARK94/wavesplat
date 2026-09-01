@@ -42,8 +42,21 @@
 %      ⟹ ⛔**감사에서 이 항목이 다시 나오면 「미해결」이 아니라 「연기됨」으로 처리한다.**
 %      §Data availability 의 *"upon acceptance"* 문안은 그 결정과 **일치**하므로 그대로 둔다.
 %      ⚠체크포인트 두 개의 SHA-256 은 이미 본문에 박혀 있어 검증 가능성은 확보돼 있다.
-%   2. **그림·표 재생성 미완** --- 철회 코퍼스에서 만들어진 그림 일부는 대체 자료가 없어
-%      본문에서 빠졌다. 남은 것을 만들지, 없이 낼지는 결정되지 않았다.
+%   2. **그림 처분** --- 2026-09-02 실측으로 **목록이 확정됐다**(더는 막연한 부채가 아니다).
+%      철회 코퍼스(100ep)에서 나온 그림 **아홉 장**이 아카이브로 갔고
+%      (`tmp/PAPER_LEGACY_2026-09-01/`), 현재 본문 그림은 **셋**이다. 대응은 이렇다:
+%        · `fig1_comparison`  → ✅`fig_results`(동결 verdict 원자 + 음성대조)로 **대체됨**
+%        · `fig8_qualitative` → ✅`fig_qualitative`(신선 실행 + 출처 json)로 **대체됨**
+%        · `fig3_speed`       → ✅표 `tab:budget`(`T6`, 8칸)으로 **대체됨**
+%        · `fig4_ablation`    → ✅표 `tab:earns` 의 절제 블록 + `fig_results` 패널 (a)
+%        · `fig6_multiseed`   → ✅§5.7 의 추정기 시드 문단(3 시드, 중앙값 규약)
+%        · `fig5_raydrop`     → ⚠`B-15` 가 **표 행으로만** 있다. 그림은 만들 수 있으나 미착수
+%        · `fig7_sparsity` · `fig9_noise` · `fig_tau_sensitivity`
+%                             → ⛔**대체 자료가 없다.** 그 세 질문(관측 밀도 스윕 · 잡음 스윕 ·
+%                               성장 문턱 민감도)은 철회 코퍼스에서만 측정됐고 재측정되지
+%                               않았다. §Limitations 가 그 부재를 적는다.
+%      ⟹ 남은 결정은 *"`B-15` 를 그림으로 그릴 것인가"* **하나**이고, 나머지 셋은
+%      **새 배치 없이는 불가능**하다(= 그림 문제가 아니라 측정 문제다).
 %   3. **마지막 심사 시뮬레이션이 MAJOR REVISION** 이었고(2026-09-02), 그 뒤 수리에서
 %      BLOCKER 가 다시 나왔다. ⟹ 배너 제거는 **사람이 원고를 통독한 뒤**의 판단이다.
 %
@@ -2217,15 +2230,25 @@ draw no conclusion from it.
 \paragraph{What was removed, and what that costs}
 The three subsections that previously stood here --- an ablation of the dispersion
 constraint and the confidence weighting, a raydrop-model sensitivity study, and a
-sparsity/noise/sea-state robustness study --- together with four tables and four
-figures, have been moved to the supplementary archive rather than deleted. Their
+sparsity/noise/sea-state robustness study --- together with six tables and five
+figures, have been moved to the supplementary archive rather than deleted.
+% ⛔[2026-09-02] 이 문장이 *"four tables and four figures"* 라 적고 있었다. **실측하면
+%   `tmp/PAPER_LEGACY_2026-09-01/retracted_tables_2026-09-02.tex` 안에 표 6 · 그림 5 다**
+%   (`\begin{table` 6회 · `\begin{figure` 5회 · 라벨 tab:etkf_sweep/ablation/raydrop/
+%   sparsity/noise/forecast). ★처분을 세어 적었는데 그 수가 틀렸다.
+Their
 corpus is the one whose headline comparison is retracted, and two of them were
 additionally produced before a correction to the tracker's phase advance. Where a
 pre-registered replacement exists it appears in the two tables above. Where none
 exists, the quantity is simply absent from this paper and we do not restate it
 from the archived run: this applies to the five-metric evaluation panel, the
-stratification against wave buoys, and the twelve-episode comparison against tuned
-grid baselines. Two items that stood in this list in the previous version have since
+stratification against wave buoys, the twelve-episode comparison against tuned
+grid baselines, and three sensitivity sweeps --- observation density, additive
+noise, and the residual growth threshold $\tau_R$ --- whose questions remain open
+rather than answered.
+% ⛔[2026-09-02] 이 목록에 **밀도·잡음·$\tau_R$ 스윕 셋이 빠져 있었다** --- 바로 위
+%   문장이 그 절들을 이동했다고 적으면서, 아래 목록은 그 부재를 세지 않았다.
+Two items that stood in this list in the previous version have since
 been re-measured and have moved out of it: a spectral-domain contrast
 (Section~\ref{sec:res_spectral}, on a disjoint corpus and graded exploratory) and the
 per-frame latency of the deployed learned path (Section~\ref{sec:complexity}). The

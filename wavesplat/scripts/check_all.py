@@ -91,6 +91,39 @@ FROZEN_EVIDENCE_KNOWN = {
 }
 
 
+# ★[2026-09-02] **`FROZEN.sha256` 사각지대.**
+#   `tmp/_audit/check_batch_artifacts.py` 는 `FROZEN_md5*.txt` 만 본다 ⟹ 초기 배치들이
+#   쓰던 `FROZEN.sha256` 은 **아무도 검증하지 않았다**. 실측: 셋 중 **둘이 실패**하고
+#   그중 하나가 **배포 체크포인트를 만든 배치**다(`mixed_retrain_2026-07-26`).
+#   ⚠둘 다 **소급 수리가 불가능**하다(동결이 커밋 시점에 이미 낡아 있었다 ---
+#   상세 = `tmp/_audit/H2_CHECKPOINT_PROVENANCE_2026-09-02.md`).
+#   ⟹ 배치 검사기와 같은 규약: **이름 집합 래칫**(새 이름이 들어오거나 기지 이름이
+#   사라지면 실패). ⛔침묵시키지 않는다.
+SHA256_KNOWN_FAIL = {'confirm40_2026-07-27', 'mixed_retrain_2026-07-26'}
+
+
+def check_frozen_sha256():
+    import glob
+    found = set()
+    for f in sorted(glob.glob(os.path.join(ROOT, 'tmp', '*', 'FROZEN.sha256'))):
+        d = os.path.dirname(f)
+        r = subprocess.run(['sha256sum', '-c', 'FROZEN.sha256'], cwd=d,
+                           capture_output=True)
+        if r.returncode != 0:
+            found.add(os.path.basename(d))
+    new_bad, gone = found - SHA256_KNOWN_FAIL, SHA256_KNOWN_FAIL - found
+    if new_bad or gone:
+        print('  [FAIL] FROZEN.sha256 (래칫)')
+        if new_bad:
+            print(f'         ⛔새 실패 {len(new_bad)}: ' + ', '.join(sorted(new_bad)))
+        if gone:
+            print(f'         ⚠사라진 이름 {len(gone)}: ' + ', '.join(sorted(gone))
+                  + '  (수리했다면 SHA256_KNOWN_FAIL 에서 **의도적으로** 지워라)')
+        return False
+    print(f'  [OK  ] FROZEN.sha256 (래칫: 기지 {len(found)}건 그대로)')
+    return True
+
+
 def check_batch_artifacts():
     """종료코드가 아니라 **문제 배치 이름 집합**을 본다."""
     p = subprocess.run([PY, 'tmp/_audit/check_batch_artifacts.py'],
@@ -151,13 +184,15 @@ def main():
     bad = [n for n, c in checks if not run(n, c, a.verbose)]
     if not check_batch_artifacts():
         bad.append('배치 산출물')
+    if not check_frozen_sha256():
+        bad.append('FROZEN.sha256')
     print('────────────────────────────────────────────────────────')
     if bad:
         print(f'⛔실패 {len(bad)}: ' + ', '.join(bad))
         print('⚠래칫이 「개선」으로 실패했다면 기준선을 **의도적으로** 내려라 --- '
               '침묵시키지 마라.')
         return 1
-    print(f'✅{len(checks) + 1}종 전부 통과'
+    print(f'✅{len(checks) + 2}종 전부 통과'
           + (' (pytest 건너뜀)' if a.fast else ''))
     return 0
 

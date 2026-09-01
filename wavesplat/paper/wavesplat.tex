@@ -2012,14 +2012,18 @@ phase-advance correction, is in the supplementary archive.
 \label{sec:limitations}
 
 Several limitations should be acknowledged.
-\emph{Online model order does not contribute accuracy}: the
+
+\paragraph{Online model order does not contribute accuracy}
+The
 pruning-and-growth mechanism of the retracted corpus (archived) does select
 scene-matched component counts, but under the corrected tracker its
-accuracy contribution is null ($+0.0003$~nRMSE over 12 episodes, 8/12,
-Wilcoxon $p=0.68$) against a seed noise floor roughly $30\times$ the
-effect, and it is actively harmful on three of the four crowded episodes,
-where the 90\%-energy criterion prunes to $N_a=9$--10 against
-$N_{\text{true}}=15$--30.  We accordingly present it as a mechanism and a
+% [2026-09-02 P10] 손타이핑 비교 철회(5차 감사 MAJOR c): §5.7 이 *"표 5/6 가 **모든**
+%   비교를 모은다"* 고 적었는데 이 절에 표 밖의 철회 코퍼스 수치가 남아 있었다.
+%   ⟹ 방향만 남긴다. 이 절의 어떤 계수도 재측정되지 않았다.
+accuracy contribution was null on the twelve episodes it was measured on, against a
+seed-to-seed noise floor far larger than the effect, and it was actively harmful on
+most of the crowded ones, where the fixed energy criterion prunes to fewer
+components than the scene contains.  We accordingly present it as a mechanism and a
 compute-efficiency device rather than as a contribution.  A model-order
 criterion that is aware of crowding---for instance, energy retention
 conditioned on the beamforming main-lobe width rather than a fixed 90\%
@@ -2032,7 +2036,9 @@ quantile---is the natural repair and is untested.
 %   ③§6.1 이 *"regime dependence 를 더는 특성화하지 않는다"* 며 철회했는데
 %     이 문단이 *"the regime in which this method's advantage is largest"* 로 되살렸다.
 %   ⟹ 남기는 것은 **방향**뿐: 생성기가 좁은 방향확산 쪽에 치우쳐 있고 스웰이 없다.
-\emph{Directional spread of the synthetic distribution}: compared against a large
+
+\paragraph{Directional spread of the synthetic distribution}
+Compared against a large
 buoy archive, our generator occupies the lower tail of the observed
 directional-spread distribution and its peak-period ceiling excludes swell, so the
 synthetic universe is narrower and shorter-period than the measured one. The
@@ -2046,7 +2052,9 @@ Section~\ref{sec:disc_gridfree}.
 % [2026-09-01] 초판은 여기서 "all results use WaveSim" 이라 적었는데, 개정본의
 %   초록·Results·Conclusion 은 12 고정관측소 레코드를 보고한다 = **원고가 자기모순**이었다.
 %   독립 감사가 잡았다. 아래로 정정한다.
-\emph{The positive results are synthetic}: every margin reported in
+
+\paragraph{The positive results are synthetic}
+Every margin reported in
 Section~\ref{sec:res_headline} and its ablations is measured on simulated fields
 with a simulated sensor. Measured data enters this paper only through the negative
 in Section~\ref{sec:res_scope}: $12$ fixed-station stereo records on which the
@@ -2112,7 +2120,10 @@ Table~\ref{tab:boundary} is for.
 % all estimation methods---WaveSplat, ETKF, LETKF, GPR---use a linear
 % forward model; therefore the $O(\epsilon^2)$ model mismatch affects
 % all methods equally and does not bias the comparison.
-% \emph{Linear forward model}: the $O(\epsilon^2)$ mismatch is
+% 
+
+\paragraph{Linear forward model}
+The $O(\epsilon^2)$ mismatch is
 % $<0.5\%$ for the BF2--5 range tested ($\epsilon\approx 0.05$--$0.07$)
 % but grows for steep waves; second-order Stokes extension preserves
 % the spectral parameterization.
@@ -2128,10 +2139,14 @@ zero mismatch is not neutral between methods, because the grid-based
 baselines do not use that representation. \emph{Nonlinear validation was
 performed in a separate higher-order-spectral ($M{=}3$) batch, not on this
 corpus.}
-\emph{Linear forward model}: the linear approximation degrades for steep
+
+\paragraph{Linear forward model}
+The linear approximation degrades for steep
 waves; second-order Stokes extension preserves the spectral
 parameterization.
-\emph{Tracking phase dependence on initialization}: the \texttt{w\_phi}
+
+\paragraph{Tracking phase dependence on initialization}
+The \texttt{w\_phi}
 tracking mode freezes wavenumbers and updates only amplitudes and phases,
 so components missed during beamforming initialization cannot be recovered
 during tracking.  On the originally released dataset this produced
@@ -2158,8 +2173,8 @@ The corrected tracker sharpens this into a quantitative statement.
 Comparing per-episode post-initialization against post-tracking nRMSE
 across the 24 arm--episode pairs of the re-measured ablation and
 model-order experiments, tracking ends \emph{above} its own
-initialization on 20 of 24, but by a small and bounded margin
-($+0.001$ to $+0.022$~nRMSE; median $+0.003$).  So the honest
+initialization on most of the arm--episode pairs it was measured on, but by a small
+and bounded margin.  So the honest
 characterisation of Phase~2 on this dataset is not that it degrades the
 estimate---the earlier 2--3$\times$ inflation and the
 $0.009 \to 0.08$ collapse on the calmest episodes were properties of the
@@ -2169,7 +2184,9 @@ Tracking is a compute mechanism, not an accuracy mechanism.
 % ★2026-09-02 (P10) 5차 감사 MAJOR: §4.3 이 *"네 부차 지표는 재측정되지 않았다"* 라
 %   적었는데 이 문단이 VR 값 셋(0.916/0.910/0.925)을 **현재형으로** 인용했다.
 %   ⟹ 값을 빼고 **방향**만 남긴다(그 방향은 철회 대상이 아니다).
-\emph{Residual amplitude under-estimation}: the estimator recovers less variance
+
+\paragraph{Residual amplitude under-estimation}
+The estimator recovers less variance
 than the true field, and on the retracted corpus that deficit did not differ between
 the sparse and crowded halves even though nRMSE did. The levels are not restated
 here: variance ratio was part of the secondary panel that was not re-measured for
@@ -2188,7 +2205,9 @@ are available but does not improve with sparse LiDAR ($\sim$50~pts/frame)
 due to insufficient spatial coverage; isolating the residual mechanism
 (momentum-free optimizers for amplitude, periodic optimizer state resets,
 or a per-frame amplitude least-squares solve) is future work.
-\emph{Initialization resolution and the peak-separation radius}: the greedy
+
+\paragraph{Initialization resolution and the peak-separation radius}
+The greedy
 beamforming peak search enforces a fixed minimum separation
 $\Delta k_{\min}=0.15$~rad/m between accepted peaks, so component pairs closer
 than this in wavenumber space are structurally unresolvable by our initializer
@@ -2202,11 +2221,11 @@ the retracted corpus and is not restated.)  A pre-registered sweep
 of $\Delta k_{\min}$ (5 seeds per cell, decision rule fixed in advance, with a
 control episode containing no close pair) shows the constant to be a
 regime-dependent trade rather than a universal floor: relaxing it to
-$0.05$~rad/m improves the crowded 15-component case on 5/5 seeds by
-$0.015$~nRMSE---$5.2\%$ of that regime's error---but degrades the 5-component
-case on 0/5 seeds ($+0.029$~nRMSE), because a smaller radius lets the greedy
-search stack duplicate peaks on a single true component; the control episode is
-unaffected ($t=0.72$).  Two consequences follow.  First, the crowded-regime
+$0.05$~rad/m improved the crowded 15-component case on every seed but degraded the
+5-component case on every seed, because a smaller radius lets the greedy search
+stack duplicate peaks on a single true component; the control episode was
+unaffected. The magnitudes are not restated: that sweep is from the retracted
+corpus and has not been re-measured.  Two consequences follow.  First, the crowded-regime
 error is \emph{not} explained away by this constant: the bulk of it survives
 when the constant is removed.  Second, statements in this paper of the form
 ``these components are not recovered'' are properties of the estimator as
@@ -2218,19 +2237,25 @@ not tested it.
 For $N_{\text{true}}\geq 30$, wavenumber-space crowding additionally exceeds
 what the beamforming grid resolves at any separation radius; higher-resolution
 or 3D $(k_x,k_y,\omega)$ FFT could help.
-\emph{Current estimation}: we do not estimate ocean currents, whose
+
+\paragraph{Current estimation}
+We do not estimate ocean currents, whose
 Doppler shift makes the apparent dispersion
 $\omega=\sqrt{g|k|\tanh(|k|d)}+\mathbf{k}\cdot\mathbf{U}$; a
 0.5~m/s current introduces ${\sim}5\%$ frequency bias at BF4.
 Joint current--wave estimation is a natural extension.
-\emph{Cold start and re-initialization}: Phase~1 requires
+
+\paragraph{Cold start and re-initialization}
+Phase~1 requires
 $T_{\text{init}} = 2T_p$ of observations (e.g., $\sim$16~s at BF4)
 before tracking begins; during this interval no wave estimate is
 available.  If the sea state changes abruptly (e.g., vessel course
 change exposing a new swell system), re-initialization is needed,
 incurring the same latency.  A background re-initialization scheme
 running in parallel with tracking could mitigate this in practice.
-\emph{Surface normal approximation for real data}: in simulation
+
+\paragraph{Surface normal approximation for real data}
+In simulation
 we use the exact surface normal of the reference field for confidence weighting
 (that field is a displacement-free linear superposition, not a Gerstner surface;
 see Sections~\ref{sec:obsmodel} and~\ref{sec:experiments})
@@ -2239,7 +2264,9 @@ approximation $\mathbf{n}\approx\hat{\mathbf{z}}$.  The resulting
 bias scales with wave slope (up to ${\sim}9\%$ in $\cos\theta_j$
 at grazing incidence at BF4); wave-tank validation is planned to
 characterise the end-to-end nRMSE impact.
-\emph{Observation weight nomenclature}: the weighting
+
+\paragraph{Observation weight nomenclature}
+The weighting
 $c_j = \cos\theta_j/(r_j/d_{\text{ref}})$ is a geometry-aware
 simplification motivated by the incidence-angle dependence of specular
 reflection and the inverse-square range attenuation.  The exact Fresnel
@@ -2252,7 +2279,9 @@ more accurately reflects the functional form.
 %   (*"show our conclusions hold under the best baseline configurations"*).
 %   그것은 §5.7 이 하지 않겠다고 약속한 바로 그 행위이고, 측정과도 어긋난다
 %   (수리된 기준선 대비 PRIMARY 는 `UNDECIDED`).
-\emph{Baseline fairness}: we cannot claim to have beaten a fully tuned ensemble
+
+\paragraph{Baseline fairness}
+We cannot claim to have beaten a fully tuned ensemble
 filter. The sweep and cross-baseline comparisons that once supported such a claim
 were run on the retracted corpus, and the one pre-registered attempt to re-establish
 it against a repaired baseline returned an undecided primary. What survives is the
@@ -2260,19 +2289,27 @@ narrower statement of Section~\ref{sec:res_headline}: the comparator there is th
 strongest eligible baseline we possess, not a baseline strengthened for the
 occasion. Further tuning of ensemble filters, or hybrid ensemble--spectral
 approaches, remain unexplored.
-\emph{Uncertainty quantification}: WaveSplat returns point estimates;
+
+\paragraph{Uncertainty quantification}
+WaveSplat returns point estimates;
 Hessian-based confidence intervals or multi-start ensembles could
 provide uncertainty.
-\emph{Directional spreading}: each component is monochromatic;
+
+\paragraph{Directional spreading}
+Each component is monochromatic;
 representing continuous directional distributions (e.g., $\cos^{2s}$)
 would require directional or von~Mises basis functions.
-\emph{Ship motion}: the current simulation assumes a stationary
+
+\paragraph{Ship motion}
+The current simulation assumes a stationary
 sensor platform.  In practice, heave, pitch, and roll of the vessel
 change the LiDAR beam pattern frame-to-frame; an IMU/INS-based
 coordinate transform is a necessary preprocessing step for
 sea-going deployment, and the residual motion-compensation error
 constitutes an additional noise source not modelled here.
-\emph{Near-surface false returns}: at 1550~nm the absorption length
+
+\paragraph{Near-surface false returns}
+At 1550~nm the absorption length
 of sea water is approximately 1~mm~\citep{hale1973}, so essentially
 no light penetrates below the surface; sub-surface volume scattering
 is negligible.  However, sea spray, whitecaps, and rain droplets
@@ -2282,7 +2319,8 @@ These super-surface returns introduce a positive elevation bias
 not captured by the additive noise model, and their prevalence
 increases with sea state; empirical calibration on real data is
 needed to assess their impact.
-\emph{Relationship to physics-informed learning}:
+
+\paragraph{Relationship to physics-informed learning}
 WaveSplat can be viewed as physics-constrained optimization with a
 hand-designed plane-wave basis, structurally analogous to PINNs that
 use a neural-network basis.  The key advantage of the explicit

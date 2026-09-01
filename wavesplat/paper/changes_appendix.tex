@@ -1,0 +1,59 @@
+% ⛔손으로 고칠 때는 본문의 포인터(App. R1..R4)도 함께 고쳐라.
+%   ★이 부록이 존재하는 이유(2026-09-02, 5차 감사 축자):
+%   *"after the fourth [RETRACTED] tag in running prose, the tags stop reading as
+%    candour and start reading as an unfinished edit log left in the manuscript.
+%    Move the retraction history to a numbered appendix … That single change would
+%    convert the paper's greatest liability into its greatest asset."*
+\section{Changes from earlier versions}
+\label{app:changes}
+
+Earlier versions of this manuscript made four claims that later measurement
+withdrew. We list them here rather than in the running text, so that the body states
+only what is currently supported; each is referenced from the section where the
+claim used to appear.
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\caption{Withdrawals and corrections, with what replaced them.}
+\label{tab:changes}
+\begin{tabular}{lp{0.30\columnwidth}p{0.44\columnwidth}}
+\toprule
+& Withdrawn & Why, and what stands now \\
+\midrule
+\textbf{R1} & Geometry-aware confidence weighting as a \emph{contribution}
+(2026-08-14) &
+A fresh out-of-sample corpus found disabling the weighting better in both strata.
+The mechanism is still deployed and still described, because a later ablation
+found that \emph{removing} the ground-truth-derived weighting also hurts; what
+does not stand is calling it a contribution of this work. \\
+\addlinespace
+\textbf{R2} & ``The ground truth is Gerstner (non-linear), so the
+$O(\epsilon^2)$ mismatch affects all methods equally'' (2026-08-14) &
+False on both halves. The generator discards the horizontal displacement, so the
+reference field is a displacement-free linear superposition and the measured
+mismatch against the model equation is exactly zero. The non-linear case is now
+measured separately with a higher-order reference
+(Section~\ref{sec:res_hos}). \\
+\addlinespace
+\textbf{R3} & All absolute per-frame latencies (2026-08-14) &
+They came from separate processes without thread pinning, so they measured the
+harness as much as the estimator. \emph{Superseded}: the deployed path has since
+been timed in one process on a single thread and is reported in
+Section~\ref{sec:complexity}. No baseline arm was timed, so no comparative timing
+claim replaces the withdrawn ones. \\
+\addlinespace
+\textbf{R4} & ``The dispersion constraint contributes accuracy''
+(2026-08-14) &
+The ablation that supported it removed the frequency initialisation together with
+the constraint, so it did not isolate either. What stands is the parameter-count
+reduction, which is structural. A controlled intervention has not been run. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A fifth class of change is not listed above because it is not a withdrawal of a
+claim but of a \emph{corpus}: an earlier evaluation corpus was found to score the
+compared arms on different frames, and every cross-arm number computed on it has
+been removed from this paper. Section~\ref{sec:res_summary} states which quantities
+had a pre-registered replacement and which are simply absent as a result.

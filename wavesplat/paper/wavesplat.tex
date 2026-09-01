@@ -269,7 +269,7 @@ Our key contributions are:
     depth dependence) reduces the free parameter count and acts as a
     physics-based regularizer, improving tracking stability over
     extended time horizons.
-    \emph{[SCOPE 2026-08-14]} The claim made here is the parameter-count
+    (App.~\ref{app:changes}, R4.) The claim made here is the parameter-count
     reduction. Whether this constraint contributes to \emph{accuracy}
     \textbf{has not yet been measured}: the ablation arm previously used to
     support it removed the frequency initialisation together with the
@@ -288,8 +288,8 @@ Our key contributions are:
   %   angle and range account for the heteroscedastic noise structure of
   %   LiDAR measurements on ocean surfaces, where specular reflection
   %   probability and signal-to-noise ratio vary with incidence geometry.
-  \item \textbf{Geometry-aware confidence weighting (C3) ---
-    [RETRACTED 2026-08-14]}: Per-observation weights
+  \item \textbf{Geometry-aware confidence weighting (C3) --- not claimed}
+    (App.~\ref{app:changes}, R1): Per-observation weights
     $c_j = \cos\theta_j/(r_j/d_{\text{ref}})$ based on incidence angle and
     range were introduced to account for the heteroscedastic noise structure
     of LiDAR measurements on ocean surfaces. This is \textbf{withdrawn as a
@@ -555,7 +555,7 @@ approximation~\citep{holthuijsen2007}.
 % direct reading), so the measured mismatch between the stored ground truth and the
 % model equation is exactly 0.000e+00 across four episodes.
 % (basis: memory/project_audit_recheck_2026-08-13.md section 6.5)
-\emph{[SCOPE 2026-08-14]} This is an analytic estimate for real ocean waves.
+This is an analytic estimate for real ocean waves.
 It does \textbf{not} describe the synthetic corpus used in this paper: there,
 the ground truth is a displacement-free linear superposition, so the measured
 mismatch against the model equation is exactly zero (see
@@ -575,13 +575,14 @@ and incidence angle.  The number of valid observations per frame
 varies between 50 and 200, depending on sea state, vessel motion,
 and LiDAR raydrop characteristics.
 
-\subsection{Geometry-aware confidence weighting (C3) --- [RETRACTED 2026-08-14]}
+\subsection{Geometry-aware confidence weighting (C3), which we do not claim}
+\label{sec:c3}
 
 % RETRACTED 2026-08-14: see the contribution list. On a fresh out-of-sample corpus,
 % disabling this weighting was better in both strata (crowded 10/64, sparse 16/64;
 % median relative -15.6% / -20.4%). The ablation is symmetric.
 % (basis: memory/reference_citation_bans.md (08-13 recheck))
-\textbf{[RETRACTED 2026-08-14]} This mechanism is described here for
+This mechanism is described here for
 completeness, but it is \emph{withdrawn as a contribution}: on a fresh
 out-of-sample corpus, turning the weighting off was better in both the
 sparse and the crowded stratum. Read this section as a description of an
@@ -990,7 +991,7 @@ The threshold is derived from the theoretical
 % (basis: memory/project_audit_recheck_2026-08-13.md section 6.5)
 residual floor: combining LiDAR range noise ($\sigma_r \approx
 0.02$~m) with a nonlinear--linear model mismatch allowance at BF4
-($O(\epsilon^2)\,H_s/2 \approx 6$~mm; \emph{[SCOPE 2026-08-14]} this term is
+($O(\epsilon^2)\,H_s/2 \approx 6$~mm; this term is
 an allowance for real waves and is \textbf{absent} in the synthetic corpus,
 where the measured mismatch is zero) and angular-noise projection
 (${\sim}5$~mm) yields a lower-bound RMS of ${\sim}0.022$~m;
@@ -1075,9 +1076,9 @@ size $K_w$, the per-frame tracking cost is $O(K \cdot K_w \cdot M \cdot N)$.
 % In practice, $K{=}10$, $K_w{=}3$, $N \leq 30$, yielding 13.4~ms/frame
 % on CPU (single-threaded, Intel i7-12700H).
 In practice, $K{=}\DepTrackingSteps{}$, $K_w{=}3$, $N \leq \DepMaxN{}$, measured on
-CPU. \textbf{[RETRACTED 2026-08-14]} The absolute per-frame latency previously
-quoted here is withdrawn: it was obtained by timing separate processes without
-thread pinning, on an AMD Ryzen 7 7800X3D. Nothing replaces it.
+CPU. An earlier absolute per-frame figure quoted here was withdrawn as a
+cross-process timing (App.~\ref{app:changes}, R3); the measured replacement is
+below.
 
 % ============================================================================
 % ★2026-09-02 (P9) --- 코드 대조 감사 (c). 이 절은 **Phase 2 만** 특성화한다.
@@ -1139,8 +1140,9 @@ $O(N_e \cdot G_x G_y \cdot \log(G_x G_y))$ plus the ensemble
 % --- original (kept for history) --- ... this yields 132.6~ms/frame.
 transform at $O(N_e^3 + N_e^2 \cdot M)$. The tuned configuration is
 ($N_e{=}100$, $G{=}40 \times 30$); see Table~\ref{tab:complexity}.
-\textbf{[RETRACTED 2026-08-14]} The absolute per-frame latency previously
-quoted here is withdrawn (separate-process timing).
+No absolute latency is quoted for this arm: the earlier figure was withdrawn as a
+cross-process timing (App.~\ref{app:changes}, R3) and no baseline arm has been
+re-timed.
 
 \textbf{GPR}: Gaussian Process Regression with $M$ observations
 requires $O(M^3)$ for Cholesky factorization, making it impractical
@@ -1155,10 +1157,11 @@ Table~\ref{tab:complexity} summarizes the scaling comparison.
 $M$: observations/frame, $N$: spectral components,
 $G$: grid size, $N_e$: ensemble members.
 ETKF uses the tuned configuration ($N_e=100$, $G=40\times30$).
-\textbf{[RETRACTED 2026-08-14]} The ``Measured'' column is withdrawn: those
-timings come from separate processes without thread pinning. The asymptotic
-column is analytic and is unaffected. The only citable comparative value is
-1.5--2.6$\times$ within one process on a single thread.}
+The ``Measured'' column is empty by design: the figures that stood there were
+withdrawn as cross-process timings (App.~\ref{app:changes}, R3), and the
+same-process replacement measured since covers our own arm only
+(Section~\ref{sec:complexity}), not the baselines. The asymptotic column is analytic
+and is unaffected.}
 \label{tab:complexity}
 % RETRACTED 2026-08-14: measured column replaced by markers. No substitute absolute
 % values have been verified, so no numbers are invented.
@@ -1202,10 +1205,7 @@ sampling~\citep{hasselmann1973}.  The simulator parameters are:
   % --- original (kept for history) ---
   % \item \textbf{Ground-truth wave model}: Gerstner waves (nonlinear),
   %   providing a realistic test of the linear forward model~\eqref{eq:forward}
-  \item \textbf{Ground-truth wave model} --- \textbf{[RETRACTED/CORRECTED
-    2026-08-14]}: earlier versions stated ``Gerstner waves (nonlinear),
-    providing a realistic test of the linear forward model''. This is
-    \textbf{false}. The synthetic ground truth is a \emph{displacement-free
+  \item \textbf{Ground-truth wave model} (App.~\ref{app:changes}, R2): The synthetic ground truth is a \emph{displacement-free
     linear superposition on a fixed grid}: the generator discards the
     horizontal displacement components of the Gerstner solution, so the
     ground truth lies in the \emph{same function space} as the estimator's
@@ -2036,8 +2036,8 @@ shipped default to $\DepLambdaOne{}$. It is in the supplementary archive.
 % WaveSplat's computational footprint (13.4~ms/frame, single CPU thread)
 % makes it suitable for deployment on standard shipboard computing hardware.
 WaveSplat's computational footprint on a single CPU thread
-(\textbf{[RETRACTED 2026-08-14]} --- the absolute per-frame figure previously
-quoted here is withdrawn as a cross-process timing) is intended for
+(measured in Section~\ref{sec:complexity}; an earlier figure quoted here was
+withdrawn, App.~\ref{app:changes}, R3) is intended for
 deployment on standard shipboard computing hardware.  Inference does not require GPU acceleration for the tracking phase, and no offline calibration against a particular site is needed. It does require the learned proposal checkpoint at initialisation, which is where the GPU is used when one is available.
 The spectral parameters are directly interpretable: a naval architect
 can inspect the estimated wavenumber vector, amplitude, and frequency
@@ -2145,7 +2145,7 @@ We note that the simulator and estimator are covered by an automated test suite 
 (measured 2026-08-13; a further 8 shipping-default regression tests were
 added subsequently)
 covering dispersion, Gerstner kinematics, Fresnel optics, and
-raydrop statistics --- \emph{[SCOPE 2026-08-14]} the Gerstner test exercises
+raydrop statistics --- note that the Gerstner test exercises
 the kinematics \emph{function}, which the generation pipeline does not use for
 horizontal displacement, so it does not certify that the generated data is
 nonlinear.
@@ -2196,11 +2196,7 @@ The $O(\epsilon^2)$ mismatch is
 % $<0.5\%$ for the BF2--5 range tested ($\epsilon\approx 0.05$--$0.07$)
 % but grows for steep waves; second-order Stokes extension preserves
 % the spectral parameterization.
-\textbf{[RETRACTED 2026-08-14] --- correction.} Earlier versions stated here
-that ``the ground-truth wave field uses Gerstner (nonlinear) kinematics
-$\ldots$ therefore the $O(\epsilon^2)$ model mismatch affects all methods
-equally and does not bias the comparison'', and that the mismatch is
-$<0.5\%$ over BF2--5. Both statements are \textbf{false}. The correct facts
+(App.~\ref{app:changes}, R2.) The correct facts
 are: the synthetic ground truth is a \emph{displacement-free linear
 superposition on a fixed grid}, so it lies in the same function space as the
 estimator's model equation and the measured mismatch is \emph{zero}; and a
@@ -2470,6 +2466,10 @@ The sole author is responsible for all aspects of this work.
 The author declares no known competing financial interests or
 personal relationships that could have appeared to influence
 the work reported in this paper.
+
+% ★2026-09-02 (P10) --- 5차 감사 최우선 권고: 철회 이력을 본문에서 부록으로.
+\appendix
+\input{changes_appendix}
 
 \section*{Data availability}
 

@@ -118,6 +118,8 @@ def _sci(x):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--show', action='store_true')
+    ap.add_argument('--check', action='store_true',
+                    help='커밋된 paper_constants.tex 가 생성물과 같은가 (쓰지 않는다)')
     a = ap.parse_args()
 
     cache, rows, bad = {}, [], []
@@ -150,6 +152,26 @@ def main():
         raise AssertionError(f'{len(bad)}건 — 배치가 재분석됐다면 ATOMS 의 핀을 '
                              '**의도적으로** 갱신하라(래칫 규약).')
 
+    # ── ★배포 상수도 같은 파일에 낸다(2026-09-01, 2차 감사).
+    #    사유: 논문이 `\lambda_1 = 10^{-3}` 을 **손으로** 적고 있었는데 배포값은 1e-4 다
+    #    (2026-08-11 변경). 손으로 적힌 배포 상수는 조용히 낡는다 — 이 저장소의 반복 결함.
+    from wavesplat.optimizer.sequential_update import (
+        DEFAULT_ANALYTIC_ENSEMBLE_K, DEFAULT_LEARNED_ENSEMBLE_K, LAMBDA_L1_DEFAULT,
+        VARPRO_STEPS_DEFAULT, LEARNED_INIT_ITERS_DEFAULT)
+    from wavesplat.run import DEFAULT_CONFIG as _DC
+    from math import log10
+    dep = [
+        ('DepLambdaOne', f'10^{{{int(round(log10(LAMBDA_L1_DEFAULT)))}}}'),
+        ('DepVarproSteps', str(VARPRO_STEPS_DEFAULT)),
+        ('DepJointFitIters', str(LEARNED_INIT_ITERS_DEFAULT)),
+        ('DepAnalyticEnsK', str(DEFAULT_ANALYTIC_ENSEMBLE_K)),
+        ('DepLearnedEnsK', str(DEFAULT_LEARNED_ENSEMBLE_K)),
+        ('DepTrackingLr', f"{_DC['tracking_lr']:g}"),
+        ('DepTrackingSteps', str(_DC['tracking_steps'])),
+        ('DepMaxN', str(_DC['max_n'])),
+    ]
+    rows += [(k, v, 'DEPLOY') for k, v in dep]
+
     body = ['% ⛔자동 생성 — 손으로 고치지 마라.',
             '%    생성: python3 scripts/gen_paper_constants.py',
             '%    출처: 동결 verdict_*.json (배치명은 각 줄 주석에)',
@@ -157,8 +179,21 @@ def main():
             '%      라이브 22줄에 **손으로** 인쇄하고 있었고 그 줄들이 독립적으로 낡았다.', '']
     for n, val, src in rows:
         body.append(f'\\newcommand{{\\{n}}}{{{val}}}  % {src}')
+    text = '\n'.join(body) + '\n'
+    # ★2차 감사 지적: 생성기를 **안 돌리고** tex 를 손으로 고치면 무탐지였다.
+    #   `--check` 는 아무것도 쓰지 않고 **커밋된 파일과 대조**만 한다.
+    if a.check:
+        if not os.path.exists(OUT):
+            print(f'⛔없다: {OUT} — 생성기를 돌려라')
+            return 1
+        if open(OUT).read() != text:
+            print('⛔`paper_constants.tex` 가 생성물과 다르다 (손편집됐거나 낡았다).')
+            print('   수리: python3 scripts/gen_paper_constants.py')
+            return 1
+        print(f'✅{len(rows)} 상수 · 커밋된 파일이 생성물과 일치')
+        return 0
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    open(OUT, 'w').write('\n'.join(body) + '\n')
+    open(OUT, 'w').write(text)
     if not a.show:
         for n, val, src in rows:
             print(f'  \\{n} = {val}')

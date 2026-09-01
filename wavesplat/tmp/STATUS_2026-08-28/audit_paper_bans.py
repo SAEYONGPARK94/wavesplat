@@ -259,7 +259,10 @@ print(f"#   그림 내부 히트 {n_fig}건 "
 #   범위 문장을 고쳤다. ⚠남은 53 은 대부분 조판 PDF·그림·PAPER_IMPROVEMENTS.md 이고,
 #   본문의 'shipboard LiDAR' 잔존 5곳은 **센서 부류·관련연구·한계·향후과제** 문맥이라
 #   "선박 탑재 실측을 했다" 는 주장이 아니다(:487 에 범위 문장을 명시했다).
-BASELINE = 53
+#   4차 (같은 날): 53 -> 51. 2차 적대적 감사(BLOCKER 3·MAJOR 6) 수리 —
+#   철회 코퍼스의 **팔간 주장** 2건(Sea state trend · fig:qualitative)을 추가 이동,
+#   잔존 전칭 2건 제거, 하이라이트를 의무공시 없는 형태로 재작성.
+BASELINE = 51
 
 print(f"\n# 원시 히트 {n_raw}건 = 정탐 {total} + 오탐 {n_fp}")
 print(f"# ★오탐률 = {n_fp}/{n_raw} = {100.0*n_fp/n_raw:.1f}%" if n_raw else "")

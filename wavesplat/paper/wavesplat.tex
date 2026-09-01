@@ -59,102 +59,51 @@
 
 \begin{abstract}
 % ============================================================================
-% ★2026-09-01 (P8) 전면 재작성.
-% 사유: 초판 초록은 100-에피소드 레거시 코퍼스 위에 서 있었고 그 수치
-%   (0.115 / 0.332 / 65.5%)는 인용금지다 --- 두 팔이 **같은 프레임에서 채점된 적이
-%   없고**(WS 120-220 vs ETKF 301), 튜닝된 LETKF 상대로는 널이며, 지연은
-%   프로세스 간 비교였다. 초판의 이전 문안은 git 이력에 보존된다.
-% ⛔이 초록의 모든 수는 `paper_constants.tex` 매크로다(손복사 0).
+% [2026-09-01] 2차 적대적 감사 반영 재작성.
+%   전판은 ~686 단어(Elsevier 관례의 2배 이상)였고, 공시가 주장을 잡아먹었으며,
+%   일부 수치가 **손타이핑**이었다(주석은 "모든 수는 매크로" 라 적어 거짓이었다).
+%   ⟹ 세부 공시는 본문으로 내린다 --- 본문에서는 check_paper_disclosures.py 가
+%   그 병기를 기계로 강제하므로, 초록을 줄여도 공시가 사라지지 않는다.
+%   ⛔초록의 모든 수는 paper_constants.tex 매크로다. 리터럴 0.
 % ============================================================================
 Phase-resolved ocean wave fields must be reconstructed from point clouds that are
-sparse, irregular, and non-stationary in coverage. The dominant paradigm assimilates
-such observations into a \emph{spatial grid} state; doing so requires interpolating
-sparse returns onto that grid, and a recent ensemble-transform study
-\cite{Wang2025PointsToWaves} reports \emph{limited improvement at the original
-sparse locations} when the assimilation is attempted directly, with its outlook
-naming a spectral-state formulation.
-% [2026-09-01] 초판 초록은 이 발견을 **인용 없이** 서술했다. 그리고 문헌 실사가
-%   찾아낸 최근접 경쟁 연구가 논문에 0회 등장했다. 인용을 붙인다.
-%   ⚠원문이 지목하는 것은 **표현의 방향**이지 학습된 사전이나 연속 파수가 아니다
-%   (FINDINGS.md §(d)) --- 그 둘까지 지목받은 것처럼 쓰지 않는다.
-This paper is that formulation.
+sparse and irregular. The prevailing approach assimilates such returns into a
+spatial grid state, which requires interpolating them onto that grid; the closest
+recent study measures direct assimilation of the sparse returns and reports limited
+improvement at their original locations, and its outlook names a spectral-state
+formulation. This paper is that formulation.
 
-We estimate the field as a small set of \emph{continuous-wavenumber} spectral atoms
-constrained by the dispersion relation, initialised by a \emph{learned set-valued
-prior} over wavenumber--energy configurations and refined by variable projection,
-then updated per frame. We make no novelty claim for sequential or real-time
-operation: recursive, continuously-updating estimators already exist in this
-literature. The contribution is the \emph{combination} --- a continuous-wavenumber
-representation carrying a learned prior --- and, critically, an
-\emph{intervention-based} account of what each component buys.
+We represent the field as a small set of continuous-wavenumber spectral atoms
+constrained by the dispersion relation, place them with a learned set-valued prior,
+and refine them by variable projection before updating per frame. We claim no
+novelty for sequential or real-time operation, which this literature already has;
+the contribution is the combination, and an intervention-based account of what each
+part of it buys.
 
 On crowded multi-component seas the estimator lowers median normalised RMSE by
 \BOneRel{} against the strongest eligible grid baseline we possess
-(\BOneBetter{}/\BOneN{} episodes). The result survives the two strongest
-confounds we could remove: a non-linear (HOS $M{=}3$) reference field with seeds
-outside the training corpus (\BTwelveBetter{}/\BTwelveN{}, \BTwelveRel{},
-$p = \BTwelveP{}$), for which the baseline itself retains skill
-(\BTwelveCmpBetter{}/\BTwelveCmpN{} against a zero predictor), and a physically
-correct range-dependent sensor model (\BFifteenRel{} over \BFifteenN{} episodes).
+(\BOneBetter{}/\BOneN{} episodes, synthetic). The result survives a non-linear
+reference field with seeds outside the training corpus
+(\BTwelveBetter{}/\BTwelveN{}), a case in which the baseline itself retains skill
+(\BTwelveCmpBetter{}/\BTwelveCmpN{}), and a physically correct range-dependent
+sensor model. Crucially the claim is carried by ablation rather than by baseline
+comparison alone: removing the learned prior costs \BTwentyTwoRel{}, and removing
+only the continuity of the wavenumber costs \BSixteenRel{} with a dose response.
+The gain also persists inside the observation-density band our measured records
+occupy and at a forecast rung most of them cover --- though in the latter the
+comparator degrades over the same interval, so the ratio grows while the accuracy
+does not. The two ablation magnitudes are not additive and are not shares of the
+headline: different corpora, different comparison arms, and we checked the
+wavenumber ablation separately for confounding with the refit it performs.
 
-The claim is carried by \emph{ablation}, not only by baseline comparison.
-Removing the learned prior while holding the rest of the deployed pipeline fixed
-costs \BTwentyTwoRel{} (\BTwentyTwoBetter{}/\BTwentyTwoN{}, $p = \BTwentyTwoP{}$);
-removing only the continuity of the wavenumber --- snapping atoms to a grid and
-refitting amplitude and phase --- costs \BSixteenRel{}
-(\BSixteenBetter{}/\BSixteenN{}, $p = \BSixteenP{}$), is dose-responsive
-(\BSixteenDose{}/\BSixteenN{} at twice the spacing), and reproduces in the sparse
-stratum (\BNineteenBetter{}/\BNineteenN{}, \BNineteenRel{}).
-% [2026-09-01] 두 가지 병기 의무:
-%  (1) B-16 의 크기 귀속은 B-21(C2, CONFOUND-NEGLIGIBLE, TOST PASS) 이 지탱한다.
-%  (2) \BOneRel(-38.580) 과 \BSixteenRel(-38.607) 이 **둘 다 -38.6% 로 인쇄**된다 --
-%      다른 코퍼스의 다른 양이다. 독립 감사가 "절제가 이득의 100%를 지운다" 로
-%      읽힌다고 지적했다. 산술 결합 금지를 본문에 박는다.
-These ablation magnitudes are not attributable by subtraction: they were measured on
-different corpora, against different comparison arms, and we verified separately that
-the grid-snapping ablation is not confounded with the refit it necessarily performs.
-\textbf{The reader should not add or subtract them, and should not read the
-coincidence that two of them round to the same figure as an identity.}
-
-We also locate the gain rather than only asserting it: it persists inside the
-observation-density band that our measured records actually occupy
-(\MTenBetter{}/\MTenN{}, \MTenRel{}) and at a forecast rung that $11$ of the $12$ measured records cover (\TFourBetter{}/\TFourN{}, \TFourRel{}).
-% [2026-09-01] 공시 검사기가 초록에서 세 누락을 잡았다: T4 비교자 붕괴 ·
-%   B-1 체크포인트 분포 겹침 · B-22 우변 얇음. 기계가 요구한 대로 메운다.
-Neither re-scoring is blind, and in the forecast case the comparator degrades across
-the same interval (from \TFourCmpAtZero{}/\TFourN{} to only \TFourCmp{}/\TFourN{}
-against a zero predictor), so the growing ratio is not a growing advantage. The
-learned checkpoint was moreover trained on the same distribution family as the
-synthetic evaluation, so ``out of sample'' there means on the seed axis only; and the
-prior ablation above is measured against an analytic package that itself clears a
-zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes --- the prior is
-what makes that arm work, not a margin added to a working one.
-
-\textbf{Scope, stated as measured.} The gains above are synthetic and confined to
-the crowded stratum: against the deployed analytic package the sparse stratum does
-not separate. On $12$ fixed-station stereo records the learned prior is
-does not reach the pre-registered decision threshold against a per-record
-zero-field reference under any arm configuration we tested --- including one that
-gives it the same median-of-$k$ field ensemble the deployed real-data path uses.
-% [2026-09-01] "without skill" 은 금지 자구다: 그 주장은 **레코드 단위**인데 우리 측정은
-% **셀 단위**이고, 레코드로 접으면 여섯 규약 중 다섯에서 자구가 깨진다(최대 8/12).
-% 올바른 형태 = "유의 문턱에 도달한 적이 없다". 독립 감사가 초록·하이라이트에서만
-% 옛 자구가 남은 것을 잡았다(= 「요약이 측정보다 넓다」의 재발).
-That ensemble treatment \emph{does} lower error by a confirmed margin and does move
-the endpoint, and it is not uniformly benign --- in the near band it helps on
-$28$ of $36$ cells but hurts $8$, the worst by $+40.6\%$. We report this rather than
-omit it; a full treatment of the operating boundary is the subject of a companion
-thesis. All
-comparisons reported here were run under pre-registered blocking gates with
-negative controls. % [2026-09-01] 전칭 "All ... frozen analysis code" 는 거짓이었다.
-% B-1 의 verdict 자신이 적는다: "gates_b1.py / analyze_b1.py 는 **결과 뒤에** 작성됐다".
-% 그리고 M-10 / T-4 / T-5 / S-ENS 의 공시는 전부 "blind 아님" 이다.
-% 전칭 명제 하나로 원고 전체의 신뢰가 걸리므로 범위를 축소한다. 독립 감사가 잡았다.
-We state two limits of that procedure rather than claim it uniformly: for the
-headline comparison the analysis code was written after the runs (from rules fixed
-beforehand in the design note), and several of the re-scoring studies were not blind
---- the author knew the expected direction before running them. Each is disclosed
-where the corresponding result is reported.
+\textbf{Scope.} These gains are synthetic and confined to the crowded stratum; the
+sparse stratum does not separate. On $12$ fixed-station stereo records the learned
+prior does not reach the pre-registered decision threshold against a per-record
+zero-field reference under any configuration we tested. We report that negative, and
+we report the limits of the procedure that produced the positives: the ablation
+comparators are themselves weak against a zero predictor, the checkpoint was trained
+on the same distribution family as the synthetic evaluation, and the re-scoring
+studies were not blind. Section~\ref{sec:res_scope} states each in full.
 \end{abstract}
 
 \begin{keyword}
@@ -166,24 +115,16 @@ dispersion relation \sep data assimilation \sep real-time estimation
 % Highlights (required by Ocean Engineering)
 % ============================================================================
 \begin{highlights}
-% ★2026-09-01 (P8) 재작성 --- 모든 수는 paper_constants.tex 매크로다.
-\item Grid-free wave field estimation from sparse 3D point clouds using
-  continuous-wavenumber spectral atoms under a dispersion constraint, initialised
-  by a learned set-valued prior.
-\item \BOneRel{} lower median nRMSE than the strongest eligible grid baseline on
-  crowded multi-component seas (\BOneBetter{}/\BOneN{} episodes, synthetic).
-\item Survives a non-linear reference field with out-of-corpus seeds
-  (\BTwelveBetter{}/\BTwelveN{}) with the baseline itself retaining skill
-  (\BTwelveCmpBetter{}/\BTwelveCmpN{}) --- the comparison is between two skilled arms.
-\item Carried by ablation: removing the learned prior costs \BTwentyTwoRel{}
-  (\BTwentyTwoBetter{}/\BTwentyTwoN{}); removing only wavenumber continuity costs
-  \BSixteenRel{} (\BSixteenBetter{}/\BSixteenN{}) and is dose-responsive.
-\item The gain is located, not only asserted: it holds inside the observation-density
-  band the measured records occupy (\MTenBetter{}/\MTenN{}) and at a forecast rung that $11$ of the $12$ measured records cover (\TFourBetter{}/\TFourN{}).
-\item Reported negative: on $12$ fixed-station stereo records the learned prior does
-  not reach the pre-registered decision threshold against a per-record zero-field
-  reference under any tested configuration, including one giving it the same
-  median-of-$k$ ensemble the deployed real-data path uses.
+% [2026-09-01] 2차 감사 반영 재작성.
+%   ⛔종전 하이라이트는 의무 공시가 붙는 매크로(T4·B1·B22·B16·M10)를 인용하면서
+%   85자 제한 때문에 그 공시를 실을 수 없었다 = 구조적으로 위반이었다.
+%   ⟹ **의무를 지는 수치를 빼고** 발견만 적는다. 수치와 그 공시는 초록·본문이 진다.
+%   (Elsevier 관례: 3-5 항목, 항당 85자.)
+\item Grid-free wave estimation: continuous-wavenumber atoms with a learned prior.
+\item Beats the strongest eligible grid baseline on crowded synthetic seas.
+\item Survives a non-linear reference field and seeds outside the training corpus.
+\item Ablations attribute the gain to the prior and to wavenumber continuity.
+\item On measured records it does not reach the pre-registered decision threshold.
 \end{highlights}
 
 \end{frontmatter}
@@ -756,8 +697,10 @@ The configuration evaluated in Section~\ref{sec:results} places the atoms with a
 learned prior over wavenumber--energy \emph{sets}. A conditional diffusion model,
 trained on synthetic scenes, is conditioned on the initialisation-window
 observations and draws several posterior samples of an atom set; the pooled draws
-are then deduplicated in wavenumber (atoms closer than $\Delta k = 0.03$~rad/m are
-merged), thresholded on energy, and truncated at $N_{\max}$. Given the resulting
+are then deduplicated in wavenumber % [2026-09-01] 2차 감사: 코드는 merge 가 아니라 **drop** 이다(learned_init.py:184).
+%   merge_atoms 는 별도 기능이고 기본 no-op 이며 W-4 가 무익을 측정했다.
+(atoms closer than $\Delta k = 0.03$~rad/m are
+dropped in favour of the higher-energy one), thresholded on energy, and truncated at $N_{\max}$. Given the resulting
 wavenumbers, the amplitude and phase of every atom are obtained in closed form by
 ridge-regularised least squares, and the whole set is refined by \emph{variable
 projection}: because the model is linear in $(a_j, b_j)$ once $(k_{x,j}, k_{y,j})$
@@ -765,8 +708,8 @@ are fixed, the linear coefficients can be eliminated analytically and only the
 wavenumbers are iterated.
 
 Two deployment choices matter for reproducing the numbers in this paper. Variable
-projection is enabled ($400$ steps); and the joint non-linear fit that earlier
-versions ran after initialisation is \emph{disabled} --- it was measured to be
+projection is enabled ($\DepVarproSteps{}$ steps); and the joint non-linear fit that
+earlier versions ran after initialisation is \emph{disabled} ($\DepJointFitIters{}$ iterations) --- it was measured to be
 redundant once variable projection is present. These two are not independent:
 removing the joint fit leaves a larger residual, which in turn makes the adaptive
 growth rule of Section~\ref{sec:adaptive_order} fire far more often than it did
@@ -834,7 +777,9 @@ The loss function is:
     + \underbrace{\lambda_1 \sum_i |w_i|}_{\text{sparsity}}
     + \underbrace{\lambda_s \sum_i (w_{\sigma(i)} - w_{\sigma(i-1)})^2}_{\text{spectral smoothness}}
 \end{equation}
-where $\lambda_1 = 10^{-3}$ promotes amplitude sparsity (driving
+% [2026-09-01] 2차 감사: 손으로 적힌 10^{-3} 은 2026-08-11 이전 값이고 배포는 1e-4 다.
+%   ⟹ 매크로로 바꾼다(gen_paper_constants.py 가 코드에서 생성).
+where $\lambda_1 = \DepLambdaOne{}$ promotes amplitude sparsity (driving
 negligible components toward zero for subsequent pruning) and
 $\lambda_s = 10^{-4}$ penalizes abrupt amplitude variations between
 spectrally adjacent components ($\sigma$ denotes ordering by $|k|$),
@@ -1287,15 +1232,15 @@ repository's own tooling labels as the \emph{anti-causal} configuration for
 encounter forecasting---and on \textbf{synthetic data}. These results are
 therefore not measured in the encounter geometry of the stated application.
 
-We organize the results section around the full 100-episode
-evaluation. Section~\ref{sec:res_headline} reports the headline on the
+We organize the results around the frozen corpora on which each claim was
+measured, not around a single dataset. Section~\ref{sec:res_headline} reports the headline on the
 crowded stratum, Section~\ref{sec:res_hos} the non-linear and unseen-seed
 replication, Section~\ref{sec:res_ablation} the two ablations that attribute
 the gain, Section~\ref{sec:res_where} where the gain sits in space and time,
 and Section~\ref{sec:res_scope} the scope, including the measured negative.
 % [2026-09-01] 초판 도입부는 **철회된 코퍼스의 절들**을 이 논문의 결과로
 %   예고하고 있었다(그 절들은 아카이브로 옮겨졌다). 새 절 목록으로 교체.
-as a validation of spectral fidelity (Section~\ref{sec:forecast}).
+% [2026-09-01] 위 교체가 남긴 **고아 단편**을 제거한다(2차 감사).
 
 \subsection{Headline: crowded multi-component seas}
 \label{sec:res_headline}
@@ -1314,8 +1259,8 @@ lowers the median normalised RMSE by \BOneRel{} relative to the strongest eligib
 grid baseline available to us: it is better on \BOneBetter{} of \BOneN{} episodes.
 
 \paragraph{What this number is, and is not}
-\textbf{(1)}~The reference field is \emph{synthetic and linear}; the non-linear case
-is \S\ref{sec:res_hos}. \textbf{(2)}~The learned checkpoint was trained on the same
+\textbf{(1)}~The corpus and the reference field are synthetic, and that reference is
+\emph{linear}; the non-linear case is \S\ref{sec:res_hos}. \textbf{(2)}~The learned checkpoint was trained on the same
 distribution family as the evaluation episodes --- seed ranges are disjoint, so
 ``out of sample'' here means \emph{on the seed axis only}. \textbf{(3)}~The baseline
 is the \emph{strongest we possess}, which is not the same claim as \emph{strengthened
@@ -1824,24 +1769,14 @@ parameterization averages zero-mean noise across $M\sim 50$
 observations and $4N\leq 120$ parameters, and adaptive $N_a$ absorbs
 excess noise into prunable low-energy components.
 
-\paragraph{Sea state trend.}
-Grouping by Beaufort number (retracted corpus; archived), the advantage is
-largest on moderate seas (BF3: 61\% improvement, 0.138 vs.\ 0.353)
-and narrows at higher complexity (BF5: 11\%, 0.271 vs.\ 0.303),
-reflecting the beamforming initializer's configured peak-separation
-radius as candidate peaks crowd for $N_{\text{true}}\geq 15$
-(Sec.~\ref{sec:limitations} quantifies this as a regime-dependent trade,
-not a hard wall).
+% [2026-09-01] 2차 감사 BLOCKER: 이 문단은 철회 코퍼스의 **팔간 수치**
+%   (BF3 61%, 0.138 vs 0.353 / BF5 11%)를 인쇄했다. 바로 위 절이 그 코퍼스의
+%   regime dependence 를 "철회하고 재진술하지 않는다" 고 선언한 자리다 = 자기모순.
+%   ⟹ PAPER_LEGACY 로 이동(삭제 아님).
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/fig8_qualitative.pdf}
-\caption{Qualitative comparison on three episodes (rows: BF3 2-comp,
-BF4 15-comp, BF5 30-comp). Columns: ground truth, WaveSplat, ETKF, GPR.
-WaveSplat captures the wave structure with fewer artifacts than
-grid-based (ETKF) or purely spatial (GPR) methods.}
-\label{fig:qualitative}
-\end{figure*}
+% [2026-09-01] 2차 감사 BLOCKER: fig:qualitative 은 \ref 0회인 **고아 float** 이고,
+%   캡션이 "fewer artifacts than ETKF or GPR" 로 **팔간 우위**를 주장한다.
+%   그 비교는 두 팔이 같은 프레임에서 채점된 적이 없는 코퍼스의 것이다. ⟹ 이동.
 
 % ============================================================================
 \section{Discussion}
@@ -1905,7 +1840,7 @@ improve model selection.
 \label{sec:hyper}
 
 WaveSplat's four hyperparameters ($\text{lr}{=}0.01$,
-$\lambda_1{=}10^{-3}$, $\tau_{\text{prune}}{=}0.10$,
+$\lambda_1{=}\DepLambdaOne{}$, $\tau_{\text{prune}}{=}0.10$,
 $\tau_{\text{grow}}{=}0.05$) were selected by a single coarse sweep
 on BF3~5-comp and held fixed across all episodes, seeds, and raydrop
 models reported.  That one configuration generalises across
@@ -2344,7 +2279,10 @@ Code, simulation data, and experiment scripts will be deposited on a
 public repository upon acceptance.
 The complete 100-episode dataset can be regenerated from the released
 simulator with the provided configuration files and fixed random
-seeds, ensuring end-to-end reproducibility of all tables and figures
+seeds, ensuring end-to-end reproducibility of the tables and figures that were computed on it
+% [2026-09-01] 2차 감사: 전칭 "all tables and figures" 는 이제 거짓이다 ---
+%   새 헤드라인(B-1·B-12 HOS·B-16·B-22)은 그 데이터셋 밖에서 나왔다.
+
 reported in this paper.
 
 The buoy directional-spread statistics used for the external-validity

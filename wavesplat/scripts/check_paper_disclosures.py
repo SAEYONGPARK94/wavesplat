@@ -36,7 +36,8 @@ RULES = [
      [r'\$11\$ of (?:the )?\$?12', r'11 of the 12', r'lower\b.*\bend of the measured lead'],
      'T-4 rung 은 실측 밴드의 아래쪽 — "실측과 같은 지평" 금지'),
     ('B1-합성단서', r'\\BOneRel|\\BOneBetter',
-     [r'synthetic', r'simulated'],
+     # 2차 감사: 'synthetic' 한 토큰이면 통과 = 사실상 항진이었다. 문맥을 요구한다.
+     [r'synthetic\)', r'are synthetic', r'gains are synthetic', r'synthetic (?:corpus|seas|evaluation)'],
      'B-1 은 합성·선형 GT 단서 병기 의무'),
     ('B1-체크포인트', r'\\BOneRel|\\BOneBetter',
      [r'same distribution family', r'seed axis only', r'trained on the same'],
@@ -45,10 +46,12 @@ RULES = [
      [r'strongest .*we possess', r'strongest eligible', r'not the same claim as'],
      '"최강 적격" 이지 "강화된" 이 아니다'),
     ('B22-우변얇음', r'\\BTwentyTwoRel|\\BTwentyTwoBetter',
-     [r'\\BTwentyTwoAnaZero', r'right-hand side of this contrast is'],
+     [r'\\BTwentyTwoAnaZero', r'right-hand side of this contrast is',
+      r'comparators are themselves weak'],
      'B-22 L2 의 우변(해석적)은 제로필드를 못 넘는다 — 병기 의무'),
     ('B16-교락폐쇄', r'\\BSixteenRel',
-     [r'confound', r'not attributable by subtraction', r'refit it necessarily performs'],
+     # 2차 감사: 'confound' 한 토큰이면 통과했다(부정문도 통과). 확인 서술을 요구한다.
+     [r'not confounded with', r'checked .{0,40}for confounding', r'not attributable by subtraction'],
      'B-16 크기 귀속은 B-21(교락 무시가능)이 지탱한다 — 병기 의무'),
     ('절제크기-결합금지', r'\\BSixteenRel',
      [r'not additive', r'should not add or subtract', r'no defined meaning'],
@@ -69,12 +72,24 @@ RULES = [
 
 
 def sections(text):
-    """(제목, 본문) 목록. 절 경계는 \\section / \\subsection."""
-    parts, cur, title = [], [], '<preamble>'
+    """(제목, 본문) 목록.
+
+    절 경계는 `\\section` / `\\subsection`, **그리고 `abstract`·`highlights` 환경**이다.
+    ⛔초판은 첫 `\\section` 이전을 한 덩어리(`<preamble>`)로 묶었고, 그래서
+    **초록의 공시가 하이라이트의 무공시 인용을 면허**했다(2차 감사 결함 i:
+    "highlights 에 비교자붕괴 0인데 rc=0").
+    """
+    parts, cur, title = [], [], '<frontmatter>'
     for line in text.split('\n'):
-        if re.match(r'\\(sub)?section\{', line):
+        env = re.match(r'\\begin\{(abstract|highlights)\}', line)
+        endenv = re.match(r'\\end\{(abstract|highlights)\}', line)
+        if re.match(r'\\(sub)?section\{', line) or env:
             parts.append((title, '\n'.join(cur)))
-            title, cur = line.strip(), []
+            title = line.strip() if not env else f'<{env.group(1)}>'
+            cur = []
+        elif endenv:
+            parts.append((title, '\n'.join(cur)))
+            title, cur = '<frontmatter>', []
         else:
             cur.append(line)
     parts.append((title, '\n'.join(cur)))
@@ -96,9 +111,24 @@ def strip_comments(t):
     return re.sub(r'\s+', ' ', ' '.join(out))
 
 
+def constants_up_to_date():
+    """★커밋된 `paper_constants.tex` 가 생성물과 같은가.
+
+    2차 감사: *"생성기를 안 돌리고 tex 만 손으로 고치면 무탐지"* --- CI·훅이 0개다.
+    ⟹ 공시 검사기가 그 확인도 함께 한다(한 명령으로 둘 다).
+    """
+    import subprocess
+    r = subprocess.run([sys.executable, os.path.join(HERE, 'gen_paper_constants.py'),
+                        '--check'], capture_output=True, text=True)
+    tail = (r.stdout.strip().split('\n') or [''])[-1]
+    return r.returncode == 0, tail
+
+
 def main():
     if not os.path.exists(TEX):
         raise SystemExit(f'없다: {TEX}')
+    ok_const, msg = constants_up_to_date()
+    print(f'  [{"OK  " if ok_const else "FAIL"}] {"상수파일-최신":22s} {msg}')
     raw = open(TEX, encoding='utf-8').read()
     fails = []
     print('── 동반 공시 검사 ─────────────────────────────────────────────')
@@ -121,8 +151,10 @@ def main():
         else:
             print(f'  [OK  ] {name:22s} 발동 {len(hit_sections)}절 전건 공시')
     print('──────────────────────────────────────────────────────────────')
+    if not ok_const:
+        fails.append(('상수파일-최신', 'paper_constants.tex 가 생성물과 다르다', ['<repo>']))
     if fails:
-        print(f'\n⛔공시 누락 {len(fails)}건:')
+        print(f'\n⛔실패 {len(fails)}건:')
         for n, why, ms in fails:
             print(f'  · {n}: {why}')
             for m in ms:

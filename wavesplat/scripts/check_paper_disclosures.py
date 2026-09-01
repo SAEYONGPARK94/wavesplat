@@ -101,6 +101,14 @@ RULES = [
      'S-ENS 혼잡 55/64 는 희소 UNDECIDED 병기 의무'),
 
 
+    # ★[2026-09-02] 유일하게 살아있는 시간 계수 --- 병기 의무 2건
+    ('예산-경로단서', r'\\BudgetUsPerPoint',
+     [r'grid-based path', r'not been re-measured'],
+     '렌더 단가는 **격자 기반 실측 경로**의 계측 — 학습 렌더러 미측정 병기 의무'),
+    ('예산-범위단서', r'\\BudgetUsPerPoint',
+     [r'steady state after initialisation', r'proposal stage .{0,30}not in it'],
+     '렌더 단가는 **초기화 이후**만 포괄 — 제안 단계 불포함 병기 의무'),
+
     ('실측음성-팔간아님', r'\\BSeventeenBeats|\\BEighteenBeats|\\BFourteenBBeats',
      [r'[Nn]ot a comparison between arms', r'whether the arm has any skill'],
      'B-17/B-18/B-14b 는 제로필드 대비 승수 — 팔간 비교로 읽히면 안 된다'),

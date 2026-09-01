@@ -519,8 +519,8 @@ on residual energy, rather than fixed a priori; and
 its own $\omega$, the forward model evaluates at any later time without
 re-estimation, so a frame costs $\DepTrackingSteps{}$ gradient steps rather than a
 fresh reconstruction. We state this as a structural property and not as a
-demonstrated latency --- no timing in this paper survives
-(Section~\ref{sec:complexity}).
+demonstrated latency: the only timing this paper reports is a query-side
+render cost, not an estimator latency (Section~\ref{sec:complexity}).
 
 % ============================================================================
 \section{Method}
@@ -1032,6 +1032,24 @@ above describes. Initialisation is a one-off cost paid once per deployment rathe
 than per frame, but a reader planning a deployment should not read the per-frame
 expression as the cost of the system.
 
+% ============================================================================
+% ★2026-09-02 (P9) --- 4차 감사 B9 의 나머지 절반.
+%   ⛔프로세스간 지연은 전부 철회됐지만, **질의 렌더 단가**는 다른 양이고 실제로
+%   측정돼 있다(`B-6b`, 게이트 6/6, 세 레코드 R^2 >= 0.9991, 동결 verdict).
+%   ⚠병기 의무 2건: (i) **격자 기반 실측 경로**의 계측이고 학습 렌더러로는 재측정되지
+%   않았다 (ii) **초기화 이후 정상 상태**만 포괄한다(제안 단계 불포함).
+%   ⟹ 학위논문은 이 값을 싣고 있었는데 논문에는 없었다.
+One timing does survive, and it is the query side rather than the estimator.
+Evaluating the estimated field at a point costs \BudgetUsPerPoint{}~$\mu$s, linear
+in the number of query points over the measured range, so a
+\BudgetFrameS{}~s frame budget admits of order several hundred query points. Two
+caveats travel with that number and neither is small: it was measured on the
+grid-based path used for the measured records and has \emph{not} been re-measured
+with the learned renderer, and it covers the steady state after initialisation
+only, so the proposal stage --- four diffusion draws of $500$ reverse steps each,
+plus polish --- is not in it. It is a budget for querying a field one already has,
+not a latency for producing one.
+
 \textbf{ETKF-grid}: The Ensemble Transform Kalman Filter maintains
 $N_e$ ensemble members on a $G_x \times G_y$ spatial grid.
 Each update involves FFT-based propagation at
@@ -1239,7 +1257,8 @@ We report:
     Lower is better; values below 0.10 indicate excellent reconstruction,
     0.10--0.30 is good, and above 0.30 indicates significant error.
   \item \textbf{Inference speed}: ms/frame for the tracking phase (defined here for
-    completeness; \emph{no timing is reported in this paper} --- see
+    completeness; \emph{this paper reports no per-frame estimator latency} --- the
+    one timing it does report is a query-side render cost, see
     Section~\ref{sec:complexity}),
     measured on a single CPU thread.
   \item \textbf{$N_{\text{adapt}}$}: final number of spectral components

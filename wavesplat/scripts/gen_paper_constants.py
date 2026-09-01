@@ -118,6 +118,13 @@ ATOMS = [
     ('BTwentyTwoAnaZero', 'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'neg_vs_zero.ANA.better', 'int', 15),
     ('BTwentyTwoLearnZero', 'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'neg_vs_zero.LEARN.better', 'int', 48),
     # ── 센서 모형(raydrop) 강건성
+    # ── ★[2026-09-02] 유일하게 살아있는 시간 계수(4차 감사 B9).
+    #   ⛔프로세스간 지연은 전부 철회됐지만, **질의 렌더 단가**는 다른 양이고 측정돼 있다.
+    #   ⚠병기 의무 2건: **격자 기반 실측 경로**의 계측이고(학습 렌더러 미측정),
+    #   **초기화 이후 정상 상태**만 포괄한다(제안 단계 불포함).
+    ('BudgetUsPerPoint', 'B6_BUDGET_2026-08-23/verdict_b6b.json',
+     'pooled.per_point_s', 'us', 137.0),
+    ('BudgetFrameS', 'B6_BUDGET_2026-08-23/verdict_b6b.json', 'frame_budget_s', 'sec', 0.1),
     ('BFifteenN',   'B15_RAYDROP_2026-08-24/verdict_b15.json', 'by_raydrop.slope.n', 'int', 20),
     ('BFifteenRel', 'B15_RAYDROP_2026-08-24/verdict_b15.json', 'by_raydrop.slope.rel_median_pct', 'pct', -42.6),
     ('BFifteenBetter', 'B15_RAYDROP_2026-08-24/verdict_b15.json',
@@ -222,6 +229,8 @@ FMT = {
     'frac': lambda x: f'{x*100:+.1f}\\%'.replace('+', '') if x < 0 else f'{x*100:+.1f}\\%',
     # ⚠**절대** nRMSE --- 퍼센트가 아니다. F1 이 가르친 것: 승수와 절대는 순위를 뒤집는다.
     'abs3': lambda x: f'{x:.3f}',
+    'us': lambda x: f'{x * 1e6:.0f}',
+    'sec': lambda x: f'{x:g}',
 }
 
 
@@ -257,6 +266,10 @@ def main():
             ok = abs(round(val, 1) - pin) < 1e-9
         elif kind == 'abs3':
             ok = abs(round(raw, 3) - pin) < 1e-9
+        elif kind == 'us':
+            ok = abs(round(raw * 1e6) - pin) < 1e-9
+        elif kind == 'sec':
+            ok = abs(raw - pin) < 1e-12
         else:
             ok = abs(raw - pin) / abs(pin) < 0.005
         if not ok:

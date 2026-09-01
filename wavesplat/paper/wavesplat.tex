@@ -1131,7 +1131,9 @@ on 12 representative episodes of the retracted corpus found no ordering among th
 values in $[0.05,\,0.15]$~m, while $\tau_R = 0.02$~m caused over-growth in
 multi-component seas. The per-value levels
 from that sweep are not quoted: it was run on the retracted corpus and before the
-tracker phase-advance correction, and no re-measured substitute exists. The value
+tracker phase-advance correction, and no re-measured substitute exists. % ✅[2026-09-02] 전칭 검증: 인용 배치 **11개** 어디에도 `grow_residual_threshold` 를
+%   재지정하는 코드가 없다(`grep -rl` 전건 0) ⟹ 배포 기본값 0.05 가 그대로 쓰였다.
+The value
 $\tau_R = 0.05$~m has been held fixed in every batch reported here.
 
 % [2026-09-02 P9] fig:tau 를 아카이브로 옮겼다 --- 12에피소드 스윕이 철회된 코퍼스다.
@@ -1412,6 +1414,8 @@ absent in the reference field, which both understates the wave content
 an estimator could in principle recover and inflates the apparent error
 of any method that recovers it.
 
+% ✅[2026-09-02] 전칭 검증: `data_finemesh_2026-07-23` 100 에피소드의
+%   `config.mesh_verdict` 가 **100/100 ADEQUATE** 다(런 0회, HDF5 속성 읽기).
 We regenerated the full 100-episode dataset on a 200$\times$167 mesh
 ($1.21$~m spacing, adequate for every component present), holding the
 random seed fixed so that the wave components of each regenerated
@@ -2618,6 +2622,9 @@ than this in wavenumber space are structurally unresolvable by our initializer
 % [2026-09-02 P9] 4차 감사 M15: 코퍼스는 어디서나 **100 에피소드**인데 이 줄만 195 다.
 %   ⛔출처를 확인할 수 없다(철회 코퍼스 계열의 확장 집합으로 보인다) ⟹ 비율을 빼고
 %   **검증 가능한 형태**로만 남긴다: "모든 15/20/30 성분 에피소드" 는 구성에서 따라온다.
+% ✅[2026-09-02] 전칭 검증: `config/wave_components` 의 (kx, ky) 로 최근접 쌍 거리를
+%   계산하면 15/20/30 성분 에피소드 **88/88** 에서 0.15 rad/m 미만 쌍이 존재한다
+%   (`data_finemesh_2026-07-23` + `HOSGATE/data_hos`, 런 0회). 반례 0.
 regardless of signal-to-noise ratio.  This is not a corner case: a majority of the
 simulated episodes---and every 15-, 20- and 30-component episode---contain at
 least one true pair separated by less than $0.15$~rad/m. (The exact count came from

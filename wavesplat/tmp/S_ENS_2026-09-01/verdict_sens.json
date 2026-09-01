@@ -1,0 +1,119 @@
+{
+ "batch": "S-ENS",
+ "n_rows": 256,
+ "n_ok_rows": 256,
+ "gates": [
+  [
+   "G-ENSK 패키지 ensemble_k == 팔의 기대값",
+   true,
+   ""
+  ],
+  [
+   "G-ANCHOR-M1 LEARN-M1 == 동결 W-15 POST (비트)",
+   true,
+   "compared=128 bad=[]"
+  ],
+  [
+   "G-ROUTE auto_selected == learned 전건",
+   true,
+   "['learned']"
+  ],
+  [
+   "G-ARM 두 팔이 learned_ensemble_k 하나만 다르다",
+   true,
+   "diff=['learned_ensemble_k']"
+  ],
+  [
+   "G-DEPLOY-PIN 출하 기본값 트립와이어",
+   true,
+   ""
+  ],
+  [
+   "G-ROWS 팔별·층별 커버리지 64/64",
+   true,
+   "{('LEARN-M1', 'crowded'): 64, ('LEARN-M1', 'sparse'): 64, ('LEARN-M3', 'crowded'): 64, ('LEARN-M3', 'sparse'): 64} rows=256/256"
+  ],
+  [
+   "H-COST 단가 공시",
+   true,
+   "M1 중앙 9.2s · M3 중앙 23.6s"
+  ],
+  [
+   "H-SEED 새 시드 청구 0 (설계상)",
+   true,
+   "SEED=1626 고정 · 동결 코퍼스"
+  ]
+ ],
+ "gates_pass": "8/8",
+ "blocked_by": [],
+ "thresholds": {
+  "n": 64,
+  "NOMINAL": 40,
+  "HOLM_MIN_WINS": [
+   41,
+   40
+  ],
+  "HOLM_FIRST": 41,
+  "NOT_EARN": 23,
+  "p_nominal": 0.029970594783499616,
+  "p_holm_first": 0.0163828795494116,
+  "alpha": 0.05,
+  "n_family": 2,
+  "family_alpha_first": 0.025
+ },
+ "mde": {
+  "n": 64,
+  "thresh": 41,
+  "power": 0.8,
+  "q80": 0.682
+ },
+ "disclosure": [
+  "blind 아님 — 실측 방향·크기를 알고 있다(PREREG §2). 단 합성 방향은 어떤 동결 자료에도 없다",
+  "⛔배포 기본값 전환 권고 아님 — 필요조건 하나일 뿐이다",
+  "⛔실측 판정 갱신 아님 · T3/T5 크기 전이 금지",
+  "⛔층 간 대비에 p 를 붙이지 않는다(B-17 교훈)",
+  "⚠체크포인트가 평가와 같은 분포라는 단서는 그대로다",
+  "MDE q80 = 0.682 병기 의무"
+ ],
+ "prereg": "PREREG.md",
+ "contrasts": {
+  "PRIMARY": {
+   "arm": "LEARN-M3",
+   "ref": "LEARN-M1",
+   "stratum": "crowded",
+   "n": 64,
+   "better": 55,
+   "ties": 0,
+   "rel_median_pct": -17.90921312003488,
+   "p_one_sided": 1.771111690087538e-09
+  },
+  "SEC-A": {
+   "arm": "LEARN-M3",
+   "ref": "LEARN-M1",
+   "stratum": "sparse",
+   "n": 64,
+   "better": 35,
+   "ties": 9,
+   "rel_median_pct": -1.5622861447722154,
+   "p_one_sided": 0.26615438801392105
+  }
+ },
+ "holm": {
+  "PRIMARY": true,
+  "SEC-A": false
+ },
+ "labels": {
+  "PRIMARY": "S-ENS :: SYNTH-ENSEMBLE-EARNS (CONFIRMATORY)",
+  "SEC-A": "S-ENS :: SYNTH-ENSEMBLE-UNDECIDED-SPARSE"
+ },
+ "grades": {
+  "PRIMARY": "CONFIRMATORY",
+  "SEC-A": "UNDECIDED"
+ },
+ "reading": {
+  "PRIMARY": "합성에서도 이득이 있다 ⟹ 배포 기본값 전환의 **필요조건 하나**가 충족된다. ⛔충분조건 아님 — 단가 3배·프레임 예산은 별도 측정이고 전환은 별도 사전등록이다.",
+  "SEC-A": "실측에서 확증된 앙상블 이득이 합성에서는 **검출되지 않았다**. ⛔\"차이 없다\" 금지. ★귀결: 이득이 실측 특이일 가능성이 커지고 D3 의 배포 축은 근거를 잃는다."
+ },
+ "label": "S-ENS :: SYNTH-ENSEMBLE-EARNS (CONFIRMATORY)",
+ "primary_label": "S-ENS :: SYNTH-ENSEMBLE-EARNS (CONFIRMATORY)"
+}

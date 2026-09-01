@@ -474,6 +474,15 @@ def _w15_reagg():
             continue
         by.setdefault((r['cell'], r['stratum'], r['episode']), []).append(r['avg_nRMSE'])
     med = {k: _st.median(v) for k, v in by.items()}
+    # ★음성 대조 — 비교자(해석적 패키지)가 **제로필드를 이기는가**.
+    #   ⛔이것 없이 "분리되지 않는다" 를 인용하면 `F1` 부류가 된다(비교자가 무너져서
+    #   생긴 널인지 구별할 수 없다). 제로 기준은 `W-15` 가 쓴 것과 **같은 출처**다.
+    zero = {}
+    for line in open(os.path.join(TMP, 'B_DEPLOY_2026-08-19', 'results.jsonl')):
+        r = json.loads(line)
+        if 'error' not in r and r.get('zero_nRMSE') is not None:
+            zero[r['episode']] = r['zero_nRMSE']
+    assert zero, '⛔제로필드 기준을 찾지 못했다'
     out = {}
     for stratum, tag in (('crowded', 'Crowded'), ('sparse', 'Sparse')):
         eps = sorted({k[2] for k in med if k[1] == stratum and k[0] == 'POST'})
@@ -483,6 +492,9 @@ def _w15_reagg():
         out[f'WFifteen{tag}Better'] = str(sum(1 for a, b in pairs if a < b))
         out[f'WFifteen{tag}N'] = str(len(pairs))
         out[f'WFifteen{tag}Rel'] = f"{_st.median([(a - b) / b * 100 for a, b in pairs]):+.1f}"
+        ks = [e for e in eps if e in zero]
+        out[f'WFifteen{tag}CmpZero'] = str(
+            sum(1 for e in ks if med[('ALL-ANALYTIC', stratum, e)] < zero[e]))
     return out
 
 

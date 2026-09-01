@@ -62,6 +62,14 @@ RULES = [
     ('B12-실현등급', r'\\BTwelveRel|\\BTwelveBetter',
      [r'\\HosCrowdedDegraded', r'second\s+(?:rather than|order)', r'requested. of the generator'],
      'B-12 의 "HOS M=3" 은 **요청한 것** — 실현 등급(저하 17/48) 병기 의무'),
+    # ★[2026-09-02] `W-15` 재집계는 **동결 verdict 에 없는 수**다. 두 가지를 강제한다:
+    #   ①재집계임을 밝힐 것 ②비교자의 제로필드 기술을 병기할 것(`F1` 부류 차단).
+    ('WFifteen-재집계', r'\\WFifteenSparseBetter|\\WFifteenCrowdedBetter',
+     [r're-aggregation', r'do not appear in that batch.s verdict'],
+     'W-15 수치는 동결 verdict 에 없다 — **재집계**임을 병기해야 한다'),
+    ('WFifteen-음성대조', r'\\WFifteenSparseBetter|\\WFifteenCrowdedBetter',
+     [r'\\WFifteenSparseCmpZero', r'comparator is not weak'],
+     '비교자가 제로필드를 이기는 비율 병기 의무(F1 부류 차단)'),
     ('B22-우변얇음', r'\\BTwentyTwoRel|\\BTwentyTwoBetter',
      [r'\\BTwentyTwoAnaZero', r'right-hand side of this contrast is',
       r'comparators are themselves weak'],

@@ -25,8 +25,11 @@ OUT = os.path.join(ROOT, 'paper', 'paper_constants.tex')
 
 
 def _get(v, path):
+    """경로를 따라간다. ⚠키 자체에 점이 있는 경우(`ladder` 의 `"0.0"`)를 위해
+    **튜플 경로**도 받는다 — 점 분할이 그런 키를 조용히 쪼갠다."""
     cur = v
-    for k in path.split('.'):
+    keys = path if isinstance(path, (list, tuple)) else path.split('.')
+    for k in keys:
         if isinstance(cur, list):
             cur = cur[int(k)]
         else:
@@ -69,12 +72,37 @@ ATOMS = [
     ('BNineteenBetter', 'B19_KGRID_SPARSE_2026-08-25/verdict_b19.json', 'primary.better', 'int', 14),
     ('BNineteenN',      'B19_KGRID_SPARSE_2026-08-25/verdict_b19.json', 'primary.n', 'int', 16),
     ('BNineteenRel',    'B19_KGRID_SPARSE_2026-08-25/verdict_b19.json', 'primary.rel_median_pct', 'pct', -67.4),
+    # ── 사전 절제: 학습 패키지 < 해석적 패키지 (L2) ★%를 margin 으로 쓸 수 있는 성분
+    ('BTwentyTwoBetter', 'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'comparisons.L2.better', 'int', 45),
+    ('BTwentyTwoN',      'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'comparisons.L2.n', 'int', 48),
+    ('BTwentyTwoRel',    'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'comparisons.L2.rel_median_pct', 'pct', -36.3),
+    ('BTwentyTwoP',      'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'comparisons.L2.p_one_sided', 'p', 6.56e-11),
+    # ⚠L2 의 우변(해석적 패키지)은 **참 제로필드를 못 넘는다** — 인용 시 병기 의무
+    ('BTwentyTwoAnaZero', 'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'neg_vs_zero.ANA.better', 'int', 15),
+    ('BTwentyTwoLearnZero', 'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'neg_vs_zero.LEARN.better', 'int', 48),
+    # ── 센서 모형(raydrop) 강건성
+    ('BFifteenN',   'B15_RAYDROP_2026-08-24/verdict_b15.json', 'by_raydrop.slope.n', 'int', 20),
+    ('BFifteenRel', 'B15_RAYDROP_2026-08-24/verdict_b15.json', 'by_raydrop.slope.rel_median_pct', 'pct', -42.6),
+    # ── 이득의 위치: 공간(M-10) ⚠rel_median 이 **분수**다(다른 배치와 단위가 다르다)
+    ('MTenBetter', 'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.primary.better', 'int', 45),
+    ('MTenN',      'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.primary.n', 'int', 48),
+    ('MTenRel',    'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.primary.rel_median', 'frac', -31.7),
+    ('MTenCmp',    'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.spec_vs_zero.better', 'int', 48),
+    # ── 이득의 위치: 시간(T-4) ⚠비교자 붕괴를 **함께** 싣는다(F1 부류 방지)
+    ('TFourBetter', 'T4_GEOMETRY_2026-08-30/verdict_t4.json', 'primary.better', 'int', 47),
+    ('TFourN',      'T4_GEOMETRY_2026-08-30/verdict_t4.json', 'primary.n', 'int', 48),
+    ('TFourRel',    'T4_GEOMETRY_2026-08-30/verdict_t4.json', 'primary.rel_median_pct', 'pct', -46.3),
+    ('TFourCmp',    'T4_GEOMETRY_2026-08-30/verdict_t4.json', 'comparator.better', 'int', 34),
+    ('TFourCmpAtZero', 'T4_GEOMETRY_2026-08-30/verdict_t4.json',
+     ('ladder', '0.0', 'spec_vs_zero', 'better'), 'int', 47),
 ]
 
 FMT = {
     'int': lambda x: str(int(x)),
     'pct': lambda x: f'{x:+.1f}\\%'.replace('+', '') if x < 0 else f'{x:+.1f}\\%',
     'p': lambda x: _sci(x),
+    # ⚠`M-10` 은 rel 을 **분수**로 저장한다 — 단위를 여기서 흡수한다(⛔논문에서 곱하지 마라).
+    'frac': lambda x: f'{x*100:+.1f}\\%'.replace('+', '') if x < 0 else f'{x*100:+.1f}\\%',
 }
 
 
@@ -103,8 +131,9 @@ def main():
         # 핀 대조 — 정수는 정확히, 실수는 표시 자릿수에서
         if kind == 'int':
             ok = int(raw) == int(pin)
-        elif kind == 'pct':
-            ok = abs(round(raw, 1) - pin) < 1e-9
+        elif kind in ('pct', 'frac'):
+            val = raw * 100 if kind == 'frac' else raw
+            ok = abs(round(val, 1) - pin) < 1e-9
         else:
             ok = abs(raw - pin) / abs(pin) < 0.005
         if not ok:

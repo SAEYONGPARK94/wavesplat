@@ -42,6 +42,17 @@ RULES = [
     ('B1-체크포인트', r'\\BOneRel|\\BOneBetter',
      [r'same distribution family', r'seed axis only', r'trained on the same'],
      'B-1 은 체크포인트가 학습 분포와 겹친다는 단서 병기 의무'),
+    # ★[2026-09-02] 5차 감사의 가장 아픈 지적: 논문이 *"비교자가 붕괴한 상태에서 얻은
+    #   마진은 추정기에 대한 증거가 아니다"* 라고 **원칙을 선언해 놓고**, 그 대조가 **없는**
+    #   행으로 헤드라인을 낸다. ⟹ `B-1` 인용에 그 두 결함의 병기를 강제한다.
+    ('B1-음성대조부재', r'\\BOneRel|\\BOneBetter',
+     [r'no negative control', r'was not measured on this corpus',
+      r'dash in\s*Table', r'a real absence'],
+     'B-1 은 비교자 기술을 재지 않았다 — 그 부재를 병기해야 한다'),
+    ('B1-사후분석', r'\\BOneRel|\\BOneBetter',
+     [r'written after (?:its |the )?results', r'were written after'],
+     'B-1 의 게이트·분석은 결과 뒤에 작성됐다 — 병기 의무'),
+
     ('B1-최강아님', r'\\BOneRel|\\BOneBetter',
      [r'strongest .*we possess', r'strongest eligible', r'not the same claim as'],
      '"최강 적격" 이지 "강화된" 이 아니다'),

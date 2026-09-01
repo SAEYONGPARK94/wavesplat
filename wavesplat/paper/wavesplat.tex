@@ -71,13 +71,15 @@ direct assimilation of the sparse returns instead and reports limited improvemen
 their original locations, while its outlook names a spectral-state formulation. We
 give that formulation: the field is a small set of continuous-wavenumber spectral
 atoms constrained by the dispersion relation, placed by a learned set-valued prior
-and refined by variable projection before per-frame updating. On crowded
-multi-component synthetic seas this lowers median normalised RMSE by \BOneRel{}
-against the strongest eligible grid baseline we possess
-(\BOneBetter{}/\BOneN{} episodes), and the result survives a non-linear reference
-field with seeds outside the training corpus (\BTwelveBetter{}/\BTwelveN{}) in a
-comparison where the baseline itself retains skill
-(\BTwelveCmpBetter{}/\BTwelveCmpN{}). The claim is carried by ablation rather than
+and refined by variable projection before per-frame updating.
+% ★2026-09-02 (P10) 5차 감사 권고 2d: 초록이 **음성 대조가 없는 행**으로 헤드라인을
+%   냈다(§5.1 이 그 대조를 필수라고 선언하는데도). ⟹ 헤드라인을 `B-12` 로 바꾼다:
+%   비선형 참값 · 코퍼스 밖 시드 · **비교자 기술 확인** · 분석 결과 전 동결.
+On crowded multi-component synthetic seas with a non-linear reference field and
+scene seeds drawn from outside the training corpus, it lowers median normalised
+RMSE by \BTwelveRel{} against the strongest eligible grid baseline we possess
+(\BTwelveBetter{}/\BTwelveN{} episodes), in a comparison where that baseline itself
+retains skill against a zero predictor (\BTwelveCmpBetter{}/\BTwelveCmpN{}). The claim is carried by ablation rather than
 by baseline comparison alone: removing the learned prior
 (\BTwentyTwoBetter{}/\BTwentyTwoN{} episodes worse, against an analytic package that
 itself clears a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{}) and
@@ -1490,6 +1492,27 @@ distribution family as the evaluation episodes --- seed ranges are disjoint, so
 is the \emph{strongest we possess}, which is not the same claim as \emph{strengthened
 until it stopped improving}. \textbf{(4)}~The sparse stratum is not aggregated into
 this number and does not support it (\S\ref{sec:res_scope}).
+% ============================================================================
+% ★2026-09-02 (P10) --- 5차 감사의 가장 아픈 지적:
+%   *"the paper states a mandatory control, then **leads with the row that lacks
+%    it**, and omits that from the disclosure list attached to that very row."*
+%   ⟹ (5)(6) 을 추가하고, **B-12 가 더 강한 증거임을 문면에 적는다.**
+% ============================================================================
+\textbf{(5)}~\emph{This batch has no negative control.} The comparator's own skill
+against a zero field was not measured on this corpus, so the dash in
+Table~\ref{tab:earns} is a real absence: we cannot show, for this row, that the
+margin is not partly the comparator collapsing. \textbf{(6)}~This batch's gate and
+analysis scripts were written after its results existed, transcribing rules recorded
+in its design note; every other row in Table~\ref{tab:earns} had its analysis frozen
+first.
+
+\emph{Consequently we do not regard this as the paper's strongest evidence.} The
+replication of \S\ref{sec:res_hos} --- non-linear reference field, seeds drawn from
+outside the corpus, comparator verified to retain skill on
+\BTwelveCmpBetter{}/\BTwelveCmpN{} episodes, analysis frozen before results --- is
+stronger on every axis on which the two differ. We report the present number first
+because it is the one measured against the strongest eligible baseline, and we
+report its two weaknesses in the same breath.
 
 \subsection{Does it survive a non-linear reference and unseen seeds?}
 \label{sec:res_hos}
@@ -1501,7 +1524,14 @@ $M{=}3$) reference and seeds drawn from outside the corpus that produced the
 checkpoint.
 
 The conclusion holds: \BTwelveBetter{}/\BTwelveN{} episodes, median relative change
-\BTwelveRel{}, $p = \BTwelveP{}$ (one-sided sign test, family-corrected).
+\BTwelveRel{}, $p = \BTwelveP{}$ (one-sided sign test).
+% [2026-09-02 P10] 5차 감사 도전 D: *"family-corrected"* 가 정의 없이 한 번 나왔다.
+Throughout this paper a batch's ``family'' is the set of contrasts its
+preregistration listed as primary or secondary, and the threshold each must clear is
+$\alpha$ divided by that count, fixed before results. Where a batch declared two
+contrasts, the confirmatory threshold is therefore $\alpha/2 = 0.025$; the win
+counts in Table~\ref{tab:earns} are the pre-registered thresholds', not post-hoc
+selections.
 
 Critically, this is a comparison \emph{between two arms that both have skill}: the
 grid baseline itself beats a zero predictor on \BTwelveCmpBetter{}/\BTwelveCmpN{}
@@ -1709,6 +1739,31 @@ In time (lead $1.0\,T_p$) & T-4 & \TFourN{} & \TFourBetter{} & \TFourRel{} & ---
 \end{tabular}
 \end{table}
 
+\paragraph{What each $n$ is made of, and why it is not $n$ independent trials}
+% ============================================================================
+% ★2026-09-02 (P10) --- 5차 감사 도전 B·F. 두 지적이 한 문단으로 답해진다:
+%   B *"64 'episodes' … the sign test treats them as 64 i.i.d. trials"*
+%   F *"corpus composition is never given"*
+%   ⛔수는 손으로 적지 않는다: 동결 `results.jsonl` 에서 센다(`gen_paper_constants.py`).
+% ============================================================================
+The episode counts in Table~\ref{tab:earns} are not independent draws, and we state
+what they are. The headline corpus of \HeadlineEps{} crowded episodes is a full
+factorial: \HeadlineSeeds{} generator seeds crossed with two Beaufort levels and two
+component counts. The \AblationEps{}-episode corpus used by the ablations and by the
+non-linear replication is the same design with \AblationSeeds{} seeds. So four
+episodes share each seed, and the true number of independent scene draws behind an
+$n$ of \AblationEps{} is \AblationSeeds{}, not \AblationEps{}.
+
+The sign tests we report treat episodes as exchangeable. That is the convention the
+preregistrations fixed, and we keep it rather than change the rule after the fact,
+but it means the $p$-values should be read as descriptive of the paired pattern
+rather than as calibrated tail probabilities: if the seed is the dominant source of
+scene-to-scene variation, the effective sample size lies somewhere between
+\AblationSeeds{} and \AblationEps{}, and every $p$ we print is correspondingly
+optimistic. No result in this paper turns on a marginal $p$ --- the confirmatory
+rows clear their thresholds by several episodes --- but a reader comparing two of
+them on the strength of $p$ alone would be over-reading.
+
 \paragraph{How the rows of Table~\ref{tab:earns} must be read}
 Four qualifications apply to the table as a whole and are not repeatable per row.
 \emph{(i)} Every corpus in it is synthetic, and all but the B-12 row use a linear
@@ -1720,7 +1775,11 @@ B-12 adds unseen seeds, and no row tests a shift of the distribution itself.
 baseline we possess, which is not the same claim as a baseline strengthened for
 this comparison; the ``cmp.'' column is there so the reader can judge how much
 skill that comparator actually had in each corpus, which is the negative control
-for every row that has one. \emph{(iv)} The B-16 and
+for every row that has one. The B-1 row is the only one whose gate and analysis
+scripts were written after its results existed, and the only one for which the
+comparator's own skill was not measured on this corpus --- the dash in its
+\texttt{cmp.} column is a real absence, and Section~\ref{sec:res_headline} says so
+where that number is first reported. \emph{(iv)} The B-16 and
 B-19 magnitudes are not attributable by subtraction from anything else in the
 table: a separate batch checked that experiment for confounding and found it
 negligible, which is what licenses reading them as sizes rather than as directions.
@@ -2345,12 +2404,14 @@ components with the flexibility of neural representations.
 
 We estimate phase-resolved ocean wave fields from sparse 3D point clouds as a small
 set of continuous-wavenumber spectral atoms under a dispersion constraint, with the
-initial configuration proposed by a learned set-valued prior. On crowded
-multi-component seas this lowers median normalised RMSE by \BOneRel{} against the
-strongest eligible grid baseline we possess (\BOneBetter{}/\BOneN{} episodes), and
-the result survives a non-linear reference field with out-of-corpus seeds
-(\BTwelveBetter{}/\BTwelveN{}) in a comparison where the baseline itself retains
-skill (\BTwelveCmpBetter{}/\BTwelveCmpN{}).
+initial configuration proposed by a learned set-valued prior.
+% ★2026-09-02 (P10) 5차 감사 권고 2d --- 초록과 같은 이유로 결론도 `B-12` 를 앞세운다:
+%   *"the paper states a mandatory control, then leads with the row that lacks it."*
+On crowded multi-component seas with a non-linear reference field and out-of-corpus
+seeds, this lowers median normalised RMSE by \BTwelveRel{} against the strongest
+eligible grid baseline we possess (\BTwelveBetter{}/\BTwelveN{} episodes), in a
+comparison where that baseline itself retains skill against a zero predictor
+(\BTwelveCmpBetter{}/\BTwelveCmpN{}).
 
 What we regard as the substantive contribution is not the margin but the
 \emph{attribution}. Holding the deployed pipeline fixed and removing one property at

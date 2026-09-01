@@ -48,6 +48,41 @@ def _count_tests():
     return m.group(1) if m else '0'
 
 
+def _corpus():
+    """★코퍼스 **구성**을 동결 결과 행에서 센다.
+
+    5차 감사(2026-09-02) 도전 B·F:
+
+    > *"64 'episodes' are drawn from 5 seeds x ~10 configurations; the sign test
+    >  treats them as 64 i.i.d. trials."* / *"corpus composition is never given."*
+
+    실측: 두 코퍼스 다 **완전 요인 설계**다 --- 시드 x Beaufort x 성분수.
+    ⟹ 에피소드는 독립 추첨이 아니고, **한 시드가 네 에피소드를 낳는다.**
+    ⛔손으로 적지 않는다: 동결 `results.jsonl` 에서 센다.
+    """
+    import re as _re
+    out = {}
+    for macro, rel, crowded_only in (
+            ('HeadlineSeeds', 'W16_REBASELINE_2026-08-22/results.jsonl', True),
+            ('AblationSeeds', 'B16_KGRID_2026-08-24', False)):
+        path = os.path.join(TMP, rel)
+        rows = []
+        if os.path.isdir(path):
+            for f in sorted(os.listdir(path)):
+                if f.endswith('.jsonl'):
+                    rows += [json.loads(x) for x in open(os.path.join(path, f))]
+        else:
+            rows = [json.loads(x) for x in open(path)]
+        eps = {os.path.basename(r['episode']) for r in rows if r.get('episode')}
+        if crowded_only:
+            eps = {e for e in eps if _re.search(r'_(15|30)comp', e)}
+        seeds = {int(m.group(1)) for e in eps
+                 for m in [_re.search(r'seed(\d+)', e)] if m}
+        out[macro] = str(len(seeds))
+        out[macro.replace('Seeds', 'Eps')] = str(len(eps))
+    return out
+
+
 def _prior_arch():
     """★학습 사전의 **아키텍처를 체크포인트 가중치에서** 읽는다.
 
@@ -365,6 +400,7 @@ def main():
         ('DepAnaKMax', _ana_kmax()),
     ]
     dep += list(_prior_arch().items())
+    dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]
 
     body = ['% ⛔자동 생성 — 손으로 고치지 마라.',

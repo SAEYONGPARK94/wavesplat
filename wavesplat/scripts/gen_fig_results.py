@@ -111,13 +111,16 @@ for gi, gname in GROUPS.items():
     yv = len(ROWS) - gi + 0.55
     if gi:
         axA.axhline(yv, color='#ccc', lw=0.7)
-    axA.text(1.03, yv - 0.05, gname, fontsize=6.0, color=MUTE, style='italic',
-             ha='right', va='top')
+    # 그룹 이름은 **행 사이 빈 띠**에 놓는다(마커가 사는 y 가 아니다).
+    axA.text(1.045, yv - 0.05, gname, fontsize=6.0, color=MUTE, style='italic',
+             ha='left', va='top', clip_on=False)
 axA.axvline(0.5, color=MUTE, lw=0.8, ls=':')
 axA.set_yticks(ys)
 axA.set_yticklabels(labels, fontsize=6.6)
-axA.set_xlim(0.20, 1.05)
-axA.set_ylim(0.1, len(ROWS) + 0.95)
+axA.set_xlim(0.20, 1.02)
+# ⛔[2026-09-02] 6차 감사 N7: 범례가 **마지막 행과 그 빈 마커를 덮었다**(0.708).
+#   ⟹ 축 아래쪽에 범례 자리를 만든다(행은 y>=1 에 있고 빈 마커는 y-0.24 = 0.76).
+axA.set_ylim(-0.45, len(ROWS) + 0.95)
 axA.set_xlabel('fraction of episodes won (95% Clopper-Pearson)', fontsize=7.2)
 axA.tick_params(axis='x', labelsize=7)
 for sp in ('top', 'right'):

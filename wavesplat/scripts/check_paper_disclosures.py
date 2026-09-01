@@ -125,9 +125,20 @@ RULES = [
      '렌더 단가는 **초기화 이후**만 포괄 — 제안 단계 불포함 병기 의무'),
 
     # ★[2026-09-02] `T6-BUDGET` --- 시간 수치는 쉽게 오독된다. 세 가지를 강제한다.
-    ('예산-보수적칸', r'\\FrameMsLearn|\\FramePctLearn',
-     [r'most conservative cell', r'CPU-only', r'single thread'],
-     '프레임 예산은 **가장 보수적인 칸**(혼잡·CPU·1스레드) 임을 병기해야 한다'),
+    # ⛔[2026-09-02] 6차 감사 N16: 이 규칙은 *"most conservative cell"* 이라는 **자구가
+    #   있는지**만 봤고 그것이 **참인지**는 보지 않았다. 실측하면 그 칸은 여덟 중
+    #   **가장 빠르다**(사전등록의 *사전* 라벨이었고 결과가 지지하지 않았다).
+    #   ★검사기가 **거짓을 강제하고 있었다** --- 공시 검사기의 최악의 실패 모드다.
+    #   ⟹ 요구를 「사전 지정 칸임 + 최악이 아님 + 조건 명시」로 바꾼다.
+    ('예산-보고칸', r'\\FrameMsLearn|\\FramePctLearn',
+     [r'reporting cell', r'fixed in advance'],
+     '프레임 예산 칸은 **사전등록이 지정한 보고 칸**임을 병기해야 한다'),
+    ('예산-최악아님', r'\\FrameMsLearn|\\FramePctLearn',
+     [r'fastest of the eight', r'not[^.]{0,40}worst case'],
+     '⛔그 칸은 **가장 느린 칸이 아니다** — 보수적 칸으로 읽히지 않게 병기해야 한다'),
+    ('예산-실행조건', r'\\FrameMsLearn|\\FramePctLearn',
+     [r'CPU-only'],
+     '실행 조건(CPU 전용·1스레드·1프로세스)을 병기해야 한다'),
     ('예산-초기화별도', r'\\FrameMsLearn',
      [r'one-off', r'not part of the per-frame'],
      '초기화는 프레임 수치에 포함되지 않는다 — 병기 의무'),

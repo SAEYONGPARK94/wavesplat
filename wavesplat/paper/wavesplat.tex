@@ -75,8 +75,11 @@ and refined by variable projection before per-frame updating.
 % ★2026-09-02 (P10) 5차 감사 권고 2d: 초록이 **음성 대조가 없는 행**으로 헤드라인을
 %   냈다(§5.1 이 그 대조를 필수라고 선언하는데도). ⟹ 헤드라인을 `B-12` 로 바꾼다:
 %   비선형 참값 · 코퍼스 밖 시드 · **비교자 기술 확인** · 분석 결과 전 동결.
-On crowded multi-component synthetic seas with a non-linear reference field and
-scene seeds drawn from outside the training corpus, it lowers median normalised
+% ⛔[2026-09-02] 6차 감사 N19: *"scene seeds drawn from outside the training corpus"* 는
+%   **모든 배치에 참**이라 B-12 를 구별하지 못한다(학습 대역 2e9 이상 vs 평가 최대 시드).
+%   B-12 가 실제로 더하는 것은 **이 저장소의 앞선 배치가 쓰지 않은 시드**다. 자구를 좁힌다.
+On crowded multi-component synthetic seas with a higher-order spectral reference
+field, it lowers median normalised
 RMSE by \BTwelveRel{} against the strongest eligible grid baseline we possess
 (\BTwelveBetter{}/\BTwelveN{} episodes), in a comparison where that baseline itself
 retains skill against a zero predictor (\BTwelveCmpBetter{}/\BTwelveCmpN{}). The claim is carried by ablation rather than
@@ -85,7 +88,10 @@ by baseline comparison alone: removing the learned prior
 itself clears a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{}) and
 removing only the continuity of the wavenumber
 (\BSixteenBetter{}/\BSixteenN{}, dose-responsive) each cost measurable accuracy.
-The gains are synthetic and crowded-stratum only, the checkpoint was trained on the
+The gains are synthetic; the comparison against a grid baseline is on the crowded
+stratum only, and in the sparse stratum the evidence is split --- the ablation
+reproduces there (\BNineteenBetter{}/\BNineteenN{}) while the deployed analytic
+package is not separated from. The checkpoint was trained on the
 same distribution family so ``out of sample'' means on the seed axis alone, and on
 $12$ measured fixed-station records the prior does not reach the pre-registered
 decision threshold against a per-record zero-field reference.
@@ -269,7 +275,7 @@ Our key contributions are:
     depth dependence) reduces the free parameter count and acts as a
     physics-based regularizer, improving tracking stability over
     extended time horizons.
-    (Appendix~\ref{app:changes}, R4.) The claim made here is the parameter-count
+    (\ref{app:changes}, R4.) The claim made here is the parameter-count
     reduction. Whether this constraint contributes to \emph{accuracy}
     \textbf{has not yet been measured}: the ablation arm previously used to
     support it removed the frequency initialisation together with the
@@ -289,7 +295,7 @@ Our key contributions are:
   %   LiDAR measurements on ocean surfaces, where specular reflection
   %   probability and signal-to-noise ratio vary with incidence geometry.
   \item \textbf{Geometry-aware confidence weighting (C3) --- not claimed}
-    (Appendix~\ref{app:changes}, R1): Per-observation weights
+    (\ref{app:changes}, R1): Per-observation weights
     $c_j = \cos\theta_j/(r_j/d_{\text{ref}})$ based on incidence angle and
     range were introduced to account for the heteroscedastic noise structure
     of LiDAR measurements on ocean surfaces. This is \textbf{withdrawn as a
@@ -760,14 +766,42 @@ rather than from the evaluation distribution: discrete crowded ($15$ and $30$
 components) at $0.30$, discrete sparse ($1$ and $2$) at $0.20$, five-component at
 $0.10$, two continuum strata at $0.10$ and $0.15$, and an intermediate-spreading
 stratum at $0.15$, with sea states covering Beaufort~2--5 anchors and a jittered
-box around them. The observation geometry used in training replays frame-structured
-sweep windows rather than drawing observation times independently. \emph{Scene seeds
-for training are drawn from a band disjoint from every seed used by any evaluation
-generator in this paper}, so no evaluation episode was seen during training,
-although the generator family is the same --- which is the sense in which
-Section~\ref{sec:res_summary} says only the seed axis is out of sample. The shipped
-checkpoint was trained for $40{,}000$ steps from scratch, and the estimator refuses
-to load a checkpoint whose SHA-256 does not begin \texttt{\CkptSha{}}.
+box around them. The observation geometry used in training is not drawn
+independently: frame-structured sweep windows are replayed from \TrainDonors{} donor
+episodes, and only the observation coordinates are taken from a donor --- the
+surface is always re-rendered from the fresh synthetic scene. That bank of
+\TrainDonors{} geometries is small, and it is the only view of sensor geometry the
+prior ever had; we note it as a generalisation limit rather than defend it. No donor
+episode appears in the frozen result rows of any batch this paper cites (checked
+mechanically over all \CitedBatchFiles{} such files).
+%   ⛔[2026-09-02] 6차 감사: *"14 geometries is a generalisation fact a referee needs."*
+%   실측 확인 = 14 도너 파일명이 `tmp/*/results*.jsonl` 어디에도 없다(런 0회).
+\emph{Scene seeds for training are drawn from the band
+$[\,\TrainSeedLo{},\; \TrainSeedHi{}\,)$, which is disjoint from every seed used by any
+evaluation generator in this paper.} The largest evaluation seed appearing in any
+frozen result row of this project is \EvalSeedMax{}. No evaluation episode was
+therefore seen during training, although the generator family is the same --- which
+is the sense in which Section~\ref{sec:res_summary} says only the seed axis is out
+of sample.
+
+The shipped checkpoint was trained from scratch for \TrainSteps{} steps at batch
+\TrainBatch{} --- \TrainScenes{} scene draws --- against a held-out validation set of
+\TrainValScenes{} scenes generated from a separate seed and scored every
+\TrainValEvery{} steps. The final losses are \TrainLossFinal{} (training) against
+\TrainValLossFinal{} (validation), and the whole curve is in the repository; the gap
+is small but we did not use it to select a stopping point, and no early stopping was
+applied. The checkpoint's SHA-256 is \texttt{\CkptShaFull{}}. We are precise about
+what that digest does: it is recorded in the estimator source and a unit test asserts
+that the shipped file matches it, but the loader does \emph{not} check it at run
+time, so a reader who substitutes a different checkpoint will not be stopped by the
+code.
+% ⛔[2026-09-02] 6차 감사 BLOCKER: 앞 판은 *"the estimator **refuses to load** a
+%   checkpoint whose SHA-256 does not begin ..."* 라 적었다. **거짓이다** ---
+%   `learned_init._load_cond` 는 검사 없이 `torch.load` 하고, `ckpt_sha256()` 은
+%   패키지 안에서 **한 번도 호출되지 않는다**. 대조하는 것은 단위 시험 하나뿐이고
+%   그것은 `learned_ckpt` 로 넘긴 사용자 체크포인트를 구속하지 못한다.
+%   ★수리를 「코드에 검사를 넣기」로 하지 않은 이유: `M7` 배치가 다른 체크포인트를
+%   `ckpt=` 로 넘겨 돌린다 --- 하드 거부는 그 경로를 깬다. ⟹ **문장을 참으로 고쳤다.**
 
 Two things about this we cannot certify and will not claim. First, the six training
 strata were measured only as a bundle: no ablation isolates what each contributes,
@@ -783,11 +817,20 @@ training script and preregistration, and those checksums do not match the files 
 were committed with them. The files themselves have not drifted --- they are
 byte-identical to their single committed version --- so what is missing is not the
 code but the guarantee: the freeze was taken, the files were then edited, and the
-freeze was never re-taken. The architecture and the checkpoint identity above
-are read directly from the shipped weights and are therefore certain; the training
-recipe is transcribed from that batch's report and is \emph{not} independently
-verifiable from the repository as it stands. A reader reproducing this work should
-treat the training procedure as documentation rather than as a frozen artefact.
+freeze was never re-taken. The architecture and the checkpoint identity above are
+read directly from the shipped weights; every training number above is read
+mechanically from that batch's committed artefacts --- its training curve, its
+generator source and its run log --- so the recipe \emph{is} reproducible from the
+repository. What a reader cannot do is use the freeze certificate to prove that
+those artefacts are the ones that produced these weights. That is a weaker defect
+than an absent record, and we prefer to name it exactly rather than to describe it
+away.
+% ⛔[2026-09-02] 6차 감사: 앞 판의 *"not independently verifiable from the repository
+%   as it stands"* 는 **과장**이었다 --- 심사자 축자: *"the caveat is being used to
+%   excuse omitting facts that are readable in a committed file."* 그 지적이 옳다:
+%   이 문단 위의 학습 수치는 이제 전부 `gen_paper_constants._training()` 이
+%   `train_curve.json`.`gen_mixed.py`.`train.log` 에서 **기계로 읽는다**.
+%   ⟹ 결함은 「기록 없음」이 아니라 「동결이 그 기록을 인증하지 못함」이다.
 
 \paragraph{A dependency we disclose rather than describe away}
 % ============================================================================
@@ -838,7 +881,10 @@ The configuration evaluated in Section~\ref{sec:results} places the atoms with a
 learned prior over wavenumber--energy \emph{sets}. A conditional diffusion model,
 trained on synthetic scenes, is conditioned on the initialisation-window
 observations and draws several posterior samples of an atom set; the pooled draws
-are then deduplicated in wavenumber % [2026-09-01] 2차 감사: 코드는 merge 가 아니라 **drop** 이다(learned_init.py:184).
+are then % [2026-09-01] 2차 감사: 코드는 merge 가 아니라 **drop** 이다(learned_init.py:184).
+% ⛔[2026-09-02] 6차 감사 N2: 4차 감사가 **순서**를 고치면서 새 절을 아래에 덧붙이고
+%   낡은 "deduplicated in wavenumber" 를 **지우지 않았다** ⟹ 인쇄면에 같은 절이 두 번
+%   나오는 비문이 됐다. ★"고쳐 쓴 문장을 넣었으면 낡은 것을 지워라"(N-1 부류).
 %   merge_atoms 는 별도 기능이고 기본 no-op 이며 W-4 가 무익을 측정했다.
 % [2026-09-02 P9] 4차 감사 MINOR 둘: ①코드 순서는 **에너지 문턱이 먼저**이고
 %   dedup 이 나중이다(`learned_init.py:179-184`) --- 표 3 은 옳게 적었고 이 산문만 뒤집혔다.
@@ -857,7 +903,12 @@ wavenumbers are iterated.
 %   ⚠논문에 이 상한이 한 번도 적혀 있지 않았다.
 The learned proposal cannot place an atom outside a bounded region: the network
 emits normalised coordinates that are clipped to $[-1,1]$ and rescaled by a
-constant stored in the checkpoint, giving $|k_x|, |k_y| \le \DepKLim{}$~rad/m. For
+constant that lives in a \emph{second} checkpoint. The deployed learned path loads
+two files: the conditional denoiser identified above, and an earlier unconditional
+set-diffusion checkpoint (\texttt{setdiff\_prior.pt}, SHA-256
+\texttt{\PriorCkptSha{}}) from which it reads the normalisation constants that the
+two models share. The rescaling constant is one of these, giving
+$|k_x|, |k_y| \le \DepKLim{}$~rad/m. For
 the sea states evaluated here the largest true wavenumber is near $1.0$~rad/m, so
 the bound is satisfied with little margin, and it is a property of the checkpoint
 rather than of the representation --- the analytic alternative searches
@@ -1019,9 +1070,9 @@ compared without normalization by sea state, so its effective strictness
 varies with $H_s$; a scale-invariant form that normalizes the residual by
 the observed signal RMS is implemented but not enabled by default.
 A sensitivity sweep over $\tau_R \in \{0.02, 0.05, 0.08, 0.10, 0.15\}$~m
-on 12 representative episodes of the retracted corpus found no ordering among values in
-$[0.05,\,0.15]$~m produced indistinguishable average error, while
-$\tau_R = 0.02$~m caused over-growth in multi-component seas. The per-value levels
+on 12 representative episodes of the retracted corpus found no ordering among the
+values in $[0.05,\,0.15]$~m, while $\tau_R = 0.02$~m caused over-growth in
+multi-component seas. The per-value levels
 from that sweep are not quoted: it was run on the retracted corpus and before the
 tracker phase-advance correction, and no re-measured substitute exists. The value
 $\tau_R = 0.05$~m has been held fixed in every batch reported here.
@@ -1086,7 +1137,7 @@ size $K_w$, the per-frame tracking cost is $O(K \cdot K_w \cdot M \cdot N)$.
 % on CPU (single-threaded, Intel i7-12700H).
 In practice, $K{=}\DepTrackingSteps{}$, $K_w{=}3$, $N \leq \DepMaxN{}$, measured on
 CPU. An earlier absolute per-frame figure quoted here was withdrawn as a
-cross-process timing (Appendix~\ref{app:changes}, R3); the measured replacement is
+cross-process timing (\ref{app:changes}, R3); the measured replacement is
 below.
 
 % ============================================================================
@@ -1104,23 +1155,35 @@ below.
 initialisation ran, because the tracking loop does not branch on the initialiser,
 and we verified that: across a pre-registered $64$-run batch spanning two
 initialisation routes, two strata, and CPU-only versus GPU-available execution, the
-per-frame tracking cost varied only between $5.9$ and $6.3$~ms.
+per-frame tracking cost varied only between \FrameMsMin{} and \FrameMsMax{}~ms.
 
 \paragraph{Measured budget}
-On a single thread of an AMD Ryzen~7 7800X3D, in one process, with CPU-only
-execution and on the crowded stratum --- the most conservative cell, fixed in the
-preregistration before results existed --- the deployed learned path costs
-\FrameMsLearn{}~ms per tracking frame, or \FramePctLearn{}\% of a $10$~Hz frame
-budget. Initialisation is a one-off \InitSLearn{}~s, which is roughly fifty frame
-intervals: real for a cold start, and not part of the per-frame figure. Two
-measurements from that batch run against the intuition a reader may bring. First,
-the learned initialiser is \emph{faster} than the analytic alternative, not slower
----\InitSLearn{}~s against \InitSAna{}~s on the same episodes --- despite running a
-$500$-step reverse diffusion sampler four times; we report the direction and do not
-attribute it. Second, a GPU buys almost nothing here: the same initialisation takes
-\InitSLearnGpu{}~s with one available. Neither number is comparable with any latency
-in the earlier version of this paper, which came from separate processes, and the
-batch did not run a baseline arm, so no comparative timing claim is available.
+Table~\ref{tab:budget} gives the whole batch rather than a summary of it. The cell
+the preregistration named as the reporting cell --- CPU-only, crowded, one thread ---
+costs \FrameMsLearn{}~ms per tracking frame, or \FramePctLearn{}\% of a $10$~Hz
+budget, with initialisation a one-off \InitSLearn{}~s. We are precise about the word
+\emph{reporting}: the preregistration called that cell ``the most conservative'', and
+the measurement does not bear that label out. All eight cells lie between \FrameMsMin{} and \FrameMsMax{}~ms and the
+reported cell is the fastest of the eight, so it should be read as the cell fixed in
+advance, not as a worst case. The spread across the table is the substantive point ---
+a factor of \FrameMsSpread{} between the extreme cells --- and it is why the tracking analysis above does
+not branch on which initialiser ran.
+
+Two rows run against the intuition a reader may bring. The learned initialiser is
+\emph{faster} than the analytic alternative, not slower --- \InitSLearn{}~s against
+\InitSAna{}~s on the same episodes --- despite running a $500$-step reverse diffusion
+sampler four times; we report the direction and do not attribute it. And a GPU buys
+almost nothing: the same initialisation takes \InitSLearnGpu{}~s with one available,
+and every GPU row is marginally \emph{slower} per frame than its CPU counterpart.
+No number here is comparable with any latency in the earlier version of this paper,
+which came from separate processes, and the batch did not run a baseline arm, so no
+comparative timing claim is available.
+% ⛔[2026-09-02] 6차 감사 N16 + 권고 8. 두 가지가 한 번에 고쳐진다:
+%   ①*"the most conservative cell"* --- 사전등록의 **사전 라벨**이었고 측정이
+%     그것을 지지하지 않았다(그 칸이 여덟 중 **가장 빠르다**). 검사기 규칙
+%     `예산-보수적칸` 은 그 **자구가 있는지**만 봤지 **참인지**를 보지 않았다.
+%   ②*"prints 5 of ~32 numbers as prose"* --- 표를 만들었다(`gen_budget_table.py`).
+\input{budget_table}
 
 % ============================================================================
 % ★2026-09-02 (P9) --- 4차 감사 B9 의 나머지 절반.
@@ -1153,7 +1216,7 @@ $O(N_e \cdot G_x G_y \cdot \log(G_x G_y))$ plus the ensemble
 transform at $O(N_e^3 + N_e^2 \cdot M)$. The tuned configuration is
 ($N_e{=}100$, $G{=}40 \times 30$); see Table~\ref{tab:complexity}.
 No absolute latency is quoted for this arm: the earlier figure was withdrawn as a
-cross-process timing (Appendix~\ref{app:changes}, R3) and no baseline arm has been
+cross-process timing (\ref{app:changes}, R3) and no baseline arm has been
 re-timed.
 
 \textbf{GPR}: Gaussian Process Regression with $M$ observations
@@ -1165,27 +1228,30 @@ Table~\ref{tab:complexity} summarizes the scaling comparison.
 
 \begin{table}[t]
 \centering
-\caption{Computational complexity comparison.
+\caption{Asymptotic per-frame cost.
 $M$: observations/frame, $N$: spectral components,
 $G$: grid size, $N_e$: ensemble members.
 ETKF uses the tuned configuration ($N_e=100$, $G=40\times30$).
-The ``Measured'' column is empty by design: the figures that stood there were
-withdrawn as cross-process timings (Appendix~\ref{app:changes}, R3), and the
-same-process replacement measured since covers our own arm only
-(Section~\ref{sec:complexity}), not the baselines. The asymptotic column is analytic
-and is unaffected.}
+This table is analytic only. It carried a measured column in earlier versions; those
+figures were withdrawn as cross-process timings (\ref{app:changes}, R3), and the
+same-process replacement measured since covers our own arm alone and is reported
+separately in Table~\ref{tab:budget}. We do not place our measured arm beside
+un-timed baselines in one column, because a reader would read a comparison that was
+never run.}
 \label{tab:complexity}
-% RETRACTED 2026-08-14: measured column replaced by markers. No substitute absolute
-% values have been verified, so no numbers are invented.
+% ⛔[2026-09-02] 6차 감사: `[retracted]` 마커 **세 개**가 한 열에 서 있었다.
+%   ★그 열은 이제 **존재하지 않는다** --- 우리 팔의 측정은 표 `tab:budget` 로 갔고,
+%   기준선은 재계측되지 않았다. 「빈 열 + 마커」보다 「열 없음 + 문장」이 정직하다.
+%   ⛔기준선 칸을 우리 수로 채우고 싶은 유혹의 반대 방향으로 고친 것이다.
 % --- original measured column (kept for history) ---
 % WaveSplat & ... & 13.4~ms \\  ETKF-grid & ... & 132.6~ms \\  GPR & ... & $>$200~ms \\
-\begin{tabular}{lcc}
+\begin{tabular}{lc}
 \toprule
-Method & Per-frame complexity & Measured \\
+Method & Per-frame complexity \\
 \midrule
-WaveSplat & $O(K \cdot K_w \cdot M \cdot N)$ & [retracted] \\
-ETKF-grid & $O(N_e \cdot G^2 \log G^2)$ & [retracted] \\
-GPR       & $O(M^3)$ & [retracted] \\
+WaveSplat & $O(K \cdot K_w \cdot M \cdot N)$ \\
+ETKF-grid & $O(N_e \cdot G^2 \log G^2)$ \\
+GPR       & $O(M^3)$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1217,7 +1283,7 @@ sampling~\citep{hasselmann1973}.  The simulator parameters are:
   % --- original (kept for history) ---
   % \item \textbf{Ground-truth wave model}: Gerstner waves (nonlinear),
   %   providing a realistic test of the linear forward model~\eqref{eq:forward}
-  \item \textbf{Ground-truth wave model} (Appendix~\ref{app:changes}, R2): The synthetic ground truth is a \emph{displacement-free
+  \item \textbf{Ground-truth wave model} (\ref{app:changes}, R2): The synthetic ground truth is a \emph{displacement-free
     linear superposition on a fixed grid}: the generator discards the
     horizontal displacement components of the Gerstner solution, so the
     ground truth lies in the \emph{same function space} as the estimator's
@@ -1519,8 +1585,9 @@ in its design note; every other row in Table~\ref{tab:earns} had its analysis fr
 first.
 
 \emph{Consequently we do not regard this as the paper's strongest evidence.} The
-replication of \S\ref{sec:res_hos} --- non-linear reference field, seeds drawn from
-outside the corpus, comparator verified to retain skill on
+replication of \S\ref{sec:res_hos} --- non-linear reference field,
+\BTwelveFreshSeeds{} of its \BTwelveSeeds{} scene seeds used by no earlier batch of
+this project, comparator verified to retain skill on
 \BTwelveCmpBetter{}/\BTwelveCmpN{} episodes, analysis frozen before results --- is
 stronger on every axis on which the two differ, and it is what the abstract and the
 conclusion lead with.
@@ -1535,10 +1602,18 @@ and we report its two weaknesses in the same breath.
 \label{sec:res_hos}
 
 The two most load-bearing confounds in the B-1 result are the linear reference field
-and the training/evaluation distribution overlap. We removed the first outright and
-weakened the second by regenerating the corpus with a higher-order spectral (HOS,
-$M{=}3$) reference and seeds drawn from outside the corpus that produced the
-checkpoint.
+and the reuse of one corpus across many of this project's batches. We removed the
+first outright by regenerating with a higher-order spectral (HOS, $M{=}3$) reference,
+and weakened the second by drawing \BTwelveFreshSeeds{} of the \BTwelveSeeds{} scene
+seeds from a range no earlier batch had used. We are careful about what the second
+does \emph{not} address: no evaluation seed anywhere in this paper falls in the
+checkpoint's training band, so ``unseen by the checkpoint'' was already true of B-1
+and is not what distinguishes this batch. What is new here is that these scenes had
+not been looked at while this project's earlier decisions were being made.
+% ⛔[2026-09-02] 6차 감사 N19: 앞 판은 *"seeds drawn from outside the corpus that
+%   produced the checkpoint"* 를 이 배치의 기여로 적었다 --- **모든 배치에 참**이다.
+%   ⚠그리고 12 중 4(1581--1584)는 앞선 `HOSGATE` 배치가 이미 썼다.
+% ★"HOS M=3" 은 생성기에 **요청한 것**이다 --- 실현된 메시 등급은 표 5 주 (i) 에 있다.
 
 The conclusion holds: \BTwelveBetter{}/\BTwelveN{} episodes, median relative change
 \BTwelveRel{}, $p = \BTwelveP{}$ (one-sided sign test).
@@ -1658,12 +1733,15 @@ any baseline margin.
 \subsection{Scope, stated as measured}
 \label{sec:res_scope}
 
-\textbf{The sparse stratum does not separate.} Against the deployed analytic
-package with its ensemble intact, the crowded stratum favours the learned package
-while the sparse stratum does not; we therefore do not write \emph{``the learned
-prior wins in every regime''}. (The sparse figure is a re-aggregation of the frozen
-deployment-verification corpus rather than a pre-registered contrast, and we cite it
-as such.)
+\textbf{Against the deployed analytic package, the sparse stratum does not
+separate.} With that package's ensemble intact, the crowded stratum favours the
+learned package while the sparse stratum does not; we therefore do not write
+\emph{``the learned prior wins in every regime''}. (The sparse figure is a
+re-aggregation of the frozen deployment-verification corpus rather than a
+pre-registered contrast, and we cite it as such.) This is a statement about one
+comparator and does not transfer: against the wavenumber-grid ablation the same
+stratum \emph{does} separate (B-19, \BNineteenBetter{}/\BNineteenN{},
+Section~\ref{sec:res_ablation}). We report both and collapse neither.
 
 \textbf{On measured data the learned prior does not reach the decision
 threshold.} Across $12$
@@ -1692,8 +1770,16 @@ boundary, including why the transfer fails, is the subject of a companion thesis
 % ============================================================================
 
 Table~\ref{tab:earns} and Table~\ref{tab:boundary} collect every comparison this
-paper relies on, and Fig.~\ref{fig:results} plots the first of them with exact
-confidence intervals alongside each comparator's own skill. Each row is one batch, and the number is read out of that batch's
+paper relies on for its accuracy claims, and Fig.~\ref{fig:results} plots the first
+of them with exact confidence intervals alongside each comparator's own skill. Two
+contrasts are reported outside them and are marked where they appear: the
+spectral-domain measurement of Section~\ref{sec:res_spectral}, which is graded
+exploratory, and the ensemble contrast on measured records in
+Section~\ref{sec:res_summary}, which moves an endpoint without crossing a
+threshold.
+% ⛔[2026-09-02] 6차 감사 N13: *"collect **every** comparison"* 은 **전칭이고 거짓**이었다.
+%   ★전칭을 쓸 때마다 이 저장소가 대가를 치렀다(오늘 두 번째).
+ Each row is one batch, and the number is read out of that batch's
 frozen verdict file rather than transcribed by hand.
 % ============================================================================
 % ★2026-09-02 (P9) --- 내 전칭 주장 수리. 초판(오늘 아침)은 *"Each row is one
@@ -1766,7 +1852,25 @@ In time (lead $1.0\,T_p$) & T-4 & \TFourN{} & \TFourBetter{} & \TFourRel{} & ---
 %   ⛔런 0회다: 합성 하네스가 `nRMSE = RMSE / Hs` 로 정규화하므로
 %   (`metrics.py:32-50`) 미터는 **정의에서** 나온다. 새 측정이 아니다.
 %   ★생성기가 교차 검증을 한다: 같은 팔이 두 배치에서 값이 다르면 죽는다.
+% ⛔[2026-09-02] 6차 감사 N: 이 표를 **본문이 한 번도 인용하지 않았다**
+%   (`\ref{tab:absolute}` 0회) --- 5차 감사가 지적한 바로 그 결함을 새 표가 재현했다.
 % ============================================================================
+\paragraph{The same numbers in metres}
+Every quantity above is a ratio. Table~\ref{tab:absolute} restates the arms of the
+three ablation batches in metres, by sea state, with interquartile ranges. It is a
+unit conversion and not a new measurement --- the synthetic harness normalises by
+significant wave height, so metres follow by multiplication --- but it is the form
+in which a reader can ask whether the residual is small compared with the sea it
+sits in. Two things are visible there that a ratio hides. The crowded-stratum error
+of the deployed arm is roughly a seventh of the wave height at BF4 and an eighth at
+BF5, while its comparator sits near a fifth in both. And the sparse block's large
+relative margin survives the conversion --- it is not an artefact of dividing by a
+small number --- but its absolute errors are also the smallest in the table, so the
+margin is measured where there is least to get wrong. That is a different fact from
+the one in Section~\ref{sec:res_scope}, which reports that the sparse stratum does
+not separate against a \emph{different} comparator, the deployed analytic package;
+the two are not in conflict and neither generalises to the other.
+
 \input{abs_table}
 
 \paragraph{What each $n$ is made of, and why it is not $n$ independent trials}
@@ -1786,6 +1890,12 @@ non-linear replication is the same design with \AblationSeeds{} seeds. So four
 episodes share each seed, and the true number of independent scene draws behind an
 $n$ of \AblationEps{} is \AblationSeeds{}, not \AblationEps{}.
 
+A second axis is folded away before the sign test sees it. Each episode is run at
+\EstSeeds{} estimator seeds and the value entering a comparison is the median over
+them, so estimator-side randomness is suppressed rather than counted; the S-ENS rows
+are the exception and use \EstSeedsSEns{}, which that batch discloses. This makes the
+comparisons more stable but it does not add independent trials.
+
 The sign tests we report treat episodes as exchangeable. That is the convention the
 preregistrations fixed, and we keep it rather than change the rule after the fact,
 but it means the $p$-values should be read as descriptive of the paired pattern
@@ -1798,11 +1908,20 @@ them on the strength of $p$ alone would be over-reading.
 
 \paragraph{How the rows of Table~\ref{tab:earns} must be read}
 Four qualifications apply to the table as a whole and are not repeatable per row.
-\emph{(i)} Every corpus in it is synthetic, and all but the B-12 row use a linear
-ground-truth field; the gains are synthetic gains, and the non-linear check is the
-B-12 row alone. \emph{(ii)} The learned checkpoint was trained on scenes from the
-same distribution family as these corpora. Only the seed axis is out of sample:
-B-12 adds unseen seeds, and no row tests a shift of the distribution itself.
+\emph{(i)} Every corpus in it is synthetic. Three rows --- B-12, B-16 and B-19 ---
+share the higher-order (HOS) reference corpus; the remaining rows use a linear
+ground-truth field. ``Higher-order'' names what was \emph{requested} of the
+generator, not what every episode realised: of the \HosCrowdedN{} crowded episodes,
+\HosCrowdedAdequate{} carry an adequate mesh and \HosCrowdedDegraded{} a degraded
+one; of the \HosSparseN{} sparse episodes, \HosSparseAdequate{} are adequate,
+\HosSparseDegraded{} degraded, and \HosSparseInadequate{} inadequate. On the degraded cells
+the realised non-linearity is second order rather than third, which is one reason
+Section~\ref{sec:res_hos} does not compare magnitudes across corpora. Whatever the
+grade, the corpora are synthetic and so the gains are synthetic gains. \emph{(ii)} The learned checkpoint was trained on scenes from the
+same distribution family as these corpora. Only the seed axis is out of sample, and even
+there the addition is modest: B-12 draws \BTwelveFreshSeeds{} of its
+\BTwelveSeeds{} scene seeds from a range no earlier batch used. No row tests a shift
+of the distribution itself.
 \emph{(iii)} The comparator in the first block is the strongest eligible grid
 baseline we possess, which is not the same claim as a baseline strengthened for
 this comparison; the ``cmp.'' column is there so the reader can judge how much
@@ -1931,16 +2050,19 @@ here generalises to the site level.
 \caption{One crowded episode, one frame, illustrative only --- \emph{no comparison
 is drawn here}, and every quantitative claim in this paper lives in
 Table~\ref{tab:earns}. Top: the true field with that frame's observations overlaid,
-the reconstruction, and their difference on a ten-times finer colour scale. The
+the reconstruction, and their difference on a colour scale \QualScaleRatio{} times
+finer (the scale factor is printed on that panel's colour bar). The
 observations occupy a small patch near the sensor; the field is reconstructed across
 the whole domain from the spectral parameters, which is what ``grid-free'' buys and
 also where it can go wrong. Bottom left: RMS error against distance to the nearest
 observation, which roughly doubles from the observed patch to the far corner ---
 the error is not uniform, and a reader should not read a single domain-average
-number as a local accuracy. Bottom centre and right: the estimated atoms against the
-true components. Most are recovered; one true component near
-$(k_x, k_y) = (0.57, -0.25)$~rad/m has no estimated atom near it, and one estimated
-atom sits where no true component does. The provenance of this figure --- episode,
+number as a local accuracy. The RMS error over this frame is
+\QualFrameRmse{}~m, from \QualNObs{} observations. Bottom centre and right: the estimated atoms against the
+true components. Most are recovered; the true component furthest from any estimated
+atom sits at $(k_x, k_y) = (\QualMissKx{}, \QualMissKy{})$~rad/m, and the estimated
+atom furthest from any true component sits at
+$(\QualSpurKx{}, \QualSpurKy{})$~rad/m. The provenance of this figure --- episode,
 frame, seed, configuration, and commit --- is recorded alongside it.}
 \label{fig:qualitative}
 \end{figure}
@@ -1967,6 +2089,7 @@ Generated from the frozen verdict files by \texttt{scripts/gen\_fig\_results.py}
 \end{figure}
 
 \paragraph{A spectral-domain metric, and what it took to get one}
+\label{sec:res_spectral}
 % ============================================================================
 % ★2026-09-02 (P10) --- 5차 감사 MAJOR #5 에 대한 최종 답.
 %   첫 배치(`T7`)는 **자기 음성 대조가 막아** 라벨을 못 냈다. ⛔그 자료 위에서 게이트를
@@ -1993,9 +2116,10 @@ spectrum better than the analytic one on \SpecBetter{}
 ($p = \SpecP{}$). \emph{We grade this exploratory and not confirmatory}, because the
 first attempt's numbers were known when the second was designed.
 
-Three things travel with it. The comparator beats a zero field on only $21$ of the
-$32$ episodes, so this margin is partly the comparator's weakness and its size should
-not be read as an accuracy ratio. Our own arm is below a zero field on two episodes.
+Three things travel with it. The comparator beats a zero field on only
+\SpecCmpBetter{} of the \SpecN{} episodes, so this margin is partly the comparator's
+weakness and its size should not be read as an accuracy ratio. Our own arm is below a
+zero field on \SpecOwnBelowZero{} episodes.
 And the metric compares power spectra, which for a real field are symmetric under
 $\mathbf{k}\to-\mathbf{k}$: it does not distinguish propagation direction, so it is a
 spectral-magnitude agreement measure and not a directional one. The companion
@@ -2012,10 +2136,12 @@ additionally produced before a correction to the tracker's phase advance. Where 
 pre-registered replacement exists it appears in the two tables above. Where none
 exists, the quantity is simply absent from this paper and we do not restate it
 from the archived run: this applies to the five-metric evaluation panel, the
-stratification against wave buoys, the twelve-episode comparison against tuned
-grid baselines, the spectral-accuracy comparison, and the absolute per-frame
-latency, which has never been measured on the deployed learned initialisation path
-at all. The paper is thinner for this, and a reader comparing it against the
+stratification against wave buoys, and the twelve-episode comparison against tuned
+grid baselines. Two items that stood in this list in the previous version have since
+been re-measured and have moved out of it: a spectral-domain contrast
+(Section~\ref{sec:res_spectral}, on a disjoint corpus and graded exploratory) and the
+per-frame latency of the deployed learned path (Section~\ref{sec:complexity}). The
+paper is thinner for this, and a reader comparing it against the
 earlier version will find fewer numbers rather than more. That is the intended
 direction: every number that remains is one a frozen verdict file will reproduce.
 
@@ -2097,8 +2223,22 @@ shipped default to $\DepLambdaOne{}$. It is in the supplementary archive.
 % makes it suitable for deployment on standard shipboard computing hardware.
 WaveSplat's computational footprint on a single CPU thread
 (measured in Section~\ref{sec:complexity}; an earlier figure quoted here was
-withdrawn, Appendix~\ref{app:changes}, R3) is intended for
+withdrawn; \ref{app:changes}, R3) is intended for
 deployment on standard shipboard computing hardware.  Inference does not require GPU acceleration for the tracking phase, and no offline calibration against a particular site is needed. It does require the learned proposal checkpoint at initialisation, which is where the GPU is used when one is available.
+% ⛔[2026-09-02] 6차 감사 N18: 이 절이 *"배포"* 를 논하는데, \S\ref{sec:method} 의
+%   라우터 공시는 **실측 입력에서 학습 경로가 아예 진입하지 않는다**고 적는다.
+%   ⟹ 두 절이 서로 다른 시스템을 서술하고 있었고 논문이 그것을 화해시키지 않았다.
+%   ★고치는 방향은 「배포 절을 삭제」가 아니라 **어느 시스템을 말하는지 명시**다.
+\emph{Which system this paragraph is about.} The costs above are those of the
+learned path, and on the synthetic corpora that is what the shipped configuration
+runs. On input that carries no ground-truth field --- which is the case for real
+sensor data --- the shipped router hands off to a different estimator
+(Section~\ref{sec:method}), so the paragraph above describes the cost of the system
+this paper measures, not of a system we have run end to end on a vessel. Making the
+learned path the one that runs on real input is exactly the boundary
+Section~\ref{sec:res_scope} reports we have not crossed, and we do not present the
+timing as evidence that it has been.
+
 The spectral parameters are directly interpretable: a naval architect
 can inspect the estimated wavenumber vector, amplitude, and frequency
 of each component, enabling sanity checking against visual observation
@@ -2201,9 +2341,12 @@ that reason.
 % (basis: memory/project_audit_recheck_2026-08-13.md sections 1, 6, 6.5)
 % --- original (kept for history) ---
 % We note that the simulator itself is validated by 39 unit tests
-We note that the simulator and estimator are covered by an automated test suite (\DeployNumTestsPaper{} tests at the time of writing; the count is generated, not typed)
-(measured 2026-08-13; a further 8 shipping-default regression tests were
-added subsequently)
+We note that the simulator and estimator are covered by an automated test suite
+(\DeployNumTestsPaper{} tests at the time of writing; the count is generated from a
+collection run, not typed),
+% ⛔[2026-09-02] 6차 감사 N4: 여기 *"(measured 2026-08-13; a further 8 ... added
+%   subsequently)"* 가 겹쳐 붙어 있었다. 그 괄호는 수를 **손으로 적던 시절**(204)의
+%   잔재다 --- 이제 매크로가 수집 실행에서 세므로 날짜도 증분도 거짓이 된다.
 covering dispersion, Gerstner kinematics, Fresnel optics, and
 raydrop statistics --- note that the Gerstner test exercises
 the kinematics \emph{function}, which the generation pipeline does not use for
@@ -2260,7 +2403,7 @@ Table~\ref{tab:boundary} is for.
 \paragraph{Linear forward model}
 Earlier versions stated that the $O(\epsilon^2)$ model mismatch was small but
 non-zero and affected all methods equally
-(Appendix~\ref{app:changes}, R2). The correct facts are: the synthetic ground truth
+(\ref{app:changes}, R2). The correct facts are: the synthetic ground truth
 is a \emph{displacement-free linear superposition on a fixed grid}, so it lies in
 the same function space as the estimator's model equation and the measured mismatch
 is \emph{zero}; and a zero mismatch is not neutral between methods, because the
@@ -2318,12 +2461,15 @@ the batches reported in Section~\ref{sec:results}.  We previously attributed thi
 momentum accumulating oscillating gradients from an inaccurate phase
 prediction $\phi_i \mathrel{+}= \omega_i \Delta t$.  That attribution is
 withdrawn: the specific inaccuracy it named was a double application of
-the phase advance, which has since been corrected, and the deficit
-narrowed from $0.66$ on the original mesh through $0.83$ to the present
-$0.916$ without the momentum path being touched.  The remaining $8\%$ is
-therefore \emph{unattributed}---we can bound it but not currently explain
-it, and we prefer to say so rather than carry forward a mechanism whose
-named cause no longer exists.  Post-hoc
+the phase advance, which has since been corrected, and the deficit narrowed
+substantially across two successive corrections without the momentum path being
+touched.  What remains is therefore \emph{unattributed}---we can observe it but not
+currently explain it, and we prefer to say so rather than carry forward a mechanism
+whose named cause no longer exists.
+% ⛔[2026-09-02] 6차 감사 N17: 이 문단은 세 문장 위에서 *"The levels are not restated
+%   here"* 라 적고 세 문장 뒤에 **0.66 / 0.83 / 0.916 / 8\%** 를 다시 적었다.
+%   5차 감사가 같은 결함을 이웃 문단에서 잡았고 **처방이 이 문단에 적용되지 않았다**
+%   (N-1 부류, 오늘 여덟 번째). ⟹ 값 넷을 빼고 방향만 남긴다.  Post-hoc
 least-squares amplitude calibration is effective when dense observations
 are available but does not improve with sparse LiDAR ($\sim$50~pts/frame)
 due to insufficient spatial coverage; isolating the residual mechanism
@@ -2509,9 +2655,16 @@ representation that earns its gain on crowded synthetic seas has not been shown 
 earn it on the measured data we hold, and locating that boundary --- rather than
 widening the margin --- is where we believe the remaining work lies.
 
-We also note two limits of the evidence itself. The synthetic gains are confined to
-the crowded stratum; against the deployed analytic package the sparse stratum does
-not separate. And the learned checkpoint was trained on the same distribution family
+We also note two limits of the evidence itself. Every comparison against a grid
+baseline in this paper is on the crowded stratum. In the sparse stratum the evidence
+is split rather than absent: the wavenumber-continuity ablation reproduces there
+(\BNineteenBetter{}/\BNineteenN{} episodes), while against the deployed analytic
+package the stratum does not separate. Those are two different comparators and
+neither answers for the other.
+% ⛔[2026-09-02] 6차 감사 N11: 초록.\S5.4.결론이 **세 개의 서로 다른 참인 문장**을
+%   *"crowded-stratum only"* 하나로 뭉쳤고, 그 하나를 **표 5 의 B-19 행이 반증**한다
+%   (희소 14/16). ★한 문장으로 접을 수 없는 것을 접으면 자기 표와 충돌한다.
+And the learned checkpoint was trained on the same distribution family
 as the synthetic evaluation, so ``out of sample'' on that corpus means on the seed
 axis only.
 
@@ -2550,8 +2703,13 @@ than only that something was.
 The complete 100-episode dataset can be regenerated from the released
 simulator with the provided configuration files and fixed random
 seeds, ensuring end-to-end reproducibility of the tables and figures that were
-computed on it. The headline results of this paper were not: they come from the
-frozen corpora of the batches identified in Table~\ref{tab:earns}.
+computed on it. The headline results of this paper were \emph{not} computed on that
+dataset: they come from the frozen corpora of the batches identified in
+Table~\ref{tab:earns}. The two checkpoints the deployed learned path loads are in the
+same repository and are identified here by digest --- the conditional denoiser
+(\texttt{\CkptShaFull{}}) and the normalisation prior
+\texttt{setdiff\_prior.pt} (\texttt{\PriorCkptSha{}}\dots) --- so a reader can verify
+that the released weights are the ones these numbers came from.
 
 The buoy directional-spread statistics used for the external-validity
 stratification of the retracted corpus (archived) are third-party

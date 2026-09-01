@@ -187,8 +187,17 @@ BANS = [
  ("'희소 해상 해결' 류 실용 주장",
   r"희소해상.{0,6}해결|sparseseas?.{0,12}solved|essentiallysolved",
   "reference_citation_bans.md (08-03)"),
+ # ⛔[2026-09-02] 6차 감사 수리 중 이 규칙이 **오탐**을 냈다:
+ #   *"'Higher-order' names what was requested of the generator, not what **every
+ #    episode** realised"* --- 우월 주장이 아니라 **한계 공시**인데 걸렸다.
+ #   ★`everyepisode` / `alldensities` 단독은 **자구**이지 **주장**이 아니다
+ #     (`synthetic` 한 토큰 통과와 같은 부류의 반대편 오류).
+ #   ⟹ 우월 어휘가 60자 이내에 함께 있을 것을 요구한다. ⛔`onall(episodes|densities)`
+ #     와 `outperform.{0,40}all` 은 **그대로 둔다** --- 그것들이 정탐을 잡는 가지다.
  ("'all episodes / every density 에서 우월'",
-  r"onall(episodes|densities)|everyepisode|alldensities|outperform.{0,40}all",
+  r"onall(episodes|densities)|outperform.{0,40}all"
+  r"|(?:better|improv|outperform|wins?|won|superior|우월)\w{0,60}(?:everyepisode|alldensities)"
+  r"|(?:everyepisode|alldensities)\w{0,60}(?:better|improv|outperform|wins?|won|superior|우월)",
   "paper/wavesplat.tex:17-38 배너 2항"),
  ("제목·본문의 'Shipboard LiDAR'",
   r"[Ss]hipboardLiDAR|shipboardlidar", "thesis 제목 철회(실증 0건) = 배너 1항"),

@@ -1,0 +1,27 @@
+% ⛔자동 생성 — 손으로 고치지 마라.
+%    생성: python3 scripts/gen_budget_table.py   (런 0회, T6 동결 verdict 재인쇄)
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\caption{Measured cost of the deployed estimator, one process, one thread, on an AMD Ryzen~7 7800X3D. Every cell is \(8\) episodes; the per-frame column is the median over episodes of the per-episode median frame, with the interquartile range, and the budget column is that median against a \(10\)~Hz frame interval. Initialisation is a one-off cost and is not part of the per-frame figure. \emph{No baseline arm was run in this batch}, so no comparative timing claim follows from it, and these numbers are not commensurable with the cross-process figures withdrawn in \ref{app:changes}, R3. Pre-registered as T-6; all ten gates pass, including a per-run read-back that the thread count was one and that the shipping constants were in force.}
+\label{tab:budget}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lllrrr}
+\toprule
+Device & Init.\ path & Stratum & Frame [ms] & \(10\)~Hz budget & Init.\ [s] \\
+\midrule
+CPU & learned & crowded & 5.91 {\scriptsize[5.85,6.07]} & 5.9\% & 5.18 \\
+CPU & learned & sparse & 5.95 {\scriptsize[4.92,6.01]} & 5.9\% & 5.89 \\
+\addlinespace[2pt]
+CPU & analytic & crowded & 6.05 {\scriptsize[5.87,6.08]} & 6.0\% & 26.61 \\
+CPU & analytic & sparse & 5.97 {\scriptsize[5.91,5.99]} & 6.0\% & 17.08 \\
+\addlinespace[2pt]
+GPU & learned & crowded & 6.20 {\scriptsize[6.12,6.24]} & 6.2\% & 4.86 \\
+GPU & learned & sparse & 6.06 {\scriptsize[5.08,6.15]} & 6.1\% & 4.30 \\
+\addlinespace[2pt]
+GPU & analytic & crowded & 6.26 {\scriptsize[6.17,6.28]} & 6.3\% & 27.57 \\
+GPU & analytic & sparse & 6.12 {\scriptsize[6.05,6.15]} & 6.1\% & 17.48 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -109,10 +109,307 @@ def _prior_arch():
     }
 
 
-def _ckpt_sha():
-    """배포 체크포인트의 **코드에 핀된** SHA256 앞 12자리."""
+def _sci_seed(v):
+    """시드 대역 끝점을 인쇄 가능한 수식으로. ⛔값이 다르면 죽는다."""
+    if v == 2_000_000_000:
+        return r'2\times10^{9}'
+    if v == 2_147_483_647:
+        return r'2^{31}-1'
+    raise SystemExit(f'⛔시드 대역이 바뀌었다: {v} — 인쇄 형태를 다시 정하라')
+
+
+def _training():
+    """★학습 절차의 수치를 **동결 학습 산출물에서** 읽는다.
+
+    6차 감사(2026-09-02) 지적:
+
+    > *"train/val split is not addressed --- the word 'validation' does not appear
+    >  in the paper. One exists and is committed: 256 held-out scenes, seed
+    >  987654321, evaluated every 1000 steps, curve saved."*
+
+    ⛔전부 커밋된 파일에 있다. 손으로 적지 않는다 --- `train_curve.json` 과
+    `gen_mixed.py` 소스에서 읽는다.
+    ⚠이 값들은 **아키텍처와 달리** 가중치에 없다. 그래서 동결 기록이 낡았다는
+      §3.4.1 의 공시가 함께 가야 한다(그 공시는 코드가 아니라 *freeze record* 를 겨눈다).
+    """
+    import re as _re
+    B = os.path.join(TMP, 'mixed_retrain_2026-07-26')
+    cur = json.load(open(os.path.join(B, 'train_curve.json')))
+    args, curve = cur['args'], cur['curve']
+    src = open(os.path.join(B, 'gen_mixed.py')).read()
+    lo, hi = _re.search(r'SEED_LO,\s*SEED_HI\s*=\s*([\d_]+),\s*([\d_]+)', src).groups()
+    log = open(os.path.join(B, 'train.log'), errors='replace').read()
+    donors = _re.search(r'geometry bank: (\d+) donor episodes', log).group(1)
+    val_n, val_seed = _re.search(r'held-out val: (\d+) scenes \(seed (\d+)\)', log).groups()
+    return {
+        'TrainSteps': f"{int(args['steps']):,}",
+        'TrainBatch': str(args['bsz']),
+        'TrainScenes': f"{sum(cur['strata_seen'].values()):,}",
+        'TrainValScenes': val_n,
+        'TrainValSeed': val_seed,
+        'TrainValEvery': f"{int(args['val_every']):,}",
+        'TrainLossFinal': f"{curve[-1]['train']:.4f}",
+        'TrainValLossFinal': f"{curve[-1]['val']:.4f}",
+        # ★수학 모드에서 천단위 쉼표는 `[2, 000, 000, 000, 2, 147, ...)` 로 **깨져서**
+        #   인쇄된다(구간 쉼표와 구별이 안 된다). ⟹ 지수 형태로 낸다. 값은 검증한다.
+        'TrainSeedLo': _sci_seed(int(lo.replace('_', ''))),
+        'TrainSeedHi': _sci_seed(int(hi.replace('_', ''))),
+        'TrainDonors': donors,
+    }
+
+
+def _eval_seed_max():
+    """★논문이 보고하는 **모든** 코퍼스의 최대 시드.
+
+    ⛔*"학습 시드 대역이 평가와 겹치지 않는다"* 는 주장을 손으로 적지 않는다 ---
+    동결 결과 행의 에피소드 이름에서 **센다**. 겹치면 이 값이 학습 대역에 닿는다.
+    """
+    import glob as _g
+    import re as _re
+    seeds = set()
+    for f in _g.glob(os.path.join(TMP, '*', 'results*.jsonl')):
+        for line in open(f, errors='replace'):
+            m = _re.search(r'seed(\d+)', line)
+            if m:
+                seeds.add(int(m.group(1)))
+    hi = max(seeds)
+    assert hi < 2_000_000_000, f'⛔평가 시드가 학습 대역에 닿는다: {hi}'
+    return f"{hi:,}"
+
+
+def _ckpt_sha(n=12):
+    """배포 체크포인트의 **코드에 핀된** SHA256.
+
+    ⛔[2026-09-02] 6차 감사 BLOCKER: 논문이 *"the estimator **refuses to load** a
+      checkpoint whose SHA-256 does not begin ..."* 라 적었는데 **거짓**이다.
+      `learned_init._load_cond` 는 검사 없이 `torch.load` 한다 --- `ckpt_sha256()` 은
+      패키지 어디서도 호출되지 않고, 대조하는 것은 **단위 시험 하나**뿐이다
+      (`tests/test_deploy_auto_v1_m3.py`). 문장을 참으로 고쳤다.
+    """
     from wavesplat.optimizer.learned_init import DEFAULT_CKPT_SHA256
-    return DEFAULT_CKPT_SHA256[:12]
+    return DEFAULT_CKPT_SHA256[:n] if n else DEFAULT_CKPT_SHA256
+
+
+def _mesh_grades():
+    """★비선형(HOS) 코퍼스의 **실현된 메시 적정성**을 에피소드 HDF5 에서 센다.
+
+    6차 감사(2026-09-02) 지적:
+
+    > *"the batch's own gate file instructs that the sample must not be described
+    >  uniformly as HOS M=3 ... the reader is never given a fraction."*
+
+    ⛔*"HOS M=3 참값"* 은 **생성기에 요청한 것**이고, 실현된 것은 셀마다 다르다
+      (`config.mesh_verdict`). 그 분포를 손으로 적지 않고 **자료에서 센다**.
+    """
+    import collections
+    import glob as _g
+    import h5py
+    per = {}
+    for f in sorted(_g.glob(os.path.join(TMP, 'HOSGATE_2026-08-13', 'data_hos', '*.h5'))):
+        with h5py.File(f, 'r') as h:
+            v = h['config'].attrs.get('mesh_verdict')
+        per[os.path.basename(f)[len('episode_'):-3]] = (
+            v.decode() if isinstance(v, bytes) else str(v))
+
+    def grade(pattern):
+        eps = set()
+        for f in _g.glob(os.path.join(TMP, pattern)):
+            for line in open(f):
+                e = json.loads(line).get('episode')
+                if e:
+                    eps.add(os.path.basename(e).replace('episode_', '').replace('.h5', ''))
+        c = collections.Counter(per.get(e, '?') for e in eps)
+        assert c.get('?', 0) == 0, f'⛔HOS 코퍼스 밖 에피소드가 있다: {pattern}'
+        return c
+
+    cr = grade('B12_HOS_EXTEND_2026-08-23/results_b12.jsonl')
+    sp = grade('B19_KGRID_SPARSE_2026-08-25/results_b19_*.jsonl')
+    return {
+        'HosCrowdedAdequate': str(cr['ADEQUATE']),
+        'HosCrowdedDegraded': str(cr['DEGRADED']),
+        'HosCrowdedN': str(sum(cr.values())),
+        'HosSparseAdequate': str(sp['ADEQUATE']),
+        'HosSparseDegraded': str(sp['DEGRADED']),
+        'HosSparseInadequate': str(sp['INADEQUATE']),
+        'HosSparseN': str(sum(sp.values())),
+    }
+
+
+def _spec_controls():
+    """`T7b` 의 **음성 대조 두 개**를 게이트 문자열에서 읽는다.
+
+    ⛔[2026-09-02] 6차 감사: 논문이 이 둘(`21`, `two`)을 **손으로 적었다** ---
+      *"a paper whose method is that numbers come from macros."* 그 지적이 옳다.
+    ⚠이 배치는 두 값을 `contrasts` 가 아니라 **게이트 사유 문자열**에 넣었다.
+      동결 파일은 고치지 않는다 ⟹ 여기서 파싱하고, 형태가 바뀌면 죽는다.
+    """
+    import re as _re
+    v = load('T7b_SPECTRAL_2026-09-02/verdict_t7b.json')
+    g = {row[0].split()[0]: row[2] for row in v['gates']}
+    ana = _re.match(r'(\d+)/(\d+)', g['G-5c'])
+    learn = _re.match(r'(\d+)/(\d+)', g['G-5b'])
+    assert ana and learn, f'⛔게이트 문자열 형태가 바뀌었다: {g}'
+    n = int(ana.group(2))
+    assert int(learn.group(2)) == n
+    return {'SpecCmpBetter': ana.group(1),
+            'SpecOwnBelowZero': str(n - int(learn.group(1)))}
+
+
+def _est_seeds():
+    """★**추정기 시드** 수를 동결 행에서 센다 --- 장면 시드와 다른 축이다.
+
+    6차 감사(2026-09-02):
+
+    > *"the number of estimator seeds is never stated anywhere, yet Table 6's
+    >  caption depends on it ('median over estimator seeds')."*
+
+    ⚠균일하지 않다: 대부분 3개(42/43/44 또는 1629--1631)인데 `S-ENS` 는 **하나**다
+      (그 배치가 스스로 공시한다). ⟹ 두 값을 따로 낸다. ⛔뭉치지 마라.
+    """
+    import glob as _g
+    counts = {}
+    for tag, pat in (('main', ('W16_REBASELINE_2026-08-22', 'B12_HOS_EXTEND_2026-08-23',
+                               'B16_KGRID_2026-08-24', 'B19_KGRID_SPARSE_2026-08-25',
+                               'B22_PRIOR_ABLATION_2026-08-27', 'M10_GEOMETRY_2026-08-30',
+                               'T4_GEOMETRY_2026-08-30')),
+                     ('sens', ('S_ENS_2026-09-01',))):
+        per = {}
+        for d in pat:
+            seeds = set()
+            for f in _g.glob(os.path.join(TMP, d, '*.jsonl')):
+                if 'result' not in os.path.basename(f):
+                    continue
+                for line in open(f):
+                    r = json.loads(line)
+                    # ⚠열 이름이 배치마다 다르다: `est_seed` 또는 `seed`.
+                    #   ⛔`gen_seed`(장면 시드)는 **절대** 세지 마라.
+                    v = r.get('est_seed', r.get('seed'))
+                    if v is not None:
+                        seeds.add(v)
+            assert seeds, f'⛔추정기 시드 열이 없다: {d}'
+            per[d] = len(seeds)
+        assert len(set(per.values())) == 1, f'⛔{tag} 배치들의 추정기 시드 수가 갈린다: {per}'
+        counts[tag] = next(iter(per.values()))
+    return {'EstSeeds': str(counts['main']), 'EstSeedsSEns': str(counts['sens'])}
+
+
+def _frame_span():
+    """`T6` 8칸의 **프레임 중앙값 최소/최대**. ⛔손으로 적으면 낡는다.
+
+    ⛔[2026-09-02] 6차 감사: 논문이 *"varied only between 5.9 and 6.3 ms"* 와
+      *"a factor of 1.06"* 를 손으로 적었다. 매크로 규약의 예외를 둘 이유가 없다.
+    """
+    v = load('T6_BUDGET_2026-09-02/verdict_t6.json')
+    ms = [c['frame_ms_median'] for c in v['cells'].values()]
+    return {'FrameMsMin': f'{min(ms):.2f}', 'FrameMsMax': f'{max(ms):.2f}',
+            'FrameMsSpread': f'{max(ms) / min(ms):.2f}'}
+
+
+def _breakable(h, every=8):
+    """긴 16진수를 조판에서 끊을 수 있게 만든다(문자는 하나도 바뀌지 않는다)."""
+    return r'\allowbreak '.join(h[i:i + every] for i in range(0, len(h), every))
+
+
+def _qualitative():
+    """정성 그림의 캡션 수치를 **그 그림의 출처 json 에서** 읽는다.
+
+    ⛔[2026-09-02] 6차 감사 N6: 캡션이 *"a ten-times finer colour scale"* 이라 적었는데
+      그림은 생성기가 계산한 실제 비(`x9.2`)를 인쇄했다 --- **같은 float 안에서
+      손으로 적은 수가 생성된 수와 모순**됐다.
+    """
+    p = os.path.join(ROOT, 'paper', 'figures', 'fig_qualitative.provenance.json')
+    d = json.load(open(p))
+    u, sp = d['unmatched_true'], d['spurious_est']
+    return {'QualScaleRatio': f"{d['colour_scale_ratio']:g}",
+            'QualFrameRmse': f"{d['rmse_this_frame']:.3f}",
+            'QualNObs': str(d['n_obs_this_frame']),
+            'QualMissKx': f"{u['kx']:.2f}", 'QualMissKy': f"{u['ky']:.2f}",
+            'QualSpurKx': f"{sp['kx']:.2f}", 'QualSpurKy': f"{sp['ky']:.2f}"}
+
+
+def _b12_seeds():
+    """`B-12` 의 **장면 시드**와 그중 이 프로젝트의 앞선 배치에 없던 것의 수.
+
+    ⛔[2026-09-02] 6차 감사 N19: 논문이 *"scene seeds drawn from outside the training
+      corpus"* 를 **B-12 를 구별하는 성질**로 팔았다. 그것은 **모든 배치에 참**이다
+      (학습 대역은 2e9 이상, 평가 최대 시드는 `EvalSeedMax`) ⟹ 구별하지 못한다.
+    ★실제로 B-12 가 더하는 것은 **이 저장소의 앞선 배치가 쓰지 않은 시드**다.
+      그 수를 여기서 센다(`HOSGATE` 와의 차집합).
+    """
+    import glob as _g
+    import re as _re
+
+    def seeds_of(pat, key='gen_seed'):
+        out = set()
+        for f in _g.glob(os.path.join(TMP, pat)):
+            for line in open(f):
+                r = json.loads(line)
+                v = r.get(key)
+                if v is None:
+                    m = _re.search(r'seed(\d+)', str(r.get('episode', '')))
+                    v = int(m.group(1)) if m else None
+                if v is not None:
+                    out.add(int(v))
+        return out
+
+    b12 = seeds_of('B12_HOS_EXTEND_2026-08-23/results_b12.jsonl')
+    prior = set()
+    for f in _g.glob(os.path.join(TMP, 'HOSGATE_2026-08-13', '*.jsonl')):
+        for line in open(f):
+            m = _re.search(r'seed(\d+)', line)
+            if m:
+                prior.add(int(m.group(1)))
+    fresh = b12 - prior
+    assert b12 and fresh, '⛔B-12 시드를 세지 못했다'
+    return {'BTwelveSeeds': str(len(b12)), 'BTwelveFreshSeeds': str(len(fresh))}
+
+
+def _donor_disjoint():
+    """★논문의 *"어느 평가 코퍼스에도 도너 에피소드가 없다"* 를 **기계로** 확인한다.
+
+    ⛔[2026-09-02] 이 문장을 쓰기 전에 `tmp/*/results*.jsonl` 만 훑고 참이라 적을
+      뻔했다. 넓혀서 훑으니 도너 14개가 **`results/100ep_ws_letkf.json` 등 옛 파일에
+      전부 나온다**(그 코퍼스는 철회됐고 논문이 보고하지 않는다).
+    ⟹ 주장의 범위는 **논문이 인용하는 배치**여야 하고, 그 범위를 여기서 강제한다.
+      범위를 넓힌 주장을 쓰면 이 함수가 죽는다.
+    """
+    import glob as _g
+    donors = ([f'BF{bf}_{nc}comp_seed0_uniform' for bf in (6, 7) for nc in (1, 5, 15, 30)]
+              + [f'BF{bf}_5comp_seed{sd}_slope' for bf in (3, 4) for sd in (2, 3, 4)])
+    dirs = {a[1].split('/')[0] for a in ATOMS}
+    for d in sorted(dirs):                       # B-1 처럼 행이 다른 배치에 있는 경우
+        vp = _g.glob(os.path.join(TMP, d, 'verdict*.json'))
+        for f in vp:
+            for src in (json.load(open(f)).get('source_results') or []):
+                dirs.add(src.split('/')[1])
+    files = [f for d in dirs
+             for f in _g.glob(os.path.join(TMP, d, '*.jsonl'))]
+    assert files, '⛔인용 배치의 결과 행을 찾지 못했다'
+    bad = {}
+    for f in files:
+        t = open(f, errors='replace').read()
+        for dn in donors:
+            if dn in t:
+                bad.setdefault(dn, set()).add(os.path.basename(os.path.dirname(f)))
+    assert not bad, f'⛔학습 도너가 인용 배치의 평가 코퍼스에 있다: {bad}'
+    return {'CitedBatchFiles': str(len(files))}
+
+
+def _prior_ckpt_sha():
+    """★두 번째 체크포인트(`setdiff_prior.pt`)의 SHA256 앞 12자리.
+
+    ⛔[2026-09-02] 6차 감사 MAJOR: 논문이 정규화 상수를 *"a constant stored in **the**
+      checkpoint"* 라 적었다 --- 배포 학습 경로는 체크포인트를 **둘** 읽는다
+      (`learned_init._load_cond` 가 `cd.PRIOR_CKPT` 에서 `stats` 를 가져온다).
+      논문은 하나만 이름 짓고 핀했다.
+    """
+    import hashlib
+    ck = os.path.join(ROOT, 'results', 'direction3', 'setdiff_prior.pt')
+    h = hashlib.sha256()
+    with open(ck, 'rb') as f:
+        for c in iter(lambda: f.read(1 << 20), b''):
+            h.update(c)
+    return h.hexdigest()[:12]
 
 
 def _k_lim():
@@ -406,10 +703,23 @@ def main():
         #   체크포인트를 갈 때 조용히 낡는다(H2 가 이미 열려 있는 축이다).
         ('DepKLim', _k_lim()),
         ('CkptSha', _ckpt_sha()),
+        # ★64자 16진수는 `\texttt` 안에서 **끊기지 않아** 238pt overfull 을 만들었다.
+        #   ⟹ 8자마다 `\allowbreak` 를 넣어 **내용은 그대로** 두고 줄바꿈만 허용한다.
+        ('CkptShaFull', _breakable(_ckpt_sha(0))),
+        ('PriorCkptSha', _prior_ckpt_sha()),
+        ('EvalSeedMax', _eval_seed_max()),
         # ── 해석적 대안의 탐색 범위(대비용). 함수 서명의 기본값에서 읽는다.
         ('DepAnaKMax', _ana_kmax()),
     ]
     dep += list(_prior_arch().items())
+    dep += list(_training().items())
+    dep += list(_mesh_grades().items())
+    dep += list(_spec_controls().items())
+    dep += list(_est_seeds().items())
+    dep += list(_frame_span().items())
+    dep += list(_qualitative().items())
+    dep += list(_b12_seeds().items())
+    dep += list(_donor_disjoint().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]
 

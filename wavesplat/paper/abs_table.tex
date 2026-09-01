@@ -5,23 +5,32 @@
 \begin{table}[!htbp]
 \centering
 \footnotesize
-\caption{Absolute accuracy, in the units the measurement is made in and in metres. The synthetic harness normalises by significant wave height, so metres follow from $\text{RMSE} = \text{nRMSE}\times H_s$ with no new measurement; this table is a re-aggregation of the same frozen rows that produce Table~\ref{tab:earns}. Each cell is the median over episodes of the per-episode median over estimator seeds, with the interquartile range. \emph{Read within a sea state, not across:} $H_s$ differs between the two, so the ordering in metres and the ordering in nRMSE need not agree across rows.}
+\caption{Absolute accuracy, in the units the measurement is made in and in metres. The synthetic harness normalises by significant wave height, so metres follow from $\text{RMSE} = \text{nRMSE}\times H_s$ with no new measurement; this table is a re-aggregation of the same frozen rows that produce Table~\ref{tab:earns}. Each cell is the median over episodes of the per-episode median over estimator seeds, with the interquartile range. \emph{Read within a sea state, not across:} $H_s$ differs between the two, so the ordering in metres and the ordering in nRMSE need not agree across rows. B-12 and B-16 score their arms on the same \AblationEps{}-episode corpus, so their \texttt{SHIP-NOW} cell is one cell, not two; it is listed once, under B-12, and the generator cross-checks the two aggregations and fails if they disagree.}
 \label{tab:absolute}
-\begin{tabular}{llcrrrr}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcrrrr}
 \toprule
-Batch & Arm & sea state & $H_s$ [m] & $n$ & nRMSE & RMSE [m] \\
+Arm & sea state & $H_s$ [m] & $n$ & nRMSE & RMSE [m] \\
 \midrule
-B-12  non-linear reference & \texttt{SHIP-NOW} & BF4 & 1.2 & 24 & 0.137 {\scriptsize[0.096,0.203]} & 0.164 {\scriptsize[0.115,0.244]} \\
- & \texttt{SHIP-NOW} & BF5 & 2.0 & 24 & 0.130 {\scriptsize[0.096,0.158]} & 0.259 {\scriptsize[0.191,0.315]} \\
- & \texttt{SPEC25} & BF4 & 1.2 & 24 & 0.209 {\scriptsize[0.201,0.218]} & 0.251 {\scriptsize[0.241,0.261]} \\
- & \texttt{SPEC25} & BF5 & 2.0 & 24 & 0.199 {\scriptsize[0.191,0.213]} & 0.399 {\scriptsize[0.381,0.425]} \\
+\multicolumn{6}{l}{\emph{B-12  non-linear ref.\ (crowded)}} \\
+\quad \texttt{SHIP-NOW} & BF4 & 1.2 & 24 & 0.137 {\scriptsize[0.096,0.203]} & 0.164 {\scriptsize[0.115,0.244]} \\
+\quad \texttt{SHIP-NOW} & BF5 & 2.0 & 24 & 0.130 {\scriptsize[0.096,0.158]} & 0.259 {\scriptsize[0.191,0.315]} \\
+\quad \texttt{SPEC25} & BF4 & 1.2 & 24 & 0.209 {\scriptsize[0.201,0.218]} & 0.251 {\scriptsize[0.241,0.261]} \\
+\quad \texttt{SPEC25} & BF5 & 2.0 & 24 & 0.199 {\scriptsize[0.191,0.213]} & 0.399 {\scriptsize[0.381,0.425]} \\
 \midrule
-B-16  wavenumber ablation & \texttt{KGRID1} & BF4 & 1.2 & 24 & 0.228 {\scriptsize[0.202,0.244]} & 0.273 {\scriptsize[0.243,0.292]} \\
- & \texttt{KGRID1} & BF5 & 2.0 & 24 & 0.204 {\scriptsize[0.176,0.228]} & 0.408 {\scriptsize[0.353,0.457]} \\
- & \texttt{KGRID2} & BF4 & 1.2 & 24 & 0.302 {\scriptsize[0.278,0.316]} & 0.363 {\scriptsize[0.334,0.379]} \\
- & \texttt{KGRID2} & BF5 & 2.0 & 24 & 0.278 {\scriptsize[0.247,0.318]} & 0.556 {\scriptsize[0.494,0.635]} \\
- & \texttt{SHIP-NOW} & BF4 & 1.2 & 24 & 0.137 {\scriptsize[0.096,0.203]} & 0.164 {\scriptsize[0.115,0.244]} \\
- & \texttt{SHIP-NOW} & BF5 & 2.0 & 24 & 0.130 {\scriptsize[0.096,0.158]} & 0.259 {\scriptsize[0.191,0.315]} \\
+\multicolumn{6}{l}{\emph{B-16  $k$ ablation (crowded)}} \\
+\quad \texttt{KGRID1} & BF4 & 1.2 & 24 & 0.228 {\scriptsize[0.202,0.244]} & 0.273 {\scriptsize[0.243,0.292]} \\
+\quad \texttt{KGRID1} & BF5 & 2.0 & 24 & 0.204 {\scriptsize[0.176,0.228]} & 0.408 {\scriptsize[0.353,0.457]} \\
+\quad \texttt{KGRID2} & BF4 & 1.2 & 24 & 0.302 {\scriptsize[0.278,0.316]} & 0.363 {\scriptsize[0.334,0.379]} \\
+\quad \texttt{KGRID2} & BF5 & 2.0 & 24 & 0.278 {\scriptsize[0.247,0.318]} & 0.556 {\scriptsize[0.494,0.635]} \\
+\midrule
+\multicolumn{6}{l}{\emph{B-19  $k$ ablation (sparse)}} \\
+\quad \texttt{KGRID1} & BF4 & 1.2 & 8 & 0.216 {\scriptsize[0.186,0.275]} & 0.259 {\scriptsize[0.223,0.331]} \\
+\quad \texttt{KGRID1} & BF5 & 2.0 & 8 & 0.221 {\scriptsize[0.193,0.254]} & 0.441 {\scriptsize[0.387,0.507]} \\
+\quad \texttt{KGRID2} & BF4 & 1.2 & 8 & 0.340 {\scriptsize[0.271,0.360]} & 0.408 {\scriptsize[0.325,0.432]} \\
+\quad \texttt{KGRID2} & BF5 & 2.0 & 8 & 0.297 {\scriptsize[0.270,0.332]} & 0.593 {\scriptsize[0.539,0.663]} \\
+\quad \texttt{SHIP-NOW} & BF4 & 1.2 & 8 & 0.053 {\scriptsize[0.022,0.070]} & 0.063 {\scriptsize[0.026,0.084]} \\
+\quad \texttt{SHIP-NOW} & BF5 & 2.0 & 8 & 0.083 {\scriptsize[0.039,0.204]} & 0.166 {\scriptsize[0.078,0.408]} \\
 \bottomrule
 \end{tabular}
 \end{table}

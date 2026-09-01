@@ -28,9 +28,17 @@ SEARCH = ('tmp/HOSGATE_2026-08-13/data_hos', 'tmp/HOSGATE_2026-08-13/data_lin',
           'data_s8_crowded_2026-08-10', 'data')
 
 # (표시명, 배치 디렉터리, 우리 팔, 비교자 팔)
+# (표시명, 배치 디렉터리, 층, 인쇄에서 뺄 팔)
+# ⛔[2026-09-02] 6차 감사: 초판은 `SHIP-NOW` 블록을 **두 번** 인쇄했다(비트 동일).
+#   사유는 B-12 와 B-16 이 **같은 48 에피소드**를 돈다는 것 --- 그건 결함이 아니라
+#   사실이지만, 표에 두 번 찍히면 독자는 그것을 알 길이 없다.
+#   ⟹ 한 번만 인쇄하고, **교차 검증은 코드에 남긴다**(값이 갈리면 죽는다).
+# ⛔초판은 또 **희소 층 행이 0개**였다 --- §5.6 이 *"희소는 분리되지 않는다"* 고
+#   적는 바로 그 층이 절대오차 표에 없었다. B-19 를 넣는다.
 BATCHES = [
-    ('B-12  non-linear reference', 'B12_HOS_EXTEND_2026-08-23', 'SHIP-NOW', 'SPEC25'),
-    ('B-16  wavenumber ablation', 'B16_KGRID_2026-08-24', None, None),
+    ('B-12  non-linear ref.\\ (crowded)', 'B12_HOS_EXTEND_2026-08-23', ()),
+    ('B-16  $k$ ablation (crowded)', 'B16_KGRID_2026-08-24', ('SHIP-NOW',)),
+    ('B-19  $k$ ablation (sparse)', 'B19_KGRID_SPARSE_2026-08-25', ()),
 ]
 
 
@@ -97,27 +105,35 @@ def main():
               r'the per-episode median over estimator seeds, with the interquartile '
               r'range. \emph{Read within a sea state, not across:} $H_s$ differs between '
               r'the two, so the ordering in metres and the ordering in nRMSE need not '
-              r'agree across rows.}',
+              r'agree across rows. B-12 and B-16 score their arms on the same '
+              r'\AblationEps{}-episode corpus, so their \texttt{SHIP-NOW} cell is one '
+              r'cell, not two; it is listed once, under B-12, and the generator '
+              r'cross-checks the two aggregations and fails if they disagree.}',
               r'\label{tab:absolute}',
-              r'\begin{tabular}{llcrrrr}', r'\toprule',
-              r'Batch & Arm & sea state & $H_s$ [m] & $n$ & nRMSE & RMSE [m] \\',
+              r'\setlength{\tabcolsep}{4pt}',
+              r'\begin{tabular}{lcrrrr}', r'\toprule',
+              r'Arm & sea state & $H_s$ [m] & $n$ & nRMSE & RMSE [m] \\',
               r'\midrule']
     pins = {}
-    for name, rel, ours, cmp_ in BATCHES:
+    for name, rel, hide in BATCHES:
         c = cells(load(rel))
         first = True
         for (arm, bf), v in sorted(c.items()):
-            lab = name if first else ''
-            first = False
+            pins[f'{rel.split("_")[0]}|{arm}|{bf}'] = (round(v['nrmse_med'], 3),
+                                                       round(v['rmse_m_med'], 3))
+            if arm in hide:
+                continue
+            if first:
+                # ★배치명을 **행 머리글**로 올린다 --- 열로 두면 54pt overfull 이었다.
+                lines.append(r'\multicolumn{6}{l}{\emph{' + name + r'}} \\')
+                first = False
             iqr_n = (f" {{\\scriptsize[{v['nrmse_iqr'][0]:.3f},{v['nrmse_iqr'][1]:.3f}]}}"
                      if v['nrmse_iqr'] else '')
             iqr_m = (f" {{\\scriptsize[{v['rmse_m_iqr'][0]:.3f},{v['rmse_m_iqr'][1]:.3f}]}}"
                      if v['rmse_m_iqr'] else '')
-            lines.append(f"{lab} & \\texttt{{{arm}}} & {bf} & {v['hs']:.1f} & "
+            lines.append(f"\\quad \\texttt{{{arm}}} & {bf} & {v['hs']:.1f} & "
                          f"{v['n_ep']} & {v['nrmse_med']:.3f}{iqr_n} & "
                          f"{v['rmse_m_med']:.3f}{iqr_m} \\\\")
-            pins[f'{rel.split("_")[0]}|{arm}|{bf}'] = (round(v['nrmse_med'], 3),
-                                                       round(v['rmse_m_med'], 3))
         lines.append(r'\midrule')
     lines[-1] = r'\bottomrule'
     lines += [r'\end{tabular}', r'\end{table}']

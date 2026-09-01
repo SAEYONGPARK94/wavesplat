@@ -42,6 +42,17 @@ import torch                                                  # noqa: E402
 import h5py                                                   # noqa: E402
 
 
+
+def _worst_match(ax_, ay_, bx_, by_):
+    """`a` 중 `b` 의 어느 점에서도 가장 먼 것 --- (kx, ky, 최근접거리)."""
+    import numpy as _np
+    d = _np.hypot(_np.asarray(ax_)[:, None] - _np.asarray(bx_)[None, :],
+                  _np.asarray(ay_)[:, None] - _np.asarray(by_)[None, :]).min(axis=1)
+    i = int(_np.argmax(d))
+    return {'kx': round(float(ax_[i]), 2), 'ky': round(float(ay_[i]), 2),
+            'nearest_other': round(float(d[i]), 3)}
+
+
 def main():
     torch.manual_seed(TORCH_SEED)
     np.random.seed(TORCH_SEED)
@@ -91,18 +102,23 @@ def main():
         a.set_aspect('equal')
         fig.colorbar(im, ax=a, fraction=0.046, pad=0.03).ax.tick_params(labelsize=6)
     ax[0, 0].plot(xo, yo, '.', ms=1.6, color='k', alpha=0.85)
-    ax[0, 0].set_title(f"true field + this frame's {len(xo)} observations",
-                       fontsize=8)
+    # ⛔[2026-09-02] 6차 감사 N5: 제목이 길어 **옆 컬러바 눈금을 덮었다**. 줄인다.
+    ax[0, 0].set_title(f'true field + {len(xo)} observations', fontsize=8)
 
     elim = float(np.nanmax(np.abs(err)))
     im = ax[0, 2].pcolormesh(XX, YY, err, cmap='PuOr',
                              norm=TwoSlopeNorm(vmin=-elim, vcenter=0.0, vmax=elim),
                              shading='auto')
     ax[0, 2].plot(xo, yo, '.', ms=1.6, color='k', alpha=0.6)
-    ax[0, 2].set_title('estimate $-$ truth  (colour scale '
-                       f'$\\times${lim / elim:.1f} finer)', fontsize=8)
+    # ⛔[2026-09-02] 6차 감사 N5·N6: ①이 제목이 **옆 칸 컬러바의 눈금 라벨을 덮었다**
+    #   ②논문 캡션은 *"ten-times finer"* 인데 그림은 실제 비를 인쇄한다 --- **손으로 적은
+    #   수가 생성된 수와 모순**됐다. ⟹ 제목을 줄이고, 비는 컬러바 라벨로 옮기고,
+    #   출처 json 에 적어 **캡션이 매크로로 읽게** 한다.
+    ax[0, 2].set_title('estimate $-$ truth', fontsize=8)
     ax[0, 2].set_aspect('equal')
-    fig.colorbar(im, ax=ax[0, 2], fraction=0.046, pad=0.03).ax.tick_params(labelsize=6)
+    cb = fig.colorbar(im, ax=ax[0, 2], fraction=0.046, pad=0.03)
+    cb.ax.tick_params(labelsize=6)
+    cb.set_label(f'[m], scale $\\times${lim / elim:.1f} finer', fontsize=6)
     for a in ax[0]:
         a.tick_params(labelsize=6)
         a.set_xlabel('x [m]', fontsize=7)
@@ -176,6 +192,12 @@ def main():
         'route': getattr(getattr(upd, '_primary', upd), '_auto_selected', None),
         'final_n': rec.get('final_n'), 'init_seconds': round(init_s, 2),
         'n_obs_this_frame': int(len(xo)),
+        'colour_scale_ratio': round(float(lim / elim), 1),
+        # ★[2026-09-02] 캡션이 「짝 없는 참 성분」의 좌표를 **손으로** 적고 있었다.
+        #   ⟹ 여기서 계산해 기록하고 캡션이 매크로로 읽게 한다.
+        #   규약: 가장 가까운 추정 원자까지의 거리가 최대인 참 성분.
+        'unmatched_true': _worst_match(tkx, tky, ekx, eky),
+        'spurious_est': _worst_match(ekx, eky, tkx, tky),
         'rmse_this_frame': float(np.sqrt((err ** 2).mean())),
         'config': {k: (v if isinstance(v, (int, float, str, bool, type(None))) else str(v))
                    for k, v in sorted(cfg.items())},

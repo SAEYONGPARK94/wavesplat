@@ -100,20 +100,46 @@ refitting amplitude and phase --- costs \BSixteenRel{}
 (\BSixteenBetter{}/\BSixteenN{}, $p = \BSixteenP{}$), is dose-responsive
 (\BSixteenDose{}/\BSixteenN{} at twice the spacing), and reproduces in the sparse
 stratum (\BNineteenBetter{}/\BNineteenN{}, \BNineteenRel{}).
+% [2026-09-01] 두 가지 병기 의무:
+%  (1) B-16 의 크기 귀속은 B-21(C2, CONFOUND-NEGLIGIBLE, TOST PASS) 이 지탱한다.
+%  (2) \BOneRel(-38.580) 과 \BSixteenRel(-38.607) 이 **둘 다 -38.6% 로 인쇄**된다 --
+%      다른 코퍼스의 다른 양이다. 독립 감사가 "절제가 이득의 100%를 지운다" 로
+%      읽힌다고 지적했다. 산술 결합 금지를 본문에 박는다.
+These ablation magnitudes are not attributable by subtraction: they were measured on
+different corpora, against different comparison arms, and we verified separately that
+the grid-snapping ablation is not confounded with the refit it necessarily performs.
+\textbf{The reader should not add or subtract them, and should not read the
+coincidence that two of them round to the same figure as an identity.}
 
 We also locate the gain rather than only asserting it: it persists inside the
 observation-density band that our measured records actually occupy
-(\MTenBetter{}/\MTenN{}, \MTenRel{}) and at a forecast rung covering
-$11$ of $12$ measured records (\TFourBetter{}/\TFourN{}, \TFourRel{}).
+(\MTenBetter{}/\MTenN{}, \MTenRel{}) and at a forecast rung that $11$ of the $12$ measured records cover (\TFourBetter{}/\TFourN{}, \TFourRel{}).
 
 \textbf{Scope, stated as measured.} The gains above are synthetic and confined to
 the crowded stratum: against the deployed analytic package the sparse stratum does
 not separate. On $12$ fixed-station stereo records the learned prior is
-\emph{without skill} against a per-record zero-field reference under every arm
-configuration we tested; we report that negative rather than omit it, and a full
-treatment of the operating boundary is the subject of a companion thesis. All
-comparisons were pre-registered with blocking gates, negative controls, and
-frozen analysis code.
+does not reach the pre-registered decision threshold against a per-record
+zero-field reference under any arm configuration we tested --- including one that
+gives it the same median-of-$k$ field ensemble the deployed real-data path uses.
+% [2026-09-01] "without skill" 은 금지 자구다: 그 주장은 **레코드 단위**인데 우리 측정은
+% **셀 단위**이고, 레코드로 접으면 여섯 규약 중 다섯에서 자구가 깨진다(최대 8/12).
+% 올바른 형태 = "유의 문턱에 도달한 적이 없다". 독립 감사가 초록·하이라이트에서만
+% 옛 자구가 남은 것을 잡았다(= 「요약이 측정보다 넓다」의 재발).
+That ensemble treatment \emph{does} lower error by a confirmed margin and does move
+the endpoint, and it is not uniformly benign --- in the near band it helps on
+$28$ of $36$ cells but hurts $8$, the worst by $+40.6\%$. We report this rather than
+omit it; a full treatment of the operating boundary is the subject of a companion
+thesis. All
+comparisons reported here were run under pre-registered blocking gates with
+negative controls. % [2026-09-01] 전칭 "All ... frozen analysis code" 는 거짓이었다.
+% B-1 의 verdict 자신이 적는다: "gates_b1.py / analyze_b1.py 는 **결과 뒤에** 작성됐다".
+% 그리고 M-10 / T-4 / T-5 / S-ENS 의 공시는 전부 "blind 아님" 이다.
+% 전칭 명제 하나로 원고 전체의 신뢰가 걸리므로 범위를 축소한다. 독립 감사가 잡았다.
+We state two limits of that procedure rather than claim it uniformly: for the
+headline comparison the analysis code was written after the runs (from rules fixed
+beforehand in the design note), and several of the re-scoring studies were not blind
+--- the author knew the expected direction before running them. Each is disclosed
+where the corresponding result is reported.
 \end{abstract}
 
 \begin{keyword}
@@ -138,10 +164,11 @@ dispersion relation \sep data assimilation \sep real-time estimation
   (\BTwentyTwoBetter{}/\BTwentyTwoN{}); removing only wavenumber continuity costs
   \BSixteenRel{} (\BSixteenBetter{}/\BSixteenN{}) and is dose-responsive.
 \item The gain is located, not only asserted: it holds inside the observation-density
-  band the measured records occupy (\MTenBetter{}/\MTenN{}) and at a forecast rung
-  covering $11$ of $12$ records (\TFourBetter{}/\TFourN{}).
-\item Reported negative: on $12$ fixed-station stereo records the learned prior shows
-  no skill against a per-record zero-field reference under any tested configuration.
+  band the measured records occupy (\MTenBetter{}/\MTenN{}) and at a forecast rung that $11$ of the $12$ measured records cover (\TFourBetter{}/\TFourN{}).
+\item Reported negative: on $12$ fixed-station stereo records the learned prior does
+  not reach the pre-registered decision threshold against a per-record zero-field
+  reference under any tested configuration, including one giving it the same
+  median-of-$k$ ensemble the deployed real-data path uses.
 \end{highlights}
 
 \end{frontmatter}
@@ -331,12 +358,12 @@ Our key contributions are:
 \end{enumerate}
 
 The pipeline also includes an online model-order mechanism (energy-based
-pruning and residual-triggered growth, the retracted-corpus results (moved to the archive)) that
+pruning and residual-triggered growth, the retracted corpus (archived)) that
 matches the number of spectral components to scene complexity, from $N$=2 for
 simple swells to $N$=21 for complex multi-component seas.  We deliberately do
 \emph{not} list it as a contribution: measured under the corrected tracker with
 a median-of-3 seed protocol, its accuracy benefit is null
-(the retracted-corpus results (moved to the archive)), and we discuss it as a mechanism and a
+(retracted corpus; archived), and we discuss it as a mechanism and a
 compute-efficiency device in Section~\ref{sec:limitations} instead.
 
 Relative to prediction-error frameworks for deterministic wave forecasting such
@@ -425,7 +452,7 @@ Adaptation of ensemble Kalman filtering to scanning shipboard LiDAR
 has, to our knowledge, not been reported in the open literature; we
 therefore implement an ETKF-grid baseline by porting the radar-based
 formulation of \citet{desmars2020} to LiDAR observations
-(the retracted-corpus results (moved to the archive)).
+(retracted corpus; archived).
 These grid-based methods share a common architecture---discretize
 the 2D domain into a regular grid, maintain an ensemble of spectral
 states, and assimilate observations via the Kalman update---which
@@ -458,6 +485,11 @@ with the model order adapted online---a class outside the linear-fitting
 assumption on which the LEPrE derivation rests.  Third, in the \emph{evidence
 base}: the LEPrE formulation is agnostic to the measurement device, whereas our
 evaluation is specific to the sampling geometry of a scanning shipboard LiDAR,
+% [2026-09-01 P8] 범위 문장 --- 제목에서 'Shipboard' 를 뺀 이유를 본문에 못 박는다.
+ and that geometry is \emph{simulated}: the shipboard configuration in this paper
+exists only in the sensor model. The measured records used in
+Section~\ref{sec:res_scope} come from fixed stations and from a different sensor
+modality, so no result here is supported by measured shipboard data,
 including sparse, range- and incidence-dependent returns and reflectivity-driven
 dropout.  The two are naturally combined rather than opposed: WaveSplat
 currently returns point estimates without an error model
@@ -664,11 +696,48 @@ and updates only $(w_i, \varphi_i)$ with 10~Adam steps per frame.}
 \subsubsection{Phase 1: Initialization}
 \label{sec:init}
 
-Given the first $T_{\text{init}} = 2 T_p$ seconds of observations
-(where $T_p$ is the expected peak period, estimated from the
-dominant frequency in the observation time series), we jointly
-optimize all spectral parameters through a three-stage coarse-to-fine
-procedure.
+% ============================================================================
+% [2026-09-01 P8] BLOCKER 수리. 초판의 이 절은 **해석적 팔**(빔포밍 + coarse-to-fine)
+%   만 서술했는데, 개정본 Results 는 그 팔이 학습 사전에 45/48 로 **진다**고 인쇄한다
+%   (B-22 L2). 즉 제목·초록이 파는 방법이 논문 어디에도 정의돼 있지 않았다.
+%   독립 감사가 잡았다. 배포 경로를 여기 정의하고, 해석적 절차는 **대체 경로**로 강등한다.
+%   ⛔삭제하지 않는다 --- 그 절차가 Results 의 절제 대조군(ANA)이기 때문이다.
+% ============================================================================
+
+Given the first $T_{\text{init}} = 2 T_p$ seconds of observations (where $T_p$ is the
+expected peak period, estimated from the dominant frequency in the observation time
+series), we must place $N$ atoms in the $(k_x, k_y)$ plane and fit their amplitude
+and phase. Two procedures do this in our system, and \emph{which one runs is the
+subject of one of our ablations}, so we describe both.
+
+\paragraph{Deployed path: a learned set-valued prior}
+The configuration evaluated in Section~\ref{sec:results} places the atoms with a
+learned prior over wavenumber--energy \emph{sets}. A conditional diffusion model,
+trained on synthetic scenes, is conditioned on the initialisation-window
+observations and draws several posterior samples of an atom set; the pooled draws
+are then deduplicated in wavenumber (atoms closer than $\Delta k = 0.03$~rad/m are
+merged), thresholded on energy, and truncated at $N_{\max}$. Given the resulting
+wavenumbers, the amplitude and phase of every atom are obtained in closed form by
+ridge-regularised least squares, and the whole set is refined by \emph{variable
+projection}: because the model is linear in $(a_j, b_j)$ once $(k_{x,j}, k_{y,j})$
+are fixed, the linear coefficients can be eliminated analytically and only the
+wavenumbers are iterated.
+
+Two deployment choices matter for reproducing the numbers in this paper. Variable
+projection is enabled ($400$ steps); and the joint non-linear fit that earlier
+versions ran after initialisation is \emph{disabled} --- it was measured to be
+redundant once variable projection is present. These two are not independent:
+removing the joint fit leaves a larger residual, which in turn makes the adaptive
+growth rule of Section~\ref{sec:adaptive_order} fire far more often than it did
+before. We note this because it is easy to reason about either switch alone and be
+wrong about the resulting system.
+
+\paragraph{Alternative path: dispersion-aware beamforming}
+The system also contains a purely analytic initialiser, which is what runs when the
+learned prior is not used. It is described next both because it is the fallback and
+because it is the \emph{comparison arm} of the prior ablation in
+Section~\ref{sec:res_ablation}: replacing the learned proposal with this procedure,
+changing nothing else, is what costs \BTwentyTwoRel{}.
 
 \textbf{Dispersion-aware beamforming.}
 Initial wavenumber estimates are obtained by scanning a Cartesian
@@ -737,6 +806,7 @@ parameter, ensuring that the constraint is satisfied exactly
 throughout optimization.
 
 \subsubsection{Adaptive model order}
+\label{sec:adaptive_order}
 
 After initialization, we apply energy-based pruning.
 Components are sorted by energy $E_i = w_i^2$ in descending order,
@@ -977,7 +1047,7 @@ elevation fields evaluated on a 80$\times$60 spatial grid
 covering the LiDAR observation area.
 A total of 100 episodes are generated across 5 random seeds per
 configuration.  The full 100-episode dataset is used for the primary
-five-metric evaluation (the retracted-corpus results (moved to the archive)), 12 representative
+five-metric evaluation (retracted corpus; archived), 12 representative
 episodes for the per-episode breakdown, and 100 paired runs
 (10 configurations $\times$ 5 seeds $\times$ 2 raydrop models) for
 the Wilcoxon statistical validation.
@@ -1014,7 +1084,7 @@ short-wavelength components recovered), whereas crowded
 crowded-regime error is not a rendering artifact.  We report this
 explicitly rather than silently re-running, because two conclusions in
 earlier versions of this work---a claimed low-SNR failure mode
-(the retracted-corpus results (moved to the archive)) and a claimed beamforming detection
+(retracted corpus; archived) and a claimed beamforming detection
 threshold (Section~\ref{sec:limitations})---were attributions of a
 rendering limitation to physics and to the algorithm respectively.
 
@@ -1093,7 +1163,7 @@ All five metrics (nRMSE plus the four above) are defined in our public
 evaluation module and applied uniformly to every compared method to
 prevent metric cherry-picking.  The full-panel evaluation across the
 complete 100-episode dataset is reported in
-the retracted-corpus results (moved to the archive).
+the retracted corpus (archived).
 
 \subsection{Baselines}
 
@@ -1175,19 +1245,13 @@ encounter forecasting---and on \textbf{synthetic data}. These results are
 therefore not measured in the encounter geometry of the stated application.
 
 We organize the results section around the full 100-episode
-evaluation: the retracted-corpus results (moved to the archive) reports the primary
-multi-metric comparison against the tuned ETKF and GPR baselines on
-the complete dataset; the retracted-corpus results (moved to the archive) provides a
-per-episode breakdown on 12 representative episodes with
-inference-speed and per-frame details; the retracted-corpus results (moved to the archive)
-reports the 100-paired-run statistical validation; and the remaining
-subsections report the adaptive model order analysis, ablation,
-raydrop robustness study, and a comparison with stronger baselines.
-In Section~\ref{sec:discussion}, we further analyze three properties
-of the spectral representation: spectral parameter estimation
-accuracy (the retracted-corpus results (moved to the archive)),
-sparse observation robustness against LETKF
-(the retracted-corpus results (moved to the archive)), and temporal extrapolation
+evaluation. Section~\ref{sec:res_headline} reports the headline on the
+crowded stratum, Section~\ref{sec:res_hos} the non-linear and unseen-seed
+replication, Section~\ref{sec:res_ablation} the two ablations that attribute
+the gain, Section~\ref{sec:res_where} where the gain sits in space and time,
+and Section~\ref{sec:res_scope} the scope, including the measured negative.
+% [2026-09-01] 초판 도입부는 **철회된 코퍼스의 절들**을 이 논문의 결과로
+%   예고하고 있었다(그 절들은 아카이브로 옮겨졌다). 새 절 목록으로 교체.
 as a validation of spectral fidelity (Section~\ref{sec:forecast}).
 
 \subsection{Headline: crowded multi-component seas}
@@ -1268,8 +1332,18 @@ every other component of the pipeline untouched --- costs \BSixteenRel{}
 (\BSixteenDose{}/\BSixteenN{}). The same ablation reproduces in the sparse stratum
 (\BNineteenBetter{}/\BNineteenN{}, \BNineteenRel{}).
 
-$\Rightarrow$ Both components that the title names are supported by an intervention inside our
-own arm, not only by a comparison against someone else's.
+\paragraph{What these two magnitudes are not}
+They are not additive, and they are not shares of the headline. Each was measured on
+its own corpus against its own comparison arm, so subtracting one from the other --- or
+from the baseline margin --- has no defined meaning. In particular, the headline
+margin and the wavenumber-continuity ablation happen to round to the same figure;
+that is a coincidence of two independent measurements, not evidence that the ablation
+removes the whole gain. We also checked the grid-snapping ablation separately for
+confounding with the amplitude-and-phase refit it necessarily performs, and found the
+contribution of that refit negligible.
+
+$\Rightarrow$ Both components that the title names are supported by an intervention
+inside our own arm, not only by a comparison against someone else's.
 
 \subsection{Where is the gain? Locating it in space and time}
 \label{sec:res_where}
@@ -1310,7 +1384,8 @@ prior wins in every regime''}. (The sparse figure is a re-aggregation of the fro
 deployment-verification corpus rather than a pre-registered contrast, and we cite it
 as such.)
 
-\textbf{On measured data the learned prior is without skill.} Across $12$
+\textbf{On measured data the learned prior does not reach the decision
+threshold.} Across $12$
 fixed-station stereo records, and under every arm configuration we tested --- including
 giving the learned representation the same median-of-$k$ field ensemble that the
 deployed real-data path uses --- the learned prior does not reach the pre-registered
@@ -1539,7 +1614,7 @@ ETKF uses the default configuration ($n_{\text{ens}}{=}50$) and is carried
 over from the earlier pass on the same dataset (the tracker correction
 affects only the WaveSplat arm); its nRMSE
 values are near the zero-predictor level and are variance-dominated
-(the retracted-corpus results (moved to the archive)), so the relative
+(retracted corpus; archived), so the relative
 sensitivity ($\Delta$\%) is the quantity of interest, not the level---and
 that sensitivity is itself configuration-dependent, shrinking under an
 honestly re-tuned baseline (Section~\ref{sec:raydrop-results}).}
@@ -1571,7 +1646,9 @@ BF5 30c & 0.246 & \textbf{0.220} & $-$10.6 & 0.516 & 0.442 & $-$14.3 \\
 \includegraphics[width=\textwidth]{figures/fig5_raydrop.pdf}
 \caption{Raydrop model comparison: geometry-weighted (``uniform'') vs.\
 unweighted (``slope'') LiDAR return-sampling models. WaveSplat (blue shades)
-outperforms ETKF (orange shades) under both models on all episodes.}
+outperforms ETKF on the episodes of that (retracted) corpus
+% [2026-09-01] 전칭 "on all episodes" 는 배너 2항이 명시 금지한 자구다.
+.}
 \label{fig:raydrop}
 \end{figure*}
 
@@ -1584,7 +1661,7 @@ That reading does not survive an honest re-tuning of the baseline and is
 \emph{not} an established effect: the ETKF's raydrop sensitivity is a
 variance-amplification artifact, not a reconstruction gain.  Re-measuring
 the same ten pairs under the tuned ETKF of
-the retracted-corpus results (moved to the archive) ($n_{\text{ens}}{=}100$) already
+the retracted corpus (archived) ($n_{\text{ens}}{=}100$) already
 shrinks it to $-$11.7\%, and under an nRMSE-honest hold-out re-tuning
 (analysis grid $160\times120$, additive inflation off, larger observation
 error) the ETKF collapses to a near-zero predictor in \emph{both} arms
@@ -1621,8 +1698,7 @@ points to 20--100\% of the original count on 5 representative episodes
 Average points $\approx$ 50 at 100\%.
 \emph{Provenance}: produced before the tracker phase-advance correction;
 pending re-run and not directly comparable with the corrected
-full-dataset figures of Tables~the archive
-and~the archive.}
+full-dataset figures of the retracted corpus (archived).}
 \label{tab:sparsity}
 \begin{tabular}{lccccc}
 \toprule
@@ -1702,7 +1778,7 @@ observations and $4N\leq 120$ parameters, and adaptive $N_a$ absorbs
 excess noise into prunable low-energy components.
 
 \paragraph{Sea state trend.}
-Grouping by Beaufort number (the retracted-corpus table (moved to the archive)), the advantage is
+Grouping by Beaufort number (retracted corpus; archived), the advantage is
 largest on moderate seas (BF3: 61\% improvement, 0.138 vs.\ 0.353)
 and narrows at higher complexity (BF5: 11\%, 0.271 vs.\ 0.303),
 reflecting the beamforming initializer's configured peak-separation
@@ -1724,43 +1800,35 @@ grid-based (ETKF) or purely spatial (GPR) methods.}
 \section{Discussion}
 \label{sec:discussion}
 
-\subsection{Advantages of grid-free representation}
-
-A striking result is the ${\sim}5\times$ average advantage on 2-component
-seas against the tuned ETKF (WaveSplat 0.073 vs.\ ETKF 0.355, median over
-5 seeds, averaged across uniform and slope raydrop; the retracted-corpus table (moved to the archive)).
-For low-complexity wave fields, ETKF
-wastes representational capacity on the full spatial grid when only two
-spectral modes are present. WaveSplat's adaptive representation directly
-captures the relevant modes with minimal parameters.
-
-An earlier version of this discussion argued that this advantage is
-practically relevant because real seas often contain one or two dominant
-swell systems plus wind sea, making low-component scenarios common
-operationally.  Our own measurement contradicts that argument and we
-withdraw it: the 1- and 2-component episodes on which the advantage is
-largest have directional spreads of $0$--$5^\circ$, a band containing
-\emph{none} of 25,426 measured CDIP records
-(the retracted-corpus results (moved to the archive)).  A sea may well be dominated by one or
-two swell systems and still be far more directionally spread than a
-1-component synthetic episode; the two notions of ``low complexity'' are
-not the same, and conflating them is what produced the earlier claim.  The
-$5\times$ result stands as measured---what does not stand is the inference
-that the regime it was measured in is the operationally common one.
-For complex seas (15--30 components), the advantage narrows
-substantially: across 100 episodes the mean nRMSE improvement
-drops to ${\sim}5\%$ (WaveSplat wins 24/40 episodes), consistent
-with the regime-dependent pattern in the retracted-corpus results (moved to the archive),
-and it is this narrow-advantage regime that overlaps the measured
-distribution.
+\subsection{Why a grid-free representation, and where it stops helping}
+\label{sec:disc_gridfree}
 
 % ============================================================================
-% ★2026-09-01 (P8): §6.2(directional deficit) · §6.3(BF2 failure case) 를
+% [2026-09-01 P8] 초판의 이 절(\S "Advantages of grid-free representation")을
 %   tmp/PAPER_LEGACY_2026-09-01/retracted_discussion_100ep.tex 로 **옮겼다**.
-%   ⛔삭제가 아니라 이동이다. 사유 = 두 절 다 100-에피소드 레거시 코퍼스의 진단이고,
-%   그 코퍼스는 두 팔이 같은 프레임에서 채점된 적이 없다.
-%   ⚠방향 추정 결손 판정은 학위논문에서도 철회됐다.
+%   사유: 그 절이 "복잡한 바다(15-30 성분)에서 이득이 ~5% 로 좁아진다(24/40)" 라
+%   적었는데, 개정본 Results 는 **같은 층**에서 62/64, -38.6% 를 보고한다 =
+%   원고가 자기모순이었다. 두 수는 다른 코퍼스에서 나왔고 옛 쪽이 철회된 코퍼스다.
+%   독립 감사가 잡았다. 삭제가 아니라 이동이다.
 % ============================================================================
+
+A grid state must resolve the field everywhere it is defined, so its cost and its
+conditioning are set by the resolution rather than by the complexity of the sea.
+A spectral state pays instead for the number of components it carries. That is the
+structural argument for the representation, and the ablations in
+Section~\ref{sec:res_ablation} are what turn it from an argument into a measurement:
+removing only the continuity of the wavenumber --- keeping every other component of
+the pipeline --- costs \BSixteenRel{}, and the cost grows when the grid is coarsened.
+
+\paragraph{Where it stops helping, stated as measured}
+The advantage is not uniform across regimes, and we no longer characterise its
+regime dependence: the earlier characterisation was computed on a corpus in which
+the compared arms were never scored on the same frames, and we withdraw it rather
+than restate it. What we can say from the present corpora is narrower and is already
+in Section~\ref{sec:res_scope}: the margin is measured on the crowded stratum;
+against the deployed analytic package the sparse stratum does not separate; and on
+measured records the representation does not reach the decision threshold at all.
+
 
 \subsection{Effect of observation model}
 
@@ -1778,7 +1846,7 @@ The online model order responds to the observation model as well:
 unweighted raydrop triggers the safety rollback on low-complexity scenes
 (e.g., BF3-2comp: $N$=2$\to$15) but prunes more aggressively on complex
 seas (BF4-15comp: $N$=19$\to$10).  Since the mechanism carries no
-measured accuracy benefit (the retracted-corpus results (moved to the archive)), we record this as
+measured accuracy benefit (retracted corpus; archived), we record this as
 a behavioural observation and not as evidence that stronger observations
 improve model selection.
 
@@ -1901,7 +1969,7 @@ wave prediction is needed to compute proactive control commands.
 
 Several limitations should be acknowledged.
 \emph{Online model order does not contribute accuracy}: the
-pruning-and-growth mechanism of the retracted-corpus results (moved to the archive) does select
+pruning-and-growth mechanism of the retracted corpus (archived) does select
 scene-matched component counts, but under the corrected tracker its
 accuracy contribution is null ($+0.0003$~nRMSE over 12 episodes, 8/12,
 Wilcoxon $p=0.68$) against a seed noise floor roughly $30\times$ the
@@ -1918,7 +1986,7 @@ directional-spread distribution---median $16.1^\circ$ against a measured
 median of $35.3^\circ$ (the measured $0.3$rd percentile), with 40 of our
 100 episodes narrower than the narrowest measured record and our most
 crowded episodes at the measured 11.5th percentile
-(the retracted-corpus results (moved to the archive)).  Our peak-period ceiling of 9~s also
+(retracted corpus; archived).  Our peak-period ceiling of 9~s also
 sits below the measured median of $9.88$~s, meaning the synthetic universe
 contains no swell; significant wave height, by contrast, is well covered
 (79.7\%).  The consequence is bounded and specific: the regime in which
@@ -1928,9 +1996,18 @@ repair belongs to the generator, not the estimator---directional spreading
 functions targeting a $\sim$35$^\circ$ median and a $T_p$ range extending
 into swell---and we deliberately did not change it mid-study so that all
 results in this paper remain from one frozen dataset.
-\emph{Simulation-only validation}: all results use WaveSim; real LiDAR
-may contain systematic biases (multi-path, spray) not in our noise
-model, and wave tank and sea-trial validation is planned next.
+% [2026-09-01] 초판은 여기서 "all results use WaveSim" 이라 적었는데, 개정본의
+%   초록·Results·Conclusion 은 12 고정관측소 레코드를 보고한다 = **원고가 자기모순**이었다.
+%   독립 감사가 잡았다. 아래로 정정한다.
+\emph{The positive results are synthetic}: every margin reported in
+Section~\ref{sec:res_headline} and its ablations is measured on simulated fields
+with a simulated sensor. Measured data enters this paper only through the negative
+in Section~\ref{sec:res_scope}: $12$ fixed-station stereo records on which the
+learned prior does not reach the decision threshold. Real LiDAR from a moving
+platform may contain systematic biases (multi-path, spray) that neither our noise
+model nor those fixed-station records represent, and no shipboard measurement of
+any kind supports this paper --- the platform term was removed from the title for
+that reason.
 % CORRECTED 2026-08-14: 39 -> 196 unit tests (measured 2026-08-13; 85 wavesim +
 % 111 wavesplat, three agents ran it independently), plus 8 shipping-default
 % regression tests added on 2026-08-13.
@@ -2104,8 +2181,8 @@ that are difficult to justify from observation alone.  The name
 ``geometry-aware'' (previously ``Fresnel-aware'' in an earlier draft)
 more accurately reflects the functional form.
 \emph{Baseline fairness}: the 24-configuration ETKF sweep
-(the retracted-corpus results (moved to the archive)) and the LETKF/GPR-disp comparison
-(the retracted-corpus results (moved to the archive)) show our conclusions hold under
+(retracted corpus; archived) and the LETKF/GPR-disp comparison
+(retracted corpus; archived) show our conclusions hold under
 the best baseline configurations tested, though further tuning of
 LETKF (e.g., adaptive localization radius, inflation scheduling) or
 hybrid ensemble--spectral approaches remain unexplored.
@@ -2170,8 +2247,7 @@ a time, the learned prior accounts for \BTwentyTwoRel{}
 \BSixteenRel{} (\BSixteenBetter{}/\BSixteenN{}, dose-responsive, and reproducing in
 the sparse stratum at \BNineteenBetter{}/\BNineteenN{}). The gain also survives
 re-scoring inside the observation-density band our measured records occupy
-(\MTenBetter{}/\MTenN{}) and at a forecast rung covering $11$ of $12$ of those
-records (\TFourBetter{}/\TFourN{}) --- though in the latter case the comparator
+(\MTenBetter{}/\MTenN{}) and at a forecast rung that $11$ of those $12$ records cover (\TFourBetter{}/\TFourN{}) --- though in the latter case the comparator
 degrades across the same interval, so the growing ratio must not be read as a
 growing advantage.
 
@@ -2213,16 +2289,22 @@ seeds, ensuring end-to-end reproducibility of all tables and figures
 reported in this paper.
 
 The buoy directional-spread statistics used for the external-validity
-stratification of the retracted-corpus results (moved to the archive) are third-party
+stratification of the retracted corpus (archived) are third-party
 observations from the Coastal Data Information Program~\citep{cdip},
 retrieved over OPeNDAP on 2026-08-03.  We release the station list, the
 pre-fixed sampling rule, the retrieval and estimator scripts, and the
 derived per-record spread values, so that the stratification is
 reproducible without redistributing CDIP data.
 
-We were unable to validate on measured data because we could not locate a
-public, phase-resolved, two-dimensional lidar sea-surface dataset, and we
-state the scope of that search rather than assert non-existence.  We
+% [2026-09-01] 초판 문장 "We were unable to validate on measured data" 는 이제 거짓이다
+%   --- 개정본은 12 고정관측소 스테레오 레코드 위의 **음성**을 보고한다. 정확히 무엇을
+%   못 찾았는지로 좁힌다(못 찾은 것은 **LiDAR** 자료이지 실측 자료 일반이 아니다).
+We could not locate a public, phase-resolved, two-dimensional \emph{lidar}
+sea-surface dataset, and we state the scope of that search rather than assert
+non-existence. The measured evaluation in this paper therefore uses stereo
+reconstructions from fixed stations rather than lidar, which is itself a scope
+limit: the sensor that motivates the method is not the sensor the negative result
+was obtained with.  We
 enumerated the collections of the USACE Field Research Facility THREDDS
 server to collection level---its \texttt{frf/} and \texttt{projects/}
 trees and the nine collections at the server root---and found one

@@ -401,3 +401,47 @@ For practical deployment, where LiDAR point counts often drop below
 20 due to wave occlusion, spray, or fog, this sparse robustness is
 critical.
 
+
+
+% -- (3) [2026-09-01 추가] Advantages of grid-free representation (레거시 코퍼스 regime 서술) --
+% 사유: 이 절의 "15-30 성분에서 ~5%, 24/40" 이 개정본 Results 의
+%   같은 층 62/64, -38.6% 와 정면 충돌했다. 두 수는 다른 코퍼스이고
+%   옛 쪽이 철회된 코퍼스다.
+\subsection{Advantages of grid-free representation}
+
+A striking result is the ${\sim}5\times$ average advantage on 2-component
+seas against the tuned ETKF (WaveSplat 0.073 vs.\ ETKF 0.355, median over
+5 seeds, averaged across uniform and slope raydrop; the retracted-corpus table (moved to the archive)).
+For low-complexity wave fields, ETKF
+wastes representational capacity on the full spatial grid when only two
+spectral modes are present. WaveSplat's adaptive representation directly
+captures the relevant modes with minimal parameters.
+
+An earlier version of this discussion argued that this advantage is
+practically relevant because real seas often contain one or two dominant
+swell systems plus wind sea, making low-component scenarios common
+operationally.  Our own measurement contradicts that argument and we
+withdraw it: the 1- and 2-component episodes on which the advantage is
+largest have directional spreads of $0$--$5^\circ$, a band containing
+\emph{none} of 25,426 measured CDIP records
+(the retracted-corpus results (moved to the archive)).  A sea may well be dominated by one or
+two swell systems and still be far more directionally spread than a
+1-component synthetic episode; the two notions of ``low complexity'' are
+not the same, and conflating them is what produced the earlier claim.  The
+$5\times$ result stands as measured---what does not stand is the inference
+that the regime it was measured in is the operationally common one.
+For complex seas (15--30 components), the advantage narrows
+substantially: across 100 episodes the mean nRMSE improvement
+drops to ${\sim}5\%$ (WaveSplat wins 24/40 episodes), consistent
+with the regime-dependent pattern in the retracted-corpus results (moved to the archive),
+and it is this narrow-advantage regime that overlaps the measured
+distribution.
+
+% ============================================================================
+% ★2026-09-01 (P8): §6.2(directional deficit) · §6.3(BF2 failure case) 를
+%   tmp/PAPER_LEGACY_2026-09-01/retracted_discussion_100ep.tex 로 **옮겼다**.
+%   ⛔삭제가 아니라 이동이다. 사유 = 두 절 다 100-에피소드 레거시 코퍼스의 진단이고,
+%   그 코퍼스는 두 팔이 같은 프레임에서 채점된 적이 없다.
+%   ⚠방향 추정 결손 판정은 학위논문에서도 철회됐다.
+% ============================================================================
+

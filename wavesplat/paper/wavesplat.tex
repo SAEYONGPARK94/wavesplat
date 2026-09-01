@@ -1383,8 +1383,10 @@ configuration.
 % [2026-09-02 P9] 4차 감사 M7: 이 문단은 **지금 논문에 없는 설계**를 서술하고 있었다
 %   (5지표 평가 · 12에피소드 분해 · 100짝 Wilcoxon). 셋 다 철회 코퍼스 산물이고
 %   개정본 Results 에는 하나도 없다. ⟹ 실제로 쓰인 방식으로 대체한다.
-Each batch reported in Section~\ref{sec:results} draws its own episode set from this
-corpus or from a corpus regenerated the same way, and states its own $n$; the
+Each batch reported in Section~\ref{sec:results} states its own $n$ and draws its
+episode set from this corpus or from a corpus regenerated the same way, but the sets
+are not disjoint: \HosSameN{} of the batches (\HosSameRows{}) run the \emph{same}
+\AblationEps{} episodes under different arms (Table~\ref{tab:earns}, note~(i)). The
 comparisons are paired per episode and read with a sign test, with the direction and
 the decision threshold fixed before the runs. The earlier design --- a five-metric
 panel over all 100 episodes, a twelve-episode per-episode breakdown, and a
@@ -1514,9 +1516,10 @@ All five metrics are defined in our public evaluation module.
 \emph{This paper reports nRMSE only.} The four secondary metrics were part of the
 retracted corpus's evaluation panel and were not re-measured for the batches
 reported here, so we describe them for completeness and do not claim a
-five-metric evaluation. Each batch's primary metric was fixed in its
-preregistration before results existed, which is the protection against metric
-selection that we actually have.
+five-metric evaluation. Each batch's primary metric was fixed before its
+results existed --- in a preregistration for every row but B-1, and in a design note
+for that one --- which is the protection against metric selection that we actually
+have.
 
 \subsection{Baselines}
 
@@ -2043,8 +2046,17 @@ Section~\ref{sec:res_headline} says both where that number is first reported. \e
 B-19 magnitudes are not attributable by subtraction from anything else in the
 table: a separate batch checked that experiment for confounding and found it
 negligible, which is what licenses reading them as sizes rather than as directions.
-The B-26 and M-10 rows were not blind; the others were analysed with the decision
-rule frozen before any result row existed.
+Blindness is not uniform across the table and we set it out row by row. The B-26,
+M-10 and S-ENS rows were not blind --- the direction was known before the runs. The
+B-1 row is weaker still: its gate and analysis \emph{code} was written after its
+results existed, transcribing a rule recorded earlier in the batch's design note
+(Section~\ref{sec:res_headline}). The remaining rows were analysed with the decision
+rule frozen in code before any result row existed.
+% ⛔[2026-09-02] 여기 있던 문장은 *"The B-26 and M-10 rows were not blind; **the others**
+%   were analysed with the decision rule frozen before any result row existed."* 였다.
+%   **두 군데서 거짓이다**: ①`B-1` 의 게이트·분석은 **결과 뒤에** 작성됐다
+%   (`verdict_b1.json._honesty` 축자) ②`S-ENS` 의 동결 공시 첫 줄이 *"blind 아님"* 이다.
+%   ★전칭("the others")을 쓰면서 표의 행을 하나씩 확인하지 않았다 --- 오늘 다섯 번째다.
 
 Two rows of Table~\ref{tab:earns} carry a caveat that the table itself makes
 visible, and we state it rather than let the reader find it. In the B-26 row the

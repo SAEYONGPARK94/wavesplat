@@ -91,7 +91,7 @@ decision threshold against a per-record zero-field reference.
 
 \begin{keyword}
 wave field estimation \sep LiDAR \sep spectral methods \sep
-dispersion relation \sep data assimilation \sep real-time estimation
+dispersion relation \sep data assimilation \sep sequential estimation
 \end{keyword}
 
 % ============================================================================
@@ -247,7 +247,7 @@ Our key contributions are:
     the spectral component representation persists across frames,
     allowing computationally efficient per-frame updates via
     dispersion-based phase prediction ($\sim$10 gradient steps)
-    rather than full re-initialization ($\sim$200 steps per frame),
+    rather than re-running initialisation each frame,
     while supporting continuous monitoring without the discrete
     update latency of filter-based approaches.
     Estimation accuracy depends on initialization quality;
@@ -510,10 +510,17 @@ physically meaningful plane wave with frequency constrained by the
 dispersion relation rather than a generic sinusoid or wavelet;
 (2)~the model order is adapted \emph{online} during tracking based
 on residual energy, rather than fixed a priori; and
-(3)~the spectral components \emph{persist} across frames via
-dispersion-based phase prediction, enabling efficient per-frame
-updates ($\sim$10 gradient steps) rather than independent per-frame
-reconstruction, which is the core enabler of real-time operation.
+% [2026-09-02 P9] 4차 감사 B9 + 3.4.3 정합. 두 결함:
+%   ①*"real-time"* 을 논문이 네 번 주장하는데 **모든 지연이 철회**됐고 §5.7 은 학습 초기화
+%     경로에서 지연이 **한 번도 측정된 적 없다**고 적었다.
+%   ②*"dispersion-based phase prediction"* 은 `TRACK_PHASE_PREDICT=False` 로 **꺼져 있다**
+%     --- §3.4.3 이 정확히 그렇게 적는다. 전개는 전방모델의 $-\omega t$ 항이 한다.
+(3)~the spectral components \emph{persist} across frames: because each atom carries
+its own $\omega$, the forward model evaluates at any later time without
+re-estimation, so a frame costs $\DepTrackingSteps{}$ gradient steps rather than a
+fresh reconstruction. We state this as a structural property and not as a
+demonstrated latency --- no timing in this paper survives
+(Section~\ref{sec:complexity}).
 
 % ============================================================================
 \section{Method}
@@ -634,7 +641,10 @@ the complete pipeline.
 %        `_effective_k` 가 `learned_ensemble_k=1` 을 읽는다 ⟹ **median-of-k 는 안 돈다.**
 %        ⛔"median-of-3" 를 표에 적지 마라.
 % ============================================================================
-\begin{table}[t]
+% [2026-09-02 P9] 4차 감사 B7: 이 표가 `[t]` 에 안 들어가 **뒤의 float 전부가 참고문헌
+%   뒤로 밀렸다**(표 3 이 인용되는 곳에서 36쪽 떨어졌다). `[!htbp]` + \small 로 낮춘다.
+\begin{table}[!htbp]
+\small
 \centering
 \caption{Algorithm: the deployed estimation pipeline, transcribed from the
 shipped configuration ($\texttt{init\_method}{=}\texttt{auto}$,
@@ -689,10 +699,14 @@ atom sets, pools them into at most $\DepMaxN{}$ atoms, fits amplitude and phase 
 closed form, and refines the wavenumbers by variable projection; the adaptive
 prune-and-grow step runs before variable projection, on a model that has had no
 joint refinement. Phase~2 freezes the wavenumbers and updates $(w_i,\varphi_i)$
-over a three-frame window. Blue marks the two learned components. The dashed box
-is a stage that exists in the code and is switched off in the shipped
-configuration. This figure is generated from the source constants by
-\texttt{scripts/gen\_fig\_pipeline.py}, which fails if they change.}
+over a three-frame window. Blue marks the one learned component, brown the output.
+% [2026-09-02 P9] 4차 감사 M1: 캡션이 "two learned components" 인데 파란 상자가 셋이었다.
+%   'polish + pool' 도 'field at any' 도 학습이 아니다 ⟹ 색을 분리하고 캡션을 그림에 맞췄다.
+The dashed rectangle is a stage that exists in the code and is switched off in the
+shipped configuration; the dashed path is the transition between phases. Every
+constant printed in this figure is read from the source at generation time by
+\texttt{scripts/gen\_fig\_pipeline.py}, which also asserts the four switches that
+would change its structure.}
 \label{fig:pipeline}
 \end{figure*}
 
@@ -763,8 +777,12 @@ trained on synthetic scenes, is conditioned on the initialisation-window
 observations and draws several posterior samples of an atom set; the pooled draws
 are then deduplicated in wavenumber % [2026-09-01] 2차 감사: 코드는 merge 가 아니라 **drop** 이다(learned_init.py:184).
 %   merge_atoms 는 별도 기능이고 기본 no-op 이며 W-4 가 무익을 측정했다.
-(atoms closer than $\Delta k = 0.03$~rad/m are
-dropped in favour of the higher-energy one), thresholded on energy, and truncated at $N_{\max}$. Given the resulting
+% [2026-09-02 P9] 4차 감사 MINOR 둘: ①코드 순서는 **에너지 문턱이 먼저**이고
+%   dedup 이 나중이다(`learned_init.py:179-184`) --- 표 3 은 옳게 적었고 이 산문만 뒤집혔다.
+%   ②판정은 유클리드 거리가 아니라 **축별 상자**다(`abs(dkx)<dk and abs(dky)<dk`).
+thresholded on energy, then deduplicated in wavenumber (an atom is dropped when a
+higher-energy atom lies within $\Delta k = 0.03$~rad/m of it \emph{on both axes}),
+and truncated at $N_{\max}$. Given the resulting
 wavenumbers, the amplitude and phase of every atom are obtained in closed form by
 ridge-regularised least squares, and the whole set is refined by \emph{variable
 projection}: because the model is linear in $(a_j, b_j)$ once $(k_{x,j}, k_{y,j})$
@@ -780,7 +798,14 @@ constant stored in the checkpoint, giving $|k_x|, |k_y| \le \DepKLim{}$~rad/m. F
 the sea states evaluated here the largest true wavenumber is near $1.0$~rad/m, so
 the bound is satisfied with little margin, and it is a property of the checkpoint
 rather than of the representation --- the analytic alternative searches
-$\pm \DepAnaKMax{}$~rad/m. Any application to shorter waves would need the prior retrained,
+$\pm \DepAnaKMax{}$~rad/m.
+% [2026-09-02 P9] 4차 감사 M14: 실제로 **구속력 있는** 상한은 clip 이 아니라 **조건화 지도**다.
+%   `d3_beamform_net.py:31 KLIM = 0.6` --- 신경망이 자료를 보는 유일한 통로가 ±0.6 이다.
+A tighter bound applies upstream: the only view of the data the network receives is
+the conditioning periodogram, and that grid spans $\pm 0.6$~rad/m. Components with
+$|k|$ between $0.6$ and the clip bound are therefore outside the network's input
+entirely, and can be reached only by the residual-growth step, whose beamformer does
+search the wider range. We have not measured how often that happens. Any application to shorter waves would need the prior retrained,
 and we have not measured what happens when a true component lies outside the
 bound.
 
@@ -798,7 +823,7 @@ The system also contains a purely analytic initialiser, which is what runs when 
 learned prior is not used. It is described next both because it is the fallback and
 because it is the \emph{comparison arm} of the prior ablation in
 Section~\ref{sec:res_ablation}: replacing the learned proposal with this procedure,
-changing nothing else, is what costs \BTwentyTwoRel{} --- against an analytic
+changing nothing else, is what accounts for a margin of \BTwentyTwoRel{} --- against an analytic
 package that itself clears a zero predictor on only
 \BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes.
 
@@ -921,7 +946,7 @@ compared without normalization by sea state, so its effective strictness
 varies with $H_s$; a scale-invariant form that normalizes the residual by
 the observed signal RMS is implemented but not enabled by default.
 A sensitivity sweep over $\tau_R \in \{0.02, 0.05, 0.08, 0.10, 0.15\}$~m
-on 12 representative episodes confirms robustness: values in
+on 12 representative episodes of the retracted corpus found no ordering among values in
 $[0.05,\,0.15]$~m produced indistinguishable average error, while
 $\tau_R = 0.02$~m caused over-growth in multi-component seas. The per-value levels
 from that sweep are not quoted: it was run on the retracted corpus and before the
@@ -970,6 +995,7 @@ at 10~Hz, the window spans 0.3~s, much shorter than the peak
 period $T_p$ for all sea states considered.
 
 \subsection{Computational complexity}
+\label{sec:complexity}
 
 Let $M$ denote the number of LiDAR observations per frame and
 $N$ the number of spectral components.
@@ -986,9 +1012,9 @@ size $K_w$, the per-frame tracking cost is $O(K \cdot K_w \cdot M \cdot N)$.
 % In practice, $K{=}10$, $K_w{=}3$, $N \leq 30$, yielding 13.4~ms/frame
 % on CPU (single-threaded, Intel i7-12700H).
 In practice, $K{=}\DepTrackingSteps{}$, $K_w{=}3$, $N \leq \DepMaxN{}$, measured on
-CPU (single-threaded, \textbf{AMD Ryzen 7 7800X3D}).
-\textbf{[RETRACTED 2026-08-14]} The absolute per-frame latency previously
-quoted here is withdrawn (separate-process timing).
+CPU. \textbf{[RETRACTED 2026-08-14]} The absolute per-frame latency previously
+quoted here is withdrawn: it was obtained by timing separate processes without
+thread pinning, on an AMD Ryzen 7 7800X3D. Nothing replaces it.
 
 % ============================================================================
 % ★2026-09-02 (P9) --- 코드 대조 감사 (c). 이 절은 **Phase 2 만** 특성화한다.
@@ -1120,11 +1146,17 @@ Each episode contains 301 frames (30~s at 10~Hz) with ground-truth
 elevation fields evaluated on a 80$\times$60 spatial grid
 covering the LiDAR observation area.
 A total of 100 episodes are generated across 5 random seeds per
-configuration.  The full 100-episode dataset is used for the primary
-five-metric evaluation (retracted corpus; archived), 12 representative
-episodes for the per-episode breakdown, and 100 paired runs
-(10 configurations $\times$ 5 seeds $\times$ 2 raydrop models) for
-the Wilcoxon statistical validation.
+configuration.
+% [2026-09-02 P9] 4차 감사 M7: 이 문단은 **지금 논문에 없는 설계**를 서술하고 있었다
+%   (5지표 평가 · 12에피소드 분해 · 100짝 Wilcoxon). 셋 다 철회 코퍼스 산물이고
+%   개정본 Results 에는 하나도 없다. ⟹ 실제로 쓰인 방식으로 대체한다.
+Each batch reported in Section~\ref{sec:results} draws its own episode set from this
+corpus or from a corpus regenerated the same way, and states its own $n$; the
+comparisons are paired per episode and read with a sign test, with the direction and
+the decision threshold fixed before the runs. The earlier design --- a five-metric
+panel over all 100 episodes, a twelve-episode per-episode breakdown, and a
+100-run Wilcoxon validation --- belongs to the retracted corpus and is not used
+here.
 
 \subsection{Mesh adequacy of the reference field}
 \label{sec:regen}
@@ -1149,9 +1181,15 @@ We regenerated the full 100-episode dataset on a 200$\times$167 mesh
 ($1.21$~m spacing, adequate for every component present), holding the
 random seed fixed so that the wave components of each regenerated
 episode are bit-identical to its released counterpart.  The two
-datasets are therefore paired, differing only in rendering.  All
-numbers reported in this paper are computed on the regenerated
-dataset.  The effect is strongly regime-dependent: sparse episodes
+datasets are therefore paired, differing only in rendering.
+% [2026-09-02 P9] 4차 감사 M6: *"All numbers reported in this paper are computed on the
+%   regenerated dataset"* 는 **거짓**이다 --- B-12 는 코퍼스 밖 시드의 HOS 참값,
+%   B-26 은 신선 시드, 표 6 과 T-5 는 **실측 12 레코드**다.
+The synthetic batches of Section~\ref{sec:results} are computed on this regenerated
+corpus or on one produced the same way. Three groups of results are not: the
+non-linear replication, which uses a different reference field and seeds drawn from
+outside it; the sea-state experiment, which consumes fresh seeds; and every
+measured-record result, which uses no simulator at all.  The effect is strongly regime-dependent: sparse episodes
 improve substantially (up to $-77\%$ nRMSE, with previously undetected
 short-wavelength components recovered), whereas crowded
 15--30-component episodes move much less, indicating that the
@@ -1200,7 +1238,9 @@ We report:
     the primary reconstruction quality metric.
     Lower is better; values below 0.10 indicate excellent reconstruction,
     0.10--0.30 is good, and above 0.30 indicates significant error.
-  \item \textbf{Inference speed}: ms/frame for the tracking phase,
+  \item \textbf{Inference speed}: ms/frame for the tracking phase (defined here for
+    completeness; \emph{no timing is reported in this paper} --- see
+    Section~\ref{sec:complexity}),
     measured on a single CPU thread.
   \item \textbf{$N_{\text{adapt}}$}: final number of spectral components
     after adaptive model order selection.
@@ -1234,11 +1274,15 @@ points that lie at least 10~m from any LiDAR observation
 (quantifies how well the method reconstructs the wave field where
 no direct observation exists, isolating the contribution of the
 physics prior).
-All five metrics (nRMSE plus the four above) are defined in our public
-evaluation module and applied uniformly to every compared method to
-prevent metric cherry-picking.  The full-panel evaluation across the
-complete 100-episode dataset is reported in
-the retracted corpus (archived).
+All five metrics are defined in our public evaluation module.
+% [2026-09-02 P9] 4차 감사 M7: 초판은 *"applied uniformly … to prevent metric
+%   cherry-picking"* 이라 적고 **하나만 보고**했다 --- 약속이 곧 위반이었다.
+\emph{This paper reports nRMSE only.} The four secondary metrics were part of the
+retracted corpus's evaluation panel and were not re-measured for the batches
+reported here, so we describe them for completeness and do not claim a
+five-metric evaluation. Each batch's primary metric was fixed in its
+preregistration before results existed, which is the protection against metric
+selection that we actually have.
 
 \subsection{Baselines}
 
@@ -1258,19 +1302,34 @@ grid leaving the ensemble undersized for the available observations, and that
 minimal multiplicative inflation won given the additive inflation already
 present.
 
-% [2026-09-02 P9] tab:etkf_sweep 을 아카이브로 옮겼다.
-%   ⛔사유: 24구성 스윕의 nRMSE 열이 철회된 코퍼스(프레임 불일치)에서 나왔다.
-%   ⛔대체 없음 --- 그래서 **표를 옮기고 수치를 다시 적지 않는다**(부재가 정직하다).
-The sweep selected the configuration used as ``ETKF (tuned)'' wherever an ETKF arm
-appears. The per-configuration error levels from that sweep are not quoted here:
-they were measured on the corpus whose cross-arm comparisons are retracted, and no
-re-measured substitute exists. The sweep table is in the supplementary archive.
+% [2026-09-02 P9] 4차 감사 B1. 두 결함이 겹쳐 있었다:
+%   ①같은 문장이 두 번 인쇄됐다(위 문단 끝과 이 문단 첫 줄).
+%   ②*"수치를 인용하지 않는다"* 라 적은 **바로 다음 문단**이 0.358/1.187/3.3배 를 인용했다
+%     --- ★「철회가 N-1 에서 멈춘」 사례가 한 문단 거리에서.
+%   ③*"the ETKF reference throughout the paper"* 는 이제 **거짓**이다: 개정본 Results 에
+%     ETKF 수치가 **0개**다(기준선은 스펙트럼 격자 팔이다).
+The per-configuration error levels from that sweep are not quoted here: they were
+measured on the corpus whose cross-arm comparisons are retracted, and no re-measured
+substitute exists. No ETKF result appears in Section~\ref{sec:results}; the arm is
+retained in this section because the sweep is part of how the baselines were chosen,
+not because a number from it is used.
 
-The 3.3$\times$ spread between best and worst ETKF configurations
-(0.358 vs.\ 1.187) confirms that fair ETKF evaluation requires
-tuning, and motivates the extended tuning effort beyond any single
-default setting.  The best configuration (nRMSE 0.358) is used as the ETKF reference
-throughout the paper.
+% ============================================================================
+% ★2026-09-02 (P9) BLOCKER 수리 (4차 감사 B2). 헤드라인이 이기는 상대가
+%   **논문 어디에도 정의돼 있지 않았다** --- `SPEC25` 라는 이름이 tex 에 0회 등장한다.
+%   출처 = `S16_BASELINE_2026-08-14/PREREG.md:92`(letkf_spec.LETKFGridSpec ·
+%   JONSWAP 배경 · loc 25 m · 앙상블 600) 과 `S17` 의 최강 선택.
+% ============================================================================
+\textbf{Spectral-background LETKF (the headline comparator)}: a localised ensemble
+transform Kalman filter on the same spatial grid, but with the background error
+covariance built from a JONSWAP spectrum for the scene's sea state rather than from
+a generic smoothness prior, a Gaspari--Cohn localisation radius of $25$~m, and an
+ensemble of $600$. This is the arm the headline of Section~\ref{sec:res_headline}
+is measured against. It was selected, not designed for the comparison: a
+pre-registered batch compared three localisation radii and a set of alternative
+background models and took whichever won, and a later batch that attempted to
+strengthen the family further did not produce a stronger member. We therefore call
+it the strongest eligible baseline we possess, and not a strengthened one.
 
 \textbf{GPR}: Gaussian Process Regression with Mat\'{e}rn $\nu$=5/2
 kernel (length scale 20~m, noise $\sigma$=0.02~m), operating in
@@ -1350,8 +1409,10 @@ The conclusion holds: \BTwelveBetter{}/\BTwelveN{} episodes, median relative cha
 Critically, this is a comparison \emph{between two arms that both have skill}: the
 grid baseline itself beats a zero predictor on \BTwelveCmpBetter{}/\BTwelveCmpN{}
 episodes. A margin obtained against a comparator that has itself collapsed is not
-evidence about the estimator, and we check for that collapse explicitly wherever we
-report a margin.
+evidence about the estimator. We therefore print the comparator's own skill in
+Table~\ref{tab:earns} wherever the batch measured it. Five of its rows carry a dash
+instead, because that control was not part of those batches' designs; for those rows
+the reader has our word about the comparator and not a number.
 
 We do not compare the size of this number with the headline: the corpora, reference
 fields, and realised non-linearity grades differ.
@@ -1372,7 +1433,7 @@ at a time.
 
 \paragraph{The learned prior}
 Replacing the learned set-valued prior with the analytic proposal package, changing
-nothing else, costs \BTwentyTwoRel{} (\BTwentyTwoBetter{}/\BTwentyTwoN{},
+nothing else, removes a margin of \BTwentyTwoRel{} (\BTwentyTwoBetter{}/\BTwentyTwoN{},
 $p = \BTwentyTwoP{}$).
 \textbf{Disclosure:} the right-hand side of this contrast is \emph{thin} --- the
 analytic package beats a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{}
@@ -1382,7 +1443,7 @@ not \emph{``the prior adds a margin on top of a working arm''}.
 
 \paragraph{Continuity of the wavenumber}
 Snapping atoms to a wavenumber grid and refitting amplitude and phase --- leaving
-every other component of the pipeline untouched --- costs \BSixteenRel{}
+every other component of the pipeline untouched --- removes a margin of \BSixteenRel{}
 (\BSixteenBetter{}/\BSixteenN{}, $p = \BSixteenP{}$). The effect is
 \emph{dose-responsive}: doubling the grid spacing is worse again
 (\BSixteenDose{}/\BSixteenN{}). The same ablation reproduces in the sparse stratum
@@ -1411,9 +1472,19 @@ crowded corpus along each.
 
 \paragraph{Space}
 Decomposing the score by distance to the nearest observation, the gain persists
-inside the density band that our measured records actually occupy
-(\MTenBetter{}/\MTenN{}, \MTenRel{}), with both arms beating the zero reference
-there (\MTenCmp{}/\MTenN{}). This is an \emph{exclusion}, not an attribution: we
+inside the density band that our measured records actually occupy --- points within
+$5$~m of an observation --- on \MTenBetter{} of \MTenN{} episodes
+(\MTenRel{}), with both arms beating the zero reference there
+(\MTenCmp{}/\MTenN{}).
+% [2026-09-02 P9] 4차 감사 B8. ⛔**논문 52쪽에 우리 팔의 절대 정확도가 한 번도 없었다** ---
+%   인쇄된 유일한 절대 nRMSE 가 **철회된 기준선의 0.358** 이었다.
+%   §4.3 은 "0.10 미만 = excellent" 라는 해석 기준을 주고 값을 한 번도 주지 않는다.
+%   값은 `verdict_m10.json` 의 `primary.abs_median` 에 있다(동결).
+Because every other number in this paper is a win count or a relative median, we
+give the absolute level here as well: on this band the median nRMSE is
+\MTenAbsShip{} for the deployed path and \MTenAbsSpec{} for the comparator, against
+\MTenAbsZero{} for a zero field. These are medians over the crowded synthetic
+stratum and should not be read as a level for any other corpus. This is an \emph{exclusion}, not an attribution: we
 did not run an equivalence test, and aperture, incidence angle, and occlusion remain
 unmeasured. Not blind.
 
@@ -1493,7 +1564,10 @@ Table~\ref{tab:earns} is what the representation earns on synthetic corpora,
 where ground truth exists; Table~\ref{tab:boundary} is where it stops, on the
 $12$ measured records.
 
-\begin{table*}[t]
+% [2026-09-02 P9] 4차 감사 B7 후속: `table*` 은 별표 float 이라 `[h]`/`[b]` 가 없다
+%   ⟹ 한 번 못 앉으면 **문서 끝까지 밀린다**(표 5 가 참고문헌 뒤로 갔다).
+%   review 모드는 단일단이라 별표가 필요 없다 ⟹ 보통 table 로 내린다.
+\begin{table}[!htbp]
 \centering
 \caption{What the representation earns. All contrasts are paired per episode and
 one-sided in the pre-registered direction; ``better'' counts episodes on which the
@@ -1508,29 +1582,33 @@ These are separate
 experiments on different corpora and their magnitudes have no defined meaning when
 added or subtracted --- they should not be combined arithmetically.}
 \label{tab:earns}
+% [2026-09-02 P9] 4차 감사 M4: 이 tabular 가 본문 폭을 81.9pt(약 2.9 cm) 넘었다.
+%   `[review]` 의 넉넉한 여백 때문에 눈에 안 띄었을 뿐, 저널 판형에서는 잘린다.
+\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{llccrrc}
 \toprule
 Question & Batch & $n$ & better & rel.\ median & $p$ & cmp. \\
 \midrule
 \multicolumn{7}{l}{\emph{Against an external baseline}} \\
-Strongest eligible grid baseline & B-1  & \BOneN{}    & \BOneBetter{}    & \BOneRel{}    & $\BOneP{}$ & --- \\
-Non-linear reference, unseen seeds & B-12 & \BTwelveN{} & \BTwelveBetter{} & \BTwelveRel{} & $\BTwelveP{}$ & \BTwelveCmpBetter{}/\BTwelveCmpN{} \\
+Strongest eligible baseline & B-1  & \BOneN{}    & \BOneBetter{}    & \BOneRel{}    & $\BOneP{}$ & --- \\
+Non-linear reference, fresh seeds & B-12 & \BTwelveN{} & \BTwelveBetter{} & \BTwelveRel{} & $\BTwelveP{}$ & \BTwelveCmpBetter{}/\BTwelveCmpN{} \\
 Physically correct sensor model & B-15 & \BFifteenN{} & \BFifteenBetter{} & \BFifteenRel{} & $\BFifteenP{}$ & \BFifteenCmp{}/\BFifteenN{} \\
-Sea state matched to the records & B-26 & \BTwentySixN{} & \BTwentySixBetter{} & \BTwentySixRel{} & --- & \BTwentySixCmpBetter{}/\BTwentySixN{} \\
+Sea state matched to records & B-26 & \BTwentySixN{} & \BTwentySixBetter{} & \BTwentySixRel{} & --- & \BTwentySixCmpBetter{}/\BTwentySixN{} \\
 \midrule
 \multicolumn{7}{l}{\emph{Ablations of the representation itself}} \\
 Continuity of the wavenumber & B-16 & \BSixteenN{} & \BSixteenBetter{} & \BSixteenRel{} & $\BSixteenP{}$ & --- \\
 \quad --- sparse stratum & B-19 & \BNineteenN{} & \BNineteenBetter{} & \BNineteenRel{} & $\BNineteenP{}$ & --- \\
 The learned prior & B-22 & \BTwentyTwoN{} & \BTwentyTwoBetter{} & \BTwentyTwoRel{} & $\BTwentyTwoP{}$ & \BTwentyTwoAnaZero{}/\BTwentyTwoN{} \\
-Ensemble on the learned path & S-ENS & \SEnsN{} & \SEnsBetter{} & \SEnsRel{} & $\SEnsP{}$ & --- \\
+Ensemble on learned path & S-ENS & \SEnsN{} & \SEnsBetter{} & \SEnsRel{} & $\SEnsP{}$ & --- \\
 \quad --- sparse stratum & S-ENS & \SEnsSparseN{} & \SEnsSparseBetter{} & \emph{undecided} & --- & --- \\
 \midrule
 \multicolumn{7}{l}{\emph{Where the gain sits}} \\
-In space (outside the support) & M-10 & \MTenN{} & \MTenBetter{} & \MTenRel{} & $\MTenP{}$ & \MTenCmp{}/\MTenN{} \\
+In space (inside observed band) & M-10 & \MTenN{} & \MTenBetter{} & \MTenRel{} & $\MTenP{}$ & \MTenCmp{}/\MTenN{} \\
 In time (lead $1.0\,T_p$) & T-4 & \TFourN{} & \TFourBetter{} & \TFourRel{} & --- & \TFourCmp{}/\TFourN{} \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 \paragraph{How the rows of Table~\ref{tab:earns} must be read}
 Four qualifications apply to the table as a whole and are not repeatable per row.
@@ -1586,7 +1664,7 @@ that the method improves with lead time. The T-4 rung is at the lower end of the
 measured lead band, $11$ of the $12$ records, not at the horizon the real-data
 section reports. 
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering
 \caption{Where it stops. Every row is a measurement on the $12$ fixed-station
 stereo records, scored against the per-record true zero-field reference. ``beats''
@@ -1595,6 +1673,7 @@ pre-registered decision threshold for a confirmatory reading was
 \BEighteenConfirm{}/\BEighteenN{}. \emph{None of these rows is a comparison
 between arms} --- each asks only whether the arm has any skill at all.}
 \label{tab:boundary}
+\small
 \begin{tabular}{llcc}
 \toprule
 What was varied & Batch & beats & reading \\
@@ -1614,12 +1693,57 @@ angle-dependent noise model (B-17), and the sea state (B-26, in
 Table~\ref{tab:earns}). The learned prior does not reach the pre-registered
 decision threshold on the measured records under any arm configuration we ran, and
 we report that as the measurement it is rather than as a limitation to be
-addressed later. One positive does exist on the measured records and it is not a
+addressed later.
+
+% [2026-09-02 P9] 4차 감사 M11: 표 5 의 S-ENS 두 행에 **산문이 한 줄도 없었고**,
+%   그 팔은 `learned_ensemble_k=3` 으로 **배포 기본값(1) 이 아니다**. 동결
+%   `verdict_sens.json disclosure` 의 MDE 병기와 *"배포 전환 권고 아님"* 도 빠졌다.
+The two S-ENS rows of Table~\ref{tab:earns} deserve a word, because they are the
+only rows there that do not describe the shipped system. They compare the learned
+initialiser drawing three atom sets and taking the median against the same
+initialiser drawing one, which is the shipped default (\DepLearnedEnsK{}). The
+crowded stratum favours the ensemble; the sparse stratum is undecided, and the
+smallest win rate that design could resolve was $0.682$. We report it because the
+same operator earns on the measured records, and whether that transfers is otherwise
+an open question --- \emph{not} as a recommendation to change the default, which
+would need its own preregistration and a cost measurement we do not have.
+
+One positive does exist on the measured records and it is not a
 skill claim: giving the proposal an ensemble lowers its forecast error at the
 $1$--$3$~s horizon (\TFiveBetter{}/\TFiveN{}, \TFiveRel{}, $p=\TFiveP{}$), and the
 same operator gives \TFiveFarBetter{}/\TFiveN{} (\TFiveFarRel{}) on the far
 band; this is a within-arm contrast, and the endpoint against a zero predictor
 remains undetected.
+% [2026-09-02 P9] 4차 감사 M12: 이 인용에 동결 `verdict_t5.json disclosure` 의 네 항목이
+%   **하나도** 없었고, `n=36` 이 표 6 의 "12 레코드" 두 문장 뒤에 설명 없이 나왔다
+%   (★단위 바꿔치기 --- `AMENDMENT_1_POSTRESULT.md` 가 이미 한 번 철회한 그것).
+Four things belong with that number. The unit is not the record: $\TFiveN{}$ counts
+record--lead cells, $12$ records at three lead bands, and the record-level statement
+is weaker. The analysis was not blind, and one of the two bands was partly
+determined by an answer we had already seen. The smallest win rate the design could
+resolve was $0.742$. And the $12$ records come from four fixed stations, so nothing
+here generalises to the site level.
+
+% ============================================================================
+% ★2026-09-02 (P9) --- 4차 감사 B8. 논문 52쪽에 그림이 **하나**뿐이었고 그건 개념도다
+%   (재구성 예시 0 · 오차-거리 0 · 스펙트럼 0) ⟹ 심사 가능한 증거 표면이 표 둘뿐이었다.
+%   ★그림도 표와 같은 규약으로 만든다: **동결 verdict 에서만**, 손으로 적은 수 0개.
+%   ★패널 (b) 는 F1 부류 공시를 **문장이 아니라 그림으로** 보인다.
+% ============================================================================
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_results.pdf}
+\caption{(a) Every comparison in Table~\ref{tab:earns}, as a win fraction with an
+exact $95\%$ Clopper--Pearson interval. Filled markers are our arm against the
+comparator that batch used; hollow markers are that comparator against a zero
+field, i.e.\ how much skill it had. Rows without a hollow marker are the ones whose
+batches did not include that control. The sparse S-ENS row is the one contrast here
+that does not separate. (b) Why the margin that grows with forecast lead is not a
+gain: our arm's own skill against a zero field is flat across the ladder, while the
+comparator's falls away, so the ratio widens because the denominator weakens.
+Generated from the frozen verdict files by \texttt{scripts/gen\_fig\_results.py}.}
+\label{fig:results}
+\end{figure}
 
 \paragraph{What was removed, and what that costs}
 The three subsections that previously stood here --- an ablation of the dispersion
@@ -1660,7 +1784,7 @@ A spectral state pays instead for the number of components it carries. That is t
 structural argument for the representation, and the ablations in
 Section~\ref{sec:res_ablation} are what turn it from an argument into a measurement:
 removing only the continuity of the wavenumber --- keeping every other component of
-the pipeline --- costs \BSixteenRel{}, and the cost grows when the grid is coarsened.
+the pipeline --- removes a margin of \BSixteenRel{}, and the loss grows when the grid is coarsened.
 We checked separately that this ablation is not confounded with the
 amplitude-and-phase refit it necessarily performs, and the magnitudes here are
 \emph{not additive} with the baseline margin: they were measured on different
@@ -1772,22 +1896,25 @@ compute-efficiency device rather than as a contribution.  A model-order
 criterion that is aware of crowding---for instance, energy retention
 conditioned on the beamforming main-lobe width rather than a fixed 90\%
 quantile---is the natural repair and is untested.
-\emph{Directional spread of the synthetic distribution}: measured against
-25,426 CDIP records, our generator occupies the lower tail of the observed
-directional-spread distribution---median $16.1^\circ$ against a measured
-median of $35.3^\circ$ (the measured $0.3$rd percentile), with 40 of our
-100 episodes narrower than the narrowest measured record and our most
-crowded episodes at the measured 11.5th percentile
-(retracted corpus; archived).  Our peak-period ceiling of 9~s also
-sits below the measured median of $9.88$~s, meaning the synthetic universe
-contains no swell; significant wave height, by contrast, is well covered
-(79.7\%).  The consequence is bounded and specific: the regime in which
-this method's advantage is largest is one the buoy record does not
-contain, and on the overlapping subset LETKF is more often better.  The
-repair belongs to the generator, not the estimator---directional spreading
-functions targeting a $\sim$35$^\circ$ median and a $T_p$ range extending
-into swell---and we deliberately did not change it mid-study so that all
-results in this paper remain from one frozen dataset.
+% [2026-09-02 P9] 4차 감사 B4+B6+M8.
+%   ①§5.7 이 *"buoy 층화는 대체가 없어 **다시 적지 않는다**"* 라 약속했는데 이 문단이
+%     16.1/35.3/40/11.5/79.7 을 **전부 다시 적었다**(약속 위반).
+%   ②⛔*"on the overlapping subset LETKF is more often better"* 는 **금지된 팔간 주장**이다
+%     (금지목록 08-03·08-13 묶음; 잰 것은 합성 부분집합이고, LETKF 는 논문에 정의도 없다).
+%   ③§6.1 이 *"regime dependence 를 더는 특성화하지 않는다"* 며 철회했는데
+%     이 문단이 *"the regime in which this method's advantage is largest"* 로 되살렸다.
+%   ⟹ 남기는 것은 **방향**뿐: 생성기가 좁은 방향확산 쪽에 치우쳐 있고 스웰이 없다.
+\emph{Directional spread of the synthetic distribution}: compared against a large
+buoy archive, our generator occupies the lower tail of the observed
+directional-spread distribution and its peak-period ceiling excludes swell, so the
+synthetic universe is narrower and shorter-period than the measured one. The
+per-percentile figures are not restated here: they come from the retracted corpus
+and have not been re-measured. The repair belongs to the generator, not the
+estimator---directional spreading functions and a $T_p$ range extending into
+swell---and we deliberately did not change it mid-study so that the synthetic
+results remain from one frozen dataset. We do not characterise which regime the
+advantage is largest in; that characterisation was withdrawn in
+Section~\ref{sec:disc_gridfree}.
 % [2026-09-01] 초판은 여기서 "all results use WaveSim" 이라 적었는데, 개정본의
 %   초록·Results·Conclusion 은 12 고정관측소 레코드를 보고한다 = **원고가 자기모순**이었다.
 %   독립 감사가 잡았다. 아래로 정정한다.
@@ -1809,7 +1936,7 @@ that reason.
 % (basis: memory/project_audit_recheck_2026-08-13.md sections 1, 6, 6.5)
 % --- original (kept for history) ---
 % We note that the simulator itself is validated by 39 unit tests
-We note that the simulator and estimator are covered by an automated test suite (currently \DeployNumTestsPaper{} tests)
+We note that the simulator and estimator are covered by an automated test suite (\DeployNumTestsPaper{} tests at the time of writing; the count is generated, not typed)
 (measured 2026-08-13; a further 8 shipping-default regression tests were
 added subsequently)
 covering dispersion, Gerstner kinematics, Fresnel optics, and
@@ -1922,9 +2049,13 @@ or a per-frame amplitude least-squares solve) is future work.
 beamforming peak search enforces a fixed minimum separation
 $\Delta k_{\min}=0.15$~rad/m between accepted peaks, so component pairs closer
 than this in wavenumber space are structurally unresolvable by our initializer
-regardless of signal-to-noise ratio.  This is not a corner case: 126 of the 195
+% [2026-09-02 P9] 4차 감사 M15: 코퍼스는 어디서나 **100 에피소드**인데 이 줄만 195 다.
+%   ⛔출처를 확인할 수 없다(철회 코퍼스 계열의 확장 집합으로 보인다) ⟹ 비율을 빼고
+%   **검증 가능한 형태**로만 남긴다: "모든 15/20/30 성분 에피소드" 는 구성에서 따라온다.
+regardless of signal-to-noise ratio.  This is not a corner case: a majority of the
 simulated episodes---and every 15-, 20- and 30-component episode---contain at
-least one true pair separated by less than $0.15$~rad/m.  A pre-registered sweep
+least one true pair separated by less than $0.15$~rad/m. (The exact count came from
+the retracted corpus and is not restated.)  A pre-registered sweep
 of $\Delta k_{\min}$ (5 seeds per cell, decision rule fixed in advance, with a
 control episode containing no close pair) shows the constant to be a
 regime-dependent trade rather than a universal floor: relaxing it to
@@ -1974,12 +2105,18 @@ would additionally require surface-roughness and polarisation assumptions
 that are difficult to justify from observation alone.  The name
 ``geometry-aware'' (previously ``Fresnel-aware'' in an earlier draft)
 more accurately reflects the functional form.
-\emph{Baseline fairness}: the 24-configuration ETKF sweep
-(retracted corpus; archived) and the LETKF/GPR-disp comparison
-(retracted corpus; archived) show our conclusions hold under
-the best baseline configurations tested, though further tuning of
-LETKF (e.g., adaptive localization radius, inflation scheduling) or
-hybrid ensemble--spectral approaches remain unexplored.
+% [2026-09-02 P9] 4차 감사 B5. ⛔이 문단은 **철회된 코퍼스를 긍정 근거로** 썼다
+%   (*"show our conclusions hold under the best baseline configurations"*).
+%   그것은 §5.7 이 하지 않겠다고 약속한 바로 그 행위이고, 측정과도 어긋난다
+%   (수리된 기준선 대비 PRIMARY 는 `UNDECIDED`).
+\emph{Baseline fairness}: we cannot claim to have beaten a fully tuned ensemble
+filter. The sweep and cross-baseline comparisons that once supported such a claim
+were run on the retracted corpus, and the one pre-registered attempt to re-establish
+it against a repaired baseline returned an undecided primary. What survives is the
+narrower statement of Section~\ref{sec:res_headline}: the comparator there is the
+strongest eligible baseline we possess, not a baseline strengthened for the
+occasion. Further tuning of ensemble filters, or hybrid ensemble--spectral
+approaches, remain unexplored.
 \emph{Uncertainty quantification}: WaveSplat returns point estimates;
 Hessian-based confidence intervals or multi-start ensembles could
 provide uncertainty.
@@ -2086,6 +2223,13 @@ the work reported in this paper.
 
 Code, simulation data, and experiment scripts will be deposited on a
 public repository upon acceptance.
+% [2026-09-02 P9] 4차 감사 M17: 본문이 "supplementary archive" 를 **다섯 번** 가리키는데
+%   그것이 무엇인지 어디에도 없었다. 실체는 저장소 안의 이동 대상 파일이다.
+The ``supplementary archive'' referred to in Sections~\ref{sec:res_summary}
+and~\ref{sec:discussion} is a single file in that repository holding the
+subsections, tables, and figures withdrawn from this manuscript, kept verbatim with
+the reason for each withdrawal, so that a reader can see what was removed rather
+than only that something was.
 The complete 100-episode dataset can be regenerated from the released
 simulator with the provided configuration files and fixed random
 seeds, ensuring end-to-end reproducibility of the tables and figures that were

@@ -133,6 +133,11 @@ ATOMS = [
     ('MTenRel',    'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.primary.rel_median', 'frac', -31.7),
     ('MTenCmp',    'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.spec_vs_zero.better', 'int', 48),
     ('MTenP',      'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.primary.p_one_sided', 'p', 6.56e-11),
+    # ★[2026-09-02] **절대** nRMSE. 4차 감사: 논문 52쪽에 우리 팔의 절대 정확도가 0회였다
+    #   --- 인쇄된 유일한 절대값이 **철회된 기준선의 것**이었다.
+    ('MTenAbsShip', 'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.abs_median.SHIP', 'abs3', 0.043),
+    ('MTenAbsSpec', 'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.abs_median.SPEC25', 'abs3', 0.063),
+    ('MTenAbsZero', 'M10_GEOMETRY_2026-08-30/verdict_m10.json', 'primary.abs_median.ZERO', 'abs3', 0.339),
     # ── 이득의 위치: 시간(T-4) ⚠비교자 붕괴를 **함께** 싣는다(F1 부류 방지)
     ('TFourBetter', 'T4_GEOMETRY_2026-08-30/verdict_t4.json', 'primary.better', 'int', 47),
     ('TFourN',      'T4_GEOMETRY_2026-08-30/verdict_t4.json', 'primary.n', 'int', 48),

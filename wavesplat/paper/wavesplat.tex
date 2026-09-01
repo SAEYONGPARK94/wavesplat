@@ -69,9 +69,14 @@
 Phase-resolved ocean wave fields must be reconstructed from point clouds that are
 sparse, irregular, and non-stationary in coverage. The dominant paradigm assimilates
 such observations into a \emph{spatial grid} state; doing so requires interpolating
-sparse returns onto that grid, and a recent ensemble-transform study reports
-\emph{limited improvement at the original sparse locations} when the assimilation is
-attempted directly, while naming a spectral-state formulation as the way forward.
+sparse returns onto that grid, and a recent ensemble-transform study
+\cite{Wang2025PointsToWaves} reports \emph{limited improvement at the original
+sparse locations} when the assimilation is attempted directly, with its outlook
+naming a spectral-state formulation.
+% [2026-09-01] 초판 초록은 이 발견을 **인용 없이** 서술했다. 그리고 문헌 실사가
+%   찾아낸 최근접 경쟁 연구가 논문에 0회 등장했다. 인용을 붙인다.
+%   ⚠원문이 지목하는 것은 **표현의 방향**이지 학습된 사전이나 연속 파수가 아니다
+%   (FINDINGS.md §(d)) --- 그 둘까지 지목받은 것처럼 쓰지 않는다.
 This paper is that formulation.
 
 We estimate the field as a small set of \emph{continuous-wavenumber} spectral atoms
@@ -505,6 +510,32 @@ dropout.  The two are naturally combined rather than opposed: WaveSplat
 currently returns point estimates without an error model
 (Section~\ref{sec:limitations}), and the LEPrE framework is the natural route to
 supplying one for the grid-free spectral representation.
+
+\subsection{Position of this work relative to the closest grid-based study}
+\label{sec:rel_wang}
+
+% [2026-09-01 P8] 문헌 실사(2026-08-28) 반영. 이 문단이 없으면 초록의 위치지음이
+%   근거 없이 떠 있다. ⛔"최초" 류 문장은 쓰지 않는다 --- 연속 파수 표현 자체는
+%   선행이 있고(Charnotskii 계열), 순차·실시간 갱신도 이 계열의 공통 속성이다.
+The closest study to ours assimilates sparse three-dimensional returns into a
+\emph{spatial grid} state with an ensemble transform Kalman
+filter~\cite{Wang2025PointsToWaves}. Two things about it shape our position.
+
+First, sequential and continuously-updating operation is \emph{not} what separates
+this paper from that line: recursive per-frame filters already exist there, and we
+therefore make no novelty claim on that axis. What differs is the state itself ---
+a small set of continuous-wavenumber atoms rather than a grid --- and the fact that
+the atoms are placed by a learned prior.
+
+Second, and more usefully, that study does not merely leave direct sparse
+assimilation as future work: it \emph{measures} it, and reports limited improvement
+at the original sparse locations relative to interpolating the returns first. Our
+contribution is therefore better described as a spectral-state implementation of an
+intervention whose grid-state version has already been tried and found wanting, than
+as an untried idea. We are careful not to over-read the outlook of that paper: it
+points at a spectral-state formulation, not at a learned prior or at continuous
+wavenumbers, and the ablations in Section~\ref{sec:res_ablation} are what carry those
+two components here.
 
 \subsection{Grid-free alternatives: spectral, GPR, and learning-based}
 
@@ -1423,6 +1454,7 @@ tracker with the initialization method pinned explicitly in every arm.
 3 estimator seeds (42/123/456), on the Nyquist-adequate dataset
 (Section~\ref{sec:regen}), corrected tracker.
 A1: dispersion constraint removed ($\omega$ as free parameter).
+\emph{Provenance}: this diagnostic was measured on the earlier ``Nyquist-adequate'' corpus, i.e.\ the corpus whose headline comparison is retracted (the compared arms were never scored on the same frames). It is retained as a diagnostic of the estimator's own behaviour, which is a within-arm property and does not depend on that defect. The claim it was originally used to support is now carried by the ablations of Section~\ref{sec:res_ablation}.
 A2: confidence weighting removed (uniform weights).
 Full, A1 and A2 all use the v1 initializer; the last column changes
 \emph{only} the initializer (v1 $\to$ v2), holding both ablated
@@ -1473,6 +1505,7 @@ is therefore restated in terms of what it does establish.
 confidence weighting.  Error bars show $\pm$1 std across seeds.
 The confidence ablation is null; the dispersion ablation shows a large
 effect that does not reach significance at $n=6$ episodes.
+\emph{Provenance}: this diagnostic was measured on the earlier ``Nyquist-adequate'' corpus, i.e.\ the corpus whose headline comparison is retracted (the compared arms were never scored on the same frames). It is retained as a diagnostic of the estimator's own behaviour, which is a within-arm property and does not depend on that defect. The claim it was originally used to support is now carried by the ablations of Section~\ref{sec:res_ablation}.
 \emph{Provenance}: drawn from the earlier pre-correction run and retained
 for the qualitative pattern only---the per-episode levels are superseded
 by Table~\ref{tab:ablation}, and the earlier run's regime split
@@ -1620,6 +1653,7 @@ between return density and observation quality.
 geometry-weighted (U) vs.\ unweighted (S) return sampling, seed-0
 episodes. $\Delta$\%: relative nRMSE change from weighted to unweighted
 (negative = unweighted is better).
+\emph{Provenance}: this diagnostic was measured on the earlier ``Nyquist-adequate'' corpus, i.e.\ the corpus whose headline comparison is retracted (the compared arms were never scored on the same frames). It is retained as a diagnostic of the estimator's own behaviour, which is a within-arm property and does not depend on that defect. The sensor-model robustness claim is now carried by Section~\ref{sec:res_sensor}.
 WaveSplat columns are the median over 3 estimator seeds (42/123/456) under
 the corrected tracker, re-measured 2026-08-03.
 ETKF uses the default configuration ($n_{\text{ens}}{=}50$) and is carried
@@ -1756,7 +1790,8 @@ the LiDAR observations (Table~\ref{tab:noise}, Fig.~\ref{fig:noise}).
 \caption{Noise robustness: nRMSE under additive Gaussian noise
 $\mathcal{N}(0,\sigma^2)$ on LiDAR elevation observations.
 $N_a$: adaptively selected component count.
-Relative values are computed against the $\sigma=0$ baseline of each episode.}
+Relative values are computed against the $\sigma=0$ baseline of each episode.
+\emph{Provenance}: this diagnostic was measured on the earlier ``Nyquist-adequate'' corpus, i.e.\ the corpus whose headline comparison is retracted (the compared arms were never scored on the same frames). It is retained as a diagnostic of the estimator's own behaviour, which is a within-arm property and does not depend on that defect. The noise-robustness claim is now scoped by Section~\ref{sec:res_scope}.}
 \label{tab:noise}
 \begin{tabular}{lccccc}
 \toprule

@@ -65,7 +65,10 @@ CHECKS = [
     #    print-surface check**."* 맞다. 오늘 내 수리가 인쇄를 **다섯 번** 깼고
     #   그 다섯은 전부 grep 한 줄로 잡힌다.
     #   ⚠문법을 판정하지 않는다 --- **알려진 손상 패턴**만 본다.
-    ('인쇄면 손상', [PY, 'scripts/check_print_surface.py']),
+    # ⚠11 s(두 PDF 를 `pdftotext` 한다). 훅에서는 **논문만** 본다 --- 학위논문은
+    #   전체 실행이 잡는다. 사유: 훅이 느리면 우회당한다.
+    ('인쇄면 손상', [PY, 'scripts/check_print_surface.py'] +
+     (['--paper-only'] if '--fast' in sys.argv else [])),
     # ⚠배치 검사기는 **상시 rc=1** 이다 --- 역사적 배치 넷이 동결 증거를 못 갖췄고
     #   그건 지금 고칠 수 있는 것이 아니다(런이 이미 끝났다).
     #   ⛔상시 빨간 검사는 사람이 **무시하기 시작한다** ⟹ 종료코드가 아니라
@@ -215,7 +218,10 @@ def main():
         bad.append('배치 산출물')
     if not check_frozen_sha256():
         bad.append('FROZEN.sha256')
-    if not check_audit_suite():
+    # ⚠[2026-09-02] **훅에서는 건너뛴다.** 실측 61 s 로 `--fast` 전체(93 s)를 지배했고,
+    #   내가 이 파일에 스스로 적은 규칙(*"느린 훅은 사람이 `--no-verify` 로 우회한다"*)을
+    #   어기고 있었다. ★경고 도구이므로 커밋마다 돌 필요가 없다 --- 전체 실행에는 남긴다.
+    if not a.fast and not check_audit_suite():
         bad.append('감사 도구 묶음')
     print('────────────────────────────────────────────────────────')
     if bad:
@@ -223,7 +229,7 @@ def main():
         print('⚠래칫이 「개선」으로 실패했다면 기준선을 **의도적으로** 내려라 --- '
               '침묵시키지 마라.')
         return 1
-    print(f'✅{len(checks) + 3}종 전부 통과'
+    print(f'✅{len(checks) + (2 if a.fast else 3)}종 전부 통과'
           + (' (pytest 건너뜀)' if a.fast else ''))
     return 0
 

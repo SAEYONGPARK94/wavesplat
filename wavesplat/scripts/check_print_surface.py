@@ -112,11 +112,14 @@ def dup_paragraph_titles():
 
 
 def main():
+    # ⚠`--paper-only`: pre-commit 훅용. 두 PDF 를 다 읽으면 11 s 이고, 훅이 느리면
+    #   사람이 `--no-verify` 로 우회한다. 학위논문은 전체 실행이 본다.
+    docs = [(n, r) for n, r in PDFS if not ('--paper-only' in sys.argv and n != 'paper')]
     bad = []
     for doc, ln, t in dup_paragraph_titles():
         bad.append((doc, ln, '중복 paragraph 제목',
                     '같은 제목이 연달아 두 번 (원본 검사)', t[:70]))
-    for name, rel in PDFS:
+    for name, rel in docs:
         txt = text_of(rel)
         if txt is None:
             print(f'  [FAIL] {name}: PDF 를 읽지 못했다 ({rel}) — 검사가 무효다')
@@ -136,7 +139,7 @@ def main():
         #     호출하지 않고, 왜 안 쓰는지를 여기 적는다.
     print('── 인쇄면 검사 ────────────────────────────────────────')
     if not bad:
-        print(f'  [OK  ] {len(PATTERNS) + 2} 패턴 · {len(PDFS)} 문서 · 손상 0건')
+        print(f'  [OK  ] {len(PATTERNS) + 2} 패턴 · {len(docs)} 문서 · 손상 0건')
         return 0
     for doc, ln, pname, why, txt in bad[:30]:
         print(f'  [FAIL] {doc}:{ln}  [{pname}] {why}')

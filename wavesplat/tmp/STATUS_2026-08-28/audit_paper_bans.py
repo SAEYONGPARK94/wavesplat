@@ -252,7 +252,10 @@ print(f"#   그림 내부 히트 {n_fig}건 "
 #     · paper/wavesplat.pdf  77 -> 0   (조판 갱신 = 56쪽, 미정의 참조 0)
 #   ⚠남은 69 는 대부분 **표지·커버레터·그림 PDF·bbl** 이다(본문 tex 는 19).
 #   ⛔"0" 이 목표가 아니다 --- paper/ 에는 철회 이력을 보존하는 배너와 주석이 있어야 한다.
-BASELINE = 69
+#   ★2차 (같은 날): 69 -> 55. 커버레터 두 개의 제목을 갱신하고(‘Shipboard’ 철회 반영)
+#   두 PDF 를 재조판했다(각 6 -> 0). ⚠남은 55 는 대부분 **조판 산출 PDF·그림·
+#   PAPER_IMPROVEMENTS.md** 이고 본문 tex 는 19 다.
+BASELINE = 55
 
 print(f"\n# 원시 히트 {n_raw}건 = 정탐 {total} + 오탐 {n_fp}")
 print(f"# ★오탐률 = {n_fp}/{n_raw} = {100.0*n_fp/n_raw:.1f}%" if n_raw else "")

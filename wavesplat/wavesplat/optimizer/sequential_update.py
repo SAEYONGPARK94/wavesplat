@@ -190,6 +190,36 @@ K_SNAP_DK_DEFAULT = None
 AUTO_SWITCH_THRESH_PRE_UNIFY = 8
 
 
+def recommended_learned_ensemble_config(k: int = 3) -> dict:
+    """★**측정된 권고**(배포 기본값이 **아니다**) — 학습 경로 median-of-k.
+
+    ⛔**왜 기본값이 아닌가**(2026-09-01, 결정 `D3`, 다중 에이전트 토론):
+
+    | | |
+    |---|---|
+    | 확증 | `T3-NOW` 나우캐스트 **29/36 · −8.65%** · `T5-ENS` 예보 **NEAR 28/36 −8.53% / FAR 35/36 −11.10%** (셋 다 Holm 생존) |
+    | ⛔그런데 | **셋 다 패키지가 소유하지 않은 연산자**로 쟀다 — 하네스가 median 을 만들었고 행의 `ens_k_readback` 은 전부 `None` 이다 |
+    | ⛔그리고 | 셋 다 **`real_domain_gate=False`** 로 쟀는데, 배포는 실측에서 게이트를 켜고 `bank_mmse` 로 보낸다 |
+    | ⛔합성 근거 | **0건.** 기본값이 실제로 바꾸는 트래픽은 **합성**인데 개입 확증은 실측뿐이다 |
+    | ⚠NEAR 비대칭 | 28/36 을 돕지만 **8/36 을 해친다**(최악 **+40.56%**, `T5` BS11a w5). FAR 은 1/36(+0.99%) |
+
+    ⟹ 08-23 교훈(***"측정한 구성과 배포한 구성이 다르면 그 측정은 배포를 지탱하지 못한다"***)에
+    따라 **경로만 구현하고 기본값은 1 로 둔다.** 이 함수가 「명시 경로」다
+    (선례 = :func:`recommended_real_refit_config`).
+
+    ★**이 경로를 구현한 이유**: 그전까지 확증된 팔이 **패키지 안에 존재하지 않았다.**
+    이제 존재하므로 다음 배치는 **배포 코드 경로 자체를 잰다**(하네스 연산자가 아니라).
+    기본값 전환은 **합성 사전등록 배치 뒤의 별도 결정**이다.
+
+    사용::
+
+        cfg.update(recommended_learned_ensemble_config())
+        upd = make_updater(cfg)
+        assert getattr(upd, 'k_requested', 1) == 3
+    """
+    return {'init_method': 'learned', 'learned_ensemble_k': int(k)}
+
+
 def pre_varpro_config() -> dict:
     """VARPRO 배포(2026-08-22 오전) **직전** 거동. ⚠**부분 복원**이다.
 
@@ -322,6 +352,27 @@ DEFAULT_ANALYTIC_ENSEMBLE_K = 3
 # one bad-seed lead blow-up observed (AA15a w5 lead-mean 0.824 -> 0.621,
 # tmp/bankmmse_port_2026-07-29/m3_field.json). 1 disables the ensemble.
 DEFAULT_REAL_BANK_ENSEMBLE_K = 3
+
+# ★Member count of the LEARNED-path field ensemble. **Default 1 = OFF.**
+#
+# Why the path exists but is off by default (2026-09-01, decision D3):
+#   The gain is confirmed twice on real data -- `T3-NOW` nowcast 29/36, -8.65%, and
+#   `T5-ENS` forecast NEAR 28/36 -8.53% / FAR 35/36 -11.10% (both Holm-surviving).
+#   But *both* were measured with an operator the package did not own: the harness
+#   built the median itself. Shipping a default on the strength of a measurement whose
+#   configuration the package cannot reproduce is exactly the 2026-08-23 mistake
+#   (`bank_refit_every_s` deployed and withdrawn the same day).
+#   So the path is implemented here -- which makes the measured arm reproducible -- and
+#   the default stays 1 until a preregistered SYNTHETIC batch measures it on this code
+#   (the deployed default routes synthetic traffic; the confirmations are real-data only).
+#
+# ⚠Known asymmetry at NEAR: the pointwise median helps 28/36 cells but HURTS 8/36,
+#   worst +40.56% (`T5` BS11a w5). At FAR only 1/36 is hurt (worst +0.99%).
+#   ⛔The wrapper docstring's "harming no slice (max deviation +0.0025)" is the
+#   ANALYTIC arm's 2026-07-27 measurement and does not transfer to the learned arm.
+#
+# Use `recommended_learned_ensemble_config()` to turn it on explicitly.
+DEFAULT_LEARNED_ENSEMBLE_K = 1
 
 
 def _rx1_gate(name: str) -> bool:
@@ -1896,9 +1947,19 @@ class MedianEnsembleUpdater:
 
     def __init__(self, config: dict):
         self.config = config
-        k = int(config.get('analytic_ensemble_k', DEFAULT_ANALYTIC_ENSEMBLE_K))
+        # ★Which knob applies is decided by the requested route, not by the router's
+        #   later decision: `learned` reads `learned_ensemble_k`, everything else reads
+        #   `analytic_ensemble_k`. Keeping them as two named constants (rather than one
+        #   merged 'ensemble_k') is deliberate -- the repo has been bitten by merging two
+        #   constants whose deployment histories differ.
+        if config.get('init_method') == 'learned':
+            self.k_key = 'learned_ensemble_k'
+            k = int(config.get('learned_ensemble_k', DEFAULT_LEARNED_ENSEMBLE_K))
+        else:
+            self.k_key = 'analytic_ensemble_k'
+            k = int(config.get('analytic_ensemble_k', DEFAULT_ANALYTIC_ENSEMBLE_K))
         if k < 1 or k > len(self.MEMBER_OFFSETS):
-            raise ValueError(f'analytic_ensemble_k must be 1..{len(self.MEMBER_OFFSETS)}')
+            raise ValueError(f'{self.k_key} must be 1..{len(self.MEMBER_OFFSETS)}')
         self.k_requested = k
         self._primary = SequentialUpdater(config)
         self._members = [self._primary]
@@ -1938,7 +1999,13 @@ class MedianEnsembleUpdater:
 
         route = self._primary.init_method
         real_gate = bool(getattr(self._primary, '_auto_real_gate', False))
-        if self.k_requested <= 1 or route != 'v2_konly' or real_gate:
+        # ★Two ensembled routes, each with its own knob (see DEFAULT_LEARNED_ENSEMBLE_K):
+        #   · `v2_konly`  -- the analytic fallback of the `auto` router (deployed 2026-07-27)
+        #   · `learned`   -- the learned prior (path added 2026-09-01, **default off**)
+        #   The real-domain gate still suppresses both: it routes to bank-MMSE, which runs
+        #   its own internal field ensemble (`DEFAULT_REAL_BANK_ENSEMBLE_K`).
+        ensembled_route = route in ('v2_konly', 'learned')
+        if self.k_requested <= 1 or not ensembled_route or real_gate:
             self.ensemble_k = 1
             result['ensemble_k'] = 1
             # model is None when the real-domain gate routed to bank-MMSE (which has
@@ -1954,9 +2021,22 @@ class MedianEnsembleUpdater:
         for off in self.MEMBER_OFFSETS[1:self.k_requested]:
             s = base + off
             cfg = dict(self.config)
-            cfg['init_method'] = 'v2_konly'      # explicit: no second router call
-            cfg['seed'] = s
-            _seed_globals(s)
+            if route == 'learned':
+                # ★Learned members differ ONLY in the diffusion draw. `seed` stays at
+                #   `base` (so the ambient RNG stream is the same for every member) and
+                #   `learned_diffusion_seed` carries the offset -- this is the convention
+                #   the confirmations were measured under (`T3 gates_t3.member_overrides`,
+                #   `T5-ENS`), so member 0 is bit-identical to the k=1 path.
+                # ⚠`learned_atoms` must not be inherited or every member reuses one draw.
+                cfg['init_method'] = 'learned'
+                cfg['seed'] = base
+                cfg['learned_diffusion_seed'] = s
+                cfg.pop('learned_atoms', None)
+                _seed_globals(base)
+            else:
+                cfg['init_method'] = 'v2_konly'  # explicit: no second router call
+                cfg['seed'] = s
+                _seed_globals(s)
             m = SequentialUpdater(cfg)
             r = m.initialize(frames, x_range, y_range, verbose=False)
             self._members.append(m)
@@ -1970,7 +2050,7 @@ class MedianEnsembleUpdater:
         result['member_elapsed_s'] = elapsed
         result['elapsed_s'] = float(sum(elapsed))   # honest total initialisation cost
         if verbose:
-            print(f"  [Init/ensemble] median-of-{self.ensemble_k} analytic members, "
+            print(f"  [Init/ensemble] median-of-{self.ensemble_k} {route} members, "
                   f"seeds={self.member_seeds}, N={result['member_n']}, "
                   f"{result['elapsed_s']:.1f}s total")
         return result
@@ -2028,5 +2108,11 @@ def make_updater(config: dict):
     """
     if config.get('init_method') == 'auto' and \
             int(config.get('analytic_ensemble_k', DEFAULT_ANALYTIC_ENSEMBLE_K)) > 1:
+        return MedianEnsembleUpdater(config)
+    # ★`learned` is wrapped ONLY when the caller asks for it explicitly
+    #   (`DEFAULT_LEARNED_ENSEMBLE_K = 1`), so `make_updater({'init_method': 'learned'})`
+    #   stays a plain SequentialUpdater and every recorded batch is unchanged.
+    if config.get('init_method') == 'learned' and \
+            int(config.get('learned_ensemble_k', DEFAULT_LEARNED_ENSEMBLE_K)) > 1:
         return MedianEnsembleUpdater(config)
     return SequentialUpdater(config)

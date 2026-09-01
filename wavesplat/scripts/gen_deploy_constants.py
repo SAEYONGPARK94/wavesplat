@@ -45,7 +45,8 @@ def real_gate_constants():
 def render() -> str:
     from wavesplat.run import DEFAULT_CONFIG
     from wavesplat.optimizer.sequential_update import (
-        AUTO_SWITCH_THRESH_PRE_UNIFY, LEARNED_INIT_ITERS_PRE_VARPRO)
+        AUTO_SWITCH_THRESH_PRE_UNIFY, DEFAULT_LEARNED_ENSEMBLE_K,
+        LEARNED_INIT_ITERS_PRE_VARPRO)
     n_tests = _count_tests()
     st_min, n_rec = real_gate_constants()
     c = DEFAULT_CONFIG
@@ -58,6 +59,11 @@ def render() -> str:
         ('DeployInitMethod', str(c['init_method'])),
         ('DeployTrackingMode', str(c['tracking_mode'])),
         ('DeployEnsembleK', str(c['analytic_ensemble_k'])),
+        # ★학습 경로 앙상블 — 2026-09-01 신설, **기본값 1 = OFF**(결정 D3).
+        #   경로는 패키지 안에 있으나 기본값으로 켜지지 않는다. 사유: 확증(T3·T5)이
+        #   전부 **하네스 연산자 + 실측 게이트 해제** 상태에서 나왔고 합성 근거가 0건이다.
+        #   ⛔논문에 숫자를 손으로 적지 마라 — 이 매크로를 써라.
+        ('DeployLearnedEnsembleK', str(DEFAULT_LEARNED_ENSEMBLE_K)),
         # 2026-08-23: 실측 전용 경로. 배포했다가 같은 날 철회 ⟹ 값은 'frozen'.
         ('DeployBankRefit', 'frozen' if c['bank_refit_every_s'] is None
          else f"{c['bank_refit_every_s']:g}\\,s"),

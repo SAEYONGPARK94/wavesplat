@@ -53,21 +53,72 @@ RULES = [
      # 2차 감사: 'confound' 한 토큰이면 통과했다(부정문도 통과). 확인 서술을 요구한다.
      [r'not confounded with', r'checked .{0,40}for confounding', r'not attributable by subtraction'],
      'B-16 크기 귀속은 B-21(교락 무시가능)이 지탱한다 — 병기 의무'),
-    ('절제크기-결합금지', r'\\BSixteenRel',
-     [r'not additive', r'should not add or subtract', r'no defined meaning'],
-     'B-1/B-16/B-22 크기 직접비교·산술결합 금지'),
+    # ⚠[2026-09-02] 초판은 `\BSixteenRel` **하나만** 나와도 요구했다. 그것은 과대발동이다 ---
+    #   크기 **하나**를 말하는 절은 결합할 수가 없다. ⟹ `MULTI_RULES` 로 옮겼다(아래).
+    #   ★검사기가 늑대를 외치면 사람이 무시하기 시작한다(2026-09-01 리터럴 오탐의 교훈).
     # ⚠발동을 **우리 음성 주장**에만 건다(관련연구의 "measured records" 는 대상이 아니다).
     # 발동을 **12 레코드 음성을 서술하는 문장**에만 건다.
     ('실측음성-자구', r'(?:learned prior|representation) (?:is |does )[^.]{0,120}(?:zero-field|measured record)',
      [r'decision threshold', r'pre-registered .*threshold'],
      'T-5: "without skill" 금지 -> "유의/결정 문턱에 도달하지 못한다"'),
     # ⚠발동을 **절차를 총괄 서술하는 문장**에만 건다.
-    ('사전등록-전칭금지', r'comparisons .{0,40}pre-registered',
-     [r'written after the runs', r'not blind', r'two limits of that procedure'],
-     '"All comparisons were pre-registered" 전칭 금지 — B-1 분석코드는 사후 작성'),
+    # ⚠[2026-09-02] 트리거가 **너무 좁았다** --- 이 문서에서 한 번도 발동하지 않아
+    #   ★항진 검사가 「미검증」으로 보고했고, 확인해 보니 **새로 쓴 전칭 문장이 거짓**이었다
+    #   (*"Each row is one pre-registered batch … frozen by checksum"*; B-1 은 사후 작성).
+    #   ⟹ 사전등록을 **총괄해 서술하는 문형 전반**으로 넓힌다.
+    ('사전등록-전칭금지',
+     r'(?:comparison|batch|row|experiment)s? .{0,60}pre-?registered|'
+     r'pre-?registration before the runs|analysis code was frozen',
+     [r'written after the (?:runs|results)', r'were written after',
+      r'[Tt]he exception is', r'two limits of that procedure'],
+     '"전부 사전등록됐다" 전칭 금지 — B-1 은 게이트·분석코드가 결과 뒤에 작성됐다'),
     ('MTen-blind', r'\\MTenRel|\\MTenBetter',
      [r'[Nn]ot blind'],
      'M-10 은 blind 아님 — 병기 의무'),
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # ★[2026-09-02 P9] 규칙 확장. 표.그림 처분으로 논문이 인용하는 배치가 늘었고,
+    #   ⛔그중 `B-26` 은 **동반 의무 2건이 하나도 없는 채로** 인쇄되고 있었다.
+    #   (금지목록 08-28 오후 묶음: ①F2 loc 고정 교락 + M2 종결 ②비교자 5% 기술 바닥 미달)
+    #   ⚠규칙을 추가할 때마다 **항진 검사**를 하라 --- 위조 문서가 통과하면 규칙이 아니다.
+    # ═════════════════════════════════════════════════════════════════════════
+    ('B26-F2교락', r'\\BTwentySixRel',
+     [r'localisation radius', r'localization radius'],
+     'B-26 승수는 F2(loc_radius 4코너 고정) 이력 + M2 종결 병기 없이 인용 금지'),
+    ('B26-기술바닥', r'\\BTwentySixRel',
+     [r'skill floor'],
+     'B-26 승수는 "비교자가 5% 기술 바닥 미달" 병기 없이 인용 금지'),
+    ('B26-선형GT', r'\\BTwentySixRel|\\BTwentySixBetter',
+     [r'linear[- ]ground[- ]truth', r'linear ground truth'],
+     'B-26 "헤드라인이 산다" 는 선형 GT 단서 병기 의무'),
+
+    ('TFive-팔안', r'\\TFiveRel|\\TFiveBetter',
+     [r'within-arm', r'remains undetected'],
+     'T-5 는 팔 안 대조 — "제로필드를 이겼다" 가 아니다. 끝점 미검출 병기 의무'),
+
+    ('SEns-층한정', r'\\SEnsRel',
+     [r'\\SEnsSparseBetter', r'sparse stratum'],
+     'S-ENS 혼잡 55/64 는 희소 UNDECIDED 병기 의무'),
+
+
+    ('실측음성-팔간아님', r'\\BSeventeenBeats|\\BEighteenBeats|\\BFourteenBBeats',
+     [r'[Nn]ot a comparison between arms', r'whether the arm has any skill'],
+     'B-17/B-18/B-14b 는 제로필드 대비 승수 — 팔간 비교로 읽히면 안 된다'),
+]
+
+
+
+# ★[2026-09-02] **결합 위험 규칙** --- 트리거가 "매크로 하나" 가 아니라
+#   "서로 다른 크기 매크로 N 개 이상이 같은 절에" 다.
+#   사유: 금지목록이 막는 것은 **크기를 말하는 것**이 아니라 **크기를 섞는 것**이다.
+#   ⟹ 하나만 나오는 절에까지 병기를 요구하면 오탐이고, 사람이 검사기를 무시하게 된다.
+MULTI_RULES = [
+    ('크기-결합금지', [r'\\BOneRel', r'\\BTwelveRel', r'\\BSixteenRel', r'\\BNineteenRel',
+                  r'\\BTwentyTwoRel', r'\\BFifteenRel', r'\\BTwentySixRel',
+                  r'\\MTenRel', r'\\TFourRel'], 2,
+     [r'not additive', r'should not add or subtract', r'no defined meaning',
+      r'should not be combined arithmetically'],
+     '서로 다른 배치의 크기가 같은 절에 둘 이상 있으면 결합 금지 병기 의무'),
 ]
 
 
@@ -160,7 +211,90 @@ def constants_up_to_date():
     return r.returncode == 0, tail
 
 
+def _eval(name, text, forge_needs=False, forge_trigger=False):
+    """(발동했는가, 공시가 있었는가).
+
+    ⚠**위조는 `strip_comments` 이후에 한다.** 초판은 원문에 `re.sub` 했는데, 구절이
+    **줄바꿈을 가로지르면** 원문에서는 안 잡히고 정규화 후에는 잡혀서 --- 위조가
+    실패하고 항진 검사가 *"이 규칙은 아무것도 막지 않는다"* 로 **오판**했다.
+    ★이것은 2026-09-01 에 검사기 본체가 이미 저지른 「줄바꿈 맹목」과 **같은 결함**이다.
+    """
+    def prep(b):
+        if forge_needs:
+            for pat in needs:
+                b = re.sub(pat, 'XXFORGEDXX', b)
+        if forge_trigger:
+            b = re.sub(trig, 'XXNOTRIGXX', b)
+        return b
+
+    for n, trig, needs, _ in RULES:
+        if n != name:
+            continue
+        fired = False
+        for _, body in sections(text):
+            b = prep(strip_comments(body))
+            if re.search(trig, b):
+                fired = True
+                if not any(re.search(p, b) for p in needs):
+                    return True, False
+        return fired, True
+    for n, macros, k, needs, _ in MULTI_RULES:
+        if n != name:
+            continue
+        trig = '|'.join(macros)
+        fired = False
+        for _, body in sections(text):
+            b = prep(strip_comments(body))
+            if sum(1 for mm in macros if re.search(mm, b)) < k:
+                continue
+            fired = True
+            if not any(re.search(p, b) for p in needs):
+                return True, False
+        return fired, True
+    raise KeyError(name)
+
+
+def selftest():
+    """★**항진 검사** --- 규칙이 규칙인지 확인한다.
+
+    이 저장소가 반복해 배운 것: *"게이트는 통과 가능해야 하고, 위조는 실패해야 한다."*
+    (2026-08-30 `T2-STAT` 의 `G-7b` 는 문자열 검색이라 **금지문 자신에 걸려 구조적으로
+    항상 실패**했다 --- 어떤 결과로도 라벨이 불가능했다.)
+
+    세 가지를 본다:
+      A. **위조**: 근거 표현을 지우면 그 규칙은 **반드시 FAIL** 해야 한다.
+         ⛔통과하면 그 규칙은 아무것도 막지 않는다.
+      B. **침묵**: 트리거를 지우면 **발동 없음**이 돼야 한다.
+         ⛔여전히 발동하면 트리거가 매크로와 무관한 것을 잡고 있다.
+      C. **미검증**: 이 문서에서 아예 발동하지 않는 규칙은 A/B 를 시험할 수 없다.
+         ⛔이것을 **통과로 세지 마라** --- 세면 죽은 규칙이 조용히 쌓인다.
+    """
+    raw = open(TEX, encoding='utf-8').read()
+    bad, untested = [], []
+    names = [r[0] for r in RULES] + [r[0] for r in MULTI_RULES]
+    for name in names:
+        if not _eval(name, raw)[0]:
+            untested.append(name)
+            continue
+        if not _eval(name, raw, forge_needs=True)[0] or _eval(name, raw, forge_needs=True)[1]:
+            bad.append((name, 'A 위조: 근거를 지웠는데 통과했다'))
+        if _eval(name, raw, forge_trigger=True)[0]:
+            bad.append((name, 'B 침묵: 트리거를 지웠는데 여전히 발동한다'))
+    for name, why in bad:
+        print(f'  [BAD ] {name:22s} {why}')
+    for name in untested:
+        print(f'  [--  ] {name:22s} 이 문서에서 발동하지 않는다 (A/B 시험 불가)')
+    if bad:
+        print(f'\n⛔항진 검사 실패 {len(bad)}건 — 그 규칙들은 아무것도 막지 않는다.')
+        return 1
+    print(f'✅항진 검사: {len(names) - len(untested)}/{len(names)} 규칙이 위조에 실패하고 '
+          f'트리거 없이 침묵한다 (미검증 {len(untested)})')
+    return 0
+
+
 def main():
+    if '--selftest' in sys.argv:
+        return selftest()
     if not os.path.exists(TEX):
         raise SystemExit(f'없다: {TEX}')
     ok_const, msg = constants_up_to_date()
@@ -188,6 +322,23 @@ def main():
             print(f'  [FAIL] {name:22s} 공시 누락 절 {len(missing)}: {missing[:2]}')
         else:
             print(f'  [OK  ] {name:22s} 발동 {len(hit_sections)}절 전건 공시')
+    for name, macros, k, needs, why in MULTI_RULES:
+        hit, missing = [], []
+        for title, body in sections(raw):
+            b = strip_comments(body)
+            n_distinct = sum(1 for m in macros if re.search(m, b))
+            if n_distinct < k:
+                continue
+            hit.append(title[:52])
+            if not any(re.search(pat, b) for pat in needs):
+                missing.append(f'{title[:44]} (매크로 {n_distinct}종)')
+        if not hit:
+            print(f'  [--  ] {name:22s} (발동 없음)')
+        elif missing:
+            fails.append((name, why, missing))
+            print(f'  [FAIL] {name:22s} 공시 누락 절 {len(missing)}: {missing[:2]}')
+        else:
+            print(f'  [OK  ] {name:22s} 발동 {len(hit)}절 전건 공시')
     print('──────────────────────────────────────────────────────────────')
     if not ok_const:
         fails.append(('상수파일-최신', 'paper_constants.tex 가 생성물과 다르다', ['<repo>']))

@@ -1386,6 +1386,13 @@ episodes at zero lead but only \TFourCmp{}/\TFourN{} at the reported rung, while
 own absolute error \emph{worsens}. $\Rightarrow$ the growing ratio must not be read as
 \emph{``we get relatively better at longer lead''}. Not blind.
 
+% [2026-09-02 P9] 검사기 `크기-결합금지` 가 잡았다: 이 절에 공간.시간 크기가 **나란히**
+%   있는데 둘을 비교하지 말라는 문장이 없었다. 두 수는 서로 다른 재채점이다.
+The two magnitudes in this subsection answer different questions on different
+re-scorings of the same corpus and have no defined meaning relative to each other:
+they should not be compared, added, or subtracted, and neither is a decomposition of
+the headline.
+
 \subsection{Scope, stated as measured}
 \label{sec:res_scope}
 
@@ -1423,10 +1430,21 @@ boundary, including why the transfer fails, is the subject of a companion thesis
 % ============================================================================
 
 Table~\ref{tab:earns} and Table~\ref{tab:boundary} collect every comparison this
-paper relies on. Each row is one pre-registered batch: the decision rule, the
-comparison, and the reading were fixed in a preregistration before the runs
-produced a single result row, the analysis code was frozen by checksum, and the
-row below is read out of the resulting verdict file rather than transcribed.
+paper relies on. Each row is one batch, and the number is read out of that batch's
+frozen verdict file rather than transcribed by hand.
+% ============================================================================
+% ★2026-09-02 (P9) --- 내 전칭 주장 수리. 초판(오늘 아침)은 *"Each row is one
+%   pre-registered batch: … the analysis code was frozen by checksum"* 라 적었다.
+%   ⛔**B-1 에는 거짓이다** --- `verdict_b1.json` 의 `_honesty` 축자:
+%   *"gates_b1.py / analyze_b1.py 는 결과 뒤에 작성됐다(2026-08-23)."*
+%   ★항진 검사가 「발동하지 않는 규칙」을 보고해서 찾았다(규칙 트리거가 좁았다).
+% ============================================================================
+For all but one, the decision rule, the comparison, and the reading were fixed in a
+preregistration before the runs produced a single result row, and the analysis code
+was frozen by checksum. The exception is the B-1 row: its gate and analysis scripts
+were written after the results existed, transcribing rules that had already been
+recorded in the batch's design note. We state this rather than let the word
+``pre-registered'' cover it.
 Table~\ref{tab:earns} is what the representation earns on synthetic corpora,
 where ground truth exists; Table~\ref{tab:boundary} is where it stops, on the
 $12$ measured records.
@@ -1498,7 +1516,26 @@ its own margin over a zero predictor falls to \BTwentySixCmpRel{} there from
 between the ratio scale and the absolute scale, and no claim about which sea state
 suits the method best is available from this experiment; what is available is the
 exclusion statement that the boundary does not lie along the sea-state axis, on a
-linear-ground-truth corpus. The T-4 row has the same shape: the comparator falls
+linear-ground-truth corpus.
+% ============================================================================
+% ★2026-09-02 (P9) --- 금지목록 위반 수리. `\BTwentySixRel` 인용에는 **동반 의무 2건**이
+%   있는데 (08-28 오후 M2 묶음) 논문에 **하나도 없었다**:
+%   ① F2 "닫힘" 공시: loc_radius=25 m 가 네 코너 고정인데 25 는 긴 주기 스윕 산물이고
+%      짧은 코너는 lambda_p=19.0 m ⟹ loc/lambda_p 0.33 -> 1.32.  M2 가 개입으로 닫았다.
+%   ② ★5% 기술 바닥 미달: 비교자가 부호검정은 통과하나 동결 조율 프로토콜의 바닥은 못 넘는다.
+% ============================================================================
+Two further facts belong with this row. The baseline's localisation radius was held
+at the same $25$~m in all four corners, a value chosen on the long-period corners;
+in the shortest corner the peak wavelength is $19.0$~m, so the ratio of localisation
+radius to wavelength moves from $0.33$ to $1.32$ across the table. That was an
+undisclosed confound when the batch was run, and it was closed afterwards by
+intervention rather than by argument: re-deriving the radius downward, preserving
+the ratio, made the baseline \emph{worse} or left it unchanged, so $25$~m was
+already at or below its optimum. And the comparator in the two short-period corners
+passes a sign test but does not clear the $5\%$ skill floor that our own baseline
+tuning protocol requires against a zero predictor. Both facts point the same way:
+the margin in those corners is partly the comparator's weakness, which is why we
+print the ``cmp.'' column. The T-4 row has the same shape: the comparator falls
 from \TFourCmpAtZero{}/\TFourN{} at zero lead to \TFourCmp{}/\TFourN{} at the
 pre-registered rung, so the growth of the margin with lead time is not evidence
 that the method improves with lead time. The T-4 rung is at the lower end of the
@@ -1606,7 +1643,9 @@ more favourable of the two (B-15, Table~\ref{tab:earns}), with the comparator
 retaining skill in both. Second, whether the \emph{shape} of the observation
 noise explains the negative on the measured records: it does not, and the best of
 four noise models still reaches only \BFourteenBBeats{}/\BFourteenBN{}
-(B-14b, Table~\ref{tab:boundary}). The earlier cross-arm sensitivity figures are
+(B-14b, Table~\ref{tab:boundary}). That fraction counts records on which the arm
+beats the per-record true zero-field reference; it is not a comparison between arms,
+and asks only whether the arm has any skill at all. The earlier cross-arm sensitivity figures are
 withdrawn with the corpus they came from and are in the supplementary archive.
 \subsection{Hyperparameter sensitivity}
 \label{sec:hyper}

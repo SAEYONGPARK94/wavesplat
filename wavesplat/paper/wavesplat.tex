@@ -772,9 +772,18 @@ to load a checkpoint whose SHA-256 does not begin \texttt{\CkptSha{}}.
 Two things about this we cannot certify and will not claim. First, the six training
 strata were measured only as a bundle: no ablation isolates what each contributes,
 so we cannot say which part of the mixture the prior's behaviour comes from.
+% ⛔[2026-09-02] 앞 판은 *"those files have since been modified"* 라 적었다. **틀렸다.**
+%   git 확인: 세 파일과 체크포인트와 FROZEN.sha256 이 **같은 커밋**(`c0f89ece`)에 들어갔고,
+%   학습 스크립트는 커밋이 **하나뿐**이며 현재 파일이 **커밋본과 바이트 동일**하다.
+%   그런데 FROZEN.sha256 의 해시는 셋 다 다르다 ⟹ ★**파일이 표류한 것이 아니라
+%   동결 기록이 커밋 시점에 이미 낡아 있었다**(동결 후 편집, 재동결 없이 함께 커밋).
+%   방향은 같지만 기제가 다르고, 이 저장소는 그 구분에 반복해 대가를 치렀다.
 Second, the batch that produced this checkpoint recorded checksums for its own
-training script and preregistration, and those files have since been modified --- the
-recorded hashes no longer match. The architecture and the checkpoint identity above
+training script and preregistration, and those checksums do not match the files that
+were committed with them. The files themselves have not drifted --- they are
+byte-identical to their single committed version --- so what is missing is not the
+code but the guarantee: the freeze was taken, the files were then edited, and the
+freeze was never re-taken. The architecture and the checkpoint identity above
 are read directly from the shipped weights and are therefore certain; the training
 recipe is transcribed from that batch's report and is \emph{not} independently
 verifiable from the repository as it stands. A reader reproducing this work should

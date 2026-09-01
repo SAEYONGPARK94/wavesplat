@@ -1987,6 +1987,30 @@ class MedianEnsembleUpdater:
     def members(self):
         return list(self._members)
 
+    ENSEMBLED_ROUTES = ('v2_konly', 'learned')
+
+    def _effective_k(self, route: str, real_gate: bool) -> int:
+        """해소된 route 로 멤버 수를 **다시 읽는다**. 반환 1 이면 앙상블 없음.
+
+        ⛔**두 노브는 끝까지 섞이지 않는다.** `__init__` 은 요청된 `init_method` 로
+        노브를 골랐지만, `auto` 는 그 시점에 어디로 갈지 모른다 --- 라우터가 `learned` 로
+        해소하면 `analytic_ensemble_k` 를 물려받아서는 안 된다.
+
+        ★초판(2026-09-01)이 정확히 그 결함을 냈다: 출하 기본 구성(`auto` + 임계 0 ⟹ 항상
+        `learned`)이 `analytic_ensemble_k=3` 을 그대로 써서 **배포 기본값이 조용히 학습
+        멤버 3개를 만들었다.** 결정 `D3` 가 명시적으로 하지 않기로 한 것이고, 토론의 반대
+        측이 경고한 「조용한 재라우팅」 그 자체다. ⟹ 이 함수가 그 경계다.
+
+        실측 도메인 게이트는 두 앙상블을 모두 누른다 --- 게이트는 bank-MMSE 로 보내고
+        그쪽이 자체 장 앙상블(`DEFAULT_REAL_BANK_ENSEMBLE_K`)을 돌린다.
+        """
+        if real_gate or route not in self.ENSEMBLED_ROUTES:
+            return 1
+        if route == 'learned':
+            return int(self.config.get('learned_ensemble_k',
+                                       DEFAULT_LEARNED_ENSEMBLE_K))
+        return self.k_requested
+
     # ── phase 1 ─────────────────────────────────────────────────────────────
     def initialize(self, frames: List[FrameData],
                    x_range=(10.0, 250.0), y_range=(-100.0, 100.0),
@@ -2004,8 +2028,16 @@ class MedianEnsembleUpdater:
         #   · `learned`   -- the learned prior (path added 2026-09-01, **default off**)
         #   The real-domain gate still suppresses both: it routes to bank-MMSE, which runs
         #   its own internal field ensemble (`DEFAULT_REAL_BANK_ENSEMBLE_K`).
-        ensembled_route = route in ('v2_konly', 'learned')
-        if self.k_requested <= 1 or not ensembled_route or real_gate:
+        #
+        # ⛔★**초판(2026-09-01) 결함 — 배포 기본값이 조용히 앙상블을 얻었다.**
+        #   `init_method='auto'` 는 __init__ 시점에 `analytic_ensemble_k`(=3) 를 읽는데,
+        #   라우터가 `learned` 로 해소되면 초판 조건절이 그 3 을 그대로 써서 **출하 기본
+        #   구성이 학습 멤버 3개를 만들었다**. 그것은 D3 가 명시적으로 하지 않기로 한 것이고,
+        #   반대 측이 경고한 「조용한 재라우팅」 그 자체다.
+        #   ⟹ **k 는 해소된 route 로 다시 읽는다.** 두 노브는 끝까지 섞이지 않는다.
+        k_eff = self._effective_k(route, real_gate)
+        self.k_effective = k_eff
+        if k_eff <= 1:
             self.ensemble_k = 1
             result['ensemble_k'] = 1
             # model is None when the real-domain gate routed to bank-MMSE (which has
@@ -2018,7 +2050,7 @@ class MedianEnsembleUpdater:
         base = self.config.get('seed')
         base = 0 if base is None else int(base)
         elapsed = [float(result['elapsed_s'])]
-        for off in self.MEMBER_OFFSETS[1:self.k_requested]:
+        for off in self.MEMBER_OFFSETS[1:k_eff]:
             s = base + off
             cfg = dict(self.config)
             if route == 'learned':

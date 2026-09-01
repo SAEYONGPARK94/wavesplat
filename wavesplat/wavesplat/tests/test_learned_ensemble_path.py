@@ -82,11 +82,70 @@ def test_learned_members_differ_only_in_the_diffusion_draw():
     assert "cfg['init_method'] = 'learned'" in src, '학습 멤버가 learned 로 초기화되지 않는다'
 
 
+def test_initialize_delegates_k_to_the_single_resolver():
+    """★멤버 수 결정은 **한 곳**에서만 일어난다.
+
+    ⛔초판은 `initialize` 안에서 직접 계산했고, 그래서 `auto`→`learned` 해소 경로를
+    놓쳤다(아래 회귀 시험 참조). 지금은 `_effective_k` 하나가 경계이고 `initialize` 는
+    그것을 **호출만** 한다 --- 두 번째 구현이 생기면 이 시험이 깨진다.
+    """
+    src = inspect.getsource(MedianEnsembleUpdater.initialize)
+    assert 'self._effective_k(route, real_gate)' in src, \
+        'initialize 가 단일 결정자를 쓰지 않는다'
+    assert 'learned_ensemble_k' not in src, \
+        'initialize 가 노브를 다시 읽는다 = 같은 기능 두 곳 구현'
+
+
 def test_real_domain_gate_still_suppresses_the_learned_ensemble():
     """실측 게이트는 여전히 두 앙상블을 모두 누른다 — bank 가 자체 k=3 을 돌린다.
 
     ⛔`T3`/`T5` 는 `real_domain_gate=False` 로 쟀다. 그 구성은 **연구 팔**이지 배포가 아니다.
     """
-    src = inspect.getsource(MedianEnsembleUpdater.initialize)
-    assert 'real_gate' in src
-    assert 'or real_gate' in src, '실측 게이트가 접기 조건에서 빠졌다'
+    src = inspect.getsource(MedianEnsembleUpdater._effective_k)
+    assert 'real_gate' in src, '실측 게이트가 결정자에서 빠졌다'
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ★아래 둘은 **초판이 통과시킨 결함**을 잡는다.
+#   위의 시험 6개는 전부 통과하는 동안, 배포 기본 구성(`auto` + 임계 0 ⟹ 항상 `learned`)이
+#   `analytic_ensemble_k=3` 을 물려받아 **조용히 학습 멤버 3개를 만들고 있었다.**
+#   사유: 시험이 전부 **생성 시점**만 봤고 **라우터 해소 이후**를 보지 않았다.
+#   ⟹ 교훈: 「기본값이 꺼져 있다」는 **해소된 route 위에서** 확인해야 한다.
+# ─────────────────────────────────────────────────────────────────────────────
+def test_shipped_default_gets_no_learned_ensemble_after_the_router_resolves():
+    """★출하 기본 구성에서 라우터가 `learned` 로 가도 멤버는 1개다."""
+    from wavesplat.run import DEFAULT_CONFIG
+
+    upd = MedianEnsembleUpdater(dict(DEFAULT_CONFIG))
+    # 라우터가 learned 로 해소한 뒤의 유효 멤버 수
+    assert upd._effective_k('learned', real_gate=False) == 1, \
+        '배포 기본값이 학습 앙상블을 얻었다 — D3 가 하지 않기로 한 것이다'
+    # 해석적으로 해소하면 배포된 대로 k=3 이다(2026-07-27 이후 불변)
+    assert upd._effective_k('v2_konly', real_gate=False) == DEFAULT_ANALYTIC_ENSEMBLE_K
+
+
+def test_real_domain_gate_suppresses_both_ensembles():
+    from wavesplat.run import DEFAULT_CONFIG
+
+    cfg = dict(DEFAULT_CONFIG)
+    cfg['learned_ensemble_k'] = 3
+    upd = MedianEnsembleUpdater(cfg)
+    assert upd._effective_k('learned', real_gate=True) == 1
+    assert upd._effective_k('v2_konly', real_gate=True) == 1
+
+
+def test_explicit_knob_survives_the_router():
+    """`auto` 로 들어와 `learned` 로 해소돼도, 노브를 명시하면 그 값이 쓰인다."""
+    from wavesplat.run import DEFAULT_CONFIG
+
+    cfg = dict(DEFAULT_CONFIG)
+    cfg['learned_ensemble_k'] = 3
+    assert MedianEnsembleUpdater(cfg)._effective_k('learned', real_gate=False) == 3
+
+
+def test_unknown_route_never_ensembles():
+    from wavesplat.run import DEFAULT_CONFIG
+
+    upd = MedianEnsembleUpdater(dict(DEFAULT_CONFIG))
+    for route in ('bank_mmse', 'v2', None, 'learned_konly'):
+        assert upd._effective_k(route, real_gate=False) == 1, route

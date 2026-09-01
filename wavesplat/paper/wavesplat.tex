@@ -815,7 +815,17 @@ earlier versions ran after initialisation is \emph{disabled} ($\DepJointFitIters
 redundant once variable projection is present. These two are not independent:
 removing the joint fit leaves a larger residual, which in turn makes the adaptive
 growth rule of Section~\ref{sec:adaptive_order} fire far more often than it did
-before. We note this because it is easy to reason about either switch alone and be
+before.
+% [2026-09-02 P9] ★미사용 매크로 검사가 드러낸 것: 배포 설정이 이고 다니는 스위치 하나가
+%   **이 경로에서 구조적으로 무연산**인데 논문에 그 말이 한 줄도 없었다.
+%   근거: `sequential_update.py` 의 `_effective_k` 가 **해소된 경로**로 k 를 다시 읽는다.
+A third value in the shipped configuration is worth naming because it is
+\emph{inert}: the configuration sets an analytic-path ensemble of
+\DepAnalyticEnsK{}, but the router resolves to the learned path and the ensemble
+size is then re-read for the resolved route, which ships at \DepLearnedEnsK{}. No
+median-of-$k$ ensemble therefore runs in any synthetic result reported here. We say
+so because a reader inspecting the configuration file would reasonably conclude
+otherwise. We note this because it is easy to reason about either switch alone and be
 wrong about the resulting system.
 
 \paragraph{Alternative path: dispersion-aware beamforming}
@@ -1721,8 +1731,9 @@ The two S-ENS rows of Table~\ref{tab:earns} deserve a word, because they are the
 only rows there that do not describe the shipped system. They compare the learned
 initialiser drawing three atom sets and taking the median against the same
 initialiser drawing one, which is the shipped default (\DepLearnedEnsK{}). The
-crowded stratum favours the ensemble; the sparse stratum is undecided, and the
-smallest win rate that design could resolve was $0.682$. We report it because the
+crowded stratum favours the ensemble on \SEnsBetter{} of \SEnsN{} episodes against
+a pre-registered threshold of \SEnsNominal{}; the sparse stratum is undecided, and
+the smallest win rate that design could resolve was $0.682$. We report it because the
 same operator earns on the measured records, and whether that transfers is otherwise
 an open question --- \emph{not} as a recommendation to change the default, which
 would need its own preregistration and a cost measurement we do not have.

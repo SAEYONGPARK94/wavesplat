@@ -58,8 +58,12 @@ RULES = [
     #   ★검사기가 늑대를 외치면 사람이 무시하기 시작한다(2026-09-01 리터럴 오탐의 교훈).
     # ⚠발동을 **우리 음성 주장**에만 건다(관련연구의 "measured records" 는 대상이 아니다).
     # 발동을 **12 레코드 음성을 서술하는 문장**에만 건다.
+    # ⚠[2026-09-02] 근거 패턴 `pre-registered .*threshold` 가 **탐욕 매칭**이라
+    #   두 단어가 한 절 어디에 있든 통과했다 = 사실상 항진. ★항진 검사가 잡았다
+    #   (내가 다른 뜻으로 "pre-registered threshold" 를 쓰자마자 규칙이 죽었다).
+    #   ⟹ **인접 어구**만 인정한다.
     ('실측음성-자구', r'(?:learned prior|representation) (?:is |does )[^.]{0,120}(?:zero-field|measured record)',
-     [r'decision threshold', r'pre-registered .*threshold'],
+     [r'decision threshold', r'pre-registered (?:decision )?threshold'],
      'T-5: "without skill" 금지 -> "유의/결정 문턱에 도달하지 못한다"'),
     # ⚠발동을 **절차를 총괄 서술하는 문장**에만 건다.
     # ⚠[2026-09-02] 트리거가 **너무 좁았다** --- 이 문서에서 한 번도 발동하지 않아
@@ -206,6 +210,25 @@ def literals_outside_macros():
     return True, f'{len(vals)} 값 검사 · 리터럴 0'
 
 
+def unused_macros():
+    """★생성했는데 **한 번도 쓰이지 않는** 매크로.
+
+    4차 감사(2026-09-02)가 `\\DepLearnedEnsK` 로 이 부류를 지적했다: 생성기가 배포
+    상수를 내는데 본문이 그것을 **한 번도 인용하지 않으면**, 그 사실은 보통
+    *"적어야 할 것을 안 적었다"* 는 신호다(그때가 정확히 그랬다 --- 배포 앙상블 값이
+    본문에 없어서 S-ENS 팔이 배포 구성인지 아닌지 독자가 알 수 없었다).
+    ⚠**하드 실패로 만들지 않는다** --- 정당하게 쓰지 않을 값도 있다. 이름을 나열해
+    사람이 판단하게 한다. ⛔단 **침묵시키지는 않는다**(그것이 이 저장소의 반복 결함).
+    """
+    pc = os.path.join(ROOT, 'paper', 'paper_constants.tex')
+    if not os.path.exists(pc):
+        return []
+    names = re.findall(r'\\newcommand\{\\(\w+)\}', open(pc, encoding='utf-8').read())
+    body = strip_comments(open(TEX, encoding='utf-8').read())
+    return [n for n in names
+            if not re.search(r'\\' + n + r'(?![A-Za-z])', body)]
+
+
 def constants_up_to_date():
     """★커밋된 `paper_constants.tex` 가 생성물과 같은가.
 
@@ -309,6 +332,10 @@ def main():
     print(f'  [{"OK  " if ok_const else "FAIL"}] {"상수파일-최신":22s} {msg}')
     ok_lit, msg_lit = literals_outside_macros()
     print(f'  [{"OK  " if ok_lit else "FAIL"}] {"리터럴-우회":22s} {msg_lit}')
+    un = unused_macros()
+    print(f'  [{"OK  " if not un else "note"}] {"미사용 매크로":22s} '
+          + (f'{len(un)}건: ' + ', '.join(un[:5]) + '  ⚠하드 실패 아님 — 사람이 판단하라'
+             if un else '0건'))
     raw = open(TEX, encoding='utf-8').read()
     fails = []
     print('── 동반 공시 검사 ─────────────────────────────────────────────')

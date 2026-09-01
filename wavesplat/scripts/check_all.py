@@ -59,6 +59,13 @@ CHECKS = [
     #   ★tex 주석이 그 위험을 이미 알고 *"영문 초록에 동시 반영한다"* 를 여러 곳에
     #   적어 뒀다 --- 사람의 기억에 맡기던 것을 기계로 옮긴다.
     ('초록 KO/EN 대조', [PY, 'scripts/check_abstract_mirror.py']),
+    # ★★[2026-09-02] **인쇄면 검사** --- 검증 감사의 마지막 지적(축자):
+    #   *"All 13 barriers are green while the paper carries a predicateless sentence,
+    #    a duplicated heading, eight stuttering references … there is **no
+    #    print-surface check**."* 맞다. 오늘 내 수리가 인쇄를 **다섯 번** 깼고
+    #   그 다섯은 전부 grep 한 줄로 잡힌다.
+    #   ⚠문법을 판정하지 않는다 --- **알려진 손상 패턴**만 본다.
+    ('인쇄면 손상', [PY, 'scripts/check_print_surface.py']),
     # ⚠배치 검사기는 **상시 rc=1** 이다 --- 역사적 배치 넷이 동결 증거를 못 갖췄고
     #   그건 지금 고칠 수 있는 것이 아니다(런이 이미 끝났다).
     #   ⛔상시 빨간 검사는 사람이 **무시하기 시작한다** ⟹ 종료코드가 아니라

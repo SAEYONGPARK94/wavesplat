@@ -269,7 +269,7 @@ Our key contributions are:
     depth dependence) reduces the free parameter count and acts as a
     physics-based regularizer, improving tracking stability over
     extended time horizons.
-    (App.~\ref{app:changes}, R4.) The claim made here is the parameter-count
+    (Appendix~\ref{app:changes}, R4.) The claim made here is the parameter-count
     reduction. Whether this constraint contributes to \emph{accuracy}
     \textbf{has not yet been measured}: the ablation arm previously used to
     support it removed the frequency initialisation together with the
@@ -289,7 +289,7 @@ Our key contributions are:
   %   LiDAR measurements on ocean surfaces, where specular reflection
   %   probability and signal-to-noise ratio vary with incidence geometry.
   \item \textbf{Geometry-aware confidence weighting (C3) --- not claimed}
-    (App.~\ref{app:changes}, R1): Per-observation weights
+    (Appendix~\ref{app:changes}, R1): Per-observation weights
     $c_j = \cos\theta_j/(r_j/d_{\text{ref}})$ based on incidence angle and
     range were introduced to account for the heteroscedastic noise structure
     of LiDAR measurements on ocean surfaces. This is \textbf{withdrawn as a
@@ -1086,7 +1086,7 @@ size $K_w$, the per-frame tracking cost is $O(K \cdot K_w \cdot M \cdot N)$.
 % on CPU (single-threaded, Intel i7-12700H).
 In practice, $K{=}\DepTrackingSteps{}$, $K_w{=}3$, $N \leq \DepMaxN{}$, measured on
 CPU. An earlier absolute per-frame figure quoted here was withdrawn as a
-cross-process timing (App.~\ref{app:changes}, R3); the measured replacement is
+cross-process timing (Appendix~\ref{app:changes}, R3); the measured replacement is
 below.
 
 % ============================================================================
@@ -1129,7 +1129,10 @@ batch did not run a baseline arm, so no comparative timing claim is available.
 %   ⚠병기 의무 2건: (i) **격자 기반 실측 경로**의 계측이고 학습 렌더러로는 재측정되지
 %   않았다 (ii) **초기화 이후 정상 상태**만 포괄한다(제안 단계 불포함).
 %   ⟹ 학위논문은 이 값을 싣고 있었는데 논문에는 없었다.
-One timing does survive, and it is the query side rather than the estimator.
+% ⛔[2026-09-02] `db356491` 이 위에 `\paragraph{Measured budget}` 을 끼워 넣으면서
+%   이 문장을 고아로 남겼다 --- 그 커밋 메시지 자신이 *"네 번째 재발"* 이라 적고 셋을
+%   고쳤는데, **이것이 다섯 번째**다.
+\paragraph{A second, query-side timing}
 Evaluating the estimated field at a point costs \BudgetUsPerPoint{}~$\mu$s, linear
 in the number of query points over the measured range, so a
 \BudgetFrameS{}~s frame budget admits of order several hundred query points. Two
@@ -1150,7 +1153,7 @@ $O(N_e \cdot G_x G_y \cdot \log(G_x G_y))$ plus the ensemble
 transform at $O(N_e^3 + N_e^2 \cdot M)$. The tuned configuration is
 ($N_e{=}100$, $G{=}40 \times 30$); see Table~\ref{tab:complexity}.
 No absolute latency is quoted for this arm: the earlier figure was withdrawn as a
-cross-process timing (App.~\ref{app:changes}, R3) and no baseline arm has been
+cross-process timing (Appendix~\ref{app:changes}, R3) and no baseline arm has been
 re-timed.
 
 \textbf{GPR}: Gaussian Process Regression with $M$ observations
@@ -1167,7 +1170,7 @@ $M$: observations/frame, $N$: spectral components,
 $G$: grid size, $N_e$: ensemble members.
 ETKF uses the tuned configuration ($N_e=100$, $G=40\times30$).
 The ``Measured'' column is empty by design: the figures that stood there were
-withdrawn as cross-process timings (App.~\ref{app:changes}, R3), and the
+withdrawn as cross-process timings (Appendix~\ref{app:changes}, R3), and the
 same-process replacement measured since covers our own arm only
 (Section~\ref{sec:complexity}), not the baselines. The asymptotic column is analytic
 and is unaffected.}
@@ -1214,7 +1217,7 @@ sampling~\citep{hasselmann1973}.  The simulator parameters are:
   % --- original (kept for history) ---
   % \item \textbf{Ground-truth wave model}: Gerstner waves (nonlinear),
   %   providing a realistic test of the linear forward model~\eqref{eq:forward}
-  \item \textbf{Ground-truth wave model} (App.~\ref{app:changes}, R2): The synthetic ground truth is a \emph{displacement-free
+  \item \textbf{Ground-truth wave model} (Appendix~\ref{app:changes}, R2): The synthetic ground truth is a \emph{displacement-free
     linear superposition on a fixed grid}: the generator discards the
     horizontal displacement components of the Gerstner solution, so the
     ground truth lies in the \emph{same function space} as the estimator's
@@ -1519,14 +1522,19 @@ first.
 replication of \S\ref{sec:res_hos} --- non-linear reference field, seeds drawn from
 outside the corpus, comparator verified to retain skill on
 \BTwelveCmpBetter{}/\BTwelveCmpN{} episodes, analysis frozen before results --- is
-stronger on every axis on which the two differ. We report the present number first
-because it is the one measured against the strongest eligible baseline, and we
-report its two weaknesses in the same breath.
+stronger on every axis on which the two differ, and it is what the abstract and the
+conclusion lead with.
+% ⛔[2026-09-02] 종전 사유(*"strongest eligible baseline 대비라서"*)는 **B-12 를 구별하지
+%   못한다** --- 두 배치가 **같은 기준선**(`SPEC25`)을 쓴다(두 verdict 이 그렇게 적는다).
+%   검증 감사가 잡았다. ⟹ 실제 사유(코퍼스가 크고, 이 절이 시간순 첫 결과)로 바꾼다.
+This section reports the earlier and larger corpus first because the rest of
+Section~\ref{sec:results} is built on it, not because it is the better measurement,
+and we report its two weaknesses in the same breath.
 
 \subsection{Does it survive a non-linear reference and unseen seeds?}
 \label{sec:res_hos}
 
-The two most load-bearing confounds in the headline are the linear reference field
+The two most load-bearing confounds in the B-1 result are the linear reference field
 and the training/evaluation distribution overlap. We removed the first outright and
 weakened the second by regenerating the corpus with a higher-order spectral (HOS,
 $M{=}3$) reference and seeds drawn from outside the corpus that produced the
@@ -1534,13 +1542,16 @@ checkpoint.
 
 The conclusion holds: \BTwelveBetter{}/\BTwelveN{} episodes, median relative change
 \BTwelveRel{}, $p = \BTwelveP{}$ (one-sided sign test).
-% [2026-09-02 P10] 5차 감사 도전 D: *"family-corrected"* 가 정의 없이 한 번 나왔다.
-Throughout this paper a batch's ``family'' is the set of contrasts its
-preregistration listed as primary or secondary, and the threshold each must clear is
-$\alpha$ divided by that count, fixed before results. Where a batch declared two
-contrasts, the confirmatory threshold is therefore $\alpha/2 = 0.025$; the win
-counts in Table~\ref{tab:earns} are the pre-registered thresholds', not post-hoc
-selections.
+% ⛔[2026-09-02] 이 문단은 *"family-corrected"* 를 정의하려고 넣었는데, 그 자구는
+%   지금 인쇄면에 **0회**다(주석에만 있다). 그리고 "family" 는 이 논문에서 이미
+%   **다른 두 뜻**으로 살아 있다("distribution family" · 기준선 계열) ⟹ 용어 충돌.
+%   게다가 마지막 절이 `thresholds',` 로 인쇄돼 **비문**이었다(검증 감사가 잡았다).
+%   ⟹ 용어를 쓰지 않고 **절차를 그대로** 서술한다.
+Each batch's preregistration named the contrasts it would test and divided
+$\alpha$ among them before any result existed; where two contrasts were named, a
+confirmatory reading required $\alpha/2 = 0.025$. The win counts in
+Table~\ref{tab:earns} are compared against thresholds fixed by that division, not
+selected after the fact.
 
 Critically, this is a comparison \emph{between two arms that both have skill}: the
 grid baseline itself beats a zero predictor on \BTwelveCmpBetter{}/\BTwelveCmpN{}
@@ -1550,7 +1561,7 @@ Table~\ref{tab:earns} wherever the batch measured it. Five of its rows carry a d
 instead, because that control was not part of those batches' designs; for those rows
 the reader has our word about the comparator and not a number.
 
-We do not compare the size of this number with the headline: the corpora, reference
+We do not compare the size of this number with the B-1 margin: the corpora, reference
 fields, and realised non-linearity grades differ.
 
 \subsection{Is the sensor model doing the work?}
@@ -1586,9 +1597,9 @@ every other component of the pipeline untouched --- removes a margin of \BSixtee
 (\BNineteenBetter{}/\BNineteenN{}, \BNineteenRel{}).
 
 \paragraph{What these two magnitudes are not}
-They are not additive, and they are not shares of the headline. Each was measured on
+They are not additive, and they are not shares of any baseline margin. Each was measured on
 its own corpus against its own comparison arm, so subtracting one from the other --- or
-from the baseline margin --- has no defined meaning. In particular, the headline
+from the baseline margin --- has no defined meaning. In particular, the B-1
 margin and the wavenumber-continuity ablation happen to round to the same figure;
 that is a coincidence of two independent measurements, not evidence that the ablation
 removes the whole gain. We also checked the grid-snapping ablation separately for
@@ -1625,7 +1636,7 @@ did not run an equivalence test, and aperture, incidence angle, and occlusion re
 unmeasured. Not blind.
 
 \paragraph{Time}
-The synthetic headline is scored at assimilation time; our measured judgements are
+The synthetic margins are scored at assimilation time; our measured judgements are
 scored at forecast lead. Re-scoring the same frozen corpus at a forecast rung gives
 \TFourBetter{}/\TFourN{}, \TFourRel{}.
 \textbf{Two disclosures are mandatory here.} First, that rung is at the
@@ -1642,7 +1653,7 @@ own absolute error \emph{worsens}. $\Rightarrow$ the growing ratio must not be r
 The two magnitudes in this subsection answer different questions on different
 re-scorings of the same corpus and have no defined meaning relative to each other:
 they should not be compared, added, or subtracted, and neither is a decomposition of
-the headline.
+any baseline margin.
 
 \subsection{Scope, stated as measured}
 \label{sec:res_scope}
@@ -1766,7 +1777,9 @@ In time (lead $1.0\,T_p$) & T-4 & \TFourN{} & \TFourBetter{} & \TFourRel{} & ---
 %   ⛔수는 손으로 적지 않는다: 동결 `results.jsonl` 에서 센다(`gen_paper_constants.py`).
 % ============================================================================
 The episode counts in Table~\ref{tab:earns} are not independent draws, and we state
-what they are. The headline corpus of \HeadlineEps{} crowded episodes is a full
+% ⛔[2026-09-02] 초록 헤드라인이 `B-12`(48 에피소드)로 바뀐 뒤 이 문장의
+%   *"headline corpus of 64"* 가 **초록과 충돌**한다(검증 감사). 배치 이름으로 바꾼다.
+what they are. The B-1 corpus of \HeadlineEps{} crowded episodes is a full
 factorial: \HeadlineSeeds{} generator seeds crossed with two Beaufort levels and two
 component counts. The \AblationEps{}-episode corpus used by the ablations and by the
 non-linear replication is the same design with \AblationSeeds{} seeds. So four
@@ -1794,11 +1807,13 @@ B-12 adds unseen seeds, and no row tests a shift of the distribution itself.
 baseline we possess, which is not the same claim as a baseline strengthened for
 this comparison; the ``cmp.'' column is there so the reader can judge how much
 skill that comparator actually had in each corpus, which is the negative control
-for every row that has one. The B-1 row is the only one whose gate and analysis
-scripts were written after its results existed, and the only one for which the
-comparator's own skill was not measured on this corpus --- the dash in its
-\texttt{cmp.} column is a real absence, and Section~\ref{sec:res_headline} says so
-where that number is first reported. \emph{(iv)} The B-16 and
+% ⛔[2026-09-02] 검증 감사: *"the only one for which the comparator's own skill was
+%   not measured"* 는 **거짓**이다 --- 표 5 에 dash 가 **다섯 행**이고 §5.2 가 그렇게 적는다.
+%   ★내가 어제 넣은 문장이 오늘 다른 문장과 모순됐다. 첫 블록 한정으로 좁힌다.
+for every row that has one. Within the first block, the B-1 row is the one whose
+comparator skill was not measured on this corpus, and it is the only row anywhere in
+the table whose gate and analysis scripts were written after its results existed;
+Section~\ref{sec:res_headline} says both where that number is first reported. \emph{(iv)} The B-16 and
 B-19 magnitudes are not attributable by subtraction from anything else in the
 table: a separate batch checked that experiment for confounding and found it
 negligible, which is what licenses reading them as sizes rather than as directions.
@@ -2068,7 +2083,7 @@ shipped default to $\DepLambdaOne{}$. It is in the supplementary archive.
 % makes it suitable for deployment on standard shipboard computing hardware.
 WaveSplat's computational footprint on a single CPU thread
 (measured in Section~\ref{sec:complexity}; an earlier figure quoted here was
-withdrawn, App.~\ref{app:changes}, R3) is intended for
+withdrawn, Appendix~\ref{app:changes}, R3) is intended for
 deployment on standard shipboard computing hardware.  Inference does not require GPU acceleration for the tracking phase, and no offline calibration against a particular site is needed. It does require the learned proposal checkpoint at initialisation, which is where the GPU is used when one is available.
 The spectral parameters are directly interpretable: a naval architect
 can inspect the estimated wavenumber vector, amplitude, and frequency
@@ -2222,24 +2237,23 @@ Table~\ref{tab:boundary} is for.
 % all methods equally and does not bias the comparison.
 % 
 
+% ⛔[2026-09-02] 검증 감사가 잡은 인쇄 손상 둘, **둘 다 오늘 내 수리가 만들었다**:
+%   ①`5ccf8fbf` 가 주석 조각을 `\paragraph` 로 풀었고 `91859029` 가 그 자리를 메우던
+%     `[RETRACTED]` 블록을 치워 **술어 없는 문장**이 인쇄됐다
+%     (*"The O(eps^2) mismatch is (App. …, R2.) The correct facts are: …"*).
+%   ②그 결과 `\paragraph{Linear forward model}` 이 **연달아 두 번** 인쇄됐다.
+%   ★같은 부류가 오늘 초록에서도 났다(금지 자구 교체가 `is` 를 남겼다).
 \paragraph{Linear forward model}
-The $O(\epsilon^2)$ mismatch is
-% $<0.5\%$ for the BF2--5 range tested ($\epsilon\approx 0.05$--$0.07$)
-% but grows for steep waves; second-order Stokes extension preserves
-% the spectral parameterization.
-(App.~\ref{app:changes}, R2.) The correct facts
-are: the synthetic ground truth is a \emph{displacement-free linear
-superposition on a fixed grid}, so it lies in the same function space as the
-estimator's model equation and the measured mismatch is \emph{zero}; and a
-zero mismatch is not neutral between methods, because the grid-based
-baselines do not use that representation. \emph{Nonlinear validation was
-performed in a separate higher-order-spectral ($M{=}3$) batch, not on this
-corpus.}
-
-\paragraph{Linear forward model}
-The linear approximation degrades for steep
-waves; second-order Stokes extension preserves the spectral
-parameterization.
+Earlier versions stated that the $O(\epsilon^2)$ model mismatch was small but
+non-zero and affected all methods equally
+(Appendix~\ref{app:changes}, R2). The correct facts are: the synthetic ground truth
+is a \emph{displacement-free linear superposition on a fixed grid}, so it lies in
+the same function space as the estimator's model equation and the measured mismatch
+is \emph{zero}; and a zero mismatch is not neutral between methods, because the
+grid-based baselines do not use that representation. The linear approximation does
+degrade for steep waves, and a second-order Stokes extension would preserve the
+spectral parameterisation. \emph{Non-linear validation was performed in a separate
+higher-order-spectral ($M{=}3$) batch, not on this corpus.}
 
 \paragraph{Tracking phase dependence on initialization}
 The \texttt{w\_phi}

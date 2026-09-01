@@ -295,7 +295,11 @@ and Its Operating Boundary}}
 % 스테레오다. 동기의 주어를 제목의 주어(희소 3차원 점군)로 바꾸고, 동기 센서와 실증 자료를
 % 문단 안에서 구분한다. ★영문 초록에 같은 문단을 동시에 반영한다.
 해수면을 원격으로 관측하는 센서 --- 선박 탑재 스캐닝 LiDAR, 고정 관측소의 스테레오
-영상 등 --- 는 프레임당 약 50--200개의 희소하고 불균질한 3차원 관측점을 생성한다.
+% ⚠[2026-09-02] 이 범위는 **센서 부류 일반**의 것이지 본 논문 코퍼스의 것이 아니다
+%   (코퍼스는 raydrop 재정규화로 프레임당 약 50 에 고정된다 --- §관측 모델).
+%   ★영문 초록에 같은 절을 동시에 넣었다.
+영상 등 --- 는 프레임당 약 50--200개의 희소하고 불균질한 3차원 관측점을 생성한다
+(⚠센서 부류의 범위이며, 본 논문 코퍼스는 프레임당 약 $50$개로 고정된다).
 이러한 \textbf{희소 3차원 점군}으로부터
 연속적이고 물리적으로 타당한 파도장을 실시간으로 복원하는 것은,
 자율운항 선박의 안전·승차감·에너지 효율 향상과
@@ -642,7 +646,9 @@ Beaufort 3에서 \textbf{92--96\%}의 성능을 달성한다.
 % 3-D point clouds), and the motivating sensor is separated from the validated data.
 Remote sensors that scan the ocean surface --- shipboard scanning LiDAR, or
 fixed-station stereo imaging --- produce on the order of 50--200 sparse, heterogeneous
-three-dimensional observation points per frame.
+three-dimensional observation points per frame (a range for the sensor class; the
+corpus used here is held at about 50 points per frame by the return-dropout
+normalisation).
 Recovering a continuous, physically valid wave field from such \textbf{sparse
 three-dimensional point clouds} in real time is a critical enabling technology for
 autonomous vessel safety, ride comfort, and energy efficiency, as well as for
@@ -1058,8 +1064,11 @@ $>$100채널, 수평 FOV $\sim$$120^\circ$, 수직 FOV $\sim$$25^\circ$)를
 고정 각도 분해능에 의해 근거리는 조밀하고 원거리는 희박한 관측 패턴을 생성하며,
 빔 발산(beam divergence)과 해수면 specular reflection에 의한 raydrop,
 그리고 grazing angle에서의 Fresnel 반사율 증가에 따른 신호 손실이 존재한다.
-프레임당 유효 관측점 수는 해상 상태, 선박 운동, LiDAR raydrop 특성에 따라
-50--200개로 변동한다.
+% ⛔[2026-09-02] 실측 정정(§관측 모델과 동일 사유): raydrop 재정규화로 프레임당 기대
+%   반환이 50 에 고정되고, 110 에피소드 전수 중앙이 **50**(최소 48·최대 82)이다.
+%   해상상태 의존성은 관측되지 않는다.
+본 논문이 쓰는 코퍼스에서 프레임당 유효 관측점 수는 raydrop 상수의 재정규화로
+\textbf{약 50}에 고정된다(전수 중앙 50, 최소 48, 최대 82).
 이러한 희소하고 불균질한 관측으로부터 연속적인 파도장을
 복원하는 것이 본 논문이 다루는 핵심 문제이다.
 이 문제를 수학적으로 정식화하면 다음과 같다.
@@ -4799,7 +4808,8 @@ $80 \times 60$ 공간 격자($x \in [10, 250]$\,m, $y \in [-100, 100]$\,m;
   \item \textbf{파도 파라미터}: $N$ 성분 각각의
         $(w_i, k_{x,i}, k_{y,i}, \omega_i, \phi_i)$. JONSWAP 스펙트럼에서 샘플링.
   \item \textbf{LiDAR 관측}: 301 프레임 $\times$ $M(t)$개 관측점
-        (프레임당 50--200개, 해상 상태와 raydrop 모델에 의존).
+        % ⛔[2026-09-02] 실측: 전수 중앙 50(최소 48·최대 82), 해상상태 의존성 없음.
+        (프레임당 약 $50$개; raydrop 재정규화로 고정된다).
         각 관측점의 위치 $(x_j, y_j)$, 파고 $z_j$, 시각 $t_j$,
         입사각 $\theta_j$, 거리 $r_j$ 포함.
   \item \textbf{Ground truth}: 301 프레임 $\times$ $80 \times 60$ 격자의

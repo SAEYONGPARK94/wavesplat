@@ -57,53 +57,36 @@
 \cortext[cor1]{Corresponding author}
 \address[avikus]{Avikus (HD Hyundai), Republic of Korea}
 
-\begin{abstract}
 % ============================================================================
-% [2026-09-01] 2차 적대적 감사 반영 재작성.
-%   전판은 ~686 단어(Elsevier 관례의 2배 이상)였고, 공시가 주장을 잡아먹었으며,
-%   일부 수치가 **손타이핑**이었다(주석은 "모든 수는 매크로" 라 적어 거짓이었다).
-%   ⟹ 세부 공시는 본문으로 내린다 --- 본문에서는 check_paper_disclosures.py 가
-%   그 병기를 기계로 강제하므로, 초록을 줄여도 공시가 사라지지 않는다.
+% [2026-09-01] 3차 감사 반영: Elsevier 관례(단일 문단, <=250 단어, 절/문헌 참조 금지).
+%   전판은 396단어 4블록 + 절 참조였다. 크기(%)는 본문이 지고 --- 본문에서는
+%   check_paper_disclosures.py 가 병기를 강제한다 --- 초록은 계수와 범위만 진다.
 %   ⛔초록의 모든 수는 paper_constants.tex 매크로다. 리터럴 0.
 % ============================================================================
-Phase-resolved ocean wave fields must be reconstructed from point clouds that are
-sparse and irregular. The prevailing approach assimilates such returns into a
-spatial grid state, which requires interpolating them onto that grid; the closest
-recent study measures direct assimilation of the sparse returns and reports limited
-improvement at their original locations, and its outlook names a spectral-state
-formulation. This paper is that formulation.
-
-We represent the field as a small set of continuous-wavenumber spectral atoms
-constrained by the dispersion relation, place them with a learned set-valued prior,
-and refine them by variable projection before updating per frame. We claim no
-novelty for sequential or real-time operation, which this literature already has;
-the contribution is the combination, and an intervention-based account of what each
-part of it buys.
-
-On crowded multi-component seas the estimator lowers median normalised RMSE by
-\BOneRel{} against the strongest eligible grid baseline we possess
-(\BOneBetter{}/\BOneN{} episodes, synthetic). The result survives a non-linear
-reference field with seeds outside the training corpus
-(\BTwelveBetter{}/\BTwelveN{}), a case in which the baseline itself retains skill
-(\BTwelveCmpBetter{}/\BTwelveCmpN{}), and a physically correct range-dependent
-sensor model. Crucially the claim is carried by ablation rather than by baseline
-comparison alone: removing the learned prior costs \BTwentyTwoRel{}, and removing
-only the continuity of the wavenumber costs \BSixteenRel{} with a dose response.
-The gain also persists inside the observation-density band our measured records
-occupy and at a forecast rung most of them cover --- though in the latter the
-comparator degrades over the same interval, so the ratio grows while the accuracy
-does not. The two ablation magnitudes are not additive and are not shares of the
-headline: different corpora, different comparison arms, and we checked the
-wavenumber ablation separately for confounding with the refit it performs.
-
-\textbf{Scope.} These gains are synthetic and confined to the crowded stratum; the
-sparse stratum does not separate. On $12$ fixed-station stereo records the learned
-prior does not reach the pre-registered decision threshold against a per-record
-zero-field reference under any configuration we tested. We report that negative, and
-we report the limits of the procedure that produced the positives: the ablation
-comparators are themselves weak against a zero predictor, the checkpoint was trained
-on the same distribution family as the synthetic evaluation, and the re-scoring
-studies were not blind. Section~\ref{sec:res_scope} states each in full.
+\begin{abstract}
+Phase-resolved ocean wave fields must be reconstructed from sparse, irregular point
+clouds. The prevailing approach assimilates such returns into a spatial grid state,
+which requires interpolating them onto that grid; the closest recent study measures
+direct assimilation of the sparse returns instead and reports limited improvement at
+their original locations, while its outlook names a spectral-state formulation. We
+give that formulation: the field is a small set of continuous-wavenumber spectral
+atoms constrained by the dispersion relation, placed by a learned set-valued prior
+and refined by variable projection before per-frame updating. On crowded
+multi-component synthetic seas this lowers median normalised RMSE by \BOneRel{}
+against the strongest eligible grid baseline we possess
+(\BOneBetter{}/\BOneN{} episodes), and the result survives a non-linear reference
+field with seeds outside the training corpus (\BTwelveBetter{}/\BTwelveN{}) in a
+comparison where the baseline itself retains skill
+(\BTwelveCmpBetter{}/\BTwelveCmpN{}). The claim is carried by ablation rather than
+by baseline comparison alone: removing the learned prior
+(\BTwentyTwoBetter{}/\BTwentyTwoN{} episodes worse, against an analytic package that
+itself clears a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{}) and
+removing only the continuity of the wavenumber
+(\BSixteenBetter{}/\BSixteenN{}, dose-responsive) each cost measurable accuracy.
+The gains are synthetic and crowded-stratum only, the checkpoint was trained on the
+same distribution family so ``out of sample'' means on the seed axis alone, and on
+$12$ measured fixed-station records the prior does not reach the pre-registered
+decision threshold against a per-record zero-field reference.
 \end{abstract}
 
 \begin{keyword}
@@ -196,7 +179,7 @@ That capability is not hypothetical: airborne scanning lidar has resolved
 open-ocean wave fields and their directional wavenumber spectra since the
 1990s~\citep{hwang2000}, from aircraft rather than from ships and at a
 correspondingly larger footprint.  We note this explicitly because the
-absence of real-data validation in the present work
+absence of \emph{shipboard lidar} validation in the present work
 (Section~\ref{sec:limitations}) reflects the absence of a \emph{publicly
 archived} phase-resolved lidar sea-surface dataset, not the absence of
 such measurements.
@@ -314,7 +297,7 @@ Our key contributions are:
 \end{enumerate}
 
 The pipeline also includes an online model-order mechanism (energy-based
-pruning and residual-triggered growth, the retracted corpus (archived)) that
+pruning and residual-triggered growth) that
 matches the number of spectral components to scene complexity, from $N$=2 for
 simple swells to $N$=21 for complex multi-component seas.  We deliberately do
 \emph{not} list it as a contribution: measured under the corrected tracker with
@@ -507,10 +490,14 @@ arbitrary shipboard sensor configurations: FNO-style models assume
 uniform training grids incompatible with scanning-LiDAR irregular
 sampling, generalization across sensor geometries is limited, and
 the black-box nature complicates failure diagnosis.
-WaveSplat, by contrast, requires no training data, handles
-irregular observation geometries natively, and produces directly
-interpretable spectral parameters that satisfy the dispersion
-relation by construction.
+WaveSplat, by contrast, handles irregular observation geometries natively and
+produces directly interpretable spectral parameters that satisfy the dispersion
+relation by construction. It does use a learned component --- the set-valued
+prior that proposes the initial atoms --- but the learning enters only as a
+\emph{proposal} over a physically constrained parameter space, not as a
+grid-shaped regression target: the estimate that leaves the pipeline is a set of
+dispersion-consistent atoms fitted to the observations, and the ablation in
+Section~\ref{sec:res_ablation} is what measures how much the prior contributes.
 Direct experimental comparison with learning-based methods is beyond
 the scope of this work, which focuses on physics-constrained spectral
 estimation; such a comparison would require careful control of
@@ -563,6 +550,7 @@ mismatch against the model equation is exactly zero (see
 Section~\ref{sec:experiments}).
 
 \subsection{Observation model}
+\label{sec:obsmodel}
 
 At each LiDAR scan at time $t$, we observe $M$ elevation measurements
 $\{(x_j, y_j, z_j)\}_{j=1}^{M}$ at irregular spatial locations.
@@ -1106,6 +1094,7 @@ revision, so differences between a pre-correction and a post-correction
 table cannot be attributed to any one of the three.
 
 \subsection{Metrics}
+\label{sec:metrics}
 
 We report:
 \begin{itemize}
@@ -1567,9 +1556,11 @@ artifact of the earlier dataset and seed count, and cannot be used to
 argue that confidence weighting is load-bearing.
 
 A four-way comparison on 10 uniform-raydrop episodes corroborates the
-null from the other side: WaveSplat with confidence (0.232), WaveSplat
-without confidence (0.231), standard GPR (0.276), and GPR with the same
-confidence weighting applied as per-sample noise scaling (0.276).
+null from the other side: the confidence weighting changes our own arm by less
+than a percent, and applying the same weighting to the comparison method changes
+it by nothing at all. We do not quote the four levels: they come from the
+retracted corpus, in which our arm and the comparison arm were never scored on
+the same frames, so a level-to-level comparison between them is not defined.
 Neither estimator moves when the weighting is added or removed---the two
 WaveSplat arms agree to $0.001$ and the two GPR arms to within $0.01\%$.
 Confidence weighting is therefore inert on this simulator's data for
@@ -1610,24 +1601,24 @@ sensitivity ($\Delta$\%) is the quantity of interest, not the level---and
 that sensitivity is itself configuration-dependent, shrinking under an
 honestly re-tuned baseline (Section~\ref{sec:raydrop-results}).}
 \label{tab:raydrop}
-\begin{tabular}{lcccccc}
+\begin{tabular}{lccc}
 \toprule
-& \multicolumn{3}{c}{WaveSplat} & \multicolumn{3}{c}{ETKF} \\
-\cmidrule(lr){2-4} \cmidrule(lr){5-7}
-Episode & U & S & $\Delta$\% & U & S & $\Delta$\% \\
+& \multicolumn{3}{c}{WaveSplat} \\
+\cmidrule(lr){2-4}
+Episode & U & S & $\Delta$\% \\
 \midrule
-BF2 1c  & 0.063 & \textbf{0.025} & $-$60.3 & 0.396 & 0.338 & $-$14.6 \\
-BF3 1c  & 0.009 & \textbf{0.008} & $-$4.4  & 0.444 & 0.378 & $-$14.9 \\
-BF3 2c  & \textbf{0.007} & 0.009 & +19.5 & 0.409 & 0.355 & $-$13.1 \\
-BF3 5c  & 0.024 & \textbf{0.019} & $-$21.9 & 0.441 & 0.359 & $-$18.5 \\
-BF4 1c  & 0.004 & \textbf{0.003} & $-$17.1 & 0.453 & 0.342 & $-$24.4 \\
-BF4 5c  & 0.017 & \textbf{0.012} & $-$32.7 & 0.394 & 0.367 & $-$6.9 \\
-BF4 15c & 0.272 & \textbf{0.198} & $-$27.2 & 0.537 & 0.404 & $-$24.7 \\
-BF4 30c & 0.333 & \textbf{0.269} & $-$19.2 & 0.495 & 0.441 & $-$10.9 \\
-BF5 15c & \textbf{0.216} & 0.247 & +14.6 & 0.461 & 0.394 & $-$14.6 \\
-BF5 30c & 0.246 & \textbf{0.220} & $-$10.6 & 0.516 & 0.442 & $-$14.3 \\
+BF2 1c  & 0.063 & \textbf{0.025} & $-$60.3 \\
+BF3 1c  & 0.009 & \textbf{0.008} & $-$4.4  \\
+BF3 2c  & \textbf{0.007} & 0.009 & +19.5 \\
+BF3 5c  & 0.024 & \textbf{0.019} & $-$21.9 \\
+BF4 1c  & 0.004 & \textbf{0.003} & $-$17.1 \\
+BF4 5c  & 0.017 & \textbf{0.012} & $-$32.7 \\
+BF4 15c & 0.272 & \textbf{0.198} & $-$27.2 \\
+BF4 30c & 0.333 & \textbf{0.269} & $-$19.2 \\
+BF5 15c & \textbf{0.216} & 0.247 & +14.6 \\
+BF5 30c & 0.246 & \textbf{0.220} & $-$10.6 \\
 \midrule
-\textbf{Avg} & 0.119 & \textbf{0.101} & $-$15.2 & 0.454 & 0.382 & $-$15.9 \\
+\textbf{Avg} & 0.119 & \textbf{0.101} & $-$15.2 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1637,13 +1628,15 @@ BF5 30c & 0.246 & \textbf{0.220} & $-$10.6 & 0.516 & 0.442 & $-$14.3 \\
 \includegraphics[width=\textwidth]{figures/fig5_raydrop.pdf}
 \caption{Raydrop model comparison: geometry-weighted (``uniform'') vs.\
 unweighted (``slope'') LiDAR return-sampling models. WaveSplat (blue shades)
-outperforms ETKF on the episodes of that (retracted) corpus
-% [2026-09-01] 전칭 "on all episodes" 는 배너 2항이 명시 금지한 자구다.
-.}
+shows the within-arm effect of the two raydrop models. The comparison against ETKF that this figure originally carried is withdrawn: it comes from a corpus in which the two arms were never scored on the same frames.}
 \label{fig:raydrop}
 \end{figure*}
 
-WaveSplat wins on all 10 episodes under both raydrop models.
+The within-arm effect of the two raydrop models is small under both. We withdraw
+the episode-count comparison against the grid baseline that this paragraph
+originally reported: it is a cross-arm claim on the retracted corpus. The
+sensor-model robustness claim of this paper is the one in
+Section~\ref{sec:res_sensor}.
 Unweighted sampling lowers the ETKF's nRMSE on all ten paired episodes
 ($-$15.9\% at the default configuration, paired $t(9){=}-7.6$), against
 $-$15.2\% for WaveSplat, which at the default configuration would read as
@@ -1655,11 +1648,13 @@ the same ten pairs under the tuned ETKF of
 the retracted corpus (archived) ($n_{\text{ens}}{=}100$) already
 shrinks it to $-$11.7\%, and under an nRMSE-honest hold-out re-tuning
 (analysis grid $160\times120$, additive inflation off, larger observation
-error) the ETKF collapses to a near-zero predictor in \emph{both} arms
-($0.263$ vs.\ $0.260$, $\rho\approx0.015$) and the sensitivity falls to
-$-$0.9\%---now \emph{below} WaveSplat's $-$15.2\%.  For the ETKF the
-direction (unweighted $\geq$ weighted) is consistent across all three
-configurations (10/10 episodes each), but its magnitude tracks how much variance the
+error) the comparison arm degenerates toward a near-zero predictor under both
+raydrop models, so the difference between the two models is not informative about
+it. We withdraw the levels and the cross-arm sensitivity comparison this paragraph
+originally reported: they come from the retracted corpus, where the two arms were
+never scored on the same frames. What survives is the within-arm statement --- the
+direction of the raydrop effect is consistent across configurations, and its
+magnitude tracks how much variance the
 grid filter injects into the now-unattenuated observations, not any gain
 in reconstruction skill ($\rho$ never exceeds $0.11$).  We therefore
 report the sensitivity as an artifact of the un-tuned baseline rather
@@ -1818,7 +1813,8 @@ measured records the representation does not reach the decision threshold at all
 
 \subsection{Effect of observation model}
 
-WaveSplat wins 10/10 under \emph{both} raydrop models.
+The corresponding cross-arm count is withdrawn for the same reason
+(retracted corpus, frames not matched).
 Removing the geometric weighting lowers WaveSplat's average nRMSE by
 15.2\% (unweighted better on 8 of 10 episodes, sign-test $p=0.109$---%
 a stable direction, not a certified effect) and lowers the default
@@ -1850,13 +1846,15 @@ During development, we verified robustness by perturbing each parameter
 independently ($\times 0.5$ and $\times 2$) while holding the others
 fixed, on the full 12-episode subset: learning rate ($\text{lr} \in
 \{0.005, 0.02\}$: nRMSE $\Delta < 3\%$), L1 penalty
-($\lambda_1 \in \{5\!\times\!10^{-4}, 2\!\times\!10^{-3}\}$:
+($\lambda_1 \in \{5\!\times\!10^{-4}, 2\!\times\!10^{-3}\}$, i.e.\ $5\times$ and
+$20\times$ the current default rather than the $0.5\times$/$2\times$ the surrounding
+text once described --- the sweep predates the change of $\lambda_1$ to
+$\DepLambdaOne{}$ and was not re-run:
 $\Delta < 2\%$), prune threshold ($\tau_{\text{prune}} \in \{0.05,
 0.20\}$: $\Delta < 5\%$, with 0.20 occasionally over-pruning on
 15-component episodes), and grow threshold ($\tau_{\text{grow}} \in
 \{0.025, 0.10\}$: $\Delta < 4\%$).
-No perturbation changed the relative ranking between WaveSplat and
-any baseline.  Full per-parameter sweep results are available from the
+No perturbation changed the sign of the within-arm effects reported here. We do not restate the ranking against the baselines: that ranking was computed on the retracted corpus.  Full per-parameter sweep results are available from the
 authors upon request.
 
 \subsection{Practical deployment considerations}
@@ -1869,8 +1867,7 @@ authors upon request.
 WaveSplat's computational footprint on a single CPU thread
 (\textbf{[RETRACTED 2026-08-14]} --- the absolute per-frame figure previously
 quoted here is withdrawn as a cross-process timing) is intended for
-deployment on standard shipboard computing hardware.  The algorithm requires no GPU acceleration, no pre-trained
-models, and no offline calibration beyond the water depth parameter $d$.
+deployment on standard shipboard computing hardware.  Inference does not require GPU acceleration for the tracking phase, and no offline calibration against a particular site is needed. It does require the learned proposal checkpoint at initialisation, which is where the GPU is used when one is available.
 The spectral parameters are directly interpretable: a naval architect
 can inspect the estimated wavenumber vector, amplitude, and frequency
 of each component, enabling sanity checking against visual observation
@@ -1937,7 +1934,7 @@ The forecast nRMSE remains essentially constant (0.218--0.219) out to
 For low-complexity episodes, forecast accuracy is excellent: the BF3
 2-component episode achieves SS~$=+0.953$ and $\rho=0.983$ even at
 $\Delta t = 10$\,s.  The constant forecast error reflects that the
-spectral representation captures the deterministic wave physics:
+spectral representation reproduces the within-arm horizon behaviour we expected. We do not read these levels as skill: Section~\ref{sec:metrics} fixes a zero-predictor reference near $0.25$ for this corpus, and the values in the table sit at or above it, so the correct statement is that the estimate degrades slowly with horizon, not that it forecasts well:
 once the correct $(k_x, k_y, \omega, \phi)$ are known, the forward
 model provides a physically exact prediction for linear waves.
 The Skill Score does decline slightly with horizon
@@ -2003,7 +2000,7 @@ that reason.
 % (basis: memory/project_audit_recheck_2026-08-13.md sections 1, 6, 6.5)
 % --- original (kept for history) ---
 % We note that the simulator itself is validated by 39 unit tests
-We note that the simulator itself is validated by 196 unit tests
+We note that the simulator and estimator are covered by an automated test suite (currently \DeployNumTestsPaper{} tests)
 (measured 2026-08-13; a further 8 shipping-default regression tests were
 added subsequently)
 covering dispersion, Gerstner kinematics, Fresnel optics, and
@@ -2151,7 +2148,9 @@ change exposing a new swell system), re-initialization is needed,
 incurring the same latency.  A background re-initialization scheme
 running in parallel with tracking could mitigate this in practice.
 \emph{Surface normal approximation for real data}: in simulation
-we use the exact Gerstner surface normal for confidence weighting
+we use the exact surface normal of the reference field for confidence weighting
+(that field is a displacement-free linear superposition, not a Gerstner surface;
+see Sections~\ref{sec:obsmodel} and~\ref{sec:experiments})
 $c_j$, but real-data application must substitute the flat-surface
 approximation $\mathbf{n}\approx\hat{\mathbf{z}}$.  The resulting
 bias scales with wave slope (up to ${\sim}9\%$ in $\cos\theta_j$
@@ -2229,10 +2228,11 @@ skill (\BTwelveCmpBetter{}/\BTwelveCmpN{}).
 What we regard as the substantive contribution is not the margin but the
 \emph{attribution}. Holding the deployed pipeline fixed and removing one property at
 a time, the learned prior accounts for \BTwentyTwoRel{}
-(\BTwentyTwoBetter{}/\BTwentyTwoN{}) --- measured against an analytic package that itself
-clears a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes and the continuity of the wavenumber for
-\BSixteenRel{} (\BSixteenBetter{}/\BSixteenN{}, dose-responsive, and reproducing in
-the sparse stratum at \BNineteenBetter{}/\BNineteenN{}). The gain also survives
+(\BTwentyTwoBetter{}/\BTwentyTwoN{}) --- measured against an analytic package that
+itself clears a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes
+--- and the continuity of the wavenumber accounts for \BSixteenRel{}
+(\BSixteenBetter{}/\BSixteenN{}, dose-responsive, and reproducing in the sparse
+stratum at \BNineteenBetter{}/\BNineteenN{}). The gain also survives
 re-scoring inside the observation-density band our measured records occupy
 (\MTenBetter{}/\MTenN{}) and at a forecast rung that $11$ of those $12$ records cover (\TFourBetter{}/\TFourN{}) --- though in the latter case the comparator
 degrades across the same interval, so the growing ratio must not be read as a
@@ -2279,11 +2279,9 @@ Code, simulation data, and experiment scripts will be deposited on a
 public repository upon acceptance.
 The complete 100-episode dataset can be regenerated from the released
 simulator with the provided configuration files and fixed random
-seeds, ensuring end-to-end reproducibility of the tables and figures that were computed on it
-% [2026-09-01] 2차 감사: 전칭 "all tables and figures" 는 이제 거짓이다 ---
-%   새 헤드라인(B-1·B-12 HOS·B-16·B-22)은 그 데이터셋 밖에서 나왔다.
-
-reported in this paper.
+seeds, ensuring end-to-end reproducibility of the tables and figures that were
+computed on it. The headline results of this paper were not: they come from the
+frozen corpora named in Section~\ref{sec:res_headline} and its ablations.
 
 The buoy directional-spread statistics used for the external-validity
 stratification of the retracted corpus (archived) are third-party

@@ -37,6 +37,17 @@ def _get(v, path):
     return cur
 
 
+def _count_tests():
+    """pytest --collect-only 로 실제 테스트 수를 센다(thesis 생성기와 같은 규약)."""
+    import subprocess
+    r = subprocess.run([sys.executable, '-m', 'pytest', 'wavesim/tests/',
+                        'wavesplat/tests/', '--collect-only', '-q'],
+                       cwd=ROOT, capture_output=True, text=True)
+    import re as _re
+    m = _re.search(r'(\d+)\s+tests? collected', r.stdout)
+    return m.group(1) if m else '0'
+
+
 def load(rel):
     p = os.path.join(TMP, rel)
     if not os.path.exists(p):
@@ -169,6 +180,8 @@ def main():
         ('DepTrackingLr', f"{_DC['tracking_lr']:g}"),
         ('DepTrackingSteps', str(_DC['tracking_steps'])),
         ('DepMaxN', str(_DC['max_n'])),
+        # ★테스트 수는 자주 바뀐다 — 손으로 적으면 반드시 낡는다(3차 감사: 196 vs 실측 261).
+        ('DeployNumTestsPaper', _count_tests()),
     ]
     rows += [(k, v, 'DEPLOY') for k, v in dep]
 

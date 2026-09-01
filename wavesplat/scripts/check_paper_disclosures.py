@@ -111,6 +111,42 @@ def strip_comments(t):
     return re.sub(r'\s+', ' ', ' '.join(out))
 
 
+def literals_outside_macros():
+    """★**매크로 값이 tex 에 리터럴로 나타나는가.**
+
+    3차 감사(2026-09-01)의 최대 구조적 지적:
+
+    > *"매크로를 리터럴 수치로 치환 + 공시 문장 삭제 → 검사기가 `발동 없음` ×10 ·
+    > rc=0 · '공시 확인' 을 찍는다. 이것은 가설이 아니다 --- 팔간 주장의 수치가
+    > **이미 매크로 밖 리터럴**이라 BLOCKER 전건이 검사기 사각지대에 있었다."*
+
+    ⟹ 공시 규칙은 **매크로 사용**에 걸려 있으므로, 누군가 값을 손으로 적으면 규칙이
+    **조용히 침묵**한다. 이 검사가 그 우회를 막는다: `paper_constants.tex` 가 정의하는
+    값이 tex 본문에 **그대로** 나타나면 실패한다(그 자리는 매크로를 써야 한다).
+    """
+    pc = os.path.join(ROOT, 'paper', 'paper_constants.tex')
+    if not os.path.exists(pc):
+        return True, '상수 파일 없음 — 건너뜀'
+    vals = {}
+    for line in open(pc, encoding='utf-8'):
+        m = re.match(r'\\newcommand\{\\(\w+)\}\{(.+?)\}\s*(?:%|$)', line)
+        if m:
+            v = m.group(2).strip()
+            # ⚠**오탐을 내면 안 된다.** 첫 판은 `10^{-4}`(평활 계수 lambda_s)와
+            #   `0.005`(ETKF 관측잡음 sigma)를 잡았다 --- 매크로 값과 **우연히 같은
+            #   문자열**인 다른 양이다. ★검사기가 늑대를 외치면 사람이 무시하기 시작한다.
+            #   ⟹ **결과 크기**(퍼센트)만 본다: 그것이 공시 의무를 지는 값이고,
+            #   손으로 적히면 규칙이 침묵하는 바로 그 값이다.
+            if '\\%' in v:
+                vals[m.group(1)] = v
+    body = strip_comments(open(TEX, encoding='utf-8').read())
+    hits = [(k, v) for k, v in vals.items() if v in body]
+    if hits:
+        return False, f'매크로 값이 리터럴로 인쇄됨 {len(hits)}건: ' + \
+            ', '.join(f'\\{k}={v}' for k, v in hits[:3])
+    return True, f'{len(vals)} 값 검사 · 리터럴 0'
+
+
 def constants_up_to_date():
     """★커밋된 `paper_constants.tex` 가 생성물과 같은가.
 
@@ -129,6 +165,8 @@ def main():
         raise SystemExit(f'없다: {TEX}')
     ok_const, msg = constants_up_to_date()
     print(f'  [{"OK  " if ok_const else "FAIL"}] {"상수파일-최신":22s} {msg}')
+    ok_lit, msg_lit = literals_outside_macros()
+    print(f'  [{"OK  " if ok_lit else "FAIL"}] {"리터럴-우회":22s} {msg_lit}')
     raw = open(TEX, encoding='utf-8').read()
     fails = []
     print('── 동반 공시 검사 ─────────────────────────────────────────────')
@@ -153,6 +191,9 @@ def main():
     print('──────────────────────────────────────────────────────────────')
     if not ok_const:
         fails.append(('상수파일-최신', 'paper_constants.tex 가 생성물과 다르다', ['<repo>']))
+    if not ok_lit:
+        fails.append(('리터럴-우회', '매크로 값을 손으로 적으면 공시 규칙이 침묵한다',
+                      ['<paper/wavesplat.tex>']))
     if fails:
         print(f'\n⛔실패 {len(fails)}건:')
         for n, why, ms in fails:

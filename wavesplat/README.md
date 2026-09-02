@@ -126,7 +126,7 @@ wavesplat/
 │   ├── generate_qualitative_figure.py  # Fig 8: GT vs WS vs ETKF vs GPR heatmap
 │   └── generate_tracking_animation.py  # Tracking animation (MP4)
 ├── paper/                      # Ocean Engineering journal paper
-│   ├── wavesplat.tex             # Main LaTeX source (~1500 lines)
+│   ├── waveprior.tex             # Main LaTeX source (2026-09-02 개명; 구명 wavesplat.tex)
 │   └── figures/                  # 9 PDF figures (fig1-fig8 + png)
 ├── results/                    # JSON experiment results (96 files, + direction1/2/3)
 │   ├── p1_comparison.json        # Main P1 comparison

@@ -198,7 +198,7 @@ BANS = [
   r"onall(episodes|densities)|outperform.{0,40}all"
   r"|(?:better|improv|outperform|wins?|won|superior|우월)\w{0,60}(?:everyepisode|alldensities)"
   r"|(?:everyepisode|alldensities)\w{0,60}(?:better|improv|outperform|wins?|won|superior|우월)",
-  "paper/wavesplat.tex:17-38 배너 2항"),
+  "paper/waveprior.tex:17-38 배너 2항"),
  ("제목·본문의 'Shipboard LiDAR'",
   r"[Ss]hipboardLiDAR|shipboardlidar", "thesis 제목 철회(실증 0건) = 배너 1항"),
  ("'All phases complete'",
@@ -230,10 +230,10 @@ FALSE_POSITIVE = {
 } | {
  ("paper/submission/graphical_abstract.md", n) for n in (4, 5, 52, 53, 60)
 } | {
- ("paper/wavesplat.tex", n) for n in (154, 1151, 1152, 1153, 1592, 1756, 1801,
+ ("paper/waveprior.tex", n) for n in (154, 1151, 1152, 1153, 1592, 1756, 1801,
                                       1887, 1993, 2083, 2407, 2604, 2616, 2843)
 } | {
- ("paper/wavesplat.pdf", n) for n in (2041, 2053, 2065, 2776, 3152, 3196,
+ ("paper/waveprior.pdf", n) for n in (2041, 2053, 2065, 2776, 3152, 3196,
                                       4178, 5045, 6271, 6456)
 }
 

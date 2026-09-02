@@ -25,7 +25,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..'))
-TEX = os.path.join(ROOT, 'paper', 'wavesplat.tex')
+TEX = os.path.join(ROOT, 'paper', 'waveprior.tex')
 
 # (이름, 발동 정규식, [대안 근거 정규식 …], 사유)
 RULES = [
@@ -461,7 +461,7 @@ def main():
         fails.append(('상수파일-최신', 'paper_constants.tex 가 생성물과 다르다', ['<repo>']))
     if not ok_lit:
         fails.append(('리터럴-우회', '매크로 값을 손으로 적으면 공시 규칙이 침묵한다',
-                      ['<paper/wavesplat.tex>']))
+                      ['<paper/waveprior.tex>']))
     if fails:
         print(f'\n⛔실패 {len(fails)}건:')
         for n, why, ms in fails:

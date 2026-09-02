@@ -20,7 +20,7 @@ import subprocess
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-PDFS = [('paper', 'paper/wavesplat.pdf'), ('thesis', 'thesis/thesis_main.pdf')]
+PDFS = [('paper', 'paper/waveprior.pdf'), ('thesis', 'thesis/thesis_main.pdf')]
 
 # (이름, 정규식, 무엇이 잘못인가)
 PATTERNS = [
@@ -98,7 +98,7 @@ def dup_paragraph_titles():
     """
     import glob
     out = []
-    for rel in ('paper/wavesplat.tex', 'thesis/thesis_main.tex'):
+    for rel in ('paper/waveprior.tex', 'thesis/thesis_main.tex'):
         path = os.path.join(ROOT, rel)
         if not os.path.exists(path):
             continue
@@ -111,11 +111,47 @@ def dup_paragraph_titles():
     return out
 
 
+
+# =============================================================================
+# ★[2026-09-02] 조판 오류 검사 --- **오늘 이것이 없어서 내가 틀렸다.**
+#   `paper/` 본문에 편집 기호 `⚠` 하나가 새어 들어가 pdflatex 가
+#   `! LaTeX Error: Unicode character ⚠ (U+26A0)` 를 냈는데, 나는 로그를 세지 않고
+#   *"오류 0"* 이라 보고했다. LaTeX 는 그 문자를 **버리고 계속 조판하므로**
+#   쪽수도 정상이고 PDF 도 나온다 --- ★**빌드가 성공한 것처럼 보인다.**
+#   ⟹ 로그를 기계가 센다. 그리고 로그가 `.tex` 보다 **낡았으면 실패**다
+#     (낡은 로그로 "오류 0" 을 말하는 것이 정확히 오늘의 실패다).
+LOGS = [('paper',  'paper/waveprior.log',      'paper/waveprior.tex'),
+        ('thesis', 'thesis/thesis_main.log',   'thesis/thesis_main.tex')]
+
+
+def latex_errors(names):
+    out = []
+    for name, logrel, texrel in LOGS:
+        if name not in names:
+            continue
+        lg, tx = os.path.join(ROOT, logrel), os.path.join(ROOT, texrel)
+        if not os.path.exists(lg):
+            out.append((name, 0, '조판 로그 없음',
+                        f'{logrel} 이 없다 — 오류 0 을 주장할 근거가 없다', logrel))
+            continue
+        if os.path.exists(tx) and os.path.getmtime(lg) < os.path.getmtime(tx):
+            out.append((name, 0, '낡은 조판 로그',
+                        f'{logrel} 이 {texrel} 보다 낡았다 — 다시 조판하라', logrel))
+            continue
+        with open(lg, encoding='utf-8', errors='replace') as f:
+            for i, l in enumerate(f, 1):
+                if l.startswith('!'):
+                    out.append((name, i, '조판 오류', 'pdflatex 가 오류를 냈다',
+                                l.strip()[:74]))
+    return out
+
+
 def main():
     # ⚠`--paper-only`: pre-commit 훅용. 두 PDF 를 다 읽으면 11 s 이고, 훅이 느리면
     #   사람이 `--no-verify` 로 우회한다. 학위논문은 전체 실행이 본다.
     docs = [(n, r) for n, r in PDFS if not ('--paper-only' in sys.argv and n != 'paper')]
     bad = []
+    bad.extend(latex_errors({n for n, _ in docs}))
     for doc, ln, t in dup_paragraph_titles():
         bad.append((doc, ln, '중복 paragraph 제목',
                     '같은 제목이 연달아 두 번 (원본 검사)', t[:70]))
@@ -139,7 +175,7 @@ def main():
         #     호출하지 않고, 왜 안 쓰는지를 여기 적는다.
     print('── 인쇄면 검사 ────────────────────────────────────────')
     if not bad:
-        print(f'  [OK  ] {len(PATTERNS) + 2} 패턴 · {len(docs)} 문서 · 손상 0건')
+        print(f'  [OK  ] {len(PATTERNS) + 3} 패턴 · {len(docs)} 문서 · 손상 0건 (조판 로그 오류 0 포함)')
         return 0
     for doc, ln, pname, why, txt in bad[:30]:
         print(f'  [FAIL] {doc}:{ln}  [{pname}] {why}')

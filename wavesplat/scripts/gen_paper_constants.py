@@ -3,7 +3,7 @@
 
 선례 = `scripts/gen_deploy_constants.py`(학위논문 배포 상수).
 사유 = 이 저장소가 반복해서 대가를 치른 **「손복사 기준 상수」** 결함 부류.
-`paper/wavesplat.tex` 는 철회된 헤드라인을 **라이브 22줄**에 손으로 인쇄하고 있었고,
+`paper/waveprior.tex` 는 철회된 헤드라인을 **라이브 22줄**에 손으로 인쇄하고 있었고,
 그 22줄은 서로 독립적으로 낡을 수 있었다.
 
 ★이 스크립트는 **동결 `verdict_*.json` 에서 값을 읽고**, 아래 `PINS` 와 어긋나면
@@ -962,7 +962,7 @@ def main():
     body = ['% ⛔자동 생성 — 손으로 고치지 마라.',
             '%    생성: python3 scripts/gen_paper_constants.py',
             '%    출처: 동결 verdict_*.json (배치명은 각 줄 주석에)',
-            '%    ★이 파일이 존재하는 이유: paper/wavesplat.tex 가 철회된 헤드라인을',
+            '%    ★이 파일이 존재하는 이유: paper/waveprior.tex 가 철회된 헤드라인을',
             '%      라이브 22줄에 **손으로** 인쇄하고 있었고 그 줄들이 독립적으로 낡았다.', '']
     for n, val, src in rows:
         body.append(f'\\newcommand{{\\{n}}}{{{val}}}  % {src}')

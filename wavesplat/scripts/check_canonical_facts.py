@@ -26,7 +26,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT)
 from wavesim.pipeline import SEA_STATE                              # noqa: E402
 
-DOCS = ['paper/wavesplat.tex', 'thesis/thesis_main.tex']
+DOCS = ['paper/waveprior.tex', 'thesis/thesis_main.tex']
 
 # ── 코퍼스에서 읽는 사실 ──────────────────────────────────────────────
 def corpus_facts():

@@ -24,7 +24,7 @@ LaTeX 은 `%` 뒤를 전부 버리므로 **그 본문이 인쇄면에서 사라�
 
 ⚠**한계**: 문장 중간에 일부러 주석을 넣으면 같은 모양이 된다. 그때는 주석을 문장 **위로**
 옮겨라 --- 가드가 잡을 수 있게 쓰는 편이 가드를 느슨하게 하는 것보다 낫다(선례가
-`paper/wavesplat.tex` 의 dedup 문단이다).
+`paper/waveprior.tex` 의 dedup 문단이다).
 ⚠한글 본문은 대소문자가 없어 이 검사가 **못 본다**. 그래서 `--diff` 모드가 따로 있다.
 
 `--diff` 모드
@@ -39,7 +39,7 @@ import subprocess
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-DOCS = ('paper/wavesplat.tex', 'paper/changes_appendix.tex', 'thesis/thesis_main.tex')
+DOCS = ('paper/waveprior.tex', 'paper/changes_appendix.tex', 'thesis/thesis_main.tex')
 SENT_END = re.compile(r'[.!?]["\')\}]?\s*$')
 # ⚠신호 2 — **한글 본문용**. 신호 1(주석 뒤 소문자 시작)은 대소문자가 있는 언어만 본다.
 #   학위논문 초록 두 건이 그래서 신호 1 에 안 걸렸다. ⟹ **주석 줄 자신**을 본다:

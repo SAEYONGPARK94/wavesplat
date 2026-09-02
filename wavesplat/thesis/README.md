@@ -75,7 +75,9 @@ pdflatex -interaction=nonstopmode thesis_main.tex       # 상호참조 수렴까
 - [ ] 제출 시 PDF/HWP 여부
 
 ## 관련 파일
-- Paper 1: `../paper/wavesplat.tex` (Ocean Engineering 투고 원고)
+- Paper 1: `../paper/waveprior.tex` (Ocean Engineering 투고 원고)
+  ⚠2026-09-02 에 `wavesplat.tex` 에서 **개명**됐다(제목의 주어가 WavePrior 로 바뀜).
+  `tmp/` 의 과거 감사 기록은 옛 이름을 가리키며, 그것은 그때의 사실이므로 고치지 않는다.
 - Paper 2: Hydrofoil 논문 초안 (위치 확인 필요)
 - 결과 데이터: `../results/`
 - 그림: `../paper/figures/`

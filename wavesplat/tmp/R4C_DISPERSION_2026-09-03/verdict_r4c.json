@@ -1,0 +1,131 @@
+{
+ "batch": "R4c-DISPERSION",
+ "n_rows": 18,
+ "gates": [
+  [
+   "G-0 행 완비",
+   true,
+   "18/18"
+  ],
+  [
+   "G-0b 에러 0",
+   true,
+   "0"
+  ],
+  [
+   "★G-OBS 관측이 R4b 와 비트 동일",
+   true,
+   "18/18"
+  ],
+  [
+   "★G-CTRL2 대조 ≥10 이 자기 귀무 초과 (R4b 와 같은 상수)",
+   true,
+   "12/12"
+  ],
+  [
+   "★G-LOWER 중복 제거가 귀무를 낮추거나 같게 한다",
+   true,
+   "최대 상승 0.000e+00"
+  ],
+  [
+   "★G-OVL 자기중첩률 대조중앙 < 처치중앙",
+   true,
+   "대조 0.028 vs 처치 0.054"
+  ],
+  [
+   "G-DRAWS 귀무 256 draw 전부 저장",
+   true,
+   "256"
+  ],
+  [
+   "G-SEED 시드 20260902 · B=256 · pctl 95.0 가 R4b 와 동일",
+   true,
+   "20260902/256/95.0"
+  ],
+  [
+   "G-RING 유효 링 ≥3",
+   true,
+   ""
+  ],
+  [
+   "G-NT 두 군 모두 NT=1024",
+   true,
+   "1024"
+  ],
+  [
+   "★G-BLOCK blocked_by 자가진단 (⛔선행 R4b 는 이것을 안 했다)",
+   true,
+   "['X-거짓']"
+  ],
+  [
+   "G-COV 모든 게이트가 자료를 봤다",
+   true,
+   "rows=18"
+  ]
+ ],
+ "gates_pass": "12/12",
+ "blocked_by": [],
+ "grade": "EXPLORATORY",
+ "label": "R4c-DISPERSION :: DISPERSION-REGIME-HOLDS",
+ "label_msg": "처치 0/6 — R4b 판정은 계수 인공물의 산물이 아니다",
+ "primary": {
+  "control_pass": "12/12",
+  "treat_pass": "0/6"
+ },
+ "prediction": {
+  "written_before_results": "대조 12/12 · 처치 0/6 유지",
+  "flip_probability_stated": 0.3,
+  "most_likely_flip": "1150 (비 1.06)",
+  "outcome": "예측 적중"
+ },
+ "groups": {
+  "control": {
+   "n": 12,
+   "n_pass": 12,
+   "passed": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ],
+   "obs_median": 0.3316033619172521,
+   "p95_r4b_median": 0.04605351568342303,
+   "p95_median": 0.04581224384724418,
+   "p95_drop_pct_median": 0.0,
+   "overlap_median": 0.028124999999999997,
+   "margin_min": -0.7512409922915413
+  },
+  "agulhas": {
+   "n": 6,
+   "n_pass": 0,
+   "passed": [],
+   "obs_median": 0.008987852750890302,
+   "p95_r4b_median": 0.05409023992412482,
+   "p95_median": 0.053497464384900856,
+   "p95_drop_pct_median": -0.5883905590529807,
+   "overlap_median": 0.05390625,
+   "margin_min": 0.03425911901042779
+  }
+ },
+ "fix": {
+  "kind": "이중 계수 제거 (R4b 산술 보존 + 중복분 차감)",
+  "why": "두 ±3 밴드가 2(jl+s) ≡ 0 (mod nf) 부근에서 같은 빈을 공유",
+  "confound": "jl ∝ dt 이고 dt 가 군과 완전 교락 (처치 0.5 s 전건)"
+ },
+ "disclosure": [
+  "⛔blind 아님 — R4b 의 관측·귀무 요약·라벨과 감사의 중첩률을 전부 알고 동결했다.",
+  "⛔CONFIRMATORY 아님 — EXPLORATORY.",
+  "⛔R4b 의 계수를 갱신하지 않는다 — 답한 질문은 \"라벨이 인공물의 산물인가\" 하나다.",
+  "⛔0/6 이 유지돼도 **부재의 증거가 아니다** — 관측은 자기 귀무 중앙보다 6/6 위다.",
+  "⛔dt 교락은 이것으로 완전히 닫히지 않는다 — 중복 계수는 그 한 통로일 뿐이다.",
+  "⛔정확도 주장 아님 · 기제 지목 금지 · 사이트 일반화 금지."
+ ]
+}

@@ -107,7 +107,8 @@ Phase-resolved ocean wave fields must be reconstructed from sparse, irregular po
 clouds. The prevailing approach assimilates such returns into a spatial grid state,
 which requires interpolating them onto that grid; the closest recent study
 assimilates the sparse returns directly, reports limited improvement, and names a
-spectral-state formulation in its outlook. We give that formulation: the field is a
+spectral-state formulation in its outlook. We give a spectral-state formulation, and
+one that goes beyond what that outlook names: the field is a
 small set of continuous-wavenumber spectral atoms constrained by the dispersion
 relation, placed by \emph{WavePrior}, a learned set-valued prior, and refined by variable
 projection before per-frame updating.
@@ -274,9 +275,13 @@ eliminates the spatial grid entirely.
 %   서로 다른 이름으로 부르면 독자가 둘을 다른 것으로 읽는다.
 We use two names and keep them apart. \emph{WavePrior} is the learned spectral prior
 --- the conditional diffusion model that proposes a set of wavenumbers in one shot
-from the initialisation window --- and it is the object this paper's strongest
-evidence is about (contribution C4, and the ablation of
-Section~\ref{sec:res_ablation}). \emph{WaveSplat} is the grid-free pipeline that
+from the initialisation window --- and it is the contribution the evidence is
+strongest \emph{for} (C4, and the ablation of
+Section~\ref{sec:res_ablation}).
+% ⛔[2026-09-02] 심사 m-3: 종전 자구 *"this paper's strongest evidence"* 는 §5.1 의
+%   *"stronger on every axis"*(B-12, 기준선 비교)와 **최상급이 충돌**했다. 두 문장은
+%   「귀속의 강도」와 「측정의 강도」로 뜻이 다른데 자구가 같았다 ⟹ C4 의 자구로 통일.
+\emph{WaveSplat} is the grid-free pipeline that
 takes those atoms and maintains the field: spectral parameterisation, variable
 projection, per-frame tracking. The distinction is not editorial: since the routing
 threshold was set to \DepAutoThresh{}, every synthetic input resolves to the learned
@@ -413,7 +418,8 @@ order, evaluated on scanning-LiDAR sampling geometry.
 
 The remainder of this paper is organized as follows.
 Section~\ref{sec:related} reviews related work on wave field estimation.
-Section~\ref{sec:method} presents the WaveSplat algorithm in detail.
+Section~\ref{sec:method} presents the WaveSplat pipeline in detail and defines
+WavePrior, the learned prior it carries.
 Section~\ref{sec:experiments} describes the simulation environment and
 evaluation metrics.
 Section~\ref{sec:results} presents experimental results including
@@ -520,11 +526,21 @@ accuracy against a grid-based ensemble-Kalman baseline.
 % ⛔[2026-09-02] 7차 심사 B6: *"and Gaussian-process baselines"* 는 **거짓**이다 ---
 %   GPR 수치가 논문에 **0회** 나온다(§4.4 가 ETKF 에는 그 부재를 명시하는데 GPR 에는
 %   안 한다). ⟹ 자구를 빼고 §4.4 에 같은 한 줄 공시를 붙인다.  Second, in the
-\emph{estimator class}: LEPrE presumes model coefficients determined by linear
-fitting, while WaveSplat obtains $(w_i,k_{x,i},k_{y,i},\varphi_i)$ by nonlinear
-joint optimisation with the dispersion relation imposed as a hard constraint and
-with the model order adapted online---a class outside the linear-fitting
-assumption on which the LEPrE derivation rests.  Third, in the \emph{evidence
+\emph{estimator class}: LEPrE presumes a fixed model whose coefficients are
+determined by linear fitting, whereas the deployed pipeline here \emph{chooses the
+model} --- a learned prior proposes the set of wavenumbers in one shot, variable
+projection then refines those wavenumbers with the dispersion relation imposed as a
+hard constraint, and the model order adapts online. Amplitudes and phases are
+themselves obtained in closed form by ridge least squares
+(Section~\ref{sec:method}); the difference from LEPrE is therefore not that we avoid
+linear fitting, but that what is being fitted is selected by the prior rather than
+fixed in advance --- a class outside the fixed-order assumption on which the LEPrE
+derivation rests.
+% ⛔[2026-09-02] 적대적 심사 M-2(MAJOR): 종전 문안은 *"nonlinear joint optimisation"* 으로
+%   구별을 세웠는데, 표 3 이 *"Joint non-linear fit: **disabled** (0 iterations)"* 를 인쇄하고
+%   §3.4.1 이 진폭·위상을 **closed-form ridge LS** 로 푼다고 적는다 ⟹ 하중을 받는 바로
+%   그 차원에서 **자기모순**이었다. ★그리고 제목이 파는 학습 사전이 이 자리에 없었다.
+Third, in the \emph{evidence
 base}: the LEPrE formulation is agnostic to the measurement device, whereas our
 evaluation is specific to the sampling geometry of a scanning shipboard LiDAR,
 % [2026-09-01 P8] 범위 문장 --- 제목에서 'Shipboard' 를 뺀 이유를 본문에 못 박는다.
@@ -572,10 +588,12 @@ ESPRIT) assume regular sampling~\citep{young1994}; Capon's
 minimum-variance beamforming~\citep{capon1969} and MUSIC
 \citep{schmidt1986} handle irregular arrays but either provide only
 power spectra without phases (Capon) or require known model order
-(MUSIC).  WaveSplat leverages beamforming for \emph{initialization}
-and refines the estimates by gradient optimization with physics
-constraints, combining beamforming robustness with joint
-amplitude-phase recovery.
+(MUSIC).  In the deployed configuration a beamformed power map is not the
+initialiser but the \emph{conditioning input} of the learned proposal, which emits a
+set of wavenumbers of adaptive cardinality; those are then refined under the
+dispersion constraint. Beamforming also remains the fallback initialiser when the
+learned path is not taken.  What the learned prior supplies, and neither Capon nor
+MUSIC does, is the model order and the phases together, from one observation window.
 \textbf{Gaussian process regression}~\citep{rasmussen2006} with
 Mat\'ern or squared-exponential kernels provides nonparametric
 spatial interpolation but scales as $O(M^3)$ and, in its standard
@@ -763,7 +781,7 @@ the complete pipeline.
 \centering
 \caption{Algorithm: the deployed estimation pipeline, transcribed from the
 shipped configuration ($\texttt{init\_method}{=}\texttt{auto}$,
-$\texttt{auto\_switch\_thresh}{=}\DepJointFitIters{}$). Constants are the
+$\texttt{auto\_switch\_thresh}{=}\DepAutoThresh{}$). Constants are the
 values in the source, not targets. \emph{This replaces an earlier listing that
 described the analytic initialiser}: under the shipped configuration the router
 resolves to the learned path, and the analytic beamforming initialiser and its
@@ -1000,12 +1018,22 @@ Table~\ref{alg:wavesplat} therefore describes what runs on the synthetic corpora
 The measurements that report no skill on the measured records
 (Section~\ref{sec:res_scope} and Table~\ref{tab:boundary}) were obtained by
 \emph{overriding} that router and forcing the learned path, because the question those batches ask is what the learned prior does
-on real data, not what the shipped default does. The bank estimator is outside the
-scope of this paper and none of its results are reported here; we state its
-existence because a reader reproducing ``the shipped configuration'' on a real
-record would otherwise get a different algorithm than the one we describe.
+on real data, not what the shipped default does. % ⛔[2026-09-02] 적대적 심사 B-1(BLOCKER): 이 자리의 전칭 *"none of its results are
+%   reported here"* 는 **같은 날 오후에 거짓이 됐다** --- 개명 직후 넣은 실측 그림 두 장이
+%   bank 팔의 실측 결과를 인쇄한다(`fig:real` 범례 · 패널 (b) · `fig:real_qual` (c)(e)).
+%   ★전칭을 두고 뒤에 반례를 추가한, 이 원고가 반복해서 대가를 치른 그 부류다.
+The bank estimator is not a contribution of this
+paper and no result of it supports any claim made here. It does appear, as the
+deployed reference arm of Figs.~\ref{fig:real} and~\ref{fig:real_qual}, where it is
+scored against its own per-record zero-field reference and not against the learned
+arm; that is a disclosure about where the shipped configuration actually sends
+measured input, not a result we claim. We state its existence because a reader
+reproducing ``the shipped configuration'' on a real record would otherwise get a
+different algorithm than the one we describe.
 
-\paragraph{Deployed path: a learned set-valued prior}
+% ⛔[2026-09-02] 적대적 심사 m-2: 제목의 대상을 **정의하는** 이 절과 §5·결론에
+%   `WavePrior` 가 **0회**였다(전수 grep: 출현 8회가 전부 frontmatter·§1·§6.6).
+\paragraph{Deployed path: the learned set-valued prior (WavePrior)}
 The configuration evaluated in Section~\ref{sec:results} places the atoms with a
 learned prior over wavenumber--energy \emph{sets}. A conditional diffusion model,
 trained on synthetic scenes, is conditioned on the initialisation-window
@@ -2084,7 +2112,8 @@ deployed real-data path uses --- the learned prior does not reach the pre-regist
 threshold against a per-record zero-field reference. The ensemble treatment does move
 the endpoint, and it lowers error by a confirmed margin, but it does not cross the
 threshold. We report this rather than omit it; a full treatment of the operating
-boundary, including why the transfer fails, is the subject of a companion thesis.
+boundary --- including what has been excluded and what remains unmeasured --- is the
+subject of a companion thesis. We do not claim to know why the transfer fails.
 
 % ★[2026-09-02] 실측 그림 신설. 사용자 요청(*"실측 데이터랑도 뽑아줘"*).
 %   ⛔런 0회 --- 동결 행 재집계. 생성 = scripts/gen_fig_real.py (방벽이 재생성 대조한다).
@@ -2813,6 +2842,11 @@ in Section~\ref{sec:res_scope} and Table~\ref{tab:boundary} --- $12$ fixed-stati
 stereo records on which the learned prior does not reach the decision threshold ---
 and through one within-arm positive in Section~\ref{sec:res_summary}, where giving
 the proposal an ensemble lowers forecast error without crossing that threshold.
+% ⛔[2026-09-02] 심사 B-1 의 연쇄: 이 열거가 **세 번째 진입**을 세지 않아 함께 낡았다.
+It enters a third time in Figs.~\ref{fig:real} and~\ref{fig:real_qual}, which show
+the same $12$ records with the deployed reference arm drawn beside the learned one;
+that arm reaches ordinary significance against a zero field and, like the learned
+arm, does not survive the multiplicity correction for this arc.
 % ⛔[2026-09-02] 7차 심사 B9: *"**only** through the negative"* 는 거짓이다 --- §5.7 이
 %   *"One positive does exist on the measured records"* 라 적는다(팔 안 대조).
 Real LiDAR from a moving
@@ -3106,7 +3140,9 @@ ablation is not confounded with the refit it necessarily performs.
 On $12$ fixed-station stereo records the learned prior does not reach the
 pre-registered threshold against a per-record zero-field reference under any arm
 configuration we tested, including one in which it is given the same median-of-$k$
-field ensemble that the deployed real-data path uses. That treatment does lower
+field ensemble that the deployed real-data path uses --- a path in which, in the
+shipped configuration, the prior is not invoked at all
+(Section~\ref{sec:method}). That treatment does lower
 error by a confirmed margin and does move the endpoint, but not across the
 threshold. We state this as a measured boundary rather than as an omission: the
 representation that earns its gain on crowded synthetic seas has not been shown to

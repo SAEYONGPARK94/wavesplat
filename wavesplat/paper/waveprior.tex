@@ -2086,6 +2086,34 @@ the endpoint, and it lowers error by a confirmed margin, but it does not cross t
 threshold. We report this rather than omit it; a full treatment of the operating
 boundary, including why the transfer fails, is the subject of a companion thesis.
 
+% ★[2026-09-02] 실측 그림 신설. 사용자 요청(*"실측 데이터랑도 뽑아줘"*).
+%   ⛔런 0회 --- 동결 행 재집계. 생성 = scripts/gen_fig_real.py (방벽이 재생성 대조한다).
+%   ⛔캡션에 계수를 손으로 적지 않는다. 그림이 그 수를 진다.
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_real.pdf}
+\caption{The measured records, scored the way the correction of the scoring
+reference requires. Each of the $12$ fixed-station stereo records is divided by
+\emph{its own} true zero-field error rather than by a constant: that constant was
+found to be wrong, and the per-record values span more than a factor of three, so a
+single reference silently rescales the records against one another. A value of $1$ is
+the error of predicting a flat sea. Panel (b) counts the records each arm places
+below that line and marks the threshold that the multiplicity correction for this
+arc imposes; the deployed arm reaches ordinary significance and neither arm reaches
+the corrected threshold, which is why the text reports no skill rather than a small
+one. Two things must be read with the figure. First, the arms are drawn at the
+corrected water depth, taken from the batches that already contain that
+configuration; the records the correction cannot touch are bit-identical between the
+two depths, which is what makes the pairing legitimate. Second, and more important
+for this paper's title: \emph{on measured input the shipped router does not use the
+learned prior at all} --- it hands the estimate to a separate bank estimator, and the
+``proposed representation'' arm is that prior switched on by force. The two arms are
+each scored against their own zero-field reference and are not compared to one
+another here, because the paired margin between them has been corrected twice and is
+not a quantity this paper cites.}
+\label{fig:real}
+\end{figure}
+
 
 \subsection{Summary of the measurements this paper rests on}
 \label{sec:res_summary}

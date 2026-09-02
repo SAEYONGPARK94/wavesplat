@@ -48,6 +48,7 @@ CHECKS = [
     # ★[2026-09-02] 추정 비교 그림 --- 근거리 칸을 `verdict_m10.primary.abs_median` 과,
     #   짝 승수를 `verdict_b12.ship_vs_spec` 과 대조하고 어긋나면 죽는다.
     ('추정비교 그림 재생성', [PY, 'scripts/gen_fig_estcompare.py']),
+    ('실측 그림 재생성', [PY, 'scripts/gen_fig_real.py']),
     # ⛔[2026-09-02] **학위논문 상수 생성기가 방벽에 없었다** ⟹ 조용히 표류했다
     #   (오늘 테스트를 둘 추가하자 `\DeployNumTests` 가 261 로 낡았다).
     #   ★재생성이 곧 검사다 --- git 이 차이를 보여준다.

@@ -116,7 +116,13 @@ fig.tight_layout(pad=.7)
 OUT = os.path.join(ROOT, 'paper', 'figures', 'fig_real.pdf')
 fig.savefig(OUT)
 fig.savefig(OUT.replace('.pdf', '.png'), dpi=190)
+# ★학위논문도 같은 그림을 싣는다 --- **한 생성기에서 두 곳으로**.
+#   ⛔복사본을 손으로 두지 마라: 두 문서가 다른 그림을 실은 채 갈라지는 통로다
+#     (이 저장소가 오늘 「이름이 셋으로 갈렸다」로 대가를 치른 그 부류).
+TOUT = os.path.join(ROOT, 'thesis', 'figures_ws', 'fig12_real_zeroline.pdf')
+fig.savefig(TOUT)
 print(f'✅ {OUT}')
+print(f'✅ {TOUT}')
 print(f'   deployed {wins["SHIP"]}/12 p={p_ship:.4f} · proposed {wins["PROP"]}/12 '
       f'p={p_prop:.4f} · Holm(16) = {HOLM16:.4f}')
 print('   ⛔둘 다 Holm 임계 위 = 실측 아크에 다중성을 견디는 팔이 0개다.')

@@ -15,7 +15,11 @@ wavesplat/                   # Root package directory
 │   ├── evaluation/metrics.py
 │   └── run.py               # Main entry point
 ├── scripts/                 # 413 experiment/paper scripts
-├── paper/                   # Ocean Engineering LaTeX (wavesplat.tex) + figures/ (5 png)
+├── paper/                   # Ocean Engineering LaTeX (**`waveprior.tex`**) + figures/
+│                            # ⛔**2026-09-02 개명**: `wavesplat.tex` → `waveprior.tex`
+│                            #   (사용자 결정 — 제목의 주어가 **WavePrior** 로 바뀌었다).
+│                            #   `tmp/` 의 과거 감사 기록은 **옛 이름을 가리킨다** — 그것은
+│                            #   그때의 사실이므로 고치지 않았다.
 ├── thesis/                  # thesis_main.tex — 학위논문
 ├── results/                 # 96 JSON result files (+ direction1/2/3 하위)
 ├── configs/                 # YAML configs (estimation.yaml, server.yaml, default.yaml)

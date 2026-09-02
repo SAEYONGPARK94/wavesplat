@@ -34,6 +34,9 @@ CHECKS = [
     #   `paper/` 하나라 **학위논문의 의무 공시는 아무도 기계로 보지 않았다**.
     ('학위논문 동반 공시', [PY, 'scripts/check_thesis_disclosures.py']),
     ('★학위 공시 항진 검사', [PY, 'scripts/check_thesis_disclosures.py', '--selftest']),
+    # ★[2026-09-02] `N-1` 토론: 「제출 준비됨」의 단위는 원고가 아니라 **패키지**다.
+    #   ⛔커버레터를 보는 기계가 0개였고, 실측하니 원고와 여섯 곳이 어긋나 있었다.
+    ('★제출 패키지 항진 검사', [PY, 'scripts/check_submission_package.py', '--selftest']),
     ('인용금지 래칫', [PY, 'tmp/STATUS_2026-08-28/audit_paper_bans.py']),
     ('원장 수치 대조', [PY, 'tmp/STATUS_2026-08-30/status_numbers.py']),
     # ★[2026-09-02] 소거표 생성기. **조용히 빨간불이었다** --- `B-26` 게이트가 사후

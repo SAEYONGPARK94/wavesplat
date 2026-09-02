@@ -76,6 +76,15 @@
 % =============================================================================
 \begin{document}
 
+% ★[2026-09-02] `N-1` 토론 권고 3항 — **인쇄되는** 초안 표지.
+%   ⛔`DO NOT SUBMIT` 배너는 주석이라 PDF 에 안 나온다. 그런데 **오배송은 PDF 로 난다.**
+%   해제 조건은 배너(위)와 `scripts/check_submission_package.py` 가 진다.
+\newcommand{\DraftStamp}{\begin{center}\fbox{\parbox{0.92\textwidth}{\centering
+\textbf{DRAFT --- NOT FOR SUBMISSION.}\\[2pt]
+\footnotesize This manuscript is under active revision; its submission package is not
+consistent with it. Machine check: \texttt{python3 scripts/check\_submission\_package.py}.
+}}\end{center}\vspace{4pt}}
+
 \begin{frontmatter}
 
 % ★2026-09-01 (P8): 제목에서 "Shipboard" 를 뺀다 --- 보유 실측 자료는 전부
@@ -102,6 +111,8 @@
 %   check_paper_disclosures.py 가 병기를 강제한다 --- 초록은 계수와 범위만 진다.
 %   ⛔초록의 모든 수는 paper_constants.tex 매크로다. 리터럴 0.
 % ============================================================================
+\DraftStamp{}
+
 \begin{abstract}
 Phase-resolved ocean wave fields must be reconstructed from sparse, irregular point
 clouds. The prevailing approach assimilates such returns into a spatial grid state,

@@ -62,6 +62,13 @@ DEFAULT_CONFIG = {
     # sequential_update.MedianEnsembleUpdater). 3 = the pre-registered, confirmed value;
     # 1 disables it. Explicit init_method='v2_konly' is unaffected either way.
     'analytic_ensemble_k': 3,
+    # ★[2026-09-02] 결정 `N-2`(페르소나 토론) --- **노브를 보이게 하되 값은 바꾸지 않는다.**
+    #   ⛔반대 측이 실측으로 보였다: 이 키가 `DEFAULT_CONFIG` 에도 배치 트립와이어에도
+    #   없어서 **기본값이 바뀌어도 기계가 탐지하지 못하고**, `dict(DEFAULT_CONFIG)` 를
+    #   스냅샷하는 러너들이 그 변화를 조용히 흡수한다(저장소가 λ 에서 이미 치른 대가).
+    #   1 = 앙상블 없음(현행 배포). 유일 정의는 sequential_update.DEFAULT_LEARNED_ENSEMBLE_K.
+    #   ⛔3 으로 올리는 것은 **별도 결정**이다 --- 지금은 그 결정을 하지 않는다.
+    'learned_ensemble_k': 1,
     # 경로 통일 2026-08-22 — 0 = 라우터가 항상 학습을 고른다(합성 한정).
     # 유일 정의는 sequential_update.AUTO_SWITCH_THRESH_DEFAULT; 여기와 yaml 은 미러다.
     # ⛔실측은 이 값과 무관하게 실측 게이트가 bank_mmse 로 보낸다(W12).
@@ -161,6 +168,8 @@ def load_yaml_config(yaml_path: str) -> dict:
             cfg['real_estimator'] = str(raw['optimizer']['real_estimator'])
         if 'real_bank_ensemble_k' in raw['optimizer']:
             cfg['real_bank_ensemble_k'] = int(raw['optimizer']['real_bank_ensemble_k'])
+        if 'learned_ensemble_k' in raw['optimizer']:
+            cfg['learned_ensemble_k'] = int(raw['optimizer']['learned_ensemble_k'])
         # ⛔2026-08-23 수리 (RV-6 ③): 이 키는 yaml 에 **쓰여 있었지만 로더가 한 번도 읽지 않았다**
         # = 죽은 미러.  그 상태에서는 yaml 로 배포도 되돌림도 불가능하고, 그럼에도 회귀 시험이
         # "yaml 이 미러한다" 를 통과하고 있었다(존재만 봤다).  `None` 을 명시할 수 있어야

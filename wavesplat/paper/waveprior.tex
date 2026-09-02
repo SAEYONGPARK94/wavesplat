@@ -2120,6 +2120,20 @@ threshold. We report this rather than omit it; a full treatment of the operating
 boundary --- including what has been excluded and what remains unmeasured --- is the
 subject of a companion thesis. We do not claim to know why the transfer fails.
 
+% ★[2026-09-02] 센서·물리 감사의 신규 소견. 이 문단이 지는 비교(팔 대 참 제로필드)가
+%   바로 편향된 형태다 ⟹ 본문이 그것을 적는다(그림 캡션만으로는 부족하다).
+\textbf{One asymmetry runs through every measured comparison of this form.} The window
+the estimator observes and the window it is scored on are de-meaned separately, per
+pixel, which leaves a static spatial offset between them worth $0.05$--$0.29$ of the
+record's standard deviation. A fitted wave field is a sum of travelling components and
+cannot represent a static pattern, so that offset is an irreducible error floor for any
+arm that fits; the zero-field reference, being identically zero, does not carry it. Every
+\emph{arm-versus-zero} statement about the measured records is therefore biased against
+the arm. This does not weaken the negative --- it means the negative is partly a property
+of the scoring convention, and that a positive obtained under it is conservative. The
+\emph{paired} comparisons between arms are unaffected, because both arms are fitted to
+the same observations and inherit the same offset.
+
 % ★[2026-09-02] 실측 그림 신설. 사용자 요청(*"실측 데이터랑도 뽑아줘"*).
 %   ⛔런 0회 --- 동결 행 재집계. 생성 = scripts/gen_fig_real.py (방벽이 재생성 대조한다).
 %   ⛔캡션에 계수를 손으로 적지 않는다. 그림이 그 수를 진다.
@@ -2144,7 +2158,24 @@ learned prior at all} --- it hands the estimate to a separate bank estimator, an
 ``proposed representation'' arm is that prior switched on by force. The two arms are
 each scored against their own zero-field reference and are not compared to one
 another here, because the paired margin between them has been corrected twice and is
-not a quantity this paper cites.}
+not a quantity this paper cites. \emph{One asymmetry must be read with the counts.} The
+observation window and the scoring window are de-meaned separately, per pixel, so a static
+spatial offset of $0.05$--$0.29$ of the record's standard deviation stands between them. A
+fitting arm cannot represent that offset and carries it as an error floor; a zero
+predictor, which predicts nothing, does not. Both counts are therefore biased
+\emph{against} the arms: what survives is conservative, and a reading of ``no skill'' is
+helped by the artefact rather than hindered by it; on the single record where that floor
+is largest it accounts for most of the scoring reference, and that record is also the one
+counterexample in the paired comparison, so we do not build any statement on it alone.
+\emph{Three further conditions.} The scored points are a $4$~m subsample of the same grid
+the observations are drawn from, but no scored value was ever handed over as an
+observation, and a nearest-neighbour interpolator using that proximity clears the
+zero-field reference on none of the records --- what is scored is a space-time model, not
+an interpolation. The scored instant is the right-hand endpoint of the observation
+window, so this figure is a reconstruction, \emph{not} a forecast. And the multiplicity
+threshold drawn in panel~(b) counts sixteen arms, of which six are bit-identical
+repetitions; on the ten distinct hypotheses the threshold is looser, and neither arm
+crosses it either way.}
 \label{fig:real}
 \end{figure}
 

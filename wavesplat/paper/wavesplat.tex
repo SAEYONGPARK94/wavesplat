@@ -2277,8 +2277,30 @@ crowded stratum favours the ensemble on \SEnsBetter{} of \SEnsN{} episodes again
 a pre-registered threshold of \SEnsNominal{}; the sparse stratum is undecided, and
 the smallest win rate that design could resolve was $0.682$. We report it because the
 same operator earns on the measured records, and whether that transfers is otherwise
-an open question --- \emph{not} as a recommendation to change the default, which
-would need its own preregistration and a cost measurement we do not have.
+an open question --- \emph{not} as a recommendation to change the default.
+
+\emph{We then asked whether the default should change, and the answer is no.} A
+second pre-registered batch put two conditions to the ensemble: that it not harm the
+sparse stratum, and that it stay within the frame budget. The first was not resolved
+--- \TEightK{}/\TEightN{} episodes lie within the pre-registered $2\%$ margin against
+a threshold of \TEightThresh{}, so non-inferiority is not established, although the
+median relative change is \TEightRel{} in the ensemble's favour and it is better on
+more episodes than not. The second failed outright, and decisively: the ensemble
+costs \TEightFrameThree{}~ms per tracking frame against \TEightFrameOne{}~ms for the
+shipped default, because the deployed code updates every member on every frame rather
+than only at initialisation. Initialisation itself stays cheap
+(\TEightInitThree{}~s against \TEightInitOne{}~s within the same batch), which is why
+we had expected the cost to be a one-off. It is not: it is a permanent factor of
+three on the per-frame budget, and that is the reason the shipped default remains
+\DepLearnedEnsK{}.
+% ★[2026-09-02] `T8-ENSDEFAULT`(게이트 11/11). ⛔라벨은 `ENS-DEFAULT-UNDECIDED` 지만
+%   **결정을 만든 것은 프레임 비용**이다. 내 사전등록의 비용 모형이 틀렸다 ---
+%   *"멤버 3배가 벽시계 3배가 아니다(초기화만 3배)"* 라 적었는데 배포 경로에서는
+%   `update()` 가 매 프레임 k 멤버를 **순차로** 돈다(`sequential_update.py:2128`,
+%   축자 주석 *"additive by construction: members run sequentially in one deployment
+%   thread"*). ⚠희소 비열등성이 미달한 이유는 **상대 여유가 이 층에 안 맞았기 때문**
+%   일 수 있다(해로운 11개의 M1 절대 nRMSE 가 0.0035--0.0119) --- 그러나 그 진단은
+%   결과를 보고 나온 것이라 **규칙을 바꾸지 않았다**. 상세 = `tmp/T8_ENSDEFAULT_2026-09-02/`.
 
 One positive does exist on the measured records and it is not a
 skill claim: giving the proposal an ensemble lowers its forecast error at the

@@ -701,6 +701,9 @@ ATOMS = [
      ('cells', 'CPU|LEARN|crowded', 'budget_frac_at_10hz'), 'pct100', 5.9),
     ('InitSLearn', 'T6_BUDGET_2026-09-02/verdict_t6.json',
      ('cells', 'CPU|LEARN|crowded', 'init_s_median'), 'ms2', 5.18),
+    # ★[2026-09-02] `T8` 의 비용 문턱은 **희소** 칸이다(같은 층에서 비교해야 한다).
+    ('InitSAnaSparse', 'T6_BUDGET_2026-09-02/verdict_t6.json',
+     ('cells', 'CPU|ANA|sparse', 'init_s_median'), 'ms2', 17.08),
     ('InitSAna', 'T6_BUDGET_2026-09-02/verdict_t6.json',
      ('cells', 'CPU|ANA|crowded', 'init_s_median'), 'ms2', 26.61),
     ('InitSLearnGpu', 'T6_BUDGET_2026-09-02/verdict_t6.json',
@@ -798,6 +801,24 @@ ATOMS = [
     ('SpecN', 'T7b_SPECTRAL_2026-09-02/verdict_t7b.json', 'contrasts.n', 'int', 32),
     ('SpecP', 'T7b_SPECTRAL_2026-09-02/verdict_t7b.json',
      'contrasts.A_p_one_sided', 'p', 1.05e-03),
+    # ── ★[2026-09-02] `T8-ENSDEFAULT` --- 앙상블을 배포 기본값으로 켤 것인가.
+    #   ⛔라벨은 `ENS-DEFAULT-UNDECIDED`(희소 비열등성 문턱 미달)이나 **결정을 만든 것은
+    #   프레임 비용**이다: 앙상블은 매 프레임 k 멤버를 **순차로** 돌린다
+    #   (`sequential_update.py:2128` · 축자 주석 *"additive by construction"*).
+    ('TEightFrameOne', 'T8_ENSDEFAULT_2026-09-02/verdict_t8.json',
+     ('frames', 'M1', 'frame_ms_median'), 'ms2', 6.00),
+    ('TEightFrameThree', 'T8_ENSDEFAULT_2026-09-02/verdict_t8.json',
+     ('frames', 'M3', 'frame_ms_median'), 'ms2', 18.30),
+    ('TEightInitOne', 'T8_ENSDEFAULT_2026-09-02/verdict_t8.json',
+     ('cost', 'M1', 'init_s_median'), 'ms2', 2.15),
+    ('TEightInitThree', 'T8_ENSDEFAULT_2026-09-02/verdict_t8.json',
+     ('cost', 'M3', 'init_s_median'), 'ms2', 10.49),
+    ('TEightK', 'T8_ENSDEFAULT_2026-09-02/verdict_t8.json', 'primary.K', 'int', 53),
+    ('TEightN', 'T8_ENSDEFAULT_2026-09-02/verdict_t8.json', 'primary.n', 'int', 64),
+    ('TEightThresh', 'T8_ENSDEFAULT_2026-09-02/verdict_t8.json',
+     'thresholds.K_MIN', 'int', 56),
+    ('TEightRel', 'T8_ENSDEFAULT_2026-09-02/verdict_t8.json',
+     'primary.rel_median_pct', 'pct', -8.1),
     ('SpecHs', 'T7b_SPECTRAL_2026-09-02/verdict_t7b.json',
      'contrasts.B_learn_better', 'int', 20),
 

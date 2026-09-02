@@ -1,0 +1,121 @@
+{
+ "batch": "T8-ENSDEFAULT",
+ "n_rows": 384,
+ "n_anchor": 4,
+ "n_timing": 16,
+ "gates": [
+  [
+   "G-1 스레드=1 · 단일 PID",
+   true,
+   "threads=[1] pids=1"
+  ],
+  [
+   "G-2 패키지 ensemble_k 되읽기 == 팔의 기대값",
+   true,
+   ""
+  ],
+  [
+   "G-3 라우터가 학습으로 해소 전건",
+   true,
+   "['learned']"
+  ],
+  [
+   "G-4 출하 기본값 트립와이어",
+   true,
+   ""
+  ],
+  [
+   "G-5 행 완비 (64 x 2팔 x 3시드)",
+   true,
+   "rows=384/384 cov=[64]"
+  ],
+  [
+   "G-6 결과 파일이 신선 코퍼스만 담는다 (시드 >= 1704 · 앵커 0)",
+   true,
+   "min_seed=1704 stray=[]"
+  ],
+  [
+   "G-7 두 팔이 learned_ensemble_k 하나만 다르다",
+   true,
+   "diff=['learned_ensemble_k']"
+  ],
+  [
+   "G-8 값 유효 (유한·양수)",
+   true,
+   ""
+  ],
+  [
+   "G-ANCHOR M1 == 동결 S-ENS LEARN-M1 (비트)",
+   true,
+   "compared=4 bad=[]"
+  ],
+  [
+   "H-COST 단가 공시",
+   true,
+   "M1 중앙 6.6s · M3 중앙 16.9s"
+  ],
+  [
+   "H-TIMING 프레임 측정 행",
+   true,
+   "16 행"
+  ]
+ ],
+ "gates_pass": "11/11",
+ "blocked_by": [],
+ "label": "T8-ENSDEFAULT :: ENS-DEFAULT-UNDECIDED",
+ "grade": "UNDECIDED",
+ "thresholds": {
+  "n": 64,
+  "delta_pct": 2.0,
+  "p0": 0.75,
+  "alpha": 0.025,
+  "K_MIN": 56,
+  "power_at_090": 0.813,
+  "power_at_095": 0.996,
+  "mde_p80": 0.899,
+  "predicted_K": "55-61 (PREREG §5.1, 결과 전 기록)"
+ },
+ "primary": {
+  "n": 64,
+  "K": 53,
+  "delta_pct": 2.0,
+  "rel_median_pct": -8.137948069493739,
+  "worst_pct": 48.96271457536221,
+  "better": 40,
+  "p_one_sided": 0.09348581596861662
+ },
+ "cost": {
+  "M1": {
+   "n": 192,
+   "init_s_median": 2.146968960762024
+  },
+  "M3": {
+   "n": 192,
+   "init_s_median": 10.489180088043213
+  },
+  "threshold_s": 17.08,
+  "pass": true
+ },
+ "frames": {
+  "M1": {
+   "n": 1120,
+   "frame_ms_median": 5.996824998874217
+  },
+  "M3": {
+   "n": 1120,
+   "frame_ms_median": 18.303706499864347
+  },
+  "budget_ms": 100.0,
+  "pass": false
+ },
+ "prereg": "PREREG.md",
+ "disclosure": [
+  "⚠blind 아님(부분) — S-ENS 의 희소 중앙값(-1.56%)과 승수(35/64)를 알고 있다. ★단 코퍼스가 신선하고 통계량이 다르다(꼬리 개수 vs 승수).",
+  "⚠여유 δ=2.0% 는 내가 골랐다 — 정당화는 PREREG §8.2 가 전부다.",
+  "⛔기본값 전환 권고가 자동으로 따라오지 않는다 — 라벨과 무관하게 **사용자 결정**이다.",
+  "⛔실측 판정 갱신 아님 — 출하 라우터는 실측을 bank_mmse 로 보낸다(합성 트래픽만 닿는다).",
+  "⛔혼잡 이득을 재측정하지 않았다 — S-ENS 55/64 를 인용할 뿐이다.",
+  "⚠단일 층(희소)·단일 센서 모형(uniform)·단일 참값 생성기(선형).",
+  "⚠비용 문턱은 한 기계(AMD Ryzen 7 7800X3D)의 값이다."
+ ]
+}

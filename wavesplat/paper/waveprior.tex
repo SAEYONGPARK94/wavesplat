@@ -2194,6 +2194,22 @@ independent \emph{point} sensors at the level of spectra and scalar statistics. 
 field-scale reference that is independent of the observing sensor does not, to our
 knowledge, exist anywhere in this literature --- even the stereo surfaces used as ground
 truth trace their own validation to centimetre-level comparisons against point gauges.
+% ★[2026-09-02] `R2b` --- 위 문장이 서술하는 *"점 게이지 대조"* 를 **우리가 직접 했다**.
+%   ⛔면 참값 주장 아님 · ⛔격자점별 오차장 주장 아님(6점, 반경 0.25 m, 격자에서 7--11 m).
+%   동결 = tmp/R2B_STEREONOISE_2026-09-02/verdict_r2b.json (게이트 13/13)
+\textbf{We ran that point comparison ourselves and report the number.} On the seven
+records for which a co-located wave-gauge array exists, the stereo surface carries more
+variance above $1$~Hz than the gauges do on \RTwoBBetter{}/\RTwoBN{} records
+($p = \RTwoBP{}$), by \RTwoBFloorMin{}--\RTwoBFloorMax{}~mm RMS (median
+\RTwoBFloorMed{}~mm). That is an \emph{upper} bound on the reconstruction noise floor:
+the gauges carry their own noise, and they sample a different point of a spatially
+inhomogeneous field. It does not make the surfaces a validated dense reference --- the
+gauges are six sensors within a $0.25$~m radius, $7$--$11$~m from the scored grid, so no
+per-gridpoint error field follows. Two conditions travel with the number: the comparison
+is only licensed because a positional correspondence between gauge and grid is
+undetectable, and the margin by which it is undetectable is thinner than $0.03$ in
+correlation on three of the seven records; and the surrogate null we used is justified by
+the gauge series being near-Gaussian, which holds on four of the seven.
 The closest competing study evaluates on one of the same public stereo records we use,
 takes that dense reconstruction as its ground truth, and additionally subsamples it
 synthetically~\citep{Wang2025PointsToWaves}. What is specific to us is one further

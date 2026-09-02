@@ -870,6 +870,18 @@ ATOMS = [
      'groups.control.obs_min', 'abs3', 0.071),
     ('RFourBTreatMax', 'R4B_DISPERSION_2026-09-02/verdict_r4b.json',
      'groups.agulhas.obs_max', 'abs3', 0.011),
+    # ── 재구성면 잡음 바닥 (R2b, 2026-09-02) — ⛔**상한**이다(게이지 자신의 잡음과
+    #    공간 비균질이 섞인다) · ⛔격자점별 오차장 주장 금지(6점, 반경 0.25 m).
+    ('RTwoBBetter', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json', 'primary.better', 'int', 7),
+    ('RTwoBN', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json', 'primary.n', 'int', 7),
+    ('RTwoBP', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json',
+     'primary.p_one_sided', 'p', 7.8125e-03),
+    ('RTwoBFloorMin', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json',
+     'noise_floor.rms_mm.min', 'mm1', 12.8),
+    ('RTwoBFloorMed', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json',
+     'noise_floor.rms_mm.median', 'mm1', 56.9),
+    ('RTwoBFloorMax', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json',
+     'noise_floor.rms_mm.max', 'mm1', 129.0),
 ]
 
 FMT = {
@@ -884,6 +896,8 @@ FMT = {
     'sec': lambda x: f'{x:g}',
     'ms2': lambda x: f'{x:.2f}',
     'pct100': lambda x: f'{x * 100:.1f}',
+    # ⚠**밀리미터**. ⛔퍼센트도 nRMSE 도 아니다 --- 절대 잡음 진폭이다.
+    'mm1': lambda x: f'{x:.1f}',
 }
 
 
@@ -925,6 +939,8 @@ def main():
             ok = abs(raw - pin) < 1e-12
         elif kind == 'ms2':
             ok = abs(round(raw, 2) - pin) < 1e-9
+        elif kind == 'mm1':
+            ok = abs(round(raw, 1) - pin) < 1e-9
         elif kind == 'pct100':
             ok = abs(round(raw * 100, 1) - pin) < 1e-9
         else:

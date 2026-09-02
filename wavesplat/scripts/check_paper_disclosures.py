@@ -29,6 +29,27 @@ TEX = os.path.join(ROOT, 'paper', 'waveprior.tex')
 
 # (이름, 발동 정규식, [대안 근거 정규식 …], 사유)
 RULES = [
+    # ★[2026-09-02] 적대적 감사 M17: `R1b`·`R4b` 매크로가 규칙 0개로 들어와
+    #   **오늘 두 문단이 방벽 밖**이었다. 아침에 만든 기계가 새 배치에 따라오지 않은 것이다.
+    #   ⟹ 세 쌍을 여기서 강제한다(전부 **참인 것**만 요구한다 --- D 항 항진 검사 통과).
+    ('R1b-다중성', r'\\ROneBShipFixed|\\ROneBP\b',
+     [r'sixteen-arm Holm', r'0\.05/16', r'does not cross it'],
+     'R-1b 의 p 는 이 아크의 16팔 Holm 임계 0.0031 을 넘지 못한다 --- 병기 의무'),
+    ('R1b-클러스터', r'\\ROneBShipFixed|\\ROneBP\b',
+     [r'four sites and ten calendar days', r'folded to sites', r'unreachable by construction'],
+     'R-1b 부호검정은 12 레코드를 독립으로 다룬다 --- 사이트/일자 접기 병기 의무'),
+    ('R4b-비초과', r'\\RFourBTreatPass|\\RFourBTreatMax',
+     [r'non-exceedance, not an absence', r'median of its own null'],
+     'R-4b 의 0/6 은 **비초과**이지 부재가 아니다 --- 병기 의무'),
+    ('R4b-표본율교락', r'\\RFourBTreatPass|\\RFourBTreatMax',
+     [r'0\.5~s sample interval', r'self-overlaps more', r'sample interval'],
+     'R-4b 는 dt 가 군과 완전 교락한다 --- 그 공시 없이 인용 금지'),
+    ('R2b-상한', r'\\RTwoBFloorMin|\\RTwoBFloorMax|\\RTwoBFloorMed',
+     [r'\\emph\{upper\} bound', r'upper.{0,3}bound'],
+     'R-2b 초과분산은 **상한**이다 --- 병기 의무'),
+    ('R2b-얇은여유', r'\\RTwoBFloorMin|\\RTwoBFloorMax',
+     [r'thinner than \$0\.03\$', r'four of the seven', r'undetectable'],
+     'R-2b 는 위치대응 널의 얇은 여유와 4/7 정규성을 병기해야 한다'),
     ('T4-비교자붕괴', r'\\TFourRel|\\TFourBetter',
      [r'comparator (?:degrades|collapse)', r'\\TFourCmp\b', r'only \\TFourCmp'],
      'T-4 크기는 비교자 붕괴(47/48 -> 34/48) 병기 없이 인용 금지'),

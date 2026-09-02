@@ -39,19 +39,55 @@ def body(text):
     return re.sub(r'\s+', ' ', ' '.join(out))
 
 
+def sections(text):
+    """(제목, 본문) 목록 --- ⛔**절 단위로** 본다.
+
+    ⛔[2026-09-02 감사 M-7-1] 초판은 문서 전체를 한 문자열로 접었다. 그래서 한 곳의
+    공시가 **다른 절의 무공시 인용을 면허**했다(근거를 전부 지워도 통과했다).
+    ★논문판은 2026-09-01 에 정확히 이 결함을 고쳤는데 **이식되지 않았다** ---
+    「같은 결함을 두 번 고치지 않으려면 처방도 두 문서에 옮겨야 한다」.
+    """
+    ABS = r'\\begin\{(abstract|englishabstract|onecolabstract)\}'
+    parts, cur, title = [], [], '<frontmatter>'
+    for line in text.split('\n'):
+        env = re.match(ABS, line)
+        if re.match(r'\\(sub)?section\*?\{|\\chapter\*?\{', line) or env:
+            parts.append((title, '\n'.join(cur)))
+            title = line.strip()[:60] if not env else '<' + env.group(1) + '>'
+            cur = []
+        else:
+            cur.append(line)
+    parts.append((title, '\n'.join(cur)))
+    return parts
+
+
 # (이름, 트리거 정규식, 요구 정규식 목록(하나라도 있으면 통과), 사유)
 RULES = [
+    # ⛔[2026-09-02 감사 M-7-3] 초판 트리거 `62/64` 는 **두 초록을 못 봤다**
+    #   (국문 `$64$ 중 $62$` · 영문 `$62$ of $64$`) ⟹ 가장 눈에 띄는 인용이 검사 밖이었다.
     ('BOne-사후작성',
-     r'62/64',
-     [r'게이트\$?\\cdot\$?분석 코드는 결과 뒤에 작성', r'결과 뒤에 작성되었다'],
+     r'62/64|\$64\$ 중 \$62\$|\$62\$ of \$64\$',
+     # ⚠검사기는 **원문**을 본다 --- 매크로는 조판 시점에야 문장이 되므로
+     #   매크로 이름 자체를 요구 목록에 넣어야 한다(안 그러면 참인 공시를 누락으로 오판한다).
+     [r'\\BOnePostHoc(?:EN)?\{\}', r'게이트\$?\\cdot\$?분석 코드는 결과 뒤에 작성',
+      r'결과 뒤에 작성되었다', r'written after (?:its |the )?results'],
      'B-1 의 게이트·분석은 결과 뒤에 작성됐다(verdict_b1.json `_honesty`) — 병기 의무'),
+    # ⛔[2026-09-02 감사 M-7-2] 초판은 **항진**이었다 --- 트리거가 `\newcommand` 정의
+    #   자신에 매치되므로 사용처를 전부 지워도 발동·통과한다.
+    #   ⟹ 트리거를 **크기 자구**로 바꾸고 요구를 **매크로 사용**으로 바꾼다.
+    # ⚠[2026-09-02] 초판 트리거는 **금지 문장**에도 걸렸다(*"약 $-40\%$ 를 약 $-39\%$ 와
+    #   직접 비교하지 않는다"* --- 그것은 크기 주장이 아니라 그 반대다).
+    #   ⟹ 크기가 **주장으로 서는 형태**(승수 병기 또는 "낮춘다"/"lowers")만 트리거한다.
     ('BOne-비교자강도',
-     r'\\CmpSkillBOne',
-     [r'\\newcommand\{\\CmpSkillBOne\}'],
+     r'약 \$39\\%\$[^。]{0,80}?(?:낮춘다|\$62\$)|by about \$39\\%\$[^.]{0,80}?relative to',
+     [r'\\CmpSkillBOne(?:EN)?\{\}'],
      'B-1 크기를 적는 자리에는 그 코퍼스의 비교자 강도를 병기한다'),
+    # ⚠[2026-09-02] 의무는 **매크로**가 아니라 **공시**다 --- §결과 절은 표 칸에
+    #   `SS-LOWH … 명목` 으로 이미 공시한다. 매크로만 요구하면 참인 공시를 누락으로 오판한다.
     ('SSLowh-명목',
      r'네 칸이 \\textbf\{모두 유지\}|all four cells holding|네 칸이 모두 유지',
-     [r'\\SSLowhNominal'],
+     [r'\\SSLowhNominal', r'SS-LOWH\}?[^\n]{0,120}?명목', r'명목[^\n]{0,80}?SS-LOWH',
+      r'탐색적'],
      'verdict_b26.json corners.SS-LOWH.reading 이 「가족단위 미달 = 명목」 병기를 요구한다'),
     ('MTen-blind',
      r'동반해야 하는 공시',
@@ -101,14 +137,15 @@ def value_pin():
 
 
 def run(text):
-    b = body(text)
     fired, missing = [], []
-    for name, trig, need, why in RULES:
-        if not re.search(trig, b):
-            continue
-        fired.append(name)
-        if not any(re.search(x, b) for x in need):
-            missing.append((name, why))
+    for title, chunk in sections(text):
+        b = body(chunk)
+        for name, trig, need, why in RULES:
+            if not re.search(trig, b):
+                continue
+            fired.append((name, title))
+            if not any(re.search(x, b) for x in need):
+                missing.append((name, title, why))
     return fired, missing
 
 
@@ -151,8 +188,8 @@ def main():
     fired, missing = run(text)
     pin = value_pin()
     print('── 학위논문 동반 공시 ' + '─' * 32)
-    for name, why in missing:
-        print(f'  ⛔{name}: {why}')
+    for name, title, why in missing:
+        print(f'  ⛔{name}  [{title}]: {why}')
     for m in pin:
         print(f'  {m}')
     if missing or pin:

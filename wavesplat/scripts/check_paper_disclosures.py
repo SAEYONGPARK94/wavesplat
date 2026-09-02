@@ -75,10 +75,15 @@ RULES = [
     ('WFifteen-음성대조', r'\\WFifteenSparseBetter|\\WFifteenCrowdedBetter',
      [r'\\WFifteenSparseCmpZero', r'comparator is not weak'],
      '비교자가 제로필드를 이기는 비율 병기 의무(F1 부류 차단)'),
-    ('B22-우변얇음', r'\\BTwentyTwoRel|\\BTwentyTwoBetter',
-     [r'\\BTwentyTwoAnaZero', r'right-hand side of this contrast is',
-      r'comparators are themselves weak'],
-     'B-22 L2 의 우변(해석적)은 제로필드를 못 넘는다 — 병기 의무'),
+    # ⛔⛔[2026-09-02] **실패 모드 D 의 오늘 세 번째** --- 이 규칙은 `L2` 옆에
+    #   `\BTwentyTwoAnaZero`(=**15**/48)를 요구했는데, 15/48 은 **`L1a` 의 우변**(`ANA`)이고
+    #   `L2` 의 우변은 **`ANA-SHIP` = 32/48 (p=0.0147)** 이다.
+    #   ⟹ 검사기가 논문에 **자기에게 불리한 거짓**을 강제하고 있었다(그 병기가 참이었다면
+    #     §5.1 의 자기 원칙에 의해 헤드라인 절제가 스스로 인용 불가가 된다).
+    #   ★값을 붙들기 위해 원자 이름을 요구한다 --- 자구가 아니라 **원자**다.
+    ('B22-우변', r'\\BTwentyTwoRel|\\BTwentyTwoBetter',
+     [r'\\BTwentyTwoAnaShipZero'],
+     'B-22 L2 의 우변은 ANA-SHIP 이다(32/48) — 그 원자를 병기해야 한다'),
     ('B16-교락폐쇄', r'\\BSixteenRel',
      # 2차 감사: 'confound' 한 토큰이면 통과했다(부정문도 통과). 확인 서술을 요구한다.
      [r'not confounded with', r'checked .{0,40}for confounding', r'not attributable by subtraction'],

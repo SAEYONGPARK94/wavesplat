@@ -183,9 +183,26 @@ not an execution comparison ⟹ ⛔this thesis does not write ``it ran on the fi
 %   것이고 `B-1` 은 **선형 64 에피소드** 코퍼스다. 코퍼스별로 가른다.
 %   값의 출처 = `tmp/S16_BASELINE_2026-08-14/results.jsonl` 재집계(런 0회);
 %   `scripts/check_canonical_facts.py` 가 자료에서 **다시 계산해** 이 두 수를 검사한다.
+% ★[2026-09-02] 적대적 감사 M-2 — `B-1` 사후작성 공시. `verdict_b1.json:_honesty`
+%   축자: *"gates_b1.py / analyze_b1.py 는 결과 뒤에 작성됐다(2026-08-23)."*
+%   ⛔학위논문은 그 문장을 §결과 한 곳에만 적었고 **두 초록과 「주장하지 않는 것」**
+%   에는 없었다 --- 그 셋이 가장 많이 읽히는 자리다.
+\newcommand{\BOnePostHoc}{\,(⚠\emph{사후작성 공시}: 이 배치의 게이트$\cdot$분석
+  코드는 \textbf{결과 뒤에} 작성되었다 --- 판정 규칙 자체는 그 전의 설계 문서에
+  있었다 ⟹ ⛔\emph{``사전등록된 게이트를 그대로 통과했다''}로 읽지 않는다)}
+\newcommand{\BOnePostHocEN}{\,(⚠\emph{post-hoc-code disclosure}: this batch's gate
+  and analysis scripts were \textbf{written after its results existed}; the decision
+  rules themselves were fixed in an earlier design document, so this row is not to be
+  read as ``it passed a pre-registered gate unchanged'')}
 \newcommand{\CmpSkillBOne}{\,(⚠\emph{비교자 강도 공시}: 이 코퍼스(선형 혼잡 $64$
   에피소드)에서 격자 기준선은 무기술 기준을 $64/64$ 로 이기며 상대 중앙 $-17.73\%$ 다
   ⟹ 위 마진은 \textbf{기술이 있는 비교자}에 대한 것이다)}
+% ⛔[2026-09-02] 감사 M-1: 위 한글 매크로가 **영문 초록**에 그대로 박혀 있었다.
+%   관례(`\SSLowhNominalEN`·`\MOneDriftEN`)대로 영문판을 둔다.
+\newcommand{\CmpSkillBOneEN}{\,(⚠\emph{comparator-strength disclosure}: on this
+  corpus --- $64$ linear crowded episodes --- the grid baseline beats a zero predictor
+  on $64/64$ episodes, with a relative median of $-17.73\%$; the margin above is
+  therefore against a comparator that has skill)}
 \newcommand{\CmpSkill}{\,(⚠\emph{비교자 강도 공시}: 동결 혼잡 HOS 코퍼스($48$ 에피소드)에서
 \textbf{외부 격자 기준선}의 전역 기술은 무기술 대비 $16.9\%$ 다 --- ⛔단 마진이 그 낮은
 기술 때문에 생긴 것은 아니다: 기준선이 \emph{강한} 셸만 남겨도 마진은 오히려 커진다.
@@ -380,7 +397,7 @@ $+18.2\%$ 더 나쁘다, 확증 문턱 통과; 배치 \texttt{B-25}), 질량$\cd
 % R3 심사 토론 ML 심사의 요구("초록을 제2장과 정합").
 \textbf{[2026-08-23 재측정]} 검증된 대체 결과는 다음과 같다. \emph{혼잡한 다성분 해상}에서
 본 방법은 보유한 최강 적격 격자 기준선 대비 오차 중앙값을 \textbf{약 $39\%$}\CmpSkillBOne{} 낮춘다
-($64$ 중 $62$; 배치 \texttt{B-1}). 이 부호는 \emph{같은 기준선}에 대해 비선형(HOS $M{=}3$)
+($64$ 중 $62$; 배치 \texttt{B-1})\BOnePostHoc{}. 이 부호는 \emph{같은 기준선}에 대해 비선형(HOS $M{=}3$)
 참값, 그리고 장면 시드 $12$개 중 $8$개를 이 프로젝트의 앞선 배치가 쓰지 않은
 대역에서 뽑은 표본에서도 유지된다($48$ 중 $43$; 배치 \texttt{B-12}).
 % ⛔[2026-09-02] 6차 감사 N19: *"학습 코퍼스 밖 생성 시드"* 는 **모든 배치에 참**이다
@@ -751,8 +768,8 @@ been verified; only verified replacement results follow.
 % ADDED 2026-08-23: mirror of the Korean abstract update (R3, ML examiner).
 \textbf{[2026-08-23 re-measurement]} The verified replacement results are as follows.
 In \emph{crowded, multi-component seas} the method lowers median error by \textbf{about
-$39\%$}\CmpSkillBOne{} relative to the strongest eligible grid baseline available to this work ($62$ of
-$64$ episodes; batch \texttt{B-1}). The sign persists \emph{against the same baseline} on a sample built from
+$39\%$}\CmpSkillBOneEN{} relative to the strongest eligible grid baseline available to this work ($62$ of
+$64$ episodes; batch \texttt{B-1})\BOnePostHocEN{}. The sign persists \emph{against the same baseline} on a sample built from
 nonlinear (HOS $M{=}3$) ground truth and, for $8$ of its $12$ scene seeds, a seed range
 no earlier batch of this project had used ($43$ of $48$; batch \texttt{B-12}).
 % ⛔[2026-09-02] 6차 감사 N19: *"seeds outside the training corpus"* 는 **모든 배치에
@@ -2053,7 +2070,7 @@ $16/16$ 이므로 \emph{비교자에 기술이 있는 상태에서} 갈리지 �
 
 \begin{itemize}
   \item \textbf{외부 기준선 대비 정확도 이득의 크기}는 \emph{합성 혼잡 층에 한정하여},
-        그리고 \emph{정수 자리로만} 주장한다(약 $-39\%$\CmpSkillBOne{}, $62/64$; 배치 \texttt{B-1},
+        그리고 \emph{정수 자리로만} 주장한다(약 $-39\%$\CmpSkillBOne{}\BOnePostHoc{}, $62/64$; 배치 \texttt{B-1},
         표~\ref{tab:b1_crowded}).
         % ADDED 2026-08-27 (T2): 소수 자리를 주장 범위에서 명시적으로 뺀다.
         ⛔\textbf{소수 자리는 주장하지 않는다} --- 같은 기준선 열에 대해 짝 부호검정으로

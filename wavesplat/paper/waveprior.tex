@@ -105,10 +105,10 @@
 \begin{abstract}
 Phase-resolved ocean wave fields must be reconstructed from sparse, irregular point
 clouds. The prevailing approach assimilates such returns into a spatial grid state,
-which requires interpolating them onto that grid; the closest recent study
+requiring interpolation onto that grid; the closest recent study
 assimilates the sparse returns directly, reports limited improvement, and names a
-spectral-state formulation in its outlook. We give a spectral-state formulation, and
-one that goes beyond what that outlook names: the field is a
+spectral-state formulation in its outlook. We give a spectral-state formulation that
+goes beyond what that outlook names: the field is a
 small set of continuous-wavenumber spectral atoms constrained by the dispersion
 relation, placed by \emph{WavePrior}, a learned set-valued prior, and refined by variable
 projection before per-frame updating.
@@ -124,9 +124,9 @@ rather than third order), it lowers median normalised
 RMSE by \BTwelveRel{} against the strongest eligible grid baseline we possess
 (\BTwelveBetter{}/\BTwelveN{} episodes), in a comparison where that baseline itself
 retains skill against a zero predictor (\BTwelveCmpBetter{}/\BTwelveCmpN{}). The
-claim is carried by ablation, not by baseline comparison alone: removing the prior
-(\BTwentyTwoBetter{}/\BTwentyTwoN{} episodes worse, against an analytic package that
-itself clears a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{}) and
+claim is carried by ablation, not by baseline comparison: removing the prior
+(\BTwentyTwoBetter{}/\BTwentyTwoN{} episodes worse, against an analytic package
+that clears a zero predictor only thinly, \BTwentyTwoAnaShipZero{}/\BTwentyTwoN{}) and
 removing only the continuity of the wavenumber
 (\BSixteenBetter{}/\BSixteenN{}, dose-responsive) each cost measurable accuracy.
 The gains are synthetic; the grid-baseline comparison is crowded-stratum only, and
@@ -389,10 +389,11 @@ Our key contributions are:
     someone else's: replacing the prior with the analytic proposal package, changing
     nothing else, costs \BTwentyTwoRel{}
     (\BTwentyTwoBetter{}/\BTwentyTwoN{}, $p = \BTwentyTwoP{}$).
-    \textbf{Disclosure:} the right-hand side of that contrast is thin --- the
-    analytic package clears a zero predictor on only
-    \BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes, whereas the learned package does
-    so on \BTwentyTwoLearnZero{}/\BTwentyTwoN{} --- so the correct reading is
+    \textbf{Disclosure:} the right-hand side of that contrast is \emph{thin, but it
+    is not collapsed} --- the analytic package clears a zero predictor on
+    \BTwentyTwoAnaShipZero{}/\BTwentyTwoN{} episodes
+    ($p = \BTwentyTwoAnaShipZeroP{}$), whereas the learned package does
+    so on \BTwentyTwoLearnZero{}/\BTwentyTwoN{}; both arms have skill --- so the correct reading is
     \emph{``the prior is what makes this arm work at all''}, not \emph{``the prior
     adds a margin on top of a working arm''}. The gain is synthetic; on measured
     records the same representation does not reach the decision threshold
@@ -1120,9 +1121,8 @@ The system also contains a purely analytic initialiser, which is what runs when 
 learned prior is not used. It is described next both because it is the fallback and
 because it is the \emph{comparison arm} of the prior ablation in
 Section~\ref{sec:res_ablation}: replacing the learned proposal with this procedure,
-changing nothing else, is what accounts for a margin of \BTwentyTwoRel{} --- against an analytic
-package that itself clears a zero predictor on only
-\BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes.
+changing nothing else, is what accounts for a margin of \BTwentyTwoRel{} --- against an analytic package that itself
+clears a zero predictor, though thinly (\BTwentyTwoAnaShipZero{}/\BTwentyTwoN{}, $p = \BTwentyTwoAnaShipZeroP{}$).
 
 \textbf{Dispersion-aware beamforming.}
 Initial wavenumber estimates are obtained by scanning a Cartesian
@@ -1935,9 +1935,14 @@ at a time.
 Replacing the learned set-valued prior with the analytic proposal package, changing
 nothing else, removes a margin of \BTwentyTwoRel{} (\BTwentyTwoBetter{}/\BTwentyTwoN{},
 $p = \BTwentyTwoP{}$).
-\textbf{Disclosure:} the right-hand side of this contrast is \emph{thin} --- the
-analytic package beats a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{}
-episodes, whereas the learned package does so on \BTwentyTwoLearnZero{}/\BTwentyTwoN{}.
+\textbf{Disclosure:} the right-hand side of this contrast is \emph{thin, but it has
+skill} --- the analytic package beats a zero predictor on
+\BTwentyTwoAnaShipZero{}/\BTwentyTwoN{} episodes ($p = \BTwentyTwoAnaShipZeroP{}$),
+whereas the learned package does so on \BTwentyTwoLearnZero{}/\BTwentyTwoN{}.
+This margin is therefore a comparison between two arms that both work, which is what
+makes its magnitude citable at all; the stronger statement --- that the prior is what
+makes an arm work \emph{at all} --- belongs to the single-factor swap below, whose
+right-hand side does collapse (\BTwentyTwoAnaZero{}/\BTwentyTwoN{}).
 $\Rightarrow$ the correct reading is \emph{``the prior is what makes this arm work at all''},
 not \emph{``the prior adds a margin on top of a working arm''}.
 
@@ -2256,7 +2261,7 @@ Sea state matched to records & B-26 & \BTwentySixN{} & \BTwentySixBetter{} & \BT
 \multicolumn{7}{l}{\emph{Ablations of the representation itself}} \\
 Continuity of the wavenumber & B-16 & \BSixteenN{} & \BSixteenBetter{} & \BSixteenRel{} & $\BSixteenP{}$ & --- \\
 \quad --- sparse stratum & B-19 & \BNineteenN{} & \BNineteenBetter{} & \BNineteenRel{} & $\BNineteenP{}$ & --- \\
-The learned prior & B-22 & \BTwentyTwoN{} & \BTwentyTwoBetter{} & \BTwentyTwoRel{} & $\BTwentyTwoP{}$ & \BTwentyTwoAnaZero{}/\BTwentyTwoN{} \\
+The learned prior & B-22 & \BTwentyTwoN{} & \BTwentyTwoBetter{} & \BTwentyTwoRel{} & $\BTwentyTwoP{}$ & \BTwentyTwoAnaShipZero{}/\BTwentyTwoN{} \\
 Ensemble on learned path & S-ENS & \SEnsN{} & \SEnsBetter{} & \SEnsRel{} & $\SEnsP{}$ & --- \\
 \quad --- sparse stratum & S-ENS & \SEnsSparseN{} & \SEnsSparseBetter{} & \emph{undecided} & --- & --- \\
 \midrule
@@ -3089,8 +3094,10 @@ as a set, from one observation window. WaveSplat is therefore physics-constraine
 optimisation, structurally analogous to PINNs with a neural basis, while WavePrior
 supplies the initialisation that neural bases lack. The ablation of
 Section~\ref{sec:res_ablation} separates the two: with the basis intact and the
-learned selection replaced by an analytic one, the arm clears a zero predictor on
-only \BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes.
+learned selection replaced by an analytic one \emph{and nothing else changed}, the
+arm clears a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes.
+% ⚠[2026-09-02] 이 자리의 15/48 은 **옳다** --- 단일요인 교체(`L1a`, 우변 `ANA`)를
+%   서술하기 때문이다. `L2`(우변 `ANA-SHIP`, 32/48)와 혼동하지 않도록 자구를 좁혔다.
 % ★[2026-09-02] 8차 검토: 이 문단은 **한계가 아니라 관련 연구**다. 다음 개정에서
 %   \S2 로 옮기는 것이 옳다 --- 지금은 압축만 한다(절 이동은 참조 그물을 건드린다).
 
@@ -3119,8 +3126,8 @@ comparison where that baseline itself retains skill against a zero predictor
 What we regard as the substantive contribution is not the margin but the
 \emph{attribution}. Holding the deployed pipeline fixed and removing one property at
 a time, the learned prior accounts for \BTwentyTwoRel{}
-(\BTwentyTwoBetter{}/\BTwentyTwoN{}) --- measured against an analytic package that
-itself clears a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{} episodes
+(\BTwentyTwoBetter{}/\BTwentyTwoN{}) --- measured against an analytic package that itself
+clears a zero predictor, though thinly (\BTwentyTwoAnaShipZero{}/\BTwentyTwoN{}, $p = \BTwentyTwoAnaShipZeroP{}$)
 --- and the continuity of the wavenumber accounts for \BSixteenRel{}
 (\BSixteenBetter{}/\BSixteenN{}, dose-responsive, and reproducing in the sparse
 stratum at \BNineteenBetter{}/\BNineteenN{}). The gain also survives

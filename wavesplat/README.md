@@ -1,6 +1,8 @@
 # WaveSplat
 
-**Grid-Free Spectral Wave Field Estimation from Sparse Shipboard LiDAR**
+**WavePrior — A Learned Spectral Prior for Grid-Free Wave Field Estimation from Sparse 3D Point Clouds**
+<!-- ⛔2026-09-02: 종전 부제 *"…from Sparse Shipboard LiDAR"* 는 **철회된 자구**다
+     (실증 0건 · 시뮬레이터에 선속 인자 없음). 개명 커밋이 이 파일의 129줄만 고쳤다. -->
 
 ---
 

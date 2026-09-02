@@ -682,7 +682,18 @@ ATOMS = [
     ('BTwentyTwoN',      'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'comparisons.L2.n', 'int', 48),
     ('BTwentyTwoRel',    'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'comparisons.L2.rel_median_pct', 'pct', -36.3),
     ('BTwentyTwoP',      'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'comparisons.L2.p_one_sided', 'p', 6.56e-11),
-    # ⚠L2 의 우변(해석적 패키지)은 **참 제로필드를 못 넘는다** — 인용 시 병기 의무
+    # ⛔⛔[2026-09-02] **정정(BLOCKER)**: 종전 주석은 *"L2 의 우변은 참 제로필드를 못 넘는다"*
+    #   라 적었고 논문 7곳이 그 전제로 `BTwentyTwoAnaZero`(=**ANA** 의 15/48)를 병기했다.
+    #   ⛔틀렸다. `L2` 의 우변은 **`ANA-SHIP`** 이고(`RESULT.md:16,92,116`) 그 팔의
+    #   제로필드 대비는 **32/48 · p=0.0147** 이다. 15/48 은 **`L1a`** 의 우변(`ANA`)이다.
+    #   ⟹ 두 원자를 **각각 명명**한다. L2 를 인용하는 자리에는 `…AnaShipZero` 를 쓴다.
+    #   ★결과적으로 논문은 **자기에게 불리한 거짓**을 인쇄하고 있었다 --- 그 병기가
+    #     참이었다면 §5.1 의 자기 원칙에 의해 헤드라인 절제가 인용 불가가 된다.
+    ('BTwentyTwoAnaShipZero', 'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json',
+     'neg_vs_zero.ANA-SHIP.better', 'int', 32),
+    ('BTwentyTwoAnaShipZeroP', 'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json',
+     'neg_vs_zero.ANA-SHIP.p_one_sided', 'p', 0.0147),
+    # ⚠아래는 **`L1a`** 의 우변(`ANA`)이다. ⛔`L2` 옆에 쓰지 마라.
     ('BTwentyTwoAnaZero', 'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'neg_vs_zero.ANA.better', 'int', 15),
     ('BTwentyTwoLearnZero', 'B22_PRIOR_ABLATION_2026-08-27/verdict_b22.json', 'neg_vs_zero.LEARN.better', 'int', 48),
     # ── 센서 모형(raydrop) 강건성

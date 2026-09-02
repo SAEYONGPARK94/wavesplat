@@ -1921,12 +1921,50 @@ re-scorings of one corpus --- the same \AblationEps{} episodes that carry the
 ablations --- under different questions, not independent experiments, and they use
 different comparison arms.
 
+% ============================================================================
+% ★2026-09-02 --- 추정 비교를 **그림으로**. 표에만 있고 그림에 없던 둘을 넣는다:
+%   (a) 헤드라인의 **짝 구조**(표는 43/48 과 중앙값만 보여 준다)
+%   (b) `M-10` 의 **셸 분해 전체**(본문은 한 셸 BAND_REAL 만 인쇄한다)
+%   ★(b) 가 이 논문에서 독자가 실제로 묻는 것에 답한다 --- *"센서에서 얼마나 멀리까지"*.
+%   ⛔둘 다 제로필드를 **선/점으로** 그린다(F1 부류 차단 --- 서술로만 두지 않는다).
+%   ⚠생성기 `scripts/gen_fig_estcompare.py` 는 런 0회이고 동결 verdict 과 재집계가
+%     어긋나면 죽는다(근거리 칸을 `verdict_m10.primary.abs_median` 과 대조한다).
+% ============================================================================
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_estcompare.pdf}
+\caption{The two comparisons the tables state numerically, drawn.
+(a)~Every episode of the non-linear corpus (B-12): our deployed arm against the grid
+baseline, one point per episode, each a median over estimator seeds. Points below the
+dotted diagonal are episodes we win. The hollow squares are each episode's own
+zero-field reference, plotted on both axes, so the reader can see that
+\emph{the baseline is not collapsing} --- it beats a zero field on
+\BTwelveCmpBetter{}/\BTwelveCmpN{} episodes --- and that the episodes we lose are the
+ones where both arms sit close to that reference.
+(b)~The same deployed arm scored by distance to the nearest LiDAR observation
+(M-10, crowded stratum, $\BOneN{}$-episode corpus). Error grows with distance for
+both arms and both approach the zero-field level in the outermost shell: the
+representation buys accuracy where there are observations nearby and progressively
+less far from them. The shaded shell is the density band our measured records
+actually occupy, which is why Section~\ref{sec:res_where} reports that shell rather
+than a domain average. \textbf{Disclosures.} M-10 was \emph{not blind} --- its
+preregistration recorded the expected direction before the runs, and a smoke subset
+had already shown it. The shell boundaries are absolute distances, not multiples of
+the peak wavelength, and the corpus mixes two sea states whose peak wavelengths
+differ by a factor of $1.65$; \emph{this figure is an exclusion, not an attribution},
+and aperture, incidence angle and occlusion remain unmeasured. Both panels are
+synthetic and crowded-stratum. Generated from the frozen verdicts and result rows by
+\texttt{scripts/gen\_fig\_estcompare.py}, which re-aggregates independently and fails
+if the two disagree.}
+\label{fig:estcompare}
+\end{figure}
+
 \paragraph{Space}
 Decomposing the score by distance to the nearest observation, the gain persists
 inside the density band that our measured records actually occupy --- points within
 $5$~m of an observation --- on \MTenBetter{} of \MTenN{} episodes
 (\MTenRel{}), with both arms beating the zero reference there
-(\MTenCmp{}/\MTenN{}).
+(\MTenCmp{}/\MTenN{}); Fig.~\ref{fig:estcompare}(b) plots the whole profile.
 % [2026-09-02 P9] 4차 감사 B8. ⛔**논문 52쪽에 우리 팔의 절대 정확도가 한 번도 없었다** ---
 %   인쇄된 유일한 절대 nRMSE 가 **철회된 기준선의 0.358** 이었다.
 %   §4.3 은 "0.10 미만 = excellent" 라는 해석 기준을 주고 값을 한 번도 주지 않는다.

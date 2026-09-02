@@ -27,6 +27,10 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 PY = sys.executable
 
 CHECKS = [
+    # ★[2026-09-03] 적대적 감사 M1: `R1b` 가 `PREREG` 에 적은 `G-FREEZE`·`G-BLOCK` 을
+    #   구현하지 않고도 `게이트 13/13` 을 인쇄했다 --- 사전등록 게이트 수와 **우연히 같아서**
+    #   누락이 보이지 않았다. ⟹ 사전등록 표와 동결 verdict 를 래칫으로 대조한다.
+    ('★게이트 구현 대조', [PY, 'tmp/_audit/check_gate_coverage.py']),
     ('상수 생성기 --check', [PY, 'scripts/gen_paper_constants.py', '--check']),
     ('동반 공시', [PY, 'scripts/check_paper_disclosures.py']),
     ('★항진 검사', [PY, 'scripts/check_paper_disclosures.py', '--selftest']),

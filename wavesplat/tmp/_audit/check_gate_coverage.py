@@ -22,7 +22,11 @@ TMP = os.path.join(ROOT, 'tmp')
 # 2026-09-03 실측 기준선 = **17**(12 배치). 내역은 실행 출력이 낸다.
 # ⚠일부는 이름 변형일 수 있다(예: `G-COV` vs `G-COVG`) — 이 검사기는 **부재**를 잡지
 #   **약함**을 잡지 않는다. 줄어들면 이 수를 **의도적으로** 내리고 사유를 여기 적어라.
-BASELINE = 17
+# ⚠[2026-09-03] 17 → **18**: 이 검사기를 만든 **한 시간 뒤** `R3b` 가 같은 결함을 냈다
+#   (`PREREG §3` 표에 `G-BLOCK` 을 적고 구현하지 않음). 결과가 나온 뒤이므로
+#   ⛔**게이트를 추가하지 않고** 기준선을 **의도적으로 올리고 사유를 적는다**.
+#   ★검사기가 만들어진 직후 제작자를 잡았다는 것이 이 항목의 값이다.
+BASELINE = 18
 
 _NAME = re.compile(r'`?(G-[A-Za-z0-9][A-Za-z0-9_\-]*)`?')
 
@@ -66,6 +70,9 @@ def verdict_gates(paths):
 
 
 def main(argv):
+    # ⚠래칫은 **전수 실행에서만** 뜻이 있다 --- 디렉터리를 지정하면 측정만 한다.
+    #   (첫 사용에서 `R3b` 하나를 넘겼더니 `1 < 17` 로 오판했다.)
+    explicit = len(argv) > 1
     dirs = argv[1:] or sorted(
         d for d in glob.glob(os.path.join(TMP, '*')) if os.path.isdir(d))
     rows, skipped, missing_total = [], [], 0
@@ -95,6 +102,9 @@ def main(argv):
     print(f'  배치 {len(rows)} · 미구현 게이트를 가진 배치 {len(bad)} · 미구현 총 {missing_total}')
     if skipped:
         print(f'  ⚠대조 불가(verdict 에 gates 키 없음) {len(skipped)}: {skipped[:6]}')
+    if explicit:
+        print('  [측정] 디렉터리 지정 실행 --- 래칫을 적용하지 않는다.')
+        return 0
     if BASELINE is None:
         print('  [측정] 기준선 미설정 — 이 값을 BASELINE 에 적어라(⛔침묵이 아니라 래칫).')
         return 0

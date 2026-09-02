@@ -486,18 +486,31 @@ the directional spectrum at the vessel location.
 Deterministic wave field reconstruction from spatially resolved
 LiDAR/radar has been dominated by spatial discretization combined
 with ensemble data assimilation.
-\citet{desmars2020} introduced ETKF-based reconstruction from X-band
-radar using spectral propagation on a regular grid; the Ensemble
+% ⛔[2026-09-02] 문헌 실사 E: 종전 문안은 `desmars2020` 을 *"X-band 레이더에서의
+%   ETKF 재구성"* 이라 적었다 --- **양쪽 다 거짓**이다. 그 논문(OE 212:107659)은
+%   **비균일 표본 수조 게이지**로 결정론적 예측 알고리즘을 평가한 것이고
+%   레이더도 ETKF 도 아니다. 격자 상태 + ETKF 조합은 `Wang2025PointsToWaves` 다.
+\citet{desmars2020} assessed deterministic nonlinear prediction algorithms against
+non-uniformly sampled wave gauges, and \citet{Wang2025PointsToWaves} assimilate sparse
+three-dimensional points into a gridded state with an ETKF and spectral propagation; the
+Ensemble
 Transform Kalman Filter~\citep{hunt2007} is preferred over the
 stochastic EnKF~\citep{evensen2003} for its deterministic analysis
 step.
 \citet{desmars2023jfm} extended this framework with a nonlinear
 reconstruction-and-prediction scheme on remotely measured surfaces,
 demonstrating short-term forecasting up to one peak period ahead.
+% ⛔[2026-09-02] 문헌 실사 E: 종전 문안은 기준선의 출처를 `desmars2020` 의
+%   *"radar-based formulation"* 이라 적었다. ⛔그 논문은 `references.bib:20` 이 축자로
+%   적듯 **비균일 표본 수조 게이지** 논문(OE 212:107659)이고 레이더도 ETKF 도 아니다.
+%   ★옳은 출처는 **코드가 스스로 적는다** --- `wavesplat/baselines/etkf_grid.py:3`
+%   *"baseline from \"From Points to Waves\""* = 이 논문의 **최근접 경쟁 연구**다.
+%   ⟹ 정정이 정확성만이 아니라 서사도 강화한다.
 Adaptation of ensemble Kalman filtering to scanning shipboard LiDAR
 has, to our knowledge, not been reported in the open literature; we
-therefore implement an ETKF-grid baseline by porting the radar-based
-formulation of \citet{desmars2020} to LiDAR observations
+therefore implement an ETKF-grid baseline by porting the formulation of
+\citet{Wang2025PointsToWaves} --- the closest competing study, which assimilates
+sparse three-dimensional points into a grid state with an ETKF --- to LiDAR observations
 (retracted corpus; archived).
 These grid-based methods share a common architecture---discretize
 the 2D domain into a regular grid, maintain an ensemble of spectral
@@ -1664,7 +1677,7 @@ have.
 
 \subsection{Baselines}
 
-\textbf{ETKF-grid}~\citep{desmars2020}: Ensemble Transform Kalman Filter
+\textbf{ETKF-grid}~\citep{Wang2025PointsToWaves}: Ensemble Transform Kalman Filter
 on a regular grid with FFT-based spectral propagation, multiplicative
 and additive inflation, and observation thinning to $M_{\max}$=40 per frame to keep the
 observation-state projected matrix numerically well-conditioned
@@ -1672,7 +1685,7 @@ and bound per-frame computational cost.  To avoid penalizing the baseline by an 
 choice, we performed a 24-configuration hyperparameter sweep over grid
 resolution \{40$\times$30, 80$\times$60\}, ensemble size \{50, 100\},
 and inflation pairs ($\alpha$, $\sigma$) covering the standard ranges
-recommended by~\citet{desmars2020}; the winning configuration
+recommended in that literature; the winning configuration
 ($g$=40$\times$30, $n_{\text{ens}}$=100, $\alpha$=1.0, $\sigma$=0.005) is used as
 ``ETKF (tuned)'' wherever an ETKF arm appears. The qualitative structure of the
 sweep was that the coarser 40$\times$30 grid outperformed 80$\times$60, the finer
@@ -2133,6 +2146,27 @@ the arm. This does not weaken the negative --- it means the negative is partly a
 of the scoring convention, and that a positive obtained under it is conservative. The
 \emph{paired} comparisons between arms are unaffected, because both arms are fitted to
 the same observations and inherit the same offset.
+
+% ★[2026-09-02] 문헌 실사 E. ⛔이 문단은 **변호가 아니라 위치지음**이다 --- 우리 관행이
+%   관례 안이라는 것과, 관례 자체의 상한이 어디인지를 함께 적는다.
+%   확인 수준: Wang 2025 · Desmars 2023 · Wang&Pan 2021 은 **원문 전문**,
+%   WASS/Benetazzo 계열은 2차 서술(Guimarães 2020 원문의 인용 포함).
+\textbf{This construction is the field's, not ours alone.} Validation practice in
+phase-resolved wave reconstruction spans a narrow spectrum: purely synthetic references;
+wave-tank experiments whose dense truth is assembled by exploiting repeatability across
+runs~\citep{desmars2020}; field campaigns scored against the same sensor's later frames
+because a true solution is unavailable; and field observations checked against
+independent \emph{point} sensors at the level of spectra and scalar statistics. A dense,
+field-scale reference that is independent of the observing sensor does not, to our
+knowledge, exist anywhere in this literature --- even the stereo surfaces used as ground
+truth trace their own validation to centimetre-level comparisons against point gauges.
+The closest competing study evaluates on one of the same public stereo records we use,
+takes that dense reconstruction as its ground truth, and additionally subsamples it
+synthetically~\citep{Wang2025PointsToWaves}. What is specific to us is one further
+synthetic layer: our sparse pattern follows a simulated scanning-LiDAR geometry rather
+than the sparse output of a real stereo matcher, and our records come from fixed stations
+rather than a vessel. We state that asymmetry rather than let the shared convention
+excuse it.
 
 % ★[2026-09-02] 실측 그림 신설. 사용자 요청(*"실측 데이터랑도 뽑아줘"*).
 %   ⛔런 0회 --- 동결 행 재집계. 생성 = scripts/gen_fig_real.py (방벽이 재생성 대조한다).

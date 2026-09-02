@@ -2611,6 +2611,25 @@ decision threshold on the measured records under any arm configuration we ran, a
 we report that as the measurement it is rather than as a limitation to be
 addressed later.
 
+% ★[2026-09-03] `R5-REALGEOM` --- B-17 의 σ(r,θ) 는 **선언된** 센서 기하 (0,0,12 m) 위에서
+%   돌았다. R3b 가 그 기하를 자료에서 복원했으므로 그것으로 갈아 끼워 재측정했다.
+%   ⛔B-17 판정 갱신 아님 · ⛔측정 기하는 BS 7 뿐(대형 박스 5 는 선언값 그대로).
+\textbf{The range- and angle-dependent noise model was re-run on sensor geometry
+recovered from the data.} That model needs a sensor position, and B-17 declared one;
+the pixel-correspondence channels in the full-resolution files let the camera pose be
+solved instead, and it differs --- the recovered centre sits about twenty metres from
+the declared one, which moves the median range on those records from roughly thirteen
+to roughly twenty-four metres. Re-running with the recovered geometry leaves the
+reading unchanged: the arm still does not separate from a constant-noise arm
+(\RFiveVsConst{}/\RFiveN{}, below the pre-registered threshold of ten). Two things
+must travel with that. The stratum split survives by a margin of \RFiveGap{} against a
+threshold of $0.5$ --- one more record on the near side would have made it undecided ---
+and the substitution is \emph{not} a small perturbation: on the seven records that have
+recovered geometry the median error changes by \RFiveRelSmall{}, with individual
+records moving from $-85$\% to $+76$\%. The reading survives because the threshold sat
+below the effect, not because the effect was small. Only seven of the twelve records
+have recovered geometry; the other five keep the declared position and height.
+
 % [2026-09-02 P9] 4차 감사 M11: 표 5 의 S-ENS 두 행에 **산문이 한 줄도 없었고**,
 %   그 팔은 `learned_ensemble_k=3` 으로 **배포 기본값(1) 이 아니다**. 동결
 %   `verdict_sens.json disclosure` 의 MDE 병기와 *"배포 전환 권고 아님"* 도 빠졌다.

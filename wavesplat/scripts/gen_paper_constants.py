@@ -890,6 +890,14 @@ ATOMS = [
      'groups.agulhas.n_pass', 'int', 0),
     ('RFourCDropMed', 'R4C_DISPERSION_2026-09-03/verdict_r4c.json',
      'groups.agulhas.p95_drop_pct_median', 'pct', -0.6),
+    # ── 측정된 센서 기하로 잡음 모형 재측정 (R5, 2026-09-03)
+    #    ⛔`B-17` 판정 갱신 아님 · ⛔측정 기하는 **BS 7 뿐**(대형 박스 5 는 선언값 그대로).
+    ('RFiveGap', 'R5_REALGEOM_2026-09-03/verdict_r5.json', 'primary.gap', 'abs3', 0.514),
+    ('RFiveVsConst', 'R5_REALGEOM_2026-09-03/verdict_r5.json',
+     'secondary.meas_vs_const.better', 'int', 8),
+    ('RFiveN', 'R5_REALGEOM_2026-09-03/verdict_r5.json', 'secondary.meas_vs_const.n', 'int', 12),
+    ('RFiveRelSmall', 'R5_REALGEOM_2026-09-03/verdict_r5.json',
+     'secondary.meas_vs_anchor_small.rel_median_pct', 'pct', -45.4),
 ]
 
 FMT = {

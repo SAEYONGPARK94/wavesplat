@@ -1802,9 +1802,66 @@ fields, and realised non-linearity grades differ.
 \subsection{Is the sensor model doing the work?}
 \label{sec:res_sensor}
 
-Replacing the observation model with a physically correct range-dependent raydrop
-model leaves the conclusion intact (\BFifteenRel{} over \BFifteenN{} episodes), and
-both arms beat the zero reference under both models.
+Removing the geometric weighting from the return-sampling model --- the contrast is
+between weighted and unweighted returns, not between diffuse and specular optics
+(Section~\ref{sec:experiments}) --- leaves the conclusion intact
+(\BFifteenRel{} over \BFifteenN{} episodes), and both arms beat the zero reference
+under both models (Fig.~\ref{fig:raydrop}).
+% ⛔[2026-09-02] 8차 검토: 여기 있던 *"a **physically correct** range-dependent raydrop
+%   model"* 은 **저장소 자신이 반증한 서술**이다 --- `wavesim/raydrop_threshold.py:10-11`
+%   축자: *"raydrop_slope's specular gate **never fires at this geometry** … and falls
+%   back to constant-P"* 이고 `raydrop_slope.py:115-120` 이 그 폴백이다.
+%   §4.1 이 이미 정정했는데(*"always takes its unweighted fallback path"*) 이 절과
+%   표 행과 §6.2 세 곳이 낡은 채였다 ⟹ **N−3**.
+
+% ============================================================================
+% ★2026-09-02 --- `B-15` 를 그림으로. 논문 주석이 적던 마지막 그림 결정이다.
+%   ⛔`fig_results` 와 겹치지 않는다: 그 그림은 `B-15` 의 **승수 하나**만 그린다.
+%     여기 있는 넷 --- 짝 구조 · 절대 수준 · 제로필드 · 짝별 분산 --- 은 어디에도 없다.
+%   ⛔⛔캡션에 *"physically correct"* 를 쓰지 마라. `B-15` 의 동결 라벨이 그렇게 부르지만
+%     그 물리 전제를 `wavesim/raydrop_threshold.py:10-11` 이 반증했다.
+%   ⚠생성기 `scripts/gen_fig_raydrop.py` 는 런 0회이고, 동결 verdict 과 재집계가
+%     어긋나면 죽는다(위조 시험으로 확인). 사이드카 = `figures/fig_raydrop.values.json`.
+% ============================================================================
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_raydrop.pdf}
+\caption{Sensitivity to the spatial weighting of LiDAR returns (B-15). The
+simulator can retain a ray hit with a probability weighted by incidence angle and
+range, or retain every hit with equal probability calibrated to the same expected
+count. The second model's specular gate never fires at this geometry and it always
+takes its unweighted path (Section~\ref{sec:experiments}), so this contrast tests
+the \emph{weighting} of returns, not diffuse versus specular optics. Both settings
+write episode files whose wave fields are identical, so this is a paired
+intervention on \BFifteenN{} crowded episodes with no regeneration.
+(a)~Per-episode nRMSE under one return model against the same episode under the
+other, each point a median over estimator seeds, with each episode's own zero-field
+reference. Because the wave field is unchanged that reference is the same on both
+axes and lies on the diagonal by construction --- the visual form of the gate that
+checked the pairing. \emph{The comparator does not collapse}: it is more accurate
+without the weighting on every episode and still beats its own zero field
+\BFifteenCmp{}/\BFifteenN{} times there, so the wider margin in panel~(b) is not a
+weakened denominator.
+(b)~The same comparison as a per-episode relative difference; episodes our arm loses
+are drawn in red. Our arm wins \BFifteenBetter{}/\BFifteenN{} without the weighting
+($p = \BFifteenP{}$, one-sided sign test, median \BFifteenRel{}). The pre-registered
+secondary quantity was the \emph{difference in win counts} between the two settings,
+which fell inside the band fixed before the runs; the shift in median size is
+descriptive and was not pre-registered. \emph{Read the median as a summary of this
+sample, not a per-episode guarantee} --- the per-episode differences move across
+most of the plotted range while the win count moves by one.
+Three limits travel with it. The ground truth here is linear, because the
+higher-order corpus has no counterpart episodes under the second return model, so
+this does not stand in for the non-linear result. The intervention is small in what
+it changes about the returns --- both median incidence angles are printed on the
+figure --- so this is not evidence that a large change would be immaterial. And
+\BFifteenRel{} is specific to this sample and this return model: the relative
+margins in Table~\ref{tab:earns} are not additive and should not be combined
+arithmetically. Crowded stratum only. Generated from the frozen verdict and rows by
+\texttt{scripts/gen\_fig\_raydrop.py}, which re-aggregates independently and fails
+if the two disagree.}
+\label{fig:raydrop}
+\end{figure}
 
 \subsection{What carries the gain? Two ablations}
 \label{sec:res_ablation}
@@ -2040,7 +2097,7 @@ Question & Batch & $n$ & better & rel.\ median & $p$ & cmp. \\
 \multicolumn{7}{l}{\emph{Against an external baseline}} \\
 Strongest eligible baseline & B-1  & \BOneN{}    & \BOneBetter{}    & \BOneRel{}    & $\BOneP{}$ & (\BOneCmp{}/\BOneCmpN{}) \\
 Non-linear ref., \BTwelveFreshSeeds{}/\BTwelveSeeds{} new seeds & B-12 & \BTwelveN{} & \BTwelveBetter{} & \BTwelveRel{} & $\BTwelveP{}$ & \BTwelveCmpBetter{}/\BTwelveCmpN{} \\
-Physically correct sensor model & B-15 & \BFifteenN{} & \BFifteenBetter{} & \BFifteenRel{} & $\BFifteenP{}$ & \BFifteenCmp{}/\BFifteenN{} \\
+Unweighted sensor returns & B-15 & \BFifteenN{} & \BFifteenBetter{} & \BFifteenRel{} & $\BFifteenP{}$ & \BFifteenCmp{}/\BFifteenN{} \\
 Sea state matched to records & B-26 & \BTwentySixN{} & \BTwentySixBetter{} & \BTwentySixRel{} & --- & \BTwentySixCmpBetter{}/\BTwentySixN{} \\
 \midrule
 \multicolumn{7}{l}{\emph{Ablations of the representation itself}} \\
@@ -2488,10 +2545,12 @@ measured records the representation does not reach the decision threshold at all
 % [2026-09-02 P9] 초판의 이 절은 철회된 코퍼스의 팔간 수치(15.2\% / 15.9\% / 11.7\%)를
 %   실었다. 대체가 있다(B-14b, B-15) ⟹ 아카이브로 옮기고 측정된 것만 남긴다.
 Two questions about the observation model have been measured on frozen batches
-rather than argued. First, whether the geometric return-sampling model changes the
-conclusion: it does not, and the physically correct slope model is in fact the
-more favourable of the two (B-15, Table~\ref{tab:earns}), with the comparator
-retaining skill in both. Second, whether the \emph{shape} of the observation
+rather than argued. First, whether the geometric weighting of returns changes the
+conclusion: it does not, and the unweighted model is in fact the more favourable of
+the two (B-15, Table~\ref{tab:earns}), with the comparator retaining skill in both.
+⚠The second model was specified as a specular channel but never reaches it at this
+geometry, so what was varied is the spatial weighting of returns, not the optics
+(Section~\ref{sec:experiments}). Second, whether the \emph{shape} of the observation
 noise explains the negative on the measured records: it does not, and the best of
 four noise models still reaches only \BFourteenBBeats{}/\BFourteenBN{}
 (B-14b, Table~\ref{tab:boundary}). That fraction counts records on which the arm

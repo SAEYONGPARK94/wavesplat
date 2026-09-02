@@ -842,6 +842,34 @@ ATOMS = [
     ('TFiveFarBetter', 'T5_ENS_2026-09-01/verdict_t5.json', 'contrasts.SEC-A.better', 'int', 35),
     ('TFiveFarRel', 'T5_ENS_2026-09-01/verdict_t5.json',
      'contrasts.SEC-A.rel_median_pct', 'pct', -11.1),
+    # ── 채점 규약 수리 (R1b, 2026-09-02) — ⛔배포 기본값 변경 아님. 규약을 고쳐도
+    #    판정이 사는가만 잰다. ⚠`Old` 계수를 `B-2` 공표값과 직접 비교 금지(수심 상이).
+    ('ROneBShipFixed', 'R1B_SCORINGFRAME_2026-09-02/verdict_r1b.json', 'primary.w', 'int', 11),
+    ('ROneBN', 'R1B_SCORINGFRAME_2026-09-02/verdict_r1b.json', 'primary.n', 'int', 12),
+    ('ROneBP', 'R1B_SCORINGFRAME_2026-09-02/verdict_r1b.json',
+     'primary.p_one_sided', 'p', 3.174e-03),
+    ('ROneBShipOld', 'R1B_SCORINGFRAME_2026-09-02/verdict_r1b.json',
+     'secondary.SHIP_old.w', 'int', 10),
+    ('ROneBPropOld', 'R1B_SCORINGFRAME_2026-09-02/verdict_r1b.json',
+     'secondary.PROP_old.w', 'int', 7),
+    ('ROneBPropFixed', 'R1B_SCORINGFRAME_2026-09-02/verdict_r1b.json',
+     'secondary.PROP_new.w', 'int', 8),
+    # ★수리가 움직인 것은 **비교자**다 --- 중앙은 거의 0 이고 최대는 한 레코드가 만든다.
+    ('ROneBZeroMed', 'R1B_SCORINGFRAME_2026-09-02/verdict_r1b.json',
+     'zero_shift_summary.median_pct', 'pct', 0.3),
+    ('ROneBZeroMax', 'R1B_SCORINGFRAME_2026-09-02/verdict_r1b.json',
+     'zero_shift_summary.max_pct', 'pct', 49.0),
+    # ── 외부 자료의 체제 판정 (R4b, 2026-09-02) — ⛔정확도 주장 아님(추정기 런 0회).
+    ('RFourBCtrlPass', 'R4B_DISPERSION_2026-09-02/verdict_r4b.json',
+     'groups.control.n_pass', 'int', 12),
+    ('RFourBCtrlN', 'R4B_DISPERSION_2026-09-02/verdict_r4b.json', 'groups.control.n', 'int', 12),
+    ('RFourBTreatPass', 'R4B_DISPERSION_2026-09-02/verdict_r4b.json',
+     'groups.agulhas.n_pass', 'int', 0),
+    ('RFourBTreatN', 'R4B_DISPERSION_2026-09-02/verdict_r4b.json', 'groups.agulhas.n', 'int', 6),
+    ('RFourBCtrlMin', 'R4B_DISPERSION_2026-09-02/verdict_r4b.json',
+     'groups.control.obs_min', 'abs3', 0.071),
+    ('RFourBTreatMax', 'R4B_DISPERSION_2026-09-02/verdict_r4b.json',
+     'groups.agulhas.obs_max', 'abs3', 0.011),
 ]
 
 FMT = {

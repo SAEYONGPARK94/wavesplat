@@ -15,6 +15,7 @@
 
 예외는 **사유와 함께** `ALLOW` 에 적는다(줄 내용 키 --- 재조판에 안 낡는다).
 """
+import json
 import os
 import re
 import sys
@@ -64,6 +65,21 @@ def rules():
         ('LiDAR 수직 범위', r'-12\.5\^\\circ \+ \\Delta\\theta',
          'elev = linspace(-25, 0, 152) (configs/default.yaml)'),
     ]
+    # ★[2026-09-02] 동결 verdict 의 **게이트 수**를 문서가 손으로 적으면 낡는다.
+    #   실제로 낡았다: `B-26` 이 `28/29` 인데 학위논문 **여덟 곳**이 `29/29` 라 적었다
+    #   (실패 게이트 = `G-0 시드 원장 충돌`, **후속** `M-1` 이 만든 것; 측정 게이트는 전건 통과).
+    #   ⟹ 옛 값을 규칙으로 박고, 옳은 값은 **동결 파일에서 읽는다**.
+    for tag, rel in (('B-26', 'B26_SEASTATE_2026-08-27/verdict_b26.json'),):
+        vp = os.path.join(ROOT, 'tmp', rel)
+        if not os.path.exists(vp):
+            continue
+        v = json.load(open(vp))
+        got, tot = int(v['gates_pass']), int(v['gates_total'])
+        for wrong in range(got + 1, tot + 1):
+            R.append((f'{tag} 옛 게이트 수 {wrong}/{tot}',
+                      rf'{wrong}\s*/\s*{tot}\s*(?:gates|게이트)|게이트\s*{wrong}/{tot}',
+                      f'{tag} = {got}/{tot} ({vp} 동결값)',
+                      True))   # ★주석도 본다 --- 아래 설명
     return R
 
 
@@ -97,9 +113,26 @@ def main():
             line = re.sub(r'(?<!\\)%.*$', '', raw).rstrip()
             if any(k in line for k in ALLOW):
                 continue
-            for name, pat, right in rules():
+            for rule in rules():
+                name, pat, right = rule[0], rule[1], rule[2]
                 if re.search(pat, line):
                     bad.append((doc, ln, name, right, line.strip()[:78]))
+        # ★★[2026-09-02] **두 번째 통과 --- 주석도 본다**(출처 규칙 한정).
+        #   ⛔초판은 `raw.lstrip().startswith('%')` 로 주석을 통째로 건너뛰었고
+        #   사유가 *"주석은 인쇄되지 않는다"* 였다. **인쇄면 값 규칙에는 옳다.**
+        #   그러나 **출처 규칙**(동결 verdict 의 게이트 수 같은 것)은 주석이 바로
+        #   썩는 자리다 --- 실제로 `B-26` 의 `29/29` 가 **여덟 곳 전부 주석**이었고
+        #   그래서 이 검사기가 구조적으로 못 봤다.
+        #   ⟹ `scan_comments=True` 규칙만 주석에 다시 돌린다.
+        #   ★이 저장소의 규율 [[feedback-comments-count-as-N]] 을 기계화한 것이다.
+        for ln, raw in enumerate(open(path, encoding='utf-8'), 1):
+            if not raw.lstrip().startswith('%'):
+                continue
+            for rule in rules():
+                if len(rule) < 4 or not rule[3]:
+                    continue
+                if re.search(rule[1], raw):
+                    bad.append((doc, ln, rule[0] + ' [주석]', rule[2], raw.strip()[:78]))
     print('── 표준 사실 검사 ─────────────────────────────────────────')
     if not bad:
         print(f'  [OK  ] {len(rules())} 규칙 · {len(DOCS)} 문서 · 틀린 값 0건')

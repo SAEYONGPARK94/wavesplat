@@ -9,7 +9,7 @@
 > 않았다"* 가 **자료로** 참이 된다. ⛔다르면 그 사실이 훨씬 중요한 발견이므로
 > **그것을 먼저 보고**한다.
 
-⚠보존본(`results_t9_ABORTED_2PID.jsonl`)은 **판정에 쓰이지 않는다**. 이 스크립트는
+⚠보존본(`ABORTED_2PID_rows.jsonl`)은 **판정에 쓰이지 않는다**. 이 스크립트는
 그것을 오직 **무결성 대조군**으로만 읽는다.
 """
 import json
@@ -36,7 +36,7 @@ def load(name):
 
 def main():
     new = load('results_t9.jsonl')
-    old = load('results_t9_ABORTED_2PID.jsonl')
+    old = load('ABORTED_2PID_rows.jsonl')
     if new is None or old is None:
         print('⛔대조할 파일이 없다')
         return 2

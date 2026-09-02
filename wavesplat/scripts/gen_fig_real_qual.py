@@ -13,6 +13,10 @@
 `tmp/B2_REAL_2026-08-23/results.jsonl` 의 `AA14` 두 행과 대조한다:
 `obs_hash`·`q_hash`(같은 자료를 받았나) · `n_atoms`(`G-1`/`G-2` 음성대조) · `nowcast`(종점).
 
+★**핀이 공허하지 않음을 확인했다**(2026-09-02): 동결값을 `1e-4` 만 흔든 **복사본**을
+`WS_B2_RESULTS` 로 물리면 `rc=1` 로 죽고 그림을 저장하지 않는다.
+⛔그 시험은 **원본을 건드리지 않는다** — 다른 배치가 도는 중일 수 있다.
+
 ⚠**왜 `AA14` 인가 — 성능이 아니라 수심 때문이다.** `B-2` 는 수심 **17** 로 돌았고
 2026-08-26 에 `BS` 7 레코드가 17→**30** 으로 정정됐다(`AMENDMENT_ZEROREF.md` 철회 배너).
 `AA`/`LJ`/`YS` 5 레코드는 수심이 바뀌지 않았으므로 **동결 행과 비트 동일**하다
@@ -65,10 +69,15 @@ RECORD = 'AA14'
 CACHE = os.environ.get('WS_FIG_CACHE', '')
 
 
+# ⛔동결 배치 파일은 **절대 건드리지 않는다**(다른 배치가 도는 중일 수 있다).
+# 핀이 공허하지 않음을 보이려면 이 변수로 **복사본**을 가리켜라 — 원본은 그대로 둔다.
+FROZEN = os.environ.get('WS_B2_RESULTS', os.path.join(B2DIR, 'results.jsonl'))
+
+
 def frozen_rows():
     """`results.jsonl` 에서 이 레코드의 두 팔 행."""
     out = {}
-    with open(os.path.join(B2DIR, 'results.jsonl')) as f:
+    with open(FROZEN) as f:
         for line in f:
             if not line.strip():
                 continue
@@ -154,66 +163,71 @@ print(f'✅핀 통과 ({RECORD}, win={G.WIN}): ' +
 
 # ── 그림 ─────────────────────────────────────────────────────────────────────
 ACC, WARN, MUTE = '#0b5394', '#b45309', '#8a8a8a'
-NAME = {'SHIP': 'deployed arm (bank)', 'PROP': 'proposed representation, forced on'}
+NAME = {'SHIP': 'deployed arm (bank)', 'PROP': 'proposed representation'}
 COL = {'SHIP': ACC, 'PROP': WARN}
 vmax = float(np.nanmax(np.abs([gt[mm], fields['SHIP'][mm], fields['PROP'][mm]])))
 
-fig = plt.figure(figsize=(9.1, 5.5))
-gs = fig.add_gridspec(2, 4, height_ratios=[1.18, 1.0],
-                      hspace=.44, wspace=.30,
-                      left=.062, right=.988, top=.925, bottom=.115)
+fig = plt.figure(figsize=(9.2, 5.9))
+gs = fig.add_gridspec(2, 4, height_ratios=[1.0, 0.94],
+                      hspace=.50, wspace=.16,
+                      left=.055, right=.915, top=.885, bottom=.185)
 axA = fig.add_subplot(gs[0, 0])
 axm = [fig.add_subplot(gs[0, i]) for i in (1, 2, 3)]
 axE = fig.add_subplot(gs[1, 0:2])
 axH = fig.add_subplot(gs[1, 2:4])
 
+
+def inside(ax, txt, color, y=.985):
+    """패널 안쪽 주석 — 패널 밖에 쓰면 아래 행의 제목과 부딪힌다."""
+    ax.text(.02, y, txt, transform=ax.transAxes, ha='left', va='top',
+            fontsize=6.2, color=color, linespacing=1.4, zorder=6,
+            bbox=dict(fc='white', ec='none', alpha=.78, pad=1.4))
+
+
 # (a) 관측 구름 + 질의점
 Xq, Yq = np.meshgrid(gxq, gyq)
-axA.scatter(Xq[mm], Yq[mm], s=13, marker='+', c=MUTE, lw=.55, zorder=2,
-            label=f'query points ({int(mm.sum())})')
-sc1 = axA.scatter(P[:, 0], P[:, 1], c=zobs, s=5.5, cmap='RdBu_r',
-                  vmin=-vmax, vmax=vmax, lw=0, zorder=3,
-                  label=f'observations ({len(zobs)})')
+axA.scatter(Xq[mm], Yq[mm], s=15, marker='+', c=MUTE, lw=.55, zorder=2)
+axA.scatter(P[:, 0], P[:, 1], c=zobs, s=5.5, cmap='RdBu_r',
+            vmin=-vmax, vmax=vmax, lw=0, zorder=3)
 axA.set_aspect('equal')
 axA.set_title('(a) what the estimator is given', fontsize=8, loc='left')
 axA.set_xlabel('x [m]', fontsize=7.2)
 axA.set_ylabel('y [m]', fontsize=7.2)
 axA.tick_params(labelsize=6.4)
-axA.legend(fontsize=6.0, frameon=False, loc='upper left', handletextpad=.25,
-           borderpad=.15, labelspacing=.25)
-axA.text(.5, -.235, f'{len(zobs)} samples over a {P[:,2].ptp():.0f} s memory window\n'
-                    f'({len(np.unique(P[:,2]))} distinct scan times), colour = elevation',
+inside(axA, f'{len(zobs)} observations (dots, colour = elevation)\n'
+            f'{int(mm.sum())} scored query points (grey +)', '#333')
+axA.text(.5, -.27, f'{len(zobs)} samples over a {np.ptp(P[:, 2]):.0f} s memory window\n'
+                   f'({len(np.unique(P[:, 2]))} distinct scan times)',
          transform=axA.transAxes, ha='center', va='top', fontsize=6.0,
-         color=MUTE, linespacing=1.35)
+         color=MUTE, linespacing=1.4)
 
 # (b)-(d) 참값과 두 팔의 nowcast 장 (같은 색축)
-for ax, (ttl, F) in zip(axm, [('(b) measured surface (truth)', gt),
-                              ('(c) ' + NAME['SHIP'], fields['SHIP']),
-                              ('(d) ' + NAME['PROP'], fields['PROP'])]):
-    M = np.where(mm, F, np.nan)
-    im = ax.pcolormesh(gxq, gyq, np.ma.masked_invalid(M), cmap='RdBu_r',
-                       vmin=-vmax, vmax=vmax, shading='nearest')
+notes = ['measured WASS surface\n(same colour scale in (a)-(d))'] + [f'nRMSE {now[a]:.3f}\n{atoms[a]} Gaussian components'
+                                     for a in G.ARM_ORDER]
+for ax, ttl, F, nt, cl in zip(
+        axm,
+        ['(b) truth at lead 0 s', '(c) ' + NAME['SHIP'], '(d) ' + NAME['PROP'] + ' (forced)'],
+        [gt, fields['SHIP'], fields['PROP']], notes, ['#333', ACC, WARN]):
+    im = ax.pcolormesh(gxq, gyq, np.ma.masked_invalid(np.where(mm, F, np.nan)),
+                       cmap='RdBu_r', vmin=-vmax, vmax=vmax, shading='nearest')
     ax.set_aspect('equal')
     ax.set_title(ttl, fontsize=8, loc='left')
     ax.set_xlabel('x [m]', fontsize=7.2)
+    ax.set_xlim(axA.get_xlim())
+    ax.set_ylim(axA.get_ylim())
     ax.tick_params(labelsize=6.4, labelleft=False)
-axm[0].text(.5, -.235, 'same colour scale in (a)-(d); grey +\nmarks the scored query points',
-            transform=axm[0].transAxes, ha='center', va='top', fontsize=6.0,
-            color=MUTE, linespacing=1.35)
-for ax, a in zip(axm[1:], G.ARM_ORDER):
-    ax.text(.5, -.235, f'nRMSE {now[a]:.3f}\n{atoms[a]} Gaussian components',
-            transform=ax.transAxes, ha='center', va='top', fontsize=6.2,
-            color=COL[a], linespacing=1.35)
-cb = fig.colorbar(im, ax=axm, fraction=.030, pad=.012, aspect=26)
+    inside(ax, nt, cl)
+cb = fig.colorbar(im, ax=axm, fraction=.032, pad=.014, aspect=22)
 cb.set_label('surface elevation [m]', fontsize=6.8)
 cb.ax.tick_params(labelsize=6.2)
 
 # (e) 참값 대 추정값
 lim = vmax * 1.06
 axE.plot([-lim, lim], [-lim, lim], '-', color='k', lw=.9, zorder=2)
-axE.axhline(0, color=MUTE, ls=':', lw=1.0, zorder=2)
-axE.text(-lim * .97, 0.012 * vmax, 'a zero field predicts this line', fontsize=6.2,
-         color=MUTE, ha='left', va='bottom')
+axE.axhline(0, color=MUTE, ls=':', lw=1.1, zorder=2)
+axE.text(-lim * .97, .03 * vmax, 'dotted = a zero field', fontsize=6.2,
+         color=MUTE, ha='left', va='bottom', zorder=5,
+         bbox=dict(fc='white', ec='none', alpha=.8, pad=1.2))
 for a, mk in zip(G.ARM_ORDER, ('o', 's')):
     axE.scatter(gt[mm], fields[a][mm], s=13, marker=mk, facecolors='none',
                 edgecolors=COL[a], lw=.75, zorder=3,
@@ -223,26 +237,27 @@ axE.set_ylim(-lim, lim)
 axE.set_aspect('equal')
 axE.set_xlabel('measured elevation [m]', fontsize=7.4)
 axE.set_ylabel('estimated [m]', fontsize=7.4)
-axE.set_title(f'(e) {int(mm.sum())} query points, nowcast (lead 0 s)', fontsize=8, loc='left')
+axE.set_title(f'(e) {int(mm.sum())} query points, nowcast', fontsize=8, loc='left')
 axE.tick_params(labelsize=6.6)
-axE.legend(fontsize=6.2, frameon=False, loc='upper left', handletextpad=.15,
-           borderpad=.15, labelspacing=.3)
+axE.legend(fontsize=6.2, loc='lower right', handletextpad=.15,
+           borderpad=.3, labelspacing=.3, frameon=True, framealpha=.88,
+           edgecolor='none', facecolor='white').set_zorder(6)
 axE.grid(alpha=.2, lw=.5)
 
 # (f) 잔차 — 제로필드 잔차(= -참값)를 회색 참조로 함께 그린다
 bins = np.linspace(-lim, lim, 34)
-axH.hist(-gt[mm], bins=bins, color=MUTE, alpha=.30, zorder=2,
-         label=f'a zero field  ·  nRMSE {zero_now:.3f}')
+axH.hist(-gt[mm], bins=bins, color=MUTE, alpha=.30, zorder=2)
 for a in G.ARM_ORDER:
     axH.hist(fields[a][mm] - gt[mm], bins=bins, histtype='step', lw=1.25,
-             color=COL[a], zorder=3, label=f'{NAME[a]}  ·  nRMSE {now[a]:.3f}')
+             color=COL[a], zorder=3)
 axH.axvline(0, color='k', lw=.8, zorder=4)
+axH.set_ylim(0, 48)
 axH.set_xlabel('estimate - measured [m]', fontsize=7.4)
 axH.set_ylabel('query points', fontsize=7.4)
 axH.set_title('(f) residuals at the same query points', fontsize=8, loc='left')
 axH.tick_params(labelsize=6.6)
-axH.legend(fontsize=6.2, frameon=False, loc='upper left', handletextpad=.5,
-           borderpad=.15, labelspacing=.3,
+axH.legend(fontsize=6.2, frameon=False, loc='upper right', handletextpad=.5,
+           borderpad=.15, labelspacing=.35,
            handles=[plt.Rectangle((0, 0), 1, 1, fc=MUTE, alpha=.30, ec='none')] +
                    [Line2D([], [], color=COL[a], lw=1.25) for a in G.ARM_ORDER],
            labels=[f'a zero field  ·  nRMSE {zero_now:.3f}'] +
@@ -250,16 +265,23 @@ axH.legend(fontsize=6.2, frameon=False, loc='upper left', handletextpad=.5,
 axH.grid(axis='y', alpha=.2, lw=.5)
 
 # ★필수 공시 — 라우터가 실측에서 무엇을 하는가, 그리고 이 그림이 무엇이 아닌가
-fig.text(.5, .022,
-         'On measured input the shipped router does NOT use the learned prior (WavePrior): it hands the estimate '
-         'to a separate bank estimator (c), which builds no Gaussian components. '
-         'The "proposed representation" arm (d) is that prior forced on.\n'
-         'One record (AA14), one 40 s window, nowcast only: this is what the two arms look like, not how often. '
-         'Record counts over the 12 measured records are reported separately. '
-         'Observations are a synthetic sparsification of a measured WASS stereo surface, not LiDAR returns.',
-         ha='center', va='bottom', fontsize=6.1, color='#444', linespacing=1.5)
+DISCLOSE = [
+    'On measured input the shipped router does NOT use the learned prior (WavePrior): it hands the',
+    'estimate to a separate bank estimator (c), which builds no Gaussian components at all. The',
+    '"proposed representation" arm (d) is that prior forced on.  Both arms receive the identical',
+    'observations and are scored at the identical query points.',
+    '',
+    'One record, one 40 s window, nowcast only: this is what the two arms look like, not how often.',
+    'Counts over the 12 measured records are reported separately.  The observations are a synthetic',
+    'sparsification of a measured WASS stereo surface, not LiDAR returns.',
+]
+fig.text(.055, .012, '\n'.join(DISCLOSE[:4]), ha='left', va='bottom',
+         fontsize=6.1, color='#444', linespacing=1.45)
+fig.text(.525, .012, '\n'.join(DISCLOSE[5:]), ha='left', va='bottom',
+         fontsize=6.1, color=MUTE, linespacing=1.45)
 fig.suptitle(f'Measured stereo record {RECORD} (fixed station), scored against its own zero field '
-             f'({zero_now:.3f}, not the constant 1.0)', fontsize=8.6, x=.062, ha='left')
+             f'(nRMSE {zero_now:.3f}, not the constant 1.0)', fontsize=8.8, x=.055, y=.972,
+             ha='left')
 
 OUT = os.path.join(ROOT, 'paper', 'figures', 'fig_real_qual.pdf')
 fig.savefig(OUT)

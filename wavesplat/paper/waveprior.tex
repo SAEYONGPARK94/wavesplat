@@ -2114,6 +2114,31 @@ not a quantity this paper cites.}
 \label{fig:real}
 \end{figure}
 
+% ★[2026-09-02] 실측 정성 그림. ⚠생성기는 **추정을 2회 돌린다**(레코드 1 × 팔 2)
+%   ⟹ ⛔방벽의 「재생성 대조」 목록에 넣지 않는다(방벽은 런 0회여야 한다).
+%   대신 생성기 자신이 동결 행과 **비트 대조**한다: obs/q 해시 · 두 팔의 nowcast ·
+%   원자 수 · 참 제로필드. 불일치면 그림을 저장하지 않고 죽는다.
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_real_qual.pdf}
+\caption{What the two arms actually produce on one measured record, so that the
+counts in Fig.~\ref{fig:real} have a picture attached. Both arms receive the
+identical observations (a) --- a sparse sample of a measured stereo surface, not
+lidar returns --- and are scored at the identical query points against the measured
+surface (b). The deployed arm (c) builds no spectral components at all: on measured
+input the shipped router does not use the learned prior, and hands the estimate to a
+separate bank estimator. Panel (d) is that prior switched on by force. Panels (e) and
+(f) show the same two estimates at the query points, with a zero field drawn as the
+reference each is scored against. \emph{This is one record, one window, and the
+nowcast only:} it shows what the arms look like, not how often. The record was chosen
+because the water-depth correction does not touch it, which is what allows the
+figure's numbers to be checked bit-for-bit against the frozen batch; it also sits in
+the easier of the two spatial strata. The ratio of the two errors here is not a
+result --- the paired margin between these arms has been corrected twice and is not a
+quantity this paper cites.}
+\label{fig:real_qual}
+\end{figure}
+
 
 \subsection{Summary of the measurements this paper rests on}
 \label{sec:res_summary}

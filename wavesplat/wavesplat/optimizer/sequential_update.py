@@ -1423,8 +1423,14 @@ class SequentialUpdater:
 
         # Phase prediction: advance phases by ω·Δt.
         # NOTE: this is redundant with the forward model's own -ω·t term and, when enabled,
-        # double-counts time (see TRACK_PHASE_PREDICT note above). Gated so shipped behaviour
-        # (advance ON) is the default; TRACK_PHASE_PREDICT=False skips it.
+        # double-counts time (see TRACK_PHASE_PREDICT note above).
+        # ⛔[2026-09-02 audit A8] The previous wording here said "shipped behaviour
+        #    (advance ON) is the default" — that is BACKWARDS, and had been for months.
+        #    The shipped default is advance OFF: TRACK_PHASE_PREDICT = False (:351),
+        #    flipped 2026-07-26 by user decision. Setting it True restores legacy behaviour.
+        #    ★This comment is the kind that silently rewinds a correction: the thesis says
+        #    "advance is not performed" in three places, all correct; an editor reading this
+        #    line and "fixing" the thesis to match would have re-introduced the error.
         dt = frame.t - getattr(self, '_last_t', frame.t)
         if TRACK_PHASE_PREDICT and abs(dt) > 1e-6:
             with torch.no_grad():

@@ -149,6 +149,17 @@
 \textbf{덮어쓰지 않았다}. ⛔\textbf{따라서 본 논문은 이 배치에 대해 ``동결한 그 파일로
 돌았다''라고 쓰지 않는다} --- 그 논증은 \textbf{도달 불가} 논증이지 실행 대조가 아니다.
 전문은 \S\ref{sec:results_m1}\,(7).}}
+% ★[2026-09-02] 적대적 감사 A10 — `SS-LOWH` 명목 공시. 동결 판정
+%   `tmp/B26_SEASTATE_2026-08-27/verdict_b26.json` 의 `corners.SS-LOWH.reading` 이
+%   축자로 *"명목만 통과 ⟹ EXPLORATORY. 위 문장을 쓰되 가족단위 미달을 병기한다"*
+%   라 요구하는데, *"네 칸이 모두 유지"* 를 적는 **다섯 곳 어디에도** 없었다
+%   (표 캡션 한 곳만 지키고 있었다 = 전파 실패 1/6).
+%   ⛔손으로 다섯 번 적지 않는다 --- 그것이 이 결함이 자란 방식이다.
+\newcommand{\SSLowhNominal}{\,(⚠한 칸 \texttt{SS-LOWH} 는 $17/24$ 로
+  \textbf{가족단위 문턱 미달 = 명목 통과}이며 그 칸의 읽기 등급은 \textbf{탐색적}이다)}
+\newcommand{\SSLowhNominalEN}{\,(one cell, \texttt{SS-LOWH}, holds only
+  \emph{nominally} at $17/24$, below the family-wise threshold, and is graded
+  \emph{exploratory})}
 \newcommand{\MOneDrift}{\,(⚠\emph{동결 드리프트 공시}: 동결 해시 하나가 이 배치가 도는
 동안 어긋났고 무해 논증은 \emph{도달 불가} 논증이다 ⟹ ⛔\emph{``동결한 그 파일로
 돌았다''}로 읽지 않는다; \S\ref{sec:results_m1}\,(7))}
@@ -167,6 +178,14 @@ not an execution comparison ⟹ ⛔this thesis does not write ``it ran on the fi
 읽지 않으며, 이 행의 읽기 등급은 \textbf{확증이 아니라 탐색(\texttt{EXPLORATORY})}이다
 --- 2026-08-30 강등, 사유와 축자 회계는 \S\ref{sec:cite-status-m4};
 ⛔이 행을 기여의 지위나 후속 측정의 우선순위 근거로 인용하지 않는다)}
+% ★[2026-09-02] 적대적 감사 A9 — `B-1` 코퍼스용 비교자 강도 공시.
+%   ⛔`\CmpSkill{}` 을 그대로 쓰면 틀린다: 그 값은 **HOS 혼잡 48 에피소드** 코퍼스의
+%   것이고 `B-1` 은 **선형 64 에피소드** 코퍼스다. 코퍼스별로 가른다.
+%   값의 출처 = `tmp/S16_BASELINE_2026-08-14/results.jsonl` 재집계(런 0회);
+%   `scripts/check_canonical_facts.py` 가 자료에서 **다시 계산해** 이 두 수를 검사한다.
+\newcommand{\CmpSkillBOne}{\,(⚠\emph{비교자 강도 공시}: 이 코퍼스(선형 혼잡 $64$
+  에피소드)에서 격자 기준선은 무기술 기준을 $64/64$ 로 이기며 상대 중앙 $-17.73\%$ 다
+  ⟹ 위 마진은 \textbf{기술이 있는 비교자}에 대한 것이다)}
 \newcommand{\CmpSkill}{\,(⚠\emph{비교자 강도 공시}: 동결 혼잡 HOS 코퍼스($48$ 에피소드)에서
 \textbf{외부 격자 기준선}의 전역 기술은 무기술 대비 $16.9\%$ 다 --- ⛔단 마진이 그 낮은
 기술 때문에 생긴 것은 아니다: 기준선이 \emph{강한} 셸만 남겨도 마진은 오히려 커진다.
@@ -360,7 +379,7 @@ $+18.2\%$ 더 나쁘다, 확증 문턱 통과; 배치 \texttt{B-25}), 질량$\cd
 % ADDED 2026-08-23: 초록이 철회만 담고 결과를 담지 않아 본문(1·3·6장)과 어긋나 있었다.
 % R3 심사 토론 ML 심사의 요구("초록을 제2장과 정합").
 \textbf{[2026-08-23 재측정]} 검증된 대체 결과는 다음과 같다. \emph{혼잡한 다성분 해상}에서
-본 방법은 보유한 최강 적격 격자 기준선 대비 오차 중앙값을 \textbf{약 $39\%$} 낮춘다
+본 방법은 보유한 최강 적격 격자 기준선 대비 오차 중앙값을 \textbf{약 $39\%$}\CmpSkillBOne{} 낮춘다
 ($64$ 중 $62$; 배치 \texttt{B-1}). 이 부호는 \emph{같은 기준선}에 대해 비선형(HOS $M{=}3$)
 참값, 그리고 장면 시드 $12$개 중 $8$개를 이 프로젝트의 앞선 배치가 쓰지 않은
 대역에서 뽑은 표본에서도 유지된다($48$ 중 $43$; 배치 \texttt{B-12}).
@@ -540,7 +559,7 @@ MDE $q = 0.869$; ⛔따라서 ``차이가 없다''로도 읽지 않는다).
 \textbf{바다 자체가 달랐다}(합성 헤드라인은 BF4/BF5, 실측 $12$ 레코드는 중앙
 $H_s = 0.725$\,m $\cdot$ $T_p = 3.49$\,s) ⟹ 지금까지 \emph{``sim-to-real''}과
 \emph{``해상상태''}가 교락돼 있었다. 실측 레코드의 $(H_s, T_p)$ 를 참값이 있는 합성
-위로 옮긴 $2\times2$ 요인 개입에서 \textbf{네 칸이 모두 유지}되며 실측 해상상태 칸의
+위로 옮긴 $2\times2$ 요인 개입에서 \textbf{네 칸이 모두 유지}\SSLowhNominal{}되며 실측 해상상태 칸의
 \emph{승수}가 가장 높다($24/24$, $p = 6.0\times10^{-8}$; 배치 \texttt{B-26}).
 % CORRECTED 2026-08-28 (F-1): 종전 문안은 "그 칸이 가장 강하다" 였다. 그것은 **승수
 % 한 척도에서만** 참이고 나머지 두 척도에서는 반대다(576행 재집계). ⟹ 순위 주장 삭제.
@@ -732,7 +751,7 @@ been verified; only verified replacement results follow.
 % ADDED 2026-08-23: mirror of the Korean abstract update (R3, ML examiner).
 \textbf{[2026-08-23 re-measurement]} The verified replacement results are as follows.
 In \emph{crowded, multi-component seas} the method lowers median error by \textbf{about
-$39\%$} relative to the strongest eligible grid baseline available to this work ($62$ of
+$39\%$}\CmpSkillBOne{} relative to the strongest eligible grid baseline available to this work ($62$ of
 $64$ episodes; batch \texttt{B-1}). The sign persists \emph{against the same baseline} on a sample built from
 nonlinear (HOS $M{=}3$) ground truth and, for $8$ of its $12$ scene seeds, a seed range
 no earlier batch of this project had used ($43$ of $48$; batch \texttt{B-12}).
@@ -908,7 +927,7 @@ samples differed in the sea state itself (the synthetic headline is BF4/BF5, whe
 twelve real records have median $H_s = 0.725$\,m and $T_p = 3.49$\,s), so
 \emph{``sim-to-real''} and \emph{``sea state''} were until now confounded. Moving the real
 records' $(H_s, T_p)$ onto synthetic scenes that \emph{have} ground truth, in a $2\times2$
-factorial intervention, leaves \textbf{all four cells holding}, with the real-sea-state cell
+factorial intervention, leaves \textbf{all four cells holding}\SSLowhNominalEN{}, with the real-sea-state cell
 carrying the highest \emph{win count} ($24/24$, $p = 6.0\times10^{-8}$; batch \texttt{B-26}).
 % CORRECTED 2026-08-28 (F-1): mirrors the Korean abstract. "The strongest" held on the
 % win-count scale only; on the other two scales the ordering is the opposite.
@@ -1529,7 +1548,7 @@ $16/16$ 이므로 \emph{비교자에 기술이 있는 상태에서} 갈리지 �
   \item \textbf{작동 범위의 확정 --- 어디서 되고 어디서 되지 않는가}: \\
         % UPDATED 2026-08-23: B-1 재집계로 혼잡 층의 크기를 처음 적는다(K-1). 의무 병기 3개 포함.
         \emph{혼잡한 다성분 해상}에서 본 방법은 보유한 \textbf{최강 적격 격자 기준선} 대비
-        오차 중앙값을 \textbf{약 $39\%$} 낮춘다($64$ 에피소드 중 $62$, 양측 $p = 2.3\times10^{-16}$;
+        오차 중앙값을 \textbf{약 $39\%$}\CmpSkillBOne{} 낮춘다($64$ 에피소드 중 $62$, 양측 $p = 2.3\times10^{-16}$;
         배치 \texttt{B-1}, 표~\ref{tab:b1_crowded}).
         % ADDED 2026-08-27 (T2): 크기 인용 규율. 근거는 tab:b1_crowded 직후 문단.
         ⚠\textbf{이 크기는 정수 자리로만 인용한다} --- 통계적으로 구별되지 않는 배포 팔들이
@@ -1571,7 +1590,7 @@ $16/16$ 이므로 \emph{비교자에 기술이 있는 상태에서} 갈리지 �
         %       SS-REAL 24/24 p=6.0e-8, 게이트 28/29 (⚠G-0 시드 원장 충돌은 **후속** M-1 이 만든 것; 측정 게이트 전건 통과), 96 에피소드 · 576 런)
         ⑥★\textbf{해상상태 교락도 닫혔다 --- 단 \emph{선형} 참값에서다.} 실측 $12$
         레코드의 해상상태($H_s = 0.725$\,m, $T_p = 3.49$\,s)를 참값이 있는 합성 위에
-        재현한 $2\times2$ 요인 개입에서 네 칸이 \textbf{모두 유지}되며 실측 해상상태 칸의
+        재현한 $2\times2$ 요인 개입에서 네 칸이 \textbf{모두 유지}\SSLowhNominal{}되며 실측 해상상태 칸의
         \emph{승수}가 가장 높다($24/24$, $p = 6.0\times10^{-8}$; 배치 \texttt{B-26},
         \S\ref{sec:results_b26}) --- ⛔단 \textbf{코너 순위는 주장하지 않는다}
         (표~\ref{tab:b26_absolute}: 그 칸의 절대 오차는 헤드라인 칸보다 약 $16\%$ 높고,
@@ -2034,7 +2053,7 @@ $16/16$ 이므로 \emph{비교자에 기술이 있는 상태에서} 갈리지 �
 
 \begin{itemize}
   \item \textbf{외부 기준선 대비 정확도 이득의 크기}는 \emph{합성 혼잡 층에 한정하여},
-        그리고 \emph{정수 자리로만} 주장한다(약 $-39\%$, $62/64$; 배치 \texttt{B-1},
+        그리고 \emph{정수 자리로만} 주장한다(약 $-39\%$\CmpSkillBOne{}, $62/64$; 배치 \texttt{B-1},
         표~\ref{tab:b1_crowded}).
         % ADDED 2026-08-27 (T2): 소수 자리를 주장 범위에서 명시적으로 뺀다.
         ⛔\textbf{소수 자리는 주장하지 않는다} --- 같은 기준선 열에 대해 짝 부호검정으로
@@ -2561,7 +2580,15 @@ FNO의 균일 격자 가정은 LiDAR의 불규칙 샘플링과 비호환적이�
 격자 비의존 희소 표현은 compressed sensing~\citep{Candes2006}과
 \citet{Donelan1996}의 방향 스펙트럼 분석과 개념적으로 관련되나,
 (1) 각 기저 함수가 물리적 의미의 평면파인 점과
-(2) 모델 차수가 잔차 에너지에 기반하여 온라인으로 적응하는 점에서 차별화된다.
+(2) 모델 차수가 잔차 에너지에 기반하여 온라인으로 적응하는 점에서 \textbf{구조적으로}
+차별화된다.
+% ⛔[2026-09-02] 적대적 감사 A5: 이 자리가 **널로 측정돼 철회된 기제**를 신규성
+%   차별점으로 단서 없이 쓰고 있었다. 논문 자신이 세 곳에서 철회를 적어 두었다
+%   (제1장 기여·한계 목록 · 실측 사다리 `L5` 4/12 · §적응형 절의 주석).
+⚠\textbf{단 그 기제의 \emph{정확도} 기여는 널로 측정되어 철회되었다} ---
+구조로서는 돌아가지만 정확도 이득은 이 저장소에서 검출되지 않았고(2026-08-03),
+실측 사다리의 해당 고리도 $4/12$ 로 미결이다(\S\ref{sec:contrib-limits}).
+⟹ 여기서 주장하는 차별점은 \emph{표현의 구조}이지 \emph{측정된 이득}이 아니다.
 
 \section{하이드로포일 선박 동역학 및 제어}
 \label{sec:hydrofoil_control}
@@ -4003,7 +4030,7 @@ $\sigma = 0.02 \to 0$; $12$ 레코드 $\times$ 네 모서리). ``회복''은 그
 ★\textbf{그러나 어제와 달리 \emph{배제된 축}이 하나 생겼다 --- \emph{파랑 조건}이다
 (2026-08-28).} 위 목록의 개입들은 전부 \emph{실측 쪽}에서 무엇을 주면 회복하는가를
 물었다. 그와 별개로, \textbf{합성 쪽에서 바다의 $(H_s, T_p)$ 두 수를 실측 레코드의
-중앙값으로 옮기는} 개입이 수행되었고 헤드라인은 네 칸 모두에서 유지되었다
+중앙값으로 옮기는} 개입이 수행되었고 헤드라인은 네 칸 모두에서 유지되었다\SSLowhNominal{}
 (\S\ref{sec:results_b26}, 표~\ref{tab:b26_seastate}). ⟹ ★\textbf{합성 양성과 실측
 음성의 갈림은 \emph{어떤 바다인가}로 설명되지 않는다} --- 남는 축은 \textbf{자료가
 어디서 오고 그 위에서 관측이 어떻게 취해지는가}이다. ⚠\textbf{이것은 축의 배제이지
@@ -5374,12 +5401,21 @@ $2026$년 $6$월 코퍼스(즉 \textbf{$2026$-$08$-$22$ 배포 구성 이전})�
 그 자리를 대체하는 결과를 여기 놓는다. 대체 표는 \textbf{추가 추정 실행 없이} 기존 두 배치의
 원자료를 재집계하여 얻었으며(배포 구성 팔 $384$행, 기준선 팔 $384$행), 두 팔이 \emph{동일한
 $64$개 혼잡 에피소드}를 보았음을 집합 일치로 확인하였다. 에피소드별 값은 추정기 시드 $3$개의
-중앙값이다.
+ 중앙값이다.
+
+% ⛔[2026-09-02] 적대적 감사 A6: 이 배치의 동결 판정 파일이 스스로 `_honesty` 에
+%   *"gates/analyze 는 결과 뒤에 작성됐다"* 라 적는데, 학위논문에는 그 문장이 **0회**였다.
+%   ★논문 쪽 검사기(`check_paper_disclosures.py`)는 이 공시를 **강제**하지만 대상이
+%   `paper/` 하나뿐이라 학위논문을 보지 않는다 --- 누락이 선택적으로 보인다.
+⚠\textbf{그리고 이 배치의 게이트$\cdot$분석 코드는 결과 뒤에 작성되었다}
+(판정 규칙 자체는 그 전의 설계 문서에 적혀 있었고 코드는 그것을 옮긴 것이다)
+⟹ ⛔이 행을 \emph{``사전등록된 게이트를 그대로 통과했다''} 로 읽지 않는다.
 
 \begin{table}[htbp]
 \centering
 \caption{혼잡 층($64$ 에피소드) 정확도 --- 배포 구성 대 최강 적격 격자 기준선.
-값은 에피소드별 시드 중앙값의 중앙값. \emph{제로필드}는 무기술 기준(예측 $\equiv 0$)이다.}
+값은 에피소드별 시드 중앙값의 중앙값. \emph{제로필드}는 무기술 기준(예측 $\equiv 0$)이다.
+⚠이 표의 마진을 인용할 때는 비교자 강도를 병기한다\CmpSkillBOne{}.}
 \label{tab:b1_crowded}
 % CORRECTED 2026-08-27 (C2 검증 MINOR): 열 사양이 5열(lcccc)인데 헤더에 빈 칸이 하나 더 있어
 % 데이터 4칸이 밀려 렌더됐다 — `무기술 대비` 열이 PDF 에서 비어 있었다(pdftotext 로 확인).
@@ -6864,7 +6900,18 @@ $21.11\%$)에서는 기준선이 무기술 기준보다 오히려 나쁘다}(비
 ($-40.19\%$)로 \textbf{$1$승 $\cdot$ $1.45$\,pp} 어긋난다.
 ⛔두 규약의 수를 섞어 인용하지 않는다.
 
-⚠\textbf{이 절을 인용할 때 반드시 동반해야 하는 공시 다섯.}
+% ⛔[2026-09-02] 적대적 감사 A11: 동결 판정 `verdict_m10.json` 의 `disclosures` 는
+%   **11항**이고 아래 「공시 다섯」이 그 중 10항을 다섯으로 압축해 담았는데,
+%   ★**정확히 첫 항 하나만 떨어졌다** --- *"blind 아님 + 스모크 노출"*.
+%   학위논문 전체에서 `blind` 는 14곳에 나오는데 `M-10` 에는 **0곳**이었다.
+%   ★논문 쪽은 이 공시를 검사기 규칙 `MTen-blind` 로 **기계 강제**하지만 그 검사기의
+%   대상이 `paper/` 하나라 학위논문을 보지 않는다 ⟹ 누락이 구조적이다.
+⚠\textbf{이 절을 인용할 때 반드시 동반해야 하는 공시 여섯.}
+\textbf{(0)}~⚠\textbf{blind 가 아니다.} 사전등록이 결과 \emph{이전에} 예측
+(\texttt{NEARFIELD-HOLDS})을 적어 두었고, 배선 스모크가 $48$ 에피소드 중 $6$
+($12.5\%$, 전부 BF4 층)에서 주 대비의 \emph{방향}을 드러냈다
+(⛔그 스모크의 승수 자체는 인용하지 않는다). ⟹ 이 절의 확증 등급은
+\textbf{그 노출을 병기하고서만} 쓴다.
 \textbf{(1)}~★\textbf{이 배치의 수는 GPU 산물이다.} 사전등록 초판은 장치를 CPU 로
 고정하라고 적었는데, 그렇게 하면 동결 재현 게이트가 전건 실패한다(상대 차
 $3.2\times10^{-1}$) --- 앵커인 동결 자료 자체가 GPU 가 보이는 환경의 산물이기 때문이다.
@@ -7693,14 +7740,24 @@ BF2, $H_s=0.3$\,m, 단일 성분.
         추적 단계에서도 복원되지 않는다. 이 경우 추적 nRMSE가 초기화 직후 대비
         2--3배 높아질 수 있으며, 추적의 실질적 이점은 정확도 향상이 아닌
         계산 효율성($\sim$10 스텝 vs. $\sim$200 스텝)에 있다.
-  \item \textbf{추적 중 진폭 감쇠}: Adam optimizer의 momentum이 위상 오차로 인한
-        진폭 $w_i$의 부호 진동 신호를 누적하여 진폭이 0으로 수렴한다.
+  % ⛔[2026-09-02] 적대적 감사 A7: 이 항목은 **세 줄 안에서 자기모순**이었다 ---
+  %   ①첫 문장이 기제(Adam momentum)를 **지목**하고 ②정정이 *"원인 귀속 미확정"* 을
+  %   선언한 뒤 ③다음 문장이 다시 *"근본 원인이다"* 라 부른다.
+  %   ★정정이 **자기가 지운 문장만** 지우고 그것을 감싼 두 문장을 건드리지 않았다
+  %   (「정정은 N곳 전부」가 한 \item 안에서조차 지켜지지 않은 사례).
+  \item \textbf{추적 중 진폭 감쇠}: 추적이 진행되면서 진폭 $w_i$가 감쇠한다(관측).
         ⚠\emph{[정정, 2026-08-24]} 종전 문안은 원인을 명시적 위상 전진
         $\phi_i \mathrel{+}= \omega_i \Delta t$의 오차로 지목했으나, \textbf{그 전진은
         2026년 7월 이후 배포에서 수행되지 않는다}(§\ref{sec:tracking}).
+        ⚠\emph{[정정 2, 2026-09-02]} 그리고 종전 문안은 그 앞뒤에서 각각
+        Adam optimizer의 momentum 누적을 기제로 **지목**하고 아래 두 지표를
+        \emph{``근본 원인''} 이라 불렀다. \textbf{둘 다 내린다} --- $L_1$ 벌점을 $0$으로
+        두어도 감쇠가 멈추지 않는다는 측정이 있으나 그것은 \emph{전진이 켜져 있던}
+        구성에서 얻은 것이고, 배포 구성(전진 OFF)에서의 원인은 **측정된 적이 없다**.
         따라서 이 감쇠의 원인 귀속은 \textbf{미확정}으로 남긴다.
-        이것이 VR~$= 0.66$(진폭 $\sim$34\% 과소추정) 및
-        표~\ref{tab:spectral_accuracy}의 높은 진폭 상대 오차의 근본 원인이다.
+        VR~$= 0.66$(진폭 $\sim$34\% 과소추정)과
+        표~\ref{tab:spectral_accuracy}의 높은 진폭 상대 오차는
+        \textbf{같은 현상의 서로 다른 지표}이며, ⛔인과의 방향은 주장하지 않는다.
         밀집 관측에서는 사후 LS 보정이 효과적이나,
         희소 LiDAR($\sim$50~pts/frame)에서는 공간 커버리지 부족으로 개선되지 않는다.
         Momentum 없는 optimizer나 주기적 상태 초기화 등 대안적 추적 전략이 향후 연구 방향이다.
@@ -7709,7 +7766,11 @@ BF2, $H_s=0.3$\,m, 단일 성분.
   % 올라 있으므로 철회한다. VR·Dir R^2 는 단일 팔 기술통계라 프레임 불일치가 *교차 팔 비교*를
   % 무효화하는 것과 별개이므로 값을 남기되, 범위를 명시한다.
   % (근거: memory/reference_citation_bans.md (08-13 3라운드) · wavesplat/README.md:48)
-  \item VR = 0.66: 진폭 약 34\% 과소추정 --- 상기 추적 중 진폭 감쇠에 기인.
+  % ⛔[2026-09-02] A7 정정의 **N번째 곳**. 바로 위 항목에서 인과 방향을 주장하지
+  %   않기로 했는데 이 줄이 *"기인"* 이라 적어 되감고 있었다(같은 절 26줄 아래).
+  %   ★이 저장소가 가장 여러 번 대가를 치른 부류 --- 「정정이 N−1 곳에서 멈춘다」.
+  \item VR = 0.66: 진폭 약 34\% 과소추정 --- 상기 추적 중 진폭 감쇠와 \emph{같은 현상의
+        다른 지표}다(⛔인과 방향은 주장하지 않는다).
         \emph{([범위] 2026-08-14: 단일 팔 기술통계이며 기준선과의 비교로 읽어서는 안 된다.)}
   % --- 원문 (이력 보존) --- \item SS = +0.034: 양수이나 marginal --- 추정 품질의 추가 개선이 필요
   \item Skill Score: \textbf{[철회] (2026-08-14)} --- 이 값은 인용금지 수치다
@@ -9505,7 +9566,7 @@ nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
         % 근거: tmp/B26_SEASTATE_2026-08-27/verdict_b26.json
         ★\textbf{다만 \emph{배제된 축}이 하나 있다 --- \emph{파랑 조건}이다.}
         실측 $12$ 레코드의 해상상태($H_s = 0.725$\,m, $T_p = 3.49$\,s)를 참값이 있는
-        합성 위에 재현한 $2\times2$ 요인 개입에서 네 칸이 모두 유지되며 실측 해상상태
+        합성 위에 재현한 $2\times2$ 요인 개입에서 네 칸이 모두 유지되며\SSLowhNominal{} 실측 해상상태
         칸의 \emph{승수}가 가장 높다($24/24$; \S\ref{sec:results_b26}) --- ⛔단
         \textbf{코너 순위는 주장하지 않는다}(표~\ref{tab:b26_absolute}).
         % ADDED 2026-08-28 (B-1 공시 전파): 이 승수를 인용하는 지점은 다섯인데 M2 공시가

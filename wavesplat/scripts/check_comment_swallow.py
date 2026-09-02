@@ -147,6 +147,41 @@ def selftest():
     return 0 if ok else 1
 
 
+
+# =============================================================================
+# ★[2026-09-02] **문장 한가운데에서 끊긴 문단** --- 오늘 내가 손으로 저지른 부류.
+#   학위논문 §B-1 에 공시 문단을 끼워 넣다가 *"…시드 3개의"* ‖ 블록 ‖ *"중앙값이다."*
+#   로 **한 문장을 갈랐다**. ⚠조판은 **성공**한다(빈 줄 = 문단 나눔) --- 인쇄면에는
+#   미완성 문장과 고아 조각이 나올 뿐이다.
+#   ★이 검사가 정밀한 이유: **다음 줄이 빈 줄일 때만** 본다. 실측 후보는
+#   논문 0건 · 학위논문 3건이고 그 셋은 전부 정당하다(키워드 목록 둘 + 자리표시자 하나)
+#   ⟹ 좌표가 아니라 **내용**으로 면제한다(줄번호 대장은 조용히 낡는다).
+_END_OK = ('다.', '다).', '.', '?', '!', ':', ';', '}', ']', '\\\\', '---')
+_PARA_ALLOW = (
+    '파랑 미리보기',                                     # 국문 키워드 목록의 마지막 항
+    'hydrofoil, feedforward control, wave preview',      # 영문 키워드 목록
+    '(작성 예정)',                                       # 자리표시자
+)
+
+
+def broken_paragraphs(path):
+    lines = open(path, encoding="utf-8").read().split("\n")
+    out = []
+    for i, l in enumerate(lines[:-1]):
+        t = l.rstrip()
+        if not t or t.lstrip().startswith('%') or t.lstrip().startswith('\\'):
+            continue
+        if lines[i + 1].strip() != '':
+            continue
+        if any(t.endswith(x) for x in _END_OK):
+            continue
+        if re.search(r'(?<!\\)%', t):
+            continue                      # 줄끝 주석은 위 검사기 몫
+        if any(a in t for a in _PARA_ALLOW):
+            continue
+        out.append((i + 1, t[-70:]))
+    return out
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--selftest', action='store_true')
@@ -159,6 +194,10 @@ def main():
     bad = static(DOCS)
     for rel, ln, txt in bad:
         print(f'  ⛔{rel}:{ln}  주석 뒤 본문이 소문자로 시작한다 → {txt}')
+    for rel in DOCS:
+        for ln, txt in broken_paragraphs(os.path.join(ROOT, rel)):
+            print(f'  ⛔{rel}:{ln}  문장 한가운데에서 문단이 끊겼다 → …{txt}')
+            bad.append((rel, ln, txt))
     if a.diff:
         for add, frag in diffmode(a.diff):
             print(f'  ⛔본문이 주석으로 들어갔다: "{frag}" ⊂ "{add}"')
@@ -166,7 +205,7 @@ def main():
     if bad:
         print(f'  [FAIL] 후보 {len(bad)}건 — 주석이 본문을 삼켰는지 그 줄을 읽어라.')
         return 1
-    print(f'  [OK  ] {len(DOCS)} 문서 · 삼킴 후보 0건')
+    print(f'  [OK  ] {len(DOCS)} 문서 · 삼킴 후보 0건 · 끊긴 문단 0건')
     return 0
 
 

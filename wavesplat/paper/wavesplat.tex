@@ -99,12 +99,12 @@
 \begin{abstract}
 Phase-resolved ocean wave fields must be reconstructed from sparse, irregular point
 clouds. The prevailing approach assimilates such returns into a spatial grid state,
-which requires interpolating them onto that grid; the closest recent study measures
-direct assimilation of the sparse returns instead and reports limited improvement at
-their original locations, while its outlook names a spectral-state formulation. We
-give that formulation: the field is a small set of continuous-wavenumber spectral
-atoms constrained by the dispersion relation, placed by a learned set-valued prior
-and refined by variable projection before per-frame updating.
+which requires interpolating them onto that grid; the closest recent study
+assimilates the sparse returns directly, reports limited improvement, and names a
+spectral-state formulation in its outlook. We give that formulation: the field is a
+small set of continuous-wavenumber spectral atoms constrained by the dispersion
+relation, placed by a learned set-valued prior and refined by variable projection
+before per-frame updating.
 % ★2026-09-02 (P10) 5차 감사 권고 2d: 초록이 **음성 대조가 없는 행**으로 헤드라인을
 %   냈다(§5.1 이 그 대조를 필수라고 선언하는데도). ⟹ 헤드라인을 `B-12` 로 바꾼다:
 %   비선형 참값 · 코퍼스 밖 시드 · **비교자 기술 확인** · 분석 결과 전 동결.
@@ -116,19 +116,19 @@ field (\HosCrowdedDegraded{} of the \HosCrowdedN{} episodes realise it at second
 rather than third order), it lowers median normalised
 RMSE by \BTwelveRel{} against the strongest eligible grid baseline we possess
 (\BTwelveBetter{}/\BTwelveN{} episodes), in a comparison where that baseline itself
-retains skill against a zero predictor (\BTwelveCmpBetter{}/\BTwelveCmpN{}). The claim is carried by ablation rather than
-by baseline comparison alone: removing the learned prior
+retains skill against a zero predictor (\BTwelveCmpBetter{}/\BTwelveCmpN{}). The
+claim is carried by ablation, not by baseline comparison alone: removing the prior
 (\BTwentyTwoBetter{}/\BTwentyTwoN{} episodes worse, against an analytic package that
 itself clears a zero predictor on only \BTwentyTwoAnaZero{}/\BTwentyTwoN{}) and
 removing only the continuity of the wavenumber
 (\BSixteenBetter{}/\BSixteenN{}, dose-responsive) each cost measurable accuracy.
-The gains are synthetic; the comparison against a grid baseline is on the crowded
-stratum only, and in the sparse stratum the evidence is split --- the ablation
-reproduces there (\BNineteenBetter{}/\BNineteenN{}) while the learned package is not
-separated from the deployed analytic package. The checkpoint was trained on the
-same distribution family so ``out of sample'' means on the seed axis alone, and on
-$12$ measured fixed-station records the prior does not reach the pre-registered
-decision threshold against a per-record zero-field reference.
+The gains are synthetic; the grid-baseline comparison is crowded-stratum only, and
+in the sparse stratum the evidence is split --- the ablation reproduces there
+(\BNineteenBetter{}/\BNineteenN{}) while the learned package is not separated from
+the deployed analytic package. The checkpoint was trained on the same distribution
+family, so ``out of sample'' means the seed axis alone; and on $12$ measured
+fixed-station records the prior does not reach the pre-registered decision threshold
+against a per-record zero-field reference.
 \end{abstract}
 
 \begin{keyword}

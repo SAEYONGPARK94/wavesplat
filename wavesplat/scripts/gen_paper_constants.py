@@ -537,6 +537,68 @@ def _b1_control():
             'BOneFrameMatch': str(len(by))}
 
 
+def _seed_clustered():
+    """★**시드 수준** 재집계 — 에피소드가 아니라 **장면 시드**를 단위로 부호검정.
+
+    ⛔[2026-09-02] 7차 심사 B14: 논문이 스스로 *"the effective sample size lies somewhere
+      between 12 and 48, and **every p we print is correspondingly optimistic**"* 라
+      적으면서 표는 $p = 1.13\\times10^{-16}$ 을 인쇄한다. 심사자 축자:
+      *"A referee cannot let a table assert what the surrounding text says is wrong."*
+    ★그래서 **가장 보수적인 규약**으로 다시 집계한다: 한 시드의 네 에피소드를 중앙값으로
+      접고, 시드를 시행 단위로 부호검정. 이 규약의 p 바닥은 $2^{-n}$ 이다.
+    ⚠**사전등록된 대조가 아니다** --- 강건성 재집계다. 논문이 그렇게 밝힌다.
+    """
+    import glob as _g
+    import re as _re
+    import statistics as _st
+    from math import comb as _comb
+
+    def _p(w, n):
+        return sum(_comb(n, k) for k in range(w, n + 1)) / 2 ** n
+
+    def med_by(pat, arm, stratum='crowded'):
+        by = {}
+        for f in _g.glob(os.path.join(TMP, pat)):
+            for line in open(f):
+                r = json.loads(line)
+                if (r.get('arm') or r.get('cell')) != arm:
+                    continue
+                if stratum and r.get('stratum') not in (None, stratum):
+                    continue
+                v = r.get('avg_nRMSE')
+                if v is not None:
+                    by.setdefault(r['episode'], []).append(v)
+        return {k: _st.median(v) for k, v in by.items()}
+
+    def fold(A, B):
+        ks = sorted(set(A) & set(B))
+        assert ks, '⛔짝이 없다'
+        seeds = {}
+        for k in ks:
+            sd = int(_re.search(r'seed(\d+)', k).group(1))
+            seeds.setdefault(sd, []).append((A[k], B[k]))
+        w = sum(1 for v in seeds.values()
+                if _st.median(a for a, _ in v) < _st.median(b for _, b in v))
+        return w, len(seeds)
+
+    out = {}
+    for tag, (pa, aa, pb, ab) in {
+        'BOne': ('W16_REBASELINE_2026-08-22/results*.jsonl', 'SHIP',
+                 'S16_BASELINE_2026-08-14/results*.jsonl', 'SPEC25'),
+        'BTwelve': ('B12_HOS_EXTEND_2026-08-23/results*.jsonl', 'SHIP-NOW',
+                    'B12_HOS_EXTEND_2026-08-23/results*.jsonl', 'SPEC25'),
+        'BSixteen': ('B16_KGRID_2026-08-24/results*.jsonl', 'SHIP-NOW',
+                     'B16_KGRID_2026-08-24/results*.jsonl', 'KGRID1'),
+        'BTwentyTwo': ('B22_PRIOR_ABLATION_2026-08-27/results*.jsonl', 'SHIP',
+                       'B22_PRIOR_ABLATION_2026-08-27/results*.jsonl', 'ANA-SHIP'),
+    }.items():
+        w, n = fold(med_by(pa, aa), med_by(pb, ab))
+        out[f'{tag}SeedW'] = str(w)
+        out[f'{tag}SeedN'] = str(n)
+        out[f'{tag}SeedP'] = _sci(_p(w, n))
+    return out
+
+
 def _prior_ckpt_sha(n=12):
     """★두 번째 체크포인트(`setdiff_prior.pt`)의 SHA256 앞 12자리.
 
@@ -868,6 +930,7 @@ def main():
     dep += list(_corpus_identity().items())
     dep += list(_w15_reagg().items())
     dep += list(_b1_control().items())
+    dep += list(_seed_clustered().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]
 

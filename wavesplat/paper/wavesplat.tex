@@ -370,7 +370,9 @@ matches the number of spectral components to scene complexity, from $N$=2 for
 simple swells to $N$=21 for complex multi-component seas.  We deliberately do
 \emph{not} list it as a contribution: measured under the corrected tracker with
 a median-of-3 seed protocol, its accuracy benefit is null
-(retracted corpus; archived), and we discuss it as a mechanism and a
+(measured on the \emph{retracted corpus} --- the $100$-episode dataset whose
+cross-arm comparisons are withdrawn because the two arms were never scored on the
+same frames, \ref{app:changes}, R2; archived), and we discuss it as a mechanism and a
 compute-efficiency device in Section~\ref{sec:limitations} instead.
 
 Relative to prediction-error frameworks for deterministic wave forecasting such
@@ -1167,14 +1169,20 @@ where the measured mismatch is zero) and angular-noise projection
 (${\sim}5$~mm) yields a lower-bound RMS of ${\sim}0.022$~m;
 $\tau_R = 0.05$~m provides a ${\sim}2.3\times$ safety margin for
 unambiguous detection of unmodeled signal.
-On the raycast-mesh-rendered dataset used throughout this paper, however,
-the mesh's own facet-rendering error contributes comparably to this budget
-(mean ${\approx}0.048$~m, measured directly for BF3--BF5 multi-component
-scenes on the shipped 40$\times$30 mesh, versus the ${\sim}0.022$~m
-physical floor derived above); part of what currently triggers
-residual-based growth may therefore be unmodeled rendering error rather
-than unmodeled wave content, and $\tau_R$ should be re-validated on a
-Nyquist-adequate mesh.
+A caveat here belongs to a rendering that this paper no longer uses. On the
+\emph{superseded} 40$\times$30 mesh, the mesh's own facet-rendering error contributed
+comparably to this budget (mean ${\approx}0.048$~m for BF3--BF5 multi-component
+scenes, versus the ${\sim}0.022$~m physical floor above), so part of what triggered
+residual-based growth there may have been rendering error rather than unmodeled wave
+content. The corpora used here are rendered at 200$\times$167
+(Section~\ref{sec:experiments}), whose spacing is adequate for every component present;
+\emph{we did not re-measure the facet-rendering error on that mesh}, so we state the
+old figure as a property of the old rendering and leave the re-validation of $\tau_R$
+open.
+% ⛔[2026-09-02] 7차 심사 B7: 이 문단이 *"the raycast-mesh-rendered dataset **used
+%   throughout this paper** ... on the **shipped 40x30 mesh**"* 라 적었다. §4.2 는
+%   코퍼스를 **200x167** 로 재생성했다고 적는다(6쪽 뒤). ⟹ 낡은 값을 **낡은 렌더링의
+%   성질**로 명시하고, 재측정하지 않았음을 밝힌다.
 We also note that $\tau_R$ is an \emph{absolute} residual RMS in metres,
 compared without normalization by sea state, so its effective strictness
 varies with $H_s$; a scale-invariant form that normalizes the residual by
@@ -1901,8 +1909,13 @@ any baseline margin.
 separate.} With that package's ensemble intact, the learned package wins
 \WFifteenCrowdedBetter{}/\WFifteenCrowdedN{} crowded episodes
 (\WFifteenCrowdedRel{}\%) but only \WFifteenSparseBetter{}/\WFifteenSparseN{} sparse
-ones (\WFifteenSparseRel{}\%, not distinguishable from chance); we therefore do not
-write \emph{``the learned prior wins in every regime''}.
+ones.\footnote{The crowded count here coincides with the S-ENS crowded count in
+Table~\ref{tab:earns}, which is a different contrast on a different corpus
+(\SEnsRel{} there against \WFifteenCrowdedRel{} here). Both reproduce from their own
+frozen rows; the coincidence is arithmetic.} The win count is not distinguishable from chance; the point estimate
+(\WFifteenSparseRel{}\%) is a substantial \emph{loss} and we do not read the null as
+equality. We therefore do not write \emph{``the learned prior wins in every
+regime''}.
 \textbf{The comparator is not weak here, which is what makes this a result.} On the
 same episodes the analytic package beats a zero field on
 \WFifteenSparseCmpZero{}/\WFifteenSparseN{} sparse episodes, against
@@ -1915,16 +1928,25 @@ best.
 \textbf{Disclosure:} these figures come from a re-aggregation of the frozen rows
 of the deployment-verification batch W-15, not from a pre-registered contrast, and
 they do not appear in that batch's verdict file --- the \texttt{sparse} entry there
-records a different comparison. We recompute them from the frozen rows and mark them
-as a re-aggregation.
+records a different comparison. Two further caveats travel with them. The zero-field
+reference is per-episode and comes from a \emph{different} batch (the same source
+W-15's own gate file uses), so the control is assembled across two batches even
+though the episode sets are identical. And W-15's corpus is a linear-reference
+deployment corpus, not the higher-order corpus of the ablations, so the contrast with
+B-19 in the next sentence differs in comparator \emph{and} in corpus.
+% ⛔[2026-09-02] 7차 심사 B10·B11: ①제로 기준이 `B_DEPLOY_2026-08-19` 에서 오는데
+%   *"On the same episodes"* 만 적고 **배치가 다르다는 것**은 안 적었다(에피소드 집합은
+%   동일하지만 W-15 행에는 프레임 수가 없어 정합을 그 행으로는 확인할 수 없다).
+%   ②*"one comparator"* 라 적었는데 `B-19` 와는 **코퍼스도 다르다**(선형 vs HOS).
 % ⛔[2026-09-02] 검증 감사 MAJOR: 여기 있던 문장은 *"and we cite it as such"* 라 적고
 %   **배치 이름도 수치도 인용하지 않았다** --- 게다가 Data availability 는 *"§5 의 모든
 %   결과는 배치 식별자를 갖는다"* 는 **전칭**이다. ⟹ 출처를 밝히고 수치를 낸다.
 %   재현: `_w15_reagg()` 가 `results.jsonl` 에서 다시 집계한다(혼잡 55/64 · 희소 28/64).
 This is a statement about one
-comparator and does not transfer: against the wavenumber-grid ablation the same
-stratum \emph{does} separate (B-19, \BNineteenBetter{}/\BNineteenN{},
-Section~\ref{sec:res_ablation}). We report both and collapse neither.
+comparator on one corpus and does not transfer: against the wavenumber-grid ablation,
+on the higher-order corpus, the sparse stratum \emph{does} separate (B-19,
+\BNineteenBetter{}/\BNineteenN{}, Section~\ref{sec:res_ablation}). We report both and
+collapse neither.
 
 \textbf{On measured data the learned prior does not reach the decision
 threshold.} Across $12$
@@ -1998,7 +2020,10 @@ with the fourth}: a large margin against a comparator that itself has little ski
 is not the same measurement as a large margin against one that does, which is why
 the ``cmp.'' column is printed rather than described: it counts the episodes on
 which the \emph{comparator} beats a zero predictor, i.e.\ how much skill the thing
-we beat had, and a dash means that control was not part of that batch's design.
+we beat had, and a dash means that control was not part of that batch's design. A dash in the
+$p$ column means the batch's decision rule is not a single sign test on this
+contrast (B-26 reads a $2\times2$ design, T-4 a lead ladder, and the sparse S-ENS row
+is undecided).
 These rows are separate
 \emph{contrasts}, not separate corpora --- \HosSameN{} of them re-score the same
 \AblationEps{} episodes under different arms (note~(i)) --- and their magnitudes have
@@ -2099,6 +2124,22 @@ optimistic. No result in this paper turns on a marginal $p$ --- the confirmatory
 rows clear their thresholds by several episodes --- but a reader comparing two of
 them on the strength of $p$ alone would be over-reading.
 
+\emph{We therefore also report the load-bearing rows under the most conservative
+convention available}: fold each scene seed's episodes to their median, and sign-test
+on \emph{seeds}. This floors $p$ at $2^{-n}$ and it is a re-aggregation of the frozen
+rows rather than a pre-registered contrast, but it removes the objection entirely.
+B-1 gives \BOneSeedW{}/\BOneSeedN{} ($p = \BOneSeedP{}$), B-12
+\BTwelveSeedW{}/\BTwelveSeedN{} ($p = \BTwelveSeedP{}$), B-16
+\BSixteenSeedW{}/\BSixteenSeedN{} ($p = \BSixteenSeedP{}$) and B-22
+\BTwentyTwoSeedW{}/\BTwentyTwoSeedN{} ($p = \BTwentyTwoSeedP{}$). Every one still
+clears $\alpha/2 = 0.025$, so the conclusions do not rest on treating episodes as
+independent. \emph{The $p$ column of Table~\ref{tab:earns} is the episode-level
+value} and should be read with this paragraph.
+% ★[2026-09-02] 7차 심사 B14: 심사자 축자 --- *"A referee cannot let a table assert what
+%   the surrounding text says is wrong."* 이 문단이 *"인쇄된 모든 p 는 그만큼 낙관적"*
+%   이라 적으면서 표는 1.13e-16 을 싣고 있었다. ⟹ **가장 보수적인 규약으로 다시 집계**해
+%   같이 싣는다. ★결과가 주장을 지탱한다(전건 α/2 통과) --- 숨길 이유가 없었다.
+
 \paragraph{How the rows of Table~\ref{tab:earns} must be read}
 Four qualifications apply to the table as a whole and are not repeatable per row.
 \emph{(i)} Every corpus in it is synthetic, and the rows are less independent of one
@@ -2107,8 +2148,8 @@ another than a table of separate batch identifiers suggests. Six of them
 those (\HosSameRows{}) run the \emph{identical} \AblationEps{} episodes --- they are
 re-scorings of one corpus under different arms, not independent experiments.
 \HosDisjointRows{} uses a disjoint \BNineteenN{}-episode subset of the same
-directory. The remaining \LinearN{} rows (\LinearRows{}) use a linear ground-truth
-field.
+directory. The remaining \LinearN{} batches (\LinearRows{}) use a linear ground-truth
+field; S-ENS occupies two of the table's rows.
 % ⛔[2026-09-02] 검증 감사 BLOCKER: 이 자리에 있던 *"세 행이 HOS 를 공유"* 는 **틀렸다**
 %   --- `B-22`·`M-10`·`T-4` 도 `gates_b11.HOS` 를 임포트한다(파일:줄 = `gates_b22.py:70` ·
 %   `gates_m10.py:50` · `gates_t4.py:50`). 실측 교집합: 다섯 행이 **48/48 동일**.
@@ -2943,7 +2984,7 @@ Fig.~\ref{fig:qualitative}, which carries its own provenance record instead.
 % [2026-09-02 P9] 4차 감사 M17: 본문이 "supplementary archive" 를 **다섯 번** 가리키는데
 %   그것이 무엇인지 어디에도 없었다. 실체는 저장소 안의 이동 대상 파일이다.
 The ``supplementary archive'' referred to in Sections~\ref{sec:res_summary}
-and~\ref{sec:discussion} is a single file in that repository holding the
+and~\ref{sec:discussion} is a single directory in that repository holding the
 subsections, tables, and figures withdrawn from this manuscript, kept verbatim with
 the reason for each withdrawal, so that a reader can see what was removed rather
 than only that something was.

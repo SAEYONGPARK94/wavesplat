@@ -1,4 +1,6 @@
-% ⛔손으로 고칠 때는 본문의 포인터(App. R1..R4)도 함께 고쳐라.
+% ⛔손으로 고칠 때는 본문의 포인터(App. R1..R5)도 함께 고쳐라.
+%   ⚠[2026-09-02] R5 는 **코퍼스 자체의 철회**다 --- 본문의 *"retracted corpus"* 는
+%   전부 그것을 가리킨다(한때 R2 를 가리켰고 그건 Gerstner 철회라 **오독을 만들었다**).
 %   ★이 부록이 존재하는 이유(2026-09-02, 5차 감사 축자):
 %   *"after the fourth [RETRACTED] tag in running prose, the tags stop reading as
 %    candour and start reading as an unfinished edit log left in the manuscript.
@@ -8,7 +10,7 @@
 \label{app:changes}
 
 Earlier versions of this manuscript made four claims that later measurement
-withdrew. We list them here rather than in the running text, so that the body states
+withdrew, and withdrew one evaluation corpus outright. We list them here rather than in the running text, so that the body states
 only what is currently supported; each is referenced from the section where the
 claim used to appear.
 
@@ -48,12 +50,54 @@ claim replaces the withdrawn ones. \\
 The ablation that supported it removed the frequency initialisation together with
 the constraint, so it did not isolate either. What stands is the parameter-count
 reduction, which is structural. A controlled intervention has not been run. \\
+\addlinespace
+% ★[2026-09-02] 8차 검토: 이 항목이 **표 밖의 무번호 문단**이었는데 본문 세 곳이
+%   *"retracted corpus … \ref{app:changes}, R2"* 로 가리키고 있었다 --- **R2 는 Gerstner
+%   불일치 철회**다. ⟹ 포인터를 따라간 독자가 **엉뚱한 행에 도착한다.**
+%   ★번호를 주고(`R5`) 본문 포인터를 고친다. 이 저장소에서 가장 싼 수리다.
+\textbf{R5} & The \emph{corpus} itself: every cross-arm number computed on the
+$100$-episode evaluation dataset (2026-08-14) &
+This is not a withdrawal of a claim but of a dataset. That corpus was found to score
+the compared arms on \emph{different frames}, so no cross-arm comparison on it means
+what it appears to mean. Section~\ref{sec:res_summary} states which quantities had a
+pre-registered replacement and which are simply absent as a result; the withdrawn
+sections, tables and figures are kept verbatim in the supplementary archive named in
+the Data availability statement rather than deleted, which is what
+``archived'' means at every use of that word in this paper. \\
+\addlinespace
+% ★[2026-09-02] 8차 검토: \S6.6 의 세 문단이 **철회된 주장의 서사**를 본문에서 길게
+%   재현하고 있었다(각각 30·17·25 인쇄줄). 살아 있는 한계만 본문에 남기고 서사는
+%   여기로 옮긴다 --- ⛔삭제가 아니라 이동이다.
+\textbf{R6} & Two descriptions of the tracking limitation: a beamforming detection
+threshold at $|k|\gtrsim 0.4$~rad/m, and a $2$--$3\times$ inflation of tracking error
+over post-initialisation error (2026-08) &
+A mesh-independent test of the initialiser alone --- synthesising samples directly
+from analytic components with the real sensor geometry, bypassing the raycast mesh
+--- found no such threshold: isolated components are recovered across
+$|k| = 0.15$--$1.00$~rad/m down to $0.01$~m amplitude. The value $0.4$~rad/m is
+$\lambda \approx 15.7$~m, where amplitude transmission through the \emph{superseded}
+rendering mesh collapses. Both figures were properties of the reference field and of
+the uncorrected tracker, and neither reproduces. The structural limitation stands and
+is stated in Section~\ref{sec:limitations}. \\
+\addlinespace
+\textbf{R7} & Adam momentum as the cause of residual amplitude
+under-estimation (2026-08-24) &
+The attribution named an explicit phase advance $\phi_i \mathrel{+}= \omega_i \Delta t$
+as the source of the oscillating gradients. That path is switched off in the shipped
+configuration, so the named cause no longer exists. The deficit itself is still
+observed and is now reported as \emph{unattributed}. \\
+\addlinespace
+\textbf{R8} & The magnitudes of the $\Delta k_{\min}$ sensitivity sweep (2026-08) &
+The sweep used $5$ seeds per cell with the decision rule fixed in advance and a
+control episode containing no close pair. Relaxing the radius to $0.05$~rad/m
+improved the crowded $15$-component case on every seed and degraded the
+$5$-component case on every seed --- a smaller radius lets the greedy search stack
+duplicate peaks on one true component --- while the control episode was unaffected.
+The \emph{direction} stands and is stated in Section~\ref{sec:limitations}; the
+levels are not restated because the sweep is from the withdrawn corpus (R5) and has
+not been re-measured. Separately, for $N_{\text{true}}\geq 30$ the wavenumber-space
+crowding exceeds what the beamforming grid resolves at any separation radius, so an
+adaptive radius alone would not close that regime. \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-A fifth class of change is not listed above because it is not a withdrawal of a
-claim but of a \emph{corpus}: an earlier evaluation corpus was found to score the
-compared arms on different frames, and every cross-arm number computed on it has
-been removed from this paper. Section~\ref{sec:res_summary} states which quantities
-had a pre-registered replacement and which are simply absent as a result.

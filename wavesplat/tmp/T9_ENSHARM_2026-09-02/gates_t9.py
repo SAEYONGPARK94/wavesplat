@@ -49,7 +49,15 @@ def expected_rows():
 # ★여유는 자료가 아니라 **센서**에서 왔다: nRMSE = RMSE/Hs 이고 이 코퍼스는 Hs 1.2·2.0 m
 #   ⟹ δ=0.005 는 표면 고도 6·10 mm 이고, 센서 잡음 σ=0.02 m(=20 mm)보다 **작다**.
 #   ⛔`T8` 의 꼬리(0.0035-0.0119)를 보고 고른 값이 아니다.
-DELTA_ABS = 0.005
+# ★[2026-09-02] **개정 1**(결과 0행): 여유를 하나 고르지 않고 **격자 전체에서 곡선**을
+#   보고한다. 사유 = `T8` 감사가 실측으로 보였듯 여유가 판정을 가르고(0.001↔0.002에서
+#   뒤집힌다) 나는 그 곡선을 볼 수 있는 자료를 이미 갖고 있었다.
+#   ⟹ 판정 = `K(δ) >= 문턱` 인 **가장 작은 δ**. 출력이 참/거짓이 아니라 **수**다.
+DELTA_GRID = (0.001, 0.002, 0.005, 0.010)
+# ⚠센서 눈금(해석용, ⛔판정 문턱 아님): nRMSE=RMSE/Hs, Hs 1.2·2.0 m ⟹ 0.005 는 표면
+#   고도 6·10 mm 이고 센서 잡음 σ=0.02 m(20 mm)보다 작다.
+DELTA_SENSOR = 0.005
+DELTA_ABS = DELTA_SENSOR   # 하위 호환(보고용). ⛔판정에 쓰지 않는다.
 P0 = T8G.P0          # 0.75 — `T8` 과 같은 틀
 ALPHA = T8G.ALPHA    # 0.025
 
@@ -74,13 +82,14 @@ def ni_mde(n=N_PAIRS, power=0.80):
 
 
 def thresholds():
-    return dict(n=N_PAIRS, delta_abs=DELTA_ABS, p0=P0, alpha=ALPHA,
+    return dict(n=N_PAIRS, delta_grid=list(DELTA_GRID),
+                delta_sensor=DELTA_SENSOR, p0=P0, alpha=ALPHA,
                 K_MIN=ni_threshold(), NOT_EARN=N_PAIRS - ni_threshold(),
                 power_at_090=round(ni_power(0.90), 3),
                 power_at_0906=round(ni_power(0.906), 3),
                 power_at_095=round(ni_power(0.95), 3),
                 mde_p80=ni_mde(),
-                predicted_K='58-64 (PREREG §3.2, 결과 전 기록)')
+                predicted='delta* = 0.002 또는 0.005 (AMENDMENT_1 §2.3, 결과 전 기록)')
 
 
 # ── 집계 ────────────────────────────────────────────────────────────────────
@@ -100,15 +109,21 @@ def noninferiority(rows):
     ks = sorted(set(a) & set(b))
     n = len(ks)
     if n == 0:
-        return dict(n=0, K=None)
+        return dict(n=0, K=None, curve=None, delta_star=None)
     d = {k: a[k] - b[k] for k in ks}
-    K = sum(1 for k in ks if d[k] <= DELTA_ABS)
-    return dict(n=n, K=K, delta_abs=DELTA_ABS,
+    thr = ni_threshold(n)
+    curve = {f'{dd:g}': sum(1 for k in ks if d[k] <= dd) for dd in DELTA_GRID}
+    passing = [dd for dd in DELTA_GRID if curve[f'{dd:g}'] >= thr]
+    star = min(passing) if passing else None
+    return dict(n=n, curve=curve, delta_star=star, K_min=thr,
+                K=curve[f'{DELTA_SENSOR:g}'],          # 센서 눈금에서의 값(보고용)
+                delta_sensor=DELTA_SENSOR,
                 delta_median=st.median(d.values()),
                 worst_abs=max(d.values()),
                 better=sum(1 for k in ks if d[k] < 0),
                 rel_median_pct=st.median([(a[k] - b[k]) / b[k] * 100 for k in ks]),
-                p_one_sided=_upper_tail(n, K, P0))
+                p_at_star=(_upper_tail(n, curve[f'{star:g}'], P0)
+                           if star is not None else None))
 
 
 def cost(rows, timing_rows):
@@ -138,12 +153,20 @@ READING = {
 
 
 def label_for(ni):
-    t = thresholds()
-    if ni.get('K') is None:
+    """⛔개정 1: 판정은 **가장 작은 통과 여유** `δ*` 다(참/거짓이 아니다).
+
+    ⚠`REVERSE` 는 격자의 **가장 느슨한** 여유에서조차 `NOT_EARN` 이하일 때만 낸다 ---
+      그 조건은 사전등록 §5 의 *"≤ 16"* 을 격자로 옮긴 것이고, 이 규칙이 코드에만
+      있지 않도록 `AMENDMENT_1 §2.1` 에 함께 적었다(`T8` 감사 지적 #1 의 재발 방지).
+    """
+    if ni.get('curve') is None:
         return None, 'NOROWS'
-    if ni['K'] >= t['K_MIN']:
-        return f'{BATCH} :: ENS-NO-HARM-SPARSE (CONFIRMATORY)', 'CONFIRMATORY'
-    if ni['K'] <= t['NOT_EARN']:
+    t = thresholds()
+    if ni['delta_star'] is not None:
+        return (f"{BATCH} :: ENS-NO-HARM-SPARSE (CONFIRMATORY, "
+                f"delta*={ni['delta_star']:g})", 'CONFIRMATORY')
+    loosest = ni['curve'][f'{max(DELTA_GRID):g}']
+    if loosest <= t['NOT_EARN']:
         return f'{BATCH} :: ENS-HARMS-SPARSE', 'REVERSE'
     return f'{BATCH} :: ENS-HARM-UNDECIDED', 'UNDECIDED'
 
@@ -160,7 +183,8 @@ DISCLOSURE = [
 ]
 
 # ── 게이트 ──────────────────────────────────────────────────────────────────
-BLOCKING = ('G-1', 'G-2', 'G-3', 'G-4', 'G-5', 'G-6', 'G-7', 'G-8', 'G-9', 'G-ANCHOR')
+BLOCKING = ('G-1', 'G-2', 'G-3', 'G-4', 'G-5', 'G-6', 'G-7', 'G-8', 'G-9', 'G-10',
+            'G-ANCHOR')
 
 
 def gates(rows, anchor_rows=(), timing_rows=()):
@@ -231,6 +255,22 @@ def gates(rows, anchor_rows=(), timing_rows=()):
             a_bad.append(f"{r['episode']}: {r.get(FIELD)} != {ref}")
     A('G-ANCHOR M1 == 동결 S-ENS LEARN-M1 (비트)', a_n > 0 and not a_bad,
       f'compared={a_n} bad={a_bad[:2]}')
+
+    # ★[2026-09-02] 개정 1 · `T8` 감사 지적 #4 — **결정을 만들 수 있는 축의 측정에
+    #   차단 게이트가 하나도 없었다**(`H-TIMING` 이 `True` 하드코딩이었다).
+    #   ⚠`T9` 에서 비용은 라벨에 안 들어가지만, *"측정이 유효한가"* 는 별개다.
+    #   ⛔값이 결정을 만들지 않는다는 것이 **측정을 검사하지 않아도 된다는 뜻이 아니다.**
+    tk = [r for r in timing_rows if 'error' not in r]
+    per_arm = {a: sum(1 for r in tk if r.get('arm') == a) for a in ARM_ORDER}
+    fms = [x for r in tk for x in (r.get('frame_ms') or [])]
+    A('G-10 계측 행 유효 (스레드=1 · 학습 경로 · 팔 균형 · 값 유한)',
+      bool(tk)
+      and all(r.get('threads') == 1 for r in tk)
+      and all(r.get('route_effective') == 'learned' for r in tk)
+      and len(set(per_arm.values())) == 1 and min(per_arm.values()) > 0
+      and bool(fms) and all(isinstance(v, (int, float)) and v == v and v > 0
+                            for v in fms),
+      f'rows={len(tk)} per_arm={per_arm} frames={len(fms)}')
 
     w = {a: [r.get('wall_s') for r in prim if r.get('arm') == a and r.get('wall_s')]
          for a in ARM_ORDER}

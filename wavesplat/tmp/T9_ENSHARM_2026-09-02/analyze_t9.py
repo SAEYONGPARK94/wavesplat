@@ -36,12 +36,17 @@ def main():
     npass = sum(1 for _, o, _ in gates if o)
     print(f'  게이트 {npass}/{len(gates)} · 차단 {blocked or "없음"}')
 
-    print('\n── PRIMARY (절대 비열등성) ' + '─' * 33)
-    print(f"  n={ni['n']} · δ_abs={t['delta_abs']} · K={ni['K']} (문턱 {t['K_MIN']})")
+    print('\n── PRIMARY (여유 격자 곡선) ' + '─' * 32)
+    print(f"  n={ni['n']} · 문턱 K >= {t['K_MIN']}")
+    for d in t['delta_grid']:
+        k = ni['curve'][f'{d:g}']
+        mark = '✅' if k >= t['K_MIN'] else '  '
+        star = ' ★δ*' if ni['delta_star'] == d else ''
+        print(f"    {mark} δ={d:<6g}  K={k:2d}/{ni['n']}{star}")
+    print(f"  ★δ* = {ni['delta_star']}  (센서 눈금 {t['delta_sensor']} 와 비교하라)")
     print(f"  Δ 중앙 {ni['delta_median']:+.5f} · 최악 {ni['worst_abs']:+.5f} · "
           f"더 좋음 {ni['better']}/{ni['n']} · 상대 중앙 {ni['rel_median_pct']:+.2f}%")
-    print(f"  p(H0: p<={t['p0']}) = {ni['p_one_sided']:.4g} · "
-          f"검정력 0.90→{t['power_at_090']} 0.906→{t['power_at_0906']} · MDE {t['mde_p80']}")
+    print(f"  예측(결과 전) = {t['predicted']}")
 
     print('\n── SEC 비용 (⛔라벨 밖 · 문턱 없음) ' + '─' * 24)
     for a in G.ARM_ORDER:

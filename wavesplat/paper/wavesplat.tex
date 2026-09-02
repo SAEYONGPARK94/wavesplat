@@ -372,7 +372,7 @@ simple swells to $N$=21 for complex multi-component seas.  We deliberately do
 a median-of-3 seed protocol, its accuracy benefit is null
 (measured on the \emph{retracted corpus} --- the $100$-episode dataset whose
 cross-arm comparisons are withdrawn because the two arms were never scored on the
-same frames, \ref{app:changes}, R2; archived), and we discuss it as a mechanism and a
+same frames, \ref{app:changes}, R5; archived), and we discuss it as a mechanism and a
 compute-efficiency device in Section~\ref{sec:limitations} instead.
 
 Relative to prediction-error frameworks for deterministic wave forecasting such
@@ -2289,10 +2289,15 @@ more episodes than not. The second failed outright, and decisively: the ensemble
 costs \TEightFrameThree{}~ms per tracking frame against \TEightFrameOne{}~ms for the
 shipped default, because the deployed code updates every member on every frame rather
 than only at initialisation. Initialisation itself stays cheap
-(\TEightInitThree{}~s against \TEightInitOne{}~s within the same batch), which is why
-we had expected the cost to be a one-off. It is not: it is a permanent factor of
-three on the per-frame budget, and that is the reason the shipped default remains
+(\TEightInitThree{}~s against \TEightInitOne{}~s within the same batch, on a clock
+that starts after the prior's own inference and therefore understates both), which is
+why we had expected the cost to be a one-off. It is not: it is a permanent factor of
+three on the per-frame budget, and that is why the shipped default remains
 \DepLearnedEnsK{}.
+% ⚠[2026-09-02] 독립 감사 #2: `init_time_s` 는 라우터·확산 제안 **이전에** 시계를 켠다
+%   (`sequential_update.py:826 → :1085` 가 `t0` 앞에서 돈다) ⟹ 두 값 모두 약 2 s 씩
+%   과소다. 배치 안 대비는 유효하나 **다른 계기의 값과 비교하면 배수가 왜곡된다**
+%   (벽시계로는 4.87 → 10.71 s = 2.20배). ⟹ 본문에서 그 비교를 이미 뺐고, 여기 공시한다.
 % ★[2026-09-02] `T8-ENSDEFAULT`(게이트 11/11). ⛔라벨은 `ENS-DEFAULT-UNDECIDED` 지만
 %   **결정을 만든 것은 프레임 비용**이다. 내 사전등록의 비용 모형이 틀렸다 ---
 %   *"멤버 3배가 벽시계 3배가 아니다(초기화만 3배)"* 라 적었는데 배포 경로에서는
@@ -2641,17 +2646,15 @@ that reason.
 % (basis: memory/project_audit_recheck_2026-08-13.md sections 1, 6, 6.5)
 % --- original (kept for history) ---
 % We note that the simulator itself is validated by 39 unit tests
-We note that the simulator and estimator are covered by an automated test suite
-(\DeployNumTestsPaper{} tests at the time of writing; the count is generated from a
-collection run, not typed),
+The simulator and estimator carry an automated test suite
+(\DeployNumTestsPaper{} tests, counted by a collection run rather than typed)
+covering dispersion, Gerstner kinematics, Fresnel optics and raydrop statistics;
+\emph{it does not certify that the generated data is non-linear}, because the
+Gerstner test exercises a kinematics function the generation pipeline does not use
+for horizontal displacement.
 % ⛔[2026-09-02] 6차 감사 N4: 여기 *"(measured 2026-08-13; a further 8 ... added
-%   subsequently)"* 가 겹쳐 붙어 있었다. 그 괄호는 수를 **손으로 적던 시절**(204)의
-%   잔재다 --- 이제 매크로가 수집 실행에서 세므로 날짜도 증분도 거짓이 된다.
-covering dispersion, Gerstner kinematics, Fresnel optics, and
-raydrop statistics --- note that the Gerstner test exercises
-the kinematics \emph{function}, which the generation pipeline does not use for
-horizontal displacement, so it does not certify that the generated data is
-nonlinear.
+%   subsequently)"* 가 겹쳐 붙어 있었다. 수를 **손으로 적던 시절**(204)의 잔재다.
+% ★[2026-09-02] 8차 검토: 세 문장을 하나로 접었다(내용 동일).
 % ============================================================================
 % ★2026-09-02 (P10) 5차 감사 REJECT 급. 이 자리에 있던 문장은
 %   *"the 100-episode evaluation across 5 seeds, 10 configurations, and 2 observation
@@ -2665,11 +2668,10 @@ What the protocol does provide instead is narrower and checkable: each compariso
 in Section~\ref{sec:results} is paired per episode, its direction and decision
 threshold fixed before results existed, its analysis code checksum-frozen (with the
 one exception noted there), and its number read from the resulting verdict file
-rather than transcribed. Like the LiDAR-based wave estimation studies that preceded
-us, we establish the algorithm in simulation before any tank
-trial~\citep{desmars2020, desmars2023jfm}; unlike a tank trial, simulation cannot
-tell us whether the result transfers, which is what
-Table~\ref{tab:boundary} is for.
+rather than transcribed. Like the LiDAR-based studies that preceded
+us~\citep{desmars2020, desmars2023jfm}, we establish the algorithm in simulation
+first; unlike a tank trial, simulation cannot tell us whether the result transfers,
+which is what Table~\ref{tab:boundary} is for.
 % RETRACTED 2026-08-14: this fairness argument is FALSE and was the single most
 % load-bearing false statement in the manuscript.
 % wavesim/gt_generator.py:38 reads
@@ -2701,53 +2703,32 @@ Table~\ref{tab:boundary} is for.
 %   ②그 결과 `\paragraph{Linear forward model}` 이 **연달아 두 번** 인쇄됐다.
 %   ★같은 부류가 오늘 초록에서도 났다(금지 자구 교체가 `is` 를 남겼다).
 \paragraph{Linear forward model}
-Earlier versions stated that the $O(\epsilon^2)$ model mismatch was small but
-non-zero and affected all methods equally
-(\ref{app:changes}, R2). The correct facts are: the synthetic ground truth
-is a \emph{displacement-free linear superposition on a fixed grid}, so it lies in
-the same function space as the estimator's model equation and the measured mismatch
-is \emph{zero}; and a zero mismatch is not neutral between methods, because the
-grid-based baselines do not use that representation. The linear approximation does
+The synthetic ground truth is a \emph{displacement-free linear superposition on a
+fixed grid}, so it lies in the same function space as the estimator's model equation
+and the measured mismatch is \emph{zero} --- and a zero mismatch is not neutral
+between methods, because the grid-based baselines do not use that representation.
+(An earlier claim that the mismatch was small but non-zero, and equal across methods,
+is withdrawn: \ref{app:changes}, R2.) The linear approximation does
 degrade for steep waves, and a second-order Stokes extension would preserve the
 spectral parameterisation. \emph{Non-linear validation was performed in a separate
 higher-order-spectral ($M{=}3$) batch, not on this corpus.}
 
 \paragraph{Tracking phase dependence on initialization}
-The \texttt{w\_phi}
-tracking mode freezes wavenumbers and updates only amplitudes and phases,
-so components missed during beamforming initialization cannot be recovered
-during tracking.  On the originally released dataset this produced
-tracking nRMSE 2--3$\times$ higher than the post-initialization nRMSE
-whenever high-wavenumber components were missed, and we previously
-described the cutoff as a beamforming detection threshold at
-$|k|\gtrsim 0.4$~rad/m.  That description was incorrect.  A
-mesh-independent test of the initializer alone---synthesising LiDAR
-samples directly from analytic components, bypassing the raycast mesh,
-with the real sensor sampling geometry---finds no such threshold: the
-beamformer recovers isolated components across $|k| = 0.15$--$1.00$~rad/m
-and down to amplitudes of $0.01$~m.  The value $0.4$~rad/m corresponds to
-$\lambda \approx 15.7$~m, which is where amplitude transmission through
-the original rendering mesh collapses (Section~\ref{sec:regen}); it was a
-property of the reference field, not of the algorithm.  What remains true,
-and is the point of the limitation, is the structural one: because
-\texttt{w\_phi} freezes wavenumbers, whatever the initializer misses is
-unrecoverable thereafter, so tracking quality is capped by initialization
-quality regardless of why a component was missed.  The net benefit of
-tracking is therefore concentrated in providing real-time computational
-efficiency ($\sim$10 gradient steps vs.\ $\sim$200 for full
-re-initialization) rather than accuracy improvement beyond initialization.
-The corrected tracker sharpens this into a quantitative statement.
-Comparing per-episode post-initialization against post-tracking nRMSE
-across the 24 arm--episode pairs of the re-measured ablation and
-model-order experiments, tracking ends \emph{above} its own
-initialization on most of the arm--episode pairs it was measured on, but by a small
-and bounded margin.  So the honest
-characterisation of Phase~2 on this dataset is not that it degrades the
-estimate---the earlier 2--3$\times$ inflation and the
-$0.009 \to 0.08$ collapse on the calmest episodes were properties of the
-uncorrected tracker and do not reproduce---but that it holds the
-initialization roughly in place at a fraction of the per-frame cost.
-Tracking is a compute mechanism, not an accuracy mechanism.
+The \texttt{w\_phi} tracking mode freezes wavenumbers and updates only amplitudes
+and phases, so whatever the initializer misses is unrecoverable thereafter: tracking
+quality is capped by initialization quality, regardless of why a component was
+missed. Measured on the re-scored corpora, tracking ends slightly above its own
+initialization on most arm--episode pairs, by a small and bounded margin. So the
+honest characterisation of Phase~2 is not that it degrades the estimate but that it
+holds the initialization roughly in place at a fraction of the per-frame cost.
+\emph{Tracking is a compute mechanism, not an accuracy mechanism.} Two earlier
+descriptions of this limitation --- a beamforming detection threshold at
+$|k|\gtrsim 0.4$~rad/m, and a $2$--$3\times$ inflation of tracking error --- were
+withdrawn; both were properties of the superseded rendering mesh rather than of the
+algorithm (\ref{app:changes}, R6).
+% ★[2026-09-02] 8차 검토: 이 문단이 **30 인쇄줄**로 §6.6 에서 가장 길었고, 그중 약 22줄이
+%   **철회된 주장의 서사**(메시 독립 시험 · 0.4 rad/m · 2-3배 · 0.009→0.08)였다.
+%   ⟹ 살아 있는 **구조적 한계**만 남기고 철회 서사는 부록 `R6` 으로 옮긴다(삭제 아님).
 % ★2026-09-02 (P10) 5차 감사 MAJOR: §4.3 이 *"네 부차 지표는 재측정되지 않았다"* 라
 %   적었는데 이 문단이 VR 값 셋(0.916/0.910/0.925)을 **현재형으로** 인용했다.
 %   ⟹ 값을 빼고 **방향**만 남긴다(그 방향은 철회 대상이 아니다).
@@ -2757,15 +2738,10 @@ The estimator recovers less variance
 than the true field, and on the retracted corpus that deficit did not differ between
 the sparse and crowded halves even though nRMSE did. The levels are not restated
 here: variance ratio was part of the secondary panel that was not re-measured for
-the batches reported in Section~\ref{sec:results}.  We previously attributed this deficit to Adam
-momentum accumulating oscillating gradients from an inaccurate phase
-prediction $\phi_i \mathrel{+}= \omega_i \Delta t$.  That attribution is
-withdrawn: the specific inaccuracy it named was a double application of
-the phase advance, which has since been corrected, and the deficit narrowed
-substantially across two successive corrections without the momentum path being
-touched.  What remains is therefore \emph{unattributed}---we can observe it but not
-currently explain it, and we prefer to say so rather than carry forward a mechanism
-whose named cause no longer exists.
+the batches reported in Section~\ref{sec:results}. An earlier attribution of the
+deficit to Adam momentum is withdrawn (\ref{app:changes}, R7); what remains is
+\emph{unattributed} --- we can observe it but not currently explain it, and we prefer
+to say so rather than carry forward a mechanism whose named cause no longer exists.
 % ⛔[2026-09-02] 6차 감사 N17: 이 문단은 세 문장 위에서 *"The levels are not restated
 %   here"* 라 적고 세 문장 뒤에 **0.66 / 0.83 / 0.916 / 8\%** 를 다시 적었다.
 %   5차 감사가 같은 결함을 이웃 문단에서 잡았고 **처방이 이 문단에 적용되지 않았다**
@@ -2792,26 +2768,20 @@ than this in wavenumber space are structurally unresolvable by our initializer
 regardless of signal-to-noise ratio.  This is not a corner case: a majority of the
 simulated episodes---and every 15-, 20- and 30-component episode---contain at
 least one true pair separated by less than $0.15$~rad/m. (The exact count came from
-the retracted corpus and is not restated.)  A pre-registered sweep
-of $\Delta k_{\min}$ (5 seeds per cell, decision rule fixed in advance, with a
-control episode containing no close pair) shows the constant to be a
-regime-dependent trade rather than a universal floor: relaxing it to
-$0.05$~rad/m improved the crowded 15-component case on every seed but degraded the
-5-component case on every seed, because a smaller radius lets the greedy search
-stack duplicate peaks on a single true component; the control episode was
-unaffected. The magnitudes are not restated: that sweep is from the retracted
-corpus and has not been re-measured.  Two consequences follow.  First, the crowded-regime
-error is \emph{not} explained away by this constant: the bulk of it survives
-when the constant is removed.  Second, statements in this paper of the form
-``these components are not recovered'' are properties of the estimator as
-configured, and understate what this estimator class can achieve in crowded seas
-by a few percent; they should not be read as method-independent impossibility.
-The principled repair is not a smaller fixed radius but an adaptive one, scaled
-to the beamforming main-lobe width and hence to the effective aperture; we have
-not tested it.
-For $N_{\text{true}}\geq 30$, wavenumber-space crowding additionally exceeds
-what the beamforming grid resolves at any separation radius; higher-resolution
-or 3D $(k_x,k_y,\omega)$ FFT could help.
+the retracted corpus and is not restated.)  A pre-registered sweep of
+$\Delta k_{\min}$ shows the constant to be a regime-dependent trade rather than a
+universal floor --- relaxing it helps the crowded case and hurts the sparse one, in
+every seed of each --- so two things follow. The crowded-regime error is \emph{not}
+explained away by this constant: the bulk of it survives when the constant is
+removed. And statements of the form ``these components are not recovered'' are
+properties of the estimator \emph{as configured}, not method-independent
+impossibility. The sweep's magnitudes are not restated (retracted corpus, not
+re-measured) and the sweep design is in \ref{app:changes}, R8; the principled repair
+is an adaptive radius scaled to the beamforming main-lobe width, which we have not
+tested.
+% ★[2026-09-02] 8차 검토: 25 인쇄줄 중 스윕 **설계 서술**과 수리 제안이 절반이었다.
+%   살아 있는 두 귀결만 남기고 설계는 부록 `R8` 로 옮긴다(⛔삭제 아님).
+%   ⚠`for N>=30` 문장은 이 한계의 **다른 축**(격자 분해능)이라 부록으로 함께 보낸다.
 
 \paragraph{Current estimation}
 We do not estimate ocean currents, whose
@@ -2841,15 +2811,12 @@ at grazing incidence at BF4); wave-tank validation is planned to
 characterise the end-to-end nRMSE impact.
 
 \paragraph{Observation weight nomenclature}
-The weighting
-$c_j = \cos\theta_j/(r_j/d_{\text{ref}})$ is a geometry-aware
-simplification motivated by the incidence-angle dependence of specular
-reflection and the inverse-square range attenuation.  The exact Fresnel
-reflectance $R(\theta)$~\citep{born1999} is not used directly, as it
-would additionally require surface-roughness and polarisation assumptions
-that are difficult to justify from observation alone.  The name
-``geometry-aware'' (previously ``Fresnel-aware'' in an earlier draft)
-more accurately reflects the functional form.
+The weighting $c_j = \cos\theta_j/(r_j/d_{\text{ref}})$ is a geometry-aware
+simplification, not the exact Fresnel reflectance~\citep{born1999}, which would
+require surface-roughness and polarisation assumptions we cannot justify from
+observation alone. The name follows the functional form.
+% ★[2026-09-02] 8차 검토: *"previously 'Fresnel-aware' in an earlier draft"* 는
+%   **한계가 아니라 편집 이력**이다 ⟹ 부록의 철회표가 담당한다(R1 의 같은 기제).
 % [2026-09-02 P9] 4차 감사 B5. ⛔이 문단은 **철회된 코퍼스를 긍정 근거로** 썼다
 %   (*"show our conclusions hold under the best baseline configurations"*).
 %   그것은 §5.7 이 하지 않겠다고 약속한 바로 그 행위이고, 측정과도 어긋난다
@@ -2896,18 +2863,13 @@ increases with sea state; empirical calibration on real data is
 needed to assess their impact.
 
 \paragraph{Relationship to physics-informed learning}
-WaveSplat can be viewed as physics-constrained optimization with a
-hand-designed plane-wave basis, structurally analogous to PINNs that
-use a neural-network basis.  The key advantage of the explicit
-plane-wave basis is threefold: (i)~the dispersion relation is
-satisfied by construction rather than as a soft penalty,
-(ii)~beamforming provides an efficient spectral initialization that
-neural bases lack, and (iii)~the $4N$ parameter count is orders of
-magnitude smaller than typical PINN architectures, reducing
-overfitting risk with sparse observations.  Hybrid approaches---e.g.,
-learned initialization or learned observation
-weighting---could combine the interpretability of spectral
-components with the flexibility of neural representations.
+WaveSplat is physics-constrained optimisation with a hand-designed plane-wave basis,
+structurally analogous to PINNs with a neural basis. The explicit basis satisfies
+dispersion by construction rather than as a soft penalty, admits a spectral
+initialisation that neural bases lack, and carries $4N$ parameters rather than a
+network's --- which matters with $\sim$50 observations per frame.
+% ★[2026-09-02] 8차 검토: 이 문단은 **한계가 아니라 관련 연구**다. 다음 개정에서
+%   \S2 로 옮기는 것이 옳다 --- 지금은 압축만 한다(절 이동은 참조 그물을 건드린다).
 
 % ============================================================================
 \section{Conclusion}

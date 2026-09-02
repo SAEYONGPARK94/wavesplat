@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""`paper/figures/wave_estimate_3d.gif` --- 같은 자료의 **3-D 표면** 렌더링.
+"""⚠**이름 규약**(학위논문 §용어와 같다): **WavePrior** = 학습된 스펙트럼 사전
+(원자 집합을 한 번에 제안하는 모형, 이 연구의 **주제**) · **WaveSplat** = 그 원자를 받아
+파랑장을 유지하는 격자 비의존 파이프라인(**방법론의 한 구성요소**).
+⟹ 패널 제목은 *"estimate: WavePrior atoms, tracked"* 다 --- 추정장은 사전 **혼자**의
+산물이 아니고(VARPRO·추적이 함께 한다), 그렇다고 사전을 지우면 팔이 작동하지 않는다
+(`B-22`: 해석적 제안으로 갈면 참 제로필드를 48 중 15 로만 넘는다).
+
+`paper/figures/wave_estimate_3d.gif` --- 같은 자료의 **3-D 표면** 렌더링.
 
 `gen_gif_estimate.py` 와 **같은 에피소드·같은 시드·같은 구성**이고 그림만 다르다.
 ★2-D 색지도가 못 보이는 것을 보인다: **파고 자체의 기복**과, 관측점이 표면 위 어디에
@@ -89,7 +96,7 @@ def main():
     def draw(k):
         s = snaps[k]
         for a, F, ttl in ((axes[0], s['gt'], 'true wave field'),
-                          (axes[1], s['est'], 'WaveSplat estimate')):
+                          (axes[1], s['est'], 'estimate: WavePrior atoms, tracked')):
             a.clear()
             a.plot_surface(Xs, Ys, F[::SUB, ::SUB], cmap=cm.RdBu_r,
                            vmin=-lim, vmax=lim, linewidth=0, antialiased=True,
@@ -108,7 +115,8 @@ def main():
         txt.set_text(f"t = {s['t']:5.1f} s      frame RMSE = {s['rmse']:.3f} m      "
                      f"{len(s['xo'])} LiDAR returns")
         sub.set_text('black dots: every observation this frame (they sit near the '
-                     'sensor); the estimate is evaluated across the whole domain')
+                     'sensor). WavePrior places the atoms once; the field is then '
+                     'evaluated across the whole domain')
         return axes
 
     fig.tight_layout(rect=(0, 0.05, 1, 0.93))

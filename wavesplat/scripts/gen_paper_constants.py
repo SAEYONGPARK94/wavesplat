@@ -908,6 +908,7 @@ def main():
     #    사유: 논문이 `\lambda_1 = 10^{-3}` 을 **손으로** 적고 있었는데 배포값은 1e-4 다
     #    (2026-08-11 변경). 손으로 적힌 배포 상수는 조용히 낡는다 — 이 저장소의 반복 결함.
     from wavesplat.optimizer.sequential_update import (
+        AUTO_SWITCH_THRESH_DEFAULT,
         DEFAULT_ANALYTIC_ENSEMBLE_K, DEFAULT_LEARNED_ENSEMBLE_K, LAMBDA_L1_DEFAULT,
         VARPRO_STEPS_DEFAULT, LEARNED_INIT_ITERS_DEFAULT)
     from wavesplat.run import DEFAULT_CONFIG as _DC
@@ -921,6 +922,9 @@ def main():
         ('DepTrackingLr', f"{_DC['tracking_lr']:g}"),
         ('DepTrackingSteps', str(_DC['tracking_steps'])),
         ('DepMaxN', str(_DC['max_n'])),
+        # ★[2026-09-02] 라우팅 임계 --- 이 값이 0 이라서 **합성 입력 전부**가 학습
+        #   제안 경로로 간다(§용어 문단이 그 사실에 기댄다). ⛔손으로 적지 마라.
+        ('DepAutoThresh', str(AUTO_SWITCH_THRESH_DEFAULT)),
         # ★테스트 수는 자주 바뀐다 — 손으로 적으면 반드시 낡는다(3차 감사: 196 vs 실측 261).
         ('DeployNumTestsPaper', _count_tests()),
         # ── ★[2026-09-02] 학습 제안의 **지지 상한**. 체크포인트 안에 있다.

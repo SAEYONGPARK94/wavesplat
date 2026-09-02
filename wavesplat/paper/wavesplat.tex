@@ -346,9 +346,14 @@ Our key contributions are:
   %   sees three different papers."* ⟹ `C4` 를 신설한다.
   %   ⚠근거는 절제(`B-22`)이고, 그 우변이 얇다는 공시를 **같은 항목에** 붙인다.
   \item \textbf{A learned set-valued prior over spectral atoms (C4)}: The atoms are
-    placed by a conditional diffusion model over \emph{sets} of
+    placed by \emph{WavePrior}, a conditional diffusion model over \emph{sets} of
     wavenumber--energy triples, conditioned on a beamform map of the
-    initialisation window (\S\ref{sec:method}). This is what the title names and it
+    initialisation window (\S\ref{sec:method}).
+    % ★[2026-09-02] 사용자 지적: 배포 코드가 이 모듈을 스스로 *"WavePrior Stage-1"*
+    %   이라 부르고(`learned_init.py:1`) 학위논문이 그 이름을 39회 쓰는데
+    %   **이 논문에는 0회**였다. ⟹ 이름을 붙이고 아래에 용어 문단을 둔다.
+    %   ⛔제목을 바꾸지는 않았다 --- 그것은 별도 결정이다.
+    This is what the title names and it
     is the contribution the evidence is strongest for, because it is supported by an
     intervention inside our own arm rather than only by a comparison against
     someone else's: replacing the prior with the analytic proposal package, changing
@@ -703,6 +708,22 @@ yields $<2\%$ error in $\cos\theta_j$; grazing observations
 These weights~\eqref{eq:confidence} are incorporated in the optimization loss as weighted
 mean squared error, giving higher influence to close-range,
 near-normal observations.
+
+\paragraph{Two names, and what each denotes}
+% ★[2026-09-02] 학위논문 §용어와 **같은 구분**을 여기에도 둔다. 두 문서가 한 시스템을
+%   서로 다른 이름으로 부르면 독자가 둘을 다른 것으로 읽는다.
+We use two names and keep them apart. \emph{WavePrior} is the learned spectral prior
+--- the conditional diffusion model that proposes a set of wavenumbers in one shot
+from the initialisation window --- and it is the object this paper's strongest
+evidence is about (contribution C4, and the ablation of
+Section~\ref{sec:res_ablation}). \emph{WaveSplat} is the grid-free pipeline that
+takes those atoms and maintains the field: spectral parameterisation, variable
+projection, per-frame tracking. The distinction is not editorial: since the routing
+threshold was set to \DepAutoThresh{}, every synthetic input resolves to the learned
+proposal path, so what ships on synthetic data \emph{is} WavePrior inside WaveSplat.
+\emph{Measured input is the exception} --- the shipped router hands it to a separate
+bank estimator in which neither the prior nor the representation participates
+(Section~\ref{sec:method}).
 
 \subsection{Two-phase estimation}
 

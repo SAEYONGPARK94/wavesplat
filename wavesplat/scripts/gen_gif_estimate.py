@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""`paper/figures/wave_estimate.gif` --- **파고와 추정을 시간축으로** 보이는 애니메이션.
+"""⚠**이름 규약**(학위논문 §용어와 같다): **WavePrior** = 학습된 스펙트럼 사전
+(원자 집합을 한 번에 제안하는 모형, 이 연구의 **주제**) · **WaveSplat** = 그 원자를 받아
+파랑장을 유지하는 격자 비의존 파이프라인(**방법론의 한 구성요소**).
+⟹ 패널 제목은 *"estimate: WavePrior atoms, tracked"* 다 --- 추정장은 사전 **혼자**의
+산물이 아니고(VARPRO·추적이 함께 한다), 그렇다고 사전을 지우면 팔이 작동하지 않는다
+(`B-22`: 해석적 제안으로 갈면 참 제로필드를 48 중 15 로만 넘는다).
+
+`paper/figures/wave_estimate.gif` --- **파고와 추정을 시간축으로** 보이는 애니메이션.
 
 ★★**이 애니메이션은 주장이 아니다.** 에피소드 **하나**, 우리 팔 **하나**다.
 비교자 팔을 나란히 그리지 않는다 --- 그렇게 그리면 **팔간 비교**가 되고, 이 저장소의
@@ -96,7 +103,7 @@ def main():
     ims, dots = [], []
     for a, (F, ttl, nm, cm) in zip(ax, (
             (snaps[0]['gt'], 'true wave field', norm, 'RdBu_r'),
-            (snaps[0]['est'], 'WaveSplat estimate', norm, 'RdBu_r'),
+            (snaps[0]['est'], 'estimate: WavePrior atoms, tracked', norm, 'RdBu_r'),
             (snaps[0]['est'] - snaps[0]['gt'], 'estimate $-$ truth', enorm, 'PuOr'))):
         im = a.pcolormesh(XX, YY, F, cmap=cm, norm=nm, shading='auto')
         ims.append(im)
@@ -126,9 +133,9 @@ def main():
         txt.set_text(f"t = {s['t']:5.1f} s      "
                      f"frame RMSE = {s['rmse']:.3f} m      "
                      f"{len(s['xo'])} LiDAR returns this frame")
-        sub.set_text('the black dots are every observation the estimator has this '
-                     'frame; the field is evaluated everywhere from the spectral '
-                     'parameters')
+        sub.set_text('black dots: every observation this frame. WavePrior (a learned '
+                     'set-valued prior) places the atoms once at initialisation; the '
+                     'field is then evaluated everywhere from those spectral parameters')
         return ims + dots + [txt, sub]
 
     fig.tight_layout(rect=(0, 0.05, 1, 0.94))

@@ -882,6 +882,14 @@ ATOMS = [
      'noise_floor.rms_mm.median', 'mm1', 56.9),
     ('RTwoBFloorMax', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json',
      'noise_floor.rms_mm.max', 'mm1', 129.0),
+    # ── 계수 인공물 재검 (R4c, 2026-09-03, 런 0회) — 감사 BLOCKER B2 를 닫는다.
+    #    ⛔`0/6` 은 여전히 **비초과**이지 부재가 아니다(R4b/AMENDMENT_1 §1).
+    ('RFourCCtrlPass', 'R4C_DISPERSION_2026-09-03/verdict_r4c.json',
+     'groups.control.n_pass', 'int', 12),
+    ('RFourCTreatPass', 'R4C_DISPERSION_2026-09-03/verdict_r4c.json',
+     'groups.agulhas.n_pass', 'int', 0),
+    ('RFourCDropMed', 'R4C_DISPERSION_2026-09-03/verdict_r4c.json',
+     'groups.agulhas.p95_drop_pct_median', 'pct', -0.6),
 ]
 
 FMT = {

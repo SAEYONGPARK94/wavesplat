@@ -39,6 +39,14 @@ BATCHES = [
     ('B-12  non-linear ref.\\ (crowded)', 'B12_HOS_EXTEND_2026-08-23', ()),
     ('B-16  $k$ ablation (crowded)', 'B16_KGRID_2026-08-24', ('SHIP-NOW',)),
     ('B-19  $k$ ablation (sparse)', 'B19_KGRID_SPARSE_2026-08-25', ()),
+    # ⛔[2026-09-02] 7차 심사 B8: **논문의 중심 절제(`B-22`)가 이 표에 없었다** ---
+    #   초록·§5.4·결론이 전부 그것으로 시작하는데, 독자가 *"해석적 패키지가 참 제로필드를
+    #   15/48 로만 넘는다"* 는 그 팔의 **절대 수준**을 볼 수 없었다.
+    #   ⚠팔이 여덟 개라 전부 싣지 않고 `L2` 대조의 두 팔만 싣는다(`gates_b22.py:401`).
+    #   ⚠`SHIP` 은 `B-12` 의 `SHIP-NOW` 와 **같은 셀**이다(같은 코퍼스·같은 출하 팔) ---
+    #   숨기고 교차 검증만 한다. 표에 두 번 찍히면 독자가 오식으로 읽는다.
+    ('B-22  prior ablation (crowded)', 'B22_PRIOR_ABLATION_2026-08-27',
+     ('ANA', 'ANA-N', 'ANA-N-NOVP', 'ANA-NOVP', 'LEARN', 'LEARN-NOVP', 'SHIP')),
 ]
 
 
@@ -105,10 +113,10 @@ def main():
               r'the per-episode median over estimator seeds, with the interquartile '
               r'range. \emph{Read within a sea state, not across:} $H_s$ differs between '
               r'the two, so the ordering in metres and the ordering in nRMSE need not '
-              r'agree across rows. B-12 and B-16 score their arms on the same '
-              r'\AblationEps{}-episode corpus, so their \texttt{SHIP-NOW} cell is one '
-              r'cell, not two; it is listed once, under B-12, and the generator '
-              r'cross-checks the two aggregations and fails if they disagree. '
+              r'agree across rows. B-12, B-16 and B-22 score their arms on the same '
+              r'\AblationEps{}-episode corpus, so the shipped arm is one cell, not '
+              r'three; it is listed once, under B-12, and the generator cross-checks '
+              r'all three aggregations and fails if any disagree. '
               r'\emph{These are per-arm medians.} Dividing one row by another does '
               r'not reproduce the relative margins in Table~\ref{tab:earns}, which '
               r'are medians of \emph{per-episode paired} relative differences; the '
@@ -156,6 +164,12 @@ def main():
         if a != b:
             raise SystemExit(f'⛔교차 검증 실패 {bf}: B-12 {a} vs B-16 {b} — '
                              '같은 팔.같은 코퍼스인데 값이 다르다')
+        # ★[2026-09-02] `B-22` 의 `SHIP` 도 같은 코퍼스의 같은 출하 팔이다 ⟹ 3중 대조.
+        c = pins.get(f'B22|SHIP|{bf}')
+        if c is None:
+            raise SystemExit(f'⛔교차 검증 불가 {bf}: B-22 SHIP 핀이 없다')
+        if c != a:
+            raise SystemExit(f'⛔교차 검증 실패 {bf}: B-12 {a} vs B-22 {c}')
     out = os.path.join(ROOT, 'paper', 'abs_table.tex')
     open(out, 'w').write('\n'.join(lines) + '\n')
     # ★사이드카: 이 표가 **인쇄하는 모든 수**의 목록.

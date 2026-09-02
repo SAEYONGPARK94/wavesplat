@@ -5,7 +5,7 @@
 \begin{table}[!htbp]
 \centering
 \footnotesize
-\caption{Absolute accuracy, in the units the measurement is made in and in metres. The synthetic harness normalises by significant wave height, so metres follow from $\text{RMSE} = \text{nRMSE}\times H_s$ with no new measurement; this table is a re-aggregation of the same frozen rows that produce Table~\ref{tab:earns}. Each cell is the median over episodes of the per-episode median over estimator seeds, with the interquartile range. \emph{Read within a sea state, not across:} $H_s$ differs between the two, so the ordering in metres and the ordering in nRMSE need not agree across rows. B-12 and B-16 score their arms on the same \AblationEps{}-episode corpus, so their \texttt{SHIP-NOW} cell is one cell, not two; it is listed once, under B-12, and the generator cross-checks the two aggregations and fails if they disagree. \emph{These are per-arm medians.} Dividing one row by another does not reproduce the relative margins in Table~\ref{tab:earns}, which are medians of \emph{per-episode paired} relative differences; the two estimators answer different questions and neither is derivable from the other.}
+\caption{Absolute accuracy, in the units the measurement is made in and in metres. The synthetic harness normalises by significant wave height, so metres follow from $\text{RMSE} = \text{nRMSE}\times H_s$ with no new measurement; this table is a re-aggregation of the same frozen rows that produce Table~\ref{tab:earns}. Each cell is the median over episodes of the per-episode median over estimator seeds, with the interquartile range. \emph{Read within a sea state, not across:} $H_s$ differs between the two, so the ordering in metres and the ordering in nRMSE need not agree across rows. B-12, B-16 and B-22 score their arms on the same \AblationEps{}-episode corpus, so the shipped arm is one cell, not three; it is listed once, under B-12, and the generator cross-checks all three aggregations and fails if any disagree. \emph{These are per-arm medians.} Dividing one row by another does not reproduce the relative margins in Table~\ref{tab:earns}, which are medians of \emph{per-episode paired} relative differences; the two estimators answer different questions and neither is derivable from the other.}
 \label{tab:absolute}
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{lcrrrr}
@@ -31,6 +31,10 @@ Arm & sea state & $H_s$ [m] & $n$ & nRMSE & RMSE [m] \\
 \quad \texttt{KGRID2} & BF5 & 2.0 & 8 & 0.297 {\scriptsize[0.270,0.332]} & 0.593 {\scriptsize[0.539,0.663]} \\
 \quad \texttt{SHIP-NOW} & BF4 & 1.2 & 8 & 0.053 {\scriptsize[0.022,0.070]} & 0.063 {\scriptsize[0.026,0.084]} \\
 \quad \texttt{SHIP-NOW} & BF5 & 2.0 & 8 & 0.083 {\scriptsize[0.039,0.204]} & 0.166 {\scriptsize[0.078,0.408]} \\
+\midrule
+\multicolumn{6}{l}{\emph{B-22  prior ablation (crowded)}} \\
+\quad \texttt{ANA-SHIP} & BF4 & 1.2 & 24 & 0.220 {\scriptsize[0.185,0.262]} & 0.264 {\scriptsize[0.221,0.315]} \\
+\quad \texttt{ANA-SHIP} & BF5 & 2.0 & 24 & 0.206 {\scriptsize[0.175,0.248]} & 0.412 {\scriptsize[0.349,0.496]} \\
 \bottomrule
 \end{tabular}
 \end{table}

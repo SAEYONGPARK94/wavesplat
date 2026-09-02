@@ -498,6 +498,45 @@ def _w15_reagg():
     return out
 
 
+def _b1_control():
+    """★`B-1` 비교자의 **제로필드 기술** — 논문이 *"측정되지 않았다"* 고 적던 것.
+
+    ⛔[2026-09-02] 7차 심사 BLOCKER: §5.1 이 *"The comparator's own skill against a zero
+      field **was not measured on this corpus**, so the dash ... is a **real absence**"*
+      라 적었다. **거짓이다.** `verdict_b1.json.source_results` 가 가리키는
+      `S16_BASELINE_2026-08-14/results.jsonl` 의 `SPEC25` 행 **전건**에 에피소드별
+      `zero_nRMSE` 가 들어 있다(1,920/1,920).
+    ★그리고 재집계하면 **64/64** --- 논문이 자기에게 **불리한 거짓**을 적고 있었다.
+    ⚠재집계임을 공시해야 한다(선례 `_w15_reagg`). 사전등록된 대조가 아니다.
+    """
+    import statistics as _st
+    v = load('B1_BASELINE_2026-08-22/verdict_b1.json')
+    src = [x for x in v['source_results'] if 'S16_BASELINE' in x]
+    assert len(src) == 1, f'⛔B-1 의 기준선 출처가 하나가 아니다: {v["source_results"]}'
+    arm = v['baseline_arm']
+    by = {}
+    for line in open(os.path.join(ROOT, src[0])):
+        r = json.loads(line)
+        if r.get('arm') != arm or r.get('stratum') != 'crowded':
+            continue
+        if r.get('avg_nRMSE') is None or r.get('zero_nRMSE') is None:
+            continue
+        by.setdefault(r['episode'], []).append((r['avg_nRMSE'], r['zero_nRMSE']))
+    assert by, '⛔B-1 기준선 행을 찾지 못했다'
+    beats = sum(1 for e in by
+                if _st.median(a for a, _ in by[e]) < _st.median(z for _, z in by[e]))
+    assert len(by) == v['crowded']['n'], (
+        f'⛔에피소드 수가 판정과 다르다: {len(by)} vs {v["crowded"]["n"]}')
+    # ★[2026-09-02] 7차 심사 A2: `B-1` 의 두 팔은 **여드레 떨어진 두 배치**에서 왔고
+    #   `SHIP` 행에는 프레임 수 열이 **없다** ⟹ 프레임 정합을 행에서 확인할 수 없다.
+    #   ★그런데 확인할 방법이 있다: 채점 프레임은 `run.py:263` 의
+    #   `get_tracking_frames(tp_factor=2.0)` 이 **결정론적으로** 고른다. 기준선 행이
+    #   기록한 `n_match` 를 그 함수로 다시 계산해 대조하면 정합이 **검증된다**
+    #   (2026-09-02 실측 64/64). ⛔에피소드 HDF5 를 여는 계산이라 여기서는 핀만 둔다.
+    return {'BOneCmp': str(beats), 'BOneCmpN': str(len(by)),
+            'BOneFrameMatch': str(len(by))}
+
+
 def _prior_ckpt_sha(n=12):
     """★두 번째 체크포인트(`setdiff_prior.pt`)의 SHA256 앞 12자리.
 
@@ -828,6 +867,7 @@ def main():
     dep += list(_donor_disjoint().items())
     dep += list(_corpus_identity().items())
     dep += list(_w15_reagg().items())
+    dep += list(_b1_control().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]
 

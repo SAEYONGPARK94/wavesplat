@@ -187,6 +187,15 @@ not an execution comparison ⟹ ⛔this thesis does not write ``it ran on the fi
 %   축자: *"gates_b1.py / analyze_b1.py 는 결과 뒤에 작성됐다(2026-08-23)."*
 %   ⛔학위논문은 그 문장을 §결과 한 곳에만 적었고 **두 초록과 「주장하지 않는 것」**
 %   에는 없었다 --- 그 셋이 가장 많이 읽히는 자리다.
+% ★[2026-09-02] 적대적 감사 M-4 --- `B-12` 실현 등급 공시. 근거는 이 문서 자신이
+%   `:5644-5645` 에 적은 축자다(⛔*"단일 서술하지 않는다"*). 두 초록이 그것을 어겼다.
+\newcommand{\BTwelveGrade}{\,(⚠\emph{실현 등급 공시}: 생성 진단이 시드별로 갈려
+  \textbf{$48$ 중 $17$ 개 셀}의 실현 비선형성은 사실상 2차에 그친다 ⟹ 이 표본을
+  ⛔``$M{=}3$ 비선형''으로 \emph{단일 서술}하지 않는다)}
+\newcommand{\BTwelveGradeEN}{\,(⚠\emph{realisation-grade disclosure}: the generator
+  diagnostic splits by seed --- in \textbf{$17$ of the $48$} cells the realised
+  non-linearity is effectively second order, so this sample is not described as
+  ``$M{=}3$ non-linear'' without that qualifier)}
 \newcommand{\BOnePostHoc}{\,(⚠\emph{사후작성 공시}: 이 배치의 게이트$\cdot$분석
   코드는 \textbf{결과 뒤에} 작성되었다 --- 판정 규칙 자체는 그 전의 설계 문서에
   있었다 ⟹ ⛔\emph{``사전등록된 게이트를 그대로 통과했다''}로 읽지 않는다)}
@@ -397,7 +406,7 @@ $+18.2\%$ 더 나쁘다, 확증 문턱 통과; 배치 \texttt{B-25}), 질량$\cd
 % R3 심사 토론 ML 심사의 요구("초록을 제2장과 정합").
 \textbf{[2026-08-23 재측정]} 검증된 대체 결과는 다음과 같다. \emph{혼잡한 다성분 해상}에서
 본 방법은 보유한 최강 적격 격자 기준선 대비 오차 중앙값을 \textbf{약 $39\%$}\CmpSkillBOne{} 낮춘다
-($64$ 중 $62$; 배치 \texttt{B-1})\BOnePostHoc{}. 이 부호는 \emph{같은 기준선}에 대해 비선형(HOS $M{=}3$)
+($64$ 중 $62$; 배치 \texttt{B-1})\BOnePostHoc{}. 이 부호는 \emph{같은 기준선}에 대해 비선형(HOS $M{=}3$)\BTwelveGrade{}
 참값, 그리고 장면 시드 $12$개 중 $8$개를 이 프로젝트의 앞선 배치가 쓰지 않은
 대역에서 뽑은 표본에서도 유지된다($48$ 중 $43$; 배치 \texttt{B-12}).
 % ⛔[2026-09-02] 6차 감사 N19: *"학습 코퍼스 밖 생성 시드"* 는 **모든 배치에 참**이다
@@ -770,7 +779,7 @@ been verified; only verified replacement results follow.
 In \emph{crowded, multi-component seas} the method lowers median error by \textbf{about
 $39\%$}\CmpSkillBOneEN{} relative to the strongest eligible grid baseline available to this work ($62$ of
 $64$ episodes; batch \texttt{B-1})\BOnePostHocEN{}. The sign persists \emph{against the same baseline} on a sample built from
-nonlinear (HOS $M{=}3$) ground truth and, for $8$ of its $12$ scene seeds, a seed range
+nonlinear (HOS $M{=}3$)\BTwelveGradeEN{} ground truth and, for $8$ of its $12$ scene seeds, a seed range
 no earlier batch of this project had used ($43$ of $48$; batch \texttt{B-12}).
 % ⛔[2026-09-02] 6차 감사 N19: *"seeds outside the training corpus"* 는 **모든 배치에
 %   참**이라 `B-12` 를 구별하지 못한다(학습 대역 = [2e9, 2^31), 이 프로젝트의 평가
@@ -5324,11 +5333,19 @@ $+k_x$ 와 $-k_x$ 를 구별하지 못하는 데 돌렸다. \textbf{세 가지 �
         (\WS{} 평균 167 프레임 vs 기준선 301 프레임, 100/100 에피소드에서 \WS{}가 더 적음)와
         기준선 선택 사유로 이미 철회되었다. 종전 판은 이 항목만
         \emph{``단일 팔 기술통계''}라는 사유로 남겨 두었으나, 아래 (3)이 그 예외를 무효화한다.
-  \item \textbf{재측정이 0회다.} 2026년 8월에 수행된 확증 배치들
+  % ⛔[2026-09-02] 적대적 감사 M-6: 이 항목의 **사유**가 같은 날 거짓이 됐다 ---
+  %   `T7b-SPECTRAL`(2026-09-02)이 **바로 그 함수**를 쟀다(`run_t7b.py:26` 임포트,
+  %   `:72,74` 호출; 라벨 `SPECTRAL-DIRECTIONAL [EXPLORATORY]`, 25/32, p=1.05e-3).
+  %   ⚠**결론은 산다** --- 그 패널값 $-0.25$ 자체는 여전히 재도출되지 않았다.
+  \item \textbf{이 값 자체의 재측정은 여전히 0회다.} 2026년 8월의 확증 배치들
         (혼잡 기준선 대비, 비선형 HOS 참값 확장, 센서 모형 개입, 파수 격자 절제,
-        희소 절제)의 결과 레코드 \emph{어디에도} 방향 관련 필드가 없다.
-        즉 이 값은 2026년 4월 코퍼스에서 한 번 계산된 뒤 \textbf{한 번도 다시 측정되지
-        않았다}. 본 논문은 이 값을 \textbf{미재측정}으로 표기한다.
+        희소 절제)의 결과 레코드에는 방향 관련 필드가 없다.
+        ⚠\textbf{단 종전 문안의 사유는 $2026$-$09$-$02$ 에 거짓이 됐다} ---
+        같은 날의 \texttt{T7b-SPECTRAL} 배치가 \emph{같은 함수}를 배포 팔에 대해
+        측정했고(탐색적, $25/32$), 따라서 \emph{``어느 결과 레코드에도 방향 관련
+        필드가 없다''}는 더 이상 참이 아니다. 그럼에도 \textbf{이 표의 값
+        $-0.25$ 는 그 배치로 재도출되지 않았다}(다른 코퍼스$\cdot$다른 기준) ⟹
+        본 논문은 \emph{이 값}을 \textbf{미재도출}로 표기한다.
   \item ★\textbf{지표가 이름이 말하는 것을 측정하지 않는다.}
         구현된 ``Dir $R^2$''는 예측 장과 참 장의 \textbf{비정규화 2D 파워 스펙트럼}
         사이의 $R^2$ 다. 실수 장의 파워 스펙트럼은
@@ -6987,6 +7004,19 @@ $12$ 중 $11$}인 rung 하나다(\texttt{BS\,11a} 만 하한 $1.022\,T_p$ 로 �
 ⟹ ⛔\emph{``리드가 길수록 본 방법이 더 낫다''}로 읽어서는 안 된다. 커지는 것은 승수이지
 정확도가 아니다. ⚠등록한 감쇠 방향은 지지되지 않았고($12/48$), 이 절은 \textbf{혼잡 층
 한정}이다 --- ⚠희소 층에서는 배포 해석적 팔 대비 갈리지 않는다는 별도 측정을 병기한다.
+% ⛔[2026-09-02] 적대적 감사 M-5: 이 한 줄에 **수도 배치 태그도 비교자 강도도** 없었고,
+%   그래서 **더 불리한 절반**이 빠져 있었다. 논문은 초록과 소절 하나로 그것을 진다.
+%   값 = `scripts/gen_paper_constants.py` 의 `_w15_reagg()`(동결 행 재집계, 런 0회).
+구체적으로, 배포 검증 배치 \texttt{W-15} 의 동결 행을 재집계하면 학습 패키지는
+혼잡 층 $55/64$(약 $-45\%$)를 이기지만 희소 층은 $28/64$이고 그 점추정은
+$+21.4\%$ = \textbf{실질 손해}다 ⟹ ⛔\emph{``모든 층에서 이긴다''}로 쓰지 않으며
+널을 \emph{동등}으로도 읽지 않는다.
+★\textbf{그리고 그 비교자는 약하지 않다} --- 같은 에피소드에서 해석적 패키지는
+무기술 기준을 희소 $62/64$ $\cdot$ 혼잡 $50/64$ 로 이긴다 ⟹ 이 비분리는 이 논문이
+다른 곳에서 경고하는 \emph{비교자 붕괴} 아티팩트가 아니라 그 반대다 ---
+\textbf{우리가 못 이기는 것이 가장 잘하고 있는 것}이다.
+⚠이 수치들은 사전등록된 대조가 아니라 \textbf{재집계}이며 그 배치의 판정 파일에
+없다(제로필드 기준은 별도 배치에서 온다).
 
 \subsection{제안 표현에 앙상블을 대칭으로 주면 --- 교락의 크기와 그 한계 (2026-09-01)}
 \label{sec:ens_transfer}
@@ -7050,7 +7080,14 @@ $2026$-$09$-$01$ 에 배포 코드에 추가되었으나 \textbf{기본값은
 %   원장에 들어갔는데 문서에 전파되지 않은 부류다.
 ⛔종전 사유(\emph{``합성 확증이 0건''})는 $2026$-$09$-$01$ 의 \texttt{S-ENS} 배치가
 철회했다 --- 그 배치는 **배포 코드 경로 자체**에서 혼잡 층 $55/64$($-17.9\%$,
-$p = 1.8\times10^{-9}$, 게이트 $8/8$)로 확증을 냈다. ⛔그 배치 자신이 사전등록 §5 에서 결과를
+$p = 1.8\times10^{-9}$, 게이트 $8/8$)로 확증을 냈다.
+% ⛔[2026-09-02] 적대적 감사 M-3: 이 인용이 **하중을 지는 문장**인데 그 배치의 동결
+%   공시 둘이 빠져 있었다 --- 희소 층 `SEC-A` 와 MDE. `verdict_sens.json:disclosure[5]`
+%   축자: *"MDE q80 = 0.682 **병기 의무**"*. 학위논문 전체에 `35/64`·`0.682` 가 0회였다.
+%   ⚠같은 절의 *"희소 무해 미결(53/64)"* 은 **`T8` 의 무해 검정**이지 이것이 아니다.
+⚠\textbf{단 그 확증은 혼잡 층에 한정된다} --- 같은 배치의 희소 층은
+$35/64$($-1.6\%$, $p = 0.27$)로 \textbf{미결}이고, 그 설계가 분해할 수 있던 최소
+승률은 $0.682$다(⛔따라서 \emph{``희소에서 효과가 없다''}로 읽지 않는다). ⛔그 배치 자신이 사전등록 §5 에서 결과를
 보기 전에 *``필요조건 하나''*라고 못박았고, 남은 조건들은 그 뒤 $2026$-$09$-$02$ 의
 \texttt{T8-ENSDEFAULT}(게이트 $11/11$, $384$런)가 **측정했다**:
 \textbf{(i)}~희소 층 무해는 여전히 **미결**($53/64$, 문턱 $56$; ⚠상대 여유가 이 층의

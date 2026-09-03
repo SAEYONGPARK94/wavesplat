@@ -34,8 +34,26 @@ WORDS = ('one two three four five six seven eight nine ten eleven twelve thirtee
 #   검사기와 방벽 27개가 전부 초록이었다. `"out of"` 와 `"one"` 도 빠져 있었다.
 #   ⟹ ★**「있는 것을 없다고」 하는 검사기는 없는 것보다 나쁘다** — 안전하다는 신호를 준다.
 _W = '|'.join(WORDS)
-PAT = re.compile(r'\b(' + _W + r')\s+(?:out\s+of|of)\s+(?:the\s+)?(' + _W + r')\b',
-                 re.IGNORECASE)
+_NUM = r'(?:' + _W + r'|\d{1,4})'
+_DEN = r'(?:' + _W + r'|\d{1,4}|\\[A-Za-z]+\{\})'
+
+# ⛔⛔[2026-09-03, 2차 감사] **초판과 1차 확장이 실문서에서 진짜 위반을 0/10 잡았다.**
+#   초록은 전부 ALLOW 관용구가 만든 것이었고 **검출 실적이 0** 이었다.
+#   ★그리고 `thesis_main.tex` 는 **한국어 문서인데 정규식이 영어 전용**이라
+#   구조적으로 발동 불가였다 --- 저장소가 이름 붙인 「있는 것을 없다고 하는 검사기」다.
+#   ⟹ 아래 셋을 추가한다: ①한국어 「N(개) 중 M(개)」 ②`none of` ③숫자·낱말 혼합과
+#     매크로 분모. ⛔분수·서수·60 초과는 **넣지 않았다**(오탐이 늑대가 된다).
+PATS = [
+    # 영어: <수> of/out of [the] <수>   (분모에 매크로 허용)
+    re.compile(r'\b(' + _NUM + r')\s+(?:out\s+of|of)\s+(?:the\s+)?(' + _DEN + r')\b',
+               re.IGNORECASE),
+    # 영어: none of [the] <수>
+    re.compile(r'\b(none)\s+of\s+(?:the\s+)?(' + _DEN + r')\b', re.IGNORECASE),
+    # ★한국어: 「N개 중 M개」 · 「N 중 M」 · 「N 가운데 M」
+    re.compile(r'([\d,]{1,7})\s*(?:개|건|칸|레코드|블록|셀)?\s*(?:중|가운데)\s*'
+               r'([\d,]{1,7})\s*(?:개|건|칸|레코드|블록|셀)?'),
+]
+PAT = PATS[0]          # 하위호환(자가시험이 참조한다)
 
 # ⛔허용 목록 --- 셈 비율이 **아닌** 관용 표현만. 사유를 함께 적는다.
 ALLOW = {
@@ -43,6 +61,11 @@ ALLOW = {
     'one of the three': '선택 관용구 --- "any one of the three" = 셋 중 어느 하나에도 귀속 불가',
     'one of the two': '선택 관용구 --- "one of the two bands" = 두 대역 중 한쪽',
     'one of the same': '선택 관용구 --- "one of the same public records"',
+    # ⚠[2026-09-03 2차] 셈 비율이지만 **결과 주장이 아닌** 예시·서지 통계.
+    #   ⛔면제 사유를 반드시 적는다. 결과 수치가 여기 들어오면 그것은 규율 위반이다.
+    '5개 중 1개': '가지치기 **예시**(BF3 5comp -> N_a=4) --- 판정 수치가 아니다',
+    '217개 중 1': '저장소 커밋 서지 통계(1,217 중 1,203) --- 측정 결과가 아니다',
+    '1,217개 중 1,203개': '같은 서지 통계 (구분자 포함 형태)',
 }
 
 
@@ -69,12 +92,17 @@ def main():
             continue
         raw = open(p, encoding='utf-8').read()
         body = strip_comments(raw)
-        for m in PAT.finditer(body):
-            phrase = m.group(0)
-            if phrase.lower() in ALLOW:
-                continue
-            line = body[:m.start()].count('\n') + 1
-            bad.append((os.path.relpath(p, ROOT), line, phrase))
+        seen = set()
+        for pat in PATS:
+            for m in pat.finditer(body):
+                phrase = m.group(0)
+                if phrase.lower().strip() in ALLOW:
+                    continue
+                line = body[:m.start()].count('\n') + 1
+                if (line, phrase) in seen:
+                    continue
+                seen.add((line, phrase))
+                bad.append((os.path.relpath(p, ROOT), line, phrase))
     print('── 철자 비율 검사 ' + '─' * 40)
     if bad:
         for f, l, ph in bad:

@@ -779,8 +779,8 @@ $\cos\theta_j/(r_j/d_{\text{ref}})$ exceeds one at \emph{every} observation poin
 every record --- its smallest unclamped value across the seven records with recovered
 geometry is $1.23$ --- and the clamp to $[0,1]$ makes $c_j \equiv 1$. Separately, and
 measured by execution rather than read off the source, substituting a weight that does
-vary changes the estimate on none of the seven records under the shipped real-data route
-and on all seven under the learned route: the route that fails on measured data is the
+vary changes the estimate on \RSixShipChanged{}/\RSixN{} records under the shipped
+real-data route and on \RSixPropChanged{}/\RSixN{} under the learned route: the route that fails on measured data is the
 only one that consumes this field. We report both facts here because Eq.~\ref{eq:confidence}
 would otherwise read as an active component of the measured-data results, and it is not.
 % CORRECTED 2026-08-14: "ground-truth Gerstner wave mesh" -> the mesh is built from
@@ -2271,7 +2271,9 @@ previously asserted into one it measures.
 %   ⛔SHIP 을 돌리지 않았으므로 우열 주장 아님 · ⛔사다리 상위 칸은 **참값 표본**이다.
 The same measurement on the synthetic corpus that carries the headline ablations says
 the same thing more sharply. Fed the stored LiDAR returns of those episodes exactly as
-generated --- a median of \ETwoObs{} points across the three frames it consumes --- the
+generated --- a median of \ETwoObs{} stored returns, of which \ETwoObsFed{} reach the
+rasteriser because a fifth of the centre frame is withheld to choose a sign convention
+without ground truth --- the
 external reconstructor clears a per-episode zero field on \ETwoDeployBetter{} of
 \ETwoN{} episodes, with a median error of \ETwoDeployMed{} against the zero field's
 \ETwoZeroMed{}: at our sensing density it is twice as bad as predicting nothing. Given
@@ -3203,7 +3205,8 @@ detection law applied to it. Holding that quantity fixed and replacing the
 multiplicative-gain law by the threshold-with-speckle law the same simulator already
 ships --- one free parameter each, fitted by the same median-matching rule --- lowers
 the error by \HThreeCRel{}, from \HThreeCMreA{} to \HThreeCMreC{}, which is still far
-above the threshold and only \HThreeCShufC{} away from that law's own shuffled null.
+above the threshold, and it clears that law's own shuffled null (\HThreeCShufC{}) by
+only \HThreeCShufGap{} in relative terms.
 A third shipped variant is excluded before the fact, because the frozen cells carry
 only incidence angle, depth and return rate, and a slope-dependent gate has nothing
 to predict from them; that variant is therefore untested here, not refuted, and the
@@ -3326,8 +3329,8 @@ sufficiency, so it does not establish that the departure is large enough to matt
 higher-order realisation is graded per episode and the grades are mixed; and it says
 nothing about measured data, where no component table exists.
 
-\paragraph{We tried to answer that with someone else's ground truth, and could not
-resolve it} The residual objection to everything above is that the reference fields
+\paragraph{Someone else's ground truth carries the phase coupling, once we gave the
+test enough frames to see it} The residual objection to everything above is that the reference fields
 are made by our own generator. That cannot be settled with our code, so we took a
 published third-party synthetic corpus (\TOneCite{}) --- \TOneGB{}~GB, CC-BY-4.0,
 \TOneNMat{} independent simulations of \TOneFrames{} frames each --- and asked one
@@ -3351,12 +3354,26 @@ The block size was fixed before the archive was opened at \TOneFrameUsed{} of th
 \TOneFrames{} frames available.
 
 That last constraint was ours, not the data's, so we froze a second pre-registration
-before touching any further file and repeated the test at the full \TOneFrames{}
-frames on \TOneBN{} \emph{fresh} simulations, disjoint from the first set. The answer
-reverses: \TOneBWin{}, $p = \TOneBP{}$. Running the same enlarged test on the
-\emph{original} blocks --- same files, same ruler, only the frame count changed ---
-moves them from \TOneWin{} to \TOneBSame{}, which identifies the first result as a
-statement about our power rather than about their fields. We report both because they
+and repeated the test at the full \TOneFrames{} frames on \TOneBN{} further
+simulations, disjoint from the first set. The answer reverses: \TOneBWin{},
+$p = \TOneBP{}$ against the pre-registered per-block false-positive rate of
+\TOneBFP{} (a nearest-rank $95$th percentile over \TOneNSur{} surrogates, not $0.05$).
+Two of those \TOneBN{} blocks were not blind and we say so: one had its checksum and
+standard deviation read during the first batch while we were verifying that the
+simulations are distinct, and one was run as a single-block cost check before the
+full run, so its outcome was seen. The block-selection rule was fixed before either
+exposure and we did not change it afterwards, since changing it is the selection
+effect we would be trying to avoid. The exposed block is also the \emph{only} one of
+the \TOneBN{} that fails --- but the two unexposed blocks at the same sea state fail
+as well, so the sea state and not the exposure is what that block has in common with
+the other failures.
+Running the same enlarged test on the \emph{original} blocks --- same files, same
+ruler, only the frame count changed --- moves them from \TOneWin{} to \TOneBSame{},
+which identifies the first result as a statement about our power rather than about
+their fields. That arm shares its data with the first batch, so it is a check on the
+mechanism and we do not use it to revise the first batch's verdict; and because the
+two corpora are now tested at different frame counts, their detection rates remain
+not comparable. We report both because they
 are a ladder and not a contradiction, and because the first was frozen and published
 before the second was designed. One further pattern, which we did not pre-register and
 therefore mark exploratory, makes the reading coherent: pooled skewness rises
@@ -3480,8 +3497,13 @@ is withdrawn: \ref{app:changes}, R2.) The linear approximation does
 degrade for steep waves. We had written that a second-order Stokes extension would
 preserve the spectral parameterisation and close the gap; a later batch measured that
 suggestion rather than repeating it, and it does not survive. Adding the finite-depth
-Sharma--Dean second-order correction with \emph{no free parameter} removes only
-\CTwoRel{} of the residual on \CTwoWin{} of \CTwoN{} crowded episodes; and the failure
+Sharma--Dean second-order correction with \emph{no free parameter} lowers the
+residual on \CTwoWin{} of \CTwoN{} crowded episodes, but by only \CTwoRel{} of it.
+Those two figures use different frame sets and we state which: the count includes the
+$t{=}0$ frame, where the reference is initialised as a linear surface and therefore
+carries no bound harmonics, so any correction can only hurt; excluding that frame the
+count is \CTwoWinNoZero{} of \CTwoN{} and the magnitude is \CTwoRel{}. The label is
+unchanged either way. and the failure
 is not one of scale, because the correction is not small (its norm is \CTwoCOverR{} of
 the residual) and is largely misaligned with it (median cosine \CTwoCos{}), so even at
 its own optimal scale it removes only \CTwoOptPct{} of the residual variance. The

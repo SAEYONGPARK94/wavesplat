@@ -699,6 +699,19 @@ def _t1_thirdparty():
             'TOneCite': '\\citealp{Zheng2025SyntheticWaveFields}'}
 
 
+def _h3c_shuf_gap():
+    """★`H3c` --- **귀무까지의 여유**. ⛔`\\HThreeCShufC` 는 **귀무 자신의 값**이다.
+
+    ⛔[2026-09-03 감사 BLOCKER] 원고가 *"only \\HThreeCShufC{} away from ... the shuffled
+      null"* 이라 인쇄했다 --- 0.303 이 0.317 에서 **0.317 떨어져 있다**는 산술적으로
+      불가능한 문장이고, 실제 여유의 **20배**로 읽힌다.
+    """
+    v = load('H3C_LAW_2026-09-03/verdict_h3c.json')
+    c = v['model_C']
+    gap = (c['shuf_p5'] - c['MRE']) / c['shuf_p5']
+    return {'HThreeCShufGap': f'{100 * gap:.1f}\\%'}
+
+
 def _t1b_thirdparty():
     """★`T1b` — 같은 질문을 502 프레임으로. ⛔`T1` 과 **모순이 아니라 검정력의 사다리**다.
 
@@ -747,8 +760,23 @@ def _t1b_thirdparty():
             #   ②`0.988` 은 인용금지 목록의 **희소 층 극단값 +0.988** 과 문자열이 겹친다
             #   (다른 양인데 래칫이 정탐으로 센다 — 우연 일치 부류).
             'TOneBRho': f'{num / den:.2f}',
+            # ⛔독자가 0.05 를 가정하지 않게 한다 --- nearest-rank q95/32 = 2/33.
+            'TOneBFP': '0.061',
             'TOneBNBlocks': str(len(blocks)),
             'TOneBSkewLo': f'{lo:+.3f}', 'TOneBSkewHi': f'{hi:+.3f}'}
+
+
+def _c2_count_no_zero(rows):
+    """`t=0` 을 뺀 에피소드 계수. ⛔`verdict` 의 37/48 은 `t=0` 을 **포함**한다."""
+    import statistics as _st
+    eps = sorted({r['episode'] for r in rows})
+    w = 0
+    for e in eps:
+        sub = [r for r in rows if r['episode'] == e and r['j'] > 0]
+        a = (sum(r['r'] ** 2 for r in sub) / len(sub)) ** 0.5
+        b = (sum(r['rc'] ** 2 for r in sub) / len(sub)) ** 0.5
+        w += (b < a)
+    return w
 
 
 def _c2_shape():
@@ -768,7 +796,9 @@ def _c2_shape():
     return {'CTwoCOverR': f"{_st.median([x['c'] / x['r'] for x in s]):.2f}",
             'CTwoCos': f'{mc:.2f}',
             'CTwoOptPct': f'{100 * (1 - (1 - mc ** 2)):.0f}\\%',
-            'CTwoRel': f"{100 * (1 - _st.median([x['rc'] / x['r'] for x in s])):.0f}\\%"}
+            'CTwoRel': f"{100 * (1 - _st.median([x['rc'] / x['r'] for x in s])):.0f}\\%",
+            # ⛔t=0 을 빼고 센 계수 --- 크기(위)와 **같은 프레임 집합**이라야 한다.
+            'CTwoWinNoZero': str(_c2_count_no_zero(rows))}
 
 
 def _e2_footprint():
@@ -779,10 +809,20 @@ def _e2_footprint():
     ⚠런 0회 — `footprint_e2.py` 가 동결 에피소드 64개에서 센 값을 읽는다.
     ⚠에이전트 보고(12.6% · 2.01배)와 다르다. **내 실측을 쓴다**(재검 의무).
     """
+    import statistics as _st
     d = json.load(open(os.path.join(TMP, 'E2_EXTSYNTH_2026-09-03',
                                     'footprint_e2.json')))['summary']
+    # ⛔[2026-09-03 감사] 원고가 `\ETwoObs`(=**저장된** 유효 반환)를 *"it consumes"* 라
+    #   인쇄했다. 래스터가 실제로 받은 것은 아래 값이다 --- `run_e2.py:41-45` 가 중앙
+    #   프레임의 20%를 부호선택 홀드아웃으로 뺀다. **다른 양**이므로 따로 핀한다.
+    rows = [json.loads(x) for x in
+            open(os.path.join(TMP, 'E2_EXTSYNTH_2026-09-03', 'results_e2.jsonl'))
+            if x.strip()]
+    fed = _st.median([r['n_in_deploy'] for r in rows
+                      if r.get('crowded') and 'n_in_deploy' in r])
     return {'ETwoFootprintPct': f"{100 * d['frac_median']:.1f}\\%",
-            'ETwoFootprintRatio': f"{d['ratio_median']:.1f}"}
+            'ETwoFootprintRatio': f"{d['ratio_median']:.1f}",
+            'ETwoObsFed': f'{fed:.1f}'}
 
 
 def _e1_equal_budget():
@@ -1173,9 +1213,16 @@ ATOMS = [
      'deploy.med_zero', 'abs3', 0.998),
     ('ETwoObs', 'E2_EXTSYNTH_2026-09-03/verdict_e2.json',
      'deploy.med_n_obs', 'sec', 148.5),
+
     ('ETwoRungTwoHundred', 'E2_EXTSYNTH_2026-09-03/verdict_e2.json',
      'ladder.200.better', 'int', 48),
     # ── ★E1b — 채점 기준계 비대칭을 제거해도 문턱이 안 움직인다
+    # ── ★R6 신뢰 가중 치환 — 산문이 'none of the seven' 으로 손타이핑돼 있었다
+    ('RSixShipChanged', 'R6_CONF_2026-09-03/verdict_r6.json',
+     'secondary.SHIP.n_changed', 'int', 0),
+    ('RSixPropChanged', 'R6_CONF_2026-09-03/verdict_r6.json',
+     'secondary.PROP.n_changed', 'int', 7),
+    ('RSixN', 'R6_CONF_2026-09-03/verdict_r6.json', 'secondary.SHIP.n', 'int', 7),
     ('EOneBRung', 'E1B_EXTBASE_2026-09-03/verdict_e1b.json',
      'self_test.chosen_rung', 'int', 400),
     # ── ★C2 — 무모수 2차 이론이 얼마나 지우는가 (전망을 측정으로 교체)
@@ -1326,6 +1373,7 @@ def main():
     dep += list(_c2_shape().items())
     dep += list(_t1_thirdparty().items())
     dep += list(_t1b_thirdparty().items())
+    dep += list(_h3c_shuf_gap().items())
     dep += list(_seed_clustered().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]

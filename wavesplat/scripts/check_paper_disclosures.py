@@ -351,6 +351,31 @@ def sections(text):
     return parts
 
 
+def _full_body():
+    """`waveprior.tex` + 그것이 `\\input` 하는 파일 전부. ⛔조판되는 것이 검사 대상이다.
+
+    ⛔[2026-09-03 2차 감사] 초판은 본문 한 파일만 읽어 `\\input{...}` 안을 전혀 보지
+    않았다 --- 그리고 그 안에 이미 `\\CTwoRel` 의 값이 리터럴로 있었다.
+    """
+    root = open(TEX, encoding='utf-8').read()
+    out = [root]
+    for m in re.finditer(r'\\input\{([^}]+)\}', root):
+        nm = m.group(1)
+        for cand in (nm, nm + '.tex'):
+            q = os.path.join(os.path.dirname(TEX), cand)
+            if not os.path.exists(q):
+                continue
+            t = open(q, encoding='utf-8').read()
+            # ⛔**자동 생성 파일은 제외**한다. 그것들은 수치를 인쇄하는 것이 일이고,
+            #   그 수치는 이미 동결 verdict 에서 생성된다 ⟹ 「손타이핑 우회」가 아니다.
+            #   ⚠1차 확장이 이것을 빼놓아 **25건이 한꺼번에 떴다**(늑대 외치기).
+            #   ★검사 대상은 **손으로 쓰는 산문**이다.
+            if '자동 생성' not in t.split('\n', 4)[0] + t.split('\n', 4)[1]:
+                out.append(t)
+            break
+    return '\n'.join(out)
+
+
 def strip_comments(t):
     """주석을 빼고 **공백을 정규화**한다.
 
@@ -394,7 +419,7 @@ def literals_outside_macros():
             #   손으로 적히면 규칙이 침묵하는 바로 그 값이다.
             if '\\%' in v:
                 vals[m.group(1)] = v
-    body = strip_comments(open(TEX, encoding='utf-8').read())
+    body = strip_comments(_full_body())   # ⛔`\input` 안까지 본다
 
     # ⚠**우연 일치 면제** --- 매크로 값과 글자가 같지만 **다른 양**인 자리.
     #   ⛔면제는 (매크로, 그 자리의 앞뒤 문맥) 짝으로만 준다. 문맥이 사라지면 다시 잡힌다
@@ -431,7 +456,7 @@ def unused_macros():
     if not os.path.exists(pc):
         return []
     names = re.findall(r'\\newcommand\{\\(\w+)\}', open(pc, encoding='utf-8').read())
-    body = strip_comments(open(TEX, encoding='utf-8').read())
+    body = strip_comments(_full_body())   # ⛔`\input` 안까지 본다
     return [n for n in names
             if not re.search(r'\\' + n + r'(?![A-Za-z])', body)]
 

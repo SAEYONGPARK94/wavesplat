@@ -264,7 +264,7 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
   `wavesplat/tests/test_shipping_defaults.py` 가 **바로 이 소견을 인용해** 만들어졌고
   배포값 **아홉 개**를 핀한다. 아래는 그 당시(2026-08-13)의 기록이다.
   `lambda_l1` 1e-4→1e-3 · `init_method` auto→v2_konly · `tracking_mode` w_phi→all 을 **동시에 되돌려도
-  `111 passed`**. 테스트 전체에 `DEFAULT_CONFIG`·`configs/` 문자열이 **0회** 등장한다.
+  `111 passed`**.<!--past--> 테스트 전체에 `DEFAULT_CONFIG`·`configs/` 문자열이 **0회** 등장한다.
   ⟹ S7·S8 을 무효화시킨 바로 그 결함 부류에 **회귀 테스트가 0개**다.
 - **요약은 사전등록보다 넓게 나가지 마라.** 2026-08-13 감사에서 S13 의 PREREG 는 정확했는데
   RESULT/메모리 요약이 부풀어 있었다("신선 시드 재확인"·"민감도 전부 통과"·"사전노출 24").

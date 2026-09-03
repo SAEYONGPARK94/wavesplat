@@ -100,10 +100,17 @@ def test_gate_escape_hatch_is_load_bearing_on_real_input():
     assert pa['real_domain_gate_fired'] is True
 
     # (b) 탈출구를 켜면 --- **같은 입력·같은 config** 인데 경로가 달라져야 한다.
-    b = make_updater(dict(base, real_domain_gate=False, init_method='v2_konly'))
+    # ⛔[2026-09-03, 두 번째 정정] 초판(과 그 「수리판」)은 여기서 `init_method='v2_konly'`
+    #   를 지정했다. 그러면 `sequential_update.py:766 if self.init_method == 'auto':`
+    #   블록을 **통째로 건너뛰어** `real_domain_gate` 키를 **0회** 읽는다 ⟹ 탈출구를
+    #   삭제해도 시험이 통과한다(감사가 변이로 실증: 삭제 후 repo 전체 267 passed).
+    #   ★독스트링이 바로 그 결함을 진단해 놓고 팔을 축자 그대로 남겼다 = N−1 재발.
+    #   ⟹ **`auto` 를 유지해야** 게이트 분기에 들어가고 탈출구가 하중을 받는다.
+    b = make_updater(dict(base, real_domain_gate=False))
     b.initialize(_real_frames(), x_range=(-20, 20), y_range=(-20, 20), verbose=False)
     pb = b.arm_provenance()
     assert pb['is_bank_mmse'] is False, f'탈출구가 하중을 받지 않는다 ({pb})'
     assert pb['real_domain_gate_fired'] is False
+    assert pb['resolved_init_method'] != 'bank_mmse'
     assert pa['resolved_init_method'] != pb['resolved_init_method'], (
         '두 구성이 같은 경로로 끝나면 이 시험은 항진이다')

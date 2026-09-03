@@ -1213,9 +1213,17 @@ class SequentialUpdater:
             'resolved_is_final': bool(getattr(self, '_initialized', False)
                                       or getattr(self, '_auto_selected', None)
                                       or getattr(self, '_auto_real_gate', False)),
-            # ⚠S13b 교훈 --- 앙상블이 조용히 죽은 것을 객체 되읽기로만 볼 수 있었다.
-            'ensemble_k': getattr(self, 'analytic_ensemble_k', None),
-            'learned_ensemble_k': getattr(self, 'learned_ensemble_k', None),
+            # ⛔[2026-09-03 감사가 잡았다] 초판은 `analytic_ensemble_k`·`learned_ensemble_k`
+            #   를 읽었는데 **그 속성은 어디에도 대입되지 않는다**(전수 grep 0건) ⟹ 항상
+            #   `None` 이었다. 그런데 주석은 *"S13b 교훈"* 이라 적어 **막는다고 주장**했다.
+            #   실제 상태는 래퍼 `MedianEnsembleUpdater` 에 있고(`k_requested`·`ensemble_k`),
+            #   래퍼는 이 클래스의 하위가 아니라 `__getattr__` 로 위임한다 ⟹ **객체가 다르다**.
+            #   ⟹ 여기서는 *"나는 래퍼가 아니다"* 만 정직하게 적고, 실제 k 는
+            #   `MedianEnsembleUpdater.arm_provenance()` 가 덧붙인다.
+            'is_ensemble_wrapper': False,
+            'ensemble_k': None,
+            'ensemble_note': '앙상블 k 는 래퍼가 보고한다 --- 이 값이 None 이면 '
+                             '「앙상블 없음」이 아니라 「이 객체가 래퍼가 아님」이다',
         }
 
     def _initialize_bank(self, frames: List[FrameData],
@@ -2029,6 +2037,23 @@ class MedianEnsembleUpdater:
         self.member_seeds = [config.get('seed')]
         # populated by initialize(): how many members were actually built
         self.ensemble_k = 1
+
+    def arm_provenance(self):
+        """★래퍼의 팔 정체 --- **요청 k 와 실효 k 를 둘 다** 적는다.
+
+        ⛔`__getattr__` 위임 때문에 이 메서드가 없으면 호출이 `_primary` 로 넘어가
+        **래퍼가 아닌 멤버 0** 의 dict 이 돌아온다(그것이 2026-09-03 의 결함이었다).
+        ⚠`k_requested != ensemble_k` 이면 **앙상블이 조용히 줄었다**(S13b 사건).
+        """
+        d = dict(self._primary.arm_provenance())
+        d.update(is_ensemble_wrapper=True,
+                 ensemble_k_requested=int(self.k_requested),
+                 ensemble_k=int(getattr(self, 'ensemble_k', 1)),
+                 ensemble_k_key=self.k_key,
+                 ensemble_collapsed=bool(int(getattr(self, 'ensemble_k', 1))
+                                         < int(self.k_requested)),
+                 ensemble_note=None)
+        return d
 
     # ── attribute forwarding ────────────────────────────────────────────────
     def __getattr__(self, name):

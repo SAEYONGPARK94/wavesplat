@@ -61,7 +61,11 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
 ## Current State
 ⛔**이 절의 낡은 수치가 2026-08-12 전체 감사에서 BLOCKER 로 잡혔다.**
 **연구 현황의 권위는 이 파일이 아니라 auto-memory (`MEMORY.md`) 와 `tmp/<배치>/RESULT.md` 다.**
-- **250 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-08-27).
+- **264 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-09-03, 58 s).
+  ⛔**"250"·"261" 은 둘 다 낡았다.** ★★그리고 2026-09-03 에 **233** 이 나와 추적한 결과
+  커밋 `67a3eacd` 가 `test_shipping_defaults.py` 의 시험 **22개를 사고로 삭제**했음이 드러났다
+  (배포값 9개 파라미터화 핀 + `D3` BLOCKER 회귀 시험 포함). 되살렸다 ⟹ 233 → 264.
+  ★교훈: ***시험 수가 줄면 그것은 신호다*** — 원장과 실측이 어긋나면 반드시 추적하라.
   ⚠이 수는 자주 바뀐다 — **인용 전에 돌려서 확인할 것**(08-23 하루에 231→242→245).
   ⛔**"245" 는 낡았다**(08-23 값이 08-27 까지 이 파일에 남아 있었다).
 - ⛔**"WS 0.223 / ETKF 0.319 / 13.4 ms / 132.6 ms" 인용 금지 — 단 사유가 2026-08-13 에 바뀌었다.**

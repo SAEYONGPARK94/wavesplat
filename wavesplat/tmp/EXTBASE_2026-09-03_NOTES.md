@@ -40,3 +40,30 @@ using WASS with the recommended parameters"*) ⟹ 저들 격자는 공개 `Surfa
 - ⚠3-프레임(t−1,t,t+1) 입력이라 **비인과적** ⟹ 기준선에 유리한 방향, 그대로 공시.
 - 스모크 = 저들 공식 시험자료 `https://www.dais.unive.it/wass/wassfast_testdata_256.7z`
   (**122,583,502 B**, HTTP 200 확인)로 환경·가중치 로딩부터.
+
+---
+
+## ✅2026-09-03 — **제3자 모형이 실제로 돈다** (환경 구축 + 스모크 완료)
+
+- 환경: `external/tfenv` (⛔저장소 추적 제외) — **TF 2.17.1 + tf-keras 2.17.0**, CPU.
+  ⚠TF **2.20** 은 이 기계에서 `_pywrap_tensorflow_lite_metrics_wrapper.so: undefined symbol`
+  로 임포트 실패한다(system-site 여부와 무관, 두 번 재현). **2.17.1 로 고정**.
+  ⚠저들 소스가 `import keras` 를 쓰므로 `sys.modules['keras'] = tf_keras` 를 꽂아야 한다.
+- ★**저들 순서 그대로**(`wassfast/_wassfast.py:650-656`) 재현:
+  ```python
+  m = create_model_with_prediction(N, sparsecnn_weights='.../2021-06-30_16-48-27.h5')
+  m.load_weights('.../2021-07-01_12-00-44_3.h5')
+  ```
+  ⟹ **두 체크포인트 전부 로드 성공**. 층 **59**, 파라미터 **32,468**(학습가능 6,625).
+  ⛔`2021-07-01_12-00-44_3.h5` 를 **최상위에 먼저** 로드하면 실패한다
+  (*"Model expected 13 layers, found 18 saved layers"*) — 순서가 규약이다.
+- 입출력 확인: `[(1,256,256,3), (1,256,256,4)] → (1,256,256,1)`.
+  희소 600점(= 우리 배포 실측 장면과 **같은 관측 수**)을 세 채널에 넣어 `predict` 하면
+  유한값이 나온다(std 0.0065). ⟹ ★**규약이 맞는다.**
+
+## ⛔다음 (사전등록 전)
+1. 저들 공식 시험자료 `wassfast_testdata_256.7z`(122,583,502 B)로 **저들 파이프라인이
+   저들 자료에서 기대대로 도는지** 먼저 확인 — ⛔우리 자료로 넘어가기 전의 양성 대조.
+2. 어댑터: `scene_station` 의 `(P, z)` → 저들 `(N,N,3)` 희소 격자 + `compute_phase_diff_matrix`.
+   ⛔저들 코드는 **한 줄도 고치지 않는다**.
+3. **관측 밀도 사다리**를 사전등록에 박는다(위 §).

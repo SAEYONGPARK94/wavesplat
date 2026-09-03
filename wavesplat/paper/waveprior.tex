@@ -717,10 +717,11 @@ approximation~\citep{holthuijsen2007}.
 % model equation is exactly 0.000e+00 across four episodes.
 % (basis: memory/project_audit_recheck_2026-08-13.md section 6.5)
 This is an analytic estimate for real ocean waves.
-It does \textbf{not} describe the synthetic corpus used in this paper: there,
-the ground truth is a displacement-free linear superposition, so the measured
+It does \textbf{not} describe the \emph{linear} synthetic corpus used in this paper:
+there the ground truth is a displacement-free linear superposition, so the measured
 mismatch against the model equation is exactly zero (see
-Section~\ref{sec:experiments}).
+Section~\ref{sec:experiments}). The higher-order corpus that carries the headline
+ablations is not exactly inside that class (Section~\ref{sec:res_scope}).
 
 \subsection{Observation model}
 \label{sec:obsmodel}
@@ -1276,8 +1277,8 @@ The threshold is derived from the theoretical
 residual floor: combining LiDAR range noise ($\sigma_r \approx
 0.02$~m) with a nonlinear--linear model mismatch allowance at BF4
 ($O(\epsilon^2)\,H_s/2 \approx 6$~mm; this term is
-an allowance for real waves and is \textbf{absent} in the synthetic corpus,
-where the measured mismatch is zero) and angular-noise projection
+an allowance for real waves and is \textbf{absent} in the \emph{linear} synthetic
+corpus, where the measured mismatch is zero) and angular-noise projection
 (${\sim}5$~mm) yields a lower-bound RMS of ${\sim}0.022$~m;
 $\tau_R = 0.05$~m provides a ${\sim}2.3\times$ safety margin for
 unambiguous detection of unmodeled signal.
@@ -1524,7 +1525,9 @@ sampling~\citep{hasselmann1973}.  The simulator parameters are:
     horizontal displacement components of the Gerstner solution, so the
     ground truth lies in the \emph{same function space} as the estimator's
     model equation. Nonlinear validation was carried out in a separate
-    higher-order-spectral ($M{=}3$) batch, not on this corpus.
+    higher-order-spectral ($M{=}3$) batch, not on this corpus --- and that
+    higher-order corpus, which carries the headline ablations, does \emph{not}
+    lie exactly in that space (Section~\ref{sec:res_scope}).
   \item \textbf{LiDAR model}: 500 horizontal beams per scan,
     10~Hz scan rate, range 10--250~m.  The beam count represents the
     total number of ray directions per frame (horizontal fan);
@@ -2263,7 +2266,9 @@ and at that budget the external method does not reliably clear a zero field
 (\EOneSelfTwoHundred{}/\EOneN{}). At the lowest budget where it does clear, it is
 receiving twice our observations, and there it beats the deployed arm on
 $\EOneN{}-\EOneShipWin{}$ of \EOneN{} records ($p = \EOneP{}$). Our arm beats a
-per-record zero field on eleven of twelve throughout. Three further conditions travel
+per-record zero field on \ROneBShipFixed{}/\ROneBN{} records throughout, to be read
+with the support condition stated below --- confined to half the box, that same arm
+keeps skill on only \REightSkillOut{}/\REightN{}. Three further conditions travel
 with the comparison: their input spans $t-1,t,t+1$ and therefore sees a future frame,
 which favours them; their dense output is resampled onto our query grid by nearest
 neighbour; and the training distribution of their checkpoint could not be read from the
@@ -2302,9 +2307,12 @@ truth trace their own validation to centimetre-level comparisons against point g
 records for which a co-located wave-gauge array exists, the stereo surface carries more
 variance above $1$~Hz than the gauges do on \RTwoBBetter{}/\RTwoBN{} records
 ($p = \RTwoBP{}$), by \RTwoBFloorMin{}--\RTwoBFloorMax{}~mm RMS (median
-\RTwoBFloorMed{}~mm). That is an \emph{upper} bound on the reconstruction noise floor:
-the gauges carry their own noise, and they sample a different point of a spatially
-inhomogeneous field. It does not make the surfaces a validated dense reference --- the
+\RTwoBFloorMed{}~mm). % ★[2026-09-03 정정] R2b/AMENDMENT_1 §4 가 *"게이지 자기잡음은 반대 방향으로 민다"* 를
+%   확립했는데 이 문장이 그것을 근거로 계속 인쇄하고 있었다(N-1).
+That is an \emph{upper} bound on the reconstruction noise floor for one reason only:
+the gauges sample a different point of a spatially inhomogeneous field. Their own noise
+enters the subtracted term and therefore pushes in the \emph{opposite} direction, so we
+do not offer it as support. It does not make the surfaces a validated dense reference --- the
 gauges are six sensors within a $0.25$~m radius, $7$--$11$~m from the scored grid, so no
 per-gridpoint error field follows. Two conditions travel with the number: the comparison
 rests on the gauges being far enough from the scored grid that no positional
@@ -2475,7 +2483,7 @@ no defined meaning when added or subtracted.}
 \toprule
 Question & Batch & $n$ & better & rel.\ median & $p$ & cmp. \\
 \midrule
-\multicolumn{7}{l}{\emph{Against an external baseline}} \\
+\multicolumn{7}{l}{\emph{Against the strongest in-house baseline we possess}} \\
 Strongest eligible baseline & B-1  & \BOneN{}    & \BOneBetter{}    & \BOneRel{}    & $\BOneP{}$ & (\BOneCmp{}/\BOneCmpN{}) \\
 Non-linear ref., \BTwelveFreshSeeds{}/\BTwelveSeeds{} new seeds & B-12 & \BTwelveN{} & \BTwelveBetter{} & \BTwelveRel{} & $\BTwelveP{}$ & \BTwelveCmpBetter{}/\BTwelveCmpN{} \\
 Unweighted sensor returns & B-15 & \BFifteenN{} & \BFifteenBetter{} & \BFifteenRel{} & $\BFifteenP{}$ & \BFifteenCmp{}/\BFifteenN{} \\
@@ -3187,7 +3195,8 @@ and outside it. Aperture, observation count, seed and initialisation are then
 identical by construction and only the scoring region differs. Skill is present
 inside on \REightSkillIn{}/\REightN{} records and outside on only
 \REightSkillOut{}/\REightN{}; the median ratio to a per-record zero field moves from
-\REightRatioIn{} to \REightRatioOut{}, that is, to no skill. The paired direction
+\REightRatioIn{} to \REightRatioOut{} --- \emph{close to}, though not past, the
+no-skill line, which is why the record count and not the ratio carries the claim. The paired direction
 holds on \REightBetter{}/\REightN{} records ($p = \REightP{}$), which clears the
 nominal threshold but not the confirmatory one. \emph{It also fails to reproduce in
 the stratum with the most query points}: on the \REightBigN{} records whose box
@@ -3208,8 +3217,11 @@ permutation, against a minimum detectable $\rho$ of \RSevenMDE{} at this sample 
 The control matters more than the correlation: the same bound is uncorrelated with the
 no-skill zero reference ($\rho = \RSevenCtrlRho{}$, $p = \RSevenCtrlP{}$), so this is not
 the restatement that noisier records have larger everything. Since the excess lies above
-$1$\,Hz and the peak periods here are $2.5$--$5.7$\,s, it is variance a sum of at most
-fifteen plane waves cannot represent, and the scoring charges the estimator for it. This
+$1$\,Hz and the peak periods on these seven records are $3.1$--$4.4$\,s, it lies above the
+band the estimator's few atoms are fitted in, and the scoring charges the estimator for
+it. \emph{We state that as a band argument, not as a proof of unrepresentability}: the
+batch tests no gate on the estimator's own wavenumber reach, and the gauges themselves
+carry a small share of their variance above $1$\,Hz. This
 is exploratory, it was not blind, it rests on one site, its bound is an upper bound, and
 it does not rescue the learned prior --- the same correlation on that arm is null. We
 therefore report it as a caveat on how the measured negatives should be read, and we do
@@ -3255,12 +3267,14 @@ higher-order episodes, and there the same reconstruction leaves a residual on ev
 of the \COneCrowdedN{} crowded episodes. \textbf{How large that residual is depends
 entirely on which norm one reads, and we give both.} At the worst grid point of the
 sampled frames it is \COneCrowdedMin{}--\COneCrowdedMax{} times the field's own standard
-deviation (median \COneCrowdedMed{}); in root-mean-square it is
-\COneCRmsMin{}--\COneCRmsMax{} (median \COneCRmsMed{}), which is about a third of one
-percent of the variance. Refitting amplitudes and phases at the same wavenumbers ---
-the best the model class can do without moving its wavenumbers --- lowers the
-root-mean-square residual from \COneCStoredMed{} to \COneCRmsMed{}, so roughly a quarter
-of it is coefficient drift rather than a limit of the class.
+deviation (median \COneCrowdedMed{}); the same reconstruction read in root-mean-square
+is \COneCStoredMin{}--\COneCStoredMax{} (median \COneCStoredMed{}), which is
+\COneCStoredVarPct{}\% of the variance at the median and
+\COneCStoredVarWorstPct{}\% on the worst episode. Refitting amplitudes and phases at the
+same wavenumbers --- which at a single frame also frees the temporal frequency, so it is
+the best a plane-wave sum can do at those wavenumbers --- lowers that root-mean-square
+residual to \COneCRmsMed{}, so roughly a quarter of it is coefficient drift rather than a
+limit of the class.
 
 The honest statement is therefore narrow: the reference field those ablations are scored
 against is \emph{not exactly} inside the estimator's model class, whereas on the linear
@@ -3366,10 +3380,13 @@ which is what Table~\ref{tab:boundary} is for.
 %   ②그 결과 `\paragraph{Linear forward model}` 이 **연달아 두 번** 인쇄됐다.
 %   ★같은 부류가 오늘 초록에서도 났다(금지 자구 교체가 `is` 를 남겼다).
 \paragraph{Linear forward model}
-The synthetic ground truth is a \emph{displacement-free linear superposition on a
-fixed grid}, so it lies in the same function space as the estimator's model equation
-and the measured mismatch is \emph{zero} --- and a zero mismatch is not neutral
-between methods, because the grid-based baselines do not use that representation.
+% ★[2026-09-03] `C1`/`C1c` --- 이 문단이 **전칭**이었다(N-1 방지).
+On the \emph{linear} corpus the synthetic ground truth is a displacement-free linear
+superposition on a fixed grid, so it lies in the same function space as the estimator's
+model equation and the measured mismatch is \emph{zero}; on the higher-order corpus
+that carries the headline ablations it is \emph{not} exactly inside that class, though
+the departure is small in energy (Section~\ref{sec:res_scope}). A zero mismatch is not
+neutral between methods, because the grid-based baselines do not use that representation.
 (An earlier claim that the mismatch was small but non-zero, and equal across methods,
 is withdrawn: \ref{app:changes}, R2.) The linear approximation does
 degrade for steep waves, and a second-order Stokes extension would preserve the

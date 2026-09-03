@@ -646,6 +646,27 @@ def load(rel):
         raise SystemExit(f'⛔동결 판정이 없다: {p}')
     return json.load(open(p))
 
+
+def _c1c_stored():
+    """★`C1` 이 실제로 잰 양(**저장 계수** 재구성)의 RMS 범위 — verdict 에 없어 여기서 센다.
+
+    ⛔[2026-09-03 적대적 감사 BLOCKER] 원고가 `\COneCRms*`(=**재적합** 잔차)를
+      *"같은 재구성의 RMS 읽기"* 로 인쇄하고 있었다. 두 문장이 동시에 참일 수 없었다.
+      실측: 저장계수 RMS = 0.0468--0.2019, 중앙 **0.0786**(분산 **0.62%**, 최악 **4.08%**),
+      재적합 RMS = 0.0398--0.1090, 중앙 0.0576(분산 0.33%).
+    ⚠런 0회 — 동결 `results_c1c.jsonl` 재집계.
+    """
+    import statistics as _st
+    rows = [json.loads(x) for x in
+            open(os.path.join(TMP, 'C1C_BESTFIT_2026-09-03', 'results_c1c.jsonl'))
+            if x.strip()]
+    a = sorted(r['rms_stored'] for r in rows
+               if r.get('crowded') and r.get('group') == 'hos')
+    med = _st.median(a)
+    return {'COneCStoredMin': f'{a[0]:.3f}', 'COneCStoredMax': f'{a[-1]:.3f}',
+            'COneCStoredVarPct': f'{100 * med ** 2:.2f}',
+            'COneCStoredVarWorstPct': f'{100 * a[-1] ** 2:.2f}'}
+
 def _e1_equal_budget():
     """★`E1` 의 **동일 예산** 정면대결 — verdict 이 저장하지 않는 값이라 여기서 센다.
 
@@ -1153,6 +1174,7 @@ def main():
     dep += list(_w15_reagg().items())
     dep += list(_b1_control().items())
     dep += list(_e1_equal_budget().items())
+    dep += list(_c1c_stored().items())
     dep += list(_seed_clustered().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]

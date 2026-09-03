@@ -257,9 +257,15 @@ RULES = [
      [r'a distance and not a sufficiency'],
      '⛔`C1` 은 **거리**를 잰다 --- "충분히 크다" 로 읽히지 않게 병기'),
     # ★★[2026-09-03] `C1c` 가 `C1` 의 읽기를 좁혔다 — max 노름만 인쇄하면 과대독해된다.
+    # ⛔[2026-09-03 정정] 초판은 `\COneCRmsMed`(=**재적합** 잔차)를 요구했다 --- 그것은
+    #   **다른 팔**의 값이라, 규칙이 **틀린 짝을 강제**하고 원고가 그대로 인쇄했다.
+    #   같은 재구성의 RMS 는 `\COneCStoredMed` 다.
     ('C1-두노름', r'\\COneCrowdedMed|\\COneCrowdedMax',
-     [r'\\COneCRmsMed'],
-     '⛔`C1` 의 max 노름을 적으면 **RMS** 를 같은 절에 --- 두 자가 한 자릿수 다르다'),
+     [r'\\COneCStoredMed'],
+     '⛔`C1` 의 max 노름을 적으면 **같은 재구성의 RMS**(\COneCStoredMed)를 같은 절에'),
+    ('C1-재적합구분', r'\\COneCRmsMed',
+     [r'\\COneCStoredMed'],
+     '⛔재적합 잔차를 적으면 **재적합 전** 값을 같은 절에 --- 둘은 다른 팔이다'),
     ('C1-선형유지', r'\\COneCrowdedMed',
      [r'\\COneCtrlN'],
      '★`C1` 을 인용하면 **선형 코퍼스의 대조(정확히 0)** 를 같은 절에 --- BLOCKER 는 유지된다'),

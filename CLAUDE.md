@@ -198,6 +198,17 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
   rel median +14.99% = 같은 방향(무익)**. ⚠*"문턱 0.03 보다 크게 올리면 된다"* 는 논증도 끊긴다 —
   측정 반경 0.0191·0.0287 은 **아직 0.042 미만인데 이미 해쳤고**, 0.042 에 닿으려면 `frac≈0.55` 인데
   **0.5 에서 이미 셀 45%가 비트동일 no-op, 그리고 상당수가 원자를 잃는다.**
+- ★★**팔 정체는 「의도」가 아니라 「되읽기」로 적어라** (2026-09-03 사고).
+  실측(참값 없는) 입력에서 라우터는 **무조건** `bank_mmse` 로 간다
+  (`sequential_update.py` 실측 게이트). ⟹ `ARMS['SHIP'] = {}` 같은 **빈 dict 팔**은
+  합성에서는 출하 기본값이지만 **실측에서는 배포 비교자**다.
+  ⛔2026-09-03 에 `E1-EXTBASE` 가 그것을 모르고 *"외부 기준선이 우리를 이겼다"* 를 냈고,
+  **두 원고 6곳**이 어느 팔인지 안 적은 채 인쇄됐다(박사 심사 관점 감사가 잡았다).
+  ⟹ ★**새 배치는 `upd.arm_provenance()` 를 결과 행에 넣어라** — `requested_init_method`
+  와 `resolved_init_method` 가 **다를 수 있다**는 것이 요점이다.
+  회귀 시험 = `wavesplat/tests/test_arm_provenance.py`.
+  ⛔**라우팅 동작을 없애지 마라** — 그것은 측정된 판정이다(`W-12` 실측 학습 강제 시
+  예보 지평 0/5 · bank 가 v2_konly 를 3/3 창에서 이긴다). 없애면 `D3` BLOCKER 재발이다.
 - **"출하 팔에서도 재라."** 저장소에 "WaveSplat" 이라 불리는 서로 다른 추정기가 **최소 4개** 있다
   (출하 `SequentialUpdater` · `bank_mmse` · `mmse_bank_estimate` · `relax_step`+`tnse`).
   ⚠**`results/direction1/*` 를 뭉뚱그리지 마라** (2026-08-13 정정): `d1_predictable_zone.py` ·

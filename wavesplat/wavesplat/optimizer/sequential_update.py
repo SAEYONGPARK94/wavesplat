@@ -486,6 +486,14 @@ class SequentialUpdater:
         # REAL-DOMAIN GATE (init_method='auto'): True when the router was bypassed because
         # the input carries no ground-truth field, i.e. real measured data (see initialize).
         self._auto_real_gate = None
+        # ★★[2026-09-03 사용자 지시] *"Bank mmse는 코드에서 안타게 분리하자 자꾸 헷갈려하네"*
+        #   ⛔라우팅 **동작은 바꾸지 않는다** --- 그것은 측정된 판정이다(`W-12`:
+        #   실측에서 학습 강제 시 예보 지평 0/5; bank 가 v2_konly 를 3/3 창에서 이긴다).
+        #   바꾸는 것은 **추적 가능성**이다: 오늘 `E1` 이 `ARMS['SHIP'] = {}` 로 팔을 정의해
+        #   실제로는 bank-MMSE 를 돌렸는데, 결과 행에도 두 원고에도 그 사실이 **한 번도**
+        #   적히지 않았다(박사 심사 관점 감사가 잡았다). ⟹ 배치가 **묻기만 하면** 답이
+        #   나오도록 `arm_provenance()` 를 둔다. ⛔`config` 는 건드리지 않는다
+        #   (스냅샷 러너가 조용히 흡수하는 통로다 --- λ 에서 이미 치른 대가).
         # REAL-DOMAIN ESTIMATOR (2026-07-29): what runs behind the gate. 'bank_mmse'
         # (deployed default) = the ported research estimator, ~2x better on the frozen
         # real windows (see _initialize_bank); 'v2_konly' = the pre-port 2026-07-27
@@ -1165,6 +1173,34 @@ class SequentialUpdater:
         if not P_list:
             return np.zeros((0, 3)), np.zeros(0)
         return np.vstack(P_list).astype(float), np.concatenate(z_list).astype(float)
+
+    # ------------------------------------------------------------------
+    # ★팔 정체 보고 (2026-09-03). ⛔동작 없음 --- 읽기만 한다.
+    # ------------------------------------------------------------------
+    @property
+    def resolved_init_method(self):
+        """실제로 돌아간 초기화 경로. `initialize()` 전에는 `None` 일 수 있다.
+
+        ⚠`config['init_method']` 와 **다를 수 있다** --- 실측 게이트가 `'auto'` 를
+        `'bank_mmse'` 로 바꾸기 때문이다. 배치는 **이 값**을 행에 적어야 한다.
+        """
+        return getattr(self, 'init_method', None)
+
+    def arm_provenance(self):
+        """★배치가 결과 행에 그대로 넣을 수 있는 「무엇이 돌았는가」 dict.
+
+        ⛔이 헬퍼가 있는 이유: 2026-09-03 에 `E1` 이 빈 dict 으로 정의한 팔이 실제로는
+        bank-MMSE 였는데 **결과 행에도 원고에도 그 사실이 없었다**. 팔 정체는
+        **의도(config)** 가 아니라 **되읽기**로 적어야 한다.
+        """
+        return {
+            'requested_init_method': (self.config or {}).get('init_method'),
+            'resolved_init_method': self.resolved_init_method,
+            'real_domain_gate_fired': bool(getattr(self, '_auto_real_gate', False)),
+            'auto_selected': getattr(self, '_auto_selected', None),
+            'real_estimator': (self.config or {}).get('real_estimator'),
+            'is_bank_mmse': self.resolved_init_method == 'bank_mmse',
+        }
 
     def _initialize_bank(self, frames: List[FrameData],
                          verbose: bool = False) -> Dict:

@@ -667,6 +667,40 @@ def _c1c_stored():
             'COneCStoredVarPct': f'{100 * med ** 2:.2f}',
             'COneCStoredVarWorstPct': f'{100 * a[-1] ** 2:.2f}'}
 
+def _c2_shape():
+    """★`C2` — 2차 이론의 실패가 **척도가 아니라 방향**임을 보이는 분해.
+
+    ⛔[2026-09-03 적대적 재검] RESULT 는 RMS 비 하나만 보고했다. 그런데 같은 자료가
+      훨씬 강한 진술을 담고 있다: 보정은 **작지 않고**(잔차의 0.58배) 잔차와 **어긋나 있다**
+      (cos −0.35) ⟹ **자기 최적 척도로 재조정해도** 잔차 분산의 12% 만 지운다.
+    ⚠런 0회 — `frame0_c2.py` 가 동결 에피소드·동결 모듈에서 잰 값. t=0 은 선험적으로
+      지는 칸이라(참값이 선형 초기면) **제외하고** 센다.
+    """
+    import statistics as _st
+    rows = json.load(open(os.path.join(TMP, 'C2_STOKES_2026-09-03', 'frame0_c2.json')))
+    s = [x for x in rows if x['j'] > 0]
+    cos = [(x['rc'] ** 2 - x['r'] ** 2 - x['c'] ** 2) / (2 * x['r'] * x['c']) for x in s]
+    mc = _st.median(cos)
+    return {'CTwoCOverR': f"{_st.median([x['c'] / x['r'] for x in s]):.2f}",
+            'CTwoCos': f'{mc:.2f}',
+            'CTwoOptPct': f'{100 * (1 - (1 - mc ** 2)):.0f}\\%',
+            'CTwoRel': f"{100 * (1 - _st.median([x['rc'] / x['r'] for x in s])):.0f}\\%"}
+
+
+def _e2_footprint():
+    """★`E2` 의 **덮개 교락** — 적대적 재검(2026-09-03)이 잡았고 원고에 공시로 들어간다.
+
+    사다리 칸은 채점영역 **전체**에 균등 표본을 뿌리는데 배포 반환은 그 일부에만 있다.
+    ⟹ *"문턱은 프레임당 50–200 사이"* 를 **점 수 문턱**으로 읽으면 안 된다.
+    ⚠런 0회 — `footprint_e2.py` 가 동결 에피소드 64개에서 센 값을 읽는다.
+    ⚠에이전트 보고(12.6% · 2.01배)와 다르다. **내 실측을 쓴다**(재검 의무).
+    """
+    d = json.load(open(os.path.join(TMP, 'E2_EXTSYNTH_2026-09-03',
+                                    'footprint_e2.json')))['summary']
+    return {'ETwoFootprintPct': f"{100 * d['frac_median']:.1f}\\%",
+            'ETwoFootprintRatio': f"{d['ratio_median']:.1f}"}
+
+
 def _e1_equal_budget():
     """★`E1` 의 **동일 예산** 정면대결 — verdict 이 저장하지 않는 값이라 여기서 센다.
 
@@ -1060,6 +1094,19 @@ ATOMS = [
     # ── ★E1b — 채점 기준계 비대칭을 제거해도 문턱이 안 움직인다
     ('EOneBRung', 'E1B_EXTBASE_2026-09-03/verdict_e1b.json',
      'self_test.chosen_rung', 'int', 400),
+    # ── ★C2 — 무모수 2차 이론이 얼마나 지우는가 (전망을 측정으로 교체)
+    ('CTwoWin', 'C2_STOKES_2026-09-03/verdict_c2.json', 'primary.w', 'int', 37),
+    # ── ★R2b 게이지 정규성 — 대체표본 선택(FT vs IAAFT)의 근거. ⛔계수가 아니라 **범위**를
+    #    인쇄한다: 「몇 개가 정규인가」는 문턱을 사후에 고르는 일이고, 범위는 그렇지 않다.
+    ('RTwoBSkewMin', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json',
+     'surrogate_check.gauge_skew.min', 'abs3', -0.784),
+    ('RTwoBSkewMax', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json',
+     'surrogate_check.gauge_skew.max', 'abs3', 0.095),
+    ('RTwoBKurtMin', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json',
+     'surrogate_check.gauge_kurt.min', 'abs3', 2.979),
+    ('RTwoBKurtMax', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json',
+     'surrogate_check.gauge_kurt.max', 'abs3', 3.492),
+    ('CTwoN', 'C2_STOKES_2026-09-03/verdict_c2.json', 'primary.n', 'int', 48),
 ]
 
 
@@ -1191,6 +1238,8 @@ def main():
     dep += list(_b1_control().items())
     dep += list(_e1_equal_budget().items())
     dep += list(_c1c_stored().items())
+    dep += list(_e2_footprint().items())
+    dep += list(_c2_shape().items())
     dep += list(_seed_clustered().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]

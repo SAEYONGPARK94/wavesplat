@@ -78,14 +78,32 @@ def test_empty_arm_on_real_input_resolves_to_bank_mmse_and_says_so():
         '의도와 실제가 같아 보이면 배치가 팔 정체를 놓친다')
 
 
-def test_deliberate_learned_arm_is_not_bank_mmse():
-    """⛔대조: 실측 게이트를 **의도적으로** 끈 팔은 bank 가 아니어야 한다."""
+def test_gate_escape_hatch_is_load_bearing_on_real_input():
+    """⛔대조: 실측 게이트를 **의도적으로** 끈 팔은 bank 가 아니어야 한다.
+
+    ⛔[2026-09-03 재검이 초판을 REFUTE 했다] 초판 이름은
+      `test_deliberate_learned_arm_is_not_bank_mmse` 였는데 **learned 를 한 번도 타지 않고**
+      `v2_konly` 를 지정했다. 게다가 계측해 보니 그 런에서 `real_domain_gate` 키를
+      **0회** 읽었다 ⟹ 탈출구를 통째로 지워도 통과하는 **항진 시험**이었다.
+    ★수리: 이름을 실제로 시험하는 것에 맞추고, **탈출구가 하중을 받는지**를
+      두 구성의 **행동 차이**로 검사한다(문자열 검사 아님 --- 오늘 세 번째 교훈).
+    """
     from wavesplat.run import DEFAULT_CONFIG
-    cfg = dict(DEFAULT_CONFIG)
-    cfg.update({'real_domain_gate': False, 'init_method': 'v2_konly'})
-    cfg.update(depth=30.0, seed=42, device='cpu')
-    u = make_updater(cfg)
-    u.initialize(_real_frames(), x_range=(-20, 20), y_range=(-20, 20), verbose=False)
-    p = u.arm_provenance()
-    assert p['is_bank_mmse'] is False
-    assert p['real_domain_gate_fired'] is False
+    base = dict(DEFAULT_CONFIG)
+    base.update(depth=30.0, seed=42, device='cpu', init_method='auto')
+
+    # (a) 탈출구 없이 --- 실측 입력이면 게이트가 bank 로 보낸다.
+    a = make_updater(dict(base))
+    a.initialize(_real_frames(), x_range=(-20, 20), y_range=(-20, 20), verbose=False)
+    pa = a.arm_provenance()
+    assert pa['is_bank_mmse'] is True, f'게이트가 실측에서 bank 로 보내야 한다 ({pa})'
+    assert pa['real_domain_gate_fired'] is True
+
+    # (b) 탈출구를 켜면 --- **같은 입력·같은 config** 인데 경로가 달라져야 한다.
+    b = make_updater(dict(base, real_domain_gate=False, init_method='v2_konly'))
+    b.initialize(_real_frames(), x_range=(-20, 20), y_range=(-20, 20), verbose=False)
+    pb = b.arm_provenance()
+    assert pb['is_bank_mmse'] is False, f'탈출구가 하중을 받지 않는다 ({pb})'
+    assert pb['real_domain_gate_fired'] is False
+    assert pa['resolved_init_method'] != pb['resolved_init_method'], (
+        '두 구성이 같은 경로로 끝나면 이 시험은 항진이다')

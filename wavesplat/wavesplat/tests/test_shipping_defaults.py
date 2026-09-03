@@ -79,14 +79,14 @@ SHIPPING_DEFAULTS = {
     "bank_refit_async": False,
 }
 
-# ★[2026-09-02] `learned_ensemble_k` 는 위 dict 에 **넣을 수 없다** --- 저 dict 는
-#   `run.py DEFAULT_CONFIG` 의 핀이고, 이 값은 거기 없다.  코드 감사가 그것을 결함으로
-#   지목했다(2026-09-02, D2): 9월 1일에 배포 상수를 만들면서 **회귀 보호를 빠뜨렸다**.
-#   ⟹ 아래에서 **모듈 상수 자체**를 핀한다(설정 표면은 건드리지 않는다 --- 표면을 바꾸면
-#   CLI/YAML 화이트리스트와 `dict(DEFAULT_CONFIG)` 스냅샷 규약이 같이 바뀌고,
-#   그것은 사전등록 없이 일요일에 할 일이 아니다).
-#   ⚠남는 비대칭은 기록해 둔다: `analytic_ensemble_k` 는 `DEFAULT_CONFIG` 에 있고
-#   이것은 없다.  런의 실효 k 는 **객체 되읽기**로만 확인된다(`S-ENS` 의 `G-ENSK`).
+# ⛔~~[2026-09-02] `learned_ensemble_k` 는 위 dict 에 **넣을 수 없다** --- 이 값은 거기 없다~~
+#   ★**2026-09-03 정정: 낡았다.** `67a3eacd` 가 `run.py:71` 에 `'learned_ensemble_k': 1` 을
+#   넣었고, 바로 아래 `test_two_sources_agree` 가 **정반대를 단언**한다.
+#   ⟹ 이 주석은 자기 파일 안의 시험과 모순된 채 하루를 살아남았다.
+#   ★★교훈(재발): **되살릴 때 시험만 재검증하고 주석은 안 했다.**
+#     저장소 규율 「N곳 전부의 N 에는 주석이 포함된다」의 정확한 재발이다.
+#   ⚠남는 비대칭은 여전히 기록해 둔다: 런의 실효 k 는 설정이 아니라
+#     **객체 되읽기**로만 확인된다(`S-ENS` 의 `G-ENSK`, 그리고 `arm_provenance()`).
 LEARNED_ENSEMBLE_K_SHIPPED = 1
 
 

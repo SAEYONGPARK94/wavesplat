@@ -1179,10 +1179,16 @@ class SequentialUpdater:
     # ------------------------------------------------------------------
     @property
     def resolved_init_method(self):
-        """실제로 돌아간 초기화 경로. `initialize()` 전에는 `None` 일 수 있다.
+        """실제로 돌아간 초기화 경로.
 
         ⚠`config['init_method']` 와 **다를 수 있다** --- 실측 게이트가 `'auto'` 를
         `'bank_mmse'` 로 바꾸기 때문이다. 배치는 **이 값**을 행에 적어야 한다.
+
+        ⛔**초기화 전에는 해소되지 않았다.** 생성자가 `:475` 에서 무조건 값을 넣으므로
+        여기서 `'auto'` 가 그대로 나온다 --- ⚠**`None` 이 아니다**(초판 독스트링이
+        *"`None` 일 수 있다"* 라 적었는데 거짓이었다, 2026-09-03 재검이 잡음).
+        ⟹ 팔 정체는 **`initialize()` 뒤에** 읽어라. `arm_provenance()['resolved_is_final']`
+        가 그 구분을 행에 적는다.
         """
         return getattr(self, 'init_method', None)
 
@@ -1198,8 +1204,18 @@ class SequentialUpdater:
             'resolved_init_method': self.resolved_init_method,
             'real_domain_gate_fired': bool(getattr(self, '_auto_real_gate', False)),
             'auto_selected': getattr(self, '_auto_selected', None),
-            'real_estimator': (self.config or {}).get('real_estimator'),
+            # ⛔되읽기 --- config 이 아니다(2026-09-03 재검: 초판이 여기서 **의도**를
+            #    읽어, bank-MMSE 가 실제로 돈 런에서도 `None` 을 인쇄했다).
+            'real_estimator': getattr(self, 'real_estimator', None),
+            'requested_real_estimator': (self.config or {}).get('real_estimator'),
             'is_bank_mmse': self.resolved_init_method == 'bank_mmse',
+            # ★초기화 전 행을 「해소됨」으로 오독하지 않게 하는 표지.
+            'resolved_is_final': bool(getattr(self, '_initialized', False)
+                                      or getattr(self, '_auto_selected', None)
+                                      or getattr(self, '_auto_real_gate', False)),
+            # ⚠S13b 교훈 --- 앙상블이 조용히 죽은 것을 객체 되읽기로만 볼 수 있었다.
+            'ensemble_k': getattr(self, 'analytic_ensemble_k', None),
+            'learned_ensemble_k': getattr(self, 'learned_ensemble_k', None),
         }
 
     def _initialize_bank(self, frames: List[FrameData],

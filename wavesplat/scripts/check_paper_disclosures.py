@@ -60,8 +60,11 @@ RULES = [
      [r'\\emph\{upper\} bound', r'upper.{0,3}bound'],
      'R-2b 초과분산은 **상한**이다 --- 병기 의무'),
     ('R2b-얇은여유', r'\\RTwoBFloorMin|\\RTwoBFloorMax',
-     [r'thinner than \$0\.03\$', r'four of the seven', r'undetectable'],
-     'R-2b 는 위치대응 널의 얇은 여유와 4/7 정규성을 병기해야 한다'),
+     [r'thinner than \$0\.03\$', r'\\RTwoBSkewMin', r'undetectable'],
+     # ⛔[2026-09-03] 초판은 산문 `"four of the seven"` 을 요구했다 --- 그런데 그 계수는
+     #   **어느 동결물에도 없었다**(정규성 문턱을 사후에 고른 수였다). 이제 규칙은
+     #   **측정된 범위 매크로**를 요구한다: 문턱 없는 진술이라 사후 선택이 불가능하다.
+     'R-2b 는 위치대응 널의 얇은 여유와 **측정된 정규성 범위**를 병기해야 한다'),
     ('T4-비교자붕괴', r'\\TFourRel|\\TFourBetter',
      [r'comparator (?:degrades|collapse)', r'\\TFourCmp\b', r'only \\TFourCmp'],
      'T-4 크기는 비교자 붕괴(47/48 -> 34/48) 병기 없이 인용 금지'),

@@ -45,6 +45,7 @@ CHECKS = [
     # ★★[2026-09-03] 매크로에 걸린 공시 규칙을 **철자 표기**가 우회한다 --- 감사가
     #   `paper:2266` 의 *"eleven of twelve"* 로 증명했다(규칙 셋이 전부 침묵).
     ('★철자 비율', [PY, 'scripts/check_spelled_ratios.py']),
+    ('★CLAUDE.md 시험 수', [PY, 'scripts/check_claudemd_counts.py']),
     ('학위논문 동반 공시', [PY, 'scripts/check_thesis_disclosures.py']),
     ('★학위 공시 항진 검사', [PY, 'scripts/check_thesis_disclosures.py', '--selftest']),
     # ★[2026-09-02] `N-1` 토론: 「제출 준비됨」의 단위는 원고가 아니라 **패키지**다.

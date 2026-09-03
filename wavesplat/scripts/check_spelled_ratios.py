@@ -24,15 +24,25 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 TARGETS = [os.path.join(ROOT, 'paper', 'waveprior.tex'),
            os.path.join(ROOT, 'thesis', 'thesis_main.tex')]
 
-WORDS = ('two three four five six seven eight nine ten eleven twelve thirteen '
+WORDS = ('one two three four five six seven eight nine ten eleven twelve thirteen '
          'fourteen fifteen sixteen seventeen eighteen nineteen twenty '
          'thirty forty fifty sixty').split()
-PAT = re.compile(r'\b(' + '|'.join(WORDS) + r')\s+of\s+(' + '|'.join(WORDS) + r')\b',
+
+# ⛔[2026-09-03 재검이 초판을 REFUTE 했다] 초판은 두 수가 **붙어 있을 때만** 잡았다.
+#   실측: `"four of the seven"` · `"Only seven of the twelve records"` ·
+#   `"three of the four relative magnitudes"` 가 **바로 이 두 파일에** 살아 있는데
+#   검사기와 방벽 27개가 전부 초록이었다. `"out of"` 와 `"one"` 도 빠져 있었다.
+#   ⟹ ★**「있는 것을 없다고」 하는 검사기는 없는 것보다 나쁘다** — 안전하다는 신호를 준다.
+_W = '|'.join(WORDS)
+PAT = re.compile(r'\b(' + _W + r')\s+(?:out\s+of|of)\s+(?:the\s+)?(' + _W + r')\b',
                  re.IGNORECASE)
 
 # ⛔허용 목록 --- 셈 비율이 **아닌** 관용 표현만. 사유를 함께 적는다.
 ALLOW = {
-    # (없음) --- 생기면 여기에 사유와 함께 추가한다.
+    # ⚠셈 비율이 **아닌** 선택 관용구. 각 항목에 사유를 적는다(2026-09-03).
+    'one of the three': '선택 관용구 --- "any one of the three" = 셋 중 어느 하나에도 귀속 불가',
+    'one of the two': '선택 관용구 --- "one of the two bands" = 두 대역 중 한쪽',
+    'one of the same': '선택 관용구 --- "one of the same public records"',
 }
 
 

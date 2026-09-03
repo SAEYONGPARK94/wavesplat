@@ -2276,10 +2276,19 @@ external reconstructor clears a per-episode zero field on \ETwoDeployBetter{} of
 \ETwoN{} episodes, with a median error of \ETwoDeployMed{} against the zero field's
 \ETwoZeroMed{}: at our sensing density it is twice as bad as predicting nothing. Given
 \ETwoRungTwoHundred{} of \ETwoN{} at two hundred samples per frame, the onset again sits
-between our density and a few hundred samples. \emph{Two conditions are essential here}:
-the upper rungs sample the ground-truth field rather than a sensor, so they are a ruler
-for the threshold and not a claim that such observations are obtainable; and this
-comparison does not run our own arm, so it says nothing about which method is better.
+between our density and a few hundred samples. \emph{Three conditions are essential
+here}: the upper rungs sample the ground-truth field rather than a sensor, so they are a
+ruler for the threshold and not a claim that such observations are obtainable; this
+comparison does not run our own arm, so it says nothing about which method is better;
+and --- the condition an adversarial re-reading of this batch raised against us --- the
+ladder is not a one-factor density axis. The rungs sample uniformly over the scored
+domain, whereas the deployed returns occupy a bounding box covering a median of
+\ETwoFootprintPct{} of it, inside which their local density is \ETwoFootprintRatio{}
+times the two-hundred rung's global density. What the deployed arm lacks at the scored
+scale is therefore coverage at least as much as density, and the separating experiment
+--- uniform samples confined to the same footprint --- was cheap and was not run. The
+number quoted above should be read as the onset for \emph{this observation geometry},
+not as a threshold in points per frame.
 
 The head-to-head must be read with the budget convention attached, because the two
 methods consume observations differently: our arm accumulates twelve points per frame
@@ -2345,7 +2354,12 @@ established: the search we ran to test it swept lags of $\pm 20$~s while the two
 instruments' record clocks are offset by $400$--$1046$~s, so it never visited the true
 alignment. A re-check at the true offset leaves the conclusion standing but the
 pre-registered evidence for it does not. The surrogate null we used is justified by the
-gauge series being near-Gaussian, which holds on four of the seven.
+gauge series being near-Gaussian, which we measured rather than assumed: across the
+seven records the gauge skewness spans $\RTwoBSkewMin$ to $\RTwoBSkewMax$ and the
+kurtosis $\RTwoBKurtMin$ to $\RTwoBKurtMax$ (Gaussian: $0$ and $3$). We print the
+ranges rather than a count of records that ``pass'', because any such count needs a
+normality threshold we would be choosing after seeing the data; the lower skewness
+bound shows the premise is not uniform across records.
 The closest competing study evaluates on one of the same public stereo records we use,
 takes that dense reconstruction as its ground truth, and additionally subsamples it
 synthetically~\citep{Wang2025PointsToWaves}. What is specific to us is one further
@@ -2772,7 +2786,7 @@ seven records that have recovered geometry (\RFiveBVsConst{}/\RFiveBN{}), and th
 stratum split holds with a gap of \RFiveBGap{} against a threshold of $0.5$. Because
 substituting the geometry also moves the noise \emph{level}, we ran the same arm with
 its mean variance matched back to the deployed level; that arm holds too, at a gap of
-\RFiveBMMGap{}. Two limits travel with this. Only seven of the twelve records have
+\RFiveBMMGap{}. Two limits travel with this. Only \RFiveBN{} of \EOneN{} records have
 recovered geometry --- the other five keep the declared position, and they are exactly
 the large-box stratum, so the test can only ask whether the near-shore records improve.
 And the two arms disagree on one record, so the geometry and the level are not fully
@@ -3170,7 +3184,7 @@ that reason.
 The synthetic corpus draws its returns from a raydrop model. We measured that model
 against real returns from a Velodyne HDL-32E scanning a water surface
 (\HThreeFiles{} files, \HThreeCells{} cells) under a pre-registered threshold this
-project had itself written down: the mean relative error is \HThreeMRE{}, against a
+project had itself written down: the median relative error is \HThreeMRE{}, against a
 threshold of \HThreeThresh{}. Two controls decide how to read that number. The
 positive control shows the data carry structure the ruler can see --- measured
 spread \HThreePosSpread{} against a null $95$th percentile of \HThreePosNull{} ---
@@ -3190,9 +3204,12 @@ multiplicative-gain law by the threshold-with-speckle law the same simulator alr
 ships --- one free parameter each, fitted by the same median-matching rule --- lowers
 the error by \HThreeCRel{}, from \HThreeCMreA{} to \HThreeCMreC{}, which is still far
 above the threshold and only \HThreeCShufC{} away from that law's own shuffled null.
-A third shipped variant is excluded before the fact because its specular gate never
-fires at this geometry. None of the three is faithful, so the remedy is not to select
-a different one of them; the remaining suspect is the radiometric term itself, whose
+A third shipped variant is excluded before the fact, because the frozen cells carry
+only incidence angle, depth and return rate, and a slope-dependent gate has nothing
+to predict from them; that variant is therefore untested here, not refuted, and the
+source comment we quote for it describes the simulator's own shipboard geometry,
+not the station geometry these cells come from. Neither measurable law is faithful,
+so the remedy is not to select a different one of them; the remaining suspect is the radiometric term itself, whose
 incidence-angle dependence the simulator's own source comments already flag as
 inverted relative to what the surrounding text claims. This comparison is exploratory,
 it was not blind --- a first attempt was blocked by two mis-specified gates of ours and
@@ -3414,8 +3431,17 @@ the departure is small in energy (Section~\ref{sec:res_scope}). A zero mismatch 
 neutral between methods, because the grid-based baselines do not use that representation.
 (An earlier claim that the mismatch was small but non-zero, and equal across methods,
 is withdrawn: \ref{app:changes}, R2.) The linear approximation does
-degrade for steep waves, and a second-order Stokes extension would preserve the
-spectral parameterisation. \emph{Non-linear validation was performed in a separate
+degrade for steep waves. We had written that a second-order Stokes extension would
+preserve the spectral parameterisation and close the gap; a later batch measured that
+suggestion rather than repeating it, and it does not survive. Adding the finite-depth
+Sharma--Dean second-order correction with \emph{no free parameter} removes only
+\CTwoRel{} of the residual on \CTwoWin{} of \CTwoN{} crowded episodes; and the failure
+is not one of scale, because the correction is not small (its norm is \CTwoCOverR{} of
+the residual) and is largely misaligned with it (median cosine \CTwoCos{}), so even at
+its own optimal scale it removes only \CTwoOptPct{} of the residual variance. The
+second-order term is therefore a real but minor part of the departure, and pointing
+future work at it is not warranted by our own measurement.
+\emph{Non-linear validation was performed in a separate
 higher-order-spectral ($M{=}3$) batch, not on this corpus.}
 
 \paragraph{Tracking phase dependence on initialization}

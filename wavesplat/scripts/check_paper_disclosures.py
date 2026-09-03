@@ -29,6 +29,18 @@ TEX = os.path.join(ROOT, 'paper', 'waveprior.tex')
 
 # (이름, 발동 정규식, [대안 근거 정규식 …], 사유)
 RULES = [
+    # ★[2026-09-03 절제 사슬 감사 처방 ①] 이 검사기는 `B22-우변` 규칙을 갖고 있었는데
+    #   **사슬의 두 표현 계단(`B-16`·`B-19`)에는 대응 규칙이 0개**였다 ⟹ 방벽이
+    #   자기 이름을 딴 실패 모드(`F1`)를 그 두 칸에서 면제하고 있었다.
+    ('B16-비교자기술', r'\\BSixteenRel|\\BSixteenBetter',
+     [r'\\BSixteenCmpZero', r'comparator'],
+     'B-16 크기 인용에는 비교자 기술(38/48) 병기 의무'),
+    ('B19-비교자기술', r'\\BNineteenRel|\\BNineteenBetter',
+     [r'\\BNineteenCmpZero', r'comparator'],
+     'B-19 크기 인용에는 비교자 기술(12/16) 병기 의무'),
+    ('B16-두번째계단', r'\\BSixteenDose',
+     [r'\\BSixteenDoseCmpZero', r'direction, not a size', r'non-working'],
+     'B-16 의 두 번째 계단은 **우변이 무기술**이다 --- 크기가 아니라 방향으로만'),
     # ★[2026-09-02] 적대적 감사 M17: `R1b`·`R4b` 매크로가 규칙 0개로 들어와
     #   **오늘 두 문단이 방벽 밖**이었다. 아침에 만든 기계가 새 배치에 따라오지 않은 것이다.
     #   ⟹ 세 쌍을 여기서 강제한다(전부 **참인 것**만 요구한다 --- D 항 항진 검사 통과).

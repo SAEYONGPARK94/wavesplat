@@ -139,10 +139,13 @@ claim is carried by ablation, not by baseline comparison: removing the prior
 (\BTwentyTwoBetter{}/\BTwentyTwoN{} episodes worse, against an analytic package
 that clears a zero predictor only thinly, \BTwentyTwoAnaShipZero{}/\BTwentyTwoN{}) and
 removing only the continuity of the wavenumber
-(\BSixteenBetter{}/\BSixteenN{}, dose-responsive) each cost measurable accuracy.
+(\BSixteenBetter{}/\BSixteenN{}) each cost measurable accuracy; the ablated comparator
+is not empty, beating a zero field on \BSixteenCmpZero{}/\BSixteenN{} episodes, and
+the coarser grid rung is a direction rather than a size because that arm has no skill.
 The gains are synthetic; the grid-baseline comparison is crowded-stratum only, and
 in the sparse stratum the evidence is split --- the ablation reproduces there
-(\BNineteenBetter{}/\BNineteenN{}) while the learned package is not separated from
+(\BNineteenBetter{}/\BNineteenN{}; comparator \BNineteenCmpZero{}/\BNineteenN{} against
+a zero field) while the learned package is not separated from
 the deployed analytic package. The checkpoint was trained on the same distribution
 family, so ``out of sample'' means the seed axis alone; and on $12$ measured
 fixed-station records the prior does not reach the pre-registered decision threshold
@@ -1995,12 +1998,32 @@ $\Rightarrow$ the correct reading is \emph{``the prior is what makes this arm wo
 not \emph{``the prior adds a margin on top of a working arm''}.
 
 \paragraph{Continuity of the wavenumber}
-Snapping atoms to a wavenumber grid and refitting amplitude and phase --- leaving
-every other component of the pipeline untouched --- removes a margin of \BSixteenRel{}
-(\BSixteenBetter{}/\BSixteenN{}, $p = \BSixteenP{}$). The effect is
+% ⛔[2026-09-03 절제 사슬 감사 MAJOR-2] *"leaving every other component untouched"* 는
+%   코드상 거짓이다 --- `_snap_k_to_grid` 는 (a)k 반올림 (b)w,φ 전면 재적합
+%   (c)옵티마이저 재구성 셋을 한다. ★그러나 `B-20b` 가 재적합 몫을 **직접** 갈랐다.
+Snapping atoms to a wavenumber grid removes a margin of \BSixteenRel{}
+(\BSixteenBetter{}/\BSixteenN{}, $p = \BSixteenP{}$). Both ablated arms retain skill against a zero field (\BSixteenCmpZero{}/\BSixteenN{} and \BNineteenCmpZero{}/\BNineteenN{}), so the comparator in each case is not empty. The effect is
 \emph{dose-responsive}: doubling the grid spacing is worse again
-(\BSixteenDose{}/\BSixteenN{}). The same ablation reproduces in the sparse stratum
+(\BSixteenDose{}/\BSixteenN{}).
+% ⛔[2026-09-03 절제 사슬 감사 MAJOR-1] 두 번째 계단의 **우변이 무기술**이다.
+%   학위논문은 이미 크기를 철회하고 6/48 을 인쇄한다. 논문은 무공시로 인쇄하고 있었다.
+\textbf{Both ablated arms still have skill, which is what makes these comparisons
+readable}: on the same episodes the wavenumber-snapped arm beats a per-episode zero
+field on \BSixteenCmpZero{}/\BSixteenN{} crowded and \BNineteenCmpZero{}/\BNineteenN{}
+sparse episodes, so the comparator we beat was not itself empty.
+\textbf{The second rung must be read as a direction, not a size}: the
+doubled-spacing arm does not itself beat a zero field, on
+\BSixteenDoseCmpZero{}/\BSixteenN{} crowded episodes and on $2/16$ sparse ones, so
+the distance between it and the first rung is a distance between a working arm and a
+non-working one rather than a performance margin. We therefore report the direction
+of the dose--response and not its magnitude. The same ablation reproduces in the sparse stratum
 (\BNineteenBetter{}/\BNineteenN{}, \BNineteenRel{}).
+\textbf{That operation is not single-factor, and we measured the second factor rather
+than assuming it away}: snapping also refits amplitude and phase. A separate batch held
+the wavenumbers fixed and applied only the refit; the margin it produced differs from
+the one here by $0.23$ percentage points, inside the band that batch fixed in advance,
+so the margin is attributable to the quantisation rather than to the refit that
+travels with it (B-20b).
 
 \paragraph{What these two magnitudes are not}
 They are not additive, and they are not shares of any baseline margin. The reason is
@@ -2392,7 +2415,9 @@ with the fourth}: a large margin against a comparator that itself has little ski
 is not the same measurement as a large margin against one that does, which is why
 the ``cmp.'' column is printed rather than described: it counts the episodes on
 which the \emph{comparator} beats a zero predictor, i.e.\ how much skill the thing
-we beat had, and a dash means that control was not part of that batch's design. A dash in the
+we beat had. A dash means the batch did not carry that control; where the value
+exists it is printed, and the two representation rows carry theirs with a
+qualification given below. A dash in the
 $p$ column means the batch's decision rule is not a single sign test on this
 contrast (B-26 reads a $2\times2$ design, T-4 a lead ladder, and the sparse S-ENS row
 is undecided).
@@ -2416,8 +2441,8 @@ Unweighted sensor returns & B-15 & \BFifteenN{} & \BFifteenBetter{} & \BFifteenR
 Sea state matched to records & B-26 & \BTwentySixN{} & \BTwentySixBetter{} & \BTwentySixRel{} & --- & \BTwentySixCmpBetter{}/\BTwentySixN{} \\
 \midrule
 \multicolumn{7}{l}{\emph{Ablations of the representation itself}} \\
-Continuity of the wavenumber & B-16 & \BSixteenN{} & \BSixteenBetter{} & \BSixteenRel{} & $\BSixteenP{}$ & --- \\
-\quad --- sparse stratum & B-19 & \BNineteenN{} & \BNineteenBetter{} & \BNineteenRel{} & $\BNineteenP{}$ & --- \\
+Continuity of the wavenumber & B-16 & \BSixteenN{} & \BSixteenBetter{} & \BSixteenRel{} & $\BSixteenP{}$ & \BSixteenCmpZero{}/\BSixteenN{}$^\dagger$ \\
+\quad --- sparse stratum & B-19 & \BNineteenN{} & \BNineteenBetter{} & \BNineteenRel{} & $\BNineteenP{}$ & \BNineteenCmpZero{}/\BNineteenN{} \\
 The learned prior & B-22 & \BTwentyTwoN{} & \BTwentyTwoBetter{} & \BTwentyTwoRel{} & $\BTwentyTwoP{}$ & \BTwentyTwoAnaShipZero{}/\BTwentyTwoN{} \\
 Ensemble on learned path & S-ENS & \SEnsN{} & \SEnsBetter{} & \SEnsRel{} & $\SEnsP{}$ & --- \\
 \quad --- sparse stratum & S-ENS & \SEnsSparseN{} & \SEnsSparseBetter{} & \emph{undecided} & --- & --- \\
@@ -2427,6 +2452,11 @@ In space (inside observed band) & M-10 & \MTenN{} & \MTenBetter{} & \MTenRel{} &
 In time (lead $1.0\,T_p$) & T-4 & \TFourN{} & \TFourBetter{} & \TFourRel{} & --- & \TFourCmp{}/\TFourN{} \\
 \bottomrule
 \end{tabular}
+
+{\footnotesize $^\dagger$Measured by re-aggregating that batch's frozen rows against a
+per-episode zero field on 2026-08-27; it was not a pre-registered contrast of B-16. The
+sparse row's value \emph{was} a named gate of B-19.\par}
+
 \end{table}
 
 % ============================================================================
@@ -2868,8 +2898,10 @@ conditioning are set by the resolution rather than by the complexity of the sea.
 A spectral state pays instead for the number of components it carries. That is the
 structural argument for the representation, and the ablations in
 Section~\ref{sec:res_ablation} are what turn it from an argument into a measurement:
-removing only the continuity of the wavenumber --- keeping every other component of
-the pipeline --- removes a margin of \BSixteenRel{}, and the loss grows when the grid is coarsened.
+removing only the continuity of the wavenumber removes a margin of \BSixteenRel{},
+and the loss grows when the grid is coarsened. The ablated comparator is not empty ---
+it beats a zero field on \BSixteenCmpZero{}/\BSixteenN{} episodes --- and the coarser
+rung does not, so that second step is a direction and not a size.
 We checked separately that this ablation is not confounded with the
 amplitude-and-phase refit it necessarily performs, and the magnitudes here are
 \emph{not additive} with the baseline margin: they were measured on different

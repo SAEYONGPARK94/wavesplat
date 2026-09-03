@@ -906,6 +906,17 @@ ATOMS = [
     ('RFiveBN', 'R5B_REALGEOM_2026-09-03/verdict_r5b.json', 'primary.vs_const.n', 'int', 7),
     ('RFiveBMMGap', 'R5B_REALGEOM_2026-09-03/verdict_r5b.json',
      'arms.RANGEANG-MEASFIX-MM.gap', 'abs3', 0.514),
+    # ── ★[2026-09-03 절제 사슬 감사 BLOCKER] `tab:earns` 의 `cmp.` 열이 B-16·B-19 행에서
+    #    비어 있었고, 표 주가 그 공백을 *"설계에 없었다"* 로 **거짓 설명**했다.
+    #    · B-19 는 **자기 배치의 명명된 게이트**(`N-2 음성대조 KGRID1 < ZERO`)다.
+    #    · B-16 은 2026-08-27 재집계로 측정됐다(⚠사전등록 대조가 **아니다** --- 병기 의무).
+    ('BNineteenCmpZero', 'B19_KGRID_SPARSE_2026-08-25/verdict_b19.json',
+     'neg_kgrid1_vs_zero.better', 'int', 12),
+    ('BSixteenCmpZero', '_audit/verdict_t2_recheck.json',
+     'b16_vs_true_zero.KGRID1.better', 'int', 38),
+    # ★두 번째 계단(`\BSixteenDose`)의 우변은 **무기술**이다 --- 혼잡 6/48 · 희소 2/16.
+    ('BSixteenDoseCmpZero', '_audit/verdict_t2_recheck.json',
+     'b16_vs_true_zero.KGRID2.better', 'int', 6),
 ]
 
 FMT = {

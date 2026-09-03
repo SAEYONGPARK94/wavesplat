@@ -27,6 +27,19 @@ from wavesplat.data_loader import FrameData
 from wavesplat.optimizer.sequential_update import SequentialUpdater, make_updater
 
 
+def _synth_frames(n=6, m=60, seed=1):
+    """참값 **있는** 프레임 --- 합성 경로가 보는 형태.
+
+    ⛔`_frames_have_gt` 의 정의는 `gt_field` 가 있고 `max|gt| > 1e-10` 인 것이다
+    (`sequential_update.py:_frames_have_gt`) ⟹ 다른 필드명으로는 게이트가 안 속는다.
+    """
+    out = []
+    for f in _real_frames(n=n, m=m, seed=seed):
+        f.gt_field = torch.full((8, 8), 0.5, dtype=torch.float32)
+        out.append(f)
+    return out
+
+
 def _real_frames(n=6, m=60, seed=0):
     """참값 없는(관측만) 프레임 --- 실측 게이트가 보는 형태.
 
@@ -114,3 +127,36 @@ def test_gate_escape_hatch_is_load_bearing_on_real_input():
     assert pb['resolved_init_method'] != 'bank_mmse'
     assert pa['resolved_init_method'] != pb['resolved_init_method'], (
         '두 구성이 같은 경로로 끝나면 이 시험은 항진이다')
+
+
+def test_real_gate_is_not_one_shot():
+    """★실측 게이트가 **재-initialize 에서도** 발화해야 한다.
+
+    ⛔[2026-09-03 감사가 찾은 실제 안전 결함] `initialize()` 가 `self.init_method` 를
+      파괴적으로 덮어쓰므로(`'auto' -> 'learned'`), **두 번째 호출은 `'auto'` 를 못 봐
+      게이트를 통째로 건너뛴다**. 실측 재현: 합성 init 뒤 참값 없는 자료로 재-init 하면
+      `resolved='learned'`, 게이트 미발화, **경고 0건** --- `W-12` 가 금지한 팔
+      (예보 지평 0/5 = 아무것도 안 하는 것보다 나쁘다)이 **조용히** 돈다.
+    ⟹ 수리: 요청값을 따로 보관하고 게이트를 **매 호출 재평가**한다.
+    """
+    import warnings
+    from wavesplat.run import DEFAULT_CONFIG
+    cfg = dict(DEFAULT_CONFIG)
+    cfg.update(depth=30.0, seed=42, device='cpu', init_method='auto')
+    u = make_updater(cfg)
+
+    # ① 합성(참값 있음) --- 게이트는 발화하지 않아야 한다
+    u.initialize(_synth_frames(), x_range=(-20, 20), y_range=(-20, 20), verbose=False)
+    pa = u.arm_provenance()
+    assert pa['real_domain_gate_fired'] is False, f'합성에서 게이트가 발화했다 ({pa})'
+
+    # ② **같은 객체**에 실측(참값 없음) --- 게이트가 다시 발화해야 한다
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        u.initialize(_real_frames(), x_range=(-20, 20), y_range=(-20, 20), verbose=False)
+    pb = u.arm_provenance()
+    assert pb['real_domain_gate_fired'] is True, (
+        f'⛔재-init 에서 실측 게이트가 사라졌다 --- 금지 팔이 조용히 돈다 ({pb})')
+    assert pb['resolved_init_method'] == 'bank_mmse', pb
+    assert any(issubclass(x.category, RuntimeWarning) for x in w), (
+        '게이트가 발화했는데 경고가 없다 --- 조용한 재라우팅은 이 저장소의 금지 부류다')

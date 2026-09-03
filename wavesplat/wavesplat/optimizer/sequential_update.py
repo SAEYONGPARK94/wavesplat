@@ -472,6 +472,14 @@ class SequentialUpdater:
         # default INIT_METHOD_DEFAULT ('auto') -- see the constants at the top of this
         # module for why they differ and why merging them would be wrong.
         self.init_method = config.get('init_method', INIT_METHOD_CLASS_FALLBACK)
+        # ★★[2026-09-03] `initialize()` 가 `self.init_method` 를 **파괴적으로 덮어쓴다**
+        #   (`:833` `= 'bank_mmse'` 등) ⟹ **두 번째 `initialize()` 는 `'auto'` 를 못 봐
+        #   실측 게이트를 통째로 건너뛴다**. 실측 재현: 합성 init 뒤 참값 없는 자료로
+        #   재-init 하면 `resolved='learned'`, 게이트 미발화, **경고 0건** ---
+        #   `W-12` 가 금지한 팔(예보 지평 0/5)이 조용히 돈다.
+        #   ⟹ **요청값을 따로 보관**하고 게이트는 매 호출 이것으로 판단한다.
+        #   ⛔단일 `initialize()` 경로의 동작은 **한 비트도 바뀌지 않는다**(같은 값이다).
+        self._init_method_requested = self.init_method
         # WavePrior UNIFIED (init_method='auto'): diagnostics of the GT-free regime
         # router, populated only when init_method=='auto' (see _auto_select_init).
         # Default (v2_konly) leaves these None -> no behavioural effect.
@@ -763,7 +771,10 @@ class SequentialUpdater:
         # ✅**안전한 통일 방법**: 기본값을 `'auto'` 로 **유지**하고 라우터 임계
         #    (`auto_switch_thresh`)를 0 으로 두어 합성에서 항상 학습을 고르게 한다.
         #    그러면 실측 게이트는 그대로 작동한다. (근거: `tmp/W11_UNIFY_2026-08-22`)
-        if self.init_method == 'auto':
+        # ⛔`self.init_method` 가 아니라 **요청값**으로 판단한다 --- 위 생성자 주석 참조.
+        #   재-init 이면 매번 다시 해소한다(그렇지 않으면 게이트가 일회성이 된다).
+        if self._init_method_requested == 'auto':
+            self.init_method = 'auto'
             # REAL-DOMAIN GATE (2026-07-27). The deployment authorisation covers SYNTHETIC
             # inputs only: "실측 경로 별도 게이트 -- 실측 입력에서 auto는 여전히 비활성이어야 함"
             # (tmp/confirm2_2026-07-27/RESULT_CONFIRM2.md §4, residual condition, unreleased).

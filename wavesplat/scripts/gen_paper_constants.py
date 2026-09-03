@@ -667,6 +667,38 @@ def _c1c_stored():
             'COneCStoredVarPct': f'{100 * med ** 2:.2f}',
             'COneCStoredVarWorstPct': f'{100 * a[-1] ** 2:.2f}'}
 
+def _t1_thirdparty():
+    """★`T1` — 제3자 참값의 위상 결합 검정. ⛔검출률 코퍼스 간 비교 금지(`F1` 부류).
+
+    ⚠**두 척도가 반대 방향을 가리킨다**: 검출률은 저들이 낮은데(2/12 vs 8/8)
+      **왜도 자체는 우리 HOS 의 77%** 로 종류가 다르게 작지 않다. 갈리는 것은 귀무의 폭
+      (3.0배). ⟹ 원고는 **두 수를 같은 절에** 인쇄해야 한다(`check_paper_disclosures`).
+    """
+    import statistics as _st
+    v = load('T1_THIRDPARTY_2026-09-03/verdict_t1.json')
+    rows = [json.loads(x) for x in
+            open(os.path.join(TMP, 'T1_THIRDPARTY_2026-09-03', 'results_t1.jsonl'))
+            if x.strip()]
+    tp = [r for r in rows if r['group'] == 'tp']
+    hs = [r for r in rows if r['group'] == 'ctrl_hos']
+    mt = _st.median([r['skew'] for r in tp]); mh = _st.median([r['skew'] for r in hs])
+    qt = _st.median([r['skew_q95'] for r in tp]); qh = _st.median([r['skew_q95'] for r in hs])
+    meta = json.load(open(os.path.join(TMP, 'T1_THIRDPARTY_2026-09-03', 'meta_t1.json')))
+    return {'TOneWin': f"{v['primary']['w']}/{v['primary']['n']}",
+            'TOnePos': v['controls']['pos_hos'],
+            'TOneNeg': v['controls']['neg_linear'],
+            'TOneN': str(v['primary']['n']),
+            'TOneSkewTP': f'{mt:+.4f}',
+            'TOneSkewPct': f'{100 * mt / mh:.0f}\\%',
+            'TOneNullRatio': f'{qt / qh:.1f}',
+            'TOneNSur': str(meta['n_sur']),
+            'TOneFrameUsed': str(meta['n_frame']),
+            'TOneNMat': str(meta['n_mat_total']),
+            'TOneFrames': '502',
+            'TOneGB': '12.8',
+            'TOneCite': '\\citealp{Zheng2025SyntheticWaveFields}'}
+
+
 def _c2_shape():
     """★`C2` — 2차 이론의 실패가 **척도가 아니라 방향**임을 보이는 분해.
 
@@ -1240,6 +1272,7 @@ def main():
     dep += list(_c1c_stored().items())
     dep += list(_e2_footprint().items())
     dep += list(_c2_shape().items())
+    dep += list(_t1_thirdparty().items())
     dep += list(_seed_clustered().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]

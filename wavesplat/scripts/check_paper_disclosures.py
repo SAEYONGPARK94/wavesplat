@@ -65,6 +65,15 @@ RULES = [
      #   **어느 동결물에도 없었다**(정규성 문턱을 사후에 고른 수였다). 이제 규칙은
      #   **측정된 범위 매크로**를 요구한다: 문턱 없는 진술이라 사후 선택이 불가능하다.
      'R-2b 는 위치대응 널의 얇은 여유와 **측정된 정규성 범위**를 병기해야 한다'),
+    # ★[2026-09-03] `T1` — 검출률과 왜도가 **반대 방향**을 가리킨다(`F1` 부류).
+    #   검출률만 인쇄하면 독자는 "저들이 더 선형" 으로 읽는다. 두 수를 같은 절에 강제한다.
+    ('T1-검정력아님', r'\\TOneWin',
+     [r'\\TOneSkewPct', r'\\TOneNullRatio'],
+     'T1 의 검출률을 적으면 **왜도 비(77%)와 귀무 폭 비(3.0배)**를 같은 절에 적어야 한다'),
+    ('T1-solver미명시', r'\\TOneWin|\\TOneNMat',
+     [r'no documentation naming the solver', r'do not call the corpus higher-order',
+      r'undetermined here'],
+     'T1 을 인용하면 **solver 미명시**를 같은 절에 적어야 한다'),
     ('T4-비교자붕괴', r'\\TFourRel|\\TFourBetter',
      [r'comparator (?:degrades|collapse)', r'\\TFourCmp\b', r'only \\TFourCmp'],
      'T-4 크기는 비교자 붕괴(47/48 -> 34/48) 병기 없이 인용 금지'),
@@ -378,7 +387,22 @@ def literals_outside_macros():
             if '\\%' in v:
                 vals[m.group(1)] = v
     body = strip_comments(open(TEX, encoding='utf-8').read())
-    hits = [(k, v) for k, v in vals.items() if v in body]
+
+    # ⚠**우연 일치 면제** --- 매크로 값과 글자가 같지만 **다른 양**인 자리.
+    #   ⛔면제는 (매크로, 그 자리의 앞뒤 문맥) 짝으로만 준다. 문맥이 사라지면 다시 잡힌다
+    #   ⟹ 새 리터럴 우회는 여전히 실패한다(면제가 구멍이 되지 않는다).
+    COINCIDENCE = {
+        # `\TOneSkewPct`=77\% 는 T1 의 왜도 비. 아래 자리의 -77% 는 **nRMSE 개선**이다.
+        'TOneSkewPct': 'up to $-77\\%$ nRMSE',
+    }
+    hits = []
+    for k, v in vals.items():
+        if v not in body:
+            continue
+        ctx = COINCIDENCE.get(k)
+        if ctx and ctx in body and body.count(v) == 1:
+            continue          # 그 한 번이 면제된 자리다
+        hits.append((k, v))
     if hits:
         return False, f'매크로 값이 리터럴로 인쇄됨 {len(hits)}건: ' + \
             ', '.join(f'\\{k}={v}' for k, v in hits[:3])

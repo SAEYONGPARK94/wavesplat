@@ -699,6 +699,18 @@ def _t1_thirdparty():
             'TOneCite': '\\citealp{Zheng2025SyntheticWaveFields}'}
 
 
+def _h3c_fit_bias():
+    """★`H3c` --- 중앙값 정합의 **비대칭**. ⛔편향이 그 절의 결론 쪽으로 간다.
+
+    ⚠런 0회(`fitbias_h3c.py` 가 동결 셀에서 잰 값). 라벨은 불변 --- C 의 자기 최적조차
+      문턱 0.20 에 못 미친다.
+    """
+    d = json.load(open(os.path.join(TMP, 'H3C_LAW_2026-09-03', 'fitbias_h3c.json')))
+    return {'HThreeCFitBiasA': f"{d['bias_A_pct']:.2f}\\%",
+            'HThreeCFitBiasC': f"{d['bias_C_pct']:.2f}\\%",
+            'HThreeCRelFair': f"{d['rel_fair_pct']:.1f}\\%"}
+
+
 def _h3c_shuf_gap():
     """★`H3c` --- **귀무까지의 여유**. ⛔`\\HThreeCShufC` 는 **귀무 자신의 값**이다.
 
@@ -822,7 +834,12 @@ def _e2_footprint():
                       if r.get('crowded') and 'n_in_deploy' in r])
     return {'ETwoFootprintPct': f"{100 * d['frac_median']:.1f}\\%",
             'ETwoFootprintRatio': f"{d['ratio_median']:.1f}",
-            'ETwoObsFed': f'{fed:.1f}'}
+            'ETwoObsFed': f'{fed:.1f}',
+            # ⛔[2026-09-03 감사] 덮개 주장에는 **3프레임 합집합**을 써야 한다 --- 저들
+            #   재구성기가 세 프레임을 소비한다. 1프레임(7.0%)은 **밀도** 비교의 규약이고
+            #   (사다리 칸도 프레임당이다) 덮개의 규약이 아니다. **두 수는 다 옳다.**
+            'ETwoFootprintPctThree': f"{100 * json.load(open(os.path.join(
+                TMP, 'E2_EXTSYNTH_2026-09-03', 'footprint3_e2.json')))['frac3_median']:.1f}\\%"}
 
 
 def _e1_equal_budget():
@@ -1374,6 +1391,7 @@ def main():
     dep += list(_t1_thirdparty().items())
     dep += list(_t1b_thirdparty().items())
     dep += list(_h3c_shuf_gap().items())
+    dep += list(_h3c_fit_bias().items())
     dep += list(_seed_clustered().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]

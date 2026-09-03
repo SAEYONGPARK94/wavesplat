@@ -2285,8 +2285,13 @@ comparison does not run our own arm, so it says nothing about which method is be
 and --- the condition an adversarial re-reading of this batch raised against us --- the
 ladder is not a one-factor density axis. The rungs sample uniformly over the scored
 domain, whereas the deployed returns occupy a bounding box covering a median of
-\ETwoFootprintPct{} of it, inside which their local density is \ETwoFootprintRatio{}
-times the two-hundred rung's global density. What the deployed arm lacks at the scored
+\ETwoFootprintPctThree{} of it across the three frames the reconstructor consumes,
+and \ETwoFootprintPct{} in any single frame; inside that single-frame box their local
+density is \ETwoFootprintRatio{} times the two-hundred rung's global density. (The
+per-frame convention is the one to compare against a per-frame rung; the three-frame
+union is the one that bounds coverage.) The vendor's own pipeline masks its output to
+the camera-visible region, and we score the whole domain unmasked, which pushes in the
+same direction. What the deployed arm lacks at the scored
 scale is therefore coverage at least as much as density, and the separating experiment
 --- uniform samples confined to the same footprint --- was cheap and was not run. The
 number quoted above should be read as the onset for \emph{this observation geometry},
@@ -3204,7 +3209,11 @@ We also asked whether the failure lies in the radiometric quantity or in the
 detection law applied to it. Holding that quantity fixed and replacing the
 multiplicative-gain law by the threshold-with-speckle law the same simulator already
 ships --- one free parameter each, fitted by the same median-matching rule --- lowers
-the error by \HThreeCRel{}, from \HThreeCMreA{} to \HThreeCMreC{}, which is still far
+the error by \HThreeCRel{}, from \HThreeCMreA{} to \HThreeCMreC{} --- though the
+median-matching rule is not equidistant from the two families' own optima, leaving the
+first \HThreeCFitBiasA{} above its best and the second \HThreeCFitBiasC{}, so
+family-against-family the improvement is \HThreeCRelFair{}, and the bias runs toward
+the conclusion of this paragraph --- which is still far
 above the threshold, and it clears that law's own shuffled null (\HThreeCShufC{}) by
 only \HThreeCShufGap{} in relative terms.
 A third shipped variant is excluded before the fact, because the frozen cells carry
@@ -3343,9 +3352,10 @@ own higher-order corpus it fires \TOnePos{}, and on our own linear corpus
 \TOneNeg{}.
 
 Two things must be said with that number, and they point in opposite directions from
-the obvious reading. First, \emph{their fields are not flatter than ours}: the median
-skewness we measure on them, \TOneSkewTP{}, is \TOneSkewPct{} of what we measure on
-our own higher-order corpus. What differs is the width of the null --- theirs is
+the obvious reading. First, their fields are \emph{not flatter in kind}: the median skewness we measure on
+them, \TOneSkewTP{}, is \TOneSkewPct{} of what we measure on our own higher-order
+corpus --- lower, but of the same order, not the order-of-magnitude gap the detection
+counts would suggest. What differs is the width of the null --- theirs is
 \TOneNullRatio{} times wider --- so the same signal sits below threshold. The
 detection rates of the two corpora therefore may not be compared, and we do not claim
 their solver is more linear than ours. Second, their archive ships no documentation

@@ -1,4 +1,9 @@
 # `R5-REALGEOM` 결과 — **`GEOM-STRATUM-SURVIVES`** (게이트 11/11 · 24런)
+
+> ⛔⛔**라벨 인용 불가 — `AMENDMENT_1_POSTRESULT.md` 를 먼저 읽어라.**
+> 처치 팔이 **두 수평축을 뒤바꾼 기하**를 받았다. 정정된 재실행은 `R5b` 다
+> (`GEOM-STRATUM-SURVIVES-FIXED`, 12/12). 아래 라벨과 계수를 그대로 인용하지 마라.
+
 ## ⚠★**한 레코드 차로 살았다** — 그리고 ★**내 예측의 결론은 맞았으나 사유는 지지되지 않았다**
 
 > 등급 **`EXPLORATORY`**. 동결 = `verdict_r5.json`.

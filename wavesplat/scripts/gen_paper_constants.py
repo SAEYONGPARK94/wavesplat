@@ -774,6 +774,10 @@ def _t1b_thirdparty():
             'TOneBRho': f'{num / den:.2f}',
             # ⛔독자가 0.05 를 가정하지 않게 한다 --- nearest-rank q95/32 = 2/33.
             'TOneBFP': '0.061',
+            # ⛔[2026-09-04 감사 BLOCKER] 블록이 **같은 시드**로 대체표본을 뽑아
+            #   12블록의 위상 draw 가 동일하다 ⟹ 이항이 반보수적. 문턱 완전공유라는
+            #   최악 가정의 상한. `AMENDMENT_1_POSTAUDIT.md §2`.
+            'TOneBPBound': r'1.8\times 10^{-8}',
             'TOneBNBlocks': str(len(blocks)),
             'TOneBSkewLo': f'{lo:+.3f}', 'TOneBSkewHi': f'{hi:+.3f}'}
 

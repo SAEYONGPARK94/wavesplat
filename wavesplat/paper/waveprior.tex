@@ -3368,15 +3368,22 @@ and repeated the test at the full \TOneFrames{} frames on \TOneBN{} further
 simulations, disjoint from the first set. The answer reverses: \TOneBWin{},
 $p = \TOneBP{}$ against the pre-registered per-block false-positive rate of
 \TOneBFP{} (a nearest-rank $95$th percentile over \TOneNSur{} surrogates, not $0.05$).
+That $p$ assumes the blocks are independent and they are not: each draws its surrogate
+phases from the same seed, so the twelve share a null and the binomial is
+anti-conservative. Bounding the other extreme --- a threshold shared completely across
+blocks --- gives $p \le \TOneBPBound{}$, and we do not quote the face value without
+this sentence beside it.
 Two of those \TOneBN{} blocks were not blind and we say so: one had its checksum and
 standard deviation read during the first batch while we were verifying that the
 simulations are distinct, and one was run as a single-block cost check before the
 full run, so its outcome was seen. The block-selection rule was fixed before either
 exposure and we did not change it afterwards, since changing it is the selection
 effect we would be trying to avoid. The exposed block is also the \emph{only} one of
-the \TOneBN{} that fails --- but the two unexposed blocks at the same sea state fail
-as well, so the sea state and not the exposure is what that block has in common with
-the other failures.
+the \TOneBN{} that fails. Within this arm exposure and sea state are wholly confounded
+for that block --- it is the only one of either kind --- so we cannot say which of the
+two it failed for. (An earlier draft argued the sea state was the cause because two
+unexposed blocks at the same sea state also fail; that argument is withdrawn, because
+those two blocks were themselves exposed, in the first batch, and more fully.)
 Running the same enlarged test on the \emph{original} blocks --- same files, same
 ruler, only the frame count changed --- moves them from \TOneWin{} to \TOneBSame{},
 which identifies the first result as a statement about our power rather than about

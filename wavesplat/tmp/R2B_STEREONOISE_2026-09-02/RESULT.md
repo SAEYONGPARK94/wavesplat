@@ -1,5 +1,10 @@
 # `R2b-STEREONOISE` 결과 — **`STEREO-NOISE-FLOOR-MEASURED`** (게이트 13/13 · 7 레코드)
 
+> ⛔⛔**`AMENDMENT` 를 먼저 읽어라.** 위치 대응 널의 지연 탐색이 **참 오프셋을
+> 한 번도 방문하지 않았다**(±20 s 스윕 vs 실제 400–1046 s) — 결론은 재검에서
+> 서지만 **사전등록된 근거는 서지 않는다**.
+
+
 > 등급 **`EXPLORATORY`**(⛔`CONFIRMATORY` 아님 — `PREREG §6` 노출).
 > 동결 = `verdict_r2b.json`. ⛔추정기 런 0회.
 

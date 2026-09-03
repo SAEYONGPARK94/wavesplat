@@ -1013,6 +1013,16 @@ ATOMS = [
      'strata.linear_control.max', 'abs3', 0.0),
     ('COneCtrlN', 'C1_MODELGAP_2026-09-03/verdict_c1.json',
      'strata.linear_control.n', 'int', 12),
+    # ── ★★`C1c` 가 `C1` 의 크기 읽기를 좁혔다: max 노름 0.603 vs **RMS 0.058**.
+    #    ⛔두 문턱(0.10 · 0.05)은 **다른 자**의 값이다 — 섞어 인용 금지.
+    ('COneCRmsMed', 'C1C_BESTFIT_2026-09-03/verdict_c1c.json',
+     'strata.hos_crowded.ls_med', 'abs3', 0.058),
+    ('COneCRmsMin', 'C1C_BESTFIT_2026-09-03/verdict_c1c.json',
+     'strata.hos_crowded.ls_min', 'abs3', 0.040),
+    ('COneCRmsMax', 'C1C_BESTFIT_2026-09-03/verdict_c1c.json',
+     'strata.hos_crowded.ls_max', 'abs3', 0.109),
+    ('COneCStoredMed', 'C1C_BESTFIT_2026-09-03/verdict_c1c.json',
+     'strata.hos_crowded.stored_med', 'abs3', 0.079),
 ]
 
 

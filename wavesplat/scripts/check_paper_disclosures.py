@@ -227,6 +227,23 @@ RULES = [
     ('실측음성-팔간아님', r'\\BSeventeenBeats|\\BEighteenBeats|\\BFourteenBBeats',
      [r'[Nn]ot a comparison between arms', r'whether the arm has any skill'],
      'B-17/B-18/B-14b 는 제로필드 대비 승수 — 팔간 비교로 읽히면 안 된다'),
+    # ★★[2026-09-03] 오늘 새로 들어온 세 배치. 셋 다 **공시 없이는 오독되는 부류**다.
+    #   `H3` 는 이 원고의 **가장 큰 자기위협**이라 규칙을 둘 건다(레짐 + 타당도 구분).
+    ('H3-레짐', r'\\HThreeMRE|\\HThreeShuffled',
+     [r'surf zone', r'exploratory'],
+     '⛔`H3` 는 **쇄파대 레짐 한정 · EXPLORATORY** --- 심해로 옮기지 못한다'),
+    ('H3-타당도구분', r'\\HThreeMRE',
+     [r'same observation model', r'internal comparison', r'external validity'],
+     '★`H3` 를 인용하면 **내적(절제는 무손상) / 외적(전이 불가)** 구분을 같은 절에'),
+    ('R8-층갈림', r'\\REightBetter|\\REightRatioOut',
+     [r'\\REightBigW', r'fails to reproduce', r'stratum'],
+     '⛔`R8` 은 **검정력 층(박스 ≥ 40 m)에서 3/5 로 재현되지 않는다** --- 병기 의무'),
+    ('R7-교락대조', r'\\RSevenRho',
+     [r'\\RSevenCtrlRho', r'uncorrelated with the no-skill'],
+     '★`R7` 의 하중은 상관이 아니라 **C-1 대조**(무기술 기준선과 무상관)다'),
+    ('R7-범위', r'\\RSevenRho',
+     [r'upper bound', r'one site', r'exploratory'],
+     '⛔`R7` = 상한 · 사이트 1개 · EXPLORATORY --- 셋 다 같은 절에'),
 ]
 
 

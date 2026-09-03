@@ -3079,6 +3079,76 @@ model nor those fixed-station records represent, and no shipboard measurement of
 any kind supports this paper --- the platform term was removed from the title for
 that reason.
 
+% ★★[2026-09-03] 이 절이 원고의 가장 큰 자기위협을 실었다. 심사자가 반드시 묻는다:
+%   *"방금 35% 틀렸다고 잰 관측모형 아래 얻은 합성 승리를 왜 믿나?"*
+%   ⛔방어 없이 두면 자해다. 반론은 있고 그것은 **내적/외적 타당도의 구분**이다.
+%   ⛔`H3` 는 EXPLORATORY · 쇄파대 레짐 한정 · 추정기 런 0회. 그 셋을 같은 절에 적는다.
+\paragraph{The observation model is not faithful to a real scanning LiDAR}
+The synthetic corpus draws its returns from a raydrop model. We measured that model
+against real returns from a Velodyne HDL-32E scanning a water surface
+(\HThreeFiles{} files, \HThreeCells{} cells) under a pre-registered threshold this
+project had itself written down: the mean relative error is \HThreeMRE{}, against a
+threshold of \HThreeThresh{}. Two controls decide how to read that number. The
+positive control shows the data carry structure the ruler can see --- measured
+spread \HThreePosSpread{} against a null $95$th percentile of \HThreePosNull{} ---
+so the negative is not bluntness. The negative control shows how little signal the
+model has: shuffling the model across cells costs almost nothing, the shuffled
+error's $5$th percentile being \HThreeShuffled{} against an actual \HThreeMRE{}, and
+the rank correlation between predicted and observed return rate is
+\HThreeSpearman{}. The honest reading is therefore not ``slightly wrong'' but
+``almost no signal in this regime''. The measurement is exploratory, it ran no
+estimator, and its regime is a surf zone rather than the deep water the synthetic
+corpus represents --- a transfer that runs in the unfavourable direction and that we
+do not resolve.
+
+What this does and does not undermine matters. Every ablation in
+Section~\ref{sec:res_ablation} compares two arms \emph{under the same observation
+model}, so the internal comparison --- which component carries the accuracy --- is
+untouched by an error common to both arms. What the measurement bounds is external
+validity: the claim that a margin measured under this observation model would appear,
+with this sign and this size, on returns from a real scanning sensor. We make no
+such claim, and this is the second independent reason (after the synthetic reference
+field) why the margins in this paper are not transferable numbers.
+
+% ★[2026-09-03] `R8-HELDOUT`. ⛔명목이다(확증 11 에 한 표 모자람) · ⛔SEC-LARGE 3/5 병기 의무 ·
+%   ⛔기제 지목 금지 · 완전 blind 아님(스모크 1 레코드 2 셀).
+\paragraph{On measured records the scoring sits largely inside the observation support}
+On the fixed-station records the query points are close to the observations: the
+gap to the nearest observation is a few hundredths of a peak wavelength. To ask what
+that is worth, we confined the observations to one half of each box and scored the
+same single estimator run on two disjoint query subsets --- inside the observed half
+and outside it. Aperture, observation count, seed and initialisation are then
+identical by construction and only the scoring region differs. Skill is present
+inside on \REightSkillIn{}/\REightN{} records and outside on only
+\REightSkillOut{}/\REightN{}; the median ratio to a per-record zero field moves from
+\REightRatioIn{} to \REightRatioOut{}, that is, to no skill. The paired direction
+holds on \REightBetter{}/\REightN{} records ($p = \REightP{}$), which clears the
+nominal threshold but not the confirmatory one. \emph{It also fails to reproduce in
+the stratum with the most query points}: on the \REightBigN{} records whose box
+exceeds $40$\,m it holds on \REightBigW{}, so we cannot exclude that larger apertures
+hold up outside their support. We report the split rather than the primary alone, we
+name no mechanism, and one record of twelve was seen in a smoke test before the batch
+was frozen.
+
+% ★[2026-09-03] `R7-FLOOR`(신규 런 0회, EXPLORATORY, blind 아님, 사이트 1개).
+%   ⛔보정된 nRMSE 를 만들지 않았다 · ⛔PROP 을 구제하지 않는다.
+\paragraph{Part of the measured error is charged for content the model class cannot represent}
+The reference surface against which the measured records are scored is itself a
+reconstruction, and an independent instrument bounds its high-frequency excess. Across
+the \RSevenN{} records that carry a co-located wave-gauge array, that bound --- expressed
+in units of the record's own standard deviation --- predicts how much skill the deployed
+arm retains, with a rank correlation of \RSevenRho{} ($p = \RSevenP{}$, exhaustive
+permutation, against a minimum detectable $\rho$ of \RSevenMDE{} at this sample size).
+The control matters more than the correlation: the same bound is uncorrelated with the
+no-skill zero reference ($\rho = \RSevenCtrlRho{}$, $p = \RSevenCtrlP{}$), so this is not
+the restatement that noisier records have larger everything. Since the excess lies above
+$1$\,Hz and the peak periods here are $2.5$--$5.7$\,s, it is variance a sum of at most
+fifteen plane waves cannot represent, and the scoring charges the estimator for it. This
+is exploratory, it was not blind, it rests on one site, its bound is an upper bound, and
+it does not rescue the learned prior --- the same correlation on that arm is null. We
+therefore report it as a caveat on how the measured negatives should be read, and we do
+not construct a corrected error from it.
+
 % ★[2026-09-03] 조선해양공학 적대적 심사가 찾았다: **예보 지평의 붕괴가 저장소에 측정돼
 %   있는데 두 원고에 0회**였다. 조선 독자에게는 가장 중요한 수다.
 %   ⛔사전등록 판정이 아니라 **동결 행의 런 0회 재집계**(RV4_adversary.md)임을 밝힌다.

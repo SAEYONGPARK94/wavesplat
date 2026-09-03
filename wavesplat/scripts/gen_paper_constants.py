@@ -917,6 +917,45 @@ ATOMS = [
     # ★두 번째 계단(`\BSixteenDose`)의 우변은 **무기술**이다 --- 혼잡 6/48 · 희소 2/16.
     ('BSixteenDoseCmpZero', '_audit/verdict_t2_recheck.json',
      'b16_vs_true_zero.KGRID2.better', 'int', 6),
+    # ── ★관측 모형의 첫 물리 계측 (H3-FRF, 2026-09-03) — 실물 Velodyne HDL-32E.
+    #    ⛔음성이다 · ⛔쇄파대 레짐 한정(심해 미검) · ⛔추정기 런 0회.
+    #    ★두 대조가 이것을 "무딤" 이 아니라 "신호 거의 없음" 으로 만든다.
+    ('HThreeMRE', 'H3_FRF_2026-09-03/verdict_h3.json', 'primary.MRE', 'abs3', 0.348),
+    ('HThreeThresh', 'H3_FRF_2026-09-03/verdict_h3.json', 'primary.threshold', 'sec', 0.2),
+    ('HThreeCells', 'H3_FRF_2026-09-03/verdict_h3.json', 'n_cells', 'int', 236423),
+    ('HThreeFiles', 'H3_FRF_2026-09-03/verdict_h3.json', 'n_rows', 'int', 30),
+    ('HThreePosSpread', 'H3_FRF_2026-09-03/verdict_h3.json',
+     'controls.pos_spread', 'abs3', 0.361),
+    ('HThreePosNull', 'H3_FRF_2026-09-03/verdict_h3.json',
+     'controls.pos_null_p95', 'abs3', 0.008),
+    ('HThreeShuffled', 'H3_FRF_2026-09-03/verdict_h3.json',
+     'controls.mre_shuffled_p5', 'abs3', 0.353),
+    ('HThreeSpearman', 'H3_FRF_2026-09-03/verdict_h3.json',
+     'secondary.spearman', 'abs3', 0.173),
+    # ── ★참조면 잡음이 실측 기술을 갉아먹는가 (R7-FLOOR, 2026-09-03, 신규 런 0회)
+    #    ⛔EXPLORATORY · ⛔blind 아님 · ⛔사이트 1개(BS 7) · ⛔PROP 구제 아님.
+    ('RSevenRho', 'R7_FLOOR_2026-09-03/verdict_r7.json', 'primary.rho', 'abs3', 0.893),
+    ('RSevenP', 'R7_FLOOR_2026-09-03/verdict_r7.json', 'primary.p_one_sided', 'p', 6.15e-03),
+    ('RSevenN', 'R7_FLOOR_2026-09-03/verdict_r7.json', 'primary.n', 'int', 7),
+    ('RSevenMDE', 'R7_FLOOR_2026-09-03/verdict_r7.json', 'mde_rho', 'abs3', 0.714),
+    ('RSevenCtrlRho', 'R7_FLOOR_2026-09-03/verdict_r7.json',
+     'controls.C1.rho', 'abs3', 0.0),
+    ('RSevenCtrlP', 'R7_FLOOR_2026-09-03/verdict_r7.json',
+     'controls.C1.p_one_sided', 'abs3', 0.518),
+    # ── ★실측 채점이 「보간」이었는가 (R8-HELDOUT, 2026-09-03, 24런)
+    #    ⛔명목이다(확증 11 에 한 표 모자람) · ★SEC-LARGE 가 3/5 로 갈렸다 — 병기 의무.
+    ('REightBetter', 'R8_HELDOUT_2026-09-03/verdict_r8.json', 'primary.w', 'int', 10),
+    ('REightN', 'R8_HELDOUT_2026-09-03/verdict_r8.json', 'primary.n', 'int', 12),
+    ('REightP', 'R8_HELDOUT_2026-09-03/verdict_r8.json',
+     'primary.p_one_sided', 'p', 1.9287e-02),
+    ('REightRatioIn', 'R8_HELDOUT_2026-09-03/verdict_r8.json',
+     'primary.ratio_in_med', 'abs3', 0.717),
+    ('REightRatioOut', 'R8_HELDOUT_2026-09-03/verdict_r8.json',
+     'primary.ratio_out_med', 'abs3', 0.979),
+    ('REightSkillIn', 'R8_HELDOUT_2026-09-03/verdict_r8.json', 'primary.skill_in', 'int', 12),
+    ('REightSkillOut', 'R8_HELDOUT_2026-09-03/verdict_r8.json', 'primary.skill_out', 'int', 8),
+    ('REightBigW', 'R8_HELDOUT_2026-09-03/verdict_r8.json', 'SEC_LARGE.w', 'int', 3),
+    ('REightBigN', 'R8_HELDOUT_2026-09-03/verdict_r8.json', 'SEC_LARGE.n', 'int', 5),
 ]
 
 FMT = {

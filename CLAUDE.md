@@ -8,7 +8,7 @@ Target: OCEANS 2026 conference paper submission.
 ```
 wavesplat/                   # Root package directory
 ├── wavesim/                 # Wave simulation + LiDAR
-├── wavesplat/               # Estimation algorithm      (**267 tests**, 실측 2026-09-03 — ⛔이 수를 손으로 고치지 마라, `scripts/check_claudemd_counts.py` 가 대조한다)
+├── wavesplat/               # Estimation algorithm      (**268 tests**, 실측 2026-09-03 — ⛔이 수를 손으로 고치지 마라, `scripts/check_claudemd_counts.py` 가 대조한다)
 │   ├── model/               # spectral_gaussian, dispersion, confidence
 │   ├── optimizer/            # initializer, coarse_to_fine, sequential_update
 │   ├── baselines/etkf_grid.py
@@ -44,7 +44,7 @@ cd /home/vexit/wavesplat/wavesplat     # ← 아래 전부 이 디렉터리 기�
 # Run estimation  (⛔위치인자 아님. --adaptive_n 은 값을 받는다)
 python3 -m wavesplat.run --episode data/episode_BF4_5comp_seed0_uniform.h5 --adaptive_n true
 
-# Run tests  (실측 2026-09-03: **267 passed**, 0 failed, 0 skipped, 59.5 s)
+# Run tests  (실측 2026-09-03: **268 passed**, 0 failed, 0 skipped, 59.5 s)
 #   ⚠논문의 \DeployNumTests 는 **손으로 고치지 말고** scripts/gen_deploy_constants.py 를 돌려라
 python3 -m pytest wavesim/tests/ wavesplat/tests/ -v
 
@@ -61,7 +61,7 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
 ## Current State
 ⛔**이 절의 낡은 수치가 2026-08-12 전체 감사에서 BLOCKER 로 잡혔다.**
 **연구 현황의 권위는 이 파일이 아니라 auto-memory (`MEMORY.md`) 와 `tmp/<배치>/RESULT.md` 다.**
-- **267 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-09-03, 59.5 s).
+- **268 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-09-03, 59.5 s).
   ⛔**"250"·"261" 은 둘 다 낡았다.** ★★그리고 2026-09-03 에 **233** 이 나와 추적한 결과
   커밋 `67a3eacd` 가 `test_shipping_defaults.py` 의 시험 **22개를 사고로 삭제**했음이 드러났다
   (배포값 9개 파라미터화 핀 + `D3` BLOCKER 회귀 시험 포함). 되살렸다 ⟹ 233 → 264.

@@ -3038,6 +3038,25 @@ model nor those fixed-station records represent, and no shipboard measurement of
 any kind supports this paper --- the platform term was removed from the title for
 that reason.
 
+% ★[2026-09-03] 조선해양공학 적대적 심사가 찾았다: **예보 지평의 붕괴가 저장소에 측정돼
+%   있는데 두 원고에 0회**였다. 조선 독자에게는 가장 중요한 수다.
+%   ⛔사전등록 판정이 아니라 **동결 행의 런 0회 재집계**(RV4_adversary.md)임을 밝힌다.
+%   ⛔대상은 배포 실측 팔(bank, 고정 적합)이지 학습 사전이 아니다. `REFIT2` 는 붕괴하지 않는다.
+\paragraph{The forecast horizon on measured data ends inside two wave periods}
+Beyond a lead of about five seconds the frozen-fit real-data arm stops predicting rather
+than degrading gracefully. Measured as the ratio of predicted to true field variance, and
+calibrated against a positive control that must return one by construction (it returns
+$0.82$--$1.92$, median $\approx 1$), that arm's predicted field holds $0$--$17\%$ of the
+true variance at leads of five seconds and beyond: it is effectively outputting zero. The
+measured records have a median peak period of about $3.5$~s, so the skill ends at roughly
+$1.2$ wave periods --- inside the one-to-two-period horizon that shipboard operations
+would need. Three qualifications travel with this. It is a re-aggregation of frozen rows
+rather than a pre-registered contrast, and the ratio is an upper bound. It is a property
+of the \emph{frozen-fit protocol}: the arm that refits every two seconds does not
+collapse. And the arm in question is the deployed bank estimator, not the learned prior
+this paper is named for --- which, as Table~\ref{tab:boundary} records, does not reach
+the threshold at any lead including zero.
+
 % ★[2026-09-02] `R4b` --- *"왜 12 레코드뿐인가"* 에 **측정으로** 답한다.
 %   ⛔정확도 주장 아님(추정기 런 0회) · ⛔*"자료가 나쁘다"* 아님 · ⛔기제 지목 금지 ·
 %   ⛔사이트 일반화 금지. 동결 = `verdict_r4b.json`(게이트 11/11).

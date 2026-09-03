@@ -1,0 +1,142 @@
+{
+ "batch": "R4d-DISPERSION",
+ "n_rows": 18,
+ "gates": [
+  [
+   "G-0 행 완비",
+   true,
+   "18/18"
+  ],
+  [
+   "G-0b 에러 0",
+   true,
+   "0"
+  ],
+  [
+   "★G-TANH 처치가 실제로 tanh 를 쓴다",
+   true,
+   "tanh 중앙 1.000000–1.000000"
+  ],
+  [
+   "★G-BITEQ 대조 12 의 관측이 R4c 와 비트 동일",
+   true,
+   "12/12"
+  ],
+  [
+   "★G-DEPTH 수심이 scene_station 에서 왔고 행에 기록",
+   true,
+   "기록됨"
+  ],
+  [
+   "G-CTRL2 대조 ≥10 초과 (gates_r4c 임포트)",
+   true,
+   "12/12"
+  ],
+  [
+   "G-DRAWS 귀무 256 draw 전부 저장",
+   true,
+   "256"
+  ],
+  [
+   "G-SEED 시드 20260902 · B=256 · pctl 95.0",
+   true,
+   "20260902/256/95.0"
+  ],
+  [
+   "G-RING 유효 링 ≥3",
+   true,
+   ""
+  ],
+  [
+   "★G-BLOCK blocked_by 자가진단",
+   true,
+   "['X-거짓']"
+  ],
+  [
+   "G-COV 모든 게이트가 자료를 봤다",
+   true,
+   "rows=18 r4c=18"
+  ]
+ ],
+ "gates_pass": "11/11",
+ "blocked_by": [],
+ "grade": "EXPLORATORY",
+ "label": "R4d-DISPERSION :: DEEPWATER-EQUIVALENT",
+ "label_msg": "대조 12/12 · 처치 0/6 — 자 확장이 기존 판정을 바꾸지 않는다",
+ "primary": {
+  "control_pass": "12/12",
+  "treat_pass": "0/6",
+  "matches_r4c": true,
+  "biteq": 18
+ },
+ "groups": {
+  "control": {
+   "n": 12,
+   "n_pass": 12,
+   "passed": [
+    "AA14",
+    "AA15a",
+    "AA15b",
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c",
+    "LJ18a",
+    "YS17"
+   ],
+   "obs_median": 0.3316033619172521,
+   "tanh_median": 1.0,
+   "p95_delta_median": 0.0
+  },
+  "agulhas": {
+   "n": 6,
+   "n_pass": 0,
+   "passed": [],
+   "obs_median": 0.008987852750890302,
+   "tanh_median": 1.0,
+   "p95_delta_median": 0.0
+  }
+ },
+ "intervention": {
+  "kind": "분산면을 심해 근사 √(gk) → 유한 수심 √(gk·tanh(kd))",
+  "depths": {
+   "AA14": 17.0,
+   "AA15a": 17.0,
+   "AA15b": 17.0,
+   "BS11a": 30.0,
+   "BS11b": 30.0,
+   "BS11c": 30.0,
+   "BS11d": 30.0,
+   "BS13a": 30.0,
+   "BS13b": 30.0,
+   "BS13c": 30.0,
+   "LJ18a": 45.0,
+   "YS17": 50.0,
+   "0805": 1000.0,
+   "0845": 1000.0,
+   "0925": 1000.0,
+   "1000": 1000.0,
+   "1105": 1000.0,
+   "1150": 1000.0
+  },
+  "tanh_range": [
+   0.9999999192290603,
+   1.0
+  ]
+ },
+ "prediction": {
+  "written_before_results": "DEEPWATER-EQUIVALENT",
+  "flip_probability_stated": 0.05,
+  "outcome": "예측 적중"
+ },
+ "disclosure": [
+  "⛔발견이 아니다 — 기능은 **도구 확장의 무해성 증명**이다.",
+  "⛔blind 아님 — R4b·R4c 의 모든 값과 tanh 측정을 알고 동결했다.",
+  "⛔R4b·R4c 의 계수를 갱신하지 않는다.",
+  "⚠**얕은 물 자료에 대한 검증은 이 배치에 없다** — 확장이 그쪽에서 옳게 작동하는지는 그런 자료를 실제로 넣어 보는 후속이 필요하다.",
+  "⛔\"남극 자료가 나쁘다\" 아님 · 기제 지목 금지 · 사이트 일반화 금지."
+ ]
+}

@@ -501,8 +501,14 @@ $18$ 에피소드는 여전히 기준선보다 $10\%$ 넘게 나쁘다. ⟹ \emp
 ($36$ 창 중 $24$)에 크게 못 미친다($12\cdot14\cdot14$).
 ⚠단 이는 \emph{세 초기화의 판정이 같다}는 뜻이지 \emph{결과가 같다}는 뜻이 아니다 ---
 세 초기화의 lead 별 오차 벡터는 $36$ 창에서 비트 동일이 $0$건이다.
-같은 자료에서 격자 기반 앙상블 칼만 기준선 두 종도 무기술 기준을 넘지 못하여
-\textbf{외부 기준선 대비 우열은 주장하지 않는다}.
+같은 자료에서 격자 기반 앙상블 칼만 기준선 두 종도 무기술 기준을 넘지 못하였다.
+★\textbf{[2026-09-03 갱신]} 그러나 \emph{제3자} 재구성기(공개 코드$\cdot$공개 가중치,
+양쪽 코드 무수정)를 같은 $12$ 레코드에 세우자 \textbf{외부 기준선 행이 처음으로 생겼고,
+그것은 본 연구에 유리하지 않다}: \textbf{같은 관측 예산}에서 두 방법은 구별되지 않고
+($6/12$) 그 예산에서 제3자 방법은 무기술 기준도 안정적으로 넘지 못하나($7/12$),
+관측을 두 배 주면 제3자 방법이 이긴다($10/12$). ★가장 견고한 결과는 대결이 아니라
+\textbf{밀도}다 --- 제3자 재구성기가 기술을 얻는 예산은 프레임당 $200$--$400$ 점이고
+\textbf{본 연구의 관측 기하는 $12$ 를 공급한다}(배치 \texttt{E1}).
 % ADDED 2026-08-25 (B2 외부 심사 P-1): 초록의 "실측" 이 실제 센서 반환으로 읽힌다는 지적.
 % 제3장 §sec:init-bank 의 2026-08-24 문안과 용어를 일치시켰다(``관측점''·균등 무작위·등방).
 % 근거: 본 파일 §sec:init-bank 의 [관측 모형의 범위] 블록 (⛔줄번호로 인용하지 마라 -- 편집마다 바뀐다)
@@ -881,8 +887,16 @@ no-skill threshold ($24$ of $36$ windows; observed $12$, $14$, $14$).
 ⚠This states that the three initialisations receive the \emph{same verdict}, not that
 they produce the \emph{same output}: none of the $36$ per-lead error vectors is
 bit-identical between them. On the same data, two independently reproduced grid-based ensemble
-Kalman baselines also fail to beat the no-skill reference, so \textbf{no comparative
-superiority is claimed on real data}.
+Kalman baselines also fail to beat the no-skill reference.
+★\textbf{[updated 2026-09-03]} A \emph{third-party} reconstructor (published code and
+weights, neither side modified) run on the same $12$ records does however produce a
+first external baseline row, and \textbf{it does not flatter this work}: at
+\textbf{equal observation budget} the two are indistinguishable ($6/12$) and the
+external method does not there reliably clear the no-skill reference ($7/12$), while
+at twice our budget it wins ($10/12$). ★The robust result is the \textbf{density}
+rather than the contest --- an external reconstructor acquires skill between $200$ and
+$400$ points per frame, and \textbf{our sensing geometry supplies $12$} (batch
+\texttt{E1}).
 % ADDED 2026-08-25 (B2 external review P-1): mirror of the Korean abstract observation-model
 % sentence, so the two abstracts do not diverge. Source: the [관측 모형의 범위] block in
 % §sec:init-bank (⛔do not cite by line number -- it moves with every edit).
@@ -1526,7 +1540,11 @@ $12$ 중 $11$인 rung 하나}($1.0\,T_p$)로 옮겨 재채점해도 확증 문�
 ⟹ ★\textbf{관측 기하 행에서 배제된 것은 \emph{공간}(피복)과 \emph{시간}(채점 리드)
 두 성분이고, 남은 것은 개구$\cdot$입사각$\cdot$폐색이다.}
 ⑤\textbf{두 쪽은 대칭이 아니다} --- 합성 쪽에는 기준선 대비 부호가 있으나 실측 쪽에는
-\textbf{외부 기준선 행이 $0$개}이고, 그 부재 자체가 측정된 한계다(기여 ⑥).
+\textbf{외부 기준선 행이 오랫동안 $0$개}였다. ★\textbf{[2026-09-03 정정]} 그 행이
+\emph{생겼고}(배치 \texttt{E1}, 제3자 코드$\cdot$제3자 가중치, 양쪽 무수정) 결과는
+본 연구에 유리하지 않다 --- 같은 예산에서 무승부($6/12$), 관측 두 배에서 패배($2/12$).
+⟹ \textbf{``부재가 측정된 한계''라는 문장은 더 이상 참이 아니다}; 대신 남는 것은
+\textbf{밀도 문장}이다(제3자가 기술을 얻는 예산 $200$--$400$ 점/프레임 vs 우리 기하 $12$).
 
 % ADDED 2026-08-28 (M-8b): 위 소거는 전부 **참조 없는 소거**였다. 실측 자료 위에
 % **기술이 있는 팔**(배포 실측 경로)과 제안 표현을 사다리로 잇는 대조가 처음 수행됐고,
@@ -2095,8 +2113,15 @@ $16/16$ 이므로 \emph{비교자에 기술이 있는 상태에서} 갈리지 �
         ``더 강한 기준선을 쓰면 결론이 뒤집힌다''는 반박이 \emph{부재}가 아니라
         \emph{측정}으로 닫힘을 보였다. \textbf{단 이 결과는 우월성을 사지 않는다}.
         % NEW 2026-08-23 (K-8): 실측에서의 비교 불가를 '측정된 한계' 로 승격.
-        \textbf{실측에서는 외부 기준선 대비 우열을 주장하지 않으며, 그 부재 자체가 측정된
-        한계다} --- 보유 실측 기하(개구 $12$--$240$\,m, 프레임당 $12$점)에서 격자 기반
+        ★\textbf{[2026-09-03 정정] 이 항목의 종전 문안 \emph{``그 부재 자체가 측정된
+        한계다''} 는 더 이상 참이 아니다} --- 제3자 재구성기(공개 코드$\cdot$공개 가중치,
+        양쪽 코드 무수정)를 실측 $12$ 레코드에 세워 \textbf{외부 기준선 행을 만들었고}
+        (배치 \texttt{E1}), 결과는 본 연구에 유리하지 않다: 같은 관측 예산에서 무승부
+        ($6/12$, 그리고 그 예산에서 제3자는 무기술 기준도 $7/12$ 로 미달), 관측 두 배에서
+        패배($2/12$). ★남는 것은 \textbf{밀도 문장}이다 --- 제3자가 기술을 얻는 예산은
+        프레임당 $200$--$400$ 점이고 본 연구의 기하는 $12$ 를 공급한다.
+        \textbf{종전 서술의 근거였던 사실}: 보유 실측 기하(개구 $12$--$240$\,m,
+        프레임당 $12$점)에서 격자 기반
         앙상블 칼만 기준선 \textbf{두 종}을 독립적으로 재현하였고 둘 다 자기검정 문턱 아래에서
         실패하였다(선행 연구 재현은 결함 수리 후에도 무기술 수준, 본 연구 구현은 $0/12$).
         기준선에는 오라클 국소화·참 관측잡음·세밀 격자·전 프레임 스핀업을 제공하였다.
@@ -9963,8 +9988,13 @@ nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
   \item \textbf{[눈금 $\cdot$ 비교자] 실측 게이트가 사용하는 격자 기반 경로}의 전방 시간 전개는
         lead $1$--$3$\,s 에서만 무기술 기준을 넘고 $4$\,s 부터 사라지며, 초기화 적합을
         주기적으로 갱신하면 $4$--$14$\,s 에서도 유지된다.
-  \item \textbf{실측에서는 외부 기준선 대비 우열을 주장하지 않으며, 그 부재가 측정된
-        한계다} --- 격자 기반 앙상블 칼만 기준선 두 종을 독립적으로 재현하였고 둘 다
+  \item ★\textbf{[2026-09-03 정정]} 종전 문안 \emph{``외부 기준선의 부재가 측정된
+        한계다''} 는 \textbf{더 이상 참이 아니다}. 제3자 재구성기를 실측 $12$ 레코드에
+        세워 외부 기준선 행을 만들었고(배치 \texttt{E1}), \textbf{결과는 본 연구에
+        유리하지 않다} --- 같은 예산 무승부($6/12$), 관측 두 배에서 패배($2/12$),
+        그리고 남는 견고한 문장은 \textbf{밀도}다(제3자가 기술을 얻는 예산 $200$--$400$
+        점/프레임 vs 본 연구 기하 $12$). \textbf{종전 근거}: 격자 기반 앙상블 칼만
+        기준선 두 종을 독립적으로 재현하였고 둘 다
         무기술 기준을 넘지 못하였다.
   % ADDED 2026-08-26 (B-18/B-17): 제3장이 소거 결과를 실었으므로 결론도 같은 지위를
   % 말해야 한다("문서가 절반만 따라왔다" 부류의 재발 방지).

@@ -241,6 +241,17 @@ RULES = [
     ('R7-교락대조', r'\\RSevenRho',
      [r'\\RSevenCtrlRho', r'uncorrelated with the no-skill'],
      '★`R7` 의 하중은 상관이 아니라 **C-1 대조**(무기술 기준선과 무상관)다'),
+    # ★★[2026-09-03] `E1-EXTBASE` --- 라벨 칸은 저들이 관측을 **두 배** 받는다.
+    #   예산 규약 없이 인쇄되면 독자가 "우리가 졌다/이겼다" 를 조건 없이 읽는다.
+    ('E1-예산규약', r'\\EOneShipWin|\\EOneRung',
+     [r'twice our observations'],
+     '⛔`E1` 라벨 칸은 제3자가 **관측을 두 배** 받는다 --- 같은 절에 명시'),
+    ('E1-동일예산', r'\\EOneShipWin',
+     [r'\\EOneEqualShipWin'],
+     '★`E1` 라벨을 적는 자리에는 **동일 예산 정면대결(6/12)** 을 같이 적는다'),
+    ('E1-비인과', r'\\EOneShipWin|\\EOneSelfFourHundred',
+     [r'sees a future frame'],
+     '⛔제3자 입력은 t-1,t,t+1 이라 미래 프레임을 본다 = 저들에게 유리 --- 병기 의무'),
     ('R7-범위', r'\\RSevenRho',
      [r'upper bound', r'one site', r'exploratory'],
      '⛔`R7` = 상한 · 사이트 1개 · EXPLORATORY --- 셋 다 같은 절에'),

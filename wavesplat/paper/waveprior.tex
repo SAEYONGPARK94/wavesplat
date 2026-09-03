@@ -2236,6 +2236,39 @@ counts under the biased convention were known when the batch was frozen, and the
 design cannot reach a confirmatory grade under its own stated prediction, so we report
 it as exploratory.
 
+% ★★[2026-09-03] `E1-EXTBASE`. 이 원고와 학위논문이 *"실측 외부 기준선 행 0개"* 를
+%   여러 곳에 인쇄하고 있었는데 **오늘 그것이 거짓이 됐다**. ⛔예산 규약 병기 의무.
+\paragraph{An external baseline, and it does not flatter us}
+Until today this paper reported no external baseline on the measured records, and
+recorded that absence as a measured state: two attempts failed their own self-test.
+That is no longer the situation. We ran a third-party reconstructor --- published code
+under GPL-3 with the authors' own pre-trained weights, neither their code nor ours
+modified --- on the same twelve records, and swept the observation budget.
+
+The robust result is the ladder rather than the contest. At the density our deployment
+geometry actually supplies, twelve points per frame, that method clears a per-record
+zero field on \EOneSelfTwelve{}/\EOneN{} records; at two hundred points per frame it
+clears on \EOneSelfTwoHundred{}/\EOneN{}, and at four hundred on
+\EOneSelfFourHundred{}/\EOneN{}. \emph{The budget at which an external reconstructor
+begins to have skill on these records lies between two and four hundred points per
+frame, and our sensing geometry delivers twelve.} That converts a limitation this paper
+previously asserted into one it measures.
+
+The head-to-head must be read with the budget convention attached, because the two
+methods consume observations differently: our arm accumulates twelve points per frame
+over a forty-second memory window, while theirs sees three consecutive frames and
+cannot use a history. At \emph{equal total budget} --- six hundred observations each ---
+the deployed arm is better on \EOneEqualShipWin{}/\EOneEqualN{} records, which is a tie,
+and at that budget the external method does not reliably clear a zero field
+(\EOneSelfTwoHundred{}/\EOneN{}). At the lowest budget where it does clear, it is
+receiving twice our observations, and there it beats the deployed arm on
+$\EOneN{}-\EOneShipWin{}$ of \EOneN{} records ($p = \EOneP{}$). Our arm beats a
+per-record zero field on eleven of twelve throughout. Three further conditions travel
+with the comparison: their input spans $t-1,t,t+1$ and therefore sees a future frame,
+which favours them; their dense output is resampled onto our query grid by nearest
+neighbour; and the training distribution of their checkpoint could not be read from the
+publisher, so its relation to these sites is unknown.
+
 % ⛔[2026-09-02] 적대적 감사 M3·M4. 두 공시 없이 위 문단의 p 를 인쇄하면 독자가
 %   *"수리가 실측 헤드라인을 유의하게 만들었다"* 로 읽는다. 둘 다 거짓이 아니라 **미공시**였다.
 \textbf{Two things must be read with that $p$-value.} First, this arc records a

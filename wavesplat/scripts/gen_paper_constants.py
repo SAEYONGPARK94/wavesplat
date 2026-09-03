@@ -646,6 +646,19 @@ def load(rel):
         raise SystemExit(f'⛔동결 판정이 없다: {p}')
     return json.load(open(p))
 
+def _e1_equal_budget():
+    """★`E1` 의 **동일 예산** 정면대결 — verdict 이 저장하지 않는 값이라 여기서 센다.
+
+    ⛔라벨 칸(400/프레임)은 저들이 관측을 **두 배** 받는다. 동일 예산 칸은 200/프레임이고,
+    그 칸에서 저들은 **자기검정 미달**(7/12)이다. 두 사실을 같이 인쇄해야 한다.
+    ⚠런 0회 — 동결 `verdict_e1.json` 의 `per_record` 재집계.
+    """
+    v = load('E1_EXTBASE_2026-09-03/verdict_e1.json')
+    pr = v['per_record']
+    w = sum(1 for r in pr.values() if r['ship'] < r['cnn_200'])
+    return {'EOneEqualShipWin': str(w), 'EOneEqualN': str(len(pr))}
+
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ★인용 원자 — (매크로, 배치 verdict, json 경로, 형식, 핀)
@@ -965,7 +978,29 @@ ATOMS = [
      'model_C.shuf_p5', 'abs3', 0.317),
     ('HThreeCRel', 'H3C_LAW_2026-09-03/verdict_h3c.json',
      'improvement.rel_pct', 'pct', -13.0),
+    # ── ★★저장소 최초의 외부 기준선 행 (E1-EXTBASE, 2026-09-03)
+    #    ⛔예산 규약 병기 없이 인용 금지: 라벨 칸은 저들이 관측을 **두 배** 받는다.
+    #    ⛔비인과성(저들은 t±1 을 본다) · 최근접 되샘플 · 저들 학습 분포 미확인.
+    ('EOneShipWin', 'E1_EXTBASE_2026-09-03/verdict_e1.json', 'primary.w', 'int', 2),
+    ('EOneN', 'E1_EXTBASE_2026-09-03/verdict_e1.json', 'primary.n', 'int', 12),
+    ('EOneRung', 'E1_EXTBASE_2026-09-03/verdict_e1.json', 'primary.rung', 'int', 400),
+    ('EOneP', 'E1_EXTBASE_2026-09-03/verdict_e1.json',
+     'primary.p_one_sided', 'p', 1.9287e-02),
+    # ★밀도 사다리 — 이 배치가 사는 가장 견고한 문장
+    ('EOneSelfTwelve', 'E1_EXTBASE_2026-09-03/verdict_e1.json',
+     'self_test.per_rung.12.better_than_zero', 'int', 0),
+    ('EOneSelfTwoHundred', 'E1_EXTBASE_2026-09-03/verdict_e1.json',
+     'self_test.per_rung.200.better_than_zero', 'int', 7),
+    ('EOneSelfFourHundred', 'E1_EXTBASE_2026-09-03/verdict_e1.json',
+     'self_test.per_rung.400.better_than_zero', 'int', 10),
+    ('EOneMedShip', 'E1_EXTBASE_2026-09-03/verdict_e1.json',
+     'medians.ship', 'abs3', 0.616),
+    ('EOneMedZero', 'E1_EXTBASE_2026-09-03/verdict_e1.json',
+     'medians.zero', 'abs3', 0.937),
+    ('EOneMedCnnEqual', 'E1_EXTBASE_2026-09-03/verdict_e1.json',
+     'medians.cnn_200', 'abs3', 0.648),
 ]
+
 
 FMT = {
     'int': lambda x: str(int(x)),
@@ -1093,6 +1128,7 @@ def main():
     dep += list(_corpus_identity().items())
     dep += list(_w15_reagg().items())
     dep += list(_b1_control().items())
+    dep += list(_e1_equal_budget().items())
     dep += list(_seed_clustered().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]

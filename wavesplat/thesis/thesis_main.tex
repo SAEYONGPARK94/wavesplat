@@ -503,8 +503,10 @@ $18$ 에피소드는 여전히 기준선보다 $10\%$ 넘게 나쁘다. ⟹ \emp
 세 초기화의 lead 별 오차 벡터는 $36$ 창에서 비트 동일이 $0$건이다.
 같은 자료에서 격자 기반 앙상블 칼만 기준선 두 종도 무기술 기준을 넘지 못하였다.
 ★\textbf{[2026-09-03 갱신]} 그러나 \emph{제3자} 재구성기(공개 코드$\cdot$공개 가중치,
-양쪽 코드 무수정)를 같은 $12$ 레코드에 세우자 \textbf{외부 기준선 행이 처음으로 생겼고,
-그것은 본 연구에 유리하지 않다}: \textbf{같은 관측 예산}에서 두 방법은 구별되지 않고
+양쪽 코드 무수정)를 같은 $12$ 레코드에 세우자 \textbf{외부 기준선 행이 처음으로 생겼다}
+--- ⛔\textbf{단 그 상대는 \emph{배포 비교자}(bank-MMSE)이지 본 논문이 제안하는 표현이
+아니다}(실측 입력에서 라우터가 무조건 그쪽으로 보낸다). ⟹ \textbf{제안 표현은 여전히
+외부 방법과 비교된 적이 없다.} 그 비교자에 대해서는 \textbf{결과가 본 연구에 유리하지 않다}: \textbf{같은 관측 예산}에서 두 방법은 구별되지 않고
 ($6/12$) 그 예산에서 제3자 방법은 무기술 기준도 안정적으로 넘지 못하나($7/12$),
 관측을 두 배 주면 제3자 방법이 이긴다($10/12$). ★가장 견고한 결과는 대결이 아니라
 \textbf{밀도}다 --- 제3자 재구성기가 기술을 얻는 예산은 프레임당 $200$--$400$ 점이고
@@ -889,8 +891,12 @@ they produce the \emph{same output}: none of the $36$ per-lead error vectors is
 bit-identical between them. On the same data, two independently reproduced grid-based ensemble
 Kalman baselines also fail to beat the no-skill reference.
 ★\textbf{[updated 2026-09-03]} A \emph{third-party} reconstructor (published code and
-weights, neither side modified) run on the same $12$ records does however produce a
-first external baseline row, and \textbf{it does not flatter this work}: at
+weights, neither side modified) run on the same $12$ records does produce a first
+external baseline row --- ⛔\textbf{but against the \emph{deployed comparator}
+(bank-MMSE), not against the representation this thesis proposes}, because on
+ground-truth-free input the router sends every window there. ⟹ \textbf{The proposed
+representation has still never been compared with an external method.} Against that
+comparator, \textbf{the result does not flatter this work}: at
 \textbf{equal observation budget} the two are indistinguishable ($6/12$) and the
 external method does not there reliably clear the no-skill reference ($7/12$), while
 at twice our budget it wins ($10/12$). ★The robust result is the \textbf{density}
@@ -1549,8 +1555,11 @@ $12$ 중 $11$인 rung 하나}($1.0\,T_p$)로 옮겨 재채점해도 확증 문�
 두 성분이고, 남은 것은 개구$\cdot$입사각$\cdot$폐색이다.}
 ⑤\textbf{두 쪽은 대칭이 아니다} --- 합성 쪽에는 기준선 대비 부호가 있으나 실측 쪽에는
 \textbf{외부 기준선 행이 오랫동안 $0$개}였다. ★\textbf{[2026-09-03 정정]} 그 행이
-\emph{생겼고}(배치 \texttt{E1}, 제3자 코드$\cdot$제3자 가중치, 양쪽 무수정) 결과는
-본 연구에 유리하지 않다 --- 같은 예산에서 무승부($6/12$), 관측 두 배에서 패배($2/12$).
+\emph{생겼고}(배치 \texttt{E1}, 제3자 코드$\cdot$제3자 가중치, 양쪽 무수정)
+⛔\textbf{단 그 상대는 \emph{배포 비교자}(bank-MMSE)다} --- 실측 입력에서 라우터가
+무조건 그쪽으로 보내므로 \textbf{제안 표현은 그 비교에 들어가지 않았다}.
+그 비교자에 대해서는 결과가 유리하지 않다 --- 같은 예산에서 무승부($6/12$),
+관측 두 배에서 패배($2/12$).
 ⟹ \textbf{``부재가 측정된 한계''라는 문장은 더 이상 참이 아니다}; 대신 남는 것은
 \textbf{밀도 문장}이다(제3자가 기술을 얻는 예산 $200$--$400$ 점/프레임 vs 우리 기하 $12$).
 
@@ -2127,8 +2136,9 @@ $16/16$ 이므로 \emph{비교자에 기술이 있는 상태에서} 갈리지 �
         % NEW 2026-08-23 (K-8): 실측에서의 비교 불가를 '측정된 한계' 로 승격.
         ★\textbf{[2026-09-03 정정] 이 항목의 종전 문안 \emph{``그 부재 자체가 측정된
         한계다''} 는 더 이상 참이 아니다} --- 제3자 재구성기(공개 코드$\cdot$공개 가중치,
-        양쪽 코드 무수정)를 실측 $12$ 레코드에 세워 \textbf{외부 기준선 행을 만들었고}
-        (배치 \texttt{E1}), 결과는 본 연구에 유리하지 않다: 같은 관측 예산에서 무승부
+        양쪽 코드 무수정)를 실측 $12$ 레코드에 세워 \textbf{외부 기준선 행을 만들었다}
+        (배치 \texttt{E1}). ⛔\textbf{상대는 \emph{이 항목의 팔}(bank-MMSE)이지 제안
+        표현이 아니다} --- 그래서 이 항목에 적는다. 결과는 유리하지 않다: 같은 관측 예산에서 무승부
         ($6/12$, 그리고 그 예산에서 제3자는 무기술 기준도 $7/12$ 로 미달), 관측 두 배에서
         패배($2/12$). ★남는 것은 \textbf{밀도 문장}이다 --- 제3자가 기술을 얻는 예산은
         프레임당 $200$--$400$ 점이고 본 연구의 기하는 $12$ 를 공급한다.
@@ -4085,10 +4095,16 @@ $3/7 \to 0/7$ 로 더 강하게 진다. ⛔\textbf{그러나 이것을 ``실측 
         Spearman $\rho = 0.893$($p = 0.0062$, 전수 순열; 이 표본 크기의 최소 검출
         $\rho$ 는 $0.714$). ★\textbf{하중은 상관이 아니라 대조에 있다}: 같은 양이
         \emph{무기술} 기준선과는 \textbf{상관 $0.000$}($p = 0.518$)이므로, 이것은
-        \emph{``잡음 큰 레코드는 모든 것이 크다''}의 재진술이 아니다. 그 초과분산은
-        $1$\,Hz 위에 있고 이 자료의 첨두주기는 $2.5$--$5.7$\,s 이므로,
-        \textbf{원자 $15$ 개 평면파 합이 원리적으로 표현할 수 없는 분산}이며 채점은
-        추정기에게 그것을 과금한다. ⛔이것은 \textbf{탐색적}이고, blind 가 아니며,
+        \emph{``잡음 큰 레코드는 모든 것이 크다''}의 재진술이 아니다.
+        ⚠\textbf{[2026-09-03 추가] 단 그 대조의 검정력을 함께 적는다} --- 같은 $n=7$
+        전수 순열이므로 이 대조가 실패하려면 $\rho \geq 0.714$ 여야 하고, 참 교락이
+        $\rho = 0.6$ 이면 약 $1/3$ 만 검출한다. ⟹ ⛔\emph{``교락 아님''} 은
+        \textbf{강한 배제가 아니다}. 그 초과분산은
+        $1$\,Hz 위에 있고 이 **일곱 레코드**의 첨두주기는 $3.1$--$4.4$\,s 이므로,
+        \textbf{추정기의 적은 원자가 맞춰지는 대역 위}에 있고 채점은 추정기에게 그것을
+        과금한다. ⛔\textbf{이것은 \emph{대역} 논증이지 \emph{표현 불가}의 증명이 아니다} ---
+        이 배치는 추정기의 파수 도달 범위를 재는 게이트를 두지 않았고, 게이지 자신도
+        $1$\,Hz 초과에 약간의 분산을 갖는다. ⛔이것은 \textbf{탐색적}이고, blind 가 아니며,
         사이트 $1$ 개에 기대고, 그 값은 \textbf{상한}이고, 학습 사전을 구제하지
         \emph{못한다}(같은 상관이 그 팔에서는 널이다). ⛔여기서 \emph{보정된} 오차를
         만들지 않는다 --- 오차 독립이 측정되지 않았다.
@@ -8320,7 +8336,10 @@ BF2, $H_s=0.3$\,m, 단일 성분.
 함수공간}에 놓인다. ★\textbf{[2026-09-03]} 헤드라인 절제 사슬이 도는 \emph{비선형 HOS}
 코퍼스는 다르다 --- 그 코퍼스의 참값은 모델류 안에 \emph{정확히는} 있지 않다
 (배치 \texttt{C1}$\cdot$\texttt{C1c}; ★선형 $12/12$ 는 \textbf{정확히} $0.0$ 이고
-비선형 혼잡 $48$ 은 제곱평균 중앙 $0.0581$ 이다 ⟹ ⛔단 이탈은 에너지로는 작다).
+비선형 혼잡 $48$ 은 제곱평균 중앙 $\mathbf{0.0786}$ 이다 ⟹ ⛔단 이탈은 에너지로는 작다).
+% ⛔[2026-09-03 정정] 여기 $0.0581$ 을 적고 있었다 --- 그것은 **재적합 뒤** 값이다.
+%   같은 문서 5,000줄 앞(§Forward 모델)은 이미 0.0786 으로 고쳐져 있었다 ⟹ N-1 재발.
+%   심사 관점 감사가 잡았다.
         비선형 검증은 이 코퍼스가 아니라 \textbf{별도의 HOS ($M{=}3$) 배치}로 수행하였다.
         시뮬레이터·추정기 단위 테스트 수는 39개가 아니라 \textbf{\DeployNumTests 개}이며,
         여기에 배포 기본값 회귀 테스트 8개가 추가되었다.
@@ -10069,7 +10088,9 @@ nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
         주기적으로 갱신하면 $4$--$14$\,s 에서도 유지된다.
   \item ★\textbf{[2026-09-03 정정]} 종전 문안 \emph{``외부 기준선의 부재가 측정된
         한계다''} 는 \textbf{더 이상 참이 아니다}. 제3자 재구성기를 실측 $12$ 레코드에
-        세워 외부 기준선 행을 만들었고(배치 \texttt{E1}), \textbf{결과는 본 연구에
+        세워 외부 기준선 행을 만들었다(배치 \texttt{E1}). ⛔\textbf{상대는 배포 비교자
+        (bank-MMSE)이고 제안 표현은 그 비교에 들어가지 않았다.} \textbf{그 비교자에 대해
+        결과는 본 연구에
         유리하지 않다} --- 같은 예산 무승부($6/12$), 관측 두 배에서 패배($2/12$),
         그리고 남는 견고한 문장은 \textbf{밀도}다(제3자가 기술을 얻는 예산 $200$--$400$
         점/프레임 vs 본 연구 기하 $12$). \textbf{종전 근거}: 격자 기반 앙상블 칼만

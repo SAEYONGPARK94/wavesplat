@@ -2242,9 +2242,19 @@ it as exploratory.
 % ★★[2026-09-03] `E1-EXTBASE`. 이 원고와 학위논문이 *"실측 외부 기준선 행 0개"* 를
 %   여러 곳에 인쇄하고 있었는데 **오늘 그것이 거짓이 됐다**. ⛔예산 규약 병기 의무.
 \paragraph{An external baseline, and it does not flatter us}
+% ★★[2026-09-03 심사 관점 감사] 이 문단이 **어느 팔이 비교됐는지 한 번도 적지 않았다**.
+%   실측 입력에서는 라우터가 무조건 bank-MMSE 로 보낸다(sequential_update.py:810-812)
+%   ⟹ 비교된 것은 **배포 비교자**이지 **제안 표현**이 아니다. ⛔N-1 부류의 최악 형태.
 Until today this paper reported no external baseline on the measured records, and
 recorded that absence as a measured state: two attempts failed their own self-test.
-That is no longer the situation. We ran a third-party reconstructor --- published code
+That is no longer the situation --- \textbf{for one of our two arms}. \emph{Which arm was
+compared matters, and we state it plainly}: on ground-truth-free input the deployed
+router sends every window to the ported bank-MMSE estimator, so the arm that faced the
+third-party method is the \emph{deployed comparator}, which this paper does not claim as
+a contribution. \textbf{The learned prior --- the subject of this paper --- has still
+never been compared against an external method}, and the reason is now measured rather
+than asserted: reaching it on measured input requires deliberately disabling the
+real-domain gate. We ran a third-party reconstructor --- published code
 under GPL-3 with the authors' own pre-trained weights, neither their code nor ours
 modified --- on the same twelve records, and swept the observation budget.
 

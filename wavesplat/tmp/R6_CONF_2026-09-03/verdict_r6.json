@@ -1,0 +1,137 @@
+{
+ "batch": "R6-CONF",
+ "n_rows": 28,
+ "gates": [
+  [
+   "G-0 런 수",
+   true,
+   "28/28"
+  ],
+  [
+   "G-0b 에러 0",
+   true,
+   "0"
+  ],
+  [
+   "★G-VARY 탐침 가중이 실제로 변동 (max/min ≥ 1.5)",
+   true,
+   "7/7"
+  ],
+  [
+   "★G-READ 경로별 비트 변화 기록 (⚠실패 아님)",
+   true,
+   "SHIP 0/7 · PROP 7/7"
+  ],
+  [
+   "★G-NOGT 신뢰가중 코드 경로에 참 장이 없다",
+   true,
+   "28/28"
+  ],
+  [
+   "★G-GEOMSRC 기하가 R3b verdict 에서 파싱됨",
+   true,
+   "7ea83475c2cc50c2"
+  ],
+  [
+   "G-ANCHOR SHIP-C1 이 동결 R1b(judge/옛규약) 를 재현 (7행)",
+   true,
+   "max relerr=0.000e+00"
+  ],
+  [
+   "G-CONF observation_weights 임포트 · d_ref 기본값 일치",
+   true,
+   "d_ref=125.0"
+  ],
+  [
+   "G-ARM 출하 되읽기 {'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'learned_ensemble_k': 1}",
+   true,
+   ""
+  ],
+  [
+   "G-ENV 단일 PID · 단일 code_md5 · 시드 42",
+   true,
+   "pid=1"
+  ],
+  [
+   "★G-BLOCK blocked_by 자가진단",
+   true,
+   "['X-거짓']"
+  ],
+  [
+   "G-COV 모든 게이트가 자료를 봤다",
+   true,
+   "rows=28"
+  ]
+ ],
+ "gates_pass": "12/12",
+ "blocked_by": [],
+ "grade": "EXPLORATORY",
+ "label": "R6-CONF :: CONF-SATURATES-AT-STATION-RANGE",
+ "label_msg": "7/7 레코드에서 포화 비율 1.000 — 배포 신뢰가중은 이 사거리에서 **상수**다",
+ "primary": {
+  "n_saturated": 7,
+  "n": 7,
+  "frac_by_record": {
+   "BS11a": 1.0,
+   "BS11b": 1.0,
+   "BS11c": 1.0,
+   "BS11d": 1.0,
+   "BS13a": 1.0,
+   "BS13b": 1.0,
+   "BS13c": 1.0
+  },
+  "d_ref": 125.0,
+  "raw_min": 1.232024549088459,
+  "raw_med_range": [
+   2.072878445593788,
+   2.772757931867642
+  ],
+  "note": "⚠부호검정이 아니다 — 포화 비율은 자료의 성질이다"
+ },
+ "secondary": {
+  "SHIP": {
+   "n": 7,
+   "n_changed": 0,
+   "changed": [],
+   "better": 0,
+   "rel_median_pct": 0.0,
+   "reads_confidence": false
+  },
+  "PROP": {
+   "n": 7,
+   "n_changed": 7,
+   "changed": [
+    "BS11a",
+    "BS11b",
+    "BS11c",
+    "BS11d",
+    "BS13a",
+    "BS13b",
+    "BS13c"
+   ],
+   "better": 3,
+   "rel_median_pct": 1.9915116552850676,
+   "reads_confidence": true
+  },
+  "geometry_range": {
+   "r_med": [
+    23.598440162579507,
+    27.289780867775846
+   ],
+   "cos_med": [
+    0.45396235112595307,
+    0.5230914484661682
+   ]
+  }
+ },
+ "disclosure": [
+  "⛔blind 아님 — 동결 전 스모크가 포화표를 드러냈고 그것이 재설계의 근거다(PREREG §0c).",
+  "⛔CONFIRMATORY 아님 — EXPLORATORY.",
+  "⛔`CVAR` 는 **계측기**이지 배포 후보가 아니다 — 임의 재척도다.",
+  "⛔`CVAR` 로 정확도 주장 금지. 개선이 보여도 그것은 이 배치의 결론이 아니다.",
+  "⛔배포 기본값 변경 아님 — 하네스의 입력만 바꿨다.",
+  "⛔BS 7 · 1 사이트 — 사이트 일반화 금지, 실측 12 판정의 재채점 아님.",
+  "⛔\"신뢰가중이 쓸모없다\" 로 넓히지 마라 — 잰 것은 (a) 이 사거리에서 공식이 상수라는 것과 (b) 어느 경로가 그 필드를 읽는가 둘뿐이다.",
+  "⚠평면 근사 법선을 썼다(GT 누출 회피). 참 경사를 쓰면 값이 달라진다."
+ ]
+}

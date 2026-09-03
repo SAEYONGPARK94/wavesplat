@@ -46,7 +46,11 @@ def main():
 
     blocked = G.blocked_by(A)
     lab = G.label(w) if not blocked else None
-    v = {'batch': 'T1-THIRDPARTY', 'kind': 'CONFIRMATORY', 'new_runs': 0,
+    v = {'batch': 'T1-THIRDPARTY', 'kind': 'CONFIRMATORY',
+         # ⛔[2026-09-03] `grade` 를 빠뜨렸다 --- `check_manuscript_citation_maturity`
+         #   가 잡았다. 표준 필드이고 **수치·라벨은 한 글자도 바뀌지 않는다**
+         #   (분석기는 결정적이고 동결 행만 읽는다). 동결 md5 를 함께 갱신했다.
+         'grade': 'CONFIRMATORY', 'new_runs': 0,
          'n_rows': len(rows), 'prereg': 'v2 (v1 은 자료 열기 전 폐기)',
          'gates': [{'name': n, 'pass_': bool(o), 'detail': d} for n, o, d in A],
          'gates_pass': f'{sum(1 for _, o, _ in A if o)}/{len(A)}',

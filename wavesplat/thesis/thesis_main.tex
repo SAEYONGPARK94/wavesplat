@@ -221,6 +221,12 @@ not an execution comparison ⟹ ⛔this thesis does not write ``it ran on the fi
 % ★배포 상수 단일출처 — scripts/gen_deploy_constants.py 가 DEFAULT_CONFIG 에서 생성한다.
 % ⛔논문에 배포 상수를 문자로 다시 적지 마라(2026-08-22 재발 방지).
 \input{deploy_constants}
+% ★★[2026-09-03] 논문판 상수를 **학위논문도 같은 파일에서** 받는다.
+%   사유: 2026-09-03 적대적 심사가 잡은 **방벽 비대칭** --- 논문은 48 규칙 · 상수 239 원자로
+%   감시받는데 학위논문은 5 규칙 · 손타이핑이었다(*"3배 긴 문서가 1/8의 기계 감시를 받는다"*).
+%   ⛔이 줄은 **이행 경로**다: 새 수치는 여기서 매크로로 받고, 기존 손타이핑은 점진 이행한다.
+%   생성기 = `scripts/gen_paper_constants.py`(동결 verdict → 매크로, 핀 불일치 시 죽는다).
+\input{../paper/paper_constants}
 
 \begin{document}
 

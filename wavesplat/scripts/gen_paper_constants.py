@@ -956,6 +956,15 @@ ATOMS = [
     ('REightSkillOut', 'R8_HELDOUT_2026-09-03/verdict_r8.json', 'primary.skill_out', 'int', 8),
     ('REightBigW', 'R8_HELDOUT_2026-09-03/verdict_r8.json', 'SEC_LARGE.w', 'int', 3),
     ('REightBigN', 'R8_HELDOUT_2026-09-03/verdict_r8.json', 'SEC_LARGE.n', 'int', 5),
+    # ── ★검출 법칙의 부류를 바꾸면 되는가 (H3c-LAW, 2026-09-03, 신규 계측 0회)
+    #    ⛔EXPLORATORY · blind 아님(선행 H3b 차단 중 노출) · A(복사량)는 고정했다.
+    #    ⛔셋 중 하나도 충실하지 않다 ⟹ "저장소의 다른 모형으로 갈아라" 가 아니다.
+    ('HThreeCMreC', 'H3C_LAW_2026-09-03/verdict_h3c.json', 'model_C.MRE', 'abs3', 0.303),
+    ('HThreeCMreA', 'H3C_LAW_2026-09-03/verdict_h3c.json', 'model_A.MRE', 'abs3', 0.348),
+    ('HThreeCShufC', 'H3C_LAW_2026-09-03/verdict_h3c.json',
+     'model_C.shuf_p5', 'abs3', 0.317),
+    ('HThreeCRel', 'H3C_LAW_2026-09-03/verdict_h3c.json',
+     'improvement.rel_pct', 'pct', -13.0),
 ]
 
 FMT = {

@@ -699,6 +699,58 @@ def _t1_thirdparty():
             'TOneCite': '\\citealp{Zheng2025SyntheticWaveFields}'}
 
 
+def _t1b_thirdparty():
+    """★`T1b` — 같은 질문을 502 프레임으로. ⛔`T1` 과 **모순이 아니라 검정력의 사다리**다.
+
+    ⚠용량-반응(왜도 대 Hs)은 **사전등록에 없다** ⟹ 원고에서 `exploratory` 라 명시해야 한다.
+    """
+    import re as _re
+    import statistics as _st
+    v = load('T1B_THIRDPARTY_2026-09-03/verdict_t1b.json')
+    rows = [json.loads(x) for x in
+            open(os.path.join(TMP, 'T1B_THIRDPARTY_2026-09-03', 'results_t1b.jsonl'))
+            if x.strip()]
+    blocks = [r for r in rows if r['group'] in ('fresh', 'same')]
+    hs, sk, ex = [], [], []
+    for r in blocks:
+        m = _re.search(r'angle(\d+)h([\d.]+)\.mat', r['block'])
+        hs.append(float(m.group(2))); sk.append(r['skew']); ex.append(r['skew_exceed'])
+
+    def _rank(a):
+        """⛔**동점은 평균순위로** --- Hs 는 값마다 2--3 블록이 겹친다.
+        단순 argsort 는 동점을 임의 순서로 놓아 rho 를 0.983 으로 **낮게** 낸다(참값 0.988)."""
+        o = sorted(range(len(a)), key=lambda i: a[i])
+        rk = [0.0] * len(a)
+        i = 0
+        while i < len(o):
+            j = i
+            while j + 1 < len(o) and a[o[j + 1]] == a[o[i]]:
+                j += 1
+            avg = (i + j) / 2.0
+            for t in range(i, j + 1):
+                rk[o[t]] = avg
+            i = j + 1
+        return rk
+    rh, rs = _rank(hs), _rank(sk)
+    mh, ms = _st.mean(rh), _st.mean(rs)
+    num = sum((a - mh) * (b - ms) for a, b in zip(rh, rs))
+    den = (sum((a - mh) ** 2 for a in rh) * sum((b - ms) ** 2 for b in rs)) ** 0.5
+    lo = _st.mean([k for k, h in zip(sk, hs) if h == min(hs)])
+    hi = _st.mean([k for k, h in zip(sk, hs) if h == max(hs)])
+    from math import comb
+    w, n = v['primary']['w'], v['primary']['n']
+    pv = sum(comb(n, i) * 0.061 ** i * (1 - 0.061) ** (n - i) for i in range(w, n + 1))
+    return {'TOneBWin': f"{w}/{n}", 'TOneBN': str(n),
+            'TOneBSame': f"{v['secondary_same']['w']}/{v['secondary_same']['n']}",
+            'TOneBP': f'{pv:.1e}'.replace('e-', r'\times 10^{-') + '}',
+            # ⛔**두 자리로 적는다.** ①n=24 의 Spearman 셋째 자리는 의미가 없다
+            #   ②`0.988` 은 인용금지 목록의 **희소 층 극단값 +0.988** 과 문자열이 겹친다
+            #   (다른 양인데 래칫이 정탐으로 센다 — 우연 일치 부류).
+            'TOneBRho': f'{num / den:.2f}',
+            'TOneBNBlocks': str(len(blocks)),
+            'TOneBSkewLo': f'{lo:+.3f}', 'TOneBSkewHi': f'{hi:+.3f}'}
+
+
 def _c2_shape():
     """★`C2` — 2차 이론의 실패가 **척도가 아니라 방향**임을 보이는 분해.
 
@@ -1273,6 +1325,7 @@ def main():
     dep += list(_e2_footprint().items())
     dep += list(_c2_shape().items())
     dep += list(_t1_thirdparty().items())
+    dep += list(_t1b_thirdparty().items())
     dep += list(_seed_clustered().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]

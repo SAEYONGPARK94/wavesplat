@@ -3346,13 +3346,31 @@ our own higher-order corpus. What differs is the width of the null --- theirs is
 \TOneNullRatio{} times wider --- so the same signal sits below threshold. The
 detection rates of the two corpora therefore may not be compared, and we do not claim
 their solver is more linear than ours. Second, their archive ships no documentation
-naming the solver, so we do not call the corpus higher-order or fully non-linear, and
-whether its reference is non-linear at all is undetermined here. The block size was
-fixed before the archive was opened at \TOneFrameUsed{} of the \TOneFrames{} frames
-available; using all of them would narrow the null substantially, and that is a
-separate pre-registration rather than a change to this one. So the objection stands
-open --- but for the reason that our test could not resolve it on this sample, not
-because the external data failed.
+naming the solver, so we do not call the corpus higher-order or fully non-linear.
+The block size was fixed before the archive was opened at \TOneFrameUsed{} of the
+\TOneFrames{} frames available.
+
+That last constraint was ours, not the data's, so we froze a second pre-registration
+before touching any further file and repeated the test at the full \TOneFrames{}
+frames on \TOneBN{} \emph{fresh} simulations, disjoint from the first set. The answer
+reverses: \TOneBWin{}, $p = \TOneBP{}$. Running the same enlarged test on the
+\emph{original} blocks --- same files, same ruler, only the frame count changed ---
+moves them from \TOneWin{} to \TOneBSame{}, which identifies the first result as a
+statement about our power rather than about their fields. We report both because they
+are a ladder and not a contradiction, and because the first was frozen and published
+before the second was designed. One further pattern, which we did not pre-register and
+therefore mark exploratory, makes the reading coherent: pooled skewness rises
+monotonically with the significant wave height labelling each simulation, from
+\TOneBSkewLo{} at the mildest to \TOneBSkewHi{} at the steepest, with rank correlation
+\TOneBRho{} over \TOneBNBlocks{} blocks, and every block that fails to clear its
+surrogate null sits at the two mildest sea states. A dose--response of that shape is
+what physical non-linearity would produce.
+
+So the objection is answered in one direction and not the other: a reference field
+built by someone else, from radar-imaging work with no connection to ours, carries the
+phase coupling that a random-phase linear superposition cannot. What remains undone is
+the accuracy comparison --- this test reads their ground truth, it does not run our
+estimator on it.
 
 \paragraph{The measured corpus is small because the candidate we checked is out of
 regime} The twelve records come from four fixed stations, and the obvious way to

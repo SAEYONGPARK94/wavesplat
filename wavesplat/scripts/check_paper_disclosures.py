@@ -70,6 +70,14 @@ RULES = [
     ('T1-검정력아님', r'\\TOneWin',
      [r'\\TOneSkewPct', r'\\TOneNullRatio'],
      'T1 의 검출률을 적으면 **왜도 비(77%)와 귀무 폭 비(3.0배)**를 같은 절에 적어야 한다'),
+    # ★[2026-09-03] `T1b` — 용량-반응은 **사전등록에 없다**. 강한 정합 증거라 독자가
+    #   확증으로 읽기 쉽다 ⟹ `exploratory` 자구를 같은 절에 강제한다.
+    ('T1b-탐색적', r'\\TOneBRho|\\TOneBSkewHi',
+     [r'did not pre-register', r'exploratory'],
+     'T1b 의 용량-반응을 적으면 **사전등록되지 않았음**을 같은 절에 적어야 한다'),
+    ('T1b-사다리', r'\\TOneBWin',
+     [r'ladder and not a contradiction', r'about our power'],
+     'T1b 를 적으면 **T1 과 모순이 아니라 검정력의 사다리**임을 같은 절에 적어야 한다'),
     ('T1-solver미명시', r'\\TOneWin|\\TOneNMat',
      [r'no documentation naming the solver', r'do not call the corpus higher-order',
       r'undetermined here'],

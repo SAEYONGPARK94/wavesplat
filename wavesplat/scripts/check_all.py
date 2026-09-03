@@ -34,6 +34,9 @@ CHECKS = [
     # ★[2026-09-03] 적대적 심사가 찾았다: 동결 `verdict_b4.json` 이 **철회된 확증 라벨**을
     #   아직 싣고 있었고, 그 파일들이 `gen_paper_constants.py` 의 **입력**이다.
     ('★판정 파일 위생', [PY, 'tmp/_audit/check_verdict_hygiene.py']),
+    # ★[2026-09-03 박사 기여 감사 C-10] `R5` 가 결과 당일 두 원고에 실리고 같은 날 철회됐다.
+    #   ⟹ 원고가 인용하는 배치는 **검토 산출물**과 **등급 필드**를 가져야 한다.
+    ('★원고 인용 성숙도', [PY, 'tmp/_audit/check_manuscript_maturity.py']),
     ('상수 생성기 --check', [PY, 'scripts/gen_paper_constants.py', '--check']),
     ('동반 공시', [PY, 'scripts/check_paper_disclosures.py']),
     ('★항진 검사', [PY, 'scripts/check_paper_disclosures.py', '--selftest']),

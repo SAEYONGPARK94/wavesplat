@@ -252,6 +252,13 @@ RULES = [
     ('E1-비인과', r'\\EOneShipWin|\\EOneSelfFourHundred',
      [r'sees a future frame'],
      '⛔제3자 입력은 t-1,t,t+1 이라 미래 프레임을 본다 = 저들에게 유리 --- 병기 의무'),
+    # ★★[2026-09-03] `C1` --- 거리를 충분성으로 읽는 것이 이 수의 유일한 오독 경로다.
+    ('C1-충분성아님', r'\\COneCrowdedMed|\\COneCrowdedMax',
+     [r'a distance and not a sufficiency'],
+     '⛔`C1` 은 **거리**를 잰다 --- "충분히 크다" 로 읽히지 않게 병기'),
+    ('C1-선형유지', r'\\COneCrowdedMed',
+     [r'\\COneCtrlN'],
+     '★`C1` 을 인용하면 **선형 코퍼스의 대조(정확히 0)** 를 같은 절에 --- BLOCKER 는 유지된다'),
     ('R7-범위', r'\\RSevenRho',
      [r'upper bound', r'one site', r'exploratory'],
      '⛔`R7` = 상한 · 사이트 1개 · EXPLORATORY --- 셋 다 같은 절에'),

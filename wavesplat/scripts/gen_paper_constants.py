@@ -999,6 +999,20 @@ ATOMS = [
      'medians.zero', 'abs3', 0.937),
     ('EOneMedCnnEqual', 'E1_EXTBASE_2026-09-03/verdict_e1.json',
      'medians.cnn_200', 'abs3', 0.648),
+    # ── ★★참값과 모델류의 거리 (C1-MODELGAP, 2026-09-03, 추정기 런 0회)
+    #    ⛔거리를 잰 것이지 **충분성**을 잰 것이 아니다. ⛔선형 코퍼스의 BLOCKER 는 유지된다.
+    ('COneCrowdedMin', 'C1_MODELGAP_2026-09-03/verdict_c1.json',
+     'strata.hos_crowded.min', 'abs3', 0.308),
+    ('COneCrowdedMed', 'C1_MODELGAP_2026-09-03/verdict_c1.json',
+     'strata.hos_crowded.med', 'abs3', 0.603),
+    ('COneCrowdedMax', 'C1_MODELGAP_2026-09-03/verdict_c1.json',
+     'strata.hos_crowded.max', 'abs3', 1.416),
+    ('COneCrowdedN', 'C1_MODELGAP_2026-09-03/verdict_c1.json',
+     'strata.hos_crowded.n', 'int', 48),
+    ('COneCtrlMax', 'C1_MODELGAP_2026-09-03/verdict_c1.json',
+     'strata.linear_control.max', 'abs3', 0.0),
+    ('COneCtrlN', 'C1_MODELGAP_2026-09-03/verdict_c1.json',
+     'strata.linear_control.n', 'int', 12),
 ]
 
 

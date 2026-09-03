@@ -243,6 +243,13 @@ RULES = [
      '★`R7` 의 하중은 상관이 아니라 **C-1 대조**(무기술 기준선과 무상관)다'),
     # ★★[2026-09-03] `E1-EXTBASE` --- 라벨 칸은 저들이 관측을 **두 배** 받는다.
     #   예산 규약 없이 인쇄되면 독자가 "우리가 졌다/이겼다" 를 조건 없이 읽는다.
+    # ★★[2026-09-03] `E2` — 두 오독 경로가 있다: ①"우리가 낫다" ②"관측만 늘리면 된다".
+    ('E2-우열아님', r'\\ETwoDeployBetter|\\ETwoDeployMed',
+     [r'does not run our own arm'],
+     '⛔`E2` 는 SHIP 을 돌리지 않았다 --- "어느 쪽이 낫다" 로 읽히지 않게 병기'),
+    ('E2-참값표본', r'\\ETwoRungTwoHundred',
+     [r'sample the ground-truth field rather than a sensor'],
+     '⛔사다리 상위 칸은 **참값 표본**이다 --- 얻을 수 있는 관측이라는 주장이 아니다'),
     ('E1-예산규약', r'\\EOneShipWin|\\EOneRung',
      [r'twice our observations'],
      '⛔`E1` 라벨 칸은 제3자가 **관측을 두 배** 받는다 --- 같은 절에 명시'),

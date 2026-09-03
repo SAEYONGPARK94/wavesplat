@@ -1044,6 +1044,22 @@ ATOMS = [
      'strata.hos_crowded.ls_max', 'abs3', 0.109),
     ('COneCStoredMed', 'C1C_BESTFIT_2026-09-03/verdict_c1c.json',
      'strata.hos_crowded.stored_med', 'abs3', 0.079),
+    # ── ★합성 헤드라인 코퍼스의 외부 기준선 (E2-EXTSYNTH, 2026-09-03)
+    #    ⛔SHIP 과의 우열 아님 · ⛔사다리 상위 칸은 **참값 표본**(실현 가능한 관측 아님).
+    ('ETwoDeployBetter', 'E2_EXTSYNTH_2026-09-03/verdict_e2.json',
+     'deploy.better_than_zero', 'int', 0),
+    ('ETwoN', 'E2_EXTSYNTH_2026-09-03/verdict_e2.json', 'deploy.n', 'int', 48),
+    ('ETwoDeployMed', 'E2_EXTSYNTH_2026-09-03/verdict_e2.json',
+     'deploy.med', 'abs3', 2.085),
+    ('ETwoZeroMed', 'E2_EXTSYNTH_2026-09-03/verdict_e2.json',
+     'deploy.med_zero', 'abs3', 0.998),
+    ('ETwoObs', 'E2_EXTSYNTH_2026-09-03/verdict_e2.json',
+     'deploy.med_n_obs', 'sec', 148.5),
+    ('ETwoRungTwoHundred', 'E2_EXTSYNTH_2026-09-03/verdict_e2.json',
+     'ladder.200.better', 'int', 48),
+    # ── ★E1b — 채점 기준계 비대칭을 제거해도 문턱이 안 움직인다
+    ('EOneBRung', 'E1B_EXTBASE_2026-09-03/verdict_e1b.json',
+     'self_test.chosen_rung', 'int', 400),
 ]
 
 

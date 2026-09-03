@@ -755,6 +755,21 @@ where $\theta_j$ is the beam incidence angle between the LiDAR ray
 direction and the local water surface normal $\mathbf{n}$, $r_j$ is
 the slant range to observation $j$, and $d_{\text{ref}} = 125$~m is a reference distance chosen
 as half the maximum LiDAR range.
+
+% ★[2026-09-03] `R6-CONF` --- 이 절이 정의하는 가중을 **우리 자신의 실측 코퍼스에서** 재면
+%   상수다. 그 사실이 논문에 없으면 이 절은 누락에 의한 오도다(페르소나 토론 채택 조치 ①).
+%   ⛔범위: **BS 7 레코드**(기하가 복원된 전부)이지 12 가 아니다. 동결 = verdict_r6.json.
+\textbf{On the measured records this weight is a constant, and the deployed real-data
+route does not read it.} The reference distance was chosen for a shipborne sensor; the
+fixed stations we evaluate on stand $23$--$27$~m from the scored patch, so
+$\cos\theta_j/(r_j/d_{\text{ref}})$ exceeds one at \emph{every} observation point of
+every record --- its smallest unclamped value across the seven records with recovered
+geometry is $1.23$ --- and the clamp to $[0,1]$ makes $c_j \equiv 1$. Separately, and
+measured by execution rather than read off the source, substituting a weight that does
+vary changes the estimate on none of the seven records under the shipped real-data route
+and on all seven under the learned route: the route that fails on measured data is the
+only one that consumes this field. We report both facts here because Eq.~\ref{eq:confidence}
+would otherwise read as an active component of the measured-data results, and it is not.
 % CORRECTED 2026-08-14: "ground-truth Gerstner wave mesh" -> the mesh is built from
 % evaluate_field(), which discards the Gerstner displacement components
 % (wavesim/gt_generator.py:38; wavesim/pipeline.py:157,165). It is a displacement-free
@@ -2219,10 +2234,13 @@ the gauges carry their own noise, and they sample a different point of a spatial
 inhomogeneous field. It does not make the surfaces a validated dense reference --- the
 gauges are six sensors within a $0.25$~m radius, $7$--$11$~m from the scored grid, so no
 per-gridpoint error field follows. Two conditions travel with the number: the comparison
-is only licensed because a positional correspondence between gauge and grid is
-undetectable, and the margin by which it is undetectable is thinner than $0.03$ in
-correlation on three of the seven records; and the surrogate null we used is justified by
-the gauge series being near-Gaussian, which holds on four of the seven.
+rests on the gauges being far enough from the scored grid that no positional
+correspondence is usable, and \emph{that} premise is asserted here rather than
+established: the search we ran to test it swept lags of $\pm 20$~s while the two
+instruments' record clocks are offset by $400$--$1046$~s, so it never visited the true
+alignment. A re-check at the true offset leaves the conclusion standing but the
+pre-registered evidence for it does not. The surrogate null we used is justified by the
+gauge series being near-Gaussian, which holds on four of the seven.
 The closest competing study evaluates on one of the same public stereo records we use,
 takes that dense reconstruction as its ground truth, and additionally subsamples it
 synthetically~\citep{Wang2025PointsToWaves}. What is specific to us is one further
@@ -2614,21 +2632,14 @@ addressed later.
 % ★[2026-09-03] `R5-REALGEOM` --- B-17 의 σ(r,θ) 는 **선언된** 센서 기하 (0,0,12 m) 위에서
 %   돌았다. R3b 가 그 기하를 자료에서 복원했으므로 그것으로 갈아 끼워 재측정했다.
 %   ⛔B-17 판정 갱신 아님 · ⛔측정 기하는 BS 7 뿐(대형 박스 5 는 선언값 그대로).
-\textbf{The range- and angle-dependent noise model was re-run on sensor geometry
-recovered from the data.} That model needs a sensor position, and B-17 declared one;
-the pixel-correspondence channels in the full-resolution files let the camera pose be
-solved instead, and it differs --- the recovered centre sits about twenty metres from
-the declared one, which moves the median range on those records from roughly thirteen
-to roughly twenty-four metres. Re-running with the recovered geometry leaves the
-reading unchanged: the arm still does not separate from a constant-noise arm
-(\RFiveVsConst{}/\RFiveN{}, below the pre-registered threshold of ten). Two things
-must travel with that. The stratum split survives by a margin of \RFiveGap{} against a
-threshold of $0.5$ --- one more record on the near side would have made it undecided ---
-and the substitution is \emph{not} a small perturbation: on the seven records that have
-recovered geometry the median error changes by \RFiveRelSmall{}, with individual
-records moving from $-85$\% to $+76$\%. The reading survives because the threshold sat
-below the effect, not because the effect was small. Only seven of the twelve records
-have recovered geometry; the other five keep the declared position and height.
+% ⛔⛔[2026-09-03] **철회.** 적대적 감사가 `R5` 의 처치 팔이 `R3b` 의 카메라 중심을
+%   **두 수평축을 뒤바꿔** 받았음을 찾았고 내가 확인했다: `R3b` 는 (nc-X, nc-Y) 로 중심을
+%   내는데 장면 빌더(`d3_sa_gonogo.py:66-67`)는 `gx←nc-Y`·`gy←nc-X` 다.
+%   `noise_models.sigma_field` 는 **참 경사**로 cos θ 를 만들므로 그 교환에 민감하다
+%   (BS11a `cos_med` 0.4653 대 0.3094 = 33% 차이). 라벨이 **한 레코드 차**로 살아 있었으므로
+%   ⛔**이 문단을 인쇄에서 뺀다.** 후속 `R5b` 가 축을 바로잡아 처치 7 셀만 재실행한다.
+%   ⚠`R6-CONF` 는 **무손상**이다(평면 근사 법선이라 교환이 `r` 로만 들어가고 포화 7/7 불변).
+
 
 % [2026-09-02 P9] 4차 감사 M11: 표 5 의 S-ENS 두 행에 **산문이 한 줄도 없었고**,
 %   그 팔은 `learned_ensemble_k=3` 으로 **배포 기본값(1) 이 아니다**. 동결

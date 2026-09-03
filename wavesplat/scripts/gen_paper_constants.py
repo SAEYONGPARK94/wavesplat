@@ -898,6 +898,14 @@ ATOMS = [
     ('RFiveN', 'R5_REALGEOM_2026-09-03/verdict_r5.json', 'secondary.meas_vs_const.n', 'int', 12),
     ('RFiveRelSmall', 'R5_REALGEOM_2026-09-03/verdict_r5.json',
      'secondary.meas_vs_anchor_small.rel_median_pct', 'pct', -45.4),
+    # ── ★`R5b` — `R5` 의 **축 반사 결함**을 고친 후속(그 배치는 ⛔인용 불가).
+    #    ⛔`RFive*` 원자는 **인쇄에 쓰지 않는다**(생성기에는 남겨 이력을 보존한다).
+    ('RFiveBGap', 'R5B_REALGEOM_2026-09-03/verdict_r5b.json', 'primary.gap', 'abs3', 0.657),
+    ('RFiveBVsConst', 'R5B_REALGEOM_2026-09-03/verdict_r5b.json',
+     'primary.vs_const.better', 'int', 3),
+    ('RFiveBN', 'R5B_REALGEOM_2026-09-03/verdict_r5b.json', 'primary.vs_const.n', 'int', 7),
+    ('RFiveBMMGap', 'R5B_REALGEOM_2026-09-03/verdict_r5b.json',
+     'arms.RANGEANG-MEASFIX-MM.gap', 'abs3', 0.514),
 ]
 
 FMT = {

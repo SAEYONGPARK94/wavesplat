@@ -2639,6 +2639,24 @@ addressed later.
 %   (BS11a `cos_med` 0.4653 대 0.3094 = 33% 차이). 라벨이 **한 레코드 차**로 살아 있었으므로
 %   ⛔**이 문단을 인쇄에서 뺀다.** 후속 `R5b` 가 축을 바로잡아 처치 7 셀만 재실행한다.
 %   ⚠`R6-CONF` 는 **무손상**이다(평면 근사 법선이라 교환이 `r` 로만 들어가고 포화 7/7 불변).
+% ★[2026-09-03] `R5b` --- 축을 바로잡고 `B-17` 이 요구한 수준 통제 팔을 붙여 재실행.
+%   ⛔`RFive*`(철회 배치) 원자는 인쇄하지 않는다. 여기 인쇄되는 것은 `RFiveB*` 뿐이다.
+\textbf{The range- and angle-dependent noise model was re-run on sensor geometry
+recovered from the data.} That model needs a sensor position, and the ablation declared
+one; the pixel-correspondence channels in the full-resolution files let the camera pose
+be solved instead, and it differs. Re-running with the recovered geometry leaves the
+reading unchanged: the arm still does not separate from a constant-noise arm on the
+seven records that have recovered geometry (\RFiveBVsConst{}/\RFiveBN{}), and the
+stratum split holds with a gap of \RFiveBGap{} against a threshold of $0.5$. Because
+substituting the geometry also moves the noise \emph{level}, we ran the same arm with
+its mean variance matched back to the deployed level; that arm holds too, at a gap of
+\RFiveBMMGap{}. Two limits travel with this. Only seven of the twelve records have
+recovered geometry --- the other five keep the declared position, and they are exactly
+the large-box stratum, so the test can only ask whether the near-shore records improve.
+And the two arms disagree on one record, so the geometry and the level are not fully
+separated. An earlier version of this comparison used the recovered centre with its two
+horizontal axes exchanged and is withdrawn; the corrected run is the one reported here,
+and it survives by a wider margin than the withdrawn one did.
 
 
 % [2026-09-02 P9] 4차 감사 M11: 표 5 의 S-ENS 두 행에 **산문이 한 줄도 없었고**,

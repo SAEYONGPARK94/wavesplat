@@ -326,6 +326,14 @@ MULTI_RULES = [
 ]
 
 
+# ⚠**입자 공시(2026-09-03 2차 감사)**: 아래 `sections()` 는 `\section`·`\subsection`·
+#   초록·하이라이트만 쪼갠다. `\paragraph{}`(48곳)·`\subsubsection{}`·`\section*{}` 은
+#   **경계가 아니다** ⟹ 규칙이 말하는 *"같은 절"* 은 실효적으로 *"같은 `\subsection` 안
+#   어딘가"* 이고, 가장 큰 절은 문서의 약 16%다. 감사 실증: 근거를 같은 절 안에서
+#   **319줄(약 8쪽)** 떨어뜨려도 통과한다.
+#   ⛔**입자를 지금 좁히지 않는다** --- `\paragraph` 를 경계로 만들면 지금 통과하는
+#   규칙 다수가 깨지고, 그 깨짐이 진짜 결함인지 규약 변경인지 구별하려면 별도 검토가
+#   필요하다. ★대신 **이 한계를 여기 적어** *"같은 절"* 을 과대해석하지 않게 한다.
 def sections(text):
     """(제목, 본문) 목록.
 
@@ -433,8 +441,15 @@ def literals_outside_macros():
         if v not in body:
             continue
         ctx = COINCIDENCE.get(k)
-        if ctx and ctx in body and body.count(v) == 1:
-            continue          # 그 한 번이 면제된 자리다
+        # ⛔[2026-09-03 2차 감사] 초판 가드는 `count(v) == 1` 이었다. 그것이 안전한 것은
+        #   **우연**이었다 --- 현 항목의 문맥 문자열이 값 자신을 포함해서 우회를 넣으면
+        #   count 가 2가 됐다. 문맥이 값을 **포함하지 않는** 항목을 넣으면 우회가 통과한다
+        #   (감사가 실증). ⟹ ★가드가 검사할 것은 개수가 아니라
+        #   ***"그 등장이 문서화된 자리인가"*** 다 ⟹ 문맥이 값을 포함하도록 **요구**하고,
+        #   그때 「문맥 안의 그 한 번」을 뺀 나머지가 0 이어야 통과한다.
+        if ctx and ctx in body and v in ctx:
+            if body.count(v) - ctx.count(v) * body.count(ctx) <= 0:
+                continue      # 문서화된 자리 말고는 등장하지 않는다
         hits.append((k, v))
     if hits:
         return False, f'매크로 값이 리터럴로 인쇄됨 {len(hits)}건: ' + \

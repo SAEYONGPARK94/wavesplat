@@ -264,6 +264,19 @@ def main():
     A.append(('G-BLOCK blocked_by 자가진단 (긴 이름 우선)',
               probe == ['G-S-BLIND', 'G-S-SRC', 'G-N'], f'합성 → {probe}'))
     A.append(('G-COV 게이트가 자료를 봤다', len(rows) > 0, f'rows={len(rows)}'))
+    # ── §6.4 기록 전용 (⛔막지 않는다 — T11 개정문 2 §9.1 선례) ───────────
+    _sclip = {a: sum(1 for r in rows if r['arm'] == a and r.get('s_clipped'))
+              for a in G.AUTO_ARMS}
+    _sv = {}
+    for a in G.AUTO_ARMS:
+        vv = [r['s_rule'] for r in rows if r['arm'] == a and r.get('s_rule') is not None]
+        _sv[a] = (round(float(np.std(vv)), 6), round(min(vv), 4), round(max(vv), 4)) if vv else None
+    _cl = {a: sum(1 for r in rows if r['arm'] == a and (r.get('vp_clamp_hits') or 0) > 0)
+           for a in ('SHIP', 'FIX2') + G.AUTO_ARMS}
+    A.append(('⚠G-SCLIP [기록 전용] 안전 레일 [0.25, 4.0] 접촉 횟수', True, f'{_sclip}'))
+    A.append(('⚠G-SVAR [기록 전용] 팔별 s 의 (sd, min, max) — ★sd≈0 이면 **단일값 검정**이다',
+              True, f'{_sv}'))
+    A.append(('⚠G-CLAMP [기록 전용] 경사 클램프 발화 팔별', True, f'{_cl}'))
 
     blocked = G.blocked_by(A)
     all_ok = all(bool(o) for _, o, _ in A)

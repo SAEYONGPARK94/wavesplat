@@ -29,6 +29,7 @@ import gates_t15 as G                                             # noqa: E402
 #   (`T12 AMENDMENT_2 §2`: SEC-R 112행이 손 이어붙이기라 측정면 검증 밖에 있었다).
 SHARDS = (('results_t15_FULL.jsonl', 'meta_t15_FULL.json'),
           ('results_t15_SUB.jsonl', 'meta_t15_SUB.json'))
+SMOKE_ROWS = os.path.join(HERE, 'results_t15_SMOKE.jsonl')   # ★AMENDMENT_1 §2 `G-SMOKE`
 FROZEN = os.path.join(HERE, 'FROZEN_md5.txt')
 FROZEN_A = os.path.join(HERE, 'FROZEN_md5_ANALYSIS.txt')
 LAYERS = ('crowded', 'sparse')
@@ -313,6 +314,42 @@ def main():
               f'{"N/A" if d_fz0 is None else len(d_fz0)} · 분석면 '
               f'{"N/A" if d_fza is None else len(d_fza)} · 샤드meta합치 {meta_agree}'))
 
+    # ── ★AMENDMENT_1 §2 (판정 자료 0행 시점) — 막을 수만 있는 게이트 둘 ──────
+    sm = [json.loads(x) for x in open(SMOKE_ROWS, encoding='utf-8') if x.strip()] \
+        if os.path.exists(SMOKE_ROWS) else []
+    sm_blocks = sorted({r['block'] for r in sm})
+    sm_map = {(r['block'], r['arm']): r['nrmse'] for r in sm}
+    in_sample = [b for b in sm_blocks if any(b in set(by[L]['SHIP']) for L in LAYERS)]
+    repro_bad = [f'{b}/{a}' for (b, a), v in sm_map.items()
+                 for L in LAYERS if b in by[L].get(a, {})
+                 and abs(by[L][a][b]['nrmse'] - v) > 0.0]
+    W_ex = {L: wins({b: r for b, r in by[L]['F2'].items() if b not in sm_blocks},
+                    {b: r for b, r in by[L]['SHIP'].items() if b not in sm_blocks})
+            for L in LAYERS}
+    A.append(('★G-SMOKE [개정1] 스모크 노출 블록을 **파일에서** 세고, 본실행이 그 (블록,팔) 값을 '
+              '**비트 재현**하는지 확인 (⛔이탈에서 얻은 공짜 재현성 시험)',
+              bool(sm) and not repro_bad,
+              f'스모크 블록 {len(sm_blocks)} · **판정 표본 안 {len(in_sample)}** {in_sample} · '
+              f'비트 불일치 {len(repro_bad)}'))
+    prop_bad = []
+    for L in LAYERS:
+        for b, sr in by[L]['SHIP'].items():
+            for a in C.EST_ARMS:
+                r = by[L][a].get(b)
+                if r is None:
+                    continue
+                same = r['proposal_md5'] == sr['proposal_md5']
+                if a == 'SHIP':
+                    continue
+                if a == 'FLOOR-VPLR' and not same:
+                    prop_bad.append(f'{a}:diff')      # 제안 **이후** 개입인데 지문이 바뀌었다
+                if a != 'FLOOR-VPLR' and same:
+                    prop_bad.append(f'{a}:same')      # 제안 **이전** 개입인데 지문이 그대로다
+    A.append(('★G-PROPID [개정1] 제안 **이전** 팔 6종은 `proposal_md5` 가 SHIP 과 전건 상이 · '
+              '제안 **이후** 팔(`FLOOR-VPLR`)은 전건 동일 (T12 규약)',
+              not prop_bad and bool(P), f'위반 {len(prop_bad)}'
+              + (f' 예 {sorted(set(prop_bad))[:3]}' if prop_bad else '')))
+
     def _seed_fp(seed):
         st0 = np.random.get_state()
         try:
@@ -382,6 +419,9 @@ def main():
          'floor_moved': {L: (floor[L] is not None and floor[L] > 0.0) for L in LAYERS},
          'curve': curve,
          'global_128_descriptive': {'w': glob_w[0], 'n': glob_w[1]},
+         'primary_ex_smoke_descriptive': {L: {'w': W_ex[L][0], 'n': W_ex[L][1]}
+                                          for L in LAYERS},
+         'smoke_exposed_blocks': sm_blocks,
          'cells_descriptive': {k: {'w': x[0], 'n': x[1]} for k, x in sorted(cells.items())},
          'medians': med,
          'knob_diffs_measured': {a: sorted(s) for a, s in sorted(kdet.items())},
@@ -402,6 +442,12 @@ def main():
              f'⛔음성 라벨(`CHANGE-UNDETECTED`·`NO-HARM-*`)을 *"안전하다/무해하다"* 로 읽는 것을 '
              f'금지한다 — **검정력의 진술**이다. MDE 병기 의무: q80={C.MDE["q80"]} · '
              f'기각 불가 대역 W={C.MDE["unrejectable_w"]}',
+             '⛔★**사전등록 이탈**: 스모크가 판정 표본 **안**의 블록 2개(혼잡 fi=1 · 희소 fi=65)를 '
+             '썼다 — `PREREG §10` 의 자구는 여집합이 있던 `T11`/`T12` 규약을 옮긴 것이고 이 배치엔 '
+             '여집합이 없다. 본실행 전에 그 2/128 의 처치 결과를 봤고, **혼잡에서 등록 예측과 '
+             '반대 방향**이었다. 전문 = `AMENDMENT_1_PREDATA.md`(판정 자료 0행 시점). '
+             '⛔예측·표본·문턱은 한 글자도 안 고쳤다. `primary_ex_smoke_descriptive` 는 '
+             '**기술통계**이고 라벨은 등록된 n=64 로만 만든다',
              '⛔`T12` 의 회수율 ρ 나 `T14` 의 R 과 병치 금지 — 정의가 다르다',
              '⚠형제 배치와의 서로소는 **시드만으로 증명되지 않는다** — 시드 대역 '
              '(T11/T12 20260905–928 · `T13`-FRESH 20261005–032 · T14 20260915–948 vs '

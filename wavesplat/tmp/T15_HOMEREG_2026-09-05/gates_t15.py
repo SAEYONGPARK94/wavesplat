@@ -85,7 +85,8 @@ def blocked_by(rows):
     """⛔**긴 이름부터** 접두 비교."""
     block = ('G-TREATPIN', 'G-KNOB', 'G-RESTORE', 'G-FRAME', 'G-SIBLING', 'G-CORPUS',
              'G-CTRL', 'G-FLOOR', 'G-ARM', 'G-NOLEAK', 'G-ATOMS', 'G-CAP', 'G-FINITE',
-             'G-N', 'G-DEPTH', 'G-ZERO', 'G-SEED', 'G-ENV', 'G-BLOCK', 'G-COV')
+             'G-N', 'G-DEPTH', 'G-ZERO', 'G-SEED', 'G-SMOKE', 'G-PROPID',
+             'G-ENV', 'G-BLOCK', 'G-COV')
     order = sorted(block, key=len, reverse=True)
     out = []
     for name, ok, _ in rows:

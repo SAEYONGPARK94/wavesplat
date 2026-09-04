@@ -1,0 +1,250 @@
+{
+ "batch": "T13-DEPTHFIX",
+ "kind": "CONFIRMATORY",
+ "amendments": [
+  "AMENDMENT_1_PREDATA.md (결과 0행)",
+  "AMENDMENT_2_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)"
+ ],
+ "post_result_checks": [
+  "G-REPEAT (사전등록에 있었으나 초판 분석기에 없었다)",
+  "G-ENV 측정면/분석면 분리"
+ ],
+ "grade": "CONFIRMATORY (⚠T11-24 층은 노출 · FRESH-28 은 두 팔 blind)",
+ "n_rows": 256,
+ "gates": [
+  {
+   "name": "★★G-MAP 소비자가 본 OM_G 를 **공식으로 독립 재계산** — FIX=d_config · SHIP=d50",
+   "pass_": true,
+   "detail": "위반 0 · 팔별 본 수심 {'SHIP': {50.0}, 'FIX': {400.0}, 'RESCALE': {50.0}, 'RESCALE-FIX': {400.0}}"
+  },
+  {
+   "name": "★★G-BMAPCALLS 런당 맵 계산 정확히 1회 (0=제안 미실행 · ≥2=예상 밖 경로)",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★★G-ANCHOR-SHIP T11 24행 비트 재현 (nrmse 등식 + proposal_md5 등식)",
+   "pass_": true,
+   "detail": "짝 24/24 · 불일치 0"
+  },
+  {
+   "name": "★★G-ANCHOR-RESCALE T11 24행 비트 재현 (nrmse 등식 + proposal_md5 등식)",
+   "pass_": true,
+   "detail": "짝 24/24 · 불일치 0"
+  },
+  {
+   "name": "★★G-DEVICE proposal_device 가 전 팔·전 행 동일 [되읽기]",
+   "pass_": true,
+   "detail": "['cuda']"
+  },
+  {
+   "name": "★G-OOD-UNTOUCHED held-out 층(OOD 6) 미접촉",
+   "pass_": true,
+   "detail": "접촉 0"
+  },
+  {
+   "name": "★G-SAMPLE 행 == (모집단 − 감사스모크) **집합 차** · 52 · T11-24 부분집합 일치",
+   "pass_": true,
+   "detail": "표본 52 · 행 52 · 스모크교집합 0"
+  },
+  {
+   "name": "★G-POP 전 행 인덱스 ∈ [60,120)",
+   "pass_": true,
+   "detail": "범위 61–119"
+  },
+  {
+   "name": "★G-N SHIP·FIX·ZERO·ORACLE 52행 · RESCALE* 24행 · 총 256 (⚠임계 33/19 는 n=52 전용)",
+   "pass_": true,
+   "detail": "{'ZERO': 52, 'ORACLE': 52, 'SHIP': 52, 'FIX': 52, 'RESCALE': 24, 'RESCALE-FIX': 24} · rows=256 · n_fs=52"
+  },
+  {
+   "name": "★G-FINITE 모든 행의 nRMSE 가 유한",
+   "pass_": true,
+   "detail": "비유한 0"
+  },
+  {
+   "name": "★★G-NOLEAK gt 상수(std 0) · 값==GT_CONST · initialize 후에도 [되읽기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-ARM resolved==learned · 실측게이트 미발화 · ensemble_k==1 [되읽기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-ATOMS 팔별 제안 지문 전건 상이 **그리고** 같은 파일 FIX≠SHIP (처치가 제안을 바꿨다)",
+   "pass_": true,
+   "detail": "중복 팔 없음 · FIX==SHIP 0 (⚠CTRL 동일 0 — 공시)"
+  },
+  {
+   "name": "★G-CAP 제안 단계가 실제로 돌았다(모음==제공) · 캡==400 [되읽기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-TORIGIN 창 시작 t == 0 [변화 탐지기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-DENSITY 제공==200x40 · 창이 자료 안 · tq==(N-1)dt [되읽기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-RESCALE 배율이 s=2.0 와 일치 · ω=√(gk) 보존 [변화 탐지기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-CLAMP 경사 클램프 발화 **기록**됨 (⛔발화로 막지 않는다)",
+   "pass_": true,
+   "detail": "팔별 {'SHIP': 47, 'FIX': 44, 'RESCALE': 5, 'RESCALE-FIX': 9}"
+  },
+  {
+   "name": "G-WRAPPER 출하 진입점 [⚠배포 상수상 **구조적으로 참**]",
+   "pass_": true,
+   "detail": "—"
+  },
+  {
+   "name": "★★G-REPEAT 스모크에서 같은 파일 SHIP 2회가 **비트 동일** (⛔부재 시 FAIL)",
+   "pass_": true,
+   "detail": "[True, True]"
+  },
+  {
+   "name": "★G-ENV 측정면 3중 동결(현재==meta==0행동결) · 분석면 동결 · threads · 시드 집합",
+   "pass_": true,
+   "detail": "측정면 16키 런대비 0 · 0행동결대비 0 · 분석면 0 · 시드위반팔 0"
+  },
+  {
+   "name": "G-BLOCK blocked_by 자가진단 (긴 이름 우선)",
+   "pass_": true,
+   "detail": "합성 → ['G-MAP', 'G-N', 'G-ANCHOR-SHIP']"
+  },
+  {
+   "name": "G-COV 게이트가 자료를 봤다",
+   "pass_": true,
+   "detail": "rows=256"
+  }
+ ],
+ "gates_pass": "23/23",
+ "blocked_by": [],
+ "primary": {
+  "stat": "FIX < SHIP",
+  "w": 26,
+  "n": 52,
+  "p_one_sided": 0.5550580173617314,
+  "thresh_win": 33,
+  "thresh_hurt": 19
+ },
+ "sec_a": {
+  "stat": "FIX < ZERO",
+  "w": 21,
+  "n": 52,
+  "p_one_sided": 0.9368264620930393
+ },
+ "ship_vs_zero": {
+  "w": 14,
+  "n": 52,
+  "p_one_sided": 0.9997952292731087
+ },
+ "ctrl": {
+  "w": 12,
+  "n": 24,
+  "band": [
+   8,
+   16
+  ],
+  "moved": false,
+  "floor_median_abs_rel": 0.03664215728996545,
+  "effect_median_rel": -0.00014840475760912345,
+  "within_floor": true,
+  "identical_proposals": 0
+ },
+ "strata_descriptive": {
+  "T11-24": [
+   10,
+   24
+  ],
+  "FRESH-28": [
+   16,
+   28
+  ]
+ },
+ "hs_descriptive": {
+  "hs_low": [
+   8,
+   20
+  ],
+  "hs_high": [
+   18,
+   32
+  ]
+ },
+ "clamp_by_arm": {
+  "SHIP": 47,
+  "FIX": 44,
+  "RESCALE": 5,
+  "RESCALE-FIX": 9
+ },
+ "medians": {
+  "FIX": 0.24325903781594033,
+  "ORACLE": 0.14916555433540007,
+  "RESCALE": 0.19566563972388012,
+  "RESCALE-FIX": 0.1963478966392755,
+  "SHIP": 0.24699494762119667,
+  "ZERO": 0.24733513103248603
+ },
+ "mde": {
+  "q50": 0.6245,
+  "q80": 0.6795,
+  "q90": 0.707,
+  "unrejectable_w": [
+   27,
+   32
+  ],
+  "q80_t11": 0.76,
+  "q80_fresh": 0.7305
+ },
+ "prediction": {
+  "q": {
+   "fix_ship": 0.65,
+   "fix_zero": 0.5,
+   "ctrl": 0.5
+  },
+  "label_probs": {
+   "FIX-HURTS": 2.7051636757483227e-05,
+   "DEPTH-WAS-MASKING-SKILL": 0.022938767253120437,
+   "FIX-HELPS-NO-SKILL": 0.6287842550463215,
+   "SKILL-FIX-UNDETECTED": 0.012257391140961638,
+   "FIX-UNDETECTED": 0.335992534922839
+  },
+  "null_label_probs": {
+   "FIX-HURTS": 0.03519711053353114,
+   "DEPTH-WAS-MASKING-SKILL": 0.0012388365899096087,
+   "FIX-HELPS-NO-SKILL": 0.03395827394362153,
+   "SKILL-FIX-UNDETECTED": 0.032719437353711925,
+   "FIX-UNDETECTED": 0.8968863415792258
+  }
+ },
+ "proposal_device": [
+  "cuda"
+ ],
+ "label": "FIX-UNDETECTED (WITHIN-PERTURBATION-FLOOR)",
+ "label_msg": "FIX-UNDETECTED (WITHIN-PERTURBATION-FLOOR)",
+ "disclosures": [
+  "⛔FIX 는 **하네스 처치**다 — 패키지에 없다. 이겨도 **배포 권고가 아니다**",
+  "⛔FIX-UNDETECTED 를 \"수심은 원인이 아니다\"·\"교락은 무해하다\" 로 읽지 마라 — 검정력의 진술이다 (MDE q80=0.6795 병기 의무 · 기각 불가 대역 w=(27, 32), 32/52=61.5% 도 p=0.0632)",
+  "⛔DEPTH-WAS-MASKING-SKILL 을 \"T11 BAND-MISMATCH 철회\" 로 읽지 마라 — 이 배치는 RESCALE 대 FIX 를 검정하지 않는다",
+  "⚠두 다리(HELPS·HURTS) 가족 α = 0.0704 — 공시하고 보정하지 않는다",
+  "⚠학습/추론 불일치: 체크포인트는 d=50 맵으로 학습됐다 ⟹ 처치가 자료-맵 정합을 고치면서 학습-추론 불일치를 만든다(군속도 비 0.74–0.89 ⟹ 방사 PSF 폭 ×1.13–1.35). ⛔크기는 **추정**이지 측정이 아니다 — 그래서 HURTS 다리와 음성대조를 뒀다",
+  "⚠이미 존재하고 이 배치가 건드리지 않는 불일치가 더 크다: 개구/픽셀 비 ×2.6–3.1",
+  "⚠T11-24 층은 SHIP·RESCALE·ZERO·ORACLE 값이 **공개된 상태**로 설계됐다 ⟹ ⛔\"완전 blind\" 금지. FRESH-28 은 두 팔 다 미노출이나 ⚠Hs 가 3/25 로 치우쳤다",
+  "⛔E2 와 대각선 비교 금지 · 저들 논문 수치와 비교 금지 · solver 미명시",
+  "⚠Tp 가 전 파일 10.0 s ⟹ 한 주기 조건의 진술이다",
+  "⛔wall_s 를 팔 간 비교에 쓰지 마라 · proposal_device 는 config 가 정하지 않는다",
+  "⚠층별·Hs별 진술은 **기술통계**이고 라벨을 만들지 않는다 (T11-24 q80=0.76 · FRESH-28 q80=0.7305)",
+  "⚠CTRL(RESCALE-FIX vs RESCALE)은 검정이 아니라 **섭동 잡음 바닥**이다. effect 가 floor 이하이면 라벨에 (WITHIN-PERTURBATION-FLOOR) 가 붙는다"
+ ]
+}

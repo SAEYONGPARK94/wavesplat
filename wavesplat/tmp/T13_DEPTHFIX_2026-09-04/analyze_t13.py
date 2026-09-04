@@ -15,7 +15,10 @@ HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import gates_t13 as G                                             # noqa: E402
 
 ROWS = os.path.join(HERE, 'results_t13.jsonl'); META = os.path.join(HERE, 'meta_t13.json')
-FROZEN = os.path.join(HERE, 'FROZEN_md5.txt')
+FROZEN = os.path.join(HERE, 'FROZEN_md5.txt')        # 결과 0행 동결 (측정면 증거물)
+FROZEN_A2 = os.path.join(HERE, 'FROZEN_md5_A2.txt')  # 개정문 2 동결 (분석면)
+SMOKE_META = os.path.join(HERE, 'meta_t13_SMOKE.json')
+ANALYSIS_SIDE = ('gates_t13.py', 'analyze_t13.py')
 OUTDIR = HERE
 
 
@@ -187,17 +190,38 @@ def main():
     A.append(('G-WRAPPER 출하 진입점 [⚠배포 상수상 **구조적으로 참**]',
               all((r.get('prov') or {}).get('is_ensemble_wrapper') for r in est), '—'))
 
-    # ── 환경·동결 ──────────────────────────────────────────────────────────
-    now = meta.get('code_md5_now') or {}
+    # ── ★★G-REPEAT (스모크 전용, AMENDMENT_2 §1) ──────────────────────────
+    #   ⛔사전등록 §8 이 차단 게이트로 넣었는데 초판 분석기가 **구현하지 않았다**(방벽이 잡음).
+    #   러너가 스모크에서 실제로 재 `meta_t13_SMOKE.json['g_repeat']` 에 기록한 것을 단언한다.
+    #   ⛔스모크 meta 가 없으면 FAIL — 부재 시 통과 금지.
+    rep = None
+    if os.path.exists(SMOKE_META):
+        rep = json.load(open(SMOKE_META, encoding='utf-8')).get('g_repeat')
+    A.append(('★★G-REPEAT 스모크에서 같은 파일 SHIP 2회가 **비트 동일** (⛔부재 시 FAIL)',
+              bool(rep) and all(r.get('bit') for r in rep),
+              f'{"없음" if rep is None else [r["bit"] for r in rep]}'))
+
+    # ── 환경·동결 (AMENDMENT_2 §2: 측정면 / 분석면 분리) ───────────────────
     rec = meta.get('code_md5') or {}
-    fz = _frozen(FROZEN)
-    dm = sorted(k for k in set(rec) | set(fz or {}) if (fz or {}).get(k) != rec.get(k))
+    now = meta.get('code_md5_now') or {}
+    import run_t13 as _R
+    live = _R.freeze_map()
+    fz, fz2 = _frozen(FROZEN), _frozen(FROZEN_A2)
+    run_keys = sorted(k for k in live if k not in ANALYSIS_SIDE)
+    ana_keys = sorted(k for k in live if k in ANALYSIS_SIDE)
+    d_meta = [k for k in run_keys if live[k] != rec.get(k)]
+    d_fz = None if fz is None else [k for k in run_keys if live[k] != fz.get(k)]
+    d_fz2 = None if fz2 is None else sorted(k for k in set(ana_keys) | set(fz2)
+                                            if live.get(k) != fz2.get(k))
     want_seeds = {G.seed_of(b) for b in want}
     sb = sorted(a for a in G.ARMS_ALL if {r.get('seed') for r in by.get(a, {}).values()}
                 != want_seeds)
-    A.append(('★G-ENV 동결 대조 · threads[되읽기]==1 · 행 시드 집합 == 규약 · BLAS env',
-              meta.get('threads_readback') == 1 and bool(rec) and fz is not None and not dm
-              and not sb, f'동결드리프트 {len(dm) if fz else "N/A"} · 시드위반팔 {len(sb)}'))
+    A.append(('★G-ENV 측정면 3중 동결(현재==meta==0행동결) · 분석면 동결 · threads · 시드 집합',
+              meta.get('threads_readback') == 1 and bool(rec) and not d_meta
+              and d_fz == [] and d_fz2 == [] and not sb,
+              f'측정면 {len(run_keys)}키 런대비 {len(d_meta)} · 0행동결대비 '
+              f'{"N/A" if d_fz is None else len(d_fz)} · 분석면 '
+              f'{"N/A" if d_fz2 is None else len(d_fz2)} · 시드위반팔 {len(sb)}'))
     probe = G.blocked_by([('★★G-MAP 합성', False, ''), ('★G-N 합성', False, ''),
                           ('★★G-ANCHOR-SHIP 합성', False, ''), ('G-COV 합성', True, '')])
     A.append(('G-BLOCK blocked_by 자가진단 (긴 이름 우선)',
@@ -227,6 +251,10 @@ def main():
         blk = [b for b, r in by.get('FIX', {}).items() if pr(r['hs'])]
         hs[nm] = paired('FIX', 'SHIP', blk)
     v = {'batch': 'T13-DEPTHFIX', 'kind': 'CONFIRMATORY',
+         'amendments': ['AMENDMENT_1_PREDATA.md (결과 0행)',
+                        'AMENDMENT_2_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)'],
+         'post_result_checks': ['G-REPEAT (사전등록에 있었으나 초판 분석기에 없었다)',
+                                'G-ENV 측정면/분석면 분리'],
          'grade': 'CONFIRMATORY (⚠T11-24 층은 노출 · FRESH-28 은 두 팔 blind)',
          'n_rows': len(rows),
          'gates': [{'name': n, 'pass_': bool(o), 'detail': d} for n, o, d in A],

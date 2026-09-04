@@ -19,6 +19,8 @@ import scale_rules_t14 as SR                                      # noqa: E402
 
 ROWS = os.path.join(HERE, 'results_t14.jsonl'); META = os.path.join(HERE, 'meta_t14.json')
 FROZEN = os.path.join(HERE, 'FROZEN_md5.txt')
+FROZEN_A2 = os.path.join(HERE, 'FROZEN_md5_A2.txt')   # ★AMENDMENT_3: 이제 **읽는다**
+ANALYSIS_SIDE = ('gates_t14.py', 'analyze_t14.py')
 OUTDIR = HERE
 BANNED = ('target', 'gt', 'eta', 'Ew', 'hs', 'angle', 'sigma4', 'block')
 
@@ -249,16 +251,29 @@ def main():
             db.append(r['block'])
     A.append((f'★G-DENSITY 제공=={G.DENSITY}x{int(G.WIN_S)} · 창이 자료 안 · tq==(N-1)dt',
               not db, f'위반 {len(db)}'))
+    # ★AMENDMENT_3 §1: 초판은 **지금 다시 계산하지 않았다** — `live` 를 대입만 하고 안 썼다.
+    #   그래서 개정문 2 가 `analyze_t14.py` 를 고친 뒤에도 게이트가 "드리프트 0" 을 찍었다
+    #   (⛔verdict 을 만든 분석기가 동결된 그 파일이 아닌데도). `T13 AMENDMENT_2 §2` 가
+    #   하루 전에 세운 측정면/분석면 분리를 여기서 계승한다.
+    import run_t14 as _R
+    live = _R.freeze_map()
     rec = meta.get('code_md5') or {}
-    fz = _frozen(FROZEN)
-    live = meta.get('code_md5_now') or rec
-    dm = sorted(k for k in set(rec) | set(fz or {}) if (fz or {}).get(k) != rec.get(k))
+    fz, fz2 = _frozen(FROZEN), _frozen(FROZEN_A2)
+    run_keys = sorted(set(live) | set(fz or {}) if fz else set(live))
+    run_keys = [k for k in run_keys if k not in ANALYSIS_SIDE]
+    ana_keys = sorted(set(live) | set(fz2 or {}) if fz2 else set(live))
+    ana_keys = [k for k in ana_keys if k in ANALYSIS_SIDE]
+    d_meta = [k for k in run_keys if live.get(k) != rec.get(k)]
+    d_fz = None if fz is None else [k for k in run_keys if live.get(k) != fz.get(k)]
+    d_fz2 = None if fz2 is None else [k for k in ana_keys if live.get(k) != fz2.get(k)]
     want_seed = {G.seed_of(b, 'T1') for b in t1} | {G.seed_of(b, 'T3') for b in t3}
     got_seed = {r['seed'] for r in rows if r['tier'] in ('T1', 'T3')}
-    A.append(('★G-ENV 동결 3중 대조 · threads[되읽기]==1 · 행 시드 집합 되읽기 · ckpt sha256',
-              meta.get('threads_readback') == 1 and bool(rec) and fz is not None and not dm
-              and got_seed == want_seed,
-              f'동결드리프트 {len(dm) if fz else "N/A"} · 시드집합 일치 {got_seed == want_seed}'))
+    A.append(('★G-ENV 측정면 3중 동결(**지금 재계산**==meta==0행동결) · 분석면 동결 · threads · 시드',
+              meta.get('threads_readback') == 1 and bool(rec) and not d_meta
+              and d_fz == [] and d_fz2 == [] and got_seed == want_seed,
+              f'측정면 {len(run_keys)}키 런대비 {len(d_meta)} · 0행동결대비 '
+              f'{"N/A" if d_fz is None else len(d_fz)} · 분석면 '
+              f'{"N/A" if d_fz2 is None else len(d_fz2)} · 시드집합 {got_seed == want_seed}'))
     probe = G.blocked_by([('★★G-S-BLIND 합성', False, ''), ('★G-S-SRC 합성', False, ''),
                           ('★G-N 합성', False, ''), ('G-COV 합성', True, '')])
     A.append(('G-BLOCK blocked_by 자가진단 (긴 이름 우선)',
@@ -293,7 +308,13 @@ def main():
                        single_value=(bool(v) and float(np.std(v)) < 1e-9))
     clamp = {a: sum(1 for r in rows if r['arm'] == a and (r.get('vp_clamp_hits') or 0) > 0)
              for a in ('SHIP', 'FIX2') + G.AUTO_ARMS}
-    sw = {a: wins(a, 'ZERO', 'T2') for a in G.T2_ARMS}
+    # ★AMENDMENT_3 §2: 초판은 `wins(a,'ZERO','T2')` 였는데 Tier-2 는 ZERO 를 **안 돌린다**
+    #   ⟹ 36런이 전부 (0,0) 으로 무산출이었다. Tier-2 ⊆ Tier-1 이므로 참조는 ('T1','ZERO') 다.
+    def _sweep(a):
+        d, z = by.get(('T2', a), {}), by.get(('T1', 'ZERO'), {})
+        cm = sorted(set(d) & set(z))
+        return sum(1 for b in cm if d[b]['nrmse'] < z[b]['nrmse']), len(cm)
+    sw = {a: _sweep(a) for a in G.T2_ARMS}
     t3w = {a: wins(a, 'ZERO', 'T3') for a in ('SHIP', 'FIX2') + G.AUTO_ARMS}
     sig_worse = {a: (w <= G.SIG_WORSE) for a, (w, n) in
                  (('AUTO-AP', (w_ap, n_ap)), ('AUTO-BAND', (w_bd, n_bd)),
@@ -318,7 +339,8 @@ def main():
                               'thresh': G.THRESH_CTRL},
          'ship_vs_zero': {'w': w_sh, 'n': n_sh, 'p': G.sign_p(w_sh, n_sh)},
          'recovery_R': {a: R(a) for a in G.AUTO_ARMS},
-         'sweep_T2_descriptive': sw, 'tier3_SEC': t3w, 'sig_worse': sig_worse,
+         'sweep_T2_descriptive': sw,
+         'sweep_note': 'Tier-2 는 Tier-1 의 부분집합 ⟹ 참조 ZERO 는 T1 층의 것 (AMENDMENT_3 §2)', 'tier3_SEC': t3w, 'sig_worse': sig_worse,
          'anchor_grade': grade, 's_clip': sclip, 's_var': svar, 'clamp': clamp, 'band_fragile': frag,
          'medians': {f'{k[0]}:{k[1]}': float(np.median([r['nrmse'] for r in d.values()]))
                      for k, d in sorted(by.items()) if d},

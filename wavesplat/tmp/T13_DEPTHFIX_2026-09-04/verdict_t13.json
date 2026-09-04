@@ -3,11 +3,13 @@
  "kind": "CONFIRMATORY",
  "amendments": [
   "AMENDMENT_1_PREDATA.md (결과 0행)",
-  "AMENDMENT_2_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)"
+  "AMENDMENT_2_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)",
+  "AMENDMENT_3_POSTRESULT.md (결과 이후 · 공시 + 동결 확장 · 새 런 0회)"
  ],
  "post_result_checks": [
   "G-REPEAT (사전등록에 있었으나 초판 분석기에 없었다)",
-  "G-ENV 측정면/분석면 분리"
+  "G-ENV 측정면/분석면 분리",
+  "G-FREEZE-EXT (러너 동결 목록 누락 3파일, AMENDMENT_3)"
  ],
  "grade": "CONFIRMATORY (⚠T11-24 층은 노출 · FRESH-28 은 두 팔 blind)",
  "n_rows": 256,
@@ -118,6 +120,11 @@
    "detail": "측정면 16키 런대비 0 · 0행동결대비 0 · 분석면 0 · 시드위반팔 0"
   },
   {
+   "name": "★G-FREEZE-EXT [사후] 러너가 빠뜨린 판정경로 3파일을 **T12 의 결과 0행 동결값**과 대조",
+   "pass_": true,
+   "detail": "{'initializer.py': True, 'd3_setdiff_prior.py': True, 'setdiff_prior.pt': True} · 불일치 0"
+  },
+  {
    "name": "G-BLOCK blocked_by 자가진단 (긴 이름 우선)",
    "pass_": true,
    "detail": "합성 → ['G-MAP', 'G-N', 'G-ANCHOR-SHIP']"
@@ -128,7 +135,7 @@
    "detail": "rows=256"
   }
  ],
- "gates_pass": "23/23",
+ "gates_pass": "24/24",
  "blocked_by": [],
  "primary": {
   "stat": "FIX < SHIP",
@@ -235,6 +242,8 @@
  "label_msg": "FIX-UNDETECTED (WITHIN-PERTURBATION-FLOOR)",
  "disclosures": [
   "⛔FIX 는 **하네스 처치**다 — 패키지에 없다. 이겨도 **배포 권고가 아니다**",
+  "⛔⛔이 배치의 절반은 새 자료가 아니다 — T11-24 층의 FIX 24행이 T12 의 E-MAPDEPTH 24행과 **비트 동일**이다(nrmse·proposal_md5·seed 0/24 불일치, max|Δ|=0.0). 같은 처치를 같은 시드로 두 번 돌린 것이다. ⟹ \"T12 와 T13 이 **독립적으로** 같은 결론에 왔다\" 는 **거짓**이며 철회한다. PRIMARY 26/52 = 10/24(T12 행의 재판독) + 16/28(신규). 신규 절반만 보면 FIX<SHIP 16/28(문턱 19) · FIX<ZERO 13/28 · SHIP<ZERO 6/28 — 라벨은 불변. ⚠PREREG §3 표가 T11-24 층을 \"FIX 미노출\" 이라 적은 것은 작성 시점엔 참이었으나 T12 커밋 뒤 본실행에서는 거짓이다 (AMENDMENT_3 §1)",
+  "⚠FRESH-28 의 SHIP 도 형제 노출이다 — T12 SEC-R 이 같은 28파일을 (다른 시드로) 먼저 돌렸다. FIX 는 blind 가 맞다",
   "⛔FIX-UNDETECTED 를 \"수심은 원인이 아니다\"·\"교락은 무해하다\" 로 읽지 마라 — 검정력의 진술이다 (MDE q80=0.6795 병기 의무 · 기각 불가 대역 w=(27, 32), 32/52=61.5% 도 p=0.0632)",
   "⛔DEPTH-WAS-MASKING-SKILL 을 \"T11 BAND-MISMATCH 철회\" 로 읽지 마라 — 이 배치는 RESCALE 대 FIX 를 검정하지 않는다",
   "⚠두 다리(HELPS·HURTS) 가족 α = 0.0704 — 공시하고 보정하지 않는다",

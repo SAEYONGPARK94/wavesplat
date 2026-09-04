@@ -222,6 +222,40 @@ def main():
               f'측정면 {len(run_keys)}키 런대비 {len(d_meta)} · 0행동결대비 '
               f'{"N/A" if d_fz is None else len(d_fz)} · 분석면 '
               f'{"N/A" if d_fz2 is None else len(d_fz2)} · 시드위반팔 {len(sb)}'))
+    # ── ★AMENDMENT_3 §2: 동결 목록이 판정 경로 파일 셋을 빠뜨렸다 ────────────
+    #   `initializer.py`(성장 경로가 **호출 시점에** MIN_DK·_beamform_coarse 를 임포트) ·
+    #   `d3_setdiff_prior.py`(제안 경로가 denorm_atoms 임포트) ·
+    #   `setdiff_prior.pt`(★**이 배치의 BLOCKER 를 만든 바로 그 파일** — 러너 주석이 축자로
+    #   적어놓고 동결은 안 했다).
+    #   ⛔러너(측정면)를 고치지 않는다 ⟹ **T12 의 결과 0행 동결값**과 대조한다.
+    #   T12 동결(2026-09-04 23:xx)은 T13 본실행(09-05 00:13)보다 **앞선다** ⟹ 진짜 앵커다.
+    import hashlib as _h
+    T12D = os.path.abspath(os.path.join(HERE, '..', 'T12_ISOLATE_2026-09-04'))
+    fz12 = _frozen(os.path.join(T12D, 'FROZEN_md5.txt')) or {}
+    EXT = ('wavesplat/optimizer/initializer.py', 'scripts/d3_setdiff_prior.py',
+           'sha256:results/direction3/setdiff_prior.pt')
+    ext_bad, ext_det = [], {}
+    for k in EXT:
+        if k.startswith('sha256:'):
+            path = os.path.join(G.ROOT, k[len('sha256:'):])
+            hh = _h.sha256()
+            if os.path.exists(path):
+                with open(path, 'rb') as fh:
+                    for c in iter(lambda: fh.read(1 << 20), b''):
+                        hh.update(c)
+                cur = hh.hexdigest()
+            else:
+                cur = None
+        else:
+            path = os.path.join(G.ROOT, k)
+            cur = (_h.md5(open(path, 'rb').read()).hexdigest()
+                   if os.path.exists(path) else None)
+        ext_det[k.split('/')[-1]] = (cur == fz12.get(k))
+        if cur is None or fz12.get(k) is None or cur != fz12.get(k):
+            ext_bad.append(k)
+    A.append(('★G-FREEZE-EXT [사후] 러너가 빠뜨린 판정경로 3파일을 **T12 의 결과 0행 동결값**과 대조',
+              not ext_bad, f'{ext_det} · 불일치 {len(ext_bad)}'))
+
     probe = G.blocked_by([('★★G-MAP 합성', False, ''), ('★G-N 합성', False, ''),
                           ('★★G-ANCHOR-SHIP 합성', False, ''), ('G-COV 합성', True, '')])
     A.append(('G-BLOCK blocked_by 자가진단 (긴 이름 우선)',
@@ -252,9 +286,11 @@ def main():
         hs[nm] = paired('FIX', 'SHIP', blk)
     v = {'batch': 'T13-DEPTHFIX', 'kind': 'CONFIRMATORY',
          'amendments': ['AMENDMENT_1_PREDATA.md (결과 0행)',
-                        'AMENDMENT_2_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)'],
+                        'AMENDMENT_2_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)',
+                        'AMENDMENT_3_POSTRESULT.md (결과 이후 · 공시 + 동결 확장 · 새 런 0회)'],
          'post_result_checks': ['G-REPEAT (사전등록에 있었으나 초판 분석기에 없었다)',
-                                'G-ENV 측정면/분석면 분리'],
+                                'G-ENV 측정면/분석면 분리',
+                                'G-FREEZE-EXT (러너 동결 목록 누락 3파일, AMENDMENT_3)'],
          'grade': 'CONFIRMATORY (⚠T11-24 층은 노출 · FRESH-28 은 두 팔 blind)',
          'n_rows': len(rows),
          'gates': [{'name': n, 'pass_': bool(o), 'detail': d} for n, o, d in A],
@@ -279,6 +315,16 @@ def main():
          'proposal_device': dev, 'label': lab, 'label_msg': lab or 'BLOCKED',
          'disclosures': [
              '⛔FIX 는 **하네스 처치**다 — 패키지에 없다. 이겨도 **배포 권고가 아니다**',
+             '⛔⛔이 배치의 절반은 새 자료가 아니다 — T11-24 층의 FIX 24행이 T12 의 '
+             'E-MAPDEPTH 24행과 **비트 동일**이다(nrmse·proposal_md5·seed 0/24 불일치, '
+             'max|Δ|=0.0). 같은 처치를 같은 시드로 두 번 돌린 것이다. '
+             '⟹ "T12 와 T13 이 **독립적으로** 같은 결론에 왔다" 는 **거짓**이며 철회한다. '
+             'PRIMARY 26/52 = 10/24(T12 행의 재판독) + 16/28(신규). 신규 절반만 보면 '
+             'FIX<SHIP 16/28(문턱 19) · FIX<ZERO 13/28 · SHIP<ZERO 6/28 — 라벨은 불변. '
+             '⚠PREREG §3 표가 T11-24 층을 "FIX 미노출" 이라 적은 것은 작성 시점엔 참이었으나 '
+             'T12 커밋 뒤 본실행에서는 거짓이다 (AMENDMENT_3 §1)',
+             '⚠FRESH-28 의 SHIP 도 형제 노출이다 — T12 SEC-R 이 같은 28파일을 (다른 시드로) '
+             '먼저 돌렸다. FIX 는 blind 가 맞다',
              '⛔FIX-UNDETECTED 를 "수심은 원인이 아니다"·"교락은 무해하다" 로 읽지 마라 — '
              f'검정력의 진술이다 (MDE q80={G.MDE["q80"]} 병기 의무 · 기각 불가 대역 '
              f'w={G.MDE["unrejectable_w"]}, 32/52=61.5% 도 p=0.0632)',

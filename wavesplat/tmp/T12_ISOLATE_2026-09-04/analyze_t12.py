@@ -241,6 +241,51 @@ def main():
               meta.get('threads_readback') == 1 and not sbad
               and now.get('sha256:' + C.CKPTS[0]) == C.CKPT_SHA_PIN[C.CKPTS[0]],
               f"threads={meta.get('threads_readback')} 시드위반팔 {len(sbad)}"))
+    # ── ★AMENDMENT_2 §1: `G-SHIPPIN` 의 「손복사 0」이 16종 중 3종에서 거짓이었다 ──
+    #   `max_steepness`·`learned_dedup_dk`·`grow_krange` 는 `DEFAULT_CONFIG` 에 **없다**
+    #   ⟹ `deployed()` 가 폴백 리터럴을 내고 그것을 `SHIP_PIN` 의 **같은 리터럴**과 비교했다
+    #   = 자기 자신과의 대조. 실제 정의는 소스 리터럴이므로 **소스에서 직접 뽑아** 핀한다
+    #   (T14 `G-SRC-PIN` 규약).
+    import re as _re
+    SRC_PIN = (('wavesplat/optimizer/sequential_update.py',
+                r"max_steepness['\"]\s*,\s*([0-9.]+)\s*\)", 'max_steepness', 0.15),
+               ('wavesplat/optimizer/learned_init.py',
+                r"learned_dedup_dk['\"]\s*,\s*([0-9.]+)\s*\)", 'learned_dedup_dk', 0.03),
+               ('wavesplat/optimizer/sequential_update.py',
+                r"kx_range=\(-([0-9.]+),\s*[0-9.]+\)", 'grow_krange', 4.0))
+    src_bad, src_det = [], {}
+    for rel, pat, name, want in SRC_PIN:
+        txt = open(os.path.join(C.ROOT, rel), encoding='utf-8').read()
+        m = _re.search(pat, txt)
+        got = float(m.group(1)) if m else None
+        src_det[name] = got
+        if got is None or abs(got - want) > 1e-12:
+            src_bad.append(name)
+    A.append(('★G-SHIPPIN-EXT [사후] DEFAULT_CONFIG 에 없는 3종을 **소스 리터럴에서 직접** 핀 '
+              '(⛔초판은 자기 자신과 대조했다)', not src_bad, f'{src_det} · 불일치 {src_bad or "없음"}'))
+
+    # ── ★AMENDMENT_2 §2: SEC-R 112행이 측정면 검증 밖에 있었다 ──────────────
+    #   러너는 `results_t12_SECR.jsonl`+`meta_t12_SECR.json` 에 쓰는데 분석기는
+    #   `results_t12.jsonl`/`meta_t12.json` 만 읽는다. SECR 행은 **손으로 이어붙인 것**이다
+    #   (러너는 `open(out,'w')`). ⟹ SECR 프로세스의 meta 를 여기서 대조한다.
+    sec_meta = os.path.join(HERE, 'meta_t12_SECR.json')
+    sec_rows = os.path.join(HERE, 'results_t12_SECR.jsonl')
+    sm = json.load(open(sec_meta, encoding='utf-8')) if os.path.exists(sec_meta) else None
+    tail_ok = False
+    if os.path.exists(sec_rows):
+        src_lines = [x for x in open(sec_rows, encoding='utf-8') if x.strip()]
+        all_lines = [x for x in open(ROWS, encoding='utf-8') if x.strip()]
+        tail_ok = (len(all_lines) >= len(src_lines)
+                   and [json.loads(x) for x in all_lines[-len(src_lines):]]
+                   == [json.loads(x) for x in src_lines])
+    A.append(('★G-SECR [사후] SEC-R meta 가 PRIMARY 와 같은 code_md5·threads · 행이 원본과 일치',
+              sm is not None and sm.get('code_md5') == (meta.get('code_md5') or {})
+              and sm.get('threads_readback') == 1 and tail_ok
+              and len(R) == C.N_SECR * len(C.SECR_ARMS),   # ★블록 28 × 4팔 = 112행
+              f'meta {"있음" if sm else "없음"} · md5 동일 '
+              f'{sm is not None and sm.get("code_md5") == (meta.get("code_md5") or {})} · '
+              f'행 일치 {tail_ok} · SECR {len(R)}행 (기대 {C.N_SECR * len(C.SECR_ARMS)})'))
+
     probe = G.blocked_by([('★★G-NOLEAK 합성', False, ''), ('★G-N 합성', False, ''),
                           ('★★G-RESTORE 합성', False, ''), ('★G-RESCALE 합성', False, ''),
                           ('G-ENV 합성', True, '')])
@@ -300,6 +345,10 @@ def main():
          'secr_exploratory': {a: {'w': Wr[a][0], 'n': Wr[a][1],
                                   'p_one_sided': G.sign_p(*Wr[a])} for a in Wr},
          'not_exercised': not_exercised, 'grow_fire_ship': gf, 'no_op_arms': noop,
+         'amendments': ['AMENDMENT_1_PREDATA.md (결과 0행)',
+                        'AMENDMENT_2_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)'],
+         'post_result_checks': ['G-SHIPPIN-EXT (초판 3종이 자기 자신과 대조)',
+                                'G-SECR (SEC-R 측정면 검증)'],
          'knob_diffs_measured': {a: sorted(v2) for a, v2 in sorted(kdet.items())},
          'effect_vs_ship': effect, 'rho_recovery': rho,
          'medians': {a: float(np.median([r['nrmse'] for r in by[a].values()]))
@@ -331,6 +380,13 @@ def main():
              '(PREREG §3). 그 둘의 승리는 다른 문장이다',
              '⛔ρ 를 팔 간에 더하지 마라 — 합이 1 이 될 이유가 없다 (P8 MAJOR 선례)',
              '⛔성장 발화가 희소하면 C-MINDK·C-GROWGRID 는 NOT-EXERCISED 이지 널이 아니다',
+             '⛔⛔C-MINDK 의 「널」은 75% no-op 위에 있다 — effect_vs_ship 이 **6/24 다름** = '
+             '18/24 블록이 SHIP 과 **비트 동일**이다 ⟹ 그 9/24 는 사실상 SHIP 앵커(8/24)의 '
+             '재인쇄다. **6/24 병기 없이 이 축의 널을 인용하지 마라** — 「효과 없음」이 아니라 '
+             '「지렛대 부족」 후보다 (AMENDMENT_2 §3)',
+             '⚠라벨이 한 블록 차이로 뒤집힌다 — A-MAPCELL w=19 == THRESH_SEC=19. '
+             'label(24,18)=PROPOSAL-SCALE-CARRIES · label(24,19)=MULTIPLE-AXES-CARRY. '
+             '⛔강건성 진술 없이 라벨을 인용하지 마라 (AMENDMENT_2 §3)',
              '⛔D-VPLR 이 널이면 「no-op」과 구별해야 한다 — vp_lr 되읽기와 vp_k_shift 가 '
              '그 구별의 근거다 (기본 인자 바인딩 때문에 순진한 개입은 조용히 no-op 이 된다)',
              '⛔proposal_device 는 config 가 정하지 않는다(propose_atoms 가 cuda-if-available) · '

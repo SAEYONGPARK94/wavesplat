@@ -113,6 +113,16 @@
    "detail": "threads=1 시드위반팔 0"
   },
   {
+   "name": "★G-SHIPPIN-EXT [사후] DEFAULT_CONFIG 에 없는 3종을 **소스 리터럴에서 직접** 핀 (⛔초판은 자기 자신과 대조했다)",
+   "pass_": true,
+   "detail": "{'max_steepness': 0.15, 'learned_dedup_dk': 0.03, 'grow_krange': 4.0} · 불일치 없음"
+  },
+  {
+   "name": "★G-SECR [사후] SEC-R meta 가 PRIMARY 와 같은 code_md5·threads · 행이 원본과 일치",
+   "pass_": true,
+   "detail": "meta 있음 · md5 동일 True · 행 일치 True · SECR 112행 (기대 112)"
+  },
+  {
    "name": "G-BLOCK blocked_by 자가진단 (긴 이름 우선)",
    "pass_": true,
    "detail": "합성 → ['G-NOLEAK', 'G-N', 'G-RESTORE', 'G-RESCALE']"
@@ -123,7 +133,7 @@
    "detail": "rows=424"
   }
  ],
- "gates_pass": "23/23",
+ "gates_pass": "25/25",
  "blocked_by": [],
  "primary": {
   "stat": "A-MAPSCALE < ZERO",
@@ -210,6 +220,14 @@
  "not_exercised": [],
  "grow_fire_ship": 24,
  "no_op_arms": [],
+ "amendments": [
+  "AMENDMENT_1_PREDATA.md (결과 0행)",
+  "AMENDMENT_2_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)"
+ ],
+ "post_result_checks": [
+  "G-SHIPPIN-EXT (초판 3종이 자기 자신과 대조)",
+  "G-SECR (SEC-R 측정면 검증)"
+ ],
  "knob_diffs_measured": {
   "A-BAND": [
    "K_LIM"
@@ -871,6 +889,8 @@
   "⛔E-MAPDEPTH·F-STEEP 에 회수율 ρ 를 인쇄하지 마라 — 스케일 축이 아니다 (PREREG §3). 그 둘의 승리는 다른 문장이다",
   "⛔ρ 를 팔 간에 더하지 마라 — 합이 1 이 될 이유가 없다 (P8 MAJOR 선례)",
   "⛔성장 발화가 희소하면 C-MINDK·C-GROWGRID 는 NOT-EXERCISED 이지 널이 아니다",
+  "⛔⛔C-MINDK 의 「널」은 75% no-op 위에 있다 — effect_vs_ship 이 **6/24 다름** = 18/24 블록이 SHIP 과 **비트 동일**이다 ⟹ 그 9/24 는 사실상 SHIP 앵커(8/24)의 재인쇄다. **6/24 병기 없이 이 축의 널을 인용하지 마라** — 「효과 없음」이 아니라 「지렛대 부족」 후보다 (AMENDMENT_2 §3)",
+  "⚠라벨이 한 블록 차이로 뒤집힌다 — A-MAPCELL w=19 == THRESH_SEC=19. label(24,18)=PROPOSAL-SCALE-CARRIES · label(24,19)=MULTIPLE-AXES-CARRY. ⛔강건성 진술 없이 라벨을 인용하지 마라 (AMENDMENT_2 §3)",
   "⛔D-VPLR 이 널이면 「no-op」과 구별해야 한다 — vp_lr 되읽기와 vp_k_shift 가 그 구별의 근거다 (기본 인자 바인딩 때문에 순진한 개입은 조용히 no-op 이 된다)",
   "⛔proposal_device 는 config 가 정하지 않는다(propose_atoms 가 cuda-if-available) · ⛔wall_s 를 팔 간 비교에 쓰지 마라",
   "⛔음성 결과 인용 시 MDE 병기 의무: PRIMARY q80=0.76 · SEC family q80=0.8332(참 승률 0.70 축을 77% 확률로 놓친다) · 기각 불가 대역 W=(13, 16)",

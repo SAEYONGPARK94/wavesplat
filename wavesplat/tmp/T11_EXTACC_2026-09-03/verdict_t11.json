@@ -1,0 +1,324 @@
+{
+ "batch": "T11-EXTACC",
+ "kind": "CONFIRMATORY",
+ "grade": "CONFIRMATORY",
+ "prereg": "v2 + AMENDMENT_2_PREDATA.md (결과 0행 시점 개정)",
+ "new_runs": 48,
+ "n_rows": 96,
+ "gates": [
+  {
+   "name": "★G-SIZE 분석기가 직접 잰 크기 == 12828148812",
+   "pass_": true,
+   "detail": "12828148812"
+  },
+  {
+   "name": "★G-SAMPLE 표본==행 · 아카이브 실존 · 선행배치/사전노출 교집합 0 [namelist 직접]",
+   "pass_": true,
+   "detail": "표본 24 · 행 24 · 선행 0 · 노출 0(후보 8) · 미실존 0 · 참조부재 0"
+  },
+  {
+   "name": "★G-N 팔별 24행 · 총 96행 (문턱 17 은 n=24 전용)",
+   "pass_": true,
+   "detail": "{'SHIP': 24, 'RESCALE': 24, 'ORACLE': 24, 'ZERO': 24} · rows=96 · n=(24,24,24)"
+  },
+  {
+   "name": "★G-FINITE 모든 행의 nRMSE 가 유한 (⛔NaN 은 조용히 패배가 된다)",
+   "pass_": true,
+   "detail": "비유한 0"
+  },
+  {
+   "name": "★★G-NOLEAK 붙인 gt 가 상수(std 0) · 값 == GT_CONST · initialize 후에도 [되읽기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★★G-ATOMS SHIP·RESCALE **제안** 원자 지문이 각각 전건 상이 (캐시 누출 탐지)",
+   "pass_": true,
+   "detail": "SHIP 24/24 · RESCALE 24/24"
+  },
+  {
+   "name": "★★G-CAP 제안 단계가 실제로 돌았다(모음==제공) · 캡==400 [되읽기]",
+   "pass_": true,
+   "detail": "위반 0 · 캡드리프트 0"
+  },
+  {
+   "name": "★★G-ARM resolved==learned · 실측게이트 미발화 · ensemble_k==1 [되읽기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "G-WRAPPER 출하 진입점(make_updater) [⚠A3 §9: 배포 상수상 **구조적으로 참**]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-CLAMP 경사 클램프 발화 **기록**됨 (⛔발화로 막지 않는다 — 개정문 §9)",
+   "pass_": true,
+   "detail": "발화 팔별 {'SHIP': 19, 'RESCALE': 5} · 미기록 0"
+  },
+  {
+   "name": "★G-TORIGIN 창 시작 t == 0 (원점 자유도 봉쇄)",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-RESCALE 측정 배율 x·t 가 s=2.0 와 일치 · ω=√(gk) 보존 [되읽기]",
+   "pass_": true,
+   "detail": "위반 0 · x_scale 중앙 0.500000"
+  },
+  {
+   "name": "G-ENV 스레드[되읽기] · **행 시드 집합 되읽기** · 측정면 3중 동결 · 분석면 동결",
+   "pass_": true,
+   "detail": "threads=1 시드위반팔 0 · 측정면(런대비 0 · 0행동결대비 0) · 분석면 0"
+  },
+  {
+   "name": "★G-DENSITY [사후] 제공==200x40 · 창이 자료 안 · tq==(N-1)dt [되읽기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-POP [사후] 표본이 PREREG §4 모집단(mixed_data2 = idx 60-119) 안",
+   "pass_": true,
+   "detail": "범위 밖 0"
+  },
+  {
+   "name": "G-BLOCK blocked_by 자가진단 (긴 이름 우선)",
+   "pass_": true,
+   "detail": "합성 → ['G-NOLEAK', 'G-N']"
+  },
+  {
+   "name": "G-COV 게이트가 자료를 봤다",
+   "pass_": true,
+   "detail": "rows=96"
+  }
+ ],
+ "gates_pass": "17/17",
+ "blocked_by": [],
+ "primary": {
+  "stat": "RESCALE < ZERO",
+  "w": 24,
+  "n": 24,
+  "p_one_sided": 5.960464477539063e-08
+ },
+ "sec_a_ship": {
+  "w": 8,
+  "n": 24,
+  "p_one_sided": 0.9680426716804504
+ },
+ "sec_b_oracle": {
+  "w": 24,
+  "n": 24,
+  "p_one_sided": 5.960464477539063e-08
+ },
+ "sig_worse_w_le_7": {
+  "SHIP": false,
+  "RESCALE": false,
+  "ORACLE": false
+ },
+ "strata": {
+  "SHIP_hs_low": {
+   "w": 7,
+   "n": 12
+  },
+  "RESCALE_hs_low": {
+   "w": 12,
+   "n": 12
+  },
+  "ORACLE_hs_low": {
+   "w": 12,
+   "n": 12
+  },
+  "SHIP_hs_high": {
+   "w": 1,
+   "n": 12
+  },
+  "RESCALE_hs_high": {
+   "w": 12,
+   "n": 12
+  },
+  "ORACLE_hs_high": {
+   "w": 12,
+   "n": 12
+  }
+ },
+ "angle_clusters": {
+  "SHIP": {
+   "10": {
+    "w": 1,
+    "n": 4
+   },
+   "20": {
+    "w": 2,
+    "n": 4
+   },
+   "30": {
+    "w": 1,
+    "n": 4
+   },
+   "40": {
+    "w": 1,
+    "n": 4
+   },
+   "50": {
+    "w": 2,
+    "n": 4
+   },
+   "60": {
+    "w": 1,
+    "n": 4
+   }
+  },
+  "RESCALE": {
+   "10": {
+    "w": 4,
+    "n": 4
+   },
+   "20": {
+    "w": 4,
+    "n": 4
+   },
+   "30": {
+    "w": 4,
+    "n": 4
+   },
+   "40": {
+    "w": 4,
+    "n": 4
+   },
+   "50": {
+    "w": 4,
+    "n": 4
+   },
+   "60": {
+    "w": 4,
+    "n": 4
+   }
+  }
+ },
+ "clamp_hits_by_arm": {
+  "SHIP": [
+   1,
+   1,
+   2,
+   8,
+   0,
+   1,
+   5,
+   7,
+   0,
+   0,
+   3,
+   5,
+   0,
+   1,
+   3,
+   5,
+   1,
+   1,
+   1,
+   7,
+   0,
+   1,
+   2,
+   4
+  ],
+  "RESCALE": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   6,
+   8,
+   0,
+   0,
+   0,
+   2,
+   0,
+   0,
+   0,
+   1,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   3
+  ]
+ },
+ "medians": {
+  "SHIP": 0.24448501963131689,
+  "RESCALE": 0.19566563972388012,
+  "ORACLE": 0.15491598859073616,
+  "ZERO": 0.2476094200762622
+ },
+ "mde": {
+  "alpha": 0.05,
+  "one_sided": true,
+  "n": 24,
+  "crit_w": 17,
+  "q50": 0.685,
+  "q80": 0.76,
+  "q90": 0.7955,
+  "unrejectable_w": [
+   13,
+   16
+  ]
+ },
+ "prediction": {
+  "q_rescale": 0.75,
+  "q_ship": 0.55,
+  "label_probs": {
+   "BAND-MISMATCH": 0.7000858548749939,
+   "BOTH-WORK": 0.06611831444188139,
+   "NEITHER-DETECTED": 0.21362080832310576,
+   "RESCALE-HURTS": 0.020175022360018946
+  },
+  "null_label_probs": {
+   "BAND-MISMATCH": 0.030936057486226076,
+   "BOTH-WORK": 0.0010212708333234843,
+   "NEITHER-DETECTED": 0.9371066141942244,
+   "RESCALE-HURTS": 0.030936057486226076
+  }
+ },
+ "proposal_device": [
+  "cuda"
+ ],
+ "post_result_checks": [
+  "G-DENSITY",
+  "G-POP",
+  "G-ENV(시드·분석면 동결)",
+  "G-ATOMS(RESCALE 확장)",
+  "라벨 인쇄 벨트 all(ok)"
+ ],
+ "amendments": [
+  "AMENDMENT_1_PREDATA.md",
+  "AMENDMENT_2_PREDATA.md",
+  "AMENDMENT_3_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)"
+ ],
+ "label": "BAND-MISMATCH",
+ "label_msg": "BAND-MISMATCH",
+ "disclosures": [
+  "⛔BAND-MISMATCH 는 **귀속**이지 \"우리가 낫다/못하다\" 가 아니다",
+  "⛔E2 와 대각선 비교 금지 — 읽는 것은 \"각자 남의 자료에서 어느 밀도부터\" 다 (PREREG §6 의무 공시)",
+  "⛔저들 논문의 수치와 비교 금지(채점·격자·기준이 다르다) (PREREG §6 의무 공시)",
+  "⛔solver 미명시 — \"HOS\"·\"완전 비선형\" 이라 쓰지 않는다 (PREREG §6 의무 공시)",
+  "⚠예산 비대칭: 제안 단계는 프레임당 8,000 관측 중 캡 400 만 쓴다 — \"고른 400\" 과 \"있는 것 전부\" 는 다르다 (AMENDMENT_1 §6.4)",
+  "⛔RESCALE 을 실제 성능으로 인용 금지 — 단위를 바꾼 사고실험이다",
+  "⛔음성 라벨(NEITHER-DETECTED / NO-INFORMATION-IN-OBS)은 **검출 불가**이지 폐쇄가 아니다 — 인용 시 MDE q80=0.76 병기 의무 (w=13..16 은 어떤 자료로도 기각 불가)",
+  "⛔SEC-A·SEC-B 의 p 는 **무보정**이다 · 층(SEC-C)과 각도 6클러스터는 **기술통계**이고 라벨을 만들지 않는다 (각도 클러스터는 6/6 만장일치일 때만 주장 가능, P=0.0156)",
+  "⛔ORACLE 은 추정기가 아니다(참 파수를 받는다) — AMENDMENT_2 §5 로 ±ω 4열 + 켤레쌍 정준키로 재정의됐다. ⛔초판(±k 임의 대표, +ω 만)은 상한이 아니라 **하한**이었다",
+  "⚠RESCALE 은 **단일요인이 아니다**(AMENDMENT_2 §6): 배포 경로의 절대 파수 상수 전부(사전 밴드·learned_dedup_dk 0.03·MIN_DK 0.15·성장 DC블록 0.133·VARPRO lr 2e-3)와 조건화 맵의 개구/픽셀 비(PSF 0.53→1.06칸, 학습 1.37–1.65)가 s 와 **공선**으로 함께 움직인다 ⟹ 「학습 사전의 파장 밴드」 단독 귀속 불가. 정본 읽기 = **\"배포 추정기의 절대 스케일 설계 범위\"**. k_p 기준 장면은 이미 학습 밴드 안이다(Tp 10 s ∈ U(5,11), 83백분위)",
+  "⚠scripts/d3_beamform_net.py:**30** 이 DEPTH=50 하드코딩 ⟹ config depth 가 조건화 맵에 **한 번도 닿지 않는다**. 학습 코퍼스도 d=50 생성 ⟹ **SHIP 만** 디포커스된다(k=0.03 에서 창 위상 1.03 rad, RESCALE 0.05 rad) = **비대칭 교락**. ⛔이 배치에서 고치지 않는다(출하 팔이 아니게 된다)",
+  "⚠완전 blind 아님 — 사전감사 스모크 8 + 러너 스모크 2 파일이 설계에 영향(표본에서 배제하고 G-SAMPLE 이 기계로 확인한다)",
+  "⚠Tp 가 전 파일 10 s ⟹ 한 주기 조건의 진술이다",
+  "⚠torch.set_num_threads(1) 은 numpy/BLAS 를 제약하지 않는다 ⟹ ⛔wall_s 를 팔 간 비교에 쓰지 마라",
+  "⚠제안 단계의 device 는 config 가 정하지 않는다(propose_atoms 가 cuda-if-available 로 자기가 고른다) — 행의 proposal_device 를 볼 것",
+  "⚠사전등록 예측 label_probs 의 NEITHER-DETECTED 0.2136 은 실제로 **NEITHER-DETECTED + NO-INFORMATION-IN-OBS 의 합**이다 — D-3 가 ORACLE 을 사다리에 넣으면서 §2 예측에는 넣지 않았다. ⛔둘의 분해는 **미등록**이고 q_oracle 을 사후에 정하지 않는다 (AMENDMENT_3 §5)",
+  "⚠AMENDMENT_3 은 **결과 이후** 개정이다 — post_result_checks 의 게이트들은 결과를 본 뒤 추가됐다. ⛔사전등록 차단 게이트로 세지 마라. (막을 수만 있고 열 수는 없으며, run_t11.py·임포트·체크포인트는 무수정)",
+  "⚠경사 클램프 비대칭: AMENDMENT_2 §6c 는 RESCALE 이 닿을 것이라 **예측했으나 실측은 반대**다(SHIP 발화, RESCALE 0) — clamp_hits_by_arm 을 볼 것. ⛔이 비대칭을 성능 차의 원인으로 지목하지 마라(미측정)"
+ ]
+}

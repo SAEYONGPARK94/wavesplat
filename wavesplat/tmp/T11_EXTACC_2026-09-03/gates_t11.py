@@ -4,6 +4,8 @@
 ★게이트·분석기는 **러너보다 먼저** 쓰인다(2026-09-04 규율).
 ⛔v1 은 폐기됐다 — `AMENDMENT_1_PREDATA.md`.
 ⛔사다리·문턱·ORACLE 정의는 `AMENDMENT_2_PREDATA.md` 에서 **결과 0행 시점에** 교체됐다.
+⚠`AMENDMENT_3_POSTRESULT.md`(**결과 이후**)가 게이트를 더했다 — 전부 **막을 수만 있는** 것이고
+  `run_t11.py`·임포트 경로·체크포인트는 **한 비트도 안 바뀌었다**(`G-ENV` 측정면 3중 대조).
 """
 import json, os
 
@@ -36,7 +38,7 @@ SIG_WORSE = 7                 # P(W<=7 | n=24, q=.5) = 0.031957   ← 라벨 아
 
 PRED_Q = (0.75, 0.55)         # ★사전등록 예측 (q_rescale, q_ship) — AMENDMENT_2 §2
 MDE_Q80 = 0.760               # α=.05 단측 · 검정력 .80 · n=24  ⟹ ★인용 시 병기 의무
-MDE_Q50, MDE_Q90 = 0.685, 0.795
+MDE_Q50, MDE_Q90 = 0.685, 0.7955   # ⚠A3 §8: 0.795 의 검정력은 0.8998 < 0.90
 UNREJECTABLE = (13, 16)       # w 가 이 구간이면 **어떤 자료로도** 기각 불가(p .4194~.0758)
 
 # ── 사전노출 (PREREG §4 · AMENDMENT_2 §7 `G-SAMPLE`) ───────────────────────
@@ -48,7 +50,13 @@ SMOKE_FILES = ('Data/mixed_data2/angle10h0.5.mat',
 
 # ── 동결 대상 (AMENDMENT_2 §8) ─────────────────────────────────────────────
 BATCH_FILES = ('gates_t11.py', 'analyze_t11.py', 'run_t11.py', 'sample_t11.json',
-               'PREREG.md', 'AMENDMENT_1_PREDATA.md', 'AMENDMENT_2_PREDATA.md', 'NOTE.md')
+               'PREREG.md', 'AMENDMENT_1_PREDATA.md', 'AMENDMENT_2_PREDATA.md',
+               'AMENDMENT_3_POSTRESULT.md', 'NOTE.md')
+# ★A3 §2: 동결을 **측정면 / 분석면**으로 가른다. 개정문 3 이 아래 셋만 고치므로
+#   `meta['code_md5']`(런 시점 기록)와 어긋나는 것이 **정상**이고, 나머지 전부는
+#   원래 `FROZEN_md5.txt` 와 **비트 동일**해야 한다 ⟹ "측정을 안 건드렸다" 의 기계 증명.
+ANALYSIS_SIDE = ('gates_t11.py', 'analyze_t11.py', 'AMENDMENT_3_POSTRESULT.md')
+POP_RANGE = (60, 120)      # ★A3 §4: `mixed_data2` 의 sorted() 인덱스 창 (PREREG §4)
 # ⛔초판은 셋만 덮었다. 판정 경로에서 **값을 실제로 움직이는** 파일을 전부 넣는다.
 IMPORT_FILES = ('wavesplat/optimizer/sequential_update.py',
                 'wavesplat/optimizer/learned_init.py',
@@ -150,7 +158,8 @@ def label(w_rescale, w_ship, w_oracle):
     이김 다리(`>= THRESH_WIN`)만 검정이고, 나머지는 **이름 자체가 「미검출」**이다.
     ⛔`NEITHER-DETECTED` 를 *"도달 불가"*·*"대역 말고 다른 것"* 으로 읽지 마라 —
     그것은 검정력의 진술이다(`MDE_Q80` 병기 의무). 선례 = `T5-ENS` 개정문.
-    ★4라벨이 9조합을 **전부** 덮는다 ⟹ `UNDECIDED` 가 없다.
+    ★**5라벨**이 9조합을 **전부** 덮는다 ⟹ `UNDECIDED` 가 없다 (⛔A3 §8: 개정문 2 의
+    *"4라벨"* 은 오기였다 — 음성 칸이 `o_win` 으로 둘로 갈린다).
     """
     r_win = w_rescale >= THRESH_WIN
     s_win = w_ship >= THRESH_WIN
@@ -168,7 +177,7 @@ def blocked_by(rows):
     """⛔**긴 이름부터** 접두 비교 (`G-NOLEAK` 이 `G-N` 보다 먼저 잡혀야 한다)."""
     block = ('G-NOLEAK', 'G-ATOMS', 'G-CAP', 'G-CLAMP', 'G-WRAPPER', 'G-ARM',
              'G-TORIGIN', 'G-SIZE', 'G-SAMPLE', 'G-RESCALE', 'G-ENV', 'G-BLOCK',
-             'G-N', 'G-FINITE', 'G-COV')
+             'G-N', 'G-FINITE', 'G-COV', 'G-DENSITY', 'G-POP')
     order = sorted(block, key=len, reverse=True)
     out = []
     for name, ok, _ in rows:

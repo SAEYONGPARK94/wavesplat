@@ -19,7 +19,8 @@ HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import gates_t11 as G                                                # noqa: E402
 
 ROWS = os.path.join(HERE, 'results_t11.jsonl'); META = os.path.join(HERE, 'meta_t11.json')
-FROZEN = os.path.join(HERE, 'FROZEN_md5.txt')
+FROZEN = os.path.join(HERE, 'FROZEN_md5.txt')          # 결과 0행 동결 (측정면 증거물)
+FROZEN_A3 = os.path.join(HERE, 'FROZEN_md5_A3.txt')    # 개정문 3 동결 (분석면)
 OUTDIR = HERE          # ★verdict 출력만 분리(스모크 하네스가 HERE 를 안 흔들게)
 
 
@@ -117,10 +118,12 @@ def main():
     #   VARPRO 400스텝이 kx/ky 를 파일별 관측으로 재적합해 덮어쓰므로, 제안 캐시가
     #   **완전히 새더라도** 설치 지문은 전부 고유해진다 ⟹ 항상 통과.
     #   이제 `cfg['learned_atoms']`(raw 제안)을 해싱한 `proposal_md5` 를 본다.
-    fps = [r.get('proposal_md5') for r in rows if r['arm'] == 'SHIP']
-    A.append(('★★G-ATOMS SHIP **제안** 원자 지문이 전부 상이 (config 캐시 누출 탐지)',
-              len(fps) == len(set(fps)) and all(fps),
-              f'{len(set(fps))}/{len(fps)} 고유'))
+    # ★A3 §7: 초판은 SHIP 만 봤다 — RESCALE 지문이 중복이어도 통과했다.
+    fpd = {a: [r.get('proposal_md5') for r in rows if r['arm'] == a]
+           for a in ('SHIP', 'RESCALE')}
+    fpok = all(len(v) == len(set(v)) and all(v) for v in fpd.values())
+    A.append(('★★G-ATOMS SHIP·RESCALE **제안** 원자 지문이 각각 전건 상이 (캐시 누출 탐지)',
+              fpok, ' · '.join(f'{a} {len(set(v))}/{len(v)}' for a, v in fpd.items())))
 
     # ── G-CAP : ⛔「소비」 항은 **산술 항등식**이라 발화 불가였다 — 뺐다 ─────────
     #   살아있는 내용은 둘이다: (1) `n_gathered` 는 `_gather_init_obs` 를 래핑해 실제로
@@ -157,7 +160,8 @@ def main():
 
     wrap = [r for r in rows if r['arm'] in ('SHIP', 'RESCALE')
             and not (r.get('prov') or {}).get('is_ensemble_wrapper')]
-    A.append(('★★G-WRAPPER 출하 진입점(make_updater)으로 만든 팔', not wrap,
+    A.append(('G-WRAPPER 출하 진입점(make_updater) [⚠A3 §9: 배포 상수상 **구조적으로 참**]',
+              not wrap,
               f'위반 {len(wrap)}'))
 
     # ── G-CLAMP : z 를 재척도하지 않아 파고경사가 2배 ⟹ RESCALE 만 클램프에 닿을 수 있다 ──
@@ -201,24 +205,65 @@ def main():
                         f'{(float(np.median(xs)) if xs else float("nan")):.6f}'))
 
     # ── G-ENV : ⛔초판은 3/3 항진이었다 (러너 리터럴 == 분석기 리터럴, md5 는 bool()) ──
-    now = G.freeze_map()
-    rec = meta.get('code_md5') or {}
-    drift = sorted(k for k in set(now) | set(rec) if now.get(k) != rec.get(k))
-    frozen_drift = ['(FROZEN_md5.txt 없음)']
-    if os.path.exists(FROZEN):
-        fz = {}
-        for line in open(FROZEN, encoding='utf-8'):
+    #   ★A3 §2: 개정문 2 는 **셋 중 둘만** 고쳤다 — 시드는 여전히 `G.SEED` 상수 왕복이었다.
+    #   이제 (a) 행의 `seed` 열을 **집합으로** 되읽고(러너가 블록마다 다르게 쓴 값이다),
+    #   (b) 동결을 **측정면/분석면**으로 갈라 대조한다. 측정면 3중 일치가 곧
+    #   *"개정문 3 은 측정을 한 비트도 안 건드렸다"* 의 기계 증명이다.
+    def _read_frozen(path):
+        out = {}
+        if not os.path.exists(path):
+            return None
+        for line in open(path, encoding='utf-8'):
             if line.strip() and not line.startswith('#'):
                 h, k = line.split(None, 1)
-                fz[k.strip()] = h.strip()
-        frozen_drift = sorted(k for k in set(now) | set(fz) if now.get(k) != fz.get(k))
-    A.append(('G-ENV 스레드[되읽기]==1 · 시드 · **md5 항목별 재계산 대조** · 동결 대조',
+                out[k.strip()] = h.strip()
+        return out
+
+    now = G.freeze_map()
+    rec = meta.get('code_md5') or {}
+    fz0, fz3 = _read_frozen(FROZEN), _read_frozen(FROZEN_A3)
+    run_keys = sorted(k for k in now if k not in G.ANALYSIS_SIDE)
+    ana_keys = sorted(k for k in now if k in G.ANALYSIS_SIDE)
+    run_vs_meta = [k for k in run_keys if now[k] != rec.get(k)]
+    run_vs_fz0 = None if fz0 is None else [k for k in run_keys if now[k] != fz0.get(k)]
+    ana_vs_fz3 = None if fz3 is None else sorted(
+        k for k in set(ana_keys) | set(fz3) if now.get(k) != fz3.get(k))
+    want_seeds = {G.SEED + i for i in range(1, G.N_FILES + 1)}
+    seed_bad = sorted(a for a in G.ARMS
+                      if {r.get('seed') for r in rows if r['arm'] == a} != want_seeds)
+    A.append(('G-ENV 스레드[되읽기] · **행 시드 집합 되읽기** · 측정면 3중 동결 · 분석면 동결',
               meta.get('threads') == 1 and meta.get('threads_readback') == 1
-              and meta.get('seed') == G.SEED and bool(rec) and not drift
-              and frozen_drift == [],
-              f"threads={meta.get('threads_readback')} seed={meta.get('seed')} "
-              f"실행중드리프트 {len(drift)} · 동결드리프트 "
-              f"{len(frozen_drift) if frozen_drift != ['(FROZEN_md5.txt 없음)'] else 'N/A'}"))
+              and not seed_bad and bool(rec) and not run_vs_meta
+              and run_vs_fz0 == [] and ana_vs_fz3 == [],
+              f"threads={meta.get('threads_readback')} 시드위반팔 {len(seed_bad)} · "
+              f"측정면(런대비 {len(run_vs_meta)} · 0행동결대비 "
+              f"{'N/A' if run_vs_fz0 is None else len(run_vs_fz0)}) · 분석면 "
+              f"{'N/A' if ana_vs_fz3 is None else len(ana_vs_fz3)}"))
+
+    # ── 사후 점검 (⛔A3 §0: 결과를 본 뒤 추가했다. 막을 수만 있고 열 수는 없다) ──
+    dens = []
+    for r in rows:
+        if r.get('n_offered') != G.DENSITY * int(G.WIN_S):
+            dens.append(r['block']); continue
+        es = r.get('e_shape') or [0]
+        if es[0] < G.J0 + int(G.WIN_S):
+            dens.append(r['block']); continue
+        dt, tq = r.get('dt'), r.get('tq')
+        if dt is None or tq is None or abs(tq - (int(G.WIN_S) - 1) * dt) > 1e-9:
+            dens.append(r['block']); continue
+        if r['arm'] in ('SHIP', 'RESCALE') and r.get('n_frames') != int(G.WIN_S):
+            dens.append(r['block'])
+    A.append((f'★G-DENSITY [사후] 제공=={G.DENSITY}x{int(G.WIN_S)} · 창이 자료 안 · '
+              f'tq==(N-1)dt [되읽기]', not dens, f'위반 {len(dens)}'))
+    try:
+        mats = G.archive_mats()
+        pop = set(mats[G.POP_RANGE[0]:G.POP_RANGE[1]])
+        outside = sorted(set(G.sample()) - pop)
+    except Exception as e:                                            # noqa: BLE001
+        outside = [f'ERROR:{type(e).__name__}']
+    A.append((f'★G-POP [사후] 표본이 PREREG §4 모집단(mixed_data2 = idx '
+              f'{G.POP_RANGE[0]}-{G.POP_RANGE[1] - 1}) 안', not outside,
+              f'범위 밖 {len(outside)}'))
 
     probe = G.blocked_by([('★★G-NOLEAK 합성', False, ''), ('G-N 합성', False, ''),
                           ('G-ENV 합성', True, '')])
@@ -227,7 +272,10 @@ def main():
     A.append(('G-COV 게이트가 자료를 봤다', len(rows) > 0, f'rows={len(rows)}'))
 
     blocked = G.blocked_by(A)
-    lab = G.label(w_res, w_ship, w_ora) if not blocked else None
+    # ★A3 §6 벨트: `blocked_by()` **하나**에만 매달리지 않는다. V3 가 합성으로 그 함수를
+    #   무력화하니 `G-BLOCK` 이 FAIL 인데도 라벨이 인쇄됐다. 막을 수만 있는 변경이다.
+    all_ok = all(bool(o) for _, o, _ in A)
+    lab = G.label(w_res, w_ship, w_ora) if (not blocked and all_ok) else None
 
     # ── 기술통계 (⛔라벨을 만들지 않는다 — 다중성) ─────────────────────────────
     strata = {}
@@ -276,9 +324,19 @@ def main():
                         'null_label_probs': label_probs(0.5, 0.5)},
          'proposal_device': sorted({r.get('proposal_device') for r in rows
                                     if r.get('proposal_device')}),
+         'post_result_checks': ['G-DENSITY', 'G-POP', 'G-ENV(시드·분석면 동결)',
+                                'G-ATOMS(RESCALE 확장)', '라벨 인쇄 벨트 all(ok)'],
+         'amendments': ['AMENDMENT_1_PREDATA.md', 'AMENDMENT_2_PREDATA.md',
+                        'AMENDMENT_3_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)'],
          'label': lab, 'label_msg': lab or 'BLOCKED',
          'disclosures': [
              '⛔BAND-MISMATCH 는 **귀속**이지 "우리가 낫다/못하다" 가 아니다',
+             '⛔E2 와 대각선 비교 금지 — 읽는 것은 "각자 남의 자료에서 어느 밀도부터" 다 '
+             '(PREREG §6 의무 공시)',
+             '⛔저들 논문의 수치와 비교 금지(채점·격자·기준이 다르다) (PREREG §6 의무 공시)',
+             '⛔solver 미명시 — "HOS"·"완전 비선형" 이라 쓰지 않는다 (PREREG §6 의무 공시)',
+             '⚠예산 비대칭: 제안 단계는 프레임당 8,000 관측 중 캡 400 만 쓴다 — '
+             '"고른 400" 과 "있는 것 전부" 는 다르다 (AMENDMENT_1 §6.4)',
              '⛔RESCALE 을 실제 성능으로 인용 금지 — 단위를 바꾼 사고실험이다',
              f'⛔음성 라벨(NEITHER-DETECTED / NO-INFORMATION-IN-OBS)은 **검출 불가**이지 '
              f'폐쇄가 아니다 — 인용 시 MDE q80={G.MDE_Q80} 병기 의무 '
@@ -305,6 +363,13 @@ def main():
              '⛔wall_s 를 팔 간 비교에 쓰지 마라',
              '⚠제안 단계의 device 는 config 가 정하지 않는다(propose_atoms 가 '
              'cuda-if-available 로 자기가 고른다) — 행의 proposal_device 를 볼 것',
+             '⚠사전등록 예측 label_probs 의 NEITHER-DETECTED 0.2136 은 실제로 '
+             '**NEITHER-DETECTED + NO-INFORMATION-IN-OBS 의 합**이다 — D-3 가 ORACLE 을 '
+             '사다리에 넣으면서 §2 예측에는 넣지 않았다. ⛔둘의 분해는 **미등록**이고 '
+             'q_oracle 을 사후에 정하지 않는다 (AMENDMENT_3 §5)',
+             '⚠AMENDMENT_3 은 **결과 이후** 개정이다 — post_result_checks 의 게이트들은 '
+             '결과를 본 뒤 추가됐다. ⛔사전등록 차단 게이트로 세지 마라. '
+             '(막을 수만 있고 열 수는 없으며, run_t11.py·임포트·체크포인트는 무수정)',
              '⚠경사 클램프 비대칭: AMENDMENT_2 §6c 는 RESCALE 이 닿을 것이라 **예측했으나 '
              '실측은 반대**다(SHIP 발화, RESCALE 0) — clamp_hits_by_arm 을 볼 것. '
              '⛔이 비대칭을 성능 차의 원인으로 지목하지 마라(미측정)',

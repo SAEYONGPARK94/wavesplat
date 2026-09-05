@@ -112,6 +112,20 @@ def _judge_files(d):
     return {os.path.realpath(p) for p in need}
 
 
+# ★배치 **약칭** 별칭 — `T15` 가 동결 키를 `T12/run_t12.py` 처럼 **디렉터리 약칭**으로
+#   적었다(실제 이름은 `T12_ISOLATE_2026-09-04`). ⟹ 경로 해소가 4건 실패했고
+#   그것들은 `skipped` 로 빠져 **영원히 대조되지 않았다**(25 중 21만 대조).
+#   ⛔**침묵시키는 별칭이 아니다** — 별칭으로 실제 파일을 찾은 뒤에도 **해시는 그대로 대조**한다.
+#   어긋나면 종전과 같이 실패한다. 별칭이 하는 일은 *"못 찾아서 건너뛴다"* 를
+#   *"찾아서 대조한다"* 로 바꾸는 것뿐이다.
+#   ⚠새 배치는 **약칭을 쓰지 마라** — `T17` 처럼 실제 상대경로로 적으면 별칭이 필요 없다
+#   (`T17` 은 38/38 해소된다). 이 표는 **이미 동결된 과거**를 위한 것이다.
+DIR_ALIAS = {
+    'T12': 'T12_ISOLATE_2026-09-04',
+    'W15': 'W15_DEPLOY_VERIFY_2026-08-22',
+}
+
+
 def _resolve(d, tgt):
     """`FROZEN_md5*.txt` 의 경로를 실제 파일로 푼다.
 
@@ -129,6 +143,14 @@ def _resolve(d, tgt):
         p = os.path.normpath(os.path.join(base, tgt))
         if os.path.exists(p):
             return p
+    # ★약칭 별칭 — 첫 조각이 별칭이면 실제 디렉터리로 갈아 끼우고 **다시** 위 순서를 탄다.
+    head, sep, rest = tgt.partition('/')
+    if sep and head in DIR_ALIAS:
+        alias = DIR_ALIAS[head] + '/' + rest
+        for base in (d, os.path.dirname(d), os.path.dirname(os.path.dirname(d))):
+            p = os.path.normpath(os.path.join(base, alias))
+            if os.path.exists(p):
+                return p
     return None
 
 

@@ -74,6 +74,10 @@ CHECKS = [
     #   (오늘 테스트를 둘 추가하자 `\DeployNumTests` 가 261 로 낡았다).
     #   ★재생성이 곧 검사다 --- git 이 차이를 보여준다.
     ('학위 상수 재생성', [PY, 'scripts/gen_deploy_constants.py']),
+    # ★[2026-09-05] `T11`~`T14` 상수. 학위논문에만 들어가므로 `paper_constants` 가
+    #   아니라 별도 파일이다(두 원고의 개정 주기를 묶지 않는다). 동결 verdict 와
+    #   어긋나면 `AssertionError` 로 죽는다 --- ★재생성이 곧 검사다.
+    ('학위 T11--T14 상수 재생성', [PY, 'scripts/gen_thesis_t11t14_constants.py']),
     # ★[2026-09-02] 해상상태 표 생성기 --- ⛔학위논문이 **시뮬레이터에 없는 해상상태**를
     #   네 자리에 인쇄하고 있었다(BF3 0.88/5.0 · BF4 1.88/7.5 vs 코드 0.6/5.5 · 1.2/7.0).
     #   이 생성기는 `SEA_STATE` 를 임포트하고 **실제 에피소드 파일과 대조**한다
@@ -148,7 +152,17 @@ FROZEN_EVIDENCE_KNOWN = {
 SHA256_KNOWN_FAIL = {'confirm40_2026-07-27', 'mixed_retrain_2026-07-26'}
 
 
-AUDIT_WARN_BASELINE = 36   # 늘어나면 실패, 줄어도 실패(기록 강제).
+AUDIT_WARN_BASELINE = 38   # 늘어나면 실패, 줄어도 실패(기록 강제).
+# ★[2026-09-05] 36 -> **38** 로 **의도적** 상향. 두 단위이고 사유가 다르다 ---
+#   ⛔둘을 하나로 뭉뚱그리지 않는다.
+#   (a) **+1 은 이 작업 이전에 이미 있었다.** `T11`~`T14` 학위논문 반영을 시작하기 전,
+#       아무것도 고치지 않은 상태에서 `run_all.sh` 를 돌려 **37**을 실측했다(기준선 36).
+#       ⚠그 시점의 작업트리는 `paper/` 가 다른 작업 단위 때문에 더러웠으므로
+#       **그 +1 의 출처를 이 작업에서 확정하지 못했다** --- 침묵시키지 않고 여기 적는다.
+#   (b) **+1 은 이 작업의 것이고 결함이 아니다.** `thesis/t11t14_constants.tex` 를
+#       신설해 `ls paper/*.tex thesis/*.tex` 가 10 -> **11** 이 되었고,
+#       `check_thesis_numbers.py` 는 **문서마다** 「(C) 값 일치 상한」 줄을 하나 낸다.
+#       ⟹ 34 -> 35 상향 때와 **같은 사유**(문서 수 증가)다. 확인 = 위 `ls` 가 11.
 # ⛔[2026-09-02 저녁] 종전 값 **35 는 한 번도 참이 아니었다.** 주석이 *"실측"* 이라
 #   적었지만, 그 값을 도입한 커밋 `b7b07d62` 에서 같은 표현으로 다시 세면 36 이고
 #   `041ea0e0`·`HEAD~1`·현재도 36 이다 --- ★경고 **집합이 동일**하고 학위논문
@@ -181,6 +195,49 @@ def check_audit_suite():
         print('         ⚠늘었으면 새 경고를 읽어라. 줄었으면 **의도적으로** 기준을 내려라.')
         return False
     print(f'  [OK  ] 감사 도구 묶음 (래칫: 경고 {n}건 그대로)')
+    return True
+
+
+# ★[2026-09-05] **시드 대역 충돌** — `tmp/_audit/check_seed_bands.py`.
+#   계기: `T16` 설계가 `T15` 와 **완전히 같은 밑변**을 골랐다. 설계 에이전트는 형제 시드를
+#   **동결 결과 파일**에서만 셌고 `T15` 는 같은 시각 동결 중이라 결과가 **아직 없었다**
+#   ⟹ 구조적으로 안 보였다. ★부류: *"형제를 결과로만 세면 동시에 만들어지는 형제는 안 보인다."*
+#   ⟹ 검사기가 **선언(소스 상수) + 관측(결과 행)** 을 둘 다 본다. `T16` 은 20261300 으로 옮겼다.
+#
+#   ⚠아래 넷은 **런이 끝난 배치**라 소급 수리가 불가능하다. 실측으로 확인한 범위:
+#     · 판정에 쓰이는 **모든 층 안에서 시드는 블록과 1:1** 이다(층별 감사 확인)
+#       ⟹ 부호검정의 블록 독립성은 이 사유로 깨지지 않는다.
+#     · 어떤 verdict 도 시드를 공유하는 **두 가족을 합치지 않는다**
+#       (`T12 SECR` 은 EXPLORATORY 이고 PRIMARY 와 별도 검정이다).
+#   ⛔그러므로 **"판정이 무효" 가 아니다.**
+#   ⚠★그리고 *"거짓 서술을 고쳐야 한다"* 도 **아니다** — 전수 확인 결과
+#   `T11`~`T14` 의 어느 문서도 **배치 간 시드 대역 서로소를 주장하지 않는다**
+#   (`T13/PREREG.md:97` 의 서로소 주장은 `FRESH-28` 대 `T11`+스모크에 한정되고 **참이다**;
+#   `T11/NOTE.md:118,138` 의 서로소는 **파일** 서로소이지 시드가 아니다).
+#   ⟹ 정확한 진술은 **"대역 서로소 규율이 어디에도 명시돼 있지 않았고 그래서 집행되지
+#   않았다"** 이다. 이제 기계가 집행한다. ⛔침묵시키지 않는다.
+SEED_BAND_KNOWN = {
+    'CROSS:T11_EXTACC_2026-09-03|T14_AUTOSCALE_2026-09-04',
+    'CROSS:T12_ISOLATE_2026-09-04|T14_AUTOSCALE_2026-09-04',
+    'CROSS:T13_DEPTHFIX_2026-09-04|T14_AUTOSCALE_2026-09-04',
+    'INTRA:T12_ISOLATE_2026-09-04:PRIMARY|SECR',
+}
+
+
+def check_seed_bands():
+    """시드 대역 이름집합 래칫 — 새 충돌이 들어오거나 기지 충돌이 사라지면 실패."""
+    r = subprocess.run([PY, 'tmp/_audit/check_seed_bands.py', '--keys'],
+                       cwd=ROOT, capture_output=True, text=True)
+    line = next((l for l in r.stdout.split('\n') if l.startswith('KEYS')), 'KEYS')
+    got = set(line.split()[1:])
+    if got != SEED_BAND_KNOWN:
+        print('  [FAIL] 시드 대역 (래칫)')
+        for k in sorted(got - SEED_BAND_KNOWN):
+            print(f'         ⛔새 충돌: {k}  — 밑변을 옮겨라(검사기가 안전한 밑변을 인쇄한다)')
+        for k in sorted(SEED_BAND_KNOWN - got):
+            print(f'         ⚠기지 충돌이 사라졌다: {k}  — 배치가 개명/삭제됐는지 확인')
+        return False
+    print(f'  [OK  ] 시드 대역 (래칫: 기지 {len(got)}건 그대로)')
     return True
 
 
@@ -268,6 +325,8 @@ def main():
         bad.append('배치 산출물')
     if not check_frozen_sha256():
         bad.append('FROZEN.sha256')
+    if not check_seed_bands():
+        bad.append('시드 대역')
     # ⚠[2026-09-02] **훅에서는 건너뛴다.** 실측 61 s 로 `--fast` 전체(93 s)를 지배했고,
     #   내가 이 파일에 스스로 적은 규칙(*"느린 훅은 사람이 `--no-verify` 로 우회한다"*)을
     #   어기고 있었다. ★경고 도구이므로 커밋마다 돌 필요가 없다 --- 전체 실행에는 남긴다.
@@ -279,7 +338,7 @@ def main():
         print('⚠래칫이 「개선」으로 실패했다면 기준선을 **의도적으로** 내려라 --- '
               '침묵시키지 마라.')
         return 1
-    print(f'✅{len(checks) + (2 if a.fast else 3)}종 전부 통과'
+    print(f'✅{len(checks) + (3 if a.fast else 4)}종 전부 통과'
           + (' (pytest 건너뜀)' if a.fast else ''))
     return 0
 

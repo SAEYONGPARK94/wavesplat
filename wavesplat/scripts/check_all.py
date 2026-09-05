@@ -322,6 +322,21 @@ MDE_KNOWN = {
     # ── ⚠판정 불가 (부호검정의 승률 MDE 가 아니다) ──────────────────────────
     'UNREGISTERED:M2_LOCTUNE_2026-08-28',
     'UNREGISTERED:R7_FLOOR_2026-09-03',
+    # ── T18 (2026-09-05 추가). ⛔`T18` 은 `round(mde_q(...), 4)` 로 **가까운 쪽**
+    #   반올림해서 규약(0.5 에서 **멀어지는** 쪽)보다 최대 **2.01e-04** 낮다.
+    #   ★라벨은 정수 문턱이 만들고 MDE 는 `disclosures`/`mde` 블록에만 들어가므로
+    #   **판정 불변**이다. 동결 배치라 고치지 않고 여기 등록한다(= 새 배치에만 규약 적용).
+    'T18_FACTORIAL_2026-09-05:SEC.SEC-A (사전-OFF 열의 양자화 효과, 무보정 단측).q80',
+    'T18_FACTORIAL_2026-09-05:SEC.SEC-B (양자화 열의 사전 효과, 무보정 단측).q80',
+    'T18_FACTORIAL_2026-09-05:SEC.SEC-C (신선 시드 45·46·47 · 앞 16, 무보정).q80',
+    'T18_FACTORIAL_2026-09-05:mde.I_q90',
+    'T18_FACTORIAL_2026-09-05:mde.SEC_q80',
+    'T18_FACTORIAL_2026-09-05:mde.SEC_q90',
+    'T18_FACTORIAL_2026-09-05:mde.SECC_q80',
+    'T18_FACTORIAL_2026-09-05:n_eff_table.16.q80',
+    'T18_FACTORIAL_2026-09-05:n_eff_table.20.q80',
+    'T18_FACTORIAL_2026-09-05:n_eff_table.28.q80',
+    'T18_FACTORIAL_2026-09-05:n_eff_table.44.q80',
 }
 
 

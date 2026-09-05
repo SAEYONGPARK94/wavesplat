@@ -1,0 +1,482 @@
+{
+ "batch": "T18-FACTORIAL",
+ "mode": "MAIN",
+ "kind": "CONFIRMATORY (축 I) + 구조 판별(축 II) — ⚠**blind 아님**: 네 칸 중 셋의 에피소드별 값이 설계자에게 열려 있고 이 배치의 상수 전부가 거기서 유도됐다. 미노출은 `A-Q` 열 하나뿐이다",
+ "n_rows": 912,
+ "n_error_rows": 0,
+ "n_runs_expected": 912,
+ "gates": [
+  {
+   "name": "★★G-ANCHOR-B22 `SHIP`·`L-C`·`A-C` 가 `B-22` 동결 `SHIP`·`LEARN`·`ANA-N` 을 에피소드 median-of-3 로 재현(T1=비트동일 · T2=상대차≤1e-09) + 참 제로필드 교차검증",
+   "pass_": true,
+   "detail": "T1 144 · T2 0 · 실패 [] · ZERO []"
+  },
+  {
+   "name": "★★G-ANCHOR-B16 `SHIP`·`L-Q` 가 `B-16` 동결 `SHIP-NOW`·`KGRID1` 을 재현",
+   "pass_": true,
+   "detail": "T1 96 · T2 0 · 실패 []"
+  },
+  {
+   "name": "★★G-LATTICE 동결끼리 `B16 SHIP-NOW == B22 SHIP` (⛔거짓이면 2×2 격자 자체가 정합하지 않는다) + 부수로 `B22 LEARN == B22 SHIP`(주입==인라인)",
+   "pass_": true,
+   "detail": "{\"n\": 48, \"ship_now_vs_ship\": {\"T1\": 48, \"T2\": 0, \"fail\": 0}, \"learn_vs_ship\": {\"T1\": 48, \"T2\": 0, \"fail\": 0}}"
+  },
+  {
+   "name": "★★G-SNAPFIRE 계수기 되읽기 — 스냅 팔 ['L-Q', 'A-Q'] **전건 발화** · 연속 팔 ['SHIP', 'L-C', 'A-C'] 전건 `None` · `dk` == `B16.DK1` (⚠손 반올림 리터럴, `2π/240` 재도출 편차 6.12e-08)",
+   "pass_": true,
+   "detail": "위반 [] · dk 편차 max 0"
+  },
+  {
+   "name": "★★G-ATOMSRC `atoms_source` 가 팔 규약과 일치 · `SHIP` 은 주입 0 · ★주입 팔 안에서 `atoms_md5` 가 (에피소드,시드)마다 **전부 다르다**(`T11 v1 BLOCKER-2` 캐시 누출 탐지)",
+   "pass_": false,
+   "detail": "출처 [] · 누출 ['A-C: 192셀 → md5 164종 (캐시 누출)', 'A-Q: 192셀 → md5 164종 (캐시 누출)']"
+  },
+  {
+   "name": "★★G-PAIRSRC 같은 에피소드·시드에서 `A-C`↔`A-Q` · `L-C`↔`L-Q` 의 `atoms_md5` 가 **동일** ⟹ 열 안의 유일한 차이가 `k_snap_dk` 임을 되읽기로 증명",
+   "pass_": true,
+   "detail": "짝 384 · 불일치 []"
+  },
+  {
+   "name": "★★G-FRAME 한 에피소드의 **다섯 팔 전부**가 `n_frames_scored`·`scored_t_first`·`scored_t_last` 동일 (⛔저장소의 옛 헤드라인을 죽인 1순위 사유가 프레임 불일치다)",
+   "pass_": true,
+   "detail": "불일치 []"
+  },
+  {
+   "name": "★★G-PROV `upd.arm_provenance()` 전건 `resolved_init_method == 'learned'` · 실측 게이트 **미발화** · 해소 완료 (⛔`W-12`/`D3` 재발 방지 · `E1` 빈 dict 사고 부류)",
+   "pass_": true,
+   "detail": "[]"
+  },
+  {
+   "name": "★G-DEPLOY 배포 상수 9종 — (a) **패키지** 단일출처가 `DEPLOY_EXPECTED` 핀과 일치(★진짜 트립와이어) · (b) 행의 `upd.config` 되읽기가 **그 팔이 등록한** 값과 일치 · (c) ★핀을 벗어나는 팔·키가 **등록된 이탈과 정확히 같다** — 사전등록 §1.2 가 결과 전에 적은 `ANA-N` 의 `learned_energy_thresh = 0.0` 을 **요구**한다(⛔허용이 아니다). ⚠(b) 의 `init_method` 항은 러너 강제값 되읽기라 **항진**이다(§6.4). ⚠개정 사유 = 사전등록 §6.1 이 §1.2 의 등록된 이탈을 예외로 적지 않아 **자기모순**이었고 **스모크가 그것을 잡았다**(`AMENDMENT_2_PREDATA.md`)",
+   "pass_": true,
+   "detail": "[] · 이탈 {'A-C': {'learned_energy_thresh': (0.0, 0.03)}, 'A-Q': {'learned_energy_thresh': (0.0, 0.03)}}"
+  },
+  {
+   "name": "★G-DEPTH `upd.depth`(= `loader.depth`) 되읽기가 유한·양수이고 **에피소드 안에서 팔 간 동일** (⛔`B-2` 수심 17→30 사건 부류: 값이 바뀌면 하류 판정이 뒤집혔다)",
+   "pass_": true,
+   "detail": "이상 [] · 갈림 [] · 값 [50.0]"
+  },
+  {
+   "name": "★★G-MAXN 다섯 팔이 **풀링 상한**(`resolve_pool_cap`)과 **성장 천장**(`resolve_growth_ceiling`)을 **둘 다** 배포값 30 으로 공유하고 `upd.max_n` 별칭이 후자와 일치 (⚠2026-09-05 `a6eb5ba` 가 한 키를 둘로 쪼갰다 ⟹ 사전등록의 한-역할 판은 개정됐다. 갈리면 이 배치는 **성장과 교락된 3인자 설계**가 된다)",
+   "pass_": true,
+   "detail": "[] · pool [30] · grow [30]"
+  },
+  {
+   "name": "★G-CORPUS 표본을 `gates_b22.episodes()` 에서 **임포트**하고 실물 해소 · 중복 행 0 · `B-16` 동결 행의 에피소드 집합과 **동일**",
+   "pass_": true,
+   "detail": "행 에피소드 48 / 기대 48 · 누락 [] · 중복 [] · B16 집합 동일 True"
+  },
+  {
+   "name": "★G-MESH 행의 `mesh_verdict` 집계 == HDF5 재집계 (본 판정에서는 `gates_b22.MESH_EXPECTED` 핀과도 일치) — ⚠`DEGRADED` 셀은 사실상 2차 비선형이다. ⛔표본을 *\"HOS M=3 비선형 참값\"* 으로 **단일 서술하지 마라**",
+   "pass_": true,
+   "detail": "행 {'DEGRADED': 17, 'ADEQUATE': 31} vs HDF5 {'DEGRADED': 17, 'ADEQUATE': 31} vs 핀 {'ADEQUATE': 31, 'DEGRADED': 17} (핀대조 True)"
+  },
+  {
+   "name": "★G-SIBLING `(episode, arm→앵커별칭, est_seed, k_snap_dk, atoms_md5)` 교집합 — ★앵커 팔은 **의도적 재현**이라 예외 목록에 명시하고, ★`A-Q` 는 **전건 신규**여야 한다",
+   "pass_": true,
+   "detail": "앵커 별칭 적중 576 · ⛔비앵커 충돌 []"
+  },
+  {
+   "name": "G-FINITE 전 행 `avg_nRMSE`·`zero_nRMSE` 가 유한·양수 (⛔`NaN` 은 조용히 패배가 되고, `d_i` 는 로그라 0 이면 정의되지 않는다) · 예외 행 0",
+   "pass_": true,
+   "detail": "이상 [] · 예외행 0"
+  },
+  {
+   "name": "G-N 팔·층별 행 수 = PRIMARY 5×48×3=720 · `SEC-C` 4×16×3=192 · 합 912",
+   "pass_": true,
+   "detail": "{'PRIMARY/A-C': 144, 'PRIMARY/A-Q': 144, 'PRIMARY/L-C': 144, 'PRIMARY/L-Q': 144, 'PRIMARY/SHIP': 144, 'SEC-C/A-C': 48, 'SEC-C/A-Q': 48, 'SEC-C/L-C': 48, 'SEC-C/L-Q': 48}"
+  },
+  {
+   "name": "G-ENV 스레드 되읽기 1 · 층별 추정기 시드 집합 · 체크포인트 `sha256` 단일 · `FROZEN*.txt` 30항 대조 (★측정면/분석면 **분리**)",
+   "pass_": true,
+   "detail": "[] · 동결 [] · ckpt ['636c72a797ee6d0b725449293d5cd230dbd64c8eb03e345da4561b0c265239d9']"
+  },
+  {
+   "name": "G-DOSE [기록 전용] 팔별 `k_snap` 이동량·셀 수 = `SEC-DOSE` 원자료. ⚠**두 열의 개입 용량이 같다는 보장이 없다**(사전등록 §9.3-4) — 크게 갈리면 「교호작용」의 일부는 **용량 차이**이고 그때 라벨은 `EXPLORATORY` 다",
+   "pass_": true,
+   "detail": "{\"L-Q\": {\"n\": 192, \"shift_median\": 0.01046, \"shift_max\": 0.018278, \"cells_median\": 20.0, \"atoms_median\": 21.0}, \"A-Q\": {\"n\": 192, \"shift_median\": 0.01023, \"shift_max\": 0.018179, \"cells_median\": 12.5, \"atoms_median\": 13.0}}"
+  },
+  {
+   "name": "G-NSEL [기록 전용] `auto_n_selected` 팔별 분포 = §1.2 **개수 일치**의 되읽기 (⛔`ANA` 를 칸으로 썼다면 여기서 6배 차이가 났을 것이다)",
+   "pass_": true,
+   "detail": "{\"SHIP\": {\"median\": 19.0, \"sat\": 23, \"n\": 144}, \"L-C\": {\"median\": 19.0, \"sat\": 24, \"n\": 192}, \"L-Q\": {\"median\": 19.0, \"sat\": 24, \"n\": 192}, \"A-C\": {\"median\": 19.0, \"sat\": 24, \"n\": 192}, \"A-Q\": {\"median\": 19.0, \"sat\": 24, \"n\": 192}}"
+  },
+  {
+   "name": "G-VARPRO [기록 전용] `varpro_fired` 네 칸 전건 True 기대 · 목적함수 전/후",
+   "pass_": true,
+   "detail": "{\"SHIP\": {\"fired\": 144, \"n\": 144}, \"L-C\": {\"fired\": 192, \"n\": 192}, \"L-Q\": {\"fired\": 192, \"n\": 192}, \"A-C\": {\"fired\": 192, \"n\": 192}, \"A-Q\": {\"fired\": 192, \"n\": 192}}"
+  },
+  {
+   "name": "G-CEIL [기록 전용] `z_i`·`CEIL_i`·`n_over_ceiling` = 축 II 원자료 (★**병기 의무 대상** — 초가법 라벨은 `n_over_ceiling` 없이 인용 금지)",
+   "pass_": true,
+   "detail": "z 중앙 {\"SHIP\": 0.5134, \"L-C\": 0.5134, \"L-Q\": 0.8853, \"A-C\": 1.159, \"A-Q\": 1.1928} · CEIL 중앙 1.3057 · n_over_ceiling 12"
+  },
+  {
+   "name": "G-WALL [기록 전용] 팔별 `wall_s` 중앙 — ⛔**팔 간 비교 금지**(`torch.set_num_threads(1)` 은 BLAS 를 제약하지 않는다)",
+   "pass_": true,
+   "detail": "{\"SHIP\": 9.32, \"L-C\": 6.84, \"L-Q\": 6.79, \"A-C\": 8.03, \"A-Q\": 8.0}"
+  },
+  {
+   "name": "G-GROW [기록 전용] ★**성장 분기 진입 횟수**를 센다 — ⛔호출 횟수가 아니다 (`sequential_update.py:1675-1681` 이 축자로 그렇게 요구했다: *\"A per-call counter does NOT detect that … Count the BRANCH.\"*). ⚠팔 간 진입률이 크게 갈리면 「교호작용」의 일부가 **성장**이다 ⟹ 라벨을 `EXPLORATORY` 로 강등",
+   "pass_": true,
+   "detail": "{\"SHIP\": {\"calls\": 144, \"branch\": 121, \"passed\": 88, \"atoms\": 367}, \"L-C\": {\"calls\": 192, \"branch\": 168, \"passed\": 113, \"atoms\": 474}, \"L-Q\": {\"calls\": 192, \"branch\": 168, \"passed\": 113, \"atoms\": 474}, \"A-C\": {\"calls\": 192, \"branch\": 192, \"passed\": 192, \"atoms\": 2007}, \"A-Q\": {\"calls\": 192, \"branch\": 192, \"passed\": 192, \"atoms\": 2007}}"
+  },
+  {
+   "name": "★G-COV 사전등록 §6 게이트 표 ↔ 구현 **1:1** · 등록 상수 드리프트 0 · ★§3.4 **병기 의무** 자가검사(축 I 진술에 `SEC-A`/`SEC-B` · 아가법에 축 II 원자료 · 초가법에 `n_over_ceiling` · 음성에 MDE) · 게이트가 자료를 봤다",
+   "pass_": true,
+   "detail": "이상 없음 · rows=912"
+  },
+  {
+   "name": "★G-BLOCK `blocked_by()` 자가진단 — **분석기가 실제로 낸 이름 전건**(자기 자신 포함) + 등록된 전 이름을 합성 위반 튜플로 넣어 빈 리스트가 아님을 확인 [긴 이름 우선] (⛔`T5-ENS` 의 *\"항상 빈 리스트\"* 재발 방지)",
+   "pass_": true,
+   "detail": "미포착 [] · 접힘 []"
+  }
+ ],
+ "gates_pass": "24/25",
+ "blocked_by": [
+  "G-ATOMSRC"
+ ],
+ "primary": {
+  "stat": "W+ = #{i : d_i > 0}, d_i = ln(y(A-Q)·y(L-C)/(y(A-C)·y(L-Q)))",
+  "direction": "양측 (두 꼬리에 서로 다른 라벨)",
+  "w_plus": 3,
+  "n": 48,
+  "n_tied": 0,
+  "n_eff": 48,
+  "k_star": 32,
+  "tie_abs": 1e-12,
+  "p_two_sided": 1.312585595769633e-10,
+  "median_d": -0.390147,
+  "q80": 0.7109
+ },
+ "axis_II": {
+  "median_ln_r": 0.030944,
+  "eq_band": 0.04879,
+  "T_INERT": true,
+  "median_z": 1.192823,
+  "median_CEIL": 1.305676,
+  "T_CEIL": false,
+  "n_over_ceiling": 12
+ },
+ "positive_control": {
+  "stat": "W[L-C < ZERO]",
+  "w": 48,
+  "n": 48,
+  "thresh": 32,
+  "p": 3.552713678800501e-15,
+  "pass": true
+ },
+ "SEC": {
+  "SEC-A (사전-OFF 열의 양자화 효과, 무보정 단측)": {
+   "stat": "W[A-C < A-Q]",
+   "w": 35,
+   "n": 48,
+   "thresh": 31,
+   "p": 0.0010440536669982237,
+   "q80": 0.6911
+  },
+  "SEC-B (양자화 열의 사전 효과, 무보정 단측)": {
+   "stat": "W[L-Q < A-Q]",
+   "w": 46,
+   "n": 48,
+   "thresh": 31,
+   "p": 4.1815439999481896e-12,
+   "q80": 0.6911
+  },
+  "SEC-IDENT (⚠항진 — 로그의 항등식)": {
+   "n_ident_flip": 0
+  },
+  "SEC-C (신선 시드 45·46·47 · 앞 16, 무보정)": {
+   "w_plus": 1,
+   "n_eff": 16,
+   "n_tied": 0,
+   "k_star": 13,
+   "sign_agrees_with_axis_I": true,
+   "q80": 0.8529
+  },
+  "SEC-CEIL": {
+   "median_z": 1.192823,
+   "median_CEIL": 1.305676,
+   "n_over_ceiling": 12
+  },
+  "SEC-DOSE": "{\"L-Q\": {\"n\": 192, \"shift_median\": 0.01046, \"shift_max\": 0.018278, \"cells_median\": 20.0, \"atoms_median\": 21.0}, \"A-Q\": {\"n\": 192, \"shift_median\": 0.01023, \"shift_max\": 0.018179, \"cells_median\": 12.5, \"atoms_median\": 13.0}}",
+  "SEC-STRAT (⛔기술통계 — 층 n 이 작아 라벨을 만들지 않는다)": {
+   "bf": {
+    "BF4": {
+     "n": 24,
+     "w_plus": 1
+    },
+    "BF5": {
+     "n": 24,
+     "w_plus": 2
+    }
+   },
+   "ncomp": {
+    "15": {
+     "n": 24,
+     "w_plus": 2
+    },
+    "30": {
+     "n": 24,
+     "w_plus": 1
+    }
+   },
+   "mesh_verdict": {
+    "ADEQUATE": {
+     "n": 31,
+     "w_plus": 2
+    },
+    "DEGRADED": {
+     "n": 17,
+     "w_plus": 1
+    }
+   }
+  }
+ },
+ "A-C_vs_ZERO (⚠사전-OFF 열은 무기술 열이다)": {
+  "w": 13,
+  "n": 48
+ },
+ "thresholds": {
+  "I": 32,
+  "SEC": 31,
+  "CTRL": 32,
+  "SECC": 13,
+  "N_EFF_UNPOWERED": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ "mde": {
+  "I_q50": 0.6552,
+  "I_q80": 0.7109,
+  "I_q90": 0.7384,
+  "SEC_q50": 0.6345,
+  "SEC_q80": 0.6911,
+  "SEC_q90": 0.7193,
+  "SECC_q80": 0.8529
+ },
+ "n_eff_table": {
+  "48": {
+   "k": 32,
+   "q80": 0.7109
+  },
+  "44": {
+   "k": 29,
+   "q80": 0.7051
+  },
+  "40": {
+   "k": 27,
+   "q80": 0.7216
+  },
+  "36": {
+   "k": 25,
+   "q80": 0.7413
+  },
+  "32": {
+   "k": 23,
+   "q80": 0.7653
+  },
+  "28": {
+   "k": 20,
+   "q80": 0.763
+  },
+  "24": {
+   "k": 18,
+   "q80": 0.7969
+  },
+  "20": {
+   "k": 15,
+   "q80": 0.7987
+  },
+  "16": {
+   "k": 13,
+   "q80": 0.8529
+  },
+  "12": {
+   "k": 10,
+   "q80": 0.8693
+  },
+  "8": {
+   "k": 8,
+   "q80": 0.9725
+  },
+  "6": {
+   "k": 6,
+   "q80": 0.9635
+  }
+ },
+ "design_constants": {
+  "n": 48,
+  "MED_Q1": 0.487899,
+  "SD_Q1": 0.328959,
+  "Q1_POS": 46,
+  "MED_PR": 0.665534,
+  "SD_PR": 0.361497,
+  "PR_POS": 48,
+  "RHO": 0.713794,
+  "CEIL_MED": 1.305676,
+  "CEIL_MAX": 2.13628,
+  "SOFT_CEIL": 1.414214,
+  "ADD_NULL_MED": 1.695588,
+  "ADD_NULL_MIN": 0.694645,
+  "ADD_NULL_MAX": 3.929781,
+  "ADD_OVER_SOFT": 37,
+  "ADD_OVER_EPCEIL": 43,
+  "ADD_OVER_GLOBAL": 15
+ },
+ "prediction": {
+  "inputs": {
+   "MED_Q1": 0.4879,
+   "SD_Q1": 0.329,
+   "MED_PR": 0.6655,
+   "RHO": 0.7138
+  },
+  "q_registered": [
+   0.00375168749993382,
+   0.8364731119710425
+  ],
+  "label_probs": {
+   "ANCHOR-DID-NOT-REPRODUCE": 0.020000000000000018,
+   "CONTROL-DID-NOT-REPLICATE": 9.799999999998921e-05,
+   "COMBINATION-SUPERADDITIVE": 4.945705170840628e-66,
+   "SUBADDITIVE-QUANT-BELOW-SCALE-WITHOUT-PRIOR": 0.7349264999999999,
+   "SUBADDITIVE-AT-CEILING": 0.14698529999999999,
+   "SUBADDITIVE-PARTIAL": 0.0979902,
+   "NO-INTERACTION-DETECTED": 0.0,
+   "INTERACTION-UNDER-POWERED": 0.0,
+   "_meta": {
+    "q": 0.00375168749993382,
+    "n": 48,
+    "k_star": 32,
+    "sum": 0.9999999999999999
+   }
+  },
+  "null_label_probs": {
+   "ANCHOR-DID-NOT-REPRODUCE": 0.020000000000000018,
+   "CONTROL-DID-NOT-REPLICATE": 9.799999999998921e-05,
+   "COMBINATION-SUPERADDITIVE": 0.01435798795067005,
+   "SUBADDITIVE-QUANT-BELOW-SCALE-WITHOUT-PRIOR": 0.010768490963002537,
+   "SUBADDITIVE-AT-CEILING": 0.0021536981926005075,
+   "SUBADDITIVE-PARTIAL": 0.0014357987950670051,
+   "NO-INTERACTION-DETECTED": 0.9511860240986598,
+   "INTERACTION-UNDER-POWERED": 0.0,
+   "_meta": {
+    "q": 0.5,
+    "n": 48,
+    "k_star": 32,
+    "sum": 0.9999999999999999
+   }
+  },
+  "detect_power_H_syn": 0.9788637038439497,
+  "sensitivity": {
+   "0.004": {
+    "superadditive": 3.908705147780363e-65,
+    "subadditive": 0.9999999999999998,
+    "null": 2.220446049250313e-16
+   },
+   "0.05": {
+    "superadditive": 2.3710184949880003e-30,
+    "subadditive": 0.9999999999274448,
+    "null": 7.255518408300077e-11
+   },
+   "0.15": {
+    "superadditive": 7.893168353389745e-16,
+    "subadditive": 0.9996157191396442,
+    "null": 0.00038428086035502407
+   },
+   "0.25": {
+    "superadditive": 1.4566399046384252e-09,
+    "subadditive": 0.9295595518669452,
+    "null": 0.07044044667641491
+   },
+   "0.35": {
+    "superadditive": 7.886386136881508e-06,
+    "subadditive": 0.46993248305846386,
+    "null": 0.5300596305553993
+   },
+   "0.5": {
+    "superadditive": 0.01465247336026465,
+    "subadditive": 0.01465247336026465,
+    "null": 0.9706950532794707
+   },
+   "0.65": {
+    "superadditive": 0.46993248305846386,
+    "subadditive": 7.886386136881508e-06,
+    "null": 0.5300596305553992
+   },
+   "0.75": {
+    "superadditive": 0.9295595518669452,
+    "subadditive": 1.4566399046384252e-09,
+    "null": 0.07044044667641493
+   },
+   "0.837": {
+    "superadditive": 0.9989789982295515,
+    "subadditive": 8.899944518338196e-15,
+    "null": 0.0010210017704396042
+   },
+   "0.9": {
+    "superadditive": 0.9999980061722803,
+    "subadditive": 4.414917870712979e-21,
+    "null": 1.993827719704018e-06
+   }
+  },
+  "family_cost": {
+   "2x2_family1": {
+    "tail_alpha": 0.025,
+    "k": 32,
+    "q80": 0.7109,
+    "primary_runs": 720
+   },
+   "2x2_family3": {
+    "tail_alpha": 0.008333333333333333,
+    "k": 33,
+    "q80": 0.7305,
+    "primary_runs": 720
+   },
+   "2x2x2_family7": {
+    "tail_alpha": 0.0035714285714285718,
+    "k": 34,
+    "q80": 0.75,
+    "primary_runs": 1296
+   }
+  }
+ },
+ "incomplete_cells": {
+  "PRIMARY": [],
+  "SEC-C": []
+ },
+ "label_raw": "SUBADDITIVE-QUANT-BELOW-SCALE-WITHOUT-PRIOR",
+ "label": null,
+ "label_msg": "BLOCKED",
+ "label_kind": "STRUCTURAL",
+ "disclosures": [
+  "⛔[§0.3-1 · §9.2-1] **외부 기준선 대비 우위를 재지 못한다** — 네 팔이 전부 우리 팔 안의 절제이고 외부 기준선 행이 **0개**다. 어떤 결과도 *\"우리가 남보다 낫다\"* 로 읽지 마라. 이 배치가 내는 것은 **귀속**이다.",
+  "⛔[§0.3-2 · §9.2-5] **합성 혼잡 층 한정** — 희소·실측·비혼잡으로 외삽 금지.",
+  "★[§3.4] **축 I 의 모든 진술에 병기**: `SEC-A`(사전-OFF 열의 양자화 효과) 35/48 · `SEC-B`(양자화 열의 사전 효과) 46/48 — ⛔둘 다 **무보정**이고 ⛔유의해도 확증으로 승격하지 마라(§9.2-6, 새 사전등록으로만).",
+  "★[§3.2 원자료] median ln r = 0.030944 (등가 밴드 ±0.048790) · median z = 1.1928 · median CEIL = 1.3057 · n_over_ceiling = 12.",
+  "⛔[§9.2-9] **`d_i` 의 중앙값을 「효과 크기」로 단독 인용 금지** — 천장이 그것을 압축한다.",
+  "⛔[§0.3-3 · §3.6] ★**이 설계는 자기가 만들어진 질문에 답하지 못할 공산이 크다고 결과 전에 스스로 적었다**: 가법 널이 43/48 에피소드에서 관측 범위 밖이라 등록 예측 아래 `P(COMBINATION-SUPERADDITIVE)` = 인쇄 정밀도로 **0.000000** 이다. ⟹ 등록된 산출물은 축 I 이 아니라 **축 II**(`A-Q` 의 착지)다. ⛔결과 뒤에 이 문단을 다시 쓰지 마라. ⚠단 **검정력이 없지는 않다** — 반대 가설(반쪽 synergy) 아래 검출확률 0.9789. ⛔이 둘을 바꿔 쓰지 마라.",
+  "⛔[§9.2-4] **아가법 결과를 「기제」로 읽지 마라** — §0.4 가 결과 전에 그것을 **척도**로 예측했다. MDE 병기: 축 I q80=0.7109 · SEC q80=0.6911 · `SEC-C` q80=0.8529 (⛔`M8b` 선례 — **섞지 마라**).",
+  "⚠[§3.4 · §9.3-7] **`A-C` 는 참 제로필드를 이기지 못한다** — 이 배치 실측 13/48 ⟹ 사전-OFF 열 전체가 **무기술 열**이다. 모든 진술에 병기한다.",
+  "⚠[§3.4] `SEC-C`(신선 시드 45·46·47 · 앞 16) 1/16 · 축 I 과 부호일치 True — ⛔부호가 갈리면 라벨은 `EXPLORATORY` 로 강등된다. ⛔독립 확증 아님.",
+  "⚠[§9.3-1] ★★**blind 아님, 그리고 그 정도가 크다.** 설계자는 네 칸 중 **셋의 에피소드별 값을 전부 열었고** `MED_Q1`·`SD_Q1`·`MED_PR`·`RHO`·`CEIL` 이 거기서 유도됐다 ⟹ ⛔*\"out-of-sample\"·\"held-out\"·\"blind\"* 자구 **금지**. 미노출은 `A-Q` 열 하나뿐.",
+  "⚠[§9.3-2] **등록 예측 자체가 노출의 산물이다** — ⛔*\"독립 예측\"* 금지. ⚠[§9.3-3] `ρ` = 0.7138 는 **미관측 대리값**(사전-ON 열의 상관을 사전-OFF 열에 빌렸다) ⟹ 민감도를 4열로 적었다. ⛔사후 검정력 주장에 쓰지 마라.",
+  "★⚠[§9.3-4 · §11-2] **개입 용량이 두 열에서 같다는 보장이 없다** — `SEC-DOSE` 를 병기 의무로 걸었다. ⛔크게 갈리면 「교호작용」의 일부는 **용량 차이**이고 라벨은 `EXPLORATORY` 다. ⚠그리고 스모크에서 그 값을 **먼저 봤다** — 그만큼 추가 노출이다(사전등록 §11-2 가 요구한 기재).",
+  "⚠[§9.3-5] `DK1 = 0.02618` 은 **손 반올림 리터럴**이다(`gates_b16` 에서 임포트, `2π/240` 재도출 편차 6.12e-08). **등방 스냅**이라 y 축에서는 기준선 격자보다 고운 격자를 준 셈 = **우리 팔에 유리**하다.",
+  "⚠[§9.3-6] **자국 코퍼스는 배포 체크포인트의 학습 봉투다** ⟹ 결과는 *\"자국은 사전의 학습 분포다\"* 와 **분리되지 않는다**.",
+  "⚠[§9.2-2] ⛔**「사전」 인자를 단일 노브라고 쓰지 마라** — `ANA-N` 은 원자 출처 **와** `learned_energy_thresh = 0` 의 묶음이다. ⛔*\"제안원 하나만 다르다\"* 는 개수가 어긋나는 `ANA` 팔에서만 참이었다(§11-5: 둘 중 **덜 나쁜 교락**을 골랐다).",
+  "⛔[§9.2-3] **`B-16 −38.607%` 와 `B-22 −48.586%` 를 이 배치의 계수와 산술 결합하지 마라** (`P8` 감사가 `\\BOneRel`/`\\BSixteenRel` 에서 같은 부류를 잡았다).",
+  "⛔[§9.2-7 · §9.2-8] 이 배치는 `B-16`·`B-22`·`B-20b` 의 판정을 **대체하지 않는다**(교호작용을 재지 주변효과의 크기를 다시 재지 않는다) · **배포 권고 아님**(네 칸 중 셋이 절제 팔이다). ⛔[§9.2-10] 총량 표현 금지.",
+  "⚠[§10] 이 배치는 **전부 합성**이다 — 라우터가 `auto_switch_thresh = 0` 때문에 항상 `learned` 로 해소되고 실측 게이트는 발화하지 않는다(`G-PROV` 되읽기). ⛔어떤 결과도 실측 팔(`bank_mmse`)에 대한 진술이 아니고, ⛔라우팅 동작을 고치지 않는다(`W-12` 살아 있다).",
+  "⚠[§11-6 · G-GROW] **성장 분기가 팔마다 다른 횟수로 발화할 수 있다** — `max_n` 은 팔 간 동일하지만(`G-MAXN`) 시작 원자 수와 잔차가 다르면 진입 횟수가 갈린다. ⛔갈리면 「교호작용」의 일부가 **성장**이다.",
+  "⚠[개정 A1] **`G-MAXN` 은 사전등록 판보다 넓다** — 2026-09-05 `a6eb5ba` 가 `max_n` 을 `pool_cap`(풀링 상한)과 `growth_ceiling`(성장 천장) **두 이름으로 쪼갰다**. 사전등록 §6.1 은 한 역할만 되읽었다 ⟹ **결과 0행 시점의 사전 개정**으로 둘 다 되읽는다. ⛔이 개정은 §5 의 결정(제3인자를 넣지 않는다)을 바꾸지 않는다.",
+  "⚠[§9.3-8] 추정기 시드는 PRIMARY 층에서 **median-of-3 한 벌**뿐이다. 불완전 셀: PRIMARY 0 · SEC-C 0.",
+  "⚠[§9.3-9] `n_over_ceiling` 이 큰 초가법 결과는 「관측된 적 없는 나쁨」에 의존한다 — 그때는 ⛔*\"보수적\"* 이라는 §0.4 의 논증을 **인용하지 마라**.",
+  "⚠[§6.4] **항진으로 표기한 검사 둘**: `SEC-IDENT`(로그의 항등식 — ⛔증거 아님, 쓸모는 부호 뒤집힘 세기 하나) · `G-DEPLOY` 의 `init_method` 항(러너 강제값 되읽기).",
+  "⚠[§13] 이 배치는 **7자리 시드 밑변을 선언하지 않는다**(추정기 시드는 두 자리 리터럴 여섯 개뿐) ⟹ `check_seed_bands.py` 의 대역 원장에 나타나지 않는다. ⛔그것은 *\"검사됐다\"* 가 아니라 *\"검사 대상이 아니다\"* 라는 뜻이고, 진짜 방어는 `G-SIBLING` 이다."
+ ]
+}

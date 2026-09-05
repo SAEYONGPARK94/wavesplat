@@ -169,6 +169,47 @@ ENTRIES = [
                          ('REC_S', 12, 10), ('REC_D', 12, 11), ('DATE', 10, 9))
     for pw in (0.50, 0.80, 0.90)
 ] + [
+    # ── T18 (⛔`BLOCKED` = 라벨 없음. 차단은 `G-ATOMSRC` 이고 MDE 와 무관하다.)
+    #   n 출처 = `gates_t18.py`: 축 I·SEC 는 `N_EP=48`, `SEC-C` 는 `SECC_N_EP=16`.
+    #   ⚠`T18` 은 `round(mde_q(...), 4)` 로 **가까운 쪽** 반올림한다 ⟹ 넷이 규약보다
+    #   1e-4 수준으로 낮다(⛔라벨은 정수 문턱이 만들므로 **판정 불변**). 동결이라 고치지
+    #   않고 `MDE_KNOWN` 에 등록한다.
+    E('T18_FACTORIAL_2026-09-05', 'verdict_t18.json', f'mde.{tag}_q{int(pw * 100)}',
+      n, crit, pw, pin=f'json:thresholds.{pin}')
+    for tag, n, crit, pin in (('I', 48, 32, 'I'), ('SEC', 48, 31, 'SEC'),
+                              ('SECC', 16, 13, 'SECC'))
+    for pw in (0.50, 0.80, 0.90)
+    if not (tag == 'SECC' and pw != 0.80)
+] + [
+    # ⚠같은 양을 **두 번째로** 인쇄하는 곳(`T4`·`T16`·`T17` 과 같은 부류) — 둘 다 본다.
+    E('T18_FACTORIAL_2026-09-05', 'verdict_t18.json', 'primary.q80', 48, 32, 0.80,
+      pin='json:thresholds.I'),
+    E('T18_FACTORIAL_2026-09-05', 'verdict_t18.json',
+      'SEC.SEC-A (사전-OFF 열의 양자화 효과, 무보정 단측).q80', 48, 31, 0.80,
+      pin='json:thresholds.SEC'),
+    E('T18_FACTORIAL_2026-09-05', 'verdict_t18.json',
+      'SEC.SEC-B (양자화 열의 사전 효과, 무보정 단측).q80', 48, 31, 0.80,
+      pin='json:thresholds.SEC'),
+    E('T18_FACTORIAL_2026-09-05', 'verdict_t18.json',
+      'SEC.SEC-C (신선 시드 45·46·47 · 앞 16, 무보정).q80', 16, 13, 0.80,
+      pin='json:thresholds.SECC'),
+] + [
+    # ⚠`n_eff_table` 은 **`n` 이 dict 키**라 (A) 자기기술 탐지가 못 본다(`T16` 은 필드였다).
+    #   ⟹ 명시 등록. `k` 는 같은 블록에서 되읽는다.
+    E('T18_FACTORIAL_2026-09-05', 'verdict_t18.json', f'n_eff_table.{n}.q80',
+      n, k, 0.80, pin=f'json:n_eff_table.{n}.k')
+    #   ⛔★내가 여기 `k` 를 **손으로 적었다가 두 개 틀렸다**(36→24·24→17). `pin` 되읽기가
+    #   즉시 잡았다 — 이 검사기가 존재하는 이유가 정확히 그 부류다. 아래는 verdict 실측값이다.
+    for n, k in ((48, 32), (44, 29), (40, 27), (36, 25), (32, 23), (28, 20),
+                 (24, 18), (20, 15), (16, 13), (12, 10), (8, 8), (6, 6))
+] + [
+    # ⚠가족 비용표 — Holm 보정 후 꼬리 α 라 `k` 가 다르다(블록에서 되읽는다).
+    E('T18_FACTORIAL_2026-09-05', 'verdict_t18.json',
+      f'prediction.family_cost.{fam}.q80', n, k, 0.80,
+      pin=f'json:prediction.family_cost.{fam}.k')
+    for fam, n, k in (('2x2_family1', 48, 32), ('2x2_family3', 48, 33),
+                      ('2x2x2_family7', 48, 34))
+] + [
     # ⚠`T17` 도 같은 양을 **두 번** 인쇄한다(`mde` 블록 + `primary_family` 블록).
     #   ★둘 다 본다 — 한쪽만 고치면 통과하는 구멍을 만들지 않는다(`T4`·`T16` 선례).
     E('T17_REALSCALE_2026-09-05', 'verdict_t17.json',

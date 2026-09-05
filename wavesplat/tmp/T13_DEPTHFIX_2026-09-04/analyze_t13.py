@@ -287,7 +287,9 @@ def main():
     v = {'batch': 'T13-DEPTHFIX', 'kind': 'CONFIRMATORY',
          'amendments': ['AMENDMENT_1_PREDATA.md (결과 0행)',
                         'AMENDMENT_2_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)',
-                        'AMENDMENT_3_POSTRESULT.md (결과 이후 · 공시 + 동결 확장 · 새 런 0회)'],
+                        'AMENDMENT_3_POSTRESULT.md (결과 이후 · 공시 + 동결 확장 · 새 런 0회)',
+                        'AMENDMENT_4_POSTRESULT.md (결과 이후 · **공시만** 가산 · 새 런 0회 · '
+                        'A3 §3 이 부채로 남긴 PREREG §11 누락 공시를 갚는다)'],
          'post_result_checks': ['G-REPEAT (사전등록에 있었으나 초판 분석기에 없었다)',
                                 'G-ENV 측정면/분석면 분리',
                                 'G-FREEZE-EXT (러너 동결 목록 누락 3파일, AMENDMENT_3)'],
@@ -314,7 +316,13 @@ def main():
                                       'null_label_probs': G.label_probs(0.5, 0.5)},
          'proposal_device': dev, 'label': lab, 'label_msg': lab or 'BLOCKED',
          'disclosures': [
-             '⛔FIX 는 **하네스 처치**다 — 패키지에 없다. 이겨도 **배포 권고가 아니다**',
+             # ★AMENDMENT_4: PREREG §11 의 (i)(ii)(iii) 과 「비트 무연산」 사실이 떨어져 있었다.
+             '⛔FIX 는 **하네스 처치**다 — 패키지에 없다. 이겨도 **배포 권고가 아니다**: '
+             '배포는 (i) 패키지 수리(REACHABILITY §5 형태) (ii) test_shipping_defaults 핀 갱신 '
+             '(iii) 배포-후 게이트 출력 첨부(08-23 교훈 "측정한 구성 ≠ 배포한 구성") 가 있는 '
+             '**별도 결정**이다. ★단 그 수리는 자국 합성 코퍼스(110 에피소드 전부 d=50)에서 '
+             '**비트 무연산**이므로 기존 판정의 재확증은 요구하지 않는다 — 그 사실도 배포 '
+             '결정문이 다시 실측해야 한다 (PREREG §11)',
              '⛔⛔이 배치의 절반은 새 자료가 아니다 — T11-24 층의 FIX 24행이 T12 의 '
              'E-MAPDEPTH 24행과 **비트 동일**이다(nrmse·proposal_md5·seed 0/24 불일치, '
              'max|Δ|=0.0). 같은 처치를 같은 시드로 두 번 돌린 것이다. '
@@ -333,17 +341,45 @@ def main():
              '⚠두 다리(HELPS·HURTS) 가족 α = 0.0704 — 공시하고 보정하지 않는다',
              '⚠학습/추론 불일치: 체크포인트는 d=50 맵으로 학습됐다 ⟹ 처치가 자료-맵 정합을 '
              '고치면서 학습-추론 불일치를 만든다(군속도 비 0.74–0.89 ⟹ 방사 PSF 폭 ×1.13–1.35). '
-             '⛔크기는 **추정**이지 측정이 아니다 — 그래서 HURTS 다리와 음성대조를 뒀다',
+             '⛔크기는 **추정**이지 측정이 아니다 — 그래서 HURTS 다리와 음성대조를 뒀다. '
+             # ★AMENDMENT_4: PREREG §11 의 「지목 금지」와 허용 자구가 떨어져 있었다.
+             '⛔따라서 `FIX-HURTS` 를 "학습/추론 불일치가 원인" 으로 **지목** 금지 — 이 배치는 '
+             '불일치의 크기를 재지 않는다. 허용 자구 = "맵 수심을 자료에 맞추는 것만으로는 '
+             '배포 체크포인트에서 해가 된다" (PREREG §11). '
+             f'⚠단 이 배치의 라벨은 `FIX-HURTS` 가 **아니다**(FIX<SHIP w={w_fs} > 해침 문턱 '
+             f'{G.THRESH_HURT}) ⟹ 그 허용 자구조차 이 자료로는 쓸 수 없다',
              '⚠이미 존재하고 이 배치가 건드리지 않는 불일치가 더 크다: 개구/픽셀 비 ×2.6–3.1',
              '⚠T11-24 층은 SHIP·RESCALE·ZERO·ORACLE 값이 **공개된 상태**로 설계됐다 ⟹ '
              '⛔"완전 blind" 금지. FRESH-28 은 두 팔 다 미노출이나 ⚠Hs 가 3/25 로 치우쳤다',
              '⛔E2 와 대각선 비교 금지 · 저들 논문 수치와 비교 금지 · solver 미명시',
              '⚠Tp 가 전 파일 10.0 s ⟹ 한 주기 조건의 진술이다',
-             '⛔wall_s 를 팔 간 비교에 쓰지 마라 · proposal_device 는 config 가 정하지 않는다',
+             # ★AMENDMENT_4: PREREG §11 의 사유(BLAS 스레드)가 떨어져 있었다 — C9 가 이 토큰으로 FAIL 했다.
+             '⛔wall_s 를 팔 간 비교에 쓰지 마라(사유 = **BLAS 스레드**, T11 공시) · '
+             'proposal_device 는 config 가 정하지 않는다',
              '⚠층별·Hs별 진술은 **기술통계**이고 라벨을 만들지 않는다 '
              f'(T11-24 q80={G.MDE["q80_t11"]} · FRESH-28 q80={G.MDE["q80_fresh"]})',
              '⚠CTRL(RESCALE-FIX vs RESCALE)은 검정이 아니라 **섭동 잡음 바닥**이다. '
              'effect 가 floor 이하이면 라벨에 (WITHIN-PERTURBATION-FLOOR) 가 붙는다',
+             # ────────────────────────────────────────────────────────────────
+             # ★AMENDMENT_4 (결과 이후 · 순수 가산) — PREREG §11 의 의무 공시 중
+             #   verdict 에 **한 번도 실리지 않은** 셋. ⛔공시는 읽기를 좁힐 뿐
+             #   라벨을 만들지 못하므로 이 추가는 한 방향이다(막을 수만 있다).
+             # ────────────────────────────────────────────────────────────────
+             '⛔`FIX` 의 **절대 nRMSE 를 성능으로 인용 금지** — 읽는 것은 **짝 부호와 상대 '
+             '크기**뿐이다 (PREREG §11). ⟹ 이 verdict 의 `medians` 는 짝 비교의 재료이지 '
+             '성능값이 아니다',
+             f'⛔조건부 공시 — **발화하지 않았다(N/A)**: PREREG §11 은 `SKILL-FIX-UNDETECTED` '
+             f'를 **약한 칸**으로 등록하고, 그 칸이 나오면(FIX<ZERO 유의인데 FIX<SHIP 미검출) '
+             f'`SHIP<ZERO` 도 함께 인쇄해 **두 팔 다 기술 문턱 근처**임을 보이라고 요구했다 '
+             f'(F1 부류 경고). 실측은 SEC-A `FIX<ZERO` {w_fz}/{n_fz} 로 이김 문턱 '
+             f'{G.THRESH_WIN} 에 미달 ⟹ 라벨이 `FIX-UNDETECTED` 이고 **조건은 발화하지 '
+             f'않았다**. 그래도 `SHIP<ZERO` {w_sz}/{n_sz} 를 함께 싣는다 — ⚠`FIX`·`SHIP` '
+             f'어느 쪽도 `ZERO` 를 문턱 위에서 넘지 못한다',
+             '⚠**재학습(처치 3)은 미측정으로 남는다** — PREREG §11 은 이 배치가 '
+             '`FIX-HELPS-*` 를 내면 재학습의 사전등록 동기가 되고 `FIX-HURTS` 를 내면 '
+             '"맵만 고치면 된다" 가 죽는다고 적었다. 라벨이 `FIX-UNDETECTED` 이므로 '
+             '**어느 쪽도 아니다** ⟹ ⛔이 배치는 재학습의 결과를 예단하지 않으며, '
+             '재학습의 동기도 사망 선고도 만들지 않는다',
          ]}
     json.dump(v, open(os.path.join(OUTDIR, 'verdict_t13.json'), 'w'),
               ensure_ascii=False, indent=1)

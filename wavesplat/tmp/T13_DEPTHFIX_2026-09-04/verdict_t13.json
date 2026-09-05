@@ -4,7 +4,8 @@
  "amendments": [
   "AMENDMENT_1_PREDATA.md (결과 0행)",
   "AMENDMENT_2_POSTRESULT.md (결과 이후 · 분석기 전용 · 새 런 0회)",
-  "AMENDMENT_3_POSTRESULT.md (결과 이후 · 공시 + 동결 확장 · 새 런 0회)"
+  "AMENDMENT_3_POSTRESULT.md (결과 이후 · 공시 + 동결 확장 · 새 런 0회)",
+  "AMENDMENT_4_POSTRESULT.md (결과 이후 · **공시만** 가산 · 새 런 0회 · A3 §3 이 부채로 남긴 PREREG §11 누락 공시를 갚는다)"
  ],
  "post_result_checks": [
   "G-REPEAT (사전등록에 있었으나 초판 분석기에 없었다)",
@@ -241,19 +242,22 @@
  "label": "FIX-UNDETECTED (WITHIN-PERTURBATION-FLOOR)",
  "label_msg": "FIX-UNDETECTED (WITHIN-PERTURBATION-FLOOR)",
  "disclosures": [
-  "⛔FIX 는 **하네스 처치**다 — 패키지에 없다. 이겨도 **배포 권고가 아니다**",
+  "⛔FIX 는 **하네스 처치**다 — 패키지에 없다. 이겨도 **배포 권고가 아니다**: 배포는 (i) 패키지 수리(REACHABILITY §5 형태) (ii) test_shipping_defaults 핀 갱신 (iii) 배포-후 게이트 출력 첨부(08-23 교훈 \"측정한 구성 ≠ 배포한 구성\") 가 있는 **별도 결정**이다. ★단 그 수리는 자국 합성 코퍼스(110 에피소드 전부 d=50)에서 **비트 무연산**이므로 기존 판정의 재확증은 요구하지 않는다 — 그 사실도 배포 결정문이 다시 실측해야 한다 (PREREG §11)",
   "⛔⛔이 배치의 절반은 새 자료가 아니다 — T11-24 층의 FIX 24행이 T12 의 E-MAPDEPTH 24행과 **비트 동일**이다(nrmse·proposal_md5·seed 0/24 불일치, max|Δ|=0.0). 같은 처치를 같은 시드로 두 번 돌린 것이다. ⟹ \"T12 와 T13 이 **독립적으로** 같은 결론에 왔다\" 는 **거짓**이며 철회한다. PRIMARY 26/52 = 10/24(T12 행의 재판독) + 16/28(신규). 신규 절반만 보면 FIX<SHIP 16/28(문턱 19) · FIX<ZERO 13/28 · SHIP<ZERO 6/28 — 라벨은 불변. ⚠PREREG §3 표가 T11-24 층을 \"FIX 미노출\" 이라 적은 것은 작성 시점엔 참이었으나 T12 커밋 뒤 본실행에서는 거짓이다 (AMENDMENT_3 §1)",
   "⚠FRESH-28 의 SHIP 도 형제 노출이다 — T12 SEC-R 이 같은 28파일을 (다른 시드로) 먼저 돌렸다. FIX 는 blind 가 맞다",
   "⛔FIX-UNDETECTED 를 \"수심은 원인이 아니다\"·\"교락은 무해하다\" 로 읽지 마라 — 검정력의 진술이다 (MDE q80=0.6795 병기 의무 · 기각 불가 대역 w=(27, 32), 32/52=61.5% 도 p=0.0632)",
   "⛔DEPTH-WAS-MASKING-SKILL 을 \"T11 BAND-MISMATCH 철회\" 로 읽지 마라 — 이 배치는 RESCALE 대 FIX 를 검정하지 않는다",
   "⚠두 다리(HELPS·HURTS) 가족 α = 0.0704 — 공시하고 보정하지 않는다",
-  "⚠학습/추론 불일치: 체크포인트는 d=50 맵으로 학습됐다 ⟹ 처치가 자료-맵 정합을 고치면서 학습-추론 불일치를 만든다(군속도 비 0.74–0.89 ⟹ 방사 PSF 폭 ×1.13–1.35). ⛔크기는 **추정**이지 측정이 아니다 — 그래서 HURTS 다리와 음성대조를 뒀다",
+  "⚠학습/추론 불일치: 체크포인트는 d=50 맵으로 학습됐다 ⟹ 처치가 자료-맵 정합을 고치면서 학습-추론 불일치를 만든다(군속도 비 0.74–0.89 ⟹ 방사 PSF 폭 ×1.13–1.35). ⛔크기는 **추정**이지 측정이 아니다 — 그래서 HURTS 다리와 음성대조를 뒀다. ⛔따라서 `FIX-HURTS` 를 \"학습/추론 불일치가 원인\" 으로 **지목** 금지 — 이 배치는 불일치의 크기를 재지 않는다. 허용 자구 = \"맵 수심을 자료에 맞추는 것만으로는 배포 체크포인트에서 해가 된다\" (PREREG §11). ⚠단 이 배치의 라벨은 `FIX-HURTS` 가 **아니다**(FIX<SHIP w=26 > 해침 문턱 19) ⟹ 그 허용 자구조차 이 자료로는 쓸 수 없다",
   "⚠이미 존재하고 이 배치가 건드리지 않는 불일치가 더 크다: 개구/픽셀 비 ×2.6–3.1",
   "⚠T11-24 층은 SHIP·RESCALE·ZERO·ORACLE 값이 **공개된 상태**로 설계됐다 ⟹ ⛔\"완전 blind\" 금지. FRESH-28 은 두 팔 다 미노출이나 ⚠Hs 가 3/25 로 치우쳤다",
   "⛔E2 와 대각선 비교 금지 · 저들 논문 수치와 비교 금지 · solver 미명시",
   "⚠Tp 가 전 파일 10.0 s ⟹ 한 주기 조건의 진술이다",
-  "⛔wall_s 를 팔 간 비교에 쓰지 마라 · proposal_device 는 config 가 정하지 않는다",
+  "⛔wall_s 를 팔 간 비교에 쓰지 마라(사유 = **BLAS 스레드**, T11 공시) · proposal_device 는 config 가 정하지 않는다",
   "⚠층별·Hs별 진술은 **기술통계**이고 라벨을 만들지 않는다 (T11-24 q80=0.76 · FRESH-28 q80=0.7305)",
-  "⚠CTRL(RESCALE-FIX vs RESCALE)은 검정이 아니라 **섭동 잡음 바닥**이다. effect 가 floor 이하이면 라벨에 (WITHIN-PERTURBATION-FLOOR) 가 붙는다"
+  "⚠CTRL(RESCALE-FIX vs RESCALE)은 검정이 아니라 **섭동 잡음 바닥**이다. effect 가 floor 이하이면 라벨에 (WITHIN-PERTURBATION-FLOOR) 가 붙는다",
+  "⛔`FIX` 의 **절대 nRMSE 를 성능으로 인용 금지** — 읽는 것은 **짝 부호와 상대 크기**뿐이다 (PREREG §11). ⟹ 이 verdict 의 `medians` 는 짝 비교의 재료이지 성능값이 아니다",
+  "⛔조건부 공시 — **발화하지 않았다(N/A)**: PREREG §11 은 `SKILL-FIX-UNDETECTED` 를 **약한 칸**으로 등록하고, 그 칸이 나오면(FIX<ZERO 유의인데 FIX<SHIP 미검출) `SHIP<ZERO` 도 함께 인쇄해 **두 팔 다 기술 문턱 근처**임을 보이라고 요구했다 (F1 부류 경고). 실측은 SEC-A `FIX<ZERO` 21/52 로 이김 문턱 33 에 미달 ⟹ 라벨이 `FIX-UNDETECTED` 이고 **조건은 발화하지 않았다**. 그래도 `SHIP<ZERO` 14/52 를 함께 싣는다 — ⚠`FIX`·`SHIP` 어느 쪽도 `ZERO` 를 문턱 위에서 넘지 못한다",
+  "⚠**재학습(처치 3)은 미측정으로 남는다** — PREREG §11 은 이 배치가 `FIX-HELPS-*` 를 내면 재학습의 사전등록 동기가 되고 `FIX-HURTS` 를 내면 \"맵만 고치면 된다\" 가 죽는다고 적었다. 라벨이 `FIX-UNDETECTED` 이므로 **어느 쪽도 아니다** ⟹ ⛔이 배치는 재학습의 결과를 예단하지 않으며, 재학습의 동기도 사망 선고도 만들지 않는다"
  ]
 }

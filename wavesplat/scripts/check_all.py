@@ -46,6 +46,13 @@ CHECKS = [
     #   ⛔등록되지 않아 아무도 돌리지 않는 회귀 시험은 없는 것과 같다 ⟹ 자가진단 둘도 여기.
     ('★MDE 산수 자가진단', [PY, 'tmp/_audit/sign_test_mde.py', '--selftest']),
     ('★MDE 검사기 항진 검사', [PY, 'tmp/_audit/check_mde_constants.py', '--selftest']),
+    # ★★[2026-09-05] **형제 배치 사이의 차단 게이트 소실.** `T16` 이 차단으로 신설한
+    #   `G-INNER`(`gates_t16.py:553`, `PREREG` 5회)가 `T17` 에 **0회**다 — `gates_t17.py`.
+    #   `analyze_t17.py`.`PREREG.md` 어디에도 없고 버렸다는 기록도 없다. 동결 행에 다시
+    #   걸면 **2/72 셀**에서 깨지고 그 셀들은 전부 `edge_hit=False` ⟹ 남은 `G-EDGE` 는
+    #   그 방향을 **구조적으로 볼 수 없다**(그 사실을 `T16 PREREG:505` 가 **미리** 적었다).
+    #   ⛔등록되지 않아 아무도 돌리지 않는 회귀 시험은 없는 것과 같다 ⟹ 자가진단도 여기.
+    ('★게이트 승계 항진 검사', [PY, 'tmp/_audit/check_gate_succession.py', '--selftest']),
     ('상수 생성기 --check', [PY, 'scripts/gen_paper_constants.py', '--check']),
     ('동반 공시', [PY, 'scripts/check_paper_disclosures.py']),
     ('★항진 검사', [PY, 'scripts/check_paper_disclosures.py', '--selftest']),
@@ -363,6 +370,138 @@ def check_mde_constants():
     return True
 
 
+# ★★[2026-09-05] **형제 승계 이름집합 래칫** — `tmp/_audit/check_gate_succession.py`.
+#   규약: 배치 `S` 가 배치 `P` 의 모듈을 **실제로 임포트**하면(= 같은 규칙 계열·같은 측정면),
+#   `P` 의 **차단** 게이트 이름 하나하나가 `S` 의 산출물(`.py`.`.md`.`verdict*.json`)에
+#   **한 번은 나타나야 한다**. 승계하든, 이름을 바꾸든, *"…이므로 버린다"* 라고 적든 좋다.
+#   ⛔막으려는 것은 **약한 승계**가 아니라 ***침묵***이다.
+#
+#   ⚠**아래는 이미 동결된 배치들이다 — 고치지 않는다.** 그리고 ⛔**"괜찮다" 로 읽지 마라**:
+#   내가 실제로 재적용해 확인한 것은 **`T17 ← T16` 의 세 건뿐**이고 나머지 65건은
+#   **미조사**다(열람 범위 = 주장 범위). 새 이름이 들어오면 실패하고, 기지 이름이
+#   사라져도 실패한다(개명·삭제·수리를 구별하기 위해).
+GATE_SUCCESSION_KNOWN = {
+    # ── ★★이 검사기가 만들어진 사건: `T17` 이 `scale_rules_t16` 을 실행하면서 `T16` 의
+    #    차단 게이트 37개 중 20개를 **한 번도 언급하지 않았다**. `T17` 은 라벨 없이 닫혔다.
+    #    ⛔셋만 재적용해 확인했다(런 0회, 동결 `results_t17.jsonl` 432행 재집계):
+    #      · `G-INNER`  = ⛔**실제로 깨진다** — `k̂₂ <= 3.5·k̂₁` 가 **충실한 재적용**
+    #                     (`T16` 과 같은 양 = 셀 좌표 규칙 프로브)에서 **2/72**
+    #                     (`BS13b|w2` 3.696 · `BS13c|w5` 3.632), `T17` 에만 있는 재라벨
+    #                     프로브(`_prime`)에서 **3/72**(`BS13a|w5` 4.701 추가).
+    #                     ★세 셀 **전부 `edge_hit = False`** 다.
+    #      · `G-FLOOR`  = ✅재적용 시 **0/72**(최소 floor_margin 48.2). 잰 뒤에 안 것이다.
+    #      · `G-KLIM1`  = ✅재적용 시 **0/72**(klim2 == 3.5·k̂₁ 전건 성립).
+    #    ⚠`G-EQUIVAR` 는 **버려진 것이 아니라 개명**됐을 가능성이 높다(`T17 G-DEPTH-EXACT` 가
+    #      같은 등변성 조문이다 — `tmp/_audit/PREREG_CHECKLIST.md` `B12`) ⟹ ★검사기는 개명을
+    #      볼 수 없다. **그래서 의무가 "옛 이름을 한 번 적어라" 인 것이다.**
+    #    ⚠`G-TORIGIN` 은 이미 독립적으로 발견돼 있었다(`PREREG_CHECKLIST` `B13`:
+    #      *"`T16` 의 `G-TORIGIN` 은 `T17` 을 못 잡았을 것이다"*) — 그 절도 **소실 자체는
+    #      적지 않았다**.
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-CAP',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-DENSITY',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-EQUIVAR',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-EQUIVAR-RAW',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-FINITE',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-FLOOR',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-GRID',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-INNER',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-KLIM1',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-KLIM1-LIVE',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-KTRAIN',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-LTRAIN',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-NOLEAK',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-POP',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-SAMPLE',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-SHIPID',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-SIZE',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-SRC-PIN',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-TORIGIN',
+    'DROP:T17_REALSCALE_2026-09-05|T16_BANDFIX_2026-09-05|G-WRAPPER',
+    # ── `T17 ← T14`(`scale_rules_t14`). ⚠위 묶음의 **부분집합**이다 — `T16` 이 `T14` 를
+    #    승계했으므로 같은 이름이 두 간선에 걸린다. ⛔합쳐 세지 마라(간선이 사실 단위다).
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-CAP',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-DENSITY',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-EQUIVAR',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-FINITE',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-KTRAIN',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-LTRAIN',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-NOLEAK',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-POP',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-SAMPLE',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-SHIPID',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-SIZE',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-SRC-PIN',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-TORIGIN',
+    'DROP:T17_REALSCALE_2026-09-05|T14_AUTOSCALE_2026-09-04|G-WRAPPER',
+    # ── `T15 ← T12`(`consts_t12` = 처치값 단일출처, `T15 analyze:123 G-TREATPIN`).
+    #    ⚠간선은 **사실**이지만(그 모듈을 실행한다) 측정 질문은 `T12` 보다 좁다.
+    #    ⛔11건 전부 **미조사**다 — *"해당 없음"* 이라 주장하지 않는다.
+    'DROP:T15_HOMEREG_2026-09-05|T12_ISOLATE_2026-09-04|G-DENSITY',
+    'DROP:T15_HOMEREG_2026-09-05|T12_ISOLATE_2026-09-04|G-EFFECT',
+    'DROP:T15_HOMEREG_2026-09-05|T12_ISOLATE_2026-09-04|G-FREEZE',
+    'DROP:T15_HOMEREG_2026-09-05|T12_ISOLATE_2026-09-04|G-GROWFIRE',
+    'DROP:T15_HOMEREG_2026-09-05|T12_ISOLATE_2026-09-04|G-HELDOUT',
+    'DROP:T15_HOMEREG_2026-09-05|T12_ISOLATE_2026-09-04|G-RESCALE',
+    'DROP:T15_HOMEREG_2026-09-05|T12_ISOLATE_2026-09-04|G-RNGSTREAM',
+    'DROP:T15_HOMEREG_2026-09-05|T12_ISOLATE_2026-09-04|G-SAMPLE',
+    'DROP:T15_HOMEREG_2026-09-05|T12_ISOLATE_2026-09-04|G-SHIPPIN',
+    'DROP:T15_HOMEREG_2026-09-05|T12_ISOLATE_2026-09-04|G-SIZE',
+    'DROP:T15_HOMEREG_2026-09-05|T12_ISOLATE_2026-09-04|G-TORIGIN',
+    # ── `T` 계열의 나머지(`gates_t11`/`run_t11` 재사용). ⚠미조사.
+    'DROP:T12_ISOLATE_2026-09-04|T11_EXTACC_2026-09-03|G-POP',
+    'DROP:T12_ISOLATE_2026-09-04|T11_EXTACC_2026-09-03|G-WRAPPER',
+    'DROP:T13_DEPTHFIX_2026-09-04|T11_EXTACC_2026-09-03|G-SIZE',
+    'DROP:T16_BANDFIX_2026-09-05|T11_EXTACC_2026-09-03|G-RESCALE',
+    # ── `C1`(모델갭) 계열 — `gates_c1` 을 임포트하는 다섯 배치가 `G-COLS` 를 공통으로
+    #    떨어뜨렸다. ⚠미조사. ★이 다섯이 **같은 이름**을 떨어뜨린 것은 우연이 아닐 수
+    #    있다(공유 조상에서 한 번 빠지면 자손 전체로 전파된다) — 그것 자체가 소견이다.
+    'DROP:C1B_BESTFIT_2026-09-03|C1_MODELGAP_2026-09-03|G-COLS',
+    'DROP:C1C_BESTFIT_2026-09-03|C1_MODELGAP_2026-09-03|G-COLS',
+    'DROP:C2_STOKES_2026-09-03|C1_MODELGAP_2026-09-03|G-COLS',
+    'DROP:E2_EXTSYNTH_2026-09-03|C1_MODELGAP_2026-09-03|G-COLS',
+    'DROP:E2_EXTSYNTH_2026-09-03|C1_MODELGAP_2026-09-03|G-CTRL',
+    'DROP:E2_EXTSYNTH_2026-09-03|C1_MODELGAP_2026-09-03|G-NORUN',
+    'DROP:T10_EXTDISP_2026-09-03|C1_MODELGAP_2026-09-03|G-0b',
+    'DROP:T10_EXTDISP_2026-09-03|C1_MODELGAP_2026-09-03|G-COLS',
+    'DROP:T10_EXTDISP_2026-09-03|C1_MODELGAP_2026-09-03|G-CTRL',
+    'DROP:T1B_THIRDPARTY_2026-09-03|C1_MODELGAP_2026-09-03|G-0b',
+    'DROP:T1B_THIRDPARTY_2026-09-03|C1_MODELGAP_2026-09-03|G-COLS',
+    'DROP:T1B_THIRDPARTY_2026-09-03|C1_MODELGAP_2026-09-03|G-CTRL',
+    'DROP:T1_THIRDPARTY_2026-09-03|C1_MODELGAP_2026-09-03|G-0b',
+    'DROP:T1_THIRDPARTY_2026-09-03|C1_MODELGAP_2026-09-03|G-COLS',
+    'DROP:T1_THIRDPARTY_2026-09-03|C1_MODELGAP_2026-09-03|G-CTRL',
+    # ── `E1` → `E2`(외부 기준선 계열, `extarm_e1`.`gates_e1`.`run_e1` 재사용). ⚠미조사.
+    'DROP:E2_EXTSYNTH_2026-09-03|E1_EXTBASE_2026-09-03|G-0',
+    'DROP:E2_EXTSYNTH_2026-09-03|E1_EXTBASE_2026-09-03|G-ARM',
+    'DROP:E2_EXTSYNTH_2026-09-03|E1_EXTBASE_2026-09-03|G-BUDGET',
+    'DROP:E2_EXTSYNTH_2026-09-03|E1_EXTBASE_2026-09-03|G-DIR',
+}
+
+
+def check_gate_succession():
+    """형제 승계 이름집합 래칫 — 새 소실이 들어오거나 기지 소실이 사라지면 실패."""
+    r = subprocess.run([PY, 'tmp/_audit/check_gate_succession.py', '--keys'],
+                       cwd=ROOT, capture_output=True, text=True)
+    got = {l.split('\t', 1)[1] for l in r.stdout.split('\n') if l.startswith('KEY\t')}
+    if r.returncode != 0 and not got:
+        print('  [FAIL] 형제 승계 (래칫)')
+        print('         ⛔검사기가 키를 내지 못했다 — 죽었거나 출력 형식이 바뀌었다.')
+        for line in (r.stdout + r.stderr).strip().split('\n')[-6:]:
+            print(f'         {line}')
+        return False
+    if got != GATE_SUCCESSION_KNOWN:
+        print('  [FAIL] 형제 승계 (래칫)')
+        for k in sorted(got - GATE_SUCCESSION_KNOWN):
+            print(f'         ⛔새 소실: {k}  — 후속 배치의 사전등록에 **한 줄** 적어라'
+                  ' ("`G-…` 는 …이므로 승계하지 않는다"). ⛔동결 배치는 고치지 말고'
+                  ' 여기 등록 + 사유를 적어라.')
+        for k in sorted(GATE_SUCCESSION_KNOWN - got):
+            print(f'         ⚠기지 소실이 사라졌다: {k}  — 승계했는지, 배치가 개명/삭제됐는지 확인')
+        return False
+    print(f'  [OK  ] 형제 승계 (래칫: 기지 {len(got)}건 그대로)')
+    return True
+
+
 def check_frozen_sha256():
     import glob
     found = set()
@@ -451,6 +590,8 @@ def main():
         bad.append('시드 대역')
     if not check_mde_constants():
         bad.append('MDE 상수')
+    if not check_gate_succession():
+        bad.append('형제 승계')
     # ⚠[2026-09-02] **훅에서는 건너뛴다.** 실측 61 s 로 `--fast` 전체(93 s)를 지배했고,
     #   내가 이 파일에 스스로 적은 규칙(*"느린 훅은 사람이 `--no-verify` 로 우회한다"*)을
     #   어기고 있었다. ★경고 도구이므로 커밋마다 돌 필요가 없다 --- 전체 실행에는 남긴다.
@@ -462,9 +603,9 @@ def main():
         print('⚠래칫이 「개선」으로 실패했다면 기준선을 **의도적으로** 내려라 --- '
               '침묵시키지 마라.')
         return 1
-    # ⚠래칫은 `CHECKS` 밖에서 부른다 — 배치산출물·FROZEN.sha256·시드대역·**MDE 상수**
-    #   (+ `--fast` 가 아니면 감사 도구 묶음). 수를 손으로 세지 말고 여기서 더한다.
-    print(f'✅{len(checks) + (4 if a.fast else 5)}종 전부 통과'
+    # ⚠래칫은 `CHECKS` 밖에서 부른다 — 배치산출물·FROZEN.sha256·시드대역·**MDE 상수**·
+    #   **형제 승계**(+ `--fast` 가 아니면 감사 도구 묶음). 수를 손으로 세지 말고 여기서 더한다.
+    print(f'✅{len(checks) + (5 if a.fast else 6)}종 전부 통과'
           + (' (pytest 건너뜀)' if a.fast else ''))
     return 0
 

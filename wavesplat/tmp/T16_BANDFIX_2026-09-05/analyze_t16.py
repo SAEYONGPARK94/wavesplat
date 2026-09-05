@@ -491,10 +491,14 @@ def main():                                                        # noqa: C901
     # ═══ §6.2 표본·교차배치 ══════════════════════════════════════════════
     outcome, prop, miss_ref = G.exposed_blocks()
     xb = sorted(set(tier_p) & outcome)
+    # ★양성 대조 (신설) — 「블록 이름이 애초에 없다」를 「겹침이 없다」로 읽지 않기 위해서다.
+    pc_counts, pc_empty = G.xbatch_control()
     A.append(('★★G-XBATCH 형제 배치(T11·T12·T13·T14)의 동결 jsonl 을 **직접 열어** Tier-P 와의 '
-              '교집합 == ∅ [⛔참조 파일 부재는 FAIL 이다]',
-              not xb and not miss_ref,
-              f'교집합 {len(xb)} · 성과노출 {len(outcome)} · 부재 {miss_ref}'))
+              '교집합 == ∅ [⛔참조 파일 부재는 FAIL 이다] ∧ ★**양성 대조**: 형제마다 아카이브 '
+              '경로 참조 > 0 [⛔0건이면 «교집합 0» 은 항진이다 — 게이트를 엄하게만 한다]',
+              not xb and not miss_ref and not pc_empty,
+              f'교집합 {len(xb)} · 성과노출 {len(outcome)} · 부재 {miss_ref} · '
+              f'양성대조 {pc_counts} · 0건 {pc_empty}'))
     samp = G.frozen_sample()
     mats = G.archive_mats()
     pop_ok = (samp is not None and sorted(samp) == tier_p
@@ -509,22 +513,31 @@ def main():                                                        # noqa: C901
               not (set(tier_p) & exposed_pre) and len(anchor) == G.N_ANC,
               f'교집합 {len(set(tier_p) & exposed_pre)}'))
     # ★G-GRID — 코퍼스 동형. FAIL 조건 = `mixed_data` 가 `mixed_data2` 와 다른 기하다(§2.2 R3).
-    lob, gb2 = [], []
+    # ⛔x/y 조항은 **상대자**로 재정의됐다(`AMENDMENT_2_PREDATA.md`, 판정 표본 0행 시점).
+    #   ★절대값도 함께 인쇄한다 — 읽는 사람이 **두 자를 다 보고** 반대할 수 있어야 한다.
+    lob, gb2, xy_abs, xy_rel_all = [], [], [], []
     for r in rows:
         es, dt = r.get('e_shape'), _num(r.get('dt'))
         lx, ly = _num(r.get('L_obs_x')), _num(r.get('L_obs_y'))
         if es != G.GRID_SHAPE or dt is None or abs(dt - G.GRID_DT) > 1e-9:
             gb2.append(f"{r['block'][-14:]}:shape/dt")
-        if lx is None or ly is None or abs(lx - ly) > G.LOBS_XY_TOL:
-            gb2.append(f"{r['block'][-14:]}:L_obs_xy")
-        elif r['arm'] == 'ZERO':
-            lob.append(max(lx, ly))
+        big = None if (lx is None or ly is None) else max(lx, ly)
+        rel = None if (big is None or big == 0) else abs(lx - ly) / big
+        if rel is None or rel > G.LOBS_XY_REL:
+            gb2.append(f"{r['block'][-14:]}:L_obs_xy rel={rel}")
+        else:
+            xy_abs.append(abs(lx - ly))
+            xy_rel_all.append(rel)
+            if r['arm'] == 'ZERO':
+                lob.append(big)
     sd = float(np.std(lob)) if lob else None
-    A.append((f'★G-GRID 전 행 e_shape=={G.GRID_SHAPE} ∧ dt==1 ∧ |L_obs_x−L_obs_y|≤{G.LOBS_XY_TOL} '
+    A.append((f'★G-GRID 전 행 e_shape=={G.GRID_SHAPE} ∧ dt==1 ∧ ★|L_obs_x−L_obs_y|/max ≤ '
+              f'{G.LOBS_XY_REL} [**상대자** — 개정문 2, 종전 절대 1e-3 은 차원 오류] '
               f'∧ 파일 간 L_obs sd ≤ {G.LOBS_SD_TOL} [⚠팔 간 sd 는 항진이라 뺐다]',
               not gb2 and sd is not None and sd <= G.LOBS_SD_TOL,
               f'위반 {len(gb2)} · L_obs sd {sd} · 중앙 '
-              f'{None if not lob else round(float(np.median(lob)), 3)}'))
+              f'{None if not lob else round(float(np.median(lob)), 3)} · '
+              f'x/y 상대차 {_stat(xy_rel_all)} · ★절대차[m] {_stat(xy_abs)}'))
     sib = {}
     for d in sorted(glob.glob(os.path.join(os.path.dirname(HERE), 'T1[2-5]_*'))):
         for p in sorted(glob.glob(os.path.join(d, 'results_*.jsonl'))):
@@ -907,6 +920,16 @@ def main():                                                        # noqa: C901
         f'으로 옮긴다(옛 1단 바닥 klim₂ ≥ 0.0832 는 코퍼스를 항상 덮었고 새 바닥 ≥ 0.0251 은 '
         f'k_p=0.034 를 구조적으로 못 덮을 수 있다) ⟹ ⛔"새 규칙이 더 튼튼하다" 서술 금지. '
         f'잰 것은 **등변성과 격자 여유**이지 **강건성**이 아니다.',
+        f'⛔[§9.3-19 · 개정문 2] **`G-GRID` 의 x/y 조항은 완화됐다.** 사전등록 §6.2 는 절대 '
+        f'`|L_obs_x − L_obs_y| ≤ 1e-3` [m] 였고, **판정 표본 0행 시점의 스모크가 그것을 '
+        f'FAIL 시킨 것이 이 자를 들여다본 유일한 계기다**(⛔그 사실을 부드럽게 적지 않는다). '
+        f'재정의 = `|L_obs_x − L_obs_y| / max ≤ {G.LOBS_XY_REL}`. 실측 아카이브 전체가 '
+        f'`0.002 m = 3.23e-6 상대` 이고 `mixed_data`·`mixed_data2` 는 두 축 모두 동일하다 '
+        f'⟹ 게이트의 등록 목적(기하 동형)은 **성립**하고 단위만 틀렸다(종횡비 질문에 절대자). '
+        f'종전 `1e-3` 의 근거였던 `T10` 의 `dx == dy` 는 **median-of-diff** 라 128점 구간의 '
+        f'2 mm 끝단 비대칭에 **구조적으로 눈이 멀어 있다** ⟹ 그 수는 이 게이트가 재는 양에서 '
+        f'유도된 적이 없다. ⚠새 자는 측정 대비 약 31배 여유이고 **관측에 맞춰 조율하지 않았다**. '
+        f'⛔다른 문턱은 하나도 안 건드렸다 — 판단은 읽는 사람이 하고, 반대할 수 있어야 한다.',
         f'⚠[§0-4 · §3.6] 이 배치는 **적응성을 재지 못한다**(격자가 전 파일 동일 ⟹ `s` 도 `klim₁` 도 '
         f'코퍼스 상수) — 잰 것은 (i) 착지점과 (ii) 등변성이다. 그리고 설계는 결과 전에 '
         f'P(S 축 양성)≈1, P(`D-TREATMENT-BELOW-SCALE`)=0.937 이라고 **스스로 적었다** ⟹ '

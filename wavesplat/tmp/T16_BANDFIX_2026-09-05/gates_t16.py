@@ -95,8 +95,13 @@ DRIVE_T1_LN = math.log(1.05)          # T1 «처치가 자보다 작다»
 DRIVE_T2_SIGN = 55                    # T2 «방향이 섞였다» — 55/60 = 91.7%
 GRID_SHAPE = [502, 128, 128]
 GRID_DT = 1.0
-LOBS_XY_TOL = 1e-3          # `G-GRID` — 한 파일 안 x/y 개구 차
-LOBS_SD_TOL = 1e-6          # `G-GRID` — 파일 간 `L_obs` 표준편차
+# ★`G-GRID` — 한 파일 안 x/y 개구 차. ⛔**상대자**다(`AMENDMENT_2_PREDATA.md`).
+#   사전등록 §6.2 는 절대 `1e-3` [m] 를 등록했는데 그 자는 **종횡비 질문에 붙은 절대 허용오차**라
+#   차원이 어긋난다. 실측 아카이브 전체가 `|Δ| = 0.002 m = 3.23e-6 상대` 이고
+#   `mixed_data` 와 `mixed_data2` 는 **두 축 모두 동일**하다 ⟹ 게이트의 등록 목적(기하 동형)은
+#   **성립**하고 단위만 틀렸다. ⛔**이것은 완화다** — 사유·측정값·시점은 개정문 2 가 축자로 적는다.
+LOBS_XY_REL = 1e-4          # 측정 3.23e-6 대비 약 31배 여유 (⛔관측에 맞춰 조율한 값이 아니다)
+LOBS_SD_TOL = 1e-6          # `G-GRID` — 파일 간 `L_obs` 표준편차 (⛔이 자는 **안 건드렸다**)
 
 # ── 다중성 (PREREG §3.1) ────────────────────────────────────────────────────
 ALPHA = 0.05
@@ -282,6 +287,39 @@ def _archive_refs(path):
     except OSError:
         return set()
     return set(re.findall(r'Data/mixed_data/[A-Za-z0-9._]+\.mat', txt))
+
+
+def _archive_refs_any(path):
+    """파일 안의 **아무** 아카이브 `.mat` 경로 집합 — `G-XBATCH` 의 양성 대조용."""
+    import re
+    try:
+        txt = open(path, encoding='utf-8', errors='replace').read()
+    except OSError:
+        return set()
+    return set(re.findall(r'Data/[A-Za-z0-9_]+/[A-Za-z0-9._]+\.mat', txt))
+
+
+def xbatch_control():
+    """★`G-XBATCH` 의 **양성 대조** (2026-09-05 신설 — `AMENDMENT_1 §13-1` 이 스스로 지적했다).
+
+    `exposed_blocks()` 의 «Tier-P 교집합 0» 은 두 가지를 **구별하지 못한다**:
+      (a) 형제가 `Data/mixed_data/` 를 정말로 안 건드렸다  ← 우리가 주장하려는 것
+      (b) 그 산출물에 **블록 이름이 애초에 없다**          ← 그때 게이트는 **항진**이다
+    ⟹ 각 형제 산출물이 아카이브 경로를 **하나 이상** 담고 있는지 센다.
+    ⛔0건인 파일이 하나라도 있으면 `G-XBATCH` 는 FAIL 한다 — 「없음」을 「겹침 없음」으로
+      읽지 않기 위해서다. ★이 대조는 게이트를 **엄하게만** 만든다.
+    반환 = (파일별 참조 수, 0건 파일 목록).
+    """
+    base = os.path.dirname(HERE)
+    counts, empty = {}, []
+    for d, fn in XBATCH_OUTCOME:
+        rel = os.path.join(d, fn)
+        p = os.path.join(base, rel)
+        n = len(_archive_refs_any(p)) if os.path.exists(p) else 0
+        counts[rel] = n
+        if n == 0:
+            empty.append(rel)
+    return counts, empty
 
 
 def exposed_blocks():

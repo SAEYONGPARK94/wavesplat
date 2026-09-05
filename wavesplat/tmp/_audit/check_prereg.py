@@ -51,6 +51,7 @@
 """
 import ast
 import glob
+import json
 import importlib.util
 import os
 import re
@@ -797,8 +798,27 @@ def check(d, git_rev=None, git_relpath=None):
                 res.add('C7m', 'WARN', '가장 이른 FROZEN 이 가장 이른 결과보다 늦다(mtime) — 결과 0행 동결이 아닐 수 있다 (checkout 이 mtime 을 갱신했을 수도 있다)')
 
     # ── C9 DISCLOSE ───────────────────────────────────────────────────────
-    vsrc = '\n'.join(_read(p) for p in glob.glob(os.path.join(d, 'verdict*.json')))
-    tokens, sect = set(), ''
+    # ★[2026-09-05] **초판은 부분적으로 항진이었다.** 대조 범위가 `asrc`(분석기 **소스 전문**)
+    #   이라 `FIX-HURTS`·`SKILL-FIX-UNDETECTED` 같은 **라벨 사다리 식별자**는 공시 문장이
+    #   **한 줄도 없어도** 반드시 매치했다 ⟹ 「그 낱말이 파일 어딘가에 있다」를 재고 있었지
+    #   「공시가 있다」를 재지 않았다. `T13` 개정문 4 가 그 사각을 실측으로 드러냈다
+    #   (전무 3 · 부분 3 인데 C9 는 그중 둘만 잡았다).
+    #   ⟹ **사람이 읽는 산출물**(`verdict['disclosures']`)로 대조 범위를 좁힌다.
+    #   ⚠verdict 이 아직 없으면(설계 단계) 판정할 자료가 없으므로 **N/A** 로 내린다 —
+    #   ⛔옛 방식으로 조용히 되돌아가지 않는다(그것이 항진이었다).
+    dis_txt, n_vd = '', 0
+    for _vp in glob.glob(os.path.join(d, 'verdict*.json')):
+        try:
+            import json as _json
+            _j = _json.load(open(_vp, encoding='utf-8'))
+        except Exception:                                          # noqa: BLE001
+            continue
+        n_vd += 1
+        _ds = _j.get('disclosures')
+        if isinstance(_ds, list):
+            dis_txt += '\n'.join(str(x) for x in _ds) + '\n'
+    vsrc = dis_txt
+    tokens, btokens, sect = set(), set(), ''
     for ln in text.splitlines():
         if ln.startswith('#'):
             sect = ln
@@ -808,28 +828,56 @@ def check(d, git_rev=None, git_relpath=None):
         #   (= 검사기가 「있는 것을 없다고」 한 사례). 산문·불릿의 ⛔ 항목만 센다.
         if ln.lstrip().startswith('|'):
             continue
-        if re.search(r'금지|범위|공시', sect) and '⛔' in ln:
+        # ⛔초판은 `'⛔' in ln` 만 봤다 ⟹ **⚠ 로만 적힌 의무 공시는 원리적으로 검출 불가**였다
+        #   (`T13 PREREG:262` 재학습 미측정 항목이 그 부류로 빠져나갔다).
+        if re.search(r'금지|범위|공시', sect) and ('⛔' in ln or '⚠' in ln):
             if ln.count('`') % 2:                      # 닫히지 않은 백틱(여러 줄 경로) — 그 뒤는 버린다
                 ln = ln[:ln.rfind('`')]
-            tokens |= {t for t in re.findall(r'`([^`]+)`', ln) if len(t) <= 40}
-            tokens |= {w for w in re.findall(r'\b[A-Za-z][A-Za-z0-9_]{3,}\b', re.sub(r'`[^`]*`', ' ', ln))
-                       if w.lower() not in ('blind', 'true', 'false', 'none', 'primary')}
+            # ⛔[2026-09-05] **백틱 밖 맨낱말 수집을 없앴다.** ⚠ 항목까지 스캔하게 되자
+            #   산문 낱말(`held`·`based`·`comp`·`falsy`·`numpy`)이 토큰이 되어 오탐이 쏟아졌다.
+            #   ★검사기가 「없는 것을 있다고」 하는 것도 그 반대만큼 나쁘다 — 오탐이 쌓이면
+            #   사람이 검사기를 안 읽는다(저장소가 이미 두 번 겪었다).
+            #   ⟹ 이 저장소의 의무 공시는 사실상 항상 **백틱 식별자**를 동반한다. 그것만 센다.
+            #   ⚠대가: 식별자 없는 순수 산문 의무(예: *"재학습은 미측정"*)는 **원리적으로 검출 불가**다.
+            #   그 한계를 여기 적는다 — 침묵시키지 않는다.
+            #   ★단 **⛔ 줄에서는 맨낱말도 계속 센다**. 자가시험 변이 [8] 이 그것을 잡았다 —
+            #   백틱만 세도록 좁혔더니 `solver 미명시` 같은 **진짜 의무**가 토큰에서 사라져
+            #   FAIL 이어야 할 변이가 WARN 으로 내려갔다. ⟹ 등급으로 가른다:
+            #     ⛔(금지) = 백틱 + 맨낱말   ·   ⚠(단서) = 백틱만
+            #   ⛔ 줄은 산문이라도 의무이고, ⚠ 줄은 문맥 서술이 섞여 오탐 공장이 된다.
+            _bt = {t for t in re.findall(r'`([^`]+)`', ln) if len(t) <= 40}
+            tokens |= _bt
+            btokens |= _bt
+            if '⛔' in ln:
+                tokens |= {w for w in re.findall(r'\b[A-Za-z][A-Za-z0-9_]{3,}\b',
+                                                 re.sub(r'`[^`]*`', ' ', ln))
+                           if w.lower() not in ('blind', 'true', 'false', 'none', 'primary')}
     # ★공시 토큰만 남긴다: 대문자 라벨/팔/배치코드(`E2`·`BAND-MISMATCH`) 와 소문자 낱말(`solver`).
     #   경로·글롭·확장자·snake_case 함수명·혼합대소문자(`C1c`)는 **공시 내용이 아니라 참조**라 뺀다
     #   (첫 census 오탐: `results*.jsonl`·`RESULT.md`·`check_batch_artifacts`·`matlab`(경로 조각)).
-    tokens = {t for t in tokens if not t.startswith('G-')
+    # ⛔배치가 **자기 이름**을 인용한 것은 의무가 아니다 (`T14` 의 사전등록이 `T14` 를 말한다).
+    _self = re.match(r'([A-Za-z]+[0-9]*)', os.path.basename(os.path.abspath(d)))
+    _self = _self.group(1).upper() if _self else ''
+    tokens = {t for t in tokens if not t.startswith('G-') and t.upper() != _self
               and (re.fullmatch(r'[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*', t) or re.fullmatch(r'[a-z]{4,}', t))}
     if not tokens:
-        res.add('C9', 'N/A', '사전등록에 §금지/범위/공시 절의 ⛔ 항목이 없거나 공시 토큰을 못 뽑았다')
+        res.add('C9', 'N/A', '사전등록에 §금지/범위/공시 절의 ⛔/⚠ 항목이 없거나 공시 토큰을 못 뽑았다')
+    elif n_vd == 0:
+        res.add('C9', 'N/A', f'verdict 이 없다(설계 단계) — 공시 대조 불가. 토큰 {len(tokens)}개 대기')
     else:
-        miss = sorted(t for t in tokens if t not in asrc and t.lower() not in asrc.lower() and t not in vsrc)
-        strong = [t for t in miss if len(t) >= 3]
+        miss = sorted(t for t in tokens
+                      if t not in vsrc and t.lower() not in vsrc.lower())
+        # ★등급: **백틱 식별자**(사전등록이 일부러 인용한 것) 누락 = FAIL ·
+        #   ⛔줄의 **맨낱말** 누락 = WARN. 후자는 토큰화 부산물이 섞인다
+        #   (`held-out` → `held` · *"전역 numpy 상태"* → `numpy`) ⟹ 빨간불을 만들면
+        #   사람이 검사기를 안 읽게 된다. ⛔침묵시키지 않고 **등급으로** 가른다.
+        strong = [t for t in miss if t in btokens]
         if strong:
-            res.add('C9', 'FAIL', f'사전등록 ⛔ 의무 공시 토큰이 분석기(공시)에 없다 {miss} (A3 §1 = 사전등록 위반 · N−1)')
+            res.add('C9', 'FAIL', f'사전등록 ⛔/⚠ 의무 공시 토큰이 **verdict 의 disclosures** 에 없다 {miss} (A3 §1 = 사전등록 위반 · N−1)')
         elif miss:
-            res.add('C9', 'WARN', f'짧은 코드 토큰만 누락 {miss} — 공시 문장이 떨어졌는지 사람이 확인 (T11 A3 §1 의 `E2` 가 이 부류였다)')
+            res.add('C9', 'WARN', f'백틱 아닌 산문 토큰만 누락 {miss} — 공시 문장이 떨어졌는지 사람이 확인 (T11 A3 §1 의 `E2` 가 이 부류였다)')
         else:
-            res.add('C9', 'OK', f'⛔ 토큰 {len(tokens)}개 전부 분석기에 있음')
+            res.add('C9', 'OK', f'⛔/⚠ 토큰 {len(tokens)}개 전부 verdict 공시에 있음')
 
     # ── C10 GATELOSS (git) ────────────────────────────────────────────────
     try:
@@ -1104,6 +1152,22 @@ def _fixture(base, name, prereg=GOOD_PREREG, gates=GOOD_GATES, analyze=GOOD_ANAL
     _write(os.path.join(d, 'gates_x.py'), gates)
     _write(os.path.join(d, 'analyze_x.py'), analyze)
     _write(os.path.join(d, 'run_x.py'), run)
+    # ★[2026-09-05] C9 가 **verdict 의 disclosures** 를 보게 되면서 픽스처에도 verdict 이
+    #   있어야 한다(초판은 소스만 깔고 분석기를 돌리지 않아 `verdict_x.json` 이 없었다
+    #   ⟹ 변이 [16] 이 WARN 대신 N/A 를 냈다). 분석기 소스의 `disclosures` 리터럴을
+    #   AST 로 뽑아 그대로 덤프한다 — ⛔손으로 다시 적지 않는다.
+    try:
+        _dis = []
+        for _n in ast.walk(ast.parse(analyze)):
+            if isinstance(_n, ast.Dict):
+                for _k, _v in zip(_n.keys, _n.values):
+                    if (isinstance(_k, ast.Constant) and _k.value == 'disclosures'
+                            and isinstance(_v, (ast.List, ast.Tuple))):
+                        _dis = [e.value for e in _v.elts if isinstance(e, ast.Constant)]
+        _write(os.path.join(d, 'verdict_x.json'),
+               json.dumps({'disclosures': _dis}, ensure_ascii=False))
+    except SyntaxError:
+        pass
     lines = [f'{_md5(os.path.join(d, f))}  {f}' for f in ('PREREG.md', 'gates_x.py', 'analyze_x.py', 'run_x.py')]
     lines.append(f'{_md5(os.path.join(root, "wavesplat/optimizer/sequential_update.py"))}  wavesplat/optimizer/sequential_update.py')
     if frozen is not None:
@@ -1187,8 +1251,13 @@ def selftest():
         muts.append(('C15', 'FAIL', dict(prereg=GOOD_PREREG
                                          .replace('**PRIMARY**: `A < ZERO` 짝 부호검정, `n = 24`. **≥17** 이면 유의.', '검정은 나중에 정한다.')
                                          .replace('| ≥17 | ≤12 | `A-WINS` |', '| 이김 | 짐 | `A-WINS` |'))))
-        # [16] C9 짧은 코드 토큰(`E2`) 하나만 탈락 → WARN (FAIL 아님 — 늑대 방지 등급)
-        muts.append(('C9', 'WARN', dict(analyze=GOOD_ANALYZE.replace("'⛔E2 와 비교 금지', ", ''))))
+        # [16] C9 백틱 식별자(`E2`) 하나만 탈락 → **FAIL**.
+        #   ⛔종전 기대값은 WARN 이었고 사유는 *"짧은 토큰은 우연히 맞을 수 있다"* 였다.
+        #   그 사유는 **대조 범위가 분석기 소스 전문이던 시절의 것**이다(2026-09-05 이전).
+        #   범위를 `verdict['disclosures']` 로 좁힌 뒤에는 우연 일치가 사실상 없고,
+        #   ★`T11 A3 §1` 이 기록한 실제 사고가 바로 *"`E2` 와 `solver` 가 함께 떨어진 것"* 이다
+        #   ⟹ 그것은 진짜 위반이었다. 등급을 **올린다**(WARN → FAIL). ⛔완화가 아니라 강화다.
+        muts.append(('C9', 'FAIL', dict(analyze=GOOD_ANALYZE.replace("'⛔E2 와 비교 금지', ", ''))))
 
         base_fail = {c for c, s, _ in r0.rows if s == 'FAIL'}
         for i, (cid, want, kw) in enumerate(muts, 1):

@@ -171,6 +171,32 @@ RULES = [
      r'동반해야 하는 공시',
      [r'blind 가 아니다'],
      'verdict_m10.json disclosures[0] = 「blind 아님 + 스모크 노출」 — 병기 의무'),
+    # ★★[2026-09-05] `T11`~`T14`. ⛔이 넷의 인용금지는 **자구가 아니라 병기**로만 막을 수
+    #   있다(금지 목록 `## 2026-09-04/05` 절). 트리거를 **매크로 이름**으로 잡는다 ---
+    #   수치는 전부 `thesis/t11t14_constants.tex` 에서 오므로 산문에 숫자가 없다.
+    #   ⚠`check_spelled_ratios.py` 가 「철자/한글로 쓴 비율」 쪽 우회로를 따로 막는다.
+    ('TEleven-사고실험',
+     r'\\TElevenPrimary',
+     [r'사고실험', r'thought experiment'],
+     '⛔`RESCALE` 은 단위를 바꾼 사고실험이다 — 성능·배포 구성으로 읽히지 않게 병기'),
+    ('TEleven-절대스케일',
+     r'\\TElevenPrimary',
+     [r'절대 스케일', r'absolute scale', r'절대 파수'],
+     '⛔정본 읽기는 「배포 추정기의 **절대 스케일** 설계 범위」다 '
+     '(⛔"학습 사전의 파장 밴드" 아님 — k_p 장면은 학습 밴드 83백분위 안)'),
+    ('TTwelve-단일상수아님',
+     r'\\TTwelvePrimary',
+     [r'단일 상수', r'single constant'],
+     '⛔「단일 상수」 금지 — 그 팔도 맵 칸·사전 밴드·polish 물리 스텝을 함께 옮긴다'),
+    ('TThirteen-MDE',
+     r'\\TThirteenPrimary',
+     [r'\\TThirteenMDE'],
+     '⛔`FIX-UNDETECTED` 는 검정력의 진술이다 — MDE(q80) 병기 의무 '
+     '(⛔"수심은 원인이 아니다"·"무효과 확증" 금지)'),
+    ('TFourteen-차단',
+     r'\\TFourteenBlocker',
+     [r'\\TFourteenMDE'],
+     '⛔`T14` 는 차단된 배치다 — 라벨·부분 통계 금지, 음성 읽기에는 MDE(q80) 병기 의무'),
 ]
 
 

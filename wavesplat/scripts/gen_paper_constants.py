@@ -859,6 +859,132 @@ def _e1_equal_budget():
     return {'EOneEqualShipWin': str(w), 'EOneEqualN': str(len(pr))}
 
 
+def _map_depth():
+    """★조건화 맵의 **수심과 파수 범위** --- 소스 리터럴에서 직접 뽑는다.
+
+    ⛔[2026-09-05] 원고의 알고리즘 표가 조건화 맵의 $\\omega$ 를 *"from the dispersion
+      relation"* 이라고만 적고 **어느 수심에서인지** 적지 않았다(학위논문은 공시한다 =
+      두 원고 불일치). 실측: `d3_beamform_net.py` 가 `DEPTH` 를 **모듈 로드 시점에**
+      `OM_G` 로 굽고(`kgrid()` 호출이 임포트 때 1회), `learned_init.py:151` 의
+      `cd._bmap_from_obs(Ps, zf)` 에는 depth 인자가 **없다** ⟹ config 의 `depth` 가
+      이 맵에 **닿지 않는다**. `T13-DEPTHFIX` 가 그 처치를 쟀다(문턱 미달).
+    ⛔손으로 적으면 소스가 바뀔 때 조용히 낡는다 --- 선례 `T14 G-SRC-PIN`.
+    """
+    import re as _re
+    src = open(os.path.join(ROOT, 'scripts', 'd3_beamform_net.py')).read()
+    d = _re.search(r'^G\s*=\s*[\d.]+;\s*DEPTH\s*=\s*([\d.]+)', src, _re.M)
+    k = _re.search(r'^KLIM\s*=\s*([\d.]+)', src, _re.M)
+    assert d and k, '⛔d3_beamform_net.py 의 DEPTH/KLIM 리터럴 형태가 바뀌었다'
+    return {'DepMapDepth': f'{float(d.group(1)):g}',
+            'DepMapKLim': f'{float(k.group(1)):g}'}
+
+
+def _t11_protocol():
+    """★`T11`~`T14` 아크의 **관측 규약**을 동결 `meta_t11.json` 에서 읽는다.
+
+    ⛔손으로 적으면 다음 배치가 밀도나 창을 바꿀 때 조용히 낡는다 --- 이 저장소의
+      반복 결함(「손복사 기준 상수」). ⚠블록 수는 `verdict` 의 `n` 과 **교차 확인**한다.
+    """
+    m = json.load(open(os.path.join(TMP, 'T11_EXTACC_2026-09-03', 'meta_t11.json')))
+    v = load('T11_EXTACC_2026-09-03/verdict_t11.json')
+    assert int(m['files']) == int(v['primary']['n']), '⛔T11 파일 수와 검정 n 이 갈린다'
+    assert int(m['threads_readback']) == 1
+    return {'TElevenDensity': str(int(m['density'])),
+            'TElevenSpan': f"{m['win_s']:g}"}
+
+
+def _t12_family():
+    """★`T12` 의 **2차 가족 크기**와 문턱 미달 축의 수 --- 손으로 세지 않는다.
+
+    ⛔[2026-09-05] 원고가 *"여섯 축이 널이다"* 를 손으로 적을 뻔했다. 실측하면 문턱
+      미달은 **7/8** 이다(`A-BAND` 15/24 도 미달이고, 금지목록이 이름을 든 「음성 6축」은
+      그중 여섯이다) --- ★계수를 손으로 적으면 그 구별이 조용히 사라진다.
+    ⚠이 수는 **검정력의 진술**이다: 인용에는 `\\TTwelveSecMDE` 병기 의무가 걸려 있다
+      (`scripts/check_paper_disclosures.py` 의 `T12-MDE` 규칙).
+    """
+    import re as _re
+    v = load('T12_ISOLATE_2026-09-04/verdict_t12.json')
+    fam, thr = v['sec_family'], int(v['sec_family_thresh'])
+    below = sum(1 for x in fam.values() if int(x['w']) < thr)
+    # ⛔`C-MINDK` 의 널은 **75% no-op 위에** 있다 --- 그 계수를 문자열에서 뽑아 함께 낸다
+    #   (동결 verdict 이 `effect_vs_ship` 을 "6/24 다름" 형태의 **문자열**로 적었다).
+    mm = _re.match(r'(\d+)/(\d+)', v['effect_vs_ship']['C-MINDK'])
+    assert mm, f"⛔effect_vs_ship 형태가 바뀌었다: {v['effect_vs_ship']['C-MINDK']}"
+    assert int(mm.group(2)) == int(v['primary']['n'])
+    return {'TTwelveArms': str(len(fam)),
+            'TTwelveBelowThresh': str(below),
+            'TTwelveMinDkDiff': mm.group(1)}
+
+
+def _t13_fresh():
+    """★`T13` **신규 절반**에서 배포 팔이 제로필드를 이긴 수 --- 동결 공시 문자열에서.
+
+    ⛔이 수는 verdict 의 별도 필드에 **없다**: `AMENDMENT_3` 이 *"이 배치의 절반은 새
+      자료가 아니다"* 를 공시하면서 분해를 `disclosures` 안에 적었다. 손으로 옮겨 적지
+      않고 여기서 파싱하며, 문면이 바뀌면 죽는다(선례 `_spec_controls`).
+    """
+    import re as _re
+    v = load('T13_DEPTHFIX_2026-09-04/verdict_t13.json')
+    hits = [m for d in v['disclosures']
+            for m in [_re.search(r'SHIP<ZERO\s*(\d+)/(\d+)', d)] if m]
+    assert len(hits) == 1, '⛔T13 공시의 SHIP<ZERO 형태가 바뀌었다'
+    w, n = hits[0].groups()
+    assert int(n) == int(v['strata_descriptive']['FRESH-28'][1]), '⛔신규 층의 n 이 갈린다'
+    return {'TThirteenShipFreshWin': w}
+
+
+def _t14_blocked():
+    """★`T14-AUTOSCALE` --- **라벨이 없는 배치**. 인쇄 가능한 것은 게이트뿐이다.
+
+    ⛔금지목록(2026-09-04/05): *"라벨 일체 인용 금지 · `AUTO-AP` 28/28 · 회수율 1.634 ·
+      `AUTO-AP<FIX2` --- 차단된 배치의 부분 통계다."*
+    ⟹ ★이 함수는 **팔 계수를 하나도 내지 않는다.** 내는 것은 (a) 차단 사실 (b) 차단의
+      기제(`G-BAND-FRAGILE` 의 격자 여유) (c) 게이트가 지지하는 두 행동 검사
+      (`G-S-BLIND`·`G-INVERT`) (d) 그 설계의 MDE 뿐이다.
+    ★그리고 라벨이 생기면 **죽는다** --- 그때는 문안을 다시 써야 하기 때문이다.
+    """
+    import re as _re
+    import statistics as _st
+
+    def gates(rel):
+        out = {}
+        for row in load(rel)['gates']:
+            nm = row['name'] if isinstance(row, dict) else row[0]
+            det = row['detail'] if isinstance(row, dict) else row[2]
+            ok = row['pass_'] if isinstance(row, dict) else row[1]
+            out[nm.split()[0].lstrip('★⚠')] = (det, ok)
+        return out
+
+    v = load('T14_AUTOSCALE_2026-09-04/verdict_t14.json')
+    g = gates('T14_AUTOSCALE_2026-09-04/verdict_t14.json')
+    assert v['label'] is None and v['label_msg'] == 'BLOCKED', \
+        '⛔T14 가 라벨을 얻었다 --- 원고의 T14 문단을 다시 써야 한다'
+    assert v['blocked_by'] == ['G-EQUIVAR'], f"⛔차단 게이트가 바뀌었다: {v['blocked_by']}"
+    assert g['G-EQUIVAR'][1] is False, '⛔G-EQUIVAR 가 통과했다 --- 차단 서술이 거짓이 된다'
+
+    def frac(key):
+        m = _re.search(r'(\d+)/(\d+)', g[key][0])
+        assert m, f'⛔게이트 문자열 형태가 바뀌었다: {key} = {g[key][0]}'
+        return f'{m.group(1)}/{m.group(2)}'
+
+    kk = [b['kp_over_dk1'] for b in v['band_fragile']]
+    assert kk and min(kk) < 1.0, '⛔격자 여유가 1 아래인 블록이 사라졌다 --- 서술을 고쳐라'
+    # ★세 배치가 **같은 아카이브를 직접 쟀다**(각자 `G-SIZE` 로 바이트 수를 잰다).
+    #   ⛔"같은 아카이브" 를 산문으로 주장하기 전에 여기서 기계로 확인한다.
+    sizes = {gates(r)['G-SIZE'][0].strip()
+             for r in ('T11_EXTACC_2026-09-03/verdict_t11.json',
+                       'T12_ISOLATE_2026-09-04/verdict_t12.json',
+                       'T14_AUTOSCALE_2026-09-04/verdict_t14.json')}
+    assert len(sizes) == 1, f'⛔세 배치가 같은 아카이브를 보지 않았다: {sizes}'
+    return {'TFourteenGates': v['gates_pass'],
+            'TFourteenBlocked': v['blocked_by'][0],
+            'TFourteenInvert': frac('G-INVERT'),
+            'TFourteenBlind': frac('G-S-BLIND'),
+            'TFourteenBandMed': f'{_st.median(kk):.2f}',
+            'TFourteenBandMin': f'{min(kk):.2f}',
+            'TFourteenBandN': str(len(kk)),
+            'TFourteenMDE': f"{v['mde']['primary_q80']:.4f}"}
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ★인용 원자 — (매크로, 배치 verdict, json 경로, 형식, 핀)
@@ -1259,6 +1385,73 @@ ATOMS = [
     ('RTwoBKurtMax', 'R2B_STEREONOISE_2026-09-02/verdict_r2b.json',
      'surrogate_check.gauge_kurt.max', 'abs3', 3.492),
     ('CTwoN', 'C2_STOKES_2026-09-03/verdict_c2.json', 'primary.n', 'int', 48),
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # ★★[2026-09-05] `T11`--`T14` --- **제3자 참값 위에서 우리 추정기를 돌린 아크**.
+    #   §Limitations 가 *"this test reads their ground truth, it does not run our
+    #   estimator on it"* 라 적던 자리를 채운다. ⛔전부 **귀속**이고 우열이 아니다:
+    #   네 배치 어디에도 **외부 기준선 행이 0개**다.
+    #   ⛔`RESCALE` 은 성능도 배포 구성도 아니다(단위를 바꾼 사고실험).
+    #   ⛔음성 인용에는 MDE 병기 의무 --- `check_paper_disclosures.py` 가 강제한다.
+    # ═════════════════════════════════════════════════════════════════════════
+    # ── T11: 배포 팔의 음성 · 정보 존재(오라클) · 좌표 재라벨 귀속
+    ('TElevenN', 'T11_EXTACC_2026-09-03/verdict_t11.json', 'primary.n', 'int', 24),
+    ('TElevenThresh', 'T11_EXTACC_2026-09-03/verdict_t11.json', 'mde.crit_w', 'int', 17),
+    ('TElevenShipWin', 'T11_EXTACC_2026-09-03/verdict_t11.json', 'sec_a_ship.w', 'int', 8),
+    ('TElevenOracleWin', 'T11_EXTACC_2026-09-03/verdict_t11.json',
+     'sec_b_oracle.w', 'int', 24),
+    ('TElevenRescaleWin', 'T11_EXTACC_2026-09-03/verdict_t11.json', 'primary.w', 'int', 24),
+    ('TElevenRescaleP', 'T11_EXTACC_2026-09-03/verdict_t11.json',
+     'primary.p_one_sided', 'p', 5.96e-08),
+    ('TElevenMDE', 'T11_EXTACC_2026-09-03/verdict_t11.json', 'mde.q80', 'abs4', 0.76),
+    # ── T12: 어느 서브시스템의 절대 스케일이 그것을 나르는가
+    #   ⛔「단일 상수」 금지 --- 처치는 맵 칸 + 사전 밴드 + polish 물리 스텝을 **함께** 옮긴다.
+    ('TTwelveN', 'T12_ISOLATE_2026-09-04/verdict_t12.json', 'primary.n', 'int', 24),
+    ('TTwelveWin', 'T12_ISOLATE_2026-09-04/verdict_t12.json', 'primary.w', 'int', 24),
+    ('TTwelveP', 'T12_ISOLATE_2026-09-04/verdict_t12.json',
+     'primary.p_one_sided', 'p', 5.96e-08),
+    ('TTwelveHeldWin', 'T12_ISOLATE_2026-09-04/verdict_t12.json',
+     'secr_exploratory.A-MAPSCALE.w', 'int', 28),
+    ('TTwelveHeldN', 'T12_ISOLATE_2026-09-04/verdict_t12.json',
+     'secr_exploratory.A-MAPSCALE.n', 'int', 28),
+    ('TTwelveShipHeldWin', 'T12_ISOLATE_2026-09-04/verdict_t12.json',
+     'secr_exploratory.SHIP.w', 'int', 8),
+    ('TTwelveRho', 'T12_ISOLATE_2026-09-04/verdict_t12.json',
+     'rho_recovery.A-MAPSCALE.median', 'abs3', 0.507),
+    # ★라벨이 **한 블록 차이**로 뒤집힌다 --- w == 문턱. 강건성 진술 병기 의무.
+    ('TTwelveCellWin', 'T12_ISOLATE_2026-09-04/verdict_t12.json',
+     'sec_family.A-MAPCELL.w', 'int', 19),
+    ('TTwelveSecThresh', 'T12_ISOLATE_2026-09-04/verdict_t12.json',
+     'sec_family_thresh', 'int', 19),
+    # ⛔이 널은 **75% no-op 위에** 있다 --- `\TTwelveMinDkDiff` 병기 없이 인용 금지.
+    ('TTwelveMinDkWin', 'T12_ISOLATE_2026-09-04/verdict_t12.json',
+     'sec_family.C-MINDK.w', 'int', 9),
+    ('TTwelveSecMDE', 'T12_ISOLATE_2026-09-04/verdict_t12.json',
+     'mde.sec_q80', 'abs4', 0.8332),
+    # ── T13: 수심 결함을 고쳐도 검출되지 않는다 (⛔"원인이 아니다" 아님)
+    #   ⛔이 배치의 절반은 새 자료가 아니다 --- 분해 원자를 **함께** 낸다.
+    ('TThirteenN', 'T13_DEPTHFIX_2026-09-04/verdict_t13.json', 'primary.n', 'int', 52),
+    ('TThirteenWin', 'T13_DEPTHFIX_2026-09-04/verdict_t13.json', 'primary.w', 'int', 26),
+    ('TThirteenThresh', 'T13_DEPTHFIX_2026-09-04/verdict_t13.json',
+     'primary.thresh_win', 'int', 33),
+    ('TThirteenReuseWin', 'T13_DEPTHFIX_2026-09-04/verdict_t13.json',
+     ('strata_descriptive', 'T11-24', 0), 'int', 10),
+    ('TThirteenReuseN', 'T13_DEPTHFIX_2026-09-04/verdict_t13.json',
+     ('strata_descriptive', 'T11-24', 1), 'int', 24),
+    ('TThirteenFreshWin', 'T13_DEPTHFIX_2026-09-04/verdict_t13.json',
+     ('strata_descriptive', 'FRESH-28', 0), 'int', 16),
+    ('TThirteenFreshN', 'T13_DEPTHFIX_2026-09-04/verdict_t13.json',
+     ('strata_descriptive', 'FRESH-28', 1), 'int', 28),
+    # ★결과 **전에** 고정된 섭동 잡음 바닥 --- 이것이 널을 「등가문」으로 만든다.
+    ('TThirteenFloor', 'T13_DEPTHFIX_2026-09-04/verdict_t13.json',
+     'ctrl.floor_median_abs_rel', 'abs4', 0.03664),
+    ('TThirteenEffect', 'T13_DEPTHFIX_2026-09-04/verdict_t13.json',
+     'ctrl.effect_median_rel', 'sig3', -0.000148),
+    ('TThirteenMDE', 'T13_DEPTHFIX_2026-09-04/verdict_t13.json', 'mde.q80', 'abs4', 0.6795),
+    # ── T14 의 팔 계수는 **하나도 원자로 만들지 않는다**(차단된 배치). `_t14_blocked()` 참조.
+    #   ⚠예외 = 배포 팔 앵커의 자기 음성. 금지목록이 *"SHIP 무기술 3시드 재현"* 을 명시 허용.
+    ('TFourteenShipHeldWin', 'T14_AUTOSCALE_2026-09-04/verdict_t14.json',
+     'ship_vs_zero.w', 'int', 10),
 ]
 
 
@@ -1276,6 +1469,12 @@ FMT = {
     'pct100': lambda x: f'{x * 100:.1f}',
     # ⚠**밀리미터**. ⛔퍼센트도 nRMSE 도 아니다 --- 절대 잡음 진폭이다.
     'mm1': lambda x: f'{x:.1f}',
+    # ★[2026-09-05] MDE(최소검출효과)와 섭동 바닥은 **넷째 자리가 의미를 진다**
+    #   (금지목록이 `0.8332`·`0.6795`·`0.7630` 을 그 자리까지 적어 병기 의무로 걸었다).
+    #   ⛔셋째 자리에서 반올림하면 원장의 의무 자구와 글자가 어긋난다.
+    'abs4': lambda x: f'{x:.4f}',
+    # ★부호 있는 아주 작은 상대효과. ⛔고정 소수점은 `-0.0001` 로 뭉개 버린다.
+    'sig3': lambda x: f'{x:.3g}',
 }
 
 
@@ -1397,6 +1596,11 @@ def main():
     dep += list(_h3c_shuf_gap().items())
     dep += list(_h3c_fit_bias().items())
     dep += list(_seed_clustered().items())
+    dep += list(_map_depth().items())
+    dep += list(_t11_protocol().items())
+    dep += list(_t12_family().items())
+    dep += list(_t13_fresh().items())
+    dep += list(_t14_blocked().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]
 

@@ -59,7 +59,11 @@ Q_PAT = re.compile(r'^(?:mde_[qp]|q)(\d{2})$')      # q80 · mde_q80 · mde_p80
 LOOKS_MDE = re.compile(r'(^|\.)mde|(^|\.)q\d{2}$', re.I)
 # 설계 인자·부수 통계는 「인쇄된 MDE」가 아니다.
 NOT_A_VALUE = {'n', 'power', 'alpha', 'side', 'grade', 'one_sided', 'unrejectable_w',
-               'unrejectable_S', 'unrejectable_D', 'p_one_tail', 'k_plus', 'thresh',
+               'unrejectable_S', 'unrejectable_D',
+               # ⚠`_rec` = `T17` 의 **레코드 접기** 밴드. 비-`rec` 쌍둥이가 이미 면제인데
+               #   이 둘만 빠져 있었다 — 「N곳 전부의 N」 부류다(승수 정수이지 MDE 아님).
+               'unrejectable_S_rec', 'unrejectable_D_rec',
+               'p_one_tail', 'k_plus', 'thresh',
                'crit_w', 'threshold', 'note', 'mde_note', 'holm_first_alpha',
                'min_wins', 'p_at_min', 'p_at_min_minus_1', 'predicted_K', 'predicted'}
 
@@ -153,6 +157,32 @@ ENTRIES = [
     E('T16_BANDFIX_2026-09-05', 'verdict_t16.json',
       'SEC.SEC-BLIND (미접촉 24 · ⛔angle 과 완전 교락).q80', 24, 17, 0.80,
       pin='src:THRESH_BLIND'),
+] + [
+    # ── T17 (⛔`BLOCKED` = 라벨 없음. ★그래도 MDE 는 검사한다 — 차단된 배치의 설계
+    #   상수도 다음 사전등록이 인용하는 수이고, 인용되면 같은 규약을 져야 한다.)
+    #   ★**이 저장소에서 18/18 전건 «규약» 이 나온 첫 배치다**(부족분 0.00e+00).
+    #   n 출처 = `gates_t17.py`: 셀 72 · 레코드 `N_REC=12` · 일자 `N_DATE=10`(`:136`).
+    #   ⚠일자만 n 이 다르다 — 12 로 넘겨 잡으면 세 값이 «보수적» 로 **오분류**된다.
+    E('T17_REALSCALE_2026-09-05', 'verdict_t17.json', f'mde.{tag}_q{int(pw * 100)}',
+      n, crit, pw, pin=f'json:thresholds.{tag}')
+    for tag, n, crit in (('S', 72, 45), ('D', 72, 46), ('F', 72, 44),
+                         ('REC_S', 12, 10), ('REC_D', 12, 11), ('DATE', 10, 9))
+    for pw in (0.50, 0.80, 0.90)
+] + [
+    # ⚠`T17` 도 같은 양을 **두 번** 인쇄한다(`mde` 블록 + `primary_family` 블록).
+    #   ★둘 다 본다 — 한쪽만 고치면 통과하는 구멍을 만들지 않는다(`T4`·`T16` 선례).
+    E('T17_REALSCALE_2026-09-05', 'verdict_t17.json',
+      'primary_family.S (기술 축, 단측, Bonferroni α/2).q80', 72, 45, 0.80,
+      pin='json:thresholds.S'),
+    E('T17_REALSCALE_2026-09-05', 'verdict_t17.json',
+      'primary_family.S (기술 축, 단측, Bonferroni α/2).병기_레코드접기.q80',
+      12, 10, 0.80, pin='json:thresholds.REC_S'),
+    E('T17_REALSCALE_2026-09-05', 'verdict_t17.json',
+      'primary_family.D (착지 축, 양측, Bonferroni α/2).q80', 72, 46, 0.80,
+      pin='json:thresholds.D'),
+    E('T17_REALSCALE_2026-09-05', 'verdict_t17.json',
+      'primary_family.D (착지 축, 양측, Bonferroni α/2).병기_레코드접기.q80',
+      12, 11, 0.80, pin='json:thresholds.REC_D'),
 ]
 
 # ── (C) 미등록 — ⛔침묵이 아니라 **공시**다 ─────────────────────────────────

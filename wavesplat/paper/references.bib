@@ -394,6 +394,18 @@
   year    = {2016}
 }
 
+% ⛔[2026-09-02] `note` 는 **참고문헌 목록에 인쇄된다** --- 내부 메모를 여기 두면
+%   그것이 논문에 실린다(5차 감사가 인쇄면에서 잡았다). 주석으로 내린다.
+% ⛔[2026-09-05] 그 주석이 **항목 안**에 있었다 --- BibTeX 는 `%` 를 주석으로 읽지 않으므로
+%   `You're missing a field name` 오류를 내고 *"I'm skipping whatever remains of this entry"*
+%   를 찍었다. 마지막 필드 뒤라 인쇄면은 멀쩡했고, 그래서 **아무도 못 봤다**.
+%   ⟹ 항목 **밖**으로 내린다(내용 무수정). 아래 신설 항목들도 같은 규약을 따른다.
+%   Closest competing work: sparse 3-D point assimilation into a grid state with
+%   an ETKF, on a vessel holding position. The paper also measures direct
+%   assimilation of the sparse returns and reports limited improvement at the
+%   original sparse locations, and its outlook names a spectral-state formulation.
+%   (이 내용은 본문 §Related Work 의 위치지음 절이 이미 싣는다.)
+% ⚠그리고 이 논문의 **Pascoal/Kim 요약은 두 절이 틀렸다** --- 아래 1차 출처 항목 참조.
 @article{Wang2025PointsToWaves,
   author  = {Wang, Feng and Zhu, Qidan and Cai, Chengtao and Wang, Xiaoyu and
              Qiao, Renjie},
@@ -404,14 +416,7 @@
   volume  = {197},
   pages   = {104690},
   year    = {2025},
-  doi     = {10.1016/j.coastaleng.2024.104690},
-  % ⛔[2026-09-02] `note` 는 **참고문헌 목록에 인쇄된다** --- 내부 메모를 여기 두면
-  %   그것이 논문에 실린다(5차 감사가 인쇄면에서 잡았다). 주석으로 내린다.
-  %   Closest competing work: sparse 3-D point assimilation into a grid state with
-  %   an ETKF, on a vessel holding position. The paper also measures direct
-  %   assimilation of the sparse returns and reports limited improvement at the
-  %   original sparse locations, and its outlook names a spectral-state formulation.
-  %   (이 내용은 본문 §Related Work 의 위치지음 절이 이미 싣는다.)
+  doi     = {10.1016/j.coastaleng.2024.104690}
 }
 
 @article{Zheng2025SyntheticWaveFields,
@@ -426,4 +431,76 @@
   note    = {Data: Zenodo 17359600, CC-BY-4.0. The archive ships no
              documentation naming the generating solver; we therefore do not
              describe this corpus as higher-order or fully non-linear.}
+}
+
+% ── 2026-09-05 추가: 최근접 선행 4편의 **원문 열람** ───────────────────────────
+%   근거 = memory/reference_pascoal_kim_prior_art.md (VERIFIED/INFERRED/UNREAD 표기).
+%   ⛔이 네 항목은 novelty 를 **올리지 않고 닫는다**. §Related Work 의 선점 절이 쓴다.
+%   ⚠`Wang2025PointsToWaves` 의 Pascoal/Kim 요약은 **네 절 중 둘이 틀렸다** ---
+%     *"multiple ships concurrently as buoys"* (원문: **각각 한 척**) ·
+%     *"typically using tens of entry frequencies"* (Kim 원문: **96 주파수 / 192 상태**).
+%     ⟹ 그 2차 요약을 옮기지 않고 1차 출처를 직접 인용한다.
+%   ⛔`note` 는 참고문헌 목록에 **인쇄**되므로 내부 메모는 항목 **밖** 주석으로만 둔다.
+
+% VERIFIED (전문): 상태 = 선택된 주파수 집합의 복소 파진폭 실/허수부, 전이 **항등**,
+%   위상 회전은 시변 측정행렬. 학습 요소 0. 성분 수 미기재. **한 척**의 선박.
+%   실측 sea trial 로 평가(NRP Alm. Gago Coutinho, 2009).
+@article{Pascoal2017DirSpectra,
+  author  = {Pascoal, R. and Perera, L. P. and Guedes Soares, C.},
+  title   = {Estimation of directional sea spectra from ship motions in sea trials},
+  journal = {Ocean Engineering},
+  volume  = {132},
+  pages   = {126--137},
+  year    = {2017},
+  doi     = {10.1016/j.oceaneng.2017.01.020}
+}
+
+% VERIFIED (전문): 고정 주파수 격자 0.1--2.0 rad/s, dw = 0.02 ⟹ **96 주파수 / 192 상태**.
+%   구동 관측은 **heave 단일 채널**(한 척). 학습 요소 0 (Q·R 은 tuning knob).
+%   평가는 처방 JONSWAP·RAO 로 생성한 **합성** 운동.
+@article{Kim2019InverseKF,
+  author  = {Kim, HanSung and Kang, HeonYong and Kim, Moo-Hyun},
+  title   = {Real-time inverse estimation of ocean wave spectra from vessel-motion
+             sensors using adaptive {K}alman filter},
+  journal = {Applied Sciences},
+  volume  = {9},
+  number  = {14},
+  pages   = {2797},
+  year    = {2019},
+  doi     = {10.3390/app9142797}
+}
+
+% ⚠**본문 UNREAD** (저장소 전문 비공개). 서지는 OpenAlex 와 Wang 2025 참고문헌에서
+%   교차 확인. ⛔실질 서술은 전부 `Kim2019InverseKF`(같은 방법의 저널판)를 인용한다.
+@phdthesis{Kim2020Thesis,
+  author = {Kim, HanSung},
+  title  = {Real-time monitoring by using {K}alman filter in the ocean},
+  school = {Texas A\&M University},
+  year   = {2020}
+}
+
+% VERIFIED: 스펙트럼 혼합 커널. **연속** 성분 위치를 주변우도로 학습하고, 성분 수는
+%   상한 + ARD 수축으로 줄인다(10->7, 10->4, 4->3). ⚠in-sample 초매개 적합이지
+%   오프라인 사전이 아니고, 성분에 **위상이 없다**. 배치 처리.
+@inproceedings{WilsonAdams2013,
+  author    = {Wilson, Andrew Gordon and Adams, Ryan Prescott},
+  title     = {Gaussian process kernels for pattern discovery and extrapolation},
+  booktitle = {Proceedings of the 30th International Conference on Machine
+               Learning (ICML)},
+  volume    = {28},
+  pages     = {1067--1075},
+  year      = {2013}
+}
+
+% ⚠**열람 범위 = 초록만.** 유한 개 사인 성분(무작위 주파수·위상·진폭)의 해면 모형이며
+%   성분 수가 격자가 아니라 해상상태로 정해진다. ⛔추정기·자료·순차성은 말할 수 없다.
+%   사실적 표면에 ~3000 성분이므로 ⛔*few components* 의 선례가 **아니다**.
+@inproceedings{Charnotskii2011SparseSpectrum,
+  author    = {Charnotskii, Mikhail},
+  title     = {Sparse spectrum model of the sea surface},
+  booktitle = {Proceedings of the ASME 30th International Conference on Ocean,
+               Offshore and Arctic Engineering (OMAE 2011)},
+  pages     = {773--780},
+  address   = {Rotterdam, The Netherlands},
+  year      = {2011}
 }

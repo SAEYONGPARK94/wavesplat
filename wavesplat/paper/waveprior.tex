@@ -123,6 +123,12 @@ goes beyond what that outlook names: the field is a
 small set of continuous-wavenumber spectral atoms constrained by the dispersion
 relation, placed by \emph{WavePrior}, a learned set-valued prior, and refined by variable
 projection before per-frame updating.
+% ★[2026-09-05] 선점 감사. 초록이 성질 넷을 나열하면 독자는 그 **조합**을 신규로
+%   읽는다. 조합을 분리한 측정이 없으므로 자구로 좁힌다(§Related Work 의 선점 절이 정본).
+Of those properties only the prior is without precedent in the nearest prior art ---
+sequential component-state tracking on a fixed frequency set, and continuous
+wavenumbers, both predate it --- and we claim that one property rather than the
+combination, which no measurement here isolates.
 % ★2026-09-02 (P10) 5차 감사 권고 2d: 초록이 **음성 대조가 없는 행**으로 헤드라인을
 %   냈다(§5.1 이 그 대조를 필수라고 선언하는데도). ⟹ 헤드라인을 `B-12` 로 바꾼다:
 %   비선형 참값 · 코퍼스 밖 시드 · **비교자 기술 확인** · 분석 결과 전 동결.
@@ -356,6 +362,12 @@ Our key contributions are:
     %   ★기여 목록이 **꺼진 코드 경로**를 팔고 있었다(그림 1 도 그 정정을 인쇄한다).
     while supporting continuous monitoring without the discrete
     update latency of filter-based approaches.
+    % ★[2026-09-05] 선점 감사: 이 대비를 `donelan1996` 하나에만 걸면 **성분 상태를
+    %   프레임 간에 유지하는 것 자체**가 새로 읽힌다. 그것은 선행이 있다.
+    Persistence of a spectral component state across frames is not itself new:
+    \citet{Pascoal2017DirSpectra} and \citet{Kim2019InverseKF} already recurse one,
+    on a fixed frequency grid and from ship motions
+    (Section~\ref{sec:preemption}); it is not claimed here.
     Estimation accuracy depends on initialization quality;
     tracking refines amplitudes and phases given the wavenumbers
     established during initialization.
@@ -428,6 +440,16 @@ Our key contributions are:
     adds a margin on top of a working arm''}. The gain is synthetic; on measured
     records the same representation does not reach the decision threshold
     (\S\ref{sec:res_scope}).
+    % ★★[2026-09-05] 선점 감사. 이 단서가 없으면 C1--C4 를 이어 읽는 독자가
+    %   **조합**을 기여로 받는다. 그런데 저장소의 절제는 전부 일요인이고 교호작용은
+    %   한 번도 측정된 적이 없다. ⟹ 주장을 **한 성질**로 좁힌다.
+    \textbf{Scope of the novelty claim:} of the properties this representation
+    combines, this one --- an offline-trained, set-valued proposal --- is the only
+    one without precedent in the nearest prior art. Sequential component-state
+    tracking, continuous wavenumbers, and a small data-chosen component count each
+    have one (\S\ref{sec:preemption}). We claim this property, not the combination:
+    the ablations are one-factor and therefore measure marginal effects, not the
+    interaction a combination claim would need.
 \end{enumerate}
 
 The pipeline also includes an online model-order mechanism (energy-based
@@ -488,6 +510,7 @@ Ship motion (RAO) & --- & --- & Continuous & No (indirect) & Limited to encounte
 \end{table*}
 
 \subsection{Conventional shipboard wave sensing}
+\label{sec:rel_shipmotion}
 
 \textbf{X-band radar} is the most extensively studied sensor for
 shipboard wave estimation.
@@ -510,6 +533,26 @@ to recover the incident wave spectrum from heave/pitch/roll
 measurements~\citep{naaijen2014, nielsen2006}; these require no
 additional sensors but cannot resolve the spatial wave field, only
 the directional spectrum at the vessel location.
+% ★[2026-09-05] 이 두 편은 **순차 성분-상태 추적의 선행**이다. 저장소가 지금까지
+%   이들을 `Wang2025PointsToWaves` 의 2차 요약으로만 알고 있었고, 그 요약은 네 절 중
+%   **둘이 틀렸다**(*"multiple ships concurrently as buoys"* --- 원문은 각각 **한 척** ·
+%   *"tens of entry frequencies"* --- Kim 원문은 **96 주파수 / 192 상태**).
+%   ⟹ 1차 출처를 직접 인용하고, 그 틀린 두 절은 어디에도 옮기지 않는다.
+%   근거 = memory/reference_pascoal_kim_prior_art.md (전문 열람, VERIFIED).
+Two studies in this line deserve naming precisely, because the sequential
+component-state recursion used later in this paper has a precedent there.
+\citet{Pascoal2017DirSpectra} estimate a directional spectrum from the motions of
+\emph{one} vessel by carrying, as the filter state, the real and imaginary parts of
+the complex wave amplitudes on a selected and thereafter \emph{fixed} set of
+frequencies; the transition is the identity and the phase rotation is carried by a
+time-varying measurement matrix, and the estimator is exercised on sea-trial
+records. \citet{Kim2019InverseKF} --- the journal form of the work reported in
+\citet{Kim2020Thesis} --- build the same kind of state from a single heave channel
+on one vessel, on a fixed frequency grid spanning $0.1$--$2.0$~rad/s at
+$\Delta\omega = 0.02$~rad/s, that is $96$ frequencies and $192$ states, and evaluate
+it on synthetically generated motion. Neither has a learned component; in the second
+the process and observation covariances are tuning knobs. And neither returns a
+spatial field: what leaves both estimators is a spectrum at the vessel.
 
 \subsection{Grid-based wave field reconstruction}
 
@@ -610,7 +653,9 @@ filter~\cite{Wang2025PointsToWaves}. Two things about it shape our position.
 
 First, sequential and continuously-updating operation is \emph{not} what separates
 this paper from that line: recursive per-frame filters already exist there, and we
-therefore make no novelty claim on that axis. What differs is the state itself ---
+therefore make no novelty claim on that axis --- nor on the narrower axis of
+recursing a \emph{spectral component} state, which is older still
+(Section~\ref{sec:preemption}). What differs is the state itself ---
 a small set of continuous-wavenumber atoms rather than a grid --- and the fact that
 the atoms are placed by a learned prior.
 
@@ -623,6 +668,64 @@ as an untried idea. We are careful not to over-read the outlook of that paper: i
 points at a spectral-state formulation, not at a learned prior or at continuous
 wavenumbers, and the ablations in Section~\ref{sec:res_ablation} are what carry those
 two components here.
+
+% ★★[2026-09-05] 선점 감사(원문 4편 열람). 이 절이 없으면 위 두 문단이
+%   *"무엇이 우리 것인가"* 를 말하면서 *"무엇이 이미 남의 것인가"* 를 말하지 않는다
+%   --- 비선점만 나열하는 위치지음은 회피로 읽힌다.
+%   ⛔읽기 등급을 지킨다: Charnotskii 는 **초록만** 열람했으므로 추정기·자료·순차성을
+%     그 편에 귀속하지 않는다. Kim 학위논문 본문도 미열람이므로 실질은 저널판을 인용한다.
+%   근거 = memory/reference_pascoal_kim_prior_art.md.
+\subsection{What the nearest prior art already contains}
+\label{sec:preemption}
+
+Saying what a paper adds requires saying what it does not. We therefore set out,
+property by property, which of the four nearest works already holds each part of the
+representation proposed here.
+
+\emph{Sequential component-state tracking is not ours.}
+\citet{Pascoal2017DirSpectra} and \citet{Kim2019InverseKF} already recurse a state of
+complex wave amplitudes over a fixed frequency set with an identity transition
+(Section~\ref{sec:rel_shipmotion}); the per-frame update of Section~\ref{sec:method}
+is the same idea. What differs is that our frequencies are not drawn from a grid,
+that the set is proposed rather than fixed in advance, and that the estimate is a
+field over space rather than a spectrum at the sensor. The last of these is the one
+clean separation: both of those works observe \emph{ship motions} and return a
+directional spectrum, so neither is an alternative way of doing what this paper does.
+
+\emph{Continuous wavenumbers are not ours either.}
+\citet{Charnotskii2011SparseSpectrum} models the sea surface as a finite set of
+sinusoids whose parameters are drawn continuously rather than placed on a grid, and
+\citet{WilsonAdams2013} learn continuous spectral-component locations from data as
+the parameters of a Gaussian-process kernel. We read the first at abstract level only
+and therefore attribute no estimator, dataset, or sequencing to it; it is a surface
+model, which is why it does not bear on the measurements reported here --- but it
+does forbid the sentence ``a continuous-wavenumber sparse representation is new''.
+
+\emph{Nor is a small, data-chosen component count.} \citet{WilsonAdams2013} bound the
+number of components and let automatic relevance determination shrink the surplus
+away, which is the service our pooling selector performs. Their fit is in-sample and
+their components carry no phase, so it is not the same object as the prior used here;
+it is, however, the same claim about component count.
+
+\emph{What is left is one property.} Of the properties this paper's representation
+combines, exactly one has no precedent among these four works: an
+\emph{offline-trained, set-valued} prior that proposes the atoms conditioned on an
+observation window before any fitting is done. That property is what C4 claims and
+what the ablation of Section~\ref{sec:res_ablation} measures.
+
+\emph{We do not claim the combination.} It would be convenient to argue that the
+properties are worth more together than apart, and we do not, because nothing here
+measures it. The ablations of Section~\ref{sec:res_ablation} are one-factor: each
+removes a single property while holding the other fixed in \emph{both} arms, which
+measures two marginal effects and no interaction. A claim that the combination
+exceeds the sum of its parts is a claim of non-additivity, and it needs the
+two-factor cell in which both properties are removed at once --- a cell this paper
+does not contain. A two-factor design was pre-registered for exactly that question,
+and its power analysis, written before any run, finds that the additive null it would
+have to test against predicts, for that missing cell, an error larger than this
+observable has ever been seen to take; the null and negative directions of the test
+are therefore not interpretable on it. We state one property rather than a
+combination.
 
 \subsection{Grid-free alternatives: spectral, GPR, and learning-based}
 
@@ -649,6 +752,12 @@ What the learned prior supplies, and neither Capon nor MUSIC does, is a
 \emph{distribution over wavenumber--energy sets} conditioned on one observation window;
 the model order is then fixed by the selector and the phases by a least-squares fit, so
 neither is learned.
+The nearest thing to it in the wider literature is the spectral-mixture kernel of
+\citet{WilsonAdams2013}, which also places components at continuous spectral
+locations chosen from data and also bounds their number; the difference is that its
+locations are fitted to the series being modelled rather than proposed by a model
+trained offline, and its components carry no phase
+(Section~\ref{sec:preemption}).
 \textbf{Gaussian process regression}~\citep{rasmussen2006} with
 Mat\'ern or squared-exponential kernels provides nonparametric
 spatial interpolation but scales as $O(M^3)$ and, in its standard

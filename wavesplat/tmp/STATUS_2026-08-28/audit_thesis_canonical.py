@@ -153,6 +153,35 @@ COVERAGE = {
   "M-1 동결 드리프트 공시 (매크로)": "MOneDrift",
 }
 
+# ★★[2026-09-05] **COVERAGE 규약 재설계 — 초록은 더 이상 커버리지 지점이 아니다.**
+#
+# ⛔사유(사용자 승인, 외부 냉독 심사가 근거): 이 규칙이 「같은 주장이 N곳이면 N곳 전부」를
+#   기계화한 것은 옳았으나, 그 N 에 **초록 둘**을 넣은 것이 초록을 원장으로 만들었다.
+#   냉독 심사 축자: *"두 초록은 초록이 아니라 날짜가 박힌 원장이다."* 실측 당시 영문 초록
+#   약 3,000 단어. 그리고 그 압축을 막고 있던 것이 정확히 이 규칙이었다 --- 학위논문
+#   부록의 주석이 그것을 알고 있었다(*"추가 압축은 그 검사 규약의 재설계와 함께만 가능"*).
+#
+# ★대체 규약: 커버리지는 **본문 네 지점**(§boundary · 기여 · 제3장 · 결론)에서 강제한다.
+#   초록에는 **계수 원자**가 아니라 **정직성 항목**을 요구한다(`ABSTRACT_MUST`) ---
+#   초록의 일은 판정 원장을 복제하는 것이 아니라 *"이 논문을 무엇으로 읽으면 안 되는가"*
+#   중 **반드시 살아남아야 하는 것**을 싣는 것이다.
+# ⛔이 변경은 **침묵이 아니다**: 본문 네 지점의 요구는 한 글자도 약해지지 않았고, 초록에
+#   대해서는 요구가 **다른 종류로 바뀌었을 뿐 사라지지 않았다**.
+COVERAGE_SITES = ["§boundary", "기여", "제3장", "결론"]
+
+# (이름, 국문 초록에 있어야 하는 정규식, 영문 초록에 있어야 하는 정규식)
+# ⛔여기 있는 넷은 이 논문의 **자산**이다 --- 압축.재작성에서 사라지면 실패다.
+ABSTRACT_MUST = [
+  ("실측 음성",       r"실측\s*자료에서는\s*같은\s*표현이\s*무기술",
+                      r"On\s*measured\s*data\s*the\s*same\s*representation\s*has\s*no\s*skill"),
+  ("학습 봉투 단서",  r"배포\s*체크포인트를\s*학습시킨\s*것과\s*같은\s*생성기",
+                      r"same\s*generator\s*and\s*scene\s*distribution\s*that\s*trained"),
+  ("외부 기준선 0",   r"외부\s*방법과\s*비교된\s*적이\s*없다",
+                      r"never\s*been\s*compared\s*with\s*an\s*external\s*method"),
+  ("사이트 상한",     r"\$?4\$?\s*사이트\s*\$?12\$?\s*레코드",
+                      r"\$?12\$?\s*records\s*from\s*\$?4\$?\s*sites"),
+]
+
 def find_all(hay, needle):
     out, start = [], 0
     while True:
@@ -188,6 +217,12 @@ for name, needle in CANON.items():
 #   지금 실패로 올리면 **빨간불이 상시화돼 신호가 죽는다**. 개정이 끝난 뒤
 #   `--refreeze` 하고, 그때 판정으로 승격할지 결정하라.
 # ═════════════════════════════════════════════════════════════════════════════
+# ★★[2026-09-05] **재동결 1회 — 초록 재작성.** 여덟 항목이 각각 1--2 회 줄었고 전부
+#   **의도된 짝 삭제**다: 초록에서 어떤 주장을 내리면 그 주장에만 붙던 동반 공시도 함께
+#   내려간다(코너 순위 · 승수 최고 · 가족 MDE · 배제-지목 구분). 척추 문장(SPINE-KR/EN)은
+#   ⛔**축자 그대로** 초록에 남았고 줄어든 것은 국문 초록이 그것을 **두 번** 적던 중복
+#   하나뿐이다. ⛔본문 네 지점의 출현은 한 번도 줄지 않았다(위 COVERAGE 가 그것을 판정한다).
+#   ⚠재동결 전 값은 git 이력에 남는다 --- `git log -p` 로 이 json 을 보라.
 import json
 COUNTS_FILE = pathlib.Path("/home/vexit/wavesplat/wavesplat/tmp/STATUS_2026-08-28/thesis_canon_counts.json")
 if "--refreeze" in sys.argv:
@@ -251,12 +286,30 @@ def body_between(a, b):
     return re.sub(r'[{}$\\]|\s+', '', "".join(out))
 
 for name, atom in COVERAGE.items():
-    missing = [k for k, (a, b) in SPANS.items() if a is None or atom not in body_between(a, b)]
+    missing = [k for k in COVERAGE_SITES
+               if SPANS[k][0] is None or atom not in body_between(*SPANS[k])]
     if missing:
         bad += len(missing)
         print(f"⛔FAIL {name}: 빠진 지점 {missing}")
     else:
-        print(f"  ok  {name}: 여섯 지점 전부")
+        print(f"  ok  {name}: 본문 네 지점 전부")
+
+# --- 초록의 의무 (2026-09-05, 위 규약 재설계와 짝) ---------------------------
+print("\n--- ABSTRACT: 압축돼도 살아남아야 하는 넷이 두 초록에 있는가 ---")
+for name, ko_pat, en_pat in ABSTRACT_MUST:
+    miss = []
+    for site, pat in (("초록KR", ko_pat), ("초록EN", en_pat)):
+        a, b = SPANS[site]
+        # ⚠여기서는 공백만 지운 원문을 본다(위 body_between 은 백슬래시.중괄호도 지운다).
+        seg = " ".join(l for i, l in enumerate(lines, 1)
+                       if a <= i <= b and not l.lstrip().startswith('%'))
+        if a is None or not re.search(pat, seg):
+            miss.append(site)
+    if miss:
+        bad += len(miss)
+        print(f"⛔FAIL {name}: 빠진 지점 {miss}")
+    else:
+        print(f"  ok  {name}: 두 초록 전부")
 
 n_spine = len(find_all(flow, CANON["SPINE-KR (단일 진술 축자)"]))
 if n_spine < 5:

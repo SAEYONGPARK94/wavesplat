@@ -38,7 +38,12 @@ TMP = os.path.abspath(os.path.join(HERE, '..'))
 # ⛔앵커 규칙: 산문(`.md`) 안 백틱 코드조각도 잡아야 한다 — `T16/PREREG.md:162` 의
 #   `- \`SEED16 = 20261100\`, …` 이 행-앵커 정규식에 **안 잡혀서** 초판이 T16 을 통째로 놓쳤다.
 SEED_RE = re.compile(r'\b(SEED[A-Z0-9_]*)\s*=\s*(\d{7,})')
-N_RE = re.compile(r'^\s*(N_[A-Z0-9_]*)\s*=\s*(\d{1,5})\b', re.M)
+# ⛔[A2] 초판 정규식은 `^ N_X = 정수` 만 잡아 이 저장소의 **두 실제 표기 모두** 놓쳤다:
+#   튜플 대입 `N_FULL, N_SUB, N_LAYER = 128, 64, 64`(T15) · 백틱 `` `N_P = 60` ``(T16).
+#   ⟹ 폭이 `None` 이 되고 대역이 **폭 1 로 조용히 축소**됐다 — 저장소의 `(x or 기본값)` 부류.
+#   그 결과 「다음 안전한 밑변」 추천이 **틀린 값**을 냈다(T15 대역 안을 가리켰다).
+N_RE = re.compile(r'\b(N_[A-Z0-9_]*)\s*=\s*(\d{1,5})\b')
+N_TUPLE_RE = re.compile(r'\b(N_[A-Z0-9_,\s]*?)=\s*([\d,\s]+)$', re.M)
 ROW_SEED_RE = re.compile(rb'"seed"\s*:\s*(\d+)')
 ROW_PAIR_RE = re.compile(rb'"block"\s*:\s*"([^"]*)".*?"seed"\s*:\s*(\d+)'
                          rb'|"seed"\s*:\s*(\d+).*?"block"\s*:\s*"([^"]*)"')
@@ -96,14 +101,18 @@ def observed(batch_dir):
 def declared(batch_dir):
     """(밑변 이름, 밑변, 추정폭) 목록. ⚠폭은 **추정**이다."""
     out = []
-    for p in sorted(glob.glob(os.path.join(batch_dir, 'consts*.py'))
-                    + glob.glob(os.path.join(batch_dir, 'run*.py'))
-                    + glob.glob(os.path.join(batch_dir, 'PREREG.md'))):
+    # ⛔[A3] 초판은 `consts*/run*/PREREG.md` 만 봤다 ⟹ 밑변을 `gates_*.py` 에 두는 배치는
+    #   결과가 없는 동안 **목록에서 통째로 빠졌다**(실재: `T14/gates_t14.py:22`).
+    for p in sorted(glob.glob(os.path.join(batch_dir, '*.py'))
+                    + glob.glob(os.path.join(batch_dir, '*.md'))):
         try:
             txt = open(p, encoding='utf-8').read()
         except Exception:                                          # noqa: BLE001
             continue
         ns = [int(v) for _, v in N_RE.findall(txt)]
+        for _names, _vals in N_TUPLE_RE.findall(txt):          # 튜플 대입
+            if ',' in _names:
+                ns += [int(v) for v in re.findall(r'\d+', _vals)]
         for name, val in SEED_RE.findall(txt):
             out.append((name, int(val), max(ns) if ns else None, os.path.basename(p)))
     return out
@@ -140,18 +149,61 @@ def main(argv):
         for nm, b, w, src in dec:
             base_map.setdefault(b, []).append(f'{name}:{src}:{nm}')
 
-    keys = []
+    keys, fails = [], 0
     print('══ check_seed_bands ::', root)
     print(f'  배치 {len(spans)} · 선언 밑변 {len(base_map)}')
-    fails = 0
+    # ⛔[A2] 폭을 못 찾으면 **FAIL 이다** — 조용히 폭 1 로 줄이지 않는다.
+    unknown_w = sorted({name for name, (obs, dec) in batches.items()
+                        if not obs and dec and all(w is None for _, _, w, _ in dec)})
+    for name in unknown_w:
+        fails += 1
+        keys.append(f'WIDTH:{name}')
+        print(f'  [FAIL] {name} — 밑변은 선언됐으나 **폭을 못 찾았다**(`N_…` 상수 미발견) '
+              f'⟹ 대역을 판정할 수 없다. ⛔폭 1 로 가정하지 않는다')
+    # ⛔[자기결함] 여기 `fails = 0` 이 남아 있어 폭-미상 FAIL 을 **지우고 있었다**
+    #   — 요약이 5건을 4건으로 인쇄했다. 검사기가 자기 계수를 잃는 부류다.
     for b, who in sorted(base_map.items()):
         owners = sorted({w.split(':')[0] for w in who})
-        if len(owners) > 1:
+        # ⛔같은 밑변이라도 두 배치가 **같은 블록에 같은 시드**를 쓰면 의도된 앵커 재현이다
+        #   (`T12 G-ANCHOR` 는 `T11` 과 비트 동일을 **요구**한다). 기계적으로 가른다 —
+        #   ★관측 교집합이 있고 그 시드들의 블록 집합이 겹치면 위반이 아니다.
+        _anchor = False
+        if len(owners) == 2:
+            _oa, _oc = batches.get(owners[0], ({}, []))[0], batches.get(owners[1], ({}, []))[0]
+            _common = set(_oa) & set(_oc)
+            if _common and all(_oa[k] & _oc[k] for k in _common):
+                _anchor = True
+        if len(owners) > 1 and not _anchor:
             fails += 1
             keys.append('BASE:' + ','.join(owners))
             print(f'  [FAIL] 같은 밑변 SEED={b} 를 **여러 배치**가 선언 → {owners}')
             print(f'         ★이것이 결과 파일만 보는 검사가 못 잡는 부류다 '
                   f'(아직 안 돈 형제). 출처 {sorted(who)}')
+    # ⛔[A1] 초판은 **밑변이 글자 그대로 같을 때만** 미실행 형제를 잡았다. 밑변이 다르면서
+    #   대역이 겹치는 경우(예: 20261100 폭128 과 20261150 폭60)는 **FAIL 0 으로 통과**했다.
+    #   ⟹ 관측이 없는 배치끼리도 **선언 대역 구간 교집합**을 본다.
+    dec_span = {}
+    for name, (obs, dec) in batches.items():
+        ws = [w for _, _, w, _ in dec if w]
+        if dec and ws:
+            dec_span[name] = (min(band(b, max(ws))[0] for _, b, _, _ in dec),
+                              max(band(b, max(ws))[1] for _, b, _, _ in dec))
+        elif obs:
+            dec_span[name] = (min(obs), max(obs))
+    _dn = sorted(dec_span)
+    for i, a in enumerate(_dn):
+        for c in _dn[i + 1:]:
+            la, ha = dec_span[a]; lc, hc = dec_span[c]
+            lo, hi = max(la, lc), min(ha, hc)
+            # ⛔「아직 안 돈」의 판별을 `seed>=1e7 관측 유무` 로 하면, 추정기를 안 돌리는
+            #   속성 측정 배치(`T1_THIRDPARTY` 등)가 「미실행」으로 잡힌다 ⟹ **결과 파일
+            #   자체가 없는** 배치로 좁힌다.
+            _unrun = lambda n: not glob.glob(os.path.join(root, n, 'results*.jsonl'))
+            if lo <= hi and (_unrun(a) or _unrun(c)):
+                fails += 1
+                keys.append(f'DECL:{a}|{c}')
+                print(f'  [FAIL] 선언 대역 겹침 {a} [{la}–{ha}] ∩ {c} [{lc}–{hc}] = [{lo}–{hi}] '
+                      f'★한쪽이 아직 안 돌아 결과로는 안 보인다')
     names = sorted(spans)
     anchors = 0
     for name in names:
@@ -203,8 +255,14 @@ def main(argv):
     for n in names:
         lo, hi, kind, cnt = spans[n]
         print(f'   {n:34s} {lo}–{hi}  {kind}' + (f' · {cnt}값' if cnt else ''))
-    hi_all = max((h for _, h, _, _ in spans.values()), default=0)
-    print(f'  ⟹ ★다음 배치가 안전하게 쓸 밑변: **{((hi_all // 100) + 1) * 100}** 이상')
+    # ⛔[A2] 폭 미상이 하나라도 있으면 추천을 **인쇄하지 않는다** — 틀린 추천은
+    #   추천 없음보다 나쁘다(초판이 T15 대역 **안**을 가리켰다).
+    hi_all = max([h for _, h, _, _ in spans.values()]
+                 + [h for _, h in dec_span.values()], default=0)
+    if unknown_w:
+        print(f'  ⛔다음 밑변 추천 **보류** — 폭 미상 배치 {unknown_w}')
+    else:
+        print(f'  ⟹ ★다음 배치가 안전하게 쓸 밑변: **{((hi_all // 100) + 1) * 100}** 이상')
     print(f'  요약: FAIL {fails}   (⛔충돌은 판정 오염이 아니라 **규율 위반**이다 — 독스트링)')
     if '--keys' in argv:
         print('KEYS ' + ' '.join(sorted(k for k in keys if not k.startswith('WARN-'))))

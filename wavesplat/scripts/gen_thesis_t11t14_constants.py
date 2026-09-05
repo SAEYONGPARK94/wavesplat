@@ -44,6 +44,11 @@ T14 = 'T14_AUTOSCALE_2026-09-04/verdict_t14.json'
 #   아니다. ⚠이름 부채로 남긴다: 이 파일은 실제로 T11--T16 을 담는다.
 T15 = 'T15_HOMEREG_2026-09-05/verdict_t15.json'
 T16 = 'T16_BANDFIX_2026-09-05/verdict_t16.json'
+# ★★[2026-09-05] 오늘 **라벨을 내지 않은** 배치 둘. ⛔이 둘에서 나오는 매크로에는
+#   축 통계(`primary_family`·`SEC`·`positive_control` 의 승수)가 **하나도 없다** ---
+#   `_forbid_axis_stats()` 가 렌더 결과를 훑어 그것을 기계로 강제한다(선례 `T14`).
+T17 = 'T17_REALSCALE_2026-09-05/verdict_t17.json'
+T18 = 'T18_FACTORIAL_2026-09-05/verdict_t18.json'
 
 _cache = {}
 
@@ -185,6 +190,88 @@ def check_pins():
     import math as _math
     if abs(float(get(T16, 'D_drive.ln105')) - _math.log(1.05)) > 1e-12:
         bad.append('⛔`D_drive.ln105` 가 더는 ln(1.05) 가 아니다 --- 산문의 항등식을 고쳐라')
+
+    # ── T17 · T18 --- ⛔둘 다 **라벨 없음**(차단). 선례 = `M8`·`T14` ────────────
+    for rel, tag, blockers, gates, rows_ in (
+            (T17, 'T17', ['G-DEPTH-EXACT', 'G-INVERT', 'G-ENV'], '26/29', 432),
+            (T18, 'T18', ['G-ATOMSRC'], '24/25', 912)):
+        if get(rel, 'label') is not None:
+            bad.append(f"{tag} 에 라벨이 생겼다: {get(rel, 'label')!r} — 문안을 다시 쓰라")
+        eq(f'{tag} label_msg', get(rel, 'label_msg'), 'BLOCKED')
+        eq(f'{tag} 게이트', get(rel, 'gates_pass'), gates)
+        eq(f'{tag} 차단자', get(rel, 'blocked_by'), blockers)
+        eq(f'{tag} 행수', get(rel, 'n_rows'), rows_)
+
+    # ⛔[C6, 개정문 2] `T17` 의 동결 verdict 에는 **축 라벨 둘이 살아 있다**(분석기가
+    #   무조건 쓴다). 학위논문은 그 둘을 인쇄하지 않는다 --- 여기서 **존재를 핀해** 두어
+    #   *"라벨이 아예 없다"* 라고 잘못 적는 것을 막는다(`RESULT.md §2.1` 이 그렇게 적었고
+    #   개정문이 **파일 수준에서 거짓**이라 판정했다).
+    for k in ('label_S', 'label_D'):
+        if get(T17, k) is None:
+            bad.append(f'⛔`{k}` 가 사라졌다 --- 산문의 「축 라벨은 남아 있다」 공시를 고쳐라')
+
+    # ★`T17` 의 병리 셀은 **근사 동점이 아니라 2단 격자 모서리**다(개정문 C1).
+    #   ⛔`RESULT.md` 초판의 *"격자가 바뀌어 argmax 가 건너뛴다"* 는 철회됐다 ---
+    #   그 철회의 근거(항등 스케일에서 격자가 **비트 동일**)를 여기서 붙든다.
+    o = _t17_outlier()
+    if not (o['klim1'] == o['klim1_prime'] and o['dk1'] == o['dk1_prime']):
+        bad.append('⛔병리 셀의 1단 격자가 더는 비트 동일이 아니다 --- '
+                   '「격자가 바뀐 것이 아니다」 문장을 다시 써라')
+    if not o['kp2_hat_prime'] > o['klim2']:
+        bad.append('⛔병리 첨두가 더는 2단 축 한계 밖이 아니다 --- 「모서리」 서술을 다시 써라')
+    if o['edge_hit']:
+        bad.append('⛔`edge_hit` 이 참이 됐다 --- 「기존 진단자가 못 본다」 문장을 다시 써라')
+    # ⛔[2026-09-05] 산문이 *"그 위반은 한 셀에서 **팔 전부**에 걸쳐 있다"* 라 적는다
+    #   --- `T18` 의 「학습 팔은 통과」 대칭이 `T17` 에는 성립하지 않는다는 근거다.
+    #   ★그 문장이 조용히 낡지 않게 게이트 세부의 위반 수와 팔 수를 대조한다.
+    # ⛔[2026-09-05 적대적 심사 m-3] 초판은 **위반 수 == 팔 수** 만 봤다 ⟹ `3팔 × 2셀`
+    #   같은 재분석이 통과하면서 산문(*"한 셀에서 팔 전부"*)이 거짓이 될 수 있었다.
+    #   ⟹ 세부 문자열에서 **팔 이름과 셀 이름을 파싱**해 집합으로 대조한다.
+    # ⚠**게이트 세부의 위반 목록은 잘려 있다**(6건 중 4건만 인쇄된다) ⟹ 그 문자열로는
+    #   *"팔 전부"* 를 확인할 수 없다. **동결 행에서 직접** 센다.
+    _, _det = gate_detail(T17, 'G-DEPTH-EXACT')
+    _rows = _t17_rows()
+    _kdtol = float(re.search(r'≤ \*\*1e-0?(\d+)\*\*·k̂d',
+                             gate_detail(T17, 'G-DEPTH-EXACT')[0]).group(1))
+    _kdtol = 10.0 ** (-_kdtol)
+    _bad_rows = [r for r in _rows if abs(r['kd_prime'] - r['kd']) / r['kd'] > _kdtol]
+    _mn = re.match(r'위반\s+(\d+)', str(_det))
+    if not (_mn and int(_mn.group(1)) == len(_bad_rows)):
+        bad.append(f'⛔`G-DEPTH-EXACT` 위반 재집계({len(_bad_rows)})가 동결 세부와 다르다')
+    if {r['arm'] for r in _bad_rows} != {r['arm'] for r in _rows}:
+        bad.append('⛔`G-DEPTH-EXACT` 위반이 더는 **팔 전부**가 아니다 --- 그 문장을 다시 써라')
+    if len({r['cell_id'] for r in _bad_rows}) != 1:
+        bad.append('⛔`G-DEPTH-EXACT` 위반이 더는 **한 셀**이 아니다 --- 그 문장을 다시 써라')
+    # ── m-4 ── *"조건 자리에 리터럴 참"* 의 출처를 붙든다(매크로는 뺄셈일 뿐이다).
+    _an = open(os.path.join(TMP, _T17DIR, 'analyze_t17.py'), encoding='utf-8').read()
+    if '구조적으로 FAIL 할 수 없다' not in _an:
+        bad.append('⛔분석기가 더는 「구조적으로 FAIL 할 수 없다」라 적지 않는다 --- '
+                   '기록 전용 항 서술을 다시 써라')
+    # ── m-5 ── *"어떤 판정 행이 생기기도 전에 적었다"* 의 **유일한 근거**를 붙든다.
+    _pr = open(os.path.join(TMP, _T18DIR, 'PREREG.md'), encoding='utf-8').read()
+    _mm = re.search(r'에피소드별 관측 최대\*\*를 넘는 것 : (\d+)/(\d+)', _pr)
+    if not (_mm and _mm.group(1) == str(get(T18, 'design_constants.ADD_OVER_EPCEIL'))
+            and _mm.group(2) == str(get(T18, 'design_constants.n'))):
+        bad.append('⛔동결 사전등록의 「에피소드별 관측 최대를 넘는 것」이 verdict 과 다르다 '
+                   '--- 그 문장의 근거가 사라졌다')
+    # ⛔그리고 그 계수는 **에피소드별** 최대에 대한 것이다(전역 최대는 다른 수다).
+    if int(get(T18, 'design_constants.ADD_OVER_GLOBAL')) >= int(
+            get(T18, 'design_constants.ADD_OVER_EPCEIL')):
+        bad.append('⛔전역 최대 초과가 에피소드별을 따라잡았다 --- 「각 에피소드가」 자구를 다시 써라')
+
+    # ★산문의 마지막 문장 --- *"라벨 없이도 남은 것"* 둘을 붙든다.
+    #   ① `T18` 의 동결 게이트가 통과했다(= `T17` 을 죽인 「본실행 중 동결 파일 수정」 무재발)
+    #   ② 두 배치 모두 앵커가 **비트 재현**이다.
+    _, _env = gate_detail(T18, 'G-ENV')
+    if '[]' not in str(_env):
+        bad.append('⛔`T18` 의 동결 게이트에 위반이 생겼다 --- 「재발하지 않았다」를 다시 써라')
+    for _k in ('A-BANK', 'A-PROP'):
+        if '비트 동일' not in get(T17, f'anchor.{_k}.grade'):
+            bad.append(f'⛔`T17` 앵커 {_k} 가 더는 비트 재현이 아니다 --- 그 문장을 다시 써라')
+    for _n in ('G-ANCHOR-B22', 'G-ANCHOR-B16'):
+        _, _d = gate_detail(T18, _n)
+        if 'T2 0' not in str(_d) or '실패 []' not in str(_d):
+            bad.append(f'⛔`T18` {_n} 가 더는 비트 재현이 아니다 --- 그 문장을 다시 써라')
 
     if bad:
         raise AssertionError('⛔동결 판정과 어긋난다:\n  ' + '\n  '.join(bad))
@@ -361,6 +448,348 @@ def t16_scale_shape():
     return {}
 
 
+# ═════════════════════════════════════════════════════════════════════════════
+# ★★[2026-09-05] `T17`$\cdot$`T18` --- **라벨을 내지 않은 두 배치**.
+#
+# ⛔**여기서 인쇄하는 것과 인쇄하지 않는 것.**
+#   인쇄한다 = 물음$\cdot$설계 규모$\cdot$차단 사실$\cdot$차단의 진단$\cdot$검정력(MDE).
+#   ⛔인쇄하지 않는다 = **축 통계 일체**(`primary_family`$\cdot$`primary`$\cdot$`SEC`$\cdot$
+#   `positive_control`$\cdot$`other_vs_zero` 의 승수). 차단된 배치의 수는 판정이 아니다
+#   (`M8`$\cdot$`T14` 선례). ★그 규율을 문장이 아니라 **기계**로 집행한다 ---
+#   `_forbid_axis_stats()` 가 렌더 결과에서 그 승수 문자열을 찾으면 죽는다.
+# ⚠`T17` 의 `SEC-D`(레일 대조)는 **사전등록된 판별자**이고 그 발화는 축의 승수 없이
+#   **셀 부호 일치**로 적는다 --- 그래야 「축을 인쇄하지 않는다」와 모순되지 않는다.
+# ═════════════════════════════════════════════════════════════════════════════
+_T17DIR = 'T17_REALSCALE_2026-09-05'
+_T18DIR = 'T18_FACTORIAL_2026-09-05'
+
+
+def _jsonl(rel):
+    if rel not in _cache:
+        with open(os.path.join(TMP, rel), encoding='utf-8') as fh:
+            _cache[rel] = [json.loads(x) for x in fh if x.strip()]
+    return _cache[rel]
+
+
+def _t17_rows():
+    return _jsonl(os.path.join(_T17DIR, 'results_t17.jsonl'))
+
+
+def _t17_outlier():
+    """`G-DEPTH-EXACT` 를 발화시킨 **한 셀**. ⛔셀 이름을 손으로 적지 않는다 ---
+    게이트 세부 문자열이 정본이고, 거기서 뽑은 이름으로 동결 행을 되읽는다."""
+    _, det = gate_detail(T17, 'G-DEPTH-EXACT')
+    m = re.search(r'[A-Za-z]+:([A-Za-z0-9]+\|w\d+):', str(det))
+    assert m, f'⛔G-DEPTH-EXACT 세부 형태가 바뀌었다: {str(det)[:120]}'
+    cell = m.group(1)
+    r = [x for x in _t17_rows() if x['cell_id'] == cell and abs(x['s'] - 1.0) < 1e-15]
+    assert r, f'⛔병리 셀 {cell} 의 항등 스케일 행을 찾지 못했다'
+    return r[0]
+
+
+def _blocking(bdir, mod, verdict_rel):
+    """차단 게이트만 센 **정직한 계수**. ⛔`gates_pass` 의 분모는 기록 전용 게이트를 포함한다
+    (`T17 개정문 C7` 축자: *"26/29 는 분모를 부풀린다"*). 배치 소스의 튜플이 정본이다."""
+    src = open(os.path.join(TMP, bdir, mod), encoding='utf-8').read()
+    m = re.search(r'^GATES_BLOCKING = (\(.*?\n\))', src, re.S | re.M)
+    assert m, f'⛔{mod} 에서 GATES_BLOCKING 을 찾지 못했다'
+    body_ = '\n'.join(re.sub(r'#.*$', '', ln) for ln in m.group(1).split('\n'))
+    import ast
+    names = ast.literal_eval(body_)
+    n = len(names)
+    blocked = get(verdict_rel, 'blocked_by')
+    assert all(b in names for b in blocked), '⛔차단자가 차단 게이트 목록에 없다'
+    return f'{n - len(blocked)}/{n}'
+
+
+def t17_atoms():
+    """`T17` --- 동결 verdict $\\cdot$ 동결 jsonl $\\cdot$ 배치 소스에서만 나온다."""
+    import numpy as np
+    R = _t17_rows()
+    cells = sorted({r['cell_id'] for r in R})
+    by = {}
+    for r in R:
+        by.setdefault(r['cell_id'], {})[r['arm']] = r
+    o = _t17_outlier()
+
+    # ★항등 스케일에서 재라벨은 항등사상이다 --- 그런데 한 셀이 그것을 깬다.
+    ident = [r for r in R if abs(r['s'] - 1.0) < 1e-15]
+    exact = [r for r in ident if r['kd'] > 0 and abs(r['kd_prime'] / r['kd'] - 1.0) < 1e-12]
+    off = {r['cell_id'] for r in ident} - {r['cell_id'] for r in exact}
+    assert off == {o['cell_id']}, \
+        f'⛔항등 스케일 이탈이 더는 그 한 셀이 아니다({sorted(off)}) --- 문안을 다시 써라'
+
+    # ★자의 여유(개정문 C8 이 스스로 건 보고 의무) --- 병리 제외 최대가 자의 몇 %인가.
+    name, _ = gate_detail(T17, 'G-DEPTH-EXACT')
+    mt = re.search(r'≤ \*\*1e-0?(\d+)\*\*·k̂d', name)
+    assert mt, f'⛔G-DEPTH-EXACT 의 kd 허용오차 표기가 바뀌었다: {name}'
+    tol = float('1e-' + mt.group(1))
+    # ⛔[2026-09-05 백지 독자 M10] **이 자는 판정 자료 0 행 시점에 완화된 것이다.**
+    #   앞 소절이 *"게이트 계수가 그 사실을 감추게 두지 않는다"* 라 선언했으므로 여기서도
+    #   원값과 함께 인쇄한다. 원값은 **게이트 이름 자신**이 적는다(⛔손복사 금지).
+    mp = re.search(r'사전등록 §6\.1 의 `1e-0?(\d+)` 에서 \*\*완화됐다\*\*', name)
+    assert mp, f'⛔G-DEPTH-EXACT 이름에서 완화 전 자를 찾지 못했다: {name}'
+    # ⚠그 완화의 근거로 **개정문 1** 이 적은 여유(관측 최대의 몇 배)를 뽑는다 --- 본실행이
+    #   그것을 반박했고(개정문 2 §C8), 학위논문은 **주장과 실측을 나란히** 적는다.
+    a1 = open(os.path.join(TMP, _T17DIR, 'AMENDMENT_1_PREDATA.md'), encoding='utf-8').read()
+    mc = re.search(r'관측 최대의 \*\*(\d+)배\*\*', a1)
+    assert mc, '⛔개정문 1 에서 「관측 최대의 N배」 주장을 찾지 못했다'
+    rel = sorted(abs(r['kd_prime'] - r['kd']) / r['kd'] for r in R)
+    nxt = max(x for x in rel if x < 1.0)
+    assert nxt < tol, '⛔차순위 이탈이 자를 넘었다 --- 「자 아래」 문장을 다시 써라'
+    nz = sum(1 for c in cells
+             if any(abs(x['kd_prime'] - x['kd']) / x['kd'] > 0 for x in by[c].values()))
+    assert 0.4 < nz / len(cells) < 0.6, \
+        '⛔비트 동일이 아닌 셀의 비가 절반 근처를 벗어났다 --- 그 문장을 다시 써라'
+
+    # ★통제되지 않은 시간 원점(개정문 C1 · 체크리스트 `B13`).
+    tmax = max(r['t_start'] for r in R)
+    span = max(r['t_end'] - r['t_start'] for r in R)
+    ulp = float(np.spacing(np.float32(tmax)) / np.spacing(np.float32(span)))
+    assert ulp >= 8, '⛔원시/이동 프레임의 float32 정밀도 차가 사라졌다 --- 문안을 다시 써라'
+    assert all(r['t_origin'] == 0.0 for r in R), \
+        '⛔`t_origin` 이 더는 전 행 0 이 아니다 --- 「그 필드는 이동된 프레임만 되읽는다」를 고쳐라'
+
+    # ★레일 클립 --- 처치 팔의 배율이 **하한에 붙은** 셀. ⛔이것이 이 소절의 하중이다.
+    def clip(arm, half=False):
+        c = [x for x in R if x['arm'] == arm and x.get('s_clipped')]
+        assert all(abs(x['s'] - min(y['s'] for y in R)) < 1e-12 for x in c), \
+            f'⛔{arm} 의 클립이 더는 전건 하한이 아니다 --- 「하한」 자구를 고쳐라'
+        # ★산문이 *"그 팔의 **절반**은 규칙이 아니라 상수였다"* 라 적는다 --- 그 문장을 붙든다.
+        assert not half or 0.4 <= len(c) / len(cells) <= 0.6, \
+            f'⛔{arm} 의 레일 클립이 더는 절반 근처가 아니다({len(c)}/{len(cells)}) --- '
+        return f'{len(c)}/{len(cells)}'
+
+    # ★사전등록 판별자 `SEC-D` 의 발화 --- **축의 승수 없이** 셀 부호 일치로 적는다.
+    agree = sum(1 for c in cells
+                if (by[c]['PROP-BANDR']['nowcast'] < by[c]['PROP']['nowcast'])
+                == (by[c]['PROP-S025']['nowcast'] < by[c]['PROP']['nowcast']))
+    assert agree > 0.9 * len(cells), \
+        '⛔규칙 팔과 상수 팔의 부호 일치가 무너졌다 --- 「판별자가 발화했다」를 다시 써라'
+
+    # ★둘째 차단자 `G-INVERT` --- 위반의 **모양이 다르다**(결함이 아니라 **자가 좁다**).
+    #   ⛔개정문 C3 이 *"4배 신장 ⟹ float32 누적"* 을 자기 자료로 **반증**했다 ⟹ 여섯의
+    #   원인은 **여전히 미설명**이다. 그 사실을 산문이 적도록 수만 낸다.
+    iname, idet = gate_detail(T17, 'G-INVERT')
+    mi = re.search(r'≤ ([0-9.e-]+)·σ', iname)
+    assert mi, f'⛔G-INVERT 자구가 바뀌었다: {iname}'
+    itol = float(mi.group(1))
+    iv = sorted(r['invert_maxdiff'] / r['sigma'] for r in R
+                if r.get('invert_maxdiff') is not None)
+    imed = iv[len(iv) // 2] if len(iv) % 2 else 0.5 * (iv[len(iv) // 2 - 1] + iv[len(iv) // 2])
+    nviol = sum(1 for x in iv if x > itol)
+    mv = re.match(r'위반\s+(\d+)', str(idet))
+    assert mv and int(mv.group(1)) == nviol, \
+        f'⛔`G-INVERT` 위반 재집계({nviol})가 동결 세부({idet[:40]})와 다르다'
+    assert 2 < itol / imed < 6, \
+        '⛔`G-INVERT` 의 자가 더는 중앙값 바로 위가 아니다 --- 「자가 좁다」 문장을 다시 써라'
+    # ⛔⛔[2026-09-05 적대적 심사 B-1] 초판 산문이 이 비를 *"**스모크** 분포 중앙값의 3.8배"*
+    #   라 적었다. **거짓이다** --- 위 `imed` 는 **본실행** 중앙값이고, 자 자체는
+    #   `PREREG.md:492·:724` 가 결과 전에 고정한 상수(`INVERT_TOL_REL = 1e-4`)이며
+    #   그 고정은 **스모크가 존재하기도 전**이다(§12-1 인계 순서). ⟹ 두 비를 **분리해서**
+    #   내고, 스모크가 꼬리를 못 봤다는 진술은 **스모크 자신의 수**로만 한다.
+    sm = os.path.join(TMP, _T17DIR, 'results_t17_SMOKE.jsonl')
+    SR = _jsonl(sm)
+    siv = sorted(r['invert_maxdiff'] / r['sigma'] for r in SR
+                 if r.get('invert_maxdiff') is not None)
+    smed = siv[len(siv) // 2] if len(siv) % 2 else 0.5 * (siv[len(siv) // 2 - 1] + siv[len(siv) // 2])
+    assert not any(x > itol for x in siv), \
+        '⛔스모크가 그 자를 넘겼다 --- 「스모크는 통과했다」 문장을 다시 써라'
+    scells = len({r['cell_id'] for r in SR})
+    assert scells < 5, f'⛔스모크가 더는 소수 셀이 아니다({scells}) --- 「꼬리를 못 본다」를 다시 써라'
+    # ★산문이 두 가지를 더 주장한다(개정문 C3 이 세운 **정정**이다) --- 둘 다 붙든다.
+    #   ① *"위반은 팔이 아니라 **한 레코드**에 몰려 있다"*
+    #   ② *"신장이 클수록 편차가 **작다**"*(= 처음 적은 float32 누적 설명의 **부호가 반대**)
+    vio = [r for r in R if r.get('invert_maxdiff') is not None
+           and r['invert_maxdiff'] / r['sigma'] > itol]
+    top = max({r['record'] for r in vio}, key=lambda k: sum(1 for r in vio if r['record'] == k))
+    assert sum(1 for r in vio if r['record'] == top) > len(vio) / 2, \
+        '⛔`G-INVERT` 위반이 더는 한 레코드에 몰려 있지 않다 --- 그 문장을 다시 써라'
+    import math as _m
+    pts = [(abs(_m.log(r['s'])), r['invert_maxdiff'] / r['sigma']) for r in R
+           if r.get('invert_maxdiff') is not None and r['s'] > 0]
+
+    def _rank(vals):
+        order = sorted(range(len(vals)), key=lambda i: vals[i])
+        rk = [0.0] * len(vals)
+        for pos, i in enumerate(order):
+            rk[i] = float(pos)
+        return rk
+
+    rx, ry = _rank([a for a, _ in pts]), _rank([b for _, b in pts])
+    mx, my = sum(rx) / len(rx), sum(ry) / len(ry)
+    cov = sum((a - mx) * (b - my) for a, b in zip(rx, ry))
+    den = _m.sqrt(sum((a - mx) ** 2 for a in rx) * sum((b - my) ** 2 for b in ry))
+    assert cov / den < 0, \
+        '⛔신장과 편차의 순위상관이 더는 음이 아니다 --- 「부호가 반대였다」를 다시 써라'
+
+    return {
+        'TSeventeenRows': str(get(T17, 'n_rows')),
+        'TSeventeenCells': str(len(cells)),
+        'TSeventeenRecords': str(len({r['record'] for r in R})),
+        'TSeventeenWindows': str(len({r['win'] for r in R})),
+        'TSeventeenArms': str(len({r['arm'] for r in R})),
+        'TSeventeenSites': str(len({r['site'] for r in R})),
+        'TSeventeenGates': get(T17, 'gates_pass'),
+        'TSeventeenGatesBlocking': _blocking(_T17DIR, 'gates_t17.py', T17),
+        # ⚠분모를 부풀리는 항의 **개수**도 매크로다(⛔산문에 「열하나」라 손타이핑 금지).
+        'TSeventeenGatesRecord': str(len(V(T17)['gates'])
+                                     - int(_blocking(_T17DIR, 'gates_t17.py', T17).split('/')[1])),
+        # ⛔⛔[2026-09-05] 초판은 구분자를 `$\\cdot$` 로 썼다. 그 값이 **수식 모드 안**에서
+        #   쓰이면 안쪽 `$` 가 수식을 닫아 **뒤따르는 한국어 문장이 통째로 수식으로
+        #   조판된다**(실측: 인쇄면 3줄이 깨졌고 pdflatex 오류는 **0** 이었다).
+        #   ⟹ 매크로 값에서 `$` 를 없앤다. 검사기 = `check_print_surface.dollar_macro_in_math()`.
+        'TSeventeenBlockers': ', '.join(
+            '\\texttt{' + b + '}' for b in get(T17, 'blocked_by')),
+        'TSeventeenIdentityOK': f'{len(exact)}/{len(ident)}',
+        'TSeventeenOutlierRatio': f"{o['kd_prime'] / o['kd']:.3f}",
+        'TSeventeenKdTol': f'10^{{-{mt.group(1)}}}',
+        'TSeventeenKdTolPre': f'10^{{-{mp.group(1)}}}',
+        'TSeventeenKdMarginClaimed': mc.group(1),
+        'TSeventeenKdMarginActual': f'{tol / nxt:.1f}',
+        'TSeventeenKdNextPct': f'{nxt / tol * 100:.0f}\\%',
+        'TSeventeenKdNonzeroPct': f'{nz / len(cells) * 100:.0f}\\%',
+        'TSeventeenKlimTwo': f"{o['klim2']:.2f}",
+        # ★모서리 도달 반경 = 축 한계·√2. ⛔없이 인쇄하면 「한계 밖」과 「모서리」가 모순처럼 읽힌다.
+        'TSeventeenKlimTwoCorner': f"{o['klim2'] * 2 ** 0.5:.2f}",
+        'TSeventeenKhatPrime': f"{o['kp2_hat_prime']:.2f}",
+        'TSeventeenTMax': f'{tmax:.1f}',
+        'TSeventeenWinSpan': f'{span:.0f}',
+        'TSeventeenUlpRatio': f'{ulp:.0f}',
+        'TSeventeenRailClip': clip('PROP-BANDR', half=True),
+        'TSeventeenRailClipAP': clip('PROP-AP'),
+        'TSeventeenSignAgree': f'{agree}/{len(cells)}',
+        'TSeventeenInvertViol': f'{nviol}/{len(iv)}',
+        'TSeventeenInvertRows': str(len(iv)),
+        'TSeventeenInvertMarginSmoke': f'{itol / smed:.1f}',
+        'TSeventeenSmokeCells': str(scells),
+        # ── M-2 ── `§9.2-10` 은 **세 수를 함께** 요구한다(레일 밴드·개구·`G-EDGE` 발화).
+        'TSeventeenEdgeFire': '{}/{}'.format(get(T17, 'edge.n'), len(cells)),
+        # ── M-1 ── ⛔셀 MDE 와 **레코드 접기** MDE 를 섞지 마라(§9.2-6 축자 의무).
+        'TSeventeenSMDERec': f"{get(T17, 'mde.REC_S_q80'):.4f}",
+        'TSeventeenDMDERec': f"{get(T17, 'mde.REC_D_q80'):.4f}",
+        'TSeventeenInvertMargin': f'{itol / imed:.1f}',
+        'TSeventeenSMDE': f"{get(T17, 'mde.S_q80'):.4f}",
+        'TSeventeenDMDE': f"{get(T17, 'mde.D_q80'):.4f}",
+    }
+
+
+def t18_atoms():
+    """`T18` --- 차단 게이트가 「캐시 누출」이라 이름 붙었으나 **그것이 아니다**.
+
+    ★실측으로 좁힌 명제 *"md5 가 같다 ⟺ `n_l` 이 같다"* 를 **동결 행에서 다시 센다**
+    (`RESULT.md §1.2` 의 31/0/0). ⛔그 표를 손으로 옮기지 않는다.
+    """
+    import itertools
+    R = _jsonl(os.path.join(_T18DIR, 'results_t18.jsonl')) \
+        + _jsonl(os.path.join(_T18DIR, 'results_t18_secc.jsonl'))
+    assert len(R) == get(T18, 'n_rows'), '⛔행수가 동결 verdict 과 다르다'
+
+    def distinct(arm):
+        rows_ = [r for r in R if r['arm'] == arm]
+        return len(rows_), len({r['atoms_md5'] for r in rows_})
+
+    ana = [distinct(a) for a in ('A-C', 'A-Q')]
+    lrn = [distinct(a) for a in ('L-C', 'L-Q')]
+    assert ana[0] == ana[1] and lrn[0] == lrn[1], '⛔두 열의 형태가 갈렸다 --- 문안을 다시 써라'
+    assert lrn[0][0] == lrn[0][1], \
+        '⛔학습 팔이 더는 전건 상이가 아니다 --- 「학습 팔은 두 게이트를 전건 통과한다」를 고쳐라'
+    assert ana[0][1] < ana[0][0], '⛔해석 팔의 중복이 사라졌다 --- 차단 서술을 다시 써라'
+
+    same_same = same_diff = diff_same = 0
+    cross = 0
+    for arm in ('A-C', 'A-Q'):
+        rows_ = [r for r in R if r['arm'] == arm]
+        for a, b in itertools.combinations(rows_, 2):
+            sm = a['atoms_md5'] == b['atoms_md5']
+            if sm and a['episode'] != b['episode']:
+                cross += 1
+            if a['episode'] != b['episode']:
+                continue
+            sn = a['n_pool_expected'] == b['n_pool_expected']
+            same_same += sm and sn
+            same_diff += sm and not sn
+            diff_same += sn and not sm
+    assert same_diff == 0 and diff_same == 0, \
+        '⛔「md5 가 같다 ⟺ n_l 이 같다」가 더는 완전 일대일이 아니다 --- 기제 서술을 다시 써라'
+    assert cross == 0, '⛔중복이 에피소드를 넘나든다 --- 그때는 진짜 캐시 누출이다'
+    assert same_same % 2 == 0, '⛔두 해석 팔의 쌍 수가 홀수다 --- 팔당 계수를 낼 수 없다'
+
+    # ★★산문은 *"그 검정의 널·음성 방향은 해석되지 않는다"* 라 **단정**한다 --- 그 단정은
+    #   계수가 아니라 **관계**에 기댄다. 계수만 매크로로 내면 그 관계가 조용히 무너져도
+    #   문장이 남는다(이 저장소의 「구조 핀」 규약, `_t15`·`_t16` 과 같다).
+    n_ep = int(get(T18, 'design_constants.n'))
+    over = int(get(T18, 'design_constants.ADD_OVER_EPCEIL'))
+    assert over > n_ep / 2, \
+        f'⛔가법 널이 관측 범위 밖인 에피소드가 더는 과반이 아니다({over}/{n_ep}) --- '\
+        '「해석되지 않는다」 문장을 다시 써라'
+    # ⛔그리고 **등록된 예측 아래 그 라벨의 확률이 사실상 0** 이라는 것이 원래 논거다.
+    sup = float(get(T18, 'prediction.label_probs.COMBINATION-SUPERADDITIVE'))
+    assert sup < 1e-6, \
+        f'⛔등록 예측 아래 초가법 라벨의 확률이 더는 0 이 아니다({sup:.3g}) --- '\
+        '「이 설계는 그 물음에 답할 수 없다」를 다시 써라'
+
+    return {
+        'TEighteenRows': str(get(T18, 'n_rows')),
+        'TEighteenGates': get(T18, 'gates_pass'),
+        'TEighteenGatesBlocking': _blocking(_T18DIR, 'gates_t18.py', T18),
+        'TEighteenGatesRecord': str(len(V(T18)['gates'])
+                                    - int(_blocking(_T18DIR, 'gates_t18.py', T18).split('/')[1])),
+        'TEighteenBlocker': '\\texttt{' + get(T18, 'blocked_by.0') + '}',
+        'TEighteenAnaDistinct': f'{ana[0][1]}/{ana[0][0]}',
+        'TEighteenLearnDistinct': f'{lrn[0][1]}/{lrn[0][0]}',
+        'TEighteenPairSame': str(same_same // 2),
+        'TEighteenPairSameDiffN': str(same_diff),
+        'TEighteenPairDiffSameN': str(diff_same),
+        # ⛔[백지 독자 B5] `43/48` 은 이 논문이 **부호검정 승수**로 이미 20여 곳에 인쇄한
+        #   문자열과 **동일**하다 ⟹ 분수 형태를 버리고 **분자·분모를 따로** 낸다.
+        'TEighteenAddOverCeilW': str(get(T18, 'design_constants.ADD_OVER_EPCEIL')),
+        'TEighteenAddOverCeilN': str(get(T18, 'design_constants.n')),
+        'TEighteenMDE': f"{get(T18, 'mde.I_q80'):.4f}",
+        'TEighteenSecMDE': f"{get(T18, 'mde.SEC_q80'):.4f}",
+        'TEighteenSeccMDE': f"{get(T18, 'mde.SECC_q80'):.4f}",
+    }
+
+
+def _forbid_axis_stats(text):
+    """★★차단된 두 배치의 **축 통계가 매크로로 새어 나가는 것**을 기계로 막는다.
+
+    ⛔사유: `T14` 선례가 *"라벨도 부분 통계도 인용하지 않는다"* 인데, 그 규율은
+    지금까지 **사람의 주의**에만 걸려 있었다. `w/n` 을 동결 verdict 에서 **열거해**
+    렌더 결과와 대조하면, 뒤의 편집자가 무심코 승수 하나를 넣는 순간 생성기가 죽는다.
+    ⚠`T17` 의 `SEC-D` 는 사전등록 판별자이지만 그 **승수**는 여전히 축 통계다 ---
+    학위논문은 그것을 **셀 부호 일치**로 대신 적는다.
+    """
+    pairs = set()
+
+    def collect(node):
+        if isinstance(node, dict):
+            n = node.get('n_eff', node.get('n'))
+            for wk in ('w', 'w_plus'):
+                if isinstance(node.get(wk), int) and isinstance(n, int) and n:
+                    pairs.add(f"{node[wk]}/{n}")
+            for v in node.values():
+                collect(v)
+        elif isinstance(node, list):
+            for v in node:
+                collect(v)
+
+    for rel in (T17, T18):
+        v = V(rel)
+        for k in ('primary_family', 'primary', 'SEC', 'positive_control',
+                  'other_vs_zero', 'axis_II', 'A-C_vs_ZERO (⚠사전-OFF 열은 무기술 열이다)'):
+            if k in v:
+                collect(v[k])
+    # ⚠**부분문자열로 보면 오탐한다** --- `43/48` 안에 `3/48` 이 들어 있다(실증).
+    #   ⟹ 숫자 경계를 요구한다. ★「있는 것을 없다고」의 반대편 실패도 검사기의 결함이다.
+    leaked = sorted(p for p in pairs
+                    if re.search(r'(?<!\d)' + re.escape(p) + r'(?!\d)', text))
+    if leaked:
+        raise AssertionError(
+            '⛔차단된 배치의 **축 통계**가 매크로에 들어왔다: ' + ', '.join(leaked)
+            + '\n   차단된 배치의 수는 판정이 아니다(`M8`·`T14` 선례). 그 수를 빼라.')
+
+
 def rows():
     out = []
 
@@ -523,7 +952,8 @@ def rows():
 
     # ★[2026-09-05] 동결 행 재집계 · 공시 노트 · 게이트 문자열에서 나오는 원자들.
     for k, v in list(sweep_ladder().items()) + list(peek_counts().items()) \
-            + list(t16_gate_atoms().items()) + list(t16_scale_shape().items()):
+            + list(t16_gate_atoms().items()) + list(t16_scale_shape().items()) \
+            + list(t17_atoms().items()) + list(t18_atoms().items()):
         add(k, v)
     return out
 
@@ -531,11 +961,13 @@ def rows():
 def render():
     check_pins()
     body = '\n'.join(f'\\newcommand{{\\{k}}}{{{v}}}' for k, v in rows())
+    _forbid_axis_stats(body)
     return (
         '% AUTO-GENERATED by scripts/gen_thesis_t11t14_constants.py -- DO NOT EDIT BY HAND.\n'
-        '% 입력 = 동결 verdict_t11..t16.json. 학위논문은 이 매크로만 쓴다.\n'
-        '% ⚠파일 이름은 역사적 이유로 t11t14 이나 실제 범위는 T11--T16 이다.\n'
-        '% ⛔T14 는 차단된 배치다 --- 라벨도 부분 통계도 여기에 없다(있으면 그것이 결함이다).\n'
+        '% 입력 = 동결 verdict_t11..t18.json (+ 동결 jsonl 재집계). 학위논문은 이 매크로만 쓴다.\n'
+        '% ⚠파일 이름은 역사적 이유로 t11t14 이나 실제 범위는 T11--T18 이다.\n'
+        '% ⛔T14·T17·T18 은 차단된 배치다 --- 라벨도 축 통계도 여기에 없다(있으면 그것이 결함이다).\n'
+        '%   `_forbid_axis_stats()` 가 T17·T18 에 대해 그것을 **기계로** 강제한다.\n'
         + body + '\n')
 
 

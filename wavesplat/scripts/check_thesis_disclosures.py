@@ -463,7 +463,223 @@ RULES = [
      ['제3자 아카이브'],
      '⛔`T16` 은 **자국이 아니라 제3자 아카이브**에서 쟀다 — 소절 제목의 "자국" 은 '
      '(가)에만 걸린다. 그 사실 없이 이 계수를 (가)의 양성 대조 옆에서 읽으면 모순이다'),
+    # ═════════════════════════════════════════════════════════════════════════
+    # ★★[2026-09-05] `T17-REALSCALE` + `T18-FACTORIAL` — ⛔**둘 다 라벨이 없다**.
+    # ⛔여기 규칙들이 지키는 것은 「크기 병기」가 아니라 **「없음의 지위」**다:
+    #   차단된 배치의 수를 판정처럼 읽거나, 음성 방향으로 읽거나, 철회된 기제 서술을
+    #   되살리거나, ★**차단을 「조합을 주장하지 않는」 논거로 승격**시키는 네 오독을 막는다.
+    # ⚠축 통계 자체는 `gen_thesis_t11t14_constants._forbid_axis_stats()` 가 **생성기에서**
+    #   막는다 — 여기 규칙은 그 위에 얹히는 산문 의무다(두 방벽은 겹치지 않는다).
+    # ⚠규칙마다 요구는 **하나**다(`need` 는 OR 이므로 둘을 넣으면 하나를 지워도 통과한다).
+    # ═════════════════════════════════════════════════════════════════════════
+    ('TSeventeen-차단', trig('TSeventeenBlockers', 'TSeventeenRows',
+                           'TSeventeenIdentityOK', 'TSeventeenRailClip'),
+     [r'\\TSeventeenSMDE'],
+     '⛔`T17` 은 차단된 배치다 — 음성 방향("실측에서 그 규칙은 무기술이다")으로 읽지 '
+     '못하게 MDE(q80) 병기 의무'),
+    ('TSeventeen-축라벨잔존', trig('TSeventeenBlockers', 'TSeventeenRailClip'),
+     ['축별 라벨 두 개가 여전히 기록되어 있다'],
+     '⛔동결 verdict 에 `label_S`·`label_D` 가 **남아 있다**(분석기가 조건 없이 쓴다) — '
+     '"라벨이 아예 없다" 는 파일 수준에서 거짓이므로 그 사실을 같은 절에 공시'),
+    ('TSeventeen-기제철회', trig('TSeventeenOutlierRatio', 'TSeventeenIdentityOK'),
+     [r'기제 귀속\}\s*은 철회되었다'],
+     '⛔`RESULT.md` 의 기제 귀속은 **철회**됐다(정본 = `AMENDMENT_2_POSTRESULT.md`) — '
+     '병리 셀을 인용하는 자리에 그 철회를 함께 인쇄'),
+    ('TSeventeen-시간원점', trig('TSeventeenOutlierRatio', 'TSeventeenKlimTwo'),
+     [r'\\TSeventeenUlpRatio'],
+     '★실제로 다른 유일한 인자는 **통제되지 않은 시간 원점**이다 — 그 눈금 비를 '
+     '같은 절에 인쇄해야 "격자가 바뀌었다" 로 되감기지 않는다'),
+    ('TSeventeen-등변측정아님', trig('TSeventeenOutlierRatio'),
+     ['이 자료가 낸 관측이 아니다'],
+     '⛔*"이 배치가 이산 argmax 의 비등변을 측정했다"* 로 읽지 못하게 — 그 셀의 원인은 '
+     '등변성이 아니었다(개정문 C1). 조문이 기대는 전제에 대한 진술임을 같은 절에'),
+    ('TSeventeen-판별자', trig('TSeventeenRailClip', 'TSeventeenRailClipAP'),
+     [r'\\TSeventeenSignAgree'],
+     '★레일 클립을 적는 자리에는 **사전등록된 판별자의 발화**(셀 부호 일치)를 병기 — '
+     '그것이 "차단이 없었어도 축을 규칙에 대한 진술로 읽을 수 없었다" 의 근거다'),
+    ('TSeventeen-판별자사전등록', trig('TSeventeenSignAgree'),
+     ['결과를 본 뒤에 고른 층화가 아니다'],
+     '⛔그 대조는 **결과 이전에** 등록됐다 — 사후 층화로 읽히지 않게 같은 절에'),
+    # ⚠그 반대편도 막는다: *"사전등록이 잡았다"* 를 **운**처럼 적으면 설계가 실제보다
+    #   좋아 보인다. 프로브가 이미 레일 클립을 보여 줬고 그래서 대조를 등록한 것이다.
+    ('TSeventeen-프로브노출', trig('TSeventeenSignAgree', 'TSeventeenRailClip'),
+     ['우연한 포착'],
+     '⚠설계자는 사전 프로브에서 이미 레일 클립을 보았고 **그래서** 그 대조를 등록했다 — '
+     '"완전 blind 아님" 과 함께 같은 절에(⛔우연한 포착으로 읽히지 않게)'),
+    ('TSeventeen-게이트분모', trig('TSeventeenGates'),
+     [r'\\TSeventeenGatesBlocking'],
+     '⛔배치가 인쇄한 게이트 계수는 **분모를 부풀린다**(기록 전용 항이 여럿) — '
+     '차단 게이트만 센 정직한 계수를 같은 절에(개정문 C7)'),
+    ('TSeventeen-오염', trig('TSeventeenBlockers', 'TSeventeenRailClip'),
+     ['PRIMARY 를 본 뒤에 쓰였다'],
+     '⚠이 진단은 설계자가 PRIMARY 를 본 뒤에 쓰였다 — 후속 설계가 그 노출을 상속해야 '
+     '한다는 사실을 같은 절에(선례 `R2`·`R4`·`R2c`)'),
+    ('TSeventeen-라우팅', trig('TSeventeenBlockers', 'TSeventeenRailClip'),
+     ['배포 라우팅을 바꾸자는 제안이 아니다'],
+     '⛔규칙을 태운 팔은 **실측 게이트를 끈** 팔이고 `W-12` 가 금지한 구성이다 — '
+     '배포 제안으로 읽히지 않게 병기'),
+    ('TEighteen-차단', trig('TEighteenBlocker', 'TEighteenRows', 'TEighteenAnaDistinct'),
+     [r'\\TEighteenMDE'],
+     '⛔`T18` 도 차단된 배치다 — 음성 방향으로 읽지 못하게 MDE(q80) 병기 의무'),
+    # ⛔⛔**이 규칙이 이 묶음에서 가장 중요하다.** 차단이 「조합을 주장하지 않는」 논거로
+    #   승격되면 그것은 **결과를 보고 논거를 고른 것**이다. 논문 쪽과 같은 순서를 강제한다.
+    ('TEighteen-검정력이먼저', trig('TEighteenBlocker', 'TEighteenAddOverCeilW',
+                                'TEighteenPairSame'),
+     ['사전등록된 검정력 분석에 기대며 그 차단에 기대지 않는다'],
+     '⛔⛔조합을 주장하지 않는 근거는 **사전등록된 검정력 분석**이지 이 차단이 아니다 — '
+     '순서를 뒤집으면 "결과를 보고 논거를 골랐다" 가 된다(논문 §Related 와 같은 자구)'),
+    ('TEighteen-가법널', trig('TEighteenBlocker'),
+     [r'\\TEighteenAddOverCeilW'],
+     '★해석 불가의 근거는 **가법 널이 관측 범위 밖**이라는 결과 이전의 수다 — '
+     '차단을 적는 자리에 그 수를 함께'),
+    # ⚠그 매크로의 **인쇄 형태가 이 문서의 승수와 같다**(`43/48` 이 M-7 계열에 스무 곳 넘게
+    #   있다) ⟹ `trig()` 이 값 대안을 스스로 버렸다(`[note] 값 대안 미적용`). 리터럴 우회가
+    #   열려 있는 그 자리에, **다른 양임을 못박는 자구**를 의무로 건다.
+    ('TEighteen-승수아님', trig('TEighteenAddOverCeilW', 'TEighteenAddOverCeilN'),
+     [r'그 계수는 \\emph\{승수가 아니다\}'],
+     '⛔`43/48` 은 이 논문의 다른 곳에서 **부호검정 승수**로 인쇄된다 — 가법 널의 '
+     '예측값이 관측 범위 밖인 **에피소드 수**라는 것을 같은 절에 못박아라'),
+    ('TEighteen-캐시아님', trig('TEighteenPairSame', 'TEighteenAnaDistinct'),
+     ['캐시 누출이 아니다'],
+     '⛔게이트 이름은 "캐시 누출" 이나 **그것이 아니다** — 접두 길이가 겹친 것이라는 '
+     '진단을 같은 절에(그 진단이 없으면 저장소에 없는 결함이 있는 것처럼 읽힌다)'),
+    ('TEighteen-학습열통과', trig('TEighteenAnaDistinct'),
+     [r'\\TEighteenLearnDistinct'],
+     '★결함은 **해석 열에만** 있었고 학습 두 열은 전건 통과했다 — 한쪽만 인쇄하면 '
+     '"자료가 나빴다" 로 읽힌다(틀린 것은 조문이다)'),
+    ('TEighteen-게이트분모', trig('TEighteenGates'),
+     [r'\\TEighteenGatesBlocking'],
+     '⛔배치가 인쇄한 게이트 계수는 기록 전용 항을 포함한다 — 차단 게이트만 센 계수를 같은 절에'),
+    ('TEighteen-blind아님', trig('TEighteenBlocker', 'TEighteenAnaDistinct'),
+     ['blind 가 아니며 그 정도가 크다'],
+     '⚠설계 상수가 전부 **이미 열려 있던 칸**에서 유도됐다 — '
+     '⛔"out-of-sample"·"held-out" 자구 금지를 같은 절에'),
+    # ★★[2026-09-05 백지 독자 M10] **자 자신이 사전-완화된 사실**을 인쇄해야 한다 ---
+    #   바로 앞 소절이 *"게이트 계수가 그 사실을 감추게 두지 않는다"* 라 선언했다.
+    ('TSeventeen-자완화', trig('TSeventeenKdTol', 'TSeventeenKdNextPct'),
+     [r'\\TSeventeenKdTolPre'],
+     '⛔`G-DEPTH-EXACT` 의 kd 자는 **판정 자료 0 행 시점에 완화**된 것이다 — 완화 전 자를 '
+     '같은 절에(앞 소절이 같은 부류의 완화에 대해 세운 기준)'),
+    ('TSeventeen-자완화반박', trig('TSeventeenKdTolPre'),
+     [r'\\TSeventeenKdMarginActual'],
+     '⛔그 완화의 근거였던 여유 주장을 **본실행이 반박**했다(개정문 2 §C8) — 주장과 실측을 '
+     '나란히 적어야 "59%" 의 지위가 선다'),
+    # ★[백지 독자 M9] 축 한계를 **넘은** 값과 「모서리」가 모순처럼 읽힌다 ⟹ 모서리 반경 병기.
+    ('TSeventeen-모서리반경', trig('TSeventeenKhatPrime', 'TSeventeenKlimTwo'),
+     [r'\\TSeventeenKlimTwoCorner'],
+     '⛔축 한계보다 큰 첨두를 「모서리」라 부르려면 **모서리 도달 반경**을 같은 절에 --- '
+     '없으면 독자에게 대소가 모순이다'),
+    # ★[백지 독자 Q5] 검정력 논거가 **차단보다 먼저** 서 있어야 한다. 그 순서를 지탱하는
+    #   검증 가능한 정박(체크섬 동결)과, 그 보증의 **범위**(blind 아님)를 함께 요구한다.
+    ('TEighteen-동결정박', trig('TEighteenAddOverCeilW', 'TEighteenAddOverCeilN'),
+     [r'판정 자료 \$0\$ 행 시점에 체크섬으로'],
+     '⛔"결과 이전에 적었다" 는 자기 증언이 아니라 **체크섬 동결**로 정박되어야 한다 --- '
+     '앞 소절이 쓰는 것과 같은 형식'),
+    ('TEighteen-보증범위', trig('TEighteenAddOverCeilW'),
+     ['이 관측량에 대한 어떤 자료 이전'],
+     '⚠그 동결은 **이 배치의 판정 행 이전**이지 **이 관측량에 대한 어떤 자료 이전**이 '
+     '아니다(배치가 blind 가 아니다) — 보증의 범위를 같은 절에'),
+    # ★★[2026-09-05 적대적 심사 M-1] verdict `§9.2-6`·`§9.2-4` 는 MDE 를 **여러 단위로**
+    #   병기하라 요구한다(⛔섞지 마라). 초판 규칙은 **셀 MDE 하나만** 요구해 약한 의무를
+    #   성문화하고 있었다 --- 같은 부류가 `T5-ENS` 에서 판정 서술을 무너뜨렸다.
+    ('TSeventeen-MDE단위', trig('TSeventeenSMDE', 'TSeventeenDMDE'),
+     [r'\\TSeventeenSMDERec'],
+     '⛔셀 단위 MDE 만 인쇄하면 「셀 72 는 독립 72 가 아니다」가 사라진다 — '
+     '레코드 접기 MDE 병기 의무(§9.2-6, ⛔섞지 마라)'),
+    ('TEighteen-MDE단위', trig('TEighteenMDE'),
+     [r'\\TEighteenSecMDE'],
+     '⛔`§9.2-4` 는 축 I · SEC · SEC-C 세 MDE 병기를 요구한다(⛔`M8b` 선례 — 섞지 마라)'),
+    # ★[적대적 심사 M-2] `§9.2-10` 병기 3항 --- 초판은 둘만 인쇄했다(N-1).
+    ('TSeventeen-레일세수', trig('TSeventeenRailClip', 'TSeventeenRailClipAP'),
+     [r'\\TSeventeenEdgeFire'],
+     '⛔`§9.2-10` 은 레일 밴드·레일 개구·`G-EDGE` 발화 **셋을 함께** 요구한다'),
+    ('TSeventeen-스모크', trig('TSeventeenInvertMargin'),
+     [r'\\TSeventeenInvertMarginSmoke'],
+     '⛔`G-INVERT` 의 자는 **결과 전 고정 상수**다 — 본실행 비만 적으면 「자료에서 '
+     '보정했다」로 읽힌다. 스모크 비를 병기해 두 분포를 구별하라'),
+    # ★두 배치를 잇는 일반 소견. ⛔**대칭을 과장하는 것**이 여기서 유일한 오독 경로다.
+    ('Blocked-조문이틀렸다', trig('TSeventeenBlockers', 'TEighteenBlocker'),
+     ['틀린 것은 자료가 아니라 조문이다'],
+     '★두 차단의 공통항은 **전칭 조문**이다 — 그 진술 없이 두 차단을 나란히 놓으면 '
+     '"측정이 실패했다" 로 읽힌다'),
+    ('Blocked-대칭과장금지', trig('TSeventeenBlockers', 'TEighteenBlocker'),
+     [r'공통항은 .{0,12}팔.{0,12}이 아니라'],
+     '⛔`T18` 의 「학습 팔은 참, 해석 팔은 거짓」 대칭은 `T17` 에 성립하지 않는다 — '
+     '그 위반은 한 셀에서 **팔 전부**에 걸쳐 있다. 대칭을 과장하지 못하게 병기'),
+    ('Blocked-파랑결과아님', trig('TSeventeenBlockers', 'TEighteenBlocker'),
+     ['파랑 추정의 결과가 아니라 측정 설계의 결과'],
+     '⛔이 소절은 파도장에 대해 아무 말도 하지 않는다 — 작동 경계 진술을 움직이는 '
+     '것으로 읽히지 않게 병기'),
+    # ★[2026-09-05] 제1장·제2장의 「2요인 설계는 사전등록되어 있으나」 **두 곳**. 그 설계는
+    #   **돌았고 라벨이 없다** — 그 사실과 **순서**를 두 곳 모두에서 강제한다.
+    #   ⛔이 저장소의 누적 1위 결함이 「N곳 중 한 곳만 고침」이라 트리거를 자구로 잡는다.
+    ('TwoFactor-돌았다', r'2요인 설계는 사전등록되어 있으나',
+     ['실행되었고 라벨을 내지 않았다'],
+     '⛔*"사전등록되어 있으나"* 에서 멈추지 마라 — 그 설계는 돌았고 라벨을 내지 않았다'),
+    ('TwoFactor-순서', r'2요인 설계는 사전등록되어 있으나',
+     ['검정력 분석에 기대며 그 차단에 기대지 않는다'],
+     '⛔⛔해석 불가의 근거는 **사전등록된 검정력 분석**이고 차단은 그 뒤에 온다 — '
+     '순서를 뒤집으면 결과를 보고 논거를 고른 것이 된다'),
 ]
+
+
+def blocked_section_pin():
+    r"""★★[2026-09-05 적대적 심사 m-6·m-7] **산문 쪽 방벽**.
+
+    `gen_thesis_t11t14_constants._forbid_axis_stats()` 는 **생성된 매크로 파일**만 훑는다
+    ⟹ 누가 `T17`·`T18` 의 축 통계를 산문에 **리터럴로** 치면 전 방벽이 침묵한다(실증 지적).
+    여기서 그 구멍을 닫는다 --- `\label{sec:results_blocked}` 소절 본문에서 두 동결
+    verdict 의 `w/n` 을 찾으면 실패한다.
+
+    그리고 **순서**를 검사한다(m-7): 규칙 이름이 *"검정력이 먼저"* 인데 규칙 자신은
+    *같은 절 안 존재*만 봤다. `T18` 문단에서 **검정력 논거가 차단 선언보다 앞**이어야
+    한다 --- 뒤집히면 「결과를 보고 논거를 골랐다」가 된다.
+    """
+    tmp = os.path.join(ROOT, 'tmp')
+    src = open(TEX, encoding='utf-8').read()
+    m = re.search(r'\\label\{sec:results_blocked\}(.*?)(?=\n\\subsection\{)', src, re.S)
+    if not m:
+        return ['⛔`sec:results_blocked` 소절을 찾지 못했다']
+    sec, bad = body(m.group(1)), []
+
+    pairs = set()
+
+    def collect(node):
+        if isinstance(node, dict):
+            n = node.get('n_eff', node.get('n'))
+            for wk in ('w', 'w_plus'):
+                if isinstance(node.get(wk), int) and isinstance(n, int) and n:
+                    pairs.add(f"{node[wk]}/{n}")
+            for v in node.values():
+                collect(v)
+        elif isinstance(node, list):
+            for v in node:
+                collect(v)
+
+    for rel in ('T17_REALSCALE_2026-09-05/verdict_t17.json',
+                'T18_FACTORIAL_2026-09-05/verdict_t18.json'):
+        f = os.path.join(tmp, rel)
+        if not os.path.exists(f):
+            continue
+        v = json.load(open(f, encoding='utf-8'))
+        for k in ('primary_family', 'primary', 'SEC', 'positive_control',
+                  'other_vs_zero', 'axis_II',
+                  'A-C_vs_ZERO (⚠사전-OFF 열은 무기술 열이다)'):
+            if k in v:
+                collect(v[k])
+    for p in sorted(pairs):
+        # ⚠숫자 경계를 요구한다 --- `43/48` 안의 `3/48` 오탐을 막는다.
+        if re.search(r'(?<!\d)' + re.escape(p) + r'(?!\d)', sec):
+            bad.append(f'⛔차단 배치의 **축 통계**가 산문에 리터럴로 인쇄됐다: {p}')
+
+    i_pow = sec.find('체크섬으로 동결되어 있고')
+    i_blk = sec.find('차단 조항 하나가 실패했다')
+    if i_pow < 0 or i_blk < 0:
+        bad.append('⛔T18 문단의 두 정박 자구를 찾지 못했다 --- 순서를 검사할 수 없다')
+    elif i_pow > i_blk:
+        bad.append('⛔⛔`T18` 의 **검정력 논거가 차단 선언보다 뒤에** 있다 --- '
+                   '그 순서는 「결과를 보고 논거를 골랐다」로 읽힌다(논문 쪽과 같은 순서로).')
+    return bad
 
 
 def value_pin():
@@ -562,7 +778,7 @@ def main():
         return selftest()
     text = open(TEX, encoding='utf-8').read()
     fired, missing = run(text)
-    pin = value_pin()
+    pin = value_pin() + blocked_section_pin()
     print('── 학위논문 동반 공시 ' + '─' * 32)
     for name, title, why in missing:
         print(f'  ⛔{name}  [{title}]: {why}')

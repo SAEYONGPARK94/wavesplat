@@ -131,6 +131,39 @@ LOGS = [('paper',  'paper/waveprior.log',      'paper/waveprior.tex'),
         ('thesis', 'thesis/thesis_main.log',   'thesis/thesis_main.tex')]
 
 
+def dollar_macro_in_math():
+    r"""★★[2026-09-05 신설] **생성 매크로의 값에 `$` 가 있는데 수식 모드 안에서 쓰였는가.**
+
+    ⛔왜: 오늘 그것이 실제로 났고 **이 검사기의 모든 패턴이 초록이었다**. 값이
+    `\texttt{A} $\cdot$ \texttt{B}` 인 매크로를 `$\Macro$` 로 쓰면 안쪽 `$` 가 수식을
+    **닫아 버리고**, 뒤따르는 한국어 문장이 통째로 수식 글꼴로 조판된다.
+    ★그리고 **pdflatex 오류는 0** 이다 --- 조판은 성공하고 인쇄면만 망가진다.
+    (실측: 학위논문 §3.7.14 에서 세 줄이 `Γt¸ : 0XΓx\26/29분모를…` 로 인쇄됐다.)
+
+    ⚠**PDF 가 아니라 원본을 본다** --- 깨진 글리프는 `pdftotext` 에서 형태가 일정하지
+    않아 패턴으로 잡을 수 없다. 원인(값의 `$` × 수식 모드 사용)은 정확히 잡힌다.
+    ⛔넓히지 않는다: `$` 만 본다(`\textbf`·`\%` 는 수식 모드에서 안전하다).
+    """
+    import glob
+    vals = {}
+    for f in glob.glob(os.path.join(ROOT, 'thesis', '*constants*.tex')) \
+            + glob.glob(os.path.join(ROOT, 'paper', '*constants*.tex')):
+        for m in re.finditer(r'\\newcommand\{\\([A-Za-z]+)\}\{(.*)\}\s*$',
+                             open(f, encoding='utf-8').read(), re.M):
+            vals[m.group(1)] = m.group(2)
+    risky = [k for k, v in vals.items() if '$' in v]
+    out = []
+    for name, _log, texrel in LOGS:
+        src = open(os.path.join(ROOT, texrel), encoding='utf-8').read()
+        for k in risky:
+            for m in re.finditer(r'\$[^$\n]{0,60}\\' + k + r'(?![A-Za-z])', src):
+                out.append((name, src[:m.start()].count('\n') + 1, '수식 모드 안의 $ 매크로',
+                            f'`\\{k}` 의 값에 `$` 가 있는데 수식 모드에서 쓰였다 --- '
+                            '뒤 문장이 수식으로 조판된다(pdflatex 오류는 0이다)',
+                            m.group(0)[:74]))
+    return out
+
+
 def latex_errors(names):
     out = []
     for name, logrel, texrel in LOGS:
@@ -159,6 +192,7 @@ def main():
     docs = [(n, r) for n, r in PDFS if not ('--paper-only' in sys.argv and n != 'paper')]
     bad = []
     bad.extend(latex_errors({n for n, _ in docs}))
+    bad.extend(dollar_macro_in_math())
     for doc, ln, t in dup_paragraph_titles():
         bad.append((doc, ln, '중복 paragraph 제목',
                     '같은 제목이 연달아 두 번 (원본 검사)', t[:70]))
@@ -182,7 +216,8 @@ def main():
         #     호출하지 않고, 왜 안 쓰는지를 여기 적는다.
     print('── 인쇄면 검사 ────────────────────────────────────────')
     if not bad:
-        print(f'  [OK  ] {len(PATTERNS) + 3} 패턴 · {len(docs)} 문서 · 손상 0건 (조판 로그 오류 0 포함)')
+        print(f'  [OK  ] {len(PATTERNS) + 4} 패턴 · {len(docs)} 문서 · 손상 0건 '
+              '(조판 로그 오류 0 · 수식 모드 $ 매크로 0 포함)')
         return 0
     for doc, ln, pname, why, txt in bad[:30]:
         print(f'  [FAIL] {doc}:{ln}  [{pname}] {why}')

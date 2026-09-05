@@ -114,6 +114,14 @@ DEFAULT_CONFIG = {
     'adaptive_n': True,
     'prune_threshold': 0.10,
     'grow_residual_threshold': 0.05,
+    # ★2026-09-05: `max_n` 은 **두 역할의 레거시 별칭**이다 — 제안 풀링 상한(`pool_cap`,
+    #   `learned_init.POOL_CAP_DEFAULT`)과 성장 천장(`growth_ceiling`,
+    #   `sequential_update.GROWTH_CEILING_DEFAULT`). 여기서 이 값을 주면 **둘 다** 그 값이 된다.
+    # ⛔**`pool_cap`/`growth_ceiling` 을 이 dict 에 넣지 마라.** 넣는 순간
+    #   `{**DEFAULT_CONFIG, 'max_n': 10}` 으로 정의된 **동결 배치 팔**(`MAXN-10`·`K-8` …)에서
+    #   기본 30 이 10 을 덮어써 **기록된 실험의 의미가 조용히 바뀐다**.
+    #   ⟹ 새 키는 「명시할 때만 존재」한다(`learned_init.resolve_cap` 우선순위).
+    # ⚠`scripts/gen_paper_constants.py` 가 이 키를 논문 매크로 `\DepMaxN` 으로 쓴다.
     'max_n': 30,
     'tracking_window': 3,
     'device': 'cpu',
@@ -184,7 +192,13 @@ def load_yaml_config(yaml_path: str) -> dict:
         cfg['adaptive_n'] = raw['adaptive'].get('adaptive_n', True)
         cfg['prune_threshold'] = raw['adaptive'].get('prune_threshold', 0.10)
         cfg['grow_residual_threshold'] = raw['adaptive'].get('grow_residual_threshold', 0.05)
-        cfg['max_n'] = raw['adaptive'].get('max_n', 30)
+        cfg['max_n'] = raw['adaptive'].get('max_n', DEFAULT_CONFIG['max_n'])
+        # ★2026-09-05 분리. ⛔`.get(key, 30)` 로 읽으면 **안 된다** — 그러면 yaml 이
+        #   `max_n` 만 바꿔도 새 키 둘이 30 으로 되살아나 `max_n` 을 덮는다(= 하위호환 파괴).
+        #   `in` 검사는 `bank_refit_every_s` 가 「죽은 미러」였을 때 세운 규약 그대로다.
+        for _k in ('pool_cap', 'growth_ceiling'):
+            if _k in raw['adaptive']:
+                cfg[_k] = raw['adaptive'][_k]
     if 'tracking' in raw:
         cfg['tracking_window'] = raw['tracking'].get('tracking_window', 3)
     if 'schedule' in raw:
@@ -712,7 +726,17 @@ def main():
                         choices=['true', 'false'],
                         help='Enable adaptive N (prune weak, grow if needed)')
     parser.add_argument('--max_n', type=int, default=None,
-                        help='Maximum number of Gaussians for adaptive N')
+                        help='Legacy alias: sets BOTH --pool_cap and --growth_ceiling '
+                             '(the two roles this one key used to serve). Kept so every '
+                             'frozen batch arm keeps its meaning.')
+    parser.add_argument('--pool_cap', type=int, default=None,
+                        help='Role 1: cap on the pooled learned proposal '
+                             '(learned_init.pool_and_select). Default 30.')
+    parser.add_argument('--growth_ceiling', type=int, default=None,
+                        help='Role 2: component ceiling for adaptive-N growth '
+                             '(_adaptive_prune_grow). Default 30. Split from --max_n on '
+                             '2026-09-05 -- before that, lowering the pooling cap silently '
+                             'disabled the whole growth branch.')
     parser.add_argument('--tracking_window', type=int, default=None,
                         help='Number of recent frames for multi-frame tracking')
     parser.add_argument('--neural_corrector', type=str, default=None,
@@ -769,6 +793,12 @@ def main():
         config['adaptive_n'] = args.adaptive_n == 'true'
     if args.max_n is not None:
         config['max_n'] = args.max_n
+    # ⚠순서가 중요하다: 둘을 `max_n` **뒤에** 병합해야 `--max_n 10 --pool_cap 4` 가
+    #   「성장 천장 10, 풀링 4」로 읽힌다(구체적인 키가 별칭을 이긴다).
+    if args.pool_cap is not None:
+        config['pool_cap'] = args.pool_cap
+    if args.growth_ceiling is not None:
+        config['growth_ceiling'] = args.growth_ceiling
     if args.tracking_window is not None:
         config['tracking_window'] = args.tracking_window
     if args.neural_corrector is not None:

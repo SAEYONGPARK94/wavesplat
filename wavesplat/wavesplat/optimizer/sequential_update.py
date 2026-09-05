@@ -25,6 +25,12 @@ from wavesplat.model.dispersion import dispersion_omega
 from wavesplat.optimizer.initializer import initialize_from_frames
 from wavesplat.optimizer.coarse_to_fine import CoarseToFineSchedule
 from wavesplat.data_loader import FrameData
+# ⚠상수/해소기만 모듈 최상위에서 가져온다. `pool_and_select` 자신은 종전대로 **함수 안에서**
+#   늦게 임포트한다 — `tmp/W4_SOLVER_2026-08-19/arms_config.py` 가 그 심볼을
+#   monkeypatch 하므로 최상위로 올리면 그 배치의 개입이 조용히 사라진다.
+#   `learned_init` 의 최상위 의존은 os/sys/math/numpy 뿐이라 순환도 비용도 없다.
+from wavesplat.optimizer.learned_init import (
+    POOL_CAP_DEFAULT, resolve_cap, resolve_pool_cap)
 
 # ── Shipping default for the L1 sparsity weight — SINGLE SOURCE ──────────────────
 # 1e-3 -> 1e-4 on 2026-08-11 (S9, prereg verdict BOTH: sparse 50/64 -33.0% p=7e-06,
@@ -384,6 +390,26 @@ DEFAULT_REAL_BANK_ENSEMBLE_K = 3
 # Use `recommended_learned_ensemble_config()` to turn it on explicitly.
 DEFAULT_LEARNED_ENSEMBLE_K = 1
 
+# ── 성분 수 상한 ② 「성장 천장」 — SINGLE SOURCE ──────────────────────────────
+# ★2026-09-05 분리. 짝은 `learned_init.POOL_CAP_DEFAULT`(제안 풀링 상한)이고,
+# 그 상수 옆에 분리 사유가 전부 적혀 있다. 요지: 종전에는 `max_n` **한 키**가 두 역할을
+# 했고, 그래서 성분 수 축의 개입이 **원리적으로 직교할 수 없었다** — 풀링 상한을 내리면
+# `_adaptive_prune_grow` 의 이른 반환이 성장 분기를 통째로 껐다.
+#
+# ⛔**배포 거동 불변**: 둘 다 30 이고 `run.DEFAULT_CONFIG` 는 여전히 `max_n` 만 싣는다.
+#   레거시 `max_n` 은 지금도 **두 역할을 함께** 설정한다(`resolve_cap` 의 우선순위).
+GROWTH_CEILING_DEFAULT = 30
+
+
+def resolve_growth_ceiling(config):
+    """역할 ②: 성장 천장. config 키 ``growth_ceiling`` (레거시 ``max_n``).
+
+    ⚠**`int()` 를 하지 않는다** — 종전 사이트가 `config.get('max_n', 30)` 로 맨값을
+    읽었기 때문이다. 여기서 형변환을 추가하면 float `max_n` 을 쓴 구성의 성장 거동이
+    바뀐다. (풀링 쪽은 반대로 종전부터 `int()` 를 했으므로 그쪽만 한다.)
+    """
+    return resolve_cap(config, 'growth_ceiling', GROWTH_CEILING_DEFAULT)
+
 
 def _rx1_gate(name: str) -> bool:
     """Rx-1 (2026-08-05) RESEARCH gate. Unset or '0' == shipped behaviour, bit-for-bit.
@@ -538,7 +564,11 @@ class SequentialUpdater:
         self.adaptive_n = config.get('adaptive_n', True)
         self.prune_threshold = config.get('prune_threshold', 0.10)  # energy fraction to discard
         self.grow_residual_threshold = config.get('grow_residual_threshold', 0.05)
-        self.max_n = config.get('max_n', 30)
+        # ★2026-09-05: 역할 ② 「성장 천장」. 종전 `config.get('max_n', 30)` 과 값이 같다
+        #   (레거시 `max_n` 이 여전히 두 역할을 함께 설정한다). `self.max_n` 은 아래
+        #   property 로 남는다 — 동결 배치가 **객체를 되읽는다**
+        #   (`T18/PREREG.md:493` G-MAXN · `B2_REAL/run_b2f.py:94` · `M4/run_m4.py:172`).
+        self.growth_ceiling = resolve_growth_ceiling(config)
 
         # Multi-frame tracking
         self.tracking_window = config.get('tracking_window', 3)
@@ -548,6 +578,21 @@ class SequentialUpdater:
         self.optimizer = None
         self.tracking_optimizer = None
         self._last_dt = 0.1
+
+    # ── 레거시 별칭 (2026-09-05 분리) ───────────────────────────────────────
+    # `max_n` 은 두 역할 중 **이 클래스가 가진 쪽(성장 천장)** 을 가리킨다. 읽기/쓰기 둘 다
+    # `growth_ceiling` 으로 위임하므로 값이 갈라질 수 없다.
+    # ⛔지우지 마라: 동결 배치가 `getattr(upd, 'max_n', -1)` 로 **객체를 되읽고**
+    #   (`tmp/B2_REAL_2026-08-23/run_b2f.py:94`, `tmp/M4_CAPACITY_2026-08-28/run_m4.py:172`),
+    #   `tmp/T18_FACTORIAL_2026-09-05/PREREG.md:493` 의 게이트 `G-MAXN` 이 그 값이 배포값과
+    #   같은지 검사한다. 풀링 상한을 원하면 `learned_init.resolve_pool_cap(config)` 를 써라.
+    @property
+    def max_n(self):
+        return self.growth_ceiling
+
+    @max_n.setter
+    def max_n(self, value):
+        self.growth_ceiling = value
 
     def _build_model(self, n: int) -> SpectralGaussianModel:
         # Build model WITHOUT neural corrector (optimization should be clean)
@@ -1087,8 +1132,9 @@ class SequentialUpdater:
         Config knobs (all optional): auto_switch_thresh (int, 기본 AUTO_SWITCH_THRESH_DEFAULT=0),
         learned_atoms (precomputed raw atoms dict, skips the GPU proposal),
         learned_ckpt / learned_nsamp / learned_diffusion_seed (proposal),
-        learned_energy_thresh / learned_dedup_dk / max_n (pooling, must match the
-        learned arm's so the signal and the installed set agree).
+        learned_energy_thresh / learned_dedup_dk / pool_cap (pooling, must match the
+        learned arm's so the signal and the installed set agree; 레거시 `max_n` 도 읽는다
+        — ⛔`max_n` 의 다른 역할인 **성장 천장**과는 2026-09-05 부로 별개 키다).
         """
         from wavesplat.optimizer.learned_init import (
             propose_atoms, pool_and_select, DEFAULT_CKPT)
@@ -1124,7 +1170,9 @@ class SequentialUpdater:
             rkx, rky, ren,
             energy_thresh=float(cfg.get('learned_energy_thresh', 0.03)),
             dedup_dk=float(cfg.get('learned_dedup_dk', 0.03)),
-            max_n=int(cfg.get('max_n', 30)))
+            # ★역할 ① 풀링 상한. 성장 천장(`self.growth_ceiling`)이 아니다 — 2026-09-05
+            #   분리 전에는 둘이 같은 키였고, 그래서 라우터 신호와 성장 분기가 교락했다.
+            max_n=resolve_pool_cap(cfg))
         n_sel = int(len(sk))
         chosen = 'learned' if n_sel >= thresh else 'v2_konly'
         self._auto_n_selected = n_sel
@@ -1623,13 +1671,30 @@ class SequentialUpdater:
                               f"(kept {frac:.1f}% energy)")
 
         # --- Grow: add components if residual energy is high ---
+        # ── 과거 기록 (2026-08-23) — ⛔지우지 않는다. 그때의 사실이다. ────────────────
         # NOTE (2026-08-23): this early return makes `max_n` and any growth-side intervention
         # NON-ORTHOGONAL.  Lowering max_n to the pooling cap (learned_init.pool_and_select
         # returns exactly max_n components) disables the whole growth branch, so an arm that
         # sets both `max_n=10` and SCALE_INVARIANT_GROW=True is bit-identical to `max_n=10`
         # alone (measured 12/12, tmp/B2_REAL_2026-08-23/RESULT_B2F.md).  A per-call counter on
         # this function does NOT detect that -- the prune half still runs.  Count the BRANCH.
-        if self.model.n_gaussians >= self.max_n:
+        #
+        # ── ✅수리 (2026-09-05): 위 비직교성은 **이제 구조적으로 없다.** ──────────────
+        # 그 한 키가 서로 무관한 두 역할을 하고 있었고, 이제 **이름이 둘**이다:
+        #   ① 제안 풀링 상한 = `learned_init.POOL_CAP_DEFAULT` / config `pool_cap`
+        #   ② 성장 천장      = `GROWTH_CEILING_DEFAULT`        / config `growth_ceiling`
+        # 아래 줄은 ②만 읽는다(`self.max_n` 은 `growth_ceiling` 의 별칭 property).
+        # ⟹ `pool_cap=10, growth_ceiling=30` 이면 풀링은 10 으로 잘리고 **성장은 살아 있다** —
+        #    2026-08-23 에 측정 불가였던 조합이다.
+        # ⚠**하위호환**: `max_n` 만 주면 지금도 **둘 다** 그 값이 된다(`resolve_cap` 우선순위).
+        #   ⟹ 위 12/12 를 낳은 `RX-COMBINED`(`max_n=10`) 를 비롯한 동결 배치의 의미는 불변이고,
+        #      `MAXN-*`·`K-*` 팔도 종전 그대로 두 역할을 함께 움직인다.
+        # ⚠그리고 위 경고의 **후반부는 여전히 유효**하다: 이 함수의 호출 계수기는 분기를
+        #   보지 못한다(가지치기 절반이 먼저 돈다). **BRANCH 를 세라.**
+        # ★2026-09-05 실측 동기: 제3자 코퍼스에서 배포 팔이 풀링 상한을 **24/24 블록에서
+        #   포화**한다 ⟹ 그 코퍼스에서 이 분기는 한 번도 발화하지 않는다.
+        # 회귀 시험: `wavesplat/tests/test_component_caps.py` (둘이 다시 합쳐지면 죽는다).
+        if self.model.n_gaussians >= self.growth_ceiling:
             return
 
         # Compute residual energy
@@ -1666,7 +1731,7 @@ class SequentialUpdater:
         # Decide how many to add (proportional to residual, capped)
         n_add = min(
             max(3, int(grow_metric / self.grow_residual_threshold * 3)),
-            self.max_n - self.model.n_gaussians
+            self.growth_ceiling - self.model.n_gaussians   # 역할 ②
         )
 
         if n_add <= 0:

@@ -100,6 +100,14 @@ adaptive:
   prune_threshold: 0.10       # energy fraction for pruning (keep top 90%)
   grow_residual_threshold: 0.05  # residual RMS to trigger growth [m]
   max_n: 30                   # maximum Gaussians
+  # ★2026-09-05: `max_n` 은 이제 **두 역할의 레거시 별칭**이다 — 여기 값을 바꾸면 둘 다 바뀐다.
+  #   ① pool_cap        : 학습 제안 풀링 상한 (learned_init.pool_and_select)
+  #   ② growth_ceiling  : adaptive-N 성장 천장 (_adaptive_prune_grow)
+  # 분리 전에는 ①을 내리면 ②가 통째로 꺼졌다(측정 12/12, tmp/B2_REAL_2026-08-23/RESULT_B2F.md).
+  # ⛔두 키를 **여기에 값으로 적어 두지 마라** — 그러면 `max_n` 을 고쳐도 안 먹는다.
+  #   따로 쓰고 싶을 때만 아래를 주석 해제한다(로더는 `in` 검사로 읽는다).
+  # pool_cap: 30
+  # growth_ceiling: 30
 
 # ── Coarse-to-Fine Schedule ─────────────────────────────────────────────────
 schedule:

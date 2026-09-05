@@ -66,6 +66,56 @@ M_OBS_CAP = 400          # matches d3_beamform_net.M_OBS / the head-to-head cond
 _CACHE = {}
 
 
+# ── 성분 수 상한 ① 「제안 풀링 상한」 — SINGLE SOURCE ─────────────────────────
+# ★2026-09-05 분리. 그전까지 config 키 `max_n` **하나가 서로 무관한 두 역할**을 했다:
+#   ① 여기 `pool_and_select` 의 **제안 풀링 상한** (설치되는 원자 수의 상한)
+#   ② `sequential_update` 의 **성장 천장** (`GROWTH_CEILING_DEFAULT` 참조)
+# 두 값이 같은 키를 읽으므로 **성분 수 축의 실험이 전부 교락**돼 있었다 — 풀링을 낮추면
+# 성장 분기가 **통째로 꺼진다**(측정 12/12, `tmp/B2_REAL_2026-08-23/RESULT_B2F.md`;
+# `sequential_update._adaptive_prune_grow` 의 이른 반환 주석이 그것을 축자로 적었다).
+# 2026-09-05 실측: 제3자 코퍼스에서 배포 팔이 풀링 상한을 **24/24 블록에서 포화**한다
+# ⟹ 그 코퍼스에서 성장 분기는 **한 번도 발화하지 않는다**.
+#
+# ⛔**배포 거동은 한 비트도 바뀌지 않는다** — 둘 다 기본값 30 이고, `DEFAULT_CONFIG` 는
+#   여전히 `max_n` **하나만** 싣는다. 새 키는 기본 구성에 **없다**(아래 `resolve_cap` 의
+#   우선순위 주석 참조) ⟹ `{**DEFAULT_CONFIG, 'max_n': X}` 로 정의된 **동결 배치 팔은
+#   지금도 두 역할이 함께 X 로 간다** = 의미 불변.
+POOL_CAP_DEFAULT = 30
+
+
+def resolve_cap(config, key, default):
+    """성분 수 상한 해소 — **두 역할이 공유하는 유일한 구현**.
+
+    우선순위: ``config[key]`` → 레거시 ``config['max_n']`` → ``default``.
+
+    ★레거시 `max_n` 이 **둘 다** 설정한다는 것이 하위호환의 전부다. 그래서
+    `run.DEFAULT_CONFIG` 에 `pool_cap`/`growth_ceiling` 을 **넣지 않았다** — 넣었다면
+    `{**DEFAULT_CONFIG, 'max_n': 10}` 인 동결 팔에서 기본 30 이 10 을 덮어써
+    **기록된 배치의 의미가 조용히 바뀐다**(저장소가 λ 에서 이미 치른 대가).
+
+    ⚠**형변환을 여기서 하지 않는다.** 종전 두 역할은 형변환이 **서로 달랐다** —
+    풀링 쪽은 `int(cfg.get('max_n', 30))`, 성장 쪽은 `config.get('max_n', 30)` 로
+    맨값이었다. 여기서 `int()` 를 강제하면 float `max_n` 을 쓴 구성의 성장 거동이
+    바뀐다(예: 10.5 → 10). 각 역할의 래퍼가 **종전에 하던 만큼만** 한다.
+    """
+    if config:
+        v = config.get(key)
+        if v is not None:
+            return v
+        v = config.get('max_n')
+        if v is not None:
+            return v
+    return default
+
+
+def resolve_pool_cap(config):
+    """역할 ①: 제안 풀링 상한. config 키 ``pool_cap`` (레거시 ``max_n``).
+
+    `int()` 는 종전 두 풀링 사이트가 하던 그대로다.
+    """
+    return int(resolve_cap(config, 'pool_cap', POOL_CAP_DEFAULT))
+
+
 def ckpt_sha256(path=None):
     """sha256 of a checkpoint file (default: the deployed one). Provenance check."""
     import hashlib
@@ -165,12 +215,20 @@ def propose_atoms(frames, depth, ckpt=DEFAULT_CKPT, nsamp=4, diffusion_seed=0,
 
 
 # ── pooling / selection (identical for inline + cached) ──────────────────────
-def pool_and_select(kx, ky, energy, energy_thresh=0.03, dedup_dk=0.03, max_n=30):
+def pool_and_select(kx, ky, energy, energy_thresh=0.03, dedup_dk=0.03,
+                    max_n=POOL_CAP_DEFAULT):
     """Pool the raw multi-sample atoms into a de-duplicated candidate component set.
 
     Threshold by relative energy, greedily keep strongest-first while enforcing a
     small min-separation (dedup_dk ~ grid step, NOT the analytic MIN_DK=0.15 floor),
     cap at max_n. Returns (kx, ky, energy) selected, strongest first.
+
+    ⚠**인자 이름 `max_n` 은 일부러 그대로 둔다** (2026-09-05 분리). 이 함수는 풀링만
+    하므로 여기서는 애초에 모호하지 않았고, 무엇보다 동결 배치
+    `tmp/B22_PRIOR_ABLATION_2026-08-27/gates_b22.py:101` 이 **서명 기본값을 이름으로
+    되읽는다**(`_sig_default(pool_and_select, 'max_n')`) — 개명하면 그 게이트가 죽는다.
+    기본값은 이제 `POOL_CAP_DEFAULT`(=30) 라 되읽은 **값은 종전과 동일**하다.
+    호출자는 `resolve_pool_cap(config)` 로 값을 만들어 넣는다.
     """
     kx = np.asarray(kx, float); ky = np.asarray(ky, float)
     en = np.asarray(energy, float)
@@ -335,11 +393,13 @@ def learned_init_params(frames, depth, config=None, seed=None):
       learned_diffusion_seed : ancestral sampling seed (default: seed, else 0)
       learned_konly   : if True, use v2_konly-style w=0.01 / random phi instead of LS fit
       learned_energy_thresh / learned_dedup_dk : selection knobs
-      max_n           : component cap (default 30)
+      pool_cap        : 제안 풀링 상한 (default POOL_CAP_DEFAULT=30).
+                        레거시 `max_n` 도 읽는다 — `resolve_pool_cap` 참조.
+                        ⛔`max_n` 의 **다른 역할**(성장 천장)은 이 함수와 무관하다.
     """
     import torch
     config = config or {}
-    max_n = int(config.get('max_n', 30))
+    max_n = resolve_pool_cap(config)
     e_th = float(config.get('learned_energy_thresh', 0.03))
     ddk = float(config.get('learned_dedup_dk', 0.03))
 

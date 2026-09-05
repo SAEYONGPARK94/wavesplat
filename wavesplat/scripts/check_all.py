@@ -37,6 +37,15 @@ CHECKS = [
     # ★[2026-09-03 박사 기여 감사 C-10] `R5` 가 결과 당일 두 원고에 실리고 같은 날 철회됐다.
     #   ⟹ 원고가 인용하는 배치는 **검토 산출물**과 **등급 필드**를 가져야 한다.
     ('★원고 인용 성숙도', [PY, 'tmp/_audit/check_manuscript_maturity.py']),
+    # ★★[2026-09-05] **MDE 상수 정합.** 수치 감사가 오늘 찾은 결함: 「검정력 .80」이라
+    #   광고하는 MDE 여럿이 실제로는 0.79986~0.79995 였고(내림), **같은 양이 배치마다
+    #   다르게 인쇄**됐다(`crit 19 @ n=28` = `T12` 0.7304 vs `T13` 0.7305).
+    #   ⟹ 이 저장소의 이름 붙은 누적 결함 「손복사 기준 상수」가, 하필 ***모든 음성
+    #   결과가 병기해야 하는 상수 안에서*** 재발했다. 계산의 유일출처를 만들고
+    #   (`tmp/_audit/sign_test_mde.py`) 동결 verdict 를 그것으로 재계산해 대조한다.
+    #   ⛔등록되지 않아 아무도 돌리지 않는 회귀 시험은 없는 것과 같다 ⟹ 자가진단 둘도 여기.
+    ('★MDE 산수 자가진단', [PY, 'tmp/_audit/sign_test_mde.py', '--selftest']),
+    ('★MDE 검사기 항진 검사', [PY, 'tmp/_audit/check_mde_constants.py', '--selftest']),
     ('상수 생성기 --check', [PY, 'scripts/gen_paper_constants.py', '--check']),
     ('동반 공시', [PY, 'scripts/check_paper_disclosures.py']),
     ('★항진 검사', [PY, 'scripts/check_paper_disclosures.py', '--selftest']),
@@ -265,6 +274,80 @@ def check_seed_bands():
     return True
 
 
+# ★★[2026-09-05] **MDE 상수 이름집합 래칫** — `tmp/_audit/check_mde_constants.py`.
+#   규약(`tmp/_audit/sign_test_mde.py`)은 하나다: ***MDE 를 참값보다 낮게 보고하지 않는다***
+#   (효과크기 `|q-0.5|` 를 0.5 에서 멀어지는 쪽으로 반올림 ⟹ 반환값 자신이 목표 검정력을
+#   달성한다). 아래는 그 규약을 **어긴 채 동결된** 항목이고, ⛔**고치지 않는다 — 증거다.**
+#
+#   ★파급은 **없다**: MDE 는 라벨을 만들지 않는다(문턱 `w>=k` 가 만든다). 전수 확인 결과
+#   `T11`~`T16` 의 어느 게이트도 MDE 를 수치 비교에 쓰지 않는다 ⟹ **라벨 이동 0건**.
+#   부족분은 `T7b` 하나를 빼면 전부 <=5.0e-03 이고 대부분 <=2.2e-04 다.
+#
+#   ⛔★**`T7b` 는 반올림이 아니다.** `analyze_t7b.py:38` 이 `'q80': 0.7109` 를 **리터럴**로
+#     적었는데(같은 줄의 나머지 넷은 전부 `G.` 에서 계산된다) 그 값은 **`T7`(n=48)의 것**이고
+#     `T7b` 는 n=32·k=23 이라 참값이 **0.7653** 이다 ⟹ 인쇄값의 실제 검정력 **0.5495**.
+#     ✅다행히 그 수는 `RESULT.md`·두 원고 어디에도 전파되지 않았다(grep 0건).
+#
+#   ⚠`UNREGISTERED:` 는 *"이 검사기의 산수로 재도출할 수 없는 양"* 이다(검사기가 사유를
+#     인쇄한다). ⛔"괜찮다" 가 아니라 **판정 불가**다.
+#   ★새 배치는 `mde` 블록에 `n`·`thresh`·`power` 를 실어라 — 그러면 자기기술로 자동 검사되고
+#     등록이 필요 없다. 실으면 이 목록에 이름이 들어갈 일도 없다.
+MDE_KNOWN = {
+    # ── 내림으로 검정력이 문턱 바로 아래로 떨어진 것 (부족분 <=2.2e-04) ──────
+    'T12_ISOLATE_2026-09-04:mde.sec_q80',            # 0.8332 → 검정력 0.79995
+    'T12_ISOLATE_2026-09-04:mde.secr_q80',           # 0.7304 → 0.79990  (T13 은 0.7305)
+    'T14_AUTOSCALE_2026-09-04:mde.primary_q80',      # 0.7630 → 0.79986
+    'T14_AUTOSCALE_2026-09-04:mde.sec_q80',          # 0.7304 → 0.79990  (같은 양, 같은 드리프트)
+    'T15_HOMEREG_2026-09-05:mde.cell_q80',           # 해침 다리 0.0975 → 0.79985
+    'T15_HOMEREG_2026-09-05:mde.q80',                # 해침 다리 0.3185 → 0.79978
+    'T16_BANDFIX_2026-09-05:mde.BLIND_q80',          # 0.7597 → 0.79994
+    'T16_BANDFIX_2026-09-05:mde.D_q80',              # 0.7074 → 0.79991
+    'T16_BANDFIX_2026-09-05:mde.F_q50',              # 0.6077 → 0.49981
+    'T16_BANDFIX_2026-09-05:mde.SECE_q50',           # 0.6077 → 0.49981 (F 와 같은 설계)
+    'T16_BANDFIX_2026-09-05:mde.S_q80',              # 0.6915 → 0.79984
+    # ⚠`T16` 은 같은 양을 **두 곳에** 인쇄한다 — 둘 다 이름을 적는다(한쪽만 고치는 부류 방지).
+    'T16_BANDFIX_2026-09-05:primary_family.D (착지 축, 양측, Bonferroni α/2).q80',
+    'T16_BANDFIX_2026-09-05:SEC.SEC-BLIND (미접촉 24 · ⛔angle 과 완전 교락).q80',
+    # `n_eff_table` — 동점 제외 대비표. `round()` 가 7개 칸에서 내림했다.
+    'T16_BANDFIX_2026-09-05:n_eff_table.7.q80',
+    'T16_BANDFIX_2026-09-05:n_eff_table.9.q80',
+    'T16_BANDFIX_2026-09-05:n_eff_table.10.q80',
+    'T16_BANDFIX_2026-09-05:n_eff_table.12.q80',
+    'T16_BANDFIX_2026-09-05:n_eff_table.15.q80',
+    'T16_BANDFIX_2026-09-05:n_eff_table.50.q80',
+    'T16_BANDFIX_2026-09-05:n_eff_table.60.q80',
+    # ── ⛔부류가 다른 것 (반올림이 아니라 **다른 배치의 상수**) ──────────────
+    'T15_HOMEREG_2026-09-05:mde.q90',                # 0.2952 → 0.89499 (부족 5.0e-03)
+    'T7b_SPECTRAL_2026-09-02:thresholds.q80',        # 0.7109 → 0.54946 (부족 2.5e-01)
+    # ── ⚠판정 불가 (부호검정의 승률 MDE 가 아니다) ──────────────────────────
+    'UNREGISTERED:M2_LOCTUNE_2026-08-28',
+    'UNREGISTERED:R7_FLOOR_2026-09-03',
+}
+
+
+def check_mde_constants():
+    """MDE 상수 이름집합 래칫 — 새 미달이 들어오거나 기지 미달이 사라지면 실패."""
+    r = subprocess.run([PY, 'tmp/_audit/check_mde_constants.py', '--keys'],
+                       cwd=ROOT, capture_output=True, text=True)
+    got = {l.split('\t', 1)[1] for l in r.stdout.split('\n') if l.startswith('KEY\t')}
+    if r.returncode != 0 and not got:
+        print('  [FAIL] MDE 상수 (래칫)')
+        print('         ⛔검사기가 키를 내지 못했다 — 죽었거나 출력 형식이 바뀌었다.')
+        for line in (r.stdout + r.stderr).strip().split('\n')[-6:]:
+            print(f'         {line}')
+        return False
+    if got != MDE_KNOWN:
+        print('  [FAIL] MDE 상수 (래칫)')
+        for k in sorted(got - MDE_KNOWN):
+            print(f'         ⛔새 미달: {k}  — `sign_test_mde.mde_q()` 로 계산하라'
+                  ' (⛔동결 배치는 고치지 말고 여기 등록 + 사유를 적어라)')
+        for k in sorted(MDE_KNOWN - got):
+            print(f'         ⚠기지 미달이 사라졌다: {k}  — 배치가 개명/삭제됐는지 확인')
+        return False
+    print(f'  [OK  ] MDE 상수 (래칫: 기지 {len(got)}건 그대로)')
+    return True
+
+
 def check_frozen_sha256():
     import glob
     found = set()
@@ -351,6 +434,8 @@ def main():
         bad.append('FROZEN.sha256')
     if not check_seed_bands():
         bad.append('시드 대역')
+    if not check_mde_constants():
+        bad.append('MDE 상수')
     # ⚠[2026-09-02] **훅에서는 건너뛴다.** 실측 61 s 로 `--fast` 전체(93 s)를 지배했고,
     #   내가 이 파일에 스스로 적은 규칙(*"느린 훅은 사람이 `--no-verify` 로 우회한다"*)을
     #   어기고 있었다. ★경고 도구이므로 커밋마다 돌 필요가 없다 --- 전체 실행에는 남긴다.
@@ -362,7 +447,9 @@ def main():
         print('⚠래칫이 「개선」으로 실패했다면 기준선을 **의도적으로** 내려라 --- '
               '침묵시키지 마라.')
         return 1
-    print(f'✅{len(checks) + (3 if a.fast else 4)}종 전부 통과'
+    # ⚠래칫은 `CHECKS` 밖에서 부른다 — 배치산출물·FROZEN.sha256·시드대역·**MDE 상수**
+    #   (+ `--fast` 가 아니면 감사 도구 묶음). 수를 손으로 세지 말고 여기서 더한다.
+    print(f'✅{len(checks) + (4 if a.fast else 5)}종 전부 통과'
           + (' (pytest 건너뜀)' if a.fast else ''))
     return 0
 

@@ -983,6 +983,13 @@ def _t14_blocked():
             'TFourteenBandMed': f'{_st.median(kk):.2f}',
             'TFourteenBandMin': f'{min(kk):.2f}',
             'TFourteenBandN': str(len(kk)),
+            # ★★[2026-09-05 수치 정합 감사] ⚠`\TFourteenMDE`(0.7630)의 **실측 검정력은
+            #   0.79986** 이고 `\TTwelveSecMDE`(0.8332)는 **0.79995** 다 — 둘 다 동결 시점에
+            #   **내림**돼 광고한 0.80 에 미달한다(규약값 0.7631 · 0.8333).
+            #   ⛔동결 verdict 는 고치지 않는다(증거다). 부족분 <=1.4e-04 이고 ★**라벨은
+            #   움직이지 않는다** — MDE 는 공시일 뿐 문턱 `w>=k` 가 라벨을 만든다.
+            #   ⟹ 원고에서 *"검정력 0.80"* 이라 **단정**하지 말 것("약 0.80").
+            #   규약·재계산 = `tmp/_audit/sign_test_mde.py`, 래칫 = `check_all.py MDE_KNOWN`.
             'TFourteenMDE': f"{v['mde']['primary_q80']:.4f}"}
 
 

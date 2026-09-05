@@ -201,6 +201,17 @@ def rows():
     add('TElevenShip', ratio(T11, 'sec_a_ship.w', 'sec_a_ship.n'))
     add('TElevenOracle', ratio(T11, 'sec_b_oracle.w', 'sec_b_oracle.n'))
     add('TElevenThresh', str(get(T11, 'mde.crit_w')))
+    # ★★[2026-09-05 수치 정합 감사] ⚠**아래 MDE 매크로 셋은 검정력이 0.80 에 미달한다.**
+    #   ⛔동결 verdict 를 고치지 않는다(증거다) ⟹ 여기에 실측 검정력을 적어 둔다.
+    #     · `\TTwelveSecMDE`    0.8332 → **0.79995** (규약값 0.8333)
+    #     · `\TFourteenMDE`     0.7630 → **0.79986** (규약값 0.7631)
+    #     · `\TFifteenMDE`      0.3185 → **0.79978** (해침 다리, 규약값 0.3184)
+    #     · `\TSixteenLandingMDE` 0.7074 → **0.79991** · `\TSixteenSkillMDE` 0.6915 → **0.79984**
+    #   ⚠부족분은 전부 <=2.2e-04 이고 **어떤 라벨도 움직이지 않는다**(MDE 는 라벨을 만들지
+    #   않는다 — 문턱 `w>=k` 가 만든다. `T11`~`T16` 전 게이트에서 수치 비교 0건을 확인했다).
+    #   ⟹ 문안을 고칠 필요는 없으나, *"검정력 0.80"* 이라 **단정**하지 말고 "약 0.80" 이 옳다.
+    #   ★규약과 재계산 = `tmp/_audit/sign_test_mde.py` · 래칫 = `scripts/check_all.py MDE_KNOWN`.
+    #   ✅`\TElevenMDE`(0.76)·`\TThirteenMDE`(0.6795) 는 **보수적**(0.80094·0.80156)이라 안전하다.
     add('TElevenMDE', f"{get(T11, 'mde.q80'):.2f}")
     add('TElevenUnrejLo', str(get(T11, 'mde.unrejectable_w.0')))
     add('TElevenUnrejHi', str(get(T11, 'mde.unrejectable_w.1')))

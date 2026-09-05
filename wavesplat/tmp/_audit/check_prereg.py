@@ -28,6 +28,7 @@
   C16 SEED       시드(축)를 언급했다                                                             (DISCIPLINE_seed_axes · CLAUDE.md S13)
   C17 KEYS       분석기가 읽는 행/meta 키를 러너가 어딘가에서 쓴다 (⚠팔 단위 누락은 못 본다 — A2 §9.2 는 게이트가 잡았다)
   C18 BELT       라벨 인쇄가 `blocked` 에 매달려 있다                                            (A3 §6 · T5-ENS blocked_by 항상 빈 리스트)
+  C19 LABELG     **라벨 문자열에 `G-` 부분문자열이 없다** — 있으면 게이트 이름 파서가 **없는 게이트**를 만든다 (2026-09-05 하루 3회: T16·T17·T18)
 
 등급: FAIL(종료코드 1) · WARN · OK · N/A(**미검증** — 자료가 없어 검사하지 못했다. ⛔통과가 아니다).
 
@@ -48,6 +49,9 @@
   · 동결 임포트 덮음은 **깊이 2** 까지, 파일이 실제로 값을 움직이는지는 판정하지 않는다(WARN 목록을 사람이 읽는다).
   · git 이 없는 사본(픽스처)에서 C10 은 N/A 다. `--rev` 물질화는 진짜 저장소 이력을 쓴다.
   · C9 는 토큰 **부분문자열** 검사다 — 짧은 토큰(`E2`)은 우연히 맞을 수 있다.
+  · C19 는 **배치가 실제로 등록·구현한 게이트 이름과 같은 라벨**은 후보에서 뺀다 — 사전등록 라벨 표의
+    칸에는 라벨뿐 아니라 **차단 게이트 참조**(`| … | ⛔`G-15` 차단 |`)도 적히고, 파서는 둘을 구별하지 못한다.
+    ⟹ ⛔*"`G-` 로 **시작**하는 라벨"* 은 이 검사의 사각지대다(그런 라벨은 만들지 마라).
 """
 import ast
 import glob
@@ -68,7 +72,23 @@ ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))        # …/wavesplat/wa
 ROOT_OVERRIDE = [ROOT]
 TMPBASE = os.environ.get('CHECK_PREREG_TMP') or None
 
-GATE_RE = re.compile(r'G-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*')
+# ★★게이트 이름은 **토큰 경계**에서만 시작한다 (2026-09-05).
+#   ⛔종전 `r'G-[A-Za-z0-9]+…'` 은 **더 긴 낱말 안쪽**에서도 물었다 ⟹ 라벨·팔 이름이
+#   **없는 게이트**를 제조했고, 그 유령이 C8 의 「등록됐는데 미구현」 목록에 앉았다
+#   (= 진짜 검사가 가짜 사유로 죽거나, 진짜 누락이 유령에 묻힌다).
+#   하루에 세 번 났다: `D-STAGE1-GRID-LANDING-HURTS`→`G-HURTS`(T16) ·
+#   `SUBADDITIVE-CEILING-CONFOUNDED`→`G-CONFOUNDED`(T18) ·
+#   `NO-LANDING-CHANGE-DETECTED`→`G-CHANGE-DETECTED` · `SIG-WORSE`→`G-WORSE`(T17).
+#   ⟹ `G` 앞에 **영숫자가 오면 게이트가 아니다**.
+#   ★왜 「알려진 라벨 문자열 안쪽을 배제」가 아니라 경계인가: 라벨 집합을 알아야 배제할 수 있는데
+#   라벨 집합의 건전성을 재는 것이 바로 C19 다(순환). 경계는 자료를 안 쓴다.
+#   ⚠경계에 넣은 것은 **영숫자와 밑줄**이다. 하이픈은 **일부러 뺐다** — 저장소 전수(`tmp/**`)에서
+#   `-G-`·`_G-` 로 이어 붙은 문자열은 **0건**이라 어느 쪽이든 잃는 것이 없지만, 하이픈을 막으면
+#   `SEC-A/G-COV` 같은 미래 표기를 조용히 놓친다(밑줄에는 그런 용법이 없다).
+#   ★잃는 것이 없다는 근거: `tmp/*/gates_*.py` 103파일에서 **경계에 선 게이트 이름 333종 ·
+#   2,857 출현이 전부 그대로 잡히고**, 떨어지는 것은 낱말 안쪽 19종 · 56 출현뿐이며
+#   그중 이름 전체가 사라지는 13종은 **전부 라벨·팔 이름**이다(진짜 게이트 0건).
+GATE_RE = re.compile(r'(?<![0-9A-Za-z_])G-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*')
 LABEL_RE = re.compile(r'[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+')
 LABEL_TOKEN_RE = re.compile(r'`([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+)`')
 NEG_MARK = ('NO-', 'NOT-', 'NEITHER', 'UNDECIDED', 'UNDETECTED', 'INDISTINGUISHABLE', 'NULL',
@@ -546,6 +566,28 @@ def prereg_labels_strict(text):
     return {x for x in out if not x.startswith('G-')}
 
 
+def prereg_label_tokens(text):
+    """라벨 표의 칸에 적힌 백틱 토큰 **전부**(⛔`G-` 접두 필터 없음).
+    `prereg_labels_strict` 는 게이트 참조를 지우려고 `G-` 로 **시작**하는 토큰을 버리는데,
+    C19 는 *"라벨 안에 `G-` 가 있는가"* 를 물으므로 지우기 **전**의 집합이 필요하다."""
+    out = set()
+    for tb in label_tables(text):
+        for row in tb[1:]:
+            for c in row:
+                out |= set(LABEL_TOKEN_RE.findall(c))
+    return out
+
+
+def phantom_gate(label):
+    """`label` 이 게이트 이름 파서에 먹였을 때 만들어내는 **유령 게이트 이름**(없으면 None).
+    ⛔경계 규약을 **끄고** 잰다 — 이 함수의 목적은 *"고치기 전 파서였다면 무엇이 나왔나"* 이고,
+    그 답이 곧 사람에게 보여줄 사고 재현이다."""
+    if not label or 'G-' not in label:
+        return None
+    m = re.search(r'G-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*', label)
+    return m.group(0) if m else None
+
+
 def prereg_labels_broad(text):
     """문서 어디든 백틱으로 적힌 대문자-대시 토큰(라벨이 아닌 배치코드·팔 이름도 섞인다 — **포함 여부**에만 쓴다)."""
     return {x for x in LABEL_TOKEN_RE.findall(text) if not x.startswith('G-')}
@@ -729,6 +771,27 @@ def check(d, git_rev=None, git_relpath=None):
         else:
             res.add('C8', 'OK', f'사전등록 {len(pg)} ⊆ 구현 {len(anames)}')
 
+    # ── C19 LABELG ────────────────────────────────────────────────────────
+    # ★라벨이 **저작되는 자리**에서 잡는다. 파서 경계(GATE_RE)는 이미 유령을 막지만, 그것은
+    #   **읽는 쪽**의 방어다. 라벨에 `G-` 가 들어가 있으면 저장소의 다른 도구·산문·사람이
+    #   같은 착시를 반복한다(`check_gate_coverage.py` 도 같은 꼴의 정규식을 쓴다).
+    #   ⟹ 쓰는 쪽에서 금지한다. 배제 = 이 배치가 실제로 등록·구현한 게이트 이름(라벨 표 칸에
+    #   차단 게이트를 참조하는 관습이 있다 — 그것을 라벨로 오인하면 8배치 거짓 FAIL 이 난다).
+    known_gates = set(anames) | set(pg)
+    cand = {(lab, 'gates.label()') for lab in glabels}
+    cand |= {(lab, '사전등록 라벨표') for lab in prereg_label_tokens(text) if lab not in known_gates}
+    off = sorted({(lab, phantom_gate(lab), src) for lab, src in cand if phantom_gate(lab)})
+    if not cand:
+        res.add('C19', 'N/A', '라벨을 못 찾아 미검증 (gates.label() 도 사전등록 라벨표도 없다)')
+    elif off:
+        for lab, ph, src in off:
+            res.add('C19', 'FAIL',
+                    f'{src}: 라벨 `{lab}` 에 `G-` 가 들어 있다 — 게이트 이름 파서가 **없는 게이트 '
+                    f'`{ph}`** 를 만든다(등록됐는데 미구현 목록에 앉는다). 라벨을 개명하라 '
+                    f'(2026-09-05 T16 `G-HURTS` · T17 `G-CHANGE-DETECTED`/`G-WORSE` · T18 `G-CONFOUNDED` 와 같은 부류)')
+    else:
+        res.add('C19', 'OK', f'라벨 {len(cand)}개에 `G-` 없음 — 유령 게이트 0')
+
     # ── C6 TAUTO ──────────────────────────────────────────────────────────
     cmp_ = analyzer_const_compares(apaths)
     if rpaths:
@@ -762,6 +825,11 @@ def check(d, git_rev=None, git_relpath=None):
         res.add('C6b', 'FAIL', f'게이트 조건 전체가 기록값의 존재/불리언 그대로 {bare} — 러너가 리터럴을 쓰면 항진, 키가 없으면 통과 (A1 §4 G-SIZE·G-DISJOINT·G-ENV)')
     elif ag:
         res.add('C6b', 'OK', '기록값 존재/불리언만으로 판정하는 게이트 없음')
+    else:
+        # ★[2026-09-05] 종전에는 `ag` 가 비면 **행 자체가 없었다** — 침묵이다.
+        #   유령 게이트를 걷어내자 `M9` 가 곧바로 그 구멍에 빠졌다(유령 1개로 세던 "OK" 가 사라졌다).
+        #   ⛔없는 행은 통과로 읽힌다. N/A(=미검증)로 **말한다**.
+        res.add('C6b', 'N/A', '분석기에서 `(이름, 조건, …)` 형 게이트를 못 찾았다 — 조건 형태 검사 불가 (⛔통과 아님)')
 
     # ── C7 FROZEN ─────────────────────────────────────────────────────────
     ent, unresolved, sha_lines = frozen_entries(d)
@@ -1176,6 +1244,40 @@ def _fixture(base, name, prereg=GOOD_PREREG, gates=GOOD_GATES, analyze=GOOD_ANAL
     return root, d
 
 
+# ★유령 게이트 회귀 코퍼스 (2026-09-05) — 왼쪽을 `gate_name()` 에 먹였을 때의 기대값.
+#   위쪽 = **유령을 만들면 안 되는 것**(오늘 사고 4건 + 저장소 동결 배치 실물 4건),
+#   아래쪽 = **여전히 찾아야 하는 진짜 게이트 이름**(`tmp/*/gates_*.py` 333종에서 모양별로 뽑았다).
+GATE_NAME_CORPUS = (
+    # ── 유령이 되면 안 되는 문자열 (기대 None) ──
+    ('D-STAGE1-GRID-LANDING-HURTS', None),          # T16 (2026-09-05) → 옛 파서는 G-HURTS
+    ('SUBADDITIVE-CEILING-CONFOUNDED', None),       # T18 (2026-09-05) → G-CONFOUNDED
+    ('NO-LANDING-CHANGE-DETECTED', None),           # T17 (2026-09-05) → G-CHANGE-DETECTED
+    ('SIG-WORSE', None),                            # T17 (2026-09-05) → G-WORSE
+    ('SPARSITY-IS-THE-BINDING-CONSTRAINT', None),   # B18 동결 라벨 → G-CONSTRAINT
+    ('TUNING-HURTS', None),                         # M2  동결 라벨 → G-HURTS
+    ('DEPTH-WAS-MASKING-SKILL', None),              # T13 동결 라벨 → G-SKILL
+    ('RANGEANG-H30', None),                         # B17 팔 이름 → G-H30
+    ('PKG-VP', None),                               # W8  팔 이름 → G-VP
+    ('NEG-CONTROL-FAILED', None),                   # B15 라벨   → G-CONTROL-FAILED
+    ('RG-3', None),                                 # M9  게이트 표기(RG-n) → G-3 로 잘리면 안 된다
+    # ── 진짜 게이트 이름 (여전히 찾아야 한다) ──
+    ('G-1', 'G-1'),
+    ('G-8b', 'G-8b'),
+    ('G-05z', 'G-05z'),
+    ('G-13pc-repro', 'G-13pc-repro'),
+    ('G-A', 'G-A'),
+    ('G-COV', 'G-COV'),
+    ('G-ANCHOR-M1', 'G-ANCHOR-M1'),
+    ('G-S-BLIND', 'G-S-BLIND'),
+    ('G-OOD-UNTOUCHED', 'G-OOD-UNTOUCHED'),
+    ('★G-ONE t0 되읽기 == 0', 'G-ONE'),                     # ★ 접두 + 뒤에 산문
+    ('| `G-16b` | 되읽기 |', 'G-16b'),                       # 표 첫 칸
+    ('⛔G-TORIGIN 팔별 t_origin', 'G-TORIGIN'),              # ⛔ 접두
+    ('(G-ENSK) ensemble_k 전건 되읽기', 'G-ENSK'),           # 괄호
+    ('차단: G-HURTS 는 진짜 이름으로 쓰이면 찾아야 한다', 'G-HURTS'),  # ★유령과 **같은 철자**라도 경계에 서면 진짜다
+)
+
+
 def selftest():
     base = tempfile.mkdtemp(prefix='check_prereg_selftest_', dir=TMPBASE)
     ok = True
@@ -1194,6 +1296,15 @@ def selftest():
             ROOT_OVERRIDE[0] = ROOT
 
     try:
+        # [P1] 게이트 이름 파서 회귀 — 유령을 만들지 않고, **진짜 이름은 하나도 잃지 않는다**
+        ph_bad = [(sv, gate_name(sv)) for sv, want in GATE_NAME_CORPUS if want is None and gate_name(sv)]
+        ph_lost = [(sv, want, gate_name(sv)) for sv, want in GATE_NAME_CORPUS if want and gate_name(sv) != want]
+        n_ph = sum(1 for _, w in GATE_NAME_CORPUS if w is None)
+        n_re = len(GATE_NAME_CORPUS) - n_ph
+        chk(f'[P1] 유령 {n_ph}건 전부 None', not ph_bad, '; '.join(f'{a}→{b}' for a, b in ph_bad))
+        chk(f'[P1] 진짜 게이트 이름 {n_re}건 전부 그대로', not ph_lost,
+            '; '.join(f'{a}: 기대 {b} 실제 {c}' for a, b, c in ph_lost))
+
         # [0] 침묵 시험 — 정상 픽스처에서 FAIL/WARN 0 (검사기가 「있는 것을 없다고」 하지 않는가)
         root, d = _fixture(base, 'GOOD')
         r0 = run(root, d)
@@ -1258,6 +1369,14 @@ def selftest():
         #   ★`T11 A3 §1` 이 기록한 실제 사고가 바로 *"`E2` 와 `solver` 가 함께 떨어진 것"* 이다
         #   ⟹ 그것은 진짜 위반이었다. 등급을 **올린다**(WARN → FAIL). ⛔완화가 아니라 강화다.
         muts.append(('C9', 'FAIL', dict(analyze=GOOD_ANALYZE.replace("'⛔E2 와 비교 금지', ", ''))))
+        # [17] C19 라벨에 `G-` — `A-WINS` → `A-BIG-WINS` 는 옛 파서에서 `G-WINS` 유령을 만든다
+        #      (2026-09-05 T16/T17/T18 이 하루에 세 번 낸 부류. 라벨 이름 하나만 바꾼 최소 변이다.)
+        muts.append(('C19', 'FAIL', dict(prereg=GOOD_PREREG.replace('A-WINS', 'A-BIG-WINS'),
+                                         gates=GOOD_GATES.replace('A-WINS', 'A-BIG-WINS'))))
+        # [18] C8 — ★**같은 철자를 진짜 게이트로 등록하면 여전히 잡혀야 한다**.
+        #      경계 규약이 `G-WINS` 라는 이름 자체를 못 보게 만들었다면 이 변이가 조용히 통과한다.
+        muts.append(('C8', 'FAIL', dict(prereg=GOOD_PREREG.replace(
+            '| `G-BLOCK` | 자가진단 |', '| `G-BLOCK` | 자가진단 |\n| `G-WINS` | 없음 |'))))
 
         base_fail = {c for c, s, _ in r0.rows if s == 'FAIL'}
         for i, (cid, want, kw) in enumerate(muts, 1):
@@ -1267,6 +1386,26 @@ def selftest():
             others = sorted({c for c, s, _ in r.rows if s == 'FAIL' and not c.startswith(cid[:2])} - base_fail)
             chk(f'[{i:2d}] 변이 → {cid} {want}', want in got and not others,
                 f'{cid}={got}' + (f' · 다른 FAIL {others}' if others else ''))
+
+        # [P2] ★사고 재현 — **라벨이 표의 첫 칸에 있는** 결정표(T16·T17·T18 이 그 꼴이었다).
+        #      옛 파서: 첫 칸 `A-BIG-WINS` → 유령 `G-WINS` 가 pg 에 들어가 C8 이 「등록됐는데
+        #      미구현」으로 **거짓 FAIL**. 새 파서: C8 은 조용하고, C19 가 **저작 자리**에서 잡는다.
+        pre_p2 = GOOD_PREREG.replace('A-WINS', 'A-BIG-WINS') + '''
+## §7 판정표 (라벨이 첫 칸)
+
+| 라벨 | 조건 |
+|---|---|
+| `A-BIG-WINS` | ≥17 |
+| `NEITHER-DETECTED` | 그 밖 |
+'''
+        root, d = _fixture(base, 'PHANTOM_TABLE', prereg=pre_p2,
+                           gates=GOOD_GATES.replace('A-WINS', 'A-BIG-WINS'))
+        r = run(root, d)
+        chk('[P2] 첫 칸 라벨이 C8 유령을 만들지 않는다', 'FAIL' not in r.status('C8'),
+            f'C8={r.status("C8")} · ' + '; '.join(m for c, _, m in r.rows if c == 'C8')[:120])
+        c19 = [m for c, st, m in r.rows if c == 'C19' and st == 'FAIL']
+        chk('[P2] 그래도 C19 가 라벨을 잡는다', bool(c19) and 'G-WINS' in ''.join(c19),
+            f'C19={r.status("C19")}')
     finally:
         shutil.rmtree(base, ignore_errors=True)
     print('\n'.join(out))

@@ -4,7 +4,7 @@
 > 사람이 아니라 기계·감사 에이전트가 잡았다(`tmp/T11_EXTACC_2026-09-03/AMENDMENT_2_PREDATA.md` = **A2**,
 > `AMENDMENT_3_POSTRESULT.md` = **A3**, `AMENDMENT_1_PREDATA.md` = **A1**). 이 문서는 그 사건들과 `CLAUDE.md`
 > 「측정 규율」·`memory/` 의 반복 교훈을 **한 배치의 사전등록이 통과해야 할 항목**으로 접는다.
-> 기계로 볼 수 있는 항목은 **`tmp/_audit/check_prereg.py`** 가 검사하고(항목 ID `C1`–`C18` 이 그 스크립트의 출력 ID),
+> 기계로 볼 수 있는 항목은 **`tmp/_audit/check_prereg.py`** 가 검사하고(항목 ID `C1`–`C19` 이 그 스크립트의 출력 ID),
 > 못 보는 항목은 **`M-`** 로 표시해 사람이 본다.
 >
 > **열람 범위 = 주장 범위.** 이 문서가 인용하는 근거는 작성자가 실제로 연 것뿐이다: `CLAUDE.md`(전문) ·
@@ -129,6 +129,13 @@
 ### B4 · 러너가 `k=G.C` 를 쓰고 분석기가 `k == G.C` 를 비교하면 항진이다 — `C6a`
 - **왜**: A2 §7 — `G-ENV` 3/3 항진(`threads=1` 리터럴 왕복 · `seed=G.SEED` 상수 왕복 · `bool()`); A3 §2 — 개정문 2 가 **셋 중 둘만** 고쳐 `seed` 왕복이 남았다. 처방 = **행의 시드 집합을 되읽어** 대조(러너가 블록마다 다르게 쓴 값).
 - **확인**: `C6a`(문법적 동일성만 — `LI.M_OBS_CAP` ↔ `G.deployed_cap()` 같은 다른 경로는 못 본다).
+
+### B4b · **라벨 이름에 `G-` 를 넣지 않는다** — `C19` (2026-09-05 신설)
+- **요구**: `gates_*.py` 의 `label()` 이 내는 문자열과 사전등록 라벨 표의 라벨에 `G-` **부분문자열**이 없어야 한다. 자연스러운 이름이 걸리면 개명한다(`…-LANDING-HURTS` → `…-WORSENS-LANDING`, `SUBADDITIVE-CEILING-CONFOUNDED` → `SUBADDITIVE-AT-CEILING`).
+- **왜**: 게이트 이름 파서(`check_prereg.GATE_RE` · `check_gate_coverage._NAME`)가 `G-` 를 찾는데, 라벨 안쪽에서도 물어 **없는 게이트**를 만든다 — `LANDIN**G-H**URTS` → `G-HURTS`. 유령이 「등록됐는데 미구현」 목록에 앉으면 ***진짜 검사가 가짜 사유로 죽거나, 진짜 누락이 유령에 묻힌다***. 2026-09-05 하루에 **세 번**(T16 `G-HURTS` · T17 `G-CHANGE-DETECTED`/`G-WORSE` · T18 `G-CONFOUNDED`), 전부 사람·에이전트가 읽어서 잡았다 ⟹ 주의력은 처방이 아니다.
+- ⚠**파서도 함께 고쳤다**(경계 `(?<![0-9A-Za-z_])`) — 그러나 그것은 **읽는 쪽**의 방어다. 라벨은 산문·다른 도구·사람에게도 그대로 보이므로 **저작 자리**에서 막는다(N곳 전부).
+- **동결 배치의 위반은 소견이지 수정 대상이 아니다**(라벨은 증거다): `B18`(`…-BINDING-CONSTRAINT`) · `M2`(`TUNING-HURTS`·`TUNING-NULL`·`TUNING-SHRINKS-MARGIN`) · `T13`(`DEPTH-WAS-MASKING-SKILL`).
+- **확인**: `C19`. ⚠사각지대 = `G-` 로 **시작**하는 라벨(게이트 참조와 구별 불가) · 라벨 표가 없는 배치는 `N/A`.
 
 ### B5 · 게이트가 보는 양은 **만들어진 객체에서 되읽는다** — `M-B5`
 - **요구**: `gt_std`·`t_origin`·`disp_relerr`·`n_consumed` 처럼 러너가 리터럴/산식으로 적을 수 있는 값은 프레임·모델·환경에서 되읽고(`readback_frames`, `initialize()` **뒤**에 한 번 더), 산식이면 이름에 `_formula` 를 박아 게이트에서 뺀다. 「변화 탐지기」(소스를 안 고치면 실패 불가)는 그렇게 **이름에 표기**한다.

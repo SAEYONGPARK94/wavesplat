@@ -15,7 +15,10 @@ run() { echo; echo "════════ $1"; shift; "$@"; local rc=$?; [ $r
 #   `check_gate_refs` 의 **사각지대**(jsonl 읽기를 공유 헬퍼로 단일출처화한 배치를 못 봄).
 #   ★전자는 실제로 규약을 비틀게 만들었다(`B-20b` 가 오탐을 피하려 동결 목록에서 파일을 뺐다).
 #   ⟹ 방벽이 스스로 틀리는 것을 막는 유일한 수단은 **회귀 픽스처**다. 맨 앞에 둔다.
-run "0. 검사기 자가진단 (F-1 오탐 · F-2 사각지대 회귀)" bash -c 'python3 tmp/_audit/check_batch_artifacts.py --selftest && python3 tmp/_audit/check_gate_refs.py --selftest && python3 tmp/_audit/check_gate_blindspots.py --selftest && python3 tmp/_audit/check_gen_vs_gates.py --selftest'
+#   ★[2026-09-05] `check_prereg.py --selftest` 를 여기 **추가**했다 — 등록되지 않아 아무도 돌리지
+#   않는 회귀 시험은 없는 것과 같다(이 파일이 6--11 에 대해 스스로 적은 사유와 같다).
+#   그 시험은 오늘 「유령 게이트」 부류(`P1`·`P2`·변이 17·18)를 담고 있다.
+run "0. 검사기 자가진단 (F-1 오탐 · F-2 사각지대 · 유령 게이트 회귀)" bash -c 'python3 tmp/_audit/check_batch_artifacts.py --selftest && python3 tmp/_audit/check_gate_refs.py --selftest && python3 tmp/_audit/check_gate_blindspots.py --selftest && python3 tmp/_audit/check_gen_vs_gates.py --selftest && python3 tmp/_audit/check_prereg.py --selftest'
 
 run "1. 배치 산출물 (PREREG·게이트·판정·동결·순서)" python3 tmp/_audit/check_batch_artifacts.py
 run "2. 판정 문턱 (우연과 구분되는가 · 도달 가능한가)" python3 tmp/_audit/check_thresholds.py

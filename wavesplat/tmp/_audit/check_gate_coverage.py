@@ -26,9 +26,20 @@ TMP = os.path.join(ROOT, 'tmp')
 #   (`PREREG §3` 표에 `G-BLOCK` 을 적고 구현하지 않음). 결과가 나온 뒤이므로
 #   ⛔**게이트를 추가하지 않고** 기준선을 **의도적으로 올리고 사유를 적는다**.
 #   ★검사기가 만들어진 직후 제작자를 잡았다는 것이 이 항목의 값이다.
-BASELINE = 18
+# ⚠[2026-09-05] 18 → **11**: ⛔침묵이 아니라 **파서 수리**다. `_NAME` 이 낱말 안쪽에서 물어
+#   만들던 **유령 게이트 7개**(B17 `G-H30`·`G-MM` · B18 `G-CONSTRAINT` · M2 `G-HURTS`·`G-NULL`·
+#   `G-SHRINKS-MARGIN` · W8 `G-VP`)가 「미구현」 목록에서 빠졌다. **동결 배치는 한 글자도 고치지
+#   않았다** — 그 라벨들은 증거다. 남은 11 은 전부 진짜 이름(`G-BLOCK` 5건 · `G-DEGEN` ·
+#   `G-B`/`G-PATCH` · `G-CMP` · `G-FREEZE`)이고 **한 건도 줄지 않았다**
+#   ⟹ ★래칫이 내려간 것은 **분모가 아니라 거짓 양성**이다.
+BASELINE = 11
 
-_NAME = re.compile(r'`?(G-[A-Za-z0-9][A-Za-z0-9_\-]*)`?')
+# ★★게이트 이름은 **토큰 경계**에서만 시작한다 (2026-09-05) — `check_prereg.GATE_RE` 와 같은 수리.
+#   ⛔종전 패턴은 낱말 **안쪽**에서도 물어 라벨·팔 이름이 **없는 게이트**를 만들었다:
+#   `SPARSITY-IS-THE-BINDING-CONSTRAINT`→`G-CONSTRAINT`(B18) · `TUNING-HURTS`→`G-HURTS`(M2) ·
+#   `RANGEANG-H30`→`G-H30`(B17) · `PKG-VP`→`G-VP`(W8). 유령이 「미구현」 목록에 앉아
+#   **래칫 수를 부풀리고 진짜 누락을 섞었다**. 저작 자리의 방어는 `check_prereg` 의 C19 다.
+_NAME = re.compile(r'`?(?<![0-9A-Za-z_])(G-[A-Za-z0-9][A-Za-z0-9_\-]*)`?')
 
 
 def prereg_gates(path):

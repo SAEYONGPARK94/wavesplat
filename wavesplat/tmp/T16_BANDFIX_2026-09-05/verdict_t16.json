@@ -1,0 +1,871 @@
+{
+ "batch": "T16-BANDFIX",
+ "kind": "CONFIRMATORY",
+ "grade": "CONFIRMATORY (Tier-P 60 은 성과 미노출 blind · ⚠속성 노출 36/60 · ⛔SEC-BLIND 24 는 angle 과 완전 교락)",
+ "n_rows": 366,
+ "n_runs_expected": 304,
+ "gates": [
+  {
+   "name": "★★G-EQUIVAR 규칙 등변성 c∈{0.5,2.0} (수심 고정) — s 와 1단 k̂₁ 둘 다 ≤1e-06 [비클리핑 · 판정 자료 위 · 추정기 런 0회]",
+   "pass_": true,
+   "detail": "위반 0 []"
+  },
+  {
+   "name": "★★G-EQUIVAR-RAW 등변 열이 **비클리핑**임을 행동으로 — AUTO-AP 의 s_raw_c05 > S_MAX=4.0 ∧ 레일값 비트일치 0 ∧ 규칙 객체 되읽기",
+   "pass_": true,
+   "detail": "위반 0 [] · AUTO-AP s_raw_c05 {'n': 60, 'median': 5.619088642031285, 'min': 5.619088642031285, 'max': 5.619088642031285}"
+  },
+  {
+   "name": "⚠G-EQUIVAR-OLD [기록 전용] 옛 규칙(AUTO-BAND)의 등변 편차 — ⛔허용오차 없음 · ⚠크기는 **규약 종속**이다(§9.3-15)",
+   "pass_": true,
+   "detail": "{'c05': {'n': 60, 'median': 0.9929101854415551, 'min': 0.00562451515719431, 'max': 0.9987399508310223}, 'c20': {'n': 60, 'median': 0.02696514992869936, 'min': 0.00022859606315750458, 'max': 120.0492309359912}, 'gt_5.88pct_c05': 55, 'n_missing': 0}"
+  },
+  {
+   "name": "★★G-KLIM1 소비자가 실제로 받은 (klim, n) 되읽기 — BANDR 1단 = 0.5·(N1−1)·2π/L_obs(분석기 독립 재계산) · BAND 1단 = 2.0 · 2단 = 3.5·k̂₁ · n==120",
+   "pass_": true,
+   "detail": "위반 0 [] · 파일당 호출 [16] (§8 유도 16)"
+  },
+  {
+   "name": "★G-KLIM1-LIVE 재라벨에서 1단 반경이 c 배로 **비트 정확히** 움직인다 [행동 검사 — \"KLIM=0.6 상수와 구별되지 않는다\" 를 닫는다]",
+   "pass_": true,
+   "detail": "위반 0 [] · 대조(옛 규칙 klim1 고정 2.0) True"
+  },
+  {
+   "name": "★G-FLOOR 바닥 0.001 이 한 번도 결속하지 않는다 (여유 재계산 대조)",
+   "pass_": true,
+   "detail": "위반 0 · 여유 {'n': 120, 'median': 41.96839631457137, 'min': 23.499430952861697, 'max': 1409.5620232952658}"
+  },
+  {
+   "name": "★G-EDGE 1단 첨두가 최외곽 링이 아니다 [⚠BANDR 에서는 **구조적으로 거의 항상 참**]",
+   "pass_": true,
+   "detail": "위반 0 · k̂₁/klim₁ {'n': 60, 'median': 0.07609563460987948, 'min': 0.042848862152903615, 'max': 0.10956639515448087}"
+  },
+  {
+   "name": "★★G-INNER(a) 2단 첨두가 줌 창의 **반경 안** (k̂₂ ≤ 3.5·k̂₁) — ★수리가 1단 바닥을 낮춰 새로 생긴 고장 방향이다",
+   "pass_": true,
+   "detail": "위반 0 []"
+  },
+  {
+   "name": "⚠G-INNER(b) [기록 전용] inner_margin = k̂₁/Δk₁ (보고 문턱 2.0) — ⛔막지 않는다",
+   "pass_": true,
+   "detail": "BANDR {'n': 60, 'median': 4.527690259287829, 'min': 2.5495072980977653, 'max': 6.519200511691611} · BAND {'n': 60, 'median': 1.5811350559389816, 'min': 0.7071025072326907, 'max': 41.934470193034166} · 문턱 미만 0"
+  },
+  {
+   "name": "⚠G-BANDRES [기록 전용] 팔별 k̂_p/Δk₁ — ★T14 실측 중앙 1.16 · 최소 0.88 과 같은 자",
+   "pass_": true,
+   "detail": "{'AUTO-BAND': {'n': 60, 'median': 1.2701448716128094, 'min': 0.6991080708476355, 'max': 138.5439249388831}, 'AUTO-BANDR': {'n': 60, 'median': 4.130335769806047, 'min': 2.3257596243681533, 'max': 5.208871524687431}}"
+  },
+  {
+   "name": "★★G-S-BLIND 관측 5배열만 별도 프로세스에 넘겨 규칙 재실행 ⟹ s 비트 동일 [행동 검사 — ⛔이것이 하중을 진다]",
+   "pass_": true,
+   "detail": "위반 0/180"
+  },
+  {
+   "name": "★G-S-SRC 규칙 5인자 · **AST 식별자**에 표적/메타 토큰 0회 · 전역에 표적 배열 0개 [⚠단독 항진 위험 — G-S-BLIND 가 하중을 진다]",
+   "pass_": true,
+   "detail": "위반 없음"
+  },
+  {
+   "name": "★★G-S-READBACK 변환된 좌표에서 s 되읽기 (1/median(x'/x)==s · median(t'/t)==1/√s · disp_relerr ≤ 1e-9)",
+   "pass_": true,
+   "detail": "위반 0/304"
+  },
+  {
+   "name": "★G-RULEID 단일출처 — 함수 4개는 **객체 동일성** · 상수 4개는 == 차단 + id() 기록",
+   "pass_": true,
+   "detail": "위반 없음 · id {'S_MIN': {'id_SR16': 137485017030992, 'id_SR14': 137485017030992, 'equal': True}, 'S_MAX': {'id_SR16': 137485017031376, 'id_SR14': 137485017031376, 'equal': True}, 'L_TRAIN': {'id_SR16': 137485017031440, 'id_SR14': 137485017031440, 'equal': True}, 'K_TRAIN': {'id_SR16': 137485017031344, 'id_SR14': 137485017031344, 'equal': True}}"
+  },
+  {
+   "name": "★G-LTRAIN pool_xy() 재호출로 L_TRAIN 재도출 == 동결값 (⛔손복사 금지)",
+   "pass_": true,
+   "detail": "재생성 220.551 vs 동결 220.55"
+  },
+  {
+   "name": "★G-KTRAIN 사전 밴드에서 K_TRAIN 기하평균 재생성 == 동결값 (허용 2% = MC 오차)",
+   "pass_": true,
+   "detail": "재생성 0.06687 vs 동결 0.06779"
+  },
+  {
+   "name": "G-SRC-PIN 소스 리터럴 대조 (d3 DEPTH=50 · KLIM=0.6 · NK=64 · M_OBS=400 · MIN_DK=0.15 · _beamform_top 기본값 klim=0.6, n=80)",
+   "pass_": true,
+   "detail": "{'DEPTH': 50.0, 'KLIM': 0.6, 'NK': 64, 'M_OBS': 400, 'MIN_DK': 0.15, 'bank_klim': 0.6, 'bank_n': 80}"
+  },
+  {
+   "name": "★★G-XBATCH 형제 배치(T11·T12·T13·T14)의 동결 jsonl 을 **직접 열어** Tier-P 와의 교집합 == ∅ [⛔참조 파일 부재는 FAIL 이다] ∧ ★**양성 대조**: 형제마다 아카이브 경로 참조 > 0 [⛔0건이면 «교집합 0» 은 항진이다 — 게이트를 엄하게만 한다]",
+   "pass_": true,
+   "detail": "교집합 0 · 성과노출 0 · 부재 [] · 양성대조 {'T11_EXTACC_2026-09-03/results_t11.jsonl': 24, 'T12_ISOLATE_2026-09-04/results_t12.jsonl': 52, 'T13_DEPTHFIX_2026-09-04/results_t13.jsonl': 52, 'T14_AUTOSCALE_2026-09-04/results_t14.jsonl': 36} · 0건 []"
+  },
+  {
+   "name": "★G-POP 동결 표본 == archive_mats()[0:60] == Data/mixed_data/* 전수 60 == 결과 행의 블록 집합",
+   "pass_": true,
+   "detail": "표본 60 · Tier-P 60"
+  },
+  {
+   "name": "★G-SAMPLE 사전노출(감사 스모크 8 ∪ 러너 스모크 2) 과 교집합 0 [zip namelist 직접]",
+   "pass_": true,
+   "detail": "교집합 0"
+  },
+  {
+   "name": "★G-GRID 전 행 e_shape==[502, 128, 128] ∧ dt==1 ∧ ★|L_obs_x−L_obs_y|/max ≤ 0.0001 [**상대자** — 개정문 2, 종전 절대 1e-3 은 차원 오류] ∧ 파일 간 L_obs sd ≤ 1e-06 [⚠팔 간 sd 는 항진이라 뺐다]",
+   "pass_": true,
+   "detail": "위반 0 · L_obs sd 3.410605131648481e-13 · 중앙 619.645 · x/y 상대차 {'n': 366, 'median': 3.2276545442412882e-06, 'min': 3.2276545442412882e-06, 'max': 3.2276545442412882e-06} · ★절대차[m] {'n': 366, 'median': 0.002000000000066393, 'min': 0.002000000000066393, 'max': 0.002000000000066393}"
+  },
+  {
+   "name": "⚠G-SIBLING [기록 전용] 형제 결과 파일 존재·mtime (T15-HOMEREG 는 우리 코퍼스를 쓰므로 교집합 0 이 예상값)",
+   "pass_": true,
+   "detail": "{'T12_ISOLATE_2026-09-04/results_t12.jsonl': 1788532460.4, 'T12_ISOLATE_2026-09-04/results_t12_SECR.jsonl': 1788532445.4, 'T12_ISOLATE_2026-09-04/results_t12_SMOKE.jsonl': 1788528999.5, 'T13_DEPTHFIX_2026-09-04/results_t13.jsonl': 1788536348.0, 'T13_DEPTHFIX_2026-09-04/results_t13_SMOKE.jsonl': 1788534759.3, 'T14_AUTOSCALE_2026-09-04/results_t14.jsonl': 1788541003.2, 'T14_AUTOSCALE_2026-09-04/results_t14_SMOKE.jsonl': 1788538756.7, 'T15_HOMEREG_2026-09-05/results_t15_FULL.jsonl': 1788569045.4, 'T15_HOMEREG_2026-09-05/results_t15_SMOKE.jsonl': 1788565546.7, 'T15_HOMEREG_2026-09-05/results_t15_SUB.jsonl': 1788571755.5}"
+  },
+  {
+   "name": "⚠G-TP [기록 전용] Tp̂ = 2π/√(g·k̂_p·tanh(k̂_p·d)) — ⛔T14 의 \"전 파일 10 s\" 는 mixed_data2 의 진술이고 이 코퍼스에서는 **미확인**이었다",
+   "pass_": true,
+   "detail": "{'n': 60, 'median': 9.802440753903499, 'min': 8.728810846264206, 'max': 13.063047158820211}"
+  },
+  {
+   "name": "★G-INVERT 암묵/명시 역변환 두 경로 차 ≤ 0.0001·σ4 [필드 차이로 잰다]",
+   "pass_": true,
+   "detail": "위반 0/304"
+  },
+  {
+   "name": "G-PURE use_stokes2 · use_neural_corrector 둘 다 False [모델 객체 되읽기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-DEEP 모든 행 k̂_p·depth ≥ π [⚠G-FLOOR·코퍼스 대역이 이미 보장 ⟹ **구조적으로 거의 항상 참**]",
+   "pass_": true,
+   "detail": "위반 0 · kd_min {'n': 120, 'median': 16.857902892052856, 'min': 9.399772381144679, 'max': 1862.775461363134}"
+  },
+  {
+   "name": "★G-N 총 366행 · Tier-P 6팔×60 · ANCHOR 3팔×2 [⚠문턱 39/40/37 는 n=60 **전용**이다]",
+   "pass_": true,
+   "detail": "rows=366 · {'ANCHOR:FIX2': 2, 'ANCHOR:SHIP': 2, 'ANCHOR:ZERO': 2, 'TIER-P:AUTO-AP': 60, 'TIER-P:AUTO-BAND': 60, 'TIER-P:AUTO-BANDR': 60, 'TIER-P:FIX2': 60, 'TIER-P:SHIP': 60, 'TIER-P:ZERO': 60}"
+  },
+  {
+   "name": "★G-FINITE 모든 행의 nRMSE 가 유한",
+   "pass_": true,
+   "detail": "비유한 0"
+  },
+  {
+   "name": "★G-SIZE 분석기가 직접 잰 아카이브 크기 == 12828148812",
+   "pass_": true,
+   "detail": "12828148812"
+  },
+  {
+   "name": "★★G-NOLEAK 붙인 gt 가 상수(std 0) · 값==GT_CONST · initialize() **후에도** [되읽기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-ATOMS raw 제안 지문이 **(층, 팔) 안에서 블록 간** 전건 상이 (캐시 누출 탐지) [⛔팔 사이는 비교하지 않는다 — 동점 파일이 있어도 발화하지 않는다]",
+   "pass_": true,
+   "detail": "중복 없음"
+  },
+  {
+   "name": "★G-CAP 모음==제공 · 캡==400 [⛔손복사 0 — learned_init 에서 임포트]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-ARM resolved_init_method==learned · 실측게이트 **미발화** · ensemble_k==1 [팔 정체는 의도가 아니라 되읽기다]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "G-WRAPPER 출하 진입점 make_updater [⚠배포 상수상 **구조적으로 참**]",
+   "pass_": true,
+   "detail": "—"
+  },
+  {
+   "name": "★G-SHIPID SHIP 은 항등 재라벨 — x_scale==1.0 ∧ t_scale==1.0 **정확히**",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★★G-ANCHOR-T11 앵커 2파일 SHIP·FIX2 가 T11 스모크와 일치 [등급 T1: T1=비트 동일 · T2=상대차 ≤1e-9] ⛔짝 4개 미만이면 FAIL",
+   "pass_": true,
+   "detail": "짝 4/4 · 불일치 0 · 핀 {'SHIP:ngle10h0.5.mat': 0.22817735886776838, 'FIX2:ngle10h0.5.mat': 0.1339146964850542, 'SHIP:ngle10h2.0.mat': 0.23332274864765057, 'FIX2:ngle10h2.0.mat': 0.16203502430184558}"
+  },
+  {
+   "name": "★G-DEPLOY 배포 상수 9종을 cfg **되읽기**로 확인 [⛔손복사 0 — 전부 임포트 · ⚠init_method 항은 러너 강제값과 같은 리터럴을 비교하므로 **항진**이다]",
+   "pass_": true,
+   "detail": "위반 0 · 기대 {'lambda_l1': 0.0001, 'varpro_steps': 400, 'learned_init_iters': 0, 'auto_switch_thresh': 0, 'init_method': 'auto', 'tracking_mode': 'w_phi', 'analytic_ensemble_k': 3, 'learned_ensemble_k': 1, 'depth': 400.0}"
+  },
+  {
+   "name": "★G-TORIGIN 창 시작 t == 0 [★**키 부재를 위반으로** 센다 — 변화 탐지기]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-DENSITY 제공==200×40 · 창이 자료 안 · tq==(N−1)·dt",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-ENV 측정면 3중 동결(**지금 재계산**==meta==0행동결) · 분석면 동결 · threads 되읽기 · ★시드는 **적용된 RNG 상태 지문**으로 되읽는다 · ckpt sha256",
+   "pass_": true,
+   "detail": "측정면 런대비 [] · 0행동결대비 [] · 분석면 [] · 시드위반 0 [] · ckpt 1 · {'code_md5_row_mismatch': []}"
+  },
+  {
+   "name": "⚠G-SCLIP [기록 전용] 안전 레일 [0.25, 4.0] 접촉 팔별 횟수",
+   "pass_": true,
+   "detail": "{'AUTO-AP': 0, 'AUTO-BAND': 2, 'AUTO-BANDR': 0}"
+  },
+  {
+   "name": "⚠G-SVAR [기록 전용] 팔별 s 의 (sd, min, max) — ★sd==0 이면 이 배치는 **단일값 검정**이다(적응성이 아니라 착지점을 쟀다는 뜻)",
+   "pass_": true,
+   "detail": "{'AUTO-AP': {'n': 60, 'sd': 0.0, 'min': 2.8095443210156423, 'max': 2.8095443210156423, 'single_value': True}, 'AUTO-BAND': {'n': 60, 'sd': 0.37705884311258475, 'min': 0.25, 'max': 2.8847507046439658, 'single_value': False}, 'AUTO-BANDR': {'n': 60, 'sd': 0.27899206339747545, 'min': 1.2834680717604539, 'max': 2.874510427385531, 'single_value': False}, 'SHIP': {'n': 62, 'sd': 0.0, 'min': 1.0, 'max': 1.0, 'single_value': True}, 'FIX2': {'n': 62, 'sd': 0.0, 'min': 2.0, 'max': 2.0, 'single_value': True}}"
+  },
+  {
+   "name": "⚠G-CLAMP [기록 전용] VARPRO 경사 클램프 발화 팔별",
+   "pass_": true,
+   "detail": "{'SHIP': 54, 'FIX2': 29, 'AUTO-AP': 20, 'AUTO-BAND': 38, 'AUTO-BANDR': 38}"
+  },
+  {
+   "name": "⚠G-DRIVE [기록 전용] Δ ln s = ln s_bandr_raw − ln s_band_raw 의 중앙·IQR·부호분할 — ★D 축의 **라벨을 고르는 입력**이다(§3.3 T1·T2). ⛔막지 않는다",
+   "pass_": true,
+   "detail": "{'median_abs_dln_s': 0.02561387889528935, 'iqr': 0.041185082083357125, 'n': 60, 'n_pos': 39, 'n_neg': 21, 'n_zero': 0, 'n_gt_ln105': 17, 'T1_treatment_below_scale': True, 'T2_direction_mixed': True, 'ln105': 0.04879016416943205, 'T2_sign_thresh': 55}"
+  },
+  {
+   "name": "G-COV 사전등록 §5–§6 게이트 표 ↔ 구현 **1:1** · 등록 상수 드리프트 0 · ★§3.4 **병기 의무** 자가검사(모든 D 진술에 D_drive · 모든 S 진술에 SEC-E · 음성 라벨에 MDE) · 게이트가 자료를 봤다",
+   "pass_": true,
+   "detail": "이상 없음 · rows=366"
+  },
+  {
+   "name": "G-BLOCK blocked_by 자가진단 — **분석기가 실제로 낸 이름 전건**(자기 자신 포함) + 등록된 전 이름을 합성 위반 튜플로 넣어 빈 리스트가 아님을 확인 [긴 이름 우선]",
+   "pass_": true,
+   "detail": "미포착 [] · 접힘 []"
+  }
+ ],
+ "gates_pass": "46/46",
+ "blocked_by": [],
+ "primary_family": {
+  "S (기술 축, 단측, Bonferroni α/2)": {
+   "stat": "W[AUTO-BANDR < ZERO]",
+   "w": 59,
+   "n": 60,
+   "p": 5.2909066017292616e-17,
+   "thresh": 39,
+   "pass": true
+  },
+  "D (착지 축, 양측, Bonferroni α/2)": {
+   "stat": "W[AUTO-BANDR < AUTO-BAND]",
+   "w": 25,
+   "n_eff": 60,
+   "n_tied": 0,
+   "tie_rel": 1e-06,
+   "k_plus": 40,
+   "p_two_sided": 0.2450608330229457,
+   "q80": 0.7074
+  },
+  "bonferroni": "α/2 = 0.025"
+ },
+ "positive_control": {
+  "FIX2<ZERO": {
+   "w": 60,
+   "n": 60,
+   "p": 8.673617379884035e-19
+  },
+  "thresh": 37,
+  "pass": true
+ },
+ "ship_vs_zero": {
+  "w": 16,
+  "n": 60,
+  "p": 0.9999327429595357
+ },
+ "sig_worse": {
+  "AUTO-BANDR": false,
+  "AUTO-BAND": false,
+  "AUTO-AP": false,
+  "SHIP": true,
+  "FIX2": false
+ },
+ "D_drive": {
+  "median_abs_dln_s": 0.02561387889528935,
+  "iqr": 0.041185082083357125,
+  "n": 60,
+  "n_pos": 39,
+  "n_neg": 21,
+  "n_zero": 0,
+  "n_gt_ln105": 17,
+  "T1_treatment_below_scale": true,
+  "T2_direction_mixed": true,
+  "ln105": 0.04879016416943205,
+  "T2_sign_thresh": 55
+ },
+ "SEC": {
+  "SEC-A AUTO-BANDR<SHIP": {
+   "w": 58,
+   "n": 60,
+   "p_one_sided": 1.5881393422567669e-15
+  },
+  "SEC-B AUTO-AP<ZERO (⚠노출된 예측)": {
+   "w": 60,
+   "n": 60,
+   "p_one_sided": 8.673617379884035e-19
+  },
+  "SEC-C AUTO-BANDR vs FIX2 (양측 · ⛔동치 주장 금지)": {
+   "w": 12,
+   "n": 60,
+   "p_one_sided": 0.9999996219359508
+  },
+  "SEC-D AUTO-BANDR vs AUTO-AP (양측 · EXPLORATORY · q80 병기 의무)": {
+   "w": 2,
+   "n": 60,
+   "p_one_sided": 0.9999999999999999
+  },
+  "SEC-E AUTO-BAND<ZERO (★사다리 안 · 무보정)": {
+   "w": 58,
+   "n": 60,
+   "p_one_sided": 1.5881393422567669e-15,
+   "thresh": 37,
+   "pass": true,
+   "q80": 0.6596
+  },
+  "SEC-BLIND (미접촉 24 · ⛔angle 과 완전 교락)": {
+   "n_files": 24,
+   "S": {
+    "w": 24,
+    "n": 24,
+    "p_one_sided": 5.960464477539063e-08
+   },
+   "F": {
+    "w": 24,
+    "n": 24,
+    "p_one_sided": 5.960464477539063e-08
+   },
+   "D": {
+    "w": 11,
+    "n": 24
+   },
+   "thresh": 17,
+   "q80": 0.7597
+  },
+  "SEC-BLIND-ANGLE30 (교락 대조군 · ⚠n 이 달라 검정 비교 불가)": {
+   "n_files": 30,
+   "S": {
+    "w": 29,
+    "n": 30,
+    "p_one_sided": 2.8870999813079834e-08
+   },
+   "F": {
+    "w": 30,
+    "n": 30,
+    "p_one_sided": 9.313225746154785e-10
+   }
+  },
+  "SEC-DRIVE": {
+   "median_abs_dln_s": 0.02561387889528935,
+   "iqr": 0.041185082083357125,
+   "n": 60,
+   "n_pos": 39,
+   "n_neg": 21,
+   "n_zero": 0,
+   "n_gt_ln105": 17,
+   "T1_treatment_below_scale": true,
+   "T2_direction_mixed": true,
+   "ln105": 0.04879016416943205,
+   "T2_sign_thresh": 55
+  },
+  "SEC-F 층 (기술통계 · 만장일치일 때만 클러스터 주장 가능)": {
+   "angle=10": {
+    "w": 10,
+    "n": 10,
+    "p_one_sided": 0.0009765625
+   },
+   "angle=20": {
+    "w": 10,
+    "n": 10,
+    "p_one_sided": 0.0009765625
+   },
+   "angle=30": {
+    "w": 10,
+    "n": 10,
+    "p_one_sided": 0.0009765625
+   },
+   "angle=40": {
+    "w": 9,
+    "n": 10,
+    "p_one_sided": 0.0107421875
+   },
+   "angle=50": {
+    "w": 10,
+    "n": 10,
+    "p_one_sided": 0.0009765625
+   },
+   "angle=60": {
+    "w": 10,
+    "n": 10,
+    "p_one_sided": 0.0009765625
+   },
+   "hs=0.5": {
+    "w": 6,
+    "n": 6,
+    "p_one_sided": 0.015625
+   },
+   "hs=1.0": {
+    "w": 6,
+    "n": 6,
+    "p_one_sided": 0.015625
+   },
+   "hs=1.5": {
+    "w": 6,
+    "n": 6,
+    "p_one_sided": 0.015625
+   },
+   "hs=2.0": {
+    "w": 6,
+    "n": 6,
+    "p_one_sided": 0.015625
+   },
+   "hs=2.5": {
+    "w": 6,
+    "n": 6,
+    "p_one_sided": 0.015625
+   },
+   "hs=3.0": {
+    "w": 5,
+    "n": 6,
+    "p_one_sided": 0.109375
+   },
+   "hs=3.5": {
+    "w": 6,
+    "n": 6,
+    "p_one_sided": 0.015625
+   },
+   "hs=4.0": {
+    "w": 6,
+    "n": 6,
+    "p_one_sided": 0.015625
+   },
+   "hs=4.5": {
+    "w": 6,
+    "n": 6,
+    "p_one_sided": 0.015625
+   },
+   "hs=5.0": {
+    "w": 6,
+    "n": 6,
+    "p_one_sided": 0.015625
+   }
+  }
+ },
+ "recovery_R": {
+  "AUTO-AP": {
+   "median": 1.7550391440467257,
+   "iqr": 0.7001326337779663,
+   "n_used": 59,
+   "n_excluded": 1
+  },
+  "AUTO-BAND": {
+   "median": 0.6589020066597575,
+   "iqr": 0.4217098765871731,
+   "n_used": 59,
+   "n_excluded": 1
+  },
+  "AUTO-BANDR": {
+   "median": 0.7340822114934836,
+   "iqr": 0.45116771009320633,
+   "n_used": 59,
+   "n_excluded": 1
+  }
+ },
+ "medians": {
+  "ANCHOR:FIX2": 0.14797486039344987,
+  "ANCHOR:SHIP": 0.23075005375770946,
+  "ANCHOR:ZERO": 0.23174226059046815,
+  "TIER-P:AUTO-AP": 0.17452603731775224,
+  "TIER-P:AUTO-BAND": 0.21483660597808257,
+  "TIER-P:AUTO-BANDR": 0.21573943486947875,
+  "TIER-P:FIX2": 0.20233480227165998,
+  "TIER-P:SHIP": 0.24821572205683679,
+  "TIER-P:ZERO": 0.2501783627352902
+ },
+ "anchor_grade": "T1",
+ "s_clip": {
+  "AUTO-AP": 0,
+  "AUTO-BAND": 2,
+  "AUTO-BANDR": 0
+ },
+ "s_var": {
+  "AUTO-AP": {
+   "n": 60,
+   "sd": 0.0,
+   "min": 2.8095443210156423,
+   "max": 2.8095443210156423,
+   "single_value": true
+  },
+  "AUTO-BAND": {
+   "n": 60,
+   "sd": 0.37705884311258475,
+   "min": 0.25,
+   "max": 2.8847507046439658,
+   "single_value": false
+  },
+  "AUTO-BANDR": {
+   "n": 60,
+   "sd": 0.27899206339747545,
+   "min": 1.2834680717604539,
+   "max": 2.874510427385531,
+   "single_value": false
+  },
+  "SHIP": {
+   "n": 62,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "single_value": true
+  },
+  "FIX2": {
+   "n": 62,
+   "sd": 0.0,
+   "min": 2.0,
+   "max": 2.0,
+   "single_value": true
+  }
+ },
+ "clamp": {
+  "SHIP": 54,
+  "FIX2": 29,
+  "AUTO-AP": 20,
+  "AUTO-BAND": 38,
+  "AUTO-BANDR": 38
+ },
+ "equivar_old": {
+  "c05": {
+   "n": 60,
+   "median": 0.9929101854415551,
+   "min": 0.00562451515719431,
+   "max": 0.9987399508310223
+  },
+  "c20": {
+   "n": 60,
+   "median": 0.02696514992869936,
+   "min": 0.00022859606315750458,
+   "max": 120.0492309359912
+  },
+  "gt_5.88pct_c05": 55,
+  "n_missing": 0
+ },
+ "band_res": {
+  "AUTO-BAND": {
+   "n": 60,
+   "median": 1.2701448716128094,
+   "min": 0.6991080708476355,
+   "max": 138.5439249388831
+  },
+  "AUTO-BANDR": {
+   "n": 60,
+   "median": 4.130335769806047,
+   "min": 2.3257596243681533,
+   "max": 5.208871524687431
+  }
+ },
+ "cost_readback": {
+  "beamform_calls_per_file": [
+   16
+  ],
+  "registered": 16,
+  "device": [
+   "cuda"
+  ]
+ },
+ "mde": {
+  "S_q50": 0.6409,
+  "S_q80": 0.6915,
+  "S_q90": 0.7169,
+  "D_q50": 0.6575,
+  "D_q80": 0.7074,
+  "D_q90": 0.7323,
+  "F_q50": 0.6077,
+  "F_q80": 0.6596,
+  "F_q90": 0.6857,
+  "SECE_q50": 0.6077,
+  "SECE_q80": 0.6596,
+  "SECE_q90": 0.6857,
+  "BLIND_q50": 0.6849,
+  "BLIND_q80": 0.7597,
+  "BLIND_q90": 0.7951,
+  "unrejectable_S": [
+   31,
+   38
+  ],
+  "unrejectable_D": [
+   21,
+   39
+  ]
+ },
+ "thresholds": {
+  "F": 37,
+  "S": 39,
+  "SEC-E": 37,
+  "D": 40,
+  "SIG_WORSE": 21,
+  "N_EFF_UNPOWERED": 6
+ },
+ "n_eff_table": {
+  "1": null,
+  "2": null,
+  "3": null,
+  "4": null,
+  "5": null,
+  "6": null,
+  "7": {
+   "k_plus": 7,
+   "q80": 0.9686,
+   "p_one_tail": 0.0078125
+  },
+  "8": {
+   "k_plus": 8,
+   "q80": 0.9725,
+   "p_one_tail": 0.00390625
+  },
+  "9": {
+   "k_plus": 9,
+   "q80": 0.9755,
+   "p_one_tail": 0.001953125
+  },
+  "10": {
+   "k_plus": 9,
+   "q80": 0.9167,
+   "p_one_tail": 0.0107421875
+  },
+  "11": {
+   "k_plus": 10,
+   "q80": 0.9244,
+   "p_one_tail": 0.005859375
+  },
+  "12": {
+   "k_plus": 11,
+   "q80": 0.9307,
+   "p_one_tail": 0.003173828125
+  },
+  "15": {
+   "k_plus": 13,
+   "q80": 0.8959,
+   "p_one_tail": 0.003692626953125
+  },
+  "20": {
+   "k_plus": 16,
+   "q80": 0.8416,
+   "p_one_tail": 0.005908966064453125
+  },
+  "25": {
+   "k_plus": 19,
+   "q80": 0.8053,
+   "p_one_tail": 0.007316648960113525
+  },
+  "30": {
+   "k_plus": 22,
+   "q80": 0.7794,
+   "p_one_tail": 0.008062400855123997
+  },
+  "35": {
+   "k_plus": 25,
+   "q80": 0.76,
+   "p_one_tail": 0.008336923900060356
+  },
+  "40": {
+   "k_plus": 28,
+   "q80": 0.7449,
+   "p_one_tail": 0.008294501687487355
+  },
+  "45": {
+   "k_plus": 31,
+   "q80": 0.7328,
+   "p_one_tail": 0.008047180015637423
+  },
+  "50": {
+   "k_plus": 34,
+   "q80": 0.7228,
+   "p_one_tail": 0.007673338916315053
+  },
+  "55": {
+   "k_plus": 37,
+   "q80": 0.7145,
+   "p_one_tail": 0.007226916766913866
+  },
+  "60": {
+   "k_plus": 40,
+   "q80": 0.7074,
+   "p_one_tail": 0.00674464686559593
+  }
+ },
+ "prediction": {
+  "q": {
+   "F": 0.95,
+   "S": 0.92,
+   "SEC-E": 0.92,
+   "D": 0.5
+  },
+  "t": {
+   "T1": 0.95,
+   "T2": 0.8
+  },
+  "label_probs": {
+   "q": {
+    "F": 0.95,
+    "S": 0.92,
+    "SEC-E": 0.92,
+    "D": 0.5
+   },
+   "t": {
+    "T1": 0.95,
+    "T2": 0.8
+   },
+   "n": 60,
+   "thresholds": {
+    "F": 37,
+    "S": 39,
+    "SEC-E": 37,
+    "D": 40
+   },
+   "P_F": 0.9999999999999996,
+   "P_S": 0.999999999487876,
+   "P_SECE": 0.9999999999903397,
+   "P_D_up": 0.00674464686559593,
+   "P_D_down": 0.00674464686559593,
+   "P_D_null": 0.9865107062688081,
+   "S_axis_given_F": {
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES": 0.9999999994782157,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY": 9.660272576921155e-12,
+    "NO-AUTOSCALE-SKILL-DETECTED": 5.121240098659996e-10
+   },
+   "D_axis_given_F": {
+    "D-STAGE1-GRID-CHANGES-LANDING": 0.00674464686559593,
+    "D-STAGE1-GRID-WORSENS-LANDING": 0.00674464686559593,
+    "D-TREATMENT-BELOW-SCALE": 0.9371851709553677,
+    "D-DIRECTION-MIXED": 0.03946042825075236,
+    "D-NO-DIFFERENCE-DETECTED": 0.009865107062688089,
+    "D-UNPOWERED": 0.0
+   },
+   "joint": {
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-STAGE1-GRID-CHANGES-LANDING": 0.0067446468620766765,
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-STAGE1-GRID-WORSENS-LANDING": 0.0067446468620766765,
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-TREATMENT-BELOW-SCALE": 0.9371851704663587,
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-DIRECTION-MIXED": 0.03946042823016251,
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-NO-DIFFERENCE-DETECTED": 0.009865107057540626,
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-UNPOWERED": 0.0,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-STAGE1-GRID-CHANGES-LANDING": 6.515512715673354e-14,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-STAGE1-GRID-WORSENS-LANDING": 6.515512715673354e-14,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-TREATMENT-BELOW-SCALE": 9.053464206477298e-12,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-DIRECTION-MIXED": 3.8119849290430766e-13,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-NO-DIFFERENCE-DETECTED": 9.52996232260769e-14,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-UNPOWERED": 0.0,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-STAGE1-GRID-CHANGES-LANDING": 3.454095597939132e-12,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-STAGE1-GRID-WORSENS-LANDING": 3.454095597939132e-12,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-TREATMENT-BELOW-SCALE": 4.79955027736615e-10,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-DIRECTION-MIXED": 2.0208632746804864e-11,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-NO-DIFFERENCE-DETECTED": 5.052158186701215e-12,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-UNPOWERED": 0.0,
+    "ANCHOR-DID-NOT-REPLICATE": 4.440892098500626e-16
+   },
+   "joint_sum": 1.0,
+   "_note": "⚠다리 독립 가정 · S 와 SEC-E 는 공단조 ⟹ BANDR-ONLY 는 상한이다 · ⛔사후 검정력 주장에 쓰지 마라"
+  },
+  "null_label_probs": {
+   "q": {
+    "F": 0.5,
+    "S": 0.5,
+    "SEC-E": 0.5,
+    "D": 0.5
+   },
+   "t": {
+    "T1": 0.95,
+    "T2": 0.8
+   },
+   "n": 60,
+   "thresholds": {
+    "F": 37,
+    "S": 39,
+    "SEC-E": 37,
+    "D": 40
+   },
+   "P_F": 0.04623049053646187,
+   "P_S": 0.013670066934038968,
+   "P_SECE": 0.04623049053646187,
+   "P_D_up": 0.00674464686559593,
+   "P_D_down": 0.00674464686559593,
+   "P_D_null": 0.9865107062688081,
+   "S_axis_given_F": {
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES": 0.0006319739000268888,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY": 0.013038093034012078,
+    "NO-AUTOSCALE-SKILL-DETECTED": 0.9863299330659611
+   },
+   "D_axis_given_F": {
+    "D-STAGE1-GRID-CHANGES-LANDING": 0.00674464686559593,
+    "D-STAGE1-GRID-WORSENS-LANDING": 0.00674464686559593,
+    "D-TREATMENT-BELOW-SCALE": 0.9371851709553677,
+    "D-DIRECTION-MIXED": 0.03946042825075236,
+    "D-NO-DIFFERENCE-DETECTED": 0.009865107062688089,
+    "D-UNPOWERED": 0.0
+   },
+   "joint": {
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-STAGE1-GRID-CHANGES-LANDING": 1.970547283248511e-07,
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-STAGE1-GRID-WORSENS-LANDING": 1.970547283248511e-07,
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-TREATMENT-BELOW-SCALE": 2.7381236250442563e-05,
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-DIRECTION-MIXED": 1.1528941579133722e-06,
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-NO-DIFFERENCE-DETECTED": 2.88223539478343e-07,
+    "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-UNPOWERED": 0.0,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-STAGE1-GRID-CHANGES-LANDING": 4.06538605562994e-06,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-STAGE1-GRID-WORSENS-LANDING": 4.06538605562994e-06,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-TREATMENT-BELOW-SCALE": 0.0005648953312855877,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-DIRECTION-MIXED": 2.3785066580445818e-05,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-NO-DIFFERENCE-DETECTED": 5.946266645111454e-06,
+    "AUTOSCALE-BEATS-ZERO-BANDR-ONLY ∧ D-UNPOWERED": 0.0,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-STAGE1-GRID-CHANGES-LANDING": 0.0003075458923077551,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-STAGE1-GRID-WORSENS-LANDING": 0.0003075458923077551,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-TREATMENT-BELOW-SCALE": 0.042734253609228494,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-DIRECTION-MIXED": 0.0017993369940727804,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-NO-DIFFERENCE-DETECTED": 0.00044983424851819504,
+    "NO-AUTOSCALE-SKILL-DETECTED ∧ D-UNPOWERED": 0.0,
+    "ANCHOR-DID-NOT-REPLICATE": 0.9537695094635381
+   },
+   "joint_sum": 1.0,
+   "_note": "⚠다리 독립 가정 · S 와 SEC-E 는 공단조 ⟹ BANDR-ONLY 는 상한이다 · ⛔사후 검정력 주장에 쓰지 마라"
+  }
+ },
+ "registration_drift": [],
+ "proposal_device": [
+  "cuda"
+ ],
+ "label_S": "AUTOSCALE-BEATS-ZERO-BOTH-RULES",
+ "label_D": "D-TREATMENT-BELOW-SCALE",
+ "label": "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-TREATMENT-BELOW-SCALE",
+ "label_msg": "AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-TREATMENT-BELOW-SCALE",
+ "disclosures": [
+  "⛔[§9.2-1] 어떤 라벨도 \"우리 방법이 저들 방법보다 낫다\" 로 읽지 마라 — 외부 기준선 행이 **0개**다. `AUTOSCALE-BEATS-ZERO-*` 의 비교자는 **제로필드**이지 제3자 방법이 아니다. 라벨은 **귀속**이다.",
+  "⛔[§9.2-2] 음성 라벨(`NO-AUTOSCALE-SKILL-DETECTED`·`D-NO-DIFFERENCE-DETECTED`·`D-UNPOWERED`)을 \"자동 스케일은 불가능\"·\"도달 불가\" 로 읽지 마라 — 이름이 「미검출」이고 MDE 병기가 의무다: S 널 q80=0.6915 · D 널 q80=0.7074 · SEC-BLIND q80=0.7597. ⛔세 값을 **섞지 마라**(`M8b` 선례).",
+  "⛔[§9.2-3] `T11`(n=24, mixed_data2)·`T14`(n=28, Hs 불균형)의 수와 이 배치의 수를 **직접 비교하지 마라** — 모집단이 다르다.",
+  "⛔[§9.2-4] `E2`·`T11`·`T14` 와 대각선 비교 금지 · 저들 논문 수치와 비교 금지 · solver 미명시(\"HOS\"·\"완전 비선형\" 이라 쓰지 않는다).",
+  "⛔[§9.2-5] `AUTO-BAND`(옛 규칙)의 착지점을 **규칙의 성능**으로 읽지 마라 — ill-posed 다(`T14` 가 그것으로 `BLOCKED`). 차단 게이트에서 뺀 것은 완화가 아니라 **지위 변경**(후보 → 비교자)이고, 후보 둘의 허용오차는 `T14`(5.88%)보다 **1e-6 로 더 엄하다**.",
+  "⛔[§9.2-6] `D` 축을 `SEC-E` **와** `D_drive` 없이 인용 금지 — SEC-E 58/60 (통과, 문턱 37, 무보정) · median|Δ ln s| = 0.025614 (부호 +39/−21, ln1.05 = 0.04879). (i) 두 팔이 같은 방향으로 실패하면 `D` 는 \"덜 나쁜 쪽\" 을 고른다(비교자 붕괴, `F1` 부류) (ii) 처치가 자보다 작거나 방향이 섞이면 `D` 의 통계량은 **혼합을 센다**.",
+  "⛔[§9.2-6b] `S` 축을 `SEC-E` 없이 인용 금지 — SEC-E 58/60 (통과, 문턱 37, 무보정). `S` 는 **처치를 판별하지 못한다**; `SEC-E` 가 함께 발화했다면 그 문장은 \"자동 스케일이 이긴다\" 이지 \"밴드 수리가 이긴다\" 가 아니다. ⛔라벨 접두어 `BANDFIX-` 는 폐기됐다.",
+  "⛔[§9.2-6c] `D-TREATMENT-BELOW-SCALE` 를 \"수리가 무의미하다\" 로 읽지 마라 — 그것은 **이 코퍼스에서** 착지점 차이가 배제 문턱보다 작다는 진술이고 `G-EQUIVAR` 의 판정과 **독립**이다. 수리의 근거는 well-posedness 이지 이 코퍼스의 정확도가 아니다. ⛔`D-NO-DIFFERENCE-DETECTED` 로 접지 마라(`M8b` 선례) · 병기: median|Δ ln s| = 0.025614 (부호 +39/−21, ln1.05 = 0.04879).",
+  "⛔[§9.2-7] `SEC-D`(개구 vs 밴드)로 규칙을 **다시 고르지 마라**(\"질 때까지 조율\" 회피). 새 규칙은 새 사전등록으로만. ⚠`SEC-D` 는 EXPLORATORY 이고 q80=0.7074 병기 의무.",
+  "⛔[§9.2-8] 회수율 `R` 을 평균하지 마라 · CI 를 붙이지 마라 · 라벨로 승격하지 마라 (비의 비 · 기술통계).",
+  "⛔[§9.2-9] **배포 권고 아님.** 양성 라벨도 필요조건 하나다(선례 `S-ENS §5`) — 최소한 (i) 실측 경로 영향 (ii) 단가 (iii) 우리 코퍼스 무해성이 남는다.",
+  "⛔[§9.2-10] 층·부분집합 진술(`SEC-F`·`SEC-BLIND`·`SEC-BLIND-ANGLE30`)은 전부 **기술통계**이고 라벨을 만들지 않는다.",
+  "⚠[§9.3-1] **완전 blind 아님** — 설계자가 `T14 AMENDMENT_2 §2`(AUTO-AP 28/28 · 회수율 1.634, mixed_data2) 와 앵커 2파일 nRMSE, `T14` band_fragile 전건을 읽었다. 그것이 `q_F`·`q_S`·`q_SEC-E` 를 높게 잡은 근거다. ✅Tier-P 60 은 **성과 노출 0**(`G-XBATCH`).",
+  "⚠[§9.3-2] `s` 와 `klim₁` 이 이 코퍼스에서 거의/완전히 상수다 ⟹ **착지점 진술이지 적응 진술이 아니다**. ⛔축퇴는 넓다(`M-1`): `klim₁` 을 0.6033→2.0 으로 3.3배 움직여도 최종 `k̂_p` 는 약 1% 만 변한다 ⟹ 자료는 이 규칙을 `[k_p, 2.0]` 의 **어떤 상수와도** 구별하지 못한다. 구별은 `G-KLIM1-LIVE`(행동)가 하고 ⛔**자료는 하지 않는다** — provenance 로는 충분, 해석으로는 불충분. ⛔\"자유 파라미터 0개\" 를 **측정 결과로** 서술하지 마라.",
+  "⚠[§9.3-3] **재척도는 단일요인이 아니다**(`M-2`): 두 팔의 차이는 `klim` 이 아니라 `s` 이고, 그 `s` 가 사전 밴드·`learned_dedup_dk`·`MIN_DK`·성장 DC블록·VARPRO lr·조건화 지도의 개구/픽셀 비를 **동시에** 움직인다 ⟹ ⛔단일 기제 귀속 금지. ⛔*\"D 다리는 예외적으로 단일요인\"* 은 **철회**됐다(R-10) — 개입이 하나이지 기제가 하나가 아니다.",
+  "⚠[§9.3-4] `d3_beamform_net.py:30` 의 `DEPTH=50.0` 하드코딩이 config depth 를 조건화 지도에서 무효로 만든다 ⟹ `s` 를 키우면 그 불일치도 줄어드는 **비대칭 교락**이다. ⛔이 배치에서 고치지 않는다(고치면 출하 팔이 아니게 된다).",
+  "⚠[§9.3-5] **예산 비대칭** — 제안 단계는 프레임당 제공 8,000 중 캡 400만 쓴다. \"고른 400\" 과 \"있는 것 전부\" 는 다르다.",
+  "⚠[§9.3-6] `Tp` 는 이 코퍼스에서 **미확인**이다 — `T14` 의 \"전 파일 10 s\" 는 `mixed_data2` 의 진술이다. `G-TP` 가 `Tp̂` 를 행마다 적었다.",
+  "⚠[§9.3-7] `SEC-*` 의 p 는 전부 **무보정**이다. Holm/Bonferroni 는 PRIMARY 가족(**2축** = `S`·`D`)에만 적용한다. ⚠`SEC-E` 는 무보정인데 사다리 안에 있다 ⟹ `AUTOSCALE-BEATS-ZERO-BANDR-ONLY` 는 **EXPLORATORY** 이고 확증 등급이 아니다.",
+  "⚠[§9.3-8] 규칙의 목표 상수(`L_TRAIN`=220.55 · `K_TRAIN`=0.06779)는 **우리 학습 분포**에서 나온다 — 규칙은 \"장면을 우리 사전이 학습된 곳으로 옮긴다\" 이고 ⛔\"제3자 자료가 규칙을 정했다\" 는 거짓이다.",
+  "⚠[§9.3-9] `k̂_p` 는 FFT 첨두 대비 **편향**이 있다(`T14 §9.3-9`: +7–13%). ⛔보정하지 않았다.",
+  "⚠[§9.3-10] `proposal_device` 는 config 가 정하지 않는다(`propose_atoms` 가 cuda if available) ⟹ 되읽어 적었다.",
+  "⚠[§9.3-11] `torch.set_num_threads(1)` 은 numpy/BLAS 를 제약하지 않는다 ⟹ ⛔`wall_s` 를 팔 간 비교에 쓰지 마라.",
+  "⚠[§9.3-12] `G-WRAPPER` 와 `G-DEPLOY` 의 `init_method` 항은 배포 상수상 **구조적으로 참/항진**이다(`T14 A3 §3`) ⟹ ⛔`gates_pass` 를 오독하지 마라. 같은 부류로 `G-DEEP`·`G-EDGE`(BANDR)도 구조적으로 거의 항상 참이다.",
+  "⚠[§9.3-13] **추정기 시드 1개**(median-of-k 아님) ⟹ ⛔시드 간 변동 주장 금지(`S13b` 선례: 시드가 부호를 가른 적이 있다).",
+  "⚠[§9.3-14] **검정력이 아니라 blind 가 표본 크기를 정했다** — `mixed_data2`(60)와 OOD(6)는 소진됐다 ⟹ 이 아카이브에서 이 규약으로 남은 blind 층은 Tier-P 가 **마지막**이다. 재실행은 blind 가 아니다.",
+  "⚠[§9.3-15] **등변 편차의 크기는 규약 종속**이다 — 설계 규약 `|k̂_c/(c·k̂₁)−1|` 과 분석기 규약 `|s_c·c/s_1−1|` 은 `s ∝ 1/k̂` 라 1차 근사에서만 같다(같은 셀이 1.138e+03 과 0.9991). ⛔두 수를 나란히 놓아 서로 다른 크기인 것처럼 쓰지 마라. 이 게이트는 **분석기 규약**이다.",
+  "⚠[§9.3-16] `T14` 의 허용오차 5.88% 는 **`c=2.0` 방향에만** 적용됐다 ⟹ `AUTO-BAND` 의 `c=0.5` 방향은 `T14` 에서 **한 번도 게이트된 적이 없다**. 이 배치의 `G-EQUIVAR` 는 후보 둘에 **1e-6 양방향**이고 `G-EQUIVAR-OLD` 는 허용오차 없는 기록 전용이다.",
+  "⚠[§9.3-17] `SEC-BLIND` 의 미접촉 24파일은 `angle ∈ {40,50,60}` 과 **완전 교락**이다 ⟹ ⛔PRIMARY 와의 차이를 「노출 효과」로 읽는 것 금지. 대조 = `SEC-BLIND-ANGLE30`(n=30, 기술통계, ⚠n 이 달라 검정 비교 불가).",
+  "⚠[§9.3-18] `G-INNER` 는 이 배치가 신설한 게이트다 — 수리는 고장 방향을 **바깥에서 안쪽**으로 옮긴다(옛 1단 바닥 klim₂ ≥ 0.0832 는 코퍼스를 항상 덮었고 새 바닥 ≥ 0.0251 은 k_p=0.034 를 구조적으로 못 덮을 수 있다) ⟹ ⛔\"새 규칙이 더 튼튼하다\" 서술 금지. 잰 것은 **등변성과 격자 여유**이지 **강건성**이 아니다.",
+  "⛔[§9.3-19 · 개정문 2] **`G-GRID` 의 x/y 조항은 완화됐다.** 사전등록 §6.2 는 절대 `|L_obs_x − L_obs_y| ≤ 1e-3` [m] 였고, **판정 표본 0행 시점의 스모크가 그것을 FAIL 시킨 것이 이 자를 들여다본 유일한 계기다**(⛔그 사실을 부드럽게 적지 않는다). 재정의 = `|L_obs_x − L_obs_y| / max ≤ 0.0001`. 실측 아카이브 전체가 `0.002 m = 3.23e-6 상대` 이고 `mixed_data`·`mixed_data2` 는 두 축 모두 동일하다 ⟹ 게이트의 등록 목적(기하 동형)은 **성립**하고 단위만 틀렸다(종횡비 질문에 절대자). 종전 `1e-3` 의 근거였던 `T10` 의 `dx == dy` 는 **median-of-diff** 라 128점 구간의 2 mm 끝단 비대칭에 **구조적으로 눈이 멀어 있다** ⟹ 그 수는 이 게이트가 재는 양에서 유도된 적이 없다. ⚠새 자는 측정 대비 약 31배 여유이고 **관측에 맞춰 조율하지 않았다**. ⛔다른 문턱은 하나도 안 건드렸다 — 판단은 읽는 사람이 하고, 반대할 수 있어야 한다.",
+  "⚠[§0-4 · §3.6] 이 배치는 **적응성을 재지 못한다**(격자가 전 파일 동일 ⟹ `s` 도 `klim₁` 도 코퍼스 상수) — 잰 것은 (i) 착지점과 (ii) 등변성이다. 그리고 설계는 결과 전에 P(S 축 양성)≈1, P(`D-TREATMENT-BELOW-SCALE`)=0.937 이라고 **스스로 적었다** ⟹ ⛔이 사실을 결과 뒤에 재서술하지 마라. 병기: SEC-E 58/60 (통과, 문턱 37, 무보정) · median|Δ ln s| = 0.025614 (부호 +39/−21, ln1.05 = 0.04879).",
+  "⚠[§10] 이 배치가 재는 것은 배포 **합성 경로**다 — 상수 `gt_field` 때문에 라우터가 `learned` 로 가고(`G-ARM` 되읽기), 규칙이 빌려 쓰는 `bank_mmse._beamform_top` 은 배포 학습 경로에서 **0회** 실행된다 ⟹ ⛔실측 경로에 대해 아무 말도 하지 않는다."
+ ]
+}

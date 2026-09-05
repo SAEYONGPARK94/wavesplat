@@ -993,6 +993,154 @@ def _t14_blocked():
             'TFourteenMDE': f"{v['mde']['primary_q80']:.4f}"}
 
 
+def _t15_sweep():
+    """★스윕 **부분층 위의 `f=2`** --- ⛔동결 `verdict_t15.json` 에 **없는 수**다.
+
+    ⛔왜 필요한가(2026-09-05 적대적 심사 BLOCKER): 원고 초판이 스윕 세 팔
+      (√2 · 2√2 · 4)만 보고 *"배율이 커질수록 벌점이 **단조** 증가한다"* 라 적었다.
+      그런데 **PRIMARY 처치 `f=2` 도 그 32블록에서 돌았고**, 그 값을 사다리에 넣으면
+      +14.1% → **+8.3%** → +22.9% → +31.0% 로 **단조가 깨진다**.
+      ⟹ 세 팔만 고른 것이 자의적이었고, 그 자의가 없는 주장을 만들었다.
+
+    ★자기검사: 이 함수는 부분층에서 **세 스윕 팔을 재계산해 동결 verdict 과 대조**한다
+      (계수와 중앙 상대차 전건). 어긋나면 죽는다 ⟹ 부분층 식별이 옳다는 실행 증명이다.
+    ⛔이 수는 **재집계**이므로 원고가 그 지위를 밝혀야 한다(선례 `W-15`).
+    """
+    import statistics as _st
+    v = load('T15_HOMEREG_2026-09-05/verdict_t15.json')
+    rows = []
+    for f in ('results_t15_FULL.jsonl', 'results_t15_SUB.jsonl'):
+        with open(os.path.join(TMP, 'T15_HOMEREG_2026-09-05', f), encoding='utf-8') as fh:
+            rows += [json.loads(x) for x in fh]
+    by, lay = {}, {}
+    for r in rows:
+        by.setdefault(r['block'], {})[r['arm']] = r['nrmse']
+        lay[r['block']] = r['layer']
+    sub = [b for b in by if lay[b] == 'crowded' and 'F4' in by[b]]
+    assert len(sub) == int(v['curve']['crowded']['F4']['n']), '⛔스윕 부분층 크기가 갈린다'
+
+    def stat(arm):
+        w = sum(1 for b in sub if by[b][arm] < by[b]['SHIP'])
+        rel = _st.median((by[b][arm] - by[b]['SHIP']) / by[b]['SHIP'] for b in sub)
+        return w, rel
+
+    for arm in ('F1.414', 'F2.828', 'F4'):
+        w, rel = stat(arm)
+        ref = v['curve']['crowded'][arm]
+        assert w == int(ref['w']), f'⛔{arm} 재집계 계수가 동결값과 다르다: {w} vs {ref["w"]}'
+        assert abs(rel - ref['median_rel']) < 1e-12, f'⛔{arm} 재집계 중앙값이 다르다'
+    w2, rel2 = stat('F2')
+    # ★**단조가 아니다** 를 기계로 붙든다 --- 단조가 되면 원고 문안을 다시 써야 한다.
+    ladder = [stat('F1.414')[1], rel2, stat('F2.828')[1], stat('F4')[1]]
+    assert not all(a < b for a, b in zip(ladder, ladder[1:])), \
+        '⛔스윕 사다리가 단조가 됐다 --- 원고의 "단조가 아니다" 문장을 다시 써라'
+    assert all(x > 0 for x in ladder), '⛔어떤 배율이 배포 팔을 이겼다 --- 문안을 다시 써라'
+    return {'TFifteenSubFTwoWin': str(w2),
+            'TFifteenSubFTwoRel': f'{rel2*100:+.1f}\\%'}
+
+
+def _t15_t16():
+    """★`T15-HOMEREG` + `T16-BANDFIX` --- 문자열·게이트 유래 원자와 **판정 핀**.
+
+    ⛔이 함수는 값을 내기 전에 **두 배치의 라벨과 판정 구조를 assert 로 묶는다.**
+      원고의 산문이 *"문턱을 정확히 만난다"* · *"바닥 밖이다"* · *"제로필드보다 유의하게
+      나쁘다"* 라고 적기 때문이다 --- 그 셋은 계수가 아니라 **구조**이고, 배치가
+      재분석되면 계수보다 먼저 조용히 낡는다.
+
+    ⚠`T16` 의 verdict 은 키 자체에 점과 괄호가 있다(`'S (기술 축, 단측, ...)'`)
+      ⟹ ATOMS 는 **튜플 경로**로 읽는다(`_get` 이 지원한다).
+    """
+    import re as _re
+    v15 = load('T15_HOMEREG_2026-09-05/verdict_t15.json')
+    v16 = load('T16_BANDFIX_2026-09-05/verdict_t16.json')
+
+    # ── 라벨 핀 --------------------------------------------------------------
+    assert v15['label'] == 'HOME-REGRESSION', \
+        f"⛔T15 라벨이 바뀌었다: {v15['label']} --- 원고의 T15 문단을 다시 써야 한다"
+    assert v16['label'] == 'AUTOSCALE-BEATS-ZERO-BOTH-RULES ∧ D-TREATMENT-BELOW-SCALE', \
+        f"⛔T16 라벨이 바뀌었다: {v16['label']}"
+    assert not v15['blocked_by'] and not v16['blocked_by'], '⛔차단된 배치를 인용하고 있다'
+
+    # ── 구조 핀 (산문이 계수가 아니라 **관계**를 주장하는 자리) ----------------
+    cr = v15['primary']['crowded']
+    assert int(cr['w']) == int(cr['thresh_hurt']), \
+        '⛔"해침 문턱을 정확히 만난다" 가 거짓이 됐다 --- §5.8 의 자구를 고쳐라'
+    assert v15['equivalence']['crowded']['within_floor'] is False, \
+        '⛔혼잡 효과가 개입 잡음 바닥 **안**으로 들어왔다 --- 크기 서술을 다시 써야 한다'
+    assert v15['equivalence']['sparse']['within_floor'] is True, \
+        '⛔희소 층의 등가문이 바뀌었다'
+    assert v16['sig_worse']['SHIP'] is True, \
+        '⛔"배포 팔이 제로필드보다 유의하게 나쁘다" 가 거짓이 됐다'
+    assert v16['sig_worse']['AUTO-BANDR'] is False and v16['sig_worse']['AUTO-BAND'] is False
+    assert v16['D_drive']['T1_treatment_below_scale'] is True, \
+        '⛔D 축의 "처치가 자보다 작다" 가 거짓이 됐다 --- 라벨 서술을 다시 써라'
+    assert v16['anchor_grade'] == 'T1', '⛔앵커 등급(비트 동일)이 내려갔다'
+
+    def gate(v, key):
+        for row in v['gates']:
+            nm = row['name'] if isinstance(row, dict) else row[0]
+            if nm.split()[0].lstrip('★⚠') == key:
+                return nm, (row['detail'] if isinstance(row, dict) else row[2])
+        raise AssertionError(f'⛔게이트가 사라졌다: {key}')
+
+    # ★T14 를 막았던 바로 그 게이트가 **통과**한다는 사실 자체가 인용 대상이다.
+    eq_name, eq_det = gate(v16, 'G-EQUIVAR')
+    m = _re.search(r'≤(\d)e-0?(\d+)', eq_name)
+    assert m and m.group(1) == '1', f'⛔G-EQUIVAR 허용오차 표기가 바뀌었다: {eq_name}'
+    eq_tol = f'10^{{-{int(m.group(2))}}}'
+    mv = _re.match(r'위반\s+(\d+)', eq_det)
+    assert mv and mv.group(1) == '0', f'⛔G-EQUIVAR 에 위반이 생겼다: {eq_det}'
+
+    # ⛔개정문 2 의 **완화**. 원고가 그것을 공시하므로 두 수를 여기서 핀한다.
+    gr_name, gr_det = gate(v16, 'G-GRID')
+    m = _re.search(r'/max ≤ ([0-9.e-]+)', gr_name)
+    assert m, f'⛔G-GRID 자구가 바뀌었다: {gr_name}'
+    tol = float(m.group(1))
+    assert abs(tol - 1e-4) < 1e-12, f'⛔G-GRID 허용오차가 움직였다: {tol}'
+    m = _re.search(r"x/y 상대차 \{[^}]*'median': ([0-9.e+-]+)", gr_det)
+    assert m, f'⛔G-GRID 세부 형태가 바뀌었다: {gr_det[:120]}'
+    meas = float(m.group(1))
+    assert meas < tol, '⛔측정 비대칭이 완화된 허용오차를 넘었다'
+
+    # ⚠**중간 집계 열람 공시**(`NOTE_INTERIM_PEEK.md`) --- 저장소 규율은
+    #   *"봤지만 안 말한다 는 공시가 아니다"* 다. 손으로 옮겨 적지 않고 파일에서 읽는다.
+    note = open(os.path.join(TMP, 'T15_HOMEREG_2026-09-05',
+                             'NOTE_INTERIM_PEEK.md'), encoding='utf-8').read()
+    mp = _re.search(r'\*\*(\d+)/(\d+) 블록\*\*', note)
+    assert mp, '⛔중간 열람 공시의 형태가 바뀌었다'
+    mw = _re.search(r'F2 < SHIP\s+(\d+)/(\d+)', note)
+    assert mw and mw.group(2) == mp.group(1), '⛔중간 열람 계수의 형태가 바뀌었다'
+    # ⛔**전부 적는다**(`AMENDMENT_1 §1.1` 축자: *"봤지만 안 말한다 는 공시가 아니다"*).
+    #   초판은 PRIMARY 통계량 하나만 인쇄하고 나머지 둘을 빠뜨렸다.
+    mc = _re.search(r'SHIP < ZERO\s+(\d+)/(\d+)', note)
+    mf = _re.search(r'FLOOR-VPLR < SHIP\s+(\d+)/(\d+)', note)
+    assert mc and mf and mc.group(2) == mp.group(1) == mf.group(2), \
+        '⛔중간 열람 공시가 세 통계량 형태를 잃었다'
+    assert '혼잡' in note, '⛔중간 열람이 혼잡 층이라는 진술이 사라졌다'
+
+    # ⚠**속성 노출** --- `T16` 의 판정 60블록은 *성과* 미노출이지만 36개는 앞 배치가
+    #   축 벡터 등 **속성**을 이미 열었다. ⛔*"아무도 열지 않은"* 이라 쓰면 거짓이다.
+    mg = _re.search(r'속성 노출 (\d+)/(\d+)', v16['grade'])
+    assert mg and int(mg.group(2)) == 60, f"⛔T16 grade 문면이 바뀌었다: {v16['grade']}"
+    assert 'blind' in v16['grade'], '⛔T16 의 blind 등급 자구가 사라졌다'
+
+    n_corpus = int(cr['n']) + int(v15['primary']['sparse']['n'])
+    assert n_corpus == 128
+    return {'TFifteenGates': v15['gates_pass'],
+            'TFifteenCorpusN': str(n_corpus),
+            'TFifteenSmokeExposed': str(len(v15['smoke_exposed_blocks'])),
+            'TFifteenPeekAt': mp.group(1),
+            'TFifteenPeekWin': mw.group(1),
+            'TSixteenGates': v16['gates_pass'],
+            'TSixteenEquivarTol': eq_tol,
+            'TSixteenEquivarViol': mv.group(1),
+            'TSixteenGridTol': '10^{-4}',
+            'TFifteenPeekCtrl': mc.group(1),
+            'TFifteenPeekFloor': mf.group(1),
+            'TSixteenGridMeas': _sci(meas),
+            'TSixteenAttrExposed': mg.group(1)}
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # ★인용 원자 — (매크로, 배치 verdict, json 경로, 형식, 핀)
 #   ⛔핀은 "오늘 값" 이다. 값이 바뀌면 **의도적으로** 갱신하라(래칫과 같은 규약).
@@ -1459,6 +1607,82 @@ ATOMS = [
     #   ⚠예외 = 배포 팔 앵커의 자기 음성. 금지목록이 *"SHIP 무기술 3시드 재현"* 을 명시 허용.
     ('TFourteenShipHeldWin', 'T14_AUTOSCALE_2026-09-04/verdict_t14.json',
      'ship_vs_zero.w', 'int', 10),
+    # ── T15: **자국 코퍼스**에서 같은 스케일을 옮기면 무엇을 지불하는가
+    #   ⛔이 배치의 층별 계수는 **모집단이 다른** T11--T14 의 계수와 나란히 놓지 않는다.
+    #   ★`w == thresh_hurt` 라는 사실이 서술의 하중을 진다 --- `_t15_t16()` 이 assert 로 묶는다.
+    ('TFifteenN', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'primary.crowded.n', 'int', 64),
+    ('TFifteenCrowdedWin', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'primary.crowded.w', 'int', 23),
+    ('TFifteenHurtThresh', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'primary.crowded.thresh_hurt', 'int', 23),
+    # ⛔여섯 자리로 인쇄한다 --- 문턱을 **정확히** 만난 계수라 반올림하면 편안해진다.
+    ('TFifteenCrowdedP', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'primary.crowded.p_hurt_one_sided', 'abs6', 0.016383),
+    ('TFifteenSparseWin', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'primary.sparse.w', 'int', 31),
+    ('TFifteenSparseP', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'primary.sparse.p_hurt_one_sided', 'abs2', 0.45),
+    ('TFifteenCtrlWin', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'control.crowded.w', 'int', 63),
+    ('TFifteenCtrlSparseWin', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'control.sparse.w', 'int', 63),
+    ('TFifteenRel', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'curve.crowded.F2.median_rel', 'frac', 12.2),
+    # ★스윕 세 팔은 **같은 32 부분층**에서 돌았다 ⟹ 그 셋끼리는 비교 가능하고
+    #   PRIMARY(n=64)의 계수와는 **표본이 다르다**. 원고가 그 구별을 적는다.
+    ('TFifteenSweepLoWin', 'T15_HOMEREG_2026-09-05/verdict_t15.json',
+     ('curve', 'crowded', 'F1.414', 'w'), 'int', 12),
+    ('TFifteenSweepLoRel', 'T15_HOMEREG_2026-09-05/verdict_t15.json',
+     ('curve', 'crowded', 'F1.414', 'median_rel'), 'frac', 14.1),
+    ('TFifteenSweepMidWin', 'T15_HOMEREG_2026-09-05/verdict_t15.json',
+     ('curve', 'crowded', 'F2.828', 'w'), 'int', 11),
+    ('TFifteenSweepMidRel', 'T15_HOMEREG_2026-09-05/verdict_t15.json',
+     ('curve', 'crowded', 'F2.828', 'median_rel'), 'frac', 22.9),
+    ('TFifteenDoseWin', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'curve.crowded.F4.w', 'int', 9),
+    ('TFifteenDoseN', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'curve.crowded.F4.n', 'int', 32),
+    ('TFifteenDoseRel', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'curve.crowded.F4.median_rel', 'frac', 31.0),
+    # ★결과 **전에** 정의된 처치정합 잡음 바닥 --- 크기 인용의 병기 의무를 진다.
+    ('TFifteenFloor', 'T15_HOMEREG_2026-09-05/verdict_t15.json',
+     'equivalence.crowded.floor_median_abs_rel', 'fracabs', 10.6),
+    ('TFifteenMDE', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'mde.q80', 'abs4', 0.3185),
+    ('TFifteenUnrejLo', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'mde.unrejectable_w.0', 'int', 24),
+    ('TFifteenUnrejHi', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'mde.unrejectable_w.1', 'int', 40),
+    ('TFifteenRows', 'T15_HOMEREG_2026-09-05/verdict_t15.json', 'n_rows', 'int', 832),
+    # ⚠**잡음 바닥 팔은 이 코퍼스에서 널이라는 보장이 없다**(verdict disclosures §11).
+    #   혼잡에서는 어느 문턱에도 못 닿지만(28) **희소에서는 도움 문턱을 정확히 만난다**(41)
+    #   ⟹ 크기 인용에 이 두 계수 병기 의무를 건다.
+    ('TFifteenHelpThresh', 'T15_HOMEREG_2026-09-05/verdict_t15.json',
+     'primary.crowded.thresh_help', 'int', 41),
+    ('TFifteenFloorCrowdedWin', 'T15_HOMEREG_2026-09-05/verdict_t15.json',
+     ('curve', 'crowded', 'FLOOR-VPLR', 'w'), 'int', 28),
+    ('TFifteenFloorSparseWin', 'T15_HOMEREG_2026-09-05/verdict_t15.json',
+     ('curve', 'sparse', 'FLOOR-VPLR', 'w'), 'int', 41),
+    # ── T16: 참값 없이 그 스케일을 고르는 규칙 (T14 를 막은 게이트를 통과한다)
+    #   ⛔비교자는 **제로필드**다 --- 외부 기준선 행 0개.
+    ('TSixteenN', 'T16_BANDFIX_2026-09-05/verdict_t16.json', ('primary_family', 'S (기술 축, 단측, Bonferroni α/2)', 'n'), 'int', 60),
+    ('TSixteenSkillWin', 'T16_BANDFIX_2026-09-05/verdict_t16.json', ('primary_family', 'S (기술 축, 단측, Bonferroni α/2)', 'w'), 'int', 59),
+    ('TSixteenSkillP', 'T16_BANDFIX_2026-09-05/verdict_t16.json', ('primary_family', 'S (기술 축, 단측, Bonferroni α/2)', 'p'), 'p', 5.29e-17),
+    ('TSixteenSkillThresh', 'T16_BANDFIX_2026-09-05/verdict_t16.json', ('primary_family', 'S (기술 축, 단측, Bonferroni α/2)', 'thresh'), 'int', 39),
+    # ★옛 규칙도 제로필드를 이긴다 --- `S` 축을 이것 없이 인용 금지(verdict §9.2-6b).
+    ('TSixteenOldRuleWin', 'T16_BANDFIX_2026-09-05/verdict_t16.json', ('SEC', 'SEC-E AUTO-BAND<ZERO (★사다리 안 · 무보정)', 'w'), 'int', 58),
+    ('TSixteenOldRuleThresh', 'T16_BANDFIX_2026-09-05/verdict_t16.json', ('SEC', 'SEC-E AUTO-BAND<ZERO (★사다리 안 · 무보정)', 'thresh'), 'int', 37),
+    ('TSixteenPosCtrlWin', 'T16_BANDFIX_2026-09-05/verdict_t16.json', ('positive_control', 'FIX2<ZERO', 'w'), 'int', 60),
+    ('TSixteenShipZeroWin', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'ship_vs_zero.w', 'int', 16),
+    ('TSixteenSigWorseThresh', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'thresholds.SIG_WORSE', 'int', 21),
+    ('TSixteenLandingWin', 'T16_BANDFIX_2026-09-05/verdict_t16.json', ('primary_family', 'D (착지 축, 양측, Bonferroni α/2)', 'w'), 'int', 25),
+    ('TSixteenLandingN', 'T16_BANDFIX_2026-09-05/verdict_t16.json', ('primary_family', 'D (착지 축, 양측, Bonferroni α/2)', 'n_eff'), 'int', 60),
+    ('TSixteenLandingThresh', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'thresholds.D', 'int', 40),
+    ('TSixteenLandingP', 'T16_BANDFIX_2026-09-05/verdict_t16.json',
+     ('primary_family', 'D (착지 축, 양측, Bonferroni α/2)', 'p_two_sided'), 'abs3', 0.245),
+    # ⛔`D` 축은 `D_drive` 전건(중앙·부호분할·자) 병기 없이 인용 금지(verdict §9.2-6).
+    ('TSixteenDrive', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'D_drive.median_abs_dln_s', 'abs4', 0.0256),
+    ('TSixteenDriveRef', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'D_drive.ln105', 'abs4', 0.0488),
+    ('TSixteenDrivePos', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'D_drive.n_pos', 'int', 39),
+    ('TSixteenDriveNeg', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'D_drive.n_neg', 'int', 21),
+    ('TSixteenLandingMDE', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'mde.D_q80', 'abs4', 0.7074),
+    ('TSixteenSkillMDE', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'mde.S_q80', 'abs4', 0.6915),
+    ('TSixteenRows', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'n_rows', 'int', 366),
+    # ⚠옛 규칙의 등변 편차는 **허용오차 없는 기록 전용**이고 방향마다 다르다
+    #   ⟹ 한쪽만 인쇄하면 체리피킹이다. 두 방향을 **함께** 원자로 만든다.
+    ('TSixteenEquivarOldDown', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'equivar_old.c05.median', 'abs3', 0.993),
+    ('TSixteenEquivarOldUp', 'T16_BANDFIX_2026-09-05/verdict_t16.json', 'equivar_old.c20.median', 'abs3', 0.027),
+    # ★**설계가 결과 전에 스스로 적은 사전확률** --- ⛔이 사실을 결과 뒤에 재서술하지 마라
+    #   (verdict §0-4). 그 예측을 인쇄하지 않으면 독자가 59/60 을 놀라운 것으로 읽는다.
+    ('TSixteenPriorD', 'T16_BANDFIX_2026-09-05/verdict_t16.json',
+     ('prediction', 'label_probs', 'D_axis_given_F', 'D-TREATMENT-BELOW-SCALE'),
+     'abs3', 0.937),
 ]
 
 
@@ -1482,6 +1706,13 @@ FMT = {
     'abs4': lambda x: f'{x:.4f}',
     # ★부호 있는 아주 작은 상대효과. ⛔고정 소수점은 `-0.0001` 로 뭉개 버린다.
     'sig3': lambda x: f'{x:.3g}',
+    # ★[2026-09-05] `T15` 의 혼잡 p 는 계수가 **문턱을 정확히 만난** 자리의 값이다
+    #   (w == thresh_hurt) ⟹ 셋째 자리에서 반올림하면 `0.016` 이 되어 «간신히» 가
+    #   «편안히» 로 읽힌다. ⛔여섯 자리로 인쇄한다.
+    'abs6': lambda x: f'{x:.6f}',
+    'abs2': lambda x: f'{x:.2f}',
+    # ⚠**부호 없는** 상대 크기(중앙 |상대차|). ⛔`frac` 은 부호를 붙인다.
+    'fracabs': lambda x: f'{x*100:.1f}\\%',
 }
 
 
@@ -1527,6 +1758,12 @@ def main():
             ok = abs(round(raw, 1) - pin) < 1e-9
         elif kind == 'pct100':
             ok = abs(round(raw * 100, 1) - pin) < 1e-9
+        elif kind == 'fracabs':
+            ok = abs(round(raw * 100, 1) - pin) < 1e-9
+        elif kind == 'abs6':
+            ok = abs(round(raw, 6) - pin) < 1e-12
+        elif kind == 'abs2':
+            ok = abs(round(raw, 2) - pin) < 1e-9
         else:
             ok = abs(raw - pin) / abs(pin) < 0.005
         if not ok:
@@ -1608,6 +1845,8 @@ def main():
     dep += list(_t12_family().items())
     dep += list(_t13_fresh().items())
     dep += list(_t14_blocked().items())
+    dep += list(_t15_t16().items())
+    dep += list(_t15_sweep().items())
     dep += list(_corpus().items())
     rows += [(k, v, 'DEPLOY') for k, v in dep]
 

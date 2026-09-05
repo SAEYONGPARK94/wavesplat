@@ -361,6 +361,122 @@ RULES = [
     ('T14-MDE', r'\\TFourteenGates',
      [r'\\TFourteenMDE'],
      '⛔*"자동 스케일은 불가능하다"* 금지 --- 그 설계의 MDE 를 같은 절에'),
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # ★★[2026-09-05] `T15-HOMEREG` + `T16-BANDFIX`. 두 verdict 의 `disclosures` 는
+    #   각각 **15항·33항**이고, 그중 원고가 인쇄하는 계수에 걸린 것만 여기 옮긴다.
+    #   ⛔선례가 분명하다: `R1b`·`R4b` 가 규칙 0개로 들어와 두 문단이 방벽 밖이었고,
+    #   `B-12` 는 헤드라인이 옮겨갔는데 공시 의무가 따라가지 않아 초록이 무공시로 나갔다.
+    #   ⚠규칙을 추가할 때마다 **항진 검사**(`--selftest`)를 돌린다.
+    # ═════════════════════════════════════════════════════════════════════════
+    ('T15-학습봉투', r'\\TFifteenCrowdedWin|\\TFifteenRel',
+     [r'training envelope', r'not out of sample'],
+     '⛔자국 코퍼스는 **배포 체크포인트의 학습 봉투**다 --- '
+     '*"out-of-sample"·"held-out"·"blind"* 자구 금지를 같은 절에'),
+    ('T15-문턱정확', r'\\TFifteenCrowdedWin',
+     [r'exactly the harm threshold', r'meets its threshold rather than clearing it'],
+     '★계수가 해침 문턱을 **정확히** 만난다(w == thresh) --- 반올림해 편안하게 읽히지 '
+     '않도록 그 사실을 같은 절에'),
+    ('T15-이탈공시', r'\\TFifteenCrowdedWin',
+     [r'\\TFifteenSmokeExposed', r'pre-registration was departed from'],
+     '⛔**사전등록 이탈** --- 스모크가 판정 표본 안 2블록을 먼저 봤다(혼잡은 등록 예측과 '
+     '반대 방향). 그 공시 없이 PRIMARY 계수 인용 금지'),
+    ('T15-중간열람', r'\\TFifteenCrowdedWin',
+     [r'\\TFifteenPeekWin', r'partial aggregate'],
+     '⚠본실행 도중 PRIMARY 통계량의 **중간집계를 봤다**(`NOTE_INTERIM_PEEK.md`) --- '
+     '저장소 규율은 *"봤지만 안 말한다 는 공시가 아니다"* 다'),
+    ('T15-배포구성아님', r'\\TFifteenCrowdedWin',
+     [r'[Nn]o treatment arm in this batch is a shipped configuration'],
+     '⛔`T15` 의 어떤 처치 팔도 배포 구성이 아니다 --- 배포 권고로 읽히지 않게 병기'),
+    ('T15-MDE', r'\\TFifteenSparseWin',
+     [r'\\TFifteenMDE'],
+     '⛔희소 층의 미검출을 *"무해하다"* 로 읽지 못하게 --- MDE(q80) 병기 의무'),
+    ('T15-바닥', r'\\TFifteenRel|\\TFifteenDoseRel|\\TFifteenSweepLoRel|\\TFifteenSweepMidRel',
+     [r'\\TFifteenFloor'],
+     '⛔크기 인용에는 **결과 전 고정된 개입 잡음 바닥** 병기 의무 --- 효과가 그 바닥 '
+     '바로 바깥이다'),
+    ('T15-스윕표본',
+     r'\\TFifteenDoseWin|\\TFifteenSweepLoWin|\\TFifteenSweepMidWin'
+     r'|\\TFifteenDoseRel|\\TFifteenSweepLoRel|\\TFifteenSweepMidRel',
+     [r'do not run on the primary sample'],
+     '⚠스윕 세 팔은 **32 부분층**에서만 돈다 --- PRIMARY(n=64) 계수와 표본이 다르다'),
+    # ⛔⛔[2026-09-05 적대적 심사 BLOCKER] 초판이 *"단조로 커진다"* 라 적었는데 PRIMARY
+    #   처치 `f=2` 를 같은 부분층에 놓으면 **단조가 깨진다**(+14.1 → +8.3 → +22.9 → +31.0).
+    #   ⟹ 스윕 크기를 인쇄하는 절은 **비단조**를 같이 적어야 한다.
+    ('T15-스윕비단조',
+     r'\\TFifteenDoseRel|\\TFifteenSweepLoRel|\\TFifteenSweepMidRel',
+     [r'not monotone'],
+     '⛔스윕 사다리는 **단조가 아니다**(f=2 를 같은 부분층에 넣으면 깨진다) --- 병기 의무'),
+    ('T15-스윕재집계', r'\\TFifteenSubFTwoRel|\\TFifteenSubFTwoWin',
+     [r're-aggregation'],
+     '⛔`f=2` 의 부분층 값은 동결 verdict 에 **없다** --- 재집계임을 병기해야 한다'),
+    # ⛔[2026-09-05] 바닥 팔은 **이 코퍼스에서** 널이 아니다(희소에서 도움 문턱을 만난다).
+    ('T15-바닥이빌려온것', r'\\TFifteenFloor(?![A-Za-z])',
+     [r'\\TFifteenFloorSparseWin'],
+     '⛔잡음 바닥은 **빌려온 것**이고 희소 층에서는 성립하지 않는다 --- 두 계수 병기 의무'),
+    ('T15-열람전부', r'\\TFifteenPeekWin',
+     [r'\\TFifteenPeekCtrl'],
+     '⛔*"봤지만 안 말한다"* 는 공시가 아니다 --- 중간 열람에서 **보인 세 계수 전부**를 적어라'),
+    ('T1516-외부기준선없음', r'\\TFifteenCrowdedWin|\\TSixteenSkillWin',
+     [r'no external baseline arm'],
+     '⛔두 배치 다 외부 기준선 행 **0개** --- *"저들보다 낫다"* 로 읽히지 않게 병기'),
+    ('T16-옛규칙', r'\\TSixteenSkillWin',
+     [r'\\TSixteenOldRuleWin'],
+     '⛔`S` 축은 `SEC-E`(옛 규칙도 제로필드를 이긴다) 병기 없이 인용 금지 --- '
+     '이긴 것은 *"자동 스케일"* 이지 *"밴드 수리"* 가 아니다'),
+    ('T16-D축구동', r'\\TSixteenLandingWin',
+     [r'\\TSixteenDrive(?![A-Za-z])'],
+     '⛔`D` 축은 `D_drive`(중앙 |Δ ln s| 와 그 자) 병기 없이 인용 금지'),
+    ('T16-D축부호', r'\\TSixteenLandingWin',
+     [r'\\TSixteenDrivePos'],
+     '⛔`D` 축의 구동량은 **부호가 섞인다**(+39/−21) --- 그 분할 없이 인용 금지'),
+    ('T16-D축MDE', r'\\TSixteenLandingWin',
+     [r'\\TSixteenLandingMDE'],
+     '⛔`D-TREATMENT-BELOW-SCALE` 를 *"수리가 무의미하다"* 로 읽지 못하게 --- MDE 병기'),
+    ('T16-착지점아님', r'\\TSixteenSkillWin',
+     [r'landing point and not about adaptation'],
+     '⚠`s` 와 1단 반경이 이 코퍼스에서 상수다 ⟹ **착지점 진술이지 적응 진술이 아니다**'),
+    ('T16-배포권고아님', r'\\TSixteenSkillWin',
+     [r'not a deployment recommendation'],
+     '⛔양성 라벨도 **필요조건 하나**다(단가·실측 경로·자국 무해성이 남는다)'),
+    ('T16-blind아님', r'\\TSixteenSkillWin',
+     [r'not fully blind'],
+     '⚠설계자가 앞 배치의 개정문과 앵커 값을 읽은 상태에서 문턱을 잡았다 --- 병기 의무'),
+    ('T16-속성노출', r'\\TSixteenSkillWin',
+     [r'\\TSixteenAttrExposed'],
+     '⚠판정 60블록은 **성과** 미노출일 뿐 36개는 앞 배치가 **속성**을 열었다 --- '
+     '*"아무도 열지 않은 신선한 블록"* 으로 읽히지 않게 그 계수를 같은 절에'),
+    ('T16-실측무언', r'\\TSixteenSkillWin',
+     [r'says nothing about the measured records'],
+     '⛔이 배치는 배포 **합성 경로**를 잰다 --- 실측 경로에 대해 아무 말도 하지 않는다'),
+    ('T16-게이트항진', r'\\TSixteenGates',
+     [r'not a strength measure'],
+     '⚠게이트 계수는 **강도의 척도가 아니다** --- 배포 상수상 구조적으로 참인 항이 여럿이다'),
+    ('T16-강건성아님', r'\\TSixteenSkillWin',
+     [r'not robustness'],
+     '⛔잰 것은 **등변성과 격자 여유**이지 강건성이 아니다(verdict §9.3-18) --- '
+     '*"새 규칙이 더 튼튼하다"* 로 읽히지 않게 병기'),
+    ('T16-단일요인아님', r'\\TSixteenSkillWin',
+     [r'not a single factor'],
+     '⛔재척도는 **단일요인이 아니다**(verdict §9.3-3) --- 기제 지목 금지를 같은 절에'),
+    ('T16-비대칭교락', r'\\TSixteenSkillWin',
+     [r'asymmetric in the direction the rule moves'],
+     '⛔`d3_beamform_net` 의 하드코딩 수심이 **비대칭 교락**이다(verdict §9.3-4) --- '
+     '스케일을 키우면 그 불일치도 줄어든다'),
+    ('T16-사전확률', r'\\TSixteenSkillWin',
+     [r'\\TSixteenPriorD'],
+     '★설계가 결과 **전에** P(S 축 양성)≈1 · P(이 착지 라벨)=0.937 이라 적었다 --- '
+     '⛔그 사실을 결과 뒤에 재서술하지 못하게 같은 절에 인쇄'),
+    ('T16-차단게이트', r'\\TSixteenGridTol',
+     [r'blocking gate'],
+     '⛔`G-GRID` 는 `GATES_BLOCKING` 이다 --- *"이 게이트를 빼도 나머지는 선다"* 는 거짓'),
+    ('T16-게이트완화', r'\\TSixteenGates',
+     [r"gate's tolerance was relaxed"],
+     "⛔`G-GRID` 허용오차가 **완화**됐다(개정문 2, 판정 자료 0행 시점) --- 게이트 계수를 "
+     "인쇄하는 자리에 그 사실을 같이"),
+    ('T16-모집단', r'\\TSixteenShipZeroWin',
+     [r'not comparable with each other'],
+     '⛔형제 배치(`T11`·`T14`)의 계수와 **직접 비교 금지** --- 모집단이 다르다'),
 ]
 
 
@@ -372,6 +488,9 @@ RULES = [
 MULTI_RULES = [
     ('크기-결합금지', [r'\\BOneRel', r'\\BTwelveRel', r'\\BSixteenRel', r'\\BNineteenRel',
                   r'\\BTwentyTwoRel', r'\\BFifteenRel', r'\\BTwentySixRel',
+                  # ★[2026-09-05] `T15` 의 **해침** 크기도 등록한다 --- 이득 크기 옆에
+                  #   놓이면 뺄셈하고 싶어지는 부류이고, 그 배치는 코퍼스도 비교자도 다르다.
+                  r'\\TFifteenRel',
                   r'\\MTenRel', r'\\TFourRel'], 2,
      [r'not additive', r'should not add or subtract', r'no defined meaning',
       r'should not be combined arithmetically'],

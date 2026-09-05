@@ -2767,8 +2767,14 @@ mismatches --- so they do not read the ground truth. And the two paths that carr
 atoms back from relabelled coordinates into the original units --- the implicit one
 and an explicit inverse --- agree within a tolerance fixed in advance, at
 \TFourteenInvert{} mismatches. \emph{A deployable path that emits atoms in the original units therefore
-exists and works}; what is missing is a scale rule that passes its own equivariance
-test, and that is a different rule requiring its own pre-registration.
+exists and works}; what is missing here is a scale rule that passes its own
+equivariance test, and that is a different rule requiring its own pre-registration.
+% ★[2026-09-05] 이 문장은 하루 만에 낡을 뻔했다 --- 같은 날 그 게이트를 통과하는 규칙이
+%   측정됐다(`T16`). 이 저장소의 누적 1위 결함(「낡은 문장이 정정을 되감는다」)을 막는다.
+%   ⛔단 `T14` 의 「판정 없음」은 그대로다 --- 전방 참조는 그 지위를 바꾸지 않는다.
+Such a rule was subsequently pre-registered and measured, in
+Section~\ref{sec:res_t15t16}; that does not change this batch's status, which
+remains no label.
 
 \textbf{Four conditions travel with all four of these batches.} They run on one
 third-party archive at a single peak period, so this is a statement at one wave
@@ -2788,6 +2794,254 @@ the same way. In the first batch some checks were added after its results existe
 they can block a label but cannot create one, and that batch records them apart from
 the gates frozen beforehand.
 
+% ============================================================================
+% ★★[2026-09-05] `T15-HOMEREG` + `T16-BANDFIX` --- 제3자 참값 아크의 다섯째.여섯째 고리.
+% ⛔**왜 별도 소절인가**: 위 네 배치는 전부 제3자 코퍼스에서 잰 것이고 `T15` 는 같은
+%   노브를 **자국 코퍼스**에서 잰다(모집단이 다르다). `T16` 은 `T14` 를 막았던 등변성
+%   게이트를 통과하는 규칙을 잰다 --- 같은 소절에 넣으면 `T14` 의 「판정 없음」이
+%   조용히 뒤집힌 것처럼 읽힌다. 학위논문 `sec:results_t16` 과 같은 처분이다.
+% ⛔인용금지(두 verdict 의 `disclosures` 를 그대로 옮긴다):
+%   T15: `f` 는 **노브 스케일 인자**이지 `T11` 의 자료 재라벨 `s` 가 아니다 · 어떤 처치
+%        팔도 배포 구성이 아니다 · **자국 코퍼스는 배포 체크포인트의 학습 봉투다**
+%        (out-of-sample · held-out · blind 자구 금지) · 전역 128 을 헤드라인으로 쓰지
+%        않는다 · 음성 층은 검정력의 진술(MDE 병기 의무) · **사전등록 이탈**(스모크가
+%        판정 표본 안 2블록) · ⚠**중간 집계 열람**(`NOTE_INTERIM_PEEK.md`) ·
+%        스윕 세 팔은 32 부분층이라 PRIMARY 표본과 다르다.
+%   T16: 어떤 라벨도 *"우리가 저들보다 낫다"* 가 아니다(외부 기준선 행 0개) · **배포
+%        권고 아님** · **완전 blind 아님** · `S` 축은 `SEC-E` 없이 인용 금지 · `D` 축은
+%        `D_drive` 없이 인용 금지 · *"수리가 무의미"* 금지 · **착지점 진술이지 적응
+%        진술이 아니다** · `G-GRID` 허용오차 **완화**(개정문 2) · 실측 경로 무언 ·
+%        층별 계수를 형제 배치와 직접 비교 금지(모집단이 다르다).
+% 근거: tmp/T15_HOMEREG_2026-09-05/verdict_t15.json (HOME-REGRESSION, 22/22, 832행)
+%       tmp/T16_BANDFIX_2026-09-05/verdict_t16.json (46/46, 366행, 라벨 둘의 결합)
+% ⛔모든 수는 paper_constants.tex 매크로다(생성기가 동결 verdict 에 핀한다).
+% ============================================================================
+\subsection{Moving that scale at home, and choosing it without ground truth}
+\label{sec:res_t15t16}
+
+The attribution above invites two immediate questions. If the boundary is the
+absolute-scale design range of the deployed estimator, why not simply move that
+scale? And can the scale be chosen from the observations after all, by a rule that
+survives the equivariance test the fourth batch failed? Two further pre-registered
+batches answer them. \textbf{Both answers are constraints on deployment rather than
+gains, and we report them here for that reason.}
+
+\paragraph{Moving that scale costs on our own corpus} The same intervention that
+restores the result on the third party's fields --- dividing the conditioning
+subsystem's absolute wavenumber constants by a factor $f$, with $f = 2$ being exactly
+the arm that reproduces the effect there, and with the constants imported from the
+isolation batch rather than retyped --- was applied to our own corpus of
+\TFifteenCorpusN{} blocks with every other shipped value left in place. In the
+crowded stratum the treatment is \emph{worse} than the shipped arm: it wins on
+\TFifteenCrowdedWin{} of \TFifteenN{} blocks, which is \textbf{exactly the harm
+threshold} \TFifteenHurtThresh{} that was fixed before the runs
+($p = \TFifteenCrowdedP{}$). In the sparse stratum nothing is detected
+(\TFifteenSparseWin{}/\TFifteenN{}, $p = \TFifteenSparseP{}$). The positive control
+replicates in both strata (\TFifteenCtrlWin{} and \TFifteenCtrlSparseWin{} of
+\TFifteenN{}); gates \TFifteenGates{} over \TFifteenRows{} rows. The label the batch
+printed is \texttt{HOME-REGRESSION}. \emph{We quote that count at the precision the
+batch computed it}, because it meets its threshold rather than clearing it, and a
+count one block in the other direction would have printed a different label.
+
+% ⛔⛔[2026-09-05] 초판은 여기에 *"the penalty grows **monotonically** with the factor"*
+%   라 적었다 --- **거짓이다.** 세 스윕 팔만 보면 단조지만 PRIMARY 처치 `f=2` 도 **같은
+%   32블록에서 돌았고**, 그것을 사다리에 넣으면 +14.1 -> **+8.3** -> +22.9 -> +31.0 이다.
+%   ★적대적 심사가 잡았고, `gen_paper_constants._t15_sweep()` 이 이제 **단조가 되면 죽는다**.
+\textbf{No factor we swept recovers it, and the penalty is not monotone in the
+factor.} Three further arms swept $f \in \{\sqrt{2},\, 2\sqrt{2},\, 4\}$ on a
+\TFifteenDoseN{}-block substratum of the same stratum, where the primary treatment
+$f = 2$ also ran. On those \TFifteenDoseN{} blocks every factor is worse than the
+shipped arm in median relative terms --- \TFifteenSweepLoRel{} at $\sqrt{2}$,
+\TFifteenSubFTwoRel{} at $2$, \TFifteenSweepMidRel{} at $2\sqrt{2}$ and
+\TFifteenDoseRel{} at $4$, winning on \TFifteenSweepLoWin{},
+\TFifteenSubFTwoWin{}, \TFifteenSweepMidWin{} and \TFifteenDoseWin{} of
+\TFifteenDoseN{} --- \textbf{but that ladder is not monotone}, and the arms' own
+absolute medians do not order the same way as the median of their paired relative
+differences. \emph{No dose--response test was pre-registered and we do not claim
+one.} The $f = 2$ entry is a \emph{re-aggregation} of the batch's frozen rows onto
+this substratum and does not appear in its verdict; the other three are the verdict's
+own. \emph{These arms do not run on the primary sample}, so the sweep is a curve
+within its own substratum and we do not read the primary count into it, nor
+extrapolate it to the full corpus.
+
+\textbf{What this establishes is a direction, and the size is barely separated from
+the batch's own noise.} The same runs measure an intervention floor: a second
+intervention on the same code path, applied and read back the same way and reported
+by the isolation batch as not reaching its threshold there, gives a median absolute
+relative deviation of \TFifteenFloor{}, against the treatment's median relative
+penalty of \TFifteenRel{}. That equivalence test was fixed before the results and the
+effect does fall outside the floor, but only just. \emph{So we quote the sign and not
+the magnitude.}
+
+% ⛔[2026-09-05] 적대적 심사: 바닥 팔이 **이 코퍼스에서** 널이라는 보장이 없다는 공시가
+%   빠져 있었다(verdict disclosures §11 이 `floor_moved` 병기를 요구한다). 그리고 희소에서
+%   그 팔은 실제로 도움 문턱을 **정확히** 만난다 --- 그것을 인쇄하지 않으면 독자는 바닥을
+%   무조건 널로 읽는다.
+\textbf{That floor is borrowed, and it does not hold everywhere in this corpus.} The
+arm supplying it was measured as a null in the earlier batch on a different corpus,
+not here. In the crowded stratum, where we use it, it reaches neither decision
+threshold (\TFifteenFloorCrowdedWin{}/\TFifteenN{}); in the sparse stratum the same
+arm reaches the batch's own \emph{help} threshold exactly
+(\TFifteenFloorSparseWin{}/\TFifteenN{}, threshold \TFifteenHelpThresh{}), at the
+same $p$ that produced the crowded label. \emph{So the floor is a floor in the
+stratum we quote it in and demonstrably not one in the other}, and a reader who
+declines to treat it as a noise scale is left with the sign alone --- which is the
+part we rely on.
+
+\textbf{Five disclosures travel with that negative.} \textbf{(i)}~The factor here
+scales \emph{internal constants}; the relabelling of the previous subsection scaled
+the \emph{data's coordinates}. They are different operations and we do not write them
+with the same symbol. \textbf{(ii)}~This corpus is the learned checkpoint's own
+\textbf{training envelope} --- its sea states and component counts are those the
+prior was trained on --- so the result is \emph{not out of sample, not held out and
+not blind}, and it cannot be separated from the statement that home is where the
+prior was trained. \textbf{(iii)}~The pre-registration was departed from: a smoke run
+touched \TFifteenSmokeExposed{} of the \TFifteenCorpusN{} judged blocks, so their
+treatment values were seen before the main run, and in the crowded one the direction
+was the \emph{opposite} of the registered prediction. We changed neither the
+prediction, nor the sample, nor the thresholds, and we do not offer the size of that
+exposure as mitigation. \textbf{(iv)}~A \emph{partial aggregate} was also read
+while the main run was still in progress. At that point \TFifteenPeekAt{} blocks had
+finished, all of them in the crowded stratum --- \TFifteenPeekAt{} of the
+\TFifteenN{} that decide that stratum's label, not \TFifteenPeekAt{} of an undivided
+\TFifteenCorpusN{}. \emph{We record all three counts that were visible}: the primary
+statistic stood at \TFifteenPeekWin{} of \TFifteenPeekAt{}, the positive control at
+\TFifteenPeekCtrl{} and the floor arm at \TFifteenPeekFloor{}. Nothing could act on
+them --- the sample size is fixed in the pre-registration, the runner has no
+early-stopping path, and the analysis code was frozen by checksum before any row
+existed --- but this project's rule is that aggregation is frozen before results
+\emph{and that what was seen is written down}, so we write it down; they support no
+conclusion.
+\textbf{(v)}~The sparse null is a statement about power, not about safety: the
+smallest true win rate this design resolves at $80\%$ power is \TFifteenMDE{},
+and counts between
+\TFifteenUnrejLo{} and \TFifteenUnrejHi{} inclusive reject neither threshold, whatever
+the data. No treatment arm in this batch is a shipped
+configuration, and \textbf{there is no external baseline arm} here either.
+
+% ⚠[2026-09-05] 이 문단은 `사전등록-전칭금지` 규칙이 요구해서 들어왔다 --- 규칙을 약화하는
+%   대신 **참인 예외를 적는다**. 두 배치 다 측정면은 판정 자료 0행에서 동결됐고, 분석면
+%   개정도 0행 시점이지만 `T15` 는 **게이트를 더했고**(엄격화) `T16` 은 **허용오차를
+%   낮췄다**(완화) --- 그 비대칭이 여기서 인쇄돼야 한다.
+\emph{The freezing statements in this subsection are about these two batches and not
+about every measurement in this paper.} Both froze their measurement side by checksum
+before any judged row existed, and both amended their analysis side afterwards while
+the judged sample was still empty; in this batch that amendment only \emph{added}
+gates, and the exception is the second batch's single gate tolerance, which was
+loosened and which we state as such below. The paper-wide exception --- the one
+summary-table row whose gate and analysis scripts were written after its results
+existed --- is recorded in Section~\ref{sec:res_summary}.
+
+\paragraph{Choosing that scale without ground truth is now possible, and what it buys
+is well-posedness} The batch that first tried to choose the scale automatically was
+stopped by its own equivariance gate. A repaired rule --- one that sets the first
+zoom stage's search radius from the observation aperture rather than from an absolute
+wavenumber constant --- clears an equivariance gate of the same kind:
+\TSixteenEquivarViol{} violations at a tolerance of $\TSixteenEquivarTol{}$, in the
+halving and the doubling direction alike. \emph{That gate is re-specified rather than
+inherited}: the earlier batch applied its tolerance in the doubling direction only,
+and the two batches score the deviation in different conventions, so this is not the
+earlier test re-run and we do not report it as one. On \TSixteenN{} blocks of the same third-party archive on which no earlier
+batch in this arc had been run, it beats a per-block zero field on \TSixteenSkillWin{}
+($p = \TSixteenSkillP{}$) against a threshold of \TSixteenSkillThresh{} fixed before
+the runs, with the positive control at \TSixteenPosCtrlWin{}/\TSixteenN{} and gates
+\TSixteenGates{} over \TSixteenRows{} rows. On those same blocks the shipped arm is
+not merely below its own threshold: it is \emph{significantly worse} than the zero
+field (\TSixteenShipZeroWin{}/\TSixteenN{}, against a pre-registered
+significantly-worse threshold of \TSixteenSigWorseThresh{}). \emph{The counts of
+these batches are not comparable with each other} --- they run on different file
+sets with different sea-state compositions --- so that is this corpus's own negative
+and not a sharpening of an earlier one.
+
+\textbf{The design expected both of these before the runs, and said so.} Its frozen
+prediction put the skill axis at near-certainty and gave this exact landing label a
+prior probability of \TSixteenPriorD{}; neither outcome below is a surprise the data
+sprang on us, and we print the prediction so that it cannot be re-described after the
+fact.
+
+\textbf{Two things that result does not say, both fixed before the runs.} First,
+\emph{the skill is not attributable to the repair}: the rule the repair replaces also
+beats the zero field on the same blocks (\TSixteenOldRuleWin{}/\TSixteenN{}, against
+an uncorrected threshold of \TSixteenOldRuleThresh{}), so what the primary axis
+establishes is that an automatic scale earns skill, not that this particular repair
+does. Second, \emph{no difference between the two rules' landing points is
+detected}: the repaired rule is better on \TSixteenLandingWin{} of
+\TSixteenLandingN{} blocks, reaching neither side of the exclusion threshold
+\TSixteenLandingThresh{} fixed before the runs (two-sided
+$p = \TSixteenLandingP{}$), and the quantity that drives that axis is smaller than the
+ruler it is measured against --- the median absolute log difference between the two
+rules' chosen scales is \TSixteenDrive{}, with \TSixteenDrivePos{} blocks in one
+direction and \TSixteenDriveNeg{} in the other, against $\ln 1.05 =
+\TSixteenDriveRef{}$. \textbf{Read that as the treatment sitting below the scale of
+the ruler, not as the repair being pointless}: the smallest true win rate the landing
+axis resolves at $80\%$ power is \TSixteenLandingMDE{} (the skill axis,
+\TSixteenSkillMDE{}), and the
+case for the repair is a well-posedness property --- the rule it replaces searches on
+an absolute grid whose spacing does not follow the scene --- rather than accuracy on
+this corpus. That old rule's own equivariance is recorded without a tolerance and is
+direction-dependent, at a median deviation of \TSixteenEquivarOldDown{} when the
+scene is halved against \TSixteenEquivarOldUp{} when it is doubled; both are in the
+analyser's convention, which is not commensurable with the convention the earlier
+batch's gate used, so we do not set them beside that gate's number.
+
+\textbf{What this batch does not measure.} It is \emph{a statement about a landing
+point and not about adaptation}: every file in this corpus shares one grid and one
+observation aperture, so the quantity this rule reads is a corpus constant and the
+data cannot distinguish the rule from a suitably chosen fixed one. What distinguishes
+it is behaviour rather than fit --- the rule was re-executed in a separate process
+given only the observation arrays and reproduced its scales bit for bit, and its
+first-stage radius moves exactly with the scene under relabelling --- so we do not
+describe it as having no free parameter on the strength of this measurement. It is
+\emph{not a deployment recommendation}: a positive label is one necessary condition
+among several, with cost per call, the effect on the measured-data path, and
+harmlessness on our own corpus all outstanding, and the batch above returned a
+negative on the last of those. It is \emph{not fully blind}: the designer had read
+the stopped batch's amendment and the two anchor files' values before fixing these
+thresholds, and \emph{attributes} of \TSixteenAttrExposed{} of the \TSixteenN{} judged
+blocks --- their grid and geometry attributes, not their errors --- had been read by
+an earlier batch;
+the weaker true claim is that all \TSixteenN{} were blind to \emph{outcome}. \textbf{One gate's tolerance was relaxed}, before any judged row
+existed, and we state it rather than let the gate tally imply otherwise: a smoke run
+failed the gate asking whether the two grid axes span the same aperture, because that
+gate compared an absolute length where the question is a ratio, and it was rewritten
+as a dimensionless ratio at $\TSixteenGridTol{}$ against a measured asymmetry of
+$\TSixteenGridMeas{}$.
+% ⛔[2026-09-05] 초판은 여기에 *"nothing else in the batch rests on it"* 이라 적었다 ---
+%   **거짓이다.** `gates_t16.py:556` 이 `G-GRID` 를 `GATES_BLOCKING` 에 넣는다 ⟹ 그 게이트를
+%   빼면 라벨 자체가 안 나온다. 개정문의 축자를 그대로 옮기다가 그 사실을 놓쳤다.
+\emph{This is a blocking gate, so a reader who does not accept that argument is
+declining the batch's label and not merely one line of its tally}; we say so rather
+than offer the gate as detachable. The rule's target
+constants come from \emph{our} training distribution, so the rule moves a scene to
+where our prior was trained rather than being set by the third party's data. \textbf{It
+says nothing about the measured records}: the code path it modifies is not the one
+the shipped configuration takes on ground-truth-free input. \emph{The gate tally is not a strength measure}: several of those gates are
+structurally true given the shipped constants, and the batch says so itself.
+\emph{What the gates measure is equivariance and grid margin, not robustness} --- the
+repair lowers the first search stage's floor, which can fail to cover a low enough
+peak wavenumber, so we do not describe the repaired rule as the more robust one.
+\emph{And the scale is not a single factor}: moving it moves the prior band, the
+de-duplication threshold, the growth block and the refinement step together, so no
+mechanism inside it is singled out here. One of those couplings is
+\emph{asymmetric in the direction the rule moves}: the conditioning beamformer's
+water depth is a module constant the configuration never reaches --- the same defect
+the third batch above repaired --- and enlarging the scale also shrinks that
+mismatch, so on this archive the two cannot be separated. And as above, \textbf{there is no external
+baseline arm} in this batch, which used a single estimator seed.
+
+\paragraph{What the pair does to the argument} Together they sharpen the
+attribution rather than widen a margin. The absolute scale that a third party's
+fields expose does not behave like a free parameter we merely set wrong: moving it
+towards the third party's scale is measured to cost on the corpus the prior was
+trained on, at every factor we swept. \emph{That the constant is therefore
+\emph{calibrated} to that distribution is our reading of those measurements and not
+itself a measurement}, and it is not separable from the fact that home is the
+training distribution. And the
+piece the earlier arc was missing --- a scale rule that survives its own equivariance
+test --- now exists, but what it has been shown to buy is well-posedness together
+with skill against a zero field on one third-party corpus, not accuracy over the rule
+it replaces, and nothing at all on the measured records.
+
 \subsection{Summary of the measurements this paper rests on}
 \label{sec:res_summary}
 
@@ -2805,7 +3059,7 @@ the gates frozen beforehand.
 
 Table~\ref{tab:earns} and Table~\ref{tab:boundary} collect every comparison this
 paper relies on for its accuracy claims, and Fig.~\ref{fig:results} plots the first
-of them with exact confidence intervals alongside each comparator's own skill. Four
+of them with exact confidence intervals alongside each comparator's own skill. Five
 groups of contrasts are reported outside them and are marked where they appear: the
 spectral-domain measurement of Section~\ref{sec:res_spectral}, which is graded
 exploratory; the ensemble contrast on measured records later in this section, which
@@ -2813,7 +3067,12 @@ moves an endpoint without crossing a threshold; the sparse-stratum figure in
 Section~\ref{sec:res_scope}, which is a re-aggregation of a frozen deployment
 corpus rather than a pre-registered contrast; and the third-party-archive arc of
 Section~\ref{sec:res_extacc}, which carries no baseline arm at all and is reported as
-attribution rather than as an accuracy claim.
+attribution rather than as an accuracy claim; and the two batches of
+Section~\ref{sec:res_t15t16}, which carry no baseline arm either and report a
+\emph{cost} on our own corpus and a necessary condition for a future default, neither
+of which is a gain.
+% ⛔[2026-09-05] `T15`.`T16` 을 §5.8 로 넣으면서 이 전칭이 또 거짓이 될 뻔했다("Four").
+%   ★바로 위 주석이 *"전칭을 좁힐 때 한 칸만 좁히면 다시 틀린다"* 라 적어 놓은 자리다.
 % ⛔[2026-09-05] `T11`--`T14` 를 §5.7 로 넣으면서 이 전칭이 **거짓이 됐다**("Three").
 %   ★이 저장소 누적 1위 결함(*"같은 문장이 N곳인데 한 곳만 고친다"*)의 재발 지점이라
 %   같은 커밋에서 고친다.
@@ -4193,25 +4452,35 @@ the absolute-scale design range of the deployed estimator, rather than the wavel
 band of the prior or the content of the returns, and a follow-up narrows it to the
 absolute scale of a single subsystem without reducing it to a single constant.
 Repairing the one concrete implementation defect we identified does not move the
-outcome detectably.  Choosing the scale from the observations automatically is now
-available in a form that passes its own equivariance test: a rule that sets the
-first-stage search radius from the observation aperture rather than from an absolute
-constant is exactly equivariant under a dispersion-preserving relabelling (zero
-violations at $10^{-6}$, against a median deviation of $0.99$ for the absolute-grid
-rule it replaces), and it beats a zero predictor on $59$ of $60$ fresh blocks of that
-same third-party corpus.  Two things that result does \emph{not} say.  The comparator
-rule also beats the zero predictor there ($58/60$), so the skill is \emph{not}
-attributable to the repair; and the repaired rule's landing point differs from the old
-one by less than the batch's own exclusion threshold (median $|\Delta \ln s| = 0.026$
-against $\ln 1.05 = 0.049$), so what was fixed is a well-posedness property, not a
-measured gain.  It has not been applied to the measured records.
+outcome detectably.  Two further batches extend that arc, and \emph{their counts
+belong in Section~\ref{sec:res_t15t16} rather than here}.  Moving that same absolute
+scale on our own corpus is measured to \emph{cost} rather than to buy in the crowded
+stratum, at every factor swept, though not monotonically in the factor.  We read that
+as the constant being calibrated to the distribution the prior was trained on ---
+which is also the corpus that batch runs on, so the two are not separable --- and we
+mark it as a reading rather than a further measurement.
+And choosing the scale from the observations automatically is now available in a form
+that clears an equivariance gate of the kind that stopped the earlier attempt.  Two
+things that second result does \emph{not} say.  The rule it replaces also beats the
+zero predictor on the same blocks, so the skill is \emph{not} attributable to the
+repair; and no difference between the two rules' landing points is detected, with the
+quantity driving that contrast smaller than the ruler the batch measures it against,
+so what was fixed is a well-posedness property rather than a measured gain.  Neither
+batch is a deployment recommendation, neither has been applied to the measured
+records, and the fourth batch of the arc still prints no label.
 % ⛔[2026-09-05] 종전 문장 ~~"not yet available: the batch that tried it was blocked by
-%   its own equivariance gate and prints no label"~~ 는 **오늘 거짓이 됐다** —
+%   its own equivariance gate and prints no label"~~ 는 **하루 만에 거짓이 됐다** —
 %   `T16-BANDFIX` 가 게이트 46/46 로 판정을 냈다(`AUTOSCALE-BEATS-ZERO-BOTH-RULES
 %   ∧ D-TREATMENT-BELOW-SCALE`). ★이것이 저장소가 자기 1위 결함으로 적은
 %   「낡은 문장이 정정을 되감는다」 부류다 — 백지 독자(cold reader)가 잡았다.
+% ⛔⛔[2026-09-05] **그 수리가 두 번째 결함을 만들었다** — 고친 문장이 `59 of 60` ·
+%   `58/60` · `0.026` · `0.049` · `10^{-6}` · `0.99` 를 **손으로** 인쇄했다.
+%   `literals_outside_macros()` 는 `\%` 를 담은 값만 보므로 그것을 **잡지 못한다**.
+%   ⟹ 이 문단의 규약(바로 위 T11--T14 문단이 이미 선언한 것)대로 **결론에서 수를 빼고**
+%   계수와 병기 의무는 §\ref{sec:res_t15t16} 한 곳에만 둔다.
 None of this compares us with anyone else --- there is no external
-baseline arm in any of those measurements (Section~\ref{sec:res_extacc}).
+baseline arm in any of those measurements (Sections~\ref{sec:res_extacc}
+and~\ref{sec:res_t15t16}).
 
 We also note two limits of the evidence itself. Every comparison against a grid
 baseline in this paper is on the crowded stratum. In the sparse stratum the evidence

@@ -4084,9 +4084,23 @@ the absolute-scale design range of the deployed estimator, rather than the wavel
 band of the prior or the content of the returns, and a follow-up narrows it to the
 absolute scale of a single subsystem without reducing it to a single constant.
 Repairing the one concrete implementation defect we identified does not move the
-outcome detectably, and choosing the scale from the observations automatically is not
-yet available: the batch that tried it was blocked by its own equivariance gate and
-prints no label. None of this compares us with anyone else --- there is no external
+outcome detectably.  Choosing the scale from the observations automatically is now
+available in a form that passes its own equivariance test: a rule that sets the
+first-stage search radius from the observation aperture rather than from an absolute
+constant is exactly equivariant under a dispersion-preserving relabelling (zero
+violations at $10^{-6}$, against a median deviation of $0.99$ for the absolute-grid
+rule it replaces), and it beats a zero predictor on $59$ of $60$ fresh blocks of that
+same third-party corpus.  Two things that result does \emph{not} say.  The comparator
+rule also beats the zero predictor there ($58/60$), so the skill is \emph{not}
+attributable to the repair; and the repaired rule's landing point differs from the old
+one by less than the batch's own exclusion threshold (median $|\Delta \ln s| = 0.026$
+against $\ln 1.05 = 0.049$), so what was fixed is a well-posedness property, not a
+measured gain.  It has not been applied to the measured records.
+% ⛔[2026-09-05] 종전 문장 ~~"not yet available: the batch that tried it was blocked by
+%   its own equivariance gate and prints no label"~~ 는 **오늘 거짓이 됐다** —
+%   `T16-BANDFIX` 가 게이트 46/46 로 판정을 냈다(`AUTOSCALE-BEATS-ZERO-BOTH-RULES
+%   ∧ D-TREATMENT-BELOW-SCALE`). ★이것이 저장소가 자기 1위 결함으로 적은
+%   「낡은 문장이 정정을 되감는다」 부류다 — 백지 독자(cold reader)가 잡았다. None of this compares us with anyone else --- there is no external
 baseline arm in any of those measurements (Section~\ref{sec:res_extacc}).
 
 We also note two limits of the evidence itself. Every comparison against a grid

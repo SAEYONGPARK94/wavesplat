@@ -150,6 +150,13 @@ the deployed analytic package. The checkpoint was trained on the same distributi
 family, so ``out of sample'' means the seed axis alone; and on $12$ measured
 fixed-station records the prior does not reach the pre-registered decision threshold
 against a per-record zero-field reference.
+% ★[2026-09-05] `T11`--`T14`. ⛔초록에는 **수를 넣지 않는다** --- 그 계수와 의무 병기는
+%   §5.7 이 진다(공시 검사기가 그 절에서 강제한다). 여기 있는 것은 자구뿐이다:
+%   ⛔"성능"·"배포 구성" 아님 · ⛔"사전의 파장 밴드가 원인" 아님 · 정본 = 절대 스케일 설계 범위.
+On a third party's synthetic fields it does not reach that threshold either; there a
+dispersion-preserving relabelling of the coordinates --- a thought experiment about
+units, not a deployable configuration --- attributes the failure to the estimator's
+absolute-scale design range rather than to the information in the returns.
 \end{abstract}
 
 \begin{keyword}
@@ -627,10 +634,21 @@ minimum-variance beamforming~\citep{capon1969} and MUSIC
 power spectra without phases (Capon) or require known model order
 (MUSIC).  In the deployed configuration a beamformed power map is not the
 initialiser but the \emph{conditioning input} of the learned proposal, which emits a
-set of wavenumbers of adaptive cardinality; those are then refined under the
-dispersion constraint. Beamforming also remains the fallback initialiser when the
-learned path is not taken.  What the learned prior supplies, and neither Capon nor
-MUSIC does, is the model order and the phases together, from one observation window.
+\emph{fixed} set of $M=32$ wavenumber--energy pairs per sample; those are pooled and
+de-duplicated by a heuristic selector, and then refined under the dispersion constraint.
+Beamforming also remains the fallback initialiser when the learned path is not taken.
+% ⛔[2026-09-05] 이 두 문장은 **코드가 부인했다** — 다중 에이전트 선점 감사 G1-2.
+%   ~~"a set of wavenumbers of adaptive cardinality"~~ : 망은 `d3_setdiff_prior.py:25 M = 32`
+%     로 **고정 기수**를 낸다. 적응성은 망이 아니라 `learned_init.py:358 pool_and_select`
+%     (에너지 문턱 + dedup + max_n)의 **휴리스틱**에서 나온다.
+%   ~~"the model order and the phases together"~~ : 망 출력은
+%     `d3_beamform_cond_diffusion.py:102-103` 의 `(kx, ky, logE)` **뿐**이다.
+%     차수 = 위 선택기 · 위상 = `learned_init.py:389 ls_fit_wphi` (최소자승).
+%   ⟹ 학습된 것은 **파수--에너지 집합**이지 차수도 위상도 아니다.
+What the learned prior supplies, and neither Capon nor MUSIC does, is a
+\emph{distribution over wavenumber--energy sets} conditioned on one observation window;
+the model order is then fixed by the selector and the phases by a least-squares fit, so
+neither is learned.
 \textbf{Gaussian process regression}~\citep{rasmussen2006} with
 Mat\'ern or squared-exponential kernels provides nonparametric
 spatial interpolation but scales as $O(M^3)$ and, in its standard
@@ -849,7 +867,11 @@ in Section~\ref{sec:init}) \\
 \midrule
 1. Accumulate the window's observations $\{(x_j, y_j, z_j, t_j)\}$ \\
 2. Subsample to at most 400 points, fixed seed --- \emph{for the proposal only} \\
-3. Conditioning map: $64\!\times\!64$ beamform power over $k_x, k_y \in [-0.6, 0.6]$~rad/m, $\omega$ from the dispersion relation \\
+% ⛔[2026-09-05] 두 원고 불일치 수리(축 C3 M-4): 학위논문은 조건화 맵의 수심 고정을
+%   공시하는데 이 표는 *"from the dispersion relation"* 이라고만 적어 **어느 수심인지**를
+%   빠뜨렸다. `d3_beamform_net.py` 가 `DEPTH` 를 모듈 로드 시 `OM_G` 로 굽고
+%   `learned_init.py:151` 이 depth 인자를 넘기지 않는다 ⟹ config 의 depth 가 닿지 않는다.
+3. Conditioning map: $64\!\times\!64$ beamform power over $k_x, k_y \in [-\DepMapKLim{}, \DepMapKLim{}]$~rad/m, $\omega$ from the dispersion relation at a \emph{fixed} $d = \DepMapDepth{}$~m baked into the module at import --- the configured depth does not reach this map \\
 4. Conditional diffusion: 4 draws $\times$ 32 atoms, 500 reverse steps \\
 5. Per-draw polish: 80 Adam steps on the phase-marginalised likelihood \\
 6. Pool: keep energy $> 0.03\,e_{\max}$; \emph{drop} any atom within $\Delta k{=}0.03$~rad/m of a stronger one; cap at $N_{\max}{=}\DepMaxN{}$ \\
@@ -945,7 +967,23 @@ independently: frame-structured sweep windows are replayed from \TrainDonors{} d
 episodes, and only the observation coordinates are taken from a donor --- the
 surface is always re-rendered from the fresh synthetic scene. That bank of
 \TrainDonors{} geometries is small, and it is the only view of sensor geometry the
-prior ever had; we note it as a generalisation limit rather than defend it. No donor
+prior ever had.
+% ★[2026-09-05] 이 절이 도너가 **합성**이라고 명시하지 않아, "replayed ... geometry"
+%   가 실측 기하로 읽힐 여지가 있었다(본 연구 원장이 실제로 한 번 그렇게 오독했다).
+%   근거(런 0회): tmp/mixed_retrain_2026-07-26/gen_mixed.py:63-72 `DONOR_FILES` 가
+%   data_finemesh_extras_2026-07-24/ · data_finemesh_2026-07-23/ 의 `.h5` 만 나열 ·
+%   같은 배치의 학습 3스크립트에 `real_bergamasco` 0회 · `.nc` 0회.
+\emph{Those donor episodes are themselves simulated}: they are WaveSim episodes drawn
+from the same generator family, so no measured record enters training in any form,
+observation geometry included --- the shipped checkpoint has never seen a byte of
+measured data.
+% ★[2026-09-05] `T11` 반영. *"note it rather than defend it"* 는 **미측정**을 함의하는데
+%   그 한계가 이제 한 방향에서 측정됐다(관측 개구가 학습 풀보다 훨씬 큰 제3자 코퍼스).
+%   ⛔수는 §5.7 이 진다 --- 여기에 매크로를 넣으면 그 절의 동반 의무가 이 절에도 걸린다.
+It is now a measured limit in one direction rather than only a
+noted one: on a third-party corpus whose observation aperture is substantially wider
+than that of the training pool, the shipped arm has no skill until the absolute scale
+is moved (Section~\ref{sec:res_extacc}). No donor
 episode appears in the frozen result rows of any batch this paper cites (checked
 mechanically over all \CitedBatchFiles{} such files).
 %   ⛔[2026-09-02] 6차 감사: *"14 geometries is a generalisation fact a referee needs."*
@@ -1129,12 +1167,35 @@ $\pm \DepAnaKMax{}$~rad/m.
 % [2026-09-02 P9] 4차 감사 M14: 실제로 **구속력 있는** 상한은 clip 이 아니라 **조건화 지도**다.
 %   `d3_beamform_net.py:31 KLIM = 0.6` --- 신경망이 자료를 보는 유일한 통로가 ±0.6 이다.
 A tighter bound applies upstream: the only view of the data the network receives is
-the conditioning periodogram, and that grid spans $\pm 0.6$~rad/m. Components with
-$|k|$ between $0.6$ and the clip bound are therefore outside the network's input
+the conditioning periodogram, and that grid spans $\pm \DepMapKLim{}$~rad/m. Components with
+$|k|$ between $\DepMapKLim{}$ and the clip bound are therefore outside the network's input
 entirely, and can be reached only by the residual-growth step, whose beamformer does
 search the wider range. We have not measured how often that happens. Any application to shorter waves would need the prior retrained,
 and we have not measured what happens when a true component lies outside the
 bound.
+% ★[2026-09-05] 축 C3 `M-4`: 학위논문이 공시하는 수심 고정이 이 원고에만 없었다.
+\emph{That grid also fixes a depth.} The frequency of each cell of the conditioning
+map comes from the dispersion relation evaluated at a water depth of
+$\DepMapDepth{}$~m, which is a module-level constant baked into the map when the
+module is imported; the depth given in the estimator's configuration reaches the
+forward model, the least-squares fit and the dispersion constraint, but not this map.
+The training corpus was generated at the same depth, so the map is self-consistent
+with the checkpoint, and the mismatch appears only when the data are deeper. Repairing
+it is measured in Section~\ref{sec:res_extacc} and does not reach that batch's
+threshold.
+% ★[2026-09-05] `T11`--`T12` 반영. 이 문단은 **위쪽** 경계만 다루고 *"밖은 미측정"* 이라
+%   적었는데, 오늘 판정은 **안쪽**(k_p ≈ 0.03--0.04 = 상한의 1/15, Tp 는 학습 밴드 안)에서
+%   배포 팔이 무기술임을 개입으로 보였다. ⛔여기에는 **수를 넣지 않는다** --- 계수와 의무
+%   병기는 §5.7 이 지고 공시검사기가 그 절에서 강제한다. ⛔「단일 상수」 자구 금지.
+\textbf{The bound is not only an upper one.} Section~\ref{sec:res_extacc} reports a
+third-party corpus whose peak wavenumber sits an order of magnitude \emph{inside}
+every bound stated above, at a peak period inside the prior's training band, and on
+which the shipped learned arm nevertheless has no skill against a zero field until
+the coordinates are relabelled. The deployed estimator therefore has an
+absolute-scale design range that is closed at both ends rather than only at the top,
+and moving the absolute scale of one subsystem is enough to reopen it --- which is a
+statement about a subsystem and not about any one constant. We have not measured a
+rule that selects that scale from the observations alone.
 
 Two deployment choices matter for reproducing the numbers in this paper. Variable
 projection is enabled ($\DepVarproSteps{}$ steps); and the joint non-linear fit that
@@ -2448,6 +2509,176 @@ quantity this paper cites.}
 \end{figure}
 
 
+% ============================================================================
+% ★★[2026-09-05] `T11`--`T14` 반영. 이 네 배치가 원고에 **0회** 등장하고 있었다.
+%   서사 = 안 되는 것(T11 음성) → **무엇 때문인지**(T12) → **무엇 때문이 아닌지**(T13)
+%          → **자동화는 아직**(T14 차단).
+%   ⛔전부 **귀속**이지 우열이 아니다 --- 네 배치 어디에도 외부 기준선 행이 **0개**다.
+%   ⛔`RESCALE` 을 성능·배포 구성으로 인용 금지(단위를 바꾼 사고실험).
+%   ⛔"학습 사전의 파장 밴드가 원인" 금지(k_p 기준 장면은 이미 학습 밴드 안이다).
+%   ⛔「단일 상수」 금지 --- 정본은 **「단일 서브시스템의 절대 스케일」**.
+%   ⛔`T14` 는 `BLOCKED` --- 라벨도 팔 계수(`AUTO-AP` 28/28 · 회수율)도 인쇄하지 않는다.
+%   ⛔음성 인용에는 MDE 병기 의무(`scripts/check_paper_disclosures.py` 가 강제).
+%   동결 = tmp/T11_EXTACC_2026-09-03 · T12_ISOLATE_2026-09-04 ·
+%          T13_DEPTHFIX_2026-09-04 · T14_AUTOSCALE_2026-09-04
+% ============================================================================
+\subsection{Running the estimator on a third party's ground truth}
+\label{sec:res_extacc}
+
+\textbf{The accuracy comparison that the phase-coupling test of
+Section~\ref{sec:limitations} leaves undone has now been run, and it is negative.}
+From the same third-party archive (\TOneGB{}~GB, \TOneCite{}) we drew \TElevenN{}
+simulation blocks, disjoint from the blocks a design audit had already opened, and
+gave the deployed learned arm \TElevenDensity{} observations per frame over a
+\TElevenSpan{}~s window, scoring the archive's own elevation field at the last
+observed frame. Against a per-block zero field the deployed arm is better on
+\TElevenShipWin{} of \TElevenN{} blocks, against a decision threshold of
+\TElevenThresh{} fixed before the runs; the same batch records that the count is not
+significantly \emph{worse} than chance either. The smallest true win rate the design
+could resolve is \TElevenMDE{}, so the reading is that the arm does not reach the
+threshold, not that it has been shown to have no skill.
+
+\textbf{Two further arms on the identical observations turn that negative into an
+attribution rather than a dead end.} The first is an oracle handed the true
+wavenumbers, fitting only amplitude and phase by least squares. It is not an
+estimator and cannot be deployed; it bounds what the observations contain. It beats
+the same zero field on \TElevenOracleWin{} of \TElevenN{} blocks. The sparse returns
+therefore carry the field, and what fails is the placement of the atoms rather than
+the sampling.
+
+The second arm relabels the coordinates: $x' = x/s$, $y' = y/s$, $t' = t/\sqrt{s}$
+with $s = 2$, which multiplies every wavenumber by $s$ and every frequency by
+$\sqrt{s}$ and therefore leaves $\omega = \sqrt{gk}$ exactly satisfied. \emph{No
+sample is altered; the same numbers are read in different units.} Under it the same
+deployed arm beats the zero field on \TElevenRescaleWin{} of \TElevenN{} blocks
+($p = \TElevenRescaleP{}$). \textbf{That is a thought experiment about units, not a
+performance figure and not a deployable configuration}: $s$ was fixed at $2$ before
+the runs and no rule chose it from the data. What it licenses is exactly one
+attribution --- the boundary lies in the \emph{absolute-scale design range} of the
+deployed estimator and not in the information content of the observations.
+\textbf{It does not identify the wavelength band of the learned prior as the cause},
+and the obvious version of that reading is measured to be wrong: the blocks' peak
+wavenumber already sits inside the prior's training band.
+
+% ⛔[2026-09-05] 초판이 아래에 *"a single absolute-wavenumber constant"* 라 적어 놓고 두
+%   문장 뒤에 *"not a single constant"* 라 적었다 = **자기모순**. 실측: PRIMARY 팔
+%   `A-MAPSCALE` 의 노브 되읽기는 **4키**(KLIM · KX_G00 · K_LIM · OM_G md5)다.
+%   정본 자구 = **「단일 서브시스템의 절대 스케일」**.
+\textbf{A second batch asked which part of the estimator that relabelling was
+standing in for.} On the same \TTwelveN{} blocks it halved, one arm at a time, the
+absolute wavenumber scale of exactly one subsystem of the deployed path --- for some
+arms that is one constant and for others, including the one that reproduces the
+effect, it is the several constants that define that subsystem's scale together ---
+while leaving every other shipped value in place, each intervention applied through a
+context manager and read back from the live object. One arm reproduces the effect: rescaling the conditioning
+map's own wavenumber extent together with the prior band it is read against beats
+the zero field on \TTwelveWin{} of \TTwelveN{} blocks ($p = \TTwelveP{}$), and on
+\TTwelveHeldWin{} of \TTwelveHeldN{} blocks held out from that sample, recovering a
+median \TTwelveRho{} of the relabelled arm's gain. \textbf{The canonical reading is
+the absolute scale of a single subsystem, not a single constant}: that one
+intervention moves the map's cell size, the prior's band and the refinement step
+together, and the batch recorded that co-movement before it was run.
+
+\textbf{The label the batch printed is nevertheless that more than one axis carries
+it, and it is one block from flipping.} Of the \TTwelveArms{} secondary axes, the map
+cell on its own reaches exactly the family threshold at \TTwelveCellWin{} of
+\TTwelveN{}, and that threshold is \TTwelveSecThresh{}: a single block in the other
+direction would have printed the single-axis label instead, so we quote the label
+with that fragility attached. The other \TTwelveBelowThresh{} of the \TTwelveArms{}
+do not reach the threshold, and that is a statement about power rather than about
+those axes being inert --- the smallest true win rate this family could resolve is
+\TTwelveSecMDE{}. One of them is worse than under-powered: halving the growth
+separation threshold leaves the estimate bit-identical to the shipped arm on all but
+\TTwelveMinDkDiff{} of \TTwelveN{} blocks, so its \TTwelveMinDkWin{}/\TTwelveN{} is
+largely a reprinting of the shipped arm's own count, and it is a candidate for
+insufficient leverage rather than for no effect.
+
+\textbf{That confirmation sits on an exposed sample and we grade it accordingly.} The
+four anchor arms on those \TTwelveN{} blocks were already known when the batch was
+designed. The nine treatment arms had never been run on them and the axis list was
+frozen in the earlier batch before any result row existed, but the relabelling factor
+itself was chosen with the earlier outcome in view. \emph{We do not call this an
+independent confirmation, and it is neither blind nor out of sample.} The held-out
+complement is exploratory for the same reason it is useful: its sea states are
+shifted upward relative to the primary sample. None of the treatment arms is a
+shipped configuration, so no arm winning here is a recommendation to change a
+default.
+
+\textbf{One concrete implementation defect was repaired, and the repair is not
+detectable.} The conditioning beamformer builds its matched-filter grid from a
+module-level water depth that the configured depth never reaches, so on a deep
+archive that grid is mismatched across exactly the blocks' energy band. A third batch
+repaired it --- the map depth taken from the estimator's own configured depth, every
+other shipped value untouched --- and scored \TThirteenN{} paired blocks. The
+repaired arm is better on \TThirteenWin{}, against a threshold of \TThirteenThresh{}.
+\textbf{Read that as undetected and not as exoneration}: the smallest true win rate
+the design could resolve is \TThirteenMDE{}, so it does not establish that the depth
+mismatch is harmless. What makes the reading tighter than a bare null is a negative
+control fixed before the results. Repeating the same repair on the relabelled arm,
+where the map is already matched and the repair should be close to a no-op, gives a
+perturbation floor of \TThirteenFloor{} in median absolute relative terms, while the
+treatment's own median relative effect is $\TThirteenEffect{}$ --- inside that floor
+by more than two orders of magnitude. The repair is a harness intervention and is not
+in the shipped package; nothing here recommends adopting it.
+
+\textbf{Half of that batch is not new data, and we say so rather than let the count
+suggest otherwise.} All \TThirteenReuseN{} rows on the primary blocks are
+bit-identical to the corresponding arm of the isolation batch --- the same treatment,
+the same seeds, run twice --- so the honest decomposition of
+\TThirteenWin{}/\TThirteenN{} is \TThirteenReuseWin{}/\TThirteenReuseN{} re-read plus
+\TThirteenFreshWin{}/\TThirteenFreshN{} new. \emph{The two batches did not reach that
+conclusion independently}, and an earlier statement of ours that they did is
+withdrawn. The reading is the same on either half. On the \TThirteenFreshN{} held-out
+blocks the deployed arm's own negative reproduces under three estimator-seed
+conventions across the three batches (\TTwelveShipHeldWin{},
+\TThirteenShipFreshWin{} and \TFourteenShipHeldWin{} of \TThirteenFreshN{}).
+
+\textbf{A fourth batch asked whether the scale can be chosen from the observations
+alone, and it did not get to answer.} Two ground-truth-free rules were frozen before
+any run --- one from the observation aperture, one from an estimated peak wavenumber
+--- together with an equivariance gate asking whether each rule transforms as a scale
+rule must when the scene itself is rescaled. \emph{The batch is blocked}:
+its gate tally is \TFourteenGates{}, and the gate that does not pass is
+\TFourteenBlocked{},
+which its pre-registration had made a blocking gate, so the batch \textbf{prints no
+label} and we quote from it no arm count, no recovery fraction, and no comparison
+between the two rules. The failure is diagnosed rather than argued: the band rule's
+first zoom stage uses an absolute wavenumber grid, and on this archive the peak
+wavenumber sits at a median of \TFourteenBandMed{} of that grid's spacing over
+\TFourteenBandN{} blocks, with a minimum of \TFourteenBandMin{} --- below one, meaning
+the rule's own instrument cannot see the peak it is asked to measure. For that
+batch's primary contrast the smallest resolvable true win rate would have been
+\TFourteenMDE{}, so nothing about automatic scale selection is established in either
+direction.
+
+\textbf{Two things that batch does establish, because they are gates and not arm
+counts.} The scale rules were re-executed in a separate process given only the
+observation arrays, and reproduced their values bit for bit --- \TFourteenBlind{}
+mismatches --- so they do not read the ground truth. And the two paths that carry
+atoms back from relabelled coordinates into the original units --- the implicit one
+and an explicit inverse --- agree within a tolerance fixed in advance, at
+\TFourteenInvert{} mismatches. \emph{A deployable path that emits atoms in the original units therefore
+exists and works}; what is missing is a scale rule that passes its own equivariance
+test, and that is a different rule requiring its own pre-registration.
+
+\textbf{Four conditions travel with all four of these batches.} They run on one
+third-party archive at a single peak period, so this is a statement at one wave
+period; the archive ships no documentation naming its solver, so we do not call it
+higher-order or fully non-linear, and its numbers are not comparable with the
+published figures of the study that released it. \textbf{There is no external
+baseline arm anywhere in the four}: every contrast is our own arm against a zero
+field or against another configuration of our own arm, so nothing here says that any
+method is better than any other, and the whole arc is attribution. For the same
+reason these results are not comparable with the external-baseline measurements of
+Section~\ref{sec:res_scope}, which ask a different question on different corpora, and
+we do not read the two against each other. The proposal stage consumes a capped
+subset of the observations the window supplies rather than all of them, so ``a chosen
+subset'' and ``everything available'' are not the same budget; and wall-clock timings
+are not compared between arms in any of the four, because the arms do not use threads
+the same way. In the first batch some checks were added after its results existed;
+they can block a label but cannot create one, and that batch records them apart from
+the gates frozen beforehand.
+
 \subsection{Summary of the measurements this paper rests on}
 \label{sec:res_summary}
 
@@ -2465,13 +2696,18 @@ quantity this paper cites.}
 
 Table~\ref{tab:earns} and Table~\ref{tab:boundary} collect every comparison this
 paper relies on for its accuracy claims, and Fig.~\ref{fig:results} plots the first
-of them with exact confidence intervals alongside each comparator's own skill. Three
-contrasts are reported outside them and are marked where they appear: the
+of them with exact confidence intervals alongside each comparator's own skill. Four
+groups of contrasts are reported outside them and are marked where they appear: the
 spectral-domain measurement of Section~\ref{sec:res_spectral}, which is graded
 exploratory; the ensemble contrast on measured records later in this section, which
-moves an endpoint without crossing a threshold; and the sparse-stratum figure in
+moves an endpoint without crossing a threshold; the sparse-stratum figure in
 Section~\ref{sec:res_scope}, which is a re-aggregation of a frozen deployment
-corpus rather than a pre-registered contrast.
+corpus rather than a pre-registered contrast; and the third-party-archive arc of
+Section~\ref{sec:res_extacc}, which carries no baseline arm at all and is reported as
+attribution rather than as an accuracy claim.
+% ⛔[2026-09-05] `T11`--`T14` 를 §5.7 로 넣으면서 이 전칭이 **거짓이 됐다**("Three").
+%   ★이 저장소 누적 1위 결함(*"같은 문장이 N곳인데 한 곳만 고친다"*)의 재발 지점이라
+%   같은 커밋에서 고친다.
 % ⛔[2026-09-02] 검증 감사 MAJOR: *"Two contrasts"* 도 여전히 **부족**했다 --- 초록이 기대는
 %   §5.6 의 희소 재집계가 셋째다. ★전칭을 좁힐 때 **한 칸만 좁히면 다시 틀린다**.
 % ⛔[2026-09-02] 6차 감사 N13: *"collect **every** comparison"* 은 **전칭이고 거짓**이었다.
@@ -2771,6 +3007,13 @@ Table~\ref{tab:earns}). The learned prior does not reach the pre-registered
 decision threshold on the measured records under any arm configuration we ran, and
 we report that as the measurement it is rather than as a limitation to be
 addressed later.
+% ★[2026-09-05] `T11`--`T14` 를 §5.7 에 넣으면서 **두 음성이 뭉쳐 읽히는 것**을 막는다.
+%   ⛔같은 코퍼스도 같은 실패면도 아니다 --- 하나는 실측 12 레코드, 하나는 제3자 합성이다.
+A second negative, on a third party's synthetic fields rather than on measured
+records, is reported in Section~\ref{sec:res_extacc}. Unlike this one it comes with
+an attribution attached, and the two must not be merged: they are different corpora,
+different observation models and different failure surfaces, and neither transfers to
+the other.
 
 % ★[2026-09-03] `R5-REALGEOM` --- B-17 의 σ(r,θ) 는 **선언된** 센서 기하 (0,0,12 m) 위에서
 %   돌았다. R3b 가 그 기하를 자료에서 복원했으므로 그것으로 갈아 끼워 재측정했다.
@@ -3175,6 +3418,16 @@ It enters a third time in Figs.~\ref{fig:real} and~\ref{fig:real_qual}, which sh
 the same $12$ records with the deployed reference arm drawn beside the learned one;
 that arm reaches ordinary significance against a zero field and, like the learned
 arm, does not survive the multiplicity correction for this arc.
+% ★[2026-09-05] `T11`--`T14`. ⛔독자가 *"합성이면 된다"* 로 읽지 못하게 --- 두 번째 음성은
+%   **우리가 만들지 않은 합성 자료**에서 나왔다. ⛔단 그것은 격자 기준선 대비가 아니라
+%   제로필드 대비이고 관측 기하도 다르므로 헤드라인을 **철회하지 않는다**.
+\emph{Synthetic is not the same as ours, and the distinction now carries a result.}
+Synthetic data we did not generate enters through a second negative: on a
+third-party ground-truth corpus the shipped arm has no skill against a zero field at
+its shipped scale (Section~\ref{sec:res_extacc}). That negative is against a zero
+field rather than against a grid baseline, and on a different observation geometry,
+so it does not withdraw the headline; what it adds is that ``simulated'' and
+``simulated by us'' are not interchangeable in the positive direction either.
 % ⛔[2026-09-02] 7차 심사 B9: *"**only** through the negative"* 는 거짓이다 --- §5.7 이
 %   *"One positive does exist on the measured records"* 라 적는다(팔 안 대조).
 Real LiDAR from a moving
@@ -3182,6 +3435,66 @@ platform may contain systematic biases (multi-path, spray) that neither our nois
 model nor those fixed-station records represent, and no shipboard measurement of
 any kind supports this paper --- the platform term was removed from the title for
 that reason.
+
+% ★★[2026-09-05] `W7` 자기지도 + LORO. ⛔이 원고와 학위논문에 `LORO` 가 **0회**였다 ---
+%   *"왜 실측으로 학습하지 않았나"* 에 대한 저장소의 **유일한 실증**이 빠져 있었다.
+%   ⛔⛔범위를 정확히: 이것은 **실측 12 레코드 위의 자기지도 표현학습 + 선형 프로브**이지
+%   **배포 확산 사전의 실측 재학습이 아니다**(그것은 한 번도 돌지 않았다).
+%   ⛔*"실측으로 학습하면 사전이 실패한다"* 승격 금지 · ⛔*"재학습 무익"* 금지(금지 자구).
+%   근거: docs/SSL_FALSIFIED_and_LJ_GT_RANGE_2026-07-10.md §1.1 표 · §1.2 표 · §1.2 판정.
+\paragraph{We did try to learn from the measured records, and what it learned was the
+records} A reader will ask why no prior trained on measured data is reported here. One
+such attempt exists, and the way it failed is informative. \emph{Its scope has to be
+stated first}: it was not a retraining of the deployed diffusion prior --- that
+experiment has never been run --- but a self-supervised representation trained on the
+twelve stereo records themselves, read out by a linear probe on a per-record statistic
+(the elevation kurtosis). On frozen features the probe identified which record it was
+looking at with accuracy $0.790$ in a twelve-way choice against a chance level of
+$0.083$, up from $0.539$ at random initialisation: a lookup path from the encoding to
+the record label was open. Scored leave-one-record-out, the same probe returns
+$R^2 = -0.603$ against $-0.209$ at random initialisation --- worse than predicting the
+mean, with the correlation falling from $-0.298$ to $-0.059$ --- and on a record the
+encoder had never seen (true value $-0.234$) it predicts $+3.014$ where the untrained
+network predicts $+0.308$, an error of $3.248$ against $0.542$. \emph{What we take from
+this is narrow, and it is about this corpus rather than about the method}: twelve
+records from four stations differ in grid spacing, stereo noise texture and dead-pixel
+pattern, so a network handed them as a training set can lower its objective by
+recognising which record it is in, after which any quantity that is constant within a
+record is available by lookup instead of by physics. It says nothing about whether a
+better recipe, a different objective, or a larger measured corpus would succeed; those
+were not tried, and we do not claim they would fail. The network involved is separate
+from the shipped checkpoint, which as stated in Section~\ref{sec:init} has seen no
+measured data at all.
+
+% ★[2026-09-05] 위 문단의 짝 --- *"안 했다"* 가 아니라 *"이 표본으로는 못 한다"*.
+%   근거(런 0회): 사이트 n=4 단측 부호검정 바닥 2^-4 = 0.0625 (직접 계산) ·
+%   tmp/heldout_real_2026-07-26/RESULT.md:5,§5 (창 p=0.005 -> 레코드 블록 0.0625 바닥) ·
+%   tmp/B2_REAL_2026-08-23/gates_b2.py:28 THRESHOLD=10 (/12, 단측 p=0.0193) ·
+%   tmp/M10_GEOMETRY_2026-08-30/amend1_surface.json:70 q80 = 0.8692843469235999 ·
+%   tmp/M7_SUPERVISION_2026-08-28/verdict_m7.json:773-777 (T-2 9/12, p=0.072998) ·
+%   tmp/M7_SUPERVISION_2026-08-28/RESULT.md:55-56 (검출 범위 밖 + 가족 MDE 11/12).
+\paragraph{Why this sample cannot decide the question}
+The experiment a referee would ask for --- hold out a site, train on the rest, and show
+that the prior does not transfer --- cannot return an interpretable answer on the data
+this project holds, and the obstruction is arithmetic rather than effort. The measured
+corpus is twelve records from four fixed stations, and that is fixed. Blocked at the
+site, the unit of analysis is $n = 4$; the smallest one-sided sign-test $p$ four units
+can produce is $2^{-4} = 0.0625$, so \emph{no effect size, however large, reaches
+$\alpha = 0.05$} and the design rejects nothing before it is run. This is not
+hypothetical: the same collapse was measured here once, when a window-level result at
+$p = 0.005$ was re-analysed with records as the blocking unit and landed exactly on that
+floor, which the preregistration had named in advance. Blocked at the record, $n = 12$,
+the decision threshold this paper uses on measured data is $10/12$ ($p = 0.0193$), and
+the effect such a design detects with $80\%$ power is $q_{80} = 0.869$. The largest
+per-record effect any training-side intervention has produced in this project is
+$9/12 = 0.75$, which lies outside that range; detecting $q = 0.75$ at the same power
+would need $23$ records against the $12$ we hold. \emph{Two power figures must not be
+mixed}: $q_{80} = 0.869$ is the single-test value, while that batch's own
+family-corrected threshold (Holm over three tests) is $11/12$. The honest statement is
+therefore that \emph{this sample cannot decide the question}, not that we declined to
+ask it --- and correspondingly this paper makes no claim of the form ``training on
+measured data does not work'', which the data we hold could not support either way.
+Enlarging the corpus is blocked for the separate, measured reason given below.
 
 % ★★[2026-09-03] 이 절이 원고의 가장 큰 자기위협을 실었다. 심사자가 반드시 묻는다:
 %   *"방금 35% 틀렸다고 잰 관측모형 아래 얻은 합성 승리를 왜 믿나?"*
@@ -3402,9 +3715,16 @@ what physical non-linearity would produce.
 
 So the objection is answered in one direction and not the other: a reference field
 built by someone else, from radar-imaging work with no connection to ours, carries the
-phase coupling that a random-phase linear superposition cannot. What remains undone is
-the accuracy comparison --- this test reads their ground truth, it does not run our
-estimator on it.
+phase coupling that a random-phase linear superposition cannot. This test reads their
+ground truth; it does not score our estimator against it.
+% ⛔[2026-09-05] 여기 있던 문장은 *"What remains undone is the accuracy comparison ---
+%   this test reads their ground truth, it does not run our estimator on it."* 였다.
+%   `T11`--`T14` 가 그것을 **오늘 거짓으로 만들었다** ⟹ 자구를 이 시험의 범위 서술로
+%   좁히고 포인터를 붙인다(N−1 방지).
+That comparison has since been run on the same archive
+and is reported in Section~\ref{sec:res_extacc}: the deployed arm does not reach its
+decision threshold there either, and what that section adds to the present one is an
+attribution for the failure rather than a further test of their fields.
 
 \paragraph{The measured corpus is small because the candidate we checked is out of
 regime} The twelve records come from four fixed stations, and the obvious way to
@@ -3747,8 +4067,27 @@ shipped configuration, the prior is not invoked at all
 error by a confirmed margin and does move the endpoint, but not across the
 threshold. We state this as a measured boundary rather than as an omission: the
 representation that earns its gain on crowded synthetic seas has not been shown to
-earn it on the measured data we hold, and locating that boundary --- rather than
-widening the margin --- is where we believe the remaining work lies.
+earn it on the measured data we hold, nor on a third party's synthetic fields at the
+shipped scale, and locating that boundary --- rather than widening the margin --- is
+where we believe the remaining work lies.
+
+% ★[2026-09-05] `T11`--`T14`. ⛔결론에는 **수를 넣지 않는다**(계수·의무 병기는 §5.7).
+%   ⛔"저들보다 낫다/못하다" 로 읽히지 않게 **외부 기준선 0개**를 같은 문단에 적는다.
+\paragraph{A second boundary, this one with a mechanism attached}
+Running the same deployed arm on a third party's synthetic fields gives a second
+negative, and unlike the first it comes with an attribution. On that archive the arm
+does not reach its decision threshold; an oracle handed the true wavenumbers does
+reach it from the identical observations, so the information is present; and a
+dispersion-preserving relabelling of the coordinates --- a thought experiment about
+units, not a deployable configuration --- restores the result. What that locates is
+the absolute-scale design range of the deployed estimator, rather than the wavelength
+band of the prior or the content of the returns, and a follow-up narrows it to the
+absolute scale of a single subsystem without reducing it to a single constant.
+Repairing the one concrete implementation defect we identified does not move the
+outcome detectably, and choosing the scale from the observations automatically is not
+yet available: the batch that tried it was blocked by its own equivariance gate and
+prints no label. None of this compares us with anyone else --- there is no external
+baseline arm in any of those measurements (Section~\ref{sec:res_extacc}).
 
 We also note two limits of the evidence itself. Every comparison against a grid
 baseline in this paper is on the crowded stratum. In the sparse stratum the evidence

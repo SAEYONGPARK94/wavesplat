@@ -227,6 +227,12 @@ not an execution comparison ⟹ ⛔this thesis does not write ``it ran on the fi
 %   ⛔이 줄은 **이행 경로**다: 새 수치는 여기서 매크로로 받고, 기존 손타이핑은 점진 이행한다.
 %   생성기 = `scripts/gen_paper_constants.py`(동결 verdict → 매크로, 핀 불일치 시 죽는다).
 \input{../paper/paper_constants}
+% ★★[2026-09-05] `T11`~`T14`(제3자 참값 위의 정확도 사슬) 상수. **학위논문 전용**이다 ---
+%   그 넷은 논문 원고에 들어가지 않으므로 `paper_constants` 에 얹지 않는다(두 문서의
+%   개정 주기를 묶지 않는다). 생성기 = `scripts/gen_thesis_t11t14_constants.py`
+%   (동결 verdict_t11..t14 → 매크로, 핀 불일치 시 AssertionError 로 죽는다).
+%   ⛔`T14` 는 차단된 배치라 그 파일에 **라벨도 부분 통계도 없다**.
+\input{t11t14_constants}
 
 \begin{document}
 
@@ -680,7 +686,36 @@ $16/16$ --- \emph{비교자에 기술이 있는 상태에서의} 미결), 수심
 ⟹ ★\textbf{합성 이득은 실측이 서 있는 곳 밖에만 있는 것이 아니다.}
 ⛔\emph{``관측 기하가 무관하다''}로 넓히지 않으며(등가 검정을 하지 않았다), 배제된 것은
 \emph{피복} 성분이고, % ADDED 2026-09-01 (T4): 소거표 갱신을 초록에 미러.
-★그리고 같은 행의 \emph{시간} 성분도 배제되었다 --- 실측 밴드를 덮는 레코드가 $12$ 중 $11$인 rung 하나($1.0\,T_p$)로 옮겨 재채점해도 확증 문턱을 넘는다($\mathbf{47/48}$). ⛔단 그 구간에서 \textbf{비교자가 무너지고}($47/48 \to \mathbf{34/48}$) ⛔\emph{``실측과 같은 지평에서 쟀다''}로 쓰지 않는다. ⟹ 그 행에서 배제된 것은 \textbf{공간(피복)과 시간(채점 rung)} 둘이다. ⚠\textbf{[2026-09-03]} 그 셋의 지위는 이후 좁혀졌다 --- \textbf{개구}는 처치가 아니고(두 코퍼스가 $\lambda$ 단위로 같은 자리), \textbf{폐색}은 이 하네스에서 차이로 잴 수 없으며(정적 마스크), \textbf{입사각}의 신뢰 통로는 양쪽 실측 팔에서 닫혀 있다. 남는 도달 가능한 통로는 \emph{표집} 하나다.
+% ★NARROWED 2026-09-05 (T11 + T12): *"개구는 처치가 아니다"* 는 **λ 단위로만** 참이다.
+%   T11 은 개구/λ 를 **고정한 채** 절대 단위만 바꿔 무기술을 기술로 바꿨고, 그 절대량이
+%   곧 조건화 지도의 개구/픽셀 비다 ⟹ N=4 곳을 **같은 커밋에서** 좁힌다(⛔N−1 금지).
+%   ⛔소거표에 넣지 않는다 --- 다른 코퍼스·제로필드 대비이고 실측은 방향이 반대다.
+★그리고 같은 행의 \emph{시간} 성분도 배제되었다 --- 실측 밴드를 덮는 레코드가 $12$ 중 $11$인 rung 하나($1.0\,T_p$)로 옮겨 재채점해도 확증 문턱을 넘는다($\mathbf{47/48}$). ⛔단 그 구간에서 \textbf{비교자가 무너지고}($47/48 \to \mathbf{34/48}$) ⛔\emph{``실측과 같은 지평에서 쟀다''}로 쓰지 않는다. ⟹ 그 행에서 배제된 것은 \textbf{공간(피복)과 시간(채점 rung)} 둘이다. ⚠\textbf{[2026-09-03]} 그 셋의 지위는 이후 좁혀졌다 --- \textbf{개구}는 $\lambda$ 단위로는 처치가 아니고(두 코퍼스가 같은 자리) --- ⚠단 \emph{절대} 단위(조건화 지도의 칸 대비 개구)로는 처치이며, 제3자 참값 코퍼스에서 그 절대 스케일을 옮기는 개입이 기술을 켠다($\TElevenShip \to \TElevenPrimary$; \S\ref{sec:results_t11}; ⛔좌표 재라벨은 단위만 바꾼 \emph{사고실험}이다). ⚠실측 레코드의 개구는 학습 개구보다 \emph{작은} 쪽이어서 방향이 반대이고 그 방향은 미측정이다 --- \textbf{폐색}은 이 하네스에서 차이로 잴 수 없으며(정적 마스크), \textbf{입사각}의 신뢰 통로는 양쪽 실측 팔에서 닫혀 있다. 남는 도달 가능한 통로는 \emph{표집} 하나다.
+% ADDED 2026-09-05 (T11 + T12 + T13 + T14): ★초록의 소거 문단이 전부 **우리 코드가 만든
+% 참값** 위에 있었다. 남의 참값 위에서 배포 팔을 돌린 네 배치가 그 코퍼스에 대해서만
+% **귀속**을 붙인다. ★영문 초록에 같은 매크로를 동시에 반영한다(수치는 전부 매크로 =
+% thesis/t11t14_constants.tex, 생성기 scripts/gen_thesis_t11t14_constants.py).
+% ⛔T14 라벨·부분 통계 금지 · ⛔「단일 상수」 금지 · ⛔음성 축을 "무죄/효과 없다" 로 읽기 금지
+%   (MDE 병기 의무) · ⛔"저들보다 낫다" 금지(외부 기준선 행 0개) ·
+% ⚠제3자 **합성** 코퍼스이며 실측이 아니다 · ⛔척추 문장은 무수정.
+% 근거: tmp/T11_EXTACC_2026-09-03/verdict_t11.json (BAND-MISMATCH) ·
+%       T12_ISOLATE(MULTIPLE-AXES-CARRY) · T13_DEPTHFIX(FIX-UNDETECTED) · T14_AUTOSCALE(차단)
+★★\textbf{[2026-09-05] 그리고 그 소거가 처음으로 \emph{남의 참값} 위에서 이루어졌다.}
+독립 연구가 공개한 제3자 합성 코퍼스에서 배포 팔은 \textbf{무기술}이나
+($\TElevenShip$), 자료를 바꾸지 않고 좌표만 \emph{분산관계 보존 재라벨}로 옮기면
+기술이 나타나며($\TElevenPrimary$; ⛔그 재라벨은 단위를 바꾼 \emph{사고실험}이지
+배포 구성이 아니다), 그 배율이 사는 곳은 \textbf{조건화 맵의 절대
+스케일}이라는 \emph{단일 서브시스템} 안에서 재현된다($\TTwelvePrimary$; 표본과 겹치지
+않는 $28$ 블록에서 $\TTwelveHeld$; ⚠\emph{재라벨 팔이 낸 nRMSE 이득}의 중앙
+$\TTwelveRho$ 만 회수하므로 \emph{부분}이고 두 번째 축도 가족 문턱을 넘으므로 ⛔단일 원인으로 귀속하지 않는다). ⛔\textbf{단 「단일 상수」가 아니고}(그 팔도 여럿을
+함께 옮긴다), 그 안의 한 후보(조건화 맵이 보는 수심)를 수리해도 효과는
+\textbf{검출되지 않으며}($\TThirteenPrimary$; 최소검출효과 $q_{80} = \TThirteenMDE$ ---
+⛔\emph{``수심은 원인이 아니다''}가 아니라 \emph{검정력}의 진술이다), 참값 없이 그 배율을
+고르는 규칙은 \textbf{사전등록된 차단 게이트가 막아 판정이 없다}(최소검출효과
+$q_{80} = \TFourteenMDE$).
+⟹ ★\textbf{이 사슬은 실패에 \emph{자리}를 주지만 아래 경계 진술을 바꾸지 않는다} ---
+제3자 \emph{합성} 코퍼스 위의 귀속이고 \textbf{외부 기준선 행은 $0$개}이며, 실측
+$12$ 레코드에 대해서는 아무것도 말하지 않는다(\S\ref{sec:results_t11}).
 ⟹ ★\textbf{따라서 본 논문은 작동 경계의 위치를 보고하고, \emph{파랑 조건} 축을
 배제하되, 그 경계가 놓인 축과 그 축 위의 원인은 제시하지 않는다}
 (\S\ref{sec:boundary}). ⚠\textbf{배제는 지목이 아니다.}
@@ -1087,7 +1122,44 @@ $11$ of the $12$ measured records --- still clears the confirmatory threshold
 \emph{``measured at the same horizon as the real data''} nor as \emph{``the advantage grows
 with lead time''}. ⟹ what that row excludes is \textbf{coverage and scoring rung}, two
 components; aperture, incidence angle and occlusion remain unmeasured.
+% ADDED 2026-09-05 (T11 + T12): mirror of the Korean narrowing made the same day at four
+% Korean sites --- "aperture is not a treatment" is true only in units of wavelength.
+% ⛔Not to be added to the elimination table: different corpus, zero-field comparator, and
+% the measured records point the other way (that direction is unmeasured).
+⚠\textbf{[2026-09-05] One of those three has since been narrowed}: aperture is not a
+treatment \emph{in units of wavelength}, but in \emph{absolute} units --- aperture against
+the cell size of the conditioning map --- it is, and on a third-party ground-truth corpus
+moving that absolute scale turns no skill into skill ($\TElevenShip \to \TElevenPrimary$;
+\S\ref{sec:results_t11}). ⚠The measured records sit on the \emph{other} side of the training
+aperture, so that direction is unmeasured.
 
+% ADDED 2026-09-05 (T11 + T12 + T13 + T14): mirror of the Korean paragraph added the same
+% day. Every number is a macro from thesis/t11t14_constants.tex (generator:
+% scripts/gen_thesis_t11t14_constants.py, pinned against the frozen verdicts).
+% ⛔No label and no partial statistic of T14 (that batch is BLOCKED) · ⛔not "a single
+% constant" · ⛔a null axis is never "exonerated" (MDE must accompany it) · ⛔no claim of
+% superiority over anyone (zero external-baseline rows) · ⚠third-party **synthetic**
+% corpus, not real data · ⛔the spine sentence below is unchanged.
+★★\textbf{[2026-09-05] And that elimination was carried out, for the first time, on
+\emph{someone else's} ground truth.} On a third-party synthetic corpus released by an
+independent study the deployed arm has \textbf{no skill} ($\TElevenShip$); yet
+re-labelling the coordinates alone --- a \emph{dispersion-preserving} relabelling that
+changes no datum, a \emph{thought experiment} and not a configuration --- makes skill
+appear ($\TElevenPrimary$), and the scale that \emph{carries}
+that change is reproduced inside a \emph{single subsystem}, the absolute scale of the
+conditioning map ($\TTwelvePrimary$; it recovers a median $\TTwelveRho$ of
+\emph{the relabelled arm's nRMSE gain}, i.e.\ partial, and a second axis clears the family threshold too; $\TTwelveHeld$ on the $28$ blocks disjoint from that
+sample). ⛔\textbf{This is not ``a single constant''} (that arm moves several things at
+once); repairing one candidate inside it --- the depth the conditioning map sees ---
+leaves the effect \textbf{undetected} ($\TThirteenPrimary$; minimum detectable effect
+$q_{80} = \TThirteenMDE$ --- ⛔this is a statement about \emph{power}, not
+\emph{``depth is not the cause''}); and the rule that would choose that scale without
+ground truth \textbf{was stopped by a preregistered blocking gate, so it carries no
+verdict} (minimum detectable effect $q_{80} = \TFourteenMDE$).
+⟹ ★\textbf{The chain gives the failure a \emph{location} but does not change the
+boundary statement below} --- it is an attribution on a third-party \emph{synthetic}
+corpus, \textbf{zero external-baseline rows}, and it says nothing about the $12$ measured
+records (\S\ref{sec:results_t11}).
 ⟹ ★\textbf{This dissertation therefore reports where the operating boundary lies and
 excludes the wave-condition axis, while identifying neither the axis it lies along nor any
 cause along it} (\S\ref{sec:boundary}). ⚠\textbf{Exclusion is not identification}:
@@ -1442,7 +1514,8 @@ FNO 등은 균일 격자를 가정하여 LiDAR의 불규칙 샘플링 패턴과 
 % 이 날 배제되었다. 행 이름을 그대로 두면 배제된 성분까지 "미측정" 으로 읽힌다.
 개입이 설계 가능한데 착수되지 않은 것은 \textbf{관측 기하 중 \emph{피복}을 제외한 성분}
 (개구$\cdot$입사각$\cdot$폐색) \emph{하나}이고 --- ⚠\textbf{[2026-09-03] 이 문장은 아래
-정정 문단에서 좁혀진다: 셋 중 개구는 처치가 아니고, 폐색은 이 하네스에서 잴 수 없으며,
+정정 문단에서 좁혀진다: 셋 중 개구는 $\lambda$ 단위로 처치가 아니고(⚠\emph{절대}
+단위로는 처치다), 폐색은 이 하네스에서 잴 수 없으며,
 입사각은 통로가 닫혀 있다} ---(★\emph{피복} 성분은 아래 문단이 적는 대로
 2026년 8월 30일에 배제되었다;
 % ★[2026-09-03] `R3b` --- 이 행의 **재료**가 생겼다. ⛔개입 자체는 여전히 미착수다.
@@ -1586,7 +1659,7 @@ $12$ 중 $11$인 rung 하나}($1.0\,T_p$)로 옮겨 재채점해도 확증 문�
 무기술 기준을 이기는 셀 $47/48 \to \mathbf{34/48}$) ⛔\emph{``리드가 길수록 본 방법이
 더 낫다''}로 읽지 않는다 --- 커지는 것은 승수이지 정확도가 아니다.
 ⟹ ★\textbf{관측 기하 행에서 배제된 것은 \emph{공간}(피복)과 \emph{시간}(채점 리드)
-두 성분이다.} ⚠\textbf{[2026-09-03]} 그 셋의 지위는 이후 좁혀졌다 --- \textbf{개구}는 처치가 아니고(두 코퍼스가 $\lambda$ 단위로 같은 자리), \textbf{폐색}은 이 하네스에서 차이로 잴 수 없으며(정적 마스크), \textbf{입사각}의 신뢰 통로는 양쪽 실측 팔에서 닫혀 있다. 남는 도달 가능한 통로는 \emph{표집} 하나다.
+두 성분이다.} ⚠\textbf{[2026-09-03]} 그 셋의 지위는 이후 좁혀졌다 --- \textbf{개구}는 $\lambda$ 단위로는 처치가 아니고(두 코퍼스가 같은 자리) --- ⚠단 \emph{절대} 단위(조건화 지도의 칸 대비 개구)로는 처치이며, 제3자 참값 코퍼스에서 그 절대 스케일을 옮기는 개입이 기술을 켠다($\TElevenShip \to \TElevenPrimary$; \S\ref{sec:results_t11}; ⛔좌표 재라벨은 단위만 바꾼 \emph{사고실험}이다). ⚠실측 레코드의 개구는 학습 개구보다 \emph{작은} 쪽이어서 방향이 반대이고 그 방향은 미측정이다 --- \textbf{폐색}은 이 하네스에서 차이로 잴 수 없으며(정적 마스크), \textbf{입사각}의 신뢰 통로는 양쪽 실측 팔에서 닫혀 있다. 남는 도달 가능한 통로는 \emph{표집} 하나다.
 ⑤\textbf{두 쪽은 대칭이 아니다} --- 합성 쪽에는 기준선 대비 부호가 있으나 실측 쪽에는
 \textbf{외부 기준선 행이 오랫동안 $0$개}였다. ★\textbf{[2026-09-03 정정]} 그 행이
 \emph{생겼고}(배치 \texttt{E1}, 제3자 코드$\cdot$제3자 가중치, 양쪽 무수정)
@@ -1596,6 +1669,29 @@ $12$ 중 $11$인 rung 하나}($1.0\,T_p$)로 옮겨 재채점해도 확증 문�
 관측 두 배에서 패배($2/12$).
 ⟹ \textbf{``부재가 측정된 한계''라는 문장은 더 이상 참이 아니다}; 대신 남는 것은
 \textbf{밀도 문장}이다(제3자가 기술을 얻는 예산 $200$--$400$ 점/프레임 vs 우리 기하 $12$).
+
+% ADDED 2026-09-05 (T11 + T12 + T13 + T14): ★위 소거는 전부 **우리 코드가 만든 참값**
+% 위에 있었다. 제3자 참값 위에서 배포 팔을 돌린 사슬이 그 쪽에 **귀속**을 하나 붙인다.
+% ⛔척추 문장은 무수정 --- 이 문단은 경계가 **놓인** 축을 지목하지 않는다. 좁혀지는 것은
+%   *그 제3자 코퍼스에서 실패가 귀속되는 자리* 뿐이고, 실측 12 레코드에 대해서는 아무것도
+%   말하지 않는다. ⛔T14 라벨·부분 통계 금지 · ⛔「단일 상수」 금지 ·
+%   ⛔음성 축을 "무죄/효과 없다" 로 읽기 금지(MDE 병기는 §sec:results_t11 이 싣는다).
+% 근거: tmp/T11_EXTACC_2026-09-03/verdict_t11.json · T12/T13/T14 동형
+★\textbf{[2026-09-05] 그리고 \emph{남의 참값} 위에서 그 실패에 처음으로 자리가 붙었다.}
+위 소거들은 전부 \textbf{우리 코드가 만든 참값} 위에 있었다. 제3자 합성 코퍼스
+(\S\ref{sec:results_t11})에서 배포 팔은 \textbf{무기술}이나($\TElevenShip$), 자료를 바꾸지
+않고 \textbf{좌표의 \emph{절대 스케일}만 분산관계 보존 재라벨로} 옮기면 기술이 나타나고
+($\TElevenPrimary$; ⛔\textbf{그 재라벨은 단위를 바꾼 \emph{사고실험}이지 배포
+구성이 아니다}), 그 배율이 사는 곳을 노브 단위로 갈라 보면 \textbf{조건화 맵의 절대
+스케일} 하나만 옮겨도 재현된다($\TTwelvePrimary$, 여집합 $28$ 블록에서 $\TTwelveHeld$).
+⛔\textbf{단 「단일 상수」가 아니고}(그 팔도 세 가지를 함께 옮긴다) ⛔\textbf{그 안의 한
+후보를 수리해도 효과는 검출되지 않으며}($\TThirteenPrimary$; 최소검출효과
+$q_{80} = \TThirteenMDE$ --- ⛔\emph{``무죄''}가 아니라 \emph{검정력}의 진술이다), ⛔\textbf{참값 없이 그 배율을 고르는 규칙은 사전등록된
+차단 게이트가 막아 \emph{판정이 없다}}.
+⟹ ★\textbf{그러므로 이 사슬은 위 척추 문장을 바꾸지 않는다} --- 그것은 제3자
+\emph{합성} 코퍼스 위의 귀속이고, \textbf{외부 기준선 행은 그 넷 모두에서 $0$개}이며,
+실측 $12$ 레코드에 대해서는 아무것도 말하지 않는다. 바뀌는 것은 \emph{경계가 놓인 축}이
+아니라 \textbf{그 코퍼스에서 실패가 귀속되는 자리}다.
 
 % ADDED 2026-08-28 (M-8b): 위 소거는 전부 **참조 없는 소거**였다. 실측 자료 위에
 % **기술이 있는 팔**(배포 실측 경로)과 제안 표현을 사다리로 잇는 대조가 처음 수행됐고,
@@ -3265,8 +3361,11 @@ $\cdot$ \texttt{INADEQUATE} $0$ 이다 --- 종전에 적은 $42/19/3$ 은 희소
 위 논의 전부는 \textbf{우리 코드가 만든 참값} 위에 있다. 그 반론은 우리 코드로 닫을 수
 없으므로 공개된 제3자 합성 코퍼스를 가져왔다(Zenodo 17359600, \emph{Phys.\ Fluids} 37,
 117116, CC-BY-4.0; $12.8$\,GB, 독립 시뮬레이션 $126$개 $\times$ $502$ 프레임).
-질문은 하나다: \emph{그 표면에 위상 결합이 있는가, 아니면 랜덤위상 선형 중첩과
-구별되지 않는가?} 자는 고전적 surrogate-data 짝 --- 진폭 스펙트럼을 정확히 보존하는
+% ★CORRECTED 2026-09-05 (T11): 이 코퍼스에 대해 던진 질문이 이제 **둘**이다
+%   (위상 결합의 존재 = T1/T1b · 정확도 = T11). 「하나다」를 그대로 두면 아래
+%   [2026-09-05] 문단과 자기모순이다 --- N-1 부류의 재발 방지.
+질문은 \textbf{먼저} 하나였다: \emph{그 표면에 위상 결합이 있는가, 아니면 랜덤위상 선형
+중첩과 구별되지 않는가?} 자는 고전적 surrogate-data 짝 --- 진폭 스펙트럼을 정확히 보존하는
 위상무작위화 대체표본 $32$개에 대한 프레임모음 왜도.
 
 \textbf{두 배치를 사다리로 보고한다}(⛔모순이 아니다). \texttt{T1} 은 블록당 $24$
@@ -3299,8 +3398,14 @@ $4.9\times10^{-13}$ 을 이 공시 없이 인용하지 않는다. 같은 확대 
 
 ⟹ ★\textbf{반론은 한 방향으로만 답해졌다}: \emph{우리와 아무 관계없는} 레이더 영상
 연구가 만든 참값이 \textbf{랜덤위상 선형 중첩이 낼 수 없는 위상 결합}을 담고 있다.
-⛔남은 것은 정확도 비교다 --- 이 시험은 저들의 참값을 \emph{읽을} 뿐 그 위에서 우리
-추정기를 돌리지 않았다. ⛔그리고 그 아카이브에는 \textbf{생성 solver 를 명시한 문서가
+% ★CORRECTED 2026-09-05 (T11--T14): 종전 문안은 *"⛔남은 것은 정확도 비교다 --- 이 시험은
+%   저들의 참값을 **읽을** 뿐 그 위에서 우리 추정기를 돌리지 않았다"* 였다. 2026년 9월 3--5일에
+%   그 비교를 했다 ⟹ 그 문장은 **거짓이 되었다**(저장소 누적 1위 결함 = 정정이 한 곳에서 멈추는 것).
+%   ⛔결과는 우리에게 유리하지 않다 --- 그 사실을 여기서 **먼저** 적고 §sec:results_t11 로 보낸다.
+%   근거: tmp/T11_EXTACC_2026-09-03/verdict_t11.json (label = BAND-MISMATCH, 게이트 17/17)
+★\textbf{[2026-09-05] 그 정확도 비교를 했다} --- 저들의 참값 위에서 배포 팔을 돌려
+채점한 결과는 \S\ref{sec:results_t11} 에 있고, ⛔\textbf{배포 팔은 그 코퍼스에서 무기술
+기준을 넘지 못한다}($\TElevenShip$). ⛔그리고 그 아카이브에는 \textbf{생성 solver 를 명시한 문서가
 없어} 우리는 이 코퍼스를 \emph{``HOS}$\cdot$\emph{``완전 비선형}이라 부르지 않고
 \emph{``위상 결합이 있다}까지만 말한다. ⛔우리 코퍼스와 \textbf{검출률을 비교하지
 않는다} --- 문턱이 다르면 그것은 물리가 아니라 검정력의 비교다.
@@ -3777,7 +3882,18 @@ DDPM)이다. 하나의 스펙트럼을 $M = 32$ 개의 \emph{연속} 원자
 $(k_x, k_y, \log E)$ 의 \emph{집합}으로 표현하고, 이 집합 위에서 잡음 $\varepsilon$ 을
 예측하는 순열 등변(permutation-equivariant) 집합 트랜스포머를 학습한다.
 집합 표현을 쓰는 이유는 격자 비의존성이 여기서 시작되기 때문이다 --- 원자의 파수는
-연속값이며, 어떤 이산 격자에도 묶이지 않는다.
+연속값이며, \textbf{출력이} 어떤 이산 격자에도 묶이지 않는다.
+% ADDED 2026-09-05 (T11 + T12): 종전 문장은 독자에게 *"격자에 안 묶이므로 스케일에도
+%   안 묶인다"* 로 읽힌다. 그 읽기가 제3자 참값 코퍼스에서 **개입으로 반증**됐다.
+%   ⛔「단일 상수」 금지 · ⛔기제 지목 금지(매개열은 기술통계다) · ⚠제3자 **합성** 코퍼스.
+%   근거: tmp/T11_EXTACC_2026-09-03/verdict_t11.json · T12_ISOLATE_2026-09-04/verdict_t12.json
+⚠★\textbf{단 \emph{입력}은 묶여 있다} --- 제안은 아래 조건 입력(고정 칸의 빔포밍 지도)과
+사전 밴드의 \emph{절대} 스케일에 의존하며, 그 의존은 제3자 참값 코퍼스에서 개입으로
+측정되었다(단위만 바꾸는 \emph{사고실험}으로 좌표를 재라벨하면 무기술 $\TElevenShip$ 이
+$\TElevenPrimary$ 가 되고, \emph{조건화 지도}의 절대 스케일 하나만 옮겨도 $\TTwelvePrimary$ 다;
+\S\ref{sec:results_t11}). ⛔\textbf{그것을 「단일 상수」라 부르지 않는다}(그 팔도 여럿을
+함께 옮긴다). ⟹ ★\textbf{연속 파수는 \emph{위치 정밀도}의 성질이지 \emph{스케일 불변}의
+성질이 아니다.}
 원자 좌표는 $[-1,1]^3$ 로 정규화된다: $k_x, k_y$ 는
 $K_{\text{LIM}} = 1.1$\,rad/m 로 나누고, 로그 에너지는 동결된 사전(prior) 체크포인트에
 기록된 구간 $[\log E]_{\text{lo}} = -15.656$, $[\log E]_{\text{hi}} = -1.078$ 로
@@ -3840,7 +3956,19 @@ $\hat{B}(\mathbf{k}) = \bigl|\sum_i z_i e^{-\mathrm{i}(\mathbf{k}\cdot\mathbf{r}
 본 논문의 합성 에피소드는 로더 폴백 때문에 \textbf{전부 $50$\,m 로 실행}되었으므로
 이 코퍼스에서는 불일치가 없으나(⚠파일에 $12$\,m 로 저장된 에피소드가 $16$개 있고,
 그 값이 추정기에 전달되지 않은 것이 바로 제\ref{sec:results_m3}절의 집행 실패다),
-\textbf{다른 수심으로의 이식에서는 조건 입력이 먼저 어긋난다.}
+% ★CORRECTED 2026-09-05 (T12 + T13): 구조 서술(고정·미전달)은 참이고 T11 이 재확인했다.
+%   그러나 *"**먼저** 어긋난다"* 는 **기제의 우선순위 주장**이고, 그 수리를 개입으로 재자
+%   **검출되지 않았다**. ⛔*"수심은 원인이 아니다"* 는 금지(검정력 진술) ⟹ 삭제가 아니라 병기.
+%   근거: tmp/T13_DEPTHFIX_2026-09-04/verdict_t13.json (FIX-UNDETECTED …) · T12 E-MAPDEPTH
+\textbf{다른 수심으로의 이식에서는 조건 입력이 어긋난다} --- ⚠\textbf{다만 그 어긋남이
+\emph{먼저} 작용한다고는 쓰지 않는다.} 심해인 제3자 참값 코퍼스에서 이 상수를 자료의
+수심으로 바꾼 개입은 검출 문턱에 이르지 못했고($\TThirteenPrimary$ --- 그중
+$\TThirteenReread$ 는 선행 배치 행의 재판독이고 $\TThirteenFresh$ 가 신규다;
+효과가 자기 섭동 잡음 바닥 안), 같은 코퍼스에서 조건 입력의 \emph{절대 스케일}을 옮긴
+개입은 $\TTwelvePrimary$ 였다(\S\ref{sec:results_t11} --- ⛔그 팔도 여럿을 함께 옮기므로
+\textbf{「단일 상수」가 아니고}, 좌표 재라벨 쪽은 단위만 바꾼 \emph{사고실험}이다).
+⛔\textbf{이 널을 \emph{``수심은 원인이 아니다}로 읽지 않는다} --- 최소검출효과가
+$q_{80} = \TThirteenMDE$ 인 \emph{검정력}의 진술이고, ⛔두 배치는 독립이 아니다.
 
 \paragraph{확산 스케줄과 학습 목적함수.}
 확산 단계 $T = 500$, 코사인 $\beta$ 스케줄.
@@ -7231,8 +7359,16 @@ $0$건은 그 스트림이 재시도 경로를 타므로 \textbf{항등식에 �
 \textbf{(6)}~⚠\textbf{이 배치는 \emph{제안 단계}만 개입한다} --- 실측 과적합의 측정된 발생
 지점은 \textbf{시험 시점}(변수 투영$\cdot$추적기)이다 ⟹ ★\textbf{널은 놀랄 일이 아니며,
 사전등록이 그 기대를 결과 이전에 적어 두었다.}
-\textbf{(7)}~★\textbf{실측 $12$ 레코드는 본 연구의 유일한 out-of-family 게이트이고, 이 배치가
-그것을 한 번 더 소모했다.} 실측에 학습 경로를 강제하는 것은 비승인 정책이며 별도 승인으로
+% ★CORRECTED 2026-09-05 (T11--T14): 종전 문안 *"본 연구의 **유일한** out-of-family
+%   게이트"* 는 2026-09-04 에 거짓이 됐다 --- 제3자 참값 코퍼스가 **두 번째** 게이트이고
+%   그것도 이미 소모됐다. ⚠주어를 **실측 자료 안에서**로 좁히면 참이 유지된다.
+%   ⛔두 게이트의 계수를 직접 비교하지 않는다(모집단·비교자·기하가 다르다).
+\textbf{(7)}~★\textbf{실측 $12$ 레코드는 본 연구가 보유한 \emph{실측} out-of-family
+게이트의 전부이고, 이 배치가 그것을 한 번 더 소모했다.}
+⚠\textbf{[2026-09-05] 2026년 9월 4일 이후로는 \emph{합성} out-of-family 게이트가 하나
+더 있다} --- 우리와 무관한 연구가 공개한 제3자 참값 코퍼스이며(\S\ref{sec:results_t11}),
+그것도 이미 소모되었다(배포 팔이 무기술 $\TElevenShip$, 이어진 두 배치가 같은 파일을
+재사용한다). ⛔두 게이트의 계수를 직접 비교하지 않는다. 실측에 학습 경로를 강제하는 것은 비승인 정책이며 별도 승인으로
 풀렸다. ⛔그 승인은 배포 기본값을 바꾸지 않는다 --- 배포 실측 경로의 도메인 게이트는
 \textbf{그대로 켜져 있고} 이 강제는 \textbf{측정 전용}이다.
 
@@ -7281,9 +7417,7 @@ $43/48$($-37.00\%$)이고, 결과 이전에 등록한 이차 주장(\emph{``가�
 ⟹ ★\textbf{소거표의 \emph{관측 기하} 행에서 \emph{피복} 성분이 배제된다.}
 ⛔\textbf{그러나 이것은 \emph{배제}이지 지목이 아니다} --- ⛔\emph{``관측 기하가
 무관하다''}로 넓히지 않는다(등가 검정을 하지 않았다).
-⚠\textbf{[2026-09-03]} 그 셋의 지위는 이후 좁혀졌다 --- \textbf{개구}는 처치가
-아니고(두 코퍼스가 $\lambda$ 단위로 같은 자리), \textbf{폐색}은 이 하네스에서
-차이로 잴 수 없으며(정적 마스크), \textbf{입사각}의 신뢰 통로는 양쪽 실측 팔에서
+⚠\textbf{[2026-09-03]} 그 셋의 지위는 이후 좁혀졌다 --- \textbf{개구}는 $\lambda$ 단위로는 처치가 아니고(두 코퍼스가 같은 자리) --- ⚠단 \emph{절대} 단위(조건화 지도의 칸 대비 개구)로는 처치이며, 제3자 참값 코퍼스에서 그 절대 스케일을 옮기는 개입이 기술을 켠다($\TElevenShip \to \TElevenPrimary$; \S\ref{sec:results_t11}; ⛔좌표 재라벨은 단위만 바꾼 \emph{사고실험}이다). ⚠실측 레코드의 개구는 학습 개구보다 \emph{작은} 쪽이어서 방향이 반대이고 그 방향은 미측정이다 --- \textbf{폐색}은 이 하네스에서 차이로 잴 수 없으며(정적 마스크), \textbf{입사각}의 신뢰 통로는 양쪽 실측 팔에서
 닫혀 있다. 남는 도달 가능한 통로는 \emph{표집} 하나다.
 
 \paragraph{★같은 동결 행이 답하는 두 번째 질문 --- 비교자는 어디에서 강한가}
@@ -7596,6 +7730,185 @@ $\cdot$ $10$ 일자이고, \texttt{BS\_2011} 의 한 오후에 레코드 \textbf
 줄고 레코드별 무기술 기준에 대한 비의 중앙이 $0.717 \to 0.979$ 로 이동한다.
 ⚠단 질의점이 가장 많은 층(박스 $\geq 40$\,m, $5$ 레코드)에서는 $3/5$ 로
 \textbf{재현되지 않으므로} 둘을 함께 적는다.
+
+% ============================================================================
+% ADDED 2026-09-05 (T11 + T12 + T13 + T14): ★제3자 참값 위의 **정확도** 사슬.
+% 이 절이 있기 전까지 학위논문은 저 코퍼스를 **읽기만** 했다(§3.1 의 T1/T1b = 위상 결합의
+% 존재). 그 절이 축자로 *"남은 것은 정확도 비교다 … 그 위에서 우리 추정기를 돌리지
+% 않았다"* 라 적었고, 2026년 9월 3--5일에 그 비교를 했다 ⟹ 같은 커밋에서 그 문장도 고쳤다.
+% ⛔이 절의 모든 수는 `thesis/t11t14_constants.tex` 의 매크로다(생성기 =
+%   scripts/gen_thesis_t11t14_constants.py, 동결 verdict 입력, 핀 불일치 시 죽는다).
+% ⛔인용금지(2026-09-04/05 묶음): T14 의 **라벨과 부분 통계 일체** · RESCALE/FIX 의 절대
+%   nRMSE · 「단일 상수」 · 음성 축을 "효과 없다/무죄" · T12 의 rho 와 T14 의 R 병치 ·
+%   E2/저들 논문 수치와의 대각선 비교 · 층별(Hs·각도) 라벨 · wall_s 팔 간 비교.
+% ✅MDE 병기 의무: T12 SEC q80 · T13 q80 · T14 q80 (매크로로 싣는다).
+% 근거: tmp/T11_EXTACC_2026-09-03/verdict_t11.json (BAND-MISMATCH, 17/17, 96행)
+%       tmp/T12_ISOLATE_2026-09-04/verdict_t12.json (MULTIPLE-AXES-CARRY, 25/25, 424행)
+%       tmp/T13_DEPTHFIX_2026-09-04/verdict_t13.json (FIX-UNDETECTED …, 24/24, 256행)
+%       tmp/T14_AUTOSCALE_2026-09-04/verdict_t14.json (⛔라벨 없음 · 차단 · 31/32, 212행)
+% ============================================================================
+\subsection{제3자 참값 위에서 배포 팔을 돌리면 --- 실패의 귀속 (2026-09-04/05)}
+\label{sec:results_t11}
+
+\S\ref{sec:forward} 이 쓴 제3자 합성 코퍼스(Zenodo 17359600, 아카이브
+$\TElevenArchiveGB$\,GB)는 거기까지 \emph{읽히기만} 했다 --- 그 참값에 위상 결합이
+있다는 것까지가 \texttt{T1}$\cdot$\texttt{T1b} 의 답이었다. 이 절은 그 위에서
+\textbf{배포 팔을 실제로 돌려 채점한} 네 배치를 사다리로 보고한다:
+\emph{안 된다}(\texttt{T11}) $\to$ \emph{무엇 \textbf{때문}인가}(\texttt{T12}) $\to$
+\emph{그 안의 한 후보를 고치면 \textbf{검출되는가}}(\texttt{T13}) $\to$
+\emph{자동화는 아직}(\texttt{T14}).
+% ★CORRECTED 2026-09-05: 초판은 이 고리를 *"무엇 **때문이 아닌가**"* 라 불렀다.
+%   ⛔`FIX-UNDETECTED` 는 **검정력의 진술**이고 verdict 이 *"수심은 원인이 아니다"*
+%   읽기를 명시적으로 금지한다 --- 사다리의 이름이 정확히 그 금지된 읽기였다.
+%   허용 자구 = "문턱 미달 + 효과가 결과 전 고정한 개입 잡음바닥 안" + MDE 병기.
+
+⛔\textbf{이것은 제3자 \emph{참값} 위의 채점이지 외부 기준선과의 비교가 아니다} ---
+네 배치 모두 \textbf{외부 기준선 행이 $0$개}이며, 실측 쪽의 외부 기준선 행은
+\S\ref{sec:boundary} ⑤ 가 적는 별개의 배치(\texttt{E1})가 만들었다.
+
+% ★CORRECTED 2026-09-05 (T11 AMENDMENT_2 §6): 초판 제목은 *"실패는 **우리 대역**이고
+%   자료가 아니다"* 였다. ⛔그것은 개정문이 **철회한 초판 읽기**다 --- k_p 기준으로 이
+%   장면들은 학습 밴드 **83백분위 안**이므로 *"학습 사전의 파장 밴드"* 는 과특정이다.
+%   정본 = **"배포 추정기의 절대 스케일 설계 범위"**. ★본문은 정본을 적는데 제목이
+%   그것을 되감고 있었다(「N곳 전부」의 N 에는 **제목**이 포함된다).
+\paragraph{★\texttt{T11-EXTACC} --- 실패는 \emph{절대 스케일}이고 자료가 아니다}
+같은 희소 관측 위에 네 팔을 세운다: 출하 기본값(\texttt{SHIP}), \textbf{분산관계를
+보존하는 좌표 재라벨}($x' = x/s$, $t' = t/\sqrt{s}$, $s = 2$; \texttt{RESCALE}),
+참 파수에서 진폭$\cdot$위상만 최소자승으로 푸는 \texttt{ORACLE}, 그리고 창별 제로필드.
+결과(게이트 $\TElevenGates$, $\TElevenRows$ 행, 사전등록 문턱 $\TElevenThresh$):
+\begin{itemize}
+  \item \textbf{배포 팔은 무기술 기준을 넘지 못한다} --- $\TElevenShip$
+        (⛔정직한 음성이다; 유의하게 \emph{나쁘지도} 않다).
+  \item \textbf{정보는 관측에 있다} --- \texttt{ORACLE} 이 $\TElevenOracle$
+        (⛔\texttt{ORACLE} 은 추정기가 아니다: 참 파수를 받는다).
+  \item ★\textbf{자료를 그대로 둔 채 좌표의 \emph{절대 스케일}만 옮기면 기술이 나타난다} ---
+        $\TElevenPrimary$, $p = \TElevenPrimaryP$.
+\end{itemize}
+⟹ 판정 \texttt{BAND-MISMATCH}. ⛔\textbf{이것을 우열로 읽지 않는다} --- \emph{귀속}이다.
+⛔\textbf{그리고 \texttt{RESCALE} 을 실제 성능으로 인용하지 않는다}: 자료를 바꾸지 않고
+단위만 바꾼 \emph{사고실험}이며 배포 가능한 구성이 아니다.
+⛔\textbf{또한 \emph{``학습 사전의 파장 밴드가 원인''}으로 읽지 않는다} --- 첨두 파수를
+기준으로 보면 그 장면들은 이미 학습 밴드 \emph{안}이다($83$ 백분위). 이 배치가 지탱하는
+정본 읽기는 \textbf{``배포 추정기의 \emph{절대 스케일} 설계 범위''} 하나다.
+
+\paragraph{★\texttt{T12-ISOLATE} --- 그 스케일이 어디에 사는가}
+재라벨은 \textbf{단일 요인이 아니다}: 배포 경로의 절대 파수 상수 전부와 조건화 맵의
+개구$\cdot$픽셀 비가 $s$ 와 \emph{공선}으로 함께 움직인다. 그래서 자료$\cdot$관측$\cdot$
+채점을 원좌표에 그대로 둔 채 \textbf{내부 노브 하나씩만} 옮기는 아홉 팔을 세웠다
+(게이트 $\TTwelveGates$, $\TTwelveRows$ 행; PRIMARY 문턱 $\TTwelvePrimaryThresh$,
+보조 가족 문턱 $\TTwelveSecThresh$, Holm).
+\textbf{조건화 맵의 절대 스케일} 하나를 옮긴 팔이 무기술 기준을 $\TTwelvePrimary$
+($p = \TTwelvePrimaryP$)로 이기고, \textbf{표본과 교집합이 없는 여집합 $28$ 블록}에서도
+$\TTwelveHeld$ 로 재현된다(같은 층의 배포 팔은 $\TTwelveHeldShip$). 그 팔은
+\textbf{재라벨 팔이 낸 nRMSE 이득}의 중앙 $\TTwelveRho$(사분위
+$\TTwelveRhoQOne$--$\TTwelveRhoQThree$)를 회수한다.
+⛔\textbf{$\TTwelveRho$ 를 「참 첨두 파수 회수율」로 읽지 마라} --- 정의는
+\texttt{analyze\_t12.py} 의
+$(\mathrm{SHIP}-\mathrm{ARM})/(\mathrm{SHIP}-\mathrm{RESCALE})$ 로 \emph{nRMSE 이득의 비}이고
+파수와 무관하다. 파수 매개열(\texttt{kmed})은 \emph{별개 키}이며 판정에 쓰이지 않는다
+(verdict 의 \texttt{rho\_recovery} 와 \texttt{mediation} 이 갈라져 있다).
+⛔그 둘을 접합해 \emph{``제안이 참 파수를 향해 움직인다''}로 읽는 것은 금지된 기제 지목이다.
+⛔\textbf{그러나 「단일 상수」가 아니다} --- 그 한 팔도 맵의 칸 크기$\cdot$사전 밴드$\cdot$
+연마 단계의 물리 스텝을 \emph{함께} 옮긴다. 정본 표현은
+\textbf{``단일 \emph{서브시스템}(조건화 맵)의 절대 스케일''} 이다.
+그리고 \textbf{두 번째 축}(맵의 칸 크기만)도 문턱에 \emph{닿는다}($\TTwelveMapcell$,
+$p = \TTwelveMapcellP$) ⟹ 판정 \texttt{MULTIPLE-AXES-CARRY}.
+⚠★\textbf{라벨이 한 블록 차이로 뒤집힌다} --- 그 계수가 가족 문턱과 \emph{같으므로},
+한 블록만 반대였다면 라벨은 \emph{단일 축}이 되었을 것이다. 이 사실 없이 라벨을 인용하지 않는다.
+
+⛔\textbf{나머지 여섯 축의 널을 \emph{``효과가 없다''}로 읽지 않는다.} 중복 제거 문턱
+$\TTwelveDedup$ $\cdot$ 최소 파수 간격 $\TTwelveMindk$ $\cdot$ 성장 격자
+$\TTwelveGrowgrid$ $\cdot$ 변수투영 학습률 $\TTwelveVplr$ $\cdot$ 맵 수심
+$\TTwelveMapdepth$ $\cdot$ 급경사도 상한 $\TTwelveSteep$ 은 전부
+\textbf{가족 문턱 $\TTwelveSecThresh$ 에 미달}일 뿐이다 --- 이 가족의 최소검출효과는
+$q_{80} = \TTwelveSecMDE$ 이므로 \textbf{참 승률 $0.70$ 짜리 축을 $77\%$ 확률로 놓친다}.
+⛔\textbf{특히 최소 파수 간격 축은 「지렛대 부족」 후보이지 「효과 없음」이 아니다} ---
+그 팔은 배포 팔과 \textbf{비트 동일한 블록}을 다수 갖는다(개입이 실제로 다른 결과를 낸
+블록이 $\TTwelveMindkDiff$ 뿐이다) ⟹ 그 계수는 사실상 배포 앵커($\TTwelveAnchorShip$)의
+재인쇄다. ⛔\textbf{이 배치는 \emph{독립 확증}이 아니다} --- 앵커 네 팔의 값이 알려진
+\emph{노출된} 표본 위의 확증이며, \emph{blind}$\cdot$\emph{out-of-sample} 이라 쓰지 않는다.
+⛔맵 수심 축과 급경사도 축에는 회수율을 인쇄하지 않는다(스케일 축이 아니다), 그리고
+⛔회수율을 팔 사이에 더하지 않는다.
+
+% ★CORRECTED 2026-09-05: 초판 제목 *"무엇 **때문이 아닌가**"* 는 verdict 이 금지한 읽기다
+%   (⛔"수심은 원인이 아니다"). 제목을 **측정된 것**으로 바꾼다 --- 문턱 미달 + 바닥 안.
+\paragraph{★\texttt{T13-DEPTHFIX} --- 그 안의 한 후보를 고쳐도 \emph{검출되지 않는다}}
+조건화 맵을 만드는 코드가 수심을 \textbf{$50$\,m 로 하드코딩}하므로 설정 수심이 학습
+경로에 한 번도 닿지 않는다 --- 이 코퍼스는 심해라 \textbf{배포 팔만} 디포커스되는
+\emph{비대칭} 교락이다. 그것을 고친 하네스 처치(\texttt{FIX})를 원 표본 $24$ 블록과
+\textbf{신규 $28$ 블록}에 걸었다(게이트 $\TThirteenGates$, $\TThirteenRows$ 행).
+결과는 \textbf{$\TThirteenPrimary$} 로, 결과 \emph{이전에} 동결한 두 문턱
+(도움 $\TThirteenThreshWin$ $\cdot$ 해침 $\TThirteenThreshHurt$) \emph{사이}에 떨어진다.
+무기술 기준 대비로도 $\TThirteenFixZero$ 로 문턱에 못 미친다(배포 팔은
+$\TThirteenShipZero$).
+★\textbf{그리고 이 배치는 \emph{기술적 등가문}을 결과 전에 갖고 있었다} --- 같은 처치를
+재라벨 좌표에 걸어 만든 \textbf{섭동 잡음 바닥}(중앙 상대 $\TThirteenFloor$)과 비교하면
+관측된 효과($\TThirteenEffect$)가 그 바닥 \emph{안}이다 ⟹ 판정
+\texttt{FIX-UNDETECTED (WITHIN-PERTURBATION-FLOOR)}.
+⛔\textbf{이것을 \emph{``수심은 원인이 아니다''}$\cdot$\emph{``교락은 무해하다''}$\cdot$
+\emph{``무효과가 확증되었다''}로 읽지 않는다} --- 검정력의 진술이고, 최소검출효과는
+$q_{80} = \TThirteenMDE$ 이며 계수 $\TThirteenUnrejLo$--$\TThirteenUnrejHi$ 는
+\textbf{어떤 자료로도 기각할 수 없다}.
+⛔⛔\textbf{그리고 \emph{``\texttt{T12} 와 \emph{독립적으로} 같은 결론에 왔다''}는
+거짓이므로 쓰지 않는다} --- 원 표본 층의 처치 행이 \texttt{T12} 의 맵 수심 팔과
+\textbf{비트 동일}이다(같은 시드로 같은 처치를 두 번 돌렸다). 정확한 분해는
+\textbf{$\TThirteenReread$(재판독) $+$ $\TThirteenFresh$(신규)} 이고, 신규 절반만 보아도
+라벨은 바뀌지 않는다.
+⛔\texttt{FIX} 는 \textbf{하네스 처치}이므로 \textbf{배포 권고가 아니며}, 그 팔의 절대
+오차를 인용하지 않는다. ⛔\textbf{또한 이 널을 \texttt{T11} 판정의 철회로 읽지 않는다}
+--- 이 배치는 재라벨과 수리를 맞대어 검정하지 않았다.
+
+\paragraph{⛔\texttt{T14-AUTOSCALE} --- \textbf{차단되었다}(판정 없음)}
+남은 질문은 \emph{``장면마다 그 스케일을 참값 없이 고를 수 있는가''} 였다. 관측만 보고
+배율을 정하는 규칙 둘을 결과 $0$ 행 시점에 동결하고, 그중 하나가 만족해야 할
+\textbf{등변성}(장면 파수를 $c$ 배 하면 규칙의 배율이 정확히 그만큼 따라와야 한다)을
+\textbf{차단 게이트}로 걸었다. \textbf{그 게이트가 발화했다}($\TFourteenGates$;
+차단자 $\TFourteenBlocker$) ⟹ ★\textbf{이 배치는 라벨을 내지 않는다}.
+⛔\textbf{따라서 라벨도, 그 배치의 부분 통계(어느 팔의 승수$\cdot$회수율$\cdot$배율 스윕)도
+인용하지 않는다} --- 차단된 배치의 수는 판정을 만들지 못한다.
+⚠\textbf{차단의 사유는 기록되어 있다}: 두 규칙 중 대역폭에 기대는 쪽이
+\textbf{분해능 한계 근처에서 동작한다} --- 그 규칙의 $1$단 격자에 대한 여유
+$k_p/\Delta k_1$ 이 중앙 $\TFourteenBandMed$, \textbf{최소 $\TFourteenBandMin$}
+(기록 전용 게이트) 이라 장면 파수를 절반으로 줄이면 규칙이 무너진다.
+⛔음성 방향으로도 읽지 않는다 --- \emph{``자동 선택은 불가능하다''}가 아니며, 이 설계의
+최소검출효과는 $q_{80} = \TFourteenMDE$ 다.
+⟹ ★\textbf{이 사슬에서 자동화는 \emph{미결}이고, 그 미결은 사전등록된 차단 게이트가
+\textbf{결과를 본 뒤가 아니라 결과 앞에서} 만든 것이다.}
+
+\paragraph{✅이 네 배치가 남기는 인용 가능한 단서}
+\begin{itemize}
+  \item \textbf{앵커가 사슬 전체를 잇는다} --- 뒤 세 배치가 앞 배치의 배포 팔 행을
+        \textbf{비트 단위로 재현}한다(게이트 이름 \texttt{G-ANCHOR*}) ⟹ 네 배치가
+        같은 구성을 재고 있다는 것이 주장이 아니라 실행 증명이다.
+  \item \textbf{배포 가능한 역변환 경로가 작동한다} --- 재라벨 좌표에서 원 단위 원자를
+        되뽑는 두 경로의 필드 차이가 위반 $\TInvert$.
+  \item \textbf{규칙이 표적을 훔쳐보지 않는다} --- 관측 배열만 별도 프로세스에 넘겨
+        규칙을 재실행해도 배율이 비트 동일하다(위반 $\TSBlind$; 소스 검사가 아니라
+        \emph{행동} 검사다).
+  \item \textbf{배포 팔의 무기술은 세 시드에서 재현된다} --- 여집합 $28$ 블록에서
+        $\TTwelveHeldShip$ $\cdot$ $\TThirteenFreshShipZero$ $\cdot$
+        $\TFourteenShipZero$. ⚠단 그 층은 원 표본과 \textbf{모집단이 다르므로}
+        ($H_s < 2.0$\,m 인 블록이 그 층에는 셋뿐이다) 두 층의 계수를 직접 비교하지 않는다.
+\end{itemize}
+
+\paragraph{⛔범위와 동반 공시}
+⛔\textbf{완전 blind 가 아니다} --- 사전감사 스모크가 배포 팔의 무기술을 먼저 보았고
+(그 파일들은 표본에서 기계로 배제된다), \texttt{T12} 이후는 앵커 값이 알려진 표본 위에 선다.
+⚠\textbf{한 주기 조건의 진술이다} --- 판정 층의 첨두주기가 전 파일 $10$\,s 이므로
+변하는 해상 파라미터는 유의파고 하나뿐이고, ⛔\textbf{층별(유의파고$\cdot$각도) 계수는
+기술통계이며 라벨을 만들지 않는다}.
+⚠\textbf{예산이 비대칭이다} --- 제안 단계는 프레임당 $8{,}000$ 관측 가운데 캡
+$400$ 만 쓴다(\emph{``고른 $400$''}과 \emph{``있는 것 전부''}는 다르다).
+⚠\textbf{학습 경로에 닿기 위해 참값 자리에 \emph{상수} 장을 넣었다} --- 실측 게이트는
+참값 유무만 보고 경로를 정하므로(\S\ref{sec:init-bank}) 그 상수는 표면에 대한 정보를
+$0$ 비트 담으며, 게이트가 매 행에서 그 사실을 되읽는다 ⟹ \textbf{누출이 구조적으로
+불가능하다}. ⛔단 \emph{``게이트에게 합성이라고 말해 준다''}는 사실 자체는 공시 대상이다.
+⛔\textbf{그 아카이브에는 생성 solver 를 명시한 문서가 없으므로} 이 코퍼스를
+\emph{``HOS''}$\cdot$\emph{``완전 비선형''}이라 부르지 않는다.
+⛔\textbf{저들 논문의 수치와 비교하지 않으며}(채점$\cdot$격자$\cdot$기준이 다르다),
+⛔\textbf{제3자 재구성기를 우리 밀도에서 잰 별개 배치와 대각선으로 비교하지 않는다}.
+⛔\textbf{벽시계 시간을 팔 사이에 비교하지 않는다}(선형대수 라이브러리의 스레드 사용이
+팔마다 다르다).
 
 \subsection{에피소드별 상세 결과}
 \label{sec:per_episode}
@@ -9954,8 +10267,24 @@ LiDAR 거리 & 10--50\,m & 10--250\,m & 시뮬레이션의 1/5 \\
 \end{tabular}
 \end{table}
 
-\WS{}는 무차원 파라미터(파수, 분산관계)를 직접 추정하므로
-스케일 효과의 영향은 제한적이다.
+% ★CORRECTED 2026-09-05 (T11 + T12 + T14): 종전 문안은 *"무차원 파라미터를 직접
+%   추정하므로 스케일 효과의 영향은 제한적이다"* 였다. ⛔셋이 틀렸다: ①파수는 무차원이
+%   아니다(rad/m) ②배포 학습 경로는 **절대** 파수 상수를 갖는다(같은 장 §제안기 절이
+%   스스로 적는다) ③그 절대 스케일 의존이 2026-09-04 에 **개입으로 측정**됐다.
+%   ⛔"자동 스케일이 된다" 금지 · ⛔T14 라벨·부분 통계 금지(그 배치는 차단됐다).
+%   근거: verdict_t11.json · verdict_t12.json · verdict_t14.json (blocked_by=G-EQUIVAR)
+⚠★\textbf{스케일 효과는 팔에 따라 다르며, 제안 표현에 대해서는 ``제한적이 아니다.}
+파수는 무차원이 아니고(rad/m), 배포 학습 경로는 \emph{절대} 파수 상수(조건화 지도의
+상한과 체크포인트 정규화 상수, \S\ref{sec:pipeline})를 가지므로 스케일에 불변이 아니다
+--- 제3자 참값 코퍼스에서 단위만 바꾸는 \emph{사고실험}으로 좌표를 재라벨하면 같은 팔이
+무기술($\TElevenShip$)에서 $\TElevenPrimary$ 로 바뀌고, 조건화 지도의 절대 스케일 하나만
+옮겨도 $\TTwelvePrimary$ 다(\S\ref{sec:results_t11}; ⛔그 팔도 여럿을 함께 옮기므로
+\textbf{「단일 상수」가 아니다}). 이 표의 수조 첨두주기는 그 지도의
+상한 \emph{밖}에 있는 첨두 파수를 만든다.
+⚠\textbf{단 수조 LiDAR 입력에는 참값이 없어 실측 게이트가 격자 기반 경로로 보내며}
+(\S\ref{sec:init-bank}), 그 경로는 추정된 첨두 파수에 \emph{상대적인} 뱅크를 쓰므로 스케일
+의존이 다를 수 있다 --- ⛔\textbf{그것은 측정되지 않았다}(참값 없이 배율을 고르는 규칙을
+재려던 배치는 자기 검증 게이트에서 차단되어 판정을 내지 않았다).
 다만, LiDAR 거리 해상도($\sim$1\,cm)와 파고(수\,cm)가 같은 차수이므로
 신호 대 잡음비(SNR)가 실선 대비 낮아질 수 있다.
 
@@ -10175,7 +10504,9 @@ nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
 % 목록과 어긋나는 것은 이 저장소가 반복해서 대가를 치른 "문서가 절반만 따라왔다" 부류다.
 % CORRECTED 2026-08-28 (M-8b): 항목이 넷에서 다섯이 되었다. 개수 표기가 목록과 어긋나는
 % 것은 이 저장소가 반복해서 대가를 치른 "문서가 절반만 따라왔다" 부류다.
-결론은 다섯이다.
+% CORRECTED 2026-09-05 (T11--T14): 항목이 다섯에서 여섯이 되었다. 개수 표기가 목록과
+% 어긋나는 것은 이 저장소가 반복해서 대가를 치른 "문서가 절반만 따라왔다" 부류다.
+결론은 여섯이다.
 \begin{itemize}
   \item \textbf{제안하는 격자 비의존 표현은 실측 입력에서 기술을 보이지 않는다}
         (전방 $1$--$3$\,s $36$ 창 중 $12$). 이는 개입 부재에 의한 것이 아니며
@@ -10361,6 +10692,30 @@ nRMSE(0.218--0.219)를 달성하여 표현의 물리적 충실도를 확인.
         (구조적 무연산). ⚠\textbf{이 분해는 새 실험이 아니라 동결 자료의 재분석이고
         blind 가 아니다} --- 작성자는 시작 시점에 끝점이 갈린다는 사실을 알고 있었으므로
         ⛔\emph{``독립 확증''}이라 부르지 않는다.
+  % ADDED 2026-09-05 (T11 + T12 + T13 + T14): ★결론의 이 목록은 전부 **실측** 자료에
+  % 대한 것이고, 그 앞의 소거는 전부 **우리 코드가 만든 참값** 위에 있었다. 남의 참값
+  % 위에서 배포 팔을 돌린 사슬이 **두 번째 음성**을 만든다 --- 독자가 *"합성이면 된다"*
+  % 로 읽는 것을 막는다. ⛔단 이 음성은 **기준선 대비가 아니라 제로필드 대비**이고 관측
+  % 기하가 다르므로 헤드라인을 철회하지 않는다. ⛔T14 라벨·부분 통계 금지 ·
+  % ⛔음성 축을 "무죄" 로 읽기 금지(MDE 병기) · ⛔"저들보다 낫다" 금지(외부 방법 팔 0개).
+  % 근거: verdict_t11/t12/t13/t14.json (§sec:results_t11)
+  \item ★\textbf{[2026-09-05] 그리고 \emph{우리가 만들지 않은} 합성 자료에서도 배포 팔은
+        무기술이며, 그 실패에는 \emph{자리}가 붙는다.} 독립 연구가 공개한 제3자 참값
+        코퍼스에서 배포 학습 팔은 블록별 제로필드를 넘지 못하나($\TElevenShip$), 참
+        파수를 받은 오라클은 넘고($\TElevenOracle$) \textbf{정보는 관측에 있으며},
+        단위만 바꾸는 \emph{사고실험}으로 좌표를 분산관계 보존 재라벨하면 같은 팔이
+        $\TElevenPrimary$ 로 넘는다 ⟹ 실패는 \textbf{배포 추정기의 \emph{절대 스케일}
+        설계 범위}로 귀속된다(\S\ref{sec:results_t11}). 그 스케일은 \emph{조건화 지도}라는
+        단일 서브시스템 안에서 재현되나($\TTwelvePrimary$; 표본과 겹치지 않는 $28$ 블록
+        $\TTwelveHeld$) ⛔\textbf{「단일 상수」가 아니고}, 그 안의 한 후보(지도가 보는
+        수심)를 수리해도 효과는 \textbf{검출되지 않으며}($\TThirteenPrimary$; 최소검출효과
+        $q_{80} = \TThirteenMDE$ --- ⛔\emph{``원인이 아니다''}가 아니라 검정력의 진술이다),
+        참값 없이 그 배율을 고르는 규칙은 \textbf{사전등록된 차단 게이트가 막아 판정이
+        없다}(최소검출효과 $q_{80} = \TFourteenMDE$).
+        ⛔\textbf{이 음성은 헤드라인을 철회하지 않는다} --- 기준선 대비가 아니라 제로필드
+        대비이고 관측 기하가 다르며, \textbf{외부 방법 팔은 $0$개}다. ⚠그리고 그 코퍼스의
+        첨두주기는 학습 밴드 \emph{안}이므로 ⛔\emph{``학습 사전의 파장 밴드}로도 읽지
+        않는다 --- 이것은 척추 진술(\S\ref{sec:boundary})과 \textbf{정합}한다.
 \end{itemize}
 ⚠\textbf{[범위]} 사이트가 $4$곳뿐이므로 사이트 수준으로 일반화하지 않는다. 또한 보유
 실측 자료는 전부 고정 관측소이므로, 이동 플랫폼에서의 조우 예보 갭은 이 자료로 닫히지 않는다.

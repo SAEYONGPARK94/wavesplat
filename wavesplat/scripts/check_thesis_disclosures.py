@@ -51,7 +51,10 @@ def sections(text):
     parts, cur, title = [], [], '<frontmatter>'
     for line in text.split('\n'):
         env = re.match(ABS, line)
-        if re.match(r'\\(sub)?section\*?\{|\\chapter\*?\{', line) or env:
+        # ⛔[2026-09-05 적대적 검사 MINOR 9] 초판은 `\subsubsection` 과 **들여쓴** 제목을
+        #   경계로 세지 않았다 ⟹ 같은 편집이 `\subsection` 이면 스코프가 갈리고
+        #   `\subsubsection` 이면 안 갈리는 **비일관**. 둘 다 경계로 센다.
+        if re.match(r'\s*\\(?:sub)*section\*?\{|\s*\\chapter\*?\{', line) or env:
             parts.append((title, '\n'.join(cur)))
             title = line.strip()[:60] if not env else '<' + env.group(1) + '>'
             cur = []
@@ -59,6 +62,105 @@ def sections(text):
             cur.append(line)
     parts.append((title, '\n'.join(cur)))
     return parts
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ★★[2026-09-05] 적대적 검사(fresh lens)가 이 검사기에서 **BLOCKER 3 + MAJOR 5** 를 냈다.
+#   아래 둘은 그 수리다. ⛔둘 다 「검사기 자신의 실패 모드」에 대한 것이다.
+#
+# (A) **오탐 방어** --- *"있는 것을 없다고"* 는 *"없는 것을 있다고"* 만큼 나쁘다.
+#     실증된 오탐 10건: `\emph{}` 를 떼거나 붙이면 · 조사를 `아니다→아니고` 로 바꾸면 ·
+#     `단일요인→단일 요인` 으로 띄면 · **한국어 어절 안에서 줄바꿈**이 나면 ·
+#     LaTeX `%` 줄이음(CJK 에서 공백 억제 관용구)을 쓰면 규칙이 「누락」을 외쳤다.
+#     ⟹ **평문 자구**는 글자 사이에 「공백·글꼴명령·닫는 중괄호」가 끼어도 맞도록 컴파일한다.
+#     ⛔매크로 이름(`\\TFifteen...`)과 정규식은 **그대로** 엄격히 본다.
+#
+# (B) **우회 방어** --- 트리거가 전부 매크로 이름이라, 같은 수를 **리터럴로** 적으면
+#     33규칙 중 16이 침묵했다(실증). 인쇄되는 수는 한 글자도 안 바뀐다.
+#     ⟹ 트리거를 `thesis/t11t14_constants.tex` **에서 생성**해 매크로 이름과 **그 값**을
+#     동시에 잡는다. ⛔값이 `23/64` 처럼 **변별적일 때만** 넣는다(맨 정수는 오탐 공장이다).
+_GAP = r'(?:\s|\\(?:emph|textbf|texttt|textit|mathbf|mathrm)\{|\})*'
+_META = set('|()[]*+?^$.')
+
+
+def _tolerant(lit):
+    """평문 자구 → 마크업·줄바꿈에 관대한 정규식."""
+    return _GAP.join(re.escape(c) for c in lit if not c.isspace())
+
+
+def compile_need(pat):
+    """매크로/정규식은 엄격히, **평문 자구**는 관대하게."""
+    if '\\' in pat or any(c in _META for c in pat):
+        return re.compile(pat)
+    return re.compile(_tolerant(pat))
+
+
+_NEED_CACHE = {}
+
+
+def need_re(pat):
+    if pat not in _NEED_CACHE:
+        _NEED_CACHE[pat] = compile_need(pat)
+    return _NEED_CACHE[pat]
+
+
+CONSTS = os.path.join(ROOT, 'thesis', 't11t14_constants.tex')
+# ⛔맨 정수(`64`·`41`·`2`)는 트리거로 쓰지 않는다 --- 문서 어디에나 있다.
+_DISTINCT = re.compile(r'\d+/\d+|[+-]?\d+\.\d+\\%|0\.\d{3,}|\d+\.\d+\\%')
+
+
+def _macro_values():
+    if not os.path.exists(CONSTS):
+        return {}
+    out = {}
+    for m in re.finditer(r'\\newcommand\{\\([A-Za-z]+)\}\{([^}]*)\}', open(CONSTS, encoding='utf-8').read()):
+        out[m.group(1)] = m.group(2)
+    return out
+
+
+def _val_alts(v):
+    """인쇄된 **값**을 잡는 대안들 --- 리터럴 우회를 막는다."""
+    alts = [re.escape(v)]
+    m = re.fullmatch(r'(\d+)/(\d+)', v)
+    if m:
+        w, n = m.groups()
+        alts.append(rf'\$?{w}\s*/\s*{n}')                    # 23/64 · $23/64$
+        alts.append(rf'\${n}\$[^$]{{0,8}}중\s*\${w}\$')      # $64$ 중 $23$
+    return alts
+
+
+# ⚠**값 대안은 공짜가 아니다.** 첫 구현이 `63/64`·`12/32`·`+8.3\\%` 로 **무관한 절 셋에서
+#   오탐 13건**을 냈다 --- 같은 리터럴이 다른 배치 자리에도 있기 때문이다.
+#   ⟹ 값 대안은 **충돌하지 않을 때만** 넣고, 넣지 못한 것은 `[note]` 로 **인쇄한다**
+#   (⛔침묵시키지 않는다 --- 그 값은 리터럴 우회에 여전히 열려 있다).
+SKIPPED_VALUE_ALTS = []
+_SEC_CACHE = {}
+
+
+def _doc_sections():
+    if 'v' not in _SEC_CACHE:
+        _SEC_CACHE['v'] = [body(c) for _, c in sections(open(TEX, encoding='utf-8').read())]
+    return _SEC_CACHE['v']
+
+
+def trig(*names):
+    """매크로 이름 + (변별적이고 **충돌하지 않으면**) 그 값으로 트리거를 만든다."""
+    vals, alts = _macro_values(), []
+    for n in names:
+        mac = r'\\' + n + r'(?![A-Za-z])'
+        alts.append(mac)
+        v = vals.get(n, '')
+        if not _DISTINCT.fullmatch(v):
+            continue
+        cand = _val_alts(v)
+        # ⛔그 리터럴이 **매크로가 없는 절**에도 나오면 오탐 공장이다 --- 통째로 버린다.
+        clash = any(re.search(a, sec) and not re.search(mac, sec)
+                    for a in cand for sec in _doc_sections())
+        if clash:
+            SKIPPED_VALUE_ALTS.append(f'{n}={v}')
+        else:
+            alts += cand
+    return '|'.join(alts)
 
 
 # (이름, 트리거 정규식, 요구 정규식 목록(하나라도 있으면 통과), 사유)
@@ -197,6 +299,170 @@ RULES = [
      r'\\TFourteenBlocker',
      [r'\\TFourteenMDE'],
      '⛔`T14` 는 차단된 배치다 — 라벨·부분 통계 금지, 음성 읽기에는 MDE(q80) 병기 의무'),
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # ★★[2026-09-05] `T15-HOMEREG` + `T16-BANDFIX`.
+    # ⛔**계기**: 같은 두 배치가 `paper/waveprior.tex` 에는 **26 규칙**으로 실렸는데
+    #   학위논문 쪽은 **0 규칙**이었다 ⟹ 원고가 학위논문보다 **더 많이 공시**하는 상태.
+    #   실측된 누락 다섯 = 중간 열람 · 게이트 완화 · 속성 노출 36/60 · 스윕 부분층 ·
+    #   개입 잡음 바닥. ★공시는 기계가 보지 않으면 **한 번의 편집**으로 사라진다
+    #   (이 저장소는 같은 문장을 그렇게 세 번 잃었다).
+    # ⚠규칙마다 요구는 **하나**다 --- `need` 는 OR 이므로 둘을 넣으면 하나를 지워도 통과한다
+    #   (이 파일의 `REight-층갈림`·`RSeven-범위` 가 그 항진을 이미 한 번 고쳤다).
+    # ⚠이 검사기에는 논문판의 `MULTI_RULES`(크기 결합 금지)가 없다. `\TFifteenRel` 은
+    #   **해침** 크기이고 이득 크기 옆에 놓이면 뺄셈을 부른다 ⟹ 현재 그 매크로는
+    #   `sec:results_t16` 한 절에만 있고 그 절에 이득 크기가 **0개**임을 확인했다.
+    #   ⛔다른 절로 옮기려면 그때 결합금지 규칙을 함께 만들어라.
+    # ═════════════════════════════════════════════════════════════════════════
+    # ★T15 의무 묶음 --- 트리거는 **인용가치 있는 T15 계수 전부**다(적대적 검사 BLOCKER 2:
+    #   `\TFifteenCtrl`(63/64)·`\TFifteenRel`(+12.2%) 단독 인용이 무규칙이었다).
+    #   ⚠논문판 트리거가 `…CrowdedWin|…Rel` 인데 학위논문판이 `…Crowded` 뿐이었다(회귀).
+    ('TFifteen-학습봉투', trig('TFifteenCrowded', 'TFifteenRel', 'TFifteenCtrl',
+                          'TFifteenCtrlSparse', 'TFifteenLabel'),
+     [r'학습\s*(?:분포\s*)?봉투'],
+     '⛔자국 코퍼스는 **배포 체크포인트의 학습 봉투**다 — '
+     '"out-of-sample"·"held-out"·"blind" 자구 금지를 같은 절에'),
+    ('TFifteen-문턱정확', trig('TFifteenCrowded', 'TFifteenRel'),
+     ['정확히 만나'],
+     '★계수가 해침 문턱을 **정확히** 만난다(w == thresh_hurt) — 편안하게 읽히지 않도록 '
+     '그 사실을 같은 절에'),
+    ('TFifteen-이탈공시', trig('TFifteenCrowded', 'TFifteenRel', 'TFifteenCtrl',
+                          'TFifteenLabel'),
+     [r'\\TFifteenSmokeExposed'],
+     '⛔**사전등록 이탈** — 스모크가 판정 표본 안 2블록을 먼저 봤다(혼잡은 등록 예측과 '
+     '반대 방향). 그 공시 없이 PRIMARY 계수 인용 금지'),
+    ('TFifteen-중간열람', trig('TFifteenCrowded', 'TFifteenRel', 'TFifteenCtrl',
+                          'TFifteenLabel'),
+     [r'\\TFifteenPeekWin'],
+     '⚠본실행 도중 PRIMARY 통계량의 **중간집계를 봤다**(`NOTE_INTERIM_PEEK.md`) — '
+     '저장소 규율은 *"봤지만 안 말한다 는 공시가 아니다"* 다'),
+    ('TFifteen-열람양성대조', trig('TFifteenPeekWin'), [r'\\TFifteenPeekCtrl'],
+     '⛔중간 열람에서 **보인 세 계수 전부**를 적어라 — 양성 대조가 빠졌다'),
+    ('TFifteen-열람바닥', trig('TFifteenPeekWin'), [r'\\TFifteenPeekFloor'],
+     '⛔중간 열람에서 **보인 세 계수 전부**를 적어라 — 바닥 팔이 빠졌다'),
+    ('TFifteen-배포구성아님', trig('TFifteenCrowded', 'TFifteenRel', 'TFifteenCtrl',
+                            'TFifteenLabel'),
+     ['배포 구성이 아니'],
+     '⛔`T15` 의 어떤 처치 팔도 배포 구성이 아니다 — 배포 권고로 읽히지 않게 병기'),
+    # ⛔[BLOCKER 3] 같은 음성을 **p 매크로로만** 인용하면 MDE 병기가 증발했다(실증).
+    ('TFifteen-MDE', trig('TFifteenSparse', 'TFifteenSparseP'), [r'\\TFifteenMDE'],
+     '⛔희소 층의 미검출을 *"무해하다"* 로 읽지 못하게 — MDE(q80) 병기 의무'),
+    ('TFifteen-바닥', trig('TFifteenRel', 'TFifteenDoseRel', 'TFifteenSweepLoRel',
+                        'TFifteenSweepMidRel', 'TFifteenSubFTwoRel'),
+     [r'\\TFifteenFloor(?![A-Za-z])'],
+     '⛔크기 인용에는 **결과 전 고정된 개입 잡음 바닥** 병기 의무 — 효과가 그 바닥 '
+     '바로 바깥이다'),
+    ('TFifteen-바닥이빌려온것', trig('TFifteenFloor'), [r'\\TFifteenFloorSparse'],
+     '⛔잡음 바닥은 **빌려온 것**이고 희소 층에서는 성립하지 않는다(도움 문턱을 정확히 '
+     '만난다) — 두 계수 병기 의무'),
+    # ⛔⛔스윕 세 팔만 보면 단조지만 PRIMARY `f=2` 를 같은 32 부분층에 놓으면 깨진다.
+    #   ⚠트리거에 **승수**(9/32 등)를 넣는다 --- 논문판에는 있고 학위논문판에 빠져 있었다.
+    ('TFifteen-스윕비단조',
+     trig('TFifteenDoseRel', 'TFifteenSweepLoRel', 'TFifteenSweepMidRel',
+          'TFifteenSubFTwoRel', 'TFifteenDose', 'TFifteenSweepLo',
+          'TFifteenSweepMid', 'TFifteenSubFTwo'),
+     ['단조가 아니'],
+     '⛔스윕 사다리는 **단조가 아니다**(f=2 를 같은 부분층에 넣으면 깨진다) — 병기 의무'),
+    ('TFifteen-스윕표본',
+     trig('TFifteenDoseRel', 'TFifteenSweepLoRel', 'TFifteenSweepMidRel',
+          'TFifteenSubFTwoRel', 'TFifteenDose', 'TFifteenSweepLo',
+          'TFifteenSweepMid', 'TFifteenSubFTwo'),
+     ['PRIMARY 표본에서 돌지 않는다'],
+     '⚠스윕 세 팔은 **32 부분층**에서만 돈다 — PRIMARY(n=64) 계수와 표본이 다르다'),
+    # ⛔[MAJOR 6] 초판은 단일 일반 토큰 `재집계` 를 요구했다 --- 그 낱말은 학위논문에
+    #   33회 나오고, **정반대 뜻의 문장**이 의무를 대신 만족시키는 것이 실증됐다.
+    #   ⟹ **주장 전체**를 요구한다.
+    ('TFifteen-스윕재집계', trig('TFifteenSubFTwo', 'TFifteenSubFTwoRel'),
+     [r'동결 verdict 에[^.]{0,30}?없는\s*\\emph\{재집계\}', r'없는 \\emph\{재집계\}'],
+     '⛔`f=2` 의 부분층 값은 동결 verdict 에 **없다** — 재집계임을 병기해야 한다'),
+    # ⛔[MAJOR 5] *"외부 기준선 행이 0개"* 는 이 문서의 집필 관용구라 한 배치의 공시가
+    #   다른 배치의 무공시를 면허했다(실증: 한쪽만 지워도 누락 0). ⟹ **배치별로 쪼갠다**.
+    ('TFifteen-외부기준선없음', trig('TFifteenCrowded', 'TFifteenRel', 'TFifteenLabel'),
+     ['여기에도 \\\\textbf\\{외부 기준선 행이'],
+     '⛔`T15` 도 외부 기준선 행 **0개** — *"저들보다 낫다"* 로 읽히지 않게 병기'),
+    ('TSixteen-외부기준선없음', trig('TSixteenSkill', 'TSixteenOldRule', 'TSixteenPosCtrl'),
+     ['이 배치에도 \\\\textbf\\{외부 기준선 행이'],
+     '⛔`T16` 도 외부 기준선 행 **0개** — 비교자는 참 제로필드다'),
+    ('TSixteen-옛규칙', trig('TSixteenSkill', 'TSixteenPosCtrl'),
+     [r'\\TSixteenOldRule(?![A-Za-z])'],
+     '⛔`S` 축은 `SEC-E`(옛 규칙도 제로필드를 이긴다) 병기 없이 인용 금지 — '
+     '이긴 것은 *"자동 스케일"* 이지 *"밴드 수리"* 가 아니다'),
+    ('TSixteen-등변재규정', trig('TSixteenEquivarViol'), ['다시 규정된 것이지'],
+     '⛔`T14` 의 **그** 게이트가 아니다 — 저쪽 허용오차는 c=2.0 방향에만, 규약도 다르다'),
+    ('TSixteen-옛등변방향', trig('TSixteenEquivarOldDown'), [r'\\TSixteenEquivarOldUp'],
+     '⛔옛 규칙의 등변 편차는 **방향 의존**이다 — 한쪽만 인쇄하면 체리피킹이다'),
+    ('TSixteen-D축구동', trig('TSixteenLanding', 'TSixteenLandingP'),
+     [r'\\TSixteenDrive(?![A-Za-z])'],
+     '⛔`D` 축은 `D_drive`(중앙 |Δ ln s| 와 그 자) 병기 없이 인용 금지'),
+    ('TSixteen-D축부호', trig('TSixteenLanding', 'TSixteenLandingP'),
+     [r'\\TSixteenDrivePos'],
+     '⛔`D` 축의 구동량은 **부호가 섞인다**(+39/−21) — 그 분할 없이 인용 금지'),
+    ('TSixteen-D축MDE', trig('TSixteenLanding', 'TSixteenLandingP'),
+     [r'\\TSixteenLandingMDE'],
+     '⛔`D-TREATMENT-BELOW-SCALE` 를 *"수리가 무의미하다"* 로 읽지 못하게 — MDE 병기'),
+    # ★T16 의무 묶음 --- 트리거에 인용가치 높은 계수를 전부 넣는다(BLOCKER 2).
+    ('TSixteen-착지점아님', trig('TSixteenSkill', 'TSixteenOldRule', 'TSixteenPosCtrl',
+                           'TSixteenPriorD'),
+     ['착지점 진술이지 적응 진술이 아니다'],
+     '⚠규칙이 **읽는 양**이 코퍼스 상수다 ⟹ **착지점 진술이지 적응 진술이 아니다**'),
+    ('TSixteen-상수인것은읽는양', trig('TSixteenSkill', 'TSixteenOldRule'),
+     ['규칙이 읽는 양이 코퍼스 상수'],
+     '⛔상수인 것은 **규칙이 읽는 양**(1단 반경)이다 — *"규칙이 고르는 배율이 상수"* 는 '
+     '동결 행이 반증한다(`s_rule` 고유값 41/60 · 35/60)'),
+    ('TSixteen-배포권고아님', trig('TSixteenSkill', 'TSixteenOldRule', 'TSixteenPosCtrl',
+                            'TSixteenPriorD'),
+     ['배포 권고가 아니다'],
+     '⛔양성 라벨도 **필요조건 하나**다(단가·실측 경로·자국 무해성이 남는다)'),
+    ('TSixteen-blind아님', trig('TSixteenSkill', 'TSixteenOldRule', 'TSixteenPosCtrl',
+                            'TSixteenAttrExposed'),
+     ['완전 blind 가 아니다'],
+     '⚠설계자가 앞 배치의 개정문과 앵커 값을 읽은 상태에서 문턱을 잡았다 — 병기 의무'),
+    ('TSixteen-속성노출', trig('TSixteenSkill', 'TSixteenOldRule', 'TSixteenPosCtrl'),
+     [r'\\TSixteenAttrExposed'],
+     '⚠판정 60블록은 **성과** 미노출일 뿐 36개는 앞 배치가 **속성**을 열었다 — '
+     '*"아무도 열지 않은 신선한 블록"* 으로 읽히지 않게 그 계수를 같은 절에'),
+    ('TSixteen-속성정체', trig('TSixteenAttrExposed'), ['비선형성과 분산관계'],
+     '⛔열린 속성은 격자·기하가 아니라 **참값장의 비선형성·분산관계**다'
+     '(`gates_t16.exposed_blocks()` 축자) — 노출을 무해한 쪽으로 적지 마라'),
+    ('TSixteen-실측무언', trig('TSixteenSkill', 'TSixteenOldRule', 'TSixteenPosCtrl'),
+     ['말도 하지 않는다'],
+     '⛔이 배치는 배포 **합성 경로**를 잰다 — 실측 경로에 대해 아무 말도 하지 않는다'),
+    ('TSixteen-게이트항진', trig('TSixteenGates'), ['강도의 척도가 아니다'],
+     '⚠게이트 계수는 **강도의 척도가 아니다** — 배포 상수상 구조적으로 참인 항이 여럿이다'),
+    ('TSixteen-강건성아님', trig('TSixteenSkill', 'TSixteenOldRule', 'TSixteenPosCtrl'),
+     ['강건성이 아니다'],
+     '⛔잰 것은 **등변성과 격자 여유**이지 강건성이 아니다(verdict §9.3-18) — '
+     '*"새 규칙이 더 튼튼하다"* 로 읽히지 않게 병기'),
+    ('TSixteen-단일요인아님', trig('TSixteenSkill', 'TSixteenOldRule', 'TSixteenPosCtrl'),
+     ['단일요인이 아니'],
+     '⛔재척도는 **단일요인이 아니다**(verdict §9.3-3) — 기제 지목 금지를 같은 절에'),
+    ('TSixteen-비대칭교락', trig('TSixteenSkill', 'TSixteenOldRule', 'TSixteenPosCtrl'),
+     ['규칙이 움직이는 방향으로 비대칭'],
+     '⛔`d3_beamform_net` 의 하드코딩 수심이 **비대칭 교락**이다(verdict §9.3-4) — '
+     '스케일을 키우면 그 불일치도 줄어든다'),
+    ('TSixteen-사전확률', trig('TSixteenSkill', 'TSixteenOldRule', 'TSixteenPosCtrl'),
+     [r'\\TSixteenPriorD'],
+     '★설계가 결과 **전에** P(S 축 양성)≈1 · P(이 착지 라벨)=0.937 이라 적었다 — '
+     '⛔그 사실을 결과 뒤에 재서술하지 못하게 같은 절에 인쇄'),
+    ('TSixteen-차단게이트', trig('TSixteenGridTol', 'TSixteenGridMeas'),
+     ['차단 게이트다'],
+     '⛔`G-GRID` 는 `GATES_BLOCKING` 이다 — *"이 게이트를 빼도 나머지는 선다"* 는 거짓'),
+    ('TSixteen-게이트완화', trig('TSixteenGates'), ['허용오차가 완화되었다'],
+     '⛔`G-GRID` 허용오차가 **완화**됐다(개정문 2, 판정 자료 0행 시점) — 게이트 계수를 '
+     '인쇄하는 자리에 그 사실을 같이'),
+    ('TSixteen-학습분포유래', trig('TSixteenSkill', 'TSixteenOldRule', 'TSixteenPosCtrl'),
+     ['우리 학습 분포'],
+     '⚠규칙의 목표 상수는 **우리 학습 분포**에서 나온다(verdict §9.3-8) — '
+     '⛔*"제3자 자료가 규칙을 정했다"* 는 거짓'),
+    ('TSixteen-모집단', trig('TSixteenShipZero', 'TSixteenSkill'),
+     ['계수를 서로 비교하지 않는다'],
+     '⛔형제 배치(`T11`·`T14`)의 계수와 **직접 비교 금지** — 모집단이 다르다'),
+    # ⛔[백지 독자 B-1] (나)의 코퍼스가 인쇄되지 않으면 제목의 "자국" 때문에 독자가
+    #   같은 배포 팔의 63/64 승리와 16/60 패배를 **모순으로** 읽는다.
+    ('TSixteen-코퍼스명시', trig('TSixteenSkill', 'TSixteenShipZero'),
+     ['제3자 아카이브'],
+     '⛔`T16` 은 **자국이 아니라 제3자 아카이브**에서 쟀다 — 소절 제목의 "자국" 은 '
+     '(가)에만 걸린다. 그 사실 없이 이 계수를 (가)의 양성 대조 옆에서 읽으면 모순이다'),
 ]
 
 
@@ -248,7 +514,7 @@ def run(text):
             if not re.search(trig, b):
                 continue
             fired.append((name, title))
-            if not any(re.search(x, b) for x in need):
+            if not any(need_re(x).search(b) for x in need):
                 missing.append((name, title, why))
     return fired, missing
 
@@ -265,8 +531,8 @@ def selftest():
             continue
         forged = b
         for x in need:
-            forged = re.sub(x, 'XXFORGEDXX', forged)
-        if any(re.search(x, forged) for x in need):
+            forged = need_re(x).sub('XXFORGEDXX', forged)
+        if any(need_re(x).search(forged) for x in need):
             print(f'  ⛔A 실패 {name}: 근거를 지웠는데도 통과한다')
         else:
             a_ok += 1
@@ -275,6 +541,12 @@ def selftest():
             print(f'  ⛔B 실패 {name}: 트리거를 지웠는데 여전히 발동한다')
         else:
             b_ok += 1
+    # ★[2026-09-05] `TRIGGER_REGRESSION` 은 *"⛔지우지 마라"* 라 적혀 있으면서 **아무 데서도
+    #   쓰이지 않았다** --- 죽은 픽스처가 살아 있는 척했다. 여기서 실제로 쓴다.
+    tr = next((t for n, t, _, _ in RULES if n == 'BOne-사후작성'), None)
+    if tr is None or not re.search(tr, body(TRIGGER_REGRESSION)):
+        print('  ⛔D 실패 BOne-사후작성: 트리거 회귀 문자열을 더는 잡지 못한다')
+        a_ok = -1
     print(f'── 학위논문 공시 항진 검사 {"─" * 26}')
     print(f'  A 위조 {a_ok}/{len(RULES) - len(unfired)} · '
           f'B 침묵 {b_ok}/{len(RULES) - len(unfired)} · C 미검증 {len(unfired)}')
@@ -299,6 +571,11 @@ def main():
     if missing or pin:
         print(f'  [FAIL] 누락 {len(missing)} · 값 불일치 {len(pin)}')
         return 1
+    if SKIPPED_VALUE_ALTS:
+        u = sorted(set(SKIPPED_VALUE_ALTS))
+        print(f'  [note] 값 대안 미적용 {len(u)}건(리터럴 우회에 열려 있다): '
+              + ', '.join(u))
+        print('         ⚠사유 = 같은 리터럴이 매크로 없는 다른 절에도 있다(오탐 공장).')
     print(f'  [OK  ] {len(RULES)} 규칙 중 {len(fired)} 발동 · 누락 0 · 값 핀 일치')
     return 0
 

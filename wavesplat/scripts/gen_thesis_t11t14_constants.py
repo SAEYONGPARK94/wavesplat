@@ -145,6 +145,18 @@ def check_pins():
     eq('T15 희소', ratio(T15, 'primary.sparse.w', 'primary.sparse.n'), '31/64')
     # ★해침 문턱을 **정확히** 만났다는 것이 이 배치의 문면이다 --- 문턱이 움직이면 죽는다.
     eq('T15 해침 문턱', get(T15, 'primary.crowded.thresh_hurt'), 23)
+    # ★★[2026-09-05] **구조 핀** --- 학위논문 산문이 계수가 아니라 **관계**를 주장하는 자리.
+    #   ⛔계수보다 먼저 조용히 낡는 것이 이쪽이다(논문 생성기 `_t15_t16()` 과 같은 규약).
+    if int(get(T15, 'primary.crowded.w')) != int(get(T15, 'primary.crowded.thresh_hurt')):
+        bad.append('⛔"해침 문턱을 정확히 만난다" 가 거짓이 됐다 --- 그 자구를 고쳐라')
+    eq('T15 혼잡 등가(바닥 밖)', get(T15, 'equivalence.crowded.within_floor'), False)
+    eq('T15 희소 등가(바닥 안)', get(T15, 'equivalence.sparse.within_floor'), True)
+    # ⚠**바닥 팔이 희소에서 도움 문턱을 정확히 만난다** --- "빌려온 바닥" 문장의 하중이다.
+    if int(V(T15)['curve']['sparse']['FLOOR-VPLR']['w']) != int(get(T15, 'primary.sparse.thresh_help')):
+        bad.append('⛔바닥 팔이 희소에서 도움 문턱을 더는 정확히 만나지 않는다 --- 문안을 고쳐라')
+    eq('T15 스모크 노출 수', len(get(T15, 'smoke_exposed_blocks')), 2)
+    eq('T15 양성대조 혼잡 복제', get(T15, 'control.crowded.replicated'), True)
+    eq('T15 양성대조 희소 복제', get(T15, 'control.sparse.replicated'), True)
 
     # T16 --- 두 라벨의 결합. ⛔`BANDFIX-` 접두어는 폐기됐다(verdict §9.2-6b).
     eq('T16 라벨(S)', get(T16, 'label_S'), 'AUTOSCALE-BEATS-ZERO-BOTH-RULES')
@@ -152,13 +164,27 @@ def check_pins():
     eq('T16 게이트', get(T16, 'gates_pass'), '46/46')
     eq('T16 행수', get(T16, 'n_rows'), 366)
     eq('T16 차단', get(T16, 'blocked_by'), [])
-    # ★`T14` 를 막았던 등변성 게이트가 여기서는 통과한다 --- 그것이 이 배치의 존재 이유다.
+    # ★`T14` 를 막았던 것과 **같은 종류로 다시 규정된** 등변성 게이트를 통과한다
+    #   --- 그것이 이 배치의 존재 이유다. ⛔*"T14 의 그 게이트를 통과한다"* 라 적지 마라
+    #   (저쪽 허용오차는 `c=2.0` 한 방향에만 걸렸고 규약도 다르다 --- verdict §9.3-15·16).
+    #   ⚠이 주석 자신이 2026-09-05 적대적 심사에서 **정정을 되감는 자리**로 지목됐다.
     name, det = gate_detail(T16, 'G-EQUIVAR ')
     if '위반 0' not in det:
         bad.append(f'T16 G-EQUIVAR 가 더는 무위반이 아니다: {det}')
     # ★음성 읽기 차단: 옛 규칙도 제로필드를 이긴다(SEC-E). 이 값이 사라지면 문면이 거짓이 된다.
     eq('T16 SEC-E', ratio(T16, 'SEC.SEC-E AUTO-BAND<ZERO (★사다리 안 · 무보정).w',
                           'SEC.SEC-E AUTO-BAND<ZERO (★사다리 안 · 무보정).n'), '58/60')
+    # ★★[2026-09-05] 구조 핀 --- 산문이 주장하는 **관계** 셋.
+    eq('T16 배포 팔 유의열세', get(T16, 'sig_worse.SHIP'), True)
+    eq('T16 후보 유의열세 없음', get(T16, 'sig_worse.AUTO-BANDR'), False)
+    eq('T16 D 축 자보다 작음', get(T16, 'D_drive.T1_treatment_below_scale'), True)
+    eq('T16 앵커 등급', get(T16, 'anchor_grade'), 'T1')
+    # ⛔[2026-09-05 적대적 심사 m8] 산문이 *"기준은 $\\ln 1.05 = \\TSixteenDriveRef$"* 라
+    #   적는데 **`1.05` 자체는 아무 데도 핀돼 있지 않았다** --- 설계 기준이 1.10 으로 바뀌면
+    #   매크로만 움직여 **거짓 항등식**이 인쇄된다. 자를 산수로 붙든다.
+    import math as _math
+    if abs(float(get(T16, 'D_drive.ln105')) - _math.log(1.05)) > 1e-12:
+        bad.append('⛔`D_drive.ln105` 가 더는 ln(1.05) 가 아니다 --- 산문의 항등식을 고쳐라')
 
     if bad:
         raise AssertionError('⛔동결 판정과 어긋난다:\n  ' + '\n  '.join(bad))
@@ -184,6 +210,155 @@ def band_fragile():
     n = len(r)
     med = r[n // 2] if n % 2 else 0.5 * (r[n // 2 - 1] + r[n // 2])
     return f'{med:.2f}', f'{min(r):.2f}'
+
+
+def pct(x, signed=True):
+    """상대차를 백분율 문자열로. ⛔손으로 적지 마라 --- 부호가 논거의 절반이다."""
+    return (f'{x*100:+.1f}' if signed else f'{x*100:.1f}') + '\\%'
+
+
+def sweep_ladder():
+    """★스윕 **부분층 위의 `f=2`** --- ⛔동결 `verdict_t15.json` 에 **없는 수**다(재집계).
+
+    ⛔왜 필요한가(2026-09-05 적대적 심사 BLOCKER, 논문 쪽과 같은 사유):
+      원고 초판이 스윕 세 팔(√2 · 2√2 · 4)만 보고 *"배율이 커질수록 벌점이 **단조**
+      증가한다(용량--반응)"* 라 적었다. 그런데 **PRIMARY 처치 `f=2` 도 그 32블록에서
+      돌았고**, 그 값을 사다리에 넣으면 +14.1% → **+8.3%** → +22.9% → +31.0% 로
+      **단조가 깨진다**. ⟹ 세 팔만 고른 것이 자의적이었고 그 자의가 없는 주장을 만들었다.
+
+    ★자기검사 셋(어긋나면 죽는다):
+      · 부분층에서 **세 스윕 팔을 재계산해 동결 verdict 과 대조**한다(계수·중앙 상대차 전건)
+        ⟹ 부분층 식별이 옳다는 실행 증명이다.
+      · **사다리가 단조가 되면 죽는다** ⟹ 학위논문의 「단조가 아니다」 문장이 조용히 낡지 않는다.
+      · **절대 중앙값의 순위가 상대차의 순위와 같아져도 죽는다**(그 병기 문장의 근거다).
+    ⛔이 수는 **재집계**이므로 원고가 그 지위를 밝혀야 한다(선례 `W-15`).
+    """
+    import statistics as _st
+    d = os.path.join(TMP, 'T15_HOMEREG_2026-09-05')
+    rws = []
+    for f in ('results_t15_FULL.jsonl', 'results_t15_SUB.jsonl'):
+        with open(os.path.join(d, f), encoding='utf-8') as fh:
+            rws += [json.loads(x) for x in fh]
+    by, lay = {}, {}
+    for r in rws:
+        by.setdefault(r['block'], {})[r['arm']] = r['nrmse']
+        lay[r['block']] = r['layer']
+    sub = [b for b in by if lay[b] == 'crowded' and 'F4' in by[b]]
+    curve = V(T15)['curve']['crowded']
+    assert len(sub) == int(curve['F4']['n']), '⛔스윕 부분층 크기가 갈린다'
+
+    def stat(arm):
+        w = sum(1 for b in sub if by[b][arm] < by[b]['SHIP'])
+        rel = _st.median((by[b][arm] - by[b]['SHIP']) / by[b]['SHIP'] for b in sub)
+        med = _st.median(by[b][arm] for b in sub)
+        return w, rel, med
+
+    for arm in ('F1.414', 'F2.828', 'F4'):
+        w, rel, _ = stat(arm)
+        assert w == int(curve[arm]['w']), f'⛔{arm} 재집계 계수가 동결값과 다르다'
+        assert abs(rel - curve[arm]['median_rel']) < 1e-12, f'⛔{arm} 재집계 중앙값이 다르다'
+    order = ('F1.414', 'F2', 'F2.828', 'F4')
+    ladder = [stat(a)[1] for a in order]
+    assert not all(a < b for a, b in zip(ladder, ladder[1:])), \
+        '⛔스윕 사다리가 단조가 됐다 --- 학위논문의 「단조가 아니다」 문장을 다시 써라'
+    assert all(x > 0 for x in ladder), '⛔어떤 배율이 배포 팔을 이겼다 --- 문안을 다시 써라'
+    absm = [stat(a)[2] for a in order]
+    rank = lambda v: [i for i, _ in sorted(enumerate(v), key=lambda t: t[1])]
+    assert rank(ladder) != rank(absm), \
+        '⛔절대 중앙값 순위가 상대차 순위와 같아졌다 --- 그 병기 문장을 다시 써라'
+    w2, rel2, _ = stat('F2')
+    return {'TFifteenDoseN': str(len(sub)),
+            'TFifteenSweepLo': f"{curve['F1.414']['w']}/{curve['F1.414']['n']}",
+            'TFifteenSweepLoRel': pct(curve['F1.414']['median_rel']),
+            'TFifteenSubFTwo': f'{w2}/{len(sub)}',
+            'TFifteenSubFTwoRel': pct(rel2),
+            'TFifteenSweepMid': f"{curve['F2.828']['w']}/{curve['F2.828']['n']}",
+            'TFifteenSweepMidRel': pct(curve['F2.828']['median_rel']),
+            'TFifteenDoseRel': pct(curve['F4']['median_rel'])}
+
+
+def peek_counts():
+    """⚠본실행 도중 읽은 **부분 집계** --- `NOTE_INTERIM_PEEK.md` 에서 읽는다.
+
+    ⛔손으로 옮겨 적지 않는다. 저장소 규율은 *"봤지만 안 말한다 는 공시가 아니다"* 이고
+    (`AMENDMENT_1_PREDATA.md §1.1` 축자), 그래서 **보인 세 계수를 전부** 낸다 ---
+    논문 초판은 PRIMARY 하나만 인쇄하고 둘을 빠뜨렸다(적대적 심사 MAJOR).
+    ★분모도 검사한다: 30 은 **혼잡 64** 중 30 이지 나뉘지 않은 128 중 30 이 아니다.
+    """
+    note = open(os.path.join(TMP, 'T15_HOMEREG_2026-09-05',
+                             'NOTE_INTERIM_PEEK.md'), encoding='utf-8').read()
+    mp = re.search(r'\*\*(\d+)/(\d+) 블록\*\*', note)
+    mw = re.search(r'F2 < SHIP\s+(\d+)/(\d+)', note)
+    mc = re.search(r'SHIP < ZERO\s+(\d+)/(\d+)', note)
+    mf = re.search(r'FLOOR-VPLR < SHIP\s+(\d+)/(\d+)', note)
+    assert mp and mw and mc and mf, '⛔중간 열람 공시의 형태가 바뀌었다'
+    assert mw.group(2) == mc.group(2) == mf.group(2) == mp.group(1), \
+        '⛔중간 열람 세 계수의 분모가 갈린다'
+    assert '혼잡' in note, '⛔중간 열람이 혼잡 층이라는 진술이 사라졌다'
+    assert int(mp.group(2)) == 128 and int(mp.group(1)) < 64, \
+        '⛔중간 열람 시점의 분모 관계가 바뀌었다(혼잡 64 안이어야 한다)'
+    return {'TFifteenPeekAt': mp.group(1), 'TFifteenPeekWin': mw.group(1),
+            'TFifteenPeekCtrl': mc.group(1), 'TFifteenPeekFloor': mf.group(1)}
+
+
+def t16_gate_atoms():
+    """★`T16` 의 **게이트 유래** 원자 --- 등변성 자·격자 자·속성 노출.
+
+    ⛔이 셋은 verdict 의 구조화 필드가 아니라 **게이트 이름과 세부 문자열**에 있다
+      ⟹ 정규식으로 뽑고 못 찾으면 죽는다(손복사 금지 규약).
+    ⚠`G-EQUIVAR` 는 접두어가 같은 형제가 둘 있다(`-RAW`·`-OLD`) ⟹ 뒤에 공백을 요구한다.
+    """
+    v16 = V(T16)
+    name, det = gate_detail(T16, 'G-EQUIVAR ')
+    m = re.search(r'≤(\d)e-0?(\d+)', name)
+    assert m and m.group(1) == '1', f'⛔G-EQUIVAR 허용오차 표기가 바뀌었다: {name}'
+    mv = re.match(r'위반\s+(\d+)', det)
+    assert mv and mv.group(1) == '0', f'⛔G-EQUIVAR 에 위반이 생겼다: {det}'
+    # ⛔개정문 2 의 **완화**. 학위논문이 그것을 공시하므로 두 수를 여기서 핀한다.
+    gname, gdet = gate_detail(T16, 'G-GRID')
+    mg = re.search(r'/max ≤ ([0-9.e-]+)', gname)
+    assert mg, f'⛔G-GRID 자구가 바뀌었다: {gname}'
+    tol = float(mg.group(1))
+    assert abs(tol - 1e-4) < 1e-12, f'⛔G-GRID 허용오차가 움직였다: {tol}'
+    mm = re.search(r"x/y 상대차 \{[^}]*'median': ([0-9.e+-]+)", gdet)
+    assert mm, f'⛔G-GRID 세부 형태가 바뀌었다: {gdet[:120]}'
+    meas = float(mm.group(1))
+    assert meas < tol, '⛔측정 비대칭이 완화된 허용오차를 넘었다'
+    # ⚠**속성 노출** --- 판정 60블록은 *성과* 미노출이지만 36개는 앞 배치가 **속성**을 열었다.
+    ma = re.search(r'속성 노출 (\d+)/(\d+)', v16['grade'])
+    assert ma and int(ma.group(2)) == 60, f"⛔T16 grade 문면이 바뀌었다: {v16['grade']}"
+    assert 'blind' in v16['grade'], '⛔T16 의 blind 등급 자구가 사라졌다'
+    return {'TSixteenEquivarTol': f'10^{{-{int(m.group(2))}}}',
+            'TSixteenEquivarViol': mv.group(1),
+            'TSixteenGridTol': '10^{-4}',
+            'TSixteenGridMeas': sci(meas, 2),
+            'TSixteenAttrExposed': ma.group(1),
+            'TSixteenN': ma.group(2)}
+
+
+def t16_scale_shape():
+    """★*"상수인 것은 규칙이 **읽는 양**이지 규칙이 **고르는 배율**이 아니다"* 를 붙든다.
+
+    ⛔[2026-09-05] 학위논문 초판이 이 둘을 뒤집어 적었다(*"규칙이 고르는 배율은 거의 상수"*).
+      동결 행이 반증한다 --- `s_rule` 고유값 `AUTO-BANDR` **41/60** · `AUTO-BAND` **35/60**
+      (CV 16.5%·23.3%). 상수인 것은 전 파일이 공유하는 **격자·개구**이고, 그래서
+      1단 반경 `klim₁` 이 팔마다 **단일값**(0.6033 · 2.0)이다.
+    ⚠verdict §9.3-2 는 *"`s` 와 `klim₁` 이 **거의/완전히** 상수"* 로 둘을 묶어 적었는데
+      축퇴 논증(`klim₁` 3.3배 → `k̂_p` 1%)은 `klim₁` 쪽이다 ⟹ 원고는 정확한 쪽을 적는다.
+    ⛔매크로를 내지 않는다 --- 이 함수는 **문장을 지키는 assert** 다(런 0회, 동결 행만 읽는다).
+    """
+    d = os.path.join(TMP, 'T16_BANDFIX_2026-09-05', 'results_t16.jsonl')
+    P = [json.loads(x) for x in open(d, encoding='utf-8')]
+    P = [r for r in P if r.get('tier') == 'TIER-P']
+    assert len({r['L_obs_x'] for r in P}) == 1 and len({r['L_obs_y'] for r in P}) == 1, \
+        '⛔관측 개구가 더는 코퍼스 상수가 아니다 --- "규칙이 읽는 양이 상수" 문장을 다시 써라'
+    for arm in ('AUTO-BANDR', 'AUTO-BAND'):
+        k = {r['klim1'] for r in P if r['arm'] == arm}
+        sv = {r['s_rule'] for r in P if r['arm'] == arm}
+        assert len(k) == 1, f'⛔{arm} 의 1단 반경이 더는 단일값이 아니다: {len(k)} 개'
+        assert len(sv) > 1, \
+            f'⛔{arm} 의 배율이 상수가 됐다 --- 원고의 "그 배율은 블록마다 갈린다" 를 다시 써라'
+    return {}
 
 
 def rows():
@@ -272,6 +447,8 @@ def rows():
 
     # ── T15 (자국 코퍼스에서 같은 노브를 옮기면) ---------------------------
     add('TFifteenGates', get(T15, 'gates_pass'))
+    # ★[2026-09-05 심사 m5] 동결 라벨을 **인쇄한다** --- 감사 앵커다(논문은 이미 인쇄한다).
+    add('TFifteenLabel', get(T15, 'label'))
     add('TFifteenRows', str(get(T15, 'n_rows')))
     add('TFifteenCrowded', ratio(T15, 'primary.crowded.w', 'primary.crowded.n'))
     add('TFifteenCrowdedP', f"{get(T15, 'primary.crowded.p_hurt_one_sided'):.4f}")
@@ -279,10 +456,30 @@ def rows():
     add('TFifteenSparse', ratio(T15, 'primary.sparse.w', 'primary.sparse.n'))
     add('TFifteenSparseP', f"{get(T15, 'primary.sparse.p_hurt_one_sided'):.2f}")
     add('TFifteenCtrl', ratio(T15, 'control.crowded.w', 'control.crowded.n'))
+    # ⚠*"두 층에서 복제된다"* 는 **두 계수**의 주장이다 --- 하나만 인쇄하면 다른
+    #   층이 조용히 무너져도 문장이 남는다(이 저장소의 「N-1곳」 결함).
+    add('TFifteenCtrlSparse', ratio(T15, 'control.sparse.w', 'control.sparse.n'))
     add('TFifteenDose', ratio(T15, 'curve.crowded.F4.w', 'curve.crowded.F4.n'))
     add('TFifteenMDE', f"{get(T15, 'mde.q80'):.4f}")
     add('TFifteenUnrejLo', str(get(T15, 'mde.unrejectable_w.0')))
     add('TFifteenUnrejHi', str(get(T15, 'mde.unrejectable_w.1')))
+    # ★[2026-09-05] 논문 §5.8 과 **같은 공시 수준**으로 올린다 --- 학위논문에만
+    #   빠져 있던 다섯(중간 열람 · 게이트 완화 · 속성 노출 · 스윕 부분층 · 개입 바닥).
+    add('TFifteenN', str(get(T15, 'primary.crowded.n')))
+    add('TFifteenCorpusN',
+        str(get(T15, 'primary.crowded.n') + get(T15, 'primary.sparse.n')))
+    add('TFifteenHelpThresh', str(get(T15, 'primary.crowded.thresh_help')))
+    add('TFifteenSmokeExposed', str(len(get(T15, 'smoke_exposed_blocks'))))
+    # ★결과 **전에** 정의된 처치정합 잡음 바닥 --- 크기 인용의 병기 의무를 진다.
+    #   ⚠부호 없는 크기(중앙 |상대차|)다. ⛔처치의 벌점(부호 있음)과 섞지 마라.
+    add('TFifteenFloor',
+        pct(get(T15, 'equivalence.crowded.floor_median_abs_rel'), signed=False))
+    add('TFifteenRel', pct(get(T15, 'equivalence.crowded.effect_median_rel')))
+    # ⚠**바닥 팔은 이 코퍼스에서 널이라는 보장이 없다**(verdict disclosures §10).
+    #   혼잡에서는 어느 문턱에도 못 닿지만 **희소에서는 도움 문턱을 정확히 만난다**.
+    fc, fs = V(T15)['curve']['crowded']['FLOOR-VPLR'], V(T15)['curve']['sparse']['FLOOR-VPLR']
+    add('TFifteenFloorCrowded', f"{fc['w']}/{fc['n']}")
+    add('TFifteenFloorSparse', f"{fs['w']}/{fs['n']}")
 
     # ── T16 (참값 없이 그 배율을 고르는 규칙) ------------------------------
     #   ⛔비교자는 **제로필드**다 --- 외부 기준선 행 0개(verdict §9.2-1).
@@ -300,16 +497,34 @@ def rows():
     add('TSixteenShipZero', ratio(T16, 'ship_vs_zero.w', 'ship_vs_zero.n'))
     add('TSixteenLanding', '{}/{}'.format(get(T16, D + '.w'), get(T16, D + '.n_eff')))
     add('TSixteenLandingP', f"{get(T16, D + '.p_two_sided'):.2f}")
+    add('TSixteenLandingThresh', str(get(T16, 'thresholds.D')))
     add('TSixteenLandingMDE', f"{get(T16, 'mde.D_q80'):.4f}")
     add('TSixteenSkillMDE', f"{get(T16, 'mde.S_q80'):.4f}")
     add('TSixteenDrive', f"{get(T16, 'D_drive.median_abs_dln_s'):.4f}")
     add('TSixteenDriveRef', f"{get(T16, 'D_drive.ln105'):.4f}")
+    # ⛔`D` 축의 구동량은 **부호가 섞인다** --- 그 분할 없이 인용 금지(verdict §9.2-6).
+    add('TSixteenDrivePos', str(get(T16, 'D_drive.n_pos')))
+    add('TSixteenDriveNeg', str(get(T16, 'D_drive.n_neg')))
+    add('TSixteenSigWorseThresh', str(get(T16, 'thresholds.SIG_WORSE')))
+    add('TSixteenOldRuleThresh', str(get(T16, E + '.thresh')))
+    # ⚠옛 규칙의 등변 편차는 **허용오차 없는 기록 전용**이고 방향마다 다르다
+    #   ⟹ 한쪽만 인쇄하면 체리피킹이다. 두 방향을 **함께** 낸다.
+    add('TSixteenEquivarOldDown', f"{get(T16, 'equivar_old.c05.median'):.3f}")
+    add('TSixteenEquivarOldUp', f"{get(T16, 'equivar_old.c20.median'):.3f}")
+    # ★**설계가 결과 전에 스스로 적은 사전확률**(verdict §0-4) --- ⛔이 사실을 결과
+    #   뒤에 재서술하지 마라. 인쇄하지 않으면 독자가 59/60 을 놀라운 것으로 읽는다.
+    add('TSixteenPriorD', f"{V(T16)['prediction']['label_probs']['D_axis_given_F']['D-TREATMENT-BELOW-SCALE']:.3f}")
 
     # ── 네 배치 공통(✅인용 가능한 단서형) --------------------------------
     _, det = gate_detail(T14, 'G-INVERT')
     add('TInvert', re.search(r'위반\s*(\S+)', det).group(1))
     _, det = gate_detail(T14, 'G-S-BLIND')
     add('TSBlind', re.search(r'위반\s*(\S+)', det).group(1))
+
+    # ★[2026-09-05] 동결 행 재집계 · 공시 노트 · 게이트 문자열에서 나오는 원자들.
+    for k, v in list(sweep_ladder().items()) + list(peek_counts().items()) \
+            + list(t16_gate_atoms().items()) + list(t16_scale_shape().items()):
+        add(k, v)
     return out
 
 

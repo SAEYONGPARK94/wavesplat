@@ -1,0 +1,446 @@
+{
+ "batch": "T15-HOMEREG",
+ "kind": "CONFIRMATORY",
+ "grade": "CONFIRMATORY (⚠노출된 코퍼스 — PREREG §3·§7.3: 사전의 **학습 봉투**다)",
+ "prereg": "PREREG.md (결과 0행·러너 0줄 시점 동결)",
+ "n_rows": 832,
+ "n_primary": 832,
+ "gates": [
+  {
+   "name": "★★G-TREATPIN f=2 처치값을 `consts_t12.TREAT[\"A-MAPSCALE\"]` 에서 **임포트**해 assert 로 핀 — ⛔러너는 그 리터럴을 다시 적지 않는다(손복사 0)",
+   "pass_": true,
+   "detail": "mine {'KLIM': 0.3, 'K_LIM': 0.55} · T12 {'KLIM': 0.3, 'K_LIM': 0.55}"
+  },
+  {
+   "name": "★★G-KNOB 팔 설정 직후 **살아있는 모듈 상태** 10키 되읽기 — 정확히 그 팔의 노브만 다르다",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★★G-RESTORE 팔 종료 후 10키가 배포값으로 복귀 (⛔프로세스 전역 오염 차단)",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★★G-FRAME 네 팔 전부 동일 채점 프레임 집합 (n_frames_scored·첫·끝 t 일치)",
+   "pass_": true,
+   "detail": "불일치 블록 0"
+  },
+  {
+   "name": "★★G-SIBLING 시드 서로소 · (block, seed, proposal_md5) 교집합 0 · **nRMSE 값 비트일치 0** [형제 1100행 · ⛔`T13` 이 `T12` 와 24행 비트 동일이면서 \"독립\" 이라 적은 사고]",
+   "pass_": true,
+   "detail": "시드교집합 0 · 삼중교집합 0 · 값비트일치 0 · 관측 대역 20261101–20261228 [기술]"
+  },
+  {
+   "name": "★G-CORPUS 128 을 `W15/corpus.json` 에서 읽고 실물 해소 128/128 · 중복 0 · 행과 일치 (⛔손목록 금지)",
+   "pass_": true,
+   "detail": "혼잡 64 · 희소 64 · 중복 False · 행 {'crowded': 64, 'sparse': 64}"
+  },
+  {
+   "name": "★G-N 전층 팔 층당 64행 · 스윕 팔 층당 32행(부분층 안) · 합 832 (⚠문턱 23/41 은 n=64 **전용**이다)",
+   "pass_": true,
+   "detail": "행 832/832 · 위반 없음"
+  },
+  {
+   "name": "★G-FINITE 모든 행의 nRMSE 가 유한 (⛔NaN 은 조용히 패배가 된다)",
+   "pass_": true,
+   "detail": "비유한 0"
+  },
+  {
+   "name": "★G-CTRL 층별 양성대조 SHIP<ZERO 를 **양층 전건 계산** (실패 층은 판정에서 제외하고 인쇄)",
+   "pass_": true,
+   "detail": "crowded 63/64 · sparse 63/64"
+  },
+  {
+   "name": "★G-FLOOR FLOOR-VPLR 이 `vp_lr` **하나만** 다르고 no-op 이 아니다 (⛔기본인자 바인딩 때문에 순진한 개입은 조용히 no-op 이 된다)",
+   "pass_": true,
+   "detail": "측정된 차이 ['vp_lr'] · SHIP 과 비트동일 8/128"
+  },
+  {
+   "name": "★G-ARM resolved==learned · 실측게이트 **미발화** · ensemble_k==1 [되읽기·임포트]",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★G-NOLEAK 초기창(t≤2·Tp)과 채점창(t>2·Tp)이 **행에서** 서로소 · 제안 캐시 사전주입 0",
+   "pass_": true,
+   "detail": "위반 0 · 캐시역류 {'meta_t15_FULL.json': False, 'meta_t15_SUB.json': False}"
+  },
+  {
+   "name": "★G-ATOMS 팔·층마다 제안 원자 지문이 전건 상이 · 결측 0 (config 캐시 누출 탐지)",
+   "pass_": true,
+   "detail": "위반 없음"
+  },
+  {
+   "name": "★G-CAP 관측 캡을 배포 모듈에서 **임포트**(400) · n_gathered 결측 0 (⛔손복사 0)",
+   "pass_": true,
+   "detail": "위반 0 · n_gathered 중앙 8030.0 · 캡 발화 704/704"
+  },
+  {
+   "name": "★G-DEPTH 자국 수심 되읽기 == 50.0 · 조건화 맵 DEPTH 도 같다 (⛔`B-2` 수심 사건 부류)",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★★G-ZERO 분석기가 h5 에서 **독립 재계산**한 제로필드가 행과 일치 (√mean(gt²)/Hs · 채점창 t>2·Tp) · **두 샤드**의 zero_nrmse 도 일치",
+   "pass_": true,
+   "detail": "대조 128 · 불일치 0 · 샤드간 0"
+  },
+  {
+   "name": "★G-ENV 측정면 3중 대조(현재==meta==결과0행동결) · 분석면 동결 · **두 샤드 meta 합치** · 스레드[되읽기]==1  (⛔시드는 여기서 안 센다 — `G-SEED` 몫)",
+   "pass_": true,
+   "detail": "측정면 25키 · 런대비 0 · 0행동결대비 0 · 분석면 0 · 샤드meta합치 True"
+  },
+  {
+   "name": "★G-SMOKE [개정1] 스모크 노출 블록을 **파일에서** 세고, 본실행이 그 (블록,팔) 값을 **비트 재현**하는지 확인 (⛔이탈에서 얻은 공짜 재현성 시험)",
+   "pass_": true,
+   "detail": "스모크 블록 2 · **판정 표본 안 2** ['BF4_15comp_seed32_uniform_ra_rf_ds', 'BF4_2comp_seed48_uniform_ra_rf_ds'] · 비트 불일치 0"
+  },
+  {
+   "name": "★G-PROPID [개정1] 제안 **이전** 팔 6종은 `proposal_md5` 가 SHIP 과 전건 상이 · 제안 **이후** 팔(`FLOOR-VPLR`)은 전건 동일 (T12 규약)",
+   "pass_": true,
+   "detail": "위반 0"
+  },
+  {
+   "name": "★★G-SEED 추정기에 **적용된** 시드를 `run.set_seed` 훅에서 되읽고, 그 직후 전역 RNG 지문을 분석기가 **독립 재계산**해 대조 (⛔러너 리터럴 vs 분석기 리터럴은 실패할 수 없는 게이트다)",
+   "pass_": true,
+   "detail": "위반 0/704"
+  },
+  {
+   "name": "G-BLOCK blocked_by 자가진단 (긴 이름 우선)",
+   "pass_": true,
+   "detail": "합성 → ['G-NOLEAK', 'G-N', 'G-RESTORE', 'G-TREATPIN']"
+  },
+  {
+   "name": "G-COV 게이트가 자료를 봤다",
+   "pass_": true,
+   "detail": "rows=832 · PRIMARY=832"
+  }
+ ],
+ "gates_pass": "22/22",
+ "blocked_by": [],
+ "primary": {
+  "crowded": {
+   "stat": "F2 < SHIP",
+   "w": 23,
+   "n": 64,
+   "p_hurt_one_sided": 0.0163828795494116,
+   "thresh_hurt": 23,
+   "thresh_help": 41,
+   "holm_alpha": 0.025
+  },
+  "sparse": {
+   "stat": "F2 < SHIP",
+   "w": 31,
+   "n": 64,
+   "p_hurt_one_sided": 0.45032662312601657,
+   "thresh_hurt": 23,
+   "thresh_help": 41,
+   "holm_alpha": 0.025
+  }
+ },
+ "control": {
+  "crowded": {
+   "stat": "SHIP < ZERO",
+   "w": 63,
+   "n": 64,
+   "replicated": true
+  },
+  "sparse": {
+   "stat": "SHIP < ZERO",
+   "w": 63,
+   "n": 64,
+   "replicated": true
+  }
+ },
+ "layers_judged": [
+  "crowded",
+  "sparse"
+ ],
+ "equivalence": {
+  "crowded": {
+   "floor_median_abs_rel": 0.10578668174559612,
+   "effect_median_rel": 0.1219526891458001,
+   "within_floor": false
+  },
+  "sparse": {
+   "floor_median_abs_rel": 0.1654429983674442,
+   "effect_median_rel": 0.0,
+   "within_floor": true
+  }
+ },
+ "floor_moved": {
+  "crowded": true,
+  "sparse": true
+ },
+ "curve": {
+  "crowded": {
+   "F2": {
+    "w": 23,
+    "n": 64,
+    "p_hurt": 0.0163828795494116,
+    "median_rel": 0.1219526891458001
+   },
+   "FLOOR-VPLR": {
+    "w": 28,
+    "n": 64,
+    "p_hurt": 0.19086639739666883,
+    "median_rel": 0.004276193148895671
+   },
+   "F1.414": {
+    "w": 12,
+    "n": 32,
+    "p_hurt": 0.10766357486136258,
+    "median_rel": 0.14144169674808305
+   },
+   "F2.828": {
+    "w": 11,
+    "n": 32,
+    "p_hurt": 0.055092082591727376,
+    "median_rel": 0.22927834966553007
+   },
+   "F4": {
+    "w": 9,
+    "n": 32,
+    "p_hurt": 0.010030803503468633,
+    "median_rel": 0.3103469671792044
+   },
+   "A-MAPCELL": {
+    "w": 13,
+    "n": 32,
+    "p_hurt": 0.18854279373772442,
+    "median_rel": 0.06779238689330305
+   },
+   "A-BAND": {
+    "w": 18,
+    "n": 32,
+    "p_hurt": 0.8114572062622756,
+    "median_rel": -0.06452568007001759
+   }
+  },
+  "sparse": {
+   "F2": {
+    "w": 31,
+    "n": 64,
+    "p_hurt": 0.45032662312601657,
+    "median_rel": 0.0
+   },
+   "FLOOR-VPLR": {
+    "w": 41,
+    "n": 64,
+    "p_hurt": 0.9915709049778595,
+    "median_rel": -0.029574512708502254
+   },
+   "F1.414": {
+    "w": 14,
+    "n": 32,
+    "p_hurt": 0.29830744792707264,
+    "median_rel": 0.06022056153735625
+   },
+   "F2.828": {
+    "w": 12,
+    "n": 32,
+    "p_hurt": 0.10766357486136258,
+    "median_rel": 0.1505592281310424
+   },
+   "F4": {
+    "w": 13,
+    "n": 32,
+    "p_hurt": 0.18854279373772442,
+    "median_rel": 0.25121871121090533
+   },
+   "A-MAPCELL": {
+    "w": 12,
+    "n": 32,
+    "p_hurt": 0.10766357486136258,
+    "median_rel": 0.056291896208703764
+   },
+   "A-BAND": {
+    "w": 10,
+    "n": 32,
+    "p_hurt": 0.025051229866221547,
+    "median_rel": 0.6150797003288517
+   }
+  }
+ },
+ "global_128_descriptive": {
+  "w": 54,
+  "n": 128
+ },
+ "primary_ex_smoke_descriptive": {
+  "crowded": {
+   "w": 22,
+   "n": 63
+  },
+  "sparse": {
+   "w": 31,
+   "n": 63
+  }
+ },
+ "smoke_exposed_blocks": [
+  "BF4_15comp_seed32_uniform_ra_rf_ds",
+  "BF4_2comp_seed48_uniform_ra_rf_ds"
+ ],
+ "cells_descriptive": {
+  "crowded/BF4/15": {
+   "w": 10,
+   "n": 16
+  },
+  "crowded/BF4/30": {
+   "w": 4,
+   "n": 16
+  },
+  "crowded/BF5/15": {
+   "w": 5,
+   "n": 16
+  },
+  "crowded/BF5/30": {
+   "w": 4,
+   "n": 16
+  },
+  "sparse/BF4/2": {
+   "w": 3,
+   "n": 16
+  },
+  "sparse/BF4/5": {
+   "w": 10,
+   "n": 16
+  },
+  "sparse/BF5/2": {
+   "w": 9,
+   "n": 16
+  },
+  "sparse/BF5/5": {
+   "w": 9,
+   "n": 16
+  }
+ },
+ "medians": {
+  "crowded": {
+   "ZERO": 0.25032833614796113,
+   "SHIP": 0.11510283179813996,
+   "F2": 0.13411823557301733,
+   "FLOOR-VPLR": 0.11808780039427802,
+   "F1.414": 0.13427765655796975,
+   "F2.828": 0.14168674158863725,
+   "F4": 0.12818583150704702,
+   "A-MAPCELL": 0.11807847532133262,
+   "A-BAND": 0.11580738596773398
+  },
+  "sparse": {
+   "ZERO": 0.2499983477853677,
+   "SHIP": 0.021406184049556035,
+   "F2": 0.02444928901968524,
+   "FLOOR-VPLR": 0.016863602619074908,
+   "F1.414": 0.020962797404111673,
+   "F2.828": 0.022932461962530702,
+   "F4": 0.02275751769824031,
+   "A-MAPCELL": 0.022662311278933582,
+   "A-BAND": 0.02852808174890621
+  }
+ },
+ "knob_diffs_measured": {
+  "A-BAND": [
+   "K_LIM"
+  ],
+  "A-MAPCELL": [
+   "KLIM",
+   "KX_G00",
+   "OM_Gmd5"
+  ],
+  "F1.414": [
+   "KLIM",
+   "KX_G00",
+   "K_LIM",
+   "OM_Gmd5"
+  ],
+  "F2": [
+   "KLIM",
+   "KX_G00",
+   "K_LIM",
+   "OM_Gmd5"
+  ],
+  "F2.828": [
+   "KLIM",
+   "KX_G00",
+   "K_LIM",
+   "OM_Gmd5"
+  ],
+  "F4": [
+   "KLIM",
+   "KX_G00",
+   "K_LIM",
+   "OM_Gmd5"
+  ],
+  "FLOOR-VPLR": [
+   "vp_lr"
+  ],
+  "SHIP": [],
+  "ZERO": []
+ },
+ "mde": {
+  "q50": 0.3617,
+  "q80": 0.3185,
+  "q90": 0.2952,
+  "unrejectable_w": [
+   24,
+   40
+  ],
+  "cell_q80": 0.0975
+ },
+ "prediction": {
+  "q": 0.3,
+  "label_probs": {
+   "ANCHOR-DID-NOT-REPLICATE": 4.44966854351227e-30,
+   "HOME-REGRESSION": 0.9852363195151295,
+   "HOME-ALSO-IMPROVES": 3.620190773265221e-16,
+   "NO-HARM-WITHIN-INTERVENTION-FLOOR": 0.014763680484870171,
+   "CHANGE-UNDETECTED": 0.014763680484870171,
+   "_bucket_is_upper_bound_for_both": true,
+   "_per_layer": {
+    "hurt": 0.8784941133735894,
+    "help": 1.9026796815422442e-08,
+    "ctrl_replicates": 0.9999999999999979
+   },
+   "_q": 0.3,
+   "_q_ctrl": 0.95
+  },
+  "null_label_probs": {
+   "ANCHOR-DID-NOT-REPLICATE": 4.44966854351227e-30,
+   "HOME-REGRESSION": 0.032497360356492686,
+   "HOME-ALSO-IMPROVES": 0.0002683987423305968,
+   "NO-HARM-WITHIN-INTERVENTION-FLOOR": 0.9672342409011767,
+   "CHANGE-UNDETECTED": 0.9672342409011767,
+   "_bucket_is_upper_bound_for_both": true,
+   "_per_layer": {
+    "hurt": 0.0163828795494116,
+    "help": 0.0163828795494116,
+    "ctrl_replicates": 0.9999999999999979
+   },
+   "_q": 0.5,
+   "_q_ctrl": 0.95
+  }
+ },
+ "proposal_device": [
+  "cuda"
+ ],
+ "label": "HOME-REGRESSION",
+ "label_msg": "HOME-REGRESSION",
+ "disclosures": [
+  "⛔`f` 는 **노브 스케일 인자**다 — `T11`·`T14` 의 `s`(자료 재라벨)와 같은 기호로 쓰지 마라. 저건 좌표를 옮겼고 이건 상수를 옮긴다",
+  "⛔**어떤 팔도 배포 구성이 아니다** — 이겨도 배포 권고가 아니다(배포는 별도 사전등록)",
+  "⚠★**자국 코퍼스는 배포 체크포인트의 학습 봉투다**(`gen_mixed.py:78` 학습 장면 앵커 == `pipeline.py:35 SEA_STATE`, `nc∈{1,2,5,15,30}` 동일) ⟹ ⛔*\"out-of-sample\"·\"held-out\"·\"blind\"* 자구 금지. 결과는 *\"자국은 사전의 학습 분포다\"* 와 분리되지 않는다",
+  "⛔**전역 128 수치를 헤드라인으로 쓰지 마라**(상시지시) — 층별로만. 이 verdict 의 `global_128_descriptive` 는 기술통계다",
+  "⛔음성 라벨(`CHANGE-UNDETECTED`·`NO-HARM-*`)을 *\"안전하다/무해하다\"* 로 읽는 것을 금지한다 — **검정력의 진술**이다. MDE 병기 의무: q80=0.3185 · 기각 불가 대역 W=(24, 40)",
+  "⛔★**사전등록 이탈**: 스모크가 판정 표본 **안**의 블록 2개(혼잡 fi=1 · 희소 fi=65)를 썼다 — `PREREG §10` 의 자구는 여집합이 있던 `T11`/`T12` 규약을 옮긴 것이고 이 배치엔 여집합이 없다. 본실행 전에 그 2/128 의 처치 결과를 봤고, **혼잡에서 등록 예측과 반대 방향**이었다. 전문 = `AMENDMENT_1_PREDATA.md`(판정 자료 0행 시점). ⛔예측·표본·문턱은 한 글자도 안 고쳤다. `primary_ex_smoke_descriptive` 는 **기술통계**이고 라벨은 등록된 n=64 로만 만든다",
+  "⛔`T12` 의 회수율 ρ 나 `T14` 의 R 과 병치 금지 — 정의가 다르다",
+  "⚠형제 배치와의 서로소는 **시드만으로 증명되지 않는다** — 시드 대역 (T11/T12 20260905–928 · `T13`-FRESH 20261005–032 · T14 20260915–948 vs 이 배치 20261101–228)에 더해 `G-SIBLING` 이 (block, seed, proposal_md5) 교집합과 **nRMSE 값 비트일치**까지 0 으로 확인한다. ⛔`T13` 이 `T12` 와 24행 비트 동일이면서 *\"독립\"* 이라 적었다가 철회한 사고의 재발 방지다",
+  "⚠**스윕은 64 부분층에서만** 잰다 — 곡선을 128 에 외삽하지 마라",
+  "⛔`wall_s` 를 팔 간 비교에 쓰지 마라 · `proposal_device` 는 config 가 정하지 않는다",
+  "⚠`FLOOR-VPLR` 은 `T12` 에서 측정된 널이다 — 이 코퍼스에서 다시 널이라는 보장은 없다. `floor_moved` 를 함께 읽어라",
+  "⚠셀 8개(n=16)는 **기술통계 전용** — MDE q<=0.0975 로 사실상 검정력이 없다. ⛔셀 라벨 금지",
+  "⚠`ensemble_collapsed=True`(요청 3 vs 실효 1)는 **자국 학습 경로의 정상값**이고 결함이 아니다(`sequential_update.py:2090-2126 _effective_k`)",
+  "⚠자국 nRMSE 는 `Hs` 로 나눈다 — **실측 하네스는 σ 로 나눈다**(비 3.99–4.06). ⛔실측 nRMSE 와 직접 비교 금지(`metrics.py:33-46` 축자 경고)",
+  "⛔`G-CTRL` 은 차단이 아니라 **제외**다(PREREG §8 의 자기 서술) — 양층 다 미복제면 라벨은 `ANCHOR-DID-NOT-REPLICATE` 이고 그때 다른 라벨을 인쇄하지 않는다"
+ ]
+}

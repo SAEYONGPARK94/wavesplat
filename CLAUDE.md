@@ -8,7 +8,7 @@ Target: OCEANS 2026 conference paper submission.
 ```
 wavesplat/                   # Root package directory
 ├── wavesim/                 # Wave simulation + LiDAR
-├── wavesplat/               # Estimation algorithm      (**296 tests**, 실측 2026-09-06 — ⛔이 수를 손으로 고치지 마라, `scripts/check_claudemd_counts.py` 가 대조한다)
+├── wavesplat/               # Estimation algorithm      (**301 tests**, 실측 2026-09-06 — ⛔이 수를 손으로 고치지 마라, `scripts/check_claudemd_counts.py` 가 대조한다)
 │   ├── model/               # spectral_gaussian, dispersion, confidence
 │   ├── optimizer/            # initializer, coarse_to_fine, sequential_update
 │   ├── baselines/etkf_grid.py
@@ -44,7 +44,7 @@ cd /home/vexit/wavesplat/wavesplat     # ← 아래 전부 이 디렉터리 기�
 # Run estimation  (⛔위치인자 아님. --adaptive_n 은 값을 받는다)
 python3 -m wavesplat.run --episode data/episode_BF4_5comp_seed0_uniform.h5 --adaptive_n true
 
-# Run tests  (실측 2026-09-06: **296 passed**, 0 failed, 65.5 s)
+# Run tests  (실측 2026-09-06: **301 passed**, 0 failed)
 #   ⚠경과 190.5 s 는 `T18` SEC-C 가 CPU 를 함께 쓰는 중에 잰 값이다(단독이면 더 짧다).
 #   ⚠논문의 \DeployNumTests 는 **손으로 고치지 말고** scripts/gen_deploy_constants.py 를 돌려라
 python3 -m pytest wavesim/tests/ wavesplat/tests/ -v
@@ -62,7 +62,14 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
 ## Current State
 ⛔**이 절의 낡은 수치가 2026-08-12 전체 감사에서 BLOCKER 로 잡혔다.**
 **연구 현황의 권위는 이 파일이 아니라 auto-memory (`MEMORY.md`) 와 `tmp/<배치>/RESULT.md` 다.**
-- **296 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-09-06, **296 passed** · 65.5 s).
+- **301 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-09-06, **301 passed**).
+  ★**296 → 301 (+5)** 은 같은 날 **출하 `auto` 경로**의 회귀 시험이다.
+  ⛔초판(+5)은 `learned_init_params` 에만 키를 붙였는데, 라우터 `_auto_select_init`
+  (`sequential_update.py:1152`)이 **자기가** `propose_atoms` 를 돌린 뒤 `:1168` 에서
+  `cfg['learned_atoms']` 에 캐시하므로 `learned_init_params` 는 **캐시 분기**를 타고
+  그 키를 영영 읽지 않았다 ⟹ ★**처치가 출하 경로에서 조용히 no-op** 이었다.
+  적대적 심사가 BLOCKER 로 잡았고, 새 시험은 **변이 주입으로 검증**했다(수리를 빼면 3개가 죽는다).
+  ⛔`D3`(2026-09-01)와 같은 부류 — *"생성 시점만 보고 라우터 해소 이후를 안 봤다."*
   ★**291 → 296 (+5)** 은 2026-09-06 `learned_polish_iters` **노출**의 회귀 시험
   (`wavesplat/tests/test_polish_iters.py`) 다. 제안 원자 다듬기(`polish_atoms`, Adam `lr=0.02`)의
   스텝 수가 `propose_atoms` **서명 기본값에만** 있어 config 로 도달할 수 없었다.

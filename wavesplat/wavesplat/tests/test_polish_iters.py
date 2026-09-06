@@ -95,3 +95,63 @@ def test_cached_atoms_path_does_not_call_the_proposal(monkeypatch):
         'learned_atoms': {'kx': [0.05, 0.2], 'ky': [0.0, 0.1], 'energy': [1.0, 0.9]},
         'learned_polish_iters': 0}, seed=0)
     assert 'polish_iters' not in seen, '캐시 경로가 제안을 불렀다 — 전제가 깨졌다'
+
+
+# ── ★출하 `auto` 경로 (2026-09-06 정정) ───────────────────────────────────────
+# ⛔초판은 `learned_init_params` 에만 키를 붙였다. 그런데 출하 기본값은 `init_method='auto'`
+#   이고, 라우터 `_auto_select_init` 이 **자기가** `propose_atoms` 를 돌린 뒤
+#   `cfg['learned_atoms']` 에 캐시한다 ⟹ `learned_init_params` 는 캐시 분기를 타고
+#   그 키를 **영영 읽지 않는다** ⟹ 처치가 출하 경로에서 **조용히 no-op**.
+#   ★`D3`(2026-09-01)와 같은 부류: *"생성 시점만 보고 라우터 해소 이후를 안 봤다."*
+#   적대적 심사(2026-09-06)가 BLOCKER-1 로 잡았다. 아래가 그 회귀 시험이다.
+
+def _router_spy(monkeypatch):
+    """라우터가 부르는 `propose_atoms` 를 가로챈다 — `sequential_update` 는
+    함수 안에서 `from .learned_init import propose_atoms` 하므로 **원본 모듈**을 패치한다."""
+    seen = {}
+    import numpy as np
+
+    def fake(frames, depth, ckpt=None, nsamp=4, diffusion_seed=0,
+             device=None, polish_iters=LI.POLISH_ITERS_DEFAULT, subsample_seed=0):
+        seen.setdefault('calls', []).append(polish_iters)
+        return (np.array([0.05, 0.20, 0.35, 0.50]),
+                np.array([0.00, 0.10, -0.10, 0.20]),
+                np.array([1.0, 0.9, 0.8, 0.7]))
+
+    monkeypatch.setattr(LI, 'propose_atoms', fake)
+    return seen
+
+
+@pytest.mark.parametrize('want', [0, 20, 320])
+def test_auto_router_forwards_polish_iters(monkeypatch, want):
+    """★출하 `auto` 경로에서 **실제로 전달되는지**. 이것이 없으면 팔이 장식이다."""
+    from wavesplat.optimizer.sequential_update import SequentialUpdater
+    seen = _router_spy(monkeypatch)
+    upd = SequentialUpdater({'init_method': 'auto', 'auto_switch_thresh': 0,
+                             'real_domain_gate': False, 'depth': 50.0,
+                             'learned_polish_iters': want, 'seed': 0})
+    upd._auto_select_init([_F()])
+    assert seen.get('calls'), '라우터가 제안을 부르지 않았다 — 전제가 깨졌다'
+    assert seen['calls'] == [want], (
+        f"auto 라우터가 {want} 대신 {seen['calls']} 를 넘겼다 "
+        f"— 처치가 출하 경로에서 no-op 이다")
+
+
+def test_auto_router_default_is_the_shipped_value(monkeypatch):
+    """★키가 없으면 배포값 80 = 종전 런과 비트 동일."""
+    from wavesplat.optimizer.sequential_update import SequentialUpdater
+    seen = _router_spy(monkeypatch)
+    upd = SequentialUpdater({'init_method': 'auto', 'auto_switch_thresh': 0,
+                             'real_domain_gate': False, 'depth': 50.0, 'seed': 0})
+    upd._auto_select_init([_F()])
+    assert seen['calls'] == [80]
+
+
+def test_auto_router_rejects_negative(monkeypatch):
+    from wavesplat.optimizer.sequential_update import SequentialUpdater
+    _router_spy(monkeypatch)
+    upd = SequentialUpdater({'init_method': 'auto', 'auto_switch_thresh': 0,
+                             'real_domain_gate': False, 'depth': 50.0,
+                             'learned_polish_iters': -1, 'seed': 0})
+    with pytest.raises(ValueError):
+        upd._auto_select_init([_F()])

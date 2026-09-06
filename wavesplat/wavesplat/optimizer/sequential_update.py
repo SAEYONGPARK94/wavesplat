@@ -1148,12 +1148,22 @@ class SequentialUpdater:
         else:
             dseed = int(cfg.get('learned_diffusion_seed',
                                 0 if self.seed is None else self.seed))
+            # ★`learned_polish_iters` 는 **여기서도** 넘겨야 한다 (2026-09-06 정정).
+            #   초판은 `learned_init_params` 에만 붙였는데, 출하 `auto` 는 이 함수가
+            #   제안을 돌리고 `:1168` 에서 `cfg['learned_atoms']` 에 캐시하므로
+            #   `learned_init_params` 는 **캐시 분기**를 타고 그 키를 영영 읽지 않는다
+            #   ⟹ 처치가 출하 경로에서 **조용히 no-op** 이 된다.
+            #   ⛔`D3`(2026-09-01)와 같은 부류다: *"생성 시점만 보고 라우터 해소 이후를 안 봤다."*
+            from .learned_init import POLISH_ITERS_DEFAULT
+            pit = int(cfg.get('learned_polish_iters', POLISH_ITERS_DEFAULT))
+            if pit < 0:
+                raise ValueError(f'learned_polish_iters must be >= 0, got {pit}')
             try:
                 rkx, rky, ren = propose_atoms(
                     frames, self.depth,
                     ckpt=cfg.get('learned_ckpt', DEFAULT_CKPT),
                     nsamp=int(cfg.get('learned_nsamp', 4)),
-                    diffusion_seed=dseed)
+                    diffusion_seed=dseed, polish_iters=pit)
             except (FileNotFoundError, OSError, ImportError) as e:
                 # 'auto' is the shipped default: a missing/unreadable diffusion checkpoint
                 # must degrade to the analytic path, not crash the estimator.

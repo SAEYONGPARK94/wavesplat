@@ -92,13 +92,21 @@ def main():
         k_true = float(np.hypot(tkx[j], tky[j]))
         P = np.asarray(s['P'], float); z = np.asarray(s['z'], float)
         frames = R11.build_frames(P[:, 0], P[:, 1], P[:, 2] - P[:, 2].min(), z, G.GT_CONST)
-        akx, aky, _ = LI.propose_atoms(frames, 50.0, nsamp=4, diffusion_seed=a.dseed,
+        akx, aky, _en = LI.propose_atoms(frames, 50.0, nsamp=4, diffusion_seed=a.dseed,
                                          polish_iters=a.polish_iters)
         am = np.hypot(np.asarray(akx, float), np.asarray(aky, float))
         k_at = float(np.median(am))
+        # ★배포 선택기를 그대로 통과시킨다 (learned_init_params 기본 노브)
+        skx, sky, sen = LI.pool_and_select(akx, aky, _en, energy_thresh=0.03,
+                                           dedup_dk=0.03,
+                                           max_n=int(LI.POOL_CAP_DEFAULT))
+        sm = np.hypot(np.asarray(skx, float), np.asarray(sky, float))
+        k_sel = float(np.median(sm)) if sm.size else float('nan')
         L = max(float(np.ptp(P[:, 0])), float(np.ptp(P[:, 1])))
         rows.append(dict(domain='train', tag=a.tag, seed=a.seed, dseed=a.dseed, pol=a.polish_iters, idx=i, k_true=k_true, k_atom=k_at,
                          ratio=k_at / max(k_true, 1e-9), L_obs=L,
+                         k_sel=k_sel, n_sel=int(sm.size),
+                         ratio_sel=k_sel / max(k_true, 1e-9),
                          n_obs=int(len(z)), Tp=float(s['Tp'])))
         if (i + 1) % 10 == 0:
             print(f'   {i+1}/{a.nscene}', flush=True)

@@ -26,8 +26,12 @@ wavesplat/                   # Root package directory
 ├── data/                    # HDF5 episodes (110) + real_bergamasco/ (실측 **12** 레코드 — 원논문 축자, 고정 구조물 4곳. ⛔"13" 은 낡음)
 ├── tmp/                     # 배치별 사전등록·결과 (S1–S13, B-1~B-22, BLANKSLATE 등) — 연구 기록의 본체
 │                            # ⛔**"하위 디렉터리 34개가 git 미추적" 은 낡았다(2026-08-27 실측 정정)** —
-│                            # 08-21 커밋 `033e742` 가 34배치 502파일을 추적에 넣었다. 현재 미추적은
-│                            # **4개뿐**(c2_cache·critic_v2·frf_lidar_2026-08-01/ws·m2m7, 전부 비-판정물).
+│                            # 08-21 커밋 `033e742` 가 34배치 502파일을 추적에 넣었다.
+│                            # ⛔**"현재 미추적 4개뿐(c2_cache·critic_v2·frf_lidar/ws·m2m7)" 은
+│                            #   2026-09-06 실측에서 낡았다** — 그 넷은 목록에 **없고**, 실제 미추적은
+│                            #   **대량 생성 데이터 9디렉터리**(`data_b26`·`data_hos`·`data_lin`·
+│                            #   `data_m1`·`data_m3`·`pc1`×2·`C_ENCOUNTER/data`·`M3…/SPR5`) +
+│                            #   빈 디렉터리 `A1_STEREONOISE_2026-09-02` 다. ✅**판정물 누락 0건**.
 │                            # 확인 = `git ls-files --others --exclude-standard --directory wavesplat/tmp/`.
 ├── docs/PRESENTATION_SUMMARY.md  # 발표 요약 (⛔줄 수를 인용하지 마라 — 편집마다 바뀐다.
 │                            #  08-13 에만 562(HEAD)→640→683 으로 세 값이 돌아다녔다.)

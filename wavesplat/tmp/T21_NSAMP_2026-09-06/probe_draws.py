@@ -120,10 +120,40 @@ def real_scene(rec, win, G, scene_station, R2):
     return R2.frames_from(sc, t_shift), float(sc['depth']), sc
 
 
+def synth_scenes(n, seed, sub600, R2):
+    """★**학습 분포 그 자체**에서 장면을 뽑는다 — 배포 체크포인트를 만든 생성 과정.
+
+    `gen_mixed.sample_scene_ok(rng, GeometryBank())` = `train_mixed.py` 가 배치를 만든 함수
+    (`memory/reference_train_support_deployed_ckpt_2026-09-05.md` §2). ⟹ 이 장면들은
+    **정의상 분포 안**이다. `sub600=True` 면 실측(`m_cap=600`)과 관측 수를 맞춘다.
+    """
+    sys.path.insert(0, os.path.join(ROOT, 'tmp/mixed_retrain_2026-07-26'))
+    import gen_mixed as gm
+    bank = gm.GeometryBank()
+    rng = np.random.default_rng(seed)
+    out = []
+    for i in range(n):
+        s = gm.sample_scene_ok(rng, bank)
+        P = np.asarray(s['P'], float); z = np.asarray(s['z'], float)
+        if sub600 and len(z) > 600:
+            sel = np.random.default_rng(1000 + i).choice(len(z), 600, replace=False)
+            sel.sort()
+            P, z = P[sel], z[sel]
+        t_shift = float(P[:, 2].min())
+        sc = {'P': P, 'z': z}
+        out.append((f'SYN{i:02d}', R2.frames_from(sc, t_shift), 50.0, P, z, float(s['Tp'])))
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--scenes', nargs='+', default=['BS13c'],
+    ap.add_argument('--scenes', nargs='+', default=[],
                     help='실측 레코드 이름 (T17 RECORDS)')
+    ap.add_argument('--synth', type=int, default=0,
+                    help='학습 분포(gen_mixed) 장면 개수')
+    ap.add_argument('--synth-seed', type=int, default=20260906)
+    ap.add_argument('--synth-sub600', action='store_true',
+                    help='학습 장면을 600 관측으로 줄여 실측과 맞춘다')
     ap.add_argument('--win', type=int, default=0)
     ap.add_argument('--nsamp', type=int, nargs='+', default=[4])
     ap.add_argument('--dseed', type=int, default=0)
@@ -143,10 +173,18 @@ def main():
     print(f'pool_cap(POOL_CAP_DEFAULT) = {pool_cap} · energy_thresh={e_th} · dedup_dk={ddk}')
     print(f'ckpt = {LI.DEFAULT_CKPT}')
 
-    rows = []
+    todo = []
     for rec in a.scenes:
         frames, depth, sc = real_scene(rec, a.win, G, scene_station, R2)
         P = np.asarray(sc['P'], float)
+        todo.append((rec, 'real', frames, depth, P, np.asarray(sc['z'], float), None))
+    if a.synth:
+        for nm, frames, depth, P, z, Tp in synth_scenes(
+                a.synth, a.synth_seed, a.synth_sub600, R2):
+            todo.append((nm, 'train', frames, depth, P, z, Tp))
+
+    rows = []
+    for rec, dom, frames, depth, P, zz, Tp in todo:
         L_obs = max(float(np.ptp(P[:, 0])), float(np.ptp(P[:, 1])))
         for ns in a.nsamp:
             t0 = time.time()
@@ -168,14 +206,15 @@ def main():
             draws = (si // m) if si.size else np.array([], int)
             per_draw = [int((draws == b).sum()) for b in range(ns)]
             agree = _draw_agreement(rkx, rky, ns, m, ddk) if ns > 1 else []
-            row = dict(record=rec, win=a.win, L_obs=L_obs, depth=depth,
+            row = dict(record=rec, domain=dom, Tp=Tp, n_obs=int(len(zz)),
+                       win=a.win, L_obs=L_obs, depth=depth,
                        nsamp=ns, M=m, n_raw=n_raw, n_after_thresh=n_th,
                        n_dup_dropped=n_dup, n_sel=int(si.size),
                        cap_bound=bool(si.size >= pool_cap),
                        per_draw=per_draw, n_draws_used=int(sum(1 for v in per_draw if v)),
                        draw_agreement=agree, wall_s=round(wall, 2))
             rows.append(row)
-            print(f"  {rec:7s} L={L_obs:7.1f}m nsamp={ns} : raw {n_raw:3d} "
+            print(f"  {rec:7s}[{dom[:3]}] L={L_obs:7.1f}m n={len(zz):4d} nsamp={ns} : raw {n_raw:3d} "
                   f"→thresh {n_th:3d} →dedup -{n_dup:3d} →sel {si.size:2d}"
                   f"{' (CAP)' if row['cap_bound'] else '      '}"
                   f"  draws {per_draw}  agree {[round(v,3) for v in agree]}"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""`T22` **동결 전 프로브 3** — 제안망은 장면의 파수를 따라가는가, 자기 학습 밴드에 붙어 있는가.
+r"""`T22` **동결 전 프로브 3** — 제안망은 장면의 파수를 따라가는가, 자기 학습 밴드에 붙어 있는가.
 
 ⛔**판정이 아니다.** 사전등록 미작성 · 게이트·분석기·러너 0개 · **추정기 적합 0회**
 (`propose_atoms` 까지만). 노출 관리: 제3자는 `gates_t11.SMOKE_FILES` 2개만.
@@ -61,6 +61,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--nscene', type=int, default=40)
     ap.add_argument('--seed', type=int, default=20260906)
+    ap.add_argument('--dseed', type=int, default=0, help='learned_diffusion_seed')
+    ap.add_argument('--tag', default='r1', help='복제 태그 (행에 기록)')
+    ap.add_argument('--polish-iters', type=int, default=80,
+                    help='0 이면 확산 원출력(polish 없음) — 수축이 어디서 생기는지 가른다')
     a = ap.parse_args()
 
     warnings.filterwarnings('ignore')
@@ -88,11 +92,12 @@ def main():
         k_true = float(np.hypot(tkx[j], tky[j]))
         P = np.asarray(s['P'], float); z = np.asarray(s['z'], float)
         frames = R11.build_frames(P[:, 0], P[:, 1], P[:, 2] - P[:, 2].min(), z, G.GT_CONST)
-        akx, aky, _ = LI.propose_atoms(frames, 50.0, nsamp=4, diffusion_seed=0)
+        akx, aky, _ = LI.propose_atoms(frames, 50.0, nsamp=4, diffusion_seed=a.dseed,
+                                         polish_iters=a.polish_iters)
         am = np.hypot(np.asarray(akx, float), np.asarray(aky, float))
         k_at = float(np.median(am))
         L = max(float(np.ptp(P[:, 0])), float(np.ptp(P[:, 1])))
-        rows.append(dict(domain='train', idx=i, k_true=k_true, k_atom=k_at,
+        rows.append(dict(domain='train', tag=a.tag, seed=a.seed, dseed=a.dseed, pol=a.polish_iters, idx=i, k_true=k_true, k_atom=k_at,
                          ratio=k_at / max(k_true, 1e-9), L_obs=L,
                          n_obs=int(len(z)), Tp=float(s['Tp'])))
         if (i + 1) % 10 == 0:
@@ -108,11 +113,12 @@ def main():
             r = np.random.default_rng(G.SEED + fi)
             x, y, tt, zz = PG.sample_sub(Ew, gx, gy, tw, G.DENSITY, r, 0.25)
             frames = R11.build_frames(x, y, tt, zz, G.GT_CONST)
-            akx, aky, _ = LI.propose_atoms(frames, G.DEPTH, nsamp=4, diffusion_seed=0)
+            akx, aky, _ = LI.propose_atoms(frames, G.DEPTH, nsamp=4, diffusion_seed=a.dseed,
+                                         polish_iters=a.polish_iters)
             am = np.hypot(np.asarray(akx, float), np.asarray(aky, float))
             k_at = float(np.median(am))
             L = max(float(np.ptp(x)), float(np.ptp(y)))
-            rows.append(dict(domain='third', idx=name, k_true=k_true, k_atom=k_at,
+            rows.append(dict(domain='third', tag=a.tag, seed=a.seed, dseed=a.dseed, pol=a.polish_iters, idx=name, k_true=k_true, k_atom=k_at,
                              ratio=k_at / k_true, L_obs=L, n_obs=int(len(zz)), Tp=None))
             print(f'   {name}: k_true={k_true:.4f} k_atom={k_at:.4f} '
                   f'ratio={k_at/k_true:.2f}')
@@ -137,7 +143,7 @@ def main():
           f'k_true 의 = {kt.std()/kt.mean():.3f}')
 
     out = os.path.join(HERE, 'probe_scaleanchor.jsonl')
-    with open(out, 'w', encoding='utf-8') as fh:
+    with open(out, 'a', encoding='utf-8') as fh:
         for r in rows:
             fh.write(json.dumps(r, ensure_ascii=False) + '\n')
     print(f'\n{len(rows)} 행 → {out}')

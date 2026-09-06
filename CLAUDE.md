@@ -8,7 +8,7 @@ Target: OCEANS 2026 conference paper submission.
 ```
 wavesplat/                   # Root package directory
 ├── wavesim/                 # Wave simulation + LiDAR
-├── wavesplat/               # Estimation algorithm      (**291 tests**, 실측 2026-09-05 — ⛔이 수를 손으로 고치지 마라, `scripts/check_claudemd_counts.py` 가 대조한다)
+├── wavesplat/               # Estimation algorithm      (**296 tests**, 실측 2026-09-06 — ⛔이 수를 손으로 고치지 마라, `scripts/check_claudemd_counts.py` 가 대조한다)
 │   ├── model/               # spectral_gaussian, dispersion, confidence
 │   ├── optimizer/            # initializer, coarse_to_fine, sequential_update
 │   ├── baselines/etkf_grid.py
@@ -44,7 +44,7 @@ cd /home/vexit/wavesplat/wavesplat     # ← 아래 전부 이 디렉터리 기�
 # Run estimation  (⛔위치인자 아님. --adaptive_n 은 값을 받는다)
 python3 -m wavesplat.run --episode data/episode_BF4_5comp_seed0_uniform.h5 --adaptive_n true
 
-# Run tests  (실측 2026-09-05: **291 passed**, 0 failed, 190.5 s)
+# Run tests  (실측 2026-09-06: **296 passed**, 0 failed, 65.5 s)
 #   ⚠경과 190.5 s 는 `T18` SEC-C 가 CPU 를 함께 쓰는 중에 잰 값이다(단독이면 더 짧다).
 #   ⚠논문의 \DeployNumTests 는 **손으로 고치지 말고** scripts/gen_deploy_constants.py 를 돌려라
 python3 -m pytest wavesim/tests/ wavesplat/tests/ -v
@@ -62,7 +62,15 @@ python3 scripts/run_raydrop_comparison.py  # Raydrop model comparison
 ## Current State
 ⛔**이 절의 낡은 수치가 2026-08-12 전체 감사에서 BLOCKER 로 잡혔다.**
 **연구 현황의 권위는 이 파일이 아니라 auto-memory (`MEMORY.md`) 와 `tmp/<배치>/RESULT.md` 다.**
-- **291 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-09-05, **291 passed** · 190.5 s).
+- **296 tests** (`python3 -m pytest wavesim/tests/ wavesplat/tests/` 로 실측 2026-09-06, **296 passed** · 65.5 s).
+  ★**291 → 296 (+5)** 은 2026-09-06 `learned_polish_iters` **노출**의 회귀 시험
+  (`wavesplat/tests/test_polish_iters.py`) 다. 제안 원자 다듬기(`polish_atoms`, Adam `lr=0.02`)의
+  스텝 수가 `propose_atoms` **서명 기본값에만** 있어 config 로 도달할 수 없었다.
+  ⛔**기본값 80 은 배포값이고 바뀌지 않았다** — 시험이 `POLISH_ITERS_DEFAULT` 와 서명 기본값의
+  **등식**을 지키고, 키 부재 시 80 이 전달되는 것을 **거동으로** 확인한다(문자열 검사 아님).
+  사유 = `tmp/T22_APLADDER_2026-09-06/PROBE_4.md`(다듬기가 80/80 장면에서 파수를 키운다,
+  p=8.3e-25)·`PROBE_5.md`(320스텝까지 수렴하지 않고 표류가 긴 파도에 집중)·
+  ⚠`PROBE_6.md`(**선택기가 대부분 흡수한다** — 20/30, p=0.049 ⟹ 실무적 무게는 작다).
   ★**283 → 291 (+8)** 은 2026-09-05 **시간 원점(time origin)** 회귀 시험
   (`wavesplat/tests/test_time_origin.py`) 다 — `T17` §C1 이 같은 규칙을 원시 `t`(≤1745.8 s)와
   `t−t.min()` 두 원점에서 불러 float32 위상 정밀도가 **32배** 갈린 사고의 방벽.

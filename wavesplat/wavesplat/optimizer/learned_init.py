@@ -81,6 +81,9 @@ _CACHE = {}
 #   우선순위 주석 참조) ⟹ `{**DEFAULT_CONFIG, 'max_n': X}` 로 정의된 **동결 배치 팔은
 #   지금도 두 역할이 함께 X 로 간다** = 의미 불변.
 POOL_CAP_DEFAULT = 30
+# ★제안 원자 다듬기(Adam) 스텝 수 — `propose_atoms` 의 서명 기본값과 **같은 값**이어야 한다.
+#   `tmp/_audit/` 의 배포 상수 대조가 이 등식을 검사한다.
+POLISH_ITERS_DEFAULT = 80
 
 
 def resolve_cap(config, key, default):
@@ -390,6 +393,9 @@ def learned_init_params(frames, depth, config=None, seed=None):
       learned_ckpt    : checkpoint path (default DEFAULT_CKPT =
                         <repo>/results/direction3/beamform_cond_diffusion_mixed_v1.pt)
       learned_nsamp   : diffusion samples (default 4)
+      learned_polish_iters : Adam refinement steps on the proposed atoms
+                        (default POLISH_ITERS_DEFAULT=80 = the shipped value).
+                        0 disables refinement -> raw diffusion output.
       learned_diffusion_seed : ancestral sampling seed (default: seed, else 0)
       learned_konly   : if True, use v2_konly-style w=0.01 / random phi instead of LS fit
       learned_energy_thresh / learned_dedup_dk : selection knobs
@@ -412,8 +418,20 @@ def learned_init_params(frames, depth, config=None, seed=None):
         nsamp = int(config.get('learned_nsamp', 4))
         dseed = int(config.get('learned_diffusion_seed',
                                0 if seed is None else seed))
+        # ★`learned_polish_iters` (2026-09-06, additive): expose the refinement step
+        #   count that `propose_atoms` has always defaulted to. Default is
+        #   POLISH_ITERS_DEFAULT = 80 -> bit-identical to every prior run.
+        #   ⛔Do NOT change the default: the deployed proposal, every frozen batch, and
+        #   the T3/T5-ENS/T17 anchors were all measured at 80.
+        #   Why it is reachable now: tmp/T22_APLADDER_2026-09-06/PROBE_4.md measured that
+        #   this step inflates proposal wavenumber in 80/80 training scenes and does not
+        #   converge by 320 steps on long waves (PROBE_5). A batch that treats it must
+        #   own the arm in the package, not in a harness (the `D3` lesson).
+        pit = int(config.get('learned_polish_iters', POLISH_ITERS_DEFAULT))
+        if pit < 0:
+            raise ValueError(f'learned_polish_iters must be >= 0, got {pit}')
         rkx, rky, ren = propose_atoms(frames, depth, ckpt=ckpt, nsamp=nsamp,
-                                      diffusion_seed=dseed)
+                                      diffusion_seed=dseed, polish_iters=pit)
 
     kx, ky, en = pool_and_select(rkx, rky, ren, energy_thresh=e_th,
                                  dedup_dk=ddk, max_n=max_n)

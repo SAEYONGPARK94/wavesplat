@@ -53,6 +53,15 @@ CHECKS = [
     #   그 방향을 **구조적으로 볼 수 없다**(그 사실을 `T16 PREREG:505` 가 **미리** 적었다).
     #   ⛔등록되지 않아 아무도 돌리지 않는 회귀 시험은 없는 것과 같다 ⟹ 자가진단도 여기.
     ('★게이트 승계 항진 검사', [PY, 'tmp/_audit/check_gate_succession.py', '--selftest']),
+    # ★★[2026-09-06] **끝점 선택이 실측 축의 검정력 벽이었다.** 원장의 상시 문장
+    #   (*"n=12 는 10/12 를 어떤 자료에서도 기각 불가"*)은 **부호검정에 대해서만 참**이다 ---
+    #   동결 `T17` 행에 정확 2^12 부호뒤집기 치환을 돌리면 **9/12 가 p=0.00195** 로
+    #   Holm α/6=0.00833 을 통과한다(`tmp/_audit/ENDPOINT_SIGNFLIP.md`).
+    #   ⟹ 계산의 유일출처를 만들었다(`tmp/_audit/signflip_test.py`, 형제 = `sign_test_mde.py`).
+    #   ⛔**검정을 만들었으면 귀무에서 얼마나 틀리는지 먼저 재라** --- 그 도구의 자가진단은
+    #   1종오류율·벡터화 동치·음성대조·`T17` 재현 핀을 함께 본다.
+    #   ⛔등록되지 않아 아무도 돌리지 않는 회귀 시험은 없는 것과 같다.
+    ('★치환검정 자가진단', [PY, 'tmp/_audit/signflip_test.py', '--selftest']),
     ('상수 생성기 --check', [PY, 'scripts/gen_paper_constants.py', '--check']),
     ('동반 공시', [PY, 'scripts/check_paper_disclosures.py']),
     ('★항진 검사', [PY, 'scripts/check_paper_disclosures.py', '--selftest']),

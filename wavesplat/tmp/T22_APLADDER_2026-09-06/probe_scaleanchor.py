@@ -121,12 +121,19 @@ def main():
             r = np.random.default_rng(G.SEED + fi)
             x, y, tt, zz = PG.sample_sub(Ew, gx, gy, tw, G.DENSITY, r, 0.25)
             frames = R11.build_frames(x, y, tt, zz, G.GT_CONST)
-            akx, aky, _ = LI.propose_atoms(frames, G.DEPTH, nsamp=4, diffusion_seed=a.dseed,
+            akx, aky, _en3 = LI.propose_atoms(frames, G.DEPTH, nsamp=4, diffusion_seed=a.dseed,
                                          polish_iters=a.polish_iters)
             am = np.hypot(np.asarray(akx, float), np.asarray(aky, float))
             k_at = float(np.median(am))
+            # ★제3자에도 선택기 열을 켠다 (2026-09-06 심사 지적: 낙관값이 외삽이었다)
+            tskx, tsky, _ts = LI.pool_and_select(akx, aky, _en3, energy_thresh=0.03,
+                                                 dedup_dk=0.03,
+                                                 max_n=int(LI.POOL_CAP_DEFAULT))
+            tsm = np.hypot(np.asarray(tskx, float), np.asarray(tsky, float))
+            k_sel3 = float(np.median(tsm)) if tsm.size else float('nan')
             L = max(float(np.ptp(x)), float(np.ptp(y)))
-            rows.append(dict(domain='third', tag=a.tag, seed=a.seed, dseed=a.dseed, pol=a.polish_iters, idx=name, k_true=k_true, k_atom=k_at,
+            rows.append(dict(k_sel=k_sel3, n_sel=int(tsm.size),
+                             ratio_sel=k_sel3 / k_true, domain='third', tag=a.tag, seed=a.seed, dseed=a.dseed, pol=a.polish_iters, idx=name, k_true=k_true, k_atom=k_at,
                              ratio=k_at / k_true, L_obs=L, n_obs=int(len(zz)), Tp=None))
             print(f'   {name}: k_true={k_true:.4f} k_atom={k_at:.4f} '
                   f'ratio={k_at/k_true:.2f}')

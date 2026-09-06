@@ -118,6 +118,21 @@ def declared(batch_dir):
     return out
 
 
+# ★[2026-09-06] **손으로 읽은 폭 원장** — `N_…` 표기를 쓰지 않는 **동결 레거시** 배치 전용.
+#   ⛔새 배치는 여기 넣지 마라. `N_…` 상수를 선언하면 검사기가 스스로 읽는다.
+#   ⛔폭 1 로 조용히 줄이는 것(=[A2] 가 막은 것)과 다르다 — **근거를 파일:줄로 적고**
+#   그 근거가 사라지면 아래 `--selftest` 가 죽는다.
+#
+#   계기: `T24` 밑변을 고르려는데 검사기가 *"폭 미상 배치 있음"* 으로 **추천을 보류**했다.
+#   그 배치는 동결물이라 고칠 수 없고, 폭은 소스에서 **명백**하다.
+WIDTH_KNOWN = {
+    # `calibrate.py:114` `for sd in (1, 2, 3):` → `run(..., seed=SEED + sd)`
+    #   ⟹ 실사용 시드는 base+1..base+3. `calibration.json` 의 `kind=="seed"` 항목 **3개**가
+    #   그것을 관측으로 확인한다(이 파일의 `--selftest` 가 둘 다 대조한다).
+    'realspread_2026-08-05': (3, 'calibrate.py:114 `for sd in (1, 2, 3)`'),
+}
+
+
 def band(base, width):
     return (base + 1, base + width) if width else (base + 1, base + 1)
 
@@ -143,9 +158,12 @@ def main(argv):
         if obs:
             spans[name] = (min(obs), max(obs), 'observed', len(obs))
         elif dec:
-            lo = min(band(b, w)[0] for _, b, w, _ in dec)
-            hi = max(band(b, w)[1] for _, b, w, _ in dec)
-            spans[name] = (lo, hi, 'declared(추정폭)', 0)
+            kw = WIDTH_KNOWN.get(name, (None, None))[0]
+            lo = min(band(b, w if w is not None else kw)[0] for _, b, w, _ in dec)
+            hi = max(band(b, w if w is not None else kw)[1] for _, b, w, _ in dec)
+            spans[name] = (lo, hi,
+                           'declared(원장폭)' if kw and all(w is None for _, _, w, _ in dec)
+                           else 'declared(추정폭)', 0)
         for nm, b, w, src in dec:
             base_map.setdefault(b, []).append(f'{name}:{src}:{nm}')
 
@@ -156,6 +174,11 @@ def main(argv):
     unknown_w = sorted({name for name, (obs, dec) in batches.items()
                         if not obs and dec and all(w is None for _, _, w, _ in dec)})
     for name in unknown_w:
+        if name in WIDTH_KNOWN:
+            w, why = WIDTH_KNOWN[name]
+            print(f'  [원장] {name} — 폭 {w} (손으로 읽음: {why}) '
+                  f'⛔자동 판독이 아니다')
+            continue
         fails += 1
         keys.append(f'WIDTH:{name}')
         print(f'  [FAIL] {name} — 밑변은 선언됐으나 **폭을 못 찾았다**(`N_…` 상수 미발견) '
@@ -259,8 +282,10 @@ def main(argv):
     #   추천 없음보다 나쁘다(초판이 T15 대역 **안**을 가리켰다).
     hi_all = max([h for _, h, _, _ in spans.values()]
                  + [h for _, h in dec_span.values()], default=0)
-    if unknown_w:
-        print(f'  ⛔다음 밑변 추천 **보류** — 폭 미상 배치 {unknown_w}')
+    # ★원장에 폭이 적힌 배치는 「미상」이 아니다 — 추천을 막지 않는다.
+    still_unknown = [n for n in unknown_w if n not in WIDTH_KNOWN]
+    if still_unknown:
+        print(f'  ⛔다음 밑변 추천 **보류** — 폭 미상 배치 {still_unknown}')
     else:
         print(f'  ⟹ ★다음 배치가 안전하게 쓸 밑변: **{((hi_all // 100) + 1) * 100}** 이상')
     print(f'  요약: FAIL {fails}   (⛔충돌은 판정 오염이 아니라 **규율 위반**이다 — 독스트링)')
